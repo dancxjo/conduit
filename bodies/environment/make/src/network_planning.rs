@@ -3,7 +3,8 @@
 //! No provider, authority, Host, Boot, assignment or Play is created here.
 use alloc::collections::BTreeMap;
 use conduit_core as c;
-use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment, LoweringError};
+use conduit_network_join_call::{CheckedNetworkLowering, PreparedNetworkKernelParts};
+use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 
 #[derive(Debug)]
 pub enum NetworkPlanningRefusal {
@@ -39,7 +40,7 @@ impl NetworkPlanningRefusal {
 
 pub struct PreparedNetworkSetup {
     pub(super) plan: c::Plan,
-    pub(super) lowered: LoweredPlanFragment,
+    checked: CheckedNetworkLowering,
 }
 impl PreparedNetworkSetup {
     /// Root may release inert construction metadata between preparations. A
@@ -70,6 +71,17 @@ impl PreparedNetworkSetup {
         bases: &[c::BaseImplementationId],
         authority: &[c::AuthorityGrant],
     ) -> Result<Self, NetworkPlanningRefusal> {
+        Self::plan_indexed_for_identity(expected, source, host, bases, authority)?.lower()
+    }
+    /// Produce only the current ordinary Plan, allowing offers/grants to retire
+    /// before canonical lowering allocates its numeric metadata.
+    pub fn plan_indexed_for_identity(
+        expected: &c::PlotIdentity,
+        source: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        host: &c::HostAdvertisement,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<NetworkPlanForLowering, NetworkPlanningRefusal> {
         use NetworkPlanningRefusal as E;
         // This preliminary fence needs only the three pinned identities. Both
         // indexed placement and planning below validate the complete planning
@@ -98,7 +110,13 @@ impl PreparedNetworkSetup {
             &BTreeMap::new(),
         )
         .map_err(E::Planning)?;
-        Self::from_plan(plan, host)
+        let [fragment] = plan.fragments.as_slice() else {
+            return Err(E::ForeignOrMultipleFragments);
+        };
+        if fragment.host_id != host.host_id || fragment.boot_id != host.boot_id {
+            return Err(E::ForeignOrMultipleFragments);
+        }
+        Ok(NetworkPlanForLowering { plan })
     }
     pub fn from_checked(
         source: &conduit_plot::ExpandedCanonicalPlot,
@@ -139,13 +157,32 @@ impl PreparedNetworkSetup {
         if fragment.host_id != host.host_id || fragment.boot_id != host.boot_id {
             return Err(E::ForeignOrMultipleFragments);
         }
-        let lowered = lower_plan_fragment(fragment).map_err(E::Lowering)?;
-        Ok(Self { plan, lowered })
+        let checked = CheckedNetworkLowering::prepare_lowering(fragment).map_err(E::Lowering)?;
+        Ok(Self { plan, checked })
     }
     pub fn plan(&self) -> &c::Plan {
         &self.plan
     }
     pub fn lowered(&self) -> &LoweredPlanFragment {
-        &self.lowered
+        self.checked.lowered()
+    }
+    pub fn kernel_parts(
+        &self,
+    ) -> Result<PreparedNetworkKernelParts, conduit_network_join_call::ControlKernelRefusal> {
+        self.checked.kernel_parts(&self.plan.fragments[0])
+    }
+}
+/// Opaque current Plan awaiting canonical lowering; grants no effect authority.
+pub struct NetworkPlanForLowering {
+    plan: c::Plan,
+}
+impl NetworkPlanForLowering {
+    pub fn lower(self) -> Result<PreparedNetworkSetup, NetworkPlanningRefusal> {
+        let checked = CheckedNetworkLowering::prepare_lowering(&self.plan.fragments[0])
+            .map_err(NetworkPlanningRefusal::Lowering)?;
+        Ok(PreparedNetworkSetup {
+            plan: self.plan,
+            checked,
+        })
     }
 }

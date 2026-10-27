@@ -27,6 +27,8 @@ mod mask;
 pub(crate) mod memory_check;
 #[path = "native_network_offer.rs"]
 mod network_offer;
+#[path = "native_network_plan.rs"]
+mod network_plan;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_setup.rs"]
@@ -397,37 +399,6 @@ impl NativeRoot {
     }
     /// Use current initialized offers only. No authority or local Base is
     /// inferred from authored meaning, SDK configuration or the UART request.
-    /// A prepared Plan remains uninstalled; admission and kernel storage are
-    /// separate. Each call replaces preparation against this same actual Boot.
-    pub fn prepare_network_plan(&mut self) -> Result<(), ()> {
-        self.network_preparation = None;
-        let host = self.network_advertisement()?;
-        let local_bases = [c::BaseImplementationId::from("conduit.base/local@1")];
-        let grants = match (self.network.ready(), self.credentials.as_ref()) {
-            (Some(join), Some(source)) => Some([
-                self.issuer.grant(
-                    source.native_identity(),
-                    crate::native_authority::Operation::Credentials,
-                )?,
-                self.issuer.grant(
-                    join.native_identity(),
-                    crate::native_authority::Operation::Join,
-                )?,
-            ]),
-            _ => None,
-        };
-        let source = crate::native_source::load();
-        self.network_preparation = Some(
-            crate::network_planning::PreparedNetworkSetup::from_indexed_for_identity(
-                &self.network_source,
-                &source,
-                &host,
-                &local_bases,
-                grants.as_ref().map_or(&[], |v| v.as_slice()),
-            ),
-        );
-        Ok(())
-    }
     pub fn network_plan_status(&self) -> &'static str {
         if self.play.attempted() {
             return self.play.status();

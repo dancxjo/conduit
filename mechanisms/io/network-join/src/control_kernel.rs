@@ -46,6 +46,53 @@ pub struct PreparedNetworkKernel {
     pub kernel: NetworkControlKernel,
     pub roles: NetworkControlRoles,
 }
+/// Opaque result of actual canonical fragment verification and lowering.
+/// No caller-supplied numeric tables can construct this certificate.
+pub struct CheckedNetworkLowering {
+    fragment_id: conduit_core::FragmentId,
+    lowered: LoweredPlanFragment,
+}
+impl CheckedNetworkLowering {
+    pub fn prepare(fragment: &PlanFragment) -> Result<Self, ControlKernelRefusal> {
+        if !conduit_core::verify_plan_fragment(fragment) {
+            return Err(ControlKernelRefusal::Identity);
+        }
+        Self::prepare_lowering(fragment).map_err(|_| ControlKernelRefusal::Lowering)
+    }
+    /// Preserve canonical lowering diagnostics for ordinary planner callers.
+    pub fn prepare_lowering(
+        fragment: &PlanFragment,
+    ) -> Result<Self, conduit_plan_lowering::lowering::LoweringError> {
+        if !conduit_core::verify_plan_fragment(fragment) {
+            return Err(conduit_plan_lowering::lowering::LoweringError::InvalidFragment);
+        }
+        Ok(Self {
+            fragment_id: fragment.fragment_id.clone(),
+            lowered: lower_plan_fragment(fragment)?,
+        })
+    }
+    pub fn lowered(&self) -> &LoweredPlanFragment {
+        &self.lowered
+    }
+    pub fn kernel_parts(
+        &self,
+        fragment: &PlanFragment,
+    ) -> Result<PreparedNetworkKernelParts, ControlKernelRefusal> {
+        if fragment.fragment_id != self.fragment_id || !conduit_core::verify_plan_fragment(fragment)
+        {
+            return Err(ControlKernelRefusal::Identity);
+        }
+        checked_parts(fragment, &self.lowered)
+    }
+}
+/// Exact checked numeric tables. This is structural preparation, not permission to run.
+pub struct PreparedNetworkKernelParts {
+    nodes: [k::scheduler::NodeSpec<CONTROL_PORTS>; 3],
+    cords: [k::scheduler::CordSpec; 2],
+    routes: k::FixedRoutes<{ 3 * CONTROL_PORTS }, 2>,
+    bindings: k::FixedHostCallBindings<3>,
+    roles: NetworkControlRoles,
+}
 impl PreparedNetworkKernel {
     /// Root must still retain exact selected Host Call owners and admit this
     /// complete fixed storage/work profile before starting Play. This function
@@ -55,98 +102,129 @@ impl PreparedNetworkKernel {
         lowered: &LoweredPlanFragment,
     ) -> Result<Self, ControlKernelRefusal> {
         use ControlKernelRefusal as E;
-        if !conduit_core::verify_plan_fragment(fragment) {
-            return Err(E::Identity);
-        }
-        if lower_plan_fragment(fragment).map_err(|_| E::Lowering)? != *lowered {
+        let checked = CheckedNetworkLowering::prepare(fragment)?;
+        if checked.lowered() != lowered {
             return Err(E::Lowering);
         }
-        if lowered.nodes.len() != 3
-            || lowered.node_specs.len() != 3
-            || lowered.cords.len() != 2
-            || lowered.host_calls.len() != 3
-            || lowered
-                .nodes
+        checked.kernel_parts(fragment)?.finish()
+    }
+}
+fn checked_parts(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+) -> Result<PreparedNetworkKernelParts, ControlKernelRefusal> {
+    use ControlKernelRefusal as E;
+    if lowered.nodes.len() != 3
+        || lowered.node_specs.len() != 3
+        || lowered.cords.len() != 2
+        || lowered.host_calls.len() != 3
+        || lowered
+            .nodes
+            .iter()
+            .enumerate()
+            .any(|(i, n)| usize::from(n.node.0) != i)
+        || !lowered.remote_endpoints.is_empty()
+        || !lowered.states.is_empty()
+        || !lowered.fusions.is_empty()
+        || !lowered.fore_ports.is_empty()
+        || !lowered.resource_cords.is_empty()
+        || !lowered.shared_pools.is_empty()
+        || !fragment.execution_regions.is_empty()
+        || lowered
+            .nodes
+            .iter()
+            .any(|n| !n.terminal_transductions.is_empty())
+        || lowered.resources.len() != 2
+        || lowered.node_specs.iter().any(|node| {
+            node.input_cords[CONTROL_PORTS..]
                 .iter()
-                .enumerate()
-                .any(|(i, n)| usize::from(n.node.0) != i)
-            || !lowered.remote_endpoints.is_empty()
-            || !lowered.states.is_empty()
-            || !lowered.fusions.is_empty()
-            || !lowered.fore_ports.is_empty()
-            || !lowered.resource_cords.is_empty()
-            || !lowered.shared_pools.is_empty()
-            || !fragment.execution_regions.is_empty()
-            || lowered
-                .nodes
-                .iter()
-                .any(|n| !n.terminal_transductions.is_empty())
-            || lowered.resources.len() != 2
-            || lowered.node_specs.iter().any(|node| {
-                node.input_cords[CONTROL_PORTS..]
-                    .iter()
-                    .any(Option::is_some)
-            })
-            || fragment
+                .any(Option::is_some)
+        })
+        || fragment
+            .placements
+            .iter()
+            .any(|gear| gear.inputs.len() > CONTROL_PORTS || gear.outputs.len() > CONTROL_PORTS)
+    {
+        return Err(E::Shape);
+    }
+    if lowered.cord_value_slots > 8
+        || lowered.cord_value_bytes > 8 * 167
+        || lowered.sign_items > 128
+        || lowered.sign_bytes > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
+    {
+        return Err(E::Storage);
+    }
+    let find = |kind: &str| {
+        let mut found = lowered.nodes.iter().filter(|n| {
+            fragment
                 .placements
                 .iter()
-                .any(|gear| gear.inputs.len() > CONTROL_PORTS || gear.outputs.len() > CONTROL_PORTS)
-        {
+                .any(|g| g.placement_id == n.placement_id && g.kind_id.as_str() == kind)
+        });
+        let node = found.next().ok_or(E::Shape)?.node;
+        if found.next().is_some() {
             return Err(E::Shape);
         }
-        if lowered.cord_value_slots > 8
-            || lowered.cord_value_bytes > 8 * 167
-            || lowered.sign_items > 128
-            || lowered.sign_bytes > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
-        {
-            return Err(E::Storage);
-        }
-        let find = |kind: &str| {
-            let mut found = lowered.nodes.iter().filter(|n| {
-                fragment
-                    .placements
-                    .iter()
-                    .any(|g| g.placement_id == n.placement_id && g.kind_id.as_str() == kind)
-            });
-            let node = found.next().ok_or(E::Shape)?.node;
-            if found.next().is_some() {
-                return Err(E::Shape);
-            }
-            Ok(node)
-        };
-        let roles = NetworkControlRoles {
-            credentials: find(conduit_net::NETWORK_CREDENTIALS_OPERATION)?,
-            join: find(conduit_net::NETWORK_JOIN_OPERATION)?,
-            attachment_sign: find(conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)?,
-        };
-        if roles.credentials == roles.join
-            || roles.join == roles.attachment_sign
-            || roles.credentials == roles.attachment_sign
-        {
+        Ok(node)
+    };
+    let roles = NetworkControlRoles {
+        credentials: find(conduit_net::NETWORK_CREDENTIALS_OPERATION)?,
+        join: find(conduit_net::NETWORK_JOIN_OPERATION)?,
+        attachment_sign: find(conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)?,
+    };
+    if roles.credentials == roles.join
+        || roles.join == roles.attachment_sign
+        || roles.credentials == roles.attachment_sign
+    {
+        return Err(E::Shape);
+    }
+    let mut routes = k::FixedRoutes::<{ 3 * CONTROL_PORTS }, 2>::new(CONTROL_PORTS as u16);
+    for route in &lowered.routes {
+        routes
+            .install(
+                route.source_node,
+                route.source_port,
+                route.range,
+                &route.targets,
+            )
+            .map_err(|_| E::Tables)?;
+    }
+    routes.seal().map_err(|_| E::Tables)?;
+    let mut bindings = k::FixedHostCallBindings::<3>::new(1);
+    for call in &lowered.host_calls {
+        if call.call != k::HostCallId(0) || call.maximum_in_flight != 1 {
             return Err(E::Shape);
         }
-        let mut routes = k::FixedRoutes::<{ 3 * CONTROL_PORTS }, 2>::new(CONTROL_PORTS as u16);
-        for route in &lowered.routes {
-            routes
-                .install(
-                    route.source_node,
-                    route.source_port,
-                    route.range,
-                    &route.targets,
-                )
-                .map_err(|_| E::Tables)?;
-        }
-        routes.seal().map_err(|_| E::Tables)?;
-        let mut bindings = k::FixedHostCallBindings::<3>::new(1);
-        for call in &lowered.host_calls {
-            if call.call != k::HostCallId(0) || call.maximum_in_flight != 1 {
-                return Err(E::Shape);
-            }
-            bindings
-                .install(call.node, call.binding)
-                .map_err(|_| E::Tables)?;
-        }
-        bindings.seal().map_err(|_| E::Tables)?;
+        bindings
+            .install(call.node, call.binding)
+            .map_err(|_| E::Tables)?;
+    }
+    bindings.seal().map_err(|_| E::Tables)?;
+    Ok(PreparedNetworkKernelParts {
+        nodes: core::array::from_fn(|i| k::scheduler::NodeSpec {
+            input_cords: [lowered.node_specs[i].input_cords[0]],
+            maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel,
+        }),
+        cords: core::array::from_fn(|i| lowered.cords[i].spec),
+        routes,
+        bindings,
+        roles,
+    })
+}
+impl PreparedNetworkKernelParts {
+    pub fn roles(&self) -> NetworkControlRoles {
+        self.roles
+    }
+    /// Materialize full unchanged storage only after caller retires construction metadata.
+    pub fn finish(self) -> Result<PreparedNetworkKernel, ControlKernelRefusal> {
+        use ControlKernelRefusal as E;
+        let Self {
+            nodes,
+            cords,
+            routes,
+            bindings,
+            roles,
+        } = self;
         let mut values = k::FixedValueStore::<8, 167>::new(8 * 167).map_err(|_| E::Storage)?;
         let empty = values.store(&[]).map_err(|_| E::Storage)?;
         let drivers = core::array::from_fn(|i| {
@@ -162,18 +240,9 @@ impl PreparedNetworkKernel {
             k::HostedSignLog::new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
                 .map_err(|_| E::Storage)?;
         let kernel = NetworkControlKernel::new_with_host_calls(
-            core::array::from_fn(|i| k::scheduler::NodeSpec {
-                input_cords: [lowered.node_specs[i].input_cords[0]],
-                maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel,
-            }),
-            core::array::from_fn(|i| lowered.cords[i].spec),
-            routes,
-            bindings,
-            drivers,
-            values,
-            signs,
+            nodes, cords, routes, bindings, drivers, values, signs,
         )
         .map_err(|_| E::Tables)?;
-        Ok(Self { kernel, roles })
+        Ok(PreparedNetworkKernel { kernel, roles })
     }
 }

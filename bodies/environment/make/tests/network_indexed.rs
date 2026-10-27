@@ -290,6 +290,92 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
         kernel_allocation.peak_bytes, kernel_allocation.retained_bytes(), CONTROL_KERNEL_BYTES);
     assert!(allocation.peak_bytes >= allocation.retained_bytes());
     assert!(kernel_allocation.retained_bytes() >= CONTROL_SIGN_BACKING_BYTES);
+    let (parts, parts_allocation) = allocation_probe::observe(|| indexed.kernel_parts().unwrap());
+    assert_eq!(parts.roles(), kernel.roles);
+    let checked = CheckedNetworkLowering::prepare(&indexed.plan().fragments[0]).unwrap();
+    let mut foreign = indexed.plan().fragments[0].clone();
+    foreign.boot_id = "forged/network/boot".into();
+    assert!(matches!(
+        checked.kernel_parts(&foreign),
+        Err(ControlKernelRefusal::Identity)
+    ));
+    let mut forged_numeric = indexed.lowered().clone();
+    forged_numeric.nodes[0].maximum_step_fuel += 1;
+    assert!(matches!(
+        PreparedNetworkKernel::prepare(&indexed.plan().fragments[0], &forged_numeric),
+        Err(ControlKernelRefusal::Lowering)
+    ));
+    let (mut staged, finish_allocation) = allocation_probe::observe(|| parts.finish().unwrap());
+    assert_eq!(staged.roles, kernel.roles);
+    // Both exact kernels expose the same first selected request, without any
+    // fixture provider or credential being invoked during preparation.
+    let mut kernel = kernel;
+    for _ in 0..8 {
+        assert_eq!(staged.kernel.step(), kernel.kernel.step());
+        assert_eq!(
+            staged.kernel.next_host_request(),
+            kernel.kernel.next_host_request()
+        );
+    }
+    println!(
+        "network opaque-parts CPU peak={} retained={} finish peak={} retained={}",
+        parts_allocation.peak_bytes,
+        parts_allocation.retained_bytes(),
+        finish_allocation.peak_bytes,
+        finish_allocation.retained_bytes()
+    );
+    assert!(parts_allocation.peak_bytes < kernel_allocation.peak_bytes);
+    assert_eq!(
+        finish_allocation.retained_bytes(),
+        kernel_allocation.retained_bytes()
+    );
+    let unlowered = planning::PreparedNetworkSetup::plan_indexed_for_identity(
+        &expected, &image, &host, &bases, &grants,
+    )
+    .unwrap();
+    let split = unlowered.lower().unwrap();
+    assert_eq!(split.plan(), indexed.plan());
+    assert_eq!(split.lowered(), indexed.lowered());
+    let parts = split.kernel_parts().unwrap();
+    drop(split);
+    let after_metadata_retirement = parts.finish().unwrap();
+    assert_eq!(
+        after_metadata_retirement.roles,
+        indexed.kernel_parts().unwrap().roles()
+    );
+    let (_, overlap_memory) = allocation_probe::observe(|| {
+        let advertisement = host.clone();
+        let authority = grants.clone();
+        let prepared = planning::PreparedNetworkSetup::from_indexed_for_identity(
+            &expected,
+            &image,
+            &advertisement,
+            &bases,
+            &authority,
+        )
+        .unwrap();
+        PreparedNetworkKernel::prepare(&prepared.plan().fragments[0], prepared.lowered()).unwrap()
+    });
+    let (_, phased_memory) = allocation_probe::observe(|| {
+        let advertisement = host.clone();
+        let authority = grants.clone();
+        let plan = planning::PreparedNetworkSetup::plan_indexed_for_identity(
+            &expected,
+            &image,
+            &advertisement,
+            &bases,
+            &authority,
+        )
+        .unwrap();
+        drop(authority);
+        drop(advertisement);
+        let prepared = plan.lower().unwrap();
+        let parts = prepared.kernel_parts().unwrap();
+        drop(prepared);
+        parts.finish().unwrap()
+    });
+    println!("network CPU simultaneous construction baseline peak={} phased peak={} retained={} (no selected owner allocation/target admission)", overlap_memory.peak_bytes, phased_memory.peak_bytes, phased_memory.retained_bytes());
+    assert!(phased_memory.peak_bytes < overlap_memory.peak_bytes);
     drop(kernel);
     assert_eq!(indexed.plan(), owned.plan());
     assert_eq!(indexed.lowered(), owned.lowered());
@@ -350,6 +436,7 @@ conduit-core = {{path={:?}}}
 conduit-plot = {{path={:?},features=["flat-image"]}}
 conduit-planner = {{path={:?},features=["indexed-source"]}}
 conduit-plan-lowering = {{path={:?}}}
+conduit-network-join-call = {{path={:?}}}
 conduit-net = {{path={:?}}}
 conduit-face = {{path={:?}}}
 serde_json = "1"
@@ -360,6 +447,7 @@ opt-level = 1
             path("architecture/plot"),
             path("architecture/planner"),
             path("architecture/plan-lowering"),
+            path("mechanisms/io/network-join"),
             path("semantics/net"),
             path("semantics/face")
         ),

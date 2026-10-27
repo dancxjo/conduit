@@ -10,8 +10,9 @@ pub use credentials::{
 };
 mod control_kernel;
 pub use control_kernel::{
-    ControlKernelRefusal, NetworkControlKernel, NetworkControlRoles, PreparedNetworkKernel,
-    CONTROL_KERNEL_BYTES, CONTROL_PORTS, CONTROL_SIGN_BACKING_BYTES,
+    CheckedNetworkLowering, ControlKernelRefusal, NetworkControlKernel, NetworkControlRoles,
+    PreparedNetworkKernel, PreparedNetworkKernelParts, CONTROL_KERNEL_BYTES, CONTROL_PORTS,
+    CONTROL_SIGN_BACKING_BYTES,
 };
 mod control_back;
 pub use control_back::NetworkControlBack;

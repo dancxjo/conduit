@@ -142,6 +142,43 @@ impl NativePlay {
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
     ) -> Result<(), ()> {
+        let parts = self.bind_held(prepared, source, join, issuer)?;
+        self.materialize_held(parts)
+    }
+    /// Transfer and retire all rich construction metadata before full storage.
+    pub fn install_owned_held(
+        &mut self,
+        prepared: crate::network_planning::PreparedNetworkSetup,
+        source: &mut Option<ReadyCredentialBase<Source>>,
+        join: &mut Option<ReadyNetworkJoinBase<Provider>>,
+        issuer: &mut RootIssuer,
+    ) -> Result<(), ()> {
+        let parts = self.bind_held(&prepared, source, join, issuer)?;
+        drop(prepared);
+        self.materialize_held(parts)
+    }
+    pub fn install_owned(
+        &mut self,
+        prepared: crate::network_planning::PreparedNetworkSetup,
+        source: &mut Option<ReadyCredentialBase<Source>>,
+        join: &mut Option<ReadyNetworkJoinBase<Provider>>,
+        issuer: &mut RootIssuer,
+    ) -> Result<(), ()> {
+        self.install_owned_held(prepared, source, join, issuer)?;
+        self.release_held()
+    }
+    fn materialize_held(&mut self, parts: n::PreparedNetworkKernelParts) -> Result<(), ()> {
+        self.prepared = Some(alloc::boxed::Box::new(parts.finish().map_err(|_| ())?));
+        self.phase = "installed-held";
+        Ok(())
+    }
+    fn bind_held(
+        &mut self,
+        prepared: &crate::network_planning::PreparedNetworkSetup,
+        source: &mut Option<ReadyCredentialBase<Source>>,
+        join: &mut Option<ReadyNetworkJoinBase<Provider>>,
+        issuer: &mut RootIssuer,
+    ) -> Result<n::PreparedNetworkKernelParts, ()> {
         if self.attempted {
             return Err(());
         }
@@ -150,8 +187,8 @@ impl NativePlay {
         self.phase = "installation-refused";
         let fragment = &prepared.plan().fragments[0];
         let lowered = prepared.lowered();
-        let kernel = PreparedNetworkKernel::prepare(fragment, lowered).map_err(|_| ())?;
-        let role = kernel.roles;
+        let parts = prepared.kernel_parts().map_err(|_| ())?;
+        let role = parts.roles();
         let sign = &fragment
             .placements
             .iter()
@@ -170,7 +207,6 @@ impl NativePlay {
             return Err(());
         }
         let active = issuer.reserve_play(fragment)?;
-        self.prepared = Some(alloc::boxed::Box::new(kernel));
         let (table, handle, claim) = issuer.issue(
             source.as_ref().ok_or(())?.native_identity(),
             Operation::Credentials,
@@ -216,8 +252,7 @@ impl NativePlay {
             .map_err(|_| ())?,
         );
         self.active = Some(active);
-        self.phase = "installed-held";
-        Ok(())
+        Ok(parts)
     }
     /// This scheduling release does not grant authority or attest capacity.
     pub fn release_held(&mut self) -> Result<(), ()> {
