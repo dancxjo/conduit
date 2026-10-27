@@ -201,6 +201,7 @@ fn private_backup_prefix_migration_preserves_exact_canonical_custody() {
         evidence: Some(evidence.clone()),
         archives: Vec::new(),
         custody: Some(ArchiveCustody {
+            proof: resident.proof,
             layouts: payload::layout::Layouts::default(),
             source,
             summary: resident.summary,
@@ -447,6 +448,7 @@ fn private_physical_offload_preserves_actual_receipt_and_complete_archives() {
         evidence: Some(before.retained.evidence),
         archives: Vec::new(),
         custody: Some(ArchiveCustody {
+            proof: before.proof,
             layouts: payload::layout::Layouts::default(),
             source,
             summary: before.summary,

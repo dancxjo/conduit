@@ -92,6 +92,7 @@ struct Store {
     ready: bool,
 }
 struct ArchiveCustody {
+    proof: Option<payload::rewrite::AuthenticatedReceipts>,
     layouts: payload::layout::Layouts,
     source: crate::native_body_checkpoint::SourceSnapshot,
     summary: payload::archive::Summary,
@@ -346,7 +347,7 @@ fn decode_checkpoint(
         return Err("restart-generation");
     }
     let mut refusal = None;
-    let loaded = journal
+    let mut loaded = journal
         .load_streamed_with_snapshot(binding, seed, |reader| {
             payload::decode_resident_with_prefix(
                 |chunk| reader.read(chunk).map_err(|_| ()),
@@ -391,6 +392,7 @@ fn decode_checkpoint(
         seed.fill(0);
         return Err("restart-key-changed");
     }
+    payload::authenticate_receipts(&mut loaded.0, &loaded.1)?;
     Ok(loaded)
 }
 pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result<(), &'static str> {
@@ -427,6 +429,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                 retained.evidence,
                 Vec::new(),
                 Some(ArchiveCustody {
+                    proof: resident.proof,
                     layouts: resident.layouts,
                     source,
                     summary: resident.summary,
@@ -504,6 +507,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
             return Err("restart-initial-key");
         }
         store.custody = Some(ArchiveCustody {
+            proof: resident.proof,
             layouts: resident.layouts,
             source,
             summary: resident.summary,
@@ -560,30 +564,63 @@ fn checkpoint_store(
         return Err("restart-body-binding");
     }
     let next_custody = if let Some(previous) = store.custody.as_ref() {
-        let mut metadata = None;
-        let source = store
-            .journal
-            .rewrite_streamed(&previous.source, &store.binding, seed, |io| {
-                // Preserve typed journal read faults through the bounded codec
-                // callback; transport failure is not malformed canonical data.
-                let mut read_refusal = None;
-                let emitted = payload::stream_rewrite_with_layout(
+        let prepared = previous
+            .proof
+            .as_ref()
+            .map(|proof| {
+                payload::rewrite::PreparedRewrite::prepare(
+                    proof,
+                    &previous.source,
                     owner.evidence(),
                     owner.pending_archives(),
-                    store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
+                    store
+                        .admissions
+                        .as_ref()
+                        .ok_or("restart-admissions-missing")?,
                     &previous.summary,
                     previous.span,
                     previous.prefix.as_ref(),
                     previous.local_count,
                     verifying_key,
                     &previous.layouts,
-                    |out| {
-                        io.read_source(out).map_err(|error| {
-                            read_refusal = Some(error);
-                        })
-                    },
-                    &mut |bytes| io.write(bytes),
-                );
+                )
+            })
+            .transpose()?;
+        let mut metadata = None;
+        let completion = store
+            .journal
+            .rewrite_streamed_attested(&previous.source, &store.binding, seed, |io| {
+                // Preserve typed journal read faults through the bounded codec
+                // callback; transport failure is not malformed canonical data.
+                let mut read_refusal = None;
+                let emitted = if let Some(prepared) = &prepared {
+                    prepared.emit(
+                        |out| {
+                            io.read_source(out).map_err(|error| {
+                                read_refusal = Some(error);
+                            })
+                        },
+                        &mut |bytes| io.write(bytes),
+                    )
+                } else {
+                    payload::stream_rewrite_with_layout(
+                        owner.evidence(),
+                        owner.pending_archives(),
+                        store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
+                        &previous.summary,
+                        previous.span,
+                        previous.prefix.as_ref(),
+                        previous.local_count,
+                        verifying_key,
+                        &previous.layouts,
+                        |out| {
+                            io.read_source(out).map_err(|error| {
+                                read_refusal = Some(error);
+                            })
+                        },
+                        &mut |bytes| io.write(bytes),
+                    )
+                };
                 let next = emitted
                     .map_err(|error| read_refusal.unwrap_or_else(|| stream_refusal(error)))?;
                 if metadata.as_ref().is_some_and(|prior| prior != &next) {
@@ -607,7 +644,16 @@ fn checkpoint_store(
                 }
             })?;
         let (summary, span) = metadata.ok_or("restart-checkpoint-metadata")?;
+        let (source, proof) = if let Some(prepared) = &prepared {
+            let (source, proof) = prepared.committed(completion).inspect_err(|_| {
+                store.failed = true;
+            })?;
+            (source, Some(proof))
+        } else {
+            (completion.into_source(), None)
+        };
         ArchiveCustody {
+            proof,
             layouts: previous.layouts.clone(),
             source,
             summary,
@@ -656,6 +702,7 @@ fn checkpoint_store(
             return Err("restart-checkpoint-key");
         }
         ArchiveCustody {
+            proof: resident.proof,
             layouts: resident.layouts,
             source,
             summary: resident.summary,

@@ -55,6 +55,13 @@ impl<T> Lock<T> {
 }
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_checkpoint.rs"]
 mod native_body_checkpoint;
+// Per-thread read faults affect only explicit receipt-proof minting tests.
+std::thread_local! {
+    static CHECKPOINT_DECODE_FAULT: std::cell::Cell<(u8,usize,usize)> = const { std::cell::Cell::new((0,0,0)) };
+}
+fn checkpoint_decode_fault(mode: u8) {
+    CHECKPOINT_DECODE_FAULT.with(|f| f.set((mode, 0, 0)));
+}
 mod native_evidence_region {
     pub fn test_empty() -> BodyRegion {
         BodyRegion {
@@ -79,6 +86,36 @@ mod native_evidence_region {
                 m.0.get(at as usize..at as usize + out.len())
                     .ok_or(native_body_checkpoint::Refusal::Storage)?,
             );
+            CHECKPOINT_DECODE_FAULT.with(|fault| {
+                use sha2::Digest;
+                let (mode, mut headers, mut payloads) = fault.get();
+                if mode == 0 {
+                    return;
+                }
+                if at.is_multiple_of(32768) && out.len() == 160 {
+                    headers += 1;
+                    payloads = 0;
+                    if mode == 1 && headers == 2 {
+                        // A completely authenticated second source with a
+                        // different private seed must still fail the root pin.
+                        out[56..88].fill(62);
+                        let length = u32::from_le_bytes(out[16..20].try_into().unwrap()) as usize;
+                        let mut hash = sha2::Sha256::new();
+                        hash.update(&out[..120]);
+                        hash.update(&m.0[at as usize + 160..at as usize + 160 + length]);
+                        out[120..152].copy_from_slice(&hash.finalize());
+                    }
+                } else if mode == 2 && headers == 2 && at % 32768 >= 160 {
+                    payloads += 1;
+                    let base = (at / 32768 * 32768) as usize;
+                    let length =
+                        u32::from_le_bytes(m.0[base + 16..base + 20].try_into().unwrap()) as usize;
+                    if payloads == length.div_ceil(128) + 1 && !out.is_empty() {
+                        out[0] ^= 1;
+                    }
+                }
+                fault.set((mode, headers, payloads));
+            });
             Ok(())
         }
         fn program(

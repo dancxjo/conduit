@@ -4,6 +4,7 @@
 extern crate alloc;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_checkpoint.rs"]
 mod checkpoint;
+use checkpoint as native_body_checkpoint;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_restart_payload.rs"]
 mod payload;
 use checkpoint::{Checkpoint, Refusal, SourceSnapshot};

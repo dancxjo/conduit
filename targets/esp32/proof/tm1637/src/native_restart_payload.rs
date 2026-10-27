@@ -11,6 +11,8 @@ mod compress;
 mod profile;
 #[path = "native_restart_read_json.rs"]
 mod read_json;
+#[path = "native_restart_rewrite.rs"]
+pub(super) mod rewrite;
 pub const MAX_PLAIN_BYTES: usize = 128 * 1024;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
 pub(crate) const SCHEMA_V3: &str = "conduit.environment/root-restart@3";
@@ -559,13 +561,47 @@ fn stream_rewrite_inner<E>(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
-    if !layouts.is_empty() {
-        let key = ed25519_dalek::VerifyingKey::from_bytes(root.ok_or(StreamRefusal::Invalid)?)
+    let key = if prefix.is_some() || !layouts.is_empty() {
+        Some(
+            ed25519_dalek::VerifyingKey::from_bytes(root.ok_or(StreamRefusal::Invalid)?)
+                .map_err(|_| StreamRefusal::Invalid)?,
+        )
+    } else {
+        None
+    };
+    let _checked =
+        rewrite::ValidatedReceipts::verify(&evidence.body_id, key.as_ref(), prefix, layouts)
             .map_err(|_| StreamRefusal::Invalid)?;
-        layouts
-            .validate(&evidence.body_id, &key)
-            .map_err(|_| StreamRefusal::Invalid)?;
-    }
+    let summary = validate_rewrite_state(
+        evidence,
+        pending,
+        admissions,
+        previous,
+        prefix,
+        previous_local_count,
+    )?;
+    emit_rewrite(
+        evidence,
+        pending,
+        admissions,
+        previous,
+        previous_span,
+        prefix,
+        previous_local_count,
+        layouts,
+        summary,
+        read,
+        sink,
+    )
+}
+fn validate_rewrite_state<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous: &archive::Summary,
+    prefix: Option<&wire::Receipt>,
+    previous_local_count: u64,
+) -> Result<archive::Summary, StreamRefusal<E>> {
     if previous
         .count
         .checked_sub(prefix.map_or(0, |p| p.summary.count))
@@ -574,11 +610,6 @@ fn stream_rewrite_inner<E>(
         return Err(StreamRefusal::Invalid);
     }
     if let Some(prefix) = prefix {
-        let key = ed25519_dalek::VerifyingKey::from_bytes(root.ok_or(StreamRefusal::Invalid)?)
-            .map_err(|_| StreamRefusal::Invalid)?;
-        prefix
-            .verify(&evidence.body_id, &key)
-            .map_err(|_| StreamRefusal::Invalid)?;
         if previous_local_count == 0
             && (previous.body.as_ref() != Some(&prefix.body)
                 || previous.head != prefix.summary.head.map(|h| h.0)
@@ -603,6 +634,22 @@ fn stream_rewrite_inner<E>(
     summary
         .validate_head(evidence)
         .map_err(|_| StreamRefusal::Invalid)?;
+    Ok(summary)
+}
+#[allow(clippy::too_many_arguments)]
+fn emit_rewrite<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    _previous: &archive::Summary,
+    previous_span: archive::Span,
+    prefix: Option<&wire::Receipt>,
+    previous_local_count: u64,
+    layouts: &layout::Layouts,
+    summary: archive::Summary,
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
     let mut failure = None;
     let mut capacity = false;
     let mut observer = archive::SpanObserver::default();
@@ -779,3 +826,15 @@ pub(crate) fn resident_extent(
 #[cfg(test)]
 #[path = "native_restart_prefix_tests.rs"]
 mod prefix_tests;
+
+pub(super) fn authenticate_receipts(
+    resident: &mut archive::Resident,
+    source: &crate::native_body_checkpoint::SourceSnapshot,
+) -> Result<(), &'static str> {
+    let checked = resident
+        .validation
+        .take()
+        .ok_or("restart-receipt-validation-missing")?;
+    resident.proof = Some(checked.bind(source)?);
+    Ok(())
+}

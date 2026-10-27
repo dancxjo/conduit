@@ -98,6 +98,8 @@ pub(crate) struct Custody<'a> {
     pub local_count: u64,
 }
 pub(crate) struct Resident {
+    pub(crate) proof: Option<super::rewrite::AuthenticatedReceipts>,
+    pub(super) validation: Option<super::rewrite::ValidatedReceipts>,
     pub layouts: super::layout::Layouts,
     pub retained: Retained,
     pub summary: Summary,
@@ -115,17 +117,14 @@ impl PendingResident {
         body: &BodyId,
         key: Option<&ed25519_dalek::VerifyingKey>,
     ) -> Result<Resident, &'static str> {
-        if let Some(key) = key {
-            if let Some(prefix) = &self.0.prefix {
-                prefix
-                    .verify(body, key)
-                    .map_err(|_| "restart-prefix-signature")?;
-            }
-            self.0.layouts.validate(body, key)?;
-        } else if self.0.prefix.is_some() || !self.0.layouts.is_empty() {
-            return Err("layouts require pinned Root");
-        }
-        Ok(self.0)
+        let mut resident = self.0;
+        resident.validation = Some(super::rewrite::ValidatedReceipts::verify(
+            body,
+            key,
+            resident.prefix.as_ref(),
+            &resident.layouts,
+        )?);
+        Ok(resident)
     }
 }
 struct Evidence(BodyBiographyEvidence);
@@ -552,6 +551,8 @@ pub(super) fn decode_with_prefix(
         return Err("restart-local-count");
     }
     Ok(PendingResident(Resident {
+        validation: None,
+        proof: None,
         layouts,
         retained: Retained {
             schema,

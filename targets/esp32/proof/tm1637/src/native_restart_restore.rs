@@ -117,6 +117,7 @@ pub(super) fn restore_store(
     let body = Box::write(unsafe { Box::from_raw(pointer) }, body);
     store.archives = Vec::new();
     store.custody = Some(ArchiveCustody {
+        proof: resident.proof,
         layouts: resident.layouts,
         source,
         summary: resident.summary,

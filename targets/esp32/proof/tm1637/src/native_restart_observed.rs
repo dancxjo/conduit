@@ -179,6 +179,7 @@ pub(super) fn persist(
         .find(&region)
         .ok_or("layout-readback-missing")?;
     store.custody = Some(ArchiveCustody {
+        proof: checked.proof,
         source: checked_source,
         summary: checked.summary,
         span: checked.span,

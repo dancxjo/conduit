@@ -209,13 +209,36 @@ fn retain_store_receipt(
     let (summary, span) = metadata.ok_or("biography-rewrite-metadata")?;
     // rewrite_streamed authenticated the original source on both passes and
     // physically read back the entire committed successor before returning.
+    let (checked, checked_source) = decode_checkpoint(
+        &mut store.journal,
+        &store.binding,
+        &offered.offer.body,
+        &mut seed.0,
+        None,
+    )
+    .inspect_err(|_| {
+        store.failed = true;
+    })?;
+    if store.seed.as_ref() != Some(&seed.0)
+        || checked_source.identity() != source.identity()
+        || checked.prefix.as_ref().map(|p| (&p.signature, &p.summary))
+            != Some((&receipt.signature, &receipt.summary))
+        || checked.summary != summary
+        || checked.span != span
+        || checked.local_count != 0
+        || checked.layouts != previous.layouts
+    {
+        store.failed = true;
+        return Err("biography-receipt-readback");
+    }
     store.custody = Some(ArchiveCustody {
-        layouts: previous.layouts.clone(),
-        source,
-        summary,
-        span,
-        prefix: Some(receipt),
-        local_count: 0,
+        proof: checked.proof,
+        layouts: checked.layouts,
+        source: checked_source,
+        summary: checked.summary,
+        span: checked.span,
+        prefix: checked.prefix,
+        local_count: checked.local_count,
     });
     Ok(())
 }

@@ -290,3 +290,10 @@ fn valid_layout_cannot_hide_forged_prefix_at_post_eof_receipt_boundary() {
     assert!(decode_resident_with_prefix(reader(&bytes), body, &root, Some(custody)).is_err());
     assert!(decode_resident(reader(&bytes), body, None).is_err());
 }
+
+#[cfg(all(
+    test,
+    any(feature = "observation-store", feature = "local-evidence-store")
+))]
+#[path = "native_restart_rewrite_tests.rs"]
+mod prepared_rewrite;

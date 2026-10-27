@@ -41,7 +41,25 @@ pub(crate) struct SourceSnapshot {
     retained: Retained,
     expected: [u8; 32],
 }
+/// Equality-only physical source identity; it grants no storage or Body authority.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct SourceIdentity {
+    retained: Retained,
+    expected: [u8; 32],
+}
 impl SourceSnapshot {
+    pub(crate) fn identity(&self) -> SourceIdentity {
+        SourceIdentity {
+            retained: self.retained,
+            expected: self.expected,
+        }
+    }
+
+    pub(crate) fn succeeds(&self, previous: SourceIdentity) -> bool {
+        previous.retained.generation.checked_add(1) == Some(self.retained.generation)
+            && self.retained.bank == 1 - previous.retained.bank
+            && self.retained.binding == previous.retained.binding
+    }
     pub(crate) fn generation(&self) -> u64 {
         self.retained.generation
     }
@@ -55,6 +73,32 @@ impl SourceSnapshot {
     /// identifies custody; it supplies neither signing authority nor membership.
     pub(crate) fn digest(&self) -> &[u8; 32] {
         &self.expected
+    }
+}
+/// Completion of the actual two-pass writer and full physical readback.
+/// Private construction binds its encoded transcript to this committed source.
+pub(crate) struct RewriteCompletion {
+    previous: SourceIdentity,
+    source: SourceSnapshot,
+    encoded_digest: [u8; 32],
+    encoded_length: usize,
+    retains_seed: bool,
+}
+impl RewriteCompletion {
+    pub(crate) fn source(&self) -> &SourceSnapshot {
+        &self.source
+    }
+    pub(crate) fn encoded_matches(&self, length: usize, digest: &[u8; 32]) -> bool {
+        self.encoded_length == length && &self.encoded_digest == digest
+    }
+    pub(crate) fn continues_source(&self, previous: SourceIdentity) -> bool {
+        self.previous == previous && self.source.succeeds(previous)
+    }
+    pub(crate) fn retains_seed(&self) -> bool {
+        self.retains_seed
+    }
+    pub(crate) fn into_source(self) -> SourceSnapshot {
+        self.source
     }
 }
 /// One serialized storage owner interleaves reads of the old committed bank
@@ -118,6 +162,12 @@ impl<S: Storage> PayloadReader<'_, S> {
             return Err(Refusal::Corrupt);
         }
         Ok(())
+    }
+}
+struct PrivateSeed([u8; 32]);
+impl Drop for PrivateSeed {
+    fn drop(&mut self) {
+        self.0.fill(0);
     }
 }
 struct PrivateChunk([u8; 128]);
@@ -266,6 +316,13 @@ impl<S: Storage> Checkpoint<S> {
         &'a mut self,
         snapshot: &SourceSnapshot,
     ) -> Result<PayloadReader<'a, S>, Refusal> {
+        self.snapshot_reader_with_seed(snapshot)
+            .map(|(reader, _seed)| reader)
+    }
+    fn snapshot_reader_with_seed<'a>(
+        &'a mut self,
+        snapshot: &SourceSnapshot,
+    ) -> Result<(PayloadReader<'a, S>, PrivateSeed), Refusal> {
         if self.retained != Some(snapshot.retained) {
             return Err(Refusal::Generation);
         }
@@ -279,14 +336,17 @@ impl<S: Storage> Checkpoint<S> {
         }
         let mut hash = Sha256::new();
         hash.update(&header.0[..120]);
-        Ok(PayloadReader {
-            storage: &mut self.storage,
-            bank: valid.bank,
-            length: valid.length,
-            at: 0,
-            hash,
-            expected: snapshot.expected,
-        })
+        Ok((
+            PayloadReader {
+                storage: &mut self.storage,
+                bank: valid.bank,
+                length: valid.length,
+                at: 0,
+                hash,
+                expected: snapshot.expected,
+            },
+            PrivateSeed(header.0[56..88].try_into().unwrap()),
+        ))
     }
     /// Reauthenticate this exact still-current source on every use. A stale
     /// witness cannot read an overwritten bank or select another generation.
@@ -311,6 +371,16 @@ impl<S: Storage> Checkpoint<S> {
         mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
     ) -> Result<SourceSnapshot, Refusal> {
         self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit)
+            .map(RewriteCompletion::into_source)
+    }
+    pub(crate) fn rewrite_streamed_attested(
+        &mut self,
+        snapshot: &SourceSnapshot,
+        binding: &[u8; 32],
+        seed: &[u8; 32],
+        mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
+    ) -> Result<RewriteCompletion, Refusal> {
+        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit)
     }
     // Keep one physical transaction implementation for ordinary checkpoints and
     // cold biography migration; callback identity cannot change its guarantees.
@@ -321,12 +391,14 @@ impl<S: Storage> Checkpoint<S> {
         binding: &[u8; 32],
         seed: &[u8; 32],
         emit: &mut dyn FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
-    ) -> Result<SourceSnapshot, Refusal> {
+    ) -> Result<RewriteCompletion, Refusal> {
         if *seed == [0; 32] || binding != snapshot.binding() {
             return Err(Refusal::Corrupt);
         }
-        let (length, expected) = {
-            let source = self.snapshot_reader(snapshot)?;
+        let (length, expected, retains_seed) = {
+            let (source, old_seed) = self.snapshot_reader_with_seed(snapshot)?;
+            let retains_seed = old_seed.0 == *seed;
+            drop(old_seed);
             let io = RewriteIo {
                 state: RefCell::new(RewriteState {
                     source,
@@ -349,6 +421,7 @@ impl<S: Storage> Checkpoint<S> {
             (
                 state.program.count,
                 <[u8; 32]>::from(state.program.payload.clone().finalize()),
+                retains_seed,
             )
         };
         if length == 0 {
@@ -411,9 +484,15 @@ impl<S: Storage> Checkpoint<S> {
         self.storage.program(base + 152, COMMIT)?;
         let retained = inspect(&mut self.storage, bank)?.ok_or(Refusal::Corrupt)?;
         self.retained = Some(retained);
-        Ok(SourceSnapshot {
-            retained,
-            expected: header.0[120..152].try_into().unwrap(),
+        Ok(RewriteCompletion {
+            previous: snapshot.identity(),
+            source: SourceSnapshot {
+                retained,
+                expected: header.0[120..152].try_into().unwrap(),
+            },
+            encoded_digest: expected,
+            encoded_length: length,
+            retains_seed,
         })
     }
     /// The prior committed bank remains intact until a complete successor has
