@@ -1,31 +1,34 @@
 //! Historical canonical fragment fields following the placement sequence.
 use super::*;
-pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFingerprintTail<'_>) {
+pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFingerprintTailRef<'_>) {
     push_u32(canonical, tail.connections.len() as u32);
-    for connection in tail.connections {
-        push_string(canonical, connection.connection_id.as_str());
-        push_string(canonical, connection.source_placement_id.as_str());
-        push_string(canonical, connection.source_port_id.as_str());
-        push_string(canonical, connection.sink_placement_id.as_str());
-        push_string(canonical, connection.sink_port_id.as_str());
-        push_string(canonical, connection.value_kind.as_str());
+    for connection in tail.connections.iter() {
+        push_string(canonical, connection.connection_id);
+        push_string(canonical, connection.source_placement_id);
+        push_string(canonical, connection.source_port_id);
+        push_string(canonical, connection.sink_placement_id);
+        push_string(canonical, connection.sink_port_id);
+        push_string(canonical, connection.value_kind);
         match &connection.resource {
             Some(resource) => {
                 canonical.push(1);
-                push_string(canonical, resource.contract.port_id.as_str());
-                push_string(canonical, resource.contract.class_id.as_str());
-                canonical.push(resource.contract.ownership as u8);
-                canonical.push(resource.contract.lifecycle as u8);
-                canonical.push(resource.contract.mobility as u8);
-                push_string(canonical, resource.owner_placement_id.as_str());
-                push_resource_binding(canonical, &resource.source_binding);
+                push_string(canonical, resource.port_id);
+                push_string(canonical, resource.class_id);
+                canonical.push(resource.ownership as u8);
+                canonical.push(resource.lifecycle as u8);
+                canonical.push(resource.mobility as u8);
+                push_string(canonical, resource.owner_placement_id);
+                crate::resource_canonical::push_resource_binding_ref(
+                    canonical,
+                    resource.source_binding,
+                );
             }
             None => canonical.push(0),
         }
         match &connection.abnormal_kind {
             Some(kind) => {
                 canonical.push(1);
-                push_string(canonical, kind.as_str());
+                push_string(canonical, kind);
             }
             None => canonical.push(0),
         }
@@ -49,7 +52,7 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
             None => canonical.push(0),
         }
         push_u32(canonical, connection.admitted_lines.len() as u32);
-        for candidate in &connection.admitted_lines {
+        for candidate in connection.admitted_lines {
             push_admitted_line(canonical, candidate);
         }
         canonical.extend_from_slice(&connection.item_capacity.to_le_bytes());
@@ -154,13 +157,13 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
         }
     }
     push_u32(canonical, tail.startup_dependencies.len() as u32);
-    for dependency in tail.startup_dependencies {
-        push_string(canonical, dependency.prerequisite_placement_id.as_str());
-        push_string(canonical, dependency.dependent_placement_id.as_str());
+    for dependency in tail.startup_dependencies.iter() {
+        push_string(canonical, dependency.prerequisite_placement_id);
+        push_string(canonical, dependency.dependent_placement_id);
     }
     push_u32(canonical, tail.startup_order.len() as u32);
-    for placement_id in tail.startup_order {
-        push_string(canonical, placement_id.as_str());
+    for placement_id in tail.startup_order.iter() {
+        push_string(canonical, placement_id);
     }
     canonical.push(match tail.cancellation_policy {
         CancellationPolicy::CancelAllAndRejectLateCompletion => 0,
@@ -171,36 +174,36 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
         TerminalPolicy::RequirePlacementsOnly => 1,
     });
     push_u32(canonical, tail.expected_terminals.len() as u32);
-    for terminal in tail.expected_terminals {
+    for terminal in tail.expected_terminals.iter() {
         match terminal {
-            ExpectedTerminal::PlacementCompleted(placement_id) => {
+            crate::ExpectedTerminalRef::PlacementCompleted(placement_id) => {
                 canonical.push(0);
-                push_string(canonical, placement_id.as_str());
+                push_string(canonical, placement_id);
             }
-            ExpectedTerminal::ConnectionCompleted(connection_id) => {
+            crate::ExpectedTerminalRef::ConnectionCompleted(connection_id) => {
                 canonical.push(1);
-                push_string(canonical, connection_id.as_str());
+                push_string(canonical, connection_id);
             }
-            ExpectedTerminal::PlanCompleted => canonical.push(2),
+            crate::ExpectedTerminalRef::PlanCompleted => canonical.push(2),
         }
     }
     push_u32(canonical, tail.expected_sign.len() as u32);
-    for sign in tail.expected_sign {
+    for sign in tail.expected_sign.iter() {
         match sign {
-            ExpectedSign::PlanFragmentReceived => canonical.push(0),
-            ExpectedSign::PlacementPrepared(placement_id) => {
+            crate::ExpectedSignRef::PlanFragmentReceived => canonical.push(0),
+            crate::ExpectedSignRef::PlacementPrepared(placement_id) => {
                 canonical.push(1);
-                push_string(canonical, placement_id.as_str());
+                push_string(canonical, placement_id);
             }
-            ExpectedSign::PlacementTerminal(placement_id) => {
+            crate::ExpectedSignRef::PlacementTerminal(placement_id) => {
                 canonical.push(2);
-                push_string(canonical, placement_id.as_str());
+                push_string(canonical, placement_id);
             }
-            ExpectedSign::ConnectionTerminal(connection_id) => {
+            crate::ExpectedSignRef::ConnectionTerminal(connection_id) => {
                 canonical.push(3);
-                push_string(canonical, connection_id.as_str());
+                push_string(canonical, connection_id);
             }
-            ExpectedSign::PlanTerminal => canonical.push(4),
+            crate::ExpectedSignRef::PlanTerminal => canonical.push(4),
         }
     }
     canonical.extend_from_slice(&tail.sign_storage_budget.item_capacity.to_le_bytes());
@@ -223,3 +226,6 @@ pub(super) fn push_tail(canonical: &mut impl CanonicalSink, tail: FragmentFinger
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

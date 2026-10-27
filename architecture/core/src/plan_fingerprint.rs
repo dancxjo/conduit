@@ -9,12 +9,11 @@ use semantic_contract::push_semantic_contract;
 
 use crate::canonical_bytes::{CanonicalHash, CanonicalSink};
 use crate::{
-    characteristic, execution_fusion, plan_realization, push_resource_binding, push_string,
-    push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
-    ConfigurationValue, ExpectedSign, ExpectedTerminal, FragmentCommitment, FragmentId,
-    LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
-    PlannedActivationPreparationBinding, PlotBack, PlotIdentity, PortDescriptor, PortDirection,
-    PortTemporal, TerminalPolicy,
+    characteristic, execution_fusion, plan_realization, push_string, push_u32, push_u64,
+    AdmittedLine, BoundLink, CancellationPolicy, CheckedFront, ConfigurationValue,
+    FragmentCommitment, FragmentId, LinkAuthorityReference, LinkCredentialReference, PlanFragment,
+    PlanId, PlannedActivationEntry, PlannedActivationPreparationBinding, PlotBack, PlotIdentity,
+    PortDescriptor, PortDirection, PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
 #[cfg(test)]
@@ -36,7 +35,8 @@ fn push_optional_string(
 mod fragment;
 pub use fragment::{
     compute_fragment_id, FragmentFingerprintBuilder, FragmentFingerprintHeader,
-    FragmentFingerprintRefusal, FragmentFingerprintTail,
+    FragmentFingerprintHeaderRef, FragmentFingerprintRefusal, FragmentFingerprintTail,
+    FragmentFingerprintTailRef,
 };
 
 pub(crate) fn push_configuration_value(

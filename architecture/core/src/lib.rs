@@ -83,7 +83,8 @@ use plan_fingerprint::compute_plan_id;
 pub use plan_fingerprint::compute_plan_id as compute_plan_fingerprint;
 pub use plan_fingerprint::{
     compute_checked_front_fingerprint, compute_fragment_id, FragmentFingerprintBuilder,
-    FragmentFingerprintHeader, FragmentFingerprintRefusal, FragmentFingerprintTail,
+    FragmentFingerprintHeader, FragmentFingerprintHeaderRef, FragmentFingerprintRefusal,
+    FragmentFingerprintTail, FragmentFingerprintTailRef,
 };
 mod structured_info;
 mod temporal;
@@ -577,6 +578,8 @@ pub enum ConnectionOutcome {
     Terminal,
 }
 
+mod planned_connection_ref;
+pub use planned_connection_ref::*;
 mod planned_gear_ref;
 pub use planned_gear_ref::*;
 mod planned_gear_record;

@@ -3,7 +3,10 @@ use super::*;
 mod parts;
 mod placement;
 mod tail;
-pub use parts::{FragmentFingerprintHeader, FragmentFingerprintTail};
+pub use parts::{
+    FragmentFingerprintHeader, FragmentFingerprintHeaderRef, FragmentFingerprintTail,
+    FragmentFingerprintTailRef,
+};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum FragmentFingerprintRefusal {
@@ -24,6 +27,10 @@ pub struct FragmentFingerprintBuilder {
 }
 impl FragmentFingerprintBuilder {
     pub fn new(header: FragmentFingerprintHeader<'_>, placements: usize) -> Self {
+        Self::new_ref(header.into(), placements)
+    }
+    /// Begin descriptive borrowed encoding; no structural check or authority.
+    pub fn new_ref(header: FragmentFingerprintHeaderRef<'_>, placements: usize) -> Self {
         let mut canonical = CanonicalHash::new();
         push_header(&mut canonical, header);
         let count = u32::try_from(placements);
@@ -76,6 +83,13 @@ impl FragmentFingerprintBuilder {
         self,
         tail: FragmentFingerprintTail<'_>,
     ) -> Result<FragmentId, FragmentFingerprintRefusal> {
+        self.finish_ref(tail.into())
+    }
+    /// Finish the same canonical stream from borrowed tail records.
+    pub fn finish_ref(
+        self,
+        tail: FragmentFingerprintTailRef<'_>,
+    ) -> Result<FragmentId, FragmentFingerprintRefusal> {
         if let Some(refusal) = self.refusal {
             return Err(refusal);
         }
@@ -98,16 +112,16 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         .finish(fragment.into())
         .expect("complete placement sequence")
 }
-fn push_header(canonical: &mut impl CanonicalSink, header: FragmentFingerprintHeader<'_>) {
-    push_string(canonical, header.source_document_id.as_str());
-    push_string(canonical, header.checked_plot_id.as_str());
-    push_string(canonical, header.expanded_plot_id.as_str());
+fn push_header(canonical: &mut impl CanonicalSink, header: FragmentFingerprintHeaderRef<'_>) {
+    push_string(canonical, header.source_document_id);
+    push_string(canonical, header.checked_plot_id);
+    push_string(canonical, header.expanded_plot_id);
     canonical.push(header.completion_policy as u8);
     if !header.realization_backs.is_empty() {
         plan_realization::push_canonical(canonical, header.realization_backs);
     }
-    push_string(canonical, header.host_id.as_str());
-    push_string(canonical, header.boot_id.as_str());
+    push_string(canonical, header.host_id);
+    push_string(canonical, header.boot_id);
     push_u64(canonical, header.offer_generation.0);
     execution_regions::push_canonical(canonical, header.execution_regions);
     execution_fusion::push_canonical(canonical, header.execution_fusions);
