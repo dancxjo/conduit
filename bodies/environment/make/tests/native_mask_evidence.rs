@@ -85,6 +85,13 @@ fn exact_pages_chain_in_order_and_refusals_preserve_accepted_custody() {
     let signs = log(true);
     let closed = b"complete-canonical-closed-fixture";
     consumer.accept(0, &active(1), closed, &signs).unwrap();
+    assert_eq!(consumer.completion(), (1, Some(1)));
+    let mut canonical = [0; wire::MAXIMUM_BYTES];
+    let decoded = consumer.canonical_page(&mut canonical).unwrap();
+    let mut expected_page = [0; wire::MAXIMUM_BYTES];
+    let expected_length = wire::encode(0, signs.events(), &signs, &mut expected_page).unwrap();
+    assert_eq!(&canonical[..decoded], &expected_page[..expected_length]);
+
     let (expected, length) = chain([0; 32], 0, &active(1), closed, &signs);
     let before = consumer::status();
     assert_eq!(before.consumed, 1);

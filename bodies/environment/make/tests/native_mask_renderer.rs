@@ -641,3 +641,34 @@ mod lease_tests;
 
 #[path = "native_mask_renderer/direct_projection.rs"]
 mod direct_projection_tests;
+
+// Concrete native-session adapter names with inert CPU providers only.
+mod electrical {
+    pub type DisplayPins<'a> = super::native::Provider;
+}
+mod native_face {
+    pub struct Reader;
+}
+mod native_authority {
+    pub(crate) use crate::lease_tests::production::MaskLeaseIssuer;
+}
+mod native_display {
+    pub mod task {
+        pub use crate::mask_session::RetiredMask;
+    }
+    pub trait EvidenceSink {
+        fn accept(
+            &mut self,
+            invocation: u64,
+            active: &conduit_core::ActivePlayIdentity,
+            closed: &[u8],
+            signs: &conduit_kernel::FixedSignLog<64, 12>,
+        ) -> Result<(), &'static str>;
+    }
+}
+#[allow(dead_code)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_mask_session.rs"]
+mod mask_session;
+#[allow(dead_code)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_mask_evidence.rs"]
+mod native_mask_evidence;

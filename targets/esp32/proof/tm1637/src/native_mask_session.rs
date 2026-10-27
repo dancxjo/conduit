@@ -1,7 +1,10 @@
 //! Retained ordinary Mask tables and private physical custody. No issuer or
 //! Body start can be reconstructed from this preparation.
 use crate::{electrical::DisplayPins, native_face::Reader};
+use crate::{native_authority::MaskLeaseIssuer, native_mask_evidence::Consumer};
 use alloc::boxed::Box;
+#[path = "native_mask_terminal.rs"]
+mod terminal;
 use conduit_core as c;
 use conduit_environment_runtime::{mask_kernel as m, mask_renderer as r};
 use conduit_face as f;
@@ -123,5 +126,136 @@ impl NativeMaskSession {
             k::remote_sign_storage_bytes(12).ok_or("mask-sign-budget")?,
         )
         .map_err(|_| "mask-sign-budget")
+    }
+}
+
+pub type RetiredKernel = k::scheduler::RetiredExecution<m::MaskBack, Values, Log, 3>;
+pub(crate) type CompletionRefusal = (
+    Box<NativeMaskSession>,
+    Box<MaskLeaseIssuer>,
+    Box<Consumer>,
+    &'static str,
+);
+/// Opaque complete return: only actual normal session drain can construct it.
+pub struct RetiredMask {
+    parts: RetiredMaskParts,
+}
+pub struct RetiredMaskParts {
+    pub renderer: NativeReady,
+    pub kernel: RetiredKernel,
+    pub leases: Box<MaskLeaseIssuer>,
+    pub evidence: Box<Consumer>,
+    pub context: Box<f::PreparedMaskShowContext>,
+    pub invocation: r::PreparedRendererInvocation,
+    pub routes: f::AdmittedMaskPlotRoutes,
+    pub wardrobe: f::MaskWardrobeControl,
+    pub producer: FaceScope,
+    pub reader: &'static Reader,
+}
+impl RetiredMask {
+    pub fn renderer_identity(&self) -> &r::RendererIdentity {
+        self.parts.renderer.identity()
+    }
+    pub fn into_parts(self) -> RetiredMaskParts {
+        self.parts
+    }
+    pub(crate) fn matches_current_body(
+        &self,
+        body: &conduit_body::SealedBodyLifecycleSession,
+        initial: &c::ActivePlayIdentity,
+    ) -> bool {
+        let parts = &self.parts;
+        parts
+            .leases
+            .matches_current_body(&parts.renderer, body, initial)
+            && body
+                .realization()
+                .is_some_and(|current| current.wake.wake_id == parts.producer.wake)
+            && parts.context.plan_id() == parts.leases.plan_id()
+            && parts.producer.active.host_id == parts.renderer.identity().host_id
+            && parts.producer.active.boot_id == parts.renderer.identity().boot_id
+            && !parts.kernel.cancelled
+    }
+}
+impl NativeMaskSession {
+    pub(crate) fn fresh_for_task(&self) -> bool {
+        self.index == 0
+            && self.pending.is_none()
+            && self.call.is_none()
+            && self.ready.is_some()
+            && !self.faulted
+            && self.cleanup_refusal.is_none()
+            && self.session.kernel().decisions() == 0
+    }
+    pub(crate) fn retirement_ready(
+        &self,
+        leases: &MaskLeaseIssuer,
+        evidence: &Consumer,
+    ) -> Result<(), &'static str> {
+        let ready = self.ready.as_ref().ok_or("mask-terminal-renderer")?;
+        let facts = leases.retirement_facts(ready)?;
+        let (accepted, accepted_last) = evidence.completion();
+        let completion = terminal::Completion {
+            completed: self.index,
+            issued: facts.issued,
+            accepted,
+            first_sequence: facts.first,
+            end_sequence: facts.end,
+            next_sequence: facts.next,
+            accepted_last,
+            revoked: facts.revoked,
+            lease_pending: facts.pending,
+            first_lease_retained: facts.first_retained,
+            closed_pending: self.pending.is_some(),
+            call_retained: self.call.is_some(),
+            renderer_retained: self.ready.is_some(),
+            faulted: self.faulted,
+            cleanup_refused: self.cleanup_refusal.is_some(),
+            normally_drained: self.session.retirement_ready(),
+        };
+        if !completion.ready() {
+            return Err("mask-terminal-incomplete");
+        }
+        if self.context.plan_id() != leases.plan_id() {
+            return Err("mask-terminal-plan");
+        }
+        Ok(())
+    }
+    pub(crate) fn retire_completed(
+        self: Box<Self>,
+        leases: Box<MaskLeaseIssuer>,
+        evidence: Box<Consumer>,
+    ) -> Result<RetiredMask, CompletionRefusal> {
+        if let Err(reason) = self.retirement_ready(&leases, &evidence) {
+            return Err((self, leases, evidence, reason));
+        }
+        let Self {
+            ready,
+            session,
+            context,
+            invocation,
+            routes,
+            wardrobe,
+            producer,
+            reader,
+            ..
+        } = *self;
+        let kernel = session
+            .try_retire()
+            .unwrap_or_else(|_| unreachable!("exclusive normal-drain preflight"));
+        Ok(RetiredMask {
+            parts: RetiredMaskParts {
+                renderer: ready.expect("preflighted renderer"),
+                kernel,
+                leases,
+                evidence,
+                context,
+                invocation,
+                routes,
+                wardrobe,
+                producer,
+                reader,
+            },
+        })
     }
 }

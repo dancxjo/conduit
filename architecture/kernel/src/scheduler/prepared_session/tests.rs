@@ -200,6 +200,7 @@ fn normal_retirement_returns_exact_drivers_backing_and_evidence() {
         .collect::<alloc::vec::Vec<_>>();
     let decisions = session.kernel.decisions;
     let invocations = session.kernel.logical_invocations;
+    assert!(session.retirement_ready());
     let retired = session
         .try_retire()
         .unwrap_or_else(|_| panic!("normal retirement"));
@@ -227,6 +228,7 @@ fn retirement_refusal_returns_original_live_or_failed_session_unchanged() {
     assert!(cases[2].step().is_err());
     cases[3].cancel().unwrap();
     for session in cases {
+        assert!(!session.retirement_ready());
         let address = session.kernel() as *const _ as usize;
         let events = session
             .kernel()

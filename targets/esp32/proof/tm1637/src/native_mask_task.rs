@@ -1,13 +1,14 @@
 //! Actual held executor custody for the ordinary timed Mask. Registration is
 //! not Body start; activation and the exclusive release handle are separate.
 use super::session::NativeMaskSession;
+pub use super::session::{RetiredMask, RetiredMaskParts};
 use super::worker::workspace;
 pub(crate) use workspace::{Permit as WorkspacePermit, Request as WorkspaceRequest};
 static WORKSPACE: workspace::Gate = workspace::Gate::new();
 use crate::native_authority::{MaskLeaseIssuer, MaskScopeGuard};
 use crate::native_mask_evidence::Consumer;
 use alloc::boxed::Box;
-use core::cell::RefCell;
+use core::cell::{Cell, RefCell};
 use embassy_executor::Spawner;
 use embassy_sync::{
     blocking_mutex::{raw::CriticalSectionRawMutex, Mutex},
@@ -18,7 +19,8 @@ struct Slot {
     session: RefCell<Option<Box<NativeMaskSession>>>,
     leases: RefCell<Option<Box<MaskLeaseIssuer>>>,
     evidence: RefCell<Option<Box<Consumer>>>,
-    revoke: MaskScopeGuard,
+    revoke: RefCell<Option<MaskScopeGuard>>,
+    completed_retirement: Cell<bool>,
 }
 static SLOT: StaticCell<Slot> = StaticCell::new();
 #[derive(Clone, Copy)]
@@ -45,20 +47,21 @@ struct State {
     cancelled: bool,
     status: Status,
 }
+const EMPTY_STATUS: Status = Status {
+    phase: "unregistered",
+    task_active: false,
+    activated: false,
+    context_bytes: 0,
+    held_future_bytes: 0,
+    run_future_bytes: 0,
+    completed: 0,
+    pending_evidence: false,
+    failure: None,
+    cleanup_refusal: None,
+};
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     cancelled: false,
-    status: Status {
-        phase: "unregistered",
-        task_active: false,
-        activated: false,
-        context_bytes: 0,
-        held_future_bytes: 0,
-        run_future_bytes: 0,
-        completed: 0,
-        pending_evidence: false,
-        failure: None,
-        cleanup_refusal: None,
-    },
+    status: EMPTY_STATUS,
 }));
 fn update(f: impl FnOnce(&mut State)) {
     STATE.lock(|state| f(&mut state.borrow_mut()));
@@ -129,7 +132,9 @@ impl Handle {
         })
     }
     pub fn abort_preparation(&self) {
-        self.slot.revoke.revoke();
+        if let Some(guard) = self.slot.revoke.borrow().as_ref() {
+            guard.revoke();
+        }
         WORKSPACE.cancel();
         update(|state| {
             state.cancelled = true;
@@ -180,6 +185,106 @@ impl Handle {
         update(|state| state.status.phase = "retired");
         Ok(retired)
     }
+    /// Actual complete custody, not a cancellation receipt or a replacement grant.
+    pub fn retire_completed(self) -> Result<(Self, RetiredMask), (Self, &'static str)> {
+        match self.take_completed() {
+            Ok(retired) => Ok((self, retired)),
+            Err(reason) => Err((self, reason)),
+        }
+    }
+    fn take_completed(&self) -> Result<RetiredMask, &'static str> {
+        let status = self.status();
+        if status.task_active
+            || status.phase != "quiesced"
+            || !status.activated
+            || status.completed != super::worker::MAXIMUM_CHILDREN
+            || status.pending_evidence
+            || status.failure.is_some()
+            || status.cleanup_refusal.is_some()
+        {
+            return Err("mask-task-not-completed");
+        }
+        let mut session = self
+            .slot
+            .session
+            .try_borrow_mut()
+            .map_err(|_| "mask-task-session-busy")?;
+        let mut leases = self
+            .slot
+            .leases
+            .try_borrow_mut()
+            .map_err(|_| "mask-task-issuer-busy")?;
+        let mut evidence = self
+            .slot
+            .evidence
+            .try_borrow_mut()
+            .map_err(|_| "mask-task-evidence-busy")?;
+        let mut guard = self
+            .slot
+            .revoke
+            .try_borrow_mut()
+            .map_err(|_| "mask-task-guard-busy")?;
+        let current = session.as_ref().ok_or("mask-task-session")?;
+        let issuer = leases.as_ref().ok_or("mask-task-issuer")?;
+        let consumer = evidence.as_ref().ok_or("mask-task-evidence")?;
+        if guard.is_none() {
+            return Err("mask-task-guard");
+        }
+        current.retirement_ready(issuer, consumer)?;
+        let result = session
+            .take()
+            .expect("preflighted session")
+            .retire_completed(
+                leases.take().expect("preflighted issuer"),
+                evidence.take().expect("preflighted evidence"),
+            );
+        match result {
+            Ok(retired) => {
+                guard.take();
+                self.slot.completed_retirement.set(true);
+                update(|state| {
+                    state.status.phase = "retired";
+                    state.status.context_bytes = 0;
+                });
+                Ok(retired)
+            }
+            Err((returned_session, returned_leases, returned_evidence, reason)) => {
+                *session = Some(returned_session);
+                *leases = Some(returned_leases);
+                *evidence = Some(returned_evidence);
+                Err(reason)
+            }
+        }
+    }
+    /// Reuse this exact empty slot with independently admitted fresh owners.
+    /// Workspace generations are preserved, and no old witness is reactivated.
+    pub fn prepare_next(
+        self,
+        session: &mut Option<Box<NativeMaskSession>>,
+        leases: &mut Option<Box<MaskLeaseIssuer>>,
+        evidence: &mut Option<Box<Consumer>>,
+        spawner: Spawner,
+    ) -> Result<Self, (Self, &'static str)> {
+        let status = self.status();
+        if status.phase != "retired"
+            || status.task_active
+            || !self.slot.completed_retirement.get()
+            || self.slot.session.borrow().is_some()
+            || self.slot.leases.borrow().is_some()
+            || self.slot.evidence.borrow().is_some()
+            || self.slot.revoke.borrow().is_some()
+        {
+            return Err((self, "mask-task-slot-not-completed"));
+        }
+        match register(self.slot, session, leases, evidence, spawner) {
+            Ok(next) => Ok(next),
+            Err(reason) => {
+                self.slot.completed_retirement.set(true);
+                update(|state| state.status.phase = "retired");
+                Err((self, reason))
+            }
+        }
+    }
 }
 pub fn prepare(
     session: &mut Option<Box<NativeMaskSession>>,
@@ -187,29 +292,68 @@ pub fn prepare(
     evidence: &mut Option<Box<Consumer>>,
     spawner: Spawner,
 ) -> Result<Handle, &'static str> {
-    if session.is_none() || leases.is_none() || evidence.is_none() {
-        return Err("mask-task-owners");
+    if !session.as_ref().is_some_and(|s| s.fresh_for_task())
+        || !leases.as_ref().is_some_and(|l| l.fresh_for_task())
+        || !evidence
+            .as_ref()
+            .is_some_and(|e| e.completion() == (0, None))
+    {
+        return Err("mask-task-fresh-owners");
     }
-    let revoke = leases
-        .as_ref()
-        .ok_or("mask-task-issuer")?
-        .revocation_guard();
     let slot = SLOT
         .try_init_with(|| Slot {
             session: RefCell::new(None),
             leases: RefCell::new(None),
             evidence: RefCell::new(None),
-            revoke,
+            revoke: RefCell::new(None),
+            completed_retirement: Cell::new(false),
         })
         .ok_or("mask-task-already-used")?;
+    register(slot, session, leases, evidence, spawner)
+}
+fn register(
+    slot: &'static Slot,
+    session: &mut Option<Box<NativeMaskSession>>,
+    leases: &mut Option<Box<MaskLeaseIssuer>>,
+    evidence: &mut Option<Box<Consumer>>,
+    spawner: Spawner,
+) -> Result<Handle, &'static str> {
+    if !session.as_ref().is_some_and(|s| s.fresh_for_task())
+        || !leases.as_ref().is_some_and(|l| l.fresh_for_task())
+        || !evidence
+            .as_ref()
+            .is_some_and(|e| e.completion() == (0, None))
+    {
+        return Err("mask-task-fresh-owners");
+    }
+    if slot.session.borrow().is_some()
+        || slot.leases.borrow().is_some()
+        || slot.evidence.borrow().is_some()
+        || slot.revoke.borrow().is_some()
+    {
+        return Err("mask-task-slot-retained");
+    }
+    let revoke = leases
+        .as_ref()
+        .expect("preflighted fresh issuer")
+        .revocation_guard();
+    COMMAND.reset();
+    READY.reset();
+    WORKSPACE.cancel();
+    slot.completed_retirement.set(false);
+    slot.revoke.replace(Some(revoke));
     slot.session.replace(session.take());
     slot.leases.replace(leases.take());
     slot.evidence.replace(evidence.take());
     update(|state| {
-        state.status.phase = "registering";
-        state.status.task_active = true;
-        state.status.context_bytes = core::mem::size_of::<NativeMaskSession>();
-        state.status.held_future_bytes = core::mem::size_of_val(&held(slot));
+        state.cancelled = false;
+        state.status = Status {
+            phase: "registering",
+            task_active: true,
+            context_bytes: core::mem::size_of::<NativeMaskSession>(),
+            held_future_bytes: core::mem::size_of_val(&held(slot)),
+            ..EMPTY_STATUS
+        };
     });
     match task(slot) {
         Ok(token) => {
@@ -220,6 +364,7 @@ pub fn prepare(
             *session = slot.session.borrow_mut().take();
             *leases = slot.leases.borrow_mut().take();
             *evidence = slot.evidence.borrow_mut().take();
+            slot.revoke.borrow_mut().take();
             update(|state| {
                 state.status.phase = "registration-refused";
                 state.status.task_active = false;
@@ -268,7 +413,9 @@ async fn held(slot: &'static Slot) {
     READY.signal(());
     let command = COMMAND.wait().await;
     if matches!(command, Command::Cancel) {
-        slot.revoke.revoke();
+        if let Some(guard) = slot.revoke.borrow().as_ref() {
+            guard.revoke();
+        }
         update(|state| {
             state.status.phase = "quiesced";
             state.status.task_active = false;
@@ -305,7 +452,9 @@ async fn held(slot: &'static Slot) {
         update(|state| state.status.run_future_bytes = core::mem::size_of_val(&future));
         future.await
     };
-    slot.revoke.revoke();
+    if let Some(guard) = slot.revoke.borrow().as_ref() {
+        guard.revoke();
+    }
     WORKSPACE.cancel();
     update(|state| {
         state.status.completed = session.completed();

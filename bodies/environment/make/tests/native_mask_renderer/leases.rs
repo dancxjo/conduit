@@ -33,7 +33,7 @@ impl RootIssuer {
 }
 #[allow(unexpected_cfgs, dead_code)] // Included target cfg and compatible rich API are exercised separately.
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_mask_lease.rs"]
-mod production;
+pub(crate) mod production;
 fn new_body(planned: &f::PlannedMaskPlot) -> b::SealedBodyLifecycleSession {
     let fragment = &planned.plan.fragments[0];
     let host = &fragment.host_id;
@@ -328,4 +328,352 @@ fn parent_deadline_revocation_and_global_child_range_are_finite() {
     assert!(leases.next(&ready, 500).is_err());
     drop(guard);
     assert_eq!(pins.edges.get(), 0);
+}
+
+#[test]
+fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_body() {
+    use crate::{mask_session as ms, native_display::EvidenceSink};
+    use b::BodyPlanEvidence;
+    use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
+    use conduit_kernel::{self as k, scheduler::SchedulerStatus};
+    let pins = Rc::new(native::Pins::default());
+    let ready = native::ready(pins.clone());
+    let planned = planned(&ready);
+    let (mut root, leases, capsule, guard) = prepare(&ready, &planned);
+    let mut body = new_body(&planned);
+    start(&mut body, &root.host, &root.boot);
+    let mut metadata = planned.plan.clone();
+    let mut configs = std::collections::BTreeMap::new();
+    for gear in &mut metadata.fragments[0].placements {
+        configs.insert(
+            gear.placement_id.clone(),
+            core::mem::take(&mut gear.configuration),
+        );
+    }
+    let verified = c::verify_plan_metadata_with_configurations(metadata, |g| {
+        Ok::<_, ()>(configs[&g.placement_id].clone())
+    })
+    .unwrap();
+    let current = body.realization().unwrap();
+    let routes = f::AdmittedMaskPlotRoutes::from_sealed_session(
+        &body,
+        &planned.mask,
+        &verified,
+        vec![f::SealedMaskPlotRoute {
+            route_id: "route/completed/native".into(),
+            mask_plot: planned.mask.plot_identity.clone(),
+            plan_id: current.plan.plan_id().clone(),
+            child_mask_plan_id: None,
+            owner_route_seal_id: None,
+            placement_ids: verified.preparation_metadata().fragments[0]
+                .placements
+                .iter()
+                .map(|g| g.placement_id.clone())
+                .collect(),
+            currently_available: true,
+        }],
+    )
+    .unwrap();
+    let wardrobe = f::MaskWardrobeControl::new_from_admitted_routes(
+        f::BodyMaskWardrobe::new(
+            routes.body_id().clone(),
+            Some(current.plan.wake_id().clone()),
+            f::MaskWardrobe::new(
+                f::MaskWardrobeLifetime::Wake,
+                vec![planned.mask.plot_identity.clone()],
+                vec![planned.mask.plot_identity.clone()],
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+        &routes,
+        None,
+    )
+    .unwrap();
+    let initial = c::bind_active_play(&planned.plan.plan_id, &root.host, &root.boot, 1);
+    let context = f::PreparedMaskShowContext::prepare(&planned, 8192).unwrap();
+    let values = Box::leak(Box::new(k::FixedValueStore::<2, 8192>::new(16384).unwrap()));
+    let kernel = PreparedMaskKernel::prepare_parts(&planned)
+        .unwrap()
+        .finish_with_fixed_storage(values)
+        .unwrap();
+    static READER: crate::native_face::Reader = crate::native_face::Reader;
+    let mut owner = Some(ready);
+    let mut session = ms::NativeMaskSession::prepare(
+        &mut owner,
+        ms::Preparation {
+            context,
+            kernel,
+            invocation: capsule,
+            routes,
+            wardrobe,
+            producer: ms::FaceScope {
+                producer: planned.mask.plot_identity.clone(),
+                active: initial.clone(),
+                wake: current.wake.wake_id.clone(),
+            },
+            reader: &READER,
+        },
+    )
+    .unwrap();
+    let mut leases = Box::new(leases);
+    let mut evidence = Box::new(crate::native_mask_evidence::Consumer::new());
+    assert!(session.fresh_for_task());
+    assert!(leases.fresh_for_task());
+    leases.activate(&body, 1000).unwrap();
+    let face = fixture::face();
+    for index in 0..19200 {
+        let now = 1000 + index * 3000;
+        let (active, table, handle, claim) =
+            leases.next(session.ready.as_ref().unwrap(), now).unwrap();
+        session.call = Some(
+            session
+                .invocation
+                .bind_retained(&mut session.ready, table, handle, claim, &active)
+                .unwrap(),
+        );
+        let face_fore = session.face.clone();
+        let show_fore = session.show.clone();
+        let mut presentation = None;
+        session
+            .session
+            .admit_owned_input_encoded(face_fore.endpoint, face_fore.cord, index, 8192, |out| {
+                let length = serde_json_core::to_slice(&face, out).unwrap();
+                presentation = Some(
+                    session
+                        .call
+                        .as_mut()
+                        .unwrap()
+                        .prepare_presentation(PresentationBasis {
+                            face: &face,
+                            face_wire: &out[..length],
+                            context: &session.context,
+                            elapsed_ms: index * 3000,
+                            front: "environment".into(),
+                            target: "fixture/display".into(),
+                            prepared_sign: c::bind_sign(
+                                &active.host_id,
+                                &active.boot_id,
+                                Some(&active.active_play_id),
+                                0,
+                            )
+                            .sign_id,
+                            available_sign: c::bind_sign(
+                                &active.host_id,
+                                &active.boot_id,
+                                Some(&active.active_play_id),
+                                1,
+                            )
+                            .sign_id,
+                        })
+                        .unwrap(),
+                );
+                Ok::<_, ()>(length)
+            })
+            .unwrap();
+        let mut presentation = presentation.unwrap();
+        session
+            .session
+            .close_owned_input(face_fore.endpoint, face_fore.cord)
+            .unwrap();
+        let mut emitted = false;
+        let mut drained = false;
+        for _ in 0..96 {
+            let status = session.session.step().unwrap();
+            if let Some(request) = session.session.next_host_request() {
+                let call = session.call.as_mut().unwrap();
+                let verified = call
+                    .verify_input(
+                        request.node,
+                        request.call,
+                        request.request,
+                        session
+                            .session
+                            .kernel()
+                            .host_value(request.input.value)
+                            .unwrap(),
+                        &presentation,
+                    )
+                    .unwrap();
+                let output = session
+                    .session
+                    .store_host_value_encoded(8192, |out| {
+                        call.present_verified(
+                            request.node,
+                            request.call,
+                            request.request,
+                            verified,
+                            out,
+                            encode,
+                            || false,
+                        )
+                    })
+                    .unwrap();
+                session
+                    .session
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        k::HostCallOutcome {
+                            disposition: k::HostCallDisposition::Completed,
+                            output: Some(k::BoundedValueRef::new(output, 8192).unwrap()),
+                            failure: None,
+                        },
+                    )
+                    .unwrap();
+            }
+            if status == SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
+            if let Some(offer) = session
+                .session
+                .owned_output(show_fore.endpoint, show_fore.cord)
+                .unwrap()
+            {
+                assert!(!emitted);
+                session
+                    .session
+                    .accept_owned_output(offer.endpoint, offer.cord, offer.sequence)
+                    .unwrap();
+                emitted = true;
+            }
+        }
+        assert!(drained && emitted);
+        session.call.as_mut().unwrap().withdraw(|| false).unwrap();
+        let closed = session
+            .session
+            .store_host_value_encoded(8192, |out| {
+                session.call.as_ref().unwrap().closed_encoded(
+                    &mut presentation,
+                    c::bind_sign(
+                        &active.host_id,
+                        &active.boot_id,
+                        Some(&active.active_play_id),
+                        2,
+                    )
+                    .sign_id,
+                    out,
+                    encode,
+                )
+            })
+            .unwrap();
+        drop(presentation);
+        let inspection = session.call.as_ref().unwrap().inspection().clone();
+        evidence
+            .accept(
+                index,
+                &active,
+                session.session.kernel().host_value(closed).unwrap(),
+                session.session.kernel().signs(),
+            )
+            .unwrap();
+        session.ready = Some(
+            session
+                .invocation
+                .retire_invocation(&mut session.call)
+                .unwrap(),
+        );
+        leases
+            .validate_retired(session.ready.as_ref().unwrap(), &active, &inspection)
+            .unwrap();
+        session.session.discard_host_value(closed).unwrap();
+        session.index += 1;
+        if index == 0 {
+            let addresses = (
+                &*session as *const _ as usize,
+                &*leases as *const _ as usize,
+                &*evidence as *const _ as usize,
+            );
+            let (s, l, e, _) = session.retire_completed(leases, evidence).err().unwrap();
+            session = s;
+            leases = l;
+            evidence = e;
+            assert_eq!(
+                addresses,
+                (
+                    &*session as *const _ as usize,
+                    &*leases as *const _ as usize,
+                    &*evidence as *const _ as usize
+                )
+            );
+        }
+        if index + 1 < 19200 {
+            let _accepted_previous = session
+                .session
+                .begin_next([(); 3], ms::NativeMaskSession::fresh_log().unwrap())
+                .unwrap_or_else(|_| panic!("exact finite child rearm"));
+        }
+    }
+    assert_eq!(evidence.completion(), (19200, Some(19200)));
+    assert!(session.session.retirement_ready());
+    let (s, l, e, _) = session
+        .retire_completed(leases, evidence)
+        .err()
+        .expect("live witness must refuse even at exact count");
+    session = s;
+    leases = l;
+    evidence = e;
+    guard.revoke();
+    let evidence_address = &*evidence as *const _ as usize;
+    let session_address = &*session as *const _ as usize;
+    for failure in 0..3 {
+        match failure {
+            0 => session.faulted = true,
+            1 => session.cleanup_refusal = Some("fixture-refusal"),
+            _ => {
+                session.pending = Some((
+                    initial.clone(),
+                    k::ValueRef {
+                        slot: 0,
+                        generation: 0,
+                        byte_len: 1,
+                    },
+                ))
+            }
+        }
+        let (s, l, e, _) = session.retire_completed(leases, evidence).err().unwrap();
+        session = s;
+        leases = l;
+        evidence = e;
+        assert_eq!(&*session as *const _ as usize, session_address);
+        assert_eq!(&*evidence as *const _ as usize, evidence_address);
+        session.faulted = false;
+        session.cleanup_refusal = None;
+        session.pending = None;
+    }
+    let fresh = Box::new(crate::native_mask_evidence::Consumer::new());
+    let (s, l, fresh, _) = session
+        .retire_completed(leases, fresh)
+        .err()
+        .expect("unaccepted evidence must refuse");
+    session = s;
+    leases = l;
+    drop(fresh);
+    let (retired, memory) =
+        allocation_probe::observe(|| session.retire_completed(leases, evidence).ok().unwrap());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(root.last_play_sequence, 19200);
+    let generation = root.display_generation;
+    let wrong = c::bind_active_play(&initial.plan_id, &root.host, &root.boot, 2);
+    assert!(root.finish_mask_play(&body, &wrong, &retired).is_err());
+    assert!(root
+        .finish_mask_play(&new_body(&planned), &initial, &retired)
+        .is_err());
+    root.display_generation += 1;
+    assert!(root.finish_mask_play(&body, &initial, &retired).is_err());
+    root.display_generation = generation;
+    assert!(root.display_issued);
+    root.finish_mask_play(&body, &initial, &retired).unwrap();
+    assert!(!root.display_issued);
+    assert_eq!(root.last_play_sequence, 19200);
+    assert_eq!(root.display_generation, generation);
+    assert!(root.finish_mask_play(&body, &initial, &retired).is_err());
+    let returned = retired.into_parts();
+    assert_eq!(&*returned.evidence as *const _ as usize, evidence_address);
+    assert!(!returned.kernel.cancelled);
+    assert_eq!(returned.kernel.active_nodes, 3);
+    assert_eq!(pins.released.get(), [true, true]);
+    assert!(pins.edges.get() > 19200 * 200);
+    println!("native_completed_mask_cpu children=19200 completeClosed=19200 sequence_next=19201 retirement_allocations=0 physical=false");
 }

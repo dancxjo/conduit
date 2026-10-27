@@ -146,7 +146,90 @@ impl RootIssuer {
         Ok((leases, capsule, MaskScopeGuard(witness)))
     }
 }
+pub(crate) struct RetirementFacts {
+    pub issued: u64,
+    pub first: u64,
+    pub end: u64,
+    pub next: u64,
+    pub revoked: bool,
+    pub pending: bool,
+    pub first_retained: bool,
+}
 impl MaskLeaseIssuer {
+    pub(crate) fn fresh_for_task(&self) -> bool {
+        self.issued_children == 0
+            && self.first.is_some()
+            && self.pending.is_none()
+            && !self.current.load(Ordering::Acquire)
+            && self.start_ms.is_none()
+            && self.parent.is_none()
+            && self.issuance_origin_ms.is_none()
+    }
+    pub(crate) fn retirement_facts<P: OpenDrain>(
+        &self,
+        owner: &r::ReadyRenderer<P>,
+    ) -> Result<RetirementFacts, &'static str> {
+        if owner.identity() != &self.native
+            || self.parent.is_none()
+            || self.start_ms.is_none()
+            || self.issuance_origin_ms.is_none()
+        {
+            return Err("mask-terminal-owner-scope");
+        }
+        Ok(RetirementFacts {
+            issued: self.issued_children,
+            first: self
+                .end
+                .checked_sub(CHILDREN)
+                .ok_or("mask-terminal-range")?,
+            end: self.end,
+            next: self.next,
+            revoked: !self.current.load(Ordering::Acquire),
+            pending: self.pending.is_some(),
+            first_retained: self.first.is_some(),
+        })
+    }
+    pub(crate) fn matches_current_body<P: OpenDrain>(
+        &self,
+        owner: &r::ReadyRenderer<P>,
+        body: &conduit_body::SealedBodyLifecycleSession,
+        initial: &c::ActivePlayIdentity,
+    ) -> bool {
+        let Some(realization) = body.realization() else {
+            return false;
+        };
+        let Some(parent) = realization.play.as_ref() else {
+            return false;
+        };
+        let Some(first) = self.end.checked_sub(CHILDREN) else {
+            return false;
+        };
+        owner.identity() == &self.native
+            && self.parent.as_ref() == Some(parent)
+            && parent.validate_for(&realization.plan)
+            && *initial
+                == c::bind_active_play(
+                    &self.plan,
+                    &self.native.host_id,
+                    &self.native.boot_id,
+                    first,
+                )
+            && realization
+                .plan
+                .masks()
+                .iter()
+                .flat_map(|m| m.chains())
+                .any(|chain| chain.plan().plan_id() == &self.plan)
+            && body.evidence().membership.parts.iter().any(|part| {
+                part.is_present()
+                    && part.current.as_ref().is_some_and(|host| {
+                        host.host_id == self.native.host_id && host.boot_id == self.native.boot_id
+                    })
+            })
+    }
+    pub(crate) fn plan_id(&self) -> &c::PlanId {
+        &self.plan
+    }
     pub fn revocation_guard(&self) -> MaskScopeGuard {
         MaskScopeGuard(self.current.clone())
     }
@@ -348,5 +431,33 @@ impl crate::native_display::LeaseSource for MaskLeaseIssuer {
         inspection: &c::CapabilityInspection,
     ) -> Result<(), &'static str> {
         self.validate_retired(owner, active, inspection)
+    }
+}
+
+impl RootIssuer {
+    /// Finish only the exact completed Mask owner in the still-current Body
+    /// Play. This releases issuance bookkeeping, never a sequence or generation.
+    pub fn finish_mask_play(
+        &mut self,
+        body: &conduit_body::SealedBodyLifecycleSession,
+        initial: &c::ActivePlayIdentity,
+        retired: &crate::native_display::task::RetiredMask,
+    ) -> Result<(), &'static str> {
+        let native = retired.renderer_identity();
+        if !self.display_issued
+            || self.issued_display_play.as_deref() != Some(initial)
+            || native.host_id != self.host
+            || native.boot_id != self.boot
+            || native.provider_generation != self.display_generation
+            || !retired.matches_current_body(body, initial)
+        {
+            return Err("mask-terminal-issuer-scope");
+        }
+        self.display_issued = false;
+        self.issued_display_play = None;
+        if self.reserved_display_play.as_deref() == Some(initial) {
+            self.reserved_display_play = None;
+        }
+        Ok(())
     }
 }

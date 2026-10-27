@@ -304,6 +304,11 @@ where
         self.phase = Phase::Prepared;
         Ok(old)
     }
+    /// Read-only preflight for the same normal-drain ownership transfer.
+    /// Passing this grants no rearm or replacement execution authority.
+    pub fn retirement_ready(&self) -> bool {
+        self.check_drained().is_ok()
+    }
     /// Return the actual drivers, value backing and exact evidence only after
     /// normal drain with all adapter/Host Call ownership settled. This grants
     /// no new invocation, Body scope or replacement native claim. Every refusal
