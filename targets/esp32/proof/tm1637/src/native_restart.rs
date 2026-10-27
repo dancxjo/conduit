@@ -567,7 +567,7 @@ fn checkpoint_store_timed(
             .proof
             .as_ref()
             .map(|proof| {
-                payload::rewrite::PreparedRewrite::prepare(
+                payload::rewrite::PreparedRewrite::prepare_framed(
                     proof,
                     &previous.source,
                     owner.evidence(),

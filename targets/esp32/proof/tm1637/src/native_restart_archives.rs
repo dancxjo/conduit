@@ -98,6 +98,7 @@ pub(crate) struct Custody<'a> {
     pub local_count: u64,
 }
 pub(crate) struct Resident {
+    pub(super) framing: Option<super::frames::Validated>,
     pub(crate) proof: Option<super::rewrite::AuthenticatedReceipts>,
     pub(super) validation: Option<super::rewrite::ValidatedReceipts>,
     pub layouts: super::layout::Layouts,
@@ -111,6 +112,13 @@ pub(crate) struct Resident {
 // boundary succeeds. Neither this wrapper nor its contents can authorize restore.
 pub(super) struct PendingResident(Box<Resident>);
 impl PendingResident {
+    pub(super) fn with_framing(
+        mut self,
+        framing: Option<super::frames::Parsed>,
+    ) -> Result<Self, &'static str> {
+        self.0.framing = framing.map(|f| f.validate(self.0.span)).transpose()?;
+        Ok(self)
+    }
     #[inline(never)]
     pub(super) fn validate_receipts(
         self,
@@ -580,6 +588,7 @@ pub(super) fn decode_with_prefix(
     Ok(PendingResident(Box::write(
         backing,
         Resident {
+            framing: None,
             validation: None,
             proof: None,
             layouts,

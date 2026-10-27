@@ -7,6 +7,10 @@ use serde::{Deserialize, Serialize};
 pub(crate) mod archive;
 #[path = "native_restart_compress.rs"]
 mod compress;
+#[path = "native_restart_framed_rewrite.rs"]
+mod framed_rewrite;
+#[path = "native_restart_frames.rs"]
+pub(super) mod frames;
 #[path = "native_restart_profile.rs"]
 mod profile;
 #[path = "native_restart_read_json.rs"]
@@ -135,7 +139,7 @@ pub fn decode(
     if bytes.len() > MAX_BYTES {
         return Err("restart-capacity");
     }
-    if bytes.first() == Some(&b'B') {
+    if matches!(bytes.first(), Some(b'B' | b'F')) {
         let mut at = 0;
         return decode_streamed(
             |out| {
@@ -199,23 +203,72 @@ fn with_plain<T>(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     consume: impl FnOnce(&mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
+    with_plain_framing(read, consume).map(|(value, _)| value)
+}
+// The dispatcher owns no codec arena. Only the selected outlined branch owns
+// one; callbacks borrow it synchronously and no Decoder crosses a return ABI.
+fn with_plain_framing<T>(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    consume: impl FnOnce(&mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>) -> Result<T, &'static str>,
+) -> Result<(T, Option<frames::Parsed>), &'static str> {
     let mut prefixed = PrefixedReader::new(read)?;
-    if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
-        let mut source = |out: &mut [u8; 128]| prefixed.read(out);
-        let source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()> = &mut source;
-        let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
-        consume(&mut |out| decoder.read(out).map_err(|_| ()))
+    let kind = if prefixed.length == Some(0) {
+        0
     } else {
-        consume(&mut |out| prefixed.read(out))
+        prefixed.prefix[0]
+    };
+    let mut consume = Some(consume);
+    let mut callback = |reader: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>| {
+        let consume = consume.take().ok_or("restart-consumer-reused")?;
+        consume(reader)
+    };
+    let mut source = |out: &mut [u8; 128]| prefixed.read(out);
+    match kind {
+        b'F' => with_framed_plain(&mut source, &mut callback),
+        b'B' => with_compressed_plain(&mut source, &mut callback).map(|v| (v, None)),
+        _ => callback(&mut source).map(|v| (v, None)),
     }
+}
+#[inline(never)]
+#[allow(
+    clippy::type_complexity,
+    reason = "borrowed higher-ranked reader and consumer keep codec arenas out of caller frames"
+)]
+fn with_compressed_plain<T>(
+    source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    consume: &mut dyn FnMut(
+        &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    ) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
+    let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
+    consume(&mut |out| decoder.read(out).map_err(|_| ()))
+}
+#[inline(never)]
+#[allow(
+    clippy::type_complexity,
+    reason = "borrowed higher-ranked reader and consumer keep codec arenas out of caller frames"
+)]
+fn with_framed_plain<T>(
+    source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    consume: &mut dyn FnMut(
+        &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    ) -> Result<T, &'static str>,
+) -> Result<(T, Option<frames::Parsed>), &'static str> {
+    frames::Decoder::with(source, |decoder| {
+        let value = consume(&mut |out| decoder.read(out))?;
+        let parsed = decoder.finish().map_err(|_| "restart-frame-eof")?;
+        Ok((value, Some(parsed)))
+    })
+    .map_err(|_| "restart-frame")?
 }
 pub(crate) fn decode_resident(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     body: &conduit_body::BodyId,
     custody: Option<&archive::Summary>,
 ) -> Result<archive::Resident, &'static str> {
-    let pending = with_plain(read, |plain| archive::decode(plain, body, custody))?;
-    pending.validate_receipts(body, None)
+    let (pending, framing) =
+        with_plain_framing(read, |plain| archive::decode(plain, body, custody))?;
+    pending.with_framing(framing)?.validate_receipts(body, None)
 }
 /// Context-bound decoder. Root supplies the key derived from its first fully
 /// authenticated seed read and compares the second seed before publication.
@@ -226,10 +279,12 @@ pub(crate) fn decode_resident_with_prefix(
     custody: Option<archive::Custody<'_>>,
 ) -> Result<archive::Resident, &'static str> {
     let key = ed25519_dalek::VerifyingKey::from_bytes(root).map_err(|_| "restart-root-key")?;
-    let pending = with_plain(read, |plain| {
+    let (pending, framing) = with_plain_framing(read, |plain| {
         archive::decode_with_prefix(plain, body, Some(&key), custody)
     })?;
-    pending.validate_receipts(body, Some(&key))
+    pending
+        .with_framing(framing)?
+        .validate_receipts(body, Some(&key))
 }
 /// Native restore entrance: preserve pointer-sized custody across parser and
 /// journal frames; signatures still run only after complete bounded decoding.
@@ -241,10 +296,12 @@ pub(crate) fn decode_resident_boxed_with_prefix(
     custody: Option<archive::Custody<'_>>,
 ) -> Result<alloc::boxed::Box<archive::Resident>, &'static str> {
     let key = ed25519_dalek::VerifyingKey::from_bytes(root).map_err(|_| "restart-root-key")?;
-    let pending = with_plain(read, |plain| {
+    let (pending, framing) = with_plain_framing(read, |plain| {
         archive::decode_with_prefix(plain, body, Some(&key), custody)
     })?;
-    pending.validate_boxed(body, Some(&key))
+    pending
+        .with_framing(framing)?
+        .validate_boxed(body, Some(&key))
 }
 /// Export only the archive array from an already validated affine snapshot.
 /// Output is provisional until the caller's authenticated read_snapshot returns
@@ -307,15 +364,7 @@ pub fn decode_streamed(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     expected_body: &conduit_body::BodyId,
 ) -> Result<Retained, &'static str> {
-    let mut prefixed = PrefixedReader::new(read)?;
-    if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
-        let mut source = |out: &mut [u8; 128]| prefixed.read(out);
-        let source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()> = &mut source;
-        let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
-        decode_plain(&mut |out| decoder.read(out).map_err(|_| ()), expected_body)
-    } else {
-        decode_plain(&mut |out| prefixed.read(out), expected_body)
-    }
+    with_plain(read, |plain| decode_plain(plain, expected_body))
 }
 /// Inspect authenticated input without allocating any biography or archive.
 /// This is a capacity preflight only; typed canonical validation still follows.
@@ -326,7 +375,18 @@ pub fn plain_length(
     let mut chunk = [0; 128];
     let result = (|| {
         let mut count = 0usize;
-        if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
+        if prefixed.length != Some(0) && prefixed.prefix[0] == b'F' {
+            with_framed_plain(&mut |out| prefixed.read(out), &mut |read| {
+                loop {
+                    let n = read(&mut chunk).map_err(|_| "restart-frame")?;
+                    if n == 0 {
+                        break;
+                    }
+                    count = count.checked_add(n).ok_or("restart-capacity")?;
+                }
+                Ok(())
+            })?;
+        } else if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
             let mut source = |out: &mut [u8; 128]| prefixed.read(out);
             let source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()> = &mut source;
             let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
@@ -652,6 +712,7 @@ fn validate_rewrite_state<E>(
     Ok(summary)
 }
 #[allow(clippy::too_many_arguments)]
+#[inline(never)]
 fn emit_rewrite<E>(
     evidence: &BodyBiographyEvidence,
     pending: &[BodyBiographyArchiveSegment],
@@ -850,6 +911,7 @@ pub(super) fn authenticate_receipts(
         .validation
         .take()
         .ok_or("restart-receipt-validation-missing")?;
-    resident.proof = Some(checked.bind(source)?);
+    resident.proof =
+        Some(checked.bind_framing(source, resident.framing.take(), resident.local_count)?);
     Ok(())
 }

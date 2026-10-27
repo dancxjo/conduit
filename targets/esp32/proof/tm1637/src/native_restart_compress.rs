@@ -77,6 +77,14 @@ fn hex_digit(n: u8) -> u8 {
         b'a' + n - 10
     }
 }
+pub trait Output {
+    fn output(&mut self, bytes: &[u8]) -> Result<(), ()>;
+}
+impl<F: FnMut(&[u8]) -> Result<(), ()>> Output for F {
+    fn output(&mut self, bytes: &[u8]) -> Result<(), ()> {
+        self(bytes)
+    }
+}
 pub struct Encoder<W> {
     write: W,
     history: [u8; WINDOW],
@@ -103,7 +111,7 @@ impl<W> Drop for Encoder<W> {
         wipe(&mut self.group);
     }
 }
-impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
+impl<W: Output> Encoder<W> {
     pub fn new(write: W, max_plain: usize, max_encoded: usize) -> Self {
         Self {
             write,
@@ -125,6 +133,25 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
             terminal: false,
         }
     }
+    pub(super) fn output_mut(&mut self) -> &mut W {
+        &mut self.write
+    }
+    pub(super) fn reset_frame(&mut self) {
+        wipe(&mut self.history);
+        wipe(&mut self.look);
+        wipe(&mut self.group);
+        self.cache_len = 0;
+        self.cache_next = 0;
+        self.hex_run = 0;
+        self.look_len = 0;
+        self.consumed = 0;
+        self.plain = 0;
+        self.encoded = 0;
+        self.group_len = 1;
+        self.tokens = 0;
+        self.begun = false;
+        self.terminal = false;
+    }
     fn emit(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let next = self
             .encoded
@@ -133,7 +160,7 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
         if next > self.max_encoded {
             return Err(Error::Capacity);
         }
-        (self.write)(bytes).map_err(|_| Error::Invalid)?;
+        self.write.output(bytes).map_err(|_| Error::Invalid)?;
         self.encoded = next;
         Ok(())
     }
@@ -153,7 +180,9 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
         if next > self.max_encoded {
             return Err(Error::Capacity);
         }
-        (self.write)(&self.group[..self.group_len]).map_err(|_| Error::Invalid)?;
+        self.write
+            .output(&self.group[..self.group_len])
+            .map_err(|_| Error::Invalid)?;
         self.encoded = next;
         wipe(&mut self.group);
         self.group_len = 1;
@@ -405,6 +434,14 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
         })
     }
 }
+pub trait Input {
+    fn input(&mut self, out: &mut [u8; 128]) -> Result<usize, ()>;
+}
+impl<F: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Input for F {
+    fn input(&mut self, out: &mut [u8; 128]) -> Result<usize, ()> {
+        self(out)
+    }
+}
 pub struct Decoder<R> {
     read: R,
     history: [u8; WINDOW],
@@ -437,7 +474,7 @@ impl<R> Drop for Decoder<R> {
         wipe(&mut self.expansion);
     }
 }
-impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
+impl<R: Input> Decoder<R> {
     pub fn new(read: R, max_plain: usize, max_encoded: usize) -> Self {
         Self {
             read,
@@ -465,10 +502,39 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
             expansion_len: 0,
         }
     }
+    pub(super) fn source_mut(&mut self) -> &mut R {
+        &mut self.read
+    }
+    pub(super) fn reset_frame(&mut self, max_plain: usize) {
+        wipe(&mut self.history);
+        wipe(&mut self.input);
+        wipe(&mut self.expansion);
+        self.cache_len = 0;
+        self.cache_next = 0;
+        self.hex_run = 0;
+        self.position = 0;
+        self.available = 0;
+        self.encoded = 0;
+        self.produced = 0;
+        self.max_plain = max_plain;
+        self.flags = 0;
+        self.flag_index = 8;
+        self.distance = 0;
+        self.remaining = 0;
+        self.begun = false;
+        self.done = false;
+        self.failed = false;
+        self.version = 0;
+        self.expansion_at = 0;
+        self.expansion_len = 0;
+    }
     fn byte(&mut self) -> Result<Option<u8>, Error> {
         if self.position == self.available {
             wipe(&mut self.input);
-            let count = (self.read)(&mut self.input).map_err(|_| Error::Invalid)?;
+            let count = self
+                .read
+                .input(&mut self.input)
+                .map_err(|_| Error::Invalid)?;
             if count > self.input.len() {
                 return Err(Error::Invalid);
             }

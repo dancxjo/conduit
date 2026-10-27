@@ -390,3 +390,6 @@ fn observing_finite_checkpoint_phases_preserves_exact_flash_bytes() {
     assert_eq!(*ordinary.bytes.borrow(), *observed.bytes.borrow());
     assert_eq!(reopened(observed.bytes.borrow().clone(), &f), 2);
 }
+
+#[path = "native_framed_powercuts.rs"]
+mod framed_powercuts;

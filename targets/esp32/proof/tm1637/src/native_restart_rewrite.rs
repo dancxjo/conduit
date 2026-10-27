@@ -12,6 +12,7 @@ pub(crate) struct ValidatedReceipts {
     fingerprint: [u8; 32],
 }
 pub(crate) struct AuthenticatedReceipts {
+    frames: Option<(frames::Range, u64)>,
     root: Option<[u8; 32]>,
     fingerprint: [u8; 32],
     source: SourceIdentity,
@@ -67,10 +68,21 @@ impl ValidatedReceipts {
             return Err("restart-receipt-source-body");
         }
         Ok(AuthenticatedReceipts {
+            frames: None,
             root: self.root,
             fingerprint: self.fingerprint,
             source: source.identity(),
         })
+    }
+    pub(super) fn bind_framing(
+        self,
+        source: &SourceSnapshot,
+        framing: Option<frames::Validated>,
+        count: u64,
+    ) -> Result<AuthenticatedReceipts, &'static str> {
+        let mut proof = self.bind(source)?;
+        proof.frames = framing.map(|f| (f.into_range(), count));
+        Ok(proof)
     }
 }
 impl AuthenticatedReceipts {
@@ -96,6 +108,9 @@ impl AuthenticatedReceipts {
 /// the manager, evidence, pending segments or receipts can coexist with this.
 pub(crate) struct PreparedRewrite<'a> {
     emitted: Cell<Option<(usize, [u8; 32])>>,
+    framed: bool,
+    reuse: Option<frames::Range>,
+    emitted_frames: Cell<Option<frames::Range>>,
     evidence: &'a BodyBiographyEvidence,
     pending: &'a [BodyBiographyArchiveSegment],
     admissions: &'a AdmissionManager,
@@ -134,6 +149,9 @@ impl<'a> PreparedRewrite<'a> {
         .map_err(|_| "restart-rewrite-state")?;
         Ok(Self {
             emitted: Cell::new(None),
+            framed: false,
+            reuse: None,
+            emitted_frames: Cell::new(None),
             evidence,
             pending,
             admissions,
@@ -146,6 +164,45 @@ impl<'a> PreparedRewrite<'a> {
             checked,
         })
     }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_framed(
+        checked: &'a AuthenticatedReceipts,
+        source: &SourceSnapshot,
+        evidence: &'a BodyBiographyEvidence,
+        pending: &'a [BodyBiographyArchiveSegment],
+        admissions: &'a AdmissionManager,
+        previous: &'a archive::Summary,
+        span: archive::Span,
+        prefix: Option<&'a wire::Receipt>,
+        local_count: u64,
+        root: &[u8; 32],
+        layouts: &'a layout::Layouts,
+    ) -> Result<Self, &'static str> {
+        let mut result = Self::prepare(
+            checked,
+            source,
+            evidence,
+            pending,
+            admissions,
+            previous,
+            span,
+            prefix,
+            local_count,
+            root,
+            layouts,
+        )?;
+        result.reuse = checked
+            .frames
+            .map(|(range, count)| {
+                if range.plain != span || count != local_count {
+                    return Err("restart-frame-source");
+                }
+                Ok(range)
+            })
+            .transpose()?;
+        result.framed = true;
+        Ok(result)
+    }
     pub(crate) fn emit<E>(
         &self,
         read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
@@ -153,24 +210,46 @@ impl<'a> PreparedRewrite<'a> {
     ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
         let mut hash = Sha256::new();
         let mut length = 0usize;
-        let result = emit_rewrite(
-            self.evidence,
-            self.pending,
-            self.admissions,
-            self.previous,
-            self.span,
-            self.prefix,
-            self.local_count,
-            self.layouts,
-            self.summary.clone(),
-            read,
-            &mut |bytes: &[u8]| {
-                sink(bytes)?;
-                length += bytes.len();
-                hash.update(bytes);
-                Ok(())
-            },
-        )?;
+        let mut output = |bytes: &[u8]| {
+            sink(bytes)?;
+            length += bytes.len();
+            hash.update(bytes);
+            Ok(())
+        };
+        let result = if self.framed {
+            let (summary, span, range) = framed_rewrite::emit(
+                self.evidence,
+                self.pending,
+                self.admissions,
+                self.span,
+                self.prefix,
+                self.local_count,
+                self.layouts,
+                self.summary.clone(),
+                self.reuse,
+                read,
+                &mut output,
+            )?;
+            if self.emitted_frames.get().is_some_and(|old| old != range) {
+                return Err(StreamRefusal::Invalid);
+            }
+            self.emitted_frames.set(Some(range));
+            (summary, span)
+        } else {
+            emit_rewrite(
+                self.evidence,
+                self.pending,
+                self.admissions,
+                self.previous,
+                self.span,
+                self.prefix,
+                self.local_count,
+                self.layouts,
+                self.summary.clone(),
+                read,
+                &mut output,
+            )?
+        };
         let transcript = (length, <[u8; 32]>::from(hash.finalize()));
         if self.emitted.get().is_some_and(|prior| prior != transcript) {
             return Err(StreamRefusal::Invalid);
@@ -193,7 +272,20 @@ impl<'a> PreparedRewrite<'a> {
             return Err("restart-rewrite-commit-source");
         }
         let source = completion.into_source();
+        let frames = if self.framed {
+            Some((
+                self.emitted_frames
+                    .get()
+                    .ok_or("restart-frame-not-emitted")?,
+                self.local_count
+                    .checked_add(self.pending.len() as u64)
+                    .ok_or("restart-frame-count")?,
+            ))
+        } else {
+            None
+        };
         let proof = AuthenticatedReceipts {
+            frames,
             root: self.checked.root,
             fingerprint: self.checked.fingerprint,
             source: source.identity(),
@@ -207,3 +299,10 @@ std::thread_local! {static VERIFICATION_PASSES:core::cell::Cell<usize>=const{cor
 pub(super) fn verification_passes() -> usize {
     VERIFICATION_PASSES.with(|n| n.get())
 }
+
+#[cfg(all(
+    test,
+    any(feature = "observation-store", feature = "local-evidence-store")
+))]
+#[path = "native_restart_frames_tests.rs"]
+mod frame_tests;
