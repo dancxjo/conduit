@@ -1,6 +1,6 @@
 //! Actual Store operations on CPU flash; no hardware or execution proof.
 use super::*;
-fn fixture() -> (
+pub(super) fn fixture() -> (
     Store,
     Option<Box<SealedBodyLifecycleSession>>,
     conduit_core::HostAdvertisement,

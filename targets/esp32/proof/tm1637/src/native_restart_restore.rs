@@ -120,6 +120,8 @@ pub(super) fn restore_store(
         source,
         summary: resident.summary,
         span: resident.span,
+        prefix: resident.prefix,
+        local_count: resident.local_count,
     });
     store.admissions = Some(admissions);
     store.parked = false;

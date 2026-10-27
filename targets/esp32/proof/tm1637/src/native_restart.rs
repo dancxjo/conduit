@@ -12,6 +12,8 @@ use conduit_body::{
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
+#[path = "native_restart_biography.rs"]
+pub(crate) mod biography;
 #[path = "native_restart_payload.rs"]
 pub(crate) mod payload;
 #[path = "native_restart_restore.rs"]
@@ -90,6 +92,8 @@ struct ArchiveCustody {
     source: crate::native_body_checkpoint::SourceSnapshot,
     summary: payload::archive::Summary,
     span: payload::archive::Span,
+    prefix: Option<payload::wire::Receipt>,
+    local_count: u64,
 }
 pub struct RetainedBody {
     pub evidence: BodyBiographyEvidence,
@@ -307,9 +311,11 @@ fn decode_checkpoint(
         })
         .map_err(|_| "restart-preflight")?
         .ok_or("restart-missing")?;
-    private_seed.0.fill(0);
+    let root_key = ed25519_dalek::SigningKey::from_bytes(&private_seed.0)
+        .verifying_key()
+        .to_bytes();
     let plain = if let Some(custody) = custody {
-        if plain.span != custody.span || plain.segments != custody.summary.count {
+        if plain.span != custody.span || plain.segments != custody.local_count {
             return Err("restart-custody-span");
         }
         plain.active
@@ -336,12 +342,17 @@ fn decode_checkpoint(
         return Err("restart-generation");
     }
     let mut refusal = None;
-    journal
+    let loaded = journal
         .load_streamed_with_snapshot(binding, seed, |reader| {
-            payload::decode_resident(
+            payload::decode_resident_with_prefix(
                 |chunk| reader.read(chunk).map_err(|_| ()),
                 body_id,
-                custody.map(|c| &c.summary),
+                &root_key,
+                custody.map(|c| payload::archive::Custody {
+                    summary: &c.summary,
+                    prefix: c.prefix.as_ref(),
+                    local_count: c.local_count,
+                }),
             )
             .and_then(|resident| {
                 if custody.is_some_and(|c| c.span != resident.span) {
@@ -355,7 +366,12 @@ fn decode_checkpoint(
             })
         })
         .map_err(|_| refusal.unwrap_or("restart-load"))?
-        .ok_or("restart-missing")
+        .ok_or("restart-missing")?;
+    if *seed != private_seed.0 {
+        seed.fill(0);
+        return Err("restart-key-changed");
+    }
+    Ok(loaded)
 }
 pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result<(), &'static str> {
     compiled
@@ -394,6 +410,8 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                     source,
                     summary: resident.summary,
                     span: resident.span,
+                    prefix: resident.prefix,
+                    local_count: resident.local_count,
                 }),
                 Some(seed.0),
                 pristine,
@@ -468,6 +486,8 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
             source,
             summary: resident.summary,
             span: resident.span,
+            prefix: resident.prefix,
+            local_count: resident.local_count,
         });
         store.seed = Some(entropy);
         Ok(entropy)
@@ -525,12 +545,15 @@ fn checkpoint_store(
                 // Preserve typed journal read faults through the bounded codec
                 // callback; transport failure is not malformed canonical data.
                 let mut read_refusal = None;
-                let emitted = payload::stream_rewrite(
+                let emitted = payload::stream_rewrite_with_prefix(
                     owner.evidence(),
                     owner.pending_archives(),
                     store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
                     &previous.summary,
                     previous.span,
+                    previous.prefix.as_ref(),
+                    previous.local_count,
+                    verifying_key,
                     |out| {
                         io.read_source(out).map_err(|error| {
                             read_refusal = Some(error);
@@ -565,6 +588,14 @@ fn checkpoint_store(
             source,
             summary,
             span,
+            prefix: previous.prefix.clone(),
+            local_count: previous
+                .local_count
+                .checked_add(
+                    u64::try_from(owner.pending_archives().len())
+                        .map_err(|_| "restart-archive-count")?,
+                )
+                .ok_or("restart-archive-count")?,
         }
     } else {
         // Only a genuinely new journal (or the CPU storage fixture) starts
@@ -604,6 +635,8 @@ fn checkpoint_store(
             source,
             summary: resident.summary,
             span: resident.span,
+            prefix: resident.prefix,
+            local_count: resident.local_count,
         }
     };
     store.custody = Some(next_custody);

@@ -51,6 +51,11 @@ impl SourceSnapshot {
     pub(crate) fn binding(&self) -> &[u8; 32] {
         &self.retained.binding
     }
+    /// Digest of the complete authenticated header and encoded source. This
+    /// identifies custody; it supplies neither signing authority nor membership.
+    pub(crate) fn digest(&self) -> &[u8; 32] {
+        &self.expected
+    }
 }
 /// One serialized storage owner interleaves reads of the old committed bank
 /// and writes to the other bank. No aliased mutable storage reference escapes.
