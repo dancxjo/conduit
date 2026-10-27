@@ -183,6 +183,10 @@ fn prepare_scope(
     ))
 }
 impl Publisher {
+    /// Close presentation material while retaining actual publication custody.
+    pub(crate) fn withdraw_http(&self) {
+        self.reader.withdraw_http();
+    }
     #[inline(never)]
     pub fn publish(&mut self, snapshot: &PublicationSnapshot<'_>, committed_ms: u64) {
         let published = self.inner.publish(

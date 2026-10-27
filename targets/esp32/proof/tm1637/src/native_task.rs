@@ -12,6 +12,20 @@ use static_cell::StaticCell;
 #[path = "native_task_terminal.rs"]
 mod terminal;
 
+type NativeProviders = crate::native_worker::RetiredProviders<
+    conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+    crate::native_wait::EspWait,
+>;
+/// Settled original execution material and publication custody, never a grant
+/// to reset their finite budgets or reuse their old execution scope.
+pub struct Retired {
+    pub execution: crate::native_worker::RetiredExecution<
+        conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+        crate::native_wait::EspWait,
+    >,
+    #[cfg(feature = "native-face-root")]
+    pub publisher: crate::native_face::Publisher,
+}
 struct Slot {
     execution: RefCell<Option<Box<DeviceExecution>>>,
     #[cfg(feature = "native-face-root")]
@@ -147,16 +161,21 @@ impl Handle {
             COMMAND.signal(Command::Cancel);
         }
     }
-    /// Only Root's exact authenticated retirement may take terminal custody.
-    pub fn retire(
-        &self,
-    ) -> Result<
-        crate::native_worker::RetiredProviders<
-            conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
-            crate::native_wait::EspWait,
-        >,
-        &'static str,
-    > {
+    /// Compatibility transfer for callers which retain only physical providers.
+    /// Other terminal material is dropped; no replacement publication is issued.
+    pub fn retire(&self) -> Result<NativeProviders, &'static str> {
+        Ok(self.take_retired()?.execution.providers)
+    }
+    /// Consume the exclusive task handle while returning all actual terminal
+    /// custody. The returned handle alone may register separately admitted next
+    /// owners; this operation grants no new Face, kernel, Body or Play scope.
+    pub fn retire_with_publication(self) -> Result<(Self, Retired), (Self, &'static str)> {
+        match self.take_retired() {
+            Ok(retired) => Ok((self, retired)),
+            Err(reason) => Err((self, reason)),
+        }
+    }
+    fn take_retired(&self) -> Result<Retired, &'static str> {
         let status = self.status();
         if !terminal::retirement_ready(
             status.phase,
@@ -169,12 +188,34 @@ impl Handle {
         ) {
             return Err("worker-not-quiesced");
         }
-        let providers = DeviceExecution::retire_retained(&mut self.slot.execution.borrow_mut())?;
+        // Hold every slot borrow and preflight publication custody before the
+        // execution's consuming retirement. Refusal leaves all owners in place.
+        let mut execution = self
+            .slot
+            .execution
+            .try_borrow_mut()
+            .map_err(|_| "worker-execution-busy")?;
+        #[cfg(feature = "native-face-root")]
+        let mut publisher = self
+            .slot
+            .publisher
+            .try_borrow_mut()
+            .map_err(|_| "worker-publisher-busy")?;
+        #[cfg(feature = "native-face-root")]
+        if publisher.is_none() {
+            return Err("worker-publisher-unavailable");
+        }
+        let execution = DeviceExecution::retire_with_material_retained(&mut execution)?;
+        let retired = Retired {
+            execution,
+            #[cfg(feature = "native-face-root")]
+            publisher: publisher.take().expect("exclusively preflighted publisher"),
+        };
         update(|state| {
             state.status.phase = "retired";
             state.status.context_bytes = 0;
         });
-        Ok(providers)
+        Ok(retired)
     }
     /// Reuse only this exclusively held slot after actual kernel/provider
     /// retirement. The caller supplies a separately admitted fresh execution;
@@ -434,6 +475,13 @@ async fn held(slot: &'static Slot) {
     // Static slot and task-pool backing remain reserved. Only exact retirement
     // may consume the retained kernel; a later registration consumes the exclusive
     // handle and independently prepared owners. Completion grants no new Play.
+    // Publication Drop used to withdraw HTTP at this point. Retain the actual
+    // publisher for consuming retirement, but preserve that terminal withdrawal.
+    #[cfg(feature = "native-face-root")]
+    {
+        publisher.withdraw_http();
+        slot.publisher.replace(Some(publisher));
+    }
     slot.execution.replace(Some(execution));
     update(|state| state.status.task_active = false);
 }
