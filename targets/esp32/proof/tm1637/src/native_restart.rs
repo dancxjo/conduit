@@ -712,6 +712,20 @@ pub(crate) fn admissions_transaction<T>(
                 .as_mut()
                 .ok_or("restart-admissions-missing")?,
         )?;
+        // Mutation is now private pending custody; a staging failure must fence
+        // publication just like a failed checkpoint, rather than expose it.
+        store.ready = false;
+        // Membership replay suffixes may move while the exact local Play stays
+        // current. Archive custody remains pending until complete durable ACK.
+        if owner
+            .realization()
+            .and_then(|current| current.play.as_ref())
+            .is_some()
+        {
+            owner
+                .seal_started_membership_history_for_checkpoint()
+                .map_err(|_| "restart-active-membership-seal")?;
+        }
         checkpoint_store(store, owner, verifying_key)?;
         Ok(result)
     })

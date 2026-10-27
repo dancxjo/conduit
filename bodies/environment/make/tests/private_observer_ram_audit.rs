@@ -58,6 +58,10 @@ mod native_evidence_region {
         }
     }
 }
+// Representative Core fragments prove active-owner custody without electrical
+// providers. Their metadata is retained unchanged, never cloned by admission.
+#[path = "../../../../architecture/core/tests/common/sealed_state.rs"]
+mod core_fixture;
 use conduit_core as c;
 use std::{
     alloc::{GlobalAlloc, Layout, System},
@@ -70,16 +74,70 @@ struct Memory {
     active: bool,
 }
 thread_local! { static MEM:Cell<Memory>=const{Cell::new(Memory{live:0,peak:0,active:false})}; }
+#[derive(Clone, Copy)]
+struct Phases {
+    enabled: bool,
+    index: usize,
+    baseline: isize,
+    starts: [isize; 3],
+    peaks: [isize; 3],
+}
+thread_local! { static PHASES:Cell<Phases>=const{Cell::new(Phases{enabled:false,index:0,baseline:0,starts:[0;3],peaks:[0;3]})}; }
+fn phase_start() {
+    let live = MEM.with(|m| m.get().live);
+    PHASES.with(|p| {
+        p.set(Phases {
+            enabled: true,
+            index: 0,
+            baseline: live,
+            starts: [live; 3],
+            peaks: [live; 3],
+        })
+    });
+}
+fn phase_next(index: usize) {
+    let live = MEM.with(|m| m.get().live);
+    PHASES.with(|p| {
+        let mut state = p.get();
+        state.index = index;
+        state.starts[index] = live;
+        state.peaks[index] = live;
+        p.set(state);
+    });
+}
+fn phase_finish() -> [(isize, isize); 3] {
+    PHASES.with(|p| {
+        let mut state = p.get();
+        state.enabled = false;
+        p.set(state);
+        core::array::from_fn(|i| {
+            (
+                state.peaks[i] - state.baseline,
+                state.peaks[i] - state.starts[i],
+            )
+        })
+    })
+}
 struct Counting;
 fn account(add: usize, remove: usize) {
-    let _ = MEM.try_with(|cell| {
+    let live = MEM.try_with(|cell| {
         let mut m = cell.get();
         m.live += add as isize - remove as isize;
         if m.active {
             m.peak = m.peak.max(m.live);
         }
         cell.set(m);
+        m.live
     });
+    if let Ok(live) = live {
+        let _ = PHASES.try_with(|cell| {
+            let mut phase = cell.get();
+            if phase.enabled {
+                phase.peaks[phase.index] = phase.peaks[phase.index].max(live);
+                cell.set(phase);
+            }
+        });
+    }
 }
 unsafe impl GlobalAlloc for Counting {
     unsafe fn alloc(&self, l: Layout) -> *mut u8 {
@@ -254,9 +312,63 @@ fn observer_resident_ram_audit() {
         native_restart::checkpoint(&mut owner, &root_key),
         "cold checkpoint",
     );
-    assert!(owner.realization().is_none());
+    let active = std::env::var_os("THERMO_AUDIT_ACTIVE").is_some();
+    if active {
+        let plans = owner
+            .evidence()
+            .body
+            .workset
+            .plots()
+            .iter()
+            .enumerate()
+            .map(|(index, plot)| {
+                let mut fragment = core_fixture::fragment();
+                fragment.source_document_id = plot.source_document_id.clone();
+                fragment.checked_plot_id = plot.checked_plot_id.clone();
+                fragment.expanded_plot_id = format!("cpu/active/{}", index).into();
+                fragment.host_id = host.clone();
+                fragment.boot_id = boot.clone();
+                for placement in &mut fragment.placements {
+                    placement.host_id = host.clone();
+                    placement.boot_id = boot.clone();
+                }
+                conduit_body::BodyPlotPlan {
+                    plot: plot.clone(),
+                    plan: core_fixture::seal(fragment),
+                }
+            })
+            .collect();
+        ok(owner.propose(plans, &host, &boot), "CPU active proposal");
+        let current = owner.realization().unwrap();
+        let play = conduit_body::BodyPlayIdentity::bind(&current.plan, 1);
+        let sign = |n| c::bind_sign(&host, &boot, Some(&play.active_play_id), n).sign_id;
+        let wake = ok(
+            current.wake.body_plan_ready(&current.plan, sign(0)),
+            "CPU plan ready",
+        );
+        let wake = ok(
+            wake.body_play_started(&current.plan, &play, sign(1)),
+            "CPU started Wake",
+        );
+        ok(
+            owner.started(&host, &boot, play, wake),
+            "CPU actual started owner",
+        );
+        ok(
+            native_restart::checkpoint(&mut owner, &root_key),
+            "CPU active baseline checkpoint",
+        );
+    }
+    let realization_digest: [u8; 32] =
+        Sha256::digest(format!("{:?}", owner.realization()).as_bytes()).into();
+    let foreground_digest: [u8; 32] =
+        Sha256::digest(serde_json::to_vec(&owner.foreground()).unwrap()).into();
     println!(
-        "CPU64 baseline members={}/{} member_events={}/{} records={}/{} current_realization=false",
+        "CPU64 active_owner={} representative_Core_fragments={}",
+        active, active
+    );
+    println!(
+        "CPU64 baseline members={}/{} member_events={}/{} records={}/{}",
         owner.evidence().membership.parts.len(),
         owner.evidence().membership.parts.capacity(),
         owner.evidence().membership.events.len(),
@@ -320,20 +432,75 @@ fn observer_resident_ram_audit() {
     };
     let (_, bootstrap_drop, _) = measure(|| drop(bootstrap));
     let invitation_server = issue_delta + bootstrap_drop;
-    let (durable, admit_delta, admit_peak) = measure(|| {
-        ok(
-            native_body_join::admit(&mut owner, &root_key, &host, &boot, &request, 11),
-            "CPU admit observer",
-        )
+    let phases_enabled = active && std::env::var_os("THERMO_AUDIT_PHASES").is_some();
+    let mut phases = [(0, 0); 3];
+    let (_, admit_server, admit_peak) = measure(|| {
+        if phases_enabled {
+            // The exact native transaction, manager and active private owner;
+            // stage once inside its closure solely to mark allocator phases.
+            // The transaction's subsequent ordinary auto-seal is an empty no-op.
+            phase_start();
+            let proof = ok(request.admission_proof(), "phase admission proof");
+            let credential = ok(
+                native_restart::admissions_transaction(&mut owner, &root_key, |owner, manager| {
+                    let credential = owner
+                        .admit_invited_host(
+                            manager,
+                            &request.host_advertisement,
+                            &proof,
+                            11,
+                            &host,
+                            &boot,
+                        )
+                        .map_err(|_| "phase-admission")?;
+                    phase_next(1);
+                    owner
+                        .seal_started_membership_history_for_checkpoint()
+                        .map_err(|_| "phase-seal")?;
+                    phase_next(2);
+                    Ok(credential)
+                }),
+                "phase exact canonical transaction",
+            );
+            phases = phase_finish();
+            drop(credential);
+        } else {
+            let durable = ok(
+                native_body_join::admit(&mut owner, &root_key, &host, &boot, &request, 11),
+                "CPU admit observer",
+            );
+            drop(durable);
+        }
     });
-    let (_, receipt_drop, _) = measure(|| drop(durable));
-    let admit_server = admit_delta + receipt_drop;
+    if phases_enabled {
+        println!("CPU64 phase_probe=true admission_peak_over_operation={} admission_extra_over_phase_entry={} raw_seal_peak_over_operation={} raw_seal_extra_over_phase_entry={} checkpoint_peak_over_operation={} checkpoint_extra_over_phase_entry={}", phases[0].0,phases[0].1,phases[1].0,phases[1].1,phases[2].0,phases[2].1);
+    }
     assert!(owner.evidence().membership.parts.len() == baseline_members + 1);
-    assert!(owner.realization().is_none());
+    assert!(owner.realization().is_some() == active);
+    assert_eq!(
+        <[u8; 32]>::from(Sha256::digest(
+            format!("{:?}", owner.realization()).as_bytes()
+        )),
+        realization_digest
+    );
+    assert_eq!(
+        <[u8; 32]>::from(Sha256::digest(
+            serde_json::to_vec(&owner.foreground()).unwrap()
+        )),
+        foreground_digest
+    );
+    assert!(
+        owner.pending_archives().is_empty(),
+        "only durable ACK releases archive custody"
+    );
     println!("CPU64 invite retained_server_delta={} peak={} admission retained_server_delta={} peak={} total_server_delta={} members={}/{} member_events={}/{} records={}/{}",invitation_server,issue_peak,admit_server,admit_peak,invitation_server+admit_server,owner.evidence().membership.parts.len(),owner.evidence().membership.parts.capacity(),owner.evidence().membership.events.len(),owner.evidence().membership.events.capacity(),owner.evidence().records.len(),owner.evidence().records.capacity());
     let (_, seal_delta, seal_peak) = measure(|| {
         ok(
-            owner.seal_membership_history_for_checkpoint(),
+            if active {
+                owner.seal_started_membership_history_for_checkpoint()
+            } else {
+                owner.seal_membership_history_for_checkpoint()
+            },
             "post-admission history seal",
         );
         ok(
@@ -371,7 +538,7 @@ fn observer_resident_ram_audit() {
         "expected admissions wire",
     );
     let mut reopened = ok(
-        native_body_checkpoint::Checkpoint::open(media),
+        native_body_checkpoint::Checkpoint::open(media.clone()),
         "checkpoint reopen",
     );
     let length =
@@ -395,6 +562,26 @@ fn observer_resident_ram_audit() {
         ) == expected_evidence,
         "exact evidence wire"
     );
+    if active {
+        assert!(matches!(
+            conduit_body::SealedBodyLifecycleSession::open(retained.evidence.clone()),
+            Err(conduit_body::BodyLifecycleSessionError::UnreconciledWake)
+        ));
+        let next_boot: c::BootId = "cpu/audit-next-boot".into();
+        let resumed = ok(
+            conduit_body::SealedBodyLifecycleSession::resume_here(
+                retained.evidence.clone(),
+                &host,
+                &next_boot,
+            ),
+            "active newBoot restart",
+        );
+        assert!(resumed.realization().is_none());
+        assert!(matches!(
+            resumed.evidence().body.state,
+            conduit_body::BodyState::Lulled
+        ));
+    }
     let mut admissions = retained.admissions.expect("retained admissions");
     assert!(
         ok(serde_json::to_vec(&admissions), "reopened admissions wire") == expected_admissions,
@@ -418,6 +605,71 @@ fn observer_resident_ram_audit() {
         "replay after checkpoint reopen"
     );
     println!("CPU64 checkpoint_reopened=true exact_evidence_wire=true exact_admission_wire=true consumed_invitation_replay_refused=true Root_seed_continuity=true");
+    if active {
+        // A second, valid admission stages real archive custody, then storage
+        // fails. No receipt/ACK escapes, and the previous complete bank survives.
+        let secret = conduit_body::SpawnInvitationSecret::from_csprng_bytes([31; 32]).unwrap();
+        let invitation = native_body_join::issue(
+            &mut owner,
+            &root_key,
+            &host,
+            &boot,
+            secret.clone(),
+            [32; 32],
+            20,
+            100,
+        )
+        .unwrap();
+        let mut request = request.clone();
+        request.host_advertisement.host_id = "cpu/second-observer".into();
+        request.host_advertisement.boot_id = "cpu/second-observer-boot".into();
+        let claim = invitation.invitation.claim;
+        request.invitation_id = claim.invitation_id.clone();
+        request.body_id = claim.body_id.clone();
+        request.nonce = claim.nonce;
+        request.signature = secret
+            .sign(&claim.signing_transcript(
+                &request.host_advertisement.host_id,
+                &request.host_advertisement.boot_id,
+                request.host_advertisement.offer_generation,
+            ))
+            .to_vec();
+        media.0.lock().unwrap().1 = false;
+        assert!(
+            native_body_join::admit(&mut owner, &root_key, &host, &boot, &request, 21).is_err()
+        );
+        assert!(!native_restart::publication_ready());
+        assert_eq!(
+            owner.pending_archives().len(),
+            1,
+            "failed write cannot ACK moved history"
+        );
+        assert_eq!(
+            <[u8; 32]>::from(Sha256::digest(
+                format!("{:?}", owner.realization()).as_bytes()
+            )),
+            realization_digest
+        );
+        let mut previous = native_body_checkpoint::Checkpoint::open(media).unwrap();
+        let mut old_seed = [0; 32];
+        let mut old_payload = vec![0; previous.payload_length(&binding).unwrap().unwrap()];
+        previous
+            .load(&binding, &mut old_seed, &mut old_payload)
+            .unwrap();
+        assert!(old_seed == selected);
+        old_seed.fill(0);
+        let previous =
+            native_restart::payload::decode(&old_payload, &owner.evidence().body_id).unwrap();
+        assert_eq!(
+            previous.evidence.membership.parts.len(),
+            baseline_members + 1
+        );
+        assert_eq!(
+            owner.evidence().membership.parts.len(),
+            baseline_members + 2
+        );
+        println!("CPU64 active_failed_checkpoint_fenced=true pending_archive_retained=true previous_committed_bank_preserved=true current_Play_unchanged=true");
+    }
 }
 
 // Exact owned clone allocation isolates metadata payload from spare capacities.

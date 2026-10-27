@@ -524,3 +524,132 @@ fn public_checkpoint_seal_full_pending_bound_preserves_unsealed_current_suffix()
     assert_eq!(owner.pending_archives(), pending);
     assert!(owner.realization().is_none());
 }
+
+#[test]
+fn started_membership_seal_preserves_actual_realization_and_restart_fence() {
+    let evidence = history(3);
+    let (partition, host, boot) = proposal(&evidence);
+    let mut owner = SealedBodyLifecycleSession::open_admitted(evidence, &host, &boot).unwrap();
+    assert_eq!(
+        owner.seal_started_membership_history_for_checkpoint(),
+        Err(BodyLifecycleSessionError::NoProposal)
+    );
+    owner.propose(vec![partition], &host, &boot).unwrap();
+    let before = postcard::to_allocvec(owner.evidence()).unwrap();
+    assert_eq!(
+        owner.seal_started_membership_history_for_checkpoint(),
+        Err(BodyLifecycleSessionError::StalePlay)
+    );
+    assert_eq!(postcard::to_allocvec(owner.evidence()).unwrap(), before);
+    let current = owner.realization().unwrap();
+    let play = BodyPlayIdentity::bind(&current.plan, 1);
+    let sign = |n| conduit_core::bind_sign(&host, &boot, Some(&play.active_play_id), n).sign_id;
+    let wake = current
+        .wake
+        .body_plan_ready(&current.plan, sign(0))
+        .unwrap()
+        .body_play_started(&current.plan, &play, sign(1))
+        .unwrap();
+    owner.started(&host, &boot, play.clone(), wake).unwrap();
+    let realization = owner.realization().unwrap().clone();
+    let body = owner.evidence().body.clone();
+    let wakes = owner.evidence().wakes.clone();
+    let foreground = owner.foreground().cloned();
+    let membership = owner.evidence().membership.clone();
+    let sequence = owner.evidence().last_sequence();
+    assert!(owner
+        .seal_started_membership_history_for_checkpoint()
+        .unwrap());
+    assert_eq!(owner.realization(), Some(&realization));
+    assert_eq!(owner.evidence().body, body);
+    assert_eq!(owner.evidence().wakes, wakes);
+    assert_eq!(owner.foreground(), foreground.as_ref());
+    assert_eq!(owner.evidence().membership.parts, membership.parts);
+    assert_eq!(owner.evidence().membership.revision, membership.revision);
+    assert_eq!(owner.evidence().last_sequence(), sequence);
+    assert!(owner.evidence().membership.events.is_empty());
+    let segment = &owner.pending_archives()[0];
+    assert_eq!(segment.membership_events, membership.events);
+    segment.validate_as_head_of(owner.evidence()).unwrap();
+    owner.evidence().validate().unwrap();
+    assert!(matches!(
+        SealedBodyLifecycleSession::open(owner.evidence().clone()),
+        Err(BodyLifecycleSessionError::UnreconciledWake)
+    ));
+    let resumed = SealedBodyLifecycleSession::resume_here(
+        owner.evidence().clone(),
+        &host,
+        &BootId::from(id(999)),
+    )
+    .unwrap();
+    assert!(resumed.realization().is_none());
+    assert!(matches!(resumed.evidence().body.state, BodyState::Lulled));
+    assert_ne!(
+        resumed.evidence().wakes.last().unwrap().lifecycle,
+        owner.evidence().wakes.last().unwrap().lifecycle
+    );
+    assert_eq!(owner.realization().unwrap().play.as_ref(), Some(&play));
+    assert!(!owner
+        .seal_started_membership_history_for_checkpoint()
+        .unwrap());
+    assert_eq!(owner.pending_archives().len(), 1);
+}
+
+#[test]
+fn started_membership_seal_failure_keeps_exact_owner_and_archive_custody() {
+    let mut evidence = history(2);
+    evidence.seal_membership_history().unwrap().unwrap();
+    append_offline(&mut evidence);
+    evidence.compaction.as_mut().unwrap().records = u64::MAX;
+    evidence.validate().unwrap();
+    // Reattach the local Host so this is an ordinary actual admitted owner.
+    let current = evidence.membership.parts[0].clone();
+    let mut membership = evidence.membership.clone();
+    let host = HostId::from(id(99));
+    let boot = BootId::from(id(1001));
+    let sequence = evidence.last_sequence() + 1;
+    let change = membership
+        .observe_present(
+            &evidence.body_id,
+            membership.revision,
+            &current.part_id,
+            AuthenticatedHostObservation {
+                host_id: host.clone(),
+                boot_id: boot.clone(),
+                offer_generation: OfferGeneration(1),
+                proof_id: MembershipProofId::bind("private-custody-proof").unwrap(),
+                sequence: 100,
+            },
+            SignId::from(id(2000)),
+        )
+        .unwrap();
+    evidence
+        .append_membership_events(membership, &[(change, sequence)])
+        .unwrap();
+    let (partition, host, boot) = proposal(&evidence);
+    let mut owner = SealedBodyLifecycleSession::open_admitted(evidence, &host, &boot).unwrap();
+    owner.propose(vec![partition], &host, &boot).unwrap();
+    let current = owner.realization().unwrap();
+    let play = BodyPlayIdentity::bind(&current.plan, 1);
+    let sign = |n| conduit_core::bind_sign(&host, &boot, Some(&play.active_play_id), n).sign_id;
+    let wake = current
+        .wake
+        .body_plan_ready(&current.plan, sign(0))
+        .unwrap()
+        .body_play_started(&current.plan, &play, sign(1))
+        .unwrap();
+    owner.started(&host, &boot, play, wake).unwrap();
+    let before = postcard::to_allocvec(owner.evidence()).unwrap();
+    let realization = owner.realization().cloned();
+    let foreground = owner.foreground().cloned();
+    assert_eq!(
+        owner.seal_started_membership_history_for_checkpoint(),
+        Err(BodyLifecycleSessionError::Biography(
+            BodyBiographyError::CapacityExhausted
+        ))
+    );
+    assert_eq!(postcard::to_allocvec(owner.evidence()).unwrap(), before);
+    assert_eq!(owner.realization(), realization.as_ref());
+    assert_eq!(owner.foreground(), foreground.as_ref());
+    assert!(owner.pending_archives().is_empty());
+}

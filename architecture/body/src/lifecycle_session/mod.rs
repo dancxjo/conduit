@@ -128,6 +128,37 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
             return Err(BodyLifecycleSessionError::NotLulled);
         }
+        self.stage_membership_history_for_checkpoint()
+    }
+
+    /// Stage membership-only history while retaining the exact already-started
+    /// realization. This neither ends nor starts a Play, and never acknowledges
+    /// archive custody. An Awake snapshot alone cannot construct this owner.
+    pub fn seal_started_membership_history_for_checkpoint(
+        &mut self,
+    ) -> Result<bool, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        let current = self
+            .realization
+            .as_ref()
+            .ok_or(BodyLifecycleSessionError::NoProposal)?;
+        let play = current
+            .play
+            .as_ref()
+            .ok_or(BodyLifecycleSessionError::StalePlay)?;
+        if !matches!(&self.evidence.body.state, BodyState::Awake { wake_id }
+            if wake_id == &current.wake.wake_id)
+            || !play.validate_for(&current.plan)
+            || !self.evidence.wakes.iter().any(|wake| wake == &current.wake)
+        {
+            return Err(BodyLifecycleSessionError::StalePlay);
+        }
+        self.stage_membership_history_for_checkpoint()
+    }
+
+    fn stage_membership_history_for_checkpoint(
+        &mut self,
+    ) -> Result<bool, BodyLifecycleSessionError> {
         if self.evidence.membership.events.is_empty() {
             return Ok(false);
         }
