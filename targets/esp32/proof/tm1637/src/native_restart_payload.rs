@@ -3,10 +3,13 @@
 use alloc::{string::String, vec::Vec};
 use conduit_body::{AdmissionManager, BodyBiographyArchiveSegment, BodyBiographyEvidence};
 use serde::{Deserialize, Serialize};
+#[path = "native_restart_compress.rs"]
+mod compress;
 #[path = "native_restart_profile.rs"]
 mod profile;
 #[path = "native_restart_read_json.rs"]
 mod read_json;
+pub const MAX_PLAIN_BYTES: usize = 128 * 1024;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
 pub const MAX_BYTES: usize = 32768 - 160;
 #[derive(Deserialize)]
@@ -122,17 +125,119 @@ pub fn decode(
     if bytes.len() > MAX_BYTES {
         return Err("restart-capacity");
     }
+    if bytes.first() == Some(&b'B') {
+        let mut at = 0;
+        return decode_streamed(
+            |out| {
+                let n = 128.min(bytes.len() - at);
+                out[..n].copy_from_slice(&bytes[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            expected_body,
+        );
+    }
     let retained: Retained = serde_json::from_slice(bytes).map_err(|_| "restart-encoding")?;
     validate_retained(retained, expected_body)
 }
 /// Identical strict typed DTO and canonical validation, with only bounded input
 /// chunks retained. Complete EOF is required before the result can escape.
+struct PrefixedReader<R> {
+    read: R,
+    prefix: [u8; 128],
+    length: Option<usize>,
+}
+impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> PrefixedReader<R> {
+    fn new(mut read: R) -> Result<Self, &'static str> {
+        let mut prefix = [0; 128];
+        let length = read(&mut prefix).map_err(|_| "restart-read")?;
+        if length > 128 {
+            return Err("restart-read");
+        }
+        Ok(Self {
+            read,
+            prefix,
+            length: Some(length),
+        })
+    }
+    fn read(&mut self, out: &mut [u8; 128]) -> Result<usize, ()> {
+        if let Some(length) = self.length.take() {
+            out[..length].copy_from_slice(&self.prefix[..length]);
+            self.prefix.fill(0);
+            Ok(length)
+        } else {
+            (self.read)(out)
+        }
+    }
+}
+impl<R> Drop for PrefixedReader<R> {
+    fn drop(&mut self) {
+        self.prefix.fill(0);
+    }
+}
+// One concrete trait-object entrance keeps the complete DTO deserializer shared
+// between compressed and legacy media, and initial and parked restoration.
+#[inline(never)]
+fn decode_plain(
+    read: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    expected_body: &conduit_body::BodyId,
+) -> Result<Retained, &'static str> {
+    let retained = read_json::from_reader(read, MAX_PLAIN_BYTES).map_err(|_| "restart-encoding")?;
+    validate_retained(retained, expected_body)
+}
 pub fn decode_streamed(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     expected_body: &conduit_body::BodyId,
 ) -> Result<Retained, &'static str> {
-    let retained = read_json::from_reader(read, MAX_BYTES).map_err(|_| "restart-encoding")?;
-    validate_retained(retained, expected_body)
+    let mut prefixed = PrefixedReader::new(read)?;
+    if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
+        let mut decoder =
+            compress::Decoder::new(|out| prefixed.read(out), MAX_PLAIN_BYTES, MAX_BYTES);
+        decode_plain(&mut |out| decoder.read(out).map_err(|_| ()), expected_body)
+    } else {
+        decode_plain(&mut |out| prefixed.read(out), expected_body)
+    }
+}
+/// Inspect authenticated input without allocating any biography or archive.
+/// This is a capacity preflight only; typed canonical validation still follows.
+pub fn plain_length(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+) -> Result<usize, &'static str> {
+    let mut prefixed = PrefixedReader::new(read)?;
+    let mut chunk = [0; 128];
+    let result = (|| {
+        let mut count = 0usize;
+        if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
+            let mut decoder =
+                compress::Decoder::new(|out| prefixed.read(out), MAX_PLAIN_BYTES, MAX_BYTES);
+            loop {
+                let n = decoder
+                    .read(&mut chunk)
+                    .map_err(|_| "restart-compression")?;
+                if n == 0 {
+                    break;
+                }
+                count = count.checked_add(n).ok_or("restart-capacity")?;
+            }
+        } else {
+            loop {
+                let n = prefixed.read(&mut chunk).map_err(|_| "restart-read")?;
+                if n > 128 {
+                    return Err("restart-read");
+                }
+                if n == 0 {
+                    break;
+                }
+                count = count.checked_add(n).ok_or("restart-capacity")?;
+                if count > MAX_BYTES {
+                    return Err("restart-capacity");
+                }
+            }
+        }
+        Ok(count)
+    })();
+    chunk.fill(0);
+    result
 }
 fn validate_retained(
     retained: Retained,
@@ -194,6 +299,45 @@ pub fn stream_with_admissions<E>(
             json::CodecError::Sink
         })
     });
+    if let Some(error) = failure {
+        return Err(StreamRefusal::Sink(error));
+    }
+    result.map_err(|_| StreamRefusal::Invalid)
+}
+
+/// Losslessly frame complete canonical JSON inside the authenticated journal.
+/// Encoder state is bounded; both deterministic journal passes start fresh.
+pub fn stream_compressed_with_admissions<E>(
+    evidence: &BodyBiographyEvidence,
+    archives: &[BodyBiographyArchiveSegment],
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: Option<&AdmissionManager>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(), StreamRefusal<E>> {
+    let mut failure = None;
+    let result = {
+        let mut encoder = compress::Encoder::new(
+            |bytes: &[u8]| {
+                sink(bytes).map_err(|error| {
+                    failure = Some(error);
+                })
+            },
+            MAX_PLAIN_BYTES,
+            MAX_BYTES,
+        );
+        let result = stream_with_admissions(
+            evidence,
+            archives,
+            pending,
+            admissions,
+            &mut |bytes: &[u8]| encoder.write(bytes),
+        );
+        if result.is_err() {
+            Err(())
+        } else {
+            encoder.finish().map(|_| ()).map_err(|_| ())
+        }
+    };
     if let Some(error) = failure {
         return Err(StreamRefusal::Sink(error));
     }

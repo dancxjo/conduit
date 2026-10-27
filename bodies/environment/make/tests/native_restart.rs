@@ -981,3 +981,120 @@ fn chunked_complete_envelope_matches_legacy_with_archives_boot_history_and_live_
     )
     .is_err());
 }
+
+#[test]
+fn compressed_complete_checkpoint_crosses_legacy_bank_ceiling_without_losing_evidence() {
+    use sha2::{Digest, Sha256};
+    let (owner, _, host) = installed();
+    let mut evidence = owner.evidence().clone();
+    for boot in 0..22 {
+        evidence = SealedBodyLifecycleSession::resume_here(
+            evidence,
+            &host.host_id,
+            &format!("boot/compression-{boot:032x}").into(),
+        )
+        .unwrap()
+        .evidence()
+        .clone();
+    }
+    let manager = conduit_body::AdmissionManager::new(evidence.body_id.clone()).unwrap();
+    let mut plain = Vec::new();
+    payload::stream_with_admissions(
+        &evidence,
+        &[],
+        &[],
+        Some(&manager),
+        &mut |bytes: &[u8]| {
+            plain.extend_from_slice(bytes);
+            Ok::<_, ()>(())
+        },
+    )
+    .unwrap();
+    assert!(plain.len() > payload::MAX_BYTES);
+    let mut compressed = Vec::new();
+    payload::stream_compressed_with_admissions(
+        &evidence,
+        &[],
+        &[],
+        Some(&manager),
+        &mut |bytes: &[u8]| {
+            compressed.extend_from_slice(bytes);
+            Ok::<_, ()>(())
+        },
+    )
+    .unwrap();
+    assert!(compressed.len() < payload::MAX_BYTES);
+    assert!(compressed.len() * 2 < plain.len());
+    println!(
+        "complete checkpoint plain={} compressed={}",
+        plain.len(),
+        compressed.len()
+    );
+    for width in [1, 3, 31, 128] {
+        let mut at = 0;
+        let length = payload::plain_length(|out| {
+            let n = width.min(compressed.len() - at);
+            out[..n].copy_from_slice(&compressed[at..at + n]);
+            at += n;
+            Ok(n)
+        })
+        .unwrap();
+        assert_eq!(length, plain.len());
+        let mut at = 0;
+        let decoded = payload::decode_streamed(
+            |out| {
+                let n = width.min(compressed.len() - at);
+                out[..n].copy_from_slice(&compressed[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            &evidence.body_id,
+        )
+        .unwrap();
+        assert_eq!(decoded.evidence, evidence);
+        assert!(decoded.archives.is_empty());
+        assert_eq!(
+            serde_json::to_vec(&decoded.admissions).unwrap(),
+            serde_json::to_vec(&Some(&manager)).unwrap()
+        );
+    }
+    // A previously committed legacy JSON bank remains a valid migration source.
+    let (old, _, _) = installed();
+    let legacy = payload::encode(old.evidence(), &[], &[]).unwrap();
+    let binding: [u8; 32] = Sha256::digest(evidence.body_id.as_str().as_bytes()).into();
+    let media = Media(Rc::new(RefCell::new(vec![255; 65536])));
+    let mut journal = checkpoint::Checkpoint::open(media.clone()).unwrap();
+    journal.save(&binding, &[81; 32], &legacy).unwrap();
+    let mut seed = [0; 32];
+    let loaded = journal
+        .load_streamed(&binding, &mut seed, |reader| {
+            payload::decode_streamed(
+                |out| reader.read(out).map_err(|_| ()),
+                &old.evidence().body_id,
+            )
+            .map_err(|_| checkpoint::Refusal::Corrupt)
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(loaded.evidence, *old.evidence());
+    journal
+        .save_streamed(&binding, &[81; 32], |sink| {
+            payload::stream_compressed_with_admissions(&evidence, &[], &[], Some(&manager), sink)
+                .map_err(|_| checkpoint::Refusal::Corrupt)
+        })
+        .unwrap();
+    let mut reopened = checkpoint::Checkpoint::open(media).unwrap();
+    let loaded = reopened
+        .load_streamed(&binding, &mut seed, |reader| {
+            payload::decode_streamed(|out| reader.read(out).map_err(|_| ()), &evidence.body_id)
+                .map_err(|_| checkpoint::Refusal::Corrupt)
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(seed, [81; 32]);
+    assert_eq!(loaded.evidence, evidence);
+    assert_eq!(
+        serde_json::to_vec(&loaded.admissions).unwrap(),
+        serde_json::to_vec(&Some(&manager)).unwrap()
+    );
+}

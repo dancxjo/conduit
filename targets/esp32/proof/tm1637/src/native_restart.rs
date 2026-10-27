@@ -352,6 +352,35 @@ fn decode_checkpoint(
     body_id: &conduit_body::BodyId,
     seed: &mut [u8; 32],
 ) -> Result<payload::Retained, &'static str> {
+    seed.fill(0);
+    // Authenticate and count the complete plaintext before allocating a DTO.
+    // Compression increases durable capacity, never the available execution RAM.
+    let generation = journal.generation();
+    let mut private_seed = PrivateSeed([0; 32]);
+    let plain = journal
+        .load_streamed(binding, &mut private_seed.0, |reader| {
+            payload::plain_length(|chunk| reader.read(chunk).map_err(|_| ()))
+                .map_err(|_| Refusal::Corrupt)
+        })
+        .map_err(|_| "restart-preflight")?
+        .ok_or("restart-missing")?;
+    private_seed.0.fill(0);
+    #[cfg(target_os = "none")]
+    {
+        let memory = esp_alloc::HEAP.stats();
+        let available = memory.size.saturating_sub(memory.current_usage);
+        // Measured complete biographies retain about 1.25 times their JSON
+        // extent. Keep another 4 KiB for validation and subsequent custody.
+        let needed = plain.saturating_mul(5).div_ceil(4).saturating_add(4096);
+        if available < needed {
+            return Err("restart-memory-capacity");
+        }
+    }
+    #[cfg(not(target_os = "none"))]
+    let _ = plain;
+    if journal.generation() != generation {
+        return Err("restart-generation");
+    }
     let mut refusal = None;
     journal
         .load_streamed(binding, seed, |reader| {
@@ -440,7 +469,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
         store
             .journal
             .save_streamed(&store.binding, &entropy, |sink| {
-                payload::stream_with_admissions(
+                payload::stream_compressed_with_admissions(
                     evidence,
                     &store.archives,
                     &[],
@@ -504,7 +533,7 @@ fn checkpoint_store(
     store
         .journal
         .save_streamed(&store.binding, seed, |sink| {
-            payload::stream_with_admissions(
+            payload::stream_compressed_with_admissions(
                 owner.evidence(),
                 &store.archives,
                 owner.pending_archives(),
