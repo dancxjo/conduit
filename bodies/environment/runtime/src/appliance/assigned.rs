@@ -164,6 +164,16 @@ pub struct ResidentComputation<'a> {
     /// Optional Make-decoded bytes. Checked against the pinned text before allocation.
     pub canonical_bytes: Option<&'a [u8]>,
 }
+/// Optional linked storage for one independently checked selector's exact Types.
+/// No readiness, assignment or authority is conveyed by these immutable bytes.
+#[derive(Clone, Copy)]
+pub struct ResidentSelectorSchemas {
+    pub node: u16,
+    pub key: c::AssignedIdentity,
+    pub text_digest: [u8; 32],
+    pub input_schema: &'static [u8],
+    pub output_schema: &'static [u8],
+}
 /// Owns validated current tables and Source cadence; borrows no assignment bytes.
 /// Admission is not native possession, Body start, authority or memory admission.
 pub struct ValidatedAssignedAppliance {

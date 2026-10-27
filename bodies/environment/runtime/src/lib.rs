@@ -25,9 +25,9 @@ pub mod display_mask;
 #[cfg(feature = "display-output")]
 pub mod display_output;
 pub mod display_packets;
-pub mod environmental_reading;
 #[cfg(feature = "display-session")]
 pub mod display_session;
+pub mod environmental_reading;
 #[cfg(feature = "mask-kernel")]
 pub mod mask_kernel;
 #[cfg(feature = "mask-renderer")]
@@ -144,6 +144,27 @@ impl PreparedCaptureSelector {
         Ok(Self {
             selector: conduit_core::PreparedCanonicalStructuredSelector::prepare(
                 &selector,
+                maximum_input_bytes,
+                output_bytes,
+            )?,
+        })
+    }
+    /// Keep exact immutable checked Type encodings in linked storage. The Core
+    /// constructor compares them against the ordinarily decoded selector.
+    pub fn with_static_schema(
+        selector: StructuredSelector,
+        input_schema: &'static [u8],
+        output_schema: &'static [u8],
+        maximum_input_bytes: usize,
+        maximum_output_bytes: usize,
+    ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
+        let output_bytes = canonical_storage::bytes(selector.output_type(), maximum_output_bytes)
+            .unwrap_or(maximum_output_bytes);
+        Ok(Self {
+            selector: conduit_core::PreparedCanonicalStructuredSelector::with_static_schema(
+                &selector,
+                input_schema,
+                output_schema,
                 maximum_input_bytes,
                 output_bytes,
             )?,

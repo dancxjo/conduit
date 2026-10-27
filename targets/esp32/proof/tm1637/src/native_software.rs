@@ -39,8 +39,13 @@ pub fn prepare_with_returned_values_checked(
         conduit_kernel::HostedValueStore,
     ),
 > {
-    Software::prepare_source_retained(&material::spec(), material::computations(), values)
-        .map(Box::new)
+    Software::prepare_source_with_static_selectors_retained(
+        &material::spec(),
+        material::computations(),
+        material::selector_schemas(),
+        values,
+    )
+    .map(Box::new)
 }
 pub fn offers(
     software: &Software,

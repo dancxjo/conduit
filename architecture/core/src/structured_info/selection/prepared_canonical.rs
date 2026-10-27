@@ -2,11 +2,11 @@
 //! without retaining decoded Type trees or a second prepared validator tree.
 use super::{StructuredSelector, StructuredSelectorBack, StructuredSelectorRefusal as R};
 use crate::{validate_canonical_structured_value, PreparedStructuredValueValidator};
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, vec::Vec};
 
 pub struct PreparedCanonicalStructuredSelector {
-    input_type: Vec<u8>,
-    output_type: Vec<u8>,
+    input_type: Cow<'static, [u8]>,
+    output_type: Cow<'static, [u8]>,
     operation: StructuredSelectorBack,
     maximum_input_bytes: usize,
     output: Vec<u8>,
@@ -25,8 +25,33 @@ impl PreparedCanonicalStructuredSelector {
             maximum_input_bytes,
         )?);
         Ok(Self {
-            input_type: selector.input_type().canonical_bytes()?,
-            output_type: selector.output_type().canonical_bytes()?,
+            input_type: Cow::Owned(selector.input_type().canonical_bytes()?),
+            output_type: Cow::Owned(selector.output_type().canonical_bytes()?),
+            operation: selector.operation.clone(),
+            maximum_input_bytes,
+            output: Vec::with_capacity(maximum_output_bytes),
+        })
+    }
+    /// Borrow exact immutable canonical schemas; operation and output custody
+    /// remain independent per selector. This grants no execution authority.
+    pub fn with_static_schema(
+        selector: &StructuredSelector,
+        input_schema: &'static [u8],
+        output_schema: &'static [u8],
+        maximum_input_bytes: usize,
+        maximum_output_bytes: usize,
+    ) -> Result<Self, crate::StructuredInfoRefusal> {
+        drop(PreparedStructuredValueValidator::with_static_schema(
+            selector.input_type(),
+            input_schema,
+            maximum_input_bytes,
+        )?);
+        if selector.output_type().canonical_bytes()? != output_schema {
+            return Err(crate::StructuredInfoRefusal::WrongType);
+        }
+        Ok(Self {
+            input_type: Cow::Borrowed(input_schema),
+            output_type: Cow::Borrowed(output_schema),
             operation: selector.operation.clone(),
             maximum_input_bytes,
             output: Vec::with_capacity(maximum_output_bytes),
@@ -37,7 +62,7 @@ impl PreparedCanonicalStructuredSelector {
             return Err(R::MalformedCheckedValue);
         }
         let original = validate_canonical_structured_value(input).map_err(malformed)?;
-        if original.type_bytes() != self.input_type {
+        if original.type_bytes() != self.input_type.as_ref() {
             return Err(R::MalformedCheckedValue);
         }
         let representation = original.representation().map_err(malformed)?;
@@ -86,7 +111,7 @@ impl PreparedCanonicalStructuredSelector {
                 original
             }
         };
-        if selected.type_bytes() != self.output_type {
+        if selected.type_bytes() != self.output_type.as_ref() {
             return Err(R::MalformedCheckedValue);
         }
         if self

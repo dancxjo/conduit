@@ -122,10 +122,31 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         texts: &[ResidentComputation<'_>],
         values: V,
     ) -> Result<Self, (NativePreparationRefusal, V)> {
+        Self::prepare_source_inner(resident, texts, None, values)
+    }
+    /// Explicit linked-Make path. Every selector must have exactly one schema
+    /// descriptor; received/owned preparation keeps its original constructor.
+    pub fn prepare_source_with_static_selectors_retained(
+        resident: &ResidentSoftwareSpec<'_>,
+        texts: &[ResidentComputation<'_>],
+        schemas: &[ResidentSelectorSchemas],
+        values: V,
+    ) -> Result<Self, (NativePreparationRefusal, V)> {
+        Self::prepare_source_inner(resident, texts, Some(schemas), values)
+    }
+    fn prepare_source_inner(
+        resident: &ResidentSoftwareSpec<'_>,
+        texts: &[ResidentComputation<'_>],
+        schemas: Option<&[ResidentSelectorSchemas]>,
+        values: V,
+    ) -> Result<Self, (NativePreparationRefusal, V)> {
         let checked = (|| {
             let cadence = &resident.cadence;
             let construction = Construction::prepare(resident, cadence.count, cadence.period_ms)?;
             validate_texts(&construction, texts)?;
+            if let Some(schemas) = schemas {
+                validate_selector_schemas(&construction, schemas)?;
+            }
             Ok(construction)
         })();
         let construction = match checked {
@@ -141,6 +162,7 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                     .map(|text| (text.text, text.canonical_bytes))
                     .ok_or(NativePreparationRefusal::Configuration)
             },
+            schemas,
             values,
         )
     }
@@ -194,13 +216,14 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         ) -> Result<(&'a str, Option<&'a [u8]>), NativePreparationRefusal>,
         values: V,
     ) -> Result<Self, NativePreparationRefusal> {
-        Self::initialize_with_retained(construction, text, values).map_err(|(error, _)| error)
+        Self::initialize_with_retained(construction, text, None, values).map_err(|(error, _)| error)
     }
     fn initialize_with_retained<'a>(
         construction: Construction,
         text: impl Fn(
             &c::AssignedComputationRequirement,
         ) -> Result<(&'a str, Option<&'a [u8]>), NativePreparationRefusal>,
+        schemas: Option<&[ResidentSelectorSchemas]>,
         mut values: V,
     ) -> Result<Self, (NativePreparationRefusal, V)> {
         let parts = (|| {
@@ -246,8 +269,28 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                         .map_err(init)?
                 } else if computation.key == selector_key {
                     let selector = c::StructuredSelector::from_canonical_hex(text).map_err(init)?;
-                    selectors[node] =
-                        Some(PreparedCaptureSelector::prepare(selector, 1024, 1024).map_err(init)?);
+                    selectors[node] = Some(
+                        match schemas {
+                            Some(schemas) => {
+                                let schema = schemas
+                                    .iter()
+                                    .find(|schema| {
+                                        schema.node == computation.node
+                                            && schema.key == computation.key
+                                    })
+                                    .ok_or(E::Configuration)?;
+                                PreparedCaptureSelector::with_static_schema(
+                                    selector,
+                                    schema.input_schema,
+                                    schema.output_schema,
+                                    1024,
+                                    1024,
+                                )
+                            }
+                            None => PreparedCaptureSelector::prepare(selector, 1024, 1024),
+                        }
+                        .map_err(init)?,
+                    );
                     CaptureBack::selector(1024)
                 } else {
                     return Err(E::Configuration);
@@ -413,4 +456,26 @@ mod retained_preparation_tests {
             "refused preparation never used the spare slot"
         );
     }
+}
+
+fn validate_selector_schemas(
+    construction: &Construction,
+    schemas: &[ResidentSelectorSchemas],
+) -> Result<(), NativePreparationRefusal> {
+    use NativePreparationRefusal as E;
+    let key = c::AssignedIdentity::from_text("selector");
+    let expected = construction.computations.iter().filter(|c| c.key == key);
+    if schemas.len() != expected.clone().count() {
+        return Err(E::Configuration);
+    }
+    for computation in expected {
+        let mut matched = schemas
+            .iter()
+            .filter(|s| s.node == computation.node && s.key == computation.key);
+        let schema = matched.next().ok_or(E::Configuration)?;
+        if matched.next().is_some() || schema.text_digest != computation.text_digest {
+            return Err(E::Configuration);
+        }
+    }
+    Ok(())
 }

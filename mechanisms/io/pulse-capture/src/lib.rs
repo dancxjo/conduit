@@ -1,8 +1,17 @@
 #![no_std]
 //! Class-neutral electrical pulse sampling. No peripheral recognition or policy.
 extern crate alloc;
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+#[cfg(test)]
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
 mod codec;
 mod contract;
+mod schema {
+    include!(concat!(env!("OUT_DIR"), "/pulse_schemas.rs"));
+}
 #[cfg(feature = "host-call")]
 pub mod installation;
 #[cfg(feature = "host-call")]

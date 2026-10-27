@@ -71,6 +71,34 @@ fn full_type_domains_retain_exact_selection_with_smaller_output_backing() {
         let (mut prepared, after) = allocation_probe::observe(|| {
             PreparedCaptureSelector::prepare(selector.clone(), 1024, 1024).unwrap()
         });
+        let input_schema = Box::leak(
+            selector
+                .input_type()
+                .canonical_bytes()
+                .unwrap()
+                .into_boxed_slice(),
+        );
+        let output_schema = Box::leak(
+            selector
+                .output_type()
+                .canonical_bytes()
+                .unwrap()
+                .into_boxed_slice(),
+        );
+        let (mut linked, linked_memory) = allocation_probe::observe(|| {
+            PreparedCaptureSelector::with_static_schema(
+                selector.clone(),
+                input_schema,
+                output_schema,
+                1024,
+                1024,
+            )
+            .unwrap()
+        });
+        assert_eq!(
+            after.retained_bytes() - linked_memory.retained_bytes(),
+            input_schema.len() + output_schema.len()
+        );
         assert_eq!(
             before.retained_bytes() - after.retained_bytes(),
             1024 - extent
@@ -82,13 +110,17 @@ fn full_type_domains_retain_exact_selection_with_smaller_output_backing() {
                 let selected = prepared.select(input).unwrap();
                 maximum_selected = maximum_selected.max(selected.map_or(0, <[u8]>::len));
                 assert_eq!(selected, original.select(input).unwrap());
+                assert_eq!(selected, linked.select(input).unwrap());
             }
             assert_eq!(prepared.select(&wrong), original.select(&wrong));
+            assert_eq!(prepared.select(&wrong), linked.select(&wrong));
             assert!(prepared.select(&wrong).is_err());
             assert_eq!(prepared.select(&over_input), original.select(&over_input));
+            assert_eq!(prepared.select(&over_input), linked.select(&over_input));
             assert!(prepared.select(&over_input).is_err());
             let truncated = &inputs[0][..inputs[0].len() - 1];
             assert_eq!(prepared.select(truncated), original.select(truncated));
+            assert_eq!(prepared.select(truncated), linked.select(truncated));
             assert!(prepared.select(truncated).is_err());
         });
         // A legal value reaches the entire reserved Type domain, so this is a

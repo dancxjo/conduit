@@ -61,24 +61,46 @@ impl PreparedPulseCodec {
         // Array construction is fallible during preparation; never while playing.
         let mut octets = alloc::vec::Vec::with_capacity(8);
         for _ in 0..8 {
-            octets.push(Composer::new(element, PULSE_READ_CANONICAL_OCTET_BYTES)?);
+            octets.push(Composer::with_static_schema(
+                element,
+                super::schema::OCTET,
+                PULSE_READ_CANONICAL_OCTET_BYTES,
+            )?);
         }
         Ok(Self {
-            request: PreparedStructuredValueValidator::new(
+            request: PreparedStructuredValueValidator::with_static_schema(
                 &contract.request,
+                super::schema::REQUEST,
                 PULSE_READ_MAXIMUM_BYTES as usize,
             )?,
             octets: octets
                 .try_into()
                 .map_err(|_| StructuredInfoRefusal::WrongType)?,
-            length: Composer::new(
+            length: Composer::with_static_schema(
                 field(&contract.capture, "length")?,
+                super::schema::LENGTH,
                 PULSE_READ_CANONICAL_LENGTH_BYTES,
             )?,
-            wire: Composer::new(wire_type, PULSE_READ_CANONICAL_WIRE_BYTES)?,
-            capture: Composer::new(&contract.capture, PULSE_READ_CANONICAL_CAPTURE_BYTES)?,
-            empty: Composer::new(empty_type, PULSE_READ_CANONICAL_EMPTY_BYTES)?,
-            result: Composer::new(&contract.result, PULSE_READ_CANONICAL_RESULT_BYTES)?,
+            wire: Composer::with_static_schema(
+                wire_type,
+                super::schema::WIRE,
+                PULSE_READ_CANONICAL_WIRE_BYTES,
+            )?,
+            capture: Composer::with_static_schema(
+                &contract.capture,
+                super::schema::CAPTURE,
+                PULSE_READ_CANONICAL_CAPTURE_BYTES,
+            )?,
+            empty: Composer::with_static_schema(
+                empty_type,
+                super::schema::EMPTY,
+                PULSE_READ_CANONICAL_EMPTY_BYTES,
+            )?,
+            result: Composer::with_static_schema(
+                &contract.result,
+                super::schema::RESULT,
+                PULSE_READ_CANONICAL_RESULT_BYTES,
+            )?,
         })
     }
     pub fn request(
@@ -152,5 +174,169 @@ impl PreparedPulseCodec {
         Ok(self
             .result
             .variant(tag, validate(self.capture.encoded())?)?)
+    }
+}
+
+#[cfg(test)]
+mod static_schema_tests {
+    use super::*;
+    use crate::allocation_probe;
+    #[global_allocator]
+    static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+    fn owned(contract: &PulseReadContract) -> PreparedPulseCodec {
+        let wire = field(&contract.capture, "wire").unwrap();
+        let StructuredInfoTypeShape::Collection { element, .. } = wire.shape() else {
+            panic!("wire")
+        };
+        let StructuredInfoTypeShape::Variant { cases, .. } = contract.result.shape() else {
+            panic!("result")
+        };
+        let empty = cases
+            .iter()
+            .find(|c| c.tag() == "provider-failed")
+            .unwrap()
+            .payload_type();
+        PreparedPulseCodec {
+            request: PreparedStructuredValueValidator::new(
+                &contract.request,
+                PULSE_READ_MAXIMUM_BYTES as usize,
+            )
+            .unwrap(),
+            octets: core::array::from_fn(|_| {
+                Composer::new(element, PULSE_READ_CANONICAL_OCTET_BYTES).unwrap()
+            }),
+            length: Composer::new(
+                field(&contract.capture, "length").unwrap(),
+                PULSE_READ_CANONICAL_LENGTH_BYTES,
+            )
+            .unwrap(),
+            wire: Composer::new(wire, PULSE_READ_CANONICAL_WIRE_BYTES).unwrap(),
+            capture: Composer::new(&contract.capture, PULSE_READ_CANONICAL_CAPTURE_BYTES).unwrap(),
+            empty: Composer::new(empty, PULSE_READ_CANONICAL_EMPTY_BYTES).unwrap(),
+            result: Composer::new(&contract.result, PULSE_READ_CANONICAL_RESULT_BYTES).unwrap(),
+        }
+    }
+    #[test]
+    fn linked_codec_preserves_all_result_bytes_refusals_and_allocation_free_play() {
+        let contract = PulseReadContract::prepare().unwrap();
+        assert_eq!(
+            contract.request.canonical_bytes().unwrap(),
+            super::super::schema::REQUEST
+        );
+        assert_eq!(
+            contract.capture.canonical_bytes().unwrap(),
+            super::super::schema::CAPTURE
+        );
+        assert_eq!(
+            contract.result.canonical_bytes().unwrap(),
+            super::super::schema::RESULT
+        );
+        let (mut linked, linked_memory) =
+            allocation_probe::observe(|| PreparedPulseCodec::prepare(&contract).unwrap());
+        let (mut original, owned_memory) = allocation_probe::observe(|| owned(&contract));
+        let expected = super::super::schema::REQUEST.len()
+            + 8 * super::super::schema::OCTET.len()
+            + super::super::schema::LENGTH.len()
+            + super::super::schema::WIRE.len()
+            + super::super::schema::CAPTURE.len()
+            + super::super::schema::EMPTY.len()
+            + super::super::schema::RESULT.len();
+        assert_eq!(
+            owned_memory.retained_bytes() - linked_memory.retained_bytes(),
+            expected
+        );
+        std::println!(
+            "Pulse codec retained owned={} static={} exact shared-schema saving={expected}",
+            owned_memory.retained_bytes(),
+            linked_memory.retained_bytes()
+        );
+        let StructuredInfoTypeShape::Record { fields, .. } = contract.request.shape() else {
+            panic!("request")
+        };
+        let mut parts: alloc::vec::Vec<Composer> = fields
+            .iter()
+            .map(|f| Composer::new(f.value_type(), 1024).unwrap())
+            .collect();
+        for (part, field) in parts.iter_mut().zip(fields) {
+            let value: alloc::vec::Vec<u8> = match field.name() {
+                "hold_low_us" => 1000u32.to_le_bytes().to_vec(),
+                "skip_high_pulses" => alloc::vec![0],
+                "sample_after_rise_us" => 30u16.to_le_bytes().to_vec(),
+                "octets" => alloc::vec![5],
+                "capture_timeout_us" => 10000u32.to_le_bytes().to_vec(),
+                _ => panic!("checked request field"),
+            };
+            part.leaf(&value).unwrap();
+        }
+        let refs: alloc::vec::Vec<_> = parts
+            .iter()
+            .map(|p| validate(p.encoded()).unwrap())
+            .collect();
+        let mut request_composer = Composer::new(&contract.request, 1024).unwrap();
+        let request = request_composer.record(&refs).unwrap().to_vec();
+        let limits = PulseReadLimits {
+            maximum_hold_low_us: 2000,
+            maximum_skipped_pulses: 8,
+            minimum_sample_offset_us: 1,
+            maximum_sample_offset_us: 100,
+            maximum_octets: 8,
+            maximum_capture_timeout_us: 20000,
+        };
+        let mut corrupt = request.clone();
+        corrupt[0] ^= 255;
+        let oversized = alloc::vec![0;1025];
+        assert_eq!(
+            super::super::schema::OCTET.as_ptr(),
+            super::super::schema::LENGTH.as_ptr()
+        );
+        let ((), play) = allocation_probe::observe(|| {
+            for input in [
+                &request[..],
+                &request[..request.len() - 1],
+                &corrupt,
+                &oversized,
+                &[],
+            ] {
+                assert_eq!(
+                    linked.request(input, limits),
+                    original.request(input, limits)
+                );
+                let mut strict = limits;
+                strict.maximum_octets = 1;
+                assert_eq!(
+                    linked.request(input, strict),
+                    original.request(input, strict)
+                );
+            }
+            for disposition in [
+                PulseReadDisposition::Complete,
+                PulseReadDisposition::TimedOut,
+                PulseReadDisposition::ProviderFailed,
+            ] {
+                for length in 0..=9 {
+                    for byte in [0, 1, 127, 128, 255] {
+                        let mut wire = [0; 8];
+                        for value in wire.iter_mut().take(usize::from(length).min(8)) {
+                            *value = byte;
+                        }
+                        let capture = PulseReadCapture {
+                            disposition,
+                            length,
+                            wire,
+                        };
+                        assert_eq!(linked.result(capture), original.result(capture));
+                    }
+                }
+            }
+            let invalid = PulseReadCapture {
+                disposition: PulseReadDisposition::TimedOut,
+                length: 1,
+                wire: [255; 8],
+            };
+            assert_eq!(linked.result(invalid), original.result(invalid));
+            assert_eq!(linked.geometry_refused(), original.geometry_refused());
+        });
+        assert_eq!(play.allocations, 0);
+        assert_eq!(play.reallocations, 0);
     }
 }
