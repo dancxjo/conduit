@@ -14,6 +14,9 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
 #[path = "native_restart_biography.rs"]
 pub(crate) mod biography;
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+#[path = "native_restart_observed.rs"]
+pub(crate) mod observed;
 #[path = "native_restart_payload.rs"]
 pub(crate) mod payload;
 #[path = "native_restart_restore.rs"]
@@ -89,6 +92,7 @@ struct Store {
     ready: bool,
 }
 struct ArchiveCustody {
+    layouts: payload::layout::Layouts,
     source: crate::native_body_checkpoint::SourceSnapshot,
     summary: payload::archive::Summary,
     span: payload::archive::Span,
@@ -379,6 +383,10 @@ fn decode_checkpoint(
         })
         .map_err(|_| refusal.unwrap_or("restart-load"))?
         .ok_or("restart-missing")?;
+    if custody.is_some_and(|c| c.layouts != loaded.0.layouts) {
+        seed.fill(0);
+        return Err("restart-layout-custody");
+    }
     if *seed != private_seed.0 {
         seed.fill(0);
         return Err("restart-key-changed");
@@ -419,6 +427,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                 retained.evidence,
                 Vec::new(),
                 Some(ArchiveCustody {
+                    layouts: resident.layouts,
                     source,
                     summary: resident.summary,
                     span: resident.span,
@@ -495,6 +504,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
             return Err("restart-initial-key");
         }
         store.custody = Some(ArchiveCustody {
+            layouts: resident.layouts,
             source,
             summary: resident.summary,
             span: resident.span,
@@ -557,7 +567,7 @@ fn checkpoint_store(
                 // Preserve typed journal read faults through the bounded codec
                 // callback; transport failure is not malformed canonical data.
                 let mut read_refusal = None;
-                let emitted = payload::stream_rewrite_with_prefix(
+                let emitted = payload::stream_rewrite_with_layout(
                     owner.evidence(),
                     owner.pending_archives(),
                     store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
@@ -566,6 +576,7 @@ fn checkpoint_store(
                     previous.prefix.as_ref(),
                     previous.local_count,
                     verifying_key,
+                    &previous.layouts,
                     |out| {
                         io.read_source(out).map_err(|error| {
                             read_refusal = Some(error);
@@ -597,6 +608,7 @@ fn checkpoint_store(
             })?;
         let (summary, span) = metadata.ok_or("restart-checkpoint-metadata")?;
         ArchiveCustody {
+            layouts: previous.layouts.clone(),
             source,
             summary,
             span,
@@ -644,6 +656,7 @@ fn checkpoint_store(
             return Err("restart-checkpoint-key");
         }
         ArchiveCustody {
+            layouts: resident.layouts,
             source,
             summary: resident.summary,
             span: resident.span,

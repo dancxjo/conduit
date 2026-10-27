@@ -180,7 +180,7 @@ fn retain_store_receipt(
         .journal
         .rewrite_streamed(&previous.source, &store.binding, &seed.0, |io| {
             let mut read_refusal = None;
-            let next = payload::stream_rewrite_with_prefix(
+            let next = payload::stream_rewrite_with_layout(
                 &resident.retained.evidence,
                 &[],
                 admissions,
@@ -189,6 +189,7 @@ fn retain_store_receipt(
                 Some(&receipt),
                 0,
                 &key.to_bytes(),
+                &previous.layouts,
                 |out| {
                     io.read_source(out).map_err(|error| {
                         read_refusal = Some(error);
@@ -209,6 +210,7 @@ fn retain_store_receipt(
     // rewrite_streamed authenticated the original source on both passes and
     // physically read back the entire committed successor before returning.
     store.custody = Some(ArchiveCustody {
+        layouts: previous.layouts.clone(),
         source,
         summary,
         span,

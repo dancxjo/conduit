@@ -98,6 +98,7 @@ pub(crate) struct Custody<'a> {
     pub local_count: u64,
 }
 pub(crate) struct Resident {
+    pub layouts: super::layout::Layouts,
     pub retained: Retained,
     pub summary: Summary,
     pub prefix: Option<super::wire::Receipt>,
@@ -157,6 +158,7 @@ struct Envelope<'a> {
     custody: Option<Custody<'a>>,
 }
 struct Decoded {
+    layouts: super::layout::Layouts,
     schema: String,
     evidence: BodyBiographyEvidence,
     admissions: Option<AdmissionManager>,
@@ -178,6 +180,7 @@ impl<'de> Visitor<'de> for Envelope<'_> {
         let (mut schema, mut evidence, mut summary, mut prefix, mut admissions) =
             (None, None, None, None, None);
         let mut admissions_seen = false;
+        let mut layouts = None;
         while let Some(field) = map.next_key::<String>()? {
             match field.as_str() {
                 "schema" if schema.is_none() => schema = Some(map.next_value::<String>()?),
@@ -206,6 +209,16 @@ impl<'de> Visitor<'de> for Envelope<'_> {
                         map.next_value_seed(Suffix(initial))?
                     });
                 }
+                "observation_layouts" if layouts.is_none() => {
+                    let raw: super::layout::Layouts = map.next_value()?;
+                    raw.validate(
+                        self.body,
+                        self.key
+                            .ok_or_else(|| de::Error::custom("layouts require pinned Root"))?,
+                    )
+                    .map_err(de::Error::custom)?;
+                    layouts = Some(raw);
+                }
                 "admissions" if !admissions_seen => {
                     admissions_seen = true;
                     admissions = read_admissions(&mut map)?;
@@ -216,7 +229,8 @@ impl<'de> Visitor<'de> for Envelope<'_> {
         let schema = schema.ok_or_else(|| de::Error::custom("restart schema missing"))?;
         if (schema == SCHEMA && prefix.is_some())
             || (schema == super::SCHEMA_V2 && prefix.is_none())
-            || (schema != SCHEMA && schema != super::SCHEMA_V2)
+            || (schema != SCHEMA && schema != super::SCHEMA_V2 && schema != super::SCHEMA_V3)
+            || ((schema == super::SCHEMA_V3) != layouts.is_some())
         {
             return Err(de::Error::custom("restart schema/prefix mismatch"));
         }
@@ -234,6 +248,7 @@ impl<'de> Visitor<'de> for Envelope<'_> {
             }
         }
         Ok(Decoded {
+            layouts: layouts.unwrap_or_default(),
             schema,
             evidence: evidence.ok_or_else(|| de::Error::custom("restart evidence missing"))?,
             admissions,
@@ -489,6 +504,7 @@ pub(crate) fn decode_with_prefix(
     )
     .map_err(|_| "restart-encoding")?;
     let Decoded {
+        layouts,
         schema,
         evidence,
         admissions,
@@ -515,6 +531,7 @@ pub(crate) fn decode_with_prefix(
         return Err("restart-local-count");
     }
     Ok(Resident {
+        layouts,
         retained: Retained {
             schema,
             evidence,

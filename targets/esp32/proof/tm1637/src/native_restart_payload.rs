@@ -13,6 +13,9 @@ mod profile;
 mod read_json;
 pub const MAX_PLAIN_BYTES: usize = 128 * 1024;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
+pub(crate) const SCHEMA_V3: &str = "conduit.environment/root-restart@3";
+#[path = "native_restart_layout.rs"]
+pub(crate) mod layout;
 pub(crate) const SCHEMA_V2: &str = "conduit.environment/root-restart@2";
 #[path = "native_biography_custody_wire.rs"]
 pub(crate) mod wire;
@@ -476,6 +479,7 @@ pub(crate) fn stream_rewrite<E>(
         None,
         previous.count,
         None,
+        &layout::Layouts::default(),
         read,
         sink,
     )
@@ -497,6 +501,34 @@ pub(crate) fn stream_rewrite_with_prefix<E>(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    stream_rewrite_with_layout(
+        evidence,
+        pending,
+        admissions,
+        previous,
+        previous_span,
+        prefix,
+        previous_local_count,
+        root,
+        &layout::Layouts::default(),
+        read,
+        sink,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn stream_rewrite_with_layout<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous: &archive::Summary,
+    previous_span: archive::Span,
+    prefix: Option<&wire::Receipt>,
+    previous_local_count: u64,
+    root: &[u8; 32],
+    layouts: &layout::Layouts,
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
     stream_rewrite_inner(
         evidence,
         pending,
@@ -506,6 +538,7 @@ pub(crate) fn stream_rewrite_with_prefix<E>(
         prefix,
         previous_local_count,
         Some(root),
+        layouts,
         read,
         sink,
     )
@@ -520,9 +553,17 @@ fn stream_rewrite_inner<E>(
     prefix: Option<&wire::Receipt>,
     previous_local_count: u64,
     root: Option<&[u8; 32]>,
+    layouts: &layout::Layouts,
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    if !layouts.is_empty() {
+        let key = ed25519_dalek::VerifyingKey::from_bytes(root.ok_or(StreamRefusal::Invalid)?)
+            .map_err(|_| StreamRefusal::Invalid)?;
+        layouts
+            .validate(&evidence.body_id, &key)
+            .map_err(|_| StreamRefusal::Invalid)?;
+    }
     if previous
         .count
         .checked_sub(prefix.map_or(0, |p| p.summary.count))
@@ -581,7 +622,13 @@ fn stream_rewrite_inner<E>(
         };
         plain(b"{\"schema\":")?;
         json::stream(
-            &if prefix.is_some() { SCHEMA_V2 } else { SCHEMA },
+            &if !layouts.is_empty() {
+                SCHEMA_V3
+            } else if prefix.is_some() {
+                SCHEMA_V2
+            } else {
+                SCHEMA
+            },
             &mut |bytes: &[u8]| plain(bytes).map_err(|_| json::CodecError::Sink),
         )
         .map_err(|_| ())?;
@@ -594,6 +641,13 @@ fn stream_rewrite_inner<E>(
         if let Some(prefix) = prefix {
             plain(b",\"biography_prefix\":")?;
             json::stream(prefix, &mut |bytes: &[u8]| {
+                plain(bytes).map_err(|_| json::CodecError::Sink)
+            })
+            .map_err(|_| ())?;
+        }
+        if !layouts.is_empty() {
+            plain(b",\"observation_layouts\":")?;
+            json::stream(layouts, &mut |bytes: &[u8]| {
                 plain(bytes).map_err(|_| json::CodecError::Sink)
             })
             .map_err(|_| ())?;

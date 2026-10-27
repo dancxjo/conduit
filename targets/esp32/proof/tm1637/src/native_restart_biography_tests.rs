@@ -201,6 +201,7 @@ fn private_backup_prefix_migration_preserves_exact_canonical_custody() {
         evidence: Some(evidence.clone()),
         archives: Vec::new(),
         custody: Some(ArchiveCustody {
+            layouts: payload::layout::Layouts::default(),
             source,
             summary: resident.summary,
             prefix: resident.prefix,
@@ -446,6 +447,7 @@ fn private_physical_offload_preserves_actual_receipt_and_complete_archives() {
         evidence: Some(before.retained.evidence),
         archives: Vec::new(),
         custody: Some(ArchiveCustody {
+            layouts: payload::layout::Layouts::default(),
             source,
             summary: before.summary,
             prefix: before.prefix,
@@ -503,4 +505,40 @@ fn private_physical_offload_preserves_actual_receipt_and_complete_archives() {
         );
     }
     println!("physical_offload_content: generation_before={before_generation} generation_after={after_generation} encoded_before={before_bytes} encoded_after={after_bytes} archives={} actual_owner_receipt_and_host_files=true exact_body_key_evidence_manager=true",archives.len());
+}
+
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+#[test]
+fn prefix_offload_preserves_durable_layout_and_exact_persisted_manager() {
+    let (mut store, mut owner, _host, key) = super::super::park_tests::fixture();
+    checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap();
+    let evidence = owner.as_ref().unwrap().evidence().clone();
+    let manager = serde_json::to_vec(&store.admissions).unwrap();
+    store.evidence = Some(evidence.clone());
+    store.ready = false;
+    let layout = super::super::observed::tests::receipt(&evidence.body_id, &[7; 32], 1);
+    super::super::observed::persist(&mut store, layout.clone()).unwrap();
+    let draft = prepare_store(&mut store).unwrap();
+    retain_store_receipt(&mut store, endorsed(&draft)).unwrap();
+    let mut seed = PrivateSeed([0; 32]);
+    let (resident, _) = decode_checkpoint(
+        &mut store.journal,
+        &store.binding,
+        &evidence.body_id,
+        &mut seed.0,
+        store.custody.as_ref(),
+    )
+    .unwrap();
+    assert_eq!(resident.retained.schema, payload::SCHEMA_V3);
+    assert!(resident.prefix.is_some());
+    assert_eq!(resident.local_count, 0);
+    assert_eq!(
+        resident.layouts.find(&[1; 32]).unwrap().bytes(),
+        layout.bytes()
+    );
+    assert_eq!(resident.retained.evidence, evidence);
+    assert_eq!(
+        serde_json::to_vec(&resident.retained.admissions).unwrap(),
+        manager
+    );
 }
