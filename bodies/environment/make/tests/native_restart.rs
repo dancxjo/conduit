@@ -776,3 +776,208 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
     restored.evidence().validate().unwrap();
     restart::checkpoint(&mut restored, &key).unwrap();
 }
+
+#[test]
+fn authenticated_stream_reader_fences_preflight_live_read_changes_short_reads_and_seed_output() {
+    use sha2::{Digest, Sha256};
+    let (owner, _, _) = installed();
+    let binding: [u8; 32] = Sha256::digest(owner.evidence().body_id.as_str().as_bytes()).into();
+    let bytes = payload::encode(owner.evidence(), &[], &[]).unwrap();
+    let media = Media(Rc::new(RefCell::new(vec![255; 65536])));
+    let mut journal = checkpoint::Checkpoint::open(media.clone()).unwrap();
+    journal.save(&binding, &[81; 32], &bytes).unwrap();
+    let mut seed = [99; 32];
+    let read = journal
+        .load_streamed(&binding, &mut seed, |reader| {
+            let mut output = Vec::new();
+            let mut chunk = [0; 128];
+            loop {
+                let n = reader.read(&mut chunk)?;
+                if n == 0 {
+                    break;
+                }
+                output.extend_from_slice(&chunk[..n]);
+            }
+            chunk.fill(0);
+            Ok(output)
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(read, bytes);
+    assert_eq!(seed, [81; 32]);
+    seed.fill(99);
+    assert_eq!(
+        journal.load_streamed(&binding, &mut seed, |_| Ok(())),
+        Err(checkpoint::Refusal::Corrupt)
+    );
+    assert_eq!(seed, [0; 32]);
+    seed.fill(99);
+    assert_eq!(
+        journal.load_streamed::<()>(&binding, &mut seed, |_| Err(checkpoint::Refusal::Storage)),
+        Err(checkpoint::Refusal::Storage)
+    );
+    assert_eq!(seed, [0; 32]);
+    // Fault injected after complete authentication, before the streaming read.
+    seed.fill(99);
+    let altered = journal.load_streamed(&binding, &mut seed, |reader| {
+        media.0.borrow_mut()[160] ^= 1;
+        let mut chunk = [0; 128];
+        while reader.read(&mut chunk)? != 0 {}
+        chunk.fill(0);
+        Ok(())
+    });
+    assert_eq!(altered, Err(checkpoint::Refusal::Corrupt));
+    assert_eq!(seed, [0; 32]);
+    // Once media differs, authentication refuses BEFORE any decoder runs.
+    let mut entered = false;
+    seed.fill(99);
+    assert_eq!(
+        journal.load_streamed(&binding, &mut seed, |_| {
+            entered = true;
+            Ok(())
+        }),
+        Err(checkpoint::Refusal::Corrupt)
+    );
+    assert!(!entered);
+    assert_eq!(seed, [0; 32]);
+    media.0.borrow_mut()[160] ^= 1;
+    let mut foreign = binding;
+    foreign[0] ^= 1;
+    assert_eq!(
+        journal.load_streamed(&foreign, &mut seed, |_| Ok(())),
+        Err(checkpoint::Refusal::Corrupt)
+    );
+}
+
+#[test]
+fn chunked_complete_envelope_matches_legacy_with_archives_boot_history_and_live_manager() {
+    use sha2::{Digest, Sha256};
+    let (owner, _, host) = installed();
+    let mut evidence = owner.evidence().clone();
+    for boot in 0..10 {
+        evidence = SealedBodyLifecycleSession::resume_here(
+            evidence,
+            &host.host_id,
+            &format!("boot/stream-{boot}").into(),
+        )
+        .unwrap()
+        .evidence()
+        .clone();
+    }
+    let archive = evidence.seal_membership_history().unwrap().unwrap();
+    let mut manager = conduit_body::AdmissionManager::new(evidence.body_id.clone()).unwrap();
+    manager
+        .issue_spawn_invitation(
+            conduit_body::SpawnInvitationSecret::from_csprng_bytes([91; 32]).unwrap(),
+            [92; 32],
+            10,
+            100,
+        )
+        .unwrap();
+    let mut bytes = Vec::new();
+    payload::stream_with_admissions(
+        &evidence,
+        core::slice::from_ref(&archive),
+        &[],
+        Some(&manager),
+        &mut |chunk: &[u8]| {
+            bytes.extend_from_slice(chunk);
+            Ok::<_, ()>(())
+        },
+    )
+    .unwrap();
+    assert!(
+        bytes.len() > 8192,
+        "fixture must exceed small contiguous scratch"
+    );
+    let legacy = payload::decode(&bytes, &evidence.body_id).unwrap();
+    for width in 1..=128 {
+        let mut at = 0;
+        let streamed = payload::decode_streamed(
+            |out| {
+                let n = width.min(bytes.len() - at);
+                out[..n].copy_from_slice(&bytes[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            &evidence.body_id,
+        )
+        .unwrap();
+        assert_eq!(at, bytes.len());
+        assert_eq!(streamed.evidence, legacy.evidence);
+        assert_eq!(streamed.archives, legacy.archives);
+        assert_eq!(
+            serde_json::to_vec(&streamed.admissions).unwrap(),
+            serde_json::to_vec(&legacy.admissions).unwrap()
+        );
+    }
+    let mut at = 0;
+    let (streamed, memory) = allocation_probe::observe(|| {
+        payload::decode_streamed(
+            |out| {
+                let n = 128.min(bytes.len() - at);
+                out[..n].copy_from_slice(&bytes[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            &evidence.body_id,
+        )
+        .unwrap()
+    });
+    let (_, old_memory) = allocation_probe::observe(|| {
+        let input = bytes.clone();
+        payload::decode(&input, &evidence.body_id).unwrap()
+    });
+    println!(
+        "streamed restore bytes={} peak={} legacy peak={}",
+        bytes.len(),
+        memory.peak_bytes,
+        old_memory.peak_bytes
+    );
+    assert!(memory.peak_bytes + bytes.len() <= old_memory.peak_bytes);
+    assert_eq!(streamed.evidence, evidence);
+    assert_eq!(streamed.archives, [archive]);
+    // The authenticated journal uses that identical parser with only128B reads.
+    let binding: [u8; 32] = Sha256::digest(evidence.body_id.as_str().as_bytes()).into();
+    let media = Media(Rc::new(RefCell::new(vec![255; 65536])));
+    let mut journal = checkpoint::Checkpoint::open(media).unwrap();
+    journal.save(&binding, &[93; 32], &bytes).unwrap();
+    let mut seed = [0; 32];
+    let restored = journal
+        .load_streamed(&binding, &mut seed, |reader| {
+            payload::decode_streamed(|out| reader.read(out).map_err(|_| ()), &evidence.body_id)
+                .map_err(|_| checkpoint::Refusal::Corrupt)
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(restored.evidence, evidence);
+    assert_eq!(seed, [93; 32]);
+    for suffix in [b" ".as_slice(), b"\n\t".as_slice()] {
+        let mut padded = bytes.clone();
+        padded.extend_from_slice(suffix);
+        let mut at = 0;
+        assert!(payload::decode_streamed(
+            |out| {
+                let n = 128.min(padded.len() - at);
+                out[..n].copy_from_slice(&padded[at..at + n]);
+                at += n;
+                Ok(n)
+            },
+            &evidence.body_id
+        )
+        .is_ok());
+    }
+    let mut trailing = bytes.clone();
+    trailing.extend_from_slice(b"{}");
+    let mut at = 0;
+    assert!(payload::decode_streamed(
+        |out| {
+            let n = 128.min(trailing.len() - at);
+            out[..n].copy_from_slice(&trailing[at..at + n]);
+            at += n;
+            Ok(n)
+        },
+        &evidence.body_id
+    )
+    .is_err());
+}

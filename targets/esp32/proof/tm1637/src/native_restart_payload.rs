@@ -5,6 +5,8 @@ use conduit_body::{AdmissionManager, BodyBiographyArchiveSegment, BodyBiographyE
 use serde::{Deserialize, Serialize};
 #[path = "native_restart_profile.rs"]
 mod profile;
+#[path = "native_restart_read_json.rs"]
+mod read_json;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
 pub const MAX_BYTES: usize = 32768 - 160;
 #[derive(Deserialize)]
@@ -112,6 +114,7 @@ pub fn encode(
         }
     }
 }
+#[cfg(not(target_os = "none"))]
 pub fn decode(
     bytes: &[u8],
     expected_body: &conduit_body::BodyId,
@@ -120,6 +123,21 @@ pub fn decode(
         return Err("restart-capacity");
     }
     let retained: Retained = serde_json::from_slice(bytes).map_err(|_| "restart-encoding")?;
+    validate_retained(retained, expected_body)
+}
+/// Identical strict typed DTO and canonical validation, with only bounded input
+/// chunks retained. Complete EOF is required before the result can escape.
+pub fn decode_streamed(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    expected_body: &conduit_body::BodyId,
+) -> Result<Retained, &'static str> {
+    let retained = read_json::from_reader(read, MAX_BYTES).map_err(|_| "restart-encoding")?;
+    validate_retained(retained, expected_body)
+}
+fn validate_retained(
+    retained: Retained,
+    expected_body: &conduit_body::BodyId,
+) -> Result<Retained, &'static str> {
     if retained.schema != SCHEMA || &retained.evidence.body_id != expected_body {
         return Err("restart-body-binding");
     }

@@ -34,6 +34,49 @@ pub struct Checkpoint<S> {
     storage: S,
     retained: Option<Retained>,
 }
+/// Exclusive bounded view of one already authenticated committed payload.
+/// A second streaming digest detects a changed read before decoded data escapes.
+pub(crate) struct PayloadReader<'a, S> {
+    storage: &'a mut S,
+    bank: u8,
+    length: u32,
+    at: u32,
+    hash: Sha256,
+    expected: [u8; 32],
+}
+impl<S: Storage> PayloadReader<'_, S> {
+    pub(crate) fn read(&mut self, out: &mut [u8; 128]) -> Result<usize, Refusal> {
+        let n = (self.length - self.at).min(128) as usize;
+        if n == 0 {
+            return Ok(0);
+        }
+        self.storage.read(
+            u32::from(self.bank) * BANK + HEADER + self.at,
+            &mut out[..(n + 3) & !3],
+        )?;
+        self.hash.update(&out[..n]);
+        self.at += n as u32;
+        Ok(n)
+    }
+    fn finish(self) -> Result<(), Refusal> {
+        if self.at != self.length || <[u8; 32]>::from(self.hash.finalize()) != self.expected {
+            return Err(Refusal::Corrupt);
+        }
+        Ok(())
+    }
+}
+struct PrivateChunk([u8; 128]);
+impl Drop for PrivateChunk {
+    fn drop(&mut self) {
+        self.0.fill(0);
+    }
+}
+struct PrivateHeader([u8; 160]);
+impl Drop for PrivateHeader {
+    fn drop(&mut self) {
+        self.0.fill(0);
+    }
+}
 impl<S: Storage> Checkpoint<S> {
     pub fn open(mut storage: S) -> Result<Self, Refusal> {
         if storage.capacity() != 2 * BANK {
@@ -93,17 +136,59 @@ impl<S: Storage> Checkpoint<S> {
         {
             return Err(Refusal::Corrupt);
         }
-        let mut buffer = [0; 128];
+        let mut buffer = PrivateChunk([0; 128]);
         for (i, output) in evidence[..length].chunks_mut(128).enumerate() {
             self.storage.read(
                 u32::from(retained.bank) * BANK + HEADER + i as u32 * 128,
-                &mut buffer[..(output.len() + 3) & !3],
+                &mut buffer.0[..(output.len() + 3) & !3],
             )?;
-            output.copy_from_slice(&buffer[..output.len()]);
+            output.copy_from_slice(&buffer.0[..output.len()]);
         }
         self.storage
             .read(u32::from(retained.bank) * BANK + 56, seed)?;
         Ok(Some(length))
+    }
+    /// Authenticate the complete committed bank before decoding. No whole raw
+    /// payload allocation is needed, no secret is returned on any failure, and
+    /// a second digest plus complete reader consumption fences changing media.
+    pub(crate) fn load_streamed<T>(
+        &mut self,
+        binding: &[u8; 32],
+        seed: &mut [u8; 32],
+        decode: impl FnOnce(&mut PayloadReader<'_, S>) -> Result<T, Refusal>,
+    ) -> Result<Option<T>, Refusal> {
+        seed.fill(0);
+        let Some(retained) = self.retained else {
+            return Ok(None);
+        };
+        if &retained.binding != binding {
+            return Err(Refusal::Corrupt);
+        }
+        let mut header = PrivateHeader([0; 160]);
+        self.storage
+            .read(u32::from(retained.bank) * BANK, &mut header.0)?;
+        let valid =
+            inspect_header(&mut self.storage, retained.bank, &header.0)?.ok_or(Refusal::Corrupt)?;
+        if valid.generation != retained.generation
+            || valid.binding != retained.binding
+            || valid.length != retained.length
+        {
+            return Err(Refusal::Corrupt);
+        }
+        let mut hash = Sha256::new();
+        hash.update(&header.0[..120]);
+        let mut reader = PayloadReader {
+            storage: &mut self.storage,
+            bank: retained.bank,
+            length: retained.length,
+            at: 0,
+            hash,
+            expected: header.0[120..152].try_into().unwrap(),
+        };
+        let decoded = decode(&mut reader)?;
+        reader.finish()?;
+        seed.copy_from_slice(&header.0[56..88]);
+        Ok(Some(decoded))
     }
     /// The prior committed bank remains intact until a complete successor has
     /// been programmed, hashed from readback, and committed last. No truncation.
@@ -239,23 +324,30 @@ fn digest<S: Storage>(storage: &mut S, bank: u8, header: &[u8; 160]) -> Result<[
     }
     let mut hash = Sha256::new();
     hash.update(&header[..120]);
-    let mut buffer = [0; 128];
+    let mut buffer = PrivateChunk([0; 128]);
     let mut at = 0;
     while at < length {
         let n = (length - at).min(128) as usize;
         // Physical adapter requires aligned reads; hash only actual payload bytes.
         storage.read(
             u32::from(bank) * BANK + HEADER + at,
-            &mut buffer[..(n + 3) & !3],
+            &mut buffer.0[..(n + 3) & !3],
         )?;
-        hash.update(&buffer[..n]);
+        hash.update(&buffer.0[..n]);
         at += n as u32;
     }
     Ok(hash.finalize().into())
 }
 fn inspect<S: Storage>(storage: &mut S, bank: u8) -> Result<Option<Retained>, Refusal> {
-    let mut header = [0; 160];
-    storage.read(u32::from(bank) * BANK, &mut header)?;
+    let mut header = PrivateHeader([0; 160]);
+    storage.read(u32::from(bank) * BANK, &mut header.0)?;
+    inspect_header(storage, bank, &header.0)
+}
+fn inspect_header<S: Storage>(
+    storage: &mut S,
+    bank: u8,
+    header: &[u8; 160],
+) -> Result<Option<Retained>, Refusal> {
     if &header[152..156] != COMMIT {
         return Ok(None);
     }
@@ -263,7 +355,7 @@ fn inspect<S: Storage>(storage: &mut S, bank: u8) -> Result<Option<Retained>, Re
         || header[20..24] != [255; 4]
         || header[88..120] != [255; 32]
         || header[156..160] != [255; 4]
-        || digest(storage, bank, &header)? != header[120..152]
+        || digest(storage, bank, header)? != header[120..152]
     {
         return Err(Refusal::Corrupt);
     }

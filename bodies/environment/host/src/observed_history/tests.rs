@@ -387,6 +387,25 @@ fn complete_body_and_private_seed_survive_each_successor_power_cut() {
             .load(&[3; 32], &mut seed, &mut evidence)
             .unwrap()
             .unwrap();
+        let mut streamed_seed = [99; 32];
+        let streamed = reopened
+            .load_streamed(&[3; 32], &mut streamed_seed, |reader| {
+                let mut bytes = Vec::new();
+                let mut chunk = [0; 128];
+                loop {
+                    let count = reader.read(&mut chunk)?;
+                    if count == 0 {
+                        break;
+                    }
+                    bytes.extend_from_slice(&chunk[..count]);
+                }
+                chunk.fill(0);
+                Ok(bytes)
+            })
+            .unwrap()
+            .unwrap();
+        assert_eq!(streamed, &evidence[..n]);
+        assert_eq!(streamed_seed, seed);
         if saved {
             assert_eq!(reopened.generation(), Some(3));
         }
@@ -403,6 +422,10 @@ fn complete_body_and_private_seed_survive_each_successor_power_cut() {
             .load(&[4; 32], &mut untouched, &mut evidence)
             .is_err());
         assert_eq!(untouched, [99; 32]);
+        assert!(reopened
+            .load_streamed(&[4; 32], &mut streamed_seed, |_| Ok(()))
+            .is_err());
+        assert_eq!(streamed_seed, [0; 32]);
     }
     let complete = vec![23; 32768 - 160];
     journal.save(&[3; 32], &[9; 32], &complete).unwrap();
@@ -413,6 +436,25 @@ fn complete_body_and_private_seed_survive_each_successor_power_cut() {
         Some(complete.len())
     );
     assert_eq!(output, complete);
+    assert_eq!(seed, [9; 32]);
+    let count = journal
+        .load_streamed(&[3; 32], &mut seed, |reader| {
+            let mut total = 0;
+            let mut chunk = [0; 128];
+            loop {
+                let count = reader.read(&mut chunk)?;
+                if count == 0 {
+                    break;
+                }
+                assert!(chunk[..count].iter().all(|byte| *byte == 23));
+                total += count;
+            }
+            chunk.fill(0);
+            Ok(total)
+        })
+        .unwrap()
+        .unwrap();
+    assert_eq!(count, complete.len());
     assert_eq!(seed, [9; 32]);
     let oversized = vec![0; 32768 - 159];
     assert!(journal.save(&[3; 32], &[9; 32], &oversized).is_err());

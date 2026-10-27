@@ -189,6 +189,33 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
     )
     .is_err());
     assert_eq!(owner.evidence(), &retained);
+    // Restore through the actual streamed journal/typed DTO, preserving the
+    // admitted Part's private continuity verifier and completed receipt exactly.
+    let before_manager =
+        native_restart::with_admissions(|manager| Ok(serde_json::to_vec(manager).unwrap()))
+            .unwrap();
+    let mut boxed = Some(Box::new(owner));
+    let parked =
+        native_restart::park_box(&mut boxed, &root_key, &host.host_id, &host.boot_id).unwrap();
+    assert!(boxed.is_none());
+    owner =
+        *native_restart::restore_parked(parked, &host.host_id, &host.boot_id, &root_key).unwrap();
+    assert_eq!(owner.evidence(), &retained);
+    native_restart::with_admissions(|manager| {
+        assert_eq!(serde_json::to_vec(manager).unwrap(), before_manager);
+        manager
+            .verify_admitted_message(
+                &owner.evidence().membership,
+                &receipt.credential.part_id,
+                &observer.host_id,
+                &observer.boot_id,
+                &transcript,
+                &secret.sign(&transcript),
+            )
+            .map_err(|_| "member-message")?;
+        Ok(())
+    })
+    .unwrap();
     // No private bootstrap can leave the issuer after failed persistence.
     media.0.lock().unwrap().1 = false;
     assert!(native_body_join::issue(

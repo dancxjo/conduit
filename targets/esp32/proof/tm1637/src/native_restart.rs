@@ -76,6 +76,7 @@ pub struct RetainedBody {
 }
 /// Cold, unpublished custody only. No Clone/Deserialize or caller construction.
 pub struct ParkedBody {
+    #[cfg(not(target_os = "none"))]
     workspace: Option<PrivateBytes>,
     proposal: Option<conduit_body::VerifiedBodyProposalContext>,
     generation: u64,
@@ -100,6 +101,7 @@ impl ParkedBody {
     /// Reserve the actual complete checkpoint input before later cold owners
     /// fragment the heap. It stays private, bounded by the committed length,
     /// and is consumed directly by restore rather than copied or reallocated.
+    #[cfg(not(target_os = "none"))]
     #[inline(never)]
     pub fn reserve_restore_workspace(&mut self) -> Result<usize, &'static str> {
         let length = with_store(|store| {
@@ -203,6 +205,7 @@ fn park_store(
         return Err("restart-park-pending");
     }
     let token = ParkedBody {
+        #[cfg(not(target_os = "none"))]
         workspace: None,
         proposal: Some(
             body.prepare_verified_proposal_context(host, boot)
@@ -225,7 +228,9 @@ fn park_store(
     Ok(token)
 }
 
+#[cfg(not(target_os = "none"))]
 struct PrivateBytes(Vec<u8>);
+#[cfg(not(target_os = "none"))]
 impl Drop for PrivateBytes {
     fn drop(&mut self) {
         self.0.fill(0);
@@ -247,6 +252,7 @@ pub fn restore_parked(
 ) -> Result<Box<SealedBodyLifecycleSession>, &'static str> {
     with_store(|store| restore_store(store, token, host, boot, key))
 }
+#[allow(unused_mut)] // Only CPU compatibility can retain an optional slice buffer.
 fn restore_store(
     store: &mut Store,
     mut token: ParkedBody,
@@ -272,27 +278,38 @@ fn restore_store(
         .ok_or("restart-missing")?;
     #[cfg(all(target_os = "none", feature = "local-appliance"))]
     crate::native_root::memory_check::mark("cold-body-restore-payload", length);
-    let mut bytes = match token.workspace.take() {
-        Some(bytes) if bytes.0.len() == length => bytes,
-        Some(_) => return Err("restart-workspace-length"),
-        None => {
-            let mut bytes = PrivateBytes(Vec::new());
-            bytes
-                .0
-                .try_reserve_exact(length)
-                .map_err(|_| "restart-memory")?;
-            bytes.0.resize(length, 0);
-            bytes
-        }
-    };
     let mut seed = PrivateSeed([0; 32]);
-    let loaded = store
-        .journal
-        .load(&store.binding, &mut seed.0, &mut bytes.0)
-        .map_err(|_| "restart-restore-load")?
-        .ok_or("restart-missing")?;
-    if loaded != length
-        || store.seed.as_ref() != Some(&seed.0)
+    #[cfg(not(target_os = "none"))]
+    let retained = match token.workspace.take() {
+        Some(mut bytes) => {
+            if bytes.0.len() != length {
+                return Err("restart-workspace-length");
+            }
+            let loaded = store
+                .journal
+                .load(&store.binding, &mut seed.0, &mut bytes.0)
+                .map_err(|_| "restart-restore-load")?
+                .ok_or("restart-missing")?;
+            if loaded != length {
+                return Err("restart-length");
+            }
+            payload::decode(&bytes.0, &token.body_id)?
+        }
+        None => decode_checkpoint(
+            &mut store.journal,
+            &store.binding,
+            &token.body_id,
+            &mut seed.0,
+        )?,
+    };
+    #[cfg(target_os = "none")]
+    let retained = decode_checkpoint(
+        &mut store.journal,
+        &store.binding,
+        &token.body_id,
+        &mut seed.0,
+    )?;
+    if store.seed.as_ref() != Some(&seed.0)
         || ed25519_dalek::SigningKey::from_bytes(&seed.0)
             .verifying_key()
             .as_bytes()
@@ -300,10 +317,6 @@ fn restore_store(
     {
         return Err("restart-restore-key");
     }
-    let retained = payload::decode(&bytes.0, &token.body_id)?;
-    // The authenticated decoder owns every field. Retire private JSON and the
-    // duplicate signing seed before canonical opening/Box allocation peaks.
-    drop(bytes);
     drop(seed);
     #[cfg(all(target_os = "none", feature = "local-appliance"))]
     crate::native_root::memory_check::mark("cold-body-restore-decoded", length);
@@ -332,6 +345,26 @@ fn restore_store(
     Ok(body)
 }
 
+#[inline(never)]
+fn decode_checkpoint(
+    journal: &mut Checkpoint<BodyRegion>,
+    binding: &[u8; 32],
+    body_id: &conduit_body::BodyId,
+    seed: &mut [u8; 32],
+) -> Result<payload::Retained, &'static str> {
+    let mut refusal = None;
+    journal
+        .load_streamed(binding, seed, |reader| {
+            payload::decode_streamed(|chunk| reader.read(chunk).map_err(|_| ()), body_id).map_err(
+                |error| {
+                    refusal = Some(error);
+                    Refusal::Corrupt
+                },
+            )
+        })
+        .map_err(|_| refusal.unwrap_or("restart-load"))?
+        .ok_or("restart-missing")
+}
 pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result<(), &'static str> {
     compiled
         .validate()
@@ -347,28 +380,10 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                 .map_err(|_| "restart-admissions")?;
             (compiled, Vec::new(), None, true, admissions)
         }
-        Some(length) => {
-            let mut bytes = Vec::new();
-            bytes
-                .try_reserve_exact(length)
-                .map_err(|_| "restart-memory")?;
-            bytes.resize(length, 0);
-            let mut seed = [0; 32];
-            let n = journal
-                .load(&binding, &mut seed, &mut bytes)
-                .map_err(|_| "restart-load")?
-                .ok_or("restart-missing")?;
-            if n != length {
-                seed.fill(0);
-                return Err("restart-length");
-            }
-            let retained = match payload::decode(&bytes, &compiled.body_id) {
-                Ok(value) => value,
-                Err(error) => {
-                    seed.fill(0);
-                    return Err(error);
-                }
-            };
+        Some(_length) => {
+            let mut seed = PrivateSeed([0; 32]);
+            let retained =
+                decode_checkpoint(&mut journal, &binding, &compiled.body_id, &mut seed.0)?;
             let pristine = retained.evidence == compiled && retained.archives.is_empty();
             let mut admissions = match retained.admissions {
                 Some(manager) => manager,
@@ -382,7 +397,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             (
                 retained.evidence,
                 retained.archives,
-                Some(seed),
+                Some(seed.0),
                 pristine,
                 admissions,
             )

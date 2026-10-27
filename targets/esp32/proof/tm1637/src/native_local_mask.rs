@@ -322,11 +322,6 @@ impl NativeRoot {
             let boxed = sampler;
             *boxed
         };
-        #[cfg(feature = "local-appliance")]
-        {
-            let length = parked.reserve_restore_workspace()?;
-            mark("cold-body-restore-workspace-reserved", length);
-        }
         mark("ordinary-mask-software-construction-retired", 15);
         let mask_values = take_fixed_values()?;
         mark(
@@ -342,15 +337,15 @@ impl NativeRoot {
         )?;
         drop(sample);
         mark("ordinary-mask-sampler-seal-retired", 15);
-        self.assemble_local_plots(
-            proposal,
-            sampler,
-            mask,
-            mask_values,
-            execute,
-            #[cfg(feature = "local-appliance")]
-            parked,
-        )
+        #[cfg(feature = "local-appliance")]
+        {
+            let key = self.restart_verifying_key();
+            self.body = Some(crate::native_restart::restore_parked(
+                parked, &self.host, &self.boot, &key,
+            )?);
+            mark("cold-body-custody-restored", 1);
+        }
+        self.assemble_local_plots(proposal, sampler, mask, mask_values, execute)
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -521,7 +516,6 @@ impl NativeRoot {
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
         execute: bool,
-        #[cfg(feature = "local-appliance")] parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
         let PreparedSamplerParts {
             sampler_parts,
@@ -573,14 +567,6 @@ impl NativeRoot {
         } else {
             None
         };
-        #[cfg(feature = "local-appliance")]
-        {
-            let key = self.restart_verifying_key();
-            self.body = Some(crate::native_restart::restore_parked(
-                parked, &self.host, &self.boot, &key,
-            )?);
-            mark("cold-body-custody-restored", 1);
-        }
         self.body
             .as_mut()
             .ok_or("body-owner")?
