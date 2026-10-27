@@ -24,9 +24,11 @@ impl NativeRoot {
                 mark("after-software-offer", index);
             }
         }
-        // Decode one exact Source Gear at a time under the retained production
-        // baseline. This is the same decoder ordinary indexed selection uses.
-        // A failure here is a lower bound: selection adds candidate state too.
+        // The separate measurement profile probes one Gear at a time to locate
+        // decoder allocation peaks. The appliance proceeds directly to ordinary
+        // indexed selection, which decodes/checks these same complete Gears;
+        // a second diagnostic pass contributes no admission or retained owner.
+        #[cfg(not(feature = "local-appliance"))]
         for index in 0..image.gear_count() {
             mark("before-source-gear-probe", index);
             let gear = image.gear(index).map_err(|_| "source-gear-codec")?;

@@ -7,6 +7,10 @@ use serde::de::{
     Visitor,
 };
 
+#[cfg(test)]
+#[path = "native_restart_read_json_tests.rs"]
+mod tests;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Error;
 impl fmt::Display for Error {
@@ -139,6 +143,112 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
     fn scalar<T: DeserializeOwned>(&mut self) -> Result<T, Error> {
         let token = self.token()?;
         serde_json::from_slice(&token.0).map_err(|_| Error)
+    }
+    /// Validate an ignored value with bounded container state rather than one
+    /// Rust/Serde frame for every archived array and object. Scalar dispatch is
+    /// unchanged, including numeric extent and string/escape validation.
+    #[inline(never)]
+    fn skip_value(&mut self) -> Result<(), Error> {
+        const SEQUENCE_FIRST: u8 = 0;
+        const SEQUENCE_AFTER: u8 = 1;
+        const MAP_FIRST: u8 = 2;
+        const MAP_AFTER: u8 = 3;
+        let original_depth = self.depth;
+        let result = (|| {
+            let mut containers = [SEQUENCE_FIRST; 127];
+            let mut length = 0usize;
+            let mut value = true;
+            loop {
+                if value {
+                    match self.whitespace()?.ok_or(Error)? {
+                        b'[' => {
+                            self.expect(b'[')?;
+                            self.enter()?;
+                            *containers.get_mut(length).ok_or(Error)? = SEQUENCE_FIRST;
+                            length += 1;
+                        }
+                        b'{' => {
+                            self.expect(b'{')?;
+                            self.enter()?;
+                            *containers.get_mut(length).ok_or(Error)? = MAP_FIRST;
+                            length += 1;
+                        }
+                        _ => self.skip_scalar()?,
+                    }
+                    value = false;
+                    if length == 0 {
+                        return Ok(());
+                    }
+                }
+                let state = containers[length - 1];
+                let end = if state <= SEQUENCE_AFTER { b']' } else { b'}' };
+                if self.whitespace()? == Some(end) {
+                    self.expect(end)?;
+                    self.depth -= 1;
+                    length -= 1;
+                    if length == 0 {
+                        return Ok(());
+                    }
+                    continue;
+                }
+                if matches!(state, SEQUENCE_AFTER | MAP_AFTER) {
+                    self.expect(b',')?;
+                    if self.whitespace()? == Some(end) {
+                        return Err(Error);
+                    }
+                }
+                if state >= MAP_FIRST {
+                    if self.whitespace()? != Some(b'"') {
+                        return Err(Error);
+                    }
+                    let _: String = self.scalar()?;
+                    self.whitespace()?;
+                    self.expect(b':')?;
+                    containers[length - 1] = MAP_AFTER;
+                } else {
+                    containers[length - 1] = SEQUENCE_AFTER;
+                }
+                value = true;
+            }
+        })();
+        // Recursive sequence/mapping visitors likewise unwind their depth on
+        // refusal. Keep the same decoder state if a caller handles that error.
+        if result.is_err() {
+            self.depth = original_depth;
+        }
+        result
+    }
+
+    fn skip_scalar(&mut self) -> Result<(), Error> {
+        struct Ignore;
+        impl<'de> Visitor<'de> for Ignore {
+            type Value = ();
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("JSON scalar")
+            }
+            fn visit_unit<E: de::Error>(self) -> Result<(), E> {
+                Ok(())
+            }
+            fn visit_bool<E: de::Error>(self, _: bool) -> Result<(), E> {
+                Ok(())
+            }
+            fn visit_i64<E: de::Error>(self, _: i64) -> Result<(), E> {
+                Ok(())
+            }
+            fn visit_u64<E: de::Error>(self, _: u64) -> Result<(), E> {
+                Ok(())
+            }
+            fn visit_f64<E: de::Error>(self, _: f64) -> Result<(), E> {
+                Ok(())
+            }
+            fn visit_str<E: de::Error>(self, _: &str) -> Result<(), E> {
+                Ok(())
+            }
+            fn visit_string<E: de::Error>(self, _: String) -> Result<(), E> {
+                Ok(())
+            }
+        }
+        de::Deserializer::deserialize_any(&mut *self, Ignore)
     }
     fn sequence<'de, V: Visitor<'de>>(&mut self, visitor: V) -> Result<V::Value, Error> {
         if self.whitespace()? != Some(b'[') {
@@ -454,46 +564,7 @@ impl<'de, R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> de::Deserializer<'de> f
         self.deserialize_str(visitor)
     }
     fn deserialize_ignored_any<V: Visitor<'de>>(self, visitor: V) -> Result<V::Value, Error> {
-        struct Ignore;
-        impl<'de> Visitor<'de> for Ignore {
-            type Value = ();
-            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.write_str("JSON value")
-            }
-            fn visit_unit<E: de::Error>(self) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_bool<E: de::Error>(self, _: bool) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_i64<E: de::Error>(self, _: i64) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_u64<E: de::Error>(self, _: u64) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_f64<E: de::Error>(self, _: f64) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_str<E: de::Error>(self, _: &str) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_string<E: de::Error>(self, _: String) -> Result<(), E> {
-                Ok(())
-            }
-            fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<(), A::Error> {
-                while seq.next_element::<de::IgnoredAny>()?.is_some() {}
-                Ok(())
-            }
-            fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<(), A::Error> {
-                while map
-                    .next_entry::<de::IgnoredAny, de::IgnoredAny>()?
-                    .is_some()
-                {}
-                Ok(())
-            }
-        }
-        self.deserialize_any(Ignore)?;
+        self.skip_value()?;
         visitor.visit_unit()
     }
     fn is_human_readable(&self) -> bool {
