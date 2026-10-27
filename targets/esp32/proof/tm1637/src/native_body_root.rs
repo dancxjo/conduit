@@ -44,6 +44,22 @@ impl NativeRoot {
             self.admission.verifying_key(),
         ))
     }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn endorse_owner_biography(
+        &self,
+        export: &crate::native_restart::biography::Export,
+        authorized: crate::native_body_join::owner::AuthorizedOwnerBiography,
+    ) -> Result<crate::native_restart::payload::wire::Receipt, &'static str> {
+        let key = ed25519_dalek::VerifyingKey::from_bytes(&self.admission.verifying_key())
+            .map_err(|_| "biography-root-key")?;
+        let draft = crate::native_body_join::biography_acceptance::accept_owner(
+            export.offer(),
+            &key,
+            authorized,
+        )?;
+        let signature = self.admission.sign_biography_custody(&draft)?;
+        Ok(draft.signed(signature))
+    }
     /// Private target provisioning only: the returned secret authorizes one
     /// observer admission. Root must explicitly install its serving route.
     #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]

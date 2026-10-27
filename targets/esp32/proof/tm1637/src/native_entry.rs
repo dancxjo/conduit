@@ -86,6 +86,19 @@ async fn main(spawner: Spawner) {
             display,
         )
     };
+    #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+    let mut invitation_uart = esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
+        .expect("private invitation UART0")
+        .with_rx(p.GPIO3)
+        .with_tx(p.GPIO1)
+        .into_async();
+    #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+    await_outlined(crate::native_biography_uart::serve_cold(
+        &mut root,
+        &mut invitation_uart,
+    ))
+    .await
+    .expect("cold biography custody service");
     #[cfg(feature = "body-image-root")]
     root.install_linked_body().expect("linked body biography");
     root.start_preparation_service(spawner)
@@ -110,13 +123,6 @@ async fn main(spawner: Spawner) {
         // unrelated remote installation/control interpreter into the image.
         #[cfg(feature = "local-appliance")]
         let mut next_report = embassy_time::Instant::now();
-        #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
-        let mut invitation_uart =
-            esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
-                .expect("private invitation UART0")
-                .with_rx(p.GPIO3)
-                .with_tx(p.GPIO1)
-                .into_async();
         #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
         let mut invitation_bootstrap = crate::native_body_join_uart::Bootstrap::configured()
             .expect("provisioned owner invitation key");

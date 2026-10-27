@@ -2,6 +2,9 @@
 //! separate: this module never invents an authenticated rendezvous or a grant.
 #[path = "native_body_join_owner.rs"]
 pub(crate) mod owner;
+use crate::native_restart::payload::wire as biography_wire;
+#[path = "native_biography_custody_acceptance.rs"]
+pub(crate) mod biography_acceptance;
 #[path = "native_joined_host_recovery.rs"]
 pub(crate) mod recovery;
 #[path = "native_body_join_wire.rs"]

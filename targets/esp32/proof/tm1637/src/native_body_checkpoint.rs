@@ -310,6 +310,18 @@ impl<S: Storage> Checkpoint<S> {
         seed: &[u8; 32],
         mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
     ) -> Result<SourceSnapshot, Refusal> {
+        self.rewrite_streamed_outlined(snapshot, binding, seed, &mut emit)
+    }
+    // Keep one physical transaction implementation for ordinary checkpoints and
+    // cold biography migration; callback identity cannot change its guarantees.
+    #[inline(never)]
+    fn rewrite_streamed_outlined(
+        &mut self,
+        snapshot: &SourceSnapshot,
+        binding: &[u8; 32],
+        seed: &[u8; 32],
+        emit: &mut dyn FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
+    ) -> Result<SourceSnapshot, Refusal> {
         if *seed == [0; 32] || binding != snapshot.binding() {
             return Err(Refusal::Corrupt);
         }

@@ -125,6 +125,10 @@ fn build_with_owner(
                 "llvm-args=-inline-threshold=10",
                 "-C",
                 "llvm-args=-inlinehint-threshold=10",
+                "-C",
+                "llvm-args=-ir-outliner",
+                "-Z",
+                "location-detail=none",
             ]);
         }
     }

@@ -170,7 +170,7 @@ impl NativeRoot {
         mark("both-local-plots-released", 2);
         Ok(())
     }
-    #[cfg(feature = "local-appliance")]
+    #[cfg(all(feature = "local-appliance", feature = "target-memory-trace"))]
     #[inline(never)]
     pub fn report_local_progress(&self) {
         #[derive(serde::Serialize)]
@@ -224,6 +224,74 @@ impl NativeRoot {
                 .and_then(|reader| reader.inspect(millis).ok()),
         };
         let mut bytes = [0; 2048];
+        if let Ok(length) = serde_json_core::to_slice(&report, &mut bytes) {
+            if let Ok(text) = core::str::from_utf8(&bytes[..length]) {
+                esp_println::println!("{}", text);
+            }
+        }
+    }
+    // Keep the normal appliance's progress report scalar. Detailed per-owner
+    // layouts, digests and evidence arrays remain in the opt-in trace image.
+    #[cfg(all(feature = "local-appliance", not(feature = "target-memory-trace")))]
+    #[inline(never)]
+    pub fn report_local_progress(&self) {
+        #[derive(serde::Serialize)]
+        struct Report {
+            event: &'static str,
+            millis: u64,
+            root_used: usize,
+            root_free: usize,
+            root_peak: usize,
+            sampler_phase: &'static str,
+            source_sequence: u64,
+            sampler_failure: Option<&'static str>,
+            mask_phase: &'static str,
+            mask_consumed: u64,
+            mask_failure: Option<&'static str>,
+            network: crate::native_network::Inspection,
+            archive: crate::native_observed_archive::Status,
+            face_available: bool,
+            face_fresh: bool,
+            renewal_phase: Option<&'static str>,
+            renewal_failure: Option<&'static str>,
+            renewal_archive_refusal: Option<&'static str>,
+        }
+        let millis = embassy_time::Instant::now().as_millis();
+        let memory = esp_alloc::HEAP.stats();
+        let sampler = self.worker.as_ref().map(|worker| worker.status());
+        let mask = self
+            .local_mask_worker
+            .as_ref()
+            .map(|worker| worker.status());
+        let face = self
+            .face_reader
+            .as_ref()
+            .and_then(|reader| reader.inspect(millis).ok());
+        let report = Report {
+            event: "local-appliance-progress",
+            millis,
+            root_used: memory.current_usage,
+            root_free: memory.size.saturating_sub(memory.current_usage),
+            root_peak: memory.max_usage,
+            sampler_phase: sampler.as_ref().map_or("absent", |s| s.phase),
+            source_sequence: sampler.as_ref().map_or(0, |s| s.source_sequence),
+            sampler_failure: sampler.as_ref().and_then(|s| s.failure),
+            mask_phase: mask.as_ref().map_or("absent", |s| s.phase),
+            mask_consumed: crate::native_mask_evidence::status().consumed,
+            mask_failure: mask.as_ref().and_then(|s| s.failure),
+            network: self.network.inspect(),
+            archive: crate::native_observed_archive::status(),
+            face_available: face.as_ref().is_some_and(|f| f.available),
+            face_fresh: face.as_ref().is_some_and(|f| f.fresh),
+            renewal_phase: self.local_renewal.as_ref().map(|s| s.phase_name()),
+            renewal_failure: self.local_renewal.as_ref().and_then(|s| s.failure),
+            renewal_archive_refusal: self
+                .local_renewal
+                .as_ref()
+                .and_then(|s| s.archive_refusal)
+                .or(self.local_renewal_archive_refusal),
+        };
+        let mut bytes = [0; 1024];
         if let Ok(length) = serde_json_core::to_slice(&report, &mut bytes) {
             if let Ok(text) = core::str::from_utf8(&bytes[..length]) {
                 esp_println::println!("{}", text);
@@ -775,10 +843,9 @@ impl NativeRoot {
             let image = image()?;
             let boundary = material::planning_boundary().map_err(|_| "local-mask-boundary")?;
             let fragment = &mask.preparation_metadata().fragments[0].fragment_id;
-            let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
-                mask, fragment,
-            )
-            .map_err(|_| "local-mask-lowering")?;
+            let lowered =
+                conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(mask, fragment)
+                    .map_err(|_| "local-mask-lowering")?;
             conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_local_parts(
                 conduit_environment_runtime::mask_kernel::LocalMaskInput {
                     verified: &lowered,

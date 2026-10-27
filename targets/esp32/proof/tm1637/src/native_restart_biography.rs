@@ -217,3 +217,18 @@ fn retain_store_receipt(
     });
     Ok(())
 }
+
+/// Seed-derived public pin from initialized restart custody, usable before a
+/// new hardware Boot is admitted. This confers no Body membership or execution.
+pub(crate) fn root_key() -> Result<[u8; 32], &'static str> {
+    with_store(|store| {
+        if store.failed {
+            return Err("biography-restart-failed");
+        }
+        Ok(ed25519_dalek::SigningKey::from_bytes(
+            store.seed.as_ref().ok_or("biography-key-missing")?,
+        )
+        .verifying_key()
+        .to_bytes())
+    })
+}

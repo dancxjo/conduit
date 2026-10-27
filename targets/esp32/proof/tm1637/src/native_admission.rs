@@ -86,6 +86,18 @@ impl NativeAdmission {
         }
         Ok(self.key.sign(&observer.transcript()).to_bytes())
     }
+    /// Cold biography custody endorsement is separate from current-Boot
+    /// membership and execution. Only the typed verified ACK draft is signable.
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn sign_biography_custody(
+        &self,
+        draft: &crate::native_body_join::biography_acceptance::AcceptedDraft,
+    ) -> Result<[u8; 64], &'static str> {
+        if draft.root() != &self.verifying_key() {
+            return Err("biography-endorsement-root");
+        }
+        Ok(self.key.sign(&draft.transcript()).to_bytes())
+    }
     /// Root supplies this only after exact reservation/lifecycle admission.
     pub fn sign_owner_receipt(&self, receipt: &crate::native_owner_receipt::Receipt) -> [u8; 64] {
         assert!(
