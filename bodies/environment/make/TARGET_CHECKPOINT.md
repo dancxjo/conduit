@@ -940,3 +940,33 @@ focused indexed/display/local-kernel/material tests pass. The full host workspac
 all-targets check passes. Strict full Body-image proof is being rerun after a
 function-pointer type alias fixed its final runtime Clippy type-complexity error.
 This remains preparation-only evidence; neither kernel has started.
+
+## Fresh appliance layout and cold custody, 2026-10-26
+
+The later fresh-layout erase supersedes the earlier linked-image identity above.
+The actual durable Body is
+`71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57`.
+Subsequent diagnostic reflashes preserve its identity and checkpoint and open a
+new Boot. The original pre-reset flash remains privately backed up and verified.
+The appliance-only partition table admits a 3,371,008-byte application, five
+128 KiB signed reading epochs, a 32 KiB network recovery journal and two 32 KiB
+Body checkpoint banks. It omits the old unsigned observation partition only in
+this explicitly fresh profile; other profiles retain their original layout.
+
+Make's linked callbacks now construct complete typed Gear, configuration, offer,
+Mask Role and Front values. They do not deserialize duplicated JSON at runtime.
+CPU parity covers all eight configuration value variants, complete generated
+records and ordinary Plan/refusal behavior. Local direct binding reads exact
+Source identity and configuration independently of whole-Gear contract decoding.
+The sampler advertisement retains its actual pulse/wait and software owners;
+CPU proof checks identical plans and refusals against the full advertisement.
+
+Cold preparation can park the complete Lulled Body, archives and admission
+manager in its read-back-verified checkpoint, fencing publication and mutation.
+Reopening restores the same Boot and exact evidence; it does not append a
+restart or retire challenges. Sixteen focused restart/join tests and strict
+Clippy pass. The physical `autonomous-parked-body` candidate reaches verified
+sampler planning at 96,620 Root heap bytes retained, 107,340 peak, from the
+unchanged 118,768-byte Root heap. Its next failure is a CPU stack guard during
+native pulse binding, with 19,172 Root bytes still free. This is a failed startup;
+it establishes no running sampler, Mask effect, network or joining acceptance.
