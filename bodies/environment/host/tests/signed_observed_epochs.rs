@@ -356,3 +356,199 @@ fn private_device_backup_empty_epoch_recovery() {
         .unwrap();
     }
 }
+
+#[allow(dead_code)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_state.rs"]
+mod state;
+type RotationFixture = (
+    state::State<Nor>,
+    [state::State<Nor>; 5],
+    [u8; 96],
+    [u8; 96],
+    &'static [u8],
+);
+fn ready_rotation(count: u64) -> RotationFixture {
+    let basis = Box::leak(Box::new(
+        observed_record::descriptor(&ObservationContract::prepare().unwrap()).unwrap(),
+    ));
+    let key = SigningKey::from_bytes(&[7; 32]);
+    let old = [3; 96];
+    let mut fresh = old;
+    fresh[64..].fill(4); // Same Body and HostBoot, distinct ActivePlay.
+    use sha2::{Digest, Sha256};
+    let forms = Sha256::digest(*basis).into();
+    let mut work = [0; 536];
+    let mut journal = Journal::create(
+        Nor {
+            bytes: vec![255; 128 * 1024],
+            remaining: None,
+        },
+        &old,
+        basis,
+        960,
+        &mut work,
+    )
+    .unwrap();
+    for sequence in 1..=count {
+        journal
+            .append(&record(&key, &old, &forms, sequence), &mut work)
+            .unwrap();
+    }
+    let primary = state::State::Active(state::Active {
+        journal,
+        scope: old,
+        forms,
+        last_sequence: count,
+        failed: false,
+        recovered: false,
+        signed: true,
+        maximum_records: 960,
+    });
+    let epochs = core::array::from_fn(|_| {
+        state::State::Cold(state::Cold {
+            region: conduit_environment_runtime::display_evidence_journal::Erased::prepare(Nor {
+                bytes: vec![255; 128 * 1024],
+                remaining: None,
+            })
+            .unwrap(),
+            signed: true,
+            basis,
+            scope: None,
+            capacity: 128 * 1024,
+            maximum_requested: 0,
+        })
+    });
+    (primary, epochs, old, fresh, basis)
+}
+#[test]
+fn rotated_same_boot_play_keeps_old_signed_history_and_starts_new_sequence_one() {
+    use sha2::{Digest, Sha256};
+    for count in [2, 960] {
+        let (mut primary, mut epochs, old, fresh, basis) = ready_rotation(count);
+        assert!(state::check_writer(&primary, old[64..].try_into().unwrap()).is_ok());
+        assert!(state::check_writer(&primary, fresh[64..].try_into().unwrap()).is_err());
+        state::rotate(&mut primary, &mut epochs, &old, fresh, 960).unwrap();
+        assert!(state::check_writer(&primary, old[64..].try_into().unwrap()).is_err());
+        assert!(state::check_writer(&primary, fresh[64..].try_into().unwrap()).is_ok());
+        assert!(state::check_writer(&epochs[0], old[64..].try_into().unwrap()).is_err());
+
+        let state::State::Active(previous) = &mut epochs[0] else {
+            panic!("original journal lost")
+        };
+        assert!(previous.recovered); // A revoked writer is never returned as current.
+        assert_eq!(previous.scope, old);
+        assert_eq!(previous.last_sequence, count);
+        assert_eq!(u64::from(previous.journal.committed_count()), count);
+        let mut work = [0; 536];
+        let mut cursor = previous.journal.replay_cursor();
+        let mut signed = [0; history::SIGNED_BYTES];
+        let key = SigningKey::from_bytes(&[7; 32]);
+        let mut seen = 0;
+        while previous
+            .journal
+            .replay(&mut cursor, &mut signed, &mut work)
+            .unwrap()
+            .is_some()
+        {
+            history::verify(
+                &key.verifying_key(),
+                &old,
+                &previous.forms,
+                &signed[..observed_record::BYTES],
+                signed[observed_record::BYTES..].try_into().unwrap(),
+            )
+            .unwrap();
+            seen += 1;
+        }
+        assert_eq!(seen, count);
+        let state::State::Cold(next) = primary else {
+            panic!("new scope was not deferred")
+        };
+        assert_eq!(next.scope, Some(fresh));
+        assert_eq!(next.maximum_requested, 960);
+        // Actual erased owner survives rotation. Constructor still checks its
+        // original media, and only this first publication now commits a header.
+        let mut next = Journal::create_prepared(
+            next.region,
+            &fresh,
+            basis,
+            next.maximum_requested,
+            &mut work,
+        )
+        .unwrap();
+        let forms = Sha256::digest(basis).into();
+        next.append(&record(&key, &fresh, &forms, 1), &mut work)
+            .unwrap();
+        let (mut reopened, exact_scope, sequence) =
+            recovery::reopen_profile(next.into_storage(), basis, &mut work, true).unwrap();
+        assert_eq!(exact_scope, fresh);
+        assert_eq!(sequence, 1);
+        let mut cursor = reopened.replay_cursor();
+        reopened
+            .replay(&mut cursor, &mut signed, &mut work)
+            .unwrap()
+            .unwrap();
+        history::verify(
+            &key.verifying_key(),
+            &fresh,
+            &forms,
+            &signed[..observed_record::BYTES],
+            signed[observed_record::BYTES..].try_into().unwrap(),
+        )
+        .unwrap();
+        assert!(history::verify(
+            &key.verifying_key(),
+            &old,
+            &forms,
+            &signed[..observed_record::BYTES],
+            signed[observed_record::BYTES..].try_into().unwrap()
+        )
+        .is_err());
+    }
+}
+#[test]
+fn rotation_refusals_preserve_original_scope_writer_and_next_erased_owners() {
+    for case in 0..8 {
+        let (mut primary, mut epochs, mut old, mut fresh, _) = ready_rotation(2);
+        let mut maximum = 960;
+        match case {
+            0 => fresh = old,
+            1 => fresh[0] ^= 1,
+            2 => fresh[32] ^= 1,
+            3 => old[64] ^= 1,
+            4 => maximum = 0,
+            5 => maximum = 961,
+            6 => epochs = core::array::from_fn(|_| state::State::Failed),
+            7 => {
+                for slot in &mut epochs {
+                    let state::State::Cold(cold) = slot else {
+                        unreachable!()
+                    };
+                    cold.capacity = 536 + 959 * 104;
+                }
+            }
+            _ => unreachable!(),
+        }
+        assert!(state::rotate(&mut primary, &mut epochs, &old, fresh, maximum).is_err());
+        let state::State::Active(previous) = primary else {
+            panic!("refusal lost original owner")
+        };
+        assert_eq!(previous.scope, [3; 96]);
+        assert!(!previous.recovered);
+        assert_eq!(previous.last_sequence, 2);
+        assert_eq!(previous.journal.committed_count(), 2);
+        if case != 6 {
+            for next in epochs {
+                let state::State::Cold(next) = next else {
+                    panic!("refusal consumed next owner")
+                };
+                assert!(next.scope.is_none());
+                assert_eq!(next.maximum_requested, 0);
+                // No header was programmed during either successful preflight
+                // or refusal; the original erased constructor remains valid.
+                Journal::create_prepared(next.region, &[8; 96], next.basis, 1, &mut [0; 536])
+                    .unwrap();
+            }
+        }
+    }
+}

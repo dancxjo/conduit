@@ -46,29 +46,10 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<Option<State>>> =
 #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
 static EPOCHS: Mutex<CriticalSectionRawMutex, RefCell<Option<[State; 5]>>> =
     Mutex::new(RefCell::new(None));
-struct Cold {
-    region: Erased<Region>,
-    signed: bool,
-    basis: &'static [u8],
-    scope: Option<[u8; 96]>,
-    capacity: u32,
-    maximum_requested: u32,
-}
-struct Active {
-    journal: Journal<'static, Region>,
-    scope: [u8; 96],
-    forms: [u8; 32],
-    last_sequence: u64,
-    failed: bool,
-    recovered: bool,
-    signed: bool,
-    maximum_records: u32,
-}
-enum State {
-    Cold(Cold),
-    Active(Active),
-    Failed,
-}
+#[path = "native_observed_state.rs"]
+mod state;
+use state::{Active, Cold};
+type State = state::State<Region>;
 #[inline(never)]
 fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static str> {
     let mut capacity =
@@ -224,6 +205,65 @@ pub(crate) fn bind_local(
         outcome => outcome,
     }
 }
+/// Rotate outgoing storage only after the actual sampler returned its native
+/// owners and Root installed a distinct admitted proposal. This does not prove
+/// normal finite completion or perform the separate Body Lull/Wake transition.
+#[cfg(all(feature = "body-image-root", feature = "native-face-root"))]
+pub(crate) fn rotate_local(
+    owner: &conduit_body::SealedBodyLifecycleSession,
+    fragment: &conduit_core::FragmentId,
+    fresh: &conduit_core::ActivePlayIdentity,
+    generation: conduit_core::OfferGeneration,
+    old: &conduit_core::ActivePlayIdentity,
+    retired: &crate::native_task::Retired,
+) -> Result<(), &'static str> {
+    if !retired.execution.providers.matches_active(old)
+        || old.host_id != fresh.host_id
+        || old.boot_id != fresh.boot_id
+        || fresh.play_sequence <= old.play_sequence
+        || old.active_play_id == fresh.active_play_id
+    {
+        return Err("observed-history-native-retirement-scope");
+    }
+    let source = crate::native_software::source_identity();
+    let (body, _) = local_scope::check_installed(owner, &source, fragment, fresh, generation)?;
+    let old_scope = scope(body.as_str(), old);
+    let fresh_scope = scope(body.as_str(), fresh);
+    let (_, cadence) = crate::native_software::source_facts();
+    let maximum = cadence
+        .count
+        .try_into()
+        .map_err(|_| "observed-history-count")?;
+    STATE.lock(|primary| {
+        let mut primary = primary.borrow_mut();
+        let primary = primary.as_mut().ok_or("observed-history-unavailable")?;
+        EPOCHS.lock(|epochs| {
+            let mut epochs = epochs.borrow_mut();
+            state::rotate(
+                primary,
+                epochs.as_mut().ok_or("observed-history-epochs")?,
+                &old_scope,
+                fresh_scope,
+                maximum,
+            )
+        })
+    })
+}
+#[cfg(all(feature = "body-image-root", feature = "native-face-root"))]
+#[path = "native_local_face_scope.rs"]
+mod local_scope;
+
+fn scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> [u8; 96] {
+    let mut scope = [0; 96];
+    for (out, text) in scope.chunks_exact_mut(32).zip([
+        body,
+        active.boot_id.as_str(),
+        active.active_play_id.as_str(),
+    ]) {
+        out.copy_from_slice(&Sha256::digest(text.as_bytes()));
+    }
+    scope
+}
 fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(), &'static str> {
     authorize_body(body);
     let (_, cadence) = crate::native_software::source_facts();
@@ -234,14 +274,7 @@ fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(
     if maximum == 0 || maximum > 960 {
         return Err("observed-history-capacity");
     }
-    let mut scope = [0; 96];
-    for (out, text) in scope.chunks_exact_mut(32).zip([
-        body,
-        active.boot_id.as_str(),
-        active.active_play_id.as_str(),
-    ]) {
-        out.copy_from_slice(&Sha256::digest(text.as_bytes()));
-    }
+    let scope = scope(body, active);
     STATE.lock(|cell| {
         let mut state = cell.borrow_mut();
         // A retained previous Boot is never silently replaced or erased.
@@ -257,23 +290,29 @@ fn bind_scope(body: &str, active: &conduit_core::ActivePlayIdentity) -> Result<(
     })
 }
 #[inline(never)]
-pub fn append(snapshot: PublicationSnapshot<'_>, observed_ms: u64) -> Result<(), &'static str> {
+pub fn append(
+    snapshot: PublicationSnapshot<'_>,
+    observed_ms: u64,
+    producer_play: &[u8; 32],
+) -> Result<(), &'static str> {
     let record =
         ObservedRecord::from_publication(snapshot, observed_ms).and_then(|record| record.encode());
-    let record = match record {
-        Ok(record) => record,
-        Err(_) => {
-            STATE.lock(|cell| {
-                if let Some(State::Active(active)) = cell.borrow_mut().as_mut() {
-                    active.failed = true;
-                }
-            });
-            return Err("observed-history-projection");
-        }
-    };
-    let sequence = u64::from_le_bytes(record[..8].try_into().unwrap());
     STATE.lock(|cell| {
         let mut state = cell.borrow_mut();
+        state::check_writer(
+            state.as_ref().ok_or("observed-history-unavailable")?,
+            producer_play,
+        )?;
+        let record = match record {
+            Ok(record) => record,
+            Err(_) => {
+                if let Some(State::Active(active)) = state.as_mut() {
+                    active.failed = true;
+                }
+                return Err("observed-history-projection");
+            }
+        };
+        let sequence = u64::from_le_bytes(record[..8].try_into().unwrap());
         if matches!(state.as_ref(), Some(State::Cold(cold)) if cold.scope.is_some()) {
             let Some(State::Cold(cold)) = state.take() else {
                 unreachable!()

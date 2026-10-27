@@ -596,12 +596,21 @@ fn root_signed_epoch_directory_delegates_only_same_body_forms_and_unique_scopes(
 
 #[test]
 fn epoch_collection_reconnects_with_separate_original_boot_cursors() {
+    epoch_collection_reconnects(true);
+}
+#[test]
+fn renewed_play_on_same_boot_has_independent_durable_cursor() {
+    epoch_collection_reconnects(false);
+}
+fn epoch_collection_reconnects(change_boot: bool) {
     let key = SigningKey::from_bytes(&[23; 32]);
     let scope = [5; 96];
     let collector =
         Collector::from_authenticated_scope(scope, &key.verifying_key().to_bytes()).unwrap();
     let mut old_scope = scope;
-    old_scope[32..64].fill(7);
+    if change_boot {
+        old_scope[32..64].fill(7);
+    }
     old_scope[64..].fill(9);
     let forms = collector.forms;
     let mut directory = [0; wire::DIRECTORY_BYTES];
@@ -681,7 +690,10 @@ fn epoch_collection_reconnects_with_separate_original_boot_cursors() {
             socket.write_all(&body).unwrap();
         }
     });
-    let path = std::env::temp_dir().join(format!("conduit-history-epochs-{}", std::process::id()));
+    let path = std::env::temp_dir().join(format!(
+        "conduit-history-epochs-{}-{change_boot}",
+        std::process::id()
+    ));
     if path.exists() {
         std::fs::remove_dir_all(&path).unwrap();
     }

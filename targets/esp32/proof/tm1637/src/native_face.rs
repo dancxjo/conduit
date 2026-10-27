@@ -280,14 +280,21 @@ impl Publisher {
             return;
         }
         #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
-        let _ = crate::native_observed_archive::append(
-            PublicationSnapshot {
-                channel: snapshot.channel,
-                sequence: snapshot.sequence,
-                canonical: snapshot.canonical,
-            },
-            committed_ms,
-        );
+        let _ = read_scope(&self.reader).and_then(|active| {
+            use sha2::{Digest, Sha256};
+            // The exact-generation lease supplied this checked Face basis.
+            // Its borrow ends before the archive signer or flash is entered.
+            let play: [u8; 32] = Sha256::digest(active).into();
+            crate::native_observed_archive::append(
+                PublicationSnapshot {
+                    channel: snapshot.channel,
+                    sequence: snapshot.sequence,
+                    canonical: snapshot.canonical,
+                },
+                committed_ms,
+                &play,
+            )
+        });
         self.publish_http(committed_ms);
     }
     // Keep Mask preparation scratch out of the deeper quantity validation call
