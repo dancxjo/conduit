@@ -12,6 +12,7 @@ struct Flash {
     bytes: Rc<RefCell<Vec<u8>>>,
     stages: Rc<Cell<usize>>,
     cut: Rc<Cell<Option<usize>>>,
+    commit_ack_lost: Rc<Cell<bool>>,
 }
 impl Flash {
     fn new(bytes: Vec<u8>, cut: Option<usize>) -> Self {
@@ -19,6 +20,7 @@ impl Flash {
             bytes: Rc::new(RefCell::new(bytes)),
             stages: Rc::new(Cell::new(0)),
             cut: Rc::new(Cell::new(cut)),
+            commit_ack_lost: Rc::new(Cell::new(false)),
         }
     }
     fn stage(&self) -> Result<(), Refusal> {
@@ -56,6 +58,11 @@ impl checkpoint::Storage for Flash {
                 assert_eq!(*old & new, *new);
                 *old &= *new;
             }
+        }
+        // The physical COMMIT may have landed even if the driver reports a
+        // transport error. The live owner must retain its original source.
+        if at % 32768 == 152 && self.commit_ack_lost.replace(false) {
+            return Err(Refusal::Storage);
         }
         Ok(())
     }
@@ -262,6 +269,17 @@ fn every_program_word_and_sector_cut_keeps_exact_old_or_new_source_custody() {
             assert_eq!(journal.read_snapshot(&source, collect).unwrap(), plain);
         }
         media.cut.set(None);
+        if result.is_err() {
+            let next = journal
+                .rewrite_streamed(&source, &BINDING, &SEED, |io| copy_forward(io, b"new/"))
+                .unwrap();
+            assert_eq!(next.generation(), 2);
+            assert_eq!(journal.read_snapshot(&next, collect).unwrap(), expected);
+            assert!(matches!(
+                journal.read_snapshot(&source, collect),
+                Err(Refusal::Generation)
+            ));
+        }
         let mut reopened = Checkpoint::open(media).unwrap();
         let mut seed = [0; 32];
         let mut out = vec![0; 32608];
@@ -292,4 +310,34 @@ fn authenticated_copy_forward_keeps_only_fixed_storage_state() {
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(next.generation(), 2);
+}
+
+#[test]
+fn physically_committed_but_unacknowledged_successor_keeps_live_source_retryable() {
+    let (media, plain) = initial();
+    let mut journal = Checkpoint::open(media.clone()).unwrap();
+    let source = witnessed(&mut journal, &plain);
+    media.commit_ack_lost.set(true);
+    assert!(matches!(
+        journal.rewrite_streamed(&source, &BINDING, &SEED, |io| copy_forward(io, b"new/")),
+        Err(Refusal::Storage)
+    ));
+    assert_eq!(journal.generation(), Some(1));
+    assert_eq!(journal.read_snapshot(&source, collect).unwrap(), plain);
+    let mut expected = b"new/".to_vec();
+    expected.extend_from_slice(&plain);
+    // A separate reboot observer already sees generation 2, but no live
+    // acknowledgement escaped the original owner's failed operation.
+    let mut reboot = Checkpoint::open(media.clone()).unwrap();
+    assert_eq!(reboot.generation(), Some(2));
+    let reboot_source = witnessed(&mut reboot, &expected);
+    assert_eq!(
+        reboot.read_snapshot(&reboot_source, collect).unwrap(),
+        expected
+    );
+    let retry = journal
+        .rewrite_streamed(&source, &BINDING, &SEED, |io| copy_forward(io, b"new/"))
+        .unwrap();
+    assert_eq!(retry.generation(), 2);
+    assert_eq!(journal.read_snapshot(&retry, collect).unwrap(), expected);
 }
