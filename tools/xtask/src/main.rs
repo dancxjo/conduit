@@ -65,9 +65,16 @@ fn main() {
                     Err("a structured proof operation cannot be combined with a proof target, --list, --verify, or --run-obligation".into())
                 } else {
                     match command {
-                        ProveCommand::Notebook { handbook, output } => {
-                            commands::notebook::run(&opts, handbook.as_deref(), output.as_deref())
-                        }
+                        ProveCommand::Notebook {
+                            handbook,
+                            output,
+                            native_build,
+                        } => commands::notebook::run(
+                            &opts,
+                            handbook.as_deref(),
+                            output.as_deref(),
+                            native_build.as_deref(),
+                        ),
                         ProveCommand::RuntimePerformance { arguments } => {
                             commands::runtime_performance::run(&arguments, opts.dry_run)
                         }
