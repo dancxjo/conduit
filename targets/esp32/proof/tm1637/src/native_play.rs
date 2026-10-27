@@ -1,5 +1,7 @@
 //! Root-owned control Play through the production fixed kernel. No direct
 //! radio method is available; only exact selected owners dispatch Host Calls.
+#[path = "native_network_install.rs"]
+mod install_gate;
 #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
 #[path = "native_network_journal.rs"]
 pub mod journal;
@@ -127,6 +129,19 @@ impl NativePlay {
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
     ) -> Result<(), ()> {
+        self.install_held(prepared, source, join, issuer)?;
+        self.release_held()
+    }
+    /// Select and retain the exact kernel and actual owners, without making
+    /// execution runnable. Root must establish independent capacity/current
+    /// scope admission before explicit release. Refusal keeps all custody here.
+    pub fn install_held(
+        &mut self,
+        prepared: &crate::network_planning::PreparedNetworkSetup,
+        source: &mut Option<ReadyCredentialBase<Source>>,
+        join: &mut Option<ReadyNetworkJoinBase<Provider>>,
+        issuer: &mut RootIssuer,
+    ) -> Result<(), ()> {
         if self.attempted {
             return Err(());
         }
@@ -201,17 +216,22 @@ impl NativePlay {
             .map_err(|_| ())?,
         );
         self.active = Some(active);
-        self.phase = "installed";
+        self.phase = "installed-held";
         Ok(())
+    }
+    /// This scheduling release does not grant authority or attest capacity.
+    pub fn release_held(&mut self) -> Result<(), ()> {
+        let complete = self.installed();
+        install_gate::release(&mut self.phase, complete)
     }
     /// One admitted control invocation, at most 100 kernel steps and three
     /// sequential Host Calls. SDK native storage/time budgets remain owned by
     /// the selected join provider. Draining is not semantic completion.
     pub async fn run(&mut self) {
-        if self.phase != "installed" || !self.installed() {
+        let complete = self.installed();
+        if !install_gate::begin_run(&mut self.phase, complete) {
             return;
         }
-        self.phase = "running";
         let prepared = self.prepared.as_mut().expect("installed fixed storage");
         let roles = prepared.roles;
         let kernel = &mut prepared.kernel;
