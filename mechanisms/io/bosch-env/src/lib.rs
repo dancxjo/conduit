@@ -74,6 +74,11 @@ impl<I: I2c> Sensor<I> {
     pub fn address(&self) -> Address {
         self.address
     }
+    /// Exclusively borrow the same initialized bus for another addressed device.
+    /// Calibration/readiness stay retained; no second peripheral owner is made.
+    pub fn bus_mut(&mut self) -> &mut I {
+        &mut self.bus
+    }
     pub fn into_inner(self) -> I {
         self.bus
     }

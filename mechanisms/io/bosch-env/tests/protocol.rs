@@ -289,3 +289,20 @@ fn failed_or_cancelled_read_requires_fresh_initialization_but_retains_bus() {
     assert!(run(sensor.measure(&mut delay)).is_ok());
     assert!(steps.borrow().is_empty());
 }
+
+#[test]
+fn exclusive_shared_bus_borrow_preserves_initialized_calibration_and_next_read() {
+    let mut steps = initialize(Chip::Bme280);
+    steps.extend(measure(Chip::Bme280));
+    let (bus, remaining, _) = make_bus(steps, 0x76);
+    let mut sensor = Sensor::new(bus, Address::Primary);
+    let mut delay = Delay::default();
+    run(sensor.initialize(&mut delay)).unwrap();
+    let before = sensor.chip();
+    // Other device access can borrow this same bus, never clone the peripheral.
+    let bus = sensor.bus_mut();
+    assert_eq!(bus.address, 0x76);
+    assert_eq!(sensor.chip(), before);
+    run(sensor.measure(&mut delay)).unwrap();
+    assert!(remaining.borrow().is_empty());
+}
