@@ -60,8 +60,10 @@ use resource_canonical::push_resource_binding;
 mod body_time;
 mod body_time_exchange;
 mod body_time_quality;
+mod flat_plan;
 mod plan_fingerprint;
 mod plan_metadata;
+pub use flat_plan::{FlatPlanRef, FlatPlanRefusal, PlannedGearRefs, VerifiedFlatPlanRef};
 mod plan_verification;
 pub use plan_metadata::{
     verify_plan_metadata_with_configurations, PlanMetadataRefusal, VerifiedFragmentMetadata,
@@ -85,6 +87,10 @@ pub use plan_fingerprint::{
     compute_checked_front_fingerprint, compute_fragment_id, FragmentFingerprintBuilder,
     FragmentFingerprintHeader, FragmentFingerprintHeaderRef, FragmentFingerprintRefusal,
     FragmentFingerprintTail, FragmentFingerprintTailRef,
+};
+pub use plan_fingerprint::{
+    compute_plan_fingerprint_ref, FragmentCommitmentRef, FragmentCommitmentRefs,
+    PlanFingerprintInputRef,
 };
 mod structured_info;
 mod temporal;
@@ -1212,31 +1218,12 @@ fn verify_plan_fragment_contents_with_fingerprint(
     if fingerprint != &fragment.fragment_id {
         return false;
     }
-    let mut commitments = fragment.plan_fragments.clone();
-    commitments.sort();
-    if commitments != fragment.plan_fragments
-        || commitments
-            .windows(2)
-            .any(|pair| pair[0].host_id == pair[1].host_id)
-    {
-        return false;
-    }
-    let own_matches = commitments
-        .iter()
-        .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
-        .count();
-    own_matches == 1
-        && verify_fragment_fore_ports(fragment)
-        && fragment.placements.iter().all(|placement| {
-            placement.terminal_transductions.iter().all(|profile| {
-                capability_offer::validate_terminal_transduction_ports(
-                    &placement.inputs,
-                    &placement.outputs,
-                    profile,
-                )
-                .is_ok()
-            })
-        })
+    flat_plan::verify_commitments(
+        fragment.host_id.as_str(),
+        fragment.fragment_id.as_str(),
+        FragmentCommitmentRefs::Owned(&fragment.plan_fragments),
+    ) && verify_fragment_fore_ports(fragment)
+        && flat_plan::verify_terminal_ports(PlannedGearRefs::Owned(&fragment.placements))
         && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)
         && execution_fusion::verify(fragment)

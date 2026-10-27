@@ -4,6 +4,11 @@
 //! executes or mutates Plans.
 
 mod execution_regions;
+pub(crate) mod root;
+pub use root::{
+    compute_plan_fingerprint_ref, FragmentCommitmentRef, FragmentCommitmentRefs,
+    PlanFingerprintInputRef,
+};
 mod semantic_contract;
 use semantic_contract::push_semantic_contract;
 
@@ -272,136 +277,15 @@ pub fn compute_plan_id(
     commitments: &[FragmentCommitment],
     activation_preparations: &[PlannedActivationPreparationBinding],
 ) -> PlanId {
-    let mut canonical = CanonicalHash::new();
-    push_string(&mut canonical, plot_identity.source_document_id.as_str());
-    push_string(&mut canonical, plot_identity.checked_plot_id.as_str());
-    push_string(&mut canonical, plot_identity.expanded_plot_id.as_str());
-    if !realization_backs.is_empty() {
-        plan_realization::push_canonical(&mut canonical, realization_backs);
-    }
-    if !activation_preparations.is_empty() {
-        push_u32(&mut canonical, activation_preparations.len() as u32);
-        for binding in activation_preparations {
-            push_string(&mut canonical, &binding.activation_id);
-            push_string(&mut canonical, binding.owner_placement_id.as_str());
-            push_string(&mut canonical, binding.owner_fragment_id.as_str());
-            push_string(&mut canonical, binding.owner_host_id.as_str());
-            push_string(&mut canonical, binding.owner_boot_id.as_str());
-            canonical.extend_from_slice(&binding.owner_offer_generation.0.to_le_bytes());
-            push_string(&mut canonical, binding.selected_plan_id.as_str());
-            push_u32(&mut canonical, binding.child_fragments.len() as u32);
-            for child in &binding.child_fragments {
-                push_string(&mut canonical, child.fragment_id.as_str());
-                push_string(&mut canonical, child.host_id.as_str());
-                push_string(&mut canonical, child.boot_id.as_str());
-                canonical.extend_from_slice(&child.offer_generation.0.to_le_bytes());
-                canonical.extend_from_slice(&child.obligation_digest);
-            }
-        }
-    }
-    if !activations.is_empty() {
-        push_u32(&mut canonical, activations.len() as u32);
-        for entry in activations {
-            match entry {
-                PlannedActivationEntry::Unary(activation) => {
-                    push_string(&mut canonical, "planned-activation@1");
-                    push_string(&mut canonical, &activation.activation_id);
-                    push_string(&mut canonical, activation.owner_placement_id.as_str());
-                    push_string(&mut canonical, activation.selected_plan_id.as_str());
-                    push_activation_front(&mut canonical, &activation.input);
-                    push_activation_front(&mut canonical, &activation.output);
-                    canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
-                    canonical
-                        .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
-                    push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
-                    canonical.extend_from_slice(&activation.limits.maximum_items.to_le_bytes());
-                    canonical.push(activation.terminal_policy as u8);
-                    canonical.push(activation.cancellation_policy as u8);
-                    canonical.push(activation.effect_multiplicity as u8);
-                    canonical.extend_from_slice(
-                        &activation
-                            .per_activation_sign_budget
-                            .item_capacity
-                            .to_le_bytes(),
-                    );
-                    push_u32(
-                        &mut canonical,
-                        activation.per_activation_sign_budget.byte_capacity,
-                    );
-                }
-                PlannedActivationEntry::Fold(activation) => {
-                    push_string(&mut canonical, "planned-fold-activation@1");
-                    push_string(&mut canonical, &activation.activation_id);
-                    push_string(&mut canonical, activation.owner_placement_id.as_str());
-                    push_string(&mut canonical, activation.selected_plan_id.as_str());
-                    push_activation_front(&mut canonical, &activation.accumulator_input);
-                    push_activation_front(&mut canonical, &activation.item_input);
-                    push_activation_front(&mut canonical, &activation.output);
-                    push_u32(&mut canonical, activation.initial_accumulator.len() as u32);
-                    canonical.extend_from_slice(&activation.initial_accumulator);
-                    push_u32(&mut canonical, activation.retained_accumulator_bytes);
-                    push_u32(&mut canonical, activation.retained_item_bytes);
-                    canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
-                    canonical
-                        .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
-                    push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
-                    canonical.extend_from_slice(&activation.limits.maximum_items.to_le_bytes());
-                    canonical.push(activation.terminal_policy as u8);
-                    canonical.push(activation.abnormal_policy as u8);
-                    canonical.push(activation.cancellation_policy as u8);
-                    canonical.push(activation.effect_multiplicity as u8);
-                    canonical.extend_from_slice(
-                        &activation
-                            .per_activation_sign_budget
-                            .item_capacity
-                            .to_le_bytes(),
-                    );
-                    push_u32(
-                        &mut canonical,
-                        activation.per_activation_sign_budget.byte_capacity,
-                    );
-                }
-                PlannedActivationEntry::Scan(activation) => {
-                    push_string(&mut canonical, "planned-scan-activation@1");
-                    push_string(&mut canonical, &activation.activation_id);
-                    push_string(&mut canonical, activation.owner_placement_id.as_str());
-                    push_string(&mut canonical, activation.selected_plan_id.as_str());
-                    push_activation_front(&mut canonical, &activation.accumulator_input);
-                    push_activation_front(&mut canonical, &activation.item_input);
-                    push_activation_front(&mut canonical, &activation.output);
-                    push_u32(&mut canonical, activation.initial_accumulator.len() as u32);
-                    canonical.extend_from_slice(&activation.initial_accumulator);
-                    push_u32(&mut canonical, activation.retained_accumulator_bytes);
-                    push_u32(&mut canonical, activation.retained_item_bytes);
-                    canonical.extend_from_slice(&activation.limits.maximum_active.to_le_bytes());
-                    canonical
-                        .extend_from_slice(&activation.limits.maximum_queue_items.to_le_bytes());
-                    push_u32(&mut canonical, activation.limits.maximum_queue_bytes);
-                    canonical.extend_from_slice(&activation.limits.maximum_items.to_le_bytes());
-                    canonical.push(activation.terminal_policy as u8);
-                    canonical.push(activation.abnormal_policy as u8);
-                    canonical.push(activation.cancellation_policy as u8);
-                    canonical.push(activation.effect_multiplicity as u8);
-                    canonical.extend_from_slice(
-                        &activation
-                            .per_activation_sign_budget
-                            .item_capacity
-                            .to_le_bytes(),
-                    );
-                    push_u32(
-                        &mut canonical,
-                        activation.per_activation_sign_budget.byte_capacity,
-                    );
-                }
-            }
-        }
-    }
-    push_u32(&mut canonical, commitments.len() as u32);
-    for commitment in commitments {
-        push_string(&mut canonical, commitment.host_id.as_str());
-        push_string(&mut canonical, commitment.fragment_id.as_str());
-    }
-    PlanId::from(crate::hex_digest(&canonical.finish()))
+    root::compute_plan_fingerprint_ref(root::PlanFingerprintInputRef {
+        source_document_id: plot_identity.source_document_id.as_str(),
+        checked_plot_id: plot_identity.checked_plot_id.as_str(),
+        expanded_plot_id: plot_identity.expanded_plot_id.as_str(),
+        realization_backs,
+        activations,
+        commitments: root::FragmentCommitmentRefs::Owned(commitments),
+        activation_preparations,
+    })
 }
 
 fn push_activation_front(

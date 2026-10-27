@@ -90,6 +90,14 @@ impl FragmentFingerprintBuilder {
         self,
         tail: FragmentFingerprintTailRef<'_>,
     ) -> Result<FragmentId, FragmentFingerprintRefusal> {
+        Ok(FragmentId::from(crate::hex_digest(
+            &self.finish_ref_digest(tail)?,
+        )))
+    }
+    pub(crate) fn finish_ref_digest(
+        self,
+        tail: FragmentFingerprintTailRef<'_>,
+    ) -> Result<[u8; 32], FragmentFingerprintRefusal> {
         if let Some(refusal) = self.refusal {
             return Err(refusal);
         }
@@ -98,7 +106,7 @@ impl FragmentFingerprintBuilder {
         }
         let mut canonical = self.canonical;
         tail::push_tail(&mut canonical, tail);
-        Ok(FragmentId::from(crate::hex_digest(&canonical.finish())))
+        Ok(canonical.finish())
     }
 }
 pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {

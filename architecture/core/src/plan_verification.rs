@@ -5,6 +5,16 @@ pub(super) fn verify_at_depth(
     depth: u8,
     fingerprint: &mut impl FnMut(&PlanFragment) -> Option<FragmentId>,
 ) -> bool {
+    // Supported rich flat Plans use the same predicates as immutable borrowed
+    // inputs. Preserve the supplied streamed-configuration fingerprint callback.
+    if let Ok(view) = FlatPlanRef::from_plan(plan) {
+        if view.profile().is_ok() {
+            return view.root_fingerprint_matches()
+                && fingerprint(&plan.fragments[0])
+                    .is_some_and(|id| id.as_str() == view.fragment_id)
+                && view.structure();
+        }
+    }
     let plot_identity = PlotIdentity {
         source_document_id: plan.source_document_id.clone(),
         checked_plot_id: plan.checked_plot_id.clone(),
