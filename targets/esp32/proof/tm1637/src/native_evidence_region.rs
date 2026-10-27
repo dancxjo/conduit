@@ -177,14 +177,24 @@ impl Storage for Region {
     fn read(&mut self, at: u32, output: &mut [u8]) -> Result<(), Refusal> {
         let at = self.bound(at, output.len())?;
         self.base.lock(|base| {
-            let mut flash = base.borrow_mut();
+            let _flash = base.borrow_mut();
             let mut aligned = Aligned([0; 64]);
             for (i, chunk) in output.chunks_mut(64).enumerate() {
-                ReadNorFlash::read(
-                    &mut *flash,
-                    at + (i * 64) as u32,
-                    &mut aligned.0[..chunk.len()],
-                )
+                // The general SDK reader reserves a 4 KiB bounce buffer for
+                // possibly unaligned callers. This owner already supplies an
+                // aligned buffer and checked partition bounds, so use the
+                // SDK's published aligned primitive without that stack frame.
+                // SAFETY: prepare checked actual 4 MiB flash geometry; bound
+                // checked the entire span. Every chunk starts on a word and
+                // has word-multiple length, and Aligned owns 64 aligned bytes.
+                // The exclusive FlashStorage borrow and mutex cover the call.
+                unsafe {
+                    esp_storage::ll::spiflash_read(
+                        at + (i * 64) as u32,
+                        aligned.0.as_mut_ptr().cast(),
+                        chunk.len() as u32,
+                    )
+                }
                 .map_err(|_| Refusal::Media)?;
                 chunk.copy_from_slice(&aligned.0[..chunk.len()]);
             }
