@@ -1,4 +1,8 @@
 //! Retained initialized timer slot, offered before planning and transferred once.
+#[path = "continuation.rs"]
+mod continuation;
+pub(crate) use continuation::{identity_seal, NativeReturnSeal};
+pub use continuation::{ReattachRefusal, RetiredWaitBase};
 #[path = "assigned.rs"]
 mod assigned;
 #[path = "verified.rs"]
@@ -187,7 +191,9 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             configuration,
             selection,
         )?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(WaitCallRefusal::Capability)?;
         let owner = slot.take().expect("preflighted retained timer");
+        let seal = identity_seal(&owner.identity, owner.identity.provider_generation);
         Ok(MonotonicWaitHostCall::from_bound(
             table,
             handle,
@@ -195,7 +201,8 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             owner.attachment,
             owner.provider,
             node,
-        ))
+        )
+        .with_native_return(seal))
     }
     fn check_native(
         &self,

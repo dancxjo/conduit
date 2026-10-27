@@ -276,3 +276,6 @@ mod selected_binding;
 
 #[path = "support/exhausted_retirement.rs"]
 mod exhausted_retirement;
+
+#[path = "support/continuation.rs"]
+mod continuation;

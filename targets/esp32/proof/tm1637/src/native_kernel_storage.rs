@@ -47,6 +47,34 @@ pub struct RetiredKernelParts {
     pub selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
     pub roles: ResidentRoles,
 }
+impl RetiredKernelParts {
+    /// Drop the actual terminal software and selectors, then empty its original
+    /// value backing for separately prepared software. Slot generations and
+    /// permanently retired slots survive `clear`; no finite Back is restarted.
+    ///
+    /// Evidence is returned intact so Root can finish the old Play before
+    /// admitting a successor. This carries no native provider or start grant.
+    pub fn into_reusable_backing(self) -> (k::HostedValueStore, k::HostedSignLog) {
+        use k::ValueStorage;
+        let Self {
+            execution,
+            selectors,
+            roles: _,
+        } = self;
+        let k::scheduler::RetiredExecution {
+            drivers,
+            mut values,
+            signs,
+            ..
+        } = execution;
+        // No software reference may outlive clearing its store. These are the
+        // original Backs from the terminal, drained scheduler, not new drivers.
+        drop(drivers);
+        drop(selectors);
+        values.clear();
+        (values, signs)
+    }
+}
 impl RetiredKernelMaterial {
     pub fn kernel(&self) -> &Kernel {
         &self.0.kernel

@@ -59,7 +59,9 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_verified(&table, &claim, configuration, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(WaitCallRefusal::Capability)?;
         let owner = slot.take().expect("preflighted retained timer");
+        let seal = identity_seal(&owner.identity, owner.identity.provider_generation);
         Ok(MonotonicWaitHostCall::from_bound(
             table,
             handle,
@@ -67,7 +69,8 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             owner.attachment,
             owner.provider,
             node,
-        ))
+        )
+        .with_native_return(seal))
     }
     /// Check all native identities, attachment bounds and independently retained
     /// Source configuration without taking the timer or invoking a wait.
@@ -132,7 +135,9 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             .as_ref()
             .ok_or(WaitCallRefusal::Possession)?
             .check_direct(&table, &claim, configuration, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(WaitCallRefusal::Capability)?;
         let owner = slot.take().expect("preflighted retained timer");
+        let seal = identity_seal(&owner.identity, owner.identity.provider_generation);
         Ok(MonotonicWaitHostCall::from_bound(
             table,
             handle,
@@ -140,6 +145,7 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
             owner.attachment,
             owner.provider,
             node,
-        ))
+        )
+        .with_native_return(seal))
     }
 }

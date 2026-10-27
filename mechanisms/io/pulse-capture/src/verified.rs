@@ -50,7 +50,9 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             .as_ref()
             .ok_or(PulseCallRefusal::Possession)?
             .prepare_verified(&table, &claim, contract, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(PulseCallRefusal::Capability)?;
         let owner = slot.take().expect("preflighted retained pulse owner");
+        let seal = identity_seal(&owner.identity, owner.identity.provider_generation);
         Ok(PulseHostCall::from_assigned(
             table,
             handle,
@@ -58,7 +60,8 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             owner.attachment,
             owner.provider,
             prepared,
-        ))
+        )
+        .with_native_return(seal))
     }
     /// Preflight the retained native identity, exact lowering and capability
     /// possession without taking GPIO ownership or performing electrical work.
@@ -123,7 +126,9 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             .as_ref()
             .ok_or(PulseCallRefusal::Possession)?
             .prepare_direct(&table, &claim, contract, selected)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(PulseCallRefusal::Capability)?;
         let owner = slot.take().expect("preflighted retained pulse owner");
+        let seal = identity_seal(&owner.identity, owner.identity.provider_generation);
         Ok(PulseHostCall::from_assigned(
             table,
             handle,
@@ -131,6 +136,7 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             owner.attachment,
             owner.provider,
             prepared,
-        ))
+        )
+        .with_native_return(seal))
     }
 }

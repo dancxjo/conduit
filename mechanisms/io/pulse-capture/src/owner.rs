@@ -13,7 +13,7 @@ pub struct AssignedPulseSelection<'a> {
 
 use conduit_core::{
     BaseCapabilityHandle, BaseCapabilityRefusal, BaseCapabilityTable, BaseOperationClaim,
-    BaseOperationLease, CapabilityInspection, StructuredInfoRefusal,
+    BaseOperationLease, BoundBaseOperation, CapabilityInspection, StructuredInfoRefusal,
 };
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_plan_lowering::selected_operation::{
@@ -78,9 +78,8 @@ pub enum PulseRetirementRefusal {
 }
 
 pub struct PulseHostCall<P> {
-    table: BaseCapabilityTable,
-    handle: BaseCapabilityHandle,
-    claim: BaseOperationClaim,
+    operation: BoundBaseOperation,
+    native_identity: Option<crate::installation::NativeReturnSeal>,
     attachment: PulseAttachment,
     provider: P,
     node: NodeId,
@@ -105,6 +104,7 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
         selection: SelectedOperationPlan<'_>,
     ) -> Result<Self, PulseCallRefusal> {
         check_possession(&table, &claim, attachment)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(PulseCallRefusal::Capability)?;
         let node = bind_selected_operation(
             &table,
             &claim,
@@ -122,9 +122,8 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
             SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
         })?;
         Ok(Self {
-            table,
-            handle,
-            claim,
+            operation: bound_operation(table, handle, claim),
+            native_identity: None,
             attachment,
             provider,
             node,
@@ -147,6 +146,7 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
         selection: AssignedPulseSelection<'_>,
     ) -> Result<Self, PulseCallRefusal> {
         let prepared = prepare_assigned(&table, &claim, attachment, selection)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(PulseCallRefusal::Capability)?;
         Ok(Self::from_assigned(
             table, handle, claim, attachment, provider, prepared,
         ))
@@ -160,9 +160,8 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
         prepared: PreparedAssignedPulse,
     ) -> Self {
         Self {
-            table,
-            handle,
-            claim,
+            operation: bound_operation(table, handle, claim),
+            native_identity: None,
             attachment,
             provider,
             node: prepared.node,
@@ -192,15 +191,14 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
             Err(reason) => return Err(PulseCallRefusal::Codec(reason)),
         };
         let lease = self
-            .table
-            .authorize(&self.handle, &self.claim)
+            .operation
+            .authorize()
             .map_err(PulseCallRefusal::Capability)?;
         self.next_request = next;
         // This guard is created before the provider future: cancellation first
         // drops/quiesces electrical work, then revokes the unfinished capability.
         let lease = PendingLease {
-            table: &mut self.table,
-            handle: &mut self.handle,
+            operation: &mut self.operation,
             lease: Some(lease),
         };
         let encoded = match geometry {
@@ -220,8 +218,8 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
 
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), PulseCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
-            .revoke(&self.handle)
+        self.operation
+            .revoke()
             .map_err(PulseCallRefusal::Capability)
     }
 
@@ -233,6 +231,13 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
     pub fn retire_retained(
         owner: &mut Option<Self>,
     ) -> Result<(P, PulseAttachment), PulseRetirementRefusal> {
+        Self::retire_base_retained(owner).map(|retired| retired.into_parts())
+    }
+    /// Preserve opaque Ready-origin continuation while retiring actual revoked,
+    /// idle custody. Raw unsafe bindings produce an ineligible continuation.
+    pub fn retire_base_retained(
+        owner: &mut Option<Self>,
+    ) -> Result<crate::installation::RetiredPulseBase<P>, PulseRetirementRefusal> {
         let current = owner.as_ref().ok_or(PulseRetirementRefusal::Unavailable)?;
         let inspection = current.inspection();
         if inspection.in_flight_operations != 0 {
@@ -241,15 +246,25 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
         if inspection.lifecycle != conduit_core::CapabilityLifecycle::Revoked {
             return Err(PulseRetirementRefusal::NotRevoked);
         }
+        let generation = current.inspection().scope.base_provider_generation;
         let current = owner.take().expect("preflighted retained owner");
-        Ok((current.provider, current.attachment))
+        Ok(crate::installation::RetiredPulseBase::new(
+            current.provider,
+            current.attachment,
+            current.native_identity,
+            generation,
+        ))
+    }
+    pub(crate) fn with_native_return(
+        mut self,
+        seal: crate::installation::NativeReturnSeal,
+    ) -> Self {
+        self.native_identity = Some(seal);
+        self
     }
 
     pub fn inspection(&self) -> &CapabilityInspection {
-        self.table
-            .inspections()
-            .next()
-            .expect("single prepared capability")
+        self.operation.inspection()
     }
 
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), PulseCallRefusal> {
@@ -261,14 +276,13 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
 }
 
 struct PendingLease<'a> {
-    table: &'a mut BaseCapabilityTable,
-    handle: &'a mut BaseCapabilityHandle,
+    operation: &'a mut BoundBaseOperation,
     lease: Option<BaseOperationLease>,
 }
 impl PendingLease<'_> {
     fn complete(mut self, result_bytes: u32) -> Result<(), BaseCapabilityRefusal> {
         let lease = self.lease.as_ref().expect("pending").clone();
-        self.table.complete(self.handle, lease, result_bytes)?;
+        self.operation.complete(lease, result_bytes)?;
         self.lease = None;
         Ok(())
     }
@@ -277,7 +291,7 @@ impl Drop for PendingLease<'_> {
     fn drop(&mut self) {
         if self.lease.is_some() {
             // A cancelled dispatch cannot be resumed or replayed under this grant.
-            let _ = self.table.revoke(self.handle);
+            let _ = self.operation.revoke();
         }
     }
 }
@@ -336,4 +350,15 @@ pub(crate) fn prepare_assigned(
     let codec =
         PreparedPulseCodec::prepare(selection.contract).map_err(PulseCallRefusal::Canonical)?;
     Ok(PreparedAssignedPulse { node, codec })
+}
+
+fn bound_operation(
+    table: BaseCapabilityTable,
+    handle: BaseCapabilityHandle,
+    claim: BaseOperationClaim,
+) -> BoundBaseOperation {
+    match BoundBaseOperation::bind(table, handle, claim) {
+        Ok(operation) => operation,
+        Err(_) => unreachable!("exclusive full-claim preflight before provider transfer"),
+    }
 }

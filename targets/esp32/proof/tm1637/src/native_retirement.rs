@@ -5,10 +5,9 @@ use conduit_monotonic_wait::{MonotonicWaitHostCall, MonotonicWaitProvider};
 use conduit_pulse_capture::owner::{PulseHostCall, PulseReadProvider};
 /// Physical providers returned without any old capability table, handle or claim.
 pub struct RetiredProviders<P, W> {
-    pub pulse: (P, conduit_pulse_capture::owner::PulseAttachment),
-    pub wait: (W, conduit_monotonic_wait::WaitAttachment),
+    pulse: conduit_pulse_capture::installation::RetiredPulseBase<P>,
+    wait: conduit_monotonic_wait::RetiredWaitBase<W>,
     play_scope: [u8; 32],
-    provider_generations: [u64; 2],
 }
 impl<P, W> RetiredProviders<P, W> {
     pub fn matches_active(&self, active: &conduit_core::ActivePlayIdentity) -> bool {
@@ -20,8 +19,17 @@ impl<P, W> RetiredProviders<P, W> {
                 active.active_play_id.as_str(),
             ])
     }
+    pub fn attachment_generations(&self) -> [u64; 2] {
+        [
+            self.pulse.attachment().generation,
+            self.wait.attachment().generation,
+        ]
+    }
     pub fn provider_generations(&self) -> [u64; 2] {
-        self.provider_generations
+        [
+            self.pulse.provider_generation(),
+            self.wait.provider_generation(),
+        ]
     }
 }
 fn play_scope(ids: [&str; 4]) -> [u8; 32] {
@@ -70,17 +78,66 @@ impl<P: PulseReadProvider, W: MonotonicWaitProvider> RetiredProviders<P, W> {
         let w = wait.as_ref().ok_or("wait-unavailable")?;
         check_pair(p, w)?;
         let play_scope = scope_identity(&p.inspection().scope);
-        let provider_generations = [
-            p.inspection().scope.base_provider_generation,
-            w.inspection().scope.base_provider_generation,
-        ];
         Ok(Self {
             play_scope,
-            provider_generations,
-            pulse: PulseHostCall::retire_retained(pulse).expect("exclusively preflighted pulse"),
-            wait: MonotonicWaitHostCall::retire_retained(wait)
+            pulse: PulseHostCall::retire_base_retained(pulse)
+                .expect("exclusively preflighted pulse"),
+            wait: MonotonicWaitHostCall::retire_base_retained(wait)
                 .expect("exclusively preflighted wait"),
         })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PairReattachRefusal {
+    Pulse(conduit_pulse_capture::installation::ReattachRefusal),
+    Wait(conduit_monotonic_wait::ReattachRefusal),
+}
+impl<P: PulseReadProvider, W: MonotonicWaitProvider> RetiredProviders<P, W> {
+    /// Both actual native identity seals are checked before moving either owner.
+    /// This returns readiness only; new Body/Plan/Play admission remains required.
+    pub fn check_reattach(
+        &self,
+        pulse: &conduit_pulse_capture::installation::PulseNativeIdentity,
+        wait: &conduit_monotonic_wait::WaitNativeIdentity,
+    ) -> Result<(), PairReattachRefusal> {
+        self.pulse
+            .check_reattach(pulse)
+            .map_err(PairReattachRefusal::Pulse)?;
+        self.wait
+            .check_reattach(wait)
+            .map_err(PairReattachRefusal::Wait)
+    }
+    #[allow(clippy::result_large_err, clippy::type_complexity)] // Cold affine all-owner refusal without allocating.
+    pub fn reattach(
+        self,
+        pulse: conduit_pulse_capture::installation::PulseNativeIdentity,
+        wait: conduit_monotonic_wait::WaitNativeIdentity,
+    ) -> Result<
+        (
+            conduit_pulse_capture::installation::ReadyPulseBase<P>,
+            conduit_monotonic_wait::ReadyMonotonicWaitBase<W>,
+        ),
+        (
+            Self,
+            conduit_pulse_capture::installation::PulseNativeIdentity,
+            conduit_monotonic_wait::WaitNativeIdentity,
+            PairReattachRefusal,
+        ),
+    > {
+        if let Err(error) = self.check_reattach(&pulse, &wait) {
+            return Err((self, pulse, wait, error));
+        }
+        // Private tokens and owned candidates cannot change after the shared preflight.
+        let pulse = match self.pulse.reattach(pulse) {
+            Ok(ready) => ready,
+            Err(_) => unreachable!("preflighted immutable pulse continuation"),
+        };
+        let wait = match self.wait.reattach(wait) {
+            Ok(ready) => ready,
+            Err(_) => unreachable!("preflighted immutable wait continuation"),
+        };
+        Ok((pulse, wait))
     }
 }
 

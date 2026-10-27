@@ -79,12 +79,14 @@ struct Fixture {
     active: c::ActivePlayIdentity,
     effects: Rc<Cell<usize>>,
     waits: Rc<Cell<usize>>,
+    issuer: native_authority::RootIssuer,
+    pulse_identity: conduit_pulse_capture::installation::PulseNativeIdentity,
+    wait_identity: WaitNativeIdentity,
 }
 fn fixture() -> Fixture {
-    let source = compile(3, 250).unwrap();
     let (pulse, effects) = pulse::ready(0);
     let native = pulse::identity();
-    let mut issuer =
+    let issuer =
         native_authority::RootIssuer::fixture(native.host_id.clone(), native.boot_id.clone());
     let calls = Rc::new(Cell::new(0));
     let wait_identity = WaitNativeIdentity {
@@ -113,6 +115,20 @@ fn fixture() -> Fixture {
         )
     }
     .unwrap();
+    fixture_with_ready(pulse, wait, issuer, effects, calls, None)
+}
+fn fixture_with_ready(
+    pulse: conduit_pulse_capture::installation::ReadyPulseBase<pulse::Provider>,
+    wait: ReadyMonotonicWaitBase<Wait>,
+    mut issuer: native_authority::RootIssuer,
+    effects: Rc<Cell<usize>>,
+    calls: Rc<Cell<usize>>,
+    retained_values: Option<k::HostedValueStore>,
+) -> Fixture {
+    let source = compile(3, 250).unwrap();
+    let native = pulse.native_identity().clone();
+    let pulse_identity = native.clone();
+    let wait_identity = wait.native_identity().clone();
     let grants = [
         issuer.grant_pulse(pulse.native_identity()).unwrap(),
         issuer.grant_wait(wait.native_identity()).unwrap(),
@@ -260,7 +276,9 @@ fn fixture() -> Fixture {
     let software = PreparedResidentSoftware::prepare_source(
         &spec,
         &texts,
-        conduit_environment_runtime::appliance::prepare_value_storage().unwrap(),
+        retained_values.unwrap_or_else(|| {
+            conduit_environment_runtime::appliance::prepare_value_storage().unwrap()
+        }),
     )
     .unwrap();
     let mut software = Some(Box::new(software));
@@ -327,6 +345,9 @@ fn fixture() -> Fixture {
         active,
         effects,
         waits: calls,
+        issuer,
+        pulse_identity,
+        wait_identity,
     }
 }
 fn run(execution: &mut DeviceExecution) -> native_worker::Outcome {
@@ -704,3 +725,128 @@ fn node_only_native_sink_pending_preserves_full_bytes_and_cancellation() {
 
 #[path = "native_execution_retirement/network_direct.rs"]
 mod network_direct;
+
+#[test]
+fn actual_retired_pair_refuses_partial_forgery_then_enters_distinct_verified_play() {
+    let mut first = fixture();
+    assert_eq!(
+        run(first.execution.as_mut().unwrap()).exit,
+        native_worker::Exit::Drained
+    );
+    let retired = DeviceExecution::retire_with_material_retained(&mut first.execution).unwrap();
+    first
+        .issuer
+        .finish_native_play(&first.active, &retired.providers)
+        .unwrap();
+    let mut pulse = first.pulse_identity;
+    let mut wait = first.wait_identity;
+    pulse.provider_generation += 1;
+    wait.provider_generation += 1;
+    let mut wrong = wait.clone();
+    wrong.provider_instance_id.0.push_str("/forged");
+    let (pair, pulse, _, error) = match retired.providers.reattach(pulse, wrong) {
+        Err(refused) => refused,
+        Ok(_) => panic!("forged wait must not consume pulse"),
+    };
+    assert_eq!(
+        error,
+        native_retirement::PairReattachRefusal::Wait(
+            conduit_monotonic_wait::ReattachRefusal::IdentityMismatch
+        )
+    );
+    assert_eq!(pair.provider_generations(), [1, 1]);
+    assert_eq!(pair.attachment_generations(), [1, 1]);
+    assert!(pair.matches_active(&first.active));
+    assert_eq!((first.effects.get(), first.waits.get()), (3, 3));
+    let ((pulse, wait), memory) = allocation_probe::observe(|| match pair.reattach(pulse, wait) {
+        Ok(ready) => ready,
+        Err(_) => panic!("actual unmodified owners must reattach"),
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let old_signs = retired
+        .material
+        .kernel()
+        .signs()
+        .events()
+        .collect::<Vec<_>>();
+    let (values, signs) = retired.material.into_parts().into_reusable_backing();
+    assert_eq!(signs.events().collect::<Vec<_>>(), old_signs);
+    assert_eq!((values.used_items(), values.used_bytes()), (0, 0));
+    let old_active = first.active;
+    // New verified planning/admission and fresh finite software are required.
+    // The original cleared value allocation keeps its slot generations; old
+    // drivers were dropped and the original complete signs remain above.
+    let mut next = fixture_with_ready(
+        pulse,
+        wait,
+        first.issuer,
+        first.effects,
+        first.waits,
+        Some(values),
+    );
+    assert_ne!(next.active.active_play_id, old_active.active_play_id);
+    assert_eq!(next.pulse_identity.provider_generation, 2);
+    assert_eq!(next.wait_identity.provider_generation, 2);
+    assert_eq!(
+        run(next.execution.as_mut().unwrap()).exit,
+        native_worker::Exit::Drained
+    );
+    assert_eq!((next.effects.get(), next.waits.get()), (6, 6));
+    let second = DeviceExecution::retire_with_material_retained(&mut next.execution).unwrap();
+    assert_eq!(second.providers.provider_generations(), [2, 2]);
+    assert_eq!(second.providers.attachment_generations(), [1, 1]);
+    assert!(second.providers.matches_active(&next.active));
+    assert!(!second.providers.matches_active(&old_active));
+    next.issuer
+        .finish_native_play(&next.active, &second.providers)
+        .unwrap();
+    assert!(next
+        .issuer
+        .finish_native_play(&next.active, &second.providers)
+        .is_err());
+}
+
+// Exact former fields mirrored solely for host ABI comparison; no old authority
+// is reconstructed or invoked by this layout proof.
+#[allow(dead_code)]
+struct FormerPulseOwner<P> {
+    table: c::BaseCapabilityTable,
+    handle: c::BaseCapabilityHandle,
+    claim: c::BaseOperationClaim,
+    attachment: conduit_pulse_capture::owner::PulseAttachment,
+    provider: P,
+    node: k::NodeId,
+    next_request: u32,
+    codec: conduit_pulse_capture::PreparedPulseCodec,
+}
+#[allow(dead_code)]
+struct FormerWaitOwner<P> {
+    table: c::BaseCapabilityTable,
+    handle: c::BaseCapabilityHandle,
+    claim: c::BaseOperationClaim,
+    attachment: WaitAttachment,
+    provider: P,
+    node: k::NodeId,
+    next_request: u32,
+}
+#[test]
+fn compact_operation_plus_full_ready_seal_reduces_actual_owner_inline_layout() {
+    use core::mem::size_of;
+    let old = size_of::<FormerPulseOwner<pulse::Provider>>() + size_of::<FormerWaitOwner<Wait>>();
+    let new = size_of::<conduit_pulse_capture::owner::PulseHostCall<pulse::Provider>>()
+        + size_of::<MonotonicWaitHostCall<Wait>>();
+    println!(
+        "native_provider_layout pointer_bits={} former_inline={} compact_inline={} saved_inline={}",
+        usize::BITS,
+        old,
+        new,
+        old - new
+    );
+    assert!(
+        new < old,
+        "full native origin seal must be paid for by deduplicated claim facts"
+    );
+}
+
+#[path = "native_execution_retirement/reusable_backing.rs"]
+mod reusable_backing;

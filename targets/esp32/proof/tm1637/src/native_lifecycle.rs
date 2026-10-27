@@ -125,7 +125,7 @@ impl NativeRoot {
     pub fn retired_native_attachments(&self) -> Option<[u64; 2]> {
         self.retired_native
             .as_ref()
-            .map(|native| [native.pulse.1.generation, native.wait.1.generation])
+            .map(|native| native.attachment_generations())
     }
     pub fn copy_worker_publication(
         &self,

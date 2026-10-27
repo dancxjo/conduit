@@ -280,3 +280,6 @@ mod exhausted_retirement;
 
 #[path = "support/verified_owner.rs"]
 mod verified_owner;
+
+#[path = "support/continuation.rs"]
+mod continuation;

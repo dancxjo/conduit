@@ -4,7 +4,9 @@
 //! this table is [`BaseCapabilityHandle`], whose bearer bytes have no public
 //! constructor and are derived from issuer-private key material.
 
+mod bound;
 mod capacity;
+pub use bound::BoundBaseOperation;
 
 use crate::{
     ActivePlayId, AuthorityContractId, AuthorityGrant, AuthorityGrantId, BaseInstanceId, BootId,
@@ -247,25 +249,7 @@ impl BaseCapabilityTable {
         if claim.work_units > entry.inspection.scope.maximum_work_units {
             return Err(BaseCapabilityRefusal::WorkEnvelope);
         }
-        if entry.inspection.in_flight_operations == entry.inspection.scope.maximum_in_flight {
-            return Err(BaseCapabilityRefusal::InFlightFull);
-        }
-        if entry.inspection.completed_operations as u64
-            + entry.inspection.in_flight_operations as u64
-            >= entry.inspection.scope.maximum_operations as u64
-        {
-            entry.inspection.lifecycle = CapabilityLifecycle::Exhausted;
-            return Err(BaseCapabilityRefusal::Exhausted);
-        }
-        let operation_sequence = entry.next_operation_sequence;
-        entry.next_operation_sequence = entry.next_operation_sequence.saturating_add(1);
-        entry.active_sequences.push(operation_sequence);
-        entry.inspection.in_flight_operations += 1;
-        Ok(BaseOperationLease {
-            bearer: entry.bearer,
-            operation_sequence,
-            revocation_generation: entry.revocation_generation,
-        })
+        begin_entry(entry)
     }
 
     pub fn complete(
@@ -508,4 +492,25 @@ fn hex_digest(bytes: &[u8; 32]) -> alloc::string::String {
         result.push_str(&format!("{byte:02x}"));
     }
     result
+}
+
+fn begin_entry(entry: &mut CapabilityEntry) -> Result<BaseOperationLease, BaseCapabilityRefusal> {
+    if entry.inspection.in_flight_operations == entry.inspection.scope.maximum_in_flight {
+        return Err(BaseCapabilityRefusal::InFlightFull);
+    }
+    if entry.inspection.completed_operations as u64 + entry.inspection.in_flight_operations as u64
+        >= entry.inspection.scope.maximum_operations as u64
+    {
+        entry.inspection.lifecycle = CapabilityLifecycle::Exhausted;
+        return Err(BaseCapabilityRefusal::Exhausted);
+    }
+    let operation_sequence = entry.next_operation_sequence;
+    entry.next_operation_sequence = entry.next_operation_sequence.saturating_add(1);
+    entry.active_sequences.push(operation_sequence);
+    entry.inspection.in_flight_operations += 1;
+    Ok(BaseOperationLease {
+        bearer: entry.bearer,
+        operation_sequence,
+        revocation_generation: entry.revocation_generation,
+    })
 }
