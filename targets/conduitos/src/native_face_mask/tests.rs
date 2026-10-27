@@ -60,7 +60,7 @@ pub(super) fn fixture() -> (NativeFaceMask, BirthDraft) {
     (service, draft())
 }
 
-pub(super) fn draft() -> BirthDraft {
+pub(crate) fn draft() -> BirthDraft {
     let choices = crate::native_workset::profile()
         .installed()
         .iter()
