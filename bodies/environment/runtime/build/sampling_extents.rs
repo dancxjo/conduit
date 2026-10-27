@@ -27,9 +27,28 @@ pub fn emit(checked: &conduit_plot::CheckedSyntaxDocument, out: &Path) {
         .find(|ty| ty.name == "Dht11Result")
         .unwrap();
     let bytes = conduit_plot::maximum_prepared_canonical_value_bytes(&reading.value_type).unwrap();
-    fs::write(
-        out.join("sampling-reading-extent.rs"),
-        format!("const _: () = assert!({bytes} <= CAPACITIES[0] && {bytes} <= CAPACITIES[1]);\n"),
+    let mut assertions =
+        format!("const _: () = assert!({bytes} <= CAPACITIES[0] && {bytes} <= CAPACITIES[1]);\n");
+    let absence_bytes = conduit_plot::maximum_prepared_canonical_value_bytes(&absence).unwrap();
+    writeln!(
+        assertions,
+        "const _: () = assert!({absence_bytes} <= CAPACITIES[2]);"
     )
     .unwrap();
+    writeln!(
+        assertions,
+        "const _: () = assert!(conduit_time::TICK_ENCODED_LEN <= CAPACITIES[2]);"
+    )
+    .unwrap();
+    for ty in &checked.native_types {
+        let bytes = conduit_plot::maximum_prepared_canonical_value_bytes(&ty.value_type).unwrap();
+        let capacity = if matches!(ty.name.as_str(), "Dht11Result" | "Dht11Observation") {
+            "CAPACITIES[0]"
+        } else {
+            "CAPACITIES[2]"
+        };
+        writeln!(assertions, "// Checked {}", ty.name).unwrap();
+        writeln!(assertions, "const _: () = assert!({bytes} <= {capacity});").unwrap();
+    }
+    fs::write(out.join("sampling-reading-extent.rs"), assertions).unwrap();
 }

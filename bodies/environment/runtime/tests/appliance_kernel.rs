@@ -386,7 +386,7 @@ fn run(scenario: usize, overnight: bool) {
     assert_eq!(waits, count);
     if overnight {
         eprintln!("overnight_post_step_peak_live_items={peak_items} overnight_post_step_peak_live_bytes={peak_bytes}");
-        eprintln!("overnight_samples={count} period_ms={period_ms} logical_elapsed_ms={} value_slots=9 value_bytes=11716",waits*period_ms);
+        eprintln!("overnight_samples={count} period_ms={period_ms} logical_elapsed_ms={} value_slots=9 value_bytes=9329",waits*period_ms);
     }
     let expected = match scenario {
         0 | 1 | 5 | 6 => Channel::Reading,

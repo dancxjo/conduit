@@ -94,6 +94,15 @@ pub fn emit(checked: &conduit_plot::CheckedSyntaxDocument, out: &Path) {
         failure.as_ptr() as usize,
         unavailable.as_ptr() as usize + prefix
     );
+    // Quantity replacement is fixed-width; unavailable copies only the failure
+    // value node after its immutable canonical Result prefix. These are all
+    // production outputs, including every legal failure variant/coordinate.
+    let unavailable_maximum = prefix
+        + conduit_plot::maximum_prepared_canonical_value_bytes(failure_type).unwrap() as usize
+        - failure_type.canonical_bytes().unwrap().len();
+    std::fs::write(out.join("sampling-branch-extents.rs"), format!(
+        "const _: () = assert!({unavailable_maximum} <= CAPACITIES[2]);\nconst _: () = assert!({} > 1024 && {} <= CAPACITIES[0]);\nconst _: () = assert!({} > 1024 && {} <= CAPACITIES[1]);\n",
+        observation.len(), observation.len(), result.len(), result.len())).unwrap();
     let mut source = String::new();
     for (name, bytes, ty, is_result) in [
         (
