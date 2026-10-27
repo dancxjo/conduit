@@ -10,7 +10,11 @@ mod canonical_input;
 mod canonical_storage;
 #[cfg(feature = "construction")]
 pub mod construction;
-#[cfg(any(feature = "evidence-journal", feature = "display-session", feature = "mask-renderer"))]
+#[cfg(any(
+    feature = "evidence-journal",
+    feature = "display-session",
+    feature = "mask-renderer"
+))]
 pub mod display_evidence;
 #[cfg(feature = "evidence-journal")]
 pub mod display_evidence_compact;
@@ -131,11 +135,16 @@ impl PreparedCaptureSelector {
         maximum_input_bytes: usize,
         maximum_output_bytes: usize,
     ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
+        // Reserve the complete checked output Type domain, capped by the
+        // independently admitted output envelope. Unknown Type bounds retain
+        // the original envelope rather than narrowing selector compatibility.
+        let output_bytes = canonical_storage::bytes(selector.output_type(), maximum_output_bytes)
+            .unwrap_or(maximum_output_bytes);
         Ok(Self {
             selector: conduit_core::PreparedCanonicalStructuredSelector::prepare(
                 &selector,
                 maximum_input_bytes,
-                maximum_output_bytes,
+                output_bytes,
             )?,
         })
     }
