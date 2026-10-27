@@ -89,6 +89,7 @@ fn ssid_and_password_are_exact_bounded_borrowed_bytes_and_never_implicit_default
 #[test]
 fn fixed_peer_admission_rejects_other_networks_routers_and_special_addresses() {
     for last in 2..=254 {
+        assert!(peer_network([192, 168, 4, last], 24, None));
         assert!(peer_network(
             [192, 168, 4, last],
             24,
@@ -105,7 +106,7 @@ fn fixed_peer_admission_rejects_other_networks_routers_and_special_addresses() {
     for (ip, prefix, gateway) in [
         ([192, 168, 1, 2], 24, Some([192, 168, 4, 1])),
         ([192, 168, 4, 2], 16, Some([192, 168, 4, 1])),
-        ([192, 168, 4, 2], 24, None),
+        ([192, 168, 4, 2], 25, None),
         ([192, 168, 4, 2], 24, Some([192, 168, 4, 2])),
     ] {
         assert!(!peer_network(ip, prefix, gateway));

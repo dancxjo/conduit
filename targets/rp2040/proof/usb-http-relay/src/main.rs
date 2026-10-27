@@ -141,11 +141,21 @@ fn peer_ready(stack: Stack<'static>) -> bool {
 }
 async fn status(class: &mut Cdc, id: u32, stack: Stack<'static>) -> Result<(), &'static str> {
     let mut text = heapless::String::<256>::new();
-    let ip = stack
-        .config_v4()
+    let config = stack.config_v4();
+    let ip = config
+        .as_ref()
         .map(|c| c.address.address().octets())
         .unwrap_or([0; 4]);
-    write!(&mut text,"{{\"role\":\"{}\",\"link\":{},\"configured\":{},\"peer_ready\":{},\"ipv4\":[{},{},{},{}],\"peer\":\"192.168.4.1:80\",\"request_limit\":{},\"response_limit\":{}}}",protocol::ROLE,stack.is_link_up(),stack.is_config_up(),peer_ready(stack),ip[0],ip[1],ip[2],ip[3],protocol::MAX_REQUEST,protocol::MAX_RESPONSE).map_err(|_|"status-capacity")?;
+    let prefix = config.as_ref().map(|c| c.address.prefix_len()).unwrap_or(0);
+    let mut gateway = heapless::String::<20>::new();
+    if let Some(address) = config.and_then(|c| c.gateway) {
+        let a = address.octets();
+        write!(&mut gateway, "[{},{},{},{}]", a[0], a[1], a[2], a[3])
+            .map_err(|_| "status-capacity")?;
+    } else {
+        gateway.push_str("null").map_err(|_| "status-capacity")?;
+    }
+    write!(&mut text,"{{\"role\":\"{}\",\"link\":{},\"configured\":{},\"peer_ready\":{},\"ipv4\":[{},{},{},{}],\"prefix\":{},\"gateway\":{},\"peer\":\"192.168.4.1:80\",\"request_limit\":{},\"response_limit\":{}}}",protocol::ROLE,stack.is_link_up(),stack.is_config_up(),peer_ready(stack),ip[0],ip[1],ip[2],ip[3],prefix,gateway,protocol::MAX_REQUEST,protocol::MAX_RESPONSE).map_err(|_|"status-capacity")?;
     send(class, protocol::INFORMATION, id, text.as_bytes()).await
 }
 #[embassy_executor::main]

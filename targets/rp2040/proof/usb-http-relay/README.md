@@ -14,7 +14,7 @@ Python, USB drivers and vendor libraries may make other RAM copies.
 Requests are limited to 8 KiB including HTTP headers. Responses are streamed in
 512-byte USB frames and limited to 64 KiB; the proxy exposes a response only
 after exact completion. Association, DHCP, TCP and USB operations have bounded
-timeouts. Only a DHCP lease in `192.168.4.2..254/24`, gateway `192.168.4.1`,
+timeouts. Only a DHCP lease in `192.168.4.2..254/24`, with no default router or gateway `192.168.4.1`,
 authorizes a TCP request. A failed HTTP operation is never automatically replayed;
 a later distinct request may reconnect and rejoin.
 

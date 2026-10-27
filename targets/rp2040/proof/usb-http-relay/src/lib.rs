@@ -163,12 +163,13 @@ pub fn header(kind: u8, id: u32, length: usize) -> Result<[u8; HEADER], Refusal>
     Ok(out)
 }
 
-/// Require the actual ESP AP subnet and gateway before opening its fixed peer.
+/// Require the exact on-link ESP AP subnet; a default router is unnecessary.
+/// Refuse an advertised router other than the fixed ESP peer.
 pub fn peer_network(address: [u8; 4], prefix: u8, gateway: Option<[u8; 4]>) -> bool {
     address[..3] == [192, 168, 4]
         && (2..=254).contains(&address[3])
         && prefix == 24
-        && gateway == Some([192, 168, 4, 1])
+        && (gateway.is_none() || gateway == Some([192, 168, 4, 1]))
 }
 
 /// Fixed sensitive scratch, also wiped when a cancelled future drops it.
