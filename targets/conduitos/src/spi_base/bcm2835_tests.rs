@@ -1,5 +1,5 @@
 use super::*;
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc, vec::Vec};
 
 #[derive(Default)]
 struct State {
