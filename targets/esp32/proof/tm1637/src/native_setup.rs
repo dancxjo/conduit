@@ -110,14 +110,14 @@ impl NativeRoot {
             }
         };
         let result = if window.is_some() {
-            self.play.install_owned_held(
+            self.play.install_verified_owned_held(
                 prepared,
                 &mut self.credentials,
                 self.network.ready_slot(),
                 &mut self.issuer,
             )
         } else {
-            self.play.install_owned(
+            self.play.install_verified_owned(
                 prepared,
                 &mut self.credentials,
                 self.network.ready_slot(),
