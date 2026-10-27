@@ -95,106 +95,14 @@ impl NativePlay {
                         1,
                         conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
                         |scope| {
-                            let tables =
-                                n::NetworkControlFlatDirectTables::prepare(scope.verified())
-                                    .map_err(|_| ())?;
-                            let roles = n::PreparedNetworkKernelParts::check_flat_direct(&tables)
-                                .map_err(|_| ())?;
-                            let view = scope.verified().view();
-                            // The pair checks Credentials and Join only. Keep this
-                            // independent actual attachment implementation preflight.
-                            let sign = view
-                                .placements
-                                .iter()
-                                .nth(usize::from(roles.attachment_sign.0))
-                                .ok_or(())?;
-                            if sign.capability_id != CAP
-                                || sign.implementation_id != IMPLEMENTATION
-                                || sign.artifact_id != ARTIFACT
-                                || sign.execution_profile_id
-                                    != conduit_net::NETWORK_ATTACHMENT_LOCAL_PROFILE
-                                || sign.host_calls.len() != 1
-                                || sign.host_calls.iter().next().ok_or(())?.contract_id
-                                    != conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_CALL
-                            {
-                                return Err(());
-                            }
-                            let credential = view
-                                .placements
-                                .iter()
-                                .nth(usize::from(roles.credentials.0))
-                                .ok_or(())?
-                                .placement_id;
-                            let join = view
-                                .placements
-                                .iter()
-                                .nth(usize::from(roles.join.0))
-                                .ok_or(())?
-                                .placement_id;
-                            active = Some(issuer.reserve_linked_network_play(scope, pins)?);
-                            let current = active.as_ref().expect("reserved exact parent");
-                            let (table, handle, claim) = issuer.issue_linked_network(
-                                owners.credential_identity(),
-                                Operation::Credentials,
+                            check_linked_scope(
+                                owners,
                                 scope,
+                                issuer,
                                 pins,
-                                current,
-                            )?;
-                            let first = match owners.check_flat_credentials(
-                                NetworkOperationLease {
-                                    table,
-                                    handle,
-                                    claim,
-                                },
-                                &tables,
-                                current,
-                                credential,
-                            ) {
-                                Ok(first) => first,
-                                Err((lease, _)) => {
-                                    custody.lease = Some(lease);
-                                    return Err(());
-                                }
-                            };
-                            let issued = issuer.issue_linked_network(
-                                first.join_identity(),
-                                Operation::Join,
-                                scope,
-                                pins,
-                                current,
-                            );
-                            let (table, handle, claim) = match issued {
-                                Ok(issued) => issued,
-                                Err(()) => {
-                                    custody.operations[0] = Some(first.into_operation());
-                                    return Err(());
-                                }
-                            };
-                            let checked = match first.check_flat_join(
-                                NetworkOperationLease {
-                                    table,
-                                    handle,
-                                    claim,
-                                },
-                                &tables,
-                                current,
-                                join,
-                            ) {
-                                Ok(checked) => checked,
-                                Err((first, lease, _)) => {
-                                    custody.operations[0] = Some(first.into_operation());
-                                    custody.lease = Some(lease);
-                                    return Err(());
-                                }
-                            };
-                            match n::PreparedNetworkKernelParts::from_flat_direct(tables) {
-                                Ok(parts) => Ok((checked, parts)),
-                                Err(_) => {
-                                    let (first, second) = checked.into_operations();
-                                    custody.operations = [Some(first), Some(second)];
-                                    Err(())
-                                }
-                            }
+                                &mut active,
+                                &mut custody,
+                            )
                         },
                     )
                     .map_err(|_| ())?
@@ -221,6 +129,116 @@ impl NativePlay {
                 }
                 Err(())
             }
+        }
+    }
+}
+
+// Keep the concrete affine issuance/checking waist out of the generic planner
+// callback. Its owner brand is preserved; no Source/Plan borrow escapes.
+#[inline(never)]
+fn check_linked_scope<'owner>(
+    owners: n::ReadyNetworkPairView<'owner, Provider, Source>,
+    scope: &conduit_planner::borrowed_local::SourcePlannedLocalScope<'_>,
+    issuer: &mut RootIssuer,
+    pins: (&str, &str, &str),
+    active: &mut Option<c::ActivePlayIdentity>,
+    custody: &mut IssuedCustody,
+) -> Result<
+    (
+        n::PreparedNetworkPairBindings<'owner>,
+        n::PreparedNetworkKernelParts,
+    ),
+    (),
+> {
+    let tables = n::NetworkControlFlatDirectTables::prepare(scope.verified()).map_err(|_| ())?;
+    let roles = n::PreparedNetworkKernelParts::check_flat_direct(&tables).map_err(|_| ())?;
+    let view = scope.verified().view();
+    // The pair checks Credentials and Join only. Keep this
+    // independent actual attachment implementation preflight.
+    let sign = view
+        .placements
+        .iter()
+        .nth(usize::from(roles.attachment_sign.0))
+        .ok_or(())?;
+    if sign.capability_id != CAP
+        || sign.implementation_id != IMPLEMENTATION
+        || sign.artifact_id != ARTIFACT
+        || sign.execution_profile_id != conduit_net::NETWORK_ATTACHMENT_LOCAL_PROFILE
+        || sign.host_calls.len() != 1
+        || sign.host_calls.iter().next().ok_or(())?.contract_id
+            != conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_CALL
+    {
+        return Err(());
+    }
+    let credential = view
+        .placements
+        .iter()
+        .nth(usize::from(roles.credentials.0))
+        .ok_or(())?
+        .placement_id;
+    let join = view
+        .placements
+        .iter()
+        .nth(usize::from(roles.join.0))
+        .ok_or(())?
+        .placement_id;
+    *active = Some(issuer.reserve_linked_network_play(scope, pins)?);
+    let current = active.as_ref().expect("reserved exact parent");
+    let (table, handle, claim) = issuer.issue_linked_network(
+        owners.credential_identity(),
+        Operation::Credentials,
+        scope,
+        pins,
+        current,
+    )?;
+    let first = match owners.check_flat_credentials(
+        NetworkOperationLease {
+            table,
+            handle,
+            claim,
+        },
+        &tables,
+        current,
+        credential,
+    ) {
+        Ok(first) => first,
+        Err((lease, _)) => {
+            custody.lease = Some(lease);
+            return Err(());
+        }
+    };
+    let issued =
+        issuer.issue_linked_network(first.join_identity(), Operation::Join, scope, pins, current);
+    let (table, handle, claim) = match issued {
+        Ok(issued) => issued,
+        Err(()) => {
+            custody.operations[0] = Some(first.into_operation());
+            return Err(());
+        }
+    };
+    let checked = match first.check_flat_join(
+        NetworkOperationLease {
+            table,
+            handle,
+            claim,
+        },
+        &tables,
+        current,
+        join,
+    ) {
+        Ok(checked) => checked,
+        Err((first, lease, _)) => {
+            custody.operations[0] = Some(first.into_operation());
+            custody.lease = Some(lease);
+            return Err(());
+        }
+    };
+    match n::PreparedNetworkKernelParts::from_flat_direct(tables) {
+        Ok(parts) => Ok((checked, parts)),
+        Err(_) => {
+            let (first, second) = checked.into_operations();
+            custody.operations = [Some(first), Some(second)];
+            Err(())
         }
     }
 }
