@@ -30,6 +30,7 @@ use bindings::{Binding, Owner};
 mod dispatch;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 mod ethernet_preparation;
+mod pending;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) use ethernet_preparation::EthernetFrameAdmission;
 #[cfg(any(
