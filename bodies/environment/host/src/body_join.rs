@@ -1,7 +1,10 @@
 //! Private physical bootstrap followed by canonical, signed observer admission.
 use crate::local_recorder::joined;
+#[path = "body_join/recovery.rs"]
+mod recovery_client;
 use crate::{checked, Result};
 use ed25519_dalek::Signer;
+use recovery_client::recover;
 use serde::{Deserialize, Serialize};
 use std::{
     io::{Read, Write},
@@ -431,6 +434,9 @@ fn finish(bootstrap: &Bootstrap, state: &Path, peer: &str, pending: Pending) -> 
         };
         if status == 200 {
             break serde_json::from_slice::<joined::JoinedHostReceipt>(&bytes)?;
+        }
+        if status == 404 || status == 403 {
+            return recover(bootstrap, state, peer, &host, &boot);
         }
         if status != 202 || Instant::now() >= deadline {
             return Err(

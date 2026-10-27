@@ -13,8 +13,7 @@ mod native_joined_host_wire;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_restart.rs"]
 #[allow(dead_code)] // Legacy envelope helpers are covered by native_restart tests.
 mod native_restart;
-#[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs"]
-mod recovery;
+use native_body_join::recovery;
 mod native_evidence_region {
     use crate::native_body_checkpoint::{Refusal, Storage};
     use std::sync::{Arc, Mutex};
@@ -129,6 +128,12 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
         play_created: false,
     };
     let encoded = serde_json::to_vec(&request).unwrap();
+    match native_body_join::decode_command(&encoded).unwrap() {
+        native_body_join::Command::Admission(decoded) => {
+            assert_eq!(decoded.body_id, request.body_id)
+        }
+        _ => panic!("admission became recovery"),
+    }
     let request = native_body_join::wire::decode(&encoded).unwrap();
     for field in ["bases", "resources", "capabilities", "planner_capabilities"] {
         let mut malformed: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
@@ -234,6 +239,12 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
             signature: vec![],
         };
         query.signature = secret.sign(&query.transcript()).to_vec();
+        match native_body_join::decode_command(&serde_json::to_vec(&query).unwrap()).unwrap() {
+            native_body_join::Command::Recovery(decoded) => {
+                assert_eq!(decoded.transcript(), query.transcript())
+            }
+            _ => panic!("recovery became admission"),
+        }
         let root_boot: c::BootId = "boot/root-after-power-cycle".into();
         let verified = recovery::verify_current(
             &restored,

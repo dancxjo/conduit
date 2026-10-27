@@ -44,7 +44,7 @@ pub(crate) enum ResultReply {
 }
 pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
     // Strict scalar/empty-array decoder only; no capability metadata visitors.
-    crate::native_body_join::wire::decode(bytes)?;
+    crate::native_body_join::decode_command(bytes)?;
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     let mut owned = Vec::new();
     owned
@@ -142,7 +142,7 @@ impl crate::native_root::NativeRoot {
         let ticket = pending.ticket;
         let digest = pending.digest;
         let result = (|| {
-            let request = crate::native_body_join::wire::decode(&pending.bytes)?;
+            let request = crate::native_body_join::decode_command(&pending.bytes)?;
             drop(pending);
             // Reserve response custody before mutating the authoritative Body.
             let mut bytes = Vec::new();
@@ -150,9 +150,17 @@ impl crate::native_root::NativeRoot {
                 .try_reserve_exact(2048)
                 .map_err(|_| "body-join-memory")?;
             bytes.resize(2048, 0);
-            let receipt = self.admit_body_observer_request(&request, now_ms)?;
-            let length = serde_json_core::to_slice(&receipt, &mut bytes)
-                .map_err(|_| "body-join-response-capacity")?;
+            let length = match request {
+                crate::native_body_join::Command::Admission(request) => {
+                    let receipt = self.admit_body_observer_request(&request, now_ms)?;
+                    serde_json_core::to_slice(&receipt, &mut bytes)
+                }
+                crate::native_body_join::Command::Recovery(request) => {
+                    let receipt = self.recover_body_observer(&request)?;
+                    serde_json_core::to_slice(&receipt, &mut bytes)
+                }
+            }
+            .map_err(|_| "body-join-response-capacity")?;
             bytes.truncate(length);
             Ok::<_, &'static str>(bytes)
         })();

@@ -2,8 +2,29 @@
 //! separate: this module never invents an authenticated rendezvous or a grant.
 #[path = "native_body_join_owner.rs"]
 pub(crate) mod owner;
+#[path = "native_joined_host_recovery.rs"]
+pub(crate) mod recovery;
 #[path = "native_body_join_wire.rs"]
 pub(crate) mod wire;
+pub(crate) enum Command {
+    Admission(conduit_body::PortableSpawnAdmissionRequest),
+    Recovery(recovery::Request),
+}
+pub(crate) fn decode_command(bytes: &[u8]) -> Result<Command, &'static str> {
+    if bytes.len() > 1024 {
+        return Err("body-join-request-capacity");
+    }
+    if let Ok(request) = serde_json::from_slice::<recovery::Request>(bytes) {
+        if request.schema != recovery::REQUEST
+            || request.nonce == [0; 32]
+            || request.signature.len() != 64
+        {
+            return Err("body-recovery-request");
+        }
+        return Ok(Command::Recovery(request));
+    }
+    wire::decode(bytes).map(Command::Admission)
+}
 use crate::native_joined_host_wire::{JoinedHostReceipt, PROFILE};
 use alloc::{string::String, vec::Vec};
 use conduit_body::{

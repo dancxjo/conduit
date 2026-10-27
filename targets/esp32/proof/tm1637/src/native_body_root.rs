@@ -99,6 +99,26 @@ impl NativeRoot {
         let signature = self.admission.sign_joined_host(&admitted)?;
         Ok(admitted.signed(signature))
     }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn recover_body_observer(
+        &self,
+        request: &crate::native_body_join::recovery::Request,
+    ) -> Result<crate::native_body_join::recovery::Receipt, &'static str> {
+        let (host, boot, _, key) = self.body_join_scope()?;
+        let body = self.body.as_ref().ok_or("body-join-not-installed")?;
+        let verified = crate::native_restart::with_admissions(|manager| {
+            crate::native_body_join::recovery::verify_current(
+                manager,
+                &body.evidence().membership,
+                request,
+                host,
+                boot,
+                &key,
+            )
+        })?;
+        let signature = self.admission.sign_current_observer(&verified)?;
+        Ok(verified.signed(signature))
+    }
     pub fn body_installed(&self) -> bool {
         #[cfg(feature = "body-image-root")]
         {

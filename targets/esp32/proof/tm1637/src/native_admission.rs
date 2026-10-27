@@ -76,6 +76,16 @@ impl NativeAdmission {
         }
         Ok(self.key.sign(&admitted.transcript()).to_bytes())
     }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn sign_current_observer(
+        &self,
+        observer: &crate::native_body_join::recovery::VerifiedCurrentObserver,
+    ) -> Result<[u8; 64], &'static str> {
+        if !self.ready() {
+            return Err("body-recovery-not-durable");
+        }
+        Ok(self.key.sign(&observer.transcript()).to_bytes())
+    }
     /// Root supplies this only after exact reservation/lifecycle admission.
     pub fn sign_owner_receipt(&self, receipt: &crate::native_owner_receipt::Receipt) -> [u8; 64] {
         assert!(

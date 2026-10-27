@@ -7,6 +7,15 @@ use std::{net::ToSocketAddrs, path::Path, time::Duration};
 mod custody_journal_prototype;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs"]
 pub(crate) mod joined;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs"]
+#[allow(dead_code)] // Producer-only verification is exercised by actual Store tests.
+pub(crate) mod recovery;
+#[derive(serde::Deserialize)]
+#[serde(untagged)]
+enum Receipt {
+    Admission(joined::JoinedHostReceipt),
+    Current(recovery::Receipt),
+}
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Binding {
@@ -15,7 +24,9 @@ struct Binding {
     root_key: [u8; 32],
     local_host: conduit_core::HostId,
     local_boot: conduit_core::BootId,
-    receipt: joined::JoinedHostReceipt,
+    receipt: Receipt,
+    #[serde(default)]
+    recovery_request: Option<recovery::Request>,
 }
 fn private_metadata(path: &Path, directory: bool) -> Result<()> {
     use std::os::unix::fs::MetadataExt;
@@ -45,13 +56,36 @@ pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
         return Err("joined recorder binding extent".into());
     }
     let binding: Binding = serde_json::from_slice(&bytes)?;
-    crate::checked(binding.receipt.verify(&binding.root_key))?;
-    let credential = &binding.receipt.credential;
-    if binding.schema != "conduit.environment/joined-recorder@1"
-        || binding.invitation.invitation_id != binding.receipt.invitation_id
-        || binding.invitation.body_id != credential.body_id
+    let credential = match &binding.receipt {
+        Receipt::Admission(receipt) => {
+            crate::checked(receipt.verify(&binding.root_key))?;
+            if binding.schema != "conduit.environment/joined-recorder@1"
+                || binding.recovery_request.is_some()
+                || binding.invitation.invitation_id != receipt.invitation_id
+                || receipt.credential.issued_at_millis > binding.invitation.expires_at_millis
+            {
+                return Err("joined recorder admission scope".into());
+            }
+            &receipt.credential
+        }
+        Receipt::Current(receipt) => {
+            let query = binding
+                .recovery_request
+                .as_ref()
+                .ok_or("recorder recovery query missing")?;
+            crate::checked(receipt.verify(&binding.root_key, query))?;
+            if binding.schema != "conduit.environment/joined-recorder@2"
+                || query.body_id != binding.invitation.body_id
+                || query.host_id != binding.local_host
+                || query.boot_id != binding.local_boot
+            {
+                return Err("joined recorder recovery scope".into());
+            }
+            &receipt.credential
+        }
+    };
+    if binding.invitation.body_id != credential.body_id
         || binding.invitation.nonce == [0; 32]
-        || credential.issued_at_millis > binding.invitation.expires_at_millis
         || binding.local_host != credential.host_id
         || binding.local_boot != credential.boot_id
     {
@@ -143,6 +177,7 @@ pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Re
 mod tests {
     use super::*;
     include!("local_recorder/restart.rs");
+    include!("local_recorder/recovery.rs");
     #[test]
     fn retry_delay_is_bounded_and_only_success_resets_it() {
         let mut backoff = Backoff::default();
