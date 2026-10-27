@@ -115,19 +115,54 @@ pub fn prepare_local_direct_with_backing(
     prepared: crate::native_kernel_storage::LocalKernelParts,
     backing: Option<crate::native_kernel_storage::KernelBacking>,
 ) -> Result<PreparedKernel, &'static str> {
+    prepare_local_direct_with_backing_retained(prepared, backing).map_err(|(_, _, reason)| reason)
+}
+/// Fresh finite evidence storage is local to this preparation. Refusal returns
+/// the actual incoming software/value and kernel backing without restarting it.
+#[cfg(feature = "target-mask-memory-check")]
+#[inline(never)]
+#[allow(clippy::result_large_err, clippy::type_complexity)] // Cold affine return preserves original storage.
+pub fn prepare_local_direct_with_backing_retained(
+    prepared: crate::native_kernel_storage::LocalKernelParts,
+    backing: Option<crate::native_kernel_storage::KernelBacking>,
+) -> Result<
+    PreparedKernel,
+    (
+        crate::native_kernel_storage::LocalKernelParts,
+        Option<crate::native_kernel_storage::KernelBacking>,
+        &'static str,
+    ),
+> {
+    if let Err(reason) = prepared.validate_topology() {
+        return Err((prepared, backing, reason));
+    }
     let sign_bytes = prepared.sign_bytes;
-    let (needed, slots) = requirements_for_storage(
+    let (needed, slots) = match requirements_for_storage(
         prepared.sign_items,
         prepared.sign_bytes,
         core::mem::size_of::<crate::native_kernel_storage::LocalKernelParts>(),
         backing.is_some(),
-    )?;
+    ) {
+        Ok(budget) => budget,
+        Err(reason) => return Err((prepared, backing, reason)),
+    };
     let memory = esp_alloc::HEAP.stats();
     if memory.size.saturating_sub(memory.current_usage) < needed {
-        return Err("local-kernel-capacity");
+        return Err((prepared, backing, "local-kernel-capacity"));
     }
-    let signs = k::HostedSignLog::new(slots, sign_bytes).map_err(|_| "local-sign-budget")?;
-    crate::native_kernel_storage::assemble_local_direct_with_backing(prepared, signs, backing)
+    let signs = match k::HostedSignLog::try_new(slots, sign_bytes) {
+        Ok(signs) => signs,
+        Err(k::HostedSignPreparationError::Budget(_)) => {
+            return Err((prepared, backing, "local-sign-budget"));
+        }
+        Err(k::HostedSignPreparationError::Allocation) => {
+            return Err((prepared, backing, "local-sign-backing-capacity"));
+        }
+    };
+    crate::native_kernel_storage::assemble_local_direct_with_backing_retained(
+        prepared, signs, backing,
+    )
+    .map_err(|(prepared, _empty_fresh_signs, backing, reason)| (prepared, backing, reason))
 }
 pub async fn report(
     root: &mut crate::native_root::NativeRoot,

@@ -187,6 +187,17 @@ pub struct LocalKernelParts {
 }
 #[cfg(feature = "target-mask-memory-check")]
 impl LocalKernelParts {
+    pub fn validate_topology(&self) -> Result<(), &'static str> {
+        Kernel::check_boxed_active_topology(
+            NODES,
+            CORDS,
+            &self.nodes,
+            &self.cords,
+            &self.routes,
+            &self.calls,
+        )
+        .map_err(|_| "local-kernel-tables")
+    }
     pub fn from_checked(prepared: PreparedDirectLocalAppliance<'_, k::HostedValueStore>) -> Self {
         let tables = prepared.tables.into_parts();
         Self {
@@ -218,7 +229,47 @@ pub fn assemble_local_direct_with_backing(
     signs: k::HostedSignLog,
     backing: Option<KernelBacking>,
 ) -> Result<PreparedKernel, &'static str> {
-    let selectors = Box::new(prepared.selectors);
+    assemble_local_direct_with_backing_retained(prepared, signs, backing)
+        .map_err(|(_, _, _, reason)| reason)
+}
+/// Every refusal returns the actual software, values, evidence and backing.
+/// Fresh allocation supplies memory only; it cannot restart an old execution.
+#[cfg(feature = "target-mask-memory-check")]
+#[inline(never)]
+#[allow(clippy::result_large_err, clippy::type_complexity)] // Cold affine refusal preserves all inputs without allocating.
+pub fn assemble_local_direct_with_backing_retained(
+    prepared: LocalKernelParts,
+    signs: k::HostedSignLog,
+    mut backing: Option<KernelBacking>,
+) -> Result<
+    PreparedKernel,
+    (
+        LocalKernelParts,
+        k::HostedSignLog,
+        Option<KernelBacking>,
+        &'static str,
+    ),
+> {
+    if let Err(reason) = prepared.validate_topology() {
+        return Err((prepared, signs, backing, reason));
+    }
+    if backing.is_none() {
+        match preclaim_local_backing() {
+            Ok(storage) => backing = Some(storage),
+            Err(reason) => return Err((prepared, signs, backing, reason)),
+        }
+    }
+    type Selectors = [Option<PreparedCaptureSelector>; NODES];
+    let layout = core::alloc::Layout::new::<Selectors>();
+    // SAFETY: this nonzero exact array layout is the subsequent Box's layout.
+    // No initialized input is moved until both reservations have succeeded.
+    let pointer =
+        unsafe { alloc::alloc::alloc(layout) }.cast::<core::mem::MaybeUninit<Selectors>>();
+    if pointer.is_null() {
+        return Err((prepared, signs, backing, "local-selector-backing-capacity"));
+    }
+    // SAFETY: the allocation is non-null, aligned, uniquely owned and uninitialized.
+    let selectors = Box::write(unsafe { Box::from_raw(pointer) }, prepared.selectors);
     let kernel = Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
         backing,
         NODES,
@@ -231,7 +282,7 @@ pub fn assemble_local_direct_with_backing(
         prepared.values,
         signs,
     )
-    .map_err(|_| "local-kernel-tables")?;
+    .unwrap_or_else(|_| unreachable!("immutable topology preflight and exact preclaimed backing"));
     Ok(PreparedKernel {
         kernel,
         selectors,
