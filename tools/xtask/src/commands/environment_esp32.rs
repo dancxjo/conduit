@@ -53,6 +53,15 @@ pub(super) fn build_local_appliance(root: &Path, key: &Path) -> Result<(), Box<d
     );
     Ok(())
 }
+/// Physical owner maintenance preserves data partitions and does not start a
+/// new Body Boot. Install the ordinary appliance image after custody transfer.
+pub(super) fn build_biography_maintenance(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("biography-maintenance"))?;
+    println!(
+        "Biography maintenance candidate uses local-appliance-partitions.csv; no flash performed"
+    );
+    Ok(())
+}
 fn build_with_owner(
     root: &Path,
     native: bool,
@@ -79,6 +88,10 @@ fn build_with_owner(
     } else {
         "native-face-root"
     });
+    let local_appliance = matches!(
+        selected_profile,
+        "local-appliance" | "biography-maintenance"
+    );
     if native {
         packaging::check_packages(&package, channel, selected_profile)?;
     }
@@ -97,7 +110,7 @@ fn build_with_owner(
     if native {
         command.args(["--features", selected_profile]);
     }
-    if selected_profile == "local-appliance" {
+    if local_appliance {
         command.args([
             "--config",
             "profile.release.package.conduit-planner.debug=1",
@@ -115,7 +128,7 @@ fn build_with_owner(
         // scarce internal RAM. Keep control flow in flash instead; this does
         // not change the allocator partition or the admitted CPU stack floor.
         command.args(["--", "-C", "llvm-args=-switch-to-lookup=false"]);
-        if selected_profile == "local-appliance" {
+        if local_appliance {
             // Bound code duplication in the combined sampler/Mask image. This
             // retains the complete planners, history and allocator partition.
             // Do not enable the experimental LLVM IR outliner: on this pinned
@@ -139,7 +152,12 @@ fn build_with_owner(
             "xtensa-esp32-elf-nm{}",
             std::env::consts::EXE_SUFFIX
         ));
-        packaging::check_linked(
+        let check = if selected_profile == "biography-maintenance" {
+            packaging::check_maintenance_linked
+        } else {
+            packaging::check_linked
+        };
+        check(
             &symbols,
             &root.join(
                 "target/environment-esp32/xtensa-esp32-none-elf/release/conduit-esp32-tm1637-probe",

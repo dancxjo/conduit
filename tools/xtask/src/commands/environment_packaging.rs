@@ -93,6 +93,12 @@ fn validate_packages(packages: &BTreeSet<&str>) -> Result<(), Box<dyn Error>> {
 }
 
 pub(super) fn check_linked(nm: &Path, image: &Path) -> Result<(), Box<dyn Error>> {
+    inspect_linked(nm, image, false)
+}
+pub(super) fn check_maintenance_linked(nm: &Path, image: &Path) -> Result<(), Box<dyn Error>> {
+    inspect_linked(nm, image, true)
+}
+fn inspect_linked(nm: &Path, image: &Path, maintenance: bool) -> Result<(), Box<dyn Error>> {
     let output = Command::new(nm).arg("--demangle").arg(image).output()?;
     if !output.status.success() {
         return Err(format!(
@@ -101,7 +107,13 @@ pub(super) fn check_linked(nm: &Path, image: &Path) -> Result<(), Box<dyn Error>
         )
         .into());
     }
-    validate_symbols(&String::from_utf8(output.stdout)?)?;
+    let symbols = String::from_utf8(output.stdout)?;
+    if maintenance {
+        validate_maintenance_symbols(&symbols)?;
+        println!("maintenance packaging: typed custody linked; autonomous execution absent");
+        return Ok(());
+    }
+    validate_symbols(&symbols)?;
     println!(
         "member packaging: indexed task planner linked; Source parsing/checking/expansion absent"
     );
@@ -118,6 +130,31 @@ fn validate_symbols(symbols: &str) -> Result<(), Box<dyn Error>> {
     {
         return Err("member image lost its local indexed task planner".into());
     }
+    validate_no_authoring(symbols)
+}
+fn validate_maintenance_symbols(symbols: &str) -> Result<(), Box<dyn Error>> {
+    for required in [
+        "native_biography_uart::",
+        "native_restart::biography::retain_receipt",
+    ] {
+        if !symbols.contains(required) {
+            return Err(format!("maintenance image lost typed custody: {required}").into());
+        }
+    }
+    for execution in [
+        "::start_local_appliance",
+        "native_worker::advance",
+        "::install_linked_body",
+    ] {
+        if symbols.contains(execution) {
+            return Err(
+                format!("maintenance image retained autonomous execution: {execution}").into(),
+            );
+        }
+    }
+    validate_no_authoring(symbols)
+}
+fn validate_no_authoring(symbols: &str) -> Result<(), Box<dyn Error>> {
     for authoring in [
         "conduit_plot::parse_syntax_document",
         "conduit_plot::check_syntax_document",
@@ -154,5 +191,18 @@ mod tests {
         assert!(
             validate_symbols(&format!("{planner}\nconduit_plot::parse_syntax_document")).is_err()
         );
+    }
+    #[test]
+    fn maintenance_requires_custody_and_refuses_autonomous_execution() {
+        let custody = "native_biography_uart::offer\nnative_restart::biography::retain_receipt";
+        validate_maintenance_symbols(custody).unwrap();
+        assert!(validate_maintenance_symbols("").is_err());
+        assert!(
+            validate_maintenance_symbols(&format!("{custody}\nnative_worker::advance")).is_err()
+        );
+        assert!(validate_maintenance_symbols(&format!(
+            "{custody}\nconduit_plot::parse_syntax_document"
+        ))
+        .is_err());
     }
 }

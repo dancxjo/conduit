@@ -61,7 +61,7 @@ async fn main(spawner: Spawner) {
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);
-    #[cfg(feature = "owner-wifi")]
+    #[cfg(all(feature = "owner-wifi", not(feature = "biography-maintenance")))]
     let owner_stacks = radio.stacks;
     // Boot observation is construction scratch. Root and each initialized
     // provider retain their owned exact IDs before the first await; do not
@@ -92,99 +92,109 @@ async fn main(spawner: Spawner) {
         .with_rx(p.GPIO3)
         .with_tx(p.GPIO1)
         .into_async();
-    #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+    #[cfg(feature = "biography-service")]
     await_outlined(crate::native_biography_uart::serve_cold(
         &mut root,
         &mut invitation_uart,
     ))
     .await
     .expect("cold biography custody service");
-    #[cfg(feature = "body-image-root")]
-    root.install_linked_body().expect("linked body biography");
-    root.start_preparation_service(spawner)
-        .await
-        .expect("Root preparation service must start");
-    root.prepare_network_plan()
-        .expect("current initialized Root advertisement");
-    #[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
+    // Maintenance preserves the restored owner and archive exactly. No linked
+    // Body installation, new Boot, or autonomous mutation follows this service.
+    #[cfg(feature = "biography-maintenance")]
+    loop {
+        core::hint::black_box(&root);
+        embassy_time::Timer::after_secs(60).await;
+    }
+    #[cfg(not(feature = "biography-maintenance"))]
     {
-        #[cfg(feature = "target-memory-check")]
-        root.measure_local_sampler()
-            .expect("target sampler measurement");
-        #[cfg(feature = "local-appliance")]
-        await_outlined(root.start_local_appliance())
+        #[cfg(feature = "body-image-root")]
+        root.install_linked_body().expect("linked body biography");
+        root.start_preparation_service(spawner)
             .await
-            .expect("autonomous local plots");
-        #[cfg(all(feature = "target-mask-memory-check", not(feature = "local-appliance")))]
-        root.measure_local_mask()
-            .expect("target ordinary Mask measurement");
-        // This preparation diagnostic accepts no management assignments. Keep
-        // its retained Root alive for memory inspection without linking the
-        // unrelated remote installation/control interpreter into the image.
-        #[cfg(feature = "local-appliance")]
-        let mut next_report = embassy_time::Instant::now();
-        #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
-        let mut invitation_bootstrap = crate::native_body_join_uart::Bootstrap::configured()
-            .expect("provisioned owner invitation key");
-        loop {
+            .expect("Root preparation service must start");
+        root.prepare_network_plan()
+            .expect("current initialized Root advertisement");
+        #[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
+        {
+            #[cfg(feature = "target-memory-check")]
+            root.measure_local_sampler()
+                .expect("target sampler measurement");
             #[cfg(feature = "local-appliance")]
-            {
-                // Defer new mutations without consuming their requests while
-                // Root owns an unpublished replacement proposal. Network tasks
-                // and history readers run independently; emergency cancellation
-                // remains a separate scoped entrance.
-                if !root.local_renewal_pending() {
-                    let _ = await_outlined(root.advance_setup()).await;
-                    #[cfg(feature = "body-persistence")]
-                    {
-                        root.advance_join(embassy_time::Instant::now().as_millis());
-                        let _ = await_outlined(
-                            invitation_bootstrap.poll(&mut root, &mut invitation_uart),
-                        )
-                        .await;
+            await_outlined(root.start_local_appliance())
+                .await
+                .expect("autonomous local plots");
+            #[cfg(all(feature = "target-mask-memory-check", not(feature = "local-appliance")))]
+            root.measure_local_mask()
+                .expect("target ordinary Mask measurement");
+            // This preparation diagnostic accepts no management assignments. Keep
+            // its retained Root alive for memory inspection without linking the
+            // unrelated remote installation/control interpreter into the image.
+            #[cfg(feature = "local-appliance")]
+            let mut next_report = embassy_time::Instant::now();
+            #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+            let mut invitation_bootstrap = crate::native_body_join_uart::Bootstrap::configured()
+                .expect("provisioned owner invitation key");
+            loop {
+                #[cfg(feature = "local-appliance")]
+                {
+                    // Defer new mutations without consuming their requests while
+                    // Root owns an unpublished replacement proposal. Network tasks
+                    // and history readers run independently; emergency cancellation
+                    // remains a separate scoped entrance.
+                    if !root.local_renewal_pending() {
+                        let _ = await_outlined(root.advance_setup()).await;
+                        #[cfg(feature = "body-persistence")]
+                        {
+                            root.advance_join(embassy_time::Instant::now().as_millis());
+                            let _ = await_outlined(
+                                invitation_bootstrap.poll(&mut root, &mut invitation_uart),
+                            )
+                            .await;
+                        }
                     }
+                    let _ = await_outlined(root.advance_local_renewal()).await;
+                    if embassy_time::Instant::now() >= next_report {
+                        root.report_local_progress();
+                        next_report =
+                            embassy_time::Instant::now() + embassy_time::Duration::from_secs(15);
+                    }
+                    embassy_time::Timer::after_millis(50).await;
                 }
-                let _ = await_outlined(root.advance_local_renewal()).await;
-                if embassy_time::Instant::now() >= next_report {
-                    root.report_local_progress();
-                    next_report =
-                        embassy_time::Instant::now() + embassy_time::Duration::from_secs(15);
+                #[cfg(not(feature = "local-appliance"))]
+                {
+                    core::hint::black_box(&root);
+                    embassy_time::Timer::after_secs(60).await;
                 }
-                embassy_time::Timer::after_millis(50).await;
-            }
-            #[cfg(not(feature = "local-appliance"))]
-            {
-                core::hint::black_box(&root);
-                embassy_time::Timer::after_secs(60).await;
             }
         }
-    }
-    #[cfg(all(
-        not(feature = "owner-wifi"),
-        not(any(feature = "target-memory-check", feature = "target-mask-memory-check"))
-    ))]
-    {
-        let mut uart = esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
-            .expect("Root UART0 must initialize")
-            .with_rx(p.GPIO3)
-            .with_tx(p.GPIO1)
-            .into_async();
-        crate::native_control::serve(&mut root, &mut uart)
-            .await
-            .expect("Root UART management failed");
-    }
-    #[cfg(all(
-        feature = "owner-wifi",
-        not(any(feature = "target-memory-check", feature = "target-mask-memory-check"))
-    ))]
-    {
-        let mut listener = crate::native_carrier::Listener::new(owner_stacks);
-        loop {
-            let carrier = listener.accept(&mut root).await;
-            let _ = crate::native_control::serve(&mut root, carrier).await;
-            // Lost transport never resets Root, revokes providers, or invents
-            // lifecycle completion. Existing workers retain their exact scope.
-            carrier.abort();
+        #[cfg(all(
+            not(feature = "owner-wifi"),
+            not(any(feature = "target-memory-check", feature = "target-mask-memory-check"))
+        ))]
+        {
+            let mut uart = esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
+                .expect("Root UART0 must initialize")
+                .with_rx(p.GPIO3)
+                .with_tx(p.GPIO1)
+                .into_async();
+            crate::native_control::serve(&mut root, &mut uart)
+                .await
+                .expect("Root UART management failed");
+        }
+        #[cfg(all(
+            feature = "owner-wifi",
+            not(any(feature = "target-memory-check", feature = "target-mask-memory-check"))
+        ))]
+        {
+            let mut listener = crate::native_carrier::Listener::new(owner_stacks);
+            loop {
+                let carrier = listener.accept(&mut root).await;
+                let _ = crate::native_control::serve(&mut root, carrier).await;
+                // Lost transport never resets Root, revokes providers, or invents
+                // lifecycle completion. Existing workers retain their exact scope.
+                carrier.abort();
+            }
         }
     }
 }

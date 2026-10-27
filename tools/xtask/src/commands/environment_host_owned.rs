@@ -3,6 +3,9 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     let words = args.iter().map(String::as_str).collect::<Vec<_>>();
     match words.as_slice() {
+        ["biography-maintenance-image", key] => Some(
+            super::environment_esp32::build_biography_maintenance(root, Path::new(key)),
+        ),
         ["local-appliance-image", key] => Some(super::environment_esp32::build_local_appliance(
             root,
             Path::new(key),

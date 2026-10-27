@@ -27,7 +27,7 @@ mod native_appliance_policy;
 mod native_assignment;
 #[cfg(feature = "native-root")]
 mod native_authority;
-#[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
+#[cfg(feature = "biography-service")]
 mod native_biography_uart;
 #[cfg(feature = "body-persistence")]
 mod native_body_checkpoint;
