@@ -2,6 +2,7 @@
 use super::*;
 #[path = "native_sampler_offer.rs"]
 mod sampler_offers;
+#[cfg(any(feature = "target-memory-trace", not(feature = "local-appliance")))]
 #[inline(never)]
 pub(crate) fn mark(phase: &str, item: usize) {
     let root = esp_alloc::HEAP.stats();
@@ -17,6 +18,12 @@ pub(crate) fn mark(phase: &str, item: usize) {
         root.size.saturating_sub(root.current_usage), sdk.size, sdk.current_usage, sdk.max_usage, bank_free[0], bank_free[1], bank_free[2],
     );
 }
+// Production appliance custody and memory admission do not depend on logging.
+// Separate measurement profiles keep their traces; opt in explicitly to retain
+// every preparation-stage trace in the autonomous appliance image as well.
+#[cfg(all(feature = "local-appliance", not(feature = "target-memory-trace")))]
+#[inline(always)]
+pub(crate) fn mark(_phase: &str, _item: usize) {}
 impl NativeRoot {
     #[cfg(feature = "target-memory-check")]
     #[inline(never)]

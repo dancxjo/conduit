@@ -13,6 +13,8 @@ local-evidence-store = ["display-physical-check", "owner-wifi", "dep:esp-storage
 owner-wifi = ["native-root"]
 mask-root = ["native-face-root", "conduit-environment-runtime/mask-renderer"]
 target-memory-check = ["body-image-root", "display-fit-root", "conduit-planner/indexed-source", "conduit-environment-runtime/local-planning", "esp-backtrace/custom-pre-backtrace"]
+# Verbose allocation-stage tracing is separate from the appliance's admission guards.
+target-memory-trace = []
 target-mask-memory-check = ["body-image-root", "mask-root", "conduit-planner/indexed-source", "conduit-environment-runtime/local-planning", "esp-backtrace/custom-pre-backtrace"]
 target-mask-native-check = ["target-mask-memory-check"]
 local-appliance = ["target-mask-native-check", "body-persistence", "observation-store", "network-credential-store", "network-mdns"]

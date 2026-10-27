@@ -179,6 +179,7 @@ impl NativeRoot {
             millis: u64,
             root_used: usize,
             root_free: usize,
+            root_peak: usize,
             sampler: Option<crate::native_task::Status>,
             mask: Option<crate::native_display::task::Status>,
             consumed_mask: crate::native_mask_evidence::Status,
@@ -198,6 +199,7 @@ impl NativeRoot {
             millis,
             root_used: memory.current_usage,
             root_free: memory.size.saturating_sub(memory.current_usage),
+            root_peak: memory.max_usage,
             sampler: self.worker.as_ref().map(|worker| worker.status()),
             mask: self
                 .local_mask_worker
