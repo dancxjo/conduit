@@ -15,6 +15,8 @@ mod custody_boot;
 pub(crate) mod custody_journal;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_history.rs"]
 mod history;
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_recovery.rs"]
+mod recovery;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_state.rs"]
 mod state;
 type ArchiveRegion = Epoch;
@@ -28,6 +30,10 @@ static STATE: Lock<RefCell<Option<State>>> = Lock::new(RefCell::new(None));
 static EPOCHS: Lock<RefCell<Option<[State; 5]>>> = Lock::new(RefCell::new(None));
 const WORK_BYTES: usize = 536;
 static WORK: Lock<RefCell<Option<Box<[u8; WORK_BYTES]>>>> = Lock::new(RefCell::new(None));
+// Test-only failure point before the actual workspace loan, after N earlier
+// calls succeeded. It cannot manufacture an ACK or an erased-media witness.
+static WORK_CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+static FAIL_WORK_CALL: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 struct WorkLease(Option<Box<[u8; WORK_BYTES]>>);
 impl Drop for WorkLease {
     fn drop(&mut self) {
@@ -39,6 +45,10 @@ impl Drop for WorkLease {
 fn with_work<R>(
     action: impl FnOnce(&mut [u8]) -> Result<R, &'static str>,
 ) -> Result<R, &'static str> {
+    let call = WORK_CALLS.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+    if FAIL_WORK_CALL.load(std::sync::atomic::Ordering::SeqCst) == call {
+        return Err("test-workspace-refused");
+    }
     let work = WORK
         .lock(|cell| cell.borrow_mut().take())
         .ok_or("observed-history-workspace")?;
@@ -321,6 +331,31 @@ pub fn prove(
         custody_boot::prepare(region, &mut work).unwrap(),
         custody_journal::Opened::Erased(_)
     ));
+    // First matching inspection and the second actual inspection succeed. The
+    // actual Root then commits/rereads the layout receipt and checks its witness.
+    // Refuse only the third workspace call, immediately before media transfer.
+    let workspace_failure = frozen(4, body, key);
+    let good = request(4, credential);
+    let original = workspace_failure.lock().unwrap().bytes.clone();
+    WORK_CALLS.store(0, std::sync::atomic::Ordering::SeqCst);
+    FAIL_WORK_CALL.store(3, std::sync::atomic::Ordering::SeqCst);
+    assert_eq!(cold::acknowledge(&good), Err("test-workspace-refused"));
+    assert_eq!(WORK_CALLS.load(std::sync::atomic::Ordering::SeqCst), 3);
+    FAIL_WORK_CALL.store(0, std::sync::atomic::Ordering::SeqCst);
+    assert!(native_restart::observed::read_layout_receipt(&[4; 32])
+        .unwrap()
+        .is_some());
+    assert_eq!(workspace_failure.lock().unwrap().erases, 0);
+    assert_eq!(workspace_failure.lock().unwrap().bytes, original);
+    // SlotLease must restore the FrozenRegion after the callback returns Err;
+    // Failed would mean its unique physical owner was dropped during transfer.
+    EPOCHS.lock(|e| {
+        assert!(matches!(
+            &e.borrow().as_ref().unwrap()[3],
+            State::FrozenRegion(_)
+        ))
+    });
+    WORK.lock(|w| assert!(w.borrow().is_some()));
     let ff = frozen(5, body, key);
     let good = request(5, credential);
     ff.lock().unwrap().fail_ff_read = true;
@@ -347,8 +382,34 @@ pub fn prove(
     }
     cold::resume_pending().unwrap();
     assert_eq!(ff.lock().unwrap().erases, 60);
-    let d = frozen(4, body, key);
-    let good = request(4, credential);
+    // Reopen the original slot whose earlier failed layout write left all
+    // signed data intact. This preserves the finite five-epoch geometry while
+    // exercising the remaining applied-commit/readback failure independently.
+    let State::FrozenRegion(region) =
+        EPOCHS.lock(|e| std::mem::replace(&mut e.borrow_mut().as_mut().unwrap()[0], State::Failed))
+    else {
+        panic!("failed layout write must retain actual storage")
+    };
+    let contract =
+        conduit_environment_runtime::observation::ObservationContract::prepare().unwrap();
+    let basis: &'static [u8] = Box::leak(Box::new(observed_record::descriptor(&contract).unwrap()));
+    let mut work = [0; 536];
+    let (journal, scope, last_sequence) =
+        recovery::reopen_profile(region, basis, &mut work, true).unwrap();
+    EPOCHS.lock(|e| {
+        e.borrow_mut().as_mut().unwrap()[0] = State::Active(state::Active {
+            journal,
+            scope,
+            forms: Sha256::digest(basis).into(),
+            last_sequence,
+            failed: false,
+            recovered: true,
+            signed: true,
+            maximum_records: 960,
+        })
+    });
+    let d = a;
+    let good = request(1, credential);
     ARM_COMMIT_READ_FAULT.store(true, std::sync::atomic::Ordering::SeqCst);
     assert!(cold::acknowledge(&good).is_err());
     assert!(
@@ -364,10 +425,10 @@ pub fn prove(
     );
     EPOCHS.lock(|e| {
         assert!(matches!(
-            &e.borrow().as_ref().unwrap()[3],
+            &e.borrow().as_ref().unwrap()[0],
             State::FrozenRegion(_)
         ))
     });
     COMMIT_READ_FAULT.store(false, std::sync::atomic::Ordering::SeqCst);
-    println!("actual cold module + actual Root restart observed signer/persisted manager: canonical ACK, wrong signature, missing workspace, failed layout write+appliedcommit/readbackrefusal, all30erase+allFFreadbackrefusal+replay refusal, Pending authenticated reboot+resume, authenticated erased boot classify; every physical backend operation outside State/Work critical scopes");
+    println!("actual cold module + actual Root restart observed signer/persisted manager: canonical ACK, wrong signature, missing workspace+third-call refusal after durable layout, failed layout write+appliedcommit/readbackrefusal, all30erase+allFFreadbackrefusal+replay refusal, Pending authenticated reboot+resume, authenticated erased boot classify; every physical backend operation outside State/Work critical scopes");
 }
