@@ -268,7 +268,7 @@ impl NativeRoot {
         // complete immutable result crosses this synchronous ownership handoff;
         // no plan, authority, or metadata is omitted.
         #[cfg(feature = "local-appliance")]
-        let mut parked = {
+        let parked = {
             let key = self.restart_verifying_key();
             let parked =
                 crate::native_restart::park_box(&mut self.body, &key, &self.host, &self.boot)?;
@@ -277,6 +277,29 @@ impl NativeRoot {
         };
         let sample = self.prepare_local_sampler_plan()?;
         let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
+        self.plan_local_mask_from_sampler(
+            sample,
+            sampler,
+            execute,
+            #[cfg(feature = "local-appliance")]
+            parked,
+        )
+    }
+    // Native possession checks have completed before this frame exists. Keep
+    // numeric owners on the ordinary CPU stack only for the remaining cold
+    // software/planning phase, releasing their temporary Box before Mask planning.
+    #[inline(never)]
+    fn plan_local_mask_from_sampler(
+        &mut self,
+        sample: c::VerifiedPlanMetadata,
+        sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        execute: bool,
+        #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let sampler = {
+            let boxed = sampler;
+            *boxed
+        };
         mark("ordinary-mask-software-construction-retired", 15);
         let mask_values = take_fixed_values()?;
         mark(
@@ -461,18 +484,12 @@ impl NativeRoot {
     fn assemble_local_plots(
         &mut self,
         proposal: conduit_body::PreparedVerifiedBodyProposal,
-        sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        sampler: PreparedSamplerParts,
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
         execute: bool,
         #[cfg(feature = "local-appliance")] parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        // Drop the temporary numeric bundle's allocation before any kernel
-        // allocation; its actual owned drivers/leases move into this assembly.
-        let sampler = {
-            let boxed = sampler;
-            *boxed
-        };
         let PreparedSamplerParts {
             sampler_parts,
             native,
