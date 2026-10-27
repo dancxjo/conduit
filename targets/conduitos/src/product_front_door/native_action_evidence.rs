@@ -4,6 +4,7 @@ use crate::arch;
 use crate::product_journey::JourneyProjection;
 use conduit_face::{Face, FaceInteraction, MaskShow};
 use serde_json::{Value, json};
+mod storage_observation;
 
 fn emit(prefix: &[u8], record: &Value) -> Result<(), &'static str> {
     emit_with_limit(prefix, record, 96 * 1024)
@@ -33,6 +34,7 @@ fn emit_admitted_record(prefix: &[u8], record: &Value, limit: usize) -> Result<(
     if bytes.len() > limit {
         return Err("native-action-evidence-bound");
     }
+    storage_observation::record(prefix, limit, bytes.len());
     #[cfg(not(test))]
     {
         arch::early_write(prefix);
@@ -48,15 +50,6 @@ fn emit_admitted_record(prefix: &[u8], record: &Value, limit: usize) -> Result<(
     Ok(())
 }
 
-pub(super) fn face(
-    face: &Face,
-    show: &MaskShow,
-    observation: u64,
-    play: u64,
-) -> Result<(), &'static str> {
-    face_with_storage(face, show, observation, play, None)
-}
-
 pub(super) fn face_with_storage(
     face: &Face,
     show: &MaskShow,
@@ -67,6 +60,20 @@ pub(super) fn face_with_storage(
         &crate::native_mask_play::NativeMaskPlayReceipt,
     )>,
 ) -> Result<(), &'static str> {
+    if let Some((producer, renderer)) = storage {
+        if producer.face_id != face.identity.as_str()
+            || producer.face_revision != face.revision
+            || renderer.face_id != face.identity.as_str()
+            || renderer.face_revision != face.revision
+            || renderer.mask_plan_id != show.planned_mask.plan.plan_id
+            || renderer.active_play_id != show.show.active_play_id
+            || producer.host_id != show.show.host_id
+            || producer.offer_generation != show.show.offer_generation
+            || producer.boot_id != show.show.boot_id
+        {
+            return Err("native-action-evidence-stale-storage");
+        }
+    }
     // Observation envelope follows explicitly admitted storage, never incoming size.
     let limit = if storage.is_some_and(|(producer, renderer)| {
         producer.collection_storage.is_some() && renderer.collection_storage.is_some()
