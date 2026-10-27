@@ -2,6 +2,8 @@
 extern crate alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_offer_order.rs"]
+mod native_offer_order;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[path = "network_indexed/borrowed.rs"]

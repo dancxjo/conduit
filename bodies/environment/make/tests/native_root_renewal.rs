@@ -5,10 +5,16 @@
 #![cfg_attr(feature = "local-appliance", allow(clippy::duplicate_mod))]
 // Actual target modules retain compatible entrances unused by this CPU route;
 // generated immutable Source emits mutable builders for other feature profiles.
-#![cfg_attr(feature = "local-appliance", allow(dead_code, unused_imports, unused_mut))]
+#![cfg_attr(
+    feature = "local-appliance",
+    allow(dead_code, unused_imports, unused_mut)
+)]
 extern crate alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[cfg(feature = "local-appliance")]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_offer_order.rs"]
+mod native_offer_order;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 

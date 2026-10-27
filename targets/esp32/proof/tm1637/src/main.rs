@@ -101,6 +101,8 @@ mod native_mask_wire;
 #[cfg(feature = "native-root")]
 mod native_network;
 #[cfg(feature = "native-root")]
+mod native_offer_order;
+#[cfg(feature = "native-root")]
 mod native_owner_control;
 #[cfg(feature = "native-root")]
 mod native_owner_receipt;

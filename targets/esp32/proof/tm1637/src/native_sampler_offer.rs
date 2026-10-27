@@ -26,12 +26,7 @@ impl NativeRoot {
             wait.append_to_advertisement(&mut advertisement)
                 .map_err(|_| ())?;
         }
-        advertisement
-            .bases
-            .sort_by(|a, b| a.base_id.cmp(&b.base_id));
-        advertisement
-            .resources
-            .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        crate::native_offer_order::sort(&mut advertisement);
         Ok(advertisement)
     }
 }

@@ -24,12 +24,7 @@ impl NativeRoot {
         // an effect provider or a replacement grant for Credentials/Join.
         self.play.append_offer(&mut advertisement);
         self.network.append_to_advertisement(&mut advertisement)?;
-        advertisement
-            .bases
-            .sort_by(|a, b| a.base_id.cmp(&b.base_id));
-        advertisement
-            .resources
-            .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        crate::native_offer_order::sort(&mut advertisement);
         Ok(advertisement)
     }
 }

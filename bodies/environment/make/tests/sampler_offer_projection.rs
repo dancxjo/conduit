@@ -1,6 +1,8 @@
 //! Exact native sampler projection against initialized inert CPU owners. No
 //! provider effect, physical startup, Body admission, or grant issuance occurs.
 extern crate alloc;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_offer_order.rs"]
+mod native_offer_order;
 use conduit_core as c;
 use conduit_monotonic_wait::*;
 use conduit_net::{NetworkJoinRequest, StationAttemptFailure, StationFailure};
@@ -525,5 +527,44 @@ fn display_projection_preserves_exact_offers_and_ordinary_plan_without_unused_me
     }
     root.boot = "stale/boot".into();
     assert!(root.display_native_advertisement().is_err());
+    assert_eq!(effects.get(), 0);
+}
+
+#[test]
+fn shared_offer_order_preserves_stable_duplicate_entries_without_validation() {
+    let (root, effects) = root();
+    let mut advertisement = root.sampler_native_advertisement().unwrap();
+    let base = advertisement.bases[0].clone();
+    let resource = advertisement.resources[0].clone();
+    // Duplicate identities are intentionally malformed descriptive input. Sorting
+    // must neither validate them nor discard differing payloads or reorder ties.
+    let mut early_base = base.clone();
+    early_base.base_id = "aaa".into();
+    advertisement.bases = vec![base.clone(), early_base, base];
+    let mut first = resource.clone();
+    first.capacity_units = 17;
+    let mut second = resource.clone();
+    second.capacity_units = 29;
+    let mut early = resource;
+    early.pool_id = "aaa".into();
+    early.capacity_units = 43;
+    advertisement.resources = vec![first, early, second];
+    let mut old = advertisement.clone();
+    old.bases.sort_by(|a, b| a.base_id.cmp(&b.base_id));
+    old.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+    let capabilities = advertisement.capabilities.clone();
+    let ((), allocation) =
+        allocation_probe::observe(|| native_offer_order::sort(&mut advertisement));
+    assert_eq!(advertisement, old);
+    assert_eq!(advertisement.capabilities, capabilities);
+    assert_eq!(
+        advertisement
+            .resources
+            .iter()
+            .map(|r| r.capacity_units)
+            .collect::<Vec<_>>(),
+        [43, 17, 29]
+    );
+    assert_eq!(allocation.allocations, 0);
     assert_eq!(effects.get(), 0);
 }

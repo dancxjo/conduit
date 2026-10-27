@@ -42,12 +42,7 @@ impl NativeRoot {
         self.network.append_to_advertisement(&mut advertisement)?;
         // Providers append their own retained facts. Root composes the complete
         // advertisement in the canonical order required by ordinary planning.
-        advertisement
-            .bases
-            .sort_by(|left, right| left.base_id.cmp(&right.base_id));
-        advertisement
-            .resources
-            .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
+        crate::native_offer_order::sort(&mut advertisement);
         Ok(advertisement)
     }
 }
