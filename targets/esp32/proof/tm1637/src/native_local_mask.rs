@@ -634,8 +634,8 @@ impl NativeRoot {
         let retained = if execute {
             mark("before-local-mask-route-admission", 1);
             use conduit_body::BodyPlanEvidence;
-            use conduit_plan_lowering::selected_operation::{
-                SelectedVerifiedForeOperationPlan, SelectedVerifiedOperationPlan,
+            use conduit_environment_runtime::mask_renderer::{
+                DirectRendererSelection, RendererSourceConfiguration,
             };
             let body = self.body.as_ref().ok_or("body-owner")?;
             let current = body.realization().ok_or("local-mask-body-realization")?;
@@ -691,33 +691,21 @@ impl NativeRoot {
                 .find(|p| p.gear_id == role.show_output.gear_id)
                 .ok_or("local-mask-renderer-placement")?;
             let source = image()?;
-            let configuration = (0..source.gear_count())
-                .find_map(|i| {
-                    source
-                        .gear_configuration(i)
-                        .ok()
-                        .filter(|gear| gear.gear_id == placement.gear_id)
-                })
-                .ok_or("local-mask-renderer-configuration")?;
-            mark("before-local-mask-lease-lowering", 1);
-            let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
-                &mask,
-                &mask_fragment.fragment_id,
-            )
-            .map_err(|_| "local-mask-renderer-lowering")?;
+            let configuration = RendererSourceConfiguration::prepare(
+                &source,
+                &role.plot_identity,
+                &placement.gear_id,
+            )?;
             mark("before-local-mask-lease-binding", 1);
-            let (leases, invocation, guard) = self.issuer.prepare_mask_leases(
+            let (leases, invocation, guard) = self.issuer.prepare_mask_leases_direct(
                 self.display.renderer().ok_or("local-mask-renderer-owner")?,
-                &configuration.configuration,
-                SelectedVerifiedForeOperationPlan {
+                &configuration,
+                DirectRendererSelection {
                     fore: &mask_fragment.fore_ports,
-                    operation: SelectedVerifiedOperationPlan {
-                        plan: &mask,
-                        fragment_id: &mask_fragment.fragment_id,
-                        lowered: lowered.lowered(),
-                        active: &mask_active,
-                        placement_id: &placement.placement_id,
-                    },
+                    plan: &mask,
+                    fragment_id: &mask_fragment.fragment_id,
+                    active: &mask_active,
+                    placement_id: &placement.placement_id,
                 },
             )?;
             self.local_mask_scope = Some(guard);
