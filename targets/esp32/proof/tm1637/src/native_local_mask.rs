@@ -24,6 +24,13 @@ struct PreparedSamplerParts {
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
 }
+struct RetainedMask {
+    leases: crate::native_authority::MaskLeaseIssuer,
+    invocation: conduit_environment_runtime::mask_renderer::PreparedRendererInvocation,
+    routes: conduit_face::AdmittedMaskPlotRoutes,
+    wardrobe: conduit_face::MaskWardrobeControl,
+    wake: conduit_body::WakeId,
+}
 struct PreparedLocalPlots {
     sampler: Option<crate::native_kernel::PreparedKernel>,
     native: Option<Bindings>,
@@ -361,7 +368,8 @@ impl NativeRoot {
         // Full biography replay must finish before the large numeric assembly
         // frame exists, just as streamed restoration and Show preparation do.
         self.commit_local_body_proposal(proposal)?;
-        self.assemble_local_plots(sampler, mask, mask_values, context, execute)
+        let retained = self.prepare_local_mask_custody(&mask, execute)?;
+        self.assemble_local_plots(sampler, mask, mask_values, context, retained)
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -594,23 +602,14 @@ impl NativeRoot {
         Ok(())
     }
     #[inline(never)]
-    fn assemble_local_plots(
+    fn prepare_local_mask_custody(
         &mut self,
-        sampler: PreparedSamplerParts,
-        mask: c::VerifiedPlanMetadata,
-        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
-        context: Option<conduit_face::PreparedMaskShowContext>,
+        mask: &c::VerifiedPlanMetadata,
         execute: bool,
-    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        let PreparedSamplerParts {
-            sampler_parts,
-            native,
-            active,
-            fragment,
-        } = sampler;
-        let generation = c::OfferGeneration(self.offer_generation);
+    ) -> Result<Option<RetainedMask>, &'static str> {
         let role = material::role().map_err(|_| "local-mask-role")?;
         let retained = if execute {
+            mark("before-local-mask-route-admission", 1);
             use conduit_body::BodyPlanEvidence;
             use conduit_plan_lowering::selected_operation::{
                 SelectedVerifiedForeOperationPlan, SelectedVerifiedOperationPlan,
@@ -636,6 +635,7 @@ impl NativeRoot {
                 }],
             )
             .map_err(|_| "local-mask-sealed-route")?;
+            mark("local-mask-routes-admitted", 1);
             let wardrobe = conduit_face::MaskWardrobeControl::new_from_admitted_routes(
                 conduit_face::BodyMaskWardrobe::new(
                     current.plan.body_id().clone(),
@@ -652,6 +652,7 @@ impl NativeRoot {
                 None,
             )
             .map_err(|_| "local-mask-wardrobe-route")?;
+            mark("local-mask-wardrobe-live", 1);
             let mask_fragment = &mask.preparation_metadata().fragments[0];
             let mask_active = c::bind_active_play(
                 mask.plan_id(),
@@ -675,11 +676,13 @@ impl NativeRoot {
                         .filter(|gear| gear.gear_id == placement.gear_id)
                 })
                 .ok_or("local-mask-renderer-configuration")?;
+            mark("before-local-mask-lease-lowering", 1);
             let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
                 &mask,
                 &mask_fragment.fragment_id,
             )
             .map_err(|_| "local-mask-renderer-lowering")?;
+            mark("before-local-mask-lease-binding", 1);
             let (leases, invocation, guard) = self.issuer.prepare_mask_leases(
                 self.display.renderer().ok_or("local-mask-renderer-owner")?,
                 &configuration.configuration,
@@ -695,16 +698,37 @@ impl NativeRoot {
                 },
             )?;
             self.local_mask_scope = Some(guard);
-            Some((
+            mark("local-mask-lease-custody-live", 1);
+            Some(RetainedMask {
                 leases,
                 invocation,
                 routes,
                 wardrobe,
-                current.plan.wake_id().clone(),
-            ))
+                wake: current.plan.wake_id().clone(),
+            })
         } else {
             None
         };
+        Ok(retained)
+    }
+    #[inline(never)]
+    fn assemble_local_plots(
+        &mut self,
+        sampler: PreparedSamplerParts,
+        mask: c::VerifiedPlanMetadata,
+        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+        context: Option<conduit_face::PreparedMaskShowContext>,
+        retained: Option<RetainedMask>,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        mark("ordinary-mask-numeric-assembly-entered", 1);
+        let PreparedSamplerParts {
+            sampler_parts,
+            native,
+            active,
+            fragment,
+        } = sampler;
+        let generation = c::OfferGeneration(self.offer_generation);
+        let role = material::role().map_err(|_| "local-mask-role")?;
         let mask_parts = {
             let image = image()?;
             let boundary = material::planning_boundary().map_err(|_| "local-mask-boundary")?;
@@ -745,7 +769,14 @@ impl NativeRoot {
             .finish_with_fixed_storage(mask_values)
             .map_err(|_| "local-mask-kernel")?;
         mark("both-ordinary-local-kernels-face-live", 18);
-        if let Some((leases, invocation, routes, wardrobe, wake)) = retained {
+        if let Some(RetainedMask {
+            leases,
+            invocation,
+            routes,
+            wardrobe,
+            wake,
+        }) = retained
+        {
             let mask = crate::native_display::LocalPreparation {
                 context: context.ok_or("local-mask-context-unavailable")?,
                 kernel: mask_kernel,
