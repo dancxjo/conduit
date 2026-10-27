@@ -59,6 +59,26 @@ pub struct PreparedMaskKernelParts {
     show: LoweredForePort,
     interaction: LoweredForePort,
 }
+impl<V: k::ValueStorage> PreparedMaskKernel<V> {
+    /// Dormant renderer continuation; this is not an execution grant.
+    pub fn renderer_request_sequence(&self) -> Option<k::RequestId> {
+        let mut found = None;
+        for back in self.kernel.drivers() {
+            if let MaskBack::Renderer {
+                state,
+                next_request,
+                ..
+            } = back
+            {
+                if *state != 0 || found.is_some() {
+                    return None;
+                }
+                found = Some(k::RequestId(*next_request));
+            }
+        }
+        found
+    }
+}
 impl PreparedMaskKernel {
     /// Storage uses the sealed Plan ceilings. Full canonical Face/Show values
     /// stay in the ordinary
@@ -206,6 +226,39 @@ impl PreparedMaskKernel {
     }
 }
 impl PreparedMaskKernelParts {
+    /// Seed newly admitted dormant work from the actual retained renderer.
+    /// No old provider counter, operation budget or authority is reset.
+    pub fn set_renderer_request_sequence(
+        &mut self,
+        first: k::RequestId,
+    ) -> Result<(), &'static str> {
+        if first.0 == u32::MAX {
+            return Err("mask-request-exhausted");
+        }
+        let mut index = None;
+        for (at, back) in self.backs.iter().enumerate() {
+            if let MaskBack::Renderer {
+                state,
+                next_request,
+                ..
+            } = back
+            {
+                if *state != 0
+                    || (*next_request != 0 && *next_request != first.0)
+                    || index.is_some()
+                {
+                    return Err("mask-request-continuation");
+                }
+                index = Some(at);
+            }
+        }
+        let at = index.ok_or("mask-request-continuation")?;
+        if let MaskBack::Renderer { next_request, .. } = &mut self.backs[at] {
+            *next_request = first.0;
+        }
+        Ok(())
+    }
+
     /// Exact canonical slot backing plus boxed scheduler. Allocator overhead,
     /// the parts wrapper, remote Sign storage and owner control reserves remain
     /// separate admission responsibilities.
@@ -259,6 +312,7 @@ impl PreparedMaskKernelParts {
     /// topology, Sign budget and allocation preflight. Refusal retains both
     /// the complete checked material and the original storage reference.
     #[allow(clippy::result_large_err, clippy::type_complexity)]
+    #[allow(clippy::needless_lifetimes)] // Name the same affine backing in both success and refusal.
     pub fn finish_with_fixed_storage_retained<'a>(
         self,
         values: &'a mut k::FixedValueStore<2, 8192>,

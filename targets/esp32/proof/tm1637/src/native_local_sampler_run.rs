@@ -25,6 +25,46 @@ impl NativeRoot {
         active: &c::ActivePlayIdentity,
         fragment: &c::FragmentId,
     ) -> Result<(), &'static str> {
+        let mut publisher = Some(publisher);
+        self.prepare_local_sampler_worker_inner(
+            kernel,
+            native,
+            &mut publisher,
+            active,
+            fragment,
+            None,
+        )
+        .await
+    }
+    pub(crate) async fn prepare_returned_sampler_worker(
+        &mut self,
+        kernel: &mut Option<crate::native_kernel::PreparedKernel>,
+        native: &mut Option<Bindings>,
+        publisher: &mut Option<crate::native_face::Publisher>,
+        active: &c::ActivePlayIdentity,
+        fragment: &c::FragmentId,
+        previous: &mut Option<crate::native_task::Handle>,
+    ) -> Result<(), &'static str> {
+        self.prepare_local_sampler_worker_inner(
+            kernel,
+            native,
+            publisher,
+            active,
+            fragment,
+            Some(previous),
+        )
+        .await
+    }
+    #[allow(clippy::too_many_arguments)]
+    async fn prepare_local_sampler_worker_inner(
+        &mut self,
+        kernel: &mut Option<crate::native_kernel::PreparedKernel>,
+        native: &mut Option<Bindings>,
+        publisher: &mut Option<crate::native_face::Publisher>,
+        active: &c::ActivePlayIdentity,
+        fragment: &c::FragmentId,
+        previous: Option<&mut Option<crate::native_task::Handle>>,
+    ) -> Result<(), &'static str> {
         if self.worker.is_some()
             || self.execution.is_some()
             || self.native_bindings.is_some()
@@ -88,11 +128,23 @@ impl NativeRoot {
             return Err("execution-context-capacity");
         }
         self.execution = Some(DeviceExecution::boxed_retained(kernel, native)?);
-        self.worker = Some(crate::native_task::prepare(
-            &mut self.execution,
-            spawner,
-            publisher,
-        )?);
+        self.worker = Some(match previous {
+            Some(previous) => {
+                let handle = previous.take().ok_or("renewal-retired-sampler-handle")?;
+                match handle.prepare_next(&mut self.execution, spawner, publisher) {
+                    Ok(handle) => handle,
+                    Err((handle, reason)) => {
+                        *previous = Some(handle);
+                        return Err(reason);
+                    }
+                }
+            }
+            None => crate::native_task::prepare(
+                &mut self.execution,
+                spawner,
+                publisher.take().ok_or("local-sampler-publisher")?,
+            )?,
+        });
         let worker = self
             .worker
             .as_ref()

@@ -19,12 +19,28 @@ pub fn prepare() -> Result<Box<Software>, ()> {
 /// Back, provider budget, slot generation or Body Play is reset here.
 #[cold]
 #[inline(never)]
+#[allow(clippy::result_large_err)] // Err preserves the actual affine value backing.
 pub fn prepare_with_returned_values(
     values: conduit_kernel::HostedValueStore,
 ) -> Result<Box<Software>, ((), conduit_kernel::HostedValueStore)> {
+    prepare_with_returned_values_checked(values).map_err(|(_, values)| ((), values))
+}
+/// Preserve the typed preparation refusal so Root can distinguish transient
+/// storage capacity from invalid Source/configuration or exhausted generations.
+#[cold]
+#[inline(never)]
+#[allow(clippy::result_large_err)] // Err preserves the actual affine value backing.
+pub fn prepare_with_returned_values_checked(
+    values: conduit_kernel::HostedValueStore,
+) -> Result<
+    Box<Software>,
+    (
+        conduit_environment_runtime::appliance::assigned::NativePreparationRefusal,
+        conduit_kernel::HostedValueStore,
+    ),
+> {
     Software::prepare_source_retained(&material::spec(), material::computations(), values)
         .map(Box::new)
-        .map_err(|(_, values)| ((), values))
 }
 pub fn offers(
     software: &Software,

@@ -46,3 +46,9 @@ conduit-environment-runtime = { path = "../runtime", features = ["body-image", "
 sha2 = { version = "0.10", default-features = false }
 embassy-sync = { version = "=0.8.0", default-features = false }
 critical-section = { version = "1", features = ["std"] }
+
+# CPU proof runs the actual native task slots with an explicit manual clock.
+embassy-executor = { version = "=0.10.0", default-features = false }
+embassy-time = { version = "=0.5.1", default-features = false, features = ["tick-hz-1_000_000"] }
+embassy-time-driver = { version = "=0.2.2", features = ["tick-hz-1_000_000"] }
+static_cell = "=2.1.1"

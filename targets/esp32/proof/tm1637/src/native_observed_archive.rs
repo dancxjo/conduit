@@ -43,7 +43,10 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<Option<State>>> =
     Mutex::new(RefCell::new(None));
 // Awake-only bookkeeping, not a DMA buffer or a cross-reset trust source.
 // The ordinary initialized section is cleared before reopening exact flash.
-#[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
+#[cfg_attr(
+    all(target_os = "none", feature = "local-appliance"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
 static EPOCHS: Mutex<CriticalSectionRawMutex, RefCell<Option<[State; 5]>>> =
     Mutex::new(RefCell::new(None));
 #[path = "native_observed_state.rs"]

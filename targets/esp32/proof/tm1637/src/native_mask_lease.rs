@@ -405,7 +405,7 @@ impl MaskLeaseIssuer {
         Ok((active, table, handle, claim))
     }
 }
-#[cfg(target_arch = "xtensa")]
+#[cfg(any(target_arch = "xtensa", feature = "local-appliance"))]
 impl crate::native_display::LeaseSource for MaskLeaseIssuer {
     fn current(&self, now_ms: u64) -> bool {
         self.current.load(Ordering::Acquire)

@@ -380,7 +380,10 @@ fn task(
     slot: &'static Slot,
 ) -> Result<embassy_executor::SpawnToken<impl Sized>, embassy_executor::SpawnError> {
     const POOL_SIZE: usize = 1;
-    #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
+    #[cfg_attr(
+        all(target_os = "none", feature = "local-appliance"),
+        esp_hal::ram(unstable(rtc_slow))
+    )]
     static POOL: embassy_executor::_export::TaskPoolHolder<
         { embassy_executor::_export::task_pool_size::<_, _, _, POOL_SIZE>(held) },
         { embassy_executor::_export::task_pool_align::<_, _, _, POOL_SIZE>(held) },

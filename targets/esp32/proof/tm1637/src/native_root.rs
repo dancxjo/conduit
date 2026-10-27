@@ -16,6 +16,12 @@ mod local_display_plan;
 #[cfg(feature = "target-mask-memory-check")]
 #[path = "native_local_mask.rs"]
 mod local_mask;
+#[cfg(feature = "local-appliance")]
+#[path = "native_local_renewal.rs"]
+mod local_renewal;
+#[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
+#[path = "native_local_sampler_plan.rs"]
+mod local_sampler_plan;
 #[cfg(feature = "target-mask-memory-check")]
 #[path = "native_local_sampler_run.rs"]
 mod local_sampler_run;
@@ -31,74 +37,16 @@ mod network_offer;
 mod network_plan;
 #[path = "native_offer.rs"]
 mod offers;
+#[path = "native_root_policy.rs"]
+mod policy;
 #[path = "native_setup.rs"]
 mod setup;
 use conduit_core as c;
 use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*};
 
-pub(crate) type DeviceExecution =
-    crate::native_worker::Execution<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
-type DeviceProviders =
-    crate::native_worker::RetiredProviders<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
-pub struct NativeRoot {
-    #[cfg(feature = "body-image-root")]
-    body: Option<alloc::boxed::Box<conduit_body::SealedBodyLifecycleSession>>,
-    retired_native: Option<DeviceProviders>,
-    worker: Option<crate::native_task::Handle>,
-    #[cfg(feature = "native-face-root")]
-    face_reader: Option<crate::native_face::Reader>,
-    worker_spawner: Option<embassy_executor::Spawner>,
-    execution: Option<alloc::boxed::Box<DeviceExecution>>,
-    native_bindings: Option<
-        crate::native_authority::NativeBindings<
-            Esp32PulseCapture<'static>,
-            crate::native_wait::EspWait,
-        >,
-    >,
-    owner_control: crate::native_owner_control::OwnerControl,
-    #[cfg(any(feature = "display-physical-check", feature = "mask-root"))]
-    display_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
-    owner_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
-    pub(crate) assignment_seal: Option<[u8; 32]>,
-    appliance_kernel: Option<crate::native_kernel::PreparedKernel>,
-    admission: crate::native_admission::NativeAdmission,
-    admission_freshness: u64,
-    network_preparation: Option<
-        Result<
-            crate::network_planning::PreparedVerifiedNetworkSetup,
-            crate::network_planning::NetworkPlanningRefusal,
-        >,
-    >,
-    network_source: c::PlotIdentity,
-    credentials: Option<
-        conduit_network_join_call::credential_installation::ReadyCredentialBase<
-            crate::native_credentials::RootCredentialSource,
-        >,
-    >,
-    issuer: crate::native_authority::RootIssuer,
-    play: crate::native_play::NativePlay,
-    offer_generation: u64,
-    software: Option<alloc::boxed::Box<crate::native_software::Software>>,
-    pub(crate) assignment: Option<
-        alloc::boxed::Box<
-            conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
-        >,
-    >,
-    credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
-    network: crate::native_network::NativeNetwork,
-    pulse: Option<ReadyPulseBase<Esp32PulseCapture<'static>>>,
-    display: alloc::boxed::Box<crate::native_display::NativeDisplay>,
-    #[cfg(feature = "mask-root")]
-    local_mask_scope: Option<crate::native_authority::MaskScopeGuard>,
-    #[cfg(feature = "mask-root")]
-    local_mask_worker: Option<crate::native_display::task::Handle>,
-    #[cfg(feature = "local-appliance")]
-    pending_network_workspace: Option<setup::PendingWorkspace>,
-    wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
-    host: c::HostId,
-    boot: c::BootId,
-}
+include!("native_root_state.rs");
+
 impl NativeRoot {
     #[inline(never)]
     pub fn prepare(
@@ -203,6 +151,12 @@ impl NativeRoot {
             local_mask_worker: None,
             #[cfg(feature = "local-appliance")]
             pending_network_workspace: None,
+            #[cfg(feature = "local-appliance")]
+            local_renewal: None,
+            #[cfg(feature = "local-appliance")]
+            local_renewal_archive_refusal: None,
+            #[cfg(feature = "local-appliance")]
+            local_history_custody: None,
             wait: Some(wait),
             host,
             boot,
@@ -288,20 +242,6 @@ impl NativeRoot {
             Ok(())
         }
     }
-    pub fn prepare_appliance_kernel(&mut self) -> Result<(), &'static str> {
-        if self.appliance_kernel.is_some() {
-            return Err("already-prepared");
-        }
-        if self.owner_reservation.is_some() {
-            return Err("owner-reserved");
-        }
-        self.appliance_kernel = Some(crate::native_kernel::prepare(
-            &mut self.software,
-            &mut self.assignment,
-        )?);
-        self.assignment_seal = None;
-        Ok(())
-    }
     pub fn assignment_staged(&self) -> bool {
         self.assignment.is_some() || self.display.assignment_staged()
     }
@@ -344,13 +284,6 @@ impl NativeRoot {
             self.offer_generation,
         )
     }
-    pub fn offer_scope(&self) -> (&c::HostId, &c::BootId, c::OfferGeneration) {
-        (
-            &self.host,
-            &self.boot,
-            c::OfferGeneration(self.offer_generation),
-        )
-    }
     pub fn display_software_offers(
         &mut self,
     ) -> Result<
@@ -375,24 +308,6 @@ impl NativeRoot {
             self.display.software_ready(),
             self.display.software_refusal().unwrap_or("none"),
         )
-    }
-    pub fn software(&self) -> Option<&crate::native_software::Software> {
-        self.software.as_deref()
-    }
-    /// Root policy over still-retained providers. A projected grant is not a
-    /// locally issued capability, Play reservation or Body start.
-    pub fn appliance_policy_grants(&self) -> Result<[c::AuthorityGrant; 2], ()> {
-        self.software.as_ref().ok_or(())?;
-        let wait = self.wait.as_ref().ok_or(())?;
-        let (_, cadence) = crate::native_software::source_facts();
-        if cadence.count == 0 {
-            return Err(());
-        }
-        Ok([
-            self.issuer
-                .grant_pulse(self.pulse.as_ref().ok_or(())?.native_identity())?,
-            self.issuer.grant_wait(wait.native_identity())?,
-        ])
     }
     pub fn network_source(&self) -> &c::PlotIdentity {
         &self.network_source

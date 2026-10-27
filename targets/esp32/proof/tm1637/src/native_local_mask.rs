@@ -4,8 +4,11 @@
 use super::mask::material;
 use super::{c, memory_check::mark, NativeRoot};
 use alloc::collections::BTreeMap;
+#[cfg(feature = "local-appliance")]
+#[path = "native_local_renewal_prepare.rs"]
+mod renewal_prepare;
 
-type Bindings = crate::native_authority::NativeBindings<
+pub(super) type Bindings = crate::native_authority::NativeBindings<
     conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
     crate::native_wait::EspWait,
 >;
@@ -18,26 +21,26 @@ struct PreparedSamplerBinding<'a> {
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
 }
-struct PreparedSamplerParts {
-    sampler_parts: crate::native_kernel_storage::LocalKernelParts,
+pub(super) struct PreparedSamplerParts {
+    sampler_parts: Option<crate::native_kernel_storage::LocalKernelParts>,
     native: Option<Bindings>,
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
 }
-struct PreparedSamplerKernel {
+pub(super) struct PreparedSamplerKernel {
     kernel: crate::native_kernel::PreparedKernel,
     native: Option<Bindings>,
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
 }
-struct RetainedMask {
+pub(super) struct RetainedMask {
     leases: crate::native_authority::MaskLeaseIssuer,
     invocation: conduit_environment_runtime::mask_renderer::PreparedRendererInvocation,
     routes: conduit_face::AdmittedMaskPlotRoutes,
     wardrobe: conduit_face::MaskWardrobeControl,
     wake: conduit_body::WakeId,
 }
-struct PreparedLocalPlots {
+pub(super) struct PreparedLocalPlots {
     sampler: Option<crate::native_kernel::PreparedKernel>,
     native: Option<Bindings>,
     publisher: crate::native_face::Publisher,
@@ -181,6 +184,11 @@ impl NativeRoot {
             network: crate::native_network::Inspection,
             archive: crate::native_observed_archive::Status,
             face: Option<crate::native_face::Inspection>,
+            renewal_state_bytes: usize,
+            renewal_preparation_bytes: usize,
+            renewal_phase: Option<&'static str>,
+            renewal_failure: Option<&'static str>,
+            renewal_archive_refusal: Option<&'static str>,
         }
         let millis = embassy_time::Instant::now().as_millis();
         let memory = esp_alloc::HEAP.stats();
@@ -197,6 +205,16 @@ impl NativeRoot {
             consumed_mask: crate::native_mask_evidence::status(),
             network: self.network.inspect(),
             archive: crate::native_observed_archive::status(),
+            renewal_state_bytes: core::mem::size_of::<super::local_renewal::Renewal>(),
+            renewal_preparation_bytes: core::mem::size_of::<crate::native_display::LocalPreparation>(
+            ),
+            renewal_phase: self.local_renewal.as_ref().map(|state| state.phase_name()),
+            renewal_failure: self.local_renewal.as_ref().and_then(|state| state.failure),
+            renewal_archive_refusal: self
+                .local_renewal
+                .as_ref()
+                .and_then(|state| state.archive_refusal)
+                .or(self.local_renewal_archive_refusal),
             face: self
                 .face_reader
                 .as_ref()
@@ -386,11 +404,12 @@ impl NativeRoot {
         let mut retained = alloc::boxed::Box::new(None);
         self.prepare_local_mask_custody(&mask, execute, &mut retained)?;
         let mask_parts = Self::prepare_local_mask_kernel_parts(
-            mask,
+            &mask,
             c::OfferGeneration(self.offer_generation),
             &self.host,
             &self.boot,
         )?;
+        drop(mask);
         let sampler = Self::prepare_local_sampler_kernel(sampler, kernel_backing)?;
         self.assemble_local_plots(sampler, mask_parts, mask_values, context, retained)
     }
@@ -467,7 +486,7 @@ impl NativeRoot {
             active,
             fragment,
         } = binding;
-        let prepared = crate::native_software::bind_local_direct(
+        let prepared = match crate::native_software::bind_local_direct(
             &mut self.software,
             tables,
             &image,
@@ -476,10 +495,18 @@ impl NativeRoot {
                 &self.boot,
                 c::OfferGeneration(self.offer_generation),
             ),
-        )?;
+        ) {
+            Ok(prepared) => prepared,
+            Err(reason) => {
+                // A returned preparation must never lose actual electrical
+                // owners if the independent software binding refuses.
+                self.native_bindings = native;
+                return Err(reason);
+            }
+        };
         let sampler_parts = crate::native_kernel_storage::LocalKernelParts::from_checked(prepared);
         Ok(alloc::boxed::Box::new(PreparedSamplerParts {
-            sampler_parts,
+            sampler_parts: Some(sampler_parts),
             native,
             active,
             fragment,
@@ -553,7 +580,7 @@ impl NativeRoot {
                     source_placement_id: None,
                 },
                 chains: alloc::vec![conduit_body::VerifiedBodyMaskChain {
-                    plan: &mask,
+                    plan: mask,
                     stage_placement_ids: stages
                 }],
             }],
@@ -649,7 +676,7 @@ impl NativeRoot {
             let routes = conduit_face::AdmittedMaskPlotRoutes::from_sealed_session(
                 body,
                 &role,
-                &mask,
+                mask,
                 alloc::vec![conduit_face::SealedMaskPlotRoute {
                     route_id: "route/esp32/local-tm1637".into(),
                     mask_plot: role.plot_identity.clone(),
@@ -709,7 +736,7 @@ impl NativeRoot {
                 &configuration,
                 DirectRendererSelection {
                     fore: &mask_fragment.fore_ports,
-                    plan: &mask,
+                    plan: mask,
                     fragment_id: &mask_fragment.fragment_id,
                     active: &mask_active,
                     placement_id: &placement.placement_id,
@@ -732,7 +759,7 @@ impl NativeRoot {
     }
     #[inline(never)]
     fn prepare_local_mask_kernel_parts(
-        mask: c::VerifiedPlanMetadata,
+        mask: &c::VerifiedPlanMetadata,
         generation: c::OfferGeneration,
         host: &c::HostId,
         boot: &c::BootId,
@@ -746,7 +773,7 @@ impl NativeRoot {
             let boundary = material::planning_boundary().map_err(|_| "local-mask-boundary")?;
             let fragment = &mask.preparation_metadata().fragments[0].fragment_id;
             let lowered = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
-                &mask, fragment,
+                mask, fragment,
             )
             .map_err(|_| "local-mask-lowering")?;
             conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_local_parts(
@@ -760,23 +787,25 @@ impl NativeRoot {
             )
             .map_err(|_| "local-mask-kernel")?
         };
-        drop(mask);
         mark("ordinary-mask-plan-lowering-retired", 3);
         Ok(alloc::boxed::Box::new(mask_parts))
     }
-    #[inline(never)]
+    #[inline(always)]
     fn prepare_local_sampler_kernel(
-        sampler: alloc::boxed::Box<PreparedSamplerParts>,
+        mut sampler: alloc::boxed::Box<PreparedSamplerParts>,
         backing: crate::native_kernel_storage::KernelBacking,
     ) -> Result<alloc::boxed::Box<PreparedSamplerKernel>, &'static str> {
+        let mut backing = Some(backing);
+        let kernel = crate::native_kernel::prepare_local_direct_with_backing_retained(
+            &mut sampler.sampler_parts,
+            &mut backing,
+        )?;
         let PreparedSamplerParts {
-            sampler_parts,
             native,
             active,
             fragment,
+            ..
         } = *sampler;
-        let kernel =
-            crate::native_kernel::prepare_local_direct_with_backing(sampler_parts, Some(backing))?;
         mark("ordinary-mask-sampler-kernel-live", 15);
         Ok(alloc::boxed::Box::new(PreparedSamplerKernel {
             kernel,

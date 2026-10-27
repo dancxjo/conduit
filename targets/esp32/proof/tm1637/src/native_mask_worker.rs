@@ -221,11 +221,7 @@ impl NativeMaskSession {
         for _ in 0..96 {
             let status = session.step().map_err(|_| "mask-step")?;
             if let Some(request) = session.next_host_request() {
-                if request.request
-                    != k::RequestId(
-                        u32::try_from(self.index).map_err(|_| "mask-request-exhausted")?,
-                    )
-                {
+                if request.request != call.request_sequence() {
                     return Err("mask-request-generation");
                 }
                 let verified = call
@@ -381,6 +377,8 @@ impl NativeMaskSession {
                 .map_err(|_| "mask-rearm")?;
             // The exact log was consumed above. Transfer, then release this owned
             // old log; neither cancellation nor unacknowledged output reaches here.
+            // End the drained invocation borrow before rearming the same session.
+            #[allow(clippy::drop_non_drop)]
             drop(retired);
         }
         // The final accepted child stays normally drained. A future consuming

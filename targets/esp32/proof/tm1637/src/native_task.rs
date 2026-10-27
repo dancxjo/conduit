@@ -72,8 +72,14 @@ const PROJECTION_BYTES: usize = 4096;
 // is serialized by STATE; publication_bytes records the initialized prefix.
 // ESP32 RTC-slow data RAM is unused by this awake profile.
 // This is volatile scratch, never retained state across reset or DMA backing.
-#[cfg_attr(feature = "native-face-root", esp_hal::ram(unstable(rtc_slow)))]
-#[cfg_attr(not(feature = "native-face-root"), esp_hal::ram(reclaimed))]
+#[cfg_attr(
+    all(target_os = "none", feature = "native-face-root"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
+#[cfg_attr(
+    all(target_os = "none", not(feature = "native-face-root")),
+    esp_hal::ram(reclaimed)
+)]
 #[cfg(not(feature = "local-appliance"))]
 static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
     core::mem::MaybeUninit::uninit();
@@ -336,7 +342,7 @@ fn register(
     match worker(slot) {
         Ok(token) => {
             spawner.spawn(token);
-            Ok(Handle { slot: slot })
+            Ok(Handle { slot })
         }
         Err(_) => {
             *execution = slot.execution.borrow_mut().take();
@@ -359,7 +365,10 @@ fn worker(
     slot: &'static Slot,
 ) -> Result<embassy_executor::SpawnToken<impl Sized>, embassy_executor::SpawnError> {
     const POOL_SIZE: usize = 1;
-    #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
+    #[cfg_attr(
+        all(target_os = "none", feature = "local-appliance"),
+        esp_hal::ram(unstable(rtc_slow))
+    )]
     static POOL: embassy_executor::_export::TaskPoolHolder<
         { embassy_executor::_export::task_pool_size::<_, _, _, POOL_SIZE>(held) },
         { embassy_executor::_export::task_pool_align::<_, _, _, POOL_SIZE>(held) },

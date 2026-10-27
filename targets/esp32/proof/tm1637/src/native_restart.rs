@@ -28,7 +28,10 @@ pub use restore::{restore_parked, restore_parked_retained};
 use restore::{restore_store, restore_store_retained};
 // Awake CPU-only custody: no DMA or deep-sleep persistence is claimed.
 #[allow(unexpected_cfgs)] // Native profile is absent from the CPU proof crate.
-#[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
+#[cfg_attr(
+    all(target_os = "none", feature = "local-appliance"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
 static STORE: Mutex<CriticalSectionRawMutex, RefCell<Slot>> =
     Mutex::new(RefCell::new(Slot::Uninitialized));
 // Inline static custody preserves the existing heap/stack reserve; boxing
@@ -519,25 +522,43 @@ fn checkpoint_store(
         let source = store
             .journal
             .rewrite_streamed(&previous.source, &store.binding, seed, |io| {
-                let next = payload::stream_rewrite(
+                // Preserve typed journal read faults through the bounded codec
+                // callback; transport failure is not malformed canonical data.
+                let mut read_refusal = None;
+                let emitted = payload::stream_rewrite(
                     owner.evidence(),
                     owner.pending_archives(),
                     store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
                     &previous.summary,
                     previous.span,
-                    |out| io.read_source(out).map_err(|_| ()),
+                    |out| {
+                        io.read_source(out).map_err(|error| {
+                            read_refusal = Some(error);
+                        })
+                    },
                     &mut |bytes| io.write(bytes),
-                )
-                .map_err(stream_refusal)?;
+                );
+                let next = emitted
+                    .map_err(|error| read_refusal.unwrap_or_else(|| stream_refusal(error)))?;
                 if metadata.as_ref().is_some_and(|prior| prior != &next) {
                     return Err(Refusal::Corrupt);
                 }
                 metadata = Some(next);
                 Ok(())
             })
-            .map_err(|_| {
-                store.failed = true;
-                "restart-checkpoint-commit"
+            .map_err(|error| {
+                if error == Refusal::Storage {
+                    // Exclusive live custody still pins the original committed
+                    // source. Storage never writes that bank, and every retry
+                    // fully reauthenticates it before target erase. Even an
+                    // ambiguous successor commit has not escaped as an ACK;
+                    // retry may replace only that inactive candidate. ready
+                    // remains false until complete successful readback/ACK.
+                    "restart-checkpoint-storage"
+                } else {
+                    store.failed = true;
+                    "restart-checkpoint-commit"
+                }
             })?;
         let (summary, span) = metadata.ok_or("restart-checkpoint-metadata")?;
         ArchiveCustody {

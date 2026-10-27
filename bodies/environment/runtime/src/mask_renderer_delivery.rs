@@ -58,6 +58,9 @@ pub struct VerifiedPresentation<'p, 'context> {
     prepared: &'p PreparedPresentation<'context>,
 }
 impl<P: OpenDrain> RendererCall<P> {
+    pub fn request_sequence(&self) -> RequestId {
+        self.ready.request_sequence()
+    }
     pub fn state(&self) -> RendererState {
         self.state
     }

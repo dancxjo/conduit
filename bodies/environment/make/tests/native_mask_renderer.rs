@@ -230,7 +230,23 @@ fn real_renderer_binding_acknowledges_show_then_explicitly_blanks_before_retirem
             let closed: f::MaskShow = serde_json::from_slice(&closed_wire[..length]).unwrap();
             assert_eq!(closed.show.lifecycle, f::ManifestationLifecycle::Closed);
             assert_eq!(closed.show.manifestation_id, show.show.manifestation_id);
-            let _ready = RendererCall::retire_retained(&mut slot).unwrap();
+            let returned = RendererCall::retire_retained(&mut slot).unwrap();
+            assert_eq!(returned.request_sequence(), RequestId(1));
+            let next_plan = crate::planned(&returned);
+            let mut next_parts =
+                conduit_environment_runtime::mask_kernel::PreparedMaskKernel::prepare_parts(
+                    &next_plan,
+                )
+                .unwrap();
+            next_parts
+                .set_renderer_request_sequence(returned.request_sequence())
+                .unwrap();
+            let next_kernel = next_parts.finish().unwrap();
+            assert_eq!(
+                next_kernel.renderer_request_sequence(),
+                Some(returned.request_sequence())
+            );
+            assert_eq!(returned.request_sequence(), RequestId(1));
             assert!(slot.is_none());
         }
         println!(
@@ -672,3 +688,27 @@ mod mask_session;
 #[allow(dead_code)]
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_mask_evidence.rs"]
 mod native_mask_evidence;
+
+#[test]
+fn dormant_mask_request_continuation_is_checked_without_resetting_provider() {
+    use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
+    let pins = Rc::new(native::Pins::default());
+    let ready = native::ready(pins.clone());
+    let planned = planned(&ready);
+    assert_eq!(ready.request_sequence(), RequestId(0));
+    let mut parts = PreparedMaskKernel::prepare_parts(&planned).unwrap();
+    parts
+        .set_renderer_request_sequence(RequestId(65536))
+        .unwrap();
+    assert!(parts.set_renderer_request_sequence(RequestId(0)).is_err());
+    assert!(parts
+        .set_renderer_request_sequence(RequestId(u32::MAX))
+        .is_err());
+    parts
+        .set_renderer_request_sequence(RequestId(65536))
+        .unwrap();
+    let kernel = parts.finish().unwrap();
+    assert_eq!(kernel.renderer_request_sequence(), Some(RequestId(65536)));
+    assert_eq!(ready.request_sequence(), RequestId(0));
+    assert_eq!(pins.edges.get(), 0);
+}

@@ -121,6 +121,13 @@ impl RootIssuer {
             native_issued_play: None,
         })
     }
+    /// Borrow the actual outstanding scope; observation grants no operation.
+    pub(crate) fn native_issued_active(&self) -> Option<&c::ActivePlayIdentity> {
+        self.native_issued_play.as_deref()
+    }
+    pub(crate) fn mask_issued_active(&self) -> Option<&c::ActivePlayIdentity> {
+        self.issued_display_play.as_deref()
+    }
     /// Observation only; this neither reserves nor authorizes the next identity.
     pub fn next_play_sequence(&self) -> Option<u64> {
         self.last_play_sequence.checked_add(1)

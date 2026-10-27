@@ -373,3 +373,56 @@ fn cold_terminal_wakes_leave_resident_window_only_with_owned_archive_evidence() 
     assert_eq!(owner.evidence().last_sequence(), sequence);
     assert!(!owner.seal_terminal_wake_for_checkpoint().unwrap());
 }
+
+#[test]
+fn same_boot_terminal_wake_archiving_admits_more_than_the_resident_window_without_losing_history() {
+    let (mut owner, host, boot) = fixture(0);
+    let body_id = owner.evidence().body_id.clone();
+    let mut archives: Vec<BodyBiographyArchiveSegment> = Vec::new();
+    let mut completed = Vec::new();
+    for _ in 0..(MAX_BODY_BIOGRAPHY_WAKES + 3) {
+        owner
+            .commit_verified_proposal(proposal(&owner, &host, &boot))
+            .unwrap();
+        let (play, started) = start(&owner, &host, &boot);
+        owner.started(&host, &boot, play.clone(), started).unwrap();
+        // This Body-only proof supplies the existing caller's terminal receipt
+        // boundary; actual native terminal custody is proved separately.
+        owner.lull(&host, &boot, Some(&play)).unwrap();
+        completed.push(owner.evidence().wakes.last().unwrap().clone());
+        assert!(owner.seal_terminal_wake_for_checkpoint().unwrap());
+        let pending = owner.pending_archives().last().unwrap();
+        pending.validate_as_head_of(owner.evidence()).unwrap();
+        if let Some(previous) = archives.last() {
+            assert_eq!(pending.previous_digest, Some(previous.digest));
+        }
+        let pending = pending.clone();
+        // A wrong archive acknowledgment must preserve exact staged custody.
+        // Actual journal write/readback failure is a separate Root proof.
+        let evidence = owner.evidence().clone();
+        let pending_bytes = serde_json::to_vec(owner.pending_archives()).unwrap();
+        assert!(owner.realization().is_none());
+        let mut wrong = pending.digest;
+        wrong[0] ^= 1;
+        assert!(owner.acknowledge_archives(wrong).is_err());
+        assert_eq!(owner.evidence(), &evidence);
+        assert_eq!(
+            serde_json::to_vec(owner.pending_archives()).unwrap(),
+            pending_bytes
+        );
+        // Explicit CPU stand-in for complete durable checkpoint/readback ACK.
+        owner.acknowledge_archives(pending.digest).unwrap();
+        archives.push(pending);
+        assert!(owner.pending_archives().is_empty());
+        assert!(owner.evidence().wakes.is_empty());
+        assert!(!owner.seal_terminal_wake_for_checkpoint().unwrap());
+        owner.evidence().validate().unwrap();
+        assert_eq!(owner.evidence().body_id, body_id);
+    }
+    let retained = archives
+        .iter()
+        .flat_map(|segment| segment.wakes.iter().cloned())
+        .collect::<Vec<_>>();
+    assert_eq!(retained, completed);
+    assert!(archives.len() > MAX_BODY_BIOGRAPHY_WAKES);
+}

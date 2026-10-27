@@ -61,6 +61,11 @@ impl NativeMaskSession {
         owner: &mut Option<NativeReady>,
         input: Preparation,
     ) -> Result<Box<Self>, (Preparation, &'static str)> {
+        if owner.as_ref().map(|ready| ready.request_sequence())
+            != input.kernel.renderer_request_sequence()
+        {
+            return Err((input, "mask-request-continuation"));
+        }
         let Some(selected) = input.wardrobe.selected.as_ref() else {
             return Err((input, "mask-no-worn-route"));
         };

@@ -105,14 +105,21 @@ async fn main(spawner: Spawner) {
         loop {
             #[cfg(feature = "local-appliance")]
             {
-                let _ = root.advance_setup().await;
-                #[cfg(feature = "body-persistence")]
-                {
-                    root.advance_join(embassy_time::Instant::now().as_millis());
-                    let _ = invitation_bootstrap
-                        .poll(&mut root, &mut invitation_uart)
-                        .await;
+                // Defer new mutations without consuming their requests while
+                // Root owns an unpublished replacement proposal. Network tasks
+                // and history readers run independently; emergency cancellation
+                // remains a separate scoped entrance.
+                if !root.local_renewal_pending() {
+                    let _ = root.advance_setup().await;
+                    #[cfg(feature = "body-persistence")]
+                    {
+                        root.advance_join(embassy_time::Instant::now().as_millis());
+                        let _ = invitation_bootstrap
+                            .poll(&mut root, &mut invitation_uart)
+                            .await;
+                    }
                 }
+                let _ = root.advance_local_renewal().await;
                 if embassy_time::Instant::now() >= next_report {
                     root.report_local_progress();
                     next_report =

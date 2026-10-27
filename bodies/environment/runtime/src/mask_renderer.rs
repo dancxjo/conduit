@@ -109,6 +109,10 @@ impl<P: OpenDrain> ReadyRenderer<P> {
         };
         kind
     }
+    /// Absolute request continuation retained with the actual electrical owner.
+    pub fn request_sequence(&self) -> conduit_kernel::RequestId {
+        conduit_kernel::RequestId(self.next_request)
+    }
     pub fn identity(&self) -> &RendererIdentity {
         &self.identity
     }
