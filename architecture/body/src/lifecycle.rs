@@ -23,6 +23,9 @@ impl PreparedBodyWake {
     pub(crate) fn wake(&self) -> &Wake {
         &self.0
     }
+    pub(crate) fn into_wake(self) -> Wake {
+        self.0
+    }
 }
 
 pub const MAX_BODY_SIGNS: usize = 16;
@@ -274,7 +277,14 @@ impl Body {
     /// The caller owns an unpublished candidate and has not changed its Body
     /// since preparation. No fallible work remains in this primitive transition.
     pub(crate) fn commit_wake_unpublished(&mut self, prepared: PreparedBodyWake) -> Wake {
-        let wake = prepared.0;
+        self.apply_prepared_wake_unpublished(&prepared);
+        prepared.into_wake()
+    }
+
+    /// The unpublished biography transaction retains this exact checked token
+    /// until full validation succeeds; no new opaque Wake is constructed here.
+    pub(crate) fn apply_prepared_wake_unpublished(&mut self, prepared: &PreparedBodyWake) {
+        let wake = prepared.wake();
         let sign_id = wake.sign_ids[0].clone();
         self.state = BodyState::Awake {
             wake_id: wake.wake_id.clone(),
@@ -284,7 +294,6 @@ impl Body {
             wake_id: wake.wake_id.clone(),
             sign_id,
         });
-        wake
     }
 
     pub fn retain_after_lull(

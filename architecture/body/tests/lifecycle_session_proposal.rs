@@ -784,3 +784,129 @@ fn incremental_plot_seal_cannot_cross_complete_body_state_contexts() {
     ));
     assert!(other.realization().is_none());
 }
+
+#[test]
+fn retained_context_and_proposal_survive_checked_refusals_then_commit_exact_original() {
+    use conduit_body::{SealedBodyLifecycleSession, VerifiedBodyPlotPlan};
+    let (rich, partition, host, boot) = fixture();
+    let original = rich.evidence().clone();
+    let mut owner =
+        SealedBodyLifecycleSession::open_admitted(original.clone(), &host, &boot).unwrap();
+    let verified =
+        conduit_core::verify_plan_metadata_with_configurations(partition.plan.clone(), |_| {
+            Ok::<_, ()>(vec![])
+        })
+        .unwrap();
+    let input = VerifiedBodyPlotPlan {
+        plot: partition.plot.clone(),
+        plan: &verified,
+    };
+    let context = owner
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap();
+    let prepared_plot = context.prepare_plot(&input).unwrap();
+    let mut foreign = partition.plan.fragments[0].clone();
+    foreign.host_id = "foreign".into();
+    for placement in &mut foreign.placements {
+        placement.host_id = foreign.host_id.clone();
+    }
+    let foreign =
+        conduit_core::verify_plan_metadata_with_configurations(core_fixture::seal(foreign), |_| {
+            Ok::<_, ()>(vec![])
+        })
+        .unwrap();
+    let foreign_input = [VerifiedBodyPlotPlan {
+        plot: partition.plot,
+        plan: &foreign,
+    }];
+    let (context, error) =
+        match context.prepare_verified_with_prepared_retained(&[], &foreign_input, &[], None) {
+            Err(refused) => refused,
+            Ok(_) => panic!("foreign Host must refuse"),
+        };
+    assert_eq!(error, BodyLifecycleSessionError::StaleHost);
+    let (context, error) =
+        match context.prepare_verified_with_prepared_retained(&[], &[], &[], None) {
+            Err(refused) => refused,
+            Ok(_) => panic!("missing workset must refuse"),
+        };
+    assert!(matches!(error, BodyLifecycleSessionError::PlanSeal(_)));
+    let mut changed = original.clone();
+    changed.friendly_name.push_str(" changed");
+    let mut changed = SealedBodyLifecycleSession::open_admitted(changed, &host, &boot).unwrap();
+    let foreign_plot = changed
+        .prepare_verified_proposal_context(&host, &boot)
+        .unwrap()
+        .prepare_plot(&input)
+        .unwrap();
+    let (context, error) = match context.prepare_verified_with_prepared_retained(
+        core::slice::from_ref(&foreign_plot),
+        &[],
+        &[],
+        None,
+    ) {
+        Err(refused) => refused,
+        Ok(_) => panic!("foreign state seal must refuse"),
+    };
+    assert_eq!(error, BodyLifecycleSessionError::StaleWorkload);
+    assert_eq!(owner.evidence(), &original);
+    let prepared = context
+        .prepare_verified_with_prepared_retained(
+            core::slice::from_ref(&prepared_plot),
+            &[],
+            &[],
+            None,
+        )
+        .map_err(|(_, error)| error)
+        .unwrap();
+    let before = changed.evidence().clone();
+    let (prepared, error) = match changed.commit_verified_proposal_retained(prepared) {
+        Err(refused) => refused,
+        Ok(_) => panic!("changed state must refuse"),
+    };
+    assert_eq!(error, BodyLifecycleSessionError::StaleWorkload);
+    assert_eq!(changed.evidence(), &before);
+    assert!(changed.realization().is_none());
+    let mut lost =
+        SealedBodyLifecycleSession::open_admitted(original.clone(), &host, &boot).unwrap();
+    lost.observe_host_lost(&host, &boot, &host, &boot).unwrap();
+    let before = lost.evidence().clone();
+    let (prepared, error) = match lost.commit_verified_proposal_retained(prepared) {
+        Err(refused) => refused,
+        Ok(_) => panic!("stale Boot must refuse"),
+    };
+    assert_eq!(error, BodyLifecycleSessionError::StaleHost);
+    assert_eq!(lost.evidence(), &before);
+    let mut proposed =
+        SealedBodyLifecycleSession::open_admitted(original.clone(), &host, &boot).unwrap();
+    proposed
+        .propose_verified(core::slice::from_ref(&input), &[], None, &host, &boot)
+        .unwrap();
+    let before = proposed.evidence().clone();
+    let realization = proposed.realization().cloned();
+    let (prepared, error) = match proposed.commit_verified_proposal_retained(prepared) {
+        Err(refused) => refused,
+        Ok(_) => panic!("live proposal must refuse"),
+    };
+    assert_eq!(error, BodyLifecycleSessionError::NotLulled);
+    assert_eq!(proposed.evidence(), &before);
+    assert_eq!(proposed.realization(), realization.as_ref());
+    let mut expected = SealedBodyLifecycleSession::open_admitted(original, &host, &boot).unwrap();
+    expected
+        .propose_verified(core::slice::from_ref(&input), &[], None, &host, &boot)
+        .unwrap();
+    owner
+        .commit_verified_proposal_retained(prepared)
+        .map_err(|(_, error)| error)
+        .unwrap();
+    assert_eq!(owner.evidence(), expected.evidence());
+    assert_eq!(owner.realization(), expected.realization());
+    assert_eq!(
+        postcard::to_allocvec(owner.evidence()).unwrap(),
+        postcard::to_allocvec(expected.evidence()).unwrap()
+    );
+    assert_eq!(
+        serde_json::to_vec(owner.evidence()).unwrap(),
+        serde_json::to_vec(expected.evidence()).unwrap()
+    );
+}

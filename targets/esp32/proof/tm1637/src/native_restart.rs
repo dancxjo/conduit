@@ -172,11 +172,17 @@ impl ParkedBody {
         plots: &[conduit_body::VerifiedBodyPlotPlan<'_>],
         masks: &[conduit_body::VerifiedBodyMaskTopology<'_>],
     ) -> Result<conduit_body::PreparedVerifiedBodyProposal, &'static str> {
-        self.proposal
+        let context = self
+            .proposal
             .take()
-            .ok_or("restart-proposal-already-prepared")?
-            .prepare_verified_with_prepared(prepared, plots, masks, None)
-            .map_err(|_| "restart-proposal")
+            .ok_or("restart-proposal-already-prepared")?;
+        match context.prepare_verified_with_prepared_retained(prepared, plots, masks, None) {
+            Ok(proposal) => Ok(proposal),
+            Err((context, _)) => {
+                self.proposal = Some(context);
+                Err("restart-proposal")
+            }
+        }
     }
 }
 /// Commit complete custody before releasing any RAM. Every refusal leaves the

@@ -611,7 +611,7 @@ fn invitation_observer_admission_preserves_existing_local_wake_plan_and_play() {
     assert_eq!(owner.realization(), Some(&original));
     assert_eq!(
         &owner.evidence().membership.parts[..root_presence.len()],
-        root_presence
+        &root_presence[..]
     );
     assert_eq!(
         owner.evidence().membership.parts.len(),
@@ -750,6 +750,11 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
             plan,
         })
         .collect::<Vec<_>>();
+    assert!(token
+        .prepare_verified_proposal_with_prepared(&[], &[], &[])
+        .is_err());
+    assert!(!restart::publication_ready());
+    assert_eq!(restart::generation(), generation);
     let proposal = token
         .prepare_verified_proposal_with_prepared(core::slice::from_ref(&prepared), &inputs, &[])
         .unwrap();

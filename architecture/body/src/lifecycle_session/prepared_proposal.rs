@@ -71,27 +71,47 @@ impl VerifiedBodyProposalContext {
         masks: &[VerifiedBodyMaskTopology<'_>],
         body_time: Option<conduit_core::BodyTimeRequirement>,
     ) -> Result<PreparedVerifiedBodyProposal, BodyLifecycleSessionError> {
-        if prepared
-            .iter()
-            .any(|plot| !plot.matches_context(&self.expected))
-        {
-            return Err(BodyLifecycleSessionError::StaleWorkload);
-        }
-        for plan in plots
-            .iter()
-            .map(|p| p.plan)
-            .chain(masks.iter().flat_map(|m| m.chains.iter().map(|c| c.plan)))
-        {
-            self.require_verified_hosts(plan)?;
-        }
-        let plan = BodyPlanSeal::capture_prepared_verified(
-            self.wake.wake(),
-            prepared,
-            plots,
-            masks,
-            body_time,
-        )
-        .map_err(BodyLifecycleSessionError::PlanSeal)?;
+        self.prepare_verified_with_prepared_retained(prepared, plots, masks, body_time)
+            .map_err(|(_, error)| error)
+    }
+
+    /// Refusal returns the exact original cold context. Every fallible check
+    /// borrows its opaque custody; only success consumes it into a proposal.
+    #[allow(clippy::result_large_err)] // Inline affine custody avoids a new fallible allocation.
+    pub fn prepare_verified_with_prepared_retained(
+        self,
+        prepared: &[crate::PreparedVerifiedBodyPlotPlan],
+        plots: &[VerifiedBodyPlotPlan<'_>],
+        masks: &[VerifiedBodyMaskTopology<'_>],
+        body_time: Option<conduit_core::BodyTimeRequirement>,
+    ) -> Result<PreparedVerifiedBodyProposal, (Self, BodyLifecycleSessionError)> {
+        let checked = (|| {
+            if prepared
+                .iter()
+                .any(|plot| !plot.matches_context(&self.expected))
+            {
+                return Err(BodyLifecycleSessionError::StaleWorkload);
+            }
+            for plan in plots
+                .iter()
+                .map(|p| p.plan)
+                .chain(masks.iter().flat_map(|m| m.chains.iter().map(|c| c.plan)))
+            {
+                self.require_verified_hosts(plan)?;
+            }
+            BodyPlanSeal::capture_prepared_verified(
+                self.wake.wake(),
+                prepared,
+                plots,
+                masks,
+                body_time,
+            )
+            .map_err(BodyLifecycleSessionError::PlanSeal)
+        })();
+        let plan = match checked {
+            Ok(plan) => plan,
+            Err(error) => return Err((self, error)),
+        };
         Ok(PreparedVerifiedBodyProposal {
             expected: self.expected,
             sequence: self.sequence,
@@ -214,20 +234,48 @@ impl SealedBodyLifecycleSession {
         &mut self,
         prepared: PreparedVerifiedBodyProposal,
     ) -> Result<&BodyLifecycleRealization<BodyPlanSeal>, BodyLifecycleSessionError> {
-        self.require_mutable()?;
-        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
-            return Err(BodyLifecycleSessionError::NotLulled);
+        self.commit_verified_proposal_retained(prepared)
+            .map_err(|(_, error)| error)
+    }
+
+    /// Keep the exact prepared Wake/Plan on every checked refusal. Publication
+    /// still requires the unchanged full-state, Host/Boot and sequence fences.
+    #[allow(clippy::result_large_err)] // The original opaque seal must return without boxing/cloning.
+    pub fn commit_verified_proposal_retained(
+        &mut self,
+        prepared: PreparedVerifiedBodyProposal,
+    ) -> Result<
+        &BodyLifecycleRealization<BodyPlanSeal>,
+        (PreparedVerifiedBodyProposal, BodyLifecycleSessionError),
+    > {
+        let checked = (|| {
+            self.require_mutable()?;
+            if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+                return Err(BodyLifecycleSessionError::NotLulled);
+            }
+            self.require_host(&prepared.host, &prepared.boot)?;
+            if self.next_sequence()? != prepared.sequence
+                || self.proposal_state_hash()? != prepared.expected
+            {
+                return Err(BodyLifecycleSessionError::StaleWorkload);
+            }
+            Ok(())
+        })();
+        if let Err(error) = checked {
+            return Err((prepared, error));
         }
-        self.require_host(&prepared.host, &prepared.boot)?;
-        if self.next_sequence()? != prepared.sequence
-            || self.proposal_state_hash()? != prepared.expected
-        {
-            return Err(BodyLifecycleSessionError::StaleWorkload);
-        }
-        let wake = self
+        let wake = match self
             .evidence
-            .append_prepared_wake_unpublished(prepared.wake, prepared.sequence)
-            .map_err(BodyLifecycleSessionError::Biography)?;
+            .append_prepared_wake_unpublished_retained(prepared.wake, prepared.sequence)
+        {
+            Ok(wake) => wake,
+            Err((wake, error)) => {
+                return Err((
+                    PreparedVerifiedBodyProposal { wake, ..prepared },
+                    BodyLifecycleSessionError::Biography(error),
+                ))
+            }
+        };
         self.realization = Some(BodyLifecycleRealization {
             wake,
             plan: prepared.plan,

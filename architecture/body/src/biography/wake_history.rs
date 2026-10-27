@@ -304,43 +304,63 @@ impl BodyBiographyEvidence {
         prepared: crate::lifecycle::PreparedBodyWake,
         first_sequence: u64,
     ) -> Result<Wake, BodyBiographyError> {
-        self.validate()?;
-        let wake = prepared.wake();
-        if wake.body_id != self.body_id {
-            return Err(BodyBiographyError::WrongBody);
-        }
-        wake.validate()
-            .map_err(|_| BodyBiographyError::InvalidEvidence)?;
-        if self.wakes.iter().any(|old| old.wake_id == wake.wake_id) {
-            return Err(BodyBiographyError::InvalidEvidence);
-        }
-        if self.wakes.len() >= MAX_BODY_BIOGRAPHY_WAKES {
-            return Err(BodyBiographyError::CapacityExhausted);
-        }
-        self.can_append(1)?;
-        if first_sequence <= self.last_sequence() {
-            return Err(BodyBiographyError::InvalidSequence);
-        }
-        let sign_id = wake.sign_ids[0].clone();
-        let wake_id = wake.wake_id.clone();
-        let retained = wake.clone();
-        self.wakes
-            .try_reserve(1)
-            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
-        self.records
-            .try_reserve(1)
-            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
-        self.body
-            .sign_ids
-            .try_reserve(1)
-            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
-        self.body
-            .events
-            .try_reserve(1)
-            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        self.append_prepared_wake_unpublished_retained(prepared, first_sequence)
+            .map_err(|(_, error)| error)
+    }
+
+    #[allow(clippy::result_large_err)] // Return the original inline token, with no allocation or re-minting.
+    pub(crate) fn append_prepared_wake_unpublished_retained(
+        &mut self,
+        prepared: crate::lifecycle::PreparedBodyWake,
+        first_sequence: u64,
+    ) -> Result<Wake, (crate::lifecycle::PreparedBodyWake, BodyBiographyError)> {
+        let checked: Result<_, BodyBiographyError> = (|| {
+            self.validate()?;
+            let wake = prepared.wake();
+            if wake.body_id != self.body_id {
+                return Err(BodyBiographyError::WrongBody);
+            }
+            wake.validate()
+                .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            if self.wakes.iter().any(|old| old.wake_id == wake.wake_id) {
+                return Err(BodyBiographyError::InvalidEvidence);
+            }
+            if self.wakes.len() >= MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(BodyBiographyError::CapacityExhausted);
+            }
+            self.can_append(1)?;
+            if first_sequence <= self.last_sequence() {
+                return Err(BodyBiographyError::InvalidSequence);
+            }
+            let sign_id = wake.sign_ids[0].clone();
+            let wake_id = wake.wake_id.clone();
+            let retained = wake.clone();
+            self.wakes
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            self.records
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            self.body
+                .sign_ids
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            self.body
+                .events
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            Ok((sign_id, wake_id, retained))
+        })();
+        let (sign_id, wake_id, retained) = match checked {
+            Ok(checked) => checked,
+            Err(error) => return Err((prepared, error)),
+        };
         let mut transaction = WakeTransaction::new(self);
         transaction.state = Some(transaction.evidence.body.state.clone());
-        let wake = transaction.evidence.body.commit_wake_unpublished(prepared);
+        transaction
+            .evidence
+            .body
+            .apply_prepared_wake_unpublished(&prepared);
         transaction.evidence.wakes.push(retained);
         transaction.evidence.records.push(BodyBiographyRecord {
             sequence: first_sequence,
@@ -350,9 +370,12 @@ impl BodyBiographyEvidence {
                 event_index: 0,
             },
         });
-        transaction.evidence.validate()?;
+        if let Err(error) = transaction.evidence.validate() {
+            drop(transaction);
+            return Err((prepared, error));
+        }
         transaction.committed = true;
-        Ok(wake)
+        Ok(prepared.into_wake())
     }
 
     pub(super) fn validate_wake_history(&self) -> Result<(), BodyBiographyError> {
@@ -609,5 +632,115 @@ mod unpublished_tests {
         );
         assert_eq!(public, original);
         assert_eq!(unpublished, original);
+    }
+
+    #[test]
+    fn retained_fresh_wake_keeps_original_storage_on_preflight_and_postvalidation_refusal() {
+        fn evidence() -> BodyBiographyEvidence {
+            let body = Body::born(
+                "source/work".into(),
+                "checked/work".into(),
+                1,
+                "sign/birth".into(),
+            )
+            .unwrap();
+            let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+            BodyBiographyEvidence::born(body, membership, "Workbench".into()).unwrap()
+        }
+        let mut before_start = evidence();
+        let prepared = before_start
+            .body
+            .prepare_wake(2, "sign/wake".into())
+            .unwrap();
+        let pointers = (
+            prepared.wake().sign_ids.as_ptr(),
+            prepared.wake().events.as_ptr(),
+            prepared.wake().workset.plots().as_ptr(),
+        );
+        let expected = prepared.wake().clone();
+        let before = postcard::to_allocvec(&before_start).unwrap();
+        let (prepared, error) =
+            match before_start.append_prepared_wake_unpublished_retained(prepared, 1) {
+                Err(refused) => refused,
+                Ok(_) => panic!("stale sequence must refuse"),
+            };
+        assert_eq!(error, BodyBiographyError::InvalidSequence);
+        assert_eq!(prepared.wake(), &expected);
+        assert_eq!(
+            (
+                prepared.wake().sign_ids.as_ptr(),
+                prepared.wake().events.as_ptr(),
+                prepared.wake().workset.plots().as_ptr()
+            ),
+            pointers
+        );
+        assert_eq!(postcard::to_allocvec(&before_start).unwrap(), before);
+        let wake = before_start
+            .append_prepared_wake_unpublished_retained(prepared, 2)
+            .map_err(|(_, error)| error)
+            .unwrap();
+        assert_eq!(
+            (
+                wake.sign_ids.as_ptr(),
+                wake.events.as_ptr(),
+                wake.workset.plots().as_ptr()
+            ),
+            pointers
+        );
+
+        let mut changed = evidence();
+        let mut original = changed.clone();
+        let prepared = changed
+            .body
+            .prepare_wake(3, "sign/next-wake".into())
+            .unwrap();
+        let pointers = (
+            prepared.wake().sign_ids.as_ptr(),
+            prepared.wake().events.as_ptr(),
+            prepared.wake().workset.plots().as_ptr(),
+        );
+        let expected = prepared.wake().clone();
+        let body = changed
+            .body
+            .admit_plot(
+                crate::ResidentPlot::new("source/other".into(), "checked/other".into()),
+                "sign/admit".into(),
+            )
+            .unwrap();
+        changed
+            .append_body_lifecycle_events(body, &[("sign/admit".into(), 2)])
+            .unwrap();
+        let before = postcard::to_allocvec(&changed).unwrap();
+        // All primitive preflights pass; the complete history check detects
+        // that this opaque Wake predates the newly admitted Plot workset.
+        let (prepared, _) = match changed.append_prepared_wake_unpublished_retained(prepared, 3) {
+            Err(refused) => refused,
+            Ok(_) => panic!("stale workset must fail complete validation"),
+        };
+        assert_eq!(prepared.wake(), &expected);
+        assert_eq!(
+            (
+                prepared.wake().sign_ids.as_ptr(),
+                prepared.wake().events.as_ptr(),
+                prepared.wake().workset.plots().as_ptr()
+            ),
+            pointers
+        );
+        assert_eq!(postcard::to_allocvec(&changed).unwrap(), before);
+        assert_eq!(changed.last_sequence(), 2);
+        changed.validate().unwrap();
+        let wake = original
+            .append_prepared_wake_unpublished_retained(prepared, 3)
+            .map_err(|(_, error)| error)
+            .unwrap();
+        assert_eq!(
+            (
+                wake.sign_ids.as_ptr(),
+                wake.events.as_ptr(),
+                wake.workset.plots().as_ptr()
+            ),
+            pointers
+        );
+        original.validate().unwrap();
     }
 }
