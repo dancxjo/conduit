@@ -70,6 +70,8 @@ pub use borrowed_contracts::{
     network_attachment_sign_contract_ref, network_credentials_contract_ref,
     network_join_contract_ref, CheckedNetworkContract, PreparedCanonicalNetworkOffer,
 };
+mod known_networks;
+pub use known_networks::*;
 mod network_info;
 pub use network_info::*;
 mod application_info;
