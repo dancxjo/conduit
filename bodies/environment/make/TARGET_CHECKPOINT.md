@@ -1,4 +1,57 @@
-# MCU delivery checkpoints — 2026-10-25
+# MCU delivery checkpoints — 2026-10-26
+
+## Ordinary sampler and timed Mask: physical execution
+
+The `autonomous-packed-mask-evidence` image ran both actual native Plots on
+one ESP32, without a Linux owner driving their work. A non-resetting serial
+observation recorded three fresh DHT publications and 75 complete three-second
+Mask cycles. Both workers remained running with no reported failure; the local
+Face was available and fresh. The owner independently confirmed seeing the
+physical display. This is combined native execution evidence, not a completed
+overnight soak, remote recorder, provisioning, or join demonstration.
+
+Root heap remains 118,768 bytes and the SDK arena remains 73,728 bytes. Packed
+local runtime evidence cleared the child admission boundary without reducing
+its reserves. Root free space during the observed child work was 13,492 bytes.
+Actual complete Closed evidence was consumed locally; its inspection explicitly
+reports `durable: false`. Signed reading epochs have separate flash custody.
+
+The requested whole-degree Look passes focused formatting tests: `72°F`,
+`100°` when the number needs three positions, and `rH:44`. The upper-square degree
+glyph uses segments a, b, f, g. Humidity rounded to 100 uses `H100`. Temperature
+has no colon or fractional digit. Existing fractional Looks retain their
+behavior.
+
+The first flash with that Look stopped before planning while committing the
+preserved Body checkpoint. Both prior journal banks remained authenticated and
+committed: generation 67 held 69,126 plaintext bytes / 32,016 encoded bytes;
+generation 66 held 67,876 / 31,375 bytes, near the 32,608-byte encoded limit.
+A complete private flash backup preserved the Body, signing key and readings.
+
+The backward-compatible v2 codec packs exact lowercase hex and canonical byte
+runs without changing the decoded JSON or archive hashes. The actual latest
+snapshot shrank to 20,108 bytes. CPU recovery from that private flash completed
+new-Boot archive commits, park and restore with identical canonical evidence
+and the same signer; legacy decoding, bounded malformed/truncated input,
+allocation checks and 1,192 power-cut cases passed. The non-erasing
+`whole-degree-rh-journal-v2` flash then resumed the same physical Body at
+checkpoint generation 69. At 98,229 ms both actual workers remained running,
+with one fresh publication and 25 consumed Mask cycles, no worker failure and
+an available fresh Face. The image is 3,331,184 / 3,371,008 application bytes.
+The owner has not yet separately confirmed the new glyph layout by sight.
+
+The direct network preparation waist passes CPU execution and refusal parity
+against the rich path, reducing retained preparation from 17,007 to 9,797 bytes.
+Its normal admission guard remains disabled until the actual control workspace
+fits alongside local execution. No physical station join, `.local` recovery,
+remote recording, or MCU browser/Pi invitation completion is claimed.
+
+Finite Mask retirement primitives pass an actual concrete-session CPU run of
+all 19,200 child cycles. Automatic re-admission after that finite Play still
+needs Root integration and renewed Face custody; this is not a 16-hour target
+continuity result.
+
+## Historical preparation checkpoints
 
 **The latest ESP32 hardware checkpoint commits the ordinary two-Plot Body
 proposal.** It has not started sampling or presenting the ordinary Mask.
