@@ -51,6 +51,26 @@ all 19,200 child cycles. Automatic re-admission after that finite Play still
 needs Root integration and renewed Face custody; this is not a 16-hour target
 continuity result.
 
+## Pico transport and common environmental hardware
+
+The Pico W now runs the bounded native USB/HTTP adapter. On physical hardware
+it joins the actual ESP AP and receives 192.168.4.2/24 without a default gateway.
+Same-subnet peer validation accepts absent gateway or the exact ESP gateway,
+while retaining the fixed 192.168.4.1:80 destination. The host's Internet Wi-Fi
+and routing are unchanged. Actual GET /, /reading and signed /history responses
+cross this radio and USB link. An exact-build query/challenge/request/ACK then
+physically entered BOOTSEL; the same image was reflashed and rejoined without
+requiring the button. These are actual transport/update proofs, not a second
+native environmental Body or joined recorder.
+
+The common hardware direction is DHT temperature/RH, BME temperature/RH/pressure,
+and BMP temperature/pressure with humidity explicitly unsupported. The portable
+Bosch driver is separate from measurement semantics. Pressure uses a real
+Quantity, not a Pico-specific text field; derived altitude needs reference
+pressure. Shared model/Face and actual Pico sensor/display composition are in
+progress. The attached Pico's GP6/7 sensor and GP3/4 TM1637 have not yet been
+physically exercised by this relay image.
+
 ## Signed local history and reset follow-up
 
 The first physical history audit found five valid but empty journal headers:
@@ -66,8 +86,11 @@ full scope, canonical Forms, contiguous sequence and monotonic Boot clock.
 Both Body banks authenticate; the Root seed and Body identity match the prior
 backup, and all five original 536-byte headers remain byte-exact. A subsequent
 reset of the same image again started both local Plots and committed three new
-readings (848 bytes, no archive failure) in the new current scope. Verification
-of the old six plus this new Boot together is still pending a second export.
+readings (848 bytes, no archive failure) in the new current scope. The later Pico RF/USB export verifies a signed epoch directory and 34
+contiguous readings across three distinct Boot scopes, using the preserved Root
+key from the authenticated private full-flash capture. This includes recovered
+readings and the current running sampler without another ESP reset. The export
+is read-only replay proof; it is not admission of a remote Body member.
 
 The initial finite run remains 960 samples / 19,200 Mask cycles. Actual CPU
 retirement returned the exclusive Mask value store with slot generations

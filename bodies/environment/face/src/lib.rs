@@ -45,6 +45,7 @@ pub enum SensorStatus {
 pub enum ContributionRefusal {
     InvalidTemperature,
     InvalidHumidity,
+    InvalidPressure,
     MissingTemperature,
     FreshWithoutObservation,
     InvalidFragment,
@@ -158,3 +159,73 @@ mod result;
 pub use prepared::{PreparedObservationFace, PublicationRefusal};
 
 pub use result::{decode_result as decode_publication_result, DecodedPublication};
+
+/// Common successful-reading model; these values convey no admission authority.
+pub use conduit_environment_measurement::{EnvironmentalReading, ReadingField, ReadingRefusal};
+
+/// Contribute one common reading through the ordinary Face/provenance boundary.
+/// Unsupported properties are absent, with explicit support labels. A failed
+/// current read may retain a prior reading with `fresh=false` and Unavailable
+/// status; unsupported never substitutes for a failure. This allocates ordinary
+/// Face objects and requires independently admitted construction workspace.
+pub fn contribution_reading(
+    reading: EnvironmentalReading,
+    fresh: bool,
+    status: SensorStatus,
+    basis: FaceContributionBasis,
+) -> Result<FaceFragment, ContributionRefusal> {
+    use alloc::boxed::Box;
+    use conduit_core::{IntervalEndpoint, ValueConstraint, QUANTITY_INFO_ID};
+    let humidity = match reading.relative_humidity() {
+        ReadingField::Available(value) => Some(value),
+        ReadingField::Unsupported => None,
+    };
+    let mut fragment = contribution(Some(reading.temperature()), humidity, fresh, status, basis)?;
+    for (name, field) in [
+        ("relative-humidity-support", reading.relative_humidity()),
+        (
+            "atmospheric-pressure-support",
+            reading.atmospheric_pressure(),
+        ),
+    ] {
+        fragment.properties.push(property(
+            name,
+            FacePropertyValue::Text(
+                match field {
+                    ReadingField::Available(_) => "supported",
+                    ReadingField::Unsupported => "unsupported",
+                }
+                .into(),
+            ),
+        ));
+    }
+    if let ReadingField::Available(value) = reading.atmospheric_pressure() {
+        // A Pascal endpoint checks the exact pressure family/role as well as
+        // positivity; generic Quantity Info alone would accept other families.
+        let contract = CheckedValueContract::new(
+            kind_id(QUANTITY_INFO_ID),
+            QUANTITY_ENCODED_LEN as u32,
+            vec![ValueConstraint::QuantityRange {
+                minimum: Some(Box::new(Quantity::new(0, Unit::Pascal))),
+                maximum: None,
+                minimum_endpoint: IntervalEndpoint::Exclusive,
+                maximum_endpoint: IntervalEndpoint::Inclusive,
+            }],
+        )
+        .map_err(|_| ContributionRefusal::InvalidPressure)?;
+        contract
+            .validate(&value.encode())
+            .map_err(|_| ContributionRefusal::InvalidPressure)?;
+        fragment.properties.push(property(
+            "atmospheric-pressure",
+            FacePropertyValue::TypedValue {
+                contract,
+                bytes: value.encode().to_vec(),
+            },
+        ));
+    }
+    fragment
+        .validate_bounds()
+        .map_err(|_| ContributionRefusal::InvalidFragment)?;
+    Ok(fragment)
+}

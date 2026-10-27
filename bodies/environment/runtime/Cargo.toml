@@ -21,6 +21,7 @@ face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 
 [dependencies]
+conduit-environment-measurement = { path = "../measurement" }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
 conduit-body = { path = "../../../architecture/body", default-features = false, optional = true }
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"], optional = true }

@@ -1,0 +1,15 @@
+[package]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+
+[profile.dev.build-override]
+opt-level = 1
+[profile.test.build-override]
+opt-level = 1

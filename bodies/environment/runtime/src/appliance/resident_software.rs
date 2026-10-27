@@ -112,10 +112,27 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         texts: &[ResidentComputation<'_>],
         values: V,
     ) -> Result<Self, NativePreparationRefusal> {
-        let cadence = &resident.cadence;
-        let construction = Construction::prepare(resident, cadence.count, cadence.period_ms)?;
-        validate_texts(&construction, texts)?;
-        Self::initialize_with(
+        Self::prepare_source_retained(resident, texts, values).map_err(|(error, _)| error)
+    }
+    /// Prepare fresh finite Backs while retaining the actual value store on every
+    /// refusal. Existing slot generations and live references are never reset.
+    /// This does not renew a Play or reattach any native provider.
+    pub fn prepare_source_retained(
+        resident: &ResidentSoftwareSpec<'_>,
+        texts: &[ResidentComputation<'_>],
+        values: V,
+    ) -> Result<Self, (NativePreparationRefusal, V)> {
+        let checked = (|| {
+            let cadence = &resident.cadence;
+            let construction = Construction::prepare(resident, cadence.count, cadence.period_ms)?;
+            validate_texts(&construction, texts)?;
+            Ok(construction)
+        })();
+        let construction = match checked {
+            Ok(construction) => construction,
+            Err(error) => return Err((error, values)),
+        };
+        Self::initialize_with_retained(
             construction,
             |expected| {
                 texts
@@ -175,91 +192,117 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         text: impl Fn(
             &c::AssignedComputationRequirement,
         ) -> Result<(&'a str, Option<&'a [u8]>), NativePreparationRefusal>,
-        mut values: V,
+        values: V,
     ) -> Result<Self, NativePreparationRefusal> {
-        use NativePreparationRefusal as E;
-        let Construction {
-            roles,
-            computations,
-            count,
-            period_ms,
-            ..
-        } = &construction;
-        let (roles, computations, count, period_ms) = (*roles, computations, *count, *period_ms);
-        let maximum = u32::try_from(count).map_err(|_| E::Configuration)?;
-        let wait = values
-            .store(&c::encode_monotonic_duration(period_ms))
-            .map_err(E::Storage)?;
-        // Fixed preparation backing lives in the admitted heap, not beneath the
-        // recursive program/type decoder on a constrained target's stack.
-        let mut drivers = empty_slots::<ApplianceBack, NODES>();
-        let mut selectors = empty_slots::<PreparedCaptureSelector, NODES>();
-        let program_key = c::AssignedIdentity::from_text("program");
-        let selector_key = c::AssignedIdentity::from_text("selector");
-        // Prepare the largest temporary evaluator first, while other retained
-        // codecs/publications do not yet occupy the admission arena. This is
-        // preparation ordering only; runtime order remains the admitted tables.
-        let mut initialized = [false; NODES];
-        for _ in 0..computations.len() {
-            let computation = computations
-                .iter()
-                .filter(|r| !initialized[usize::from(r.node)])
-                .max_by_key(|r| r.text_bytes)
-                .ok_or(E::Roles)?;
-            let node = usize::from(computation.node);
-            initialized[node] = true;
-            let (text, canonical_bytes) = text(computation)?;
-            let driver = if computation.key == program_key {
-                let program = match canonical_bytes {
-                    Some(bytes) => {
-                        conduit_plot::PortableExpressionProgram::from_canonical_bytes(bytes)
+        Self::initialize_with_retained(construction, text, values).map_err(|(error, _)| error)
+    }
+    fn initialize_with_retained<'a>(
+        construction: Construction,
+        text: impl Fn(
+            &c::AssignedComputationRequirement,
+        ) -> Result<(&'a str, Option<&'a [u8]>), NativePreparationRefusal>,
+        mut values: V,
+    ) -> Result<Self, (NativePreparationRefusal, V)> {
+        let parts = (|| {
+            use NativePreparationRefusal as E;
+            let Construction {
+                roles,
+                computations,
+                count,
+                period_ms,
+                ..
+            } = &construction;
+            let (roles, computations, count, period_ms) =
+                (*roles, computations, *count, *period_ms);
+            let maximum = u32::try_from(count).map_err(|_| E::Configuration)?;
+            // Fixed preparation backing lives in the admitted heap, not beneath the
+            // recursive program/type decoder on a constrained target's stack.
+            let mut drivers = empty_slots::<ApplianceBack, NODES>();
+            let mut selectors = empty_slots::<PreparedCaptureSelector, NODES>();
+            let program_key = c::AssignedIdentity::from_text("program");
+            let selector_key = c::AssignedIdentity::from_text("selector");
+            // Prepare the largest temporary evaluator first, while other retained
+            // codecs/publications do not yet occupy the admission arena. This is
+            // preparation ordering only; runtime order remains the admitted tables.
+            let mut initialized = [false; NODES];
+            for _ in 0..computations.len() {
+                let computation = computations
+                    .iter()
+                    .filter(|r| !initialized[usize::from(r.node)])
+                    .max_by_key(|r| r.text_bytes)
+                    .ok_or(E::Roles)?;
+                let node = usize::from(computation.node);
+                initialized[node] = true;
+                let (text, canonical_bytes) = text(computation)?;
+                let driver = if computation.key == program_key {
+                    let program = match canonical_bytes {
+                        Some(bytes) => {
+                            conduit_plot::PortableExpressionProgram::from_canonical_bytes(bytes)
+                        }
+                        None => conduit_plot::PortableExpressionProgram::from_canonical_hex(text),
                     }
-                    None => conduit_plot::PortableExpressionProgram::from_canonical_hex(text),
-                }
-                .map_err(init)?;
-                CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
-                    .map_err(init)?
-            } else if computation.key == selector_key {
-                let selector = c::StructuredSelector::from_canonical_hex(text).map_err(init)?;
-                selectors[node] =
-                    Some(PreparedCaptureSelector::prepare(selector, 1024, 1024).map_err(init)?);
-                CaptureBack::selector(1024)
-            } else {
-                return Err(E::Configuration);
-            };
-            drivers[node] = Some(ApplianceBack::Native(driver));
+                    .map_err(init)?;
+                    CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
+                        .map_err(init)?
+                } else if computation.key == selector_key {
+                    let selector = c::StructuredSelector::from_canonical_hex(text).map_err(init)?;
+                    selectors[node] =
+                        Some(PreparedCaptureSelector::prepare(selector, 1024, 1024).map_err(init)?);
+                    CaptureBack::selector(1024)
+                } else {
+                    return Err(E::Configuration);
+                };
+                drivers[node] = Some(ApplianceBack::Native(driver));
+            }
+            drivers[usize::from(roles.pulse.0)] =
+                Some(ApplianceBack::Native(CaptureBack::pulse(1024)));
+            drivers[usize::from(roles.trigger.0)] = Some(ApplianceBack::Trigger(
+                conduit_time::TickTriggerBack::default(),
+            ));
+            drivers[usize::from(roles.observation.0)] = Some(ApplianceBack::Native(
+                CaptureBack::observation(&ObservationContract::prepare().map_err(init)?)
+                    .map_err(init)?,
+            ));
+            let order = PublicationSequence::prepare(count);
+            for (node, channel) in roles.publications.into_iter().zip(PublicationChannel::ALL) {
+                drivers[usize::from(node.0)] = Some(
+                    ApplianceBack::source_publication(
+                        &PublicationContract::prepare(channel).map_err(init)?,
+                        maximum,
+                        order.clone(),
+                    )
+                    .map_err(init)?,
+                );
+            }
+            if drivers
+                .iter()
+                .enumerate()
+                .any(|(node, driver)| node != usize::from(roles.tick.0) && driver.is_none())
+            {
+                return Err(E::Roles);
+            }
+            // Allocate the only stored value after all fallible codec preparation.
+            // Codec refusals leave storage untouched; storage refusal returns
+            // its actual state. No wait reference is orphaned and no generation
+            // is reset during a retry.
+            let wait = values
+                .store(&c::encode_monotonic_duration(period_ms))
+                .map_err(E::Storage)?;
+            drivers[usize::from(roles.tick.0)] = Some(ApplianceBack::Tick(
+                conduit_time::TickBack::counted(wait, count)
+                    .expect("Construction checked the finite tick count"),
+            ));
+            Ok((drivers, selectors))
+        })();
+        match parts {
+            Ok((drivers, selectors)) => Ok(Self {
+                construction,
+                drivers,
+                selectors,
+                values,
+            }),
+            Err(error) => Err((error, values)),
         }
-        drivers[usize::from(roles.tick.0)] = Some(ApplianceBack::Tick(
-            conduit_time::TickBack::counted(wait, count).ok_or(E::Configuration)?,
-        ));
-        drivers[usize::from(roles.pulse.0)] = Some(ApplianceBack::Native(CaptureBack::pulse(1024)));
-        drivers[usize::from(roles.trigger.0)] = Some(ApplianceBack::Trigger(
-            conduit_time::TickTriggerBack::default(),
-        ));
-        drivers[usize::from(roles.observation.0)] = Some(ApplianceBack::Native(
-            CaptureBack::observation(&ObservationContract::prepare().map_err(init)?)
-                .map_err(init)?,
-        ));
-        let order = PublicationSequence::prepare(count);
-        for (node, channel) in roles.publications.into_iter().zip(PublicationChannel::ALL) {
-            drivers[usize::from(node.0)] = Some(
-                ApplianceBack::source_publication(
-                    &PublicationContract::prepare(channel).map_err(init)?,
-                    maximum,
-                    order.clone(),
-                )
-                .map_err(init)?,
-            );
-        }
-        if drivers.iter().any(Option::is_none) {
-            return Err(E::Roles);
-        }
-        Ok(Self {
-            construction,
-            drivers,
-            selectors,
-            values,
-        })
     }
 }
 
@@ -305,5 +348,69 @@ fn empty_slots<T, const N: usize>() -> Box<[Option<T>; N]> {
     match slots.into_boxed_slice().try_into() {
         Ok(slots) => slots,
         Err(_) => unreachable!("fixed resident slot count"),
+    }
+}
+
+#[cfg(test)]
+mod retained_preparation_tests {
+    use super::*;
+    use conduit_kernel::{FixedValueStore, StorageError};
+
+    #[test]
+    fn codec_refusal_returns_same_live_store_without_allocating_a_wait() {
+        let requirements = core::array::from_fn::<_, { NODES - 8 }, _>(|index| {
+            c::AssignedComputationRequirement::from_text((index + 8) as u16, "program", "00")
+                .unwrap()
+        });
+        let spec = ResidentSoftwareSpec {
+            cadence: conduit_time::TickConfiguration {
+                count: 960,
+                period_ms: 60_000,
+            },
+            source: ResidentSourceIdentity {
+                expanded_plot_digest: [0; 32],
+            },
+            computations: c::AssignedComputationProfile {
+                requirements: &requirements,
+                maximum_text_bytes: 2,
+                maximum_total_text_bytes: 14,
+            },
+            roles: ResidentRoles {
+                pulse: k::NodeId(0),
+                tick: k::NodeId(1),
+                trigger: k::NodeId(2),
+                observation: k::NodeId(3),
+                publications: [k::NodeId(4), k::NodeId(5), k::NodeId(6), k::NodeId(7)],
+            },
+        };
+        let texts = core::array::from_fn::<_, { NODES - 8 }, _>(|index| ResidentComputation {
+            node: (index + 8) as u16,
+            key: c::AssignedIdentity::from_text("program"),
+            text: "00",
+            canonical_bytes: None,
+        });
+        let mut values = FixedValueStore::<2, 64>::new(128).unwrap();
+        let stale = values.store(b"old").unwrap();
+        values.release(stale).unwrap();
+        let live = values.store(b"retained").unwrap();
+        for _ in 0..3 {
+            values = match PreparedResidentSoftware::prepare_source_retained(&spec, &texts, values)
+            {
+                Ok(_) => panic!("malformed program must refuse"),
+                Err((error, values)) => {
+                    assert_eq!(error, NativePreparationRefusal::Initialization);
+                    assert_eq!(values.get(live).unwrap(), b"retained");
+                    assert_eq!(values.get(stale), Err(StorageError::StaleReference));
+                    assert_eq!(values.used_items(), 1);
+                    assert_eq!(values.used_bytes(), 8);
+                    values
+                }
+            };
+        }
+        let next = values.store(b"free slot").unwrap();
+        assert_eq!(
+            next.generation, 1,
+            "refused preparation never used the spare slot"
+        );
     }
 }

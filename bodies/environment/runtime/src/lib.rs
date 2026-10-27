@@ -25,6 +25,7 @@ pub mod display_mask;
 #[cfg(feature = "display-output")]
 pub mod display_output;
 pub mod display_packets;
+pub mod environmental_reading;
 #[cfg(feature = "display-session")]
 pub mod display_session;
 #[cfg(feature = "mask-kernel")]

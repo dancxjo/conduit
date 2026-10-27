@@ -168,6 +168,7 @@ name = "conduit-environment-face"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-environment-measurement",
  "conduit-face",
 ]
 
@@ -225,6 +226,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
@@ -232,6 +240,7 @@ dependencies = [
  "conduit-computation",
  "conduit-core",
  "conduit-environment-face",
+ "conduit-environment-measurement",
  "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
