@@ -8,6 +8,9 @@ fn main() {
         "build.rs",
         "src/lib.rs",
         "src/main.rs",
+        "src/environment.rs",
+        "src/environment_show.rs",
+        "src/heap.rs",
         "../../firmware/pico-w-signal/src/radio.rs",
         "../../firmware/pico-w-signal/memory.x",
     ] {

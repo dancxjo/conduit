@@ -18,6 +18,7 @@ const MAGIC: &[u8; 4] = b"CPBR";
 pub const JOIN: u8 = 1;
 pub const REQUEST: u8 = 2;
 pub const STATUS: u8 = 3;
+pub const SENSOR_STATUS: u8 = 6;
 pub const DATA: u8 = 128;
 pub const DONE: u8 = 129;
 pub const ERROR: u8 = 130;
@@ -81,9 +82,9 @@ impl Decoder {
                 match self.bytes[5] {
                     JOIN if (2..=97).contains(&length) => {}
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
-                    STATUS | BOOTSEL_QUERY if length == 0 => {}
+                    STATUS | BOOTSEL_QUERY | SENSOR_STATUS if length == 0 => {}
                     BOOTSEL_REQUEST if length == 64 => {}
-                    JOIN | REQUEST | STATUS | BOOTSEL_QUERY | BOOTSEL_REQUEST => {
+                    JOIN | REQUEST | STATUS | BOOTSEL_QUERY | BOOTSEL_REQUEST | SENSOR_STATUS => {
                         return Err(Refusal::Capacity)
                     }
                     _ => return Err(Refusal::Kind),

@@ -11,6 +11,9 @@ use embassy_usb::{
     class::cdc_acm::{CdcAcmClass, State},
     Builder, UsbDevice,
 };
+mod environment;
+mod environment_show;
+mod heap;
 use panic_halt as _;
 use static_cell::StaticCell;
 #[path = "../../../firmware/pico-w-signal/src/radio.rs"]
@@ -160,7 +163,11 @@ async fn status(class: &mut Cdc, id: u32, stack: Stack<'static>) -> Result<(), &
 }
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
+    unsafe {
+        heap::initialize();
+    }
     let p = embassy_rp::init(Default::default());
+    spawner.spawn(environment::run(p.I2C1, p.PIN_7, p.PIN_6, p.PIN_3, p.PIN_4).unwrap());
     let (device, mut class) = cdc(usb::Driver::new(p.USB, radio::UsbIrq));
     spawner.spawn(usb_task(device).unwrap());
     let radio = radio::init_cyw43_network(
@@ -184,7 +191,7 @@ async fn main(spawner: Spawner) {
         rng.next_u64(),
     );
     spawner.spawn(network_task(runner).unwrap());
-    // No GP3/4 display or GP6/7 sensor owner is constructed by this image.
+    // The independent environmental task owns GP3/4 and I2C1 GP6/7.
     let mut decoder = protocol::Decoder::new();
     let mut session = protocol::Session::default();
     let mut input = [0; 64];
@@ -251,6 +258,10 @@ async fn main(spawner: Spawner) {
                     }
                     Err("bootsel-ack-failed")
                 }
+                protocol::SENSOR_STATUS => match environment::status() {
+                    Ok(text) => send(&mut class, protocol::INFORMATION, id, text.as_bytes()).await,
+                    Err(e) => Err(e),
+                },
                 protocol::STATUS => status(&mut class, id, stack).await,
                 protocol::JOIN => match protocol::credentials(frame.payload) {
                     Err(_) => Err("invalid-credentials"),

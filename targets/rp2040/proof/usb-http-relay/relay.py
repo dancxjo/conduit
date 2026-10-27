@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 HEADER = struct.Struct("<4sBBIH")
 ROLE = "conduit.pico-usb-http-relay@1"
 MAX_REQUEST, MAX_RESPONSE, CHUNK = 8192, 65536, 512
-JOIN, REQUEST, STATUS = 1, 2, 3
+JOIN, REQUEST, STATUS, SENSOR_STATUS = 1, 2, 3, 6
 DATA, DONE, ERROR, INFORMATION = 128, 129, 130, 131
 BOOTSEL_QUERY, BOOTSEL_REQUEST, BOOTSEL_CHALLENGE, BOOTSEL_ACK = 4, 5, 132, 133
 
@@ -65,7 +65,7 @@ class Relay:
                     )
                     if magic != b"CPBR" or version != 1 or response_id != identity:
                         raise RelayError("USB response scope")
-                    limit = {DATA: CHUNK, DONE: 4, INFORMATION: 256, ERROR: 128, BOOTSEL_CHALLENGE: 64, BOOTSEL_ACK: 64}.get(response)
+                    limit = {DATA: CHUNK, DONE: 4, INFORMATION: 512, ERROR: 128, BOOTSEL_CHALLENGE: 64, BOOTSEL_ACK: 64}.get(response)
                     if limit is None or length > limit:
                         raise RelayError("USB response frame capacity")
                     data = self._read(length, deadline)
@@ -80,7 +80,7 @@ class Relay:
                         # Firmware errors are fixed codes, never echoed request data.
                         raise RelayError(data.decode("ascii", "replace"))
                     if response == INFORMATION:
-                        if kind not in (STATUS, JOIN) or result:
+                        if kind not in (STATUS, JOIN, SENSOR_STATUS) or result:
                             raise RelayError("unexpected information reply")
                         try:
                             status = json.loads(data)

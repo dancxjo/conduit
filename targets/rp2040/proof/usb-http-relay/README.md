@@ -1,8 +1,8 @@
 # Pico W USB / HTTP transport bring-up
 
 This standalone native RP2040 proof forwards actual HTTP bytes between USB CDC
-and the fixed ESP access-point peer `192.168.4.1:80`. It creates no Body,
-membership, sensor reading, Source admission or Mask. It is a temporary reusable
+and the fixed ESP access-point peer `192.168.4.1:80`. The transport creates no Body, membership or Source admission. Its independent
+hardware diagnostic uses the shared environmental Face/Look. It is a reusable
 Line adapter for reaching the ESP without changing the host's Internet interface.
 
 The USB role is `conduit.pico-usb-http-relay@1`; the serial descriptor is
@@ -32,8 +32,8 @@ elf2uf2-rs target/pico-usb-http-relay/thumbv6m-none-eabi/release/conduit-pico-us
 ```
 
 The final command only converts a file; it does not deploy. Preserve the actual
-Pico flash before separately authorized hardware flashing. GPIO 3/4/6/7 are
-untouched. Existing CYW43 firmware assets and licenses are reused from the pinned
+Pico flash before separately authorized hardware flashing. The combined diagnostic now owns GPIO3/4 for the TM1637 and I2C1 GP7/6
+for SCL/SDA. Existing CYW43 firmware assets and licenses are reused from the pinned
 Pico firmware, as is its actual radio initializer; no Signal/Body build is run.
 
 After the correct image is installed and its actual radio is verified, run with
@@ -58,9 +58,9 @@ DHT temperature/RH, BME temperature/RH/pressure, BMP temperature/pressure.
 Unsupported humidity stays unavailable. Pressure is a real Quantity in Pa/hPa;
 altitude is a separate computation requiring reference pressure. The Bosch driver
 at `mechanisms/io/bosch-env` supplies hardware readings, not admission authority.
-A future combined image must initialize the actual sensor and display, then use
-existing shared Source/Body admission and leases; it must not invent Pico-only
-observations or membership. GP6/7 are reserved for I2C1 and GP3/4 for TM1637.
+The diagnostic initializes actual sensor/display owners. Product integration
+still requires existing shared Source/Body admission and leases; it must not
+invent Pico-only observations or membership. The combined diagnostic uses GP6/7 for I2C1 and GP3/4 for TM1637.
 
 ## Developer reboot / BOOTSEL
 
@@ -80,3 +80,35 @@ No Wi-Fi association is required:
 Use the identity recorded with the exact ELF/UF2 build, rather than automatically
 accepting any device challenge. The firmware does not implement implicit
 1200-baud reset. Older relay images without this control need manual BOOTSEL.
+
+
+## Combined environmental hardware diagnostic
+
+The image also initializes the actual BME280/BMP280 at I2C address 0x76 on
+GP6 SDA / GP7 SCL, with 100 ms whole-operation deadlines. It samples every
+30 seconds independently of USB or ESP association. Failures clear the current
+reading and require reinitialization; BMP280 humidity is explicitly unsupported.
+The common EnvironmentalReading adapter preserves exact centi-Celsius,
+centi-Pascal and Q10-percent values. The shared environmental Face contains
+pressure; the existing shared Mask alternates whole-degree Fahrenheit and RH
+on GP3 CLK / GP4 DIO every 2 seconds. Pressure has no invented display page.
+Failed or unsupported values use the existing unavailable glyphs.
+
+This is a hardware diagnostic composition of shared Face/Look, not an installed
+Body/Plan: its Face has no Body, Wake, Source, Plan or active Play identity.
+Ordinary Face preparation uses a fixed 48 KiB heap. Sampling and display do not
+wait for a host. The USB transport and exact-build BOOTSEL remain separate.
+Control kind6 (`SENSOR_STATUS`, empty payload) returns JSON before Wi-Fi JOIN:
+
+```python
+status = relay.Relay(serial_port).exchange(relay.SENSOR_STATUS)
+```
+
+It reports verified `chip_id` (96 BME / 88 BMP), configured `address` (118),
+measurement attempts/successful `samples`, display `frames` attempted and `acks`
+completed, error status and heap peak. A completed ACK count means the actual
+wire transmitter accepted all 9 bytes; it is not human visual confirmation.
+Successful readings include `temperature_centi_celsius`,
+`pressure_centi_pascal`, and `humidity_percent_q10` (`null` for BMP unsupported).
+The broader INFORMATION response bound is now512 bytes; sensor JSON uses a
+fixed384-byte formatter. No provisioning or signed-history format changed.
