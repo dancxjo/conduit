@@ -13,6 +13,8 @@ mod native_joined_host_wire;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_restart.rs"]
 #[allow(dead_code)] // Legacy envelope helpers are covered by native_restart tests.
 mod native_restart;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs"]
+mod recovery;
 mod native_evidence_region {
     use crate::native_body_checkpoint::{Refusal, Storage};
     use std::sync::{Arc, Mutex};
@@ -213,6 +215,142 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
                 &secret.sign(&transcript),
             )
             .map_err(|_| "member-message")?;
+        Ok(())
+    })
+    .unwrap();
+    // A durable admitted Part can recover a current-membership receipt after
+    // unfinished invitation state and volatile HTTP results have disappeared.
+    native_restart::with_admissions(|manager| {
+        let mut restored: conduit_body::AdmissionManager =
+            serde_json::from_slice(&serde_json::to_vec(manager).unwrap()).unwrap();
+        restored.retire_unfinished_challenges();
+        let before = serde_json::to_vec(&restored).unwrap();
+        let mut query = recovery::Request {
+            schema: recovery::REQUEST.into(),
+            body_id: owner.evidence().body_id.clone(),
+            host_id: observer.host_id.clone(),
+            boot_id: observer.boot_id.clone(),
+            nonce: [91; 32],
+            signature: vec![],
+        };
+        query.signature = secret.sign(&query.transcript()).to_vec();
+        let root_boot: c::BootId = "boot/root-after-power-cycle".into();
+        let verified = recovery::verify_current(
+            &restored,
+            &owner.evidence().membership,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key,
+        )
+        .unwrap();
+        let signature = signer.sign(&verified.transcript()).to_bytes();
+        let current = verified.signed(signature);
+        current.verify(&root_key, &query).unwrap();
+        assert_eq!(current.credential, receipt.credential);
+        assert_eq!(current.producer_boot, root_boot);
+        assert_eq!(current.credential.boot_id, observer.boot_id);
+        assert_eq!(serde_json::to_vec(&restored).unwrap(), before);
+        assert_eq!(owner.evidence(), &retained);
+        let encoded = serde_json::to_value(&current).unwrap();
+        for field in [
+            "schema",
+            "membership_revision",
+            "producer_host",
+            "producer_boot",
+            "producer_key",
+            "request_nonce",
+            "signature",
+            "credential",
+        ] {
+            let mut altered = encoded.clone();
+            altered[field] = match field {
+                "membership_revision" => serde_json::json!(999),
+                "producer_key" | "request_nonce" => serde_json::json!(vec![0; 32]),
+                "signature" => serde_json::json!(vec![0; 64]),
+                "credential" => {
+                    let mut c = encoded[field].clone();
+                    c["boot_id"] = "boot/foreign".into();
+                    c
+                }
+                _ => serde_json::json!("foreign"),
+            };
+            let altered: recovery::Receipt = serde_json::from_value(altered).unwrap();
+            assert!(altered.verify(&root_key, &query).is_err(), "{field}");
+        }
+        query.signature[0] ^= 1;
+        assert!(recovery::verify_current(
+            &restored,
+            &owner.evidence().membership,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key
+        )
+        .is_err());
+        query.signature[0] ^= 1;
+        query.nonce = [92; 32];
+        assert!(current.verify(&root_key, &query).is_err());
+        assert!(recovery::verify_current(
+            &restored,
+            &owner.evidence().membership,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key
+        )
+        .is_err());
+        query.signature = secret.sign(&query.transcript()).to_vec();
+        let mut duplicate = restored.clone();
+        duplicate.receipts.push(duplicate.receipts[0].clone());
+        assert!(recovery::verify_current(
+            &duplicate,
+            &owner.evidence().membership,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key
+        )
+        .is_err());
+        let mut lost = owner.evidence().membership.clone();
+        lost.parts
+            .iter_mut()
+            .find(|p| p.part_id == receipt.credential.part_id)
+            .unwrap()
+            .current = None;
+        assert!(recovery::verify_current(
+            &restored,
+            &lost,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key
+        )
+        .is_err());
+        query.nonce = [0; 32];
+        query.signature = secret.sign(&query.transcript()).to_vec();
+        assert!(recovery::verify_current(
+            &restored,
+            &owner.evidence().membership,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key
+        )
+        .is_err());
+        query.nonce = [92; 32];
+        query.boot_id = "boot/observer-new".into();
+        query.signature = secret.sign(&query.transcript()).to_vec();
+        assert!(recovery::verify_current(
+            &restored,
+            &owner.evidence().membership,
+            &query,
+            &host.host_id,
+            &root_boot,
+            &root_key
+        )
+        .is_err());
+        assert_eq!(serde_json::to_vec(&restored).unwrap(), before);
         Ok(())
     })
     .unwrap();
