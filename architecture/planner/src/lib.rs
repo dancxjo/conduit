@@ -627,7 +627,7 @@ fn validate_operation_capability(
             capability.capability_id.as_str()
         )));
     }
-    if capability.checked_front() != gear.checked_front() {
+    if !gear.accepts_callable_front(capability) {
         return Err(PlannerError::IncompatibleCheckedFront(format!(
             "gear '{}' front differs from capability '{}' front",
             gear.gear_id.as_str(),

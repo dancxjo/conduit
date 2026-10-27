@@ -11,6 +11,42 @@ impl CheckedGear {
         .with_value_contracts(self.semantic_contract.value_contracts().to_vec())
     }
 
+    /// Exact callable equality without constructing two temporary Fronts when
+    /// startup and explicit value contracts are absent. In that case default
+    /// value contracts are determined completely by the ordered port fields.
+    /// Other Fronts retain the complete ordinary constructor comparison.
+    pub fn accepts_callable_front(&self, offer: &conduit_core::CapabilityOffer) -> bool {
+        if self.startup_parameters.is_empty()
+            && offer.startup_parameters.is_empty()
+            && self.semantic_contract.value_contracts().is_empty()
+            && offer.semantic_contract.value_contracts().is_empty()
+        {
+            let offered_shorthand = offer
+                .shorthand
+                .as_ref()
+                .map(|(input, output)| (input.as_str(), output.as_str()))
+                .or_else(
+                    || match (offer.inputs.as_slice(), offer.outputs.as_slice()) {
+                        ([input], [output]) => {
+                            Some((input.port_id.as_str(), output.port_id.as_str()))
+                        }
+                        _ => None,
+                    },
+                );
+            let shorthand = self
+                .shorthand
+                .as_ref()
+                .map(|(input, output)| (input.as_str(), output.as_str()));
+            shorthand == offered_shorthand
+                && conduit_core::PortDescriptorRefs::Owned(&self.inputs)
+                    .canonical_eq(conduit_core::PortDescriptorRefs::Owned(&offer.inputs))
+                && conduit_core::PortDescriptorRefs::Owned(&self.outputs)
+                    .canonical_eq(conduit_core::PortDescriptorRefs::Owned(&offer.outputs))
+        } else {
+            self.checked_front() == offer.checked_front()
+        }
+    }
+
     /// Tests both callable fit and semantic realization eligibility.
     ///
     /// Ordinary gears require the same semantic contract identity. A semantic
@@ -21,7 +57,7 @@ impl CheckedGear {
     /// Gear.
     pub fn accepts_realization(&self, offer: &conduit_core::CapabilityOffer) -> bool {
         self.kind_id == offer.kind_id
-            && self.checked_front() == offer.checked_front()
+            && self.accepts_callable_front(offer)
             && self.accepts_semantic_contract(offer)
             && (self.kind_contract_revision == offer.kind_contract_revision
                 || self.kind_contract_revision.as_str()

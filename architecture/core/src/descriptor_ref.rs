@@ -42,6 +42,24 @@ impl<'a> PortDescriptorRefs<'a> {
             Self::Borrowed(v) => v.get(index).copied(),
         }
     }
+    /// Equality after the same stable port-id ordering as `CheckedFront`.
+    /// Equal-key occurrences retain their original order; no descriptor is
+    /// deduplicated or omitted and no temporary sorted allocation is needed.
+    pub fn canonical_eq(self, other: PortDescriptorRefs<'_>) -> bool {
+        self.len() == other.len()
+            && self.iter().enumerate().all(|(index, port)| {
+                let occurrence = self
+                    .iter()
+                    .take(index)
+                    .filter(|previous| previous.port_id == port.port_id)
+                    .count();
+                other
+                    .iter()
+                    .filter(|candidate| candidate.port_id == port.port_id)
+                    .nth(occurrence)
+                    == Some(port)
+            })
+    }
     pub fn iter(self) -> impl ExactSizeIterator<Item = PortDescriptorRef<'a>> {
         (0..self.len()).map(move |i| match self {
             Self::Owned(v) => (&v[i]).into(),
