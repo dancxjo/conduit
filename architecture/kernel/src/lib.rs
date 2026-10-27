@@ -7,6 +7,10 @@
 //! bindings before Play start. The fixed and hosted storage profiles implement
 //! the same value/sign contracts.
 
+#[cfg(feature = "alloc")]
+mod hosted_sign_preparation;
+#[cfg(feature = "alloc")]
+pub use hosted_sign_preparation::HostedSignPreparationError;
 mod sign_retention;
 use sign_retention::{
     ensure_retained_sign_capacity, ensure_sign_sequence_capacity, prepare_transient_eviction,
@@ -1003,52 +1007,6 @@ pub struct HostedSignLog {
 
 #[cfg(feature = "alloc")]
 impl HostedSignLog {
-    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, SignError> {
-        Self::new_with_remote_storage(item_capacity, byte_capacity, 0, 0)
-    }
-
-    pub fn new_with_remote_storage(
-        item_capacity: u16,
-        byte_capacity: u32,
-        remote_item_capacity: u16,
-        remote_byte_capacity: u32,
-    ) -> Result<Self, SignError> {
-        let physical_bytes = usize::from(item_capacity)
-            .checked_mul(size_of::<KernelEvent>())
-            .and_then(|value| u32::try_from(value).ok())
-            .ok_or(SignError::InvalidBudget)?;
-        let remote_physical_bytes =
-            remote_sign_storage_bytes(remote_item_capacity).ok_or(SignError::InvalidBudget)?;
-        if item_capacity == 0
-            || byte_capacity == 0
-            || byte_capacity > physical_bytes
-            || remote_item_capacity > item_capacity
-            || (remote_item_capacity == 0 && remote_byte_capacity != 0)
-            || (remote_item_capacity != 0
-                && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
-        {
-            return Err(SignError::InvalidBudget);
-        }
-        let mut entries = alloc::vec::Vec::with_capacity(usize::from(item_capacity));
-        entries.resize(usize::from(item_capacity), None);
-        let mut remote_entries = alloc::vec::Vec::with_capacity(usize::from(remote_item_capacity));
-        remote_entries.resize(usize::from(remote_item_capacity), None);
-        Ok(Self {
-            entries,
-            len: 0,
-            retained_items: 0,
-            byte_capacity,
-            used_bytes: 0,
-            next_sequence: 0,
-            remote_entries,
-            remote_item_capacity,
-            remote_byte_capacity,
-            remote_len: 0,
-            remote_used_bytes: 0,
-            retention_gap: None,
-        })
-    }
-
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
         self.entries[..usize::from(self.len)]
             .iter()
