@@ -52,17 +52,32 @@ fn save(path: &Path, value: &impl Serialize) -> Result<()> {
     use std::os::unix::fs::OpenOptionsExt;
     let parent = path.parent().ok_or("private output parent")?;
     private(parent, true)?;
-    let mut f = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-        .open(path)?;
-    serde_json::to_writer(&mut f, value)?;
-    f.write_all(b"\n")?;
-    f.sync_all()?;
-    std::fs::File::open(parent)?.sync_all()?;
-    Ok(())
+    let mut nonce = 0u64;
+    let (temporary, mut f) = loop {
+        let temporary = path.with_extension(format!("pending-{}-{nonce}", std::process::id()));
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(&temporary)
+        {
+            Ok(file) => break (temporary, file),
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => nonce += 1,
+            Err(error) => return Err(error.into()),
+        }
+    };
+    let result = (|| -> Result<()> {
+        serde_json::to_writer(&mut f, value)?;
+        f.write_all(b"\n")?;
+        f.sync_all()?;
+        // Publish only the complete synced inode, preserving no-overwrite custody.
+        std::fs::hard_link(&temporary, path)?;
+        std::fs::File::open(parent)?.sync_all()?;
+        Ok(())
+    })();
+    let _ = std::fs::remove_file(temporary);
+    result
 }
 fn load<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     use std::os::unix::fs::OpenOptionsExt;
@@ -262,14 +277,43 @@ pub fn join(input: &Path, state: &Path, peer: &str) -> Result<()> {
     checked(bootstrap.invitation.validate(0))?;
     if state.exists() {
         private(state, true)?;
-        let retained: Bootstrap = load(&state.join("continuity-private.json"))?;
-        if serde_json::to_vec(&bootstrap)? != serde_json::to_vec(&retained)? {
-            return Err("retained invitation differs".into());
+        if state.join("continuity-private.json").exists() {
+            let retained: Bootstrap = load(&state.join("continuity-private.json"))?;
+            if serde_json::to_vec(&bootstrap)? != serde_json::to_vec(&retained)? {
+                return Err("retained invitation differs".into());
+            }
         }
-        let pending: Pending = load(&state.join("pending-ticket.json"))?;
-        return finish(&bootstrap, state, peer, pending);
+        if state.join("recorder-binding.json").exists() {
+            let binding: serde_json::Value = load(&state.join("recorder-binding.json"))?;
+            if binding["root_key"] != serde_json::to_value(bootstrap.root_key)?
+                || binding["invitation"] != serde_json::to_value(&bootstrap.invitation.claim)?
+            {
+                return Err("retained recorder binding differs".into());
+            }
+            crate::local_recorder::admitted_collector(&state.join("recorder-binding.json"))?;
+            return Ok(());
+        }
+        if state.join("pending-ticket.json").exists() {
+            let pending: Pending = load(&state.join("pending-ticket.json"))?;
+            return finish(&bootstrap, state, peer, pending);
+        }
+        // A lost POST reply must replay the exact original signed request,
+        // never allocate another Boot identity or consume another invitation.
+        if state.join("submission-private.json").exists() {
+            let request = load(&state.join("submission-private.json"))?;
+            return submit(&bootstrap, state, peer, request);
+        }
+        // Nothing could have been submitted before the durable submission file.
+    } else {
+        std::fs::DirBuilder::new().mode(0o700).create(state)?;
+        std::fs::File::open(
+            state
+                .parent()
+                .filter(|p| !p.as_os_str().is_empty())
+                .unwrap_or_else(|| Path::new(".")),
+        )?
+        .sync_all()?;
     }
-    std::fs::DirBuilder::new().mode(0o700).create(state)?;
     private(state, true)?;
     let host: conduit_core::HostId = format!(
         "linux/{}",
@@ -309,7 +353,43 @@ pub fn join(input: &Path, state: &Path, peer: &str) -> Result<()> {
         play_created: false,
     };
     // Retain continuity authority before a possibly successful irreversible admission.
-    save(&state.join("continuity-private.json"), &bootstrap)?;
+    if !state.join("continuity-private.json").exists() {
+        save(&state.join("continuity-private.json"), &bootstrap)?;
+    }
+    save(&state.join("submission-private.json"), &request)?;
+    submit(&bootstrap, state, peer, request)
+}
+fn submit(
+    bootstrap: &Bootstrap,
+    state: &Path,
+    peer: &str,
+    request: conduit_body::PortableSpawnAdmissionRequest,
+) -> Result<()> {
+    let claim = &bootstrap.invitation.claim;
+    let advertisement = &request.host_advertisement;
+    if request.invitation_id != claim.invitation_id
+        || request.body_id != claim.body_id
+        || request.nonce != claim.nonce
+    {
+        return Err("retained submission invitation scope".into());
+    }
+    let signature: [u8; 64] = request
+        .signature
+        .as_slice()
+        .try_into()
+        .map_err(|_| "retained submission signature extent")?;
+    checked(
+        ed25519_dalek::SigningKey::from_bytes(&bootstrap.invitation.secret)
+            .verifying_key()
+            .verify_strict(
+                &claim.signing_transcript(
+                    &advertisement.host_id,
+                    &advertisement.boot_id,
+                    advertisement.offer_generation,
+                ),
+                &ed25519_dalek::Signature::from_bytes(&signature),
+            ),
+    )?;
     let (status, bytes) = http(peer, "POST", "/body/join", &compact_request(&request)?)?;
     if status != 202 {
         return Err(format!("join submission HTTP {status}").into());
@@ -320,11 +400,11 @@ pub fn join(input: &Path, state: &Path, peer: &str) -> Result<()> {
     }
     let pending = Pending {
         ticket: ticket.ticket,
-        local_host: host,
-        local_boot: boot,
+        local_host: request.host_advertisement.host_id,
+        local_boot: request.host_advertisement.boot_id,
     };
     save(&state.join("pending-ticket.json"), &pending)?;
-    finish(&bootstrap, state, peer, pending)
+    finish(bootstrap, state, peer, pending)
 }
 fn finish(bootstrap: &Bootstrap, state: &Path, peer: &str, pending: Pending) -> Result<()> {
     let ticket = Ticket {
@@ -416,20 +496,53 @@ mod tests {
         std::fs::remove_dir_all(dir).unwrap();
     }
     #[test]
+    fn incomplete_private_state_is_never_published_and_stale_temporary_cannot_block_retry() {
+        struct Interrupted;
+        impl Serialize for Interrupted {
+            fn serialize<S: serde::Serializer>(
+                &self,
+                serializer: S,
+            ) -> std::result::Result<S::Ok, S::Error> {
+                use serde::ser::{Error, SerializeSeq};
+                let mut seq = serializer.serialize_seq(Some(2))?;
+                seq.serialize_element(&"partial")?;
+                Err(S::Error::custom("interrupted serializer"))
+            }
+        }
+        let dir = directory("incomplete");
+        let path = dir.join("private.json");
+        assert!(save(&path, &Interrupted).is_err());
+        assert!(!path.exists());
+        std::fs::write(
+            path.with_extension(format!("pending-{}-0", std::process::id())),
+            b"torn",
+        )
+        .unwrap();
+        save(&path, &serde_json::json!({"complete":true})).unwrap();
+        assert_eq!(load::<serde_json::Value>(&path).unwrap()["complete"], true);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+    #[test]
     fn actual_http_join_writes_only_verified_binding_and_retains_private_continuity() {
-        http_join(false, false);
+        http_join(false, false, false);
     }
     #[test]
     fn interrupted_join_resumes_exact_retained_ticket_without_resubmission() {
-        http_join(true, false);
+        http_join(true, false, false);
     }
     #[test]
     fn root_signed_receipt_for_other_body_never_creates_binding() {
-        http_join(false, true);
+        http_join(false, true, false);
     }
-    fn http_join(resume: bool, wrong_body: bool) {
+    #[test]
+    fn lost_submission_reply_replays_exact_durable_request_and_completed_join_is_idempotent() {
+        http_join(false, false, true);
+    }
+    fn http_join(resume: bool, wrong_body: bool, lost_reply: bool) {
         let dir = directory(if wrong_body {
             "wrong-body"
+        } else if lost_reply {
+            "lost-reply"
         } else if resume {
             "resume"
         } else {
@@ -496,7 +609,19 @@ mod tests {
         let peer = listener.local_addr().unwrap().to_string();
         let server = std::thread::spawn(move || {
             let mut request = retained_request;
-            for round in if resume { 1..2 } else { 0..2 } {
+            let mut original_post = None;
+            for step in if resume {
+                1..2
+            } else {
+                0..if lost_reply { 3 } else { 2 }
+            } {
+                let round = if lost_reply && step == 1 {
+                    0
+                } else if lost_reply && step == 2 {
+                    1
+                } else {
+                    step
+                };
                 let (mut socket, _) = listener.accept().unwrap();
                 socket
                     .set_read_timeout(Some(Duration::from_secs(3)))
@@ -518,6 +643,11 @@ mod tests {
                 socket.read_exact(&mut body).unwrap();
                 let (status, body) = if round == 0 {
                     assert!(header.starts_with("POST /body/join "));
+                    if let Some(original) = &original_post {
+                        assert_eq!(original, &body);
+                    } else {
+                        original_post = Some(body.clone());
+                    }
                     let mut wire: serde_json::Value = serde_json::from_slice(&body).unwrap();
                     assert_eq!(wire["schema"], "conduit.environment/observer-admission@1");
                     wire["schema"] =
@@ -547,6 +677,9 @@ mod tests {
                         )
                         .unwrap();
                     request = Some(r);
+                    if lost_reply && step == 0 {
+                        continue; // accepted request, lost ticket reply
+                    }
                     (202,serde_json::to_vec(&serde_json::json!({"schema":"conduit.environment/body-join-queued@1","ticket":7})).unwrap())
                 } else {
                     assert!(header.starts_with("GET /body/join/result?id=7 "));
@@ -582,6 +715,11 @@ mod tests {
                 socket.write_all(&body).unwrap();
             }
         });
+        if lost_reply {
+            assert!(join(&input, &state, &peer).is_err());
+            assert!(state.join("submission-private.json").is_file());
+            assert!(!state.join("pending-ticket.json").exists());
+        }
         let result = join(&input, &state, &peer);
         server.join().unwrap();
         if wrong_body {
@@ -596,6 +734,8 @@ mod tests {
         assert_eq!(binding["schema"], "conduit.environment/joined-recorder@1");
         assert!(binding.get("secret").is_none());
         assert!(load::<Bootstrap>(&state.join("continuity-private.json")).is_ok());
+        // No network is needed once the exact signed binding is durable.
+        join(&input, &state, "127.0.0.1:1").unwrap();
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

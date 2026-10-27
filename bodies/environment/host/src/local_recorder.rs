@@ -28,7 +28,7 @@ fn private_metadata(path: &Path, directory: bool) -> Result<()> {
     }
     Ok(())
 }
-fn admitted_collector(path: &Path) -> Result<Collector> {
+pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
     use std::{io::Read, os::unix::fs::OpenOptionsExt};
     private_metadata(path.parent().ok_or("recorder binding parent")?, true)?;
     private_metadata(path, false)?;
@@ -67,12 +67,8 @@ fn admitted_collector(path: &Path) -> Result<Collector> {
 /// Only a private binding saved by successful invitation admission may enter
 /// this command. A producer response cannot replace its pinned Root key.
 pub fn run_joined(binding: &Path, peer: &str, directory: &Path, once: bool) -> Result<()> {
-    use std::os::unix::fs::DirBuilderExt;
     let collector = admitted_collector(binding)?;
-    std::fs::DirBuilder::new()
-        .recursive(true)
-        .mode(0o700)
-        .create(directory)?;
+    crate::observed_history::create_durable_directory(directory)?;
     private_metadata(directory, true)?;
     run(collector, peer, directory, once)
 }

@@ -204,6 +204,7 @@ fn durable_restart_revalidates_prefix_and_ignores_interrupted_temporary_write() 
     std::fs::remove_dir_all(directory).unwrap();
 }
 
+#[allow(dead_code)] // Shared target module includes recovery paths outside this fixture.
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_recovery.rs"]
 mod native_recovery;
 
@@ -284,6 +285,7 @@ fn prior_boot_outbox_reopens_exact_committed_prefix_without_programming() {
     assert_eq!(media.0.borrow().1, writes);
 }
 
+#[allow(dead_code)] // Shared target module also supports streamed checkpoint rewrites.
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_body_checkpoint.rs"]
 mod checkpoint;
 

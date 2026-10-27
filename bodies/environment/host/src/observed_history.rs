@@ -49,6 +49,20 @@ pub struct Collector {
     pub after: u32,
     observed_ms: u64,
 }
+/// Durability includes every newly created directory entry, not only its files.
+pub(crate) fn create_durable_directory(directory: &Path) -> Result<()> {
+    if directory.exists() {
+        return Ok(());
+    }
+    let parent = directory
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    create_durable_directory(parent)?;
+    std::fs::DirBuilder::new().mode(0o700).create(directory)?;
+    File::open(parent)?.sync_all()?;
+    Ok(())
+}
 impl Collector {
     pub fn new(prepared: &Prepared, key: &[u8; 32]) -> Result<Self> {
         let mut scope = [0; 96];
@@ -218,10 +232,7 @@ impl Collector {
             if after == self.after {
                 return Ok(());
             }
-            std::fs::DirBuilder::new()
-                .recursive(true)
-                .mode(0o700)
-                .create(directory)?;
+            create_durable_directory(directory)?;
             let path = directory.join(format!(
                 "observed-history-{:04}-{after:04}.json",
                 self.after
