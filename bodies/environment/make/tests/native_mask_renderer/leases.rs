@@ -397,7 +397,12 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
         .unwrap()
         .finish_with_fixed_storage(values)
         .unwrap();
-    static READER: crate::native_face::Reader = crate::native_face::Reader;
+    let face_owner = Box::leak(Box::new(
+        conduit_environment_runtime::publication_face_custody::LocalPublicationFace::new(
+            conduit_environment_runtime::retained_publication_face::RetainedPublicationFace::prepare(
+                fixture::face().basis, 960, 120000).unwrap())));
+    let (face_publisher, face_reader) = face_owner.claim().unwrap();
+    let reader = face_reader.lease();
     let mut owner = Some(ready);
     let mut session = ms::NativeMaskSession::prepare(
         &mut owner,
@@ -412,7 +417,7 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
                 active: initial.clone(),
                 wake: current.wake.wake_id.clone(),
             },
-            reader: &READER,
+            reader,
         },
     )
     .unwrap();
@@ -673,6 +678,15 @@ fn complete_native_mask_return_requires_all_19200_accepted_children_and_current_
     assert_eq!(&*returned.evidence as *const _ as usize, evidence_address);
     assert!(!returned.kernel.cancelled);
     assert_eq!(returned.kernel.active_nodes, 3);
+    assert!(returned.reader.with_retained(|_, _| ()).is_ok());
+    let _returned_face = face_owner
+        .reunite(face_publisher, face_reader)
+        .ok()
+        .unwrap();
+    assert!(matches!(
+        returned.reader.with_retained(|_, _| ()),
+        Err(conduit_environment_runtime::publication_face_custody::CustodyRefusal::Scope)
+    ));
     assert_eq!(pins.released.get(), [true, true]);
     assert!(pins.edges.get() > 19200 * 200);
     println!("native_completed_mask_cpu children=19200 completeClosed=19200 sequence_next=19201 retirement_allocations=0 physical=false");

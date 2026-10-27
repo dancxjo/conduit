@@ -47,7 +47,7 @@ pub struct NativeRoot {
     retired_native: Option<DeviceProviders>,
     worker: Option<crate::native_task::Handle>,
     #[cfg(feature = "native-face-root")]
-    face_reader: Option<&'static crate::native_face::Reader>,
+    face_reader: Option<crate::native_face::Reader>,
     worker_spawner: Option<embassy_executor::Spawner>,
     execution: Option<alloc::boxed::Box<DeviceExecution>>,
     native_bindings: Option<

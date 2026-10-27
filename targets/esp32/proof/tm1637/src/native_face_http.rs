@@ -28,6 +28,9 @@ pub fn prepare(count: u32, stale_after_ms: u64) -> Result<(Publisher, Control), 
     ))
 }
 impl Publisher {
+    pub fn withdraw(&self) {
+        self.publisher.withdraw();
+    }
     /// Called under the actual synchronous reader borrow after Face publication.
     /// Fresh material cannot outlive the Face's observed-time freshness window.
     /// Already-stale material gets only an availability lease; no flag is changed.

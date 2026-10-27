@@ -128,7 +128,10 @@ impl NativeRoot {
                 self.display
                     .register_check_task(
                         self.worker_spawner.ok_or("worker-executor-unavailable")?,
-                        self.face_reader.ok_or("face-reader-unavailable")?,
+                        self.face_reader
+                            .as_ref()
+                            .ok_or("face-reader-unavailable")?
+                            .lease(),
                         reservation,
                     )
                     .await?;

@@ -62,7 +62,7 @@ impl NativeRoot {
                 }
                 owner::Operation::Cancel => {
                     #[cfg(feature = "native-face-root")]
-                    if let Some(reader) = self.face_reader {
+                    if let Some(reader) = self.face_reader.as_ref() {
                         reader.withdraw_http();
                     }
                     worker.abort_preparation();

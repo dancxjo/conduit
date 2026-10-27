@@ -162,6 +162,7 @@ fn return_replaces_only_with_fresh_budget_and_fences_stale_operations() {
             Err(HttpShowRefusal::Scope)
         );
         stale_control.withdraw();
+        stale.withdraw();
         drop(stale);
         assert!(mailbox.response(true, 1001, true).unwrap().is_some());
         assert_eq!(
@@ -212,4 +213,16 @@ fn return_mismatch_busy_and_overflow_preserve_ownership_and_generation() {
     let (_, _, error) = mailbox.reunite(publisher, control).err().unwrap();
     assert_eq!(error, HttpShowRefusal::GenerationExhausted);
     drop((other_publisher, other_control));
+}
+
+#[test]
+fn publisher_explicit_withdraw_retains_custody_and_fences_late_material() {
+    let mailbox = HttpShowMailbox::new();
+    let (publisher, control) = mailbox.claim(2, 100).unwrap();
+    publisher.withdraw();
+    assert!(mailbox.response(true, 0, true).unwrap().is_none());
+    let returned = mailbox.reunite(publisher, control).ok().unwrap();
+    let (publisher, _control) = returned.replace(3, 200).ok().unwrap();
+    publisher.withdraw();
+    assert!(mailbox.response(true, 0, true).unwrap().is_none());
 }

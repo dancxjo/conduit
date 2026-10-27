@@ -1,6 +1,6 @@
 //! Retained ordinary Mask tables and private physical custody. No issuer or
 //! Body start can be reconstructed from this preparation.
-use crate::{electrical::DisplayPins, native_face::Reader};
+use crate::{electrical::DisplayPins, native_face::ReadLease};
 use crate::{native_authority::MaskLeaseIssuer, native_mask_evidence::Consumer};
 use alloc::boxed::Box;
 #[path = "native_mask_terminal.rs"]
@@ -27,7 +27,7 @@ pub struct Preparation {
     pub routes: f::AdmittedMaskPlotRoutes,
     pub wardrobe: f::MaskWardrobeControl,
     pub producer: FaceScope,
-    pub reader: &'static Reader,
+    pub reader: ReadLease,
 }
 pub struct NativeMaskSession {
     pub(super) ready: Option<NativeReady>,
@@ -40,7 +40,7 @@ pub struct NativeMaskSession {
     pub(super) routes: f::AdmittedMaskPlotRoutes,
     pub(super) wardrobe: f::MaskWardrobeControl,
     pub(super) producer: FaceScope,
-    pub(super) reader: &'static Reader,
+    pub(super) reader: ReadLease,
     pub(super) source_epoch: Option<(u64, u64)>,
     pub(super) index: u64,
     pub(super) pending: Option<(c::ActivePlayIdentity, k::ValueRef)>,
@@ -150,7 +150,7 @@ pub struct RetiredMaskParts {
     pub routes: f::AdmittedMaskPlotRoutes,
     pub wardrobe: f::MaskWardrobeControl,
     pub producer: FaceScope,
-    pub reader: &'static Reader,
+    pub reader: ReadLease,
 }
 impl RetiredMask {
     pub fn renderer_identity(&self) -> &r::RendererIdentity {

@@ -132,6 +132,10 @@ impl HttpShowMailbox {
     }
 }
 impl HttpShowPublisher<'_> {
+    /// Withdraw current material while retaining the actual producer handle.
+    pub fn withdraw(&self) {
+        self.mailbox.withdraw(self.generation);
+    }
     /// Lease coordinates come from Root's admitted same-Boot policy. They are
     /// not inferred from formatted temperatures or substituted for sample time.
     /// Refusal preserves the previous material and publication budget.

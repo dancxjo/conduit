@@ -35,11 +35,10 @@ pub fn http_response(
 const CONTROL_RESERVE: usize = 8192;
 const PREPARATION_BYTES: usize = 4608;
 static SLOT: StaticCell<Box<LocalPublicationFace>> = StaticCell::new();
-static READER: StaticCell<Reader> = StaticCell::new();
 /// Actual task publication custody, bound to the same non-Send executor owner.
 pub struct Publisher {
     inner: custody::Publisher<'static>,
-    reader: &'static Reader,
+    reader: ReadLease,
     http: http::Publisher,
 }
 /// Root retains this private, non-Clone reader; claimed IDs cannot recover it.
@@ -61,9 +60,7 @@ pub struct Inspection {
 /// task registration. Owner backing, dynamic data and control headroom are
 /// admitted here, without polling a Step.
 #[inline(never)]
-pub fn prepare(
-    reservation: &OwnerReservation,
-) -> Result<(Publisher, &'static Reader), &'static str> {
+pub fn prepare(reservation: &OwnerReservation) -> Result<(Publisher, Reader), &'static str> {
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
@@ -82,7 +79,7 @@ pub fn prepare_local(
     plan: &conduit_core::VerifiedPlanMetadata,
     fragment: &conduit_core::FragmentId,
     active: &conduit_core::ActivePlayIdentity,
-) -> Result<(Publisher, &'static Reader), &'static str> {
+) -> Result<(Publisher, Reader), &'static str> {
     let source = crate::native_software::source_identity();
     let metadata = plan.preparation_metadata();
     if metadata.source_document_id != source.source_document_id
@@ -108,7 +105,7 @@ pub fn prepare_installed_local(
     fragment: &conduit_core::FragmentId,
     active: &conduit_core::ActivePlayIdentity,
     generation: conduit_core::OfferGeneration,
-) -> Result<(Publisher, &'static Reader), &'static str> {
+) -> Result<(Publisher, Reader), &'static str> {
     let source = crate::native_software::source_identity();
     let (body_id, wake_id) =
         local_scope::check_installed(body, &source, fragment, active, generation)?;
@@ -124,7 +121,7 @@ fn prepare_scope(
     body: &conduit_body::BodyId,
     wake: &conduit_body::WakeId,
     active: &conduit_core::ActivePlayIdentity,
-) -> Result<(Publisher, &'static Reader), &'static str> {
+) -> Result<(Publisher, Reader), &'static str> {
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
@@ -167,16 +164,15 @@ fn prepare_scope(
         &**SLOT.try_init(face).ok_or("face-already-claimed")?;
     let (publisher, reader) = owner.claim().map_err(|e| e.code())?;
     let (http, control) = http::prepare(count, stale_after_ms)?;
-    let reader: &'static Reader = READER
-        .try_init(Reader {
-            inner: reader,
-            http: control,
-        })
-        .ok_or("face-reader-already-claimed")?;
+    let reader = Reader {
+        inner: reader,
+        http: control,
+    };
+    let lease = reader.lease();
     Ok((
         Publisher {
             inner: publisher,
-            reader,
+            reader: lease,
             http,
         },
         reader,
@@ -185,7 +181,7 @@ fn prepare_scope(
 impl Publisher {
     /// Close presentation material while retaining actual publication custody.
     pub(crate) fn withdraw_http(&self) {
-        self.reader.withdraw_http();
+        self.http.withdraw();
     }
     #[inline(never)]
     pub fn publish(&mut self, snapshot: &PublicationSnapshot<'_>, committed_ms: u64) {
@@ -198,7 +194,7 @@ impl Publisher {
             committed_ms,
         );
         if published.is_err() {
-            self.reader.withdraw_http();
+            self.http.withdraw();
             return;
         }
         #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
@@ -224,7 +220,7 @@ impl Publisher {
             self.http.publish(face, committed_ms)
         });
         if !matches!(prepared, Ok(Ok(()))) {
-            self.reader.withdraw_http();
+            self.http.withdraw();
         }
     }
 }
@@ -244,10 +240,25 @@ fn digest(face: &Face) -> [u8; 32] {
     }
     result
 }
+/// Copyable exact-generation local read capability, without return authority.
+#[derive(Clone, Copy)]
+pub struct ReadLease {
+    inner: custody::ReadLease<'static>,
+}
 impl Reader {
+    pub fn lease(&self) -> ReadLease {
+        ReadLease {
+            inner: self.inner.lease(),
+        }
+    }
+    pub fn inspect(&self, now: u64) -> Result<Inspection, &'static str> {
+        self.lease().inspect(now)
+    }
     pub fn withdraw_http(&self) {
         self.http.withdraw();
     }
+}
+impl ReadLease {
     /// Synchronous local access only; Root still admits the consuming Mask and
     /// its exact route/work. The borrowed Face cannot escape this callback.
     pub fn with_current<R>(

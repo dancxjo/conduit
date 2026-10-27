@@ -178,6 +178,7 @@ impl NativeRoot {
             sampler: Option<crate::native_task::Status>,
             mask: Option<crate::native_display::task::Status>,
             consumed_mask: crate::native_mask_evidence::Status,
+            network: crate::native_network::Inspection,
             face: Option<crate::native_face::Inspection>,
         }
         let millis = embassy_time::Instant::now().as_millis();
@@ -193,8 +194,10 @@ impl NativeRoot {
                 .as_ref()
                 .map(|worker| worker.status()),
             consumed_mask: crate::native_mask_evidence::status(),
+            network: self.network.inspect(),
             face: self
                 .face_reader
+                .as_ref()
                 .and_then(|reader| reader.inspect(millis).ok()),
         };
         let mut bytes = [0; 2048];
@@ -838,7 +841,11 @@ impl NativeRoot {
                     active: active.clone(),
                     wake,
                 },
-                reader: self.face_reader.ok_or("local-mask-face-reader")?,
+                reader: self
+                    .face_reader
+                    .as_ref()
+                    .ok_or("local-mask-face-reader")?
+                    .lease(),
             };
             // Transfer the actual Mask owner before boxing the smaller handoff.
             // Retaining both full preparations fragments the last control space.

@@ -7,7 +7,7 @@ use conduit_kernel as k;
 use embassy_time::{Duration, Instant, Timer};
 
 pub(super) struct FaceFore {
-    reader: &'static crate::native_face::Reader,
+    reader: crate::native_face::ReadLease,
     mask: Box<PreparedDisplayMask>,
     body: [u8; 32],
     wake: [u8; 32],
@@ -91,7 +91,7 @@ impl NativeDisplay {
     pub async fn register_check_task(
         &mut self,
         spawner: embassy_executor::Spawner,
-        reader: &'static crate::native_face::Reader,
+        reader: crate::native_face::ReadLease,
         reservation: &crate::native_owner_reservation::OwnerReservation,
     ) -> Result<(), &'static str> {
         if self.worker.is_some() {

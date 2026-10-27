@@ -647,7 +647,7 @@ mod electrical {
     pub type DisplayPins<'a> = super::native::Provider;
 }
 mod native_face {
-    pub struct Reader;
+    pub type ReadLease = conduit_environment_runtime::publication_face_custody::ReadLease<'static>;
 }
 mod native_authority {
     pub(crate) use crate::lease_tests::production::MaskLeaseIssuer;

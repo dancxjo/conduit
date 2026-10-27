@@ -63,6 +63,45 @@ pub struct Reader<'a> {
     owner: &'a LocalPublicationFace,
     generation: u64,
 }
+/// Copyable read access to one exact owner generation. It cannot reunite or
+/// replace custody, and every operation checks the captured generation.
+/// ```compile_fail
+/// use conduit_environment_runtime::publication_face_custody::ReadLease;
+/// fn require_send<T: Send>() {}
+/// require_send::<ReadLease<'static>>();
+/// ```
+/// ```compile_fail
+/// use conduit_environment_runtime::publication_face_custody::ReadLease;
+/// fn leak<'a>(lease: ReadLease<'a>) -> &'a conduit_face::Face {
+///     lease.with_retained(|face, _| face).unwrap()
+/// }
+/// ```
+#[derive(Clone, Copy)]
+pub struct ReadLease<'a> {
+    owner: &'a LocalPublicationFace,
+    generation: u64,
+}
+impl<'a> Reader<'a> {
+    pub fn lease(&self) -> ReadLease<'a> {
+        ReadLease {
+            owner: self.owner,
+            generation: self.generation,
+        }
+    }
+    pub fn with_retained<R>(
+        &self,
+        consume: impl FnOnce(&Face, ReadStatus) -> R,
+    ) -> Result<R, CustodyRefusal> {
+        self.lease().with_retained(consume)
+    }
+    pub fn with_current<R>(
+        &self,
+        now_ms: u64,
+        consume: impl FnOnce(&Face, ReadStatus) -> R,
+    ) -> Result<R, CustodyRefusal> {
+        self.lease().with_current(now_ms, consume)
+    }
+}
 impl LocalPublicationFace {
     pub fn new(face: RetainedPublicationFace) -> Self {
         Self {
@@ -122,7 +161,7 @@ impl Drop for Publisher<'_> {
         }
     }
 }
-impl Reader<'_> {
+impl ReadLease<'_> {
     /// Borrow the exact retained revision without advancing its freshness clock.
     /// Mask-local paging may read the same truth repeatedly; the owner advances
     /// semantic age separately through `with_current`. This creates no clock,
@@ -242,7 +281,7 @@ impl Publisher<'_> {
         Ok(())
     }
 }
-impl Reader<'_> {
+impl ReadLease<'_> {
     fn check(&self) -> Result<(), CustodyRefusal> {
         if self.generation != self.owner.generation.get() {
             return Err(CustodyRefusal::Scope);
@@ -300,6 +339,38 @@ mod renewal_tests {
         .unwrap()
     }
     #[test]
+    fn copied_read_lease_does_not_pin_reader_address_or_bypass_active_borrow() {
+        let owner = LocalPublicationFace::new(face("first"));
+        let (publisher, reader) = owner.claim().unwrap();
+        let lease = reader.lease();
+        let copied = lease;
+        let reader = *alloc::boxed::Box::new(reader);
+        assert!(lease.with_retained(|_, _| ()).is_ok());
+        let refused = lease
+            .with_current(0, |_, _| owner.reunite(publisher, reader))
+            .unwrap();
+        let (publisher, reader, reason) = refused.err().unwrap();
+        assert_eq!(reason, CustodyRefusal::Busy);
+        assert!(copied.with_retained(|_, _| ()).is_ok());
+        let returned = owner.reunite(publisher, reader).ok().unwrap();
+        assert!(matches!(
+            lease.with_current(0, |_, _| ()),
+            Err(CustodyRefusal::Scope)
+        ));
+        let (_publisher, reader) = returned.replace(face("second")).ok().unwrap();
+        assert!(matches!(
+            copied.with_retained(|_, _| ()),
+            Err(CustodyRefusal::Scope)
+        ));
+        assert!(reader
+            .lease()
+            .with_current(0, |face, _| assert_eq!(
+                face.basis.active_play_id.as_ref().unwrap().as_str(),
+                "second"
+            ))
+            .is_ok());
+    }
+    #[test]
     fn repeated_finite_return_has_fresh_basis_and_fences_all_old_operations() {
         let owner = LocalPublicationFace::new(face("first"));
         let (mut publisher, mut reader) = owner.claim().unwrap();
@@ -312,7 +383,17 @@ mod renewal_tests {
                 owner: &owner,
                 generation: owner.generation.get(),
             };
+            let old_lease = reader.lease();
+            let copied_lease = old_lease;
             let returned = owner.reunite(publisher, reader).ok().unwrap();
+            assert!(matches!(
+                old_lease.with_current(0, |_, _| ()),
+                Err(CustodyRefusal::Scope)
+            ));
+            assert!(matches!(
+                copied_lease.with_retained(|_, _| ()),
+                Err(CustodyRefusal::Scope)
+            ));
             let next = returned.replace(face("next")).ok().unwrap();
             publisher = next.0;
             reader = next.1;
