@@ -46,7 +46,7 @@ impl NativeNetwork {
             ap_configured: stacks.map(|(ap, _)| ap.is_config_up()),
             station_configured: stacks.map(|(_, station)| station.is_config_up()),
             ap_mac: stacks.and_then(|(ap, _)| match ap.hardware_address() {
-                embassy_net::HardwareAddress::Ethernet(mac) => Some(mac),
+                embassy_net::HardwareAddress::Ethernet(mac) => Some(mac.0),
                 _ => None,
             }),
             channel: self
