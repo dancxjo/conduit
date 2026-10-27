@@ -46,6 +46,26 @@ fn index_is_borrowed_and_exact_source_reconstruction_preserves_meaning() {
     assert!(image.metadata().unwrap().into_expanded(Vec::new()).is_err());
 }
 #[test]
+fn exact_gear_identity_does_not_materialize_configuration_or_contracts() {
+    let source = source();
+    let bytes = encode(&source).unwrap();
+    let image = view(&bytes).unwrap();
+    for index in 0..image.gear_count() {
+        let (identity, thin) = allocation_probe::observe(|| image.gear_identity(index).unwrap());
+        let (complete, rich) = allocation_probe::observe(|| image.gear(index).unwrap());
+        assert_eq!(
+            identity,
+            (complete.gear_id.clone(), complete.kind_id.clone())
+        );
+        assert!(
+            thin.peak_bytes < rich.peak_bytes,
+            "{thin:?} versus {rich:?}"
+        );
+    }
+    assert!(image.gear_identity(image.gear_count()).is_err());
+    assert!(image.gear_identity(usize::MAX).is_err());
+}
+#[test]
 fn every_truncation_and_noncanonical_directory_refuses_before_decoding() {
     let bytes = encode(&source()).unwrap();
     for length in 0..bytes.len() {
@@ -78,6 +98,7 @@ fn gear_decode_refusal_is_lazy_and_bounds_are_independent_of_metadata() {
     let image = view(&bytes).unwrap();
     assert!(image.metadata().is_ok());
     assert!(image.gear(0).is_err());
+    assert!(image.gear_identity(0).is_err());
 }
 #[test]
 fn encode_refuses_empty_or_oversized_graphs_and_changed_provenance() {

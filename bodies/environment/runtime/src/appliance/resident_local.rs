@@ -22,7 +22,7 @@ pub struct PreparedDirectLocalAppliance<'a, V> {
 }
 impl<V: ValueStorage> PreparedResidentSoftware<V> {
     /// Check against the independently authenticated Make image and actual
-    /// initialized offer owner. Decodes one Source gear/offer at a time. Caller
+    /// initialized offer owner. Reads exact Source identity/configuration and one offer at a time. Caller
     /// supplies Root's actual current Host/Boot/offer epoch, not packet claims.
     pub fn check_local(
         &self,
@@ -152,14 +152,21 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         };
         self.source_offers(&spec, offers)?;
         for node in 0..NODES {
-            let source = image.gear(node).map_err(|_| E::Configuration)?;
+            let (source_id, source_kind) =
+                image.gear_identity(node).map_err(|_| E::Configuration)?;
+            let source = image
+                .gear_configuration(node)
+                .map_err(|_| E::Configuration)?;
+            if source.gear_id != source_id {
+                return Err(E::Configuration);
+            }
             let gear = selected
                 .placements
                 .iter()
                 .find(|g| g.gear_id == source.gear_id)
                 .ok_or(E::Configuration)?;
             if node_for(&gear.placement_id) != Some(k::NodeId(node as u16))
-                || gear.kind_id != source.kind_id
+                || gear.kind_id != source_kind
                 || gear.host_id != *host
                 || gear.boot_id != *boot
                 || gear.offer_generation != generation
@@ -182,7 +189,7 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                     .zip(PublicationChannel::ALL)
                     .map(|(node, channel)| (node, channel.kind_id())),
             ) {
-                if (usize::from(role.0) == node) != (source.kind_id.as_str() == kind) {
+                if (usize::from(role.0) == node) != (source_kind.as_str() == kind) {
                     return Err(E::Roles);
                 }
             }
@@ -243,9 +250,9 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                 }
                 continue;
             }
-            // Configuration/provenance is checked above. Retire its decoded
-            // Source gear before decoding the independently retained offer.
-            drop(source);
+            // Configuration/provenance is checked above. Retire its exact
+            // projection before constructing the independently retained offer.
+            drop((source, source_kind));
             let descriptor = offers
                 .iter()
                 .find(|o| usize::from(o.node) == node)

@@ -295,6 +295,29 @@ impl<'a> IndexedSourceImage<'a> {
         value.configuration.shrink_to_fit();
         Ok(value)
     }
+    /// Read a Gear's exact identity from the independently retained image,
+    /// skipping configuration and contracts. This is meaning, not readiness or
+    /// permission; complete configuration has its separate checked projection.
+    pub fn gear_identity(
+        &self,
+        index: usize,
+    ) -> Result<(conduit_core::GearId, conduit_core::KindId), E> {
+        #[derive(serde::Deserialize)]
+        struct Identity {
+            gear_id: conduit_core::GearId,
+            kind_id: conduit_core::KindId,
+        }
+        if index >= self.count {
+            return Err(E::Representation);
+        }
+        let start = word(self.bytes, PREFIX + index * 4)?;
+        let end = word(self.bytes, PREFIX + (index + 1) * 4)?;
+        let value: Identity = serde_json::from_slice(
+            &self.bytes[self.payload_start + start..self.payload_start + end],
+        )
+        .map_err(|_| E::Representation)?;
+        Ok((value.gear_id, value.kind_id))
+    }
     pub fn gear_count(&self) -> usize {
         self.count
     }
