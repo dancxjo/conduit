@@ -11,6 +11,24 @@ use conduit_face::{Face, FaceBasis, FacePropertyValue};
 use static_cell::StaticCell;
 #[path = "native_face_http.rs"]
 mod http;
+#[path = "native_face_reunion.rs"]
+mod reunion;
+pub use reunion::{Replacing, Returned, Returning};
+/// No replacement Play or history outbox is admitted by returning Face custody.
+#[allow(clippy::type_complexity)]
+pub fn reunite(
+    publisher: Publisher,
+    reader: Reader,
+) -> Result<Returned, (Returning, &'static str)> {
+    reunion::reunite(publisher, reader)
+}
+/// Independently prepared scope. Fields cannot be reconstructed from IDs alone.
+pub struct PreparedReplacement {
+    face: RetainedPublicationFace,
+    count: u32,
+    stale_after_ms: u64,
+    active: [u8; 64],
+}
 #[cfg(feature = "body-image-root")]
 #[path = "native_local_face_scope.rs"]
 mod local_scope;
@@ -117,11 +135,66 @@ pub fn prepare_installed_local(
     crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
     prepare_scope(body_id, wake_id, active)
 }
+/// Prepare a fresh Face from the current canonical installed proposal. This
+/// does not bind a history outbox, start workers, or grant a replacement Play.
+#[cfg(feature = "body-image-root")]
+pub fn prepare_installed_replacement(
+    body: &conduit_body::SealedBodyLifecycleSession,
+    fragment: &conduit_core::FragmentId,
+    active: &conduit_core::ActivePlayIdentity,
+    generation: conduit_core::OfferGeneration,
+) -> Result<PreparedReplacement, &'static str> {
+    let source = crate::native_software::source_identity();
+    let (body, wake) = local_scope::check_installed(body, &source, fragment, active, generation)?;
+    prepare_replacement_scope(body, wake, active)
+}
 fn prepare_scope(
     body: &conduit_body::BodyId,
     wake: &conduit_body::WakeId,
     active: &conduit_core::ActivePlayIdentity,
 ) -> Result<(Publisher, Reader), &'static str> {
+    let PreparedReplacement {
+        face,
+        count,
+        stale_after_ms,
+        active: _,
+    } = prepare_replacement_scope(body, wake, active)?;
+    let face = Box::new(LocalPublicationFace::new(face));
+    let stats = esp_alloc::HEAP.stats();
+    if stats.size.saturating_sub(stats.current_usage) < CONTROL_RESERVE {
+        return Err("face-control-capacity");
+    }
+    let owner: &'static LocalPublicationFace =
+        &**SLOT.try_init(face).ok_or("face-already-claimed")?;
+    let (publisher, reader) = owner.claim().map_err(|e| e.code())?;
+    let (http, control) = http::prepare(count, stale_after_ms)?;
+    Ok(pair(publisher, reader, http, control))
+}
+fn pair(
+    inner: custody::Publisher<'static>,
+    inner_reader: custody::Reader<'static>,
+    http: http::Publisher,
+    control: http::Control,
+) -> (Publisher, Reader) {
+    let reader = Reader {
+        inner: inner_reader,
+        http: control,
+    };
+    let lease = reader.lease();
+    (
+        Publisher {
+            inner,
+            reader: lease,
+            http,
+        },
+        reader,
+    )
+}
+fn prepare_replacement_scope(
+    body: &conduit_body::BodyId,
+    wake: &conduit_body::WakeId,
+    active: &conduit_core::ActivePlayIdentity,
+) -> Result<PreparedReplacement, &'static str> {
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
@@ -155,28 +228,37 @@ fn prepare_scope(
     let stale_after_ms = cadence.period_ms.checked_mul(2).ok_or("face-clock-bound")?;
     let face = RetainedPublicationFace::prepare(basis, count, stale_after_ms)
         .map_err(|_| "face-preparation")?;
-    let face = Box::new(LocalPublicationFace::new(face));
-    let stats = esp_alloc::HEAP.stats();
-    if stats.size.saturating_sub(stats.current_usage) < CONTROL_RESERVE {
-        return Err("face-control-capacity");
-    }
-    let owner: &'static LocalPublicationFace =
-        &**SLOT.try_init(face).ok_or("face-already-claimed")?;
-    let (publisher, reader) = owner.claim().map_err(|e| e.code())?;
-    let (http, control) = http::prepare(count, stale_after_ms)?;
-    let reader = Reader {
-        inner: reader,
-        http: control,
-    };
-    let lease = reader.lease();
-    Ok((
-        Publisher {
-            inner: publisher,
-            reader: lease,
-            http,
-        },
-        reader,
-    ))
+    stale_after_ms
+        .checked_add(1)
+        .ok_or("http-mask-clock-bound")?;
+    let mut active_id = [0; 64];
+    active_id.copy_from_slice(active.active_play_id.as_str().as_bytes());
+    Ok(PreparedReplacement {
+        face,
+        count,
+        stale_after_ms,
+        active: active_id,
+    })
+}
+
+fn read_scope(reader: &ReadLease) -> Result<[u8; 64], &'static str> {
+    reader
+        .inner
+        .with_retained(|face, _| {
+            let value = face
+                .basis
+                .active_play_id
+                .as_ref()
+                .ok_or("face-return-scope")?;
+            let bytes = value.as_str().as_bytes();
+            if bytes.len() != 64 {
+                return Err("face-return-scope");
+            }
+            let mut active = [0; 64];
+            active.copy_from_slice(bytes);
+            Ok(active)
+        })
+        .map_err(|e| e.code())?
 }
 impl Publisher {
     /// Close presentation material while retaining actual publication custody.

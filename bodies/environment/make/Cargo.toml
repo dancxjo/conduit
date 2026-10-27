@@ -30,6 +30,8 @@ conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 
 [dev-dependencies]
+conduit-environment-http = { path = "../http" }
+heapless = "0.8"
 embassy-futures = "=0.1.2"
 ed25519-dalek = { version = "2.2", default-features = false }
 serde = { version = "1", features = ["derive"] }

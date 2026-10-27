@@ -66,3 +66,61 @@ impl Publisher {
 pub fn response(now_ms: u64, json: bool) -> Option<heapless::String<2048>> {
     SHOW.response(true, now_ms, json).ok().flatten()
 }
+
+/// Returned static mailbox custody, without a replacement publication budget.
+pub struct Returned(conduit_environment_http::show_mailbox::Returned<'static>);
+#[allow(clippy::type_complexity)]
+pub fn reunite(
+    publisher: Publisher,
+    control: Control,
+) -> Result<Returned, (Publisher, Control, &'static str)> {
+    let Publisher {
+        publisher,
+        lifetime_ms,
+    } = publisher;
+    SHOW.reunite(publisher, control)
+        .map(Returned)
+        .map_err(|(publisher, control, reason)| {
+            (
+                Publisher {
+                    publisher,
+                    lifetime_ms,
+                },
+                control,
+                refusal(reason),
+            )
+        })
+}
+impl Returned {
+    pub fn replace(
+        self,
+        count: u32,
+        stale_after_ms: u64,
+    ) -> Result<(Publisher, Control), (Self, &'static str)> {
+        let Some(lifetime_ms) = stale_after_ms.checked_add(1) else {
+            return Err((self, "http-mask-clock-bound"));
+        };
+        self.0
+            .replace(count, lifetime_ms)
+            .map(|(publisher, control)| {
+                (
+                    Publisher {
+                        publisher,
+                        lifetime_ms,
+                    },
+                    control,
+                )
+            })
+            .map_err(|(returned, reason)| (Self(returned), refusal(reason)))
+    }
+}
+fn refusal(reason: conduit_environment_http::show_mailbox::HttpShowRefusal) -> &'static str {
+    use conduit_environment_http::show_mailbox::HttpShowRefusal as R;
+    match reason {
+        R::Busy => "http-mask-busy",
+        R::Scope => "http-mask-scope",
+        R::GenerationExhausted => "http-mask-generation-exhausted",
+        R::Budget => "http-mask-budget",
+        _ => "http-mask-custody",
+    }
+}

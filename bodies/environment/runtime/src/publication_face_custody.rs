@@ -82,6 +82,14 @@ pub struct ReadLease<'a> {
     generation: u64,
 }
 impl<'a> Reader<'a> {
+    /// Consume the actual producer and reader without exposing owner identity.
+    #[allow(clippy::type_complexity)]
+    pub fn reunite(
+        self,
+        publisher: Publisher<'a>,
+    ) -> Result<Returned<'a>, (Publisher<'a>, Self, CustodyRefusal)> {
+        self.owner.reunite(publisher, self)
+    }
     pub fn lease(&self) -> ReadLease<'a> {
         ReadLease {
             owner: self.owner,
