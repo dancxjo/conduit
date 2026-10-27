@@ -122,3 +122,11 @@ actual driver initialization errors for both addresses, measurement errors,
 TM1637 failure (including Nack packet/byte), and released digital line levels
 before transmission and after cleanup. These levels are not voltage readings.
 Both status controls remain available without an ESP Wi-Fi association.
+
+The attended 3.3 V electrical diagnostic opts into weak RP2040 pad pull-ups and
+a 50 us half-period through a target wrapper. The shared Pico provider's default
+remains external pulls and 5 us. Pin writes still only drive low or release;
+ACKs still require actual low input on the ninth clock. Released levels are
+sampled after a 1 ms settling delay, explicitly reported in kind7. This profile
+can distinguish weak/floating-line behavior; it does not measure voltage or
+prove external power, connection correctness, or a genuine device ACK by itself.

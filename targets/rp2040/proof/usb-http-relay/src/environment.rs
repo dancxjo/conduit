@@ -3,7 +3,7 @@
 extern crate alloc;
 use conduit_bosch_env::{Address, Chip, Humidity, Reading, Sensor};
 use conduit_rp2040_tm1637::PicoTm1637;
-use conduit_tm1637_wire::{transmit, Packet};
+use conduit_tm1637_wire::{transmit, OpenDrain, Packet};
 use core::{cell::RefCell, fmt::Write};
 use critical_section::Mutex;
 use embassy_rp::{
@@ -102,8 +102,27 @@ fn describe_wire<E: core::fmt::Debug>(
 pub fn diagnostic() -> Result<heapless::String<512>, &'static str> {
     let s = critical_section::with(|cs| SNAPSHOT.borrow(cs).borrow().clone());
     let mut out = heapless::String::new();
-    write!(&mut out,"{{\"role\":\"{}\",\"primary_0x76\":\"{}\",\"secondary_0x77\":\"{}\",\"measure\":\"{}\",\"display_error\":\"{}\",\"idle_clock_high\":{},\"idle_data_high\":{},\"after_clock_high\":{},\"after_data_high\":{}}}",crate::protocol::ROLE,s.primary_init,s.secondary_init,s.measurement,s.display_error,s.before.0,s.before.1,s.levels.0,s.levels.1).map_err(|_|"diagnostic-capacity")?;
+    write!(&mut out,"{{\"role\":\"{}\",\"primary_0x76\":\"{}\",\"secondary_0x77\":\"{}\",\"measure\":\"{}\",\"display_error\":\"{}\",\"idle_clock_high\":{},\"idle_data_high\":{},\"after_clock_high\":{},\"after_data_high\":{},\"settled_us\":1000,\"half_period_us\":50,\"weak_pullups\":true}}",crate::protocol::ROLE,s.primary_init,s.secondary_init,s.measurement,s.display_error,s.before.0,s.before.1,s.levels.0,s.levels.1).map_err(|_|"diagnostic-capacity")?;
     Ok(out)
+}
+// Only slows the electrical half-period; delegates every pin transition and
+// actual ACK sample to the existing provider, never synthesizing an ACK.
+struct SlowDiagnostic(PicoTm1637<'static>);
+impl OpenDrain for SlowDiagnostic {
+    type Error = core::convert::Infallible;
+    fn clock(&mut self, released: bool) -> Result<(), Self::Error> {
+        self.0.clock(released)
+    }
+    fn data(&mut self, released: bool) -> Result<(), Self::Error> {
+        self.0.data(released)
+    }
+    fn read_data(&mut self) -> Result<bool, Self::Error> {
+        self.0.read_data()
+    }
+    fn half_period(&mut self) -> Result<(), Self::Error> {
+        embassy_time::block_for(Duration::from_micros(50));
+        Ok(())
+    }
 }
 #[embassy_executor::task]
 pub async fn run(
@@ -119,7 +138,10 @@ pub async fn run(
         I2c::new_async(bus, scl, sda, SensorIrqs, config),
         Address::Primary,
     );
-    let mut pins = PicoTm1637::new(clock, data);
+    let mut provider = PicoTm1637::new(clock, data);
+    // Attended 3.3 V diagnostic profile only; ordinary provider defaults stay unchanged.
+    provider.set_internal_pullups(true);
+    let mut pins = SlowDiagnostic(provider);
     let mut last_sample = None;
     let mut revision = 0u64;
     let mut delay = Delay;
@@ -196,7 +218,7 @@ pub async fn run(
             registers[4],
             registers[5],
         ];
-        let before = pins.levels();
+        let before = pins.0.levels();
         let result = transmit(
             &mut pins,
             &[
@@ -206,7 +228,9 @@ pub async fn run(
             ],
             || false,
         );
-        let levels = pins.levels();
+        // Observe actual released input levels after a bounded RC settling period.
+        embassy_time::block_for(Duration::from_millis(1));
+        let levels = pins.0.levels();
         update(|s| {
             s.levels = levels;
             s.before = before;
