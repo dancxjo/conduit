@@ -123,6 +123,33 @@ class Proof(unittest.TestCase):
         self.assertEqual(calls,[b"POST first",b"GET second"])
         connection.shutdown()
 
+    def test_missing_usb_startup_recovers_with_role_and_link_checks_before_http(self):
+        class Port(Stream):
+            def reset_input_buffer(self): pass
+            def close(self): pass
+        status = b'{"role":"conduit.pico-usb-http-relay@1","link":true,"configured":true,"peer_ready":true}'
+        reply = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok"
+        port = Port(frame(r.INFORMATION, 1, status) + frame(r.INFORMATION, 2, status)
+                    + frame(r.DATA, 3, reply) + frame(r.DONE, 3, len(reply).to_bytes(4, "little")))
+        attempts = []
+        def opener(*args, **kwargs):
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise FileNotFoundError("USB absent")
+            return port
+        connection = r.PicoConnection("unused", "actual", bytearray(), opener=opener)
+        self.assertFalse(connection.connect_initial(wait_for_device=True))
+        self.assertIsNone(connection.client)
+        request = b"GET / HTTP/1.0\r\n\r\n"
+        self.assertEqual(connection.exchange(r.REQUEST, request), reply)
+        self.assertEqual(bytes(port.outgoing), frame(r.STATUS, 1, b"")
+                         + frame(r.JOIN, 2, b"\x06\0actual") + frame(r.REQUEST, 3, request))
+        connection.shutdown()
+        refused = r.PicoConnection("unused", "actual", bytearray(),
+            opener=lambda *args, **kwargs: Port(frame(r.INFORMATION, 1, b'{"role":"other"}')))
+        self.assertRaises(r.RelayError, refused.connect_initial, True)
+        refused.shutdown()
+
     def test_bootsel_is_explicit_and_bound_to_exact_challenged_build(self):
         build = b"a" * 64
         stream = Stream(frame(r.BOOTSEL_CHALLENGE,1,build)+frame(r.BOOTSEL_ACK,2,build))

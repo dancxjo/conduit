@@ -187,6 +187,17 @@ class PicoConnection:
                 self._close()
                 raise
 
+    def connect_initial(self, wait_for_device=False):
+        """An absent USB device may wait; role/association refusals still fail."""
+        try:
+            self.connect()
+            return True
+        except OSError:
+            self._close()
+            if not wait_for_device:
+                raise
+            return False
+
     def shutdown(self):
         with self.lock:
             self._close()
@@ -253,6 +264,7 @@ def main():
     parser.add_argument("--ssid", help="actual ESP access-point SSID")
     parser.add_argument("--ask-password", action="store_true", help="prompt without writing credentials to disk")
     parser.add_argument("--http-port", type=int, default=8766)
+    parser.add_argument("--wait-for-device", action="store_true", help="keep loopback HTTP available while USB is absent; each later request revalidates the device")
     parser.add_argument("--bootsel-build", help="explicitly reboot only the exact 64-hex firmware build; no Wi-Fi join")
     parser.add_argument("--test-ap", choices=("start", "stop"), help="explicit bench AP transition; never selected by HTTP reconnect")
     parser.add_argument("--test-ap-proxy", action="store_true", help="use an already-started bench AP; never join or start one implicitly")
@@ -300,9 +312,10 @@ def main():
         password.extend(getpass.getpass("ESP AP password: ").encode("utf-8"))
     relay = PicoConnection(args.port, args.ssid, password, test_ap=args.test_ap_proxy)
     try:
-        relay.connect()  # Actual role, association and DHCP must pass before ready.
+        ready = relay.connect_initial(args.wait_for_device)
         server = HTTPServer(("127.0.0.1", args.http_port), handler(relay))
-        print(f"Native USB relay ready at http://127.0.0.1:{args.http_port}/ (fixed peer {relay.peer_host}:80)")
+        status = "ready" if ready else "waiting for USB device"
+        print(f"Native USB relay {status} at http://127.0.0.1:{args.http_port}/ (fixed peer {relay.peer_host}:80)")
         try:
             server.serve_forever()
         finally:
