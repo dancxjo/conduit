@@ -24,6 +24,12 @@ struct PreparedSamplerParts {
     active: c::ActivePlayIdentity,
     fragment: c::FragmentId,
 }
+struct PreparedSamplerKernel {
+    kernel: crate::native_kernel::PreparedKernel,
+    native: Option<Bindings>,
+    active: c::ActivePlayIdentity,
+    fragment: c::FragmentId,
+}
 struct RetainedMask {
     leases: crate::native_authority::MaskLeaseIssuer,
     invocation: conduit_environment_runtime::mask_renderer::PreparedRendererInvocation,
@@ -326,9 +332,10 @@ impl NativeRoot {
             parked,
         )
     }
-    // Native possession checks have completed before this frame exists. Keep
-    // numeric owners on the ordinary CPU stack only for the remaining cold
-    // software/planning phase, releasing their temporary Box before Mask planning.
+    // Native possession checks have completed before this frame exists.
+    // Keep numeric backing boxed across cold reconstruction. Archive custody
+    // bounds the restored Body heap; the backing must not also occupy its
+    // parser's ancestor stack frame.
     #[inline(never)]
     fn plan_local_mask_from_sampler(
         &mut self,
@@ -337,11 +344,7 @@ impl NativeRoot {
         execute: bool,
         #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        let sampler = {
-            let boxed = sampler;
-            *boxed
-        };
-        mark("ordinary-mask-software-construction-retired", 15);
+        mark("ordinary-mask-software-construction-held", 15);
         let mask_values = take_fixed_values()?;
         mark(
             "ordinary-mask-fixed-canonical-storage",
@@ -368,9 +371,16 @@ impl NativeRoot {
         // Full biography replay must finish before the large numeric assembly
         // frame exists, just as streamed restoration and Show preparation do.
         self.commit_local_body_proposal(proposal)?;
-        let mut retained = None;
+        let mut retained = alloc::boxed::Box::new(None);
         self.prepare_local_mask_custody(&mask, execute, &mut retained)?;
-        self.assemble_local_plots(sampler, mask, mask_values, context, &mut retained)
+        let mask_parts = Self::prepare_local_mask_kernel_parts(
+            mask,
+            c::OfferGeneration(self.offer_generation),
+            &self.host,
+            &self.boot,
+        )?;
+        let sampler = Self::prepare_local_sampler_kernel(sampler)?;
+        self.assemble_local_plots(sampler, mask_parts, mask_values, context, retained)
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -719,22 +729,15 @@ impl NativeRoot {
         Ok(())
     }
     #[inline(never)]
-    fn assemble_local_plots(
-        &mut self,
-        sampler: PreparedSamplerParts,
+    fn prepare_local_mask_kernel_parts(
         mask: c::VerifiedPlanMetadata,
-        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
-        context: Option<conduit_face::PreparedMaskShowContext>,
-        retained: &mut Option<RetainedMask>,
-    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        mark("ordinary-mask-numeric-assembly-entered", 1);
-        let PreparedSamplerParts {
-            sampler_parts,
-            native,
-            active,
-            fragment,
-        } = sampler;
-        let generation = c::OfferGeneration(self.offer_generation);
+        generation: c::OfferGeneration,
+        host: &c::HostId,
+        boot: &c::BootId,
+    ) -> Result<
+        alloc::boxed::Box<conduit_environment_runtime::mask_kernel::PreparedMaskKernelParts>,
+        &'static str,
+    > {
         let role = material::role().map_err(|_| "local-mask-role")?;
         let mask_parts = {
             let image = image()?;
@@ -750,15 +753,53 @@ impl NativeRoot {
                     image: &image,
                     boundary: &boundary,
                     role: &role,
-                    scope: (&self.host, &self.boot, generation),
+                    scope: (host, boot, generation),
                 },
             )
             .map_err(|_| "local-mask-kernel")?
         };
         drop(mask);
         mark("ordinary-mask-plan-lowering-retired", 3);
-        let sampler_kernel = crate::native_kernel::prepare_local_direct(sampler_parts)?;
+        Ok(alloc::boxed::Box::new(mask_parts))
+    }
+    #[inline(never)]
+    fn prepare_local_sampler_kernel(
+        sampler: alloc::boxed::Box<PreparedSamplerParts>,
+    ) -> Result<alloc::boxed::Box<PreparedSamplerKernel>, &'static str> {
+        let PreparedSamplerParts {
+            sampler_parts,
+            native,
+            active,
+            fragment,
+        } = *sampler;
+        let kernel = crate::native_kernel::prepare_local_direct(sampler_parts)?;
         mark("ordinary-mask-sampler-kernel-live", 15);
+        Ok(alloc::boxed::Box::new(PreparedSamplerKernel {
+            kernel,
+            native,
+            active,
+            fragment,
+        }))
+    }
+    #[inline(never)]
+    fn assemble_local_plots(
+        &mut self,
+        sampler: alloc::boxed::Box<PreparedSamplerKernel>,
+        mask_parts: alloc::boxed::Box<
+            conduit_environment_runtime::mask_kernel::PreparedMaskKernelParts,
+        >,
+        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+        context: Option<conduit_face::PreparedMaskShowContext>,
+        mut retained: alloc::boxed::Box<Option<RetainedMask>>,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        mark("ordinary-mask-numeric-assembly-entered", 1);
+        let PreparedSamplerKernel {
+            kernel: sampler_kernel,
+            native,
+            active,
+            fragment,
+        } = *sampler;
+        let generation = c::OfferGeneration(self.offer_generation);
         let (publisher, reader) = crate::native_face::prepare_installed_local(
             self.body.as_ref().ok_or("body-owner")?,
             &fragment,
@@ -772,7 +813,7 @@ impl NativeRoot {
         if memory.size.saturating_sub(memory.current_usage) < required {
             return Err("local-mask-kernel-capacity");
         }
-        let mask_kernel = mask_parts
+        let mask_kernel = (*mask_parts)
             .finish_with_fixed_storage(mask_values)
             .map_err(|_| "local-mask-kernel")?;
         mark("both-ordinary-local-kernels-face-live", 18);
@@ -807,14 +848,7 @@ impl NativeRoot {
                 leases,
             })));
         }
-        drop((
-            sampler_kernel,
-            publisher,
-            mask_kernel,
-            role,
-            context,
-            native,
-        ));
+        drop((sampler_kernel, publisher, mask_kernel, context, native));
         self.body
             .as_mut()
             .ok_or("body-owner")?
