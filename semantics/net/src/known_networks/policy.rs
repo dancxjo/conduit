@@ -16,6 +16,62 @@ pub struct KnownScan<'a> {
     pub rssi_dbm: i16,
     pub observed_ms: u64,
 }
+/// Unknown is retained when a driver discarded RSN information; privacy bits
+/// are not sufficient to label an AP WPA2/WPA3 compatible. Unsupported is an
+/// explicitly unusable observed suite and is never an automatic downgrade.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ObservedNetworkSecurity {
+    Known(KnownSecurity),
+    Unknown,
+    Unsupported,
+}
+#[derive(Clone, Copy)]
+pub struct KnownScanObservation<'a> {
+    pub ssid: &'a [u8],
+    pub security: ObservedNetworkSecurity,
+    pub rssi_dbm: i16,
+    pub observed_ms: u64,
+}
+/// Driver-owner supplied support for exact protected join configurations. This
+/// is selection data, not an operation grant or an over-the-air security claim.
+/// A backend must enforce the selected profile's exact authentication; no open
+/// or weaker-suite fallback is permitted after an unknown scan or failed join.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct KnownBackendAuth {
+    pub wpa2_personal: bool,
+    pub wpa3_personal: bool,
+}
+impl KnownBackendAuth {
+    fn supports(self, security: KnownSecurity) -> bool {
+        match security {
+            KnownSecurity::Wpa2Personal => self.wpa2_personal,
+            KnownSecurity::Wpa3Personal => self.wpa3_personal,
+        }
+    }
+}
+impl KnownScanObservation<'_> {
+    fn eligible(
+        &self,
+        profiles: &KnownNetworkProfiles,
+        info: KnownProfileInfo,
+        backend: KnownBackendAuth,
+    ) -> bool {
+        if !backend.supports(info.security) {
+            return false;
+        }
+        match self.security {
+            ObservedNetworkSecurity::Known(security) => {
+                profiles.matches(info.key, self.ssid, security)
+            }
+            // This matches the saved SSID and enforces the SAVED authentication
+            // choice. It does not label the unknown observation compatible.
+            ObservedNetworkSecurity::Unknown => {
+                profiles.matches(info.key, self.ssid, info.security)
+            }
+            ObservedNetworkSecurity::Unsupported => false,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CurrentKnownLine {
     pub key: KnownProfileKey,
@@ -109,6 +165,49 @@ impl KnownNetworkPolicy {
         current: Option<CurrentKnownLine>,
     ) -> Result<KnownSelection, KnownNetworkRefusal> {
         self.clock(now)?;
+        if scans.len() > MAXIMUM_KNOWN_SCAN_RESULTS {
+            return Err(KnownNetworkRefusal::Bounds);
+        }
+        let mut observed = [KnownScanObservation {
+            ssid: &[],
+            security: ObservedNetworkSecurity::Unknown,
+            rssi_dbm: 0,
+            observed_ms: 0,
+        }; MAXIMUM_KNOWN_SCAN_RESULTS];
+        for (output, scan) in observed.iter_mut().zip(scans) {
+            *output = KnownScanObservation {
+                ssid: scan.ssid,
+                security: ObservedNetworkSecurity::Known(scan.security),
+                rssi_dbm: scan.rssi_dbm,
+                observed_ms: scan.observed_ms,
+            };
+        }
+        // The legacy strict API already requires the radio owner to supply a
+        // compatible known-security enum. Preserve that exact contract.
+        self.select_observed(
+            profiles,
+            now,
+            &observed[..scans.len()],
+            current,
+            KnownBackendAuth {
+                wpa2_personal: true,
+                wpa3_personal: true,
+            },
+        )
+    }
+    /// Unknown scan suites are hints only: this may reserve a finite Attempt
+    /// using the SAVED profile's exact backend-supported protected auth. Actual
+    /// join/DHCP failure must report failure; actual success is separate evidence.
+    /// No scan observation creates CurrentKnownLine or verified Body-peer proof.
+    pub fn select_observed(
+        &mut self,
+        profiles: &KnownNetworkProfiles,
+        now: u64,
+        scans: &[KnownScanObservation<'_>],
+        current: Option<CurrentKnownLine>,
+        backend: KnownBackendAuth,
+    ) -> Result<KnownSelection, KnownNetworkRefusal> {
+        self.clock(now)?;
         if scans.len() > MAXIMUM_KNOWN_SCAN_RESULTS
             || scans
                 .iter()
@@ -152,7 +251,7 @@ impl KnownNetworkPolicy {
                 .iter()
                 .filter(|s| {
                     now - s.observed_ms <= KNOWN_SCAN_FRESH_MS
-                        && profiles.matches(info.key, s.ssid, s.security)
+                        && s.eligible(profiles, info, backend)
                 })
                 .max_by_key(|s| (s.rssi_dbm, s.observed_ms));
             let Some(scan) = scan else {

@@ -381,3 +381,172 @@ fn stale_renewal_scan_and_replaced_profile_cannot_reopen_round() {
         Err(KnownNetworkRefusal::StaleProfile)
     );
 }
+
+fn unknown(ssid: &[u8], rssi: i16, now: u64) -> KnownScanObservation<'_> {
+    KnownScanObservation {
+        ssid,
+        security: ObservedNetworkSecurity::Unknown,
+        rssi_dbm: rssi,
+        observed_ms: now,
+    }
+}
+#[test]
+fn unknown_suite_reserves_only_exact_configured_backend_supported_auth_attempts() {
+    let mut profiles = KnownNetworkProfiles::new();
+    let wpa3 = profiles
+        .upsert(
+            PrivateNetworkInput::new(b"sae", b"protected-test", KnownSecurity::Wpa3Personal, 10)
+                .unwrap(),
+        )
+        .unwrap();
+    let wpa2 = profiles.upsert(input(b"psk", 0)).unwrap();
+    let mut policy = KnownNetworkPolicy::new();
+    let none = KnownBackendAuth {
+        wpa2_personal: false,
+        wpa3_personal: false,
+    };
+    assert_eq!(
+        policy
+            .select_observed(
+                &profiles,
+                0,
+                &[unknown(b"psk", -20, 0), unknown(b"sae", -10, 0)],
+                None,
+                none
+            )
+            .unwrap(),
+        KnownSelection::Wait
+    );
+    let backend = KnownBackendAuth {
+        wpa2_personal: true,
+        wpa3_personal: false,
+    };
+    assert_eq!(
+        policy
+            .select_observed(
+                &profiles,
+                0,
+                &[unknown(b"psk", -20, 0), unknown(b"sae", -10, 0)],
+                None,
+                backend
+            )
+            .unwrap(),
+        KnownSelection::Attempt(wpa2)
+    );
+    assert!(matches!(
+        unknown(b"psk", -20, 0).security,
+        ObservedNetworkSecurity::Unknown
+    ));
+    policy.outcome(wpa2, 0, false).unwrap();
+    // Explicit unknown still cannot weaken the higher-priority SAE profile to
+    // WPA2; only its own supported configured authentication can be attempted.
+    assert_eq!(
+        policy
+            .select_observed(&profiles, 1, &[unknown(b"sae", -10, 1)], None, backend)
+            .unwrap(),
+        KnownSelection::Wait
+    );
+    assert_eq!(
+        policy
+            .select_observed(
+                &profiles,
+                1,
+                &[unknown(b"sae", -10, 1)],
+                None,
+                KnownBackendAuth {
+                    wpa2_personal: false,
+                    wpa3_personal: true
+                }
+            )
+            .unwrap(),
+        KnownSelection::Attempt(wpa3)
+    );
+    policy.outcome(wpa3, 1, false).unwrap();
+    let mut unsupported = unknown(b"psk", -10, 30_000);
+    unsupported.security = ObservedNetworkSecurity::Unsupported;
+    assert_eq!(
+        policy
+            .select_observed(&profiles, 30_000, &[unsupported], None, backend)
+            .unwrap(),
+        KnownSelection::Wait
+    );
+    let mut incompatible = unknown(b"psk", -10, 30_000);
+    incompatible.security = ObservedNetworkSecurity::Known(KnownSecurity::Wpa3Personal);
+    assert_eq!(
+        policy
+            .select_observed(&profiles, 30_000, &[incompatible], None, backend)
+            .unwrap(),
+        KnownSelection::Wait
+    );
+}
+#[test]
+fn unknown_scan_never_supplies_body_route_success_or_reconnect_budget() {
+    let mut profiles = KnownNetworkProfiles::new();
+    let key = profiles.upsert(input(b"a", 0)).unwrap();
+    let mut policy = KnownNetworkPolicy::new();
+    let backend = KnownBackendAuth {
+        wpa2_personal: true,
+        wpa3_personal: false,
+    };
+    for now in [0, 30_000, 60_000] {
+        assert_eq!(
+            policy
+                .select_observed(&profiles, now, &[unknown(b"a", -10, now)], None, backend)
+                .unwrap(),
+            KnownSelection::Attempt(key)
+        );
+        assert_eq!(
+            policy
+                .select_observed(&profiles, now, &[unknown(b"a", -10, now)], None, backend)
+                .unwrap(),
+            KnownSelection::AwaitOutcome(key)
+        );
+        policy.outcome(key, now, false).unwrap();
+    }
+    assert_eq!(
+        policy
+            .select_observed(
+                &profiles,
+                90_000,
+                &[unknown(b"a", -1, 90_000)],
+                None,
+                backend
+            )
+            .unwrap(),
+        KnownSelection::Exhausted
+    );
+    // Even strongest possible scan cannot create a Keep/healthy peer result.
+    // Only the independently supplied current-route observation can do that.
+    let line = CurrentKnownLine {
+        key,
+        since_ms: 0,
+        observed_ms: 90_000,
+        healthy: true,
+        verified_body_peer: true,
+    };
+    assert_eq!(
+        policy
+            .select_observed(
+                &profiles,
+                90_000,
+                &[unknown(b"a", -1, 90_000)],
+                Some(line),
+                backend
+            )
+            .unwrap(),
+        KnownSelection::Keep(key)
+    );
+    let mut other = KnownNetworkPolicy::new();
+    assert_eq!(
+        other
+            .select_observed(
+                &profiles,
+                20_000,
+                &[unknown(b"a", -1, 0), unknown(b"outside", -1, 20_000)],
+                None,
+                backend
+            )
+            .unwrap(),
+        KnownSelection::Wait
+    );
+}
