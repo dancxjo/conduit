@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "authenticated-admission")]
 mod browser_admission;
 mod continuity;
+mod checkpoint_history;
 mod flow;
 mod membership;
 mod prepared_proposal;
@@ -130,7 +131,7 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
             return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
         }
         self.pending_archives
-            .try_reserve(1)
+            .try_reserve_exact(1)
             .map_err(|_| BodyLifecycleSessionError::ArchivePersistenceRequired)?;
         let segment = self
             .evidence

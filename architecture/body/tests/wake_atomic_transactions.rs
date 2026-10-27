@@ -334,3 +334,42 @@ fn unchanged_body_wake_sequence_refusals_preserve_exact_custody() {
         assert_unchanged(&evidence, &before, pointer);
     }
 }
+
+#[test]
+fn cold_terminal_wakes_leave_resident_window_only_with_owned_archive_evidence() {
+    let (mut owner, host, mut boot) = fixture(1);
+    for number in 1..=3 {
+        owner
+            .commit_verified_proposal(proposal(&owner, &host, &boot))
+            .unwrap();
+        let before = owner.evidence().clone();
+        assert_eq!(
+            owner.seal_terminal_wake_for_checkpoint(),
+            Err(BodyLifecycleSessionError::NotLulled)
+        );
+        assert_eq!(owner.evidence(), &before);
+        boot = format!("boot/cold/{number}").into();
+        owner = SealedBodyLifecycleSession::resume_here(owner.evidence().clone(), &host, &boot)
+            .unwrap();
+    }
+    assert_eq!(owner.evidence().wakes.len(), 3);
+    let wakes = owner.evidence().wakes.clone();
+    let body_id = owner.evidence().body_id.clone();
+    let sequence = owner.evidence().last_sequence();
+    let mut archived = Vec::new();
+    while owner.seal_terminal_wake_for_checkpoint().unwrap() {
+        let segment = owner.pending_archives().last().unwrap();
+        segment.validate_as_head_of(owner.evidence()).unwrap();
+        archived.extend(segment.wakes.clone());
+        owner.evidence().validate().unwrap();
+        let digest = segment.digest;
+        // CPU stand-in for the caller's durable commit acknowledgement.
+        owner.acknowledge_archives(digest).unwrap();
+    }
+    assert_eq!(archived, wakes);
+    assert!(owner.evidence().wakes.is_empty());
+    assert!(owner.pending_archives().is_empty());
+    assert_eq!(owner.evidence().body_id, body_id);
+    assert_eq!(owner.evidence().last_sequence(), sequence);
+    assert!(!owner.seal_terminal_wake_for_checkpoint().unwrap());
+}

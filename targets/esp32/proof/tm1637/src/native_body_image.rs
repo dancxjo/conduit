@@ -71,6 +71,12 @@ pub fn load(
         // the following verified journal commit; no history is discarded.
         // Keep the active resident suffix independent of how many previous
         // diagnostic or power-cycle Boots happened before this one.
+        while owner
+            .seal_terminal_wake_for_checkpoint()
+            .map_err(|_| "body-image-wake-archive")?
+        {
+            crate::native_restart::checkpoint(&mut owner, &root.restart_verifying_key())?;
+        }
         owner
             .seal_membership_history_for_checkpoint()
             .map_err(|_| "body-image-membership-archive")?;
