@@ -41,6 +41,18 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|a| a == "--ack-observed-epoch") {
+        if args.len() != 7 {
+            return Err("expected --ack-observed-epoch PRIVATE_BINDING CONTINUITY_PRIVATE SERIAL HISTORY_DIRECTORY SLOT".into());
+        }
+        return observed_custody_client::run(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+            &args[4],
+            std::path::Path::new(&args[5]),
+            args[6].parse()?,
+        );
+    }
     if args.get(1).is_some_and(|a| a == "--offload-biography") {
         if args.len() != 6 {
             return Err(
