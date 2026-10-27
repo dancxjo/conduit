@@ -41,13 +41,24 @@ fn deep() -> BirthDraft {
 }
 #[test]
 fn complete_five_and_sixteen_unicode_faces_cross_matching_collection_storage() {
-    for (name, draft) in [("default-five", tests::draft()), ("deep-sixteen", deep())] {
+    fn five(mask: &NativeFaceMask) -> Face {
+        tests::default_creche_face(&mask.birth_basis("collection/current"))
+    }
+    fn sixteen(mask: &NativeFaceMask) -> Face {
+        deep()
+            .face(&mask.birth_basis("collection/current"))
+            .unwrap()
+    }
+    for (name, make_face) in [
+        ("default-five", five as fn(&NativeFaceMask) -> Face),
+        ("deep-sixteen", sixteen),
+    ] {
         for recipe in [
             CrecheComponentRecipe::SingleColumn,
             CrecheComponentRecipe::ResponsiveColumns,
         ] {
             let mut mask = prepare(recipe);
-            let face = draft.face(&mask.birth_basis("collection/current")).unwrap();
+            let face = make_face(&mask);
             let bytes = conduitos_creche_core::data::encode(&face).unwrap();
             let roundtrip: Face = conduitos_creche_core::data::decode(&bytes).unwrap();
             assert_eq!(roundtrip, face);
@@ -94,14 +105,7 @@ fn complete_five_and_sixteen_unicode_faces_cross_matching_collection_storage() {
                 let (mut smaller, _) = tests::fixture();
                 let before = display.writes;
                 assert_eq!(
-                    smaller.present(
-                        draft
-                            .face(&smaller.birth_basis("collection/current"))
-                            .unwrap(),
-                        1,
-                        1,
-                        &mut display
-                    ),
+                    smaller.present(make_face(&smaller), 1, 1, &mut display),
                     Err(NativeFaceMaskError::Producer(FaceSnapshotRefusal::Capacity))
                 );
                 assert!(smaller.show().is_none());

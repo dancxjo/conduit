@@ -13,9 +13,7 @@ fn local_arrival_selects_collection_before_observing_face_and_rejects_stale_evid
         None,
     )
     .unwrap();
-    let face = crate::native_face_mask::tests::draft()
-        .face(&arrival.basis)
-        .unwrap();
+    let face = crate::native_face_mask::tests::default_creche_face(&arrival.basis);
     arrival.present(face.clone(), &mut tests::Display).unwrap();
     let producer = arrival.mask.publication().unwrap();
     let renderer = arrival.mask.render_receipt().unwrap();
