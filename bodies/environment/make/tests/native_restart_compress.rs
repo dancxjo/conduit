@@ -418,3 +418,33 @@ fn every_program_word_and_erase_sector_cut_preserves_legacy_or_complete_compress
         encoded.len()
     );
 }
+#[test]
+fn v2_packed_tokens_exact_spelling_and_legacy_v1_are_preserved() {
+    let legacy = [b"BDYLZ001".as_slice(), &[2, b'x', 255, 255, 1, 0, 0, 0]].concat();
+    assert_eq!(decode(&legacy, 1, 131072).unwrap(), b"x");
+    for data in [
+        b"0,1,20,255,0,90,100,254".as_slice(),
+        b"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        b"00,01,256,-1,2.0,3e1,2,3,4,5",
+        b"ABCDEFabcdef0123456789abcdef0123456789abcdef",
+    ] {
+        let expected = encode(data, 128).0;
+        for width in [1, 2, 3, 17, 64, 65, 127, 128] {
+            assert_eq!(encode(data, width).0, expected);
+            assert_eq!(decode(&expected, width, 131072).unwrap(), data);
+        }
+        for cut in 0..expected.len() {
+            assert!(decode(&expected[..cut], 1, 131072).is_err());
+        }
+    }
+    for word in [0xfc00u16, 0xfc03, 0xfc11, 0xfd00, 0xfd07, 0xfd21, 0xfe00] {
+        let mut frame = b"BDYLZ002".to_vec();
+        frame.push(1);
+        frame.extend_from_slice(&word.to_le_bytes());
+        frame.extend_from_slice(&[0; 128]);
+        assert!(decode(&frame, 1, 131072).is_err());
+    }
+    let mut old_packed = b"BDYLZ001".to_vec();
+    old_packed.extend_from_slice(&[1, 4, 252]);
+    assert!(decode(&old_packed, 1, 131072).is_err());
+}

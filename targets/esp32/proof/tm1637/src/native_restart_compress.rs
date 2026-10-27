@@ -1,7 +1,7 @@
 //! Bounded lossless framing for authenticated private restart JSON. This codec
 //! provides no authentication: the existing journal hashes the complete frame.
 use core::fmt;
-pub const MAGIC: &[u8; 8] = b"BDYLZ001";
+pub const MAGIC: &[u8; 8] = b"BDYLZ002";
 const WINDOW: usize = 1024;
 const MATCH: usize = 65;
 const EOS: u16 = 0xffff;
@@ -32,7 +32,7 @@ pub struct Encoder<W> {
     encoded: usize,
     max_plain: usize,
     max_encoded: usize,
-    group: [u8; 17],
+    group: [u8; 273],
     group_len: usize,
     tokens: u8,
     begun: bool,
@@ -57,7 +57,7 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
             encoded: 0,
             max_plain,
             max_encoded,
-            group: [0; 17],
+            group: [0; 273],
             group_len: 1,
             tokens: 0,
             begun: false,
@@ -109,6 +109,18 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
         }
         Ok(())
     }
+    fn packed_token(&mut self, word: u16, payload: &[u8]) -> Result<(), Error> {
+        self.group[0] |= 1 << self.tokens;
+        self.group[self.group_len..self.group_len + 2].copy_from_slice(&word.to_le_bytes());
+        self.group_len += 2;
+        self.group[self.group_len..self.group_len + payload.len()].copy_from_slice(payload);
+        self.group_len += payload.len();
+        self.tokens += 1;
+        if self.tokens == 8 {
+            self.flush_group()?;
+        }
+        Ok(())
+    }
     fn consume(&mut self) -> Result<(), Error> {
         let mut best = 0;
         let mut best_distance = 0;
@@ -133,14 +145,87 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
                 break;
             }
         }
-        let used = if best >= 3 {
-            let word = (((best - 3) as u16) << 10) | (best_distance - 1) as u16;
-            self.token(Some(word), 0)?;
-            best
-        } else {
-            self.token(None, self.look[0])?;
-            1
-        };
+        let ordinary_used = if best >= 3 { best } else { 1 };
+        let ordinary_cost = if best >= 3 { 2 } else { 1 };
+        let mut packed = [0u8; 32];
+        let mut packed_len = 0;
+        let mut packed_used = 0;
+        let mut packed_word = 0;
+        let mut hex_len = 0;
+        while hex_len < self.look_len.min(64)
+            && self.look[hex_len].is_ascii_hexdigit()
+            && !self.look[hex_len].is_ascii_uppercase()
+        {
+            hex_len += 1;
+        }
+        hex_len &= !1;
+        if hex_len >= 16 {
+            for (i, out) in packed[..hex_len / 2].iter_mut().enumerate() {
+                fn nibble(b: u8) -> u8 {
+                    if b <= b'9' {
+                        b - b'0'
+                    } else {
+                        b - b'a' + 10
+                    }
+                }
+                *out = nibble(self.look[i * 2]) * 16 + nibble(self.look[i * 2 + 1]);
+            }
+            packed_len = hex_len / 2;
+            packed_used = hex_len;
+            packed_word = 0xfd00 | packed_len as u16;
+        }
+        let mut numbers = [0u8; 16];
+        let mut count = 0;
+        let mut at = 0;
+        while count < 16 && at < self.look_len {
+            let start = at;
+            let mut value = 0u16;
+            while at < self.look_len && self.look[at].is_ascii_digit() {
+                value = value * 10 + u16::from(self.look[at] - b'0');
+                at += 1;
+                if value > 255 || at - start > 3 {
+                    break;
+                }
+            }
+            if at == start
+                || value > 255
+                || at - start > 3
+                || (at - start > 1 && self.look[start] == b'0')
+            {
+                break;
+            }
+            // A full lookahead ending inside a number cannot establish its spelling.
+            if at == self.look_len && self.look_len == MATCH {
+                break;
+            }
+            numbers[count] = value as u8;
+            count += 1;
+            if count >= 4 && (packed_used == 0 || at * (packed_len + 2) > packed_used * (count + 2))
+            {
+                packed[..count].copy_from_slice(&numbers[..count]);
+                packed_len = count;
+                packed_used = at;
+                packed_word = 0xfc00 | count as u16;
+            }
+            if at == self.look_len || self.look[at] != b',' {
+                break;
+            }
+            at += 1;
+        }
+        wipe(&mut numbers);
+        let used =
+            if packed_used != 0 && packed_used * ordinary_cost > ordinary_used * (packed_len + 2) {
+                self.packed_token(packed_word, &packed[..packed_len])?;
+                packed_used
+            } else if best >= 3 {
+                let word = (((best - 3) as u16) << 10) | (best_distance - 1) as u16;
+                self.token(Some(word), 0)?;
+                best
+            } else {
+                self.token(None, self.look[0])?;
+                1
+            };
+        wipe(&mut packed);
         for byte in &self.look[..used] {
             self.history[self.consumed % WINDOW] = *byte;
             self.consumed += 1;
@@ -212,11 +297,16 @@ pub struct Decoder<R> {
     begun: bool,
     done: bool,
     failed: bool,
+    v2: bool,
+    expansion: [u8; 64],
+    expansion_at: usize,
+    expansion_len: usize,
 }
 impl<R> Drop for Decoder<R> {
     fn drop(&mut self) {
         wipe(&mut self.history);
         wipe(&mut self.input);
+        wipe(&mut self.expansion);
     }
 }
 impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
@@ -238,6 +328,10 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
             begun: false,
             done: false,
             failed: false,
+            v2: false,
+            expansion: [0; 64],
+            expansion_at: 0,
+            expansion_len: 0,
         }
     }
     fn byte(&mut self) -> Result<Option<u8>, Error> {
@@ -266,16 +360,27 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
     }
     fn begin(&mut self) -> Result<(), Error> {
         if !self.begun {
-            for byte in MAGIC {
+            for byte in &MAGIC[..7] {
                 if self.required()? != *byte {
                     return Err(Error);
                 }
             }
+            self.v2 = match self.required()? {
+                b'1' => false,
+                b'2' => true,
+                _ => return Err(Error),
+            };
             self.begun = true;
         }
         Ok(())
     }
     fn next_plain(&mut self) -> Result<Option<u8>, Error> {
+        if self.expansion_at < self.expansion_len {
+            let byte = self.expansion[self.expansion_at];
+            self.expansion[self.expansion_at] = 0;
+            self.expansion_at += 1;
+            return Ok(Some(byte));
+        }
         if self.remaining != 0 {
             let byte = self.history[(self.produced - self.distance) % WINDOW];
             self.remaining -= 1;
@@ -306,6 +411,46 @@ impl<R: FnMut(&mut [u8; 128]) -> Result<usize, ()>> Decoder<R> {
             }
             self.done = true;
             return Ok(None);
+        }
+        if self.v2 && (word & 0xff00 == 0xfc00 || word & 0xff00 == 0xfd00) {
+            let count = usize::from(word & 255);
+            self.expansion_at = 0;
+            self.expansion_len = 0;
+            if word & 0xff00 == 0xfd00 {
+                if !(8..=32).contains(&count) {
+                    return Err(Error);
+                }
+                for _ in 0..count {
+                    let b = self.required()?;
+                    for n in [b >> 4, b & 15] {
+                        self.expansion[self.expansion_len] =
+                            if n < 10 { b'0' + n } else { b'a' + n - 10 };
+                        self.expansion_len += 1;
+                    }
+                }
+            } else {
+                if !(4..=16).contains(&count) {
+                    return Err(Error);
+                }
+                for i in 0..count {
+                    let b = self.required()?;
+                    if i != 0 {
+                        self.expansion[self.expansion_len] = b',';
+                        self.expansion_len += 1;
+                    }
+                    for digit in [b / 100, (b / 10) % 10, b % 10].iter().enumerate() {
+                        if digit.0 == 0 && b < 100 || digit.0 == 1 && b < 10 {
+                            continue;
+                        }
+                        self.expansion[self.expansion_len] = b'0' + *digit.1;
+                        self.expansion_len += 1;
+                    }
+                }
+            }
+            if self.produced.checked_add(self.expansion_len).ok_or(Error)? > self.max_plain {
+                return Err(Error);
+            }
+            return self.next_plain();
         }
         let length = usize::from(word >> 10) + 3;
         let distance = usize::from(word & 1023) + 1;
