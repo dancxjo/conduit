@@ -8,8 +8,12 @@ pub(super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
     if records.is_empty() {
         return Err(refusal("collection Face observations absent"));
     }
+    let memory = rows(serial, "CONDUIT_NATIVE_COLLECTION_MEMORY ")?;
+    if memory.len() != records.len() {
+        return Err(refusal("collection Root memory observations incomplete"));
+    }
     let mut measurements = Vec::new();
-    for record in records {
+    for (record, memory) in records.into_iter().zip(memory) {
         let face: Face =
             serde_json::from_value(record["face"].clone()).map_err(|e| refusal(e.to_string()))?;
         face.validate().map_err(|e| refusal(e.to_string()))?;
@@ -24,6 +28,16 @@ pub(super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
         let envelope = serde_json::to_vec(&record)
             .map_err(|e| refusal(e.to_string()))?
             .len();
+        let live = memory["live_bytes"].as_u64();
+        let peak = memory["peak_live_bytes"].as_u64();
+        let capacity = memory["capacity_bytes"].as_u64();
+        if !matches!((live, peak, capacity), (Some(live), Some(peak), Some(capacity))
+            if live > 0 && live <= peak && peak <= capacity)
+            || memory["observer_bytes"] != envelope
+            || memory["scope"] != "cumulative-root-preparation-with-complete-observer-record"
+        {
+            return Err(refusal("collection Root memory observation mismatch"));
+        }
         if encoded.len() > collection
             || envelope > collection + 32 * 1024
             || producer["encoded_bytes"] != encoded.len()
@@ -53,7 +67,8 @@ pub(super) fn receipt(serial: &str) -> Result<Value, ConduitosError> {
         measurements.push(json!({"face_id":face.identity,"revision":face.revision,
             "producer_bytes":encoded.len(),"observer_envelope_bytes":envelope,
             "linear_bytes":linear.encoded_bytes,"subjects":face.subjects.len(),
-            "actions":face.actions.len(),"producer":producer,"renderer":renderer}));
+            "actions":face.actions.len(),"producer":producer,"renderer":renderer,
+            "root_preparation_memory":memory}));
     }
     Ok(
         json!({"schema":"conduit.conduitos/collection-face-admission@1",
