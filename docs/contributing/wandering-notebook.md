@@ -36,7 +36,8 @@ For a browser, open a packaged Handbook with `?participate=owner#your-handbook`.
 Admit that browser through the owner-authorized window flow in
 [the shared owner guide](shared-body-owner.md), while the Body is idle.
 Then run `conduit body start --state-dir STATE` to open its bounded editing
-encounter. The Face shows Thoughts, its current text, save status, Replace text,
+encounter, then choose Refresh this Face in the browser. The Face shows Thoughts,
+its current text, save status, Replace text,
 and Save. Save is available after explicit storage selection. An edit or Save
 must name the current Face and Show; an obsolete request cannot overwrite a
 newer revision. The current editing encounter has a finite five-minute idle

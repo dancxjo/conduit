@@ -421,8 +421,12 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
-        if self.has_open_notebook() && self.current_play_id().is_some() {
-            return self.project_notebook_face();
+        if self.has_open_notebook() {
+            return if self.current_play_id().is_some() {
+                self.project_notebook_face()
+            } else {
+                self.project_notebook_idle_face()
+            };
         }
         if let Some(live) = &self.thermostat_live {
             return self.project_thermostat_face(live);

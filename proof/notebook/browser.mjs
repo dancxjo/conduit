@@ -79,6 +79,15 @@ async function enter(context, bodyId) {
   await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
   await page.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() === 'available', null, { timeout: 20_000 });
   owner(['body', 'start', '--state-dir', state]);
+  const readyUntil = Date.now() + 15_000;
+  let editReady = false;
+  while (Date.now() < readyUntil) {
+    const current = JSON.parse(owner(['body', 'face', '--state-dir', state, '--json']));
+    if (current.face.subjects.some(subject => subject.identity === 'notebook/document')) { editReady = true; break; }
+    await pause(20);
+  }
+  assert.equal(editReady, true, 'actual notebook Play started');
+  await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
   await page.waitForFunction(() => {
     const view = globalThis.__conduitOwnerParticipation?.face();
     return view?.show_state === 'available' && view.interactions_admitted

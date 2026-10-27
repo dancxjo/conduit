@@ -212,6 +212,13 @@ fn notebook_waiting_face_refuses_an_old_show_before_admitting_another_edit() {
                 .save_notebook(&root, std::fs::File::open(&storage).unwrap())
                 .unwrap();
             let body = owner.notebook_body_id().clone();
+            let idle_face = owner.local_face_snapshot().unwrap();
+            assert!(crate::durable_host_control::has_native_return_route_intent(&idle_face));
+            assert!(!crate::durable_host_control::has_remote_mask_action(&idle_face));
+            assert!(matches!(idle_face.resolve_action(idle_face.revision, "notebook.replace"),
+                Err(conduit_face::FaceActionRefusal::Unavailable { reason_code })
+                    if reason_code == "notebook-edit-encounter-idle"));
+            assert!(!idle_face.subjects.iter().any(|subject| subject.identity == "notebook/document"));
             let mut worker = owner.start_notebook_waiting(&root, 30_000).unwrap();
             let deadline = Instant::now() + Duration::from_secs(30);
             while owner.current_play_id().is_none() {
