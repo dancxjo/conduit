@@ -33,7 +33,7 @@ mod offers;
 mod setup;
 use conduit_core as c;
 use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
-use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
+use conduit_pulse_capture::{installation::*, owner::*};
 
 pub(crate) type DeviceExecution =
     crate::native_worker::Execution<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
@@ -93,7 +93,6 @@ pub struct NativeRoot {
     local_mask_worker: Option<crate::native_display::task::Handle>,
     #[cfg(feature = "local-appliance")]
     pending_network_workspace: Option<setup::PendingWorkspace>,
-    contract: PulseReadContract,
     wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
     host: c::HostId,
     boot: c::BootId,
@@ -202,7 +201,6 @@ impl NativeRoot {
             local_mask_worker: None,
             #[cfg(feature = "local-appliance")]
             pending_network_workspace: None,
-            contract: PulseReadContract::prepare().unwrap(),
             wait: Some(wait),
             host,
             boot,

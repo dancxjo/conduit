@@ -22,8 +22,10 @@ impl NativeRoot {
             planner_capabilities: alloc::vec![],
         };
         if let Some(pulse) = &self.pulse {
+            // Linked canonical metadata is preparation-only; live calls own their codec.
+            let contract = conduit_pulse_capture::PulseReadContract::prepare().map_err(|_| ())?;
             pulse
-                .append_to_advertisement(&mut advertisement, &self.contract)
+                .append_to_advertisement(&mut advertisement, &contract)
                 .map_err(|_| ())?;
         }
         if let Some(source) = &self.credentials {

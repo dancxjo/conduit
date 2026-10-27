@@ -115,6 +115,10 @@ impl NativeRoot {
             return Err("native-preparation-capacity");
         }
         let bindings = {
+            // All canonical admission and codec checks finish before Play.
+            // The bound host call owns its prepared codec after this scope ends.
+            let contract = conduit_pulse_capture::PulseReadContract::prepare()
+                .map_err(|_| "pulse-contract-preparation")?;
             let mut slots = Vec::new();
             slots
                 .try_reserve_exact(t::MAXIMUM_RECORDS)
@@ -159,7 +163,7 @@ impl NativeRoot {
                     requirements,
                     fragment: &reservation.fragment,
                     active: &reservation.active,
-                    contract: &self.contract,
+                    contract: &contract,
                 },
             )?
         }; // Release borrowed record staging before allocating the kernel.
