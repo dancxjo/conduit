@@ -1,5 +1,7 @@
 //! Timed ordinary Mask execution. The private Root issuer supplies every fresh
 //! child lease; evidence acceptance precedes any rearm or custody release.
+#[path = "native_mask_workspace.rs"]
+pub(crate) mod workspace;
 use super::session::*;
 use conduit_core as c;
 use conduit_environment_runtime::mask_renderer as r;
@@ -46,6 +48,14 @@ impl NativeMaskSession {
         leases: &mut impl LeaseSource,
         evidence: &mut impl EvidenceSink,
     ) -> Result<u64, &'static str> {
+        self.run_with_workspace(leases, evidence, None).await
+    }
+    pub(crate) async fn run_with_workspace(
+        &mut self,
+        leases: &mut impl LeaseSource,
+        evidence: &mut impl EvidenceSink,
+        workspace: Option<&workspace::Gate>,
+    ) -> Result<u64, &'static str> {
         if self.faulted || self.pending.is_some() || self.call.is_some() {
             return Err("mask-session-not-ready");
         }
@@ -90,6 +100,22 @@ impl NativeMaskSession {
                 self.cleanup_refusal = self.quiesce_failed().err();
                 self.faulted = true;
                 return result.map(|_| self.index);
+            }
+            // render_child returned only after accepted Closed evidence, actual
+            // lease/renderer retirement, value discard and kernel rearm. All
+            // child temporaries are gone before offering this exclusive window.
+            if let Some(gate) = workspace {
+                if let Some(pause) =
+                    gate.retired_boundary(leases.current(embassy_time::Instant::now().as_millis()))
+                {
+                    while pause.waiting() {
+                        if !leases.current(embassy_time::Instant::now().as_millis()) {
+                            gate.cancel();
+                            break;
+                        }
+                        embassy_time::Timer::after_millis(1).await;
+                    }
+                }
             }
         }
         Ok(self.index)

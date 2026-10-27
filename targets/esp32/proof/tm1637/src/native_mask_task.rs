@@ -1,6 +1,8 @@
 //! Actual held executor custody for the ordinary timed Mask. Registration is
 //! not Body start; activation and the exclusive release handle are separate.
 use super::session::NativeMaskSession;
+use super::worker::workspace;
+static WORKSPACE: workspace::Gate = workspace::Gate::new();
 use crate::native_authority::{MaskLeaseIssuer, MaskScopeGuard};
 use crate::native_mask_evidence::Consumer;
 use alloc::boxed::Box;
@@ -69,6 +71,17 @@ pub struct Retired {
     pub evidence: Box<Consumer>,
 }
 impl Handle {
+    /// Scheduling custody only. Neither this request nor its permit admits a
+    /// network kernel or replaces current Body/capacity checks. Drop withdraws
+    /// the exact request, including while waiting for worker retirement.
+    pub(crate) fn request_workspace(&self) -> Result<workspace::Request<'static>, &'static str> {
+        let status = self.status();
+        if !status.task_active || status.phase != "running" {
+            return Err("mask-workspace-not-running");
+        }
+        WORKSPACE.request()
+    }
+
     pub async fn wait_ready(&self) {
         READY.wait().await;
     }
@@ -116,6 +129,7 @@ impl Handle {
     }
     pub fn abort_preparation(&self) {
         self.slot.revoke.revoke();
+        WORKSPACE.cancel();
         update(|state| {
             state.cancelled = true;
             if state.status.task_active {
@@ -286,11 +300,12 @@ async fn held(slot: &'static Slot) {
     };
     update(|state| state.status.phase = "running");
     let result = {
-        let future = session.run(&mut *leases, &mut *evidence);
+        let future = session.run_with_workspace(&mut *leases, &mut *evidence, Some(&WORKSPACE));
         update(|state| state.status.run_future_bytes = core::mem::size_of_val(&future));
         future.await
     };
     slot.revoke.revoke();
+    WORKSPACE.cancel();
     update(|state| {
         state.status.completed = session.completed();
         state.status.pending_evidence = session.pending_evidence();
