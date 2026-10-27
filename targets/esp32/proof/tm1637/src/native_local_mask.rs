@@ -337,6 +337,7 @@ impl NativeRoot {
         )?;
         drop(sample);
         mark("ordinary-mask-sampler-seal-retired", 15);
+        let context = Self::prepare_local_show_context(&mask, mask_values, execute)?;
         #[cfg(feature = "local-appliance")]
         {
             let key = self.restart_verifying_key();
@@ -345,7 +346,7 @@ impl NativeRoot {
             )?);
             mark("cold-body-custody-restored", 1);
         }
-        self.assemble_local_plots(proposal, sampler, mask, mask_values, execute)
+        self.assemble_local_plots(proposal, sampler, mask, mask_values, context, execute)
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -508,22 +509,14 @@ impl NativeRoot {
         mark("ordinary-mask-body-proposal-prepared", 2);
         Ok(proposal)
     }
+    // Complete the cold Show codec while full biography remains parked, without
+    // nesting its scratch or the streamed decoder below numeric assembly slots.
     #[inline(never)]
-    fn assemble_local_plots(
-        &mut self,
-        proposal: conduit_body::PreparedVerifiedBodyProposal,
-        sampler: PreparedSamplerParts,
-        mask: c::VerifiedPlanMetadata,
-        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+    fn prepare_local_show_context(
+        mask: &c::VerifiedPlanMetadata,
+        mask_values: &mut conduit_kernel::FixedValueStore<2, 8192>,
         execute: bool,
-    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
-        let PreparedSamplerParts {
-            sampler_parts,
-            native,
-            active,
-            fragment,
-        } = sampler;
-        let generation = c::OfferGeneration(self.offer_generation);
+    ) -> Result<Option<conduit_face::PreparedMaskShowContext>, &'static str> {
         let role = material::role().map_err(|_| "local-mask-role")?;
         let context = if execute || cfg!(feature = "target-mask-native-check") {
             // The codec bounds output before allocation and drops dictionaries
@@ -545,7 +538,7 @@ impl NativeRoot {
                 .with_empty_scratch(|scratch| {
                     conduit_face::PreparedMaskShowContext::prepare_verified_with_workspace(
                         &role,
-                        &mask,
+                        mask,
                         |gear| {
                             for index in 0..source.gear_count() {
                                 let configuration =
@@ -567,6 +560,26 @@ impl NativeRoot {
         } else {
             None
         };
+        Ok(context)
+    }
+    #[inline(never)]
+    fn assemble_local_plots(
+        &mut self,
+        proposal: conduit_body::PreparedVerifiedBodyProposal,
+        sampler: PreparedSamplerParts,
+        mask: c::VerifiedPlanMetadata,
+        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+        context: Option<conduit_face::PreparedMaskShowContext>,
+        execute: bool,
+    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let PreparedSamplerParts {
+            sampler_parts,
+            native,
+            active,
+            fragment,
+        } = sampler;
+        let generation = c::OfferGeneration(self.offer_generation);
+        let role = material::role().map_err(|_| "local-mask-role")?;
         self.body
             .as_mut()
             .ok_or("body-owner")?
