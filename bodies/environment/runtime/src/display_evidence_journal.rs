@@ -277,6 +277,11 @@ impl<'a, S: Storage> Journal<'a, S> {
     pub fn committed_count(&self) -> u32 {
         self.count
     }
+    /// Inspect immutable backend provenance without extracting or mutating its
+    /// affine storage owner. This does not establish erased or closed custody.
+    pub fn inspect_storage<R>(&self, inspect: impl FnOnce(&S) -> R) -> R {
+        inspect(&self.storage)
+    }
     pub fn interrupted_tail(&self) -> bool {
         self.torn
     }

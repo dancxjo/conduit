@@ -98,6 +98,35 @@ fn load<T: serde::de::DeserializeOwned>(path: &Path) -> Result<T> {
     }
     Ok(serde_json::from_slice(&bytes)?)
 }
+/// Sign only an exact epoch already authenticated and reopened from durable files.
+/// The secret remains private to its bootstrap owner and never leaves this API.
+#[allow(dead_code)] // Dormant until the producer exposes authenticated closed-epoch offers.
+pub(crate) fn sign_durable_custody(
+    binding: &Path,
+    continuity_private: &Path,
+    verified: &crate::observed_custody_client::VerifiedDurableEpoch,
+) -> Result<Vec<u8>> {
+    use sha2::{Digest, Sha256};
+    let binding = crate::local_recorder::validated_binding(binding)?;
+    let bootstrap: Bootstrap = load(continuity_private)?;
+    checked(bootstrap.invitation.validate(0))?;
+    if bootstrap.root_key != *binding.root()
+        || bootstrap.invitation.claim != *binding.invitation()
+        || verified.root() != binding.root()
+        || verified.body_digest()
+            != &<[u8; 32]>::from(Sha256::digest(
+                binding.credential().body_id.as_str().as_bytes(),
+            ))
+    {
+        return Err("durable custody bootstrap/binding/epoch scope differs".into());
+    }
+    let transcript = verified.signing_transcript(binding.credential())?;
+    let signature = ed25519_dalek::SigningKey::from_bytes(&bootstrap.invitation.secret)
+        .sign(&transcript)
+        .to_bytes();
+    verified.encode_ack(binding.credential(), signature)
+}
+
 /// Export the private bootstrap only into an explicitly selected local helper.
 /// The public AP/LAN page never receives this bearer secret.
 pub fn browser(input: &Path, output: &Path) -> Result<()> {
@@ -478,7 +507,7 @@ fn finish(bootstrap: &Bootstrap, state: &Path, peer: &str, pending: Pending) -> 
 mod tests {
     use super::*;
     use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
-    fn directory(label: &str) -> std::path::PathBuf {
+    pub(super) fn directory(label: &str) -> std::path::PathBuf {
         let p = std::env::temp_dir().join(format!("conduit-join-{label}-{}", std::process::id()));
         if p.exists() {
             std::fs::remove_dir_all(&p).unwrap()
@@ -745,3 +774,7 @@ mod tests {
         std::fs::remove_dir_all(dir).unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "body_join/custody.rs"]
+mod custody_tests;

@@ -42,7 +42,23 @@ fn private_metadata(path: &Path, directory: bool) -> Result<()> {
     }
     Ok(())
 }
-pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
+pub(crate) struct ValidatedBinding(Binding);
+impl ValidatedBinding {
+    pub(crate) fn root(&self) -> &[u8; 32] {
+        &self.0.root_key
+    }
+    #[allow(dead_code)] // Dormant typed custody signer validates the retained invitation.
+    pub(crate) fn invitation(&self) -> &conduit_body::SpawnInvitationClaim {
+        &self.0.invitation
+    }
+    pub(crate) fn credential(&self) -> &conduit_body::MembershipCredential {
+        match &self.0.receipt {
+            Receipt::Admission(r) => &r.credential,
+            Receipt::Current(r) => &r.credential,
+        }
+    }
+}
+pub(crate) fn validated_binding(path: &Path) -> Result<ValidatedBinding> {
     use std::{io::Read, os::unix::fs::OpenOptionsExt};
     private_metadata(path.parent().ok_or("recorder binding parent")?, true)?;
     private_metadata(path, false)?;
@@ -91,6 +107,11 @@ pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
     {
         return Err("joined recorder invitation/credential scope".into());
     }
+    Ok(ValidatedBinding(binding))
+}
+pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
+    let binding = validated_binding(path)?;
+    let credential = binding.credential();
     use sha2::{Digest, Sha256};
     let mut scope = [0; 96];
     scope[..32].copy_from_slice(&Sha256::digest(credential.body_id.as_str().as_bytes()));
@@ -99,7 +120,7 @@ pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
     // receipt.producer_boot identifies the admission event, not a permanent
     // producer Boot. This read-only history path neither refreshes collector
     // presence nor grants execution authority after either member restarts.
-    Collector::from_authenticated_scope(scope, &binding.root_key)
+    Collector::from_authenticated_scope(scope, binding.root())
 }
 /// Only a private binding saved by successful invitation admission may enter
 /// this command. A producer response cannot replace its pinned Root key.

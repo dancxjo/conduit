@@ -92,13 +92,35 @@ impl Collector {
     /// Restore only a complete, signed, contiguous durable prefix. Failure leaves
     /// this collector unchanged. Temporary files are never custody receipts.
     pub fn restore(&mut self, directory: &Path) -> Result<()> {
+        let (after, clock, _) = self.durable_prefix(directory, false)?;
+        self.after = after;
+        self.observed_ms = clock;
+        Ok(())
+    }
+    /// Reverify the complete immutable signed prefix and fsync its actual file
+    /// inodes and directory entries before a consumer may sign custody. The
+    /// canonical collector creates/syncs all missing ancestor directories.
+    #[allow(dead_code)] // Typed custody remains dormant until the native offer route is proven.
+    pub(crate) fn durable_summary(
+        &self,
+        directory: &Path,
+        forms: &[u8; 32],
+    ) -> Result<(u32, [u8; 32])> {
+        if forms != &self.forms {
+            return Err("custody Forms differ".into());
+        }
+        let (count, _, digest) = self.durable_prefix(directory, true)?;
+        Ok((count, digest))
+    }
+    fn durable_prefix(&self, directory: &Path, sync: bool) -> Result<(u32, u64, [u8; 32])> {
         let mut replay = Self {
             after: 0,
             observed_ms: 0,
             ..*self
         };
+        let mut digest = Sha256::new();
         if !directory.exists() {
-            return Ok(());
+            return Ok((0, 0, digest.finalize().into()));
         }
         let mut paths = std::fs::read_dir(directory)?
             .map(|entry| entry.map(|entry| entry.path()))
@@ -111,7 +133,12 @@ impl Collector {
         });
         paths.sort();
         for path in paths {
-            let bytes = std::fs::read(&path)?;
+            let mut file = OpenOptions::new()
+                .read(true)
+                .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+                .open(&path)?;
+            let mut bytes = Vec::new();
+            (&mut file).take(2049).read_to_end(&mut bytes)?;
             let (after, clock) = replay.validate(&bytes)?;
             if after == replay.after
                 || path.file_name().unwrap()
@@ -122,12 +149,25 @@ impl Collector {
             {
                 return Err("history custody filename or empty batch".into());
             }
+            let batch: Batch = serde_json::from_slice(&bytes)?;
+            digest.update(hex(&batch.records)?);
+            if sync {
+                file.sync_all()?;
+            }
             replay.after = after;
             replay.observed_ms = clock;
         }
-        self.after = replay.after;
-        self.observed_ms = replay.observed_ms;
-        Ok(())
+        if sync {
+            File::open(directory)?.sync_all()?;
+            File::open(
+                directory
+                    .parent()
+                    .filter(|p| !p.as_os_str().is_empty())
+                    .unwrap_or_else(|| Path::new(".")),
+            )?
+            .sync_all()?;
+        }
+        Ok((replay.after, replay.observed_ms, digest.finalize().into()))
     }
     fn validate(&self, bytes: &[u8]) -> Result<(u32, u64)> {
         if bytes.len() > 2048 {

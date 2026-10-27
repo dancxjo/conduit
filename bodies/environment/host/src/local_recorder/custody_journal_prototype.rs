@@ -16,6 +16,16 @@ mod state;
 #[allow(dead_code, clippy::duplicate_mod)] // Same actual producer wire as the recorder fixture.
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_wire.rs"]
 mod wire;
+use custody as custody_journal;
+#[allow(dead_code, clippy::duplicate_mod)]
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_custody_acceptance.rs"]
+mod acceptance;
+#[allow(dead_code)]
+#[path = "../observed_custody_client.rs"]
+mod client;
+#[allow(dead_code, clippy::duplicate_mod)]
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_history.rs"]
+mod history;
 use custody::{Custody, Error, WholeEpoch, ACCEPTANCE, DATA, SECTOR, TOTAL, WORK};
 #[derive(Clone, Copy, Debug)]
 enum Kind {
@@ -228,6 +238,7 @@ fn closed(
     Ok(())
 }
 struct Fixture {
+    credential: conduit_body::MembershipCredential,
     media: Media,
     accepted: [u8; ACCEPTANCE],
     key: SigningKey,
@@ -444,6 +455,7 @@ fn fixture(label: &str) -> Fixture {
     let endorsed = key.sign(&root_message(&accepted)).to_bytes();
     accepted[352..].copy_from_slice(&endorsed);
     Fixture {
+        credential: receipt.credential,
         media,
         accepted,
         key,
@@ -898,4 +910,126 @@ fn generation_boundary_reserves_both_phases_and_refuses_without_reset_or_erase()
     assert!(media.operations.is_empty());
     assert_eq!(media.bytes, original);
     media.guards();
+}
+
+#[test]
+fn typed_offer_requires_reopened_durable_files_and_current_admitted_ack() {
+    let f = fixture("typed");
+    let (body, manager): (
+        conduit_body::BodyBiographyEvidence,
+        conduit_body::AdmissionManager,
+    ) = serde_json::from_slice(
+        &std::fs::read(f.directory.join("canonical-body-checkpoint.json")).unwrap(),
+    )
+    .unwrap();
+    let mut work = [0; WORK];
+    let (journal, scope, sequence) =
+        recovery::reopen_profile(f.media.clone(), f.basis, &mut work, true).unwrap();
+    let mut active = state::Active {
+        journal,
+        scope,
+        forms: Sha256::digest(f.basis).into(),
+        last_sequence: sequence,
+        failed: false,
+        recovered: true,
+        signed: true,
+        maximum_records: 960,
+    };
+    let draft = acceptance::inspect(
+        &mut active,
+        &body.body_id,
+        &f.key.verifying_key(),
+        &mut work,
+    )
+    .unwrap();
+    assert_eq!(draft.root(), &f.key.verifying_key().to_bytes());
+    let signed = f.key.sign(&draft.transcript()).to_bytes();
+    let offer = draft.signed(signed);
+    let encoded = serde_json::to_vec(&offer).unwrap();
+    let offered: client::wire::Offer<'_> = serde_json::from_slice(&encoded).unwrap();
+    let hex: String = scope.iter().map(|byte| format!("{byte:02x}")).collect();
+    let directory = f.directory.join(format!("epoch-{hex}"));
+    let proof = client::VerifiedDurableEpoch::verify(
+        &offered,
+        &body.body_id,
+        &f.key.verifying_key().to_bytes(),
+        &directory,
+    )
+    .unwrap();
+    assert_eq!(proof.root(), &f.key.verifying_key().to_bytes());
+    assert_eq!(proof.body_digest(), &scope[..32]);
+    let credential = &f.credential;
+    let secret = conduit_body::SpawnInvitationSecret::from_csprng_bytes([22; 32]).unwrap();
+    let signature = secret.sign(&proof.signing_transcript(credential).unwrap());
+    let bytes = proof.encode_ack(credential, signature).unwrap();
+    let request: acceptance::wire::Request<'_> = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(&request.offer.0, proof.offer_hash());
+    let draft = acceptance::inspect(
+        &mut active,
+        &body.body_id,
+        &f.key.verifying_key(),
+        &mut work,
+    )
+    .unwrap();
+    let accepted = acceptance::verify_ack(&draft, &manager, &body.membership, &request).unwrap();
+    assert_eq!(accepted.root(), &f.key.verifying_key().to_bytes());
+    let signature = f.key.sign(&accepted.transcript()).to_bytes();
+    let accepted = accepted.signed(signature);
+    assert!(acceptance::verify_accepted(
+        &accepted,
+        &body.body_id,
+        &f.key.verifying_key()
+    ));
+    // Only the Root-endorsed canonical admitted proof reaches the affine erase
+    // controller; a network request itself never owns flash authority.
+    let media = active.journal.into_storage();
+    let controller = Custody::open(media, &mut work, |a| {
+        acceptance::verify_accepted(a, &body.body_id, &f.key.verifying_key())
+    })
+    .ok()
+    .unwrap();
+    let erased = controller
+        .begin(
+            &accepted,
+            &mut work,
+            |a| acceptance::verify_accepted(a, &body.body_id, &f.key.verifying_key()),
+            |m, a| closed(m, a, f.basis, &f.key.verifying_key()),
+        )
+        .ok()
+        .unwrap();
+    let mut erased = erased.into_storage();
+    let mut data = vec![0; DATA];
+    WholeEpoch::read(&mut erased, 0, &mut data).unwrap();
+    assert!(data.iter().all(|byte| *byte == 255));
+    let (successor, _) = successor(erased, &f, 27);
+    let before = successor.bytes.clone();
+    // Restart on the new signed Boot/Play journal. A historically valid typed
+    // acknowledgement cannot authorize erasing the successor's actual bytes.
+    let controller = Custody::open(successor, &mut work, |a| {
+        acceptance::verify_accepted(a, &body.body_id, &f.key.verifying_key())
+    })
+    .ok()
+    .unwrap();
+    let (controller, error) = controller
+        .begin(
+            &accepted,
+            &mut work,
+            |a| acceptance::verify_accepted(a, &body.body_id, &f.key.verifying_key()),
+            |m, a| closed(m, a, f.basis, &f.key.verifying_key()),
+        )
+        .err()
+        .unwrap();
+    assert_eq!(error, Error::NotClosed);
+    assert_eq!(controller.into_storage().bytes, before);
+    let mut corrupted = request;
+    corrupted.signature.0[0] ^= 1;
+    assert!(acceptance::verify_ack(&draft, &manager, &body.membership, &corrupted).is_err());
+    std::fs::remove_file(directory.join("observed-history-0000-0003.json")).unwrap();
+    assert!(client::VerifiedDurableEpoch::verify(
+        &offered,
+        &body.body_id,
+        &f.key.verifying_key().to_bytes(),
+        &directory
+    )
+    .is_err());
 }

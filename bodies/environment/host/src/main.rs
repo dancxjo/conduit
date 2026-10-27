@@ -19,6 +19,9 @@ mod native_owner_control;
 #[allow(dead_code)]
 mod native_owner_receipt;
 mod observation;
+#[allow(clippy::duplicate_mod)] // Prototype tests separately include this exact portable client.
+#[allow(dead_code)] // Typed custody remains dormant until authenticated producer offers exist.
+mod observed_custody_client;
 mod observed_history;
 mod owner_exchange;
 mod owner_reconnect;
