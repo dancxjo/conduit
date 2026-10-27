@@ -248,3 +248,45 @@ fn prefix_decoder_validates_real_suffix_counts_keys_and_hold_policy() {
     trailing.push(b'x');
     assert!(decode_resident_with_prefix(reader(&trailing), body, &root, None).is_err());
 }
+
+#[cfg(any(feature = "observation-store", feature = "local-evidence-store"))]
+#[test]
+fn valid_layout_cannot_hide_forged_prefix_at_post_eof_receipt_boundary() {
+    let (segments, evidence) = fixture();
+    let body = &evidence.body_id;
+    let seed = [61; 32];
+    let key = SigningKey::from_bytes(&seed);
+    let root = key.verifying_key().to_bytes();
+    let prefix = receipt(body, &segments, &key);
+    let mut layouts = layout::Layouts::default();
+    layouts
+        .add(&super::super::observed::tests::receipt(body, &seed, 1))
+        .unwrap();
+    let encode = |prefix: &wire::Receipt| {
+        let mut value: serde_json::Value =
+            serde_json::from_slice(&plain_v2(&evidence, prefix, &[])).unwrap();
+        value["schema"] = serde_json::json!(SCHEMA_V3);
+        value["observation_layouts"] = serde_json::to_value(&layouts).unwrap();
+        serde_json::to_vec(&value).unwrap()
+    };
+    // Prefix ordering is part of the stream contract; preserve it when adding @3.
+    let encode = |prefix: &wire::Receipt| {
+        let bytes = encode(prefix);
+        let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        format!("{{\"schema\":{},\"evidence\":{},\"biography_prefix\":{},\"archives\":[],\"admissions\":null,\"observation_layouts\":{}}}", value["schema"], value["evidence"], value["biography_prefix"], value["observation_layouts"]).into_bytes()
+    };
+    let valid = encode(&prefix);
+    let resident = decode_resident_with_prefix(reader(&valid), body, &root, None).unwrap();
+    let mut forged = prefix.clone();
+    forged.signature.0[0] ^= 1;
+    let bytes = encode(&forged);
+    assert!(decode_resident_with_prefix(reader(&bytes), body, &root, None).is_err());
+    // Even an exact retained transcript comparison cannot replace crypto.
+    let custody = archive::Custody {
+        summary: &resident.summary,
+        prefix: Some(&forged),
+        local_count: 0,
+    };
+    assert!(decode_resident_with_prefix(reader(&bytes), body, &root, Some(custody)).is_err());
+    assert!(decode_resident(reader(&bytes), body, None).is_err());
+}

@@ -212,7 +212,8 @@ pub(crate) fn decode_resident(
     body: &conduit_body::BodyId,
     custody: Option<&archive::Summary>,
 ) -> Result<archive::Resident, &'static str> {
-    with_plain(read, |plain| archive::decode(plain, body, custody))
+    let pending = with_plain(read, |plain| archive::decode(plain, body, custody))?;
+    pending.validate_receipts(body, None)
 }
 /// Context-bound decoder. Root supplies the key derived from its first fully
 /// authenticated seed read and compares the second seed before publication.
@@ -223,9 +224,10 @@ pub(crate) fn decode_resident_with_prefix(
     custody: Option<archive::Custody<'_>>,
 ) -> Result<archive::Resident, &'static str> {
     let key = ed25519_dalek::VerifyingKey::from_bytes(root).map_err(|_| "restart-root-key")?;
-    with_plain(read, |plain| {
+    let pending = with_plain(read, |plain| {
         archive::decode_with_prefix(plain, body, Some(&key), custody)
-    })
+    })?;
+    pending.validate_receipts(body, Some(&key))
 }
 /// Export only the archive array from an already validated affine snapshot.
 /// Output is provisional until the caller's authenticated read_snapshot returns

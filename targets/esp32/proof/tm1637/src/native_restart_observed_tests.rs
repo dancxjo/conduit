@@ -185,6 +185,64 @@ fn restart_v3_requires_receipt_field_and_pinned_root_without_weakening_legacy() 
         .unwrap()
         .remove("observation_layouts");
     assert!(decode(&missing, &key).is_err());
+    // No resident may escape before EOF and the shallower crypto boundary.
+    let bytes = serde_json::to_vec(&v3).unwrap();
+    let read = |bytes: Vec<u8>| {
+        let mut at = 0;
+        move |out: &mut [u8; 128]| {
+            let n = out.len().min(bytes.len() - at);
+            out[..n].copy_from_slice(&bytes[at..at + n]);
+            at += n;
+            Ok(n)
+        }
+    };
+    assert!(payload::decode_resident(read(bytes.clone()), &evidence.body_id, None).is_err());
+    let mut empty = v3.clone();
+    empty["observation_layouts"] = serde_json::json!([]);
+    assert!(payload::decode_resident(
+        read(serde_json::to_vec(&empty).unwrap()),
+        &evidence.body_id,
+        None
+    )
+    .is_err());
+    for malformed in [
+        bytes[..bytes.len() - 1].to_vec(),
+        [bytes.as_slice(), b" trailing"].concat(),
+    ] {
+        assert!(payload::decode_resident_with_prefix(
+            read(malformed.clone()),
+            &evidence.body_id,
+            &key,
+            None
+        )
+        .is_err());
+        assert!(payload::decode_resident(read(malformed), &evidence.body_id, None).is_err());
+    }
+    let foreign = conduit_body::Body::born(
+        "foreign-source".into(),
+        "foreign-plot".into(),
+        1,
+        "foreign".into(),
+    )
+    .unwrap()
+    .body_id;
+    let mut wrong_body = v3.clone();
+    let mut foreign_layouts = payload::layout::Layouts::default();
+    foreign_layouts
+        .add(&receipt(&foreign, &[7; 32], 1))
+        .unwrap();
+    wrong_body["observation_layouts"] = serde_json::to_value(foreign_layouts).unwrap();
+    assert!(decode(&wrong_body, &key).is_err());
+    let mut bad_signature = v3.clone();
+    let mut hex = bad_signature["observation_layouts"][0]
+        .as_str()
+        .unwrap()
+        .as_bytes()
+        .to_vec();
+    let last = hex.len() - 1;
+    hex[last] = if hex[last] == b'0' { b'1' } else { b'0' };
+    bad_signature["observation_layouts"][0] = serde_json::json!(String::from_utf8(hex).unwrap());
+    assert!(decode(&bad_signature, &key).is_err());
     let mut bad = v3;
     bad["observation_layouts"][0] = serde_json::json!("00");
     assert!(decode(&bad, &key).is_err());

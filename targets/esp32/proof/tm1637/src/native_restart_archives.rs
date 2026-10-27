@@ -105,6 +105,29 @@ pub(crate) struct Resident {
     pub local_count: u64,
     pub span: Span,
 }
+// Parsed custody remains private until the shallower post-decode signature
+// boundary succeeds. Neither this wrapper nor its contents can authorize restore.
+pub(super) struct PendingResident(Resident);
+impl PendingResident {
+    #[inline(never)]
+    pub(super) fn validate_receipts(
+        self,
+        body: &BodyId,
+        key: Option<&ed25519_dalek::VerifyingKey>,
+    ) -> Result<Resident, &'static str> {
+        if let Some(key) = key {
+            if let Some(prefix) = &self.0.prefix {
+                prefix
+                    .verify(body, key)
+                    .map_err(|_| "restart-prefix-signature")?;
+            }
+            self.0.layouts.validate(body, key)?;
+        } else if self.0.prefix.is_some() || !self.0.layouts.is_empty() {
+            return Err("layouts require pinned Root");
+        }
+        Ok(self.0)
+    }
+}
 struct Evidence(BodyBiographyEvidence);
 impl<'de> Deserialize<'de> for Evidence {
     #[inline(never)]
@@ -192,10 +215,10 @@ impl<'de> Visitor<'de> for Envelope<'_> {
                         return Err(de::Error::custom("prefix must precede archive suffix"));
                     }
                     let receipt = read_receipt(&mut map)?;
-                    let key = self
-                        .key
+                    self.key
                         .ok_or_else(|| de::Error::custom("prefix requires pinned Root"))?;
-                    receipt.verify(self.body, key).map_err(de::Error::custom)?;
+                    // Only provisional chain accounting until the shallower
+                    // post-EOF receipt boundary verifies the signature.
                     prefix = Some(receipt);
                 }
                 "archives" if summary.is_none() => {
@@ -211,12 +234,10 @@ impl<'de> Visitor<'de> for Envelope<'_> {
                 }
                 "observation_layouts" if layouts.is_none() => {
                     let raw: super::layout::Layouts = map.next_value()?;
-                    raw.validate(
-                        self.body,
-                        self.key
-                            .ok_or_else(|| de::Error::custom("layouts require pinned Root"))?,
-                    )
-                    .map_err(de::Error::custom)?;
+                    // Preserve the no-key refusal even for an empty @3 array.
+                    if self.key.is_none() {
+                        return Err(de::Error::custom("layouts require pinned Root"));
+                    }
                     layouts = Some(raw);
                 }
                 "admissions" if !admissions_seen => {
@@ -460,11 +481,11 @@ impl SpanObserver {
     }
 }
 #[inline(never)]
-pub(crate) fn decode(
+pub(super) fn decode(
     read: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     expected_body: &BodyId,
     custody: Option<&Summary>,
-) -> Result<Resident, &'static str> {
+) -> Result<PendingResident, &'static str> {
     decode_with_prefix(
         read,
         expected_body,
@@ -477,12 +498,12 @@ pub(crate) fn decode(
     )
 }
 #[inline(never)]
-pub(crate) fn decode_with_prefix(
+pub(super) fn decode_with_prefix(
     read: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     expected_body: &BodyId,
     key: Option<&ed25519_dalek::VerifyingKey>,
     custody: Option<Custody<'_>>,
-) -> Result<Resident, &'static str> {
+) -> Result<PendingResident, &'static str> {
     let expected_local = custody.as_ref().map(|c| c.local_count);
     let mut observer = SpanObserver::default();
     let mut observed = |chunk: &mut [u8; 128]| {
@@ -530,7 +551,7 @@ pub(crate) fn decode_with_prefix(
     if observer.segments != local_count || expected_local.is_some_and(|n| n != local_count) {
         return Err("restart-local-count");
     }
-    Ok(Resident {
+    Ok(PendingResident(Resident {
         layouts,
         retained: Retained {
             schema,
@@ -542,5 +563,5 @@ pub(crate) fn decode_with_prefix(
         prefix,
         local_count,
         span: observer.finish()?,
-    })
+    }))
 }
