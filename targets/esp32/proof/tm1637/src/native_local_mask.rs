@@ -358,7 +358,10 @@ impl NativeRoot {
             )?);
             mark("cold-body-custody-restored", 1);
         }
-        self.assemble_local_plots(proposal, sampler, mask, mask_values, context, execute)
+        // Full biography replay must finish before the large numeric assembly
+        // frame exists, just as streamed restoration and Show preparation do.
+        self.commit_local_body_proposal(proposal)?;
+        self.assemble_local_plots(sampler, mask, mask_values, context, execute)
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -575,9 +578,24 @@ impl NativeRoot {
         Ok(context)
     }
     #[inline(never)]
-    fn assemble_local_plots(
+    fn commit_local_body_proposal(
         &mut self,
         proposal: conduit_body::PreparedVerifiedBodyProposal,
+    ) -> Result<(), &'static str> {
+        // Preserve the role refusal before publishing the proposal.
+        let _ = material::role().map_err(|_| "local-mask-role")?;
+        mark("before-ordinary-mask-body-proposal-commit", 2);
+        self.body
+            .as_mut()
+            .ok_or("body-owner")?
+            .commit_verified_proposal(proposal)
+            .map_err(|_| "local-mask-body-publication")?;
+        mark("ordinary-mask-body-proposal-live", 2);
+        Ok(())
+    }
+    #[inline(never)]
+    fn assemble_local_plots(
+        &mut self,
         sampler: PreparedSamplerParts,
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
@@ -592,13 +610,6 @@ impl NativeRoot {
         } = sampler;
         let generation = c::OfferGeneration(self.offer_generation);
         let role = material::role().map_err(|_| "local-mask-role")?;
-        mark("before-ordinary-mask-body-proposal-commit", 2);
-        self.body
-            .as_mut()
-            .ok_or("body-owner")?
-            .commit_verified_proposal(proposal)
-            .map_err(|_| "local-mask-body-publication")?;
-        mark("ordinary-mask-body-proposal-live", 2);
         let retained = if execute {
             use conduit_body::BodyPlanEvidence;
             use conduit_plan_lowering::selected_operation::{
