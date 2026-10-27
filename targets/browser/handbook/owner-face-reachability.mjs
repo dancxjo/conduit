@@ -49,7 +49,7 @@ export function assertOwnerFaceReachability(element, view) {
     // Stable argument captions may name native inputs explicitly. They cannot
     // override checked meaning or replace the visible native label below.
     const expected = normalizedName(argumentName);
-    const sourceLabel = control.matches('input:not([type=radio]),select') && expected
+    const sourceLabel = control.matches('input:not([type=radio]),select,textarea') && expected
       && normalizedName(control.getAttribute('aria-label')) === expected;
     return (!control.hasAttribute('aria-label') || sourceLabel)
       && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
@@ -62,7 +62,7 @@ export function assertOwnerFaceReachability(element, view) {
     const regions = [...element.shadowRoot.querySelectorAll('[data-owner-action]')]
       .filter(region => region.dataset.ownerAction === action.identity);
     const reachable = regions.some(region => {
-      const controls = [...region.querySelectorAll('button,input,select')];
+      const controls = [...region.querySelectorAll('button,input,select,textarea')];
       const activator = controls.find(control => control.matches('button,input[type=radio]'));
       if (!activator || !certifiedControl(activator) || activator.dataset.unavailable === 'true' || activator.tabIndex < 0) return false;
       const subject = view.subjects.find(subject => subject.identity === action.target);
