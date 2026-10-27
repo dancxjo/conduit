@@ -179,6 +179,7 @@ impl NativeRoot {
             mask: Option<crate::native_display::task::Status>,
             consumed_mask: crate::native_mask_evidence::Status,
             network: crate::native_network::Inspection,
+            archive: crate::native_observed_archive::Status,
             face: Option<crate::native_face::Inspection>,
         }
         let millis = embassy_time::Instant::now().as_millis();
@@ -195,6 +196,7 @@ impl NativeRoot {
                 .map(|worker| worker.status()),
             consumed_mask: crate::native_mask_evidence::status(),
             network: self.network.inspect(),
+            archive: crate::native_observed_archive::status(),
             face: self
                 .face_reader
                 .as_ref()
