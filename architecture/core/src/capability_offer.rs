@@ -86,18 +86,27 @@ impl Kind {
     }
 
     pub fn validate(&self) -> Result<(), KindValidationError> {
+        let result = crate::KindDefinitionRef::from(self).validate();
+        #[cfg(test)]
+        kind_validation_parity::check(self, result);
+        result
+    }
+}
+
+impl crate::KindDefinitionRef<'_> {
+    pub fn validate(&self) -> Result<(), KindValidationError> {
         crate::realization_properties::validate_kind_requirements(self)?;
         crate::initialized_state::validate_kind(self)?;
-        if self.kind_id.as_str().is_empty() {
+        if self.kind_id.is_empty() {
             return Err(KindValidationError::EmptyId);
         }
-        if self.kind_contract_revision.as_str().is_empty() {
+        if self.kind_contract_revision.is_empty() {
             return Err(KindValidationError::EmptyIdentity);
         }
-        if self.inputs.iter().chain(&self.outputs).any(|port| {
+        if self.inputs.iter().chain(self.outputs.iter()).any(|port| {
             port.abnormal_kind
                 .as_ref()
-                .is_some_and(|kind| kind.as_str().is_empty())
+                .is_some_and(|kind| kind.is_empty())
         }) {
             return Err(KindValidationError::EmptyAbnormalTerminalKind);
         }
@@ -105,13 +114,13 @@ impl Kind {
         if self
             .inputs
             .iter()
-            .chain(&self.outputs)
-            .any(|port| !port_symbols.insert(port.port_id.as_str()))
+            .chain(self.outputs.iter())
+            .any(|port| !port_symbols.insert(port.port_id))
         {
             return Err(KindValidationError::DuplicatePortSymbol);
         }
         let mut keys = BTreeSet::new();
-        for field in &self.configuration {
+        for field in self.configuration {
             if !keys.insert(field.key.as_str()) {
                 return Err(KindValidationError::DuplicateConfigurationKey);
             }
@@ -155,7 +164,7 @@ impl Kind {
         let mut flow_fold = None;
         let mut flow_each = None;
         let mut flow_scan = None;
-        for law in &self.semantic_laws {
+        for law in self.semantic_laws {
             match law {
                 KindSemanticLaw::TerminalTransduction(profile) => {
                     if !terminal_inputs.insert(profile.input_port_id.as_str()) {
@@ -226,16 +235,16 @@ impl Kind {
                     let input = self
                         .inputs
                         .iter()
-                        .find(|port| port.port_id == contract.input_port_id);
+                        .find(|port| port.port_id == contract.input_port_id.as_str());
                     let output = self
                         .outputs
                         .iter()
-                        .find(|port| port.port_id == contract.output_port_id);
+                        .find(|port| port.port_id == contract.output_port_id.as_str());
                     if !matches!((input, output), (Some(input), Some(output))
                         if input.temporal == crate::PortTemporal::Flow { closes: true }
                             && output.temporal == crate::PortTemporal::Flow { closes: true }
                             && input.value_kind == output.value_kind
-                            && input.value_kind == contract.predicate_input_kind
+                            && input.value_kind == contract.predicate_input_kind.as_str()
                             && contract.predicate_output_kind.as_str() == crate::BOOL_INFO_ID
                             && contract.maximum_active == 1
                             && contract.maximum_queued == 1
@@ -251,16 +260,16 @@ impl Kind {
                     let input = self
                         .inputs
                         .iter()
-                        .find(|port| port.port_id == contract.input_port_id);
+                        .find(|port| port.port_id == contract.input_port_id.as_str());
                     let output = self
                         .outputs
                         .iter()
-                        .find(|port| port.port_id == contract.output_port_id);
+                        .find(|port| port.port_id == contract.output_port_id.as_str());
                     if !matches!((input, output), (Some(input), Some(output))
                         if input.temporal == crate::PortTemporal::Flow { closes: true }
                             && output.temporal == crate::PortTemporal::Value
-                            && input.value_kind == contract.item.value_kind
-                            && output.value_kind == contract.accumulator.value_kind
+                            && input.value_kind == contract.item.value_kind.as_str()
+                            && output.value_kind == contract.accumulator.value_kind.as_str()
                             && contract.item.validate_definition().is_ok()
                             && contract.accumulator.validate_definition().is_ok()
                             && contract.accumulator.validate(&contract.initial_accumulator).is_ok()
@@ -281,16 +290,16 @@ impl Kind {
                     let input = self
                         .inputs
                         .iter()
-                        .find(|port| port.port_id == contract.input_port_id);
+                        .find(|port| port.port_id == contract.input_port_id.as_str());
                     let output = self
                         .outputs
                         .iter()
-                        .find(|port| port.port_id == contract.output_port_id);
+                        .find(|port| port.port_id == contract.output_port_id.as_str());
                     if !matches!((input, output), (Some(input), Some(output))
                         if input.temporal == crate::PortTemporal::Flow { closes: true }
                             && output.temporal == crate::PortTemporal::Flow { closes: true }
-                            && input.value_kind == contract.item.value_kind
-                            && output.value_kind == contract.accumulator.value_kind
+                            && input.value_kind == contract.item.value_kind.as_str()
+                            && output.value_kind == contract.accumulator.value_kind.as_str()
                             && contract.item.validate_definition().is_ok()
                             && contract.accumulator.validate_definition().is_ok()
                             && contract.accumulator.validate(&contract.initial_accumulator).is_ok()
@@ -310,11 +319,11 @@ impl Kind {
                     let input = self
                         .inputs
                         .iter()
-                        .find(|port| port.port_id == contract.input_port_id);
+                        .find(|port| port.port_id == contract.input_port_id.as_str());
                     let output = self
                         .outputs
                         .iter()
-                        .find(|port| port.port_id == contract.output_port_id);
+                        .find(|port| port.port_id == contract.output_port_id.as_str());
                     if !matches!((input, output), (Some(input), Some(output)) if input.temporal == crate::PortTemporal::Flow { closes: true } && output.temporal == crate::PortTemporal::Flow { closes: true })
                     {
                         return Err(KindValidationError::InvalidFlowEach);
@@ -328,18 +337,18 @@ impl Kind {
 }
 
 fn validate_bounded_collect(
-    kind: &Kind,
+    kind: &crate::KindDefinitionRef<'_>,
     contract: &crate::BoundedCollectSemanticLaw,
 ) -> Result<(), KindValidationError> {
     let input = kind
         .inputs
         .iter()
-        .find(|port| port.port_id == contract.input_port_id)
+        .find(|port| port.port_id == contract.input_port_id.as_str())
         .ok_or(KindValidationError::InvalidBoundedCollect)?;
     let output = kind
         .outputs
         .iter()
-        .find(|port| port.port_id == contract.output_port_id)
+        .find(|port| port.port_id == contract.output_port_id.as_str())
         .ok_or(KindValidationError::InvalidBoundedCollect)?;
     if contract.maximum_items == 0
         || contract.element.validate_definition().is_err()
@@ -347,12 +356,12 @@ fn validate_bounded_collect(
         || contract.overflow_disposition.validate_definition().is_err()
         || input.direction != crate::PortDirection::Input
         || input.temporal != (crate::PortTemporal::Flow { closes: true })
-        || input.value_kind != contract.element.value_kind
+        || input.value_kind != contract.element.value_kind.as_str()
         || input.abnormal_kind.is_some()
         || output.direction != crate::PortDirection::Output
         || output.temporal != crate::PortTemporal::Value
-        || output.value_kind != contract.collection.value_kind
-        || output.abnormal_kind.as_ref() != Some(&contract.overflow_disposition.value_kind)
+        || output.value_kind != contract.collection.value_kind.as_str()
+        || output.abnormal_kind != Some(contract.overflow_disposition.value_kind.as_str())
     {
         return Err(KindValidationError::InvalidBoundedCollect);
     }
@@ -399,7 +408,7 @@ fn validate_bounded_collect(
 }
 
 fn validate_value_contracts(
-    kind: &Kind,
+    kind: &crate::KindDefinitionRef<'_>,
     contracts: &[crate::FrontValueContract],
 ) -> Result<(), KindValidationError> {
     let mut locations = BTreeSet::new();
@@ -412,32 +421,32 @@ fn validate_value_contracts(
                 .startup_parameters
                 .iter()
                 .find(|parameter| &parameter.name == name)
-                .map(|parameter| &parameter.value_type),
+                .map(|parameter| parameter.value_type.as_str()),
             crate::FrontValueLocation::Input(port) => kind
                 .inputs
                 .iter()
-                .find(|candidate| &candidate.port_id == port)
-                .map(|candidate| &candidate.value_kind),
+                .find(|candidate| candidate.port_id == port.as_str())
+                .map(|candidate| candidate.value_kind),
             crate::FrontValueLocation::Output(port) => kind
                 .outputs
                 .iter()
-                .find(|candidate| &candidate.port_id == port)
-                .map(|candidate| &candidate.value_kind),
+                .find(|candidate| candidate.port_id == port.as_str())
+                .map(|candidate| candidate.value_kind),
             crate::FrontValueLocation::InputAbnormal(port) => kind
                 .inputs
                 .iter()
-                .find(|candidate| &candidate.port_id == port)
-                .and_then(|candidate| candidate.abnormal_kind.as_ref()),
+                .find(|candidate| candidate.port_id == port.as_str())
+                .and_then(|candidate| candidate.abnormal_kind),
             crate::FrontValueLocation::OutputAbnormal(port) => kind
                 .outputs
                 .iter()
-                .find(|candidate| &candidate.port_id == port)
-                .and_then(|candidate| candidate.abnormal_kind.as_ref()),
+                .find(|candidate| candidate.port_id == port.as_str())
+                .and_then(|candidate| candidate.abnormal_kind),
         };
         let Some(expected_kind) = expected_kind else {
             return Err(KindValidationError::UnknownValueBoundLocation);
         };
-        if expected_kind != &value_contract.contract.value_kind {
+        if expected_kind != value_contract.contract.value_kind.as_str() {
             return Err(KindValidationError::InvalidValueBound);
         }
     }
@@ -445,7 +454,7 @@ fn validate_value_contracts(
 }
 
 fn validate_resource_ports(
-    kind: &Kind,
+    kind: &crate::KindDefinitionRef<'_>,
     contracts: &[crate::ResourcePortContract],
 ) -> Result<(), KindValidationError> {
     let mut ids = BTreeSet::new();
@@ -459,8 +468,8 @@ fn validate_resource_ports(
         if !kind
             .inputs
             .iter()
-            .chain(&kind.outputs)
-            .any(|port| port.port_id == contract.port_id)
+            .chain(kind.outputs.iter())
+            .any(|port| port.port_id == contract.port_id.as_str())
         {
             return Err(KindValidationError::UnknownResourcePort);
         }
@@ -469,23 +478,12 @@ fn validate_resource_ports(
 }
 
 fn validate_terminal_transduction(
-    kind: &Kind,
+    kind: &crate::KindDefinitionRef<'_>,
     profile: &crate::TerminalTransductionProfile,
 ) -> Result<(), KindValidationError> {
-    validate_terminal_transduction_ports(&kind.inputs, &kind.outputs, profile)
+    validate_terminal_transduction_ports_ref(kind.inputs, kind.outputs, profile)
 }
 
-pub(crate) fn validate_terminal_transduction_ports(
-    inputs: &[PortDescriptor],
-    outputs: &[PortDescriptor],
-    profile: &crate::TerminalTransductionProfile,
-) -> Result<(), KindValidationError> {
-    validate_terminal_transduction_ports_ref(
-        crate::PortDescriptorRefs::Owned(inputs),
-        crate::PortDescriptorRefs::Owned(outputs),
-        profile,
-    )
-}
 pub(crate) fn validate_terminal_transduction_ports_ref(
     inputs: crate::PortDescriptorRefs<'_>,
     outputs: crate::PortDescriptorRefs<'_>,
@@ -1381,3 +1379,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "kind_validation_parity.rs"]
+mod kind_validation_parity;

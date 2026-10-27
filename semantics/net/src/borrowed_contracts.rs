@@ -202,14 +202,12 @@ impl<'a> PreparedCanonicalNetworkOffer<'a> {
         implementation: &'a str,
         artifact: &'a str,
     ) -> Self {
-        // Preserve the complete existing validator, in this measured construction
-        // phase. Retire all owning metadata before publishing the immutable view.
-        drop(materialize(
-            shape,
-            capability.into(),
-            implementation.into(),
-            artifact.into(),
-        ));
+        if let Err(error) = shape.kind().validate() {
+            panic!(
+                "Back offers require a valid canonical Kind '{}': {error:?}",
+                shape.kind().kind_id
+            );
+        }
         Self {
             shape,
             capability,

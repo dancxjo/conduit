@@ -320,8 +320,9 @@ impl<'a> From<&'a HostAdvertisement> for HostAdvertisementRef<'a> {
     }
 }
 /// Complete borrowed semantic definition. This is a description, not a validated
-/// Kind or permission to offer an implementation. Materialization retains the
-/// ordinary `Kind::validate`/Back checks at existing owned entrances.
+/// Kind or permission to offer an implementation. `validate` shares the complete
+/// ordinary Kind validator without materializing metadata; validation grants no
+/// actual provider custody or permission to execute an operation.
 #[derive(Clone, Copy)]
 pub struct KindDefinitionRef<'a> {
     pub startup_parameters: &'a [FrontStartupParameter],
@@ -353,6 +354,15 @@ impl<'a> From<&'a Kind> for KindDefinitionRef<'a> {
     }
 }
 impl KindDefinitionRef<'_> {
+    pub fn value_contracts(&self) -> &[crate::FrontValueContract] {
+        self.semantic_laws
+            .iter()
+            .find_map(|law| match law {
+                KindSemanticLaw::ValueContracts(contracts) => Some(contracts.as_slice()),
+                _ => None,
+            })
+            .unwrap_or_default()
+    }
     /// Reconstruct every field without granting validation or native custody.
     pub fn materialize(self) -> Kind {
         Kind {
