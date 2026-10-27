@@ -185,6 +185,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.digital",
+                "Check selected BCM2835 GPIO contact geometry, safe output and revocation",
+                "cargo",
+                &["test", "--locked", "-p", "conduitos", "--lib", "digital_base"],
+            ),
+            Step::new(
                 "device-protocols.spi",
                 "Check finite BCM2835 SPI transfers, terminal cleanup and revocation",
                 "cargo",

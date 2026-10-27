@@ -188,11 +188,16 @@ pub const ARCHITECTURE: &str = "loongarch64";
 #[cfg(target_arch = "arm")]
 mod armv6;
 #[cfg(target_arch = "arm")]
+pub use armv6::minipitft;
+#[cfg(target_arch = "arm")]
 pub use armv6::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
     firmware_board_revision, initialize_machine, interruptible_idle, pop_interrupt, present,
     read_counter, timer_arm,
 };
+#[cfg(test)]
+#[path = "armv6/minipitft/mod.rs"]
+mod minipitft_profile_conformance;
 #[cfg(target_arch = "arm")]
 pub const ARCHITECTURE: &str = "armv6";
 

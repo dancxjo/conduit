@@ -5,6 +5,7 @@ use core::{
     sync::atomic::{AtomicBool, Ordering, compiler_fence},
 };
 
+pub mod minipitft;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 

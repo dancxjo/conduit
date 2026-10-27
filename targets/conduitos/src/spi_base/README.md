@@ -16,9 +16,10 @@ Received storage can contain partial data after a refusal and must not be
 interpreted as a completed response.
 
 The unsafe register-window implementation must retain exclusive electrical,
-pin-routing, mapping and ordered-access ownership. This module supplies no
-MMIO constructor, attachment discovery, clock calibration, Host offer, generic
-Host Call integration, peripheral protocol or ready display claim. An unexpected
+pin-routing, mapping and ordered-access ownership. The machine mechanism supplies no
+MMIO constructor, attachment discovery or clock calibration. Generic operation
+installation retains independently owned resources before advertising a ready
+Back; definitions alone grant no possession or peripheral compatibility. An unexpected
 active transfer before exchange signals lost ownership; neither that refusal
 nor the owner's subsequent drop overwrites the unknown transfer.
 
@@ -30,3 +31,19 @@ normal presentation and button integration, board image selection and physical
 boot/interaction evidence.
 
 Register semantics: [BCM2835 ARM Peripherals, chapter 10](https://datasheets.raspberrypi.com/bcm2835/bcm2835-peripherals.pdf).
+
+
+The generic `machine/spi/exchange` Fore accepts one packed output value of
+1–512 bytes. The exact selected native provider owns immutable mode, clock,
+chip select and routing; requests carry no attachment selectors. Success returns
+exactly the same count of packed input bytes. Canonical schemas retain a
+separate 4096-byte Host Call representation bound. Prepared decoding borrows
+request storage and prepared result encoding allocates nothing during Play.
+
+`ReadySpiBase` retains actual native ownership before projecting an offer and
+consumes that ownership into an exact selected Plan/Play Host Call. The existing
+Base capability table enforces authority, operation count and revocation. The
+operation factory rejects altered selected contracts. This cooperative boundary
+does not confine native code sharing its address space. No BCM2835 register
+window is installed by these declarations, and GPIO, protocol execution and
+physical image acceptance remain pending under #6515 and #6513.

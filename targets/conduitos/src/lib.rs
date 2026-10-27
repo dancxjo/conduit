@@ -32,6 +32,7 @@ mod compositor_session_owner_tests;
 pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
 pub mod current_sample;
+pub mod digital_base;
 pub mod display;
 pub mod domain_image;
 #[cfg(any(target_os = "none", all(target_arch = "x86", target_os = "linux")))]

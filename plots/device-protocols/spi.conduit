@@ -1,0 +1,9 @@
+with machine/spi/exchange/request as SpiTransaction
+with machine/spi/exchange/result as SpiResult
+
+plot spi-exchange (
+    requests: SpiTransaction...| >> results: SpiResult...|
+) {
+    transfer: machine/spi/exchange
+    requests >> transfer >> results
+}
