@@ -1,5 +1,8 @@
 //! Seal exact external Fore contracts after expanded planning.
 use super::*;
+#[path = "authoring/fore_port_sort.rs"]
+mod fore_port_sort;
+use fore_port_sort::sort_fore_ports;
 
 /// Seal a root's exact Fore together with its recursively planned activations.
 /// The checked document is required because an expanded parent does not carry
@@ -131,13 +134,7 @@ pub(crate) fn attach_fore(
         } else {
             fragments[0].fore_ports.extend(ports);
         }
-        fragments[0].fore_ports.sort_by(|left, right| {
-            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
-                right.direction as u8,
-                &right.front_port_id,
-                right.track,
-            ))
-        });
+        sort_fore_ports(&mut fragments[0].fore_ports);
         return Ok(());
     }
     let mut ports = Vec::with_capacity(count);
@@ -156,13 +153,7 @@ pub(crate) fn attach_fore(
         fragments[index].fore_ports.push(port);
     }
     for fragment in fragments {
-        fragment.fore_ports.sort_by(|left, right| {
-            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
-                right.direction as u8,
-                &right.front_port_id,
-                right.track,
-            ))
-        });
+        sort_fore_ports(&mut fragment.fore_ports);
     }
     Ok(())
 }
