@@ -1,6 +1,7 @@
 //! Finite transport representation of one complete kernel invocation's evidence.
 //! This carries no observation, display policy, membership or effect authority.
 use conduit_kernel::{self as k, KernelEventKind as K, SignQuery};
+pub mod packed;
 pub const MAXIMUM_EVENTS: usize = 64;
 pub const HEADER_BYTES: usize = 16;
 pub const RECORD_BYTES: usize = 32;
