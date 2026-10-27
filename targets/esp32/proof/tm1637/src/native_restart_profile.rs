@@ -149,11 +149,13 @@ impl From<Archive> for BodyBiographyArchiveSegment {
     }
 }
 
+#[inline(never)]
 pub fn deserialize_evidence<'de, D: Deserializer<'de>>(
     decoder: D,
 ) -> Result<BodyBiographyEvidence, D::Error> {
     Evidence::deserialize(decoder).map(Into::into)
 }
+#[inline(never)]
 pub(crate) fn deserialize_archive<'de, D: Deserializer<'de>>(
     decoder: D,
 ) -> Result<BodyBiographyArchiveSegment, D::Error> {

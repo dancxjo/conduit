@@ -106,6 +106,7 @@ pub(crate) struct Resident {
 }
 struct Evidence(BodyBiographyEvidence);
 impl<'de> Deserialize<'de> for Evidence {
+    #[inline(never)]
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         profile::deserialize_evidence(d).map(Self)
     }
@@ -137,6 +138,18 @@ fn prefix_summary(body: &BodyId, prefix: &super::wire::Receipt) -> Summary {
         last_sequence: prefix.summary.last_sequence,
         last_sign: prefix.summary.last_sign.clone().map(Into::into),
     }
+}
+// Keep rich DTO decoding out of the envelope dispatch so canonical readers
+// share one implementation instead of cloning it into every field branch.
+#[inline(never)]
+fn read_admissions<'de, A: MapAccess<'de>>(
+    map: &mut A,
+) -> Result<Option<AdmissionManager>, A::Error> {
+    map.next_value()
+}
+#[inline(never)]
+fn read_receipt<'de, A: MapAccess<'de>>(map: &mut A) -> Result<super::wire::Receipt, A::Error> {
+    map.next_value()
 }
 struct Envelope<'a> {
     body: &'a BodyId,
@@ -175,7 +188,7 @@ impl<'de> Visitor<'de> for Envelope<'_> {
                     if summary.is_some() {
                         return Err(de::Error::custom("prefix must precede archive suffix"));
                     }
-                    let receipt = map.next_value::<super::wire::Receipt>()?;
+                    let receipt = read_receipt(&mut map)?;
                     let key = self
                         .key
                         .ok_or_else(|| de::Error::custom("prefix requires pinned Root"))?;
@@ -195,7 +208,7 @@ impl<'de> Visitor<'de> for Envelope<'_> {
                 }
                 "admissions" if !admissions_seen => {
                     admissions_seen = true;
-                    admissions = map.next_value::<Option<AdmissionManager>>()?;
+                    admissions = read_admissions(&mut map)?;
                 }
                 _ => return Err(de::Error::custom("unknown or duplicate restart field")),
             }

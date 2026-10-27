@@ -196,8 +196,9 @@ fn with_plain<T>(
 ) -> Result<T, &'static str> {
     let mut prefixed = PrefixedReader::new(read)?;
     if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
-        let mut decoder =
-            compress::Decoder::new(|out| prefixed.read(out), MAX_PLAIN_BYTES, MAX_BYTES);
+        let mut source = |out: &mut [u8; 128]| prefixed.read(out);
+        let source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()> = &mut source;
+        let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
         consume(&mut |out| decoder.read(out).map_err(|_| ()))
     } else {
         consume(&mut |out| prefixed.read(out))
@@ -286,8 +287,9 @@ pub fn decode_streamed(
 ) -> Result<Retained, &'static str> {
     let mut prefixed = PrefixedReader::new(read)?;
     if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
-        let mut decoder =
-            compress::Decoder::new(|out| prefixed.read(out), MAX_PLAIN_BYTES, MAX_BYTES);
+        let mut source = |out: &mut [u8; 128]| prefixed.read(out);
+        let source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()> = &mut source;
+        let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
         decode_plain(&mut |out| decoder.read(out).map_err(|_| ()), expected_body)
     } else {
         decode_plain(&mut |out| prefixed.read(out), expected_body)
@@ -303,8 +305,9 @@ pub fn plain_length(
     let result = (|| {
         let mut count = 0usize;
         if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
-            let mut decoder =
-                compress::Decoder::new(|out| prefixed.read(out), MAX_PLAIN_BYTES, MAX_BYTES);
+            let mut source = |out: &mut [u8; 128]| prefixed.read(out);
+            let source: &mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()> = &mut source;
+            let mut decoder = compress::Decoder::new(source, MAX_PLAIN_BYTES, MAX_BYTES);
             loop {
                 let n = decoder
                     .read(&mut chunk)
