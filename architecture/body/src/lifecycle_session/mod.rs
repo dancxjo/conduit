@@ -113,6 +113,37 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         &self.pending_archives
     }
 
+    /// Stage exact membership history for the next complete durable checkpoint.
+    /// No archive is acknowledged or discarded here. Only a settled Lulled
+    /// owner may move this history; active proposals and Plays remain fenced.
+    pub fn seal_membership_history_for_checkpoint(
+        &mut self,
+    ) -> Result<bool, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(BodyLifecycleSessionError::NotLulled);
+        }
+        if self.evidence.membership.events.is_empty() {
+            return Ok(false);
+        }
+        if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+        }
+        self.pending_archives
+            .try_reserve(1)
+            .map_err(|_| BodyLifecycleSessionError::ArchivePersistenceRequired)?;
+        let segment = self
+            .evidence
+            .seal_membership_history()
+            .map_err(BodyLifecycleSessionError::Biography)?;
+        if let Some(segment) = segment {
+            self.pending_archives.push(segment);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
     /// A host calls this only after the archive segments and the newer active
     /// evidence committed in one durable transaction.
     pub fn acknowledge_archives(
