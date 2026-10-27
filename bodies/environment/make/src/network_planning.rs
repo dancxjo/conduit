@@ -186,3 +186,71 @@ impl NetworkPlanForLowering {
         })
     }
 }
+
+/// Opaque Core verification for the exact locally pinned ordinary network Source.
+/// Actual providers, claims and runnable admission remain separate.
+pub struct PreparedVerifiedNetworkSetup {
+    plan: c::VerifiedPlanMetadata,
+}
+impl PreparedVerifiedNetworkSetup {
+    pub fn from_indexed_for_identity(
+        expected: &c::PlotIdentity,
+        source: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        host: c::HostAdvertisement,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, NetworkPlanningRefusal> {
+        use NetworkPlanningRefusal as E;
+        if &source.identity().map_err(|_| E::SourceIdentity)? != expected {
+            return Err(E::SourceIdentity);
+        }
+        let expected_host = host.host_id.clone();
+        let expected_boot = host.boot_id.clone();
+        let placement = conduit_planner::indexed_source::default_placements(
+            source,
+            core::slice::from_ref(&host),
+        )
+        .map_err(E::Placement)?;
+        let compact =
+            conduit_planner::indexed_source::plan_compact_consuming_with_connection_limits(
+                source,
+                alloc::vec![host],
+                &placement,
+                bases,
+                conduit_planner::PlanningOptions {
+                    connection_bases: &BTreeMap::new(),
+                    line_candidates: &BTreeMap::new(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
+                    authority_grants: authority,
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                &BTreeMap::new(),
+            )
+            .map_err(E::Planning)?;
+        drop(placement);
+        let plan = compact.into_verified_metadata().map_err(E::Planning)?;
+        if plan.fragment_count() != 1
+            || plan.preparation_metadata().fragments[0].host_id != expected_host
+            || plan.preparation_metadata().fragments[0].boot_id != expected_boot
+        {
+            return Err(E::ForeignOrMultipleFragments);
+        }
+        Ok(Self { plan })
+    }
+    pub fn metadata(&self) -> &c::VerifiedPlanMetadata {
+        &self.plan
+    }
+    pub fn tables(
+        &self,
+    ) -> Result<
+        conduit_network_join_call::NetworkControlDirectTables<'_>,
+        conduit_plan_lowering::local_tables::LocalTableRefusal,
+    > {
+        conduit_network_join_call::NetworkControlDirectTables::prepare(
+            &self.plan,
+            &self.plan.preparation_metadata().fragments[0].fragment_id,
+        )
+    }
+}

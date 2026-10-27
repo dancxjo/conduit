@@ -5,6 +5,8 @@ mod install_gate;
 #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
 #[path = "native_network_journal.rs"]
 pub mod journal;
+#[path = "native_play_verified.rs"]
+mod verified;
 use crate::native_authority::{Operation, RootIssuer};
 use conduit_core as c;
 use conduit_kernel::{self as k, scheduler::SchedulerStatus};

@@ -66,7 +66,7 @@ pub struct NativeRoot {
     admission_freshness: u64,
     network_preparation: Option<
         Result<
-            crate::network_planning::PreparedNetworkSetup,
+            crate::network_planning::PreparedVerifiedNetworkSetup,
             crate::network_planning::NetworkPlanningRefusal,
         >,
     >,
@@ -408,8 +408,10 @@ impl NativeRoot {
             Some(Err(error)) => error.code(),
             Some(Ok(prepared)) => {
                 // Read the retained ordinary result; this is not installation.
-                debug_assert_eq!(prepared.plan().fragments.len(), 1);
-                debug_assert!(!prepared.lowered().nodes.is_empty());
+                debug_assert_eq!(prepared.metadata().fragment_count(), 1);
+                debug_assert!(!prepared.metadata().preparation_metadata().fragments[0]
+                    .placements
+                    .is_empty());
                 "prepared-uninstalled"
             }
         }

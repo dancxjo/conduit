@@ -13,6 +13,8 @@ mod mask;
 #[cfg(feature = "mask-root")]
 #[path = "native_mask_lease.rs"]
 mod mask_lease;
+#[path = "native_authority_network_verified.rs"]
+mod network_verified;
 #[cfg(feature = "mask-root")]
 pub use mask_lease::{MaskLeaseIssuer, MaskScopeGuard};
 #[path = "native_pulse_authority.rs"]
@@ -238,12 +240,30 @@ impl RootIssuer {
         ),
         (),
     > {
+        if !c::verify_plan_fragment(fragment) {
+            return Err(());
+        }
+        self.issue_network_checked(native, operation, fragment, active)
+    }
+    fn issue_network_checked(
+        &mut self,
+        native: &NetworkNativeIdentity,
+        operation: Operation,
+        fragment: &c::PlanFragment,
+        active: &c::ActivePlayIdentity,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        (),
+    > {
         let grant = self.grant(native, operation)?;
         let (_, _, call, subject, cap, input, output, index) = operation.facts();
         if self.issued[index]
             || fragment.host_id != self.host
             || fragment.boot_id != self.boot
-            || !c::verify_plan_fragment(fragment)
             || self.reserved_play.as_deref() != Some(active)
             || *active
                 != c::bind_active_play(

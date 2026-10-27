@@ -92,6 +92,45 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
         .map_err(JoinCallRefusal::Binding)?;
         Ok(node)
     }
+    pub(crate) fn validate_direct(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        generation: u64,
+        contract: &PreparedJoinContract,
+        selected: conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan<
+            '_,
+            3,
+            2,
+            1,
+            3,
+            2,
+            3,
+        >,
+    ) -> Result<NodeId, JoinCallRefusal> {
+        Self::check_possession(table, claim, generation)?;
+        let (_, fragment) = selected.tables.preparation_scope();
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|g| &g.placement_id == selected.placement_id)
+            .ok_or(JoinCallRefusal::WrongBinding)?;
+        let [resource] = gear.resources.as_slice() else {
+            return Err(JoinCallRefusal::WrongBinding);
+        };
+        if resource.class_id.as_str() != WIFI_STATION_RESOURCE_CLASS || resource.units != 1 {
+            return Err(JoinCallRefusal::WrongBinding);
+        }
+        let node =
+            conduit_plan_lowering::selected_operation::bind_selected_direct_operation_for_subject(
+                table,
+                claim,
+                contract.definition(),
+                &contract.subject,
+                selected,
+            )
+            .map_err(JoinCallRefusal::Binding)?;
+        Ok(node)
+    }
 
     /// # Safety
     /// Same ownership, admission and cleanup requirements as `bind_selected`.

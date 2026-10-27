@@ -211,7 +211,80 @@ fn checked_parts(
         roles,
     })
 }
+pub type NetworkControlDirectTables<'a> =
+    conduit_plan_lowering::local_tables::DirectLocalKernelTables<'a, 3, 2, 1, 3, 2, 3>;
 impl PreparedNetworkKernelParts {
+    /// Consume only immutable verified canonical tables, never caller-owned
+    /// numeric parts. All network-specific profile limits remain unchanged.
+    pub fn check_direct(
+        tables: &NetworkControlDirectTables<'_>,
+    ) -> Result<NetworkControlRoles, ControlKernelRefusal> {
+        use ControlKernelRefusal as E;
+        let (plan, fragment) = tables.preparation_scope();
+        if !fragment.execution_regions.is_empty()
+            || fragment
+                .placements
+                .iter()
+                .map(|g| g.resources.len())
+                .sum::<usize>()
+                != 2
+            || fragment.placements.iter().any(|g| g.host_calls.len() != 1)
+        {
+            return Err(E::Shape);
+        }
+        if tables.cord_value_slots() > 8
+            || tables.cord_value_bytes() > 8 * 167
+            || tables.sign_items() > 128
+            || tables.sign_bytes() > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
+        {
+            return Err(E::Storage);
+        }
+        let view = plan.fragment(&fragment.fragment_id).ok_or(E::Identity)?;
+        if fragment
+            .placements
+            .iter()
+            .any(|g| !view.configuration_matches(&g.placement_id, &[]))
+        {
+            return Err(E::Shape);
+        }
+        let find = |kind: &str| {
+            let mut nodes = fragment
+                .placements
+                .iter()
+                .enumerate()
+                .filter(|(_, g)| g.kind_id.as_str() == kind);
+            let node = nodes.next().ok_or(E::Shape)?.0;
+            if nodes.next().is_some() {
+                return Err(E::Shape);
+            }
+            Ok(k::NodeId(node as u16))
+        };
+        let roles = NetworkControlRoles {
+            credentials: find(conduit_net::NETWORK_CREDENTIALS_OPERATION)?,
+            join: find(conduit_net::NETWORK_JOIN_OPERATION)?,
+            attachment_sign: find(conduit_net::NETWORK_ATTACHMENT_SIGN_OPERATION)?,
+        };
+        if roles.credentials == roles.join
+            || roles.join == roles.attachment_sign
+            || roles.credentials == roles.attachment_sign
+        {
+            return Err(E::Shape);
+        }
+        Ok(roles)
+    }
+    pub fn from_direct(
+        tables: NetworkControlDirectTables<'_>,
+    ) -> Result<Self, ControlKernelRefusal> {
+        let roles = Self::check_direct(&tables)?;
+        let parts = tables.into_parts();
+        Ok(Self {
+            nodes: parts.nodes,
+            cords: parts.cords,
+            routes: parts.routes,
+            bindings: parts.calls,
+            roles,
+        })
+    }
     pub fn roles(&self) -> NetworkControlRoles {
         self.roles
     }

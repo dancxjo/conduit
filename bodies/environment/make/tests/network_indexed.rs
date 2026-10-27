@@ -214,6 +214,15 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
             }
         }
         let authority = if drop_kind == 2 { &[][..] } else { &grants[..] };
+        let verified_refusal = planning::PreparedVerifiedNetworkSetup::from_indexed_for_identity(
+            &expected,
+            &image,
+            narrow.clone(),
+            &bases,
+            authority,
+        )
+        .err()
+        .unwrap();
         let narrow = planning::PreparedNetworkSetup::from_indexed_for_identity(
             &expected, &image, &narrow, &bases, authority,
         )
@@ -225,6 +234,7 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
         .err()
         .unwrap();
         assert_eq!(narrow.code(), broad.code());
+        assert_eq!(narrow.code(), verified_refusal.code());
     }
     let (_, scoped_allocation) =
         allocation_probe::observe(|| root.network_advertisement().unwrap());
@@ -376,6 +386,102 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
     });
     println!("network CPU simultaneous construction baseline peak={} phased peak={} retained={} (no selected owner allocation/target admission)", overlap_memory.peak_bytes, phased_memory.peak_bytes, phased_memory.retained_bytes());
     assert!(phased_memory.peak_bytes < overlap_memory.peak_bytes);
+    let (verified, direct_planning) = allocation_probe::observe(|| {
+        planning::PreparedVerifiedNetworkSetup::from_indexed_for_identity(
+            &expected,
+            &image,
+            host.clone(),
+            &bases,
+            &grants,
+        )
+        .unwrap()
+    });
+    let (tables, direct_projection) = allocation_probe::observe(|| verified.tables().unwrap());
+    let metadata = verified.metadata();
+    let view = metadata.serialize_with_configurations(|g| {
+        Ok::<_, ()>(
+            source
+                .gears
+                .iter()
+                .find(|s| s.gear_id == g.gear_id)
+                .unwrap()
+                .configuration
+                .clone(),
+        )
+    });
+    assert_eq!(
+        serde_json::to_value(view).unwrap(),
+        serde_json::to_value(indexed.plan()).unwrap()
+    );
+    assert_eq!(
+        tables.cord_value_slots(),
+        indexed.lowered().cord_value_slots
+    );
+    assert_eq!(
+        tables.cord_value_bytes(),
+        indexed.lowered().cord_value_bytes
+    );
+    assert_eq!(tables.sign_items(), indexed.lowered().sign_items);
+    assert_eq!(tables.sign_bytes(), indexed.lowered().sign_bytes);
+    for (actual, old) in tables.nodes().iter().zip(&indexed.lowered().node_specs) {
+        assert_eq!(actual.input_cords[0], old.input_cords[0]);
+        assert_eq!(actual.maximum_step_fuel, old.maximum_step_fuel);
+    }
+    for (actual, old) in tables.cords().iter().zip(&indexed.lowered().cords) {
+        assert_eq!(*actual, old.spec);
+    }
+    for call in &indexed.lowered().host_calls {
+        let empty = conduit_kernel::ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 0,
+        };
+        let input =
+            conduit_kernel::BoundedValueRef::new(empty, call.binding.maximum_input_bytes.max(1))
+                .unwrap();
+        assert_eq!(
+            tables
+                .calls()
+                .admit_request(call.node, call.call, input)
+                .unwrap(),
+            call.binding
+        );
+    }
+    let inline = core::mem::size_of_val(&tables);
+    let (parts, parts_memory) =
+        allocation_probe::observe(|| PreparedNetworkKernelParts::from_direct(tables).unwrap());
+    drop(verified);
+    let (finished, finish_memory) = allocation_probe::observe(|| parts.finish().unwrap());
+    assert_eq!(finished.roles, kernel.roles);
+    assert_eq!(
+        (
+            direct_projection.allocations,
+            direct_projection.reallocations
+        ),
+        (0, 0)
+    );
+    assert_eq!(
+        (parts_memory.allocations, parts_memory.reallocations),
+        (0, 0)
+    );
+    println!("network direct CPU planning peak={} retained={} numeric inline={} projectionheap={} partsheap={} finishpeak={} finishretained={}",direct_planning.peak_bytes,direct_planning.retained_bytes(),inline,direct_projection.peak_bytes,parts_memory.peak_bytes,finish_memory.peak_bytes,finish_memory.retained_bytes());
+    assert!(direct_planning.retained_bytes() < allocation.retained_bytes());
+    assert!(direct_planning.peak_bytes < phased_memory.peak_bytes);
+    let mut wrong = expected.clone();
+    wrong.checked_plot_id = "wrong/source".into();
+    assert_eq!(
+        planning::PreparedVerifiedNetworkSetup::from_indexed_for_identity(
+            &wrong,
+            &image,
+            host.clone(),
+            &bases,
+            &grants
+        )
+        .err()
+        .unwrap()
+        .code(),
+        "source-mismatch"
+    );
     drop(kernel);
     assert_eq!(indexed.plan(), owned.plan());
     assert_eq!(indexed.lowered(), owned.lowered());

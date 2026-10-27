@@ -21,16 +21,15 @@ impl NativeRoot {
             _ => None,
         };
         let source = crate::native_source::load();
-        let plan = crate::network_planning::PreparedNetworkSetup::plan_indexed_for_identity(
+        let plan = crate::network_planning::PreparedVerifiedNetworkSetup::from_indexed_for_identity(
             &self.network_source,
             &source,
-            &host,
+            host,
             &local_bases,
             grants.as_ref().map_or(&[], |v| v.as_slice()),
         );
         drop(grants);
-        drop(host);
-        self.network_preparation = Some(plan.and_then(|plan| plan.lower()));
+        self.network_preparation = Some(plan);
         Ok(())
     }
 }

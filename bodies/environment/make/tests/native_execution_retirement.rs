@@ -701,3 +701,6 @@ fn node_only_native_sink_pending_preserves_full_bytes_and_cancellation() {
         }
     }
 }
+
+#[path = "native_execution_retirement/network_direct.rs"]
+mod network_direct;

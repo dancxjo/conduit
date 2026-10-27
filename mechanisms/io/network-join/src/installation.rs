@@ -192,9 +192,33 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             .iter()
             .find(|g| &g.placement_id == selected.placement_id)
             .ok_or(JoinCallRefusal::WrongBinding)?;
+        ready.check_selected_native(&claim, gear, contract)?;
+        let node = NetworkJoinHostCall::<P>::validate_selected(
+            &table,
+            &claim,
+            ready.attachment_generation,
+            contract,
+            selected,
+        )?;
+        let ready = slot.take().expect("validated uniquely borrowed owner slot");
+        Ok(NetworkJoinHostCall::bound(
+            table,
+            handle,
+            claim,
+            ready.provider,
+            ready.attachment_generation,
+            node,
+        ))
+    }
+    fn check_selected_native(
+        &self,
+        claim: &BaseOperationClaim,
+        gear: &PlannedGear,
+        contract: &PreparedJoinContract,
+    ) -> Result<(), JoinCallRefusal> {
         let base = gear.base.as_ref().ok_or(JoinCallRefusal::WrongBinding)?;
-        let i = &ready.identity;
-        if !ready.claim_matches(&claim)
+        let i = &self.identity;
+        if !self.claim_matches(claim)
             || gear.artifact_id != i.artifact
             || gear.implementation_id != i.implementation
             || gear.execution_profile_id.as_str() != NETWORK_JOIN_EXECUTION_PROFILE
@@ -214,14 +238,43 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
         {
             return Err(JoinCallRefusal::WrongBinding);
         }
-        let node = NetworkJoinHostCall::<P>::validate_selected(
+        Ok(())
+    }
+
+    /// Bind only after the same actual owner, Base, contract, resource and
+    /// possession checks, using opaque immutable canonical direct tables.
+    pub fn bind_direct_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedJoinContract,
+        selected: conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan<
+            '_,
+            3,
+            2,
+            1,
+            3,
+            2,
+            3,
+        >,
+    ) -> Result<NetworkJoinHostCall<P>, JoinCallRefusal> {
+        let ready = slot.as_ref().ok_or(JoinCallRefusal::OwnerUnavailable)?;
+        let (_, fragment) = selected.tables.preparation_scope();
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|g| &g.placement_id == selected.placement_id)
+            .ok_or(JoinCallRefusal::WrongBinding)?;
+        ready.check_selected_native(&claim, gear, contract)?;
+        let node = NetworkJoinHostCall::<P>::validate_direct(
             &table,
             &claim,
             ready.attachment_generation,
             contract,
             selected,
         )?;
-        let ready = slot.take().expect("validated uniquely borrowed owner slot");
+        let ready = slot.take().expect("validated unique initialized owner");
         Ok(NetworkJoinHostCall::bound(
             table,
             handle,
@@ -231,6 +284,7 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             node,
         ))
     }
+
     /// Root supplies only independently admitted assignment/Play facts. The
     /// implementation, artifact, Base and resource identities come from this owner.
     pub fn bind_assigned(

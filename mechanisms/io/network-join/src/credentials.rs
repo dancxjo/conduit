@@ -111,6 +111,44 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
         .map_err(CredentialCallRefusal::Binding)?;
         Ok(node)
     }
+    pub(crate) fn validate_direct(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        contract: &PreparedCredentialContract,
+        selected: conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan<
+            '_,
+            3,
+            2,
+            1,
+            3,
+            2,
+            3,
+        >,
+    ) -> Result<NodeId, CredentialCallRefusal> {
+        Self::check_possession(table, claim)?;
+        let (_, fragment) = selected.tables.preparation_scope();
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|gear| &gear.placement_id == selected.placement_id)
+            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        let [resource] = gear.resources.as_slice() else {
+            return Err(CredentialCallRefusal::WrongRequest);
+        };
+        if resource.class_id.as_str() != CREDENTIAL_RESOURCE_CLASS || resource.units != 1 {
+            return Err(CredentialCallRefusal::WrongRequest);
+        }
+        let node =
+            conduit_plan_lowering::selected_operation::bind_selected_direct_operation_for_subject(
+                table,
+                claim,
+                contract.definition(),
+                &contract.subject,
+                selected,
+            )
+            .map_err(CredentialCallRefusal::Binding)?;
+        Ok(node)
+    }
     pub(crate) fn bound(
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,

@@ -165,12 +165,30 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
             .iter()
             .find(|g| &g.placement_id == selected.placement_id)
             .ok_or(CredentialCallRefusal::WrongRequest)?;
+        ready.check_selected_native(&claim, gear, contract)?;
+        let node =
+            NetworkCredentialsHostCall::<P>::validate_selected(&table, &claim, contract, selected)?;
+        let ready = slot.take().expect("validated uniquely borrowed owner slot");
+        Ok(NetworkCredentialsHostCall::bound(
+            table,
+            handle,
+            claim,
+            ready.source,
+            node,
+        ))
+    }
+    fn check_selected_native(
+        &self,
+        claim: &BaseOperationClaim,
+        gear: &PlannedGear,
+        contract: &PreparedCredentialContract,
+    ) -> Result<(), CredentialCallRefusal> {
         let base = gear
             .base
             .as_ref()
             .ok_or(CredentialCallRefusal::WrongRequest)?;
-        let i = &ready.identity;
-        if !ready.claim_matches(&claim)
+        let i = &self.identity;
+        if !self.claim_matches(claim)
             || gear.artifact_id != i.artifact
             || gear.implementation_id != i.implementation
             || gear.execution_profile_id.as_str() != CREDENTIAL_EXECUTION_PROFILE
@@ -190,9 +208,40 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         {
             return Err(CredentialCallRefusal::WrongRequest);
         }
+        Ok(())
+    }
+
+    /// Bind only after the same actual owner, Base, contract, resource and
+    /// possession checks, using opaque immutable canonical direct tables.
+    pub fn bind_direct_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedCredentialContract,
+        selected: conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan<
+            '_,
+            3,
+            2,
+            1,
+            3,
+            2,
+            3,
+        >,
+    ) -> Result<NetworkCredentialsHostCall<P>, CredentialCallRefusal> {
+        let ready = slot
+            .as_ref()
+            .ok_or(CredentialCallRefusal::OwnerUnavailable)?;
+        let (_, fragment) = selected.tables.preparation_scope();
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|g| &g.placement_id == selected.placement_id)
+            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        ready.check_selected_native(&claim, gear, contract)?;
         let node =
-            NetworkCredentialsHostCall::<P>::validate_selected(&table, &claim, contract, selected)?;
-        let ready = slot.take().expect("validated uniquely borrowed owner slot");
+            NetworkCredentialsHostCall::<P>::validate_direct(&table, &claim, contract, selected)?;
+        let ready = slot.take().expect("validated unique initialized owner");
         Ok(NetworkCredentialsHostCall::bound(
             table,
             handle,
@@ -201,6 +250,7 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
             node,
         ))
     }
+
     /// Consume the retained actual source using independently held native facts,
     /// not implementation identities supplied by an incoming assignment.
     pub fn bind_assigned(
