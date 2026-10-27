@@ -59,6 +59,9 @@ fn admitted_collector(path: &Path) -> Result<Collector> {
     scope[..32].copy_from_slice(&Sha256::digest(credential.body_id.as_str().as_bytes()));
     // The verified durable admission receipt supplies actual same-Body custody;
     // Root-signed epoch discovery supplies each original Boot/Play separately.
+    // receipt.producer_boot identifies the admission event, not a permanent
+    // producer Boot. This read-only history path neither refreshes collector
+    // presence nor grants execution authority after either member restarts.
     Collector::from_authenticated_scope(scope, &binding.root_key)
 }
 /// Only a private binding saved by successful invitation admission may enter
@@ -140,6 +143,7 @@ pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Re
 #[cfg(test)]
 mod tests {
     use super::*;
+    include!("local_recorder/restart.rs");
     #[test]
     fn retry_delay_is_bounded_and_only_success_resets_it() {
         let mut backoff = Backoff::default();
