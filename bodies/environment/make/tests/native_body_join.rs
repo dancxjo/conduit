@@ -338,3 +338,8 @@ fn usb_bootstrap_requires_pinned_owner_fresh_root_scope_and_consumable_nonce() {
         )
         .is_err());
 }
+
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;

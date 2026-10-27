@@ -1,6 +1,7 @@
 //! Root-private two-bank custody. Bytes must be the complete canonical mutable
 //! Body evidence, validated by the lifecycle owner before use. This layer adds
 //! crash consistency, not membership, recovery transitions, or archive ACKs.
+use core::cell::RefCell;
 use sha2::{Digest, Sha256};
 const BANK: u32 = 0x8000;
 const HEADER: u32 = 160;
@@ -23,7 +24,7 @@ pub trait Storage {
     /// the other bank. This makes interrupted rotation uncommitted immediately.
     fn erase_bank(&mut self, bank: u8) -> Result<(), Refusal>;
 }
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 struct Retained {
     bank: u8,
     generation: u64,
@@ -33,6 +34,55 @@ struct Retained {
 pub struct Checkpoint<S> {
     storage: S,
     retained: Option<Retained>,
+}
+/// Affine custody of one fully consumed authenticated committed snapshot.
+/// This is raw storage provenance, never Body membership or archive validation.
+pub(crate) struct SourceSnapshot {
+    retained: Retained,
+    expected: [u8; 32],
+}
+impl SourceSnapshot {
+    pub(crate) fn generation(&self) -> u64 {
+        self.retained.generation
+    }
+    pub(crate) fn payload_length(&self) -> usize {
+        self.retained.length as usize
+    }
+    pub(crate) fn binding(&self) -> &[u8; 32] {
+        &self.retained.binding
+    }
+}
+/// One serialized storage owner interleaves reads of the old committed bank
+/// and writes to the other bank. No aliased mutable storage reference escapes.
+pub(crate) struct RewriteIo<'a, S> {
+    state: RefCell<RewriteState<'a, S>>,
+}
+struct RewriteState<'a, S> {
+    source: PayloadReader<'a, S>,
+    program: Program,
+    writing: bool,
+}
+impl<S: Storage> RewriteIo<'_, S> {
+    pub(crate) fn read_source(&self, out: &mut [u8; 128]) -> Result<usize, Refusal> {
+        self.state
+            .try_borrow_mut()
+            .map_err(|_| Refusal::Storage)?
+            .source
+            .read(out)
+    }
+    pub(crate) fn write(&self, bytes: &[u8]) -> Result<(), Refusal> {
+        let mut state = self.state.try_borrow_mut().map_err(|_| Refusal::Storage)?;
+        let RewriteState {
+            source,
+            program,
+            writing,
+        } = &mut *state;
+        if *writing {
+            program.push(source.storage, bytes)
+        } else {
+            program.accept(bytes)
+        }
+    }
 }
 /// Exclusive bounded view of one already authenticated committed payload.
 /// A second streaming digest detects a changed read before decoded data escapes.
@@ -157,6 +207,17 @@ impl<S: Storage> Checkpoint<S> {
         seed: &mut [u8; 32],
         decode: impl FnOnce(&mut PayloadReader<'_, S>) -> Result<T, Refusal>,
     ) -> Result<Option<T>, Refusal> {
+        self.load_streamed_with_snapshot(binding, seed, decode)
+            .map(|loaded| loaded.map(|(value, _)| value))
+    }
+    /// Mint storage provenance only after full preauthentication, the caller's
+    /// typed validation and the second-read digest plus exact EOF have passed.
+    pub(crate) fn load_streamed_with_snapshot<T>(
+        &mut self,
+        binding: &[u8; 32],
+        seed: &mut [u8; 32],
+        decode: impl FnOnce(&mut PayloadReader<'_, S>) -> Result<T, Refusal>,
+    ) -> Result<Option<(T, SourceSnapshot)>, Refusal> {
         seed.fill(0);
         let Some(retained) = self.retained else {
             return Ok(None);
@@ -188,7 +249,155 @@ impl<S: Storage> Checkpoint<S> {
         let decoded = decode(&mut reader)?;
         reader.finish()?;
         seed.copy_from_slice(&header.0[56..88]);
-        Ok(Some(decoded))
+        Ok(Some((
+            decoded,
+            SourceSnapshot {
+                retained,
+                expected: header.0[120..152].try_into().unwrap(),
+            },
+        )))
+    }
+    fn snapshot_reader<'a>(
+        &'a mut self,
+        snapshot: &SourceSnapshot,
+    ) -> Result<PayloadReader<'a, S>, Refusal> {
+        if self.retained != Some(snapshot.retained) {
+            return Err(Refusal::Generation);
+        }
+        let mut header = PrivateHeader([0; 160]);
+        self.storage
+            .read(u32::from(snapshot.retained.bank) * BANK, &mut header.0)?;
+        let valid = inspect_header(&mut self.storage, snapshot.retained.bank, &header.0)?
+            .ok_or(Refusal::Corrupt)?;
+        if valid != snapshot.retained || header.0[120..152] != snapshot.expected {
+            return Err(Refusal::Corrupt);
+        }
+        let mut hash = Sha256::new();
+        hash.update(&header.0[..120]);
+        Ok(PayloadReader {
+            storage: &mut self.storage,
+            bank: valid.bank,
+            length: valid.length,
+            at: 0,
+            hash,
+            expected: snapshot.expected,
+        })
+    }
+    /// Reauthenticate this exact still-current source on every use. A stale
+    /// witness cannot read an overwritten bank or select another generation.
+    pub(crate) fn read_snapshot<T>(
+        &mut self,
+        snapshot: &SourceSnapshot,
+        decode: impl FnOnce(&mut PayloadReader<'_, S>) -> Result<T, Refusal>,
+    ) -> Result<T, Refusal> {
+        let mut reader = self.snapshot_reader(snapshot)?;
+        let value = decode(&mut reader)?;
+        reader.finish()?;
+        Ok(value)
+    }
+    /// Copy forward archive bytes while replacing active evidence, using one
+    /// exclusive physical storage owner. BOTH passes consume and authenticate
+    /// the entire old source. No target erase occurs until preflight fits.
+    pub(crate) fn rewrite_streamed(
+        &mut self,
+        snapshot: &SourceSnapshot,
+        binding: &[u8; 32],
+        seed: &[u8; 32],
+        mut emit: impl FnMut(&RewriteIo<'_, S>) -> Result<(), Refusal>,
+    ) -> Result<SourceSnapshot, Refusal> {
+        if *seed == [0; 32] || binding != snapshot.binding() {
+            return Err(Refusal::Corrupt);
+        }
+        let (length, expected) = {
+            let source = self.snapshot_reader(snapshot)?;
+            let io = RewriteIo {
+                state: RefCell::new(RewriteState {
+                    source,
+                    program: Program {
+                        base: 0,
+                        block: [255; 128],
+                        used: 0,
+                        written: 0,
+                        count: 0,
+                        length: (BANK - HEADER) as usize,
+                        payload: Sha256::new(),
+                        whole: Sha256::new(),
+                    },
+                    writing: false,
+                }),
+            };
+            emit(&io)?;
+            let state = io.state.into_inner();
+            state.source.finish()?;
+            (
+                state.program.count,
+                <[u8; 32]>::from(state.program.payload.clone().finalize()),
+            )
+        };
+        if length == 0 {
+            return Err(Refusal::Capacity);
+        }
+        let generation = snapshot
+            .generation()
+            .checked_add(1)
+            .ok_or(Refusal::Generation)?;
+        let bank = 1 - snapshot.retained.bank;
+        let base = u32::from(bank) * BANK;
+        let mut header = PrivateHeader([255; 160]);
+        header.0[..8].copy_from_slice(MAGIC);
+        header.0[8..16].copy_from_slice(&generation.to_le_bytes());
+        header.0[16..20].copy_from_slice(&(length as u32).to_le_bytes());
+        header.0[24..56].copy_from_slice(binding);
+        header.0[56..88].copy_from_slice(seed);
+        self.storage.erase_bank(bank)?;
+        self.storage.program(base, &header.0[..120])?;
+        let mut program = {
+            let source = self.snapshot_reader(snapshot)?;
+            let mut program = Program {
+                base,
+                block: [255; 128],
+                used: 0,
+                written: 0,
+                count: 0,
+                length,
+                payload: Sha256::new(),
+                whole: Sha256::new(),
+            };
+            program.whole.update(&header.0[..120]);
+            let io = RewriteIo {
+                state: RefCell::new(RewriteState {
+                    source,
+                    program,
+                    writing: true,
+                }),
+            };
+            emit(&io)?;
+            let state = io.state.into_inner();
+            state.source.finish()?;
+            state.program
+        };
+        if program.count != length
+            || <[u8; 32]>::from(program.payload.clone().finalize()) != expected
+        {
+            return Err(Refusal::Corrupt);
+        }
+        program.flush(&mut self.storage)?;
+        header.0[120..152].copy_from_slice(&program.whole.clone().finalize());
+        self.storage.program(base + 120, &header.0[120..152])?;
+        let mut readback = PrivateHeader([0; 160]);
+        self.storage.read(base, &mut readback.0)?;
+        if readback.0 != header.0
+            || digest(&mut self.storage, bank, &readback.0)? != header.0[120..152]
+        {
+            return Err(Refusal::Corrupt);
+        }
+        self.storage.program(base + 152, COMMIT)?;
+        let retained = inspect(&mut self.storage, bank)?.ok_or(Refusal::Corrupt)?;
+        self.retained = Some(retained);
+        Ok(SourceSnapshot {
+            retained,
+            expected: header.0[120..152].try_into().unwrap(),
+        })
     }
     /// The prior committed bank remains intact until a complete successor has
     /// been programmed, hashed from readback, and committed last. No truncation.
@@ -241,7 +450,6 @@ impl<S: Storage> Checkpoint<S> {
         self.storage.erase_bank(bank)?;
         self.storage.program(base, &header[..120])?;
         let mut program = Program {
-            storage: &mut self.storage,
             base,
             block: [255; 128],
             used: 0,
@@ -252,14 +460,14 @@ impl<S: Storage> Checkpoint<S> {
             whole: Sha256::new(),
         };
         program.whole.update(&header[..120]);
-        emit(&mut |bytes| program.push(bytes))?;
+        emit(&mut |bytes| program.push(&mut self.storage, bytes))?;
         if program.count != length
             || <[u8; 32]>::from(program.payload.clone().finalize()) != expected
         {
             return Err(Refusal::Corrupt);
         }
-        program.flush()?;
-        header[120..152].copy_from_slice(&program.whole.finalize());
+        program.flush(&mut self.storage)?;
+        header[120..152].copy_from_slice(&program.whole.clone().finalize());
         self.storage.program(base + 120, &header[120..152])?;
         let mut readback = [0; 160];
         self.storage.read(base, &mut readback)?;
@@ -272,8 +480,7 @@ impl<S: Storage> Checkpoint<S> {
         Ok(())
     }
 }
-struct Program<'a, S> {
-    storage: &'a mut S,
+struct Program {
     base: u32,
     block: [u8; 128],
     used: usize,
@@ -283,8 +490,15 @@ struct Program<'a, S> {
     payload: Sha256,
     whole: Sha256,
 }
-impl<S: Storage> Program<'_, S> {
-    fn push(&mut self, mut bytes: &[u8]) -> Result<(), Refusal> {
+impl Drop for Program {
+    fn drop(&mut self) {
+        for byte in &mut self.block {
+            unsafe { core::ptr::write_volatile(byte, 0) };
+        }
+    }
+}
+impl Program {
+    fn accept(&mut self, bytes: &[u8]) -> Result<(), Refusal> {
         self.count = self
             .count
             .checked_add(bytes.len())
@@ -292,24 +506,27 @@ impl<S: Storage> Program<'_, S> {
             .ok_or(Refusal::Capacity)?;
         self.payload.update(bytes);
         self.whole.update(bytes);
+        Ok(())
+    }
+    fn push<S: Storage>(&mut self, storage: &mut S, mut bytes: &[u8]) -> Result<(), Refusal> {
+        self.accept(bytes)?;
         while !bytes.is_empty() {
             let n = (self.block.len() - self.used).min(bytes.len());
             self.block[self.used..self.used + n].copy_from_slice(&bytes[..n]);
             self.used += n;
             bytes = &bytes[n..];
             if self.used == self.block.len() {
-                self.flush()?;
+                self.flush(storage)?;
             }
         }
         Ok(())
     }
-    fn flush(&mut self) -> Result<(), Refusal> {
+    fn flush<S: Storage>(&mut self, storage: &mut S) -> Result<(), Refusal> {
         if self.used == 0 {
             return Ok(());
         }
         let n = (self.used + 3) & !3;
-        self.storage
-            .program(self.base + HEADER + self.written, &self.block[..n])?;
+        storage.program(self.base + HEADER + self.written, &self.block[..n])?;
         self.written += n as u32;
         self.used = 0;
         self.block.fill(255);

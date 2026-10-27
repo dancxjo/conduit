@@ -48,6 +48,7 @@ fn fixture() -> (
         seed: Some([7; 32]),
         evidence: None,
         archives: alloc::vec![archive],
+        custody: None,
         admissions: Some(manager),
         parked: false,
         pristine: false,
@@ -81,7 +82,17 @@ fn park_restores_exact_same_boot_evidence_archives_and_unretired_admissions() {
     assert_eq!(restored.foreground(), Some(&foreground));
     assert!(restored.pending_archives().is_empty());
     assert!(restored.realization().is_none());
-    assert_eq!(store.archives, archives);
+    assert!(store.archives.is_empty());
+    let custody = store.custody.as_ref().unwrap();
+    assert_eq!(custody.summary.count, archives.len() as u64);
+    let loaded = store
+        .journal
+        .read_snapshot(&custody.source, |reader| {
+            payload::decode_streamed(|out| reader.read(out).map_err(|_| ()), &evidence.body_id)
+                .map_err(|_| Refusal::Corrupt)
+        })
+        .unwrap();
+    assert_eq!(loaded.archives, archives);
     assert_eq!(
         serde_json::to_vec(store.admissions.as_ref().unwrap()).unwrap(),
         manager
@@ -133,4 +144,98 @@ fn park_refusal_preserves_installed_owner_and_all_custody() {
         manager
     );
     assert!(store.journal.generation().is_none());
+}
+
+#[test]
+fn archived_boot_history_stays_exact_on_flash_and_out_of_cold_resident_memory() {
+    use crate::allocation_probe;
+    let (mut store, mut owner, mut host, key) = fixture();
+    checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap();
+    let first_archives = {
+        let custody = store.custody.as_ref().unwrap();
+        store
+            .journal
+            .read_snapshot(&custody.source, |reader| {
+                payload::decode_streamed(
+                    |out| reader.read(out).map_err(|_| ()),
+                    &owner.as_ref().unwrap().evidence().body_id,
+                )
+                .map_err(|_| Refusal::Corrupt)
+            })
+            .unwrap()
+            .archives
+    };
+    for number in 0..18 {
+        host.boot_id = format!("boot/archive-resident-{number:032x}").into();
+        let evidence = owner.take().unwrap().evidence().clone();
+        owner = Some(Box::new(
+            SealedBodyLifecycleSession::resume_here(evidence, &host.host_id, &host.boot_id)
+                .unwrap(),
+        ));
+    }
+    checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap();
+    owner
+        .as_mut()
+        .unwrap()
+        .seal_membership_history_for_checkpoint()
+        .unwrap();
+    let archived = owner.as_ref().unwrap().pending_archives()[0].clone();
+    let active = owner.as_ref().unwrap().evidence().clone();
+    let ((), memory) = allocation_probe::observe(|| {
+        checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap()
+    });
+    println!(
+        "archive rewrite transient peak={} retained={}",
+        memory.peak_bytes,
+        memory.retained_bytes()
+    );
+    assert!(
+        memory.peak_bytes < 8192,
+        "checkpoint must not clone/redecode historical archive: {memory:?}"
+    );
+    assert!(store.archives.is_empty());
+    assert!(owner.as_ref().unwrap().pending_archives().is_empty());
+    let custody = store.custody.as_ref().unwrap();
+    assert_eq!(custody.summary.count, 2);
+    let durable = store
+        .journal
+        .read_snapshot(&custody.source, |reader| {
+            payload::decode_streamed(|out| reader.read(out).map_err(|_| ()), &active.body_id)
+                .map_err(|_| Refusal::Corrupt)
+        })
+        .unwrap();
+    assert_eq!(durable.evidence, active);
+    assert_eq!(durable.archives, [first_archives[0].clone(), archived]);
+    drop(durable);
+    let token = park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap();
+    let (restored, memory) = allocation_probe::observe(|| {
+        restore_store(&mut store, token, &host.host_id, &host.boot_id, &key).unwrap()
+    });
+    println!(
+        "custodied cold restore peak={} retained={}",
+        memory.peak_bytes,
+        memory.retained_bytes()
+    );
+    assert!(
+        memory.peak_bytes < 16384,
+        "old archives must not be decoded into resident custody: {memory:?}"
+    );
+    assert_eq!(restored.evidence(), &active);
+    assert!(store.archives.is_empty());
+    // The initial boot path still checks every archive object and head in order.
+    let custody = store.custody.as_ref().unwrap();
+    let checked = store
+        .journal
+        .read_snapshot(&custody.source, |reader| {
+            payload::decode_resident(
+                |out| reader.read(out).map_err(|_| ()),
+                &active.body_id,
+                None,
+            )
+            .map_err(|_| Refusal::Corrupt)
+        })
+        .unwrap();
+    assert_eq!(checked.summary, custody.summary);
+    assert_eq!(checked.span, custody.span);
+    assert_eq!(checked.retained.evidence, active);
 }

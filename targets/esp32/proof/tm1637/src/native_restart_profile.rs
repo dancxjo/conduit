@@ -154,6 +154,25 @@ pub fn deserialize_evidence<'de, D: Deserializer<'de>>(
 ) -> Result<BodyBiographyEvidence, D::Error> {
     Evidence::deserialize(decoder).map(Into::into)
 }
+pub(crate) fn deserialize_archive<'de, D: Deserializer<'de>>(
+    decoder: D,
+) -> Result<BodyBiographyArchiveSegment, D::Error> {
+    Archive::deserialize(decoder).map(Into::into)
+}
+pub(crate) fn ensure_archive_no_holds(
+    segment: &BodyBiographyArchiveSegment,
+) -> Result<(), &'static str> {
+    if segment
+        .wakes
+        .iter()
+        .flat_map(|wake| &wake.plans)
+        .any(|plan| plan.hold.is_some())
+    {
+        Err("restart-hold-unsupported")
+    } else {
+        Ok(())
+    }
+}
 pub fn deserialize_archives<'de, D: Deserializer<'de>>(
     decoder: D,
 ) -> Result<Vec<BodyBiographyArchiveSegment>, D::Error> {

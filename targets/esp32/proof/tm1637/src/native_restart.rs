@@ -64,11 +64,17 @@ struct Store {
     seed: Option<[u8; 32]>,
     evidence: Option<BodyBiographyEvidence>,
     archives: Vec<BodyBiographyArchiveSegment>,
+    custody: Option<ArchiveCustody>,
     admissions: Option<AdmissionManager>,
     parked: bool,
     pristine: bool,
     failed: bool,
     ready: bool,
+}
+struct ArchiveCustody {
+    source: crate::native_body_checkpoint::SourceSnapshot,
+    summary: payload::archive::Summary,
+    span: payload::archive::Span,
 }
 pub struct RetainedBody {
     pub evidence: BodyBiographyEvidence,
@@ -222,6 +228,7 @@ fn park_store(
     store.parked = true;
     store.ready = false;
     store.evidence = None;
+    // Archive bytes remain durably owned by the affine source snapshot.
     store.archives = Vec::new();
     store.admissions = None;
     drop(owner.take());
@@ -280,35 +287,17 @@ fn restore_store(
     crate::native_root::memory_check::mark("cold-body-restore-payload", length);
     let mut seed = PrivateSeed([0; 32]);
     #[cfg(not(target_os = "none"))]
-    let retained = match token.workspace.take() {
-        Some(mut bytes) => {
-            if bytes.0.len() != length {
-                return Err("restart-workspace-length");
-            }
-            let loaded = store
-                .journal
-                .load(&store.binding, &mut seed.0, &mut bytes.0)
-                .map_err(|_| "restart-restore-load")?
-                .ok_or("restart-missing")?;
-            if loaded != length {
-                return Err("restart-length");
-            }
-            payload::decode(&bytes.0, &token.body_id)?
-        }
-        None => decode_checkpoint(
-            &mut store.journal,
-            &store.binding,
-            &token.body_id,
-            &mut seed.0,
-        )?,
-    };
-    #[cfg(target_os = "none")]
-    let retained = decode_checkpoint(
+    let _ = length;
+    #[cfg(not(target_os = "none"))]
+    drop(token.workspace.take());
+    let (resident, source) = decode_checkpoint(
         &mut store.journal,
         &store.binding,
         &token.body_id,
         &mut seed.0,
+        store.custody.as_ref(),
     )?;
+    let retained = resident.retained;
     if store.seed.as_ref() != Some(&seed.0)
         || ed25519_dalek::SigningKey::from_bytes(&seed.0)
             .verifying_key()
@@ -338,7 +327,12 @@ fn restore_store(
         return Err("restart-restore-state");
     }
     let body = Box::new(body);
-    store.archives = retained.archives;
+    store.archives = Vec::new();
+    store.custody = Some(ArchiveCustody {
+        source,
+        summary: resident.summary,
+        span: resident.span,
+    });
     store.admissions = Some(admissions);
     store.parked = false;
     store.ready = true;
@@ -351,20 +345,49 @@ fn decode_checkpoint(
     binding: &[u8; 32],
     body_id: &conduit_body::BodyId,
     seed: &mut [u8; 32],
-) -> Result<payload::Retained, &'static str> {
+    custody: Option<&ArchiveCustody>,
+) -> Result<
+    (
+        payload::archive::Resident,
+        crate::native_body_checkpoint::SourceSnapshot,
+    ),
+    &'static str,
+> {
     seed.fill(0);
     // Authenticate and count the complete plaintext before allocating a DTO.
     // Compression increases durable capacity, never the available execution RAM.
     let generation = journal.generation();
+    if let Some(custody) = custody {
+        if custody.source.generation() != generation.ok_or("restart-generation")?
+            || custody.source.binding() != binding
+            || journal
+                .payload_length(binding)
+                .map_err(|_| "restart-custody-scope")?
+                != Some(custody.source.payload_length())
+        {
+            return Err("restart-custody-scope");
+        }
+    }
     let mut private_seed = PrivateSeed([0; 32]);
     let plain = journal
         .load_streamed(binding, &mut private_seed.0, |reader| {
-            payload::plain_length(|chunk| reader.read(chunk).map_err(|_| ()))
+            payload::resident_extent(|chunk| reader.read(chunk).map_err(|_| ()))
                 .map_err(|_| Refusal::Corrupt)
         })
         .map_err(|_| "restart-preflight")?
         .ok_or("restart-missing")?;
     private_seed.0.fill(0);
+    let plain = if let Some(custody) = custody {
+        if plain.span != custody.span || plain.segments != custody.summary.count {
+            return Err("restart-custody-span");
+        }
+        plain.active
+    } else {
+        plain
+            .active
+            .checked_add(plain.largest)
+            .ok_or("restart-capacity")?
+    };
     #[cfg(target_os = "none")]
     {
         let memory = esp_alloc::HEAP.stats();
@@ -383,13 +406,22 @@ fn decode_checkpoint(
     }
     let mut refusal = None;
     journal
-        .load_streamed(binding, seed, |reader| {
-            payload::decode_streamed(|chunk| reader.read(chunk).map_err(|_| ()), body_id).map_err(
-                |error| {
-                    refusal = Some(error);
-                    Refusal::Corrupt
-                },
+        .load_streamed_with_snapshot(binding, seed, |reader| {
+            payload::decode_resident(
+                |chunk| reader.read(chunk).map_err(|_| ()),
+                body_id,
+                custody.map(|c| &c.summary),
             )
+            .and_then(|resident| {
+                if custody.is_some_and(|c| c.span != resident.span) {
+                    return Err("restart-custody-span");
+                }
+                Ok(resident)
+            })
+            .map_err(|error| {
+                refusal = Some(error);
+                Refusal::Corrupt
+            })
         })
         .map_err(|_| refusal.unwrap_or("restart-load"))?
         .ok_or("restart-missing")
@@ -400,20 +432,21 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
         .map_err(|_| "restart-compiled-biography")?;
     let binding: [u8; 32] = Sha256::digest(compiled.body_id.as_str().as_bytes()).into();
     let mut journal = Checkpoint::open(region).map_err(|_| "restart-journal")?;
-    let (evidence, archives, seed, pristine, admissions) = match journal
+    let (evidence, archives, custody, seed, pristine, admissions) = match journal
         .payload_length(&binding)
         .map_err(|_| "restart-body-binding")?
     {
         None => {
             let admissions = AdmissionManager::new(compiled.body_id.clone())
                 .map_err(|_| "restart-admissions")?;
-            (compiled, Vec::new(), None, true, admissions)
+            (compiled, Vec::new(), None, None, true, admissions)
         }
         Some(_length) => {
             let mut seed = PrivateSeed([0; 32]);
-            let retained =
-                decode_checkpoint(&mut journal, &binding, &compiled.body_id, &mut seed.0)?;
-            let pristine = retained.evidence == compiled && retained.archives.is_empty();
+            let (resident, source) =
+                decode_checkpoint(&mut journal, &binding, &compiled.body_id, &mut seed.0, None)?;
+            let retained = resident.retained;
+            let pristine = retained.evidence == compiled && resident.summary.count == 0;
             let mut admissions = match retained.admissions {
                 Some(manager) => manager,
                 None if retained.evidence.membership.parts.len() <= 1 => {
@@ -425,7 +458,12 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             admissions.retire_unfinished_challenges();
             (
                 retained.evidence,
-                retained.archives,
+                Vec::new(),
+                Some(ArchiveCustody {
+                    source,
+                    summary: resident.summary,
+                    span: resident.span,
+                }),
                 Some(seed.0),
                 pristine,
                 admissions,
@@ -443,6 +481,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             seed,
             evidence: Some(evidence),
             archives,
+            custody,
             admissions: Some(admissions),
             parked: false,
             pristine,
@@ -482,6 +521,23 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
                 store.failed = true;
                 "restart-initial-commit"
             })?;
+        let mut checked_seed = PrivateSeed([0; 32]);
+        let body_id = evidence.body_id.clone();
+        let (resident, source) = decode_checkpoint(
+            &mut store.journal,
+            &store.binding,
+            &body_id,
+            &mut checked_seed.0,
+            None,
+        )?;
+        if checked_seed.0 != entropy {
+            return Err("restart-initial-key");
+        }
+        store.custody = Some(ArchiveCustody {
+            source,
+            summary: resident.summary,
+            span: resident.span,
+        });
         store.seed = Some(entropy);
         Ok(entropy)
     });
@@ -530,29 +586,87 @@ fn checkpoint_store(
     if body_binding != store.binding {
         return Err("restart-body-binding");
     }
-    store
-        .journal
-        .save_streamed(&store.binding, seed, |sink| {
-            payload::stream_compressed_with_admissions(
-                owner.evidence(),
-                &store.archives,
-                owner.pending_archives(),
-                Some(store.admissions.as_ref().ok_or(Refusal::Corrupt)?),
-                sink,
-            )
-            .map_err(stream_refusal)
-        })
-        .map_err(|_| {
-            store.failed = true;
-            "restart-checkpoint-commit"
-        })?;
+    let next_custody = if let Some(previous) = store.custody.as_ref() {
+        let mut metadata = None;
+        let source = store
+            .journal
+            .rewrite_streamed(&previous.source, &store.binding, seed, |io| {
+                let next = payload::stream_rewrite(
+                    owner.evidence(),
+                    owner.pending_archives(),
+                    store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
+                    &previous.summary,
+                    previous.span,
+                    |out| io.read_source(out).map_err(|_| ()),
+                    &mut |bytes| io.write(bytes),
+                )
+                .map_err(stream_refusal)?;
+                if metadata.as_ref().is_some_and(|prior| prior != &next) {
+                    return Err(Refusal::Corrupt);
+                }
+                metadata = Some(next);
+                Ok(())
+            })
+            .map_err(|_| {
+                store.failed = true;
+                "restart-checkpoint-commit"
+            })?;
+        let (summary, span) = metadata.ok_or("restart-checkpoint-metadata")?;
+        ArchiveCustody {
+            source,
+            summary,
+            span,
+        }
+    } else {
+        // Only a genuinely new journal (or the CPU storage fixture) starts
+        // without a previously validated source. Existing media never falls
+        // back to an empty archive chain.
+        if store.journal.generation().is_some() {
+            return Err("restart-custody-missing");
+        }
+        store
+            .journal
+            .save_streamed(&store.binding, seed, |sink| {
+                payload::stream_compressed_with_admissions(
+                    owner.evidence(),
+                    &store.archives,
+                    owner.pending_archives(),
+                    Some(store.admissions.as_ref().ok_or(Refusal::Corrupt)?),
+                    sink,
+                )
+                .map_err(stream_refusal)
+            })
+            .map_err(|_| {
+                store.failed = true;
+                "restart-checkpoint-commit"
+            })?;
+        let mut checked_seed = PrivateSeed([0; 32]);
+        let (resident, source) = decode_checkpoint(
+            &mut store.journal,
+            &store.binding,
+            &owner.evidence().body_id,
+            &mut checked_seed.0,
+            None,
+        )?;
+        if checked_seed.0 != *seed {
+            return Err("restart-checkpoint-key");
+        }
+        ArchiveCustody {
+            source,
+            summary: resident.summary,
+            span: resident.span,
+        }
+    };
+    store.custody = Some(next_custody);
     // save hashes physical readback and commits the marker last. Only those
     // exact, validated archive bytes can now discharge the owner's pending head.
     let head = owner
         .pending_archives()
         .last()
         .map(|segment| segment.digest);
-    store.archives.extend_from_slice(owner.pending_archives());
+    // Complete old and newly sealed archives now reside in the authenticated
+    // committed source. No full archive Vec remains resident after ACK.
+    store.archives = Vec::new();
     if let Some(head) = head {
         owner.acknowledge_archives(head).map_err(|_| {
             store.failed = true;

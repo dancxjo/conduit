@@ -3,6 +3,8 @@
 use alloc::{string::String, vec::Vec};
 use conduit_body::{AdmissionManager, BodyBiographyArchiveSegment, BodyBiographyEvidence};
 use serde::{Deserialize, Serialize};
+#[path = "native_restart_archives.rs"]
+pub(crate) mod archive;
 #[path = "native_restart_compress.rs"]
 mod compress;
 #[path = "native_restart_profile.rs"]
@@ -185,6 +187,26 @@ fn decode_plain(
     let retained = read_json::from_reader(read, MAX_PLAIN_BYTES).map_err(|_| "restart-encoding")?;
     validate_retained(retained, expected_body)
 }
+fn with_plain<T>(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    consume: impl FnOnce(&mut dyn FnMut(&mut [u8; 128]) -> Result<usize, ()>) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
+    let mut prefixed = PrefixedReader::new(read)?;
+    if prefixed.length != Some(0) && prefixed.prefix[0] == b'B' {
+        let mut decoder =
+            compress::Decoder::new(|out| prefixed.read(out), MAX_PLAIN_BYTES, MAX_BYTES);
+        consume(&mut |out| decoder.read(out).map_err(|_| ()))
+    } else {
+        consume(&mut |out| prefixed.read(out))
+    }
+}
+pub(crate) fn decode_resident(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    body: &conduit_body::BodyId,
+    custody: Option<&archive::Summary>,
+) -> Result<archive::Resident, &'static str> {
+    with_plain(read, |plain| archive::decode(plain, body, custody))
+}
 pub fn decode_streamed(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     expected_body: &conduit_body::BodyId,
@@ -342,4 +364,163 @@ pub fn stream_compressed_with_admissions<E>(
         return Err(StreamRefusal::Sink(error));
     }
     result.map_err(|_| StreamRefusal::Invalid)
+}
+
+/// Rewrite current truth while preserving the exact prior authenticated archive
+/// span. The caller must own the affine journal snapshot that validated it.
+pub(crate) fn stream_rewrite<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous: &archive::Summary,
+    previous_span: archive::Span,
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    evidence.validate().map_err(|_| StreamRefusal::Invalid)?;
+    profile::ensure_no_holds(evidence, pending).map_err(|_| StreamRefusal::Invalid)?;
+    if admissions.body_id != evidence.body_id {
+        return Err(StreamRefusal::Invalid);
+    }
+    let mut summary = previous.clone();
+    for segment in pending {
+        summary
+            .append(segment)
+            .map_err(|_| StreamRefusal::Invalid)?;
+    }
+    summary
+        .validate_head(evidence)
+        .map_err(|_| StreamRefusal::Invalid)?;
+    let mut failure = None;
+    let mut observer = archive::SpanObserver::default();
+    let result = (|| {
+        let mut encoder = compress::Encoder::new(
+            |bytes: &[u8]| {
+                sink(bytes).map_err(|error| {
+                    failure = Some(error);
+                })
+            },
+            MAX_PLAIN_BYTES,
+            MAX_BYTES,
+        );
+        let mut plain = |bytes: &[u8]| -> Result<(), ()> {
+            observer.push(bytes)?;
+            encoder.write(bytes).map_err(|_| ())
+        };
+        plain(b"{\"schema\":")?;
+        json::stream(&SCHEMA, &mut |bytes: &[u8]| {
+            plain(bytes).map_err(|_| json::CodecError::Sink)
+        })
+        .map_err(|_| ())?;
+        plain(b",\"evidence\":")?;
+        json::stream(
+            &profile::EvidenceRef::from(evidence),
+            &mut |bytes: &[u8]| plain(bytes).map_err(|_| json::CodecError::Sink),
+        )
+        .map_err(|_| ())?;
+        plain(b",\"archives\":[")?;
+        with_plain(read, |source| {
+            let mut offset = 0usize;
+            let mut chunk = [0; 128];
+            let result = (|| {
+                loop {
+                    let n = source(&mut chunk).map_err(|_| "restart-source-read")?;
+                    if n > 128 {
+                        return Err("restart-source-read");
+                    }
+                    if n == 0 {
+                        break;
+                    }
+                    let start = offset.max(previous_span.start);
+                    let end = (offset + n).min(previous_span.end);
+                    if previous.count != 0 && start < end {
+                        plain(&chunk[start - offset..end - offset])
+                            .map_err(|_| "restart-source-write")?;
+                    }
+                    offset = offset.checked_add(n).ok_or("restart-source-length")?;
+                }
+                if previous_span.end > offset {
+                    return Err("restart-source-span");
+                }
+                Ok(())
+            })();
+            chunk.fill(0);
+            result
+        })
+        .map_err(|_| ())?;
+        let mut comma = previous.count != 0;
+        for segment in pending {
+            if comma {
+                plain(b",")?;
+            }
+            comma = true;
+            json::stream(
+                &profile::ArchiveRef::from(segment),
+                &mut |bytes: &[u8]| plain(bytes).map_err(|_| json::CodecError::Sink),
+            )
+            .map_err(|_| ())?;
+        }
+        plain(b"],\"admissions\":")?;
+        json::stream(admissions, &mut |bytes: &[u8]| {
+            plain(bytes).map_err(|_| json::CodecError::Sink)
+        })
+        .map_err(|_| ())?;
+        plain(b"}")?;
+        encoder.finish().map_err(|_| ())?;
+        Ok::<_, ()>(())
+    })();
+    if let Some(error) = failure {
+        return Err(StreamRefusal::Sink(error));
+    }
+    result.map_err(|_| StreamRefusal::Invalid)?;
+    Ok((
+        summary,
+        observer.finish().map_err(|_| StreamRefusal::Invalid)?,
+    ))
+}
+
+pub(crate) struct ResidentExtent {
+    pub span: archive::Span,
+    pub segments: u64,
+    pub active: usize,
+    pub largest: usize,
+}
+pub(crate) fn resident_extent(
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+) -> Result<ResidentExtent, &'static str> {
+    with_plain(read, |plain| {
+        let mut observer = archive::SpanObserver::default();
+        let mut chunk = [0; 128];
+        let result = (|| {
+            let mut total = 0usize;
+            loop {
+                let n = plain(&mut chunk).map_err(|_| "restart-preflight")?;
+                if n > 128 {
+                    return Err("restart-preflight");
+                }
+                if n == 0 {
+                    break;
+                }
+                observer
+                    .push(&chunk[..n])
+                    .map_err(|_| "restart-preflight")?;
+                total = total.checked_add(n).ok_or("restart-capacity")?;
+                if total > MAX_PLAIN_BYTES {
+                    return Err("restart-capacity");
+                }
+            }
+            let span = observer.finish()?;
+            let active = total
+                .checked_sub(span.end.checked_sub(span.start).ok_or("restart-span")?)
+                .ok_or("restart-span")?;
+            Ok(ResidentExtent {
+                span,
+                segments: observer.segments,
+                active,
+                largest: observer.largest_segment,
+            })
+        })();
+        chunk.fill(0);
+        result
+    })
 }

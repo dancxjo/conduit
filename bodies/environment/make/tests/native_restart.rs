@@ -1098,3 +1098,31 @@ fn compressed_complete_checkpoint_crosses_legacy_bank_ceiling_without_losing_evi
         serde_json::to_vec(&Some(&manager)).unwrap()
     );
 }
+
+#[test]
+fn resident_preflight_measures_largest_archive_without_allocating_or_decoding_history() {
+    let first = r#"{"value":"braces } ] and escaped \" quote","archives":[1,2,3]}"#;
+    let second = r#"{"nested":[{"x":1},{"x":2}]}"#;
+    let inside = format!(" \n{first},\n{second} ");
+    let prefix = r#"{"schema":1,"\u0061rchives":["#;
+    let text = format!("{prefix}{inside}],\"admissions\":null}}");
+    for width in 1..=128 {
+        let mut at = 0;
+        let (extent, memory) = allocation_probe::observe(|| {
+            payload::resident_extent(|out| {
+                let n = width.min(text.len() - at);
+                out[..n].copy_from_slice(&text.as_bytes()[at..at + n]);
+                at += n;
+                Ok(n)
+            })
+            .unwrap()
+        });
+        assert_eq!(memory.allocations, 0);
+        assert_eq!(extent.segments, 2);
+        assert_eq!(extent.largest, first.len().max(second.len()));
+        assert_eq!(extent.span.start, prefix.len());
+        assert_eq!(extent.span.end, prefix.len() + inside.len());
+        assert_eq!(extent.active, text.len() - inside.len());
+        assert_eq!(at, text.len());
+    }
+}
