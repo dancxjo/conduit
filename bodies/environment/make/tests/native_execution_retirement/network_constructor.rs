@@ -783,3 +783,6 @@ fn source_image() -> conduit_plot::flat_image::indexed::IndexedSourceImage<'stat
         .with_make_planning_facts(linked_facts)
     }
 }
+
+#[path = "network_flat_install.rs"]
+mod flat_install;

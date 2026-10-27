@@ -25,7 +25,7 @@ const IMPLEMENTATION: &str = "esp32/network-attachment-receipt@1";
 const ARTIFACT: &str = "native/esp32-network-attachment-receipt@1";
 pub struct NativePlay {
     #[cfg(feature = "flat-network-appliance")]
-    flat_refusal: Option<alloc::boxed::Box<flat::IssuedCustody>>,
+    flat_refusal: flat::IssuedCustody,
     steps: u16,
     dispatches: [u8; 3],
     attempted: bool,
@@ -47,7 +47,7 @@ impl NativePlay {
     pub fn new() -> Self {
         Self {
             #[cfg(feature = "flat-network-appliance")]
-            flat_refusal: None,
+            flat_refusal: flat::IssuedCustody::Empty,
             steps: 0,
             dispatches: [0; 3],
             attempted: false,

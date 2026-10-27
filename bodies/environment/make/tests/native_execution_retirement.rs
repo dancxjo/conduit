@@ -871,3 +871,10 @@ mod reusable_backing;
 
 #[path = "native_execution_retirement/network_constructor.rs"]
 mod network_constructor;
+
+// Fixed committed-revision observation is the installer fixture's only SDK seam.
+mod native_credentials {
+    pub fn committed_revision() -> u64 {
+        7
+    }
+}

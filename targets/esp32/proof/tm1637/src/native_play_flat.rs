@@ -6,29 +6,21 @@ use n::{NetworkOperationLease, ReadyNetworkPair};
 /// Issuance is irreversible at this waist. A terminal refusal retains every
 /// actual bearer beside the original Ready slots until explicit owner recovery.
 #[derive(Default)]
-pub(super) struct IssuedCustody {
-    operations: [Option<c::BoundBaseOperation>; 2],
-    lease: Option<NetworkOperationLease>,
+#[allow(
+    dead_code,
+    reason = "terminal refusal retains affine bearers for explicit owner recovery"
+)]
+pub(super) enum IssuedCustody {
+    #[default]
+    Empty,
+    Lease(NetworkOperationLease),
+    First(c::BoundBaseOperation),
+    FirstLease(c::BoundBaseOperation, NetworkOperationLease),
+    Both(c::BoundBaseOperation, c::BoundBaseOperation),
 }
 impl IssuedCustody {
-    /// Reserve terminal evidence custody before taking providers or minting a
-    /// bearer. Null is an ordinary refusal, never an allocation panic.
-    fn try_new() -> Result<alloc::boxed::Box<Self>, ()> {
-        let layout = core::alloc::Layout::new::<Self>();
-        // SAFETY: nonzero exact Layout; null is checked before initialization.
-        let pointer = unsafe { alloc::alloc::alloc(layout) }.cast::<Self>();
-        if pointer.is_null() {
-            return Err(());
-        }
-        // SAFETY: checked fresh allocation has space/alignment for Self; None
-        // owns no bearers, and conversion transfers unique allocation custody.
-        unsafe {
-            pointer.write(Self::default());
-            Ok(alloc::boxed::Box::from_raw(pointer))
-        }
-    }
-    fn is_empty(&self) -> bool {
-        self.operations.iter().all(Option::is_none) && self.lease.is_none()
+    pub(super) fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty)
     }
 }
 impl NativePlay {
@@ -44,13 +36,16 @@ impl NativePlay {
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
     ) -> Result<(), ()> {
-        if self.attempted || source.is_none() || join.is_none() {
+        if self.attempted || !self.flat_refusal.is_empty() || source.is_none() || join.is_none() {
             return Err(());
         }
         self.attempted = true;
         self.configuration_revision = crate::native_credentials::committed_revision();
         self.phase = "installation-refused";
-        let mut custody = IssuedCustody::try_new()?;
+        // Inline terminal custody is established before either Ready owner moves.
+        // No fallible allocation is needed to retain an irreversibly issued bearer.
+        self.flat_refusal = IssuedCustody::Empty;
+        let custody = &mut self.flat_refusal;
         let pair = ReadyNetworkPair::new(
             source.take().expect("preflighted actual source"),
             join.take().expect("preflighted actual join"),
@@ -95,14 +90,7 @@ impl NativePlay {
                         1,
                         conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
                         |scope| {
-                            check_linked_scope(
-                                owners,
-                                scope,
-                                issuer,
-                                pins,
-                                &mut active,
-                                &mut custody,
-                            )
+                            check_linked_scope(owners, scope, issuer, pins, &mut active, custody)
                         },
                     )
                     .map_err(|_| ())?
@@ -117,16 +105,13 @@ impl NativePlay {
             Ok((credentials, join, parts)) => {
                 self.source = Some(credentials);
                 self.join = Some(join);
-                drop(custody);
+                self.flat_refusal = IssuedCustody::Empty;
                 self.materialize_held(parts)
             }
             Err((pair, ())) => {
                 let (credentials, provider) = pair.into_ready();
                 *source = Some(credentials);
                 *join = Some(provider);
-                if !custody.is_empty() {
-                    self.flat_refusal = Some(custody);
-                }
                 Err(())
             }
         }
@@ -203,7 +188,7 @@ fn check_linked_scope<'owner>(
     ) {
         Ok(first) => first,
         Err((lease, _)) => {
-            custody.lease = Some(lease);
+            *custody = IssuedCustody::Lease(lease);
             return Err(());
         }
     };
@@ -212,7 +197,7 @@ fn check_linked_scope<'owner>(
     let (table, handle, claim) = match issued {
         Ok(issued) => issued,
         Err(()) => {
-            custody.operations[0] = Some(first.into_operation());
+            *custody = IssuedCustody::First(first.into_operation());
             return Err(());
         }
     };
@@ -228,8 +213,7 @@ fn check_linked_scope<'owner>(
     ) {
         Ok(checked) => checked,
         Err((first, lease, _)) => {
-            custody.operations[0] = Some(first.into_operation());
-            custody.lease = Some(lease);
+            *custody = IssuedCustody::FirstLease(first.into_operation(), lease);
             return Err(());
         }
     };
@@ -237,7 +221,7 @@ fn check_linked_scope<'owner>(
         Ok(parts) => Ok((checked, parts)),
         Err(_) => {
             let (first, second) = checked.into_operations();
-            custody.operations = [Some(first), Some(second)];
+            *custody = IssuedCustody::Both(first, second);
             Err(())
         }
     }

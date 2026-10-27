@@ -21,3 +21,10 @@ impl RootIssuer {
         }
     }
 }
+
+impl RootIssuer {
+    /// Test a refusal after the first actual selected operation was issued.
+    pub(crate) fn refuse_join_fixture(&mut self) {
+        self.issued[1] = true;
+    }
+}
