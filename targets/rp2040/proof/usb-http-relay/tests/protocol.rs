@@ -5,6 +5,34 @@ fn frame(kind: u8, id: u32, data: &[u8]) -> Vec<u8> {
     bytes
 }
 #[test]
+fn bench_ap_transitions_require_selected_unicast_peer_and_separate_stop() {
+    for command in [TEST_AP_START, TEST_AP_STOP] {
+        let payload = if command == TEST_AP_START {
+            &[2, 3, 4, 5, 6, 7][..]
+        } else {
+            &[]
+        };
+        let mut decoder = Decoder::new();
+        decoder.accept(&frame(command, 1, payload)).unwrap();
+        assert_eq!(decoder.frame().unwrap().kind, command);
+        decoder.reset();
+        assert_eq!(
+            decoder.accept(&frame(command, 2, b"SSID")),
+            Err(Refusal::Capacity)
+        );
+    }
+    assert_eq!(test_peer_mac(&[2, 3, 4, 5, 6, 7]), Ok([2, 3, 4, 5, 6, 7]));
+    for invalid in [
+        &[0; 6][..],
+        &[255; 6],
+        &[1, 2, 3, 4, 5, 6],
+        &[2; 5],
+        &[2; 7],
+    ] {
+        assert_eq!(test_peer_mac(invalid), Err(Refusal::Peer));
+    }
+}
+#[test]
 fn every_fragment_boundary_preserves_exact_request_bytes_without_heap_in_decoder() {
     let payload = (0..MAX_REQUEST)
         .map(|i| (i % 256) as u8)

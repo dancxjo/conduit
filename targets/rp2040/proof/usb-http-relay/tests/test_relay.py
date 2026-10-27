@@ -25,6 +25,46 @@ class Stream:
 
 
 class Proof(unittest.TestCase):
+    def test_ap_transition_is_explicit_and_does_not_send_join_or_http(self):
+        for command in (r.TEST_AP_START, r.TEST_AP_STOP):
+            stream = Stream(frame(r.INFORMATION, 1, b'{"role":"conduit.pico-usb-http-relay@1","test_ap":true}'))
+            peer = bytes.fromhex("b0a732286178") if command == r.TEST_AP_START else b""
+            self.assertTrue(r.Relay(stream).exchange(command, peer)["test_ap"])
+            self.assertEqual(bytes(stream.outgoing), frame(command, 1, peer))
+        for invalid in (b"", b"\0" * 6, b"\xff" * 6, b"\x01" * 6):
+            stream = Stream(b"")
+            self.assertRaises(r.RelayError, r.Relay(stream).start_test_ap, invalid)
+            self.assertEqual(bytes(stream.outgoing), b"")
+        peer = bytes.fromhex("b0a732286178")
+        for accepted in (True, False):
+            status = (b'{"role":"conduit.pico-usb-http-relay@1","test_ap":true,'
+                      b'"dhcp_serving":' + str(accepted).lower().encode() +
+                      b',"peer":"192.168.4.2:80"}')
+            client = r.Relay(Stream(frame(r.INFORMATION, 1, status)))
+            if accepted:
+                self.assertTrue(client.start_test_ap(peer)["dhcp_serving"])
+            else:
+                self.assertRaises(r.RelayError, client.start_test_ap, peer)
+
+    def test_ap_proxy_reconnect_never_starts_ap_or_joins_implicitly(self):
+        class Port(Stream):
+            def reset_input_buffer(self): pass
+            def close(self): pass
+        for serving in (True, False):
+            status = (b'{"role":"conduit.pico-usb-http-relay@1","test_ap":true,'
+                      b'"dhcp_serving":' + str(serving).lower().encode() +
+                      b',"peer_ready":true,"peer":"192.168.4.2:80"}')
+            port = Port(frame(r.INFORMATION, 1, status))
+            connection = r.PicoConnection("unused", None, bytearray(),
+                opener=lambda *args, **kwargs: port, test_ap=True)
+            if serving:
+                connection.connect()
+                self.assertEqual(connection.peer_host, "192.168.4.2")
+            else:
+                self.assertRaises(r.RelayError, connection.connect)
+            self.assertEqual(bytes(port.outgoing), frame(r.STATUS, 1, b""))
+            connection.shutdown()
+
     def test_complete_raw_http_bytes_and_request_body_are_unchanged(self):
         body = b'{"actual":"canonical\\u00e9","bytes":[0,255]}'
         raw = b"HTTP/1.1 200 OK\r\nContent-Length: " + str(len(body)).encode() + b"\r\n\r\n" + body

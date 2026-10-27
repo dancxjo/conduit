@@ -18,6 +18,28 @@ timeouts. Only a DHCP lease in `192.168.4.2..254/24`, with no default router or 
 authorizes a TCP request. A failed HTTP operation is never automatically replayed;
 a later distinct request may reconnect and rejoin.
 
+## Explicit upstream test network
+
+The Pico can instead provide the isolated open bench AP `Conduit-Relay-Test`
+while its environmental sampling/display task continues. Select the MCU's
+actual station MAC explicitly (the address below is only an example):
+
+```sh
+python3 targets/rp2040/proof/usb-http-relay/relay.py --port /dev/ttyACM0 --test-ap start --test-peer-mac 02:00:00:00:00:02
+python3 targets/rp2040/proof/usb-http-relay/relay.py --port /dev/ttyACM0 --test-ap-proxy
+```
+
+The existing bounded DHCP server gives only that MAC a lease, at
+`192.168.4.2`; the Pico owns `192.168.4.1/24`. This mode's HTTP proxy uses the
+fixed station peer `192.168.4.2:80`. Status reports AP custody, actual DHCP
+socket readiness and transmitted DHCP acknowledgements separately. Serving
+DHCP does not prove station association or a successful HTTP request.
+
+Stop the proxy, then run `--test-ap stop` before using ordinary `--ssid`
+relay mode again. Reconnect never starts/stops the AP or changes its selected
+peer implicitly. A refused radio transition retains AP custody for explicit
+stop/recovery. No host network interface, address or route is changed.
+
 ## Build and proof
 
 From the repository root (use the existing pinned lockfile):

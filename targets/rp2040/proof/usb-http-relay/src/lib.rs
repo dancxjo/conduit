@@ -1,5 +1,5 @@
 //! Bounded transport framing only. No Body, native capability or HTTP authority
-//! is established here. The native endpoint is fixed to 192.168.4.1:80.
+//! is established here. Bench AP mode is an explicit separate USB command.
 #![no_std]
 pub const ROLE: &str = "conduit.pico-usb-http-relay@1";
 pub const BUILD_ID: &str = env!("CONDUIT_RELAY_BUILD_ID");
@@ -20,6 +20,8 @@ pub const REQUEST: u8 = 2;
 pub const STATUS: u8 = 3;
 pub const SENSOR_STATUS: u8 = 6;
 pub const SENSOR_DIAGNOSTIC: u8 = 7;
+pub const TEST_AP_START: u8 = 8;
+pub const TEST_AP_STOP: u8 = 9;
 pub const DATA: u8 = 128;
 pub const DONE: u8 = 129;
 pub const ERROR: u8 = 130;
@@ -34,6 +36,7 @@ pub enum Refusal {
     Incomplete,
     Stale,
     Credentials,
+    Peer,
 }
 #[inline(never)]
 pub fn wipe(bytes: &mut [u8]) {
@@ -83,10 +86,14 @@ impl Decoder {
                 match self.bytes[5] {
                     JOIN if (2..=97).contains(&length) => {}
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
-                    STATUS | BOOTSEL_QUERY | SENSOR_STATUS | SENSOR_DIAGNOSTIC if length == 0 => {}
+                    TEST_AP_START if length == 6 => {}
+                    STATUS | BOOTSEL_QUERY | SENSOR_STATUS | SENSOR_DIAGNOSTIC | TEST_AP_STOP
+                        if length == 0 => {}
                     BOOTSEL_REQUEST if length == 64 => {}
                     JOIN | REQUEST | STATUS | BOOTSEL_QUERY | BOOTSEL_REQUEST | SENSOR_STATUS
-                    | SENSOR_DIAGNOSTIC => return Err(Refusal::Capacity),
+                    | SENSOR_DIAGNOSTIC | TEST_AP_START | TEST_AP_STOP => {
+                        return Err(Refusal::Capacity)
+                    }
                     _ => return Err(Refusal::Kind),
                 }
                 self.expected = Some(HEADER + length);
@@ -125,6 +132,15 @@ pub struct Frame<'a> {
 pub struct Credentials<'a> {
     pub ssid: &'a str,
     pub password: &'a [u8],
+}
+/// Explicit bench peer selection controls DHCP address assignment only; it
+/// carries no Body, admission or signature authority.
+pub fn test_peer_mac(payload: &[u8]) -> Result<[u8; 6], Refusal> {
+    let mac: [u8; 6] = payload.try_into().map_err(|_| Refusal::Peer)?;
+    if mac == [0; 6] || mac[0] & 1 != 0 {
+        return Err(Refusal::Peer);
+    }
+    Ok(mac)
 }
 pub fn credentials(bytes: &[u8]) -> Result<Credentials<'_>, Refusal> {
     let (&ssid_len, tail) = bytes.split_first().ok_or(Refusal::Credentials)?;

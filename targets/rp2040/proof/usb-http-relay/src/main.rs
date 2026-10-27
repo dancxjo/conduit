@@ -1,4 +1,4 @@
-//! Native transport bring-up only. No Body, sensor, display or kernel is claimed.
+//! USB transport with an independent environmental display; no installed Body/Plot.
 #![no_std]
 #![no_main]
 use conduit_pico_usb_http_relay as protocol;
@@ -14,6 +14,7 @@ use embassy_usb::{
 mod environment;
 mod environment_show;
 mod heap;
+mod test_ap;
 use panic_halt as _;
 use static_cell::StaticCell;
 #[path = "../../../firmware/pico-w-signal/src/radio.rs"]
@@ -87,12 +88,7 @@ async fn http(
     if !stack.is_link_up() || !stack.is_config_up() {
         return Err("wifi-unavailable");
     }
-    let config = stack.config_v4().ok_or("wifi-unconfigured")?;
-    if !protocol::peer_network(
-        config.address.address().octets(),
-        config.address.prefix_len(),
-        config.gateway.map(|a| a.octets()),
-    ) {
+    if !peer_ready(stack) {
         return Err("wrong-peer-network");
     }
     let mut rx = protocol::Scratch::<4096>::default();
@@ -101,7 +97,7 @@ async fn http(
     let mut socket = TcpSocket::new(stack, &mut rx.0, &mut tx.0);
     socket.set_timeout(Some(Duration::from_secs(5)));
     socket
-        .connect((Ipv4Address::new(192, 168, 4, 1), 80))
+        .connect((Ipv4Address::from_octets(test_ap::peer()), 80))
         .await
         .map_err(|_| "tcp-connect")?;
     let mut at = 0;
@@ -135,15 +131,21 @@ async fn http(
 }
 fn peer_ready(stack: Stack<'static>) -> bool {
     stack.config_v4().is_some_and(|config| {
-        protocol::peer_network(
-            config.address.address().octets(),
-            config.address.prefix_len(),
-            config.gateway.map(|a| a.octets()),
-        )
+        if test_ap::active() {
+            test_ap::serving()
+                && config.address.address().octets() == [192, 168, 4, 1]
+                && config.address.prefix_len() == 24
+        } else {
+            protocol::peer_network(
+                config.address.address().octets(),
+                config.address.prefix_len(),
+                config.gateway.map(|a| a.octets()),
+            )
+        }
     })
 }
 async fn status(class: &mut Cdc, id: u32, stack: Stack<'static>) -> Result<(), &'static str> {
-    let mut text = heapless::String::<256>::new();
+    let mut text = heapless::String::<384>::new();
     let config = stack.config_v4();
     let ip = config
         .as_ref()
@@ -158,7 +160,8 @@ async fn status(class: &mut Cdc, id: u32, stack: Stack<'static>) -> Result<(), &
     } else {
         gateway.push_str("null").map_err(|_| "status-capacity")?;
     }
-    write!(&mut text,"{{\"role\":\"{}\",\"link\":{},\"configured\":{},\"peer_ready\":{},\"ipv4\":[{},{},{},{}],\"prefix\":{},\"gateway\":{},\"peer\":\"192.168.4.1:80\",\"request_limit\":{},\"response_limit\":{}}}",protocol::ROLE,stack.is_link_up(),stack.is_config_up(),peer_ready(stack),ip[0],ip[1],ip[2],ip[3],prefix,gateway,protocol::MAX_REQUEST,protocol::MAX_RESPONSE).map_err(|_|"status-capacity")?;
+    let peer = test_ap::peer();
+    write!(&mut text,"{{\"role\":\"{}\",\"link\":{},\"configured\":{},\"peer_ready\":{},\"ipv4\":[{},{},{},{}],\"prefix\":{},\"gateway\":{},\"peer\":\"{}.{}.{}.{}:80\",\"request_limit\":{},\"response_limit\":{},\"test_ap\":{},\"dhcp_serving\":{},\"dhcp_acknowledged\":{}}}",protocol::ROLE,stack.is_link_up(),stack.is_config_up(),peer_ready(stack),ip[0],ip[1],ip[2],ip[3],prefix,gateway,peer[0],peer[1],peer[2],peer[3],protocol::MAX_REQUEST,protocol::MAX_RESPONSE,test_ap::active(),test_ap::serving(),test_ap::acknowledged()).map_err(|_|"status-capacity")?;
     send(class, protocol::INFORMATION, id, text.as_bytes()).await
 }
 #[embassy_executor::main]
@@ -191,6 +194,7 @@ async fn main(spawner: Spawner) {
         rng.next_u64(),
     );
     spawner.spawn(network_task(runner).unwrap());
+    spawner.spawn(test_ap::run(stack).unwrap());
     // The independent environmental task owns GP3/4 and I2C1 GP6/7.
     let mut decoder = protocol::Decoder::new();
     let mut session = protocol::Session::default();
@@ -267,9 +271,26 @@ async fn main(spawner: Spawner) {
                     Err(e) => Err(e),
                 },
                 protocol::STATUS => status(&mut class, id, stack).await,
+                protocol::TEST_AP_START => match protocol::test_peer_mac(frame.payload) {
+                    Ok(peer) => match test_ap::start(&mut control, stack, peer).await {
+                        Ok(()) => status(&mut class, id, stack).await,
+                        Err(reason) => Err(reason),
+                    },
+                    Err(_) => Err("invalid-test-peer"),
+                },
+                protocol::TEST_AP_STOP => match test_ap::stop(&mut control, stack).await {
+                    Ok(()) => status(&mut class, id, stack).await,
+                    Err(reason) => Err(reason),
+                },
                 protocol::JOIN => match protocol::credentials(frame.payload) {
                     Err(_) => Err("invalid-credentials"),
                     Ok(credentials) => {
+                        if test_ap::active() {
+                            decoder.reset();
+                            let _ =
+                                send(&mut class, protocol::ERROR, id, b"test-ap-must-stop").await;
+                            continue;
+                        }
                         let options = if credentials.password.is_empty() {
                             cyw43::JoinOptions::new_open()
                         } else {

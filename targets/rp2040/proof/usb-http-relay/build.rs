@@ -11,6 +11,7 @@ fn main() {
         "src/environment.rs",
         "src/environment_show.rs",
         "src/heap.rs",
+        "src/test_ap.rs",
         "../../firmware/pico-w-signal/src/radio.rs",
         "../../firmware/pico-w-signal/memory.x",
     ] {
@@ -46,6 +47,7 @@ fn main() {
         "../../../../bodies/environment/face/build.rs",
         "../../../../bodies/environment/face/main.conduit",
         "../../../../bodies/environment/measurement/Cargo.toml",
+        "../../../../targets/rp2040/network-realization/Cargo.toml",
     ] {
         if std::path::Path::new(file).is_file() {
             println!("cargo:rerun-if-changed={file}");
@@ -56,6 +58,7 @@ fn main() {
         "../../../../plots/seven-segment-mask/src",
         "../../../../bodies/environment/face/src",
         "../../../../bodies/environment/measurement/src",
+        "../../../../targets/rp2040/network-realization/src",
     ] {
         println!("cargo:rerun-if-changed={directory}");
         collect(std::path::Path::new(directory), &mut presentation);

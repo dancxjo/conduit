@@ -15,6 +15,7 @@ HEADER = struct.Struct("<4sBBIH")
 ROLE = "conduit.pico-usb-http-relay@1"
 MAX_REQUEST, MAX_RESPONSE, CHUNK = 8192, 65536, 512
 JOIN, REQUEST, STATUS, SENSOR_STATUS, SENSOR_DIAGNOSTIC = 1, 2, 3, 6, 7
+TEST_AP_START, TEST_AP_STOP = 8, 9
 DATA, DONE, ERROR, INFORMATION = 128, 129, 130, 131
 BOOTSEL_QUERY, BOOTSEL_REQUEST, BOOTSEL_CHALLENGE, BOOTSEL_ACK = 4, 5, 132, 133
 
@@ -80,7 +81,7 @@ class Relay:
                         # Firmware errors are fixed codes, never echoed request data.
                         raise RelayError(data.decode("ascii", "replace"))
                     if response == INFORMATION:
-                        if kind not in (STATUS, JOIN, SENSOR_STATUS, SENSOR_DIAGNOSTIC) or result:
+                        if kind not in (STATUS, JOIN, SENSOR_STATUS, SENSOR_DIAGNOSTIC, TEST_AP_START, TEST_AP_STOP) or result:
                             raise RelayError("unexpected information reply")
                         try:
                             status = json.loads(data)
@@ -111,6 +112,15 @@ class Relay:
             raise RelayError("BOOTSEL challenge build mismatch")
         return self.exchange(BOOTSEL_REQUEST, actual)
 
+    def start_test_ap(self, mac):
+        if len(mac) != 6 or not any(mac) or mac[0] & 1:
+            raise RelayError("expected selected MCU unicast MAC")
+        status = self.exchange(TEST_AP_START, mac)
+        if not (status.get("test_ap") and status.get("dhcp_serving")
+                and status.get("peer") == "192.168.4.2:80"):
+            raise RelayError("bench AP did not acknowledge its serving mode")
+        return status
+
     def join(self, ssid, password=b""):
         ssid = ssid.encode("utf-8")
         if not 1 <= len(ssid) <= 32 or len(password) > 63 or (password and len(password) < 8):
@@ -129,9 +139,11 @@ class Relay:
 
 class PicoConnection:
     """Reconnect only for a later request; an ambiguous HTTP command is never replayed."""
-    def __init__(self, port, ssid, password, opener=None):
+    def __init__(self, port, ssid, password, opener=None, test_ap=False):
         self.port, self.ssid, self.password = port, ssid, password
         self.opener = opener
+        self.test_ap = test_ap
+        self.peer_host = "192.168.4.2" if test_ap else "192.168.4.1"
         self.stream = self.client = None
         self.lock = threading.Lock()
 
@@ -152,12 +164,18 @@ class PicoConnection:
             opener = self.opener
         self.stream = opener(self.port, 115200, timeout=0.5, write_timeout=2, exclusive=True)
         self.stream.dtr = False
-        time.sleep(0.1)
+        # Hold DTR low beyond the firmware's 500 ms receive deadline.
+        time.sleep(0.65)
         self.stream.reset_input_buffer()
         self.stream.dtr = True
         self.client = Relay(self.stream)
-        self.client.exchange(STATUS, timeout=45)
-        self.client.join(self.ssid, self.password)
+        status = self.client.exchange(STATUS, timeout=45)
+        if self.test_ap:
+            if not (status.get("test_ap") and status.get("dhcp_serving")
+                    and status.get("peer_ready") and status.get("peer") == "192.168.4.2:80"):
+                raise RelayError("explicit bench AP is not serving")
+        else:
+            self.client.join(self.ssid, self.password)
 
     def exchange(self, *args, **kwargs):
         with self.lock:
@@ -199,7 +217,7 @@ def handler(relay):
                 if not 0 <= length <= MAX_REQUEST:
                     self.send_error(413)
                     return
-                lines = [f"{self.command} {self.path} HTTP/1.1", "Host: 192.168.4.1", "Connection: close"]
+                lines = [f"{self.command} {self.path} HTTP/1.1", f"Host: {getattr(relay, 'peer_host', '192.168.4.1')}", "Connection: close"]
                 for name, value in self.headers.items():
                     if name.lower() in ("host", "connection", "proxy-connection"):
                         continue
@@ -236,27 +254,55 @@ def main():
     parser.add_argument("--ask-password", action="store_true", help="prompt without writing credentials to disk")
     parser.add_argument("--http-port", type=int, default=8766)
     parser.add_argument("--bootsel-build", help="explicitly reboot only the exact 64-hex firmware build; no Wi-Fi join")
+    parser.add_argument("--test-ap", choices=("start", "stop"), help="explicit bench AP transition; never selected by HTTP reconnect")
+    parser.add_argument("--test-ap-proxy", action="store_true", help="use an already-started bench AP; never join or start one implicitly")
+    parser.add_argument("--test-peer-mac", help="selected MCU station MAC; required only with --test-ap start")
     args = parser.parse_args()
+    if args.test_ap_proxy and (args.ssid or args.ask_password or args.bootsel_build):
+        parser.error("--test-ap-proxy is separate from join and BOOTSEL")
+    if args.test_ap:
+        if args.bootsel_build or args.ssid or args.test_ap_proxy or args.ask_password:
+            parser.error("--test-ap is a separate USB command")
+        if bool(args.test_peer_mac) != (args.test_ap == "start"):
+            parser.error("--test-ap start requires --test-peer-mac; stop accepts no peer")
+        try:
+            peer = bytes.fromhex(args.test_peer_mac.replace(":", "")) if args.test_peer_mac else b""
+        except ValueError:
+            parser.error("invalid station MAC")
+        if args.test_ap == "start" and (len(peer) != 6 or not any(peer) or peer[0] & 1):
+            parser.error("expected selected MCU unicast MAC")
+        import serial
+        with serial.Serial(args.port, 115200, timeout=0.2, write_timeout=2) as stream:
+            stream.dtr = False
+            # The pending receive must observe DTR low before a new sequence.
+            time.sleep(0.65)
+            stream.dtr = True
+            client = Relay(stream)
+            print(json.dumps(client.start_test_ap(peer) if args.test_ap == "start" else client.exchange(TEST_AP_STOP)))
+        return
+    if args.test_peer_mac:
+        parser.error("--test-peer-mac requires --test-ap start")
     if args.bootsel_build:
         import serial
         with serial.Serial(args.port, 115200, timeout=0.2, write_timeout=2) as stream:
             stream.dtr = False
-            time.sleep(0.1)
+            # The pending receive must observe DTR low before a new sequence.
+            time.sleep(0.65)
             stream.dtr = True
             Relay(stream).reboot_bootsel(args.bootsel_build.encode("ascii"))
         print("Exact-build BOOTSEL acknowledged")
         return
-    if not args.ssid:
+    if not args.ssid and not args.test_ap_proxy:
         parser.error("--ssid is required for HTTP proxy mode")
     password = bytearray()
     if args.ask_password:
         import getpass
         password.extend(getpass.getpass("ESP AP password: ").encode("utf-8"))
-    relay = PicoConnection(args.port, args.ssid, password)
+    relay = PicoConnection(args.port, args.ssid, password, test_ap=args.test_ap_proxy)
     try:
         relay.connect()  # Actual role, association and DHCP must pass before ready.
         server = HTTPServer(("127.0.0.1", args.http_port), handler(relay))
-        print(f"Native USB relay ready at http://127.0.0.1:{args.http_port}/ (fixed ESP AP peer)")
+        print(f"Native USB relay ready at http://127.0.0.1:{args.http_port}/ (fixed peer {relay.peer_host}:80)")
         try:
             server.serve_forever()
         finally:
