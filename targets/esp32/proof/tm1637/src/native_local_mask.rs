@@ -488,7 +488,7 @@ impl NativeRoot {
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
         execute: bool,
-        #[cfg(feature = "local-appliance")] parked: crate::native_restart::ParkedBody,
+        #[cfg(feature = "local-appliance")] mut parked: crate::native_restart::ParkedBody,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
         let PreparedSamplerParts {
             sampler_parts,
@@ -496,6 +496,11 @@ impl NativeRoot {
             active,
             fragment,
         } = sampler;
+        #[cfg(feature = "local-appliance")]
+        {
+            let length = parked.reserve_restore_workspace()?;
+            mark("cold-body-restore-workspace-reserved", length);
+        }
         let generation = c::OfferGeneration(self.offer_generation);
         let role = material::role().map_err(|_| "local-mask-role")?;
         let context = if execute || cfg!(feature = "target-mask-native-check") {

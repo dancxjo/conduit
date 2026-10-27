@@ -742,6 +742,13 @@ fn actual_store_cold_parking_fences_publication_and_frees_owner_without_losing_p
     let proposal = token.prepare_verified_proposal(&inputs, &[]).unwrap();
     drop(inputs);
     drop(verified);
+    let length = token.reserve_restore_workspace().unwrap();
+    assert!(length > 0);
+    let (again, reserve) = allocation_probe::observe(|| token.reserve_restore_workspace().unwrap());
+    assert_eq!(again, length);
+    assert_eq!(reserve.allocations, 0);
+    assert_eq!(reserve.reallocations, 0);
+    assert!(!restart::publication_ready());
     let mut restored = restart::restore_parked(token, &host.host_id, &host.boot_id, &key).unwrap();
     assert!(restart::publication_ready());
     assert_eq!(restart::generation(), generation);

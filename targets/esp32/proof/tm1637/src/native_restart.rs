@@ -76,6 +76,7 @@ pub struct RetainedBody {
 }
 /// Cold, unpublished custody only. No Clone/Deserialize or caller construction.
 pub struct ParkedBody {
+    workspace: Option<PrivateBytes>,
     proposal: Option<conduit_body::VerifiedBodyProposalContext>,
     generation: u64,
     body_id: conduit_body::BodyId,
@@ -86,6 +87,48 @@ pub struct ParkedBody {
     boot: conduit_core::BootId,
 }
 impl ParkedBody {
+    /// Reserve the actual complete checkpoint input before later cold owners
+    /// fragment the heap. It stays private, bounded by the committed length,
+    /// and is consumed directly by restore rather than copied or reallocated.
+    #[inline(never)]
+    pub fn reserve_restore_workspace(&mut self) -> Result<usize, &'static str> {
+        let length = with_store(|store| {
+            if !store.parked
+                || store.failed
+                || store.ready
+                || self.generation != store.journal.generation().ok_or("restart-generation")?
+                || self.binding != store.binding
+                || ed25519_dalek::SigningKey::from_bytes(
+                    store.seed.as_ref().ok_or("restart-key-missing")?,
+                )
+                .verifying_key()
+                .as_bytes()
+                    != &self.key
+            {
+                return Err("restart-workspace-scope");
+            }
+            store
+                .journal
+                .payload_length(&store.binding)
+                .map_err(|_| "restart-workspace-binding")?
+                .ok_or("restart-missing")
+        })?;
+        if let Some(bytes) = self.workspace.as_ref() {
+            return if bytes.0.len() == length {
+                Ok(length)
+            } else {
+                Err("restart-workspace-length")
+            };
+        }
+        let mut bytes = PrivateBytes(Vec::new());
+        bytes
+            .0
+            .try_reserve_exact(length)
+            .map_err(|_| "restart-memory")?;
+        bytes.0.resize(length, 0);
+        self.workspace = Some(bytes);
+        Ok(length)
+    }
     pub fn prepare_verified_proposal(
         &mut self,
         plots: &[conduit_body::VerifiedBodyPlotPlan<'_>],
@@ -142,6 +185,7 @@ fn park_store(
         return Err("restart-park-pending");
     }
     let token = ParkedBody {
+        workspace: None,
         proposal: Some(
             body.prepare_verified_proposal_context(host, boot)
                 .map_err(|_| "restart-proposal-context")?,
@@ -187,7 +231,7 @@ pub fn restore_parked(
 }
 fn restore_store(
     store: &mut Store,
-    token: ParkedBody,
+    mut token: ParkedBody,
     host: &conduit_core::HostId,
     boot: &conduit_core::BootId,
     key: &[u8; 32],
@@ -210,12 +254,19 @@ fn restore_store(
         .ok_or("restart-missing")?;
     #[cfg(all(target_os = "none", feature = "local-appliance"))]
     crate::native_root::memory_check::mark("cold-body-restore-payload", length);
-    let mut bytes = PrivateBytes(Vec::new());
-    bytes
-        .0
-        .try_reserve_exact(length)
-        .map_err(|_| "restart-memory")?;
-    bytes.0.resize(length, 0);
+    let mut bytes = match token.workspace.take() {
+        Some(bytes) if bytes.0.len() == length => bytes,
+        Some(_) => return Err("restart-workspace-length"),
+        None => {
+            let mut bytes = PrivateBytes(Vec::new());
+            bytes
+                .0
+                .try_reserve_exact(length)
+                .map_err(|_| "restart-memory")?;
+            bytes.0.resize(length, 0);
+            bytes
+        }
+    };
     let mut seed = PrivateSeed([0; 32]);
     let loaded = store
         .journal
