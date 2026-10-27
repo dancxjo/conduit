@@ -277,3 +277,136 @@ impl Storage for NetworkRegion {
         Storage::program(&mut self.0, at, bytes)
     }
 }
+
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+#[path = "native_observed_epoch_geometry.rs"]
+mod epoch_geometry;
+/// Affine owner of one checked observation epoch. Ordinary journal accesses
+/// cannot reach its two metadata sectors. No raw constructor or Region escape.
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+pub(crate) struct ObservationEpoch {
+    whole: Region,
+    geometry: epoch_geometry::Geometry,
+}
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+impl Region {
+    pub(crate) fn into_observation_epoch(mut self) -> Result<ObservationEpoch, Self> {
+        let Some(geometry) =
+            epoch_geometry::Geometry::from_view(EPOCHS_START, self.start, self.length)
+        else {
+            return Err(self);
+        };
+        self.start = geometry.origin;
+        self.length = epoch_geometry::TOTAL;
+        Ok(ObservationEpoch {
+            whole: self,
+            geometry,
+        })
+    }
+}
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+impl ObservationEpoch {
+    pub(crate) fn seal_prefix(mut self, length: u32) -> Result<Self, Self> {
+        let available = epoch_geometry::DATA - self.geometry.offset;
+        if !length.is_multiple_of(4) || length >= available {
+            return Err(self);
+        }
+        self.geometry.offset += length;
+        Ok(self)
+    }
+    /// Only durable Reclaimed plus full data readback can reset a sealed view.
+    pub(crate) fn from_reclaimed(
+        proof: crate::native_observed_archive::custody_journal::ErasedData<Self>,
+    ) -> Self {
+        let mut epoch = proof.into_storage();
+        epoch.geometry.offset = 0;
+        epoch
+    }
+    fn erase_sector(
+        &mut self,
+        relative: u32,
+    ) -> Result<(), crate::native_observed_archive::custody_journal::Error> {
+        use crate::native_observed_archive::custody_journal::Error;
+        let start = self
+            .whole
+            .bound(relative, 4096)
+            .map_err(|_| Error::Region)?;
+        self.whole.base.lock(|base| {
+            NorFlash::erase(&mut *base.borrow_mut(), start, start + 4096).map_err(|_| Error::Media)
+        })
+    }
+}
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+impl Storage for ObservationEpoch {
+    fn capacity(&self) -> u32 {
+        epoch_geometry::DATA - self.geometry.offset
+    }
+    fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
+        let at = self.geometry.data(at, out.len()).ok_or(Refusal::Geometry)?;
+        Storage::read(&mut self.whole, at, out)
+    }
+    fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
+        let at = self
+            .geometry
+            .data(at, bytes.len())
+            .ok_or(Refusal::Geometry)?;
+        Storage::program(&mut self.whole, at, bytes)
+    }
+}
+#[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
+impl crate::native_observed_archive::custody_journal::WholeEpoch for ObservationEpoch {
+    fn identity(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/physical-observation-epoch@1\0");
+        for value in [
+            0x400000,
+            EPOCHS_START,
+            5 * epoch_geometry::TOTAL,
+            self.geometry.origin,
+            epoch_geometry::TOTAL,
+            epoch_geometry::DATA,
+        ] {
+            hash.update(value.to_le_bytes());
+        }
+        hash.finalize().into()
+    }
+    fn data_offset(&self) -> usize {
+        self.geometry.offset as usize
+    }
+    fn read(
+        &mut self,
+        at: usize,
+        out: &mut [u8],
+    ) -> Result<(), crate::native_observed_archive::custody_journal::Error> {
+        use crate::native_observed_archive::custody_journal::Error;
+        let at = epoch_geometry::Geometry::whole(at, out.len()).ok_or(Error::Region)?;
+        Storage::read(&mut self.whole, at, out).map_err(|_| Error::Media)
+    }
+    fn program_marker(
+        &mut self,
+        bank: u8,
+        at: usize,
+        bytes: &[u8],
+    ) -> Result<(), crate::native_observed_archive::custody_journal::Error> {
+        use crate::native_observed_archive::custody_journal::Error;
+        let at = epoch_geometry::Geometry::marker(bank, at, bytes.len()).ok_or(Error::Region)?;
+        Storage::program(&mut self.whole, at, bytes).map_err(|_| Error::Media)
+    }
+    fn erase_marker(
+        &mut self,
+        bank: u8,
+    ) -> Result<(), crate::native_observed_archive::custody_journal::Error> {
+        use crate::native_observed_archive::custody_journal::Error;
+        let at = epoch_geometry::Geometry::marker(bank, 0, 4096).ok_or(Error::Region)?;
+        self.erase_sector(at)
+    }
+    fn erase_data(
+        &mut self,
+        sector: u8,
+    ) -> Result<(), crate::native_observed_archive::custody_journal::Error> {
+        use crate::native_observed_archive::custody_journal::Error;
+        let at = epoch_geometry::Geometry::data_sector(sector).ok_or(Error::Region)?;
+        self.erase_sector(at)
+    }
+}

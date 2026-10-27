@@ -55,6 +55,13 @@ pub(crate) struct Custody<S> {
     storage: S,
     latest: Option<Stamp>,
 }
+/// Boot classification transfers the same affine owner. Retained is existing
+/// data custody only; it does not claim erased backing or fresh write authority.
+pub(crate) enum Opened<S> {
+    PendingReclaim(Custody<S>),
+    Retained(S),
+    Erased(ErasedData<S>),
+}
 /// Only complete erase readback plus committed Reclaimed can construct this.
 pub(crate) struct ErasedData<S>(S);
 impl<S> ErasedData<S> {
@@ -232,6 +239,18 @@ impl<S: WholeEpoch> Custody<S> {
             return Err(Error::Region);
         }
         Ok(())
+    }
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn classify(mut self) -> Result<Opened<S>, (Self, Error)> {
+        match self.latest.map(|stamp| stamp.phase) {
+            Some(Phase::Reclaiming) => Ok(Opened::PendingReclaim(self)),
+            None => Ok(Opened::Retained(self.storage)),
+            Some(Phase::Reclaimed) => match self.erased() {
+                Ok(()) => Ok(Opened::Erased(ErasedData(self.storage))),
+                Err(Error::Occupied) => Ok(Opened::Retained(self.storage)),
+                Err(error) => Err((self, error)),
+            },
+        }
     }
     /// Trusted closure must consume/check actual immutable journal custody,
     /// exact signed scope/forms/count/content, and opaque admitted-message proof.

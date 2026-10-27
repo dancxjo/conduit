@@ -126,6 +126,7 @@ fn actual_journal_preflight_checks_tail_extent_and_pinned_receipt() {
         .verify(&other, &key.verifying_key(), &media)
         .is_err());
     receipt.validate(&body, &key.verifying_key()).unwrap();
+    assert_eq!(receipt.region_identity(), &media.identity);
     let mut other_media = media.clone();
     other_media.identity[0] ^= 1;
     assert!(receipt
@@ -263,4 +264,50 @@ fn every_first_marker_cut_recovers_only_with_prior_witness_and_fresh_closed_cust
             .iter()
             .all(|b| *b == 255));
     }
+}
+
+#[test]
+fn boot_classification_retains_successor_without_erasure_or_fresh_authority() {
+    let (original, receipt, body, key) = fixture();
+    let acceptance = accepted(&original);
+    let verify = |bytes: &[u8; ACCEPTANCE]| bytes == &acceptance;
+    let mut work = [0; WORK];
+    let witness = receipt
+        .verify(&body, &key.verifying_key(), &original)
+        .unwrap();
+    let controller = Custody::open_established(original, witness, &mut work, verify)
+        .map_err(|(_, e)| e)
+        .unwrap();
+    let existing = match controller.classify().map_err(|(_, e)| e).unwrap() {
+        super::super::Opened::Retained(s) => s,
+        _ => panic!("unformatted existing data must remain retained"),
+    };
+    let controller = Custody::open(existing, &mut work, verify)
+        .map_err(|(_, e)| e)
+        .unwrap();
+    let erased = controller
+        .begin(&acceptance, &mut work, verify, |_, _| Ok(()))
+        .map_err(|(_, e)| e)
+        .unwrap();
+    let media = erased.into_storage();
+    let controller = Custody::open(media, &mut work, verify)
+        .map_err(|(_, e)| e)
+        .unwrap();
+    let mut media = match controller.classify().map_err(|(_, e)| e).unwrap() {
+        super::super::Opened::Erased(s) => s.into_storage(),
+        _ => panic!("fully reclaimed blank data must prove erased"),
+    };
+    // A new journal occupies data while the prior Reclaimed marker remains.
+    media.bytes[0..4].copy_from_slice(b"JEV1");
+    let before = media.bytes.clone();
+    let erases = media.erases;
+    let controller = Custody::open(media, &mut work, verify)
+        .map_err(|(_, e)| e)
+        .unwrap();
+    let retained = match controller.classify().map_err(|(_, e)| e).unwrap() {
+        super::super::Opened::Retained(s) => s,
+        _ => panic!("successor data must never become erased proof"),
+    };
+    assert_eq!(retained.bytes, before);
+    assert_eq!(retained.erases, erases);
 }

@@ -49,6 +49,10 @@ impl Receipt {
     pub(crate) fn bytes(&self) -> &[u8; BYTES] {
         &self.0
     }
+    /// Identifier data only; callers still need validate/verify at their boundary.
+    pub(crate) fn region_identity(&self) -> &[u8; 32] {
+        self.0[56..88].try_into().unwrap()
+    }
     /// Validate persisted data against Body/Root without minting physical
     /// custody. Region binding remains mandatory in verify below.
     pub(crate) fn validate(&self, body: &BodyId, root: &VerifyingKey) -> Result<(), Error> {
