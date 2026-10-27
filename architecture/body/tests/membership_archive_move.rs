@@ -653,3 +653,79 @@ fn started_membership_seal_failure_keeps_exact_owner_and_archive_custody() {
     assert_eq!(owner.foreground(), foreground.as_ref());
     assert!(owner.pending_archives().is_empty());
 }
+
+#[test]
+fn membership_append_refusal_restores_exact_records_membership_capacity_and_backing() {
+    for archived in [false, true] {
+        let mut evidence = history(3);
+        if archived {
+            evidence.seal_membership_history().unwrap().unwrap();
+        }
+        let mut next = evidence.clone();
+        append_offline(&mut next);
+        let change = next.membership.events.last().unwrap().change_id.clone();
+        let sequence = next.last_sequence();
+        evidence.records.reserve_exact(17);
+        evidence.membership.events.reserve_exact(9);
+        let before = postcard::to_allocvec(&evidence).unwrap();
+        let pointers = (
+            evidence.records.as_ptr(),
+            evidence.membership.events.as_ptr(),
+            evidence.membership.parts.as_ptr(),
+        );
+        let capacities = (
+            evidence.records.capacity(),
+            evidence.membership.events.capacity(),
+            evidence.membership.parts.capacity(),
+        );
+        // The first record has been installed when the second duplicate refuses.
+        assert_eq!(
+            evidence.append_membership_events(
+                next.membership.clone(),
+                &[(change.clone(), sequence), (change.clone(), sequence + 1)]
+            ),
+            Err(BodyBiographyError::DuplicateEvidence)
+        );
+        assert_eq!(postcard::to_allocvec(&evidence).unwrap(), before);
+        assert_eq!(
+            (
+                evidence.records.as_ptr(),
+                evidence.membership.events.as_ptr(),
+                evidence.membership.parts.as_ptr()
+            ),
+            pointers
+        );
+        assert_eq!(
+            (
+                evidence.records.capacity(),
+                evidence.membership.events.capacity(),
+                evidence.membership.parts.capacity()
+            ),
+            capacities
+        );
+        // Full validation can also refuse after all selected records are staged.
+        let mut malformed = next.membership;
+        malformed.revision.0 += 1;
+        assert!(evidence
+            .append_membership_events(malformed, &[(change, sequence)])
+            .is_err());
+        assert_eq!(postcard::to_allocvec(&evidence).unwrap(), before);
+        assert_eq!(
+            (
+                evidence.records.as_ptr(),
+                evidence.membership.events.as_ptr(),
+                evidence.membership.parts.as_ptr()
+            ),
+            pointers
+        );
+        assert_eq!(
+            (
+                evidence.records.capacity(),
+                evidence.membership.events.capacity(),
+                evidence.membership.parts.capacity()
+            ),
+            capacities
+        );
+        evidence.validate().unwrap();
+    }
+}

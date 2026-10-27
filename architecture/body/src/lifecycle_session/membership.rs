@@ -45,11 +45,20 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
-        // Stage only mutable biography and a possible new archive. The actual
-        // realization (and its rich/sealed Plans) never needs to be cloned.
-        let mut evidence = self.evidence.clone();
-        let archive =
-            super::prepare_membership_room(&mut evidence, self.pending_archives.len(), 2)?;
+        // Ordinary admission stages only membership and records. If history
+        // capacity requires archival, retain the existing private-copy fallback
+        // so a refused invitation cannot publish a compaction or lose custody.
+        let mut prepared = None;
+        let archive = if super::has_membership_room(&self.evidence, 2) {
+            None
+        } else {
+            let mut evidence = self.evidence.clone();
+            let archive =
+                super::prepare_membership_room(&mut evidence, self.pending_archives.len(), 2)?;
+            prepared = Some(evidence);
+            archive
+        };
+        let evidence = prepared.as_ref().unwrap_or(&self.evidence);
         let first_sequence = evidence
             .last_sequence()
             .checked_add(1)
@@ -78,10 +87,16 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
                 BodyBiographyError::InvalidEvidence,
             ));
         }
-        evidence
-            .append_membership_events(membership, &events)
-            .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
+        if let Some(mut evidence) = prepared {
+            evidence
+                .append_membership_events(membership, &events)
+                .map_err(BodyLifecycleSessionError::Biography)?;
+            self.evidence = evidence;
+        } else {
+            self.evidence
+                .append_membership_events(membership, &events)
+                .map_err(BodyLifecycleSessionError::Biography)?;
+        }
         if let Some(archive) = archive {
             self.pending_archives.push(archive);
         }

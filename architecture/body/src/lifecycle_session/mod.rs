@@ -472,6 +472,11 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
     }
 }
 
+fn has_membership_room(evidence: &BodyBiographyEvidence, events: usize) -> bool {
+    evidence.membership.events.len().saturating_add(events) <= crate::MAX_MEMBERSHIP_EVENTS
+        && evidence.records.len().saturating_add(events) <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+}
+
 /// Prepare compaction against privately owned evidence; returned archive custody
 /// is published only together with a successful membership transaction.
 fn prepare_membership_room(
@@ -479,9 +484,7 @@ fn prepare_membership_room(
     pending_archives: usize,
     events: usize,
 ) -> Result<Option<BodyBiographyArchiveSegment>, BodyLifecycleSessionError> {
-    if evidence.membership.events.len().saturating_add(events) <= crate::MAX_MEMBERSHIP_EVENTS
-        && evidence.records.len().saturating_add(events) <= crate::MAX_BODY_BIOGRAPHY_RECORDS
-    {
+    if has_membership_room(evidence, events) {
         return Ok(None);
     }
     if pending_archives >= crate::MAX_BODY_BIOGRAPHY_WAKES {
