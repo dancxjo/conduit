@@ -9,6 +9,15 @@ type Bindings = crate::native_authority::NativeBindings<
     conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
     crate::native_wait::EspWait,
 >;
+// Checked immutable planning/native custody crosses into software transfer;
+// large numeric return temporaries must not surround the native check stack.
+struct PreparedSamplerBinding<'a> {
+    tables: crate::native_software::DirectTables<'a>,
+    image: conduit_plot::flat_image::indexed::IndexedSourceImage<'static>,
+    native: Option<Bindings>,
+    active: c::ActivePlayIdentity,
+    fragment: c::FragmentId,
+}
 struct PreparedSamplerParts {
     sampler_parts: crate::native_kernel_storage::LocalKernelParts,
     native: Option<Bindings>,
@@ -258,6 +267,14 @@ impl NativeRoot {
         // Keep the sampler planner outside the later assembly frame. Its
         // complete immutable result crosses this synchronous ownership handoff;
         // no plan, authority, or metadata is omitted.
+        #[cfg(feature = "local-appliance")]
+        let parked = {
+            let key = self.restart_verifying_key();
+            let parked =
+                crate::native_restart::park_box(&mut self.body, &key, &self.host, &self.boot)?;
+            mark("cold-body-custody-parked", 1);
+            parked
+        };
         let sample = self.prepare_local_sampler_plan()?;
         let sampler = self.prepare_local_sampler_parts(&sample, execute)?;
         mark("ordinary-mask-software-construction-retired", 15);
@@ -267,6 +284,14 @@ impl NativeRoot {
             core::mem::size_of_val(mask_values),
         );
         let mask = self.prepare_local_mask_plan()?;
+        #[cfg(feature = "local-appliance")]
+        {
+            let key = self.restart_verifying_key();
+            self.body = Some(crate::native_restart::restore_parked(
+                parked, &self.host, &self.boot, &key,
+            )?);
+            mark("cold-body-custody-restored", 1);
+        }
         self.assemble_local_plots(sample, sampler, mask, mask_values, execute)
     }
     #[inline(never)]
@@ -274,76 +299,101 @@ impl NativeRoot {
         &mut self,
         sample: &c::VerifiedPlanMetadata,
         execute: bool,
-    ) -> Result<PreparedSamplerParts, &'static str> {
+    ) -> Result<alloc::boxed::Box<PreparedSamplerParts>, &'static str> {
         let sample_image = crate::native_software::planning_source()?;
         let generation = c::OfferGeneration(self.offer_generation);
-        // Validate and transfer dormant software before retaining the Body
-        // proposal. Construction metadata is no longer needed after this point;
-        // numeric tables/drivers alone confer no native or Body execution right.
-        let (sampler_parts, native, active, fragment) = {
-            let fragment = &sample.preparation_metadata().fragments[0].fragment_id;
-            let tables = crate::native_software::DirectTables::prepare(&sample, fragment)
-                .map_err(|_| "local-sampler-tables")?;
-            crate::native_software::check_local_direct(
-                self.software.as_ref().ok_or("software-owner")?,
-                &tables,
-                &sample_image,
-                (&self.host, &self.boot, generation),
-            )?;
-            mark("ordinary-mask-sampler-tables-live", 15);
-            let fragment_id = fragment.clone();
-            let active = self
-                .issuer
-                .reserve_verified_play(&sample, fragment)
-                .map_err(|_| "local-sampler-play")?;
-            let native = if execute || cfg!(feature = "target-mask-native-check") {
-                let resident =
-                    crate::native_software::resident().map_err(|_| "local-sampler-source-facts")?;
-                let placements = &sample.preparation_metadata().fragments[0].placements;
-                let pulse = &placements[usize::from(resident.roles.pulse.0)].placement_id;
-                let wait = &placements[usize::from(resident.roles.tick.0)].placement_id;
-                Some(self.issuer.bind_direct_native(
-                    &mut self.pulse,
-                    &mut self.wait,
-                    crate::native_authority::DirectNativeInput {
-                        tables: &tables,
-                        active: &active,
-                        cadence: &resident.cadence,
-                        pulse,
-                        wait,
-                        contract: &self.contract,
-                    },
-                )?)
-            } else {
-                None
-            };
-            // Source and actual owner checks precede transfer. The resulting
-            // numeric arrays and owned drivers no longer borrow Plan metadata.
-            let prepared = crate::native_software::bind_local_direct(
-                &mut self.software,
-                tables,
-                &sample_image,
-                (&self.host, &self.boot, generation),
-            )?;
-            let parts = crate::native_kernel_storage::LocalKernelParts::from_checked(prepared);
-            (parts, native, active, fragment_id)
+        let fragment = &sample.preparation_metadata().fragments[0].fragment_id;
+        let tables = crate::native_software::DirectTables::prepare(sample, fragment)
+            .map_err(|_| "local-sampler-tables")?;
+        crate::native_software::check_local_direct(
+            self.software.as_ref().ok_or("software-owner")?,
+            &tables,
+            &sample_image,
+            (&self.host, &self.boot, generation),
+        )?;
+        mark("ordinary-mask-sampler-tables-live", 15);
+        let fragment_id = fragment.clone();
+        let active = self
+            .issuer
+            .reserve_verified_play(sample, fragment)
+            .map_err(|_| "local-sampler-play")?;
+        let native = if execute || cfg!(feature = "target-mask-native-check") {
+            let resident =
+                crate::native_software::resident().map_err(|_| "local-sampler-source-facts")?;
+            let placements = &sample.preparation_metadata().fragments[0].placements;
+            let pulse = &placements[usize::from(resident.roles.pulse.0)].placement_id;
+            let wait = &placements[usize::from(resident.roles.tick.0)].placement_id;
+            Some(self.issuer.bind_direct_native(
+                &mut self.pulse,
+                &mut self.wait,
+                crate::native_authority::DirectNativeInput {
+                    tables: &tables,
+                    active: &active,
+                    cadence: &resident.cadence,
+                    pulse,
+                    wait,
+                    contract: &self.contract,
+                },
+            )?)
+        } else {
+            None
         };
-        Ok(PreparedSamplerParts {
+        self.finish_local_sampler_parts(PreparedSamplerBinding {
+            tables,
+            image: sample_image,
+            native,
+            active,
+            fragment: fragment_id,
+        })
+    }
+    // Keep software/numeric construction slots out of the frame that performs
+    // native selection. Boxing the owned result also keeps those slots out of
+    // the outer planner frame; this allocation occurs after metadata retirement.
+    #[inline(never)]
+    fn finish_local_sampler_parts(
+        &mut self,
+        binding: PreparedSamplerBinding<'_>,
+    ) -> Result<alloc::boxed::Box<PreparedSamplerParts>, &'static str> {
+        let PreparedSamplerBinding {
+            tables,
+            image,
+            native,
+            active,
+            fragment,
+        } = binding;
+        let prepared = crate::native_software::bind_local_direct(
+            &mut self.software,
+            tables,
+            &image,
+            (
+                &self.host,
+                &self.boot,
+                c::OfferGeneration(self.offer_generation),
+            ),
+        )?;
+        let sampler_parts = crate::native_kernel_storage::LocalKernelParts::from_checked(prepared);
+        Ok(alloc::boxed::Box::new(PreparedSamplerParts {
             sampler_parts,
             native,
             active,
             fragment,
-        })
+        }))
     }
     #[inline(never)]
     fn assemble_local_plots(
         &mut self,
         sample: c::VerifiedPlanMetadata,
-        sampler: PreparedSamplerParts,
+        sampler: alloc::boxed::Box<PreparedSamplerParts>,
         mask: c::VerifiedPlanMetadata,
         mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
         execute: bool,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        // Drop the temporary numeric bundle's allocation before any kernel
+        // allocation; its actual owned drivers/leases move into this assembly.
+        let sampler = {
+            let boxed = sampler;
+            *boxed
+        };
         let PreparedSamplerParts {
             sampler_parts,
             native,
