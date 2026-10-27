@@ -1,6 +1,8 @@
 //! Delivery checkpoint diagnostic, never a claim of a started appliance.
 use super::*;
 use alloc::collections::BTreeMap;
+#[path = "native_sampler_offer.rs"]
+mod sampler_offers;
 #[inline(never)]
 pub(crate) fn mark(phase: &str, item: usize) {
     let root = esp_alloc::HEAP.stats();
@@ -21,7 +23,9 @@ impl NativeRoot {
     pub fn prepare_local_sampler_plan(&mut self) -> Result<c::VerifiedPlanMetadata, &'static str> {
         mark("initialized-root-body-radio", 0);
         let image = crate::native_software::planning_source()?;
-        let mut host = self.advertisement().map_err(|_| "native-offers")?;
+        let mut host = self
+            .sampler_native_advertisement()
+            .map_err(|_| "native-offers")?;
         mark("native-offers", host.capabilities.len());
         {
             let software = self.software.as_ref().ok_or("software-owner")?;
