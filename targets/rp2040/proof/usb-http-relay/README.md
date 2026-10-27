@@ -130,3 +130,12 @@ ACKs still require actual low input on the ninth clock. Released levels are
 sampled after a 1 ms settling delay, explicitly reported in kind7. This profile
 can distinguish weak/floating-line behavior; it does not measure voltage or
 prove external power, connection correctness, or a genuine device ACK by itself.
+
+The final attended wiring diagnostic tests only the same owned GP3/4 pair.
+It first sends the ordinary shared-Look packets with GP3 CLK / GP4 DIO. Only
+when the first command is NACKed and no complete frame has ever been ACKed does
+it release both lines, reverse their roles once, and send the identical frame.
+Reversed roles are selected only after all9 actual byte ACKs; otherwise it
+releases both and restores normal roles. Kind7 reports the selected GPIO roles
+and both normal/reversed errors. This performs no GPIO scan or synthetic ACK.
+If both roles fail, stop electrical experiments and retain sensor/relay testing.

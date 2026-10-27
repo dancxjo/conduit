@@ -21,6 +21,9 @@ struct Snapshot {
     secondary_init: heapless::String<64>,
     measurement: heapless::String<64>,
     display_error: heapless::String<64>,
+    normal_error: heapless::String<64>,
+    reversed_error: heapless::String<64>,
+    reversed: bool,
     levels: (bool, bool),
     before: (bool, bool),
     samples: u64,
@@ -38,6 +41,9 @@ static SNAPSHOT: Mutex<RefCell<Snapshot>> = Mutex::new(RefCell::new(Snapshot {
     secondary_init: heapless::String::new(),
     measurement: heapless::String::new(),
     display_error: heapless::String::new(),
+    normal_error: heapless::String::new(),
+    reversed_error: heapless::String::new(),
+    reversed: false,
     levels: (false, false),
     before: (false, false),
     samples: 0,
@@ -102,7 +108,7 @@ fn describe_wire<E: core::fmt::Debug>(
 pub fn diagnostic() -> Result<heapless::String<512>, &'static str> {
     let s = critical_section::with(|cs| SNAPSHOT.borrow(cs).borrow().clone());
     let mut out = heapless::String::new();
-    write!(&mut out,"{{\"role\":\"{}\",\"primary_0x76\":\"{}\",\"secondary_0x77\":\"{}\",\"measure\":\"{}\",\"display_error\":\"{}\",\"idle_clock_high\":{},\"idle_data_high\":{},\"after_clock_high\":{},\"after_data_high\":{},\"settled_us\":1000,\"half_period_us\":50,\"weak_pullups\":true}}",crate::protocol::ROLE,s.primary_init,s.secondary_init,s.measurement,s.display_error,s.before.0,s.before.1,s.levels.0,s.levels.1).map_err(|_|"diagnostic-capacity")?;
+    write!(&mut out,"{{\"role\":\"{}\",\"primary_0x76\":\"{}\",\"secondary_0x77\":\"{}\",\"measure\":\"{}\",\"display_error\":\"{}\",\"idle_clock_high\":{},\"idle_data_high\":{},\"after_clock_high\":{},\"after_data_high\":{},\"settled_us\":1000,\"half_period_us\":50,\"weak_pullups\":true,\"clock_gpio\":{},\"data_gpio\":{},\"normal_error\":\"{}\",\"reversed_error\":\"{}\"}}",crate::protocol::ROLE,s.primary_init,s.secondary_init,s.measurement,s.display_error,s.before.0,s.before.1,s.levels.0,s.levels.1,if s.reversed{4}else{3},if s.reversed{3}else{4},s.normal_error,s.reversed_error).map_err(|_|"diagnostic-capacity")?;
     Ok(out)
 }
 // Only slows the electrical half-period; delegates every pin transition and
@@ -123,6 +129,20 @@ impl OpenDrain for SlowDiagnostic {
         embassy_time::block_for(Duration::from_micros(50));
         Ok(())
     }
+}
+fn send_frame(
+    pins: &mut SlowDiagnostic,
+    data: &[u8; 7],
+) -> Result<(), conduit_tm1637_wire::Failure<core::convert::Infallible>> {
+    transmit(
+        pins,
+        &[
+            Packet { bytes: &[0x40] },
+            Packet { bytes: data },
+            Packet { bytes: &[0x8a] },
+        ],
+        || false,
+    )
 }
 #[embassy_executor::task]
 pub async fn run(
@@ -145,6 +165,8 @@ pub async fn run(
     let mut last_sample = None;
     let mut revision = 0u64;
     let mut delay = Delay;
+    let mut swap_probed = false;
+    let mut reversed = false;
     loop {
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
@@ -219,15 +241,34 @@ pub async fn run(
             registers[5],
         ];
         let before = pins.0.levels();
-        let result = transmit(
-            &mut pins,
-            &[
-                Packet { bytes: &[0x40] },
-                Packet { bytes: &data },
-                Packet { bytes: &[0x8a] },
-            ],
-            || false,
-        );
+        let mut result = send_frame(&mut pins, &data);
+        let mut frames = 1;
+        update(|s| {
+            if reversed {
+                s.reversed_error = describe_wire(&result);
+            } else {
+                s.normal_error = describe_wire(&result);
+            }
+        });
+        if !swap_probed
+            && s.acks == 0
+            && matches!(
+                result,
+                Err(conduit_tm1637_wire::Failure::Nack { packet: 0, byte: 0 })
+            )
+        {
+            swap_probed = true;
+            pins.0.swap_lines();
+            let opposite = send_frame(&mut pins, &data);
+            frames += 1;
+            update(|s| s.reversed_error = describe_wire(&opposite));
+            if opposite.is_ok() {
+                reversed = true;
+                result = opposite;
+            } else {
+                pins.0.swap_lines();
+            }
+        }
         // Observe actual released input levels after a bounded RC settling period.
         embassy_time::block_for(Duration::from_millis(1));
         let levels = pins.0.levels();
@@ -235,7 +276,8 @@ pub async fn run(
             s.levels = levels;
             s.before = before;
             s.display_error = describe_wire(&result);
-            s.frames = s.frames.saturating_add(1);
+            s.frames = s.frames.saturating_add(frames);
+            s.reversed = reversed;
             if result.is_ok() {
                 s.acks = s.acks.saturating_add(1);
             }

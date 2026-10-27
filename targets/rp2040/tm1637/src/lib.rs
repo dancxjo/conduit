@@ -25,6 +25,13 @@ impl<'d> PicoTm1637<'d> {
         self.clock.set_pull(pull);
         self.data.set_pull(pull);
     }
+    /// Diagnostic role reversal of the same two owned pins. Release both lines
+    /// before exchanging roles; this claims no new pin and supplies no ACK.
+    pub fn swap_lines(&mut self) {
+        self.clock.set_as_input();
+        self.data.set_as_input();
+        core::mem::swap(&mut self.clock, &mut self.data);
+    }
     pub fn levels(&self) -> (bool, bool) {
         (self.clock.is_high(), self.data.is_high())
     }
