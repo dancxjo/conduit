@@ -53,6 +53,11 @@ pub(super) fn build_local_appliance(root: &Path, key: &Path) -> Result<(), Box<d
     );
     Ok(())
 }
+pub(super) fn build_flat_network_appliance(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
+    build_with_owner(root, true, false, Some(key), Some("flat-network-appliance"))?;
+    println!("Flat network construction candidate; native workspace admission remains gated");
+    Ok(())
+}
 /// Physical owner maintenance preserves data partitions and does not start a
 /// new Body Boot. Install the ordinary appliance image after custody transfer.
 pub(super) fn build_biography_maintenance(root: &Path, key: &Path) -> Result<(), Box<dyn Error>> {
@@ -90,7 +95,7 @@ fn build_with_owner(
     });
     let local_appliance = matches!(
         selected_profile,
-        "local-appliance" | "biography-maintenance"
+        "local-appliance" | "flat-network-appliance" | "biography-maintenance"
     );
     if native {
         packaging::check_packages(&package, channel, selected_profile)?;

@@ -1,6 +1,6 @@
 //! Root-owned control Play through the production fixed kernel. No direct
 //! radio method is available; only exact selected owners dispatch Host Calls.
-#[cfg(feature = "local-appliance")]
+#[cfg(feature = "flat-network-appliance")]
 #[path = "native_play_flat.rs"]
 mod flat;
 #[path = "native_network_install.rs"]
@@ -24,7 +24,7 @@ const CAP: &str = "conduit/esp32/network-attachment-receipt@1";
 const IMPLEMENTATION: &str = "esp32/network-attachment-receipt@1";
 const ARTIFACT: &str = "native/esp32-network-attachment-receipt@1";
 pub struct NativePlay {
-    #[cfg(feature = "local-appliance")]
+    #[cfg(feature = "flat-network-appliance")]
     flat_refusal: Option<alloc::boxed::Box<flat::IssuedCustody>>,
     steps: u16,
     dispatches: [u8; 3],
@@ -46,7 +46,7 @@ pub struct NativePlay {
 impl NativePlay {
     pub fn new() -> Self {
         Self {
-            #[cfg(feature = "local-appliance")]
+            #[cfg(feature = "flat-network-appliance")]
             flat_refusal: None,
             steps: 0,
             dispatches: [0; 3],

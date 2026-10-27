@@ -99,7 +99,7 @@ impl NativeRoot {
             return b"refused";
         }
         self.offer_generation = selected_generation - 1;
-        #[cfg(feature = "local-appliance")]
+        #[cfg(feature = "flat-network-appliance")]
         let result = {
             let image = crate::native_source::load();
             let result = self.play.install_linked_held(
@@ -116,7 +116,7 @@ impl NativeRoot {
                 result
             }
         };
-        #[cfg(not(feature = "local-appliance"))]
+        #[cfg(not(feature = "flat-network-appliance"))]
         let result = {
             if self.prepare_network_plan().is_err() {
                 return b"refused";
