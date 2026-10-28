@@ -151,27 +151,25 @@ fn interrupted_partial_file_and_symlink_refuse_without_replacing() {
 // Compile the producer's exact canonical codec, including its independently
 // implemented member transcript, against a minimal owner descriptor. No fixture
 // owner is used to authenticate or mint custody in the host implementation.
-mod native_codec {
-    pub(super) struct Draft {
-        pub payload: [u8; 176],
-        pub key: [u8; 32],
-    }
-    impl Draft {
-        pub fn root(&self) -> &[u8; 32] {
-            &self.key
-        }
-        pub fn transcript(&self) -> [u8; 32] {
-            use sha2::{Digest, Sha256};
-            let mut h = Sha256::new();
-            h.update(b"conduit.environment/network-retirement-offer@1\0");
-            h.update(self.key);
-            h.update(self.payload);
-            h.finalize().into()
-        }
-    }
-    #[path = "../../../../../../targets/esp32/proof/tm1637/src/native_network_ack.rs"]
-    pub mod ack;
+pub(super) struct Draft {
+    pub payload: [u8; 176],
+    pub key: [u8; 32],
 }
+impl Draft {
+    pub fn root(&self) -> &[u8; 32] {
+        &self.key
+    }
+    pub fn transcript(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(b"conduit.environment/network-retirement-offer@1\0");
+        h.update(self.key);
+        h.update(self.payload);
+        h.finalize().into()
+    }
+}
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_network_ack.rs"]
+pub mod ack;
 #[test]
 fn member_transcript_and_encoding_match_actual_native_canonical_codec() {
     let f = fixture();
@@ -182,13 +180,10 @@ fn member_transcript_and_encoding_match_actual_native_canonical_codec() {
         .sign(&transcript)
         .to_bytes();
     let encoded = token.encode_ack(&f.credential, signature).unwrap();
-    let native = native_codec::ack::Request::for_credential(
-        offer_id(&f.scope.root, &f.offer),
-        &f.credential,
-        signature,
-    )
-    .unwrap();
+    let native =
+        ack::Request::for_credential(offer_id(&f.scope.root, &f.offer), &f.credential, signature)
+            .unwrap();
     assert_eq!(encoded.as_slice(), native);
-    let decoded = native_codec::ack::Request::decode(&encoded).unwrap();
+    let decoded = ack::Request::decode(&encoded).unwrap();
     assert_eq!(transcript, decoded.transcript(&f.scope.body));
 }
