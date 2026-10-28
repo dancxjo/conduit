@@ -63,40 +63,158 @@ impl Inspection {
     /// Keep the actual frozen owner leased through the synchronous Root check.
     /// No callback, accepted bytes, or decoded offer can replace this owner.
     pub(crate) fn finish_with<R>(
-        mut self,
+        self,
         check: impl FnOnce(ClosedOfferDraft) -> Result<R, &'static str>,
     ) -> Result<R, &'static str> {
+        let mut closed = self.finish_owned()?;
+        check(closed.draft.take().expect("inspected closed draft"))
+    }
+    pub(crate) fn finish_owned(mut self) -> Result<ClosedEpoch, &'static str> {
         let owned = self.owned.take().ok_or("observed-offer-consumed")?;
         let (active, result) = owned.finish();
-        let _lease = ClosedLease {
+        let mut closed = ClosedEpoch {
             slot: self.slot,
-            active: Some(active),
+            state: Some(State::Active(active)),
+            draft: None,
         };
-        result.and_then(check)
+        closed.draft = Some(result?);
+        Ok(closed)
     }
 }
-struct ClosedLease {
+/// Actual immutable journal plus its inspected draft. Drop restores ownership;
+/// decoded offers and signed receipts cannot construct this lease.
+pub(crate) struct ClosedEpoch {
     slot: u8,
-    active: Option<Active<ArchiveRegion>>,
+    state: Option<State>,
+    draft: Option<ClosedOfferDraft>,
 }
-impl Drop for ClosedLease {
+impl ClosedEpoch {
+    pub(crate) fn draft(&self) -> &ClosedOfferDraft {
+        self.draft.as_ref().expect("closed draft")
+    }
+    pub(crate) fn sign_offer<R>(
+        mut self,
+        sign: impl FnOnce(ClosedOfferDraft) -> Result<R, &'static str>,
+    ) -> Result<R, &'static str> {
+        sign(self.draft.take().expect("inspected closed draft"))
+    }
+    pub(crate) fn identity(&self) -> [u8; 32] {
+        let Some(State::Active(active)) = &self.state else {
+            unreachable!("closed active owner")
+        };
+        active
+            .journal
+            .inspect_storage(custody_journal::WholeEpoch::identity)
+    }
+    /// No write occurs here. Actual signed layout custody and exact closed
+    /// acceptance are checked before handing the same physical owner to a job.
+    pub(crate) fn prepare_reclaim(
+        mut self,
+        accepted: &[u8; custody_journal::ACCEPTANCE],
+        receipt: &custody_journal::layout::Receipt,
+        body: &BodyId,
+        key: &VerifyingKey,
+    ) -> Result<(ReclaimSlot, custody_journal::PreparedReclaim<ArchiveRegion>), &'static str> {
+        if !self.draft().matches_accepted(accepted, body, key) {
+            return Err("observed-reclaim-acceptance");
+        }
+        let identity = self.identity();
+        let prepared = with_work(|work| {
+            let work: &mut [u8; custody_journal::WORK] =
+                work.try_into().map_err(|_| "observed-reclaim-workspace")?;
+            let Some(State::Active(active)) = &self.state else {
+                unreachable!()
+            };
+            let witness = active
+                .journal
+                .inspect_storage(|storage| receipt.verify(body, key, storage))
+                .map_err(|_| "observed-reclaim-layout")?;
+            let Some(State::Active(active)) = self.state.take() else {
+                unreachable!()
+            };
+            let verify = |bytes: &[u8; custody_journal::ACCEPTANCE]| {
+                custody_acceptance::verify_accepted(bytes, body, key)
+            };
+            let custody = match custody_journal::Custody::open_established(
+                active.journal.into_storage(),
+                witness,
+                work,
+                verify,
+            ) {
+                Ok(custody) => custody,
+                Err((storage, _)) => {
+                    self.state = Some(State::FrozenRegion(storage));
+                    return Err("observed-reclaim-open");
+                }
+            };
+            match custody.prepare_begin(accepted, verify, |storage, bytes| {
+                use custody_journal::WholeEpoch;
+                if storage.identity() == identity && bytes == accepted {
+                    Ok(())
+                } else {
+                    Err(custody_journal::Error::Region)
+                }
+            }) {
+                Ok(prepared) => Ok(prepared),
+                Err((custody, _)) => {
+                    self.state = Some(State::Pending(custody));
+                    Err("observed-reclaim-prepare")
+                }
+            }
+        })?;
+        Ok((
+            ReclaimSlot {
+                index: self.slot,
+                identity,
+            },
+            prepared,
+        ))
+    }
+}
+impl Drop for ClosedEpoch {
     fn drop(&mut self) {
-        if let Some(active) = self.active.take() {
-            restore(self.slot, active);
+        if let Some(state) = self.state.take() {
+            restore_state(self.slot, state);
         }
     }
 }
-fn restore(index: u8, active: Active<ArchiveRegion>) {
-    // Only this lease can own a frozen slot marked Failed. Rotation selects
-    // Cold slots; current append owns a different, non-recovered Active slot.
-    slot(index, |state| {
+/// Root retains this destination while the actual owner resides in the wait
+/// queue. Neither a slot integer nor incoming ACK can construct this token.
+#[must_use]
+pub(crate) struct ReclaimSlot {
+    index: u8,
+    identity: [u8; 32],
+}
+impl ReclaimSlot {
+    pub(crate) fn retained(self, custody: custody_journal::Custody<ArchiveRegion>) {
+        assert_eq!(
+            custody.identity(),
+            self.identity,
+            "same reclaimed physical owner"
+        );
+        restore_state(self.index, State::Pending(custody));
+    }
+    pub(crate) fn erased(self, proof: custody_journal::ErasedData<ArchiveRegion>) {
+        assert_eq!(
+            proof.identity(),
+            self.identity,
+            "same erased physical owner"
+        );
+        restore_state(self.index, rearm_reclaimed(proof));
+    }
+}
+fn restore_state(index: u8, state: State) {
+    slot(index, |destination| {
         assert!(
-            matches!(state, State::Failed),
+            matches!(destination, State::Failed),
             "frozen epoch lease replaced"
         );
-        *state = State::Active(active);
+        *destination = state;
     })
     .expect("frozen epoch slot remains installed");
+}
+fn restore(index: u8, active: Active<ArchiveRegion>) {
+    restore_state(index, State::Active(active));
 }
 impl Drop for Inspection {
     fn drop(&mut self) {

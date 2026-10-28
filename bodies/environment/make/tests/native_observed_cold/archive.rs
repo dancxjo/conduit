@@ -581,3 +581,6 @@ fn live_offer_lease_yields_outside_locks_and_restores_closed_media_on_every_exit
     });
     assert_eq!(media.lock().unwrap().erases, 0);
 }
+
+#[path = "live_reclaim.rs"]
+mod live_reclaim;

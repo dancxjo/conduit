@@ -98,8 +98,10 @@ impl NativeRoot {
             result => {
                 let job = *self.observed_offer.take().expect("owned inspection");
                 let key = job.request.key;
-                let response = job.inspection.finish_with(|draft| {
+                let response = (|| {
+                    let closed = job.inspection.finish_owned()?;
                     result?;
+                    let draft = closed.draft();
                     let body = self.body.as_ref().ok_or("observed-offer-no-body")?;
                     if let Some(bytes) = job.request.ack {
                         let (request, used) = serde_json_core::from_slice::<
@@ -112,7 +114,7 @@ impl NativeRoot {
                         request.validate()?;
                         let accepted = self
                             .admission
-                            .acknowledge_closed_observed(&draft, &request, body)?;
+                            .acknowledge_closed_observed(draft, &request, body)?;
                         let root_key = ed25519_dalek::VerifyingKey::from_bytes(
                             &self.admission.verifying_key(),
                         )
@@ -120,13 +122,192 @@ impl NativeRoot {
                         if !draft.matches_accepted(&accepted, &body.evidence().body_id, &root_key) {
                             return Err("observed-ack-closed-owner");
                         }
+                        if self.observed_reclaim.is_some()
+                            || !self
+                                .reclaim_submitter
+                                .as_ref()
+                                .is_some_and(|submitter| submitter.available())
+                        {
+                            return Err("observed-reclaim-busy-or-unreviewed");
+                        }
+                        let receipt = crate::native_restart::observed::read_live_layout_receipt(
+                            body,
+                            &closed.identity(),
+                        )?;
+                        let start = super::local_renewal::reserve_box::<
+                            crate::native_observed_reclaim_job::PreparedStart<
+                                crate::native_evidence_region::ObservationEpoch,
+                            >,
+                        >()?;
+                        let state = super::local_renewal::reserve_box::<Reclamation>()?;
+                        let (destination, prepared) = closed.prepare_reclaim(
+                            &accepted,
+                            &receipt,
+                            &body.evidence().body_id,
+                            &root_key,
+                        )?;
+                        let owner = crate::native_observed_reclaim_job::ReclaimJob::from_prepared(
+                            Box::write(
+                                start,
+                                crate::native_observed_reclaim_job::PreparedStart::new(prepared),
+                            ),
+                        );
+                        self.observed_reclaim = Some(Box::write(
+                            state,
+                            Reclamation {
+                                destination: Some(destination),
+                                owner: Some(owner),
+                                queued: None,
+                                deadline: embassy_time::Instant::now()
+                                    .as_millis()
+                                    .saturating_add(300_000),
+                                failed: false,
+                            },
+                        ));
                         return Ok(Completed::Accepted(accepted));
                     }
-                    let offer = self.admission.sign_closed_observed_offer(draft, body)?;
+                    let offer = closed.sign_offer(|draft| {
+                        self.admission.sign_closed_observed_offer(draft, body)
+                    })?;
                     Ok::<_, &'static str>(Completed::Offer(offer))
-                });
+                })();
+                if let Err(reason) = &response {
+                    esp_println::println!(
+                        "{{\"event\":\"observed-custody-refused\",\"reason\":\"{}\"}}",
+                        reason
+                    );
+                }
                 complete(key, response.map_err(|_| ()));
             }
+        }
+    }
+}
+type ReclaimOwner =
+    crate::native_observed_reclaim_job::ReclaimJob<crate::native_evidence_region::ObservationEpoch>;
+pub(super) struct Reclamation {
+    destination: Option<crate::native_observed_archive::offer::ReclaimSlot>,
+    owner: Option<ReclaimOwner>,
+    queued: Option<u64>,
+    deadline: u64,
+    failed: bool,
+}
+impl NativeRoot {
+    /// Root polls completions even during local renewal. The sampler's actual
+    /// wait provider performs every physical step under its own scoped permit.
+    pub(crate) fn advance_observed_reclaim(&mut self) {
+        let Some(mut state) = self.observed_reclaim.take() else {
+            return;
+        };
+        if state.failed {
+            self.observed_reclaim = Some(state);
+            return;
+        }
+        let Some(submitter) = self.reclaim_submitter.as_mut() else {
+            state.failed = true;
+            self.observed_reclaim = Some(state);
+            return;
+        };
+        if let Some(id) = state.queued {
+            if submitter.phase() != crate::native_flash_jobs::Phase::Completed(id) {
+                if embassy_time::Instant::now().as_millis() >= state.deadline
+                    && submitter.phase() == crate::native_flash_jobs::Phase::Queued(id)
+                {
+                    if let Ok(owner) = submitter.cancel(id) {
+                        state.queued = None;
+                        state.owner = Some(owner);
+                        retire_reclaim(&mut state);
+                        esp_println::println!("{{\"event\":\"observed-live-reclaim-refused\",\"reason\":\"queued-deadline\"}}");
+                        if state.owner.is_some() {
+                            self.observed_reclaim = Some(state);
+                        }
+                        return;
+                    }
+                }
+                self.observed_reclaim = Some(state);
+                return;
+            }
+            let completion = match submitter.take(id) {
+                Ok(completion) => completion,
+                Err(_) => {
+                    state.failed = true;
+                    self.observed_reclaim = Some(state);
+                    return;
+                }
+            };
+            state.queued = None;
+            state.owner = Some(completion.owner);
+            if completion.result.is_err()
+                || completion.progress != crate::native_flash_jobs::Progress::AdvancedOne
+            {
+                retire_reclaim(&mut state);
+                if state.owner.is_some() {
+                    self.observed_reclaim = Some(state);
+                }
+                esp_println::println!(
+                    "{{\"event\":\"observed-live-reclaim-refused\",\"reason\":\"physical-step\"}}"
+                );
+                return;
+            }
+        }
+        let Some(owner) = state.owner.take() else {
+            state.failed = true;
+            self.observed_reclaim = Some(state);
+            return;
+        };
+        let owner = match owner.into_erased() {
+            Ok(proof) => {
+                state
+                    .destination
+                    .take()
+                    .expect("actual reclaim destination")
+                    .erased(proof);
+                esp_println::println!(
+                    "{{\"event\":\"observed-live-reclaimed\",\"verified_reusable\":true}}"
+                );
+                return;
+            }
+            Err(owner) => owner,
+        };
+        if embassy_time::Instant::now().as_millis() >= state.deadline {
+            state.owner = Some(owner);
+            retire_reclaim(&mut state);
+            if state.owner.is_some() {
+                self.observed_reclaim = Some(state);
+            }
+            esp_println::println!(
+                "{{\"event\":\"observed-live-reclaim-refused\",\"reason\":\"deadline\"}}"
+            );
+            return;
+        }
+        match submitter.submit(owner) {
+            Ok(id) => state.queued = Some(id),
+            Err((_, owner)) => {
+                state.owner = Some(owner);
+                retire_reclaim(&mut state);
+                esp_println::println!(
+                    "{{\"event\":\"observed-live-reclaim-refused\",\"reason\":\"submission\"}}"
+                );
+            }
+        }
+        if state.queued.is_some() || state.owner.is_some() {
+            self.observed_reclaim = Some(state);
+        }
+    }
+}
+fn retire_reclaim(state: &mut Reclamation) {
+    let Some(owner) = state.owner.take() else {
+        state.failed = true;
+        return;
+    };
+    match owner.into_custody() {
+        Ok(custody) => state
+            .destination
+            .take()
+            .expect("actual reclaim destination")
+            .retained(custody),
+        Err(owner) => {
+            state.owner = Some(owner);
+            state.failed = true;
         }
     }
 }

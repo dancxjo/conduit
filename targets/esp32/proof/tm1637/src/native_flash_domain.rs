@@ -22,6 +22,9 @@ pub(crate) struct Submitter {
     timing: Option<ReviewedTiming>,
 }
 impl Submitter {
+    pub(crate) fn available(&self) -> bool {
+        self.timing.is_some() && self.inner.phase() == crate::native_flash_jobs::Phase::Idle
+    }
     /// No received budget or step label enters the real storage queue.
     pub(crate) fn submit(&mut self, job: Job) -> Result<u64, (SubmissionRefusal, Job)> {
         let Some(timing) = self.timing else {

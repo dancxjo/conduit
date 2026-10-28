@@ -302,7 +302,19 @@ retries share its result, and a different request retires the previous response
 cache before preparation. Transport and cached receipts grant no erase authority.
 
 Acceptance does not mean that a reclaim marker committed, flash was erased, or
-storage is reusable. Connecting the permit-gated reclamation job and proving
-continued sampling and display under that workload remain required. The first
+storage is reusable. The Root now connects accepted custody to the permit-gated reclamation job.
+Preparation checks the previously durable layout receipt, transfers the actual
+frozen owner, and writes nothing. Its first Reclaiming commit, individual erase
+and verification steps, and final Reclaimed publication run through the actual
+sampling wait provider. Only the final verified proof restores an unbound Cold
+slot; cancellation/refusal retains the same owner. The signed HTTP receipt still
+confirms acceptance, not job completion. Continued sampling and display under
+this connected workload still require physical verification. The first
 physical acceptance trial succeeded cryptographically but later exposed a Mask
 child workspace refusal; it is not uninterrupted display acceptance evidence.
+
+The USB carrier exposes a loopback-only `/__carrier/environment` diagnostic.
+It reads counters through the already owned serial session, never through a
+second serial connection or a forwarded request to the selected peer. The
+returned identity remains explicitly a carrier, not a Body member. This route
+performs no Wi-Fi join or diagnostic retry after failure.

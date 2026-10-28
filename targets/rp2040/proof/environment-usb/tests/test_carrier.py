@@ -193,6 +193,57 @@ class Transport(unittest.TestCase):
         with self.assertRaises(c.CarrierError):
             c.Carrier(Stream(frame(c.INFORMATION,1,encoded+b" "*769))).exchange(c.MDNS_QUERY)
 
+    def test_environment_uses_owned_session_without_join_or_peer_request(self):
+        info = {"role":c.ROLE,"build":"a"*64,"configuration":"fixture-green-config",
+                "body_member":False,"attempts":10,"samples":9,"frames":20,"acks":19,"heap_peak":300,
+                "display_frame":[0,1,2,3]}
+        stream=Stream(joined()+frame(c.INFORMATION,4,json.dumps(info).encode()))
+        connection,_,opens=self.connection([stream])
+        with self.assertRaises(c.CarrierError): connection.environment()
+        self.assertEqual(opens,[])
+        connection.connect()
+        self.assertEqual(connection.environment(),info)
+        self.assertEqual([k for k,_,_ in outgoing(stream)],[c.STATUS,c.JOIN,c.SELECT_PEER,c.SENSOR_STATUS])
+        self.assertEqual(len(opens),1)
+        connection.shutdown()
+        with self.assertRaises(c.CarrierError): connection.environment()
+        self.assertEqual(len(opens),1)
+
+    def test_environment_deadline_and_sequence_exhaustion_are_finite(self):
+        stream=Stream(b"")
+        client=c.Carrier(stream,clock=iter([0,6]).__next__)
+        client.identity=("a"*64,"fixture-green-config")
+        with self.assertRaisesRegex(c.CarrierError,"deadline"):
+            client.exchange(c.SENSOR_STATUS,timeout=5)
+        self.assertEqual([k for k,_,_ in outgoing(stream)],[c.SENSOR_STATUS])
+        client.sequence=0xFFFFFFFF
+        with self.assertRaisesRegex(c.CarrierError,"exhausted"):
+            client.exchange(c.SENSOR_STATUS)
+
+    def test_environment_refuses_identity_counter_capacity_and_framing_errors(self):
+        info={"role":c.ROLE,"build":"a"*64,"configuration":"fixture-green-config",
+              "body_member":False,"attempts":10,"samples":9,"frames":20,"acks":19,"heap_peak":300}
+        bad=[]
+        for changes in ({"body_member":True},{"build":"b"*64},{"configuration":"other"},
+                        {"samples":11},{"acks":21},{"frames":True},{"heap_peak":-1}):
+            bad.append(frame(c.INFORMATION,4,json.dumps(dict(info,**changes)).encode()))
+        bad.extend([frame(c.INFORMATION,5,json.dumps(info).encode()),frame(c.INFORMATION,4,b" "*1537),
+                    frame(c.DATA,4,b"x"),frame(c.DONE,4,b"\0"*4),frame(c.ERROR,4,PASSWORD),
+                    frame(c.INFORMATION,4,b'{"role":1,"role":2}')])
+        for reply in bad:
+            stream=Stream(joined()+reply)
+            connection,_,opens=self.connection([stream]);connection.connect()
+            with self.assertRaises(c.CarrierError): connection.environment()
+            self.assertTrue(stream.closed)
+            with self.assertRaises(c.CarrierError): connection.environment()
+            self.assertEqual(len(opens),1)
+        large=json.dumps(info).encode()+b" "*900
+        client=c.Carrier(Stream(frame(c.INFORMATION,1,large)))
+        client.identity=(info["build"],info["configuration"])
+        self.assertEqual(client.exchange(c.SENSOR_STATUS),info)
+        with self.assertRaises(c.CarrierError):
+            c.Carrier(Stream(b"")).exchange(c.SENSOR_STATUS,b"not empty")
+
 
 class PrivateConfiguration(unittest.TestCase):
     def setUp(self):
@@ -228,19 +279,31 @@ class PrivateConfiguration(unittest.TestCase):
             result=c.main(["--port","/dev/fixture","--network-file",str(self.file),"--ssid","Troys","--peer",PEER])
         self.assertEqual(result,1)
         self.assertNotIn(PASSWORD.decode(),stderr.getvalue())
-        self.assertIs(c.handler,c._http.handler)
+        self.assertIsNot(c.handler,c._http.handler)
 
 
 class HttpBoundary(unittest.TestCase):
-    def roundtrip(self,request):
+    def roundtrip(self,request,diagnostic_failure=False,nonlocal_client=False):
         class SelectedTransport:
             peer_host=PEER
             def __init__(self): self.requests=[]
+            def environment(self):
+                self.requests.append((c.SENSOR_STATUS,b""))
+                if diagnostic_failure: raise c.CarrierError("private-device-error")
+                return {"role":c.ROLE,"build":"a"*64,"configuration":"yellow-fixture","body_member":False,
+                        "frames":12,"acks":11}
             def exchange(self,kind,payload):
                 self.requests.append((kind,payload))
                 return b"HTTP/1.1 202 Accepted\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}"
         transport=SelectedTransport()
-        server=c.HTTPServer(("127.0.0.1",0),c.handler(transport))
+        selected_handler=c.handler(transport)
+        if nonlocal_client:
+            class NonlocalHandler(selected_handler):
+                def setup(self):
+                    super().setup()
+                    self.client_address=("192.168.0.2",self.client_address[1])
+            selected_handler=NonlocalHandler
+        server=c.HTTPServer(("127.0.0.1",0),selected_handler)
         worker=threading.Thread(target=server.handle_request)
         stderr=io.StringIO()
         try:
@@ -268,6 +331,28 @@ class HttpBoundary(unittest.TestCase):
         self.assertEqual(requests[0][0],c.REQUEST)
         self.assertIn(b"Host: "+PEER.encode()+b"\r\n",requests[0][1])
         self.assertTrue(requests[0][1].endswith(body))
+    def test_local_environment_route_retains_provenance_and_never_forwards_http(self):
+        reply,requests=self.roundtrip(b"GET /__carrier/environment HTTP/1.1\r\nHost: localhost\r\n\r\n")
+        self.assertTrue(reply.startswith(b"HTTP/1.1 200"))
+        self.assertEqual(requests,[(c.SENSOR_STATUS,b"")])
+        self.assertIn(b"Cache-Control: no-store",reply)
+        document=json.loads(reply.split(b"\r\n\r\n",1)[1])
+        self.assertFalse(document["body_member"])
+        self.assertEqual(document["transport"],"owned-usb-session")
+        self.assertEqual(document["environment"]["configuration"],"yellow-fixture")
+        reply,requests=self.roundtrip(b"GET /__carrier/environment HTTP/1.1\r\n\r\n",True)
+        self.assertTrue(reply.startswith(b"HTTP/1.1 502"))
+        self.assertNotIn(b"private-device-error",reply)
+        reply,requests=self.roundtrip(b"GET /__carrier/environment HTTP/1.1\r\n\r\n",nonlocal_client=True)
+        self.assertTrue(reply.startswith(b"HTTP/1.1 403"))
+        self.assertEqual(requests,[])
+        for request,code in ((b"POST /__carrier/environment HTTP/1.1\r\n\r\n",405),
+                             (b"GET /__carrier/environment?x HTTP/1.1\r\n\r\n",400),
+                             (b"GET /__carrier/environment HTTP/1.1\r\nContent-Length: 1\r\n\r\nx",400)):
+            reply,requests=self.roundtrip(request)
+            self.assertTrue(reply.startswith(b"HTTP/1.1 "+str(code).encode()))
+            self.assertEqual(requests,[])
+
     def test_duplicate_length_chunked_and_total_request_capacity_never_reach_usb(self):
         for headers,expected in ((b"Content-Length: 1\r\nContent-Length: 1\r\n",400),(b"Transfer-Encoding: chunked\r\n",400),(b"Content-Length: 8192\r\n",413),(b"X-Large: "+b"x"*8192+b"\r\n",413)):
             response,requests=self.roundtrip(b"POST / HTTP/1.1\r\nHost: localhost\r\n"+headers+b"\r\n")

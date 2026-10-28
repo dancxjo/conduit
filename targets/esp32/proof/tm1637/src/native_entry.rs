@@ -166,6 +166,8 @@ async fn main(spawner: Spawner) {
                     // Root owns an unpublished replacement proposal. Network tasks
                     // and history readers run independently; emergency cancellation
                     // remains a separate scoped entrance.
+                    #[cfg(feature = "body-persistence")]
+                    root.advance_observed_reclaim();
                     if !root.local_renewal_pending() {
                         let _ = await_outlined(root.advance_setup()).await;
                         #[cfg(feature = "body-persistence")]

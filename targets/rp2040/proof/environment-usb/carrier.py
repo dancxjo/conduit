@@ -24,10 +24,9 @@ _spec = importlib.util.spec_from_file_location("conduit_legacy_http_frontend", P
 _http = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_http)
 CarrierError = _http.RelayError
-handler = _http.handler
 HEADER = struct.Struct("<4sBBIH")
 ROLE = "conduit.environment-wifi-carrier@1"
-JOIN, REQUEST, STATUS, MDNS_QUERY, SELECT_PEER = 1, 2, 3, 10, 11
+JOIN, REQUEST, STATUS, SENSOR_STATUS, DIAGNOSTICS, MDNS_QUERY, SELECT_PEER = 1, 2, 3, 6, 7, 10, 11
 DATA, DONE, ERROR, INFORMATION = 128, 129, 130, 131
 MAX_REQUEST, MAX_RESPONSE, CHUNK = 8192, 65536, 512
 
@@ -156,8 +155,10 @@ class Carrier:
         return bytes(result)
 
     def exchange(self, kind, payload=b"", timeout=40):
-        if type(kind) is not int or kind not in (JOIN, REQUEST, STATUS, SELECT_PEER, MDNS_QUERY) or not isinstance(payload, (bytes, bytearray, memoryview)) or len(payload) > MAX_REQUEST:
+        if type(kind) is not int or kind not in (JOIN, REQUEST, STATUS, SELECT_PEER, MDNS_QUERY, SENSOR_STATUS, DIAGNOSTICS) or not isinstance(payload, (bytes, bytearray, memoryview)) or len(payload) > MAX_REQUEST:
             raise CarrierError("Carrier command capacity")
+        if kind in (SENSOR_STATUS, DIAGNOSTICS) and (payload or self.identity is None):
+            raise CarrierError("Environment query requires an identified session and no payload")
         with self.lock:
             if self.sequence == 0xFFFFFFFF:
                 raise CarrierError("USB session sequence exhausted")
@@ -178,14 +179,14 @@ class Carrier:
                     magic, version, response, response_id, length = HEADER.unpack(self._read(HEADER.size, deadline))
                     if magic != b"CPBR" or version != 1 or response_id != identity:
                         raise CarrierError("USB response scope")
-                    limit = {DATA: CHUNK, DONE: 4, ERROR: 128, INFORMATION: 768 if kind == MDNS_QUERY else 512}.get(response)
+                    limit = {DATA: CHUNK, DONE: 4, ERROR: 128, INFORMATION: 1536 if kind in (SENSOR_STATUS, DIAGNOSTICS) else (768 if kind == MDNS_QUERY else 512)}.get(response)
                     if limit is None or length > limit:
                         raise CarrierError("USB response capacity")
                     data = self._read(length, deadline)
                     if response == ERROR:
                         raise CarrierError("Carrier command refused")  # Never echo untrusted bytes.
                     if response == INFORMATION:
-                        if kind not in (STATUS, JOIN, SELECT_PEER, MDNS_QUERY) or result:
+                        if kind not in (STATUS, JOIN, SELECT_PEER, MDNS_QUERY, SENSOR_STATUS, DIAGNOSTICS) or result:
                             raise CarrierError("Unexpected information response")
                         try:
                             info = json.loads(data, object_pairs_hook=_unique_object)
@@ -193,7 +194,15 @@ class Carrier:
                             raise CarrierError("Invalid carrier information") from None
                         if not isinstance(info, dict) or info.get("role") != ROLE:
                             raise CarrierError("Not the Pico carrier role")
-                        if kind != MDNS_QUERY:
+                        if kind in (SENSOR_STATUS, DIAGNOSTICS):
+                            if info.get("body_member") is not False or (info.get("build"), info.get("configuration")) != self.identity:
+                                raise CarrierError("Environment session identity changed")
+                            for key in ("attempts", "samples", "frames", "acks", "heap_peak"):
+                                if type(info.get(key)) is not int or not 0 <= info[key] < (1 << 64):
+                                    raise CarrierError("Environment counter refused")
+                            if info["samples"] > info["attempts"] or info["acks"] > info["frames"]:
+                                raise CarrierError("Environment counter ordering refused")
+                        elif kind != MDNS_QUERY:
                             validate_status(info)
                             identity = (info["build"], info["configuration"])
                             if self.identity is not None and identity != self.identity:
@@ -329,6 +338,17 @@ class CarrierConnection:
                 self._close()
                 raise
 
+    def environment(self):
+        """Observe this owned session only; never open, rejoin, select, or retry."""
+        with self.lock:
+            if self.closed or self.client is None or self.identity is None:
+                raise CarrierError("No identified carrier session")
+            try:
+                return self.client.exchange(SENSOR_STATUS, timeout=5)
+            except (CarrierError, OSError):
+                self._close()
+                raise
+
     def observe_mdns(self, hostname, nonce=None):
         with self.lock:
             try:
@@ -343,6 +363,41 @@ class CarrierConnection:
         with self.lock:
             self.closed = True
             self._close()
+
+
+def handler(connection):
+    class LocalDiagnostics(_http.handler(connection)):
+        def forward(self):
+            if self.path.split("?", 1)[0] != "/__carrier/environment":
+                return super().forward()
+            # This diagnostic never crosses USB as HTTP or reaches the peer.
+            if self.client_address[0] != "127.0.0.1":
+                self.send_error(403)
+            elif self.command != "GET":
+                self.send_error(405)
+            elif self.path != "/__carrier/environment" or self.headers.get_all("Content-Length", []) or self.headers.get("Transfer-Encoding"):
+                self.send_error(400)
+            else:
+                try:
+                    document = {"schema": "conduit.carrier/environment-observation@1",
+                                "transport": "owned-usb-session", "body_member": False,
+                                "environment": connection.environment()}
+                    raw = json.dumps(document, separators=(",", ":"), allow_nan=False).encode()
+                    if len(raw) > 2048:
+                        raise CarrierError("Environment HTTP capacity")
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Cache-Control", "no-store")
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    self.wfile.write(raw)
+                except (CarrierError, OSError, ValueError):
+                    self.send_error(502, "Carrier environment observation refused")
+            self.close_connection = True
+
+        do_GET = do_POST = do_HEAD = do_PUT = do_DELETE = do_OPTIONS = forward
+    return LocalDiagnostics
 
 
 def main(argv=None):

@@ -10,6 +10,12 @@ pub struct NativeRoot {
         target_os = "none"
     ))]
     observed_offer: Option<alloc::boxed::Box<observed_offer::Job>>,
+    #[cfg(all(
+        feature = "local-appliance",
+        feature = "body-persistence",
+        target_os = "none"
+    ))]
+    observed_reclaim: Option<alloc::boxed::Box<observed_offer::Reclamation>>,
     #[cfg(all(feature = "local-appliance", target_os = "none"))]
     reclaim_submitter: Option<crate::native_flash_domain::Submitter>,
     #[cfg(feature = "body-image-root")]

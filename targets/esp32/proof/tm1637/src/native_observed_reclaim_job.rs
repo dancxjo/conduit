@@ -3,7 +3,7 @@ use crate::{
     native_flash_jobs::Job,
     native_flash_window::FlashPermit,
     native_observed_archive::custody_journal::{
-        ErasedData, Error, PendingReclaim, PreparedReclaim, ReclaimStep, WholeEpoch, WORK,
+        Custody, ErasedData, Error, PendingReclaim, PreparedReclaim, ReclaimStep, WholeEpoch, WORK,
     },
 };
 use alloc::boxed::Box;
@@ -111,6 +111,25 @@ impl<S: WholeEpoch> ReclaimJob<S> {
             _ => Err(Error::Phase),
         }
     }
+    /// Cancellation returns the same retained or durable pending owner without
+    /// a flash effect. Completed erase proof must be consumed with into_erased.
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn into_custody(self) -> Result<Custody<S>, Self> {
+        match self {
+            Self {
+                state: Some(State::Prepared(prepared)),
+                ..
+            } => {
+                let PreparedStart { prepared } = *prepared;
+                Ok(prepared.expect("actual prepared owner").into_custody())
+            }
+            Self {
+                state: Some(State::Pending(pending)),
+                ..
+            } => Ok(pending.into_custody()),
+            other => Err(other),
+        }
+    }
     #[allow(clippy::result_large_err)]
     pub(crate) fn into_erased(self) -> Result<ErasedData<S>, Self> {
         match self {
@@ -141,7 +160,7 @@ mod tests {
     use super::*;
     use crate::{
         native_flash_window::Gate,
-        native_observed_archive::custody_journal::{Custody, ACCEPTANCE, DATA, SECTOR, TOTAL},
+        native_observed_archive::custody_journal::{Opened, ACCEPTANCE, DATA, SECTOR, TOTAL},
     };
     use std::{cell::Cell, rc::Rc, vec, vec::Vec};
     struct Media {
@@ -182,6 +201,122 @@ mod tests {
             self.bytes[at..at + SECTOR].fill(255);
             Ok(())
         }
+    }
+    struct PreparedFixture {
+        job: ReclaimJob<Media>,
+        fail: Rc<Cell<bool>>,
+        erases: Rc<Cell<u32>>,
+        metadata_ops: Rc<Cell<u32>>,
+    }
+    fn prepared_job() -> PreparedFixture {
+        let fail = Rc::new(Cell::new(false));
+        let erases = Rc::new(Cell::new(0));
+        let metadata_ops = Rc::new(Cell::new(0));
+        let mut bytes = vec![255; TOTAL];
+        bytes[..DATA].fill(17);
+        let media = Media {
+            bytes,
+            fail: fail.clone(),
+            erases: erases.clone(),
+            metadata_ops: metadata_ops.clone(),
+        };
+        let custody = Custody::open(media, &mut [0; WORK], |_| true).ok().unwrap();
+        let mut acceptance = [0; ACCEPTANCE];
+        acceptance[..32].fill(7);
+        let prepared = custody
+            .prepare_begin(&acceptance, |_| true, |_, _| Ok(()))
+            .ok()
+            .unwrap();
+        PreparedFixture {
+            job: ReclaimJob::from_prepared(Box::new(PreparedStart::new(prepared))),
+            fail,
+            erases,
+            metadata_ops,
+        }
+    }
+    #[test]
+    fn cancelled_before_initial_commit_returns_original_retained_media_without_effects() {
+        let PreparedFixture {
+            job,
+            erases,
+            metadata_ops,
+            ..
+        } = prepared_job();
+        let custody = job.into_custody().ok().unwrap();
+        let media = match custody.classify().ok().unwrap() {
+            Opened::Retained(media) => media,
+            _ => panic!("uncommitted preparation is retained"),
+        };
+        assert!(media.bytes[..DATA].iter().all(|byte| *byte == 17));
+        assert_eq!(erases.get(), 0);
+        assert_eq!(metadata_ops.get(), 0);
+    }
+    #[test]
+    fn cancelled_after_data_erase_returns_durable_pending_custody() {
+        let PreparedFixture {
+            mut job,
+            erases,
+            metadata_ops,
+            ..
+        } = prepared_job();
+        let gate = Gate::new(100, 100, 100).unwrap();
+        let wait = gate.begin_wait(1, 100).unwrap();
+        let permit = wait.try_flash(2, 90).unwrap();
+        let mut work = [0; WORK];
+        job.advance(&permit, &mut work).unwrap();
+        job.advance(&permit, &mut work).unwrap();
+        let ops = metadata_ops.get();
+        let custody = job.into_custody().ok().unwrap();
+        assert!(matches!(custody.classify(), Ok(Opened::PendingReclaim(_))));
+        assert_eq!(erases.get(), 1);
+        assert_eq!(metadata_ops.get(), ops);
+    }
+    #[test]
+    fn terminal_job_preserves_erase_proof_when_custody_return_is_refused() {
+        let PreparedFixture {
+            mut job,
+            erases,
+            metadata_ops,
+            ..
+        } = prepared_job();
+        let gate = Gate::new(100, 100, 100).unwrap();
+        let wait = gate.begin_wait(1, 100).unwrap();
+        let permit = wait.try_flash(2, 90).unwrap();
+        let mut work = [0; WORK];
+        for _ in 0..62 {
+            job.advance(&permit, &mut work).unwrap();
+        }
+        let ops = metadata_ops.get();
+        let job = job.into_custody().err().unwrap();
+        assert_eq!(job.operation(), None);
+        let media = job.into_erased().ok().unwrap().into_storage();
+        assert!(media.bytes[..DATA].iter().all(|byte| *byte == 255));
+        assert_eq!(erases.get(), 30);
+        assert_eq!(metadata_ops.get(), ops);
+    }
+    #[test]
+    fn failed_initial_commit_can_return_actual_owner_without_retrying_flash() {
+        let PreparedFixture {
+            mut job,
+            fail,
+            erases,
+            metadata_ops,
+        } = prepared_job();
+        let gate = Gate::new(100, 100, 100).unwrap();
+        let wait = gate.begin_wait(1, 100).unwrap();
+        let permit = wait.try_flash(2, 90).unwrap();
+        fail.set(true);
+        assert_eq!(job.advance(&permit, &mut [0; WORK]), Err(Error::Media));
+        let ops = metadata_ops.get();
+        let custody = job.into_custody().ok().unwrap();
+        let media = match custody.classify().ok().unwrap() {
+            Opened::Retained(media) => media,
+            _ => panic!("failed initial erase cannot create pending proof"),
+        };
+        assert!(Rc::ptr_eq(&media.fail, &fail));
+        assert!(media.bytes[..DATA].iter().all(|byte| *byte == 17));
+        assert_eq!(erases.get(), 0);
+        assert_eq!(metadata_ops.get(), ops);
     }
     #[test]
     fn actual_staged_owner_survives_step_and_publish_failures_until_consumed() {

@@ -16,6 +16,13 @@
 #![cfg(feature = "observation-store")]
 #![allow(dead_code, unused_imports, unexpected_cfgs)]
 extern crate alloc;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_flash_jobs.rs"]
+mod native_flash_jobs;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_flash_window.rs"]
+mod native_flash_window;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_reclaim_job.rs"]
+mod native_observed_reclaim_job;
+
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[global_allocator]

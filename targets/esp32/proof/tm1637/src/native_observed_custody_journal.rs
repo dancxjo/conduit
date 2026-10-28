@@ -71,6 +71,11 @@ impl<S> ErasedData<S> {
         self.0
     }
 }
+impl<S: WholeEpoch> ErasedData<S> {
+    pub(crate) fn identity(&self) -> [u8; 32] {
+        self.0.identity()
+    }
+}
 fn checksum(bytes: &[u8]) -> u32 {
     let mut crc = !0u32;
     for &byte in bytes {
@@ -87,6 +92,10 @@ fn bank_at(bank: u8) -> usize {
 #[path = "native_observed_layout.rs"]
 pub(crate) mod layout;
 impl<S: WholeEpoch> Custody<S> {
+    pub(crate) fn identity(&self) -> [u8; 32] {
+        self.storage.identity()
+    }
+
     /// Never turns unknown/torn first-format metadata into fresh writable media.
     #[allow(clippy::result_large_err)]
     pub(crate) fn open(
