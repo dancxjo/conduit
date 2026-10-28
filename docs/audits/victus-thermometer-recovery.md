@@ -88,6 +88,15 @@ Clean cursor. All eight network pages pass NCE1 commit/CRC checks; each contains
 inspection does not recover the underlying network failure reason or authorize
 erasure. New observations and failure journals remain preserved in the backup.
 
+Normal firmware was resumed after this backup. At 92,524 ms it again had one
+committed observation, a fresh Face, 26 Mask consumptions and no reported
+sampler/Mask failure; network evidence capacity remained refused. The user
+initially saw `----` during startup, then explicitly confirmed alternating
+values after the fresh observation. That is attended visible-output evidence
+for this short run, not sustained electrical qualification. The final capture
+closed with serial HUPCL disabled and no further requested reset; Blue was left
+in normal local execution, and Yellow retained its Wi-Fi attachment.
+
 The preserved credential journal has one valid revision-1 CNJ1 profile. Its
 SSID appears in victus's cached scan. Using those preserved credentials and
 the existing carrier protocol, Yellow actually attached to the saved network:
