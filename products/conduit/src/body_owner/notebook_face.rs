@@ -45,7 +45,13 @@ impl Owner {
             },
         });
         let revised = Face::new_with_semantics_and_temporal(
-            face.revision,
+            face.revision
+                .checked_add(
+                    self.notebook
+                        .as_ref()
+                        .map_or(0, |document| document.navigation.revision),
+                )
+                .ok_or("notebook Face revision exhausted")?,
             face.basis,
             face.subjects,
             face.relationships,
@@ -64,6 +70,10 @@ impl Owner {
     }
 
     pub(crate) fn project_notebook_face(&self) -> Result<Face, String> {
+        Ok(self.project_notebook_body_face()?.face)
+    }
+
+    pub(super) fn project_notebook_body_face(&self) -> Result<BodyFace, String> {
         let document = self.notebook.as_ref().ok_or("notebook is not open")?;
         let current = TextDocument::decode(&document.current).map_err(debug)?;
         let resident = self
@@ -202,12 +212,23 @@ impl Owner {
             checked_plot_id: &resident.checked_plot_id,
             name: "notebook/transition",
         }];
-        let face = BodyFace::project_with_names(
+        let mut projected = BodyFace::project_with_names(
             &self.session.evidence().body,
             Some(&realization.wake),
-            self.session.evidence().last_sequence(),
-            FaceContext::Overview,
-            FaceFocus::Body,
+            self.session
+                .evidence()
+                .last_sequence()
+                .checked_add(document.navigation.revision)
+                .ok_or("notebook Face revision exhausted")?,
+            document.navigation.context.clone(),
+            if matches!(document.navigation.context, FaceContext::ResidentPlot(_)) {
+                FaceFocus::Contribution {
+                    role: FaceContributionRole::Foreground,
+                    node_key: None,
+                }
+            } else {
+                FaceFocus::Body
+            },
             vec![FaceContribution::from_face(
                 FaceContributionRole::Foreground,
                 fragment,
@@ -217,10 +238,36 @@ impl Owner {
                 resident_plots: &names,
             },
         )
-        .map_err(debug)?
-        .face;
-        face.validate().map_err(debug)?;
-        Ok(face)
+        .map_err(debug)?;
+        if matches!(document.navigation.context, FaceContext::Library) {
+            for disclosure in &mut projected.face.disclosures {
+                if disclosure.subject == format!("plot/{}", resident.checked_plot_id.as_str()) {
+                    disclosure.level = FaceDisclosureLevel::Primary;
+                } else if matches!(
+                    disclosure.subject.as_str(),
+                    "notebook/document" | "notebook/save-status"
+                ) {
+                    disclosure.level = FaceDisclosureLevel::Context;
+                }
+            }
+            projected.face = Face::new_with_semantics_and_temporal(
+                projected.face.revision,
+                projected.face.basis,
+                projected.face.subjects,
+                projected.face.relationships,
+                projected.face.properties,
+                projected.face.text,
+                projected.face.actions,
+                projected.face.disclosures,
+                projected.face.temporal_references,
+                projected.face.temporal_facts,
+            )
+            .and_then(|face| face.with_composition(projected.face.composition))
+            .and_then(|face| face.with_interaction_context(projected.face.interaction_context))
+            .map_err(debug)?;
+        }
+        projected.face.validate().map_err(debug)?;
+        Ok(projected)
     }
 
     pub(super) fn resolve_notebook_interaction(

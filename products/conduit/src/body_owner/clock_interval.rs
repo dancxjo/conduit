@@ -28,6 +28,7 @@ pub(crate) enum ClockAction {
     ChangeInterval,
     Start,
     Lull,
+    NotebookNavigation,
 }
 
 pub(super) fn source_for(interval_ms: u64) -> String {
@@ -257,6 +258,14 @@ impl Owner {
             (CLOCK_INTERVAL_ACTION, 1) => Ok(ClockAction::ChangeInterval),
             (CLOCK_START_ACTION | BODY_WAKE_ACTION, 0) => Ok(ClockAction::Start),
             (CLOCK_LULL_ACTION | BODY_LULL_ACTION, 0) => Ok(ClockAction::Lull),
+            (
+                "conduit.intent/open-body-overview@1"
+                | "conduit.intent/open-plot-library@1"
+                | "conduit.intent/open-resident-plot@1",
+                0,
+            ) if self.has_open_notebook() && self.current_play_id().is_some() => {
+                Ok(ClockAction::NotebookNavigation)
+            }
             _ => Err("owner action is not a current clock control".into()),
         }
     }
