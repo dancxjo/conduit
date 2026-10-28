@@ -10,6 +10,15 @@ use crate::{
 };
 use alloc::boxed::Box;
 type Job = ReclaimJob<crate::native_evidence_region::ObservationEpoch>;
+#[path = "native_flash_domain_job.rs"]
+mod job;
+pub(crate) use job::{advance, DomainError, DomainJob};
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Kind {
+    Observed,
+    #[cfg(feature = "body-persistence")]
+    Pending,
+}
 use crate::native_evidence_region::measurement::{ReviewedTiming, MAXIMUM_BUDGET_MS};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum SubmissionRefusal {
@@ -18,7 +27,7 @@ pub(crate) enum SubmissionRefusal {
     Queue(crate::native_flash_jobs::Refusal),
 }
 pub(crate) struct Submitter {
-    inner: RootSubmitter<'static, Job, (), Error>,
+    inner: RootSubmitter<'static, DomainJob, (), DomainError>,
     timing: Option<ReviewedTiming>,
 }
 impl Submitter {
@@ -33,10 +42,45 @@ impl Submitter {
         let Some(operation) = job.operation() else {
             return Err((SubmissionRefusal::Terminal, job));
         };
-        self.inner
-            .submit(job, timing.budget_ms(operation))
-            .map_err(|(error, job)| (SubmissionRefusal::Queue(error), job))
+        match self
+            .inner
+            .submit(DomainJob::Observed(job), timing.budget_ms(operation))
+        {
+            Ok(id) => Ok(id),
+            Err((error, DomainJob::Observed(job))) => Err((SubmissionRefusal::Queue(error), job)),
+            #[cfg(feature = "body-persistence")]
+            Err((_, DomainJob::Pending(_))) => {
+                unreachable!("submitted observed owner returned as pending")
+            }
+        }
     }
+    #[cfg(feature = "body-persistence")]
+    pub(crate) fn submit_pending(
+        &mut self,
+        job: Box<crate::native_restart::network_pending_job::PendingJob>,
+    ) -> Result<
+        u64,
+        (
+            SubmissionRefusal,
+            Box<crate::native_restart::network_pending_job::PendingJob>,
+        ),
+    > {
+        let Some(timing) = self.timing else {
+            return Err((SubmissionRefusal::UnreviewedTiming, job));
+        };
+        let Some(operation) = job.operation() else {
+            return Err((SubmissionRefusal::Terminal, job));
+        };
+        let budget = crate::native_evidence_region::checkpoint_access::budget_ms(timing, operation);
+        match self.inner.submit(DomainJob::Pending(job), budget) {
+            Ok(id) => Ok(id),
+            Err((error, DomainJob::Pending(job))) => Err((SubmissionRefusal::Queue(error), job)),
+            Err((_, DomainJob::Observed(_))) => {
+                unreachable!("submitted pending owner returned as observed")
+            }
+        }
+    }
+
     pub(crate) fn phase(&self) -> crate::native_flash_jobs::Phase {
         self.inner.phase()
     }
@@ -47,16 +91,102 @@ impl Submitter {
         crate::native_flash_jobs::Completion<Job, (), Error>,
         crate::native_flash_jobs::Refusal,
     > {
-        self.inner.take(id)
+        self.check(id, Kind::Observed)?;
+        let done = self.inner.take(id)?;
+        let DomainJob::Observed(owner) = done.owner else {
+            unreachable!("checked actual observed submission")
+        };
+        let result = match done.result {
+            Ok(()) => Ok(()),
+            Err(DomainError::Observed(error)) => Err(error),
+            #[cfg(feature = "body-persistence")]
+            Err(DomainError::Pending(_)) => Err(Error::Phase),
+        };
+        Ok(crate::native_flash_jobs::Completion {
+            id: done.id,
+            step: done.step,
+            budget: done.budget,
+            owner,
+            result,
+            progress: done.progress,
+        })
     }
     pub(crate) fn cancel(&mut self, id: u64) -> Result<Job, crate::native_flash_jobs::Refusal> {
-        self.inner.cancel(id)
+        self.check(id, Kind::Observed)?;
+        let owner = self.inner.cancel(id)?;
+        let DomainJob::Observed(owner) = owner else {
+            unreachable!("checked actual observed submission")
+        };
+        Ok(owner)
+    }
+    fn check(&self, id: u64, kind: Kind) -> Result<(), crate::native_flash_jobs::Refusal> {
+        let matches = match kind {
+            Kind::Observed => self
+                .inner
+                .owner_matches(id, |owner| matches!(owner, DomainJob::Observed(_))),
+            #[cfg(feature = "body-persistence")]
+            Kind::Pending => self
+                .inner
+                .owner_matches(id, |owner| matches!(owner, DomainJob::Pending(_))),
+        };
+        if matches {
+            Ok(())
+        } else {
+            Err(crate::native_flash_jobs::Refusal::Identity)
+        }
+    }
+    #[cfg(feature = "body-persistence")]
+    pub(crate) fn take_pending(
+        &mut self,
+        id: u64,
+    ) -> Result<
+        crate::native_flash_jobs::Completion<
+            Box<crate::native_restart::network_pending_job::PendingJob>,
+            (),
+            &'static str,
+        >,
+        crate::native_flash_jobs::Refusal,
+    > {
+        self.check(id, Kind::Pending)?;
+        let done = self.inner.take(id)?;
+        let DomainJob::Pending(owner) = done.owner else {
+            unreachable!("checked actual pending submission")
+        };
+        let result = match done.result {
+            Ok(()) => Ok(()),
+            Err(DomainError::Pending(error)) => Err(error),
+            Err(DomainError::Observed(_)) => Err("flash-domain-owner-kind"),
+        };
+        Ok(crate::native_flash_jobs::Completion {
+            id: done.id,
+            step: done.step,
+            budget: done.budget,
+            owner,
+            result,
+            progress: done.progress,
+        })
+    }
+    #[cfg(feature = "body-persistence")]
+    pub(crate) fn cancel_pending(
+        &mut self,
+        id: u64,
+    ) -> Result<
+        Box<crate::native_restart::network_pending_job::PendingJob>,
+        crate::native_flash_jobs::Refusal,
+    > {
+        self.check(id, Kind::Pending)?;
+        let owner = self.inner.cancel(id)?;
+        let DomainJob::Pending(owner) = owner else {
+            unreachable!("checked actual pending submission")
+        };
+        Ok(owner)
     }
 }
-pub(crate) type Lane = WaitLane<'static, Job, (), Error>;
+
+pub(crate) type Lane = WaitLane<'static, DomainJob, (), DomainError>;
 struct Domain {
     gate: Gate,
-    jobs: Mailbox<Job, (), Error>,
+    jobs: Mailbox<DomainJob, (), DomainError>,
 }
 // Only the Box pointer occupies permanent static memory. Its complete finite
 // backing comes from the existing Root arena; no allocator grant is enlarged.

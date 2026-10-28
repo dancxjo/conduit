@@ -17,10 +17,7 @@ impl MonotonicWaitProvider for EspWait {
         #[cfg(feature = "local-appliance")]
         if let Some(lane) = self.maintenance.as_mut() {
             return lane
-                .wait(
-                    duration_ms,
-                    crate::native_observed_archive::advance_reclaim_step,
-                )
+                .wait(duration_ms, crate::native_flash_domain::advance)
                 .await
                 .map_err(|_| WaitProviderFailure::ProviderUnavailable);
         }

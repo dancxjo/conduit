@@ -134,6 +134,17 @@ impl<J: Job, R, E> RootSubmitter<'_, J, R, E> {
         }
         Ok(id)
     }
+    /// Observe only the actual retained owner of this exact submission. A
+    /// pure kind predicate receives a short borrow, never ownership. Running
+    /// work is unavailable; idle/stale IDs cannot establish an owner match.
+    pub(crate) fn owner_matches(&self, id: u64, kind: fn(&J) -> bool) -> bool {
+        let inner = self.mailbox.inner.borrow();
+        match &inner.state {
+            State::Queued(job) if job.id == id => kind(&job.owner),
+            State::Completed(done) if done.id == id => kind(&done.owner),
+            _ => false,
+        }
+    }
     pub(crate) fn take(&mut self, id: u64) -> Result<Completion<J, R, E>, Refusal> {
         let mut inner = self.mailbox.inner.borrow_mut();
         if !matches!(&inner.state,State::Completed(c) if c.id==id) {
@@ -263,6 +274,34 @@ mod tests {
     }
     fn gate() -> Gate {
         Gate::new(100, 20, 10).unwrap()
+    }
+    #[test]
+    fn kind_observation_uses_exact_retained_owner_without_moving_it() {
+        let mut m = Mailbox::<Owner, (), ()>::new();
+        let (mut root, mut worker) = m.split().unwrap();
+        assert!(!root.owner_matches(0, |_| true));
+        let id = root.submit(owner(), 5).ok().unwrap();
+        assert!(root.owner_matches(id, |o| o.identity == 77));
+        assert!(!root.owner_matches(id + 1, |_| true));
+        assert!(!root.owner_matches(id, |o| o.identity == 88));
+        let actual = root.cancel(id).unwrap();
+        assert_eq!(actual.identity, 77);
+        assert!(!root.owner_matches(id, |_| true));
+        let next = root.submit(actual, 5).ok().unwrap();
+        assert!(!root.owner_matches(id, |_| true));
+        let g = gate();
+        let wait = g.begin_wait(1, 50).unwrap();
+        worker
+            .execute(&wait, 2, |_, _| {
+                assert!(!root.owner_matches(next, |_| true));
+                Ok(())
+            })
+            .unwrap();
+        assert!(root.owner_matches(next, |o| o.identity == 77));
+        assert!(!root.owner_matches(next, |o| o.identity == 88));
+        assert!(matches!(root.cancel(next), Err(Refusal::Busy)));
+        assert_eq!(root.take(next).unwrap().owner.identity, 77);
+        assert!(!root.owner_matches(next, |_| true));
     }
     #[test]
     fn actual_owner_survives_queued_cancellation_and_completed_take() {
