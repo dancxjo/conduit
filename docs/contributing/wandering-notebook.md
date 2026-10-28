@@ -38,7 +38,10 @@ Admit that browser through the owner-authorized window flow in
 Then run `conduit body start --state-dir STATE` to open its bounded editing
 encounter, then choose Refresh this Face in the browser. The Face shows Thoughts,
 its current text, save status, Replace text,
-and Save. Save is available after explicit storage selection. An edit or Save
+and Save. Open Plots library exposes the checked `notebook/transition` resident;
+Open resident Plot returns to that same document and Play. Open Body overview
+returns to its overview. Navigation uses the current acknowledged Show and
+never edits or saves the document. Save is available after explicit storage selection. An edit or Save
 must name the current Face and Show; an obsolete request cannot overwrite a
 newer revision. The current editing encounter has a finite five-minute idle
 bound; after it ends, start another encounter to continue. CLI replacements,

@@ -293,6 +293,11 @@ impl Owner {
             committed: Some(current.clone()),
             current,
             save_failed: false,
+            navigation: self
+                .notebook
+                .as_ref()
+                .map(|document| document.navigation.clone())
+                .unwrap_or_default(),
             storage: Some(selected),
             storage_path: selection.root_path,
         });

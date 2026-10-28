@@ -1,4 +1,5 @@
 import { prepareNative } from './native.mjs';
+import { proveNotebookNavigation } from './navigation.mjs';
 // Candidate live-browser proof through installed owner commands and the packaged
 // Handbook. No Body, Face, Show or document state is constructed by this driver.
 import assert from 'node:assert/strict';
@@ -52,7 +53,7 @@ function call(exe, args, input) {
   return result.stdout;
 }
 let installed, service, server, browser, storageFailure, native;
-const services = [], contexts = [], errors = [];
+const services = [], contexts = [], errors = [], navigation = [];
 const owner = args => call(installed, args);
 const notebook = args => JSON.parse(owner(['body', 'notebook', '--state-dir', state, ...args]));
 const stop = async child => {
@@ -115,6 +116,7 @@ async function enter(context, bodyId) {
     await page.screenshot({ path: path.join(output, 'failed-browser.png'), fullPage: true });
     throw error;
   });
+  navigation.push(await proveNotebookNavigation(page, bodyId, notebook, output, navigation.length + 1));
   return { page, identity };
 }
 async function view(page) { return page.evaluate(() => globalThis.__conduitOwnerParticipation.face()); }
@@ -217,7 +219,7 @@ try {
   await writeFile(path.join(output, 'proof.json'), JSON.stringify({ schema: 'conduit.notebook/browser-proof@1',
     proof_class: native ? 'candidate-live-browser-and-qmp' : 'candidate-live-browser', source_commit: sourceCommit, body_id: bodyId, native_executable_sha256: file.sha256,
     first_boot: firstBoot, second_boot: secondBoot, first_browser_host: first.identity, replacement_browser_host: second.identity,
-    before, after, storage_failure: storageFailure, replacement: await view(second.page), stale,
+    before, after, navigation, storage_failure: storageFailure, replacement: await view(second.page), stale,
     chrome_version: browser.version(), native_proof: native ? 'native/proof.json' : null, scope: native ? 'Actual packaged browser and canonical ConduitOS QMP Masks edit the same Body, refuse an obsolete cross-Mask Show, and recover the committed revision after process replacement.' : 'Actual packaged browser render, typed edit and Save; new presentation Host and owner process recover the same committed Body.' }, null, 2));
   assert.deepEqual(errors, [], 'browser or owner errors');
   console.log(`Verified notebook browser proof: ${output}`);

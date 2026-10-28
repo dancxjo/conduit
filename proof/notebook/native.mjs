@@ -169,13 +169,45 @@ export async function prepareNative({ installed, state, bodyId, build, privateRo
         call(installed, ['body', 'start', '--state-dir', state]);
         await wait(() => currentFace().subjects.some(subject => subject.identity === 'notebook/document'), 'native editing encounter', 10000);
         await keyPair('f5');
-        const before = await awaitShown(); const ownerBefore = currentFace();
+        let before = await awaitShown();
+        const navigation = [], unchanged = notebook();
+        for (const [intent, context] of [
+          ['conduit.intent/open-plot-library@1', 'library'],
+          ['conduit.intent/open-resident-plot@1', 'resident-plot'],
+          ['conduit.intent/open-body-overview@1', 'overview'],
+        ]) {
+          const face = currentFace(), offered = face.actions.find(action => action.intent === intent);
+          assert.ok(offered, `offered native ${intent}`);
+          let focused = false;
+          for (let index = 0; index < 32; index++) {
+            const focus = await observedKey('tab', before.shown.show_id);
+            if (focus.action_id === offered.identity && focus.argument_name === null) { focused = true; break; }
+          }
+          assert.equal(focused, true, 'offered navigation action is keyboard reachable');
+          await sendKey('ret', true);
+          let action;
+          try {
+            action = await wait(async () => (await records('CONDUIT_NATIVE_OWNER_ACTION')).findLast(action =>
+              action.prior_show_id === before.shown.show_id && action.action_id === offered.identity), 'native library navigation', 30000);
+          } finally { await sendKey('ret', false); }
+          assert.equal(action.status, 'accepted');
+          const previous = before; before = await awaitShown(previous.shown.show_id);
+          const ownerFace = currentFace();
+          assert.ok(ownerFace.properties.some(property => property.name === 'operator-context' && property.value.Text === context));
+          assert.deepEqual(notebook(), unchanged, 'native navigation preserves the document');
+          await shot(`notebook-native-${context}`);
+          navigation.push({ action, before: previous, after: before, ownerFace });
+        }
+        const ownerBefore = currentFace();
         assert.equal(before.shown.face_id, ownerBefore.identity); assert.equal(captureDecimal(before.shown.face_revision), captureDecimal(ownerBefore.revision));
         await shot('notebook-native-before');
         const current = notebook();
         assert.equal(current.text, 'I was here. Again.'); assert.equal(current.revision, 2);
         let focus;
-        for (let index = 0; index < 5; index++) focus = await observedKey('tab', before.shown.show_id);
+        for (let index = 0; index < 32; index++) {
+          focus = await observedKey('tab', before.shown.show_id);
+          if (focus.action_id === 'notebook.replace' && focus.argument_name === 'text') break;
+        }
         assert.equal(focus.action_id, 'notebook.replace'); assert.equal(focus.argument_name, 'text');
         for (const char of replacement) {
           focus = await observedKey(char === ' ' ? 'spc' : char, before.shown.show_id);
@@ -219,7 +251,7 @@ export async function prepareNative({ installed, state, bodyId, build, privateRo
         assert.deepEqual(await readFile(path.join(state, 'body/owner-execution.json')), execution);
         assert.equal(notebook().text, replacement); assert.equal(notebook().revision, 3);
         await writeFile(path.join(evidence, 'proof.json'), JSON.stringify({ schema: 'conduit.notebook/native-mask-proof@1',
-          proof_class: 'live-local-qmp-installed-owner', body_id: bodyId, build: buildManifest, provision, qemu_argv: args, cross_mask_stale: stale, policy_evidence: policyEvidence, part, standby, before, ownerBefore, action, after, ownerAfter, notebook: notebook() }, null, 2));
+          proof_class: 'live-local-qmp-installed-owner', body_id: bodyId, build: buildManifest, provision, qemu_argv: args, cross_mask_stale: stale, navigation, policy_evidence: policyEvidence, part, standby, before, ownerBefore, action, after, ownerAfter, notebook: notebook() }, null, 2));
       },
       async close() { socket?.destroy(); for (const child of children.reverse()) await stop(child); await writeFile(path.join(evidence, 'qmp.json'), JSON.stringify(qmpLog, null, 2)); await writeFile(path.join(evidence, 'wardrobe.json'), JSON.stringify(policyEvidence, null, 2)); await writeFile(path.join(evidence, 'processes.json'), JSON.stringify(children.map(child => ({ pid: child.pid, command: child.spawnargs.slice(0, 3), exit_code: child.exitCode, signal: child.signalCode })), null, 2)); },
     };

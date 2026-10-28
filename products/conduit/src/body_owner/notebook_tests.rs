@@ -374,3 +374,7 @@ fn notebook_idle_expiry_retires_the_play_and_preserves_the_body_document() {
         .join()
         .unwrap();
 }
+
+#[cfg(target_os = "linux")]
+#[path = "notebook_navigation_tests.rs"]
+mod navigation;
