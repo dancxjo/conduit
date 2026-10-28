@@ -113,6 +113,34 @@ impl Unit {
         self.0.encode()
     }
     pub fn decode(bytes: &[u8]) -> Result<Self, UnitRefusal> {
+        // These ordinary checked definitions cover common instrument values.
+        // Exact whole-encoding comparison reuses immutable Source data instead
+        // of reconstructing and re-sealing it on every execution. Unknown or
+        // altered encodings still pass through the complete general decoder.
+        // AVR needs explicit program-memory access for such tables; preserve
+        // its existing decoder instead of adding a multi-KiB SRAM resident table.
+        #[cfg(not(target_arch = "avr"))]
+        static COMMON: [Unit; 5] = [
+            Unit::Celsius,
+            Unit::Fahrenheit,
+            Unit::Kelvin,
+            Unit::Percent,
+            Unit::Pascal,
+        ];
+        #[cfg(not(target_arch = "avr"))]
+        if bytes.len() == UNIT_ENCODED_LEN {
+            for unit in &COMMON {
+                if bytes[UNIT_ENCODED_LEN - 32..] == unit.definition_identity()
+                    && unit.0.matches_encoding(bytes)
+                {
+                    return Ok(*unit);
+                }
+            }
+        }
+        Self::decode_definition(bytes)
+    }
+    #[inline(never)]
+    fn decode_definition(bytes: &[u8]) -> Result<Self, UnitRefusal> {
         UnitDefinition::decode(bytes)
             .map(Self)
             .map_err(UnitRefusal::Definition)
