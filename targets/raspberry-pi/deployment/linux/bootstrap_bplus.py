@@ -88,7 +88,7 @@ def verify_release(root):
         raise ValueError('release bundle content identity mismatch')
     provenance = read_json(root / PROVENANCE)
     provenance_fields = {'schema', 'source_identity', 'rust_toolchain', 'target', 'cpu',
-                         'cross_version', 'toolchain_image', 'c_flags', 'physical_execution_proved'}
+                         'cross_version', 'toolchain_image', 'reviewed_compiler_defaults', 'physical_execution_proved'}
     if not isinstance(provenance, dict) or set(provenance) != provenance_fields:
         raise ValueError('unexpected provenance fields')
     if (provenance.get('schema') != 'conduit.release/armv6-build@1'
