@@ -4,6 +4,7 @@ use conduit_host_make::{
 };
 
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
+pub const B_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const ZERO_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-v1";
 pub const ZERO_W_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-w-v1.1";
 pub const ZERO_WH_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-wh-v1.1";
@@ -85,13 +86,37 @@ fn raspberry_pi_os_target(
     }
 }
 
+fn b_plus_linux_target() -> TargetDescriptor {
+    let mut target = raspberry_pi_os_target(
+        "Raspberry Pi Model B+ v1.2 · Raspberry Pi OS 32-bit",
+        "raspberry-pi-model-b-plus-v1.2",
+        256 * 1024 * 1024,
+    );
+    target.architecture = "armv6".into();
+    target.os = Some("raspberry-pi-os-32".into());
+    target.toolchain_identity = "rustc:1.98.1+cross:0.2.5+arm-unknown-linux-gnueabihf+arm1176jzf-s+sysroot:sha256:0151546031f7255e58249d57d3307f5f08150373c5597951e1fc61dd753f2ac8".into();
+    target.maxima = HostBounds {
+        static_memory_bytes: 16 * 1024 * 1024,
+        heap_arena_bytes: 64 * 1024 * 1024,
+        queue_items: 4096,
+        buffered_bytes: 16 * 1024 * 1024,
+        active_instances: 512,
+        operation_slots: 256,
+        timer_slots: 128,
+        line_sessions: 64,
+        evidence_items: 4096,
+    };
+    target
+}
+
 impl HostMakePackage for RaspberryPiMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduit-host-raspberry-pi@1".into(),
-            package_revision: 2,
+            package_revision: 3,
             catalog: Default::default(),
             targets: vec![
+                b_plus_linux_target(),
                 raspberry_pi_os_target(
                     "Raspberry Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
                     "raspberry-pi-4-model-b-rev-1.5-4gb",
@@ -134,6 +159,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     implementation_id: "raspberry-pi-os/serial@1".into(),
                     implementation_revision: 1,
                     target_patterns: vec![
+                        B_PLUS_LINUX_TARGET.into(),
                         RASPBERRY_PI_OS_TARGET.into(),
                         ZERO_2_W_TARGET.into(),
                         ZERO_2_WH_TARGET.into(),
@@ -149,6 +175,36 @@ impl HostMakePackage for RaspberryPiMakePackage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn b_plus_linux_is_a_distinct_exact_host_and_preserves_native_target() {
+        let MakeContribution::Anchor(anchor) = RaspberryPiMakePackage.contribution() else {
+            panic!("anchor")
+        };
+        let linux = anchor
+            .targets
+            .iter()
+            .find(|target| target.key() == B_PLUS_LINUX_TARGET)
+            .unwrap();
+        assert_eq!(linux.family, "std");
+        assert_eq!(linux.architecture, "armv6");
+        assert_eq!(linux.os.as_deref(), Some("raspberry-pi-os-32"));
+        assert_eq!(linux.default_output, SporeOutputKind::NativeBundle);
+        assert_eq!(linux.host_core, "host-core/std@1");
+        assert_eq!(linux.maxima.heap_arena_bytes, 64 * 1024 * 1024);
+        assert_eq!(linux.maxima.buffered_bytes, 16 * 1024 * 1024);
+        let native = anchor
+            .targets
+            .iter()
+            .find(|target| target.key() == B_PLUS_TARGET)
+            .unwrap();
+        assert_eq!(native.family, "conduitos");
+        assert_eq!(native.os, None);
+        assert_eq!(native.default_output, SporeOutputKind::SdImage);
+        assert!(anchor.offers.iter().any(|offer| offer.implementation_id
+            == "raspberry-pi-os/serial@1"
+            && offer.target_patterns.contains(&B_PLUS_LINUX_TARGET.into())));
+    }
 
     #[test]
     fn zero_family_targets_preserve_exact_board_and_architecture_truth() {
