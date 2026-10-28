@@ -125,6 +125,43 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             )
             .map_err(Into::into),
         },
+        HostCommand::RaspberryPiBplusLinux {
+            base,
+            output,
+            ssh_public_key,
+            release_dir,
+            mtools_dir,
+            hostname,
+            user,
+        } => {
+            let root = crate::workspace::workspace_root()?;
+            let mut command = std::process::Command::new("python3");
+            command
+                .arg(root.join("targets/raspberry-pi/deployment/linux/bootstrap_bplus.py"))
+                .arg("--base")
+                .arg(base)
+                .arg("--output")
+                .arg(output)
+                .arg("--ssh-public-key")
+                .arg(ssh_public_key)
+                .arg("--release-dir")
+                .arg(release_dir)
+                .arg("--hostname")
+                .arg(hostname)
+                .arg("--user")
+                .arg(user);
+            if let Some(path) = mtools_dir {
+                command.arg("--mtools-dir").arg(path);
+            }
+            if opts.dry_run {
+                println!("{command:?}");
+                return Ok(());
+            }
+            if !command.status()?.success() {
+                return Err("Linux B+ image preparation failed".into());
+            }
+            Ok(())
+        }
         HostCommand::Configure { path } => host_configurator::run(path.as_deref(), opts),
         HostCommand::Config { command } => {
             let path = match &command {

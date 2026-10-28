@@ -17,6 +17,23 @@ pub(super) enum HostCommand {
     Browser,
     /// Build, flash, or physically verify an exact Raspberry Pi Host IMAGE.
     Rpi(RpiHostArgs),
+    /// Prepare a Linux B+ SD image with a precompiled Host and Ethernet/SSH.
+    RaspberryPiBplusLinux {
+        #[arg(long)]
+        base: PathBuf,
+        #[arg(long)]
+        output: PathBuf,
+        #[arg(long)]
+        ssh_public_key: PathBuf,
+        #[arg(long)]
+        release_dir: PathBuf,
+        #[arg(long)]
+        mtools_dir: Option<PathBuf>,
+        #[arg(long, default_value = "conduit-bplus")]
+        hostname: String,
+        #[arg(long, default_value = "dancxjo")]
+        user: String,
+    },
     /// Create or revise one canonical Host construction document interactively.
     Configure {
         /// Existing configuration to edit, or destination offered when creating.
