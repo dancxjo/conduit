@@ -859,3 +859,57 @@ fn network_snapshot_routes_pin_fixed_chunks_and_remain_read_only() {
         Poll::Ready(Ok(ExchangeOutcome::NetworkSnapshot))
     ));
 }
+
+#[test]
+fn network_ack_is_exact_binary_framing_and_uninstalled_authority_refuses() {
+    let body = alloc::vec![0xa5; crate::network_custody::ACK_BYTES];
+    let headers = alloc::format!("POST /network/custody/ack HTTP/1.1\r\nContent-Type: application/octet-stream\r\nContent-Length: {}\r\n\r\n", body.len());
+    let mut request = NetworkRequestBuffer::for_http();
+    request.append(headers.as_bytes()).unwrap();
+    request.append(&body[..627]).unwrap();
+    assert!(matches!(request.take(limits()), Ok(None)));
+    request.append(&body[627..]).unwrap();
+    assert!(
+        matches!(request.take(limits()), Ok(Some(NetworkHttpRequest::NetworkAck(bytes))) if bytes == body)
+    );
+    assert!(matches!(
+        crate::network_custody::dispatch_ack(body),
+        crate::network_custody::Reply::Unavailable
+    ));
+    for length in [0, 627, 629] {
+        let wire = alloc::format!("POST /network/custody/ack HTTP/1.1\r\nContent-Type: application/octet-stream\r\nContent-Length: {length}\r\n\r\n");
+        let mut request = NetworkRequestBuffer::for_http();
+        request.append(wire.as_bytes()).unwrap();
+        assert!(matches!(
+            request.take(limits()),
+            Err(NetworkHttpRefusal::Malformed)
+        ));
+    }
+    for (content_type, extra, expected) in [
+        (
+            "application/json",
+            false,
+            NetworkHttpRefusal::UnsupportedContentType,
+        ),
+        (
+            "application/octet-stream",
+            true,
+            NetworkHttpRefusal::Malformed,
+        ),
+    ] {
+        let wire = alloc::format!("POST /network/custody/ack HTTP/1.1\r\nContent-Type: {content_type}\r\nContent-Length: 628\r\n\r\n");
+        let mut request = NetworkRequestBuffer::for_http();
+        request.append(wire.as_bytes()).unwrap();
+        request.append(&[0; 628]).unwrap();
+        if extra {
+            request.append(b"x").unwrap();
+        }
+        assert!(matches!(request.take(limits()), Err(error) if error == expected));
+    }
+    let mut request = NetworkRequestBuffer::default();
+    request.append(headers.as_bytes()).unwrap();
+    assert!(matches!(
+        request.take(limits()),
+        Err(NetworkHttpRefusal::UnsupportedRoute)
+    ));
+}

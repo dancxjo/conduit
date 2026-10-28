@@ -67,6 +67,7 @@ pub enum ExchangeOutcome {
     History,
     ObservedOffer,
     NetworkSnapshot,
+    NetworkAck,
     ObservedAck,
     BodyJoin,
     NetworkPage,
@@ -171,6 +172,18 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
             }
             write(io, response.as_bytes()).await?;
             Ok(ExchangeOutcome::NetworkSnapshot)
+        }
+        (Some(NetworkHttpRequest::NetworkAck(bytes)), route) => {
+            let reply = if route.as_ref().is_none_or(|route| route.reading_available) {
+                crate::network_custody::dispatch_ack(bytes)
+            } else {
+                crate::network_custody::Reply::Unavailable
+            };
+            if !crate::network_custody::render(reply, response) {
+                return Err(ExchangeRefusal::Submission(NetworkSetupRefusal::TooLarge));
+            }
+            write(io, response.as_bytes()).await?;
+            Ok(ExchangeOutcome::NetworkAck)
         }
         (Some(NetworkHttpRequest::ObservedAck { slot, bytes }), route) => {
             let reply = if route.as_ref().is_none_or(|route| route.reading_available) {

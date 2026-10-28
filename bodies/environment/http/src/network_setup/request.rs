@@ -11,6 +11,7 @@ const HEADER_BYTES: usize = REQUEST_BYTES;
 pub enum NetworkHttpRequest {
     Page,
     NetworkSnapshot(crate::network_custody::Request),
+    NetworkAck(alloc::vec::Vec<u8>),
     ObservedOffer {
         slot: u8,
     },
@@ -166,6 +167,11 @@ fn parse(
     } else {
         None
     };
+    let network_ack = readings
+        && matches!(
+            line,
+            "POST /network/custody/ack HTTP/1.0" | "POST /network/custody/ack HTTP/1.1"
+        );
     let observed_ack = if readings && line.starts_with("POST /history/custody/ack?slot=") {
         let tail = line
             .strip_prefix("POST /history/custody/ack?slot=")
@@ -212,7 +218,7 @@ fn parse(
     let page = match line {
         "GET /network HTTP/1.1" | "GET /network HTTP/1.0" => true,
         "POST /network HTTP/1.1" | "POST /network HTTP/1.0" => false,
-        _ if body_join_post || observed_ack.is_some() => false,
+        _ if body_join_post || observed_ack.is_some() || network_ack => false,
         _ if reading.is_some()
             || observed_offer.is_some()
             || network_snapshot.is_some()
@@ -267,6 +273,9 @@ fn parse(
             return Err(E::TooLarge);
         }
     }
+    if network_ack && length != crate::network_custody::ACK_BYTES {
+        return Err(E::Malformed);
+    }
     let complete = body_start + length;
     if bytes.len() < complete {
         return Ok(None);
@@ -297,6 +306,16 @@ fn parse(
             Some(json) => NetworkHttpRequest::Reading { json },
             None => NetworkHttpRequest::Page,
         }));
+    }
+    if network_ack {
+        if !content_type.is_some_and(|value| value.eq_ignore_ascii_case("application/octet-stream"))
+        {
+            return Err(E::UnsupportedContentType);
+        }
+        let mut body = alloc::vec::Vec::new();
+        body.try_reserve_exact(length).map_err(|_| E::TooLarge)?;
+        body.extend_from_slice(&bytes[body_start..]);
+        return Ok(Some(NetworkHttpRequest::NetworkAck(body)));
     }
     if body_join_post || observed_ack.is_some() {
         if !content_type.is_some_and(|value| value.eq_ignore_ascii_case("application/json")) {

@@ -1,5 +1,5 @@
-//! Read-only transport for Root-endorsed recovery snapshots. No request carries
-//! Body scope, signing keys, an erase command, or admitted custody authority.
+//! Root-endorsed recovery snapshot transport and bounded member acknowledgments.
+//! Requests carry data only, never signing keys, erase commands or custody authority.
 pub use crate::observed_custody::{render, Reply};
 use core::cell::RefCell;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -77,4 +77,31 @@ pub(crate) fn parse(line: &str) -> Result<Option<Request>, ()> {
         return Err(());
     }
     Ok(Some(Request::Chunk { snapshot, offset }))
+}
+
+/// Exact signed member receipt bytes. Dispatch only queues data; the Root must
+/// authenticate membership and persist custody before reporting acceptance.
+pub const ACK_BYTES: usize = 628;
+pub type AckProvider = fn(alloc::vec::Vec<u8>) -> Reply;
+static ACK_PROVIDER: critical_section::Mutex<RefCell<Option<AckProvider>>> =
+    critical_section::Mutex::new(RefCell::new(None));
+pub fn ack_available() -> bool {
+    critical_section::with(|cs| ACK_PROVIDER.borrow(cs).borrow().is_some())
+}
+pub fn install_ack_provider(provider: AckProvider) -> Result<(), &'static str> {
+    critical_section::with(|cs| {
+        let mut slot = ACK_PROVIDER.borrow(cs).borrow_mut();
+        if slot.is_some() {
+            return Err("network-custody-ack-provider-already-installed");
+        }
+        *slot = Some(provider);
+        Ok(())
+    })
+}
+pub fn dispatch_ack(bytes: alloc::vec::Vec<u8>) -> Reply {
+    if bytes.len() != ACK_BYTES {
+        return Reply::Refused;
+    }
+    let provider = critical_section::with(|cs| *ACK_PROVIDER.borrow(cs).borrow());
+    provider.map_or(Reply::Unavailable, |provider| provider(bytes))
 }
