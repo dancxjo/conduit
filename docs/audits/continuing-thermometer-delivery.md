@@ -50,6 +50,14 @@ construction. Sampling and the Mask nevertheless continued: by 164,934 ms,
 the capture contained two observations and 50 Mask consumptions, without a
 reported sampler or Mask failure. This candidate is not a passing Wi-Fi build.
 
+The `5a2f633bd` correction keeps the one Store backing in a Boot-initialized
+RTC once-cell and transfers its unique reference. Native tests and linking pass;
+physical network preparation succeeds and attaches by 29,382 ms. However, its
+Mask reports a wire acknowledgment failure by 44,459 ms after eight updates.
+That is negative sustained-display evidence, not a passing appliance test. The
+capture was stopped early to restore the previously verified firmware. No
+network custody acknowledgment or erase was requested on either candidate.
+
 The attended Linux acknowledgment caller is implemented separately. It retains
 and reopens the exact signed request before sending, retries those same bytes,
 verifies the Root-signed committed receipt, and retains both receipt encodings
