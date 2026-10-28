@@ -8,6 +8,7 @@ pub fn generate() {
     for source in [
         "application-service",
         "application-core",
+        "shared/private_heap_bitmap.rs",
         "src/service_memory.rs",
         "../../plots/tour",
         "../../plots/patchbay",
