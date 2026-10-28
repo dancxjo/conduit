@@ -4,6 +4,8 @@ use super::*;
 use crate::native_body_checkpoint::Storage;
 use conduit_core::BootId;
 use ed25519_dalek::{Signer, SigningKey};
+#[path = "native_restart_network_live_tests.rs"]
+mod live;
 fn digest(domain: &[u8], parts: &[&[u8]]) -> [u8; 32] {
     let mut h = Sha256::new();
     h.update(domain);

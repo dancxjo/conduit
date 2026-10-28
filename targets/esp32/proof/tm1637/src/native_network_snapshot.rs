@@ -111,6 +111,18 @@ impl Verified {
     }
 }
 impl Draft {
+    /// Only the durable Pending successor may consume the old signed view.
+    /// Physical authority is independently minted from the still-leased Store.
+    #[cfg(all(feature = "body-persistence", target_os = "none"))]
+    pub(crate) fn into_closed(
+        self,
+        receipt: &crate::native_restart::network_pending::CommittedCustody,
+    ) -> Result<Inspection, Self> {
+        if receipt.offer() != &self.transcript() {
+            return Err(self);
+        }
+        Ok(self._owner.owner)
+    }
     pub(crate) fn root(&self) -> &[u8; 32] {
         &self.root
     }

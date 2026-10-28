@@ -1,6 +1,8 @@
 //! Actual native archive with mocked finite NOR and heap admission. No device proof.
 #[path = "native_network_journal/ack.rs"]
 mod ack;
+#[path = "native_network_journal/readonly_ack.rs"]
+mod readonly_ack;
 extern crate alloc;
 extern crate self as esp_alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
@@ -487,4 +489,13 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert_eq!(flash.lock().unwrap().writes, writes);
     assert_eq!(flash.lock().unwrap().bytes, expected);
     println!("scratch={} bytes; retained after open/append=0; eight exact Boot records; final-slot commit retry preserved",wire::MAXIMUM_BYTES);
+    journal::exercise_reclaimed_refresh(&retired(9), || {
+        flash.lock().unwrap().bytes.fill(255);
+    });
+    let f = flash.lock().unwrap();
+    let first: &[u8; wire::MAXIMUM_BYTES] = f.bytes[..wire::MAXIMUM_BYTES].try_into().unwrap();
+    assert_eq!(wire::Page::parse(first).unwrap().scope().boot, "boot-9");
+    assert!(f.bytes[wire::SLOT_BYTES as usize..]
+        .iter()
+        .all(|b| *b == 255));
 }

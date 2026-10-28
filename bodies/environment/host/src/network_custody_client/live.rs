@@ -101,11 +101,14 @@ pub(super) fn exchange(
     if reopen(&ack_path, REQUEST)? != ack {
         return Err("network durable ACK changed".into());
     }
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(300);
+    // Pending and Clean each rewrite a complete finite checkpoint, with qualified
+    // erase/readback between them. This is a transaction/retry lifetime only;
+    // it does not enlarge any native flash-operation or sampling deadline.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(900);
     let mut last = None;
-    // Let the absolute deadline govern 150 two-second polling intervals;
-    // fast 202 replies must not exhaust attempts before Root's 300-second job.
-    const MAX_ATTEMPTS: usize = 151;
+    // Let the absolute deadline govern 450 two-second polling intervals;
+    // fast pending replies must not exhaust the complete transaction window.
+    const MAX_ATTEMPTS: usize = 451;
     for attempt in 0..MAX_ATTEMPTS {
         if std::time::Instant::now() >= deadline {
             return Err("network custody absolute deadline".into());

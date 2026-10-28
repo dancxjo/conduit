@@ -20,6 +20,8 @@ pub(crate) struct RecoveryPermit {
     root: [u8; 32],
     region: [u8; 32],
     pending: [u8; 32],
+    receipt: [u8; 32],
+    epoch: u64,
 }
 impl RecoveryPermit {
     pub(crate) fn permits(&self, region: [u8; 32], capacity: u32, relative: u32) -> bool {
@@ -49,23 +51,51 @@ pub(crate) struct Blank<S> {
 impl<S: Storage> Recovery<S> {
     /// One sector erase or one <=512B read. Interrupted erasure is resumed from
     /// durable Pending; rechecking the original digest would reject lawful cuts.
-    pub(crate) fn step(&mut self, work: &mut [u8; WORK]) -> Result<bool, &'static str> {
+    pub(crate) fn next_step(&self) -> Option<Step> {
         if self.failed {
-            return Err("network-recovery-failed");
-        }
-        self.failed = true;
-        if self.erases < 8 {
-            self.storage.erase(&self.permit, self.erases)?;
-            self.erases += 1;
+            None
+        } else if self.erases < 8 {
+            Some(Step::Erase(self.erases))
         } else if self.readback < CAPACITY {
-            self.storage.read(self.readback, work)?;
-            if work.iter().any(|byte| *byte != 255) {
-                return Err("network-recovery-not-blank");
+            Some(Step::Read(self.readback))
+        } else {
+            None
+        }
+    }
+    pub(crate) fn complete(&self) -> bool {
+        !self.failed && self.erases == 8 && self.readback == CAPACITY
+    }
+    pub(crate) fn step_with(
+        &mut self,
+        work: &mut [u8; WORK],
+        run: impl FnOnce(&mut S, &RecoveryPermit, Step, &mut [u8; WORK]) -> Result<(), &'static str>,
+    ) -> Result<bool, &'static str> {
+        let step = self.next_step().ok_or("network-recovery-phase")?;
+        self.failed = true;
+        if matches!(step, Step::Read(_)) {
+            work.fill(0);
+        }
+        run(&mut self.storage, &self.permit, step, work)?;
+        match step {
+            Step::Erase(_) => self.erases += 1,
+            Step::Read(_) => {
+                if work.iter().any(|b| *b != 255) {
+                    return Err("network-recovery-not-blank");
+                }
+                self.readback += WORK as u32;
             }
-            self.readback += WORK as u32;
         }
         self.failed = false;
-        Ok(self.erases == 8 && self.readback == CAPACITY)
+        Ok(self.complete())
+    }
+    pub(crate) fn step(&mut self, work: &mut [u8; WORK]) -> Result<bool, &'static str> {
+        if self.complete() {
+            return Ok(true);
+        }
+        self.step_with(work, |storage, permit, step, work| match step {
+            Step::Erase(sector) => storage.erase(permit, sector),
+            Step::Read(at) => storage.read(at, work),
+        })
     }
     pub(crate) fn finish(self) -> Result<Blank<S>, Self> {
         if self.failed || self.erases != 8 || self.readback != CAPACITY {
@@ -107,29 +137,12 @@ fn begin_store<S: Storage>(store: &Store, storage: S) -> Result<Opened<S>, (S, &
         if storage.capacity() != CAPACITY {
             return Err("network-recovery-geometry");
         }
-        let Some(cursor) = store.custody.as_ref().and_then(|c| c.network.as_ref()) else {
+        let Some(_) = store.custody.as_ref().and_then(|c| c.network.as_ref()) else {
             return Ok(None);
         };
         let key = cold_key(store)?;
         let evidence = store.evidence.as_ref().ok_or("network-recovery-evidence")?;
-        let previous = store.custody.as_ref().ok_or("network-recovery-source")?;
-        cursor.validate(&evidence.body_id, &key.verifying_key())?;
-        if cursor.bytes()[56..88] != storage.identity() {
-            return Err("network-recovery-region");
-        }
-        if cursor.bytes()[8] == 2 {
-            return Ok(None);
-        }
-        u64::from_le_bytes(cursor.bytes()[16..24].try_into().unwrap())
-            .checked_add(1)
-            .ok_or("network-recovery-epoch")?;
-        Ok(Some(RecoveryPermit {
-            source: previous.source.identity(),
-            binding: store.binding,
-            root: key.verifying_key().to_bytes(),
-            region: storage.identity(),
-            pending: Sha256::digest(cursor.bytes()).into(),
-        }))
+        mint_permit(store, &evidence.body_id, &key, &storage)
     };
     match check() {
         Ok(None) => Ok(Opened::Ready(storage)),
@@ -141,6 +154,149 @@ fn begin_store<S: Storage>(store: &Store, storage: S) -> Result<Opened<S>, (S, &
             failed: false,
         })),
         Err(e) => Err((storage, e)),
+    }
+}
+#[derive(Clone, Copy)]
+pub(crate) enum Step {
+    Erase(u8),
+    Read(u32),
+}
+fn mint_permit<S: Storage>(
+    store: &Store,
+    body: &conduit_body::BodyId,
+    key: &ed25519_dalek::SigningKey,
+    storage: &S,
+) -> Result<Option<RecoveryPermit>, &'static str> {
+    if storage.capacity() != CAPACITY {
+        return Err("network-recovery-geometry");
+    }
+    let previous = store.custody.as_ref().ok_or("network-recovery-source")?;
+    if previous.source.binding() != &store.binding
+        || Some(previous.source.generation()) != store.journal.generation()
+        || store.binding != <[u8; 32]>::from(Sha256::digest(body.as_str().as_bytes()))
+    {
+        return Err("network-recovery-source");
+    }
+    let cursor = previous
+        .network
+        .as_ref()
+        .ok_or("network-recovery-pending")?;
+    cursor.validate(body, &key.verifying_key())?;
+    if cursor.bytes()[56..88] != storage.identity() {
+        return Err("network-recovery-region");
+    }
+    if cursor.bytes()[8] == 2 {
+        return Ok(None);
+    }
+    let epoch = u64::from_le_bytes(cursor.bytes()[16..24].try_into().unwrap());
+    epoch.checked_add(1).ok_or("network-recovery-epoch")?;
+    Ok(Some(RecoveryPermit {
+        source: previous.source.identity(),
+        binding: store.binding,
+        root: key.verifying_key().to_bytes(),
+        region: storage.identity(),
+        pending: Sha256::digest(cursor.bytes()).into(),
+        receipt: Sha256::digest(&cursor.bytes()[24..408]).into(),
+        epoch,
+    }))
+}
+pub(super) fn begin_live<S: Storage>(
+    store: &Store,
+    owner: &SealedBodyLifecycleSession,
+    root: &[u8; 32],
+    storage: S,
+) -> Result<Recovery<S>, (S, &'static str)> {
+    let checked = (|| {
+        let key = super::network_pending::live_key(store, owner, root)?;
+        mint_permit(store, &owner.evidence().body_id, &key, &storage)?
+            .ok_or("network-live-requires-pending")
+    })();
+    match checked {
+        Ok(permit) => Ok(Recovery {
+            storage,
+            permit,
+            erases: 0,
+            readback: 0,
+            failed: false,
+        }),
+        Err(e) => Err((storage, e)),
+    }
+}
+fn checked_blank<S: Storage>(
+    store: &Store,
+    body: &conduit_body::BodyId,
+    key: &ed25519_dalek::SigningKey,
+    blank: &Blank<S>,
+) -> Result<(), &'static str> {
+    let previous = store.custody.as_ref().ok_or("network-recovery-source")?;
+    let pending = previous
+        .network
+        .as_ref()
+        .ok_or("network-recovery-pending")?;
+    pending.validate(body, &key.verifying_key())?;
+    if pending.bytes()[8] != 1
+        || previous.source.identity() != blank.permit.source
+        || store.binding != blank.permit.binding
+        || key.verifying_key().to_bytes() != blank.permit.root
+        || <[u8; 32]>::from(Sha256::digest(pending.bytes())) != blank.permit.pending
+        || blank.storage.identity() != blank.permit.region
+        || blank.storage.capacity() != CAPACITY
+    {
+        return Err("network-recovery-stale-blank");
+    }
+    Ok(())
+}
+pub(super) fn check_live_blank<S: Storage>(
+    store: &Store,
+    owner: &SealedBodyLifecycleSession,
+    root: &[u8; 32],
+    blank: &Blank<S>,
+) -> Result<(), &'static str> {
+    let key = super::network_pending::live_key(store, owner, root)?;
+    checked_blank(store, &owner.evidence().body_id, &key, blank).map(|_| ())
+}
+/// Affine proof that full blank readback and its exact Clean successor were
+/// adopted. Only this token can reset the native journal's capacity metadata.
+pub(crate) struct CleanBlank<S>(S);
+impl<S> CleanBlank<S> {
+    pub(crate) fn into_storage(self) -> S {
+        self.0
+    }
+}
+pub(super) fn finish_live<S: Storage>(
+    store: &Store,
+    owner: &SealedBodyLifecycleSession,
+    root: &[u8; 32],
+    blank: Blank<S>,
+) -> Result<CleanBlank<S>, (Blank<S>, &'static str)> {
+    let checked = (|| {
+        let key = super::network_pending::live_key(store, owner, root)?;
+        let current = store.custody.as_ref().ok_or("network-recovery-source")?;
+        let cursor = current.network.as_ref().ok_or("network-recovery-pending")?;
+        cursor.validate(&owner.evidence().body_id, &key.verifying_key())?;
+        if cursor.bytes()[8] != 2
+            || !current.source.succeeds(blank.permit.source)
+            || Some(current.source.generation()) != store.journal.generation()
+            || store.binding != blank.permit.binding
+            || key.verifying_key().to_bytes() != blank.permit.root
+            || blank.storage.identity() != blank.permit.region
+            || blank.storage.capacity() != CAPACITY
+            || cursor.bytes()[16..24]
+                != blank
+                    .permit
+                    .epoch
+                    .checked_add(1)
+                    .ok_or("network-recovery-epoch")?
+                    .to_le_bytes()
+            || <[u8; 32]>::from(Sha256::digest(&cursor.bytes()[24..408])) != blank.permit.receipt
+        {
+            return Err("network-live-clean-scope");
+        }
+        Ok(())
+    })();
+    match checked {
+        Ok(()) => Ok(CleanBlank(blank.storage)),
+        Err(e) => Err((blank, e)),
     }
 }
 /// Called before the live network journal can append. Store borrowing fences
@@ -207,21 +363,11 @@ fn clean_store<S: Storage>(store: &mut Store, blank: &Blank<S>) -> Result<(), &'
     let key = cold_key(store)?;
     let evidence = store.evidence.as_ref().ok_or("network-recovery-evidence")?;
     let previous = store.custody.as_ref().ok_or("network-recovery-source")?;
+    checked_blank(store, &evidence.body_id, &key, blank)?;
     let pending = previous
         .network
         .as_ref()
         .ok_or("network-recovery-pending")?;
-    pending.validate(&evidence.body_id, &key.verifying_key())?;
-    if pending.bytes()[8] != 1
-        || previous.source.identity() != blank.permit.source
-        || store.binding != blank.permit.binding
-        || key.verifying_key().to_bytes() != blank.permit.root
-        || <[u8; 32]>::from(Sha256::digest(pending.bytes())) != blank.permit.pending
-        || blank.storage.identity() != blank.permit.region
-        || blank.storage.capacity() != CAPACITY
-    {
-        return Err("network-recovery-stale-blank");
-    }
     // Allocate/sign/validate before any checkpoint effect. The original
     // member custody stays byte-for-byte intact; only signed phase/epoch change.
     let cursor = clean_cursor(pending, &key)?;
@@ -261,7 +407,7 @@ fn clean_store<S: Storage>(store: &mut Store, blank: &Blank<S>) -> Result<(), &'
     current.network = Some(cursor);
     Ok(())
 }
-fn clean_cursor(
+pub(super) fn clean_cursor(
     pending: &payload::network::Cursor,
     key: &ed25519_dalek::SigningKey,
 ) -> Result<payload::network::Cursor, &'static str> {

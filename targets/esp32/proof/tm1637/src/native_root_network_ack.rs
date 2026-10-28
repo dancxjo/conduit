@@ -7,7 +7,10 @@ use core::cell::Cell;
 #[path = "native_network_ack_queue.rs"]
 mod queue;
 use queue::{Key, Queue, Receipt, Response};
-const WRITE_MS: u64 = 300_000;
+// Two separately authenticated checkpoints and the intervening qualified
+// erase/readback share this finite transaction lifetime. Physical operation
+// budgets and sampler wait deadlines remain independently bounded.
+const WRITE_MS: u64 = 900_000;
 #[cfg_attr(target_os = "none", esp_hal::ram(unstable(rtc_slow)))]
 static ACKS: Mutex<CriticalSectionRawMutex, Cell<Option<Box<Queue>>>> = Mutex::new(Cell::new(None));
 fn with_queue<T>(run: impl FnOnce(&mut Queue) -> T) -> Option<T> {
@@ -80,7 +83,11 @@ fn render(receipt: Receipt) -> Reply {
         receipt.generation,
         &receipt.offer,
         |generation, cursor| {
-            out.extend_from_slice(b"{\"profile\":\"network-retirement-committed@1\",\"reclaimed\":false,\"generation\":");
+            out.extend_from_slice(
+                b"{\"profile\":\"network-retirement-committed@1\",\"reclaimed\":",
+            );
+            out.extend_from_slice(if cursor[8] == 2 { b"true" } else { b"false" });
+            out.extend_from_slice(b",\"generation\":");
             let mut digits = [0u8; 20];
             let mut n = generation;
             let mut at = 20;
@@ -173,7 +180,7 @@ impl NativeRoot {
             if !matches!(owned.phase, Phase::Ready(_)) {
                 return Err("network-ack-export-not-ready");
             }
-            if esp_alloc::HEAP.free() < core::mem::size_of::<PendingJob>() + 480 + FREE_FLOOR {
+            if esp_alloc::HEAP.free() < core::mem::size_of::<PendingJob>() + 2 * 480 + FREE_FLOOR {
                 return Err("network-ack-workspace");
             }
             let Phase::Ready(export) = core::mem::replace(&mut owned.phase, Phase::Failed) else {
@@ -278,6 +285,10 @@ impl NativeRoot {
                 complete(writing.key, Err(reason));
                 return true;
             }
+        }
+        if job.is_complete() {
+            complete(writing.key, job.finish(owner));
+            return true;
         }
         if !submitter.available() {
             writing.owner = Some(job);

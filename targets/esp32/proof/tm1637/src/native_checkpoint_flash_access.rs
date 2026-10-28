@@ -51,3 +51,25 @@ impl SectorStorage<BodyRegion> for Access<'_, '_, '_> {
         storage.read(at, out).map_err(|_| E::Storage)
     }
 }
+
+impl crate::native_restart::network_pending_job::live::Access for Access<'_, '_, '_> {
+    fn erase_network(
+        &mut self,
+        owner: &mut crate::native_play::journal::Inspection,
+        authority: &crate::native_restart::network_recovery::RecoveryPermit,
+        sector: u8,
+    ) -> Result<(), &'static str> {
+        owner.erase_closed_sector(authority, self._permit, sector)
+    }
+    fn read_network(
+        &mut self,
+        owner: &mut crate::native_play::journal::Inspection,
+        at: u32,
+        out: &mut [u8],
+    ) -> Result<(), &'static str> {
+        if out.is_empty() || out.len() > 512 {
+            return Err("network-live-read-geometry");
+        }
+        owner.read_chunk(at, out)
+    }
+}

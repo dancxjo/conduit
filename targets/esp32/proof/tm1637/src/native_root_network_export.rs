@@ -6,8 +6,14 @@ use alloc::boxed::Box;
 use conduit_environment_http::network_custody::{self as http, Reply, Request};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
+#[cfg(not(test))]
 #[path = "native_root_network_ack.rs"]
 mod ack;
+// This fixture owns only the read-only snapshot mailbox/lease. ACK custody has
+// separate typed queue, checkpoint and flash-domain fixtures; do not invent a
+// fake NativeAdmission merely to compile that unrelated writer here.
+#[cfg(test)]
+use crate::readonly_ack as ack;
 const LEASE_MS: u64 = 120_000;
 const COOLDOWN_MS: u64 = 30_000;
 // Preserve the existing 8KiB Root and 8KiB child preparation allowances, plus

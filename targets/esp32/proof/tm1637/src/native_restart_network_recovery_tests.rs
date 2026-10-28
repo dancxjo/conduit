@@ -111,6 +111,45 @@ fn blank(store: &Store, media: Media) -> Blank<Media> {
     job.finish().ok().unwrap()
 }
 #[test]
+fn live_blank_requires_exact_pending_and_adopted_clean_successor() {
+    let (mut store, owner, _, root, _) = super::super::park_tests::network_fixture();
+    let owner = owner.unwrap();
+    let media = Media::new();
+    let mut job = begin_live(&store, &owner, &root, media.clone())
+        .map_err(|(_, e)| e)
+        .unwrap();
+    // Live and cold entrances share source checks, but not admission gates.
+    assert!(begin_store(&store, media.clone()).is_err());
+    let mut work = [0; WORK];
+    while !job.complete() {
+        job.step_with(&mut work, |storage, permit, step, work| match step {
+            Step::Erase(sector) => storage.erase(permit, sector),
+            Step::Read(at) => storage.read(at, work),
+        })
+        .unwrap();
+    }
+    let blank = job.finish().ok().unwrap();
+    check_live_blank(&store, &owner, &root, &blank).unwrap();
+    let (blank, error) = finish_live(&store, &owner, &root, blank).err().unwrap();
+    assert_eq!(error, "network-live-clean-scope");
+    // Exercise the shared authenticated Clean emitter; the production live
+    // wrapper uses the incremental writer to adopt this same successor.
+    store.ready = false;
+    store.evidence = Some(owner.evidence().clone());
+    clean_store(&mut store, &blank).unwrap();
+    store.evidence = None;
+    store.ready = true;
+    assert!(check_live_blank(&store, &owner, &root, &blank).is_err());
+    let proof = finish_live(&store, &owner, &root, blank)
+        .map_err(|(_, e)| e)
+        .unwrap();
+    let media = proof.into_storage();
+    assert!(media.data.borrow().bytes[4096..36864]
+        .iter()
+        .all(|b| *b == 255));
+    media.unchanged_neighbors();
+}
+#[test]
 fn pending_is_affine_until_clean_readback_and_clean_boot_preserves_new_records() {
     let mut store = cold();
     let media = Media::new();

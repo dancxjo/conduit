@@ -12,6 +12,16 @@ impl RecoveryStorage for NetworkRegion {
         Storage::read(&mut self.0, at, out).map_err(|_| "network-recovery-read")
     }
     fn erase(&mut self, permit: &RecoveryPermit, sector: u8) -> Result<(), &'static str> {
+        self.erase_recovery_sector(permit, sector)
+    }
+}
+impl NetworkRegion {
+    /// Closed-epoch authority is mandatory even for the live timed adapter.
+    pub(crate) fn erase_recovery_sector(
+        &self,
+        permit: &RecoveryPermit,
+        sector: u8,
+    ) -> Result<(), &'static str> {
         let relative = u32::from(sector) * 4096;
         if !permit.permits(self.identity(), self.0.length, relative) {
             return Err("network-recovery-erase-authority");

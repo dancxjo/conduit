@@ -14,6 +14,9 @@ struct Archive {
 enum State {
     Ready(Archive),
     Frozen(wire::FrozenJournal<NetworkRegion>),
+    // Blank readback plus adopted Clean grants this capacity observation only.
+    // Actual append MUST reopen/validate, never reuse the old next-slot cache.
+    Reclaimed(wire::FrozenJournal<NetworkRegion>),
     Inspecting { remaining: u8 },
     Retained { _region: NetworkRegion },
 }
@@ -71,14 +74,21 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
     crate::native_restart::network_recovery::ensure_append_allowed()?;
     STATE.lock(|current| {
         let mut current = current.borrow_mut();
-        if !matches!(current.as_ref(), Some(State::Ready(_) | State::Frozen(_))) {
+        if !matches!(
+            current.as_ref(),
+            Some(State::Ready(_) | State::Frozen(_) | State::Reclaimed(_))
+        ) {
             return Err("network-evidence-unavailable");
         }
         // Admit scratch before taking the frozen owner: pressure cannot lose it.
         let mut work = scratch()?;
-        if matches!(current.as_ref(), Some(State::Frozen(_))) {
-            let Some(State::Frozen(frozen)) = current.take() else {
-                unreachable!()
+        if matches!(
+            current.as_ref(),
+            Some(State::Frozen(_) | State::Reclaimed(_))
+        ) {
+            let frozen = match current.take() {
+                Some(State::Frozen(frozen) | State::Reclaimed(frozen)) => frozen,
+                _ => unreachable!(),
             };
             match frozen.reopen(&mut work) {
                 Ok(journal) => *current = Some(State::Ready(Archive { journal })),
@@ -208,5 +218,76 @@ pub(crate) fn inspect() -> Result<Inspection, &'static str> {
     })
 }
 
+#[cfg(test)]
+pub(crate) fn exercise_reclaimed_refresh(
+    record: &RetiredNetworkControl,
+    blank_media: impl FnOnce(),
+) {
+    let mut owner = inspect().unwrap();
+    assert_eq!(owner.committed_count(), 8);
+    blank_media();
+    let frozen = owner.frozen.take().unwrap();
+    STATE.lock(|state| *state.borrow_mut() = Some(State::Reclaimed(frozen)));
+    drop(owner);
+    assert!(!exhausted());
+    // The cached eight-record metadata cannot advertise the erased image.
+    assert!(inspect().is_err());
+    append(record).unwrap();
+    let reopened = inspect().unwrap();
+    assert_eq!(reopened.committed_count(), 1);
+}
+
 #[path = "native_network_snapshot.rs"]
 pub(crate) mod snapshot;
+
+#[cfg(all(feature = "body-persistence", target_os = "none"))]
+impl crate::native_restart::network_recovery::Storage for Inspection {
+    fn identity(&self) -> [u8; 32] {
+        self.region_identity()
+    }
+    fn capacity(&self) -> u32 {
+        self.frozen
+            .as_ref()
+            .expect("owned inspection")
+            .inspect_storage(crate::native_restart::network_recovery::Storage::capacity)
+    }
+    fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), &'static str> {
+        self.read_chunk(at, out)
+    }
+    fn erase(
+        &mut self,
+        _permit: &crate::native_restart::network_recovery::RecoveryPermit,
+        _sector: u8,
+    ) -> Result<(), &'static str> {
+        Err("network-live-requires-wait-permit")
+    }
+}
+#[cfg(all(feature = "body-persistence", target_os = "none"))]
+impl Inspection {
+    pub(crate) fn erase_closed_sector(
+        &mut self,
+        authority: &crate::native_restart::network_recovery::RecoveryPermit,
+        _wait: &crate::native_flash_window::FlashPermit<'_, '_>,
+        sector: u8,
+    ) -> Result<(), &'static str> {
+        self.frozen
+            .as_ref()
+            .ok_or("network-recovery-owner")?
+            .inspect_storage(|region| region.erase_recovery_sector(authority, sector))
+    }
+}
+#[cfg(all(feature = "body-persistence", target_os = "none"))]
+pub(crate) fn publish_reclaimed(
+    proof: crate::native_restart::network_recovery::CleanBlank<Inspection>,
+) {
+    let mut inspection = proof.into_storage();
+    let frozen = inspection
+        .frozen
+        .take()
+        .expect("Clean proof owns frozen region");
+    STATE.lock(|current| {
+        let mut current = current.borrow_mut();
+        assert!(matches!(current.as_ref(), Some(State::Inspecting { .. })));
+        *current = Some(State::Reclaimed(frozen));
+    });
+}

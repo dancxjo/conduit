@@ -6,7 +6,7 @@ use crate::native_body_checkpoint::{
     PayloadReader,
 };
 use alloc::boxed::Box;
-use network_pending::{live_key, prepare, CommittedCustody};
+use network_pending::{live_key, prepare as prepare_pending, CommittedCustody};
 #[cfg(all(
     feature = "local-appliance",
     feature = "body-persistence",
@@ -53,7 +53,11 @@ pub(crate) fn start(
 ) -> Result<Start, (crate::native_play::journal::snapshot::Draft, &'static str)> {
     enum Prepared {
         Committed(CommittedCustody),
-        Writing(Box<core::mem::MaybeUninit<PendingJob>>, CheckpointJob),
+        Writing(
+            Box<core::mem::MaybeUninit<PendingJob>>,
+            CheckpointJob,
+            payload::network::Cursor,
+        ),
     }
     // Borrow the actual pin throughout fallible preparation. Only the success
     // branch moves it; every preeffects refusal returns the identical owner.
@@ -69,18 +73,16 @@ pub(crate) fn start(
                 offer: cursor.bytes()[168..200].try_into().unwrap(),
             }));
         }
+        let clean = super::network_recovery::clean_cursor(&cursor, &live_key(store, owner, root)?)?;
         let core = CheckpointJob::initialize(lease, owner, boot, root, cursor)?;
-        Ok(Prepared::Writing(backing, core))
+        Ok(Prepared::Writing(backing, core, clean))
     })();
     match prepared {
         Err(reason) => Err((draft, reason)),
         Ok(Prepared::Committed(receipt)) => Ok(Start::Committed(receipt)),
-        Ok(Prepared::Writing(backing, core)) => Ok(Start::Writing(Box::write(
+        Ok(Prepared::Writing(backing, core, clean)) => Ok(Start::Writing(Box::write(
             backing,
-            PendingJob {
-                core,
-                _snapshot: draft,
-            },
+            PendingJob::new(core, draft, clean),
         ))),
     }
 }
@@ -102,6 +104,35 @@ fn emit<S: crate::native_body_checkpoint::Storage>(
         )
         .map_err(|e| refused.unwrap_or_else(|| stream_refusal(e)))
 }
+fn prepare_candidate<'a>(
+    previous: &'a ArchiveCustody,
+    owner: &'a SealedBodyLifecycleSession,
+    admissions: Option<&'a AdmissionManager>,
+    root: &[u8; 32],
+    cursor: &'a payload::network::Cursor,
+) -> Result<payload::rewrite::PreparedRewrite<'a>, &'static str> {
+    if cursor.bytes()[8] == 1 {
+        prepare_pending(previous, owner, admissions, root, cursor)
+    } else {
+        payload::rewrite::PreparedRewrite::prepare_clean_network(
+            previous.proof.as_ref().ok_or("network-recovery-proof")?,
+            &previous.source,
+            owner.evidence(),
+            admissions.ok_or("network-recovery-admissions")?,
+            &previous.summary,
+            previous.span,
+            previous.prefix.as_ref(),
+            previous.local_count,
+            root,
+            &previous.layouts,
+            previous
+                .network
+                .as_ref()
+                .ok_or("network-recovery-pending")?,
+            cursor,
+        )
+    }
+}
 impl CheckpointJob {
     fn initialize(
         mut lease: StoreLease,
@@ -119,7 +150,8 @@ impl CheckpointJob {
             return Err("network-pending-producer");
         }
         let previous = store.custody.as_ref().ok_or("network-pending-source")?;
-        let prepared = prepare(previous, owner, store.admissions.as_ref(), root, &cursor)?;
+        let prepared =
+            prepare_candidate(previous, owner, store.admissions.as_ref(), root, &cursor)?;
         let mut metadata = None;
         let writer = IncrementalRewrite::prepare(
             &mut store.journal,
@@ -151,6 +183,58 @@ impl CheckpointJob {
             poisoned: false,
         })
     }
+    #[cfg(any(
+        test,
+        all(
+            feature = "local-appliance",
+            feature = "body-persistence",
+            target_os = "none"
+        )
+    ))]
+    fn begin_clean(
+        &mut self,
+        owner: &SealedBodyLifecycleSession,
+        cursor: payload::network::Cursor,
+    ) -> Result<(), &'static str> {
+        let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
+        if cursor.bytes()[8] != 2 {
+            return Err("network-live-clean-phase");
+        }
+        let key = live_key(store, owner, &self.root)?;
+        cursor.validate(&owner.evidence().body_id, &key.verifying_key())?;
+        let previous = store.custody.as_ref().ok_or("network-recovery-source")?;
+        let prepared = prepare_candidate(
+            previous,
+            owner,
+            store.admissions.as_ref(),
+            &self.root,
+            &cursor,
+        )?;
+        let mut metadata = None;
+        let writer = IncrementalRewrite::prepare(
+            &mut store.journal,
+            &previous.source,
+            &store.binding,
+            store.seed.as_ref().ok_or("network-recovery-key")?,
+            |reader, sink| {
+                let next = emit(&prepared, reader, sink)?;
+                if next.0 != previous.summary {
+                    return Err(Refusal::Corrupt);
+                }
+                metadata = Some(next);
+                Ok(())
+            },
+        )
+        .map_err(checkpoint_commit_refusal)?;
+        drop(prepared);
+        let (summary, span) = metadata.ok_or("network-pending-metadata")?;
+        self.writer = Some(writer);
+        self.cursor = Some(cursor);
+        self.summary = summary;
+        self.span = span;
+        self.adopted = false;
+        Ok(())
+    }
     pub(crate) fn operation(&self) -> Option<Operation> {
         if self.poisoned {
             None
@@ -180,7 +264,7 @@ impl CheckpointJob {
             }
             let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
             let previous = store.custody.as_ref().ok_or("network-pending-source")?;
-            let prepared = prepare(
+            let prepared = prepare_candidate(
                 previous,
                 owner,
                 store.admissions.as_ref(),
@@ -239,7 +323,7 @@ impl CheckpointJob {
         let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
         let previous = store.custody.as_ref().ok_or("network-pending-source")?;
         let cursor = self.cursor.as_ref().ok_or("network-pending-phase")?;
-        let prepared = prepare(
+        let prepared = prepare_candidate(
             previous,
             owner,
             store.admissions.as_ref(),
@@ -295,54 +379,19 @@ impl Drop for CheckpointJob {
         self.fence();
     }
 }
-/// Nonoptional physical snapshot custody: safe Rust cannot release the frozen
-/// region while a production checkpoint job remains live.
 #[cfg(all(
     feature = "local-appliance",
     feature = "body-persistence",
     target_os = "none"
 ))]
-pub(crate) struct PendingJob {
-    core: CheckpointJob,
-    _snapshot: crate::native_play::journal::snapshot::Draft,
-}
+#[path = "native_restart_network_live.rs"]
+pub(crate) mod live;
 #[cfg(all(
     feature = "local-appliance",
     feature = "body-persistence",
     target_os = "none"
 ))]
-impl PendingJob {
-    pub(crate) fn operation(&self) -> Option<Operation> {
-        self.core.operation()
-    }
-    pub(crate) fn step(&self) -> u32 {
-        self.core.step()
-    }
-    pub(crate) fn needs_chunk(&self) -> bool {
-        self.core.needs_chunk()
-    }
-    pub(crate) fn is_complete(&self) -> bool {
-        self.core.is_complete()
-    }
-    pub(crate) fn prepare_chunk(
-        &mut self,
-        owner: &SealedBodyLifecycleSession,
-    ) -> Result<(), &'static str> {
-        self.core.prepare_chunk(owner)
-    }
-    pub(crate) fn advance(
-        &mut self,
-        access: &mut impl SectorStorage<BodyRegion>,
-    ) -> Result<bool, &'static str> {
-        self.core.advance(access)
-    }
-    pub(crate) fn finish(
-        mut self: Box<Self>,
-        owner: &SealedBodyLifecycleSession,
-    ) -> Result<CommittedCustody, &'static str> {
-        self.core.finish(owner)
-    }
-}
+pub(crate) use live::PendingJob;
 #[cfg(test)]
 #[path = "native_restart_network_pending_job_tests.rs"]
 mod tests;
