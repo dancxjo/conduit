@@ -187,7 +187,7 @@ impl NativeMaskSession {
         &'static str,
     > {
         let mut presentation = None;
-        let body = self.routes.body_id();
+        let body = self.basis.body_id();
         let producer = &self.producer;
         let epoch = &mut self.source_epoch;
         let sequence = self.index + u64::from(replacing);

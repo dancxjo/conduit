@@ -209,7 +209,7 @@ impl NativeMaskSession {
         evidence: &mut impl EvidenceSink,
     ) -> Result<(), &'static str> {
         let mut presentation = None;
-        let body = self.routes.body_id();
+        let body = self.basis.body_id();
         let producer = &self.producer;
         let epoch = &mut self.source_epoch;
         let page_offset = (self.index % 2) * PERIOD_MS;

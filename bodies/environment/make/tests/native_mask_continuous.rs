@@ -227,6 +227,9 @@ struct Fixture {
     _body: conduit_body::SealedBodyLifecycleSession,
 }
 fn fixture(refuse_once: bool) -> Fixture {
+    fixture_audited(refuse_once, false)
+}
+fn fixture_audited(refuse_once: bool, audit: bool) -> Fixture {
     use conduit_body::BodyPlanEvidence;
     use conduit_environment_runtime::mask_kernel::PreparedMaskKernel;
     use lease_tests::{new_body, prepare_at, start_at};
@@ -313,7 +316,7 @@ fn fixture(refuse_once: bool) -> Fixture {
     let (mut face_publisher, face_reader) = face_owner.claim().unwrap();
     let reader = face_reader.lease().into();
     let mut owner = Some(ready);
-    let input = ms::Preparation {
+    let mut input = ms::Preparation {
         context,
         kernel,
         invocation: capsule.into_execution(),
@@ -326,8 +329,67 @@ fn fixture(refuse_once: bool) -> Fixture {
         },
         reader,
     };
-    let session = ms::NativeMaskSession::prepare_retained(&mut owner, input)
-        .unwrap_or_else(|_| panic!("checked actual session preparation refused"));
+    let cold_bytes = if audit {
+        let original = input.wardrobe.clone();
+        for mutation in 0..5 {
+            match mutation {
+                0 => input.wardrobe.selected = None,
+                1 => {
+                    input.wardrobe.scoped_wardrobe.body_id =
+                        serde_json::from_str("\"body/foreign\"").unwrap()
+                }
+                2 => input.wardrobe.active_plan_id = "plan/foreign".into(),
+                3 => input.wardrobe.scoped_wardrobe.wake_id = None,
+                _ => input
+                    .wardrobe
+                    .selected
+                    .as_mut()
+                    .unwrap()
+                    .route_id
+                    .push_str("-foreign"),
+            }
+            let (returned, reason) = ms::NativeMaskSession::prepare_retained(&mut owner, input)
+                .err()
+                .expect("changed checked route must refuse");
+            assert_eq!(
+                reason,
+                if mutation == 0 {
+                    "mask-no-worn-route"
+                } else {
+                    "mask-current-route"
+                }
+            );
+            assert!(owner.is_some(), "refusal must retain actual pins");
+            assert!(
+                pins.edges.get() == 0,
+                "preparation must do no electrical work"
+            );
+            input = returned;
+            input.wardrobe = original.clone();
+        }
+        let (cold, memory) =
+            allocation_probe::observe(|| (input.routes.clone(), input.wardrobe.clone()));
+        drop(cold);
+        memory.retained_bytes()
+    } else {
+        0
+    };
+    let body_bytes = input.routes.body_id().as_str().len();
+    let (session, construction) = allocation_probe::observe(|| {
+        ms::NativeMaskSession::prepare_retained(&mut owner, input)
+            .unwrap_or_else(|_| panic!("checked actual session preparation refused"))
+    });
+    if audit {
+        assert!(cold_bytes > body_bytes);
+        assert!(
+            construction.deallocated_bytes >= cold_bytes,
+            "successful construction drops original cold metadata"
+        );
+        let inline = core::mem::size_of::<f::AdmittedMaskPlotRoutes>()
+            + core::mem::size_of::<f::MaskWardrobeControl>()
+            - core::mem::size_of::<ms::CheckedExecutionBasis>();
+        println!("checked Mask basis: cold heap={} replacement Body bytes={} inline reduction={} total CPU retained reduction={}", cold_bytes, body_bytes, inline, cold_bytes-body_bytes+inline);
+    }
     let mut leases = Box::new(leases);
 
     assert!(session.fresh_for_task());
@@ -490,4 +552,9 @@ fn actual_worker_continuity_refusal_cleanup_and_terminal_evidence() {
     assert!(capacity.session.handoff.is_none());
     assert_eq!(capacity.evidence.kinds, ["closed", "closed", "closed"]);
     FREE.store(1_000_000, Ordering::Relaxed);
+}
+
+#[test]
+fn checked_execution_basis_retires_cold_metadata_after_exact_route_checks() {
+    let _fixture = fixture_audited(false, true);
 }

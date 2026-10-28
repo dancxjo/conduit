@@ -40,6 +40,17 @@ pub(super) struct Handoff {
         c::BaseOperationClaim,
     )>,
 }
+/// Minted only after complete preparation checks. Cold route/wardrobe values
+/// are not electrical owners or future route authority; this private witness
+/// retains the Body identity required for every current Face check.
+pub(crate) struct CheckedExecutionBasis {
+    body: conduit_body::BodyId,
+}
+impl CheckedExecutionBasis {
+    pub(crate) fn body_id(&self) -> &conduit_body::BodyId {
+        &self.body
+    }
+}
 pub struct NativeMaskSession {
     pub(super) ready: Option<NativeReady>,
     pub(super) call: Option<NativeCall>,
@@ -48,8 +59,7 @@ pub struct NativeMaskSession {
     pub(super) session: Session,
     pub(super) face: conduit_plan_lowering::lowering::LoweredForePort,
     pub(super) show: conduit_plan_lowering::lowering::LoweredForePort,
-    pub(super) routes: f::AdmittedMaskPlotRoutes,
-    pub(super) wardrobe: f::MaskWardrobeControl,
+    pub(super) basis: CheckedExecutionBasis,
     pub(super) producer: FaceScope,
     pub(super) reader: ReadLease,
     pub(super) source_epoch: Option<(u64, u64)>,
@@ -145,6 +155,11 @@ impl NativeMaskSession {
                 ));
             }
         };
+        // Session refusal above returns every original preparation value. Only
+        // successful checked construction may retire these cold descriptions.
+        let basis = CheckedExecutionBasis {
+            body: input.routes.body_id().clone(),
+        };
         Ok(Box::new(Self {
             ready: owner.take(),
             call: None,
@@ -153,8 +168,7 @@ impl NativeMaskSession {
             session,
             face,
             show,
-            routes: input.routes,
-            wardrobe: input.wardrobe,
+            basis,
             producer: input.producer,
             reader: input.reader,
             source_epoch: None,
@@ -205,8 +219,7 @@ pub struct RetiredMaskParts {
     pub evidence: Box<Consumer>,
     pub context: Arc<f::PreparedMaskShowContext>,
     pub invocation: r::PreparedRendererExecution,
-    pub routes: f::AdmittedMaskPlotRoutes,
-    pub wardrobe: f::MaskWardrobeControl,
+    pub(crate) basis: CheckedExecutionBasis,
     pub producer: FaceScope,
     pub reader: ReadLease,
 }
@@ -223,9 +236,10 @@ impl RetiredMask {
         initial: &c::ActivePlayIdentity,
     ) -> bool {
         let parts = &self.parts;
-        parts
-            .leases
-            .matches_current_body(&parts.renderer, body, initial)
+        parts.basis.body_id() == &body.evidence().body_id
+            && parts
+                .leases
+                .matches_current_body(&parts.renderer, body, initial)
             && body
                 .realization()
                 .is_some_and(|current| current.wake.wake_id == parts.producer.wake)
@@ -292,8 +306,7 @@ impl NativeMaskSession {
             session,
             context,
             invocation,
-            routes,
-            wardrobe,
+            basis,
             producer,
             reader,
             ..
@@ -309,8 +322,7 @@ impl NativeMaskSession {
                 evidence,
                 context,
                 invocation,
-                routes,
-                wardrobe,
+                basis,
                 producer,
                 reader,
             },
