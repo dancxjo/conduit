@@ -5,7 +5,7 @@ use conduit_core::{
     validate_canonical_structured_value as validate, Quantity, StructuredInfoRefusal as R,
     StructuredInfoType as Type, ValidatedCanonicalStructuredValue as Value,
 };
-mod material {
+pub(super) mod material {
     include!(concat!(env!("OUT_DIR"), "/observation-material.rs"));
 }
 pub(super) struct QuantityTemplate<const RESULT: bool> {

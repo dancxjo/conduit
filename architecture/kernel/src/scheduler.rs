@@ -401,6 +401,28 @@ pub trait StepBack<const PORTS: usize> {
     ) -> Option<&mut alloc::vec::Vec<u8>> {
         None
     }
+    /// Explicit opt-in: canonical bytes are composed only into the scheduler's
+    /// admitted transactional slot, after the ordinary Step preflight. This
+    /// declaration is stable before Play and independent of pending state.
+    #[cfg(feature = "alloc")]
+    fn encodes_prepared_output(&self, _port: PortId) -> bool {
+        false
+    }
+    #[cfg(feature = "alloc")]
+    fn encode_prepared_output(
+        &self,
+        port: PortId,
+        output: &mut [u8],
+    ) -> Result<usize, StorageError> {
+        let bytes = self
+            .prepared_output(port)
+            .ok_or(StorageError::RepresentationMismatch)?;
+        let target = output
+            .get_mut(..bytes.len())
+            .ok_or(StorageError::ValueTooLarge)?;
+        target.copy_from_slice(bytes);
+        Ok(bytes.len())
+    }
     /// Physical bytes staged by prepared or admitted compact publication. The storage
     /// belongs to this already-prepared Back and must remain unchanged until
     /// `step_committed`; the scheduler copies it into admitted value storage
@@ -1116,6 +1138,8 @@ where
             &cord_specs,
             &routes,
         )?;
+        #[cfg(feature = "alloc")]
+        validate_prepared_encoding_profile::<D, S, PORTS>(&drivers[..active_nodes], &values)?;
         Ok(Self {
             node_specs,
             terminal_transductions: TerminalContracts::empty(),
@@ -3786,3 +3810,18 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(feature = "alloc")]
+fn validate_prepared_encoding_profile<D: StepBack<P>, S: ValueStorage, const P: usize>(
+    drivers: &[D],
+    values: &S,
+) -> Result<(), SchedulerError> {
+    if !values.supports_prepared_encoding()
+        && drivers
+            .iter()
+            .any(|driver| (0..P).any(|port| driver.encodes_prepared_output(PortId(port as u16))))
+    {
+        return Err(SchedulerError::InvalidPlan);
+    }
+    Ok(())
+}

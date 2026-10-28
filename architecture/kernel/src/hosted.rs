@@ -186,6 +186,25 @@ impl HostedValueStore {
 }
 
 impl ValueStorage for HostedValueStore {
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        true
+    }
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        maximum_bytes: usize,
+        encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        crate::CanonicalEncodedValueStorage::store_encoded(self, maximum_bytes, encode).map_err(
+            |error| match error {
+                crate::EncodedValueRefusal::Storage(error)
+                | crate::EncodedValueRefusal::Encoder(error) => error,
+                crate::EncodedValueRefusal::Length => StorageError::ValueTooLarge,
+            },
+        )
+    }
+
     fn preflight_owned_compact_f32_outputs(
         &self,
         requests: &[(crate::scheduler::CompactF32Layout, u16)],

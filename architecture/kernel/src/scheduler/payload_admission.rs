@@ -193,6 +193,29 @@ where
                 *slot = Some(value);
                 return Ok(Some(GeneratedStepOutput::copied(value)));
             }
+            #[cfg(feature = "alloc")]
+            if self.drivers[node].encodes_prepared_output(port) {
+                self.ensure_output_value_envelope(node, port, declared_len)?;
+                let output = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if output.is_some() {
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                let driver = &self.drivers[node];
+                let value =
+                    self.values
+                        .store_prepared_encoded(declared_len as usize, &mut |bytes| {
+                            let length = driver.encode_prepared_output(port, bytes)?;
+                            if length != declared_len as usize {
+                                return Err(StorageError::ValueTooLarge);
+                            }
+                            Ok(length)
+                        })?;
+                *output = Some(value);
+                return Ok(Some(GeneratedStepOutput::copied(value)));
+            }
             let bytes = self.drivers[node]
                 .prepared_output(port)
                 .ok_or(SchedulerError::InvalidPlan)?;

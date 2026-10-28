@@ -425,6 +425,22 @@ pub trait ValueStorage {
     fn used_items(&self) -> u16;
     fn used_bytes(&self) -> u32;
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
+    /// Physical direct canonical encoding support, checked before Play.
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        false
+    }
+    /// Opt-in canonical publication into a free admitted slot. Unsupported
+    /// profiles refuse without calling the encoder or changing ownership.
+    /// Failure/unwind must discard partial bytes and retire the reservation.
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        _maximum_bytes: usize,
+        _encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
     /// Reconstruct a live store-local identity with its canonical logical length.
     /// Implementations must refuse stale generations and vacant/retired slots;

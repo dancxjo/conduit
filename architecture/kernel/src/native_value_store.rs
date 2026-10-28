@@ -111,6 +111,18 @@ impl<S: ValueStorage, const N: usize> ValueStorage for NativeU64ValueStore<S, N>
     fn used_bytes(&self) -> u32 {
         self.canonical.used_bytes() + u32::from(self.native_used) * 8
     }
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        self.canonical.supports_prepared_encoding()
+    }
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        maximum_bytes: usize,
+        encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        self.canonical.store_prepared_encoded(maximum_bytes, encode)
+    }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
         self.canonical.store(bytes)
     }

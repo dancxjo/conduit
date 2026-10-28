@@ -46,6 +46,26 @@ impl<const P: usize> StepBack<P> for DisplayBack {
             Self::Write(b) => b.step(io, input),
         }
     }
+    fn encodes_prepared_output(&self, port: k::PortId) -> bool {
+        match self {
+            Self::Software(back) => {
+                <ApplianceBack as StepBack<P>>::encodes_prepared_output(back, port)
+            }
+            _ => false,
+        }
+    }
+    fn encode_prepared_output(
+        &self,
+        port: k::PortId,
+        output: &mut [u8],
+    ) -> Result<usize, k::StorageError> {
+        match self {
+            Self::Software(back) => {
+                <ApplianceBack as StepBack<P>>::encode_prepared_output(back, port, output)
+            }
+            _ => Err(k::StorageError::RepresentationMismatch),
+        }
+    }
     fn prepared_output(&self, port: k::PortId) -> Option<&[u8]> {
         match self {
             Self::Software(b) => <ApplianceBack as StepBack<P>>::prepared_output(b, port),

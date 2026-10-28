@@ -69,3 +69,117 @@ fn coordinate(value: Value<'_>) -> Result<i128, R> {
             .map_err(|_| R::MalformedCanonicalEncoding)?,
     ))
 }
+
+/// Prepared immutable template with only checked changing coordinates retained.
+/// Full canonical bytes are composed into the scheduler-owned destination.
+pub struct PreparedObservationEmitter {
+    input: PreparedCanonicalInput,
+    failure: alloc::vec::Vec<u8>,
+    staged: Option<StagedObservation>,
+}
+#[derive(Clone, Copy)]
+enum StagedObservation {
+    Quantities(i16, u16),
+    Unavailable,
+}
+impl PreparedObservationEmitter {
+    pub fn prepare(contract: &ObservationContract) -> Result<Self, R> {
+        use super::template::material;
+        let input = PreparedCanonicalInput::with_static_schema(
+            contract.input_type(),
+            include_bytes!(concat!(env!("OUT_DIR"), "/decoded.type")),
+            1024,
+        )?;
+        if validate(material::RESULT)?.type_bytes() != contract.result_type().canonical_bytes()? {
+            return Err(R::WrongType);
+        }
+        let failure_type = c::StructuredInfoType::from_canonical_bytes(material::FAILURE_TYPE)?;
+        let maximum = conduit_plot::maximum_prepared_canonical_value_bytes(&failure_type)
+            .map_err(|_| R::CanonicalEncodingTooLarge)? as usize;
+        let maximum_node = maximum
+            .checked_sub(material::FAILURE_TYPE.len())
+            .ok_or(R::CanonicalEncodingTooLarge)?;
+        if material::UNAVAILABLE_PREFIX
+            .len()
+            .saturating_add(maximum_node)
+            > material::RESULT_MAXIMUM
+        {
+            return Err(R::CanonicalEncodingTooLarge);
+        }
+        Ok(Self {
+            input,
+            failure: alloc::vec::Vec::with_capacity(maximum_node),
+            staged: None,
+        })
+    }
+    pub fn stage(&mut self, input: &[u8]) -> Result<usize, ObservationRefusal> {
+        use super::template::material;
+        self.input.validate(input)?;
+        let decoded = validate(input)?;
+        if let Some(frame) = decoded.variant_payload("frame")? {
+            let temperature = i16::try_from(coordinate(
+                frame.record_field("temperature")?.ok_or(R::WrongType)?,
+            )?)
+            .map_err(|_| ObservationRefusal::CoordinateOutOfRange)?;
+            let humidity = u16::try_from(coordinate(
+                frame.record_field("humidity")?.ok_or(R::WrongType)?,
+            )?)
+            .map_err(|_| ObservationRefusal::CoordinateOutOfRange)?;
+            // The same authored Forms validate before staging; execution does
+            // not infer units or bypass the checked coordinate domain.
+            forms::DeviceDht11TemperatureForm::decode(&temperature.to_le_bytes())?;
+            forms::DeviceDht11HumidityForm::decode(&humidity.to_le_bytes())?;
+            self.staged = Some(StagedObservation::Quantities(temperature, humidity));
+            Ok(material::RESULT.len())
+        } else {
+            let failure = decoded
+                .variant_payload("unavailable")?
+                .ok_or(R::WrongType)?;
+            if failure.type_bytes() != material::FAILURE_TYPE {
+                return Err(R::WrongType.into());
+            }
+            let bytes = failure.value_node();
+            if bytes.len() > self.failure.capacity() {
+                return Err(R::CanonicalEncodingTooLarge.into());
+            }
+            self.failure.clear();
+            self.failure.extend_from_slice(bytes);
+            self.staged = Some(StagedObservation::Unavailable);
+            Ok(material::UNAVAILABLE_PREFIX.len() + bytes.len())
+        }
+    }
+    pub fn encode(&self, output: &mut [u8]) -> Result<usize, ObservationRefusal> {
+        use super::template::material;
+        let length = match self.staged.ok_or(R::WrongType)? {
+            StagedObservation::Quantities(temperature, humidity) => {
+                let out = output
+                    .get_mut(..material::RESULT.len())
+                    .ok_or(R::CanonicalEncodingTooLarge)?;
+                out.copy_from_slice(material::RESULT);
+                out[material::RESULT_TEMPERATURE].copy_from_slice(
+                    &forms::DeviceDht11TemperatureForm::decode(&temperature.to_le_bytes())?
+                        .encode(),
+                );
+                out[material::RESULT_HUMIDITY].copy_from_slice(
+                    &forms::DeviceDht11HumidityForm::decode(&humidity.to_le_bytes())?.encode(),
+                );
+                material::RESULT.len()
+            }
+            StagedObservation::Unavailable => {
+                let length = material::UNAVAILABLE_PREFIX.len() + self.failure.len();
+                let out = output
+                    .get_mut(..length)
+                    .ok_or(R::CanonicalEncodingTooLarge)?;
+                let (prefix, node) = out.split_at_mut(material::UNAVAILABLE_PREFIX.len());
+                prefix.copy_from_slice(material::UNAVAILABLE_PREFIX);
+                node.copy_from_slice(&self.failure);
+                length
+            }
+        };
+        validate(&output[..length])?;
+        Ok(length)
+    }
+    pub fn clear(&mut self) {
+        self.staged = None;
+    }
+}

@@ -105,6 +105,36 @@ impl<const P: usize> StepBack<P> for CaptureBack {
             Self::Observation(back) => back.step(io, input),
         }
     }
+    fn encodes_prepared_output(&self, port: PortId) -> bool {
+        match self {
+            Self::Observation(back) => {
+                <observation::ObservationBack as StepBack<P>>::encodes_prepared_output(back, port)
+            }
+            _ => false,
+        }
+    }
+    fn encode_prepared_output(
+        &self,
+        port: PortId,
+        output: &mut [u8],
+    ) -> Result<usize, conduit_kernel::StorageError> {
+        match self {
+            Self::Observation(back) => {
+                <observation::ObservationBack as StepBack<P>>::encode_prepared_output(
+                    back, port, output,
+                )
+            }
+            _ => {
+                let bytes = <Self as StepBack<P>>::prepared_output(self, port)
+                    .ok_or(conduit_kernel::StorageError::RepresentationMismatch)?;
+                output
+                    .get_mut(..bytes.len())
+                    .ok_or(conduit_kernel::StorageError::ValueTooLarge)?
+                    .copy_from_slice(bytes);
+                Ok(bytes.len())
+            }
+        }
+    }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::Expression(back) => {

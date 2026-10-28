@@ -183,6 +183,24 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
         self.used_bytes
     }
 
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        true
+    }
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        maximum_bytes: usize,
+        encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        crate::CanonicalEncodedValueStorage::store_encoded(self, maximum_bytes, encode).map_err(
+            |error| match error {
+                crate::EncodedValueRefusal::Storage(error)
+                | crate::EncodedValueRefusal::Encoder(error) => error,
+                crate::EncodedValueRefusal::Length => StorageError::ValueTooLarge,
+            },
+        )
+    }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
         let value = self.reserve_value_slot(bytes.len())?;
         self.slots[usize::from(value.slot)].bytes[..bytes.len()].copy_from_slice(bytes);
@@ -267,6 +285,18 @@ impl<const S: usize, const M: usize> ValueStorage for &mut FixedValueStore<S, M>
     }
     fn used_bytes(&self) -> u32 {
         (**self).used_bytes()
+    }
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        (**self).supports_prepared_encoding()
+    }
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        maximum_bytes: usize,
+        encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        (**self).store_prepared_encoded(maximum_bytes, encode)
     }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
         (**self).store(bytes)

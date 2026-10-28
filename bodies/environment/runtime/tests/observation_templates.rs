@@ -4,7 +4,8 @@ use conduit_core::{
     StructuredInfoTypeShape as Shape, StructuredInfoValue as Value,
 };
 use conduit_environment_runtime::observation::{
-    ObservationContract, PreparedObservationCodec, PreparedObservationQuantityForms,
+    ObservationContract, PreparedObservationCodec, PreparedObservationEmitter,
+    PreparedObservationQuantityForms,
 };
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
@@ -46,6 +47,16 @@ fn one_output_buffer_matches_all_quantity_and_failure_envelopes_without_play_all
             as usize
     );
     drop(forms);
+    let (mut emitter, compact_memory) =
+        allocation_probe::observe(|| PreparedObservationEmitter::prepare(&contract).unwrap());
+    println!(
+        "direct observation output heap={} old={} saved={}",
+        compact_memory.retained_bytes(),
+        maximum,
+        maximum - compact_memory.retained_bytes()
+    );
+    assert!(maximum - compact_memory.retained_bytes() >= 2048);
+    let mut encoded = vec![0; maximum];
     let mut cases = Vec::new();
     for (temperature, humidity) in [(-108i128, 530i128), (0, 0), (198, 590), (600, 950)] {
         let frame_type = variant(contract.input_type(), "frame");
@@ -145,6 +156,14 @@ fn one_output_buffer_matches_all_quantity_and_failure_envelopes_without_play_all
         for _ in 0..8 {
             for (input, expected) in &cases {
                 assert_eq!(codec.convert(input).unwrap(), expected);
+                let declared = emitter.stage(input).unwrap();
+                assert!(emitter.encode(&mut encoded[..declared - 1]).is_err());
+                let length = emitter.encode(&mut encoded).unwrap();
+                assert_eq!(length, declared);
+                assert_eq!(&encoded[..length], expected);
+                assert!(emitter.stage(&[255]).is_err());
+                assert_eq!(emitter.encode(&mut encoded).unwrap(), length);
+                assert_eq!(&encoded[..length], expected);
             }
         }
     });

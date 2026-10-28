@@ -1,11 +1,11 @@
 //! Pure, finite representation conversion under the existing kernel.
-use super::{ObservationContract, ObservationRefusal, PreparedObservationCodec};
+use super::{ObservationContract, ObservationRefusal};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
 };
 pub struct ObservationBack {
-    codec: PreparedObservationCodec,
+    codec: super::codec::PreparedObservationEmitter,
     staged: bool,
     cancelled: bool,
 }
@@ -14,7 +14,7 @@ impl ObservationBack {
         contract: &ObservationContract,
     ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
         Ok(Self {
-            codec: PreparedObservationCodec::prepare(contract)?,
+            codec: super::codec::PreparedObservationEmitter::prepare(contract)?,
             staged: false,
             cancelled: false,
         })
@@ -53,24 +53,35 @@ impl<const P: usize> StepBack<P> for ObservationBack {
         if io.consume_fuel(1).is_err() {
             return fail(9);
         }
-        let output = match self.codec.convert(input) {
+        let output = match self.codec.stage(input) {
             Ok(output) => output,
             Err(ObservationRefusal::Canonical(_)) => return fail(5),
             Err(ObservationRefusal::CoordinateOutOfRange) => return fail(6),
             Err(ObservationRefusal::Form(_)) => return fail(7),
         };
-        if io.send_prepared(PortId(0), output.len() as u32).is_err()
-            || io.consume(PortId(0)).is_err()
-        {
+        if io.send_prepared(PortId(0), output as u32).is_err() || io.consume(PortId(0)).is_err() {
             return fail(8);
         }
         self.staged = true;
         StepOutcome::Progress
     }
-    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0) && self.staged).then(|| self.codec.output())
+    fn encodes_prepared_output(&self, port: PortId) -> bool {
+        port == PortId(0)
+    }
+    fn encode_prepared_output(
+        &self,
+        port: PortId,
+        output: &mut [u8],
+    ) -> Result<usize, conduit_kernel::StorageError> {
+        if port != PortId(0) || !self.staged {
+            return Err(conduit_kernel::StorageError::RepresentationMismatch);
+        }
+        self.codec
+            .encode(output)
+            .map_err(|_| conduit_kernel::StorageError::RepresentationMismatch)
     }
     fn step_committed(&mut self) {
+        self.codec.clear();
         self.staged = false;
     }
     fn cancel(&mut self) {

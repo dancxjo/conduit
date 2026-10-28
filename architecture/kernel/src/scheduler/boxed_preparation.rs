@@ -115,6 +115,7 @@ where
             &routes,
             &host_bindings,
         )?;
+        validate_prepared_encoding_profile::<D, S, PORTS>(&drivers[..active_nodes], &values)?;
         let storage = storage.unwrap_or_else(alloc::boxed::Box::<Self>::new_uninit);
         Ok(alloc::boxed::Box::write(
             storage,

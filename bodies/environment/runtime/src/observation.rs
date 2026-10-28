@@ -15,7 +15,7 @@ mod packed;
 mod source_frame;
 mod template;
 pub use back::ObservationBack;
-pub use codec::PreparedObservationCodec;
+pub use codec::{PreparedObservationCodec, PreparedObservationEmitter};
 pub use packed::PreparedObservationQuantityForms;
 pub use source_frame::{PreparedSourceFrameDecoder, SourceFrameRefusal};
 pub const KIND: &str = "device/dht11-observation";
