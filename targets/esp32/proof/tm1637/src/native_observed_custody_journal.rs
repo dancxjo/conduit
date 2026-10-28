@@ -281,20 +281,7 @@ impl<S: WholeEpoch> Custody<S> {
         closed: impl FnOnce(&mut S, &[u8; ACCEPTANCE]) -> Result<(), Error>,
     ) -> Result<PendingReclaim<S>, (Self, Error)> {
         let result = (|| {
-            if self.latest.is_some_and(|s| s.phase != Phase::Reclaimed) {
-                return Err(Error::Phase);
-            }
-            self.latest
-                .map_or(0, |s| s.generation)
-                .checked_add(2)
-                .ok_or(Error::Exhausted)?;
-            if acceptance[..32] != self.storage.identity() {
-                return Err(Error::Region);
-            }
-            if !verify(acceptance) {
-                return Err(Error::Authentication);
-            }
-            closed(&mut self.storage, acceptance)?;
+            self.check_begin(acceptance, verify, closed)?;
             work[PAYLOAD..CRC].copy_from_slice(acceptance);
             self.publish(Phase::Reclaiming, work)
         })();
@@ -305,6 +292,45 @@ impl<S: WholeEpoch> Custody<S> {
             }),
             Err(error) => Err((self, error)),
         }
+    }
+    /// Authenticate and retain the actual closed owner before scheduling any
+    /// metadata write. The trusted `closed` callback must inspect read-only;
+    /// this method itself issues no flash writes or erased-data witness.
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn prepare_begin(
+        mut self,
+        acceptance: &[u8; ACCEPTANCE],
+        verify: impl Fn(&[u8; ACCEPTANCE]) -> bool,
+        closed: impl FnOnce(&mut S, &[u8; ACCEPTANCE]) -> Result<(), Error>,
+    ) -> Result<PreparedReclaim<S>, (Self, Error)> {
+        match self.check_begin(acceptance, verify, closed) {
+            Ok(()) => Ok(PreparedReclaim {
+                custody: self,
+                acceptance: *acceptance,
+            }),
+            Err(error) => Err((self, error)),
+        }
+    }
+    fn check_begin(
+        &mut self,
+        acceptance: &[u8; ACCEPTANCE],
+        verify: impl Fn(&[u8; ACCEPTANCE]) -> bool,
+        closed: impl FnOnce(&mut S, &[u8; ACCEPTANCE]) -> Result<(), Error>,
+    ) -> Result<(), Error> {
+        if self.latest.is_some_and(|s| s.phase != Phase::Reclaimed) {
+            return Err(Error::Phase);
+        }
+        self.latest
+            .map_or(0, |s| s.generation)
+            .checked_add(2)
+            .ok_or(Error::Exhausted)?;
+        if acceptance[..32] != self.storage.identity() {
+            return Err(Error::Region);
+        }
+        if !verify(acceptance) {
+            return Err(Error::Authentication);
+        }
+        closed(&mut self.storage, acceptance)
     }
     #[allow(clippy::result_large_err)]
     pub(crate) fn resume(self, work: &mut [u8; WORK]) -> Result<ErasedData<S>, (Self, Error)> {
@@ -430,6 +456,33 @@ impl<S: WholeEpoch> Custody<S> {
             acceptance: Sha256::digest(&work[PAYLOAD..CRC]).into(),
         });
         Ok(())
+    }
+}
+
+/// Accepted, closed media whose Reclaiming marker has not yet been committed.
+/// Only consuming commit may produce PendingReclaim; cancellation preserves
+/// the original retained custody and cannot issue a writable/erased owner.
+pub(crate) struct PreparedReclaim<S> {
+    custody: Custody<S>,
+    acceptance: [u8; ACCEPTANCE],
+}
+impl<S: WholeEpoch> PreparedReclaim<S> {
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn commit(
+        mut self,
+        work: &mut [u8; WORK],
+    ) -> Result<PendingReclaim<S>, (Self, Error)> {
+        work[PAYLOAD..CRC].copy_from_slice(&self.acceptance);
+        match self.custody.publish(Phase::Reclaiming, work) {
+            Ok(()) => Ok(PendingReclaim {
+                custody: self.custody,
+                next: 0,
+            }),
+            Err(error) => Err((self, error)),
+        }
+    }
+    pub(crate) fn into_custody(self) -> Custody<S> {
+        self.custody
     }
 }
 
