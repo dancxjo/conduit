@@ -6,6 +6,7 @@ use conduit_plot::LinkedPlanningFactsRef;
 #[derive(Debug)]
 pub enum BorrowedLocalPlanningRefusal {
     UnsupportedProfile,
+    WorkspaceCapacity,
     Planning(PlannerError),
     Verification(c::FlatPlanRefusal),
 }
@@ -140,7 +141,14 @@ pub fn with_linked_local_plan<R>(
             offer.capability_id,
         ));
     }
-    let mut records = Vec::with_capacity(facts.gears.len());
+    // This complete temporary placement table is the largest single allocation
+    // on the native network preparation path. Aggregate free bytes do not prove
+    // that a fragmented Host can back it. Refuse before invoking the consumer
+    // (and therefore before Root issuance), rather than aborting local Play.
+    let mut records = Vec::new();
+    records
+        .try_reserve_exact(facts.gears.len())
+        .map_err(|_| E::WorkspaceCapacity)?;
     for (i, gear) in facts.gears.iter().enumerate() {
         let offer = host.capabilities.iter().nth(choices[i]).unwrap();
         let base = selected_bases[i].map(|index| host.bases.iter().nth(index).unwrap());

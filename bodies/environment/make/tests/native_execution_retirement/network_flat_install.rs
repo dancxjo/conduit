@@ -61,6 +61,33 @@ fn issuer() -> RootIssuer {
     )
 }
 #[test]
+fn temporary_placement_table_refusal_returns_ready_owners_before_root_issuance() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let count = image.linked_planning_facts().unwrap().gears.len();
+    let _refusal = allocation_probe::refuse_next_allocation_size(
+        count * core::mem::size_of::<c::PlannedGearRef<'_>>(),
+    );
+    assert!(play
+        .install_linked_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+        )
+        .is_err());
+    assert!(source.is_some() && join.is_some());
+    assert!(play.active.is_none());
+    assert!(play.flat_refusal.is_empty());
+    assert!(play.prepared.is_none() && play.source.is_none() && play.join.is_none());
+    assert_eq!(play.phase, "installation-refused");
+}
+#[test]
 fn actual_flat_installer_retains_partial_issuance_and_never_overwrites_it() {
     let image = source_image();
     let pins = image.identity().unwrap();
