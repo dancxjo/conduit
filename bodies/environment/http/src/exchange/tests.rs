@@ -569,3 +569,65 @@ fn acknowledged_input_remains_private_until_outer_connection_custody_is_retired(
     );
     output.fill(0);
 }
+
+#[test]
+fn custody_offer_route_is_bounded_and_never_an_erase_request() {
+    use crate::observed_custody::{self, Reply};
+    let mut unavailable = Socket::new(b"GET /history/custody/offer?slot=0 HTTP/1.1\r\n\r\n");
+    assert_eq!(
+        poll(exchange_with_reading(
+            &mut unavailable,
+            || 0,
+            None,
+            |_, _| None
+        )),
+        Poll::Ready(Ok(ExchangeOutcome::ObservedOffer))
+    );
+    assert!(
+        core::str::from_utf8(&unavailable.output[..unavailable.written])
+            .unwrap()
+            .contains("503")
+    );
+    observed_custody::install_provider(|slot| match slot {
+        0 => Reply::Pending,
+        1 => Reply::Offer(alloc::vec::Vec::from(
+            &b"{\"signed_offer_fixture\":true}"[..],
+        )),
+        _ => Reply::Refused,
+    })
+    .unwrap();
+    for (request, status) in [
+        (
+            &b"GET /history/custody/offer?slot=0 HTTP/1.1\r\n\r\n"[..],
+            "202 Accepted",
+        ),
+        (
+            &b"GET /history/custody/offer?slot=1 HTTP/1.0\r\n\r\n"[..],
+            "200 OK",
+        ),
+        (
+            &b"GET /history/custody/offer?slot=5 HTTP/1.1\r\n\r\n"[..],
+            "409 Conflict",
+        ),
+    ] {
+        let mut socket = Socket::new(request);
+        assert_eq!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Ok(ExchangeOutcome::ObservedOffer))
+        );
+        assert!(core::str::from_utf8(&socket.output[..socket.written])
+            .unwrap()
+            .contains(status));
+    }
+    for request in [
+        &b"GET /history/custody/offer?slot=01 HTTP/1.1\r\n\r\n"[..],
+        &b"GET /history/custody/offer?slot=6 HTTP/1.1\r\n\r\n"[..],
+        &b"POST /history/custody/offer?slot=1 HTTP/1.1\r\nContent-Length: 0\r\n\r\n"[..],
+    ] {
+        let mut socket = Socket::new(request);
+        assert!(!matches!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Ok(ExchangeOutcome::ObservedOffer))
+        ));
+    }
+}

@@ -38,6 +38,13 @@ mod network_offer;
 #[cfg(not(feature = "flat-network-appliance"))]
 #[path = "native_network_plan.rs"]
 mod network_plan;
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    target_os = "none"
+))]
+#[path = "native_root_observed_offer.rs"]
+mod observed_offer;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_root_policy.rs"]
@@ -143,6 +150,12 @@ impl NativeRoot {
         Self {
             #[cfg(feature = "body-image-root")]
             body: None,
+            #[cfg(all(
+                feature = "local-appliance",
+                feature = "body-persistence",
+                target_os = "none"
+            ))]
+            observed_offer: None,
             retired_native: None,
             worker: None,
             #[cfg(feature = "native-face-root")]

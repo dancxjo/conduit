@@ -10,6 +10,7 @@ const HEADER_BYTES: usize = REQUEST_BYTES;
 
 pub enum NetworkHttpRequest {
     Page,
+    ObservedOffer { slot: u8 },
     BodyJoinPage,
     BodyJoinOptions,
     BodyJoin(alloc::vec::Vec<u8>),
@@ -132,6 +133,21 @@ fn parse(
     } else {
         None
     };
+    let observed_offer = if readings && line.starts_with("GET /history/custody/offer?slot=") {
+        let tail = line
+            .strip_prefix("GET /history/custody/offer?slot=")
+            .ok_or(E::Malformed)?;
+        let (number, version) = tail.split_once(' ').ok_or(E::Malformed)?;
+        if !matches!(version, "HTTP/1.0" | "HTTP/1.1")
+            || number.len() != 1
+            || !matches!(number.as_bytes()[0], b'0'..=b'5')
+        {
+            return Err(E::Malformed);
+        }
+        Some(number.as_bytes()[0] - b'0')
+    } else {
+        None
+    };
     let body_join_page =
         readings && matches!(line, "GET /body/join HTTP/1.0" | "GET /body/join HTTP/1.1");
     let body_join_post = readings
@@ -165,6 +181,7 @@ fn parse(
         "POST /network HTTP/1.1" | "POST /network HTTP/1.0" => false,
         _ if body_join_post => false,
         _ if reading.is_some()
+            || observed_offer.is_some()
             || history.is_some()
             || body_join_page
             || body_join_options
@@ -216,6 +233,9 @@ fn parse(
         return Err(E::Malformed);
     }
     if page {
+        if let Some(slot) = observed_offer {
+            return Ok(Some(NetworkHttpRequest::ObservedOffer { slot }));
+        }
         if body_join_page {
             return Ok(Some(NetworkHttpRequest::BodyJoinPage));
         }

@@ -15,6 +15,8 @@ mod custody_boot;
 pub(crate) mod custody_journal;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_history.rs"]
 mod history;
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_offer.rs"]
+mod offer;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_recovery.rs"]
 mod recovery;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_state.rs"]
@@ -517,4 +519,50 @@ pub fn prove(
     });
     COMMIT_READ_FAULT.store(false, std::sync::atomic::Ordering::SeqCst);
     println!("actual cold module + actual Root restart observed signer/persisted manager: canonical ACK, wrong signature, missing workspace+third-call refusal after durable layout, failed layout write+appliedcommit/readbackrefusal, all30erase+allFFreadbackrefusal+replay refusal, Pending authenticated reboot+resume, authenticated erased boot classify; every physical backend operation outside State/Work critical scopes");
+}
+
+#[test]
+fn live_offer_lease_yields_outside_locks_and_restores_closed_media_on_every_exit() {
+    let sign = conduit_core::bind_sign(&"offer/host".into(), &"offer/boot".into(), None, 0);
+    let image =
+        conduit_environment_make::EnvironmentBodyImage::prepare_mask_from_sign(&sign).unwrap();
+    let body = image.body.evidence().body_id.clone();
+    let key = ed25519_dalek::SigningKey::from_bytes(&[43; 32]);
+    STATE.lock(|s| *s.borrow_mut() = Some(State::Failed));
+    EPOCHS.lock(|e| *e.borrow_mut() = Some(std::array::from_fn(|_| State::Failed)));
+    WORK.lock(|w| *w.borrow_mut() = Some(Box::new([0; 536])));
+    let media = frozen(1, &body, &key);
+    let mut inspection = offer::Inspection::start(1, &body, &key.verifying_key()).unwrap();
+    assert!(offer::Inspection::start(1, &body, &key.verifying_key()).is_err());
+    assert!(offer::Inspection::start(6, &body, &key.verifying_key()).is_err());
+    assert!(!inspection.step().unwrap());
+    drop(inspection);
+    EPOCHS.lock(|e| assert!(matches!(&e.borrow().as_ref().unwrap()[0], State::Active(_))));
+    let mut inspection = offer::Inspection::start(1, &body, &key.verifying_key()).unwrap();
+    let workspace = WORK.lock(|w| w.borrow_mut().take());
+    assert!(inspection.step().is_err());
+    drop(inspection);
+    WORK.lock(|w| *w.borrow_mut() = workspace);
+    let mut inspection = offer::Inspection::start(1, &body, &key.verifying_key()).unwrap();
+    for _ in 0..3 {
+        assert!(!inspection.step().unwrap());
+    }
+    assert!(inspection.step().unwrap());
+    inspection.finish().unwrap();
+    EPOCHS.lock(|e| {
+        let mut slots = e.borrow_mut();
+        let State::Active(active) = &mut slots.as_mut().unwrap()[0] else {
+            panic!("same journal returned");
+        };
+        assert!(Arc::ptr_eq(
+            &active.journal.inspect_storage(|s| s.media.clone()),
+            &media
+        ));
+        active.recovered = false;
+    });
+    assert!(offer::Inspection::start(1, &body, &key.verifying_key()).is_err());
+    EPOCHS.lock(|e| {
+        assert!(matches!(&e.borrow().as_ref().unwrap()[0], State::Active(a) if !a.recovered))
+    });
+    assert_eq!(media.lock().unwrap().erases, 0);
 }

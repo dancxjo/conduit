@@ -11,6 +11,7 @@ pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
 pub mod body_join;
 pub mod exchange;
 pub mod network_setup;
+pub mod observed_custody;
 pub mod service_control;
 mod seven_segment;
 pub mod show_mailbox;

@@ -181,3 +181,49 @@ fn bounded_inspector_refuses_incomplete_poisoned_and_changed_media() {
     active.failed = true;
     assert!(acceptance::Inspector::start(&mut active, &body, &key).is_err());
 }
+
+#[test]
+fn owned_inspection_can_move_between_turns_and_always_returns_the_same_media() {
+    let (mut active, media, body, key) = fixture(3);
+    let mut work = [0; 536];
+    let expected = acceptance::inspect(&mut active, &body, &key.verifying_key(), &mut work)
+        .unwrap()
+        .transcript();
+    let mut inspection = acceptance::OwnedInspector::start(active, &body, &key.verifying_key())
+        .ok()
+        .unwrap();
+    for _ in 0..3 {
+        assert!(!inspection.step(&mut work).unwrap());
+        // Model handing the actual operation to the next Root service turn.
+        inspection = *Box::new(inspection);
+    }
+    assert!(inspection.step(&mut work).unwrap());
+    let (active, draft) = inspection.finish();
+    assert_eq!(draft.unwrap().transcript(), expected);
+    let owned = active.journal.into_storage();
+    assert!(Arc::ptr_eq(&owned.0, &media));
+
+    let (mut active, media, body, key) = fixture(2);
+    active.recovered = false;
+    let (mut active, _) = acceptance::OwnedInspector::start(active, &body, &key.verifying_key())
+        .err()
+        .unwrap();
+    assert!(Arc::ptr_eq(
+        &active.journal.inspect_storage(|s| s.0.clone()),
+        &media
+    ));
+    active.recovered = true;
+    let mut inspection = acceptance::OwnedInspector::start(active, &body, &key.verifying_key())
+        .ok()
+        .unwrap();
+    assert!(!inspection.step(&mut work).unwrap());
+    media.lock().unwrap().bytes.fill(0);
+    assert!(inspection.step(&mut work).is_err());
+    assert_eq!(inspection.step(&mut work), Err("custody inspection failed"));
+    let (active, result) = inspection.finish();
+    assert!(result.is_err());
+    assert!(Arc::ptr_eq(
+        &active.journal.inspect_storage(|s| s.0.clone()),
+        &media
+    ));
+}

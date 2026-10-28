@@ -47,6 +47,9 @@ pub(crate) fn inspect<S: Storage + WholeEpoch>(
 /// A failed step is terminal: replay may already have advanced before refusal.
 pub(crate) struct Inspector<'a, S> {
     active: &'a mut Active<S>,
+    progress: Progress,
+}
+struct Progress {
     region: [u8; 32],
     scope: [u8; 96],
     forms: [u8; 32],
@@ -77,55 +80,71 @@ impl<'a, S: Storage + WholeEpoch> Inspector<'a, S> {
         {
             return Err("custody journal scope");
         }
-        let region = active.journal.inspect_storage(WholeEpoch::identity);
-        let cursor = active.journal.replay_cursor();
-        Ok(Self {
-            region,
+        let progress = Progress::new(active, key);
+        Ok(Self { active, progress })
+    }
+    pub(crate) fn step(&mut self, work: &mut [u8]) -> Result<bool, &'static str> {
+        self.progress.step(self.active, work)
+    }
+    pub(crate) fn finish(self) -> Result<ClosedOfferDraft, &'static str> {
+        self.progress.finish()
+    }
+}
+impl Progress {
+    fn new<S: Storage + WholeEpoch>(active: &Active<S>, key: &VerifyingKey) -> Self {
+        Self {
+            region: active.journal.inspect_storage(WholeEpoch::identity),
             scope: active.scope,
             forms: active.forms,
-            count,
+            count: active.journal.committed_count(),
             maximum: active.maximum_records,
             key: *key,
-            cursor,
+            cursor: active.journal.replay_cursor(),
             hash: Sha256::new(),
             sequence: 0,
             clock: 0,
             complete: false,
             failed: false,
-            active,
-        })
+        }
     }
     /// At most one signed record is read/verified. End-of-prefix checking is a
     /// separate zero-signature step. This is no scheduler or erase admission.
-    pub(crate) fn step(&mut self, work: &mut [u8]) -> Result<bool, &'static str> {
+    fn step<S: Storage + WholeEpoch>(
+        &mut self,
+        active: &mut Active<S>,
+        work: &mut [u8],
+    ) -> Result<bool, &'static str> {
         if self.failed {
             return Err("custody inspection failed");
         }
         if self.complete {
             return Ok(true);
         }
-        let result = self.step_inner(work);
+        let result = self.step_inner(active, work);
         if result.is_err() {
             self.failed = true;
         }
         result
     }
-    fn step_inner(&mut self, work: &mut [u8]) -> Result<bool, &'static str> {
-        if !self.active.recovered
-            || !self.active.signed
-            || self.active.failed
-            || self.active.scope != self.scope
-            || self.active.forms != self.forms
-            || self.active.last_sequence != u64::from(self.count)
-            || self.active.journal.committed_count() != self.count
-            || self.active.maximum_records != self.maximum
-            || self.active.journal.inspect_storage(WholeEpoch::identity) != self.region
+    fn step_inner<S: Storage + WholeEpoch>(
+        &mut self,
+        active: &mut Active<S>,
+        work: &mut [u8],
+    ) -> Result<bool, &'static str> {
+        if !active.recovered
+            || !active.signed
+            || active.failed
+            || active.scope != self.scope
+            || active.forms != self.forms
+            || active.last_sequence != u64::from(self.count)
+            || active.journal.committed_count() != self.count
+            || active.maximum_records != self.maximum
+            || active.journal.inspect_storage(WholeEpoch::identity) != self.region
         {
             return Err("custody inspection changed");
         }
         let mut signed = [0; observed_record::BYTES + 64];
-        let Some(length) = self
-            .active
+        let Some(length) = active
             .journal
             .replay(&mut self.cursor, &mut signed, work)
             .map_err(|_| "custody journal replay")?
@@ -173,6 +192,32 @@ impl<'a, S: Storage + WholeEpoch> Inspector<'a, S> {
             },
             root: self.key.to_bytes(),
         })
+    }
+}
+/// Keeps the actual frozen journal across bounded Root service turns. No
+/// cursor, scope, or journal can be replaced by a transport request mid-flight.
+pub(crate) struct OwnedInspector<S> {
+    active: Active<S>,
+    progress: Progress,
+}
+impl<S: Storage + WholeEpoch> OwnedInspector<S> {
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn start(
+        mut active: Active<S>,
+        body: &BodyId,
+        key: &VerifyingKey,
+    ) -> Result<Self, (Active<S>, &'static str)> {
+        let progress = match Inspector::start(&mut active, body, key) {
+            Ok(inspector) => inspector.progress,
+            Err(error) => return Err((active, error)),
+        };
+        Ok(Self { active, progress })
+    }
+    pub(crate) fn step(&mut self, work: &mut [u8]) -> Result<bool, &'static str> {
+        self.progress.step(&mut self.active, work)
+    }
+    pub(crate) fn finish(self) -> (Active<S>, Result<ClosedOfferDraft, &'static str>) {
+        (self.active, self.progress.finish())
     }
 }
 /// Created only from the actual immutable journal and canonical opaque retained

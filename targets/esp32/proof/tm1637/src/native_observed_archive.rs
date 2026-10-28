@@ -24,6 +24,9 @@ mod custody_boot;
 pub(crate) mod custody_journal;
 #[path = "native_local_history.rs"]
 pub(crate) mod history;
+#[cfg(all(feature = "local-appliance", target_os = "none"))]
+#[path = "native_observed_offer.rs"]
+pub(crate) mod offer;
 #[path = "native_observed_recovery.rs"]
 mod recovery;
 const WORK_BYTES: usize = 536;
