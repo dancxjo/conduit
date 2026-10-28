@@ -131,6 +131,17 @@ pub(super) fn exercise(body: conduit_body::BodyId, root: &SigningKey) {
     assert_eq!(pending.root(), &root.verifying_key().to_bytes());
     let signature = root.sign(&pending.transcript()).to_bytes();
     let signed = pending.signed(signature);
+    assert!(request.matches_pending(&draft, &body, signed.bytes()));
+    assert!(request.matches_receipt(&body, signed.bytes()));
+    for index in [24, 168, 200, 264, 328] {
+        let mut changed = *signed.bytes();
+        changed[index] ^= 1;
+        assert!(!request.matches_receipt(&body, &changed));
+    }
+
+    let mut other = *signed.bytes();
+    other[264] ^= 1;
+    assert!(!request.matches_pending(&draft, &body, &other));
     let cursor = custody_wire::Cursor::decode(*signed.bytes());
     cursor.validate(&body, &root.verifying_key()).unwrap();
     assert!(cursor.offer_chain(&body, &root.verifying_key()).is_err());

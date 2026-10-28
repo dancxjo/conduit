@@ -136,6 +136,7 @@ pub(crate) struct PreparedRewrite<'a> {
     network: Option<&'a network::Cursor>,
     summary: archive::Summary,
     checked: &'a AuthenticatedReceipts,
+    output_fingerprint: [u8; 32],
 }
 impl<'a> PreparedRewrite<'a> {
     #[allow(clippy::too_many_arguments)]
@@ -208,6 +209,7 @@ impl<'a> PreparedRewrite<'a> {
             network,
             summary,
             checked,
+            output_fingerprint: checked.fingerprint,
         })
     }
     #[allow(clippy::too_many_arguments)]
@@ -280,6 +282,56 @@ impl<'a> PreparedRewrite<'a> {
         result.framed = true;
         Ok(result)
     }
+    /// Explicit receipt transition: authenticate the old source with its old
+    /// fingerprint, then separately authenticate the new Pending and its chain.
+    /// Neither signature checking nor this prepared writer grants erase custody.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_pending_network(
+        checked: &'a AuthenticatedReceipts,
+        source: &SourceSnapshot,
+        evidence: &'a BodyBiographyEvidence,
+        admissions: &'a AdmissionManager,
+        previous: &'a archive::Summary,
+        span: archive::Span,
+        prefix: Option<&'a wire::Receipt>,
+        local_count: u64,
+        root: &[u8; 32],
+        layouts: &'a layout::Layouts,
+        current: Option<&'a network::Cursor>,
+        next: &'a network::Cursor,
+    ) -> Result<Self, &'static str> {
+        let mut result = Self::prepare_framed_network(
+            checked,
+            source,
+            evidence,
+            &[],
+            admissions,
+            previous,
+            span,
+            prefix,
+            local_count,
+            root,
+            layouts,
+            current,
+        )?;
+        let key =
+            ed25519_dalek::VerifyingKey::from_bytes(root).map_err(|_| "network-pending-root")?;
+        next.validate(&evidence.body_id, &key)?;
+        let (epoch, predecessor) = match current {
+            Some(cursor) => cursor.offer_chain(&evidence.body_id, &key)?,
+            None => (0, [0; 32]),
+        };
+        if next.bytes()[8] != 1
+            || next.bytes()[16..24] != epoch.to_le_bytes()
+            || next.bytes()[360..392] != predecessor
+            || epoch == u64::MAX
+        {
+            return Err("network-pending-chain");
+        }
+        result.output_fingerprint = fingerprint(prefix, layouts, Some(next))?;
+        result.network = Some(next);
+        Ok(result)
+    }
     pub(crate) fn emit<E>(
         &self,
         read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
@@ -338,7 +390,8 @@ impl<'a> PreparedRewrite<'a> {
     }
 
     /// Only an actual successful rewrite/readback snapshot can advance custody.
-    /// This cannot change receipts, Body or Root, and is not an erase entrance.
+    /// The output fingerprint was authenticated during preparation. This
+    /// cannot change Body or Root and is not an erase entrance.
     pub(crate) fn committed(
         &self,
         completion: RewriteCompletion,
@@ -366,7 +419,7 @@ impl<'a> PreparedRewrite<'a> {
         let proof = AuthenticatedReceipts {
             frames,
             root: self.checked.root,
-            fingerprint: self.checked.fingerprint,
+            fingerprint: self.output_fingerprint,
             source: source.identity(),
         };
         Ok((source, proof))

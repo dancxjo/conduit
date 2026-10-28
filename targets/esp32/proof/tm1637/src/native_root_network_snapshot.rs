@@ -16,6 +16,32 @@ pub(crate) fn current_chain(
     })?
 }
 impl NativeRoot {
+    /// Root supplies its own current Boot and sealed lifecycle owner. This is
+    /// not yet published by HTTP and grants no network-region erase authority.
+    pub(crate) fn commit_network_snapshot_custody(
+        &self,
+        draft: &snapshot::Draft,
+        request: &snapshot::ack::Request<'_>,
+    ) -> Result<crate::native_restart::network_pending::CommittedCustody, &'static str> {
+        crate::native_restart::network_pending::commit_pending(
+            self.body.as_ref().ok_or("network-snapshot-body")?,
+            &self.boot,
+            &self.admission.verifying_key(),
+            draft,
+            request,
+        )
+    }
+    pub(crate) fn replay_network_snapshot_custody(
+        &self,
+        request: &snapshot::ack::Request<'_>,
+    ) -> Result<Option<crate::native_restart::network_pending::CommittedCustody>, &'static str>
+    {
+        crate::native_restart::network_pending::replay_committed(
+            self.body.as_ref().ok_or("network-snapshot-body")?,
+            &self.admission.verifying_key(),
+            request,
+        )
+    }
     pub(crate) fn begin_network_snapshot(&self) -> Result<snapshot::Verifier, &'static str> {
         let owner = self.body.as_ref().ok_or("network-snapshot-body")?;
         let root = self.admission.verifying_key();

@@ -62,6 +62,25 @@ impl<'a> Request<'a> {
         let scope = scope_digest(body, self.ids, self.issued_at());
         acknowledgement(self.offer(), &scope)
     }
+    /// Equality-only retry recognition after the Root authenticates a retained
+    /// Pending cursor. This creates neither a receipt nor fresh membership.
+    pub(crate) fn matches_pending(&self, owner: &Draft, body: &BodyId, bytes: &[u8; 480]) -> bool {
+        bytes[8] == 1
+            && bytes[24..168] == owner.payload[..144]
+            && bytes[168..200] == owner.transcript()
+            && bytes[360..392] == owner.payload[144..176]
+            && self.matches_receipt(body, bytes)
+    }
+    /// Equality-only historical receipt read. The caller must authenticate the
+    /// retained Root signature first; current presence is not restored.
+    pub(crate) fn matches_receipt(&self, body: &BodyId, bytes: &[u8; 480]) -> bool {
+        matches!(bytes[8], 1 | 2)
+            && bytes[24..56] == Sha256::digest(body.as_str().as_bytes())[..]
+            && self.offer()[..] == bytes[168..200]
+            && bytes[200..232] == scope_digest(body, self.ids, self.issued_at())
+            && bytes[264..328] == self.signature()[..]
+            && bytes[328..360] == self.transcript(body)
+    }
     fn offer(&self) -> &[u8; 32] {
         self.bytes[8..40].try_into().unwrap()
     }

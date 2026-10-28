@@ -20,6 +20,8 @@ pub(crate) mod biography;
 pub(crate) mod observed;
 #[path = "native_restart_payload.rs"]
 pub(crate) mod payload;
+#[path = "native_restart_network_pending.rs"]
+pub(crate) mod network_pending;
 #[path = "native_restart_restore.rs"]
 mod restore;
 #[cfg_attr(
