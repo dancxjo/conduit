@@ -2,6 +2,9 @@
 //! queued until native custody releases it or an independent workspace is admitted.
 //! Recovery always retires selected ownership and commits evidence before retry.
 use super::NativeRoot;
+#[cfg(feature = "local-appliance")]
+#[path = "native_network_workspace_reserve.rs"]
+mod floor_reserve;
 #[cfg(feature = "network-workspace-check")]
 #[path = "native_setup_workspace_check.rs"]
 mod workspace_check;
@@ -348,13 +351,18 @@ impl NativeRoot {
         }
         // The constructor makes multiple allocations. Its unchanged aggregate
         // envelope is not a request for one contiguous 24KiB block. Protect the
-        // actual 16KiB release floor; exact final backing allocates fallibly only
-        // after temporary planner descriptions retire.
-        let mut reserve = alloc::vec::Vec::<u8>::new();
-        if reserve.try_reserve_exact(8192 + 8192).is_err() {
-            self.trace_network_workspace("reserve", "floor-contiguous-refused");
-            return;
-        }
+        // actual 16KiB release floor across small regions. Exact final backing
+        // allocates fallibly after temporary planner descriptions retire.
+        let reserve = match floor_reserve::reserve(|bytes| {
+            let mut block = alloc::vec::Vec::<u8>::new();
+            block.try_reserve_exact(bytes).map(|()| block)
+        }) {
+            Ok(reserve) => reserve,
+            Err(_) => {
+                self.trace_network_workspace("reserve", "floor-backing-refused");
+                return;
+            }
+        };
         let prepared = self.prepare_network_configuration_mode(Some(&permit), false);
         drop(reserve);
         if !self.play.installed() {
