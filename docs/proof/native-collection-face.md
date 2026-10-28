@@ -94,7 +94,12 @@ fifty-one. This is an entry-work refusal, not collection payload capacity.
 
 The Application service keeps its size-oriented release profile but compiles
 `miniz_oxide` and `serde_json` with speed optimization. These parsers consume
-complete retained targets during the same finite preparation operation. The
+complete retained targets during the same finite preparation operation.
+Preflight skips ordinary string bytes in eight-byte words, returning to the
+scalar validator at the first quote, escape or control byte. UTF-8 validation,
+surrogate checks, sequence-count authentication and complete-input validation
+remain mandatory. Differential tests compare every byte at each word offset
+with the independent JSON parser, including Unicode and escape boundaries. The
 build validates the resulting executable against the unchanged 2 MiB image
 window. Wire, decoded-byte, private-heap and RTC grants do not grow. The
 sixty-four-tick allowance remains shared across Preflight, Commit and reads;
