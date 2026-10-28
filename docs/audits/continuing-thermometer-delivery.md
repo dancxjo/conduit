@@ -65,6 +65,15 @@ with file/directory synchronization. Thirteen custody tests, six join regression
 tests, the binary HTTP test and the actual CLI build passed. No physical network
 acknowledgment or reclamation has been proved by these checks.
 
+The attended entrance is `cargo xtask prove environment ack-network-snapshot
+BINDING CONTINUITY_PRIVATE PEER PRIVATE_STORE OFFER_JSON SNAPSHOT_BIN
+PRODUCER_BOOT` (one command). Inputs are private file paths and an explicitly
+pinned producer Boot; credentials are not command-line values. The snapshot
+must already have been exported and verified. A successful command proves the
+retained signed custody receipt, not physical reclamation or installed recorder
+State. The bounded retry window spans the Root writer's 300-second deadline.
+
+
 ## Reconcile the ten observations
 
 | Concern | Current assessment | Remaining acceptance |
