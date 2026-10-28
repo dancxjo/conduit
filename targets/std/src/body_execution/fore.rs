@@ -77,9 +77,6 @@ impl StdHost {
     /// Publish the exact admitted Play before the kernel advances. A caller may
     /// durably retain the start and refuse execution if that publication fails.
     /// The callback is never invoked for preparation or reservation refusal.
-
-    /// Report the genuine admitted start before finite Fore work reaches effects.
-    /// This lets a Body lifecycle owner correlate both execution and publication.
     #[allow(clippy::too_many_arguments)]
     pub fn run_body_plan_with_fore_to_with_start<W: Write, T: TimerAdapter, F>(
         &mut self,
