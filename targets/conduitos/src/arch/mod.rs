@@ -188,7 +188,14 @@ pub const ARCHITECTURE: &str = "loongarch64";
 #[cfg(target_arch = "arm")]
 mod armv6;
 #[cfg(target_arch = "arm")]
+pub use armv6::deadline;
+#[cfg(target_arch = "arm")]
+pub use armv6::entropy;
+#[cfg(target_arch = "arm")]
 pub use armv6::minipitft;
+#[cfg(test)]
+#[path = "armv6/deadline.rs"]
+mod armv6_deadline_conformance;
 #[cfg(target_arch = "arm")]
 pub use armv6::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, disable_interrupts, enable_interrupts,
