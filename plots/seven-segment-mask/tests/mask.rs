@@ -529,3 +529,70 @@ fn whole_degree_environment_layout_rounds_and_keeps_three_digit_values() {
         assert_eq!(output.show.decimal_points(), &[false; 4]);
     }
 }
+
+#[test]
+fn validated_borrow_preserves_projection_and_exact_wire_refusals() {
+    use conduit_face::{PreparedFaceValue, ValidatedFace};
+    let original = face("19.8°C", "59%", true, true);
+    let wire = serde_json::to_vec(&original).unwrap();
+    let (pin, checked) =
+        PreparedFaceValue::prepare_with_view(&original, &wire, wire.len()).unwrap();
+    assert!(core::ptr::eq(checked.face(), &original));
+    assert!(pin.matches(&wire));
+    let ordinary = PreparedEnvironmentFace::prepare(&original, "environment").unwrap();
+    let reused = PreparedEnvironmentFace::prepare_validated(checked, "environment").unwrap();
+    // Both paths interpret all properties and render the same timed pages.
+    let look = SevenSegmentLook::fahrenheit();
+    let profile = profile();
+    let mask = TimedSevenSegmentMask::prepare(look, 2000, 10000).unwrap();
+    for elapsed in [0, 1999, 2000, 4000] {
+        let a = mask.render(&ordinary, elapsed, &profile).unwrap();
+        let b = mask.render(&reused, elapsed, &profile).unwrap();
+        assert_eq!(a.show, b.show);
+    }
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare_validated(checked, "foreign"),
+        Err(FaceProjectionRefusal::MissingProperty)
+    ));
+    let foreign = face("20°C", "60%", true, true);
+    let foreign_wire = serde_json::to_vec(&foreign).unwrap();
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&original, &foreign_wire, usize::MAX),
+        Err("face-value-mismatch")
+    ));
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&original, b"{", usize::MAX),
+        Err("face-value-json")
+    ));
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&original, &wire, wire.len() - 1),
+        Err("face-value-capacity")
+    ));
+    // A semantically valid Face may still fail the selected projection.
+    let out_of_range = face("19.8°C", "101%", true, true);
+    let checked_range = ValidatedFace::prepare(&out_of_range).unwrap();
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare_validated(checked_range, "environment"),
+        Err(FaceProjectionRefusal::InvalidQuantity)
+    ));
+    let mut oversized = original.clone();
+    oversized
+        .properties
+        .extend((0..65).map(|n| property(&format!("extra-{n}"), FacePropertyValue::Count(0))));
+    let basis = oversized.basis.clone();
+    let oversized = oversized.with_basis(basis).unwrap();
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare_validated(
+            ValidatedFace::prepare(&oversized).unwrap(),
+            "environment"
+        ),
+        Err(FaceProjectionRefusal::TooLarge)
+    ));
+    let mut malformed = original.clone();
+    malformed.properties[0].value = FacePropertyValue::Count(1);
+    assert!(ValidatedFace::prepare(&malformed).is_err());
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&malformed, &wire, usize::MAX),
+        Err("invalid-face")
+    ));
+}

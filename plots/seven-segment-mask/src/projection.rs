@@ -34,7 +34,22 @@ impl<'a> PreparedEnvironmentFace<'a> {
         if face.subjects.len() > 16 || face.properties.len() > 64 {
             return Err(R::TooLarge);
         }
-        face.validate().map_err(|_| R::InvalidFace)?;
+        Self::prepare_validated(
+            conduit_face::ValidatedFace::prepare(face).map_err(|_| R::InvalidFace)?,
+            subject,
+        )
+    }
+    /// Reuse complete semantic validation of this exact immutable Face borrow.
+    /// Projection-specific bounds, properties and quantity checks still apply.
+    pub fn prepare_validated(
+        view: conduit_face::ValidatedFace<'a>,
+        subject: &str,
+    ) -> Result<Self, FaceProjectionRefusal> {
+        use FaceProjectionRefusal as R;
+        let face = view.face();
+        if face.subjects.len() > 16 || face.properties.len() > 64 {
+            return Err(R::TooLarge);
+        }
         if !face.subjects.iter().any(|s| s.identity == subject) {
             return Err(R::MissingProperty);
         }

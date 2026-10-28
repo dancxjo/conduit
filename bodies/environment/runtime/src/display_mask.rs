@@ -82,6 +82,23 @@ impl PreparedDisplayMask {
     pub fn render<'a>(&'a mut self, face: &'a Face, elapsed_ms: u64) -> Result<Frame<'a>, Refusal> {
         let selected =
             PreparedEnvironmentFace::prepare(face, "environment").map_err(Refusal::Face)?;
+        self.render_selected(selected, elapsed_ms)
+    }
+    /// The view pins complete validation to the immutable Face borrowed here.
+    pub fn render_validated<'a>(
+        &'a mut self,
+        view: conduit_face::ValidatedFace<'a>,
+        elapsed_ms: u64,
+    ) -> Result<Frame<'a>, Refusal> {
+        let selected = PreparedEnvironmentFace::prepare_validated(view, "environment")
+            .map_err(Refusal::Face)?;
+        self.render_selected(selected, elapsed_ms)
+    }
+    fn render_selected<'a>(
+        &'a mut self,
+        selected: PreparedEnvironmentFace<'a>,
+        elapsed_ms: u64,
+    ) -> Result<Frame<'a>, Refusal> {
         let rendered = self
             .mask
             .render(&selected, elapsed_ms, &self.profile)

@@ -306,4 +306,4 @@ mod parsec_input_instruction_producer;
 pub use parsec_input_instruction_producer::*;
 
 mod prepared_face_value;
-pub use prepared_face_value::PreparedFaceValue;
+pub use prepared_face_value::{PreparedFaceValue, ValidatedFace};

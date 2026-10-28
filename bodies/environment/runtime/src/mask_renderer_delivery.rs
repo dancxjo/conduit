@@ -90,7 +90,7 @@ impl<P: OpenDrain> RendererCall<P> {
         input: PresentationBasis<'_, 'a>,
     ) -> Result<PreparedPresentation<'a>, DeliveryRefusal<P::Error>> {
         use DeliveryRefusal as E;
-        let face = f::PreparedFaceValue::prepare(
+        let (face, validated) = f::PreparedFaceValue::prepare_with_view(
             input.face,
             input.face_wire,
             self.ready.bounds.face_bytes as usize,
@@ -118,7 +118,7 @@ impl<P: OpenDrain> RendererCall<P> {
         let frame = self
             .ready
             .mask
-            .render(input.face, input.elapsed_ms)
+            .render_validated(validated, input.elapsed_ms)
             .map_err(E::Mask)?;
         let packets = self
             .ready
