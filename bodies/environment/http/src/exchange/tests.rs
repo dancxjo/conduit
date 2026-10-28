@@ -631,3 +631,167 @@ fn custody_offer_route_is_bounded_and_never_an_erase_request() {
         ));
     }
 }
+
+#[test]
+fn custody_ack_transport_bounds_framing_and_keeps_bootstrap_out_of_provider() {
+    use crate::observed_custody::{self, Reply};
+    fn request(slot: &str, headers: &str, body: &str) -> alloc::string::String {
+        alloc::format!("POST /history/custody/ack?slot={slot} HTTP/1.1\r\n{headers}\r\n{body}")
+    }
+    let valid_headers = "Content-Type: application/json\r\nContent-Length: 2\r\n";
+    let valid = request("0", valid_headers, "{}");
+    let mut socket = Socket::new(valid.as_bytes());
+    assert!(!observed_custody::ack_available());
+    assert_eq!(
+        poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+        Poll::Ready(Ok(ExchangeOutcome::ObservedAck))
+    );
+    assert!(core::str::from_utf8(&socket.output[..socket.written])
+        .unwrap()
+        .contains("503 Service Unavailable"));
+    observed_custody::install_ack_provider(|slot, bytes| {
+        assert_eq!(bytes, b"{}");
+        match slot {
+            0 => Reply::Pending,
+            1 => Reply::Offer(alloc::vec::Vec::from(&b"{\"verified_receipt\":true}"[..])),
+            _ => Reply::Refused,
+        }
+    })
+    .unwrap();
+    assert!(observed_custody::ack_available());
+    assert!(observed_custody::install_ack_provider(|_, _| Reply::Pending).is_err());
+    for (slot, status) in [
+        ("0", "202 Accepted"),
+        ("1", "200 OK"),
+        ("5", "409 Conflict"),
+    ] {
+        let wire = request(slot, valid_headers, "{}");
+        let mut socket = Socket::new(wire.as_bytes());
+        assert_eq!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Ok(ExchangeOutcome::ObservedAck))
+        );
+        let response = core::str::from_utf8(&socket.output[..socket.written]).unwrap();
+        assert!(response.contains(status));
+        assert!(response.contains("Cache-Control: no-store"));
+    }
+    for headers in [
+        "Content-Type: text/plain\r\nContent-Length: 2\r\n",
+        "Content-Type: application/json; charset=utf-8\r\nContent-Length: 2\r\n",
+        "Content-Type: application/json\r\nContent-Type: application/json\r\nContent-Length: 2\r\n",
+        "Content-Type: application/json\r\nContent-Length: 2\r\nContent-Length: 2\r\n",
+        "Content-Type: application/json\r\nTransfer-Encoding: chunked\r\nContent-Length: 2\r\n",
+        "Content-Type: application/json\r\n",
+    ] {
+        let wire = request("0", headers, "{}");
+        let mut socket = Socket::new(wire.as_bytes());
+        assert!(matches!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Err(ExchangeRefusal::Framing(_)))
+        ));
+    }
+    for slot in ["", "01", "6", "-1", "1&extra=2"] {
+        let wire = request(slot, valid_headers, "{}");
+        let mut socket = Socket::new(wire.as_bytes());
+        assert!(matches!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Err(ExchangeRefusal::Framing(_)))
+        ));
+    }
+    for length in [0, 769] {
+        let body = "x".repeat(length);
+        let headers =
+            alloc::format!("Content-Type: application/json\r\nContent-Length: {length}\r\n");
+        let wire = request("0", &headers, &body);
+        let mut socket = Socket::new(wire.as_bytes());
+        assert!(matches!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Err(ExchangeRefusal::Framing(_)))
+        ));
+    }
+    // Parsing is bounded data transport, not JSON/signature verification. The
+    // Root callback may refuse malformed or unauthenticated JSON independently.
+    for bytes in [alloc::vec::Vec::new(), alloc::vec![0; 769]] {
+        assert!(matches!(
+            observed_custody::dispatch_ack(0, bytes),
+            Reply::Refused
+        ));
+    }
+    assert!(matches!(
+        observed_custody::dispatch_ack(6, alloc::vec![1]),
+        Reply::Refused
+    ));
+    // A different body would panic in the installed provider: bootstrap must
+    // refuse without invoking it, for either preparation or control admission.
+    for preparation in [false, true] {
+        let mut mailbox = NetworkSetupMailbox::new(1);
+        let route = if preparation {
+            NetworkSetupRoute::preparation_only(&mut mailbox, limits())
+        } else {
+            NetworkSetupRoute::bootstrap_control(&mut mailbox, limits())
+        }
+        .unwrap();
+        let wire = request(
+            "0",
+            "Content-Type: application/json\r\nContent-Length: 1\r\n",
+            "x",
+        );
+        let mut socket = Socket::new(wire.as_bytes());
+        assert_eq!(
+            poll(exchange_with_reading(
+                &mut socket,
+                || 0,
+                Some(route),
+                |_, _| None
+            )),
+            Poll::Ready(Ok(ExchangeOutcome::ObservedAck))
+        );
+        assert!(core::str::from_utf8(&socket.output[..socket.written])
+            .unwrap()
+            .contains("503 Service Unavailable"));
+    }
+}
+
+#[test]
+fn custody_ack_exact_limit_uses_existing_request_buffer_and_waits_for_complete_body() {
+    let body = "x".repeat(crate::observed_custody::MAXIMUM_ACK_BYTES);
+    let headers = alloc::format!("POST /history/custody/ack?slot=5 HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n", body.len());
+    assert!(headers.len() + body.len() <= 1024);
+    let mut request = NetworkRequestBuffer::for_http();
+    request.append(headers.as_bytes()).unwrap();
+    request.append(&body.as_bytes()[..767]).unwrap();
+    assert!(matches!(request.take(limits()), Ok(None)));
+    request.append(&body.as_bytes()[767..]).unwrap();
+    assert!(
+        matches!(request.take(limits()), Ok(Some(NetworkHttpRequest::ObservedAck { slot: 5, bytes })) if bytes == body.as_bytes())
+    );
+    assert!(matches!(
+        request.take(limits()),
+        Err(NetworkHttpRefusal::Closed)
+    ));
+
+    for method in ["GET", "PUT", "DELETE"] {
+        let wire = alloc::format!(
+            "{method} /history/custody/ack?slot=0 HTTP/1.1\r\nContent-Length: 0\r\n\r\n"
+        );
+        let mut request = NetworkRequestBuffer::for_http();
+        request.append(wire.as_bytes()).unwrap();
+        assert!(matches!(
+            request.take(limits()),
+            Err(NetworkHttpRefusal::UnsupportedRoute)
+        ));
+    }
+    // Extra bytes in the same framed message are never accepted as an ACK.
+    let wire = b"POST /history/custody/ack?slot=0 HTTP/1.1\r\nContent-Type: application/json\r\nContent-Length: 2\r\n\r\n{}x";
+    let mut request = NetworkRequestBuffer::for_http();
+    request.append(wire).unwrap();
+    assert!(matches!(
+        request.take(limits()),
+        Err(NetworkHttpRefusal::Malformed)
+    ));
+    let mut request = NetworkRequestBuffer::for_http();
+    assert!(matches!(
+        request.append(&[0; 1025]),
+        Err(NetworkHttpRefusal::TooLarge)
+    ));
+}

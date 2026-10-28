@@ -5,62 +5,34 @@ use alloc::{boxed::Box, vec::Vec};
 use conduit_environment_http::observed_custody::{self as http, Reply};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
-struct Mailbox {
-    pending: Option<u8>,
-    inflight: Option<u8>,
-    completed: Option<(u8, Result<Vec<u8>, ()>)>,
-}
+#[path = "native_observed_request_queue.rs"]
+mod queue;
+use queue::{Key, Queue, Request, Response};
 #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
-static MAILBOX: Mutex<CriticalSectionRawMutex, RefCell<Mailbox>> =
-    Mutex::new(RefCell::new(Mailbox {
-        pending: None,
-        inflight: None,
-        completed: None,
-    }));
+static MAILBOX: Mutex<CriticalSectionRawMutex, RefCell<Queue>> =
+    Mutex::new(RefCell::new(Queue::new()));
 pub(super) struct Job {
-    slot: u8,
+    request: Request,
     inspection: crate::native_observed_archive::offer::Inspection,
 }
 fn response(slot: u8) -> Reply {
-    if slot > 5 || !crate::native_restart::publication_ready() {
+    submit(Request::offer(slot))
+}
+fn acknowledge(slot: u8, bytes: Vec<u8>) -> Reply {
+    match Request::acknowledge(slot, bytes) {
+        Ok(request) => submit(request),
+        Err(()) => Reply::Refused,
+    }
+}
+fn submit(request: Request) -> Reply {
+    if request.key.slot > 5 || !crate::native_restart::publication_ready() {
         return Reply::Unavailable;
     }
-    MAILBOX.lock(|cell| {
-        let mut state = cell.borrow_mut();
-        if state
-            .completed
-            .as_ref()
-            .is_some_and(|(done, result)| *done == slot && result.is_err())
-        {
-            // A Cold/empty slot can become closed later. Deliver this refusal
-            // once rather than permanently hiding a future epoch in that slot.
-            state.completed = None;
-            return Reply::Refused;
-        }
-        if let Some((done, result)) = &state.completed {
-            if *done == slot {
-                return match result {
-                    Err(()) => Reply::Refused,
-                    Ok(bytes) => {
-                        let mut owned = Vec::new();
-                        if owned.try_reserve_exact(bytes.len()).is_err() {
-                            return Reply::Unavailable;
-                        }
-                        owned.extend_from_slice(bytes);
-                        Reply::Offer(owned)
-                    }
-                };
-            }
-        }
-        if let Some(current) = state.pending.or(state.inflight) {
-            return if current == slot {
-                Reply::Pending
-            } else {
-                Reply::Unavailable
-            };
-        }
-        state.pending = Some(slot);
-        Reply::Pending
+    MAILBOX.lock(|cell| match cell.borrow_mut().submit(request) {
+        Response::Pending => Reply::Pending,
+        Response::Busy => Reply::Unavailable,
+        Response::Completed(Ok(bytes)) => Reply::Offer(bytes),
+        Response::Completed(Err(())) => Reply::Refused,
     })
 }
 impl NativeRoot {
@@ -71,20 +43,19 @@ impl NativeRoot {
             }
             let _ = http::install_provider(response);
         }
+        if !http::ack_available() && http::available() {
+            let _ = http::install_ack_provider(acknowledge);
+        }
         if self.observed_offer.is_none() {
-            let slot = MAILBOX.lock(|cell| {
-                let mut state = cell.borrow_mut();
-                let slot = state.pending.take()?;
-                state.inflight = Some(slot);
-                Some(slot)
-            });
-            let Some(slot) = slot else {
+            let request = MAILBOX.lock(|cell| cell.borrow_mut().take());
+            let Some(request) = request else {
                 return;
             };
+            let key = request.key;
             let started = (|| {
                 let body = self.body.as_ref().ok_or("observed-offer-no-body")?;
-                let key = self.admission.verifying_key();
-                crate::native_restart::observed::check_live_owner(body, &key)?;
+                let root_key = self.admission.verifying_key();
+                crate::native_restart::observed::check_live_owner(body, &root_key)?;
                 let memory = esp_alloc::HEAP.stats();
                 if memory.size.saturating_sub(memory.current_usage)
                     < core::mem::size_of::<Job>() + 8192
@@ -92,17 +63,20 @@ impl NativeRoot {
                     return Err("observed-offer-workspace");
                 }
                 let inspection = crate::native_observed_archive::offer::Inspection::start(
-                    slot,
+                    key.slot,
                     &body.evidence().body_id,
-                    &ed25519_dalek::VerifyingKey::from_bytes(&key)
+                    &ed25519_dalek::VerifyingKey::from_bytes(&root_key)
                         .map_err(|_| "observed-offer-key")?,
                 )?;
-                Ok(Box::new(Job { slot, inspection }))
+                Ok(Box::new(Job {
+                    request,
+                    inspection,
+                }))
             })();
             match started {
                 Ok(job) => self.observed_offer = Some(job),
                 Err(_) => {
-                    complete(slot, Err(()));
+                    complete(key, Err(()));
                     return;
                 }
             }
@@ -112,11 +86,25 @@ impl NativeRoot {
             Ok(false) => return,
             result => {
                 let job = *self.observed_offer.take().expect("owned inspection");
-                let slot = job.slot;
+                let key = job.request.key;
                 let response = (|| {
                     let draft = job.inspection.finish()?;
                     result?;
                     let body = self.body.as_ref().ok_or("observed-offer-no-body")?;
+                    if let Some(bytes) = job.request.ack {
+                        let (request, used) = serde_json_core::from_slice::<
+                            crate::native_observed_archive::custody_acceptance::wire::Request<'_>,
+                        >(&bytes)
+                        .map_err(|_| "observed-ack-json")?;
+                        if used != bytes.len() {
+                            return Err("observed-ack-trailing");
+                        }
+                        request.validate()?;
+                        let accepted = self
+                            .admission
+                            .acknowledge_closed_observed(&draft, &request, body)?;
+                        return accepted_receipt(&accepted);
+                    }
                     let offer = self.admission.sign_closed_observed_offer(draft, body)?;
                     let mut bytes = Vec::new();
                     bytes
@@ -128,15 +116,29 @@ impl NativeRoot {
                     bytes.truncate(length);
                     Ok::<_, &'static str>(bytes)
                 })();
-                complete(slot, response.map_err(|_| ()));
+                complete(key, response.map_err(|_| ()));
             }
         }
     }
 }
-fn complete(slot: u8, result: Result<Vec<u8>, ()>) {
-    MAILBOX.lock(|cell| {
-        let mut state = cell.borrow_mut();
-        state.inflight = None;
-        state.completed = Some((slot, result));
-    });
+fn complete(key: Key, result: Result<Vec<u8>, ()>) {
+    MAILBOX.lock(|cell| cell.borrow_mut().complete(key, result));
+}
+/// Signed acceptance confirms custody authorization only. It does not claim that
+/// a reclaim marker has committed, data was erased, or storage is reusable.
+fn accepted_receipt(accepted: &[u8; 416]) -> Result<Vec<u8>, &'static str> {
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(960)
+        .map_err(|_| "observed-ack-response")?;
+    bytes.extend_from_slice(
+        b"{\"schema\":\"conduit.environment/accepted-observed-custody@1\",\"accepted\":\"",
+    );
+    let digits = b"0123456789abcdef";
+    for byte in accepted {
+        bytes.push(digits[usize::from(byte >> 4)]);
+        bytes.push(digits[usize::from(byte & 15)]);
+    }
+    bytes.extend_from_slice(b"\"}");
+    Ok(bytes)
 }

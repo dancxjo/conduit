@@ -292,16 +292,4 @@ pub(crate) fn verify_ack(
         root: draft.root,
     })
 }
-pub(crate) fn verify_accepted(bytes: &[u8; 416], body: &BodyId, key: &VerifyingKey) -> bool {
-    let count = u32::from_le_bytes(bytes[160..164].try_into().unwrap());
-    bytes[32..64] == Sha256::digest(body.as_str().as_bytes())[..]
-        && count > 0
-        && count <= 960
-        && bytes[324..352] == [0; 28]
-        && key
-            .verify_strict(
-                &wire::accepted_transcript(bytes),
-                &Signature::from_bytes(bytes[352..].try_into().unwrap()),
-            )
-            .is_ok()
-}
+pub(crate) use wire::verify_accepted;

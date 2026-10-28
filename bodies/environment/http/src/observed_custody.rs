@@ -1,4 +1,5 @@
-//! Public immutable-epoch offers. Transport access confers no erase authority.
+//! Immutable-epoch offer and acknowledgment transport. Callbacks carry data only;
+//! access confers no verification, custody acceptance or erase authority.
 use alloc::vec::Vec;
 use core::{cell::RefCell, fmt::Write};
 pub enum Reply {
@@ -8,6 +9,30 @@ pub enum Reply {
     Unavailable,
 }
 pub type Provider = fn(u8) -> Reply;
+pub const MAXIMUM_ACK_BYTES: usize = 768;
+pub type AckProvider = fn(u8, Vec<u8>) -> Reply;
+static ACK_PROVIDER: critical_section::Mutex<RefCell<Option<AckProvider>>> =
+    critical_section::Mutex::new(RefCell::new(None));
+pub fn install_ack_provider(provider: AckProvider) -> Result<(), &'static str> {
+    critical_section::with(|cs| {
+        let mut current = ACK_PROVIDER.borrow(cs).borrow_mut();
+        if current.is_some() {
+            return Err("observed-custody-ack-provider-already-installed");
+        }
+        *current = Some(provider);
+        Ok(())
+    })
+}
+pub fn ack_available() -> bool {
+    critical_section::with(|cs| ACK_PROVIDER.borrow(cs).borrow().is_some())
+}
+pub fn dispatch_ack(slot: u8, bytes: Vec<u8>) -> Reply {
+    if slot > 5 || bytes.is_empty() || bytes.len() > MAXIMUM_ACK_BYTES {
+        return Reply::Refused;
+    }
+    let provider = critical_section::with(|cs| *ACK_PROVIDER.borrow(cs).borrow());
+    provider.map_or(Reply::Unavailable, |provider| provider(slot, bytes))
+}
 static PROVIDER: critical_section::Mutex<RefCell<Option<Provider>>> =
     critical_section::Mutex::new(RefCell::new(None));
 pub fn install_provider(provider: Provider) -> Result<(), &'static str> {

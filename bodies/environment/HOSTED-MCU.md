@@ -278,3 +278,31 @@ appliance and its owner remain running through the repaired transparent relay.
 Graceful member departure policy, owner-process restart, Wi-Fi association
 recovery, mDNS discovery/AP fallback and autonomous new-Boot operation remain
 unfinished.
+
+## Live closed-epoch custody acceptance
+
+The joined recorder can request Root acceptance of an exact closed epoch:
+
+```sh
+conduit-environment-host --ack-observed-live PRIVATE_BINDING CONTINUITY_PRIVATE HOST:PORT HISTORY_DIRECTORY SLOT
+```
+
+`SLOT` is a hint in `0..5`, never authority. The live Root inspects the actual
+frozen journal incrementally, verifies the latest retained member credential,
+and signs a receipt bound to the exact epoch and request. The host authenticates
+the offer, verifies and fsyncs the complete signed history, reopens those files,
+and only then signs custody. Lost transport responses retry the same request
+within a finite deadline. Invalid signatures, explicit refusals and mismatched
+receipts cannot establish success.
+
+The HTTP entrances are `GET /history/custody/offer?slot=N` and
+`POST /history/custody/ack?slot=N`. JSON ACKs are capped at 768 bytes inside the
+existing 1024-byte total request extent. One request may be pending; identical
+retries share its result, and a different request retires the previous response
+cache before preparation. Transport and cached receipts grant no erase authority.
+
+Acceptance does not mean that a reclaim marker committed, flash was erased, or
+storage is reusable. Connecting the permit-gated reclamation job and proving
+continued sampling and display under that workload remain required. The first
+physical acceptance trial succeeded cryptographically but later exposed a Mask
+child workspace refusal; it is not uninterrupted display acceptance evidence.
