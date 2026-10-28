@@ -185,6 +185,7 @@ impl<'a> BodyKernel<'a> {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_on_host(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
