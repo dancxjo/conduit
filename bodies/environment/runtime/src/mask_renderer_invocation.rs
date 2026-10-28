@@ -7,17 +7,17 @@ use conduit_plan_lowering::{
     selected_operation::SelectedVerifiedForeOperationPlan,
 };
 pub struct PreparedRendererInvocation {
-    identity: RendererIdentity,
-    bounds: Bounds,
-    scope: c::BaseCapabilityScope,
-    initial: c::ActivePlayIdentity,
-    last: Option<c::ActivePlayIdentity>,
-    bound: bool,
-    node: LoweredNode,
-    call: LoweredHostCall,
-    configuration: Vec<c::ConfigurationEntry>,
-    fore: Vec<c::PlannedForePort>,
-    contract: c::Kind,
+    pub(super) identity: RendererIdentity,
+    pub(super) bounds: Bounds,
+    pub(super) scope: c::BaseCapabilityScope,
+    pub(super) initial: c::ActivePlayIdentity,
+    pub(super) last: Option<c::ActivePlayIdentity>,
+    pub(super) bound: bool,
+    pub(super) node: LoweredNode,
+    pub(super) call: LoweredHostCall,
+    pub(super) configuration: Vec<c::ConfigurationEntry>,
+    pub(super) fore: Vec<c::PlannedForePort>,
+    pub(super) contract: c::Kind,
 }
 impl<P: OpenDrain> ReadyRenderer<P> {
     /// All independent Source/Fore/native/ordinary numeric checks run against
@@ -182,7 +182,7 @@ impl PreparedRendererInvocation {
         Ok(ready)
     }
 }
-fn same_scope(a: &c::BaseCapabilityScope, b: &c::BaseCapabilityScope) -> bool {
+pub(super) fn same_scope(a: &c::BaseCapabilityScope, b: &c::BaseCapabilityScope) -> bool {
     a.host_id == b.host_id
         && a.boot_id == b.boot_id
         && a.base_instance_id == b.base_instance_id

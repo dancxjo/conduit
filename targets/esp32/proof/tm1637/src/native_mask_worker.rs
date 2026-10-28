@@ -1,5 +1,7 @@
 //! Timed ordinary Mask execution. The private Root issuer supplies every fresh
 //! child lease; evidence acceptance precedes any rearm or custody release.
+#[path = "native_mask_continuous.rs"]
+pub(super) mod continuous;
 #[path = "native_mask_workspace.rs"]
 pub(crate) mod workspace;
 use super::session::*;
@@ -29,10 +31,14 @@ fn presentation_refusal<E>(
             D::Mask(_) => "mask-present-mask",
             D::Packets(_) => "mask-present-packets",
             D::Capability(_) => "mask-present-capability",
-            D::Electrical(conduit_tm1637_wire::Failure::InvalidGeometry) => "mask-present-wire-geometry",
+            D::Electrical(conduit_tm1637_wire::Failure::InvalidGeometry) => {
+                "mask-present-wire-geometry"
+            }
             D::Electrical(conduit_tm1637_wire::Failure::Cancelled) => "mask-present-wire-cancelled",
             D::Electrical(conduit_tm1637_wire::Failure::Nack { .. }) => "mask-present-wire-nack",
-            D::Electrical(conduit_tm1637_wire::Failure::Provider(_)) => "mask-present-wire-provider",
+            D::Electrical(conduit_tm1637_wire::Failure::Provider(_)) => {
+                "mask-present-wire-provider"
+            }
         },
     }
 }
@@ -46,6 +52,19 @@ pub trait LeaseSource {
     /// Root's revocable current BodyPlay/scope witness, not an identity match.
     fn current(&self, now_ms: u64) -> bool;
     fn next(&mut self, owner: &NativeReady, now_ms: u64) -> Result<Option<Lease>, &'static str>;
+    fn stage_successor(
+        &mut self,
+        native: &r::RendererIdentity,
+        predecessor: &c::ActivePlayIdentity,
+        now_ms: u64,
+    ) -> Result<Option<Lease>, &'static str>;
+    fn replaced(
+        &mut self,
+        native: &r::RendererIdentity,
+        previous: &c::ActivePlayIdentity,
+        inspection: &c::CapabilityInspection,
+        current: &c::CapabilityInspection,
+    ) -> Result<(), &'static str>;
     fn retired(
         &mut self,
         owner: &NativeReady,
@@ -56,6 +75,13 @@ pub trait LeaseSource {
 pub trait EvidenceSink {
     /// Exact local consumer acceptance. On refusal worker retains both the
     /// canonical Closed value and the original kernel sign log unchanged.
+    fn accept_replaced(
+        &mut self,
+        invocation: u64,
+        active: &c::ActivePlayIdentity,
+        replaced: &[u8],
+        signs: &Log,
+    ) -> Result<(), &'static str>;
     fn accept(
         &mut self,
         invocation: u64,
@@ -86,6 +112,16 @@ impl NativeMaskSession {
         if self.faulted || self.pending.is_some() || self.call.is_some() {
             return Err("mask-session-not-ready");
         }
+        if self.admit_continuity() {
+            esp_println::println!("{{\"event\":\"mask-continuity-admitted\",\"retained_bytes\":{},\"free_bytes\":{}}}", core::mem::size_of::<Handoff>(), esp_alloc::HEAP.free());
+            let result = self.run_continuous(leases, evidence, workspace).await;
+            if result.is_err() {
+                self.cleanup_refusal = self.quiesce_failed().err();
+                self.faulted = true;
+            }
+            return result;
+        }
+        esp_println::println!("{{\"event\":\"mask-continuity-refused\",\"reason\":\"retained-workspace-capacity\",\"required_free_bytes\":{},\"actual_free_bytes\":{},\"closed_page_mode\":true}}", core::mem::size_of::<Handoff>() + 3 * 8192, esp_alloc::HEAP.free());
         let origin = embassy_time::Instant::now().as_millis();
         while self.index < MAXIMUM_CHILDREN {
             let start = origin
@@ -359,7 +395,7 @@ impl NativeMaskSession {
             r::RendererState::Ready => call
                 .cancel_before_delivery()
                 .map_err(|_| "mask-cancel-cleanup"),
-            r::RendererState::Available => {
+            r::RendererState::Available | r::RendererState::Interrupted => {
                 call.withdraw(|| false).map_err(|_| "mask-withdraw-cleanup")
             }
             r::RendererState::Withdrawn | r::RendererState::Cancelled => Ok(()),
@@ -372,6 +408,46 @@ impl NativeMaskSession {
         evidence: &mut impl EvidenceSink,
     ) -> Result<(), &'static str> {
         let (active, value) = self.pending.as_ref().ok_or("mask-evidence-unavailable")?;
+        if let Some(handoff) = self
+            .handoff
+            .as_mut()
+            .filter(|state| state.receipt.is_some())
+        {
+            let receipt = handoff.receipt.as_ref().ok_or("mask-replacement-receipt")?;
+            if receipt.active() != active {
+                return Err("mask-replacement-evidence-scope");
+            }
+            evidence.accept_replaced(
+                self.index,
+                active,
+                self.session
+                    .kernel()
+                    .host_value(*value)
+                    .map_err(|_| "mask-replaced-value")?,
+                handoff.previous_log.as_ref().ok_or("mask-replaced-log")?,
+            )?;
+            let call = self.call.as_ref().ok_or("mask-call")?;
+            leases.replaced(
+                call.retained_identity(),
+                active,
+                receipt.inspection(),
+                call.inspection(),
+            )?;
+            self.session
+                .discard_host_value(*value)
+                .map_err(|_| "mask-replaced-release")?;
+            handoff.receipt = None;
+            handoff.previous_log = None;
+            self.pending = None;
+            self.index = self
+                .index
+                .checked_add(1)
+                .ok_or("mask-invocation-exhausted")?;
+            // A retry may acknowledge old evidence after fail-closed withdrawal
+            // of the successor. That does not revive an Available invocation.
+            self.faulted = call.state() != r::RendererState::Available;
+            return Ok(());
+        }
         let inspection = self.call.as_ref().ok_or("mask-call")?.inspection().clone();
         if inspection.completed_operations != 2
             || inspection.in_flight_operations != 0

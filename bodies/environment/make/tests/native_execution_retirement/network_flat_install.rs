@@ -39,11 +39,6 @@ impl NativePlay {
             flat_refusal: flat::IssuedCustody::Empty,
         }
     }
-    fn materialize_held(&mut self, parts: n::PreparedNetworkKernelParts) -> Result<(), ()> {
-        self.prepared = Some(Box::new(parts.finish().map_err(|_| ())?));
-        self.phase = "installed-held";
-        Ok(())
-    }
 }
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_play_flat.rs"]
 mod flat;
@@ -173,5 +168,53 @@ fn actual_whole_constructor_counts_inline_custody_separately_from_heap() {
     assert_eq!(
         k::SignSink::len(play.prepared.as_ref().unwrap().kernel.signs()),
         0
+    );
+}
+
+#[test]
+fn final_backing_refusal_returns_actual_pair_and_retains_both_issued_bearers() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    flat::refuse_next_backing();
+    assert!(play
+        .install_linked_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer
+        )
+        .is_err());
+    assert!(source.is_some() && join.is_some());
+    assert!(play.prepared.is_none() && play.source.is_none() && play.join.is_none());
+    let flat::IssuedCustody::Both(first, second) = &play.flat_refusal else {
+        panic!("allocation refusal must retain both actual issued bearers");
+    };
+    let retained = (first.inspection().clone(), second.inspection().clone());
+    let active = play.active.clone().unwrap();
+    assert_eq!(retained.0.scope.active_play_id, active.active_play_id);
+    assert_eq!(retained.1.scope.active_play_id, active.active_play_id);
+    let (retry, allocation) = allocation_probe::observe(|| {
+        play.install_linked_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+        )
+    });
+    assert!(retry.is_err());
+    assert_eq!(allocation.allocations, 0);
+    let flat::IssuedCustody::Both(first, second) = &play.flat_refusal else {
+        panic!("lost custody");
+    };
+    assert_eq!(
+        (first.inspection(), second.inspection()),
+        (&retained.0, &retained.1)
     );
 }

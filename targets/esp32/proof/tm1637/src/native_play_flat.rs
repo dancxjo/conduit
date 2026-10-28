@@ -112,18 +112,35 @@ impl NativePlay {
                 .map_err(|_| ())?;
             planned?;
             checked?;
-            selected.ok_or(())
+            let (checked, parts) = selected.ok_or(())?;
+            // Temporary planner descriptions have gone. Allocate final backing
+            // now to preserve the measured non-overlapping construction shape.
+            let backing = match reserve_kernel_backing() {
+                Ok(backing) => backing,
+                Err(()) => {
+                    let (first, second) = checked.into_operations();
+                    *custody = IssuedCustody::Both(first, second);
+                    return Err(());
+                }
+            };
+            Ok((checked, (parts, backing)))
         });
         // No Plan, owner projection, grants, or borrowed lowering survives this
-        // point. The unchanged full kernel storage is allocated only afterward.
+        // point. Final backing was allocated only after temporary descriptions
+        // retired; initialization transfers it without a further allocation.
         drop(bases);
         self.active = active;
         match result {
-            Ok((credentials, join, parts)) => {
+            Ok((credentials, join, (parts, backing))) => {
                 self.source = Some(credentials);
                 self.join = Some(join);
                 self.flat_refusal = IssuedCustody::Empty;
-                self.materialize_held(parts)
+                self.prepared = Some(alloc::boxed::Box::write(
+                    backing,
+                    parts.finish().map_err(|_| ())?,
+                ));
+                self.phase = "installed-held";
+                Ok(())
             }
             Err((pair, ())) => {
                 let (credentials, provider) = pair.into_ready();
@@ -242,5 +259,57 @@ fn check_linked_scope<'owner>(
             *custody = IssuedCustody::Both(first, second);
             Err(())
         }
+    }
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static REFUSE_NEXT_BACKING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+pub(super) fn refuse_next_backing() {
+    REFUSE_NEXT_BACKING.with(|flag| flag.set(true));
+}
+fn reserve_kernel_backing(
+) -> Result<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>, ()> {
+    reserve_kernel_backing_using(|layout| {
+        #[cfg(test)]
+        if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {
+            return core::ptr::null_mut();
+        }
+        // SAFETY: allocator receives the exact requested nonzero layout.
+        unsafe { alloc::alloc::alloc(layout) }
+    })
+}
+fn reserve_kernel_backing_using(
+    allocate: impl FnOnce(core::alloc::Layout) -> *mut u8,
+) -> Result<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>, ()> {
+    let layout = core::alloc::Layout::new::<PreparedNetworkKernel>();
+    if layout.size() == 0 {
+        return Ok(alloc::boxed::Box::<PreparedNetworkKernel>::new_uninit());
+    }
+    // SAFETY: exact layout, unique ownership, initialized only by Box::write.
+    let raw = allocate(layout).cast::<core::mem::MaybeUninit<PreparedNetworkKernel>>();
+    if raw.is_null() {
+        return Err(());
+    }
+    Ok(unsafe { alloc::boxed::Box::from_raw(raw) })
+}
+
+#[cfg(test)]
+mod backing_tests {
+    use super::*;
+    #[test]
+    fn actual_kernel_layout_refusal_returns_without_initialized_owner() {
+        let mut requested = None;
+        let result = reserve_kernel_backing_using(|layout| {
+            requested = Some(layout);
+            core::ptr::null_mut()
+        });
+        assert!(result.is_err());
+        assert_eq!(
+            requested,
+            Some(core::alloc::Layout::new::<PreparedNetworkKernel>())
+        );
     }
 }

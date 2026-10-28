@@ -673,6 +673,13 @@ mod native_display {
         pub use crate::mask_session::RetiredMask;
     }
     pub trait EvidenceSink {
+        fn accept_replaced(
+            &mut self,
+            invocation: u64,
+            active: &conduit_core::ActivePlayIdentity,
+            replaced: &[u8],
+            signs: &conduit_kernel::FixedSignLog<64, 12>,
+        ) -> Result<(), &'static str>;
         fn accept(
             &mut self,
             invocation: u64,
@@ -712,3 +719,5 @@ fn dormant_mask_request_continuation_is_checked_without_resetting_provider() {
     assert_eq!(ready.request_sequence(), RequestId(0));
     assert_eq!(pins.edges.get(), 0);
 }
+#[path = "native_mask_renderer/replacement.rs"]
+mod replacement;

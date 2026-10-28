@@ -1,5 +1,6 @@
 //! Scheduling custody only: no Body, lease, provider or capacity authority.
-//! The worker may offer a window only after actual AcceptedClosed retirement.
+//! Running workers offer a boundary after accepted child retirement. A stopped
+//! task may instead lend scheduling custody while retaining failed electrical owners.
 use core::sync::atomic::{AtomicU32, Ordering};
 const REQUESTED: u32 = 1;
 const READY: u32 = 2;
@@ -31,7 +32,8 @@ impl Gate {
             generation,
         })
     }
-    /// Caller must already have completed actual renderer/lease retirement.
+    /// Caller must have established an exclusive scheduling boundary. The running
+    /// worker uses actual renderer/lease retirement; terminal custody is separate.
     /// A current-scope check is mandatory here and again after the pause.
     pub(crate) fn retired_boundary(&self, current: bool) -> Option<Pause<'_>> {
         let old = self.0.load(Ordering::Acquire);
@@ -54,6 +56,27 @@ impl Gate {
             gate: self,
             generation: old & GENERATION,
         })
+    }
+    /// Accepted predecessor Replaced evidence, revoked old capability and
+    /// discarded old child metadata establish scheduling quiescence while the
+    /// successor's acknowledged Available Show retains the physical owner.
+    /// Caller must also prove drained kernel and no in-flight electrical call.
+    pub(crate) fn replaced_boundary(&self, current: bool) -> Option<Pause<'_>> {
+        self.retired_boundary(current)
+    }
+    /// A stopped task may lend scheduling custody while retaining every failed
+    /// electrical owner. This attests no renderer retirement or free memory.
+    pub(crate) fn terminal_boundary(&self, retained: bool) -> Result<Request<'_>, &'static str> {
+        if !retained {
+            return Err("mask-terminal-custody");
+        }
+        let request = self.request()?;
+        self.retired_boundary(true)
+            .ok_or("mask-terminal-boundary")?;
+        Ok(request)
+    }
+    pub(crate) fn idle(&self) -> bool {
+        self.0.load(Ordering::Acquire) & PHASE == 0
     }
     /// Worker exit/revocation invalidates any pending request or held permit.
     pub(crate) fn cancel(&self) {
@@ -195,6 +218,38 @@ mod tests {
         assert!(next_pause.waiting());
         drop(request);
         assert!(!next_pause.waiting());
+    }
+    #[test]
+    fn replacement_boundary_preserves_affine_generation_and_revocation() {
+        let gate = Gate::new();
+        let request = gate.request().unwrap();
+        let pause = gate.replaced_boundary(true).unwrap();
+        let permit = request.claim().ok().unwrap();
+        assert!(pause.waiting() && permit.held());
+        gate.cancel();
+        assert!(!pause.waiting() && !permit.held());
+        let next = gate.request().unwrap();
+        assert!(gate.replaced_boundary(false).is_none());
+        assert!(!next.ready());
+    }
+    #[test]
+    fn terminal_custody_is_not_inferred_from_failure_and_excludes_overlap() {
+        let gate = Gate::new();
+        assert!(gate.terminal_boundary(false).is_err());
+        assert!(gate.idle());
+        let request = gate.terminal_boundary(true).unwrap();
+        assert!(request.ready());
+        assert!(!gate.idle());
+        assert!(gate.terminal_boundary(true).is_err());
+        let permit = request.claim().ok().unwrap();
+        assert!(permit.held());
+        assert!(!gate.idle());
+        gate.cancel();
+        let next = gate.terminal_boundary(true).unwrap();
+        drop(permit);
+        assert!(next.ready());
+        drop(next);
+        assert!(gate.idle());
     }
     #[test]
     fn exhausted_generation_never_wraps() {

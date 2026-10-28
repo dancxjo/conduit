@@ -2,7 +2,7 @@
 //! Body start can be reconstructed from this preparation.
 use crate::{electrical::DisplayPins, native_face::ReadLease};
 use crate::{native_authority::MaskLeaseIssuer, native_mask_evidence::Consumer};
-use alloc::boxed::Box;
+use alloc::{boxed::Box, sync::Arc};
 #[path = "native_mask_terminal.rs"]
 mod terminal;
 use conduit_core as c;
@@ -29,11 +29,22 @@ pub struct Preparation {
     pub producer: FaceScope,
     pub reader: ReadLease,
 }
+pub(super) struct Handoff {
+    pub(super) previous_log: Option<Log>,
+    pub(super) receipt: Option<r::ReplacedRenderer>,
+    pub(super) successor: Option<r::ReplacementLease>,
+    pub(super) refused: Option<(
+        c::ActivePlayIdentity,
+        c::BaseCapabilityTable,
+        c::BaseCapabilityHandle,
+        c::BaseOperationClaim,
+    )>,
+}
 pub struct NativeMaskSession {
     pub(super) ready: Option<NativeReady>,
     pub(super) call: Option<NativeCall>,
     pub(super) invocation: r::PreparedRendererInvocation,
-    pub(super) context: Box<f::PreparedMaskShowContext>,
+    pub(super) context: Arc<f::PreparedMaskShowContext>,
     pub(super) session: Session,
     pub(super) face: conduit_plan_lowering::lowering::LoweredForePort,
     pub(super) show: conduit_plan_lowering::lowering::LoweredForePort,
@@ -44,6 +55,7 @@ pub struct NativeMaskSession {
     pub(super) source_epoch: Option<(u64, u64)>,
     pub(super) index: u64,
     pub(super) pending: Option<(c::ActivePlayIdentity, k::ValueRef)>,
+    pub(super) handoff: Option<Box<Handoff>>,
     pub(super) faulted: bool,
     pub(super) cleanup_refusal: Option<&'static str>,
 }
@@ -124,7 +136,7 @@ impl NativeMaskSession {
             ready: owner.take(),
             call: None,
             invocation: input.invocation,
-            context: Box::new(input.context),
+            context: Arc::new(input.context),
             session,
             face,
             show,
@@ -135,6 +147,7 @@ impl NativeMaskSession {
             source_epoch: None,
             index: 0,
             pending: None,
+            handoff: None,
             faulted: false,
             cleanup_refusal: None,
         }))
@@ -177,7 +190,7 @@ pub struct RetiredMaskParts {
     pub kernel: RetiredKernel,
     pub leases: Box<MaskLeaseIssuer>,
     pub evidence: Box<Consumer>,
-    pub context: Box<f::PreparedMaskShowContext>,
+    pub context: Arc<f::PreparedMaskShowContext>,
     pub invocation: r::PreparedRendererInvocation,
     pub routes: f::AdmittedMaskPlotRoutes,
     pub wardrobe: f::MaskWardrobeControl,

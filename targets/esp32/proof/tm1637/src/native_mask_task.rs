@@ -86,6 +86,34 @@ impl Handle {
         WORKSPACE.request()
     }
 
+    /// Actual stopped-task custody only; neither failure status nor electrical
+    /// uncertainty is cleared. The gate also excludes retained-owner transfer.
+    pub(crate) fn request_terminal_workspace(
+        &self,
+    ) -> Result<workspace::Request<'static>, &'static str> {
+        let status = self.status();
+        if status.task_active || !matches!(status.phase, "failed" | "cleanup-refused" | "quiesced")
+        {
+            return Err("mask-task-not-terminal");
+        }
+        let session = self
+            .slot
+            .session
+            .try_borrow()
+            .map_err(|_| "mask-session-busy")?;
+        let leases = self
+            .slot
+            .leases
+            .try_borrow()
+            .map_err(|_| "mask-leases-busy")?;
+        let evidence = self
+            .slot
+            .evidence
+            .try_borrow()
+            .map_err(|_| "mask-evidence-busy")?;
+        WORKSPACE.terminal_boundary(session.is_some() && leases.is_some() && evidence.is_some())
+    }
+
     pub async fn wait_ready(&self) {
         READY.wait().await;
     }
@@ -99,6 +127,9 @@ impl Handle {
         body: &conduit_body::SealedBodyLifecycleSession,
         now: u64,
     ) -> Result<(), &'static str> {
+        if !WORKSPACE.idle() {
+            return Err("mask-workspace-held");
+        }
         let status = self.status();
         if status.phase != "ready-held" || status.activated {
             return Err("mask-task-not-held");
@@ -113,6 +144,9 @@ impl Handle {
         Ok(())
     }
     pub fn accept_start(&self) -> Result<(), &'static str> {
+        if !WORKSPACE.idle() {
+            return Err("mask-workspace-held");
+        }
         STATE.lock(|state| {
             let mut state = state.borrow_mut();
             let ready = state.status.activated
@@ -123,6 +157,9 @@ impl Handle {
         })
     }
     pub fn release(&self) -> Result<(), &'static str> {
+        if !WORKSPACE.idle() {
+            return Err("mask-workspace-held");
+        }
         STATE.lock(|state| {
             let mut state = state.borrow_mut();
             let cancelled = state.cancelled;
@@ -145,6 +182,9 @@ impl Handle {
         COMMAND.signal(Command::Cancel);
     }
     pub fn retry_evidence(&self) -> Result<(), &'static str> {
+        if !WORKSPACE.idle() {
+            return Err("mask-workspace-held");
+        }
         let status = self.status();
         if status.task_active
             || !matches!(status.phase, "failed" | "cleanup-refused")
@@ -170,6 +210,9 @@ impl Handle {
         Ok(())
     }
     pub fn retire(&self) -> Result<Retired, &'static str> {
+        if !WORKSPACE.idle() {
+            return Err("mask-workspace-held");
+        }
         let status = self.status();
         if status.task_active || status.phase != "quiesced" || status.pending_evidence {
             return Err("mask-task-not-quiesced");
@@ -196,6 +239,9 @@ impl Handle {
         }
     }
     fn take_completed(&self) -> Result<RetiredMask, &'static str> {
+        if !WORKSPACE.idle() {
+            return Err("mask-workspace-held");
+        }
         let status = self.status();
         if status.task_active
             || status.phase != "quiesced"
@@ -269,7 +315,8 @@ impl Handle {
         spawner: Spawner,
     ) -> Result<Self, (Self, &'static str)> {
         let status = self.status();
-        if status.phase != "retired"
+        if !WORKSPACE.idle()
+            || status.phase != "retired"
             || status.task_active
             || !self.slot.completed_retirement.get()
             || self.slot.session.borrow().is_some()

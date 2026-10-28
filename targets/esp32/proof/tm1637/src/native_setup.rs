@@ -8,6 +8,8 @@ mod workspace_check;
 #[cfg(feature = "local-appliance")]
 use crate::native_display::task::WorkspacePermit;
 use crate::native_network::recovery::Action;
+#[cfg(feature = "local-appliance")]
+use conduit_body::BodyPlanEvidence;
 use conduit_core as c;
 #[cfg(not(feature = "local-appliance"))]
 struct WorkspacePermit<'a>(core::marker::PhantomData<&'a ()>);
@@ -230,7 +232,10 @@ impl NativeRoot {
             let Some(worker) = &self.local_mask_worker else {
                 return;
             };
-            let Ok(request) = worker.request_workspace() else {
+            let request = worker
+                .request_workspace()
+                .or_else(|_| worker.request_terminal_workspace());
+            let Ok(request) = request else {
                 return;
             };
             let Some(deadline_ms) = now.checked_add(4000) else {
@@ -256,11 +261,70 @@ impl NativeRoot {
             return;
         };
         let memory = esp_alloc::HEAP.stats();
-        if permit.held() && memory.size.saturating_sub(memory.current_usage) >= minimum {
-            self.prepare_network_configuration_in(Some(&permit));
+        if permit.held()
+            && memory.size.saturating_sub(memory.current_usage) >= minimum
+            && self.network_workspace_scope_current()
+        {
+            // Actual fallible contiguous reserve, retained through construction.
+            // It protects the unchanged post-install floor from transient use;
+            // exact final kernel backing is fallible after planner retirement.
+            // Aggregate heap statistics cannot attest contiguous construction
+            // capacity. Probe the complete construction envelope with a fallible
+            // allocation before any network owner moves; no await intervenes.
+            let mut contiguous = alloc::vec::Vec::<u8>::new();
+            if contiguous.try_reserve_exact(minimum).is_err() {
+                return;
+            }
+            drop(contiguous);
+            let mut reserve = alloc::vec::Vec::<u8>::new();
+            if reserve.try_reserve_exact(8192 + 8192).is_ok() {
+                self.prepare_network_configuration_mode(Some(&permit), false);
+                drop(reserve);
+                let memory = esp_alloc::HEAP.stats();
+                if permit.held()
+                    && self.network_workspace_scope_current()
+                    && memory.size.saturating_sub(memory.current_usage) >= 8192 + 8192
+                {
+                    let _ = self.play.release_held();
+                }
+            }
         }
         // No await while holding construction custody. Drop precedes run().
         drop(permit);
+    }
+    #[cfg(feature = "local-appliance")]
+    fn network_workspace_scope_current(&self) -> bool {
+        let Some(body) = self.body.as_ref() else {
+            return false;
+        };
+        let Some(current) = body.realization() else {
+            return false;
+        };
+        let Some(play) = current.play.as_ref() else {
+            return false;
+        };
+        let Some(active) = self.issuer.mask_issued_active() else {
+            return false;
+        };
+        play.validate_for(&current.plan)
+            && current.plan.validate_for(&current.wake).is_ok()
+            && active.host_id == self.host
+            && active.boot_id == self.boot
+            && matches!(&body.evidence().body.state, conduit_body::BodyState::Awake { wake_id } if wake_id == current.plan.wake_id())
+            && current
+                .plan
+                .masks()
+                .iter()
+                .flat_map(|m| m.chains())
+                .any(|chain| chain.plan().plan_id() == &active.plan_id)
+            && body
+                .evidence()
+                .membership
+                .parts
+                .iter()
+                .filter(|part| part.state == conduit_body::MembershipState::Admitted)
+                .filter_map(|part| part.current.as_ref())
+                .any(|host| host.host_id == self.host && host.boot_id == self.boot)
     }
     /// Independent control polling. Current interface/service evidence controls
     /// availability; a receipt from an old successful join is insufficient.

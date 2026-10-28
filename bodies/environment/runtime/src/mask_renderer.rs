@@ -42,6 +42,9 @@ pub struct ReadyRenderer<P> {
 mod delivery;
 #[path = "mask_renderer_invocation.rs"]
 mod invocation;
+#[path = "mask_renderer_replacement.rs"]
+mod replacement;
+pub use replacement::{PresentedOccurrence, ReplacedRenderer, ReplacementLease};
 #[path = "mask_renderer_offer.rs"]
 mod offer;
 pub use delivery::{

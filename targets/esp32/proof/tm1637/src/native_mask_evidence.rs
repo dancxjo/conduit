@@ -15,6 +15,8 @@ pub struct Status {
     pub evidence_chain: [u8; 32],
     pub retained_page_bytes: usize,
     pub durable: bool,
+    pub last_terminal: &'static str,
+    pub last_terminal_bytes: usize,
 }
 static STATUS: Mutex<CriticalSectionRawMutex, RefCell<Status>> = Mutex::new(RefCell::new(Status {
     consumed: 0,
@@ -23,6 +25,8 @@ static STATUS: Mutex<CriticalSectionRawMutex, RefCell<Status>> = Mutex::new(RefC
     evidence_chain: [0; 32],
     retained_page_bytes: 0,
     durable: false,
+    last_terminal: "none",
+    last_terminal_bytes: 0,
 }));
 pub fn status() -> Status {
     STATUS.lock(|state| *state.borrow())
@@ -61,12 +65,33 @@ impl Consumer {
     }
 }
 impl crate::native_display::EvidenceSink for Consumer {
+    fn accept_replaced(
+        &mut self,
+        invocation: u64,
+        active: &c::ActivePlayIdentity,
+        replaced: &[u8],
+        signs: &k::FixedSignLog<64, 12>,
+    ) -> Result<(), &'static str> {
+        self.consume(invocation, active, replaced, signs, true)
+    }
     fn accept(
         &mut self,
         invocation: u64,
         active: &c::ActivePlayIdentity,
         closed: &[u8],
         signs: &k::FixedSignLog<64, 12>,
+    ) -> Result<(), &'static str> {
+        self.consume(invocation, active, closed, signs, false)
+    }
+}
+impl Consumer {
+    fn consume(
+        &mut self,
+        invocation: u64,
+        active: &c::ActivePlayIdentity,
+        closed: &[u8],
+        signs: &k::FixedSignLog<64, 12>,
+        replaced: bool,
     ) -> Result<(), &'static str> {
         if invocation != self.next
             || closed.is_empty()
@@ -102,6 +127,9 @@ impl crate::native_display::EvidenceSink for Consumer {
         let closed_digest: [u8; 32] = Sha256::digest(closed).into();
         let mut hash = Sha256::new();
         hash.update(b"conduit.environment/transient-mask-consumption@1");
+        if replaced {
+            hash.update(b"replaced");
+        }
         hash.update(self.chain);
         hash.update(invocation.to_le_bytes());
         hash.update(active.active_play_id.as_str().as_bytes());
@@ -116,13 +144,24 @@ impl crate::native_display::EvidenceSink for Consumer {
         self.next = next;
         self.last_sequence = Some(active.play_sequence);
         STATUS.lock(|state| {
+            let old = *state.borrow();
             *state.borrow_mut() = Status {
                 consumed: next,
-                last_closed_bytes: closed.len(),
-                last_closed_digest: closed_digest,
+                last_closed_bytes: if replaced {
+                    old.last_closed_bytes
+                } else {
+                    closed.len()
+                },
+                last_closed_digest: if replaced {
+                    old.last_closed_digest
+                } else {
+                    closed_digest
+                },
                 evidence_chain: chain,
                 retained_page_bytes: length,
                 durable: false,
+                last_terminal: if replaced { "replaced" } else { "closed" },
+                last_terminal_bytes: closed.len(),
             }
         });
         Ok(())

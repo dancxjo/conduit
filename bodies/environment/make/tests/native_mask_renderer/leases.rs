@@ -777,3 +777,114 @@ fn run_complete_native_mask(
     println!("native_completed_mask_cpu children=19200 completeClosed=19200 retirement_allocations=0 physical=false");
     (returned.kernel.values, stale.unwrap())
 }
+#[test]
+fn real_root_stages_only_one_successor_and_commits_only_actual_acknowledged_replacement() {
+    let pins = Rc::new(native::Pins::default());
+    let ready = native::ready(pins.clone());
+    let planned = planned(&ready);
+    let (root, mut leases, mut capsule, guard) = prepare(&ready, &planned);
+    let mut body = new_body(&planned);
+    start(&mut body, &root.host, &root.boot);
+    leases.activate(&body, 1000).unwrap();
+    let (active, table, handle, claim) = leases.next(&ready, 1000).unwrap();
+    let mut owner = Some(ready);
+    let mut call = capsule
+        .bind_retained(&mut owner, table, handle, claim, &active)
+        .unwrap();
+    let face = fixture::face();
+    let face_wire = serde_json::to_vec(&face).unwrap();
+    let context = f::PreparedMaskShowContext::prepare(&planned, 8192).unwrap();
+    let basis = |elapsed| PresentationBasis {
+        face: &face,
+        face_wire: &face_wire,
+        context: &context,
+        elapsed_ms: elapsed,
+        front: "environment".into(),
+        target: "fixture/display".into(),
+        prepared_sign: "fixture/prepared".into(),
+        available_sign: "fixture/ack".into(),
+    };
+    let prepared = call.prepare_presentation(basis(0)).unwrap();
+    let mut output = [0; 8192];
+    call.present_encoded(
+        capsule.node(),
+        HostCallId(0),
+        RequestId(0),
+        &face_wire,
+        &prepared,
+        &mut output,
+        encode,
+        || false,
+    )
+    .unwrap();
+    assert!(leases
+        .stage_successor(call.retained_identity(), &active, 3999)
+        .is_err());
+    let mut foreign = active.clone();
+    foreign.play_sequence += 1;
+    assert!(leases
+        .stage_successor(call.retained_identity(), &foreign, 4000)
+        .is_err());
+    let incoming = leases
+        .stage_successor(call.retained_identity(), &active, 4000)
+        .unwrap()
+        .unwrap();
+    let next = incoming.0.clone();
+    assert_eq!(next.play_sequence, active.play_sequence + 1);
+    assert!(leases
+        .stage_successor(call.retained_identity(), &active, 4000)
+        .is_err());
+    let mut staged = capsule
+        .stage_replacement(&call, incoming)
+        .unwrap_or_else(|_| panic!("exact successor refused"));
+    let next_prepared = call.prepare_replacement(&staged, basis(3000)).unwrap();
+    // Neither issuance nor preparation revokes the predecessor cleanup budget.
+    assert_eq!(call.inspection().lifecycle, c::CapabilityLifecycle::Issued);
+    assert_eq!(call.inspection().completed_operations, 1);
+    let before = call.inspection().clone();
+    assert!(leases
+        .validate_replaced(call.retained_identity(), &active, &before, &before)
+        .is_err());
+    let (_, receipt) = capsule
+        .replace_encoded(
+            &mut call,
+            &mut staged,
+            capsule.node(),
+            HostCallId(0),
+            RequestId(1),
+            &face_wire,
+            &next_prepared,
+            &mut output,
+            encode,
+            || false,
+        )
+        .unwrap();
+    leases
+        .validate_replaced(
+            call.retained_identity(),
+            &active,
+            receipt.inspection(),
+            call.inspection(),
+        )
+        .unwrap();
+    assert!(leases
+        .validate_replaced(
+            call.retained_identity(),
+            &active,
+            receipt.inspection(),
+            call.inspection()
+        )
+        .is_err());
+    assert!(leases
+        .stage_successor(call.retained_identity(), &active, 7000)
+        .is_err());
+    guard.revoke();
+    assert!(leases
+        .stage_successor(call.retained_identity(), &next, 7000)
+        .is_err());
+    call.withdraw(|| false).unwrap();
+    let inspection = call.inspection().clone();
+    let mut bound = Some(call);
+    let ready = capsule.retire_invocation(&mut bound).unwrap();
+    leases.validate_retired(&ready, &next, &inspection).unwrap();
+}

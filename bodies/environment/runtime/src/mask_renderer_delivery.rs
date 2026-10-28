@@ -6,6 +6,8 @@ use alloc::string::String;
 pub enum RendererState {
     Ready,
     Available,
+    /// A successor write failed; no Available assertion, but old cleanup remains.
+    Interrupted,
     Withdrawn,
     Failed,
     Cancelled,
@@ -46,16 +48,16 @@ pub struct PresentationBasis<'face, 'context> {
 /// Pre-Play material. Available metadata is private and grants no delivery;
 /// it can leave the semantic Face read scope but pins its exact input bytes.
 pub struct PreparedPresentation<'a> {
-    occurrence: f::PreparedMaskOccurrence<'a>,
-    face: f::PreparedFaceValue,
-    packets: crate::display_packets::SourceDisplayPackets,
-    request: RequestId,
+    pub(super) occurrence: f::PreparedMaskOccurrence<'a>,
+    pub(super) face: f::PreparedFaceValue,
+    pub(super) packets: crate::display_packets::SourceDisplayPackets,
+    pub(super) request: RequestId,
 }
 /// Exact input already checked against the prepared Face. It borrows only
 /// immutable preparation, so the kernel can reserve a different output slot.
 /// Private construction prevents bypassing the input check across that borrow.
 pub struct VerifiedPresentation<'p, 'context> {
-    prepared: &'p PreparedPresentation<'context>,
+    pub(super) prepared: &'p PreparedPresentation<'context>,
 }
 impl<P: OpenDrain> RendererCall<P> {
     pub fn request_sequence(&self) -> RequestId {
@@ -80,6 +82,14 @@ impl<P: OpenDrain> RendererCall<P> {
         if self.state != RendererState::Ready || self.ready.next_request == u32::MAX {
             return Err(E::Lifecycle);
         }
+        self.prepare_for(self.active.clone(), input)
+    }
+    pub(super) fn prepare_for<'a>(
+        &mut self,
+        active: c::ActivePlayIdentity,
+        input: PresentationBasis<'_, 'a>,
+    ) -> Result<PreparedPresentation<'a>, DeliveryRefusal<P::Error>> {
+        use DeliveryRefusal as E;
         let face = f::PreparedFaceValue::prepare(
             input.face,
             input.face_wire,
@@ -90,7 +100,7 @@ impl<P: OpenDrain> RendererCall<P> {
             .context
             .prepared_show(
                 input.face,
-                self.active.clone(),
+                active,
                 input.front,
                 input.target,
                 input.prepared_sign,
@@ -232,7 +242,10 @@ impl<P: OpenDrain> RendererCall<P> {
         cancelled: impl FnMut() -> bool,
     ) -> Result<(), DeliveryRefusal<P::Error>> {
         use DeliveryRefusal as E;
-        if self.state != RendererState::Available {
+        if !matches!(
+            self.state,
+            RendererState::Available | RendererState::Interrupted
+        ) {
             return Err(E::Lifecycle);
         }
         let batch = self

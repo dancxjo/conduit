@@ -37,6 +37,7 @@ pub struct MaskLeaseIssuer {
     next: u64,
     end: u64,
     pending: Option<c::ActivePlayIdentity>,
+    staged: Option<c::ActivePlayIdentity>,
     first: Option<Lease>,
     current: Arc<AtomicBool>,
     start_ms: Option<u64>,
@@ -126,6 +127,7 @@ impl RootIssuer {
             next: active.play_sequence,
             end,
             pending: None,
+            staged: None,
             first: None,
             current: witness.clone(),
             start_ms: None,
@@ -160,6 +162,7 @@ impl MaskLeaseIssuer {
         self.issued_children == 0
             && self.first.is_some()
             && self.pending.is_none()
+            && self.staged.is_none()
             && !self.current.load(Ordering::Acquire)
             && self.start_ms.is_none()
             && self.parent.is_none()
@@ -185,7 +188,7 @@ impl MaskLeaseIssuer {
             end: self.end,
             next: self.next,
             revoked: !self.current.load(Ordering::Acquire),
-            pending: self.pending.is_some(),
+            pending: self.pending.is_some() || self.staged.is_some(),
             first_retained: self.first.is_some(),
         })
     }
@@ -319,6 +322,68 @@ impl MaskLeaseIssuer {
         self.pending = None;
         Ok(())
     }
+    /// One successor only, while the old actual child retains cleanup. This
+    /// grants no second physical owner and cannot slide the fixed cadence.
+    pub fn stage_successor(
+        &mut self,
+        native: &r::RendererIdentity,
+        predecessor: &c::ActivePlayIdentity,
+        now_ms: u64,
+    ) -> Result<Option<Lease>, &'static str> {
+        let start = self.start_ms.ok_or("mask-parent-held")?;
+        if !self.current.load(Ordering::Acquire)
+            || self.parent.is_none()
+            || now_ms < start
+            || now_ms - start >= HORIZON_MS
+            || self.pending.as_ref() != Some(predecessor)
+            || self.staged.is_some()
+            || self.first.is_some()
+            || native != &self.native
+        {
+            return Err("mask-successor-scope");
+        }
+        if self.next >= self.end {
+            return Ok(None);
+        }
+        let due = self
+            .issued_children
+            .checked_mul(3000)
+            .and_then(|n| self.issuance_origin_ms?.checked_add(n))
+            .ok_or("mask-child-clock")?;
+        if now_ms < due || now_ms - due >= 3000 {
+            return Err("mask-child-window");
+        }
+        let lease = self.issue()?;
+        self.staged = Some(lease.0.clone());
+        self.issued_children += 1;
+        Ok(Some(lease))
+    }
+    pub fn validate_replaced(
+        &mut self,
+        native: &r::RendererIdentity,
+        previous: &c::ActivePlayIdentity,
+        previous_inspection: &c::CapabilityInspection,
+        current: &c::CapabilityInspection,
+    ) -> Result<(), &'static str> {
+        let next = self.staged.as_ref().ok_or("mask-successor-unavailable")?;
+        if native != &self.native
+            || self.pending.as_ref() != Some(previous)
+            || previous_inspection.scope != self.scope(previous)
+            || previous_inspection.lifecycle != c::CapabilityLifecycle::Revoked
+            || previous_inspection.completed_operations != 1
+            || previous_inspection.in_flight_operations != 0
+            || current.scope != self.scope(next)
+            || !matches!(
+                (current.lifecycle, current.completed_operations),
+                (c::CapabilityLifecycle::Issued, 1) | (c::CapabilityLifecycle::Revoked, 2)
+            )
+            || current.in_flight_operations != 0
+        {
+            return Err("mask-successor-not-accepted");
+        }
+        self.pending = self.staged.take();
+        Ok(())
+    }
     fn scope(&self, active: &c::ActivePlayIdentity) -> c::BaseCapabilityScope {
         let native = &self.native;
         c::BaseCapabilityScope {
@@ -423,6 +488,23 @@ impl crate::native_display::LeaseSource for MaskLeaseIssuer {
             return Ok(None);
         }
         MaskLeaseIssuer::next(self, owner, now_ms).map(Some)
+    }
+    fn stage_successor(
+        &mut self,
+        native: &r::RendererIdentity,
+        predecessor: &c::ActivePlayIdentity,
+        now_ms: u64,
+    ) -> Result<Option<crate::native_display::Lease>, &'static str> {
+        MaskLeaseIssuer::stage_successor(self, native, predecessor, now_ms)
+    }
+    fn replaced(
+        &mut self,
+        native: &r::RendererIdentity,
+        previous: &c::ActivePlayIdentity,
+        inspection: &c::CapabilityInspection,
+        current: &c::CapabilityInspection,
+    ) -> Result<(), &'static str> {
+        self.validate_replaced(native, previous, inspection, current)
     }
     fn retired(
         &mut self,

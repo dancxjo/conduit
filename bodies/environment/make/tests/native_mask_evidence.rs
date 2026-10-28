@@ -5,6 +5,13 @@ use conduit_kernel::{self as k, SignSink};
 use sha2::{Digest, Sha256};
 mod native_display {
     pub trait EvidenceSink {
+        fn accept_replaced(
+            &mut self,
+            invocation: u64,
+            active: &conduit_core::ActivePlayIdentity,
+            replaced: &[u8],
+            signs: &conduit_kernel::FixedSignLog<64, 12>,
+        ) -> Result<(), &'static str>;
         fn accept(
             &mut self,
             invocation: u64,
@@ -142,4 +149,30 @@ fn exact_pages_chain_in_order_and_refusals_preserve_accepted_custody() {
     );
     assert_eq!(consumer::status().evidence_chain, before_gap.evidence_chain);
     assert_eq!(consumer::status().consumed, before_gap.consumed);
+}
+#[test]
+fn replacement_has_distinct_evidence_kind_without_claiming_another_closed_show() {
+    let mut consumer = consumer::Consumer::new();
+    let signs = log(true);
+    let closed = b"canonical-closed-fixture";
+    consumer.accept(0, &active(1), closed, &signs).unwrap();
+    let before = consumer::status();
+    let replaced = b"canonical-replaced-fixture";
+    consumer
+        .accept_replaced(1, &active(2), replaced, &signs)
+        .unwrap();
+    let after = consumer::status();
+    assert_eq!(after.consumed, 2);
+    assert_eq!(after.last_terminal, "replaced");
+    assert_eq!(after.last_terminal_bytes, replaced.len());
+    assert_eq!(after.last_closed_bytes, before.last_closed_bytes);
+    assert_eq!(after.last_closed_digest, before.last_closed_digest);
+    let (closed_chain, _) = chain(before.evidence_chain, 1, &active(2), replaced, &signs);
+    assert_ne!(after.evidence_chain, closed_chain);
+    assert!(consumer
+        .accept_replaced(1, &active(2), replaced, &signs)
+        .is_err());
+    assert_eq!(consumer::status().evidence_chain, after.evidence_chain);
+    consumer.accept(2, &active(3), closed, &signs).unwrap();
+    assert_eq!(consumer::status().last_terminal, "closed");
 }
