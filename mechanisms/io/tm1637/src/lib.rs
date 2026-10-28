@@ -46,8 +46,12 @@ pub enum Failure<E> {
 }
 
 /// A transaction admits at most three packets, each containing 1..=7 bytes.
-/// Cancellation is observed before START and before each byte. On any terminal
+/// A leading STOP discards any partial transfer left by an interrupted owner.
+/// Cancellation is observed before that STOP, START and each byte. On any terminal
 /// outcome both lines are released; cleanup is best effort after provider loss.
+/// A successful transfer uses exactly `4 + 7 * packets + 27 * bytes` admitted
+/// half-periods (maximum 592 for 3 packets of 7 bytes). These are waveform delays,
+/// not an upper bound on provider calls/interrupt latency or a timing grant.
 /// No retry, clock source, scheduling policy or ambient GPIO is introduced.
 pub fn transmit<P: OpenDrain>(
     pins: &mut P,
@@ -81,6 +85,12 @@ fn send<P: OpenDrain>(
         if cancelled() {
             return Err(Failure::Cancelled);
         }
+        if packet == 0 {
+            // TM1637 datasheet: STOP during command/data transfer initializes
+            // serial communication and invalidates that unfinished transfer.
+            // This runs only inside the admitted write, never at advertisement.
+            stop(pins).map_err(Failure::Provider)?;
+        }
         start(pins).map_err(Failure::Provider)?;
         for (byte, value) in contents.bytes.iter().copied().enumerate() {
             if cancelled() {
@@ -106,11 +116,13 @@ fn start<P: OpenDrain>(p: &mut P) -> Result<(), P::Error> {
     p.half_period()?;
     p.data(false)?;
     p.half_period()?;
-    p.clock(false)
+    p.clock(false)?;
+    p.half_period()
 }
 
 fn stop<P: OpenDrain>(p: &mut P) -> Result<(), P::Error> {
     p.clock(false)?;
+    p.half_period()?;
     p.data(false)?;
     p.half_period()?;
     p.clock(true)?;
@@ -126,6 +138,12 @@ fn write_byte<P: OpenDrain>(p: &mut P, byte: u8) -> Result<bool, P::Error> {
         p.clock(true)?;
         p.half_period()?;
         p.clock(false)?;
+        // Let the falling clock settle before changing/releasing DIO, including
+        // the eighth-bit→ACK handoff. TM1637 v2.4 pp3,10 defines data changes
+        // during low CLK and ACK from the eighth falling edge; this guard does
+        // not assert that an observed NACK was caused by propagation delay.
+        // https://m5stack.oss-cn-shenzhen.aliyuncs.com/resource/docs/datasheet/unit/digi_clock/TM1637.pdf
+        p.half_period()?;
     }
     p.data(true)?; // The device owns DIO during the ninth clock.
     p.half_period()?;
