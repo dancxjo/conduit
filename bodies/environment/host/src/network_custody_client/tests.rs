@@ -224,7 +224,7 @@ fn resign_cursor(bytes: &mut [u8; 480]) {
     bytes[408..472].copy_from_slice(&sig);
 }
 fn receipt_response(cursor: &[u8; 480], generation: u64) -> Vec<u8> {
-    serde_json::to_vec(&serde_json::json!({"profile":"network-retirement-committed@1","reclaimed":false,"generation":generation,"receipt":cursor.iter().map(|b|format!("{b:02x}")).collect::<String>()})).unwrap()
+    serde_json::to_vec(&serde_json::json!({"profile":"network-retirement-committed@1","reclaimed":cursor[8]==2,"generation":generation,"receipt":cursor.iter().map(|b|format!("{b:02x}")).collect::<String>()})).unwrap()
 }
 #[test]
 fn committed_receipt_agrees_with_native_cursor_and_rejects_every_changed_byte() {
@@ -256,16 +256,44 @@ fn committed_receipt_agrees_with_native_cursor_and_rejects_every_changed_byte() 
             checked.bytes()
         );
     }
-    let valid = committed_cursor(&f, &token, &ack, 1);
-    for at in 0..480 {
-        let mut changed = valid;
-        changed[at] ^= 0x80;
-        assert!(
-            token
-                .verify_committed_receipt(&f.credential, &ack, &receipt_response(&changed, 7))
-                .is_err(),
-            "cursor byte {at}"
-        );
+    for phase in [1, 2] {
+        let valid = committed_cursor(&f, &token, &ack, phase);
+        for at in 0..480 {
+            for bit in 0..8 {
+                let mut changed = valid;
+                changed[at] ^= 1 << bit;
+                assert!(
+                    token
+                        .verify_committed_receipt(
+                            &f.credential,
+                            &ack,
+                            &receipt_response(&changed, 7)
+                        )
+                        .is_err(),
+                    "cursor phase {phase} byte {at} bit {bit}"
+                );
+            }
+        }
+        // Even a valid Root signature cannot replace the actual phase/epoch
+        // relation, and unsigned presentation cannot claim the opposite phase.
+        let mut response: serde_json::Value =
+            serde_json::from_slice(&receipt_response(&valid, 7)).unwrap();
+        response["reclaimed"] = (phase != 2).into();
+        assert!(token
+            .verify_committed_receipt(&f.credential, &ack, &serde_json::to_vec(&response).unwrap())
+            .is_err());
+        let mut wrong_epoch = valid;
+        wrong_epoch[16..24].copy_from_slice(&(f.scope.epoch + 2).to_le_bytes());
+        resign_cursor(&mut wrong_epoch);
+        assert!(token
+            .verify_committed_receipt(&f.credential, &ack, &receipt_response(&wrong_epoch, 7))
+            .is_err());
+        let mut wrong_phase = valid;
+        wrong_phase[8] = if phase == 1 { 2 } else { 1 };
+        resign_cursor(&mut wrong_phase);
+        assert!(token
+            .verify_committed_receipt(&f.credential, &ack, &receipt_response(&wrong_phase, 7))
+            .is_err());
     }
 }
 #[test]

@@ -46,10 +46,7 @@ impl VerifiedDurableSnapshot {
             return Err("network receipt response capacity".into());
         }
         let response: Response = serde_json::from_slice(response)?;
-        if response.profile != "network-retirement-committed@1"
-            || response.reclaimed
-            || response.generation == 0
-        {
+        if response.profile != "network-retirement-committed@1" || response.generation == 0 {
             return Err("network receipt response profile".into());
         }
         self.revalidate()?;
@@ -61,6 +58,9 @@ impl VerifiedDurableSnapshot {
             return Err("network receipt ACK identity".into());
         }
         let cursor = hex(&response.receipt)?;
+        if response.reclaimed != (cursor[8] == 2) {
+            return Err("network receipt reclaim phase differs".into());
+        }
         let epoch = match cursor[8] {
             1 => self.scope.epoch,
             2 => self
