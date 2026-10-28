@@ -419,6 +419,7 @@ fn retained_custody_survives_detachment_and_restart_without_restoring_presence()
         .verify_retained_custody_message(&membership, &credential, &transcript, &signature)
         .unwrap();
     assert_eq!(verified.credential(), &credential);
+    assert_eq!(verified.verifying_key(), key.verifying_key().as_bytes());
     assert_eq!(verified.body_id(), &membership.body_id);
     assert_eq!(verified.part_id(), &credential.part_id);
     assert_eq!(verified.host_id(), &credential.host_id);

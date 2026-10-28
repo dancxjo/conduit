@@ -1,4 +1,6 @@
 //! Actual native archive with mocked finite NOR and heap admission. No device proof.
+#[path = "native_network_journal/ack.rs"]
+mod ack;
 extern crate alloc;
 extern crate self as esp_alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
@@ -480,6 +482,7 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert!(journal::inspect().is_ok());
     assert_eq!(flash.lock().unwrap().writes, writes);
     assert_eq!(flash.lock().unwrap().bytes, expected);
+    ack::exercise(body.clone(), &key);
     exercise_root_export();
     assert_eq!(flash.lock().unwrap().writes, writes);
     assert_eq!(flash.lock().unwrap().bytes, expected);

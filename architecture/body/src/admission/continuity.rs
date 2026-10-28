@@ -332,10 +332,16 @@ impl AdmissionManager {
 #[derive(Debug, PartialEq, Eq)]
 pub struct VerifiedRetainedCustodyMessage {
     credential: MembershipCredential,
+    verifying_key: [u8; 32],
     membership_revision: crate::BodyMembershipRevision,
     transcript: [u8; 32],
 }
 impl VerifiedRetainedCustodyMessage {
+    /// Public signer data from the actual retained continuity-key record.
+    /// This conveys neither presence nor any additional custody authority.
+    pub fn verifying_key(&self) -> &[u8; 32] {
+        &self.verifying_key
+    }
     pub fn credential(&self) -> &MembershipCredential {
         &self.credential
     }
@@ -426,6 +432,7 @@ impl AdmissionManager {
         verify_signature(key.verifying_key, transcript, *signature)?;
         Ok(VerifiedRetainedCustodyMessage {
             credential: credential.clone(),
+            verifying_key: key.verifying_key,
             membership_revision: membership.revision,
             transcript: *transcript,
         })

@@ -129,6 +129,20 @@ impl NativeAdmission {
         owner: &conduit_body::SealedBodyLifecycleSession,
         boot: &conduit_core::BootId,
     ) -> Result<[u8; 240], &'static str> {
+        self.check_network_snapshot(draft, owner, boot)?;
+        Ok(draft.signed(self.key.sign(&draft.transcript()).to_bytes()))
+    }
+    #[cfg(all(
+        feature = "local-appliance",
+        feature = "body-persistence",
+        target_os = "none"
+    ))]
+    fn check_network_snapshot(
+        &self,
+        draft: &crate::native_play::journal::snapshot::Draft,
+        owner: &conduit_body::SealedBodyLifecycleSession,
+        boot: &conduit_core::BootId,
+    ) -> Result<(), &'static str> {
         if !self.ready() || draft.root() != &self.verifying_key() {
             return Err("network-snapshot-live-signer");
         }
@@ -145,7 +159,41 @@ impl NativeAdmission {
         }) {
             return Err("network-snapshot-stale-scope");
         }
-        Ok(draft.signed(self.key.sign(&draft.transcript()).to_bytes()))
+        Ok(())
+    }
+    /// Preparation only: no checkpoint installation or journal retirement.
+    /// No await or mutable owner access separates live-scope checking from the
+    /// canonical admission lock and Root signing. A future commit must recheck
+    /// the current owner, scope and revision in its durable transaction.
+    #[cfg(all(
+        feature = "local-appliance",
+        feature = "body-persistence",
+        target_os = "none"
+    ))]
+    pub(crate) fn prepare_network_pending<'a>(
+        &self,
+        draft: &'a crate::native_play::journal::snapshot::Draft,
+        owner: &conduit_body::SealedBodyLifecycleSession,
+        boot: &conduit_core::BootId,
+        request: &crate::native_play::journal::snapshot::ack::Request<'_>,
+    ) -> Result<crate::native_play::journal::snapshot::ack::SignedPending<'a>, &'static str> {
+        self.check_network_snapshot(draft, owner, boot)?;
+        crate::native_restart::with_admissions(|manager| {
+            let membership = &owner.evidence().membership;
+            let pending = crate::native_play::journal::snapshot::ack::verify(
+                draft, manager, membership, request,
+            )?;
+            if pending.membership_revision() != membership.revision.0
+                || pending.root() != &self.verifying_key()
+            {
+                return Err("network-ack-stale-signer");
+            }
+            let signature = self.key.sign(&pending.transcript()).to_bytes();
+            let signed = pending.signed(signature);
+            crate::native_restart::payload::network::wire::Cursor::decode(*signed.bytes())
+                .validate(&owner.evidence().body_id, &self.key.verifying_key())?;
+            Ok(signed)
+        })
     }
     /// Only an actual frozen-journal draft and durably current local Body may
     /// reach this signer. The caller retains the actual Root-owned session.
