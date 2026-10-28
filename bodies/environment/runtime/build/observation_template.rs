@@ -145,5 +145,12 @@ pub fn emit(checked: &conduit_plot::CheckedSyntaxDocument, out: &Path) {
         failure_type.canonical_bytes().unwrap()
     )
     .unwrap();
+    writeln!(
+        source,
+        "#[allow(dead_code)] pub const FAILURE_NODE_MAXIMUM: usize = {};",
+        conduit_plot::maximum_prepared_canonical_value_bytes(failure_type).unwrap() as usize
+            - failure_type.canonical_bytes().unwrap().len()
+    )
+    .unwrap();
     std::fs::write(out.join("observation-material.rs"), source).unwrap();
 }

@@ -12,6 +12,8 @@ mod local;
 #[path = "resident_transfer.rs"]
 mod transfer;
 #[cfg(feature = "local-planning")]
+pub(crate) use local::VerifiedObservationPublication;
+#[cfg(feature = "local-planning")]
 pub use local::{PreparedDirectLocalAppliance, PreparedLocalAppliance};
 
 #[derive(PartialEq, Eq)]

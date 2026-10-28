@@ -6,6 +6,22 @@ use conduit_plan_lowering::local_tables::{
 };
 use conduit_plot::flat_image::indexed::IndexedSourceImage;
 
+/// Constructed only after full local Source/Plan checks and exact edge checks.
+/// Actual immutable producer and fresh consumer borrows prevent substitution.
+pub(crate) struct VerifiedObservationPublication<'a> {
+    producer: &'a crate::observation::ObservationBack,
+    publication: &'a mut crate::publication::SourcePublicationBack,
+}
+impl<'a> VerifiedObservationPublication<'a> {
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        &'a crate::observation::ObservationBack,
+        &'a mut crate::publication::SourcePublicationBack,
+    ) {
+        (self.producer, self.publication)
+    }
+}
 pub struct PreparedLocalAppliance<'a, V> {
     pub tables: VerifiedLocalKernelTables<'a, NODES, CORDS, PORTS, NODES, CORDS, NODES>,
     pub drivers: [ApplianceBack; NODES],
@@ -294,6 +310,40 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         slot.as_ref()
             .ok_or(NativePreparationRefusal::Initialization)?
             .check_local_direct(&tables, image, offers, scope)?;
+        // The opaque tables still borrow the fully verified Plan. Their exact
+        // Source correspondence and actual role bindings passed above.
+        let software = slot.as_mut().expect("preflighted local software");
+        let producer = usize::from(software.construction.roles.observation.0);
+        let consumer = usize::from(software.construction.roles.publications[0].0);
+        let mut incoming = tables.cords().iter().filter(|cord| {
+            cord.sink == k::CordEndpoint::local(k::NodeId(consumer as u16), k::PortId(0))
+        });
+        let exact = incoming.next().is_some_and(|cord| {
+            cord.source == k::CordEndpoint::local(k::NodeId(producer as u16), k::PortId(0))
+                && cord.track == k::scheduler::AssignedConnectionTrack::Payload
+        }) && incoming.next().is_none();
+        if exact {
+            let (producer_slot, consumer_slot) = if producer < consumer {
+                let (before, after) = software.drivers.split_at_mut(consumer);
+                (&before[producer], &mut after[0])
+            } else {
+                let (before, after) = software.drivers.split_at_mut(producer);
+                (&after[0], &mut before[consumer])
+            };
+            match (producer_slot, consumer_slot) {
+                (
+                    Some(ApplianceBack::Native(CaptureBack::Observation(producer))),
+                    Some(ApplianceBack::SourcePublication(publication)),
+                ) => {
+                    SourcePublicationBack::specialize_verified(VerifiedObservationPublication {
+                        producer,
+                        publication,
+                    })
+                    .map_err(|_| NativePreparationRefusal::Configuration)?;
+                }
+                _ => return Err(NativePreparationRefusal::Initialization),
+            }
+        }
         let Self {
             construction,
             drivers,

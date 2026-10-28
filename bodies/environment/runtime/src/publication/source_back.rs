@@ -2,7 +2,7 @@
 //! Full bytes exist only during a synchronous scoped projection callback.
 use super::{PublicationChannel, PublicationContract, PublicationSequence, PublicationSnapshot};
 use crate::canonical_input::PreparedCanonicalInput;
-use alloc::{vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use conduit_core::StructuredInfoRefusal;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -21,6 +21,7 @@ pub struct SourcePublicationBack {
     length: usize,
     staged: bool,
     cancelled: bool,
+    compact: Option<Box<super::source_reading::CompactReading>>,
 }
 impl SourcePublicationBack {
     pub fn prepare(
@@ -58,7 +59,60 @@ impl SourcePublicationBack {
             length: 0,
             staged: false,
             cancelled: false,
+            compact: None,
         })
+    }
+    #[cfg(feature = "local-planning")]
+    pub(crate) fn specialize_verified(
+        verified: crate::appliance::assigned::VerifiedObservationPublication<'_>,
+    ) -> Result<(), StructuredInfoRefusal> {
+        let (producer, publication) = verified.into_parts();
+        publication.specialize_fresh(producer)
+    }
+    /// Only a still-fresh actual publication can retire its generic buffers.
+    /// Production enters through the opaque full Source/edge/owner witness.
+    #[cfg(any(feature = "local-planning", test))]
+    fn specialize_fresh(
+        &mut self,
+        _producer: &crate::observation::ObservationBack,
+    ) -> Result<(), StructuredInfoRefusal> {
+        if self.channel != PublicationChannel::Reading
+            || self.sequence != 0
+            || self.events != 0
+            || self.staged
+            || self.cancelled
+            || self.length != 0
+            || !self.current.is_empty()
+            || self.compact.is_some()
+        {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        let layout = core::alloc::Layout::new::<super::source_reading::CompactReading>();
+        // Reserve exact cold backing before retiring either generic buffer.
+        // Failure keeps all original state/capacity and sequence ownership.
+        let pointer =
+            unsafe { alloc::alloc::alloc(layout) }.cast::<super::source_reading::CompactReading>();
+        if pointer.is_null() {
+            return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+        }
+        // SAFETY: exact aligned unique allocation, initialized before Box owns it.
+        let compact = unsafe {
+            pointer.write(super::source_reading::CompactReading::default());
+            Box::from_raw(pointer)
+        };
+        self.compact = Some(compact);
+        self.current = Vec::new();
+        self.pending = Vec::new();
+        Ok(())
+    }
+    /// Mutable payload heap backing; object/metadata and scoped projection
+    /// scratch are separate. This inspection confers no profile authority.
+    pub fn retained_value_storage_bytes(&self) -> usize {
+        self.current.capacity()
+            + self.pending.capacity()
+            + self.compact.as_ref().map_or(0, |_| {
+                core::mem::size_of::<super::source_reading::CompactReading>()
+            })
     }
     pub fn sequence(&self) -> u64 {
         self.sequence
@@ -82,9 +136,15 @@ impl SourcePublicationBack {
         }
         let schema = self.channel.linked_type_bytes();
         let mut bytes = [0; material::RESULT_MAXIMUM];
-        let length = schema.len() + self.current.len();
-        bytes[..schema.len()].copy_from_slice(schema);
-        bytes[schema.len()..length].copy_from_slice(&self.current);
+        let length = match &self.compact {
+            Some(compact) => compact.current.as_ref()?.encode(&mut bytes).ok()?,
+            None => {
+                let length = schema.len() + self.current.len();
+                bytes[..schema.len()].copy_from_slice(schema);
+                bytes[schema.len()..length].copy_from_slice(&self.current);
+                length
+            }
+        };
         Some(consume(PublicationSnapshot {
             channel: self.channel,
             sequence: self.sequence,
@@ -94,6 +154,9 @@ impl SourcePublicationBack {
     fn discard_staged(&mut self) {
         if self.staged {
             self.order.release();
+            if let Some(compact) = &mut self.compact {
+                compact.pending = None;
+            }
             self.staged = false;
         }
     }
@@ -133,13 +196,24 @@ impl<const P: usize> StepBack<P> for SourcePublicationBack {
         if io.consume_fuel(1).is_err() {
             return fail(FailureCode::InvalidLifecycle, 2);
         }
+        let packed = if self.compact.is_some() {
+            match super::source_reading::PackedReading::parse(bytes) {
+                Ok(value) => Some(value),
+                Err(_) => return fail(FailureCode::InvalidInput, 6),
+            }
+        } else {
+            None
+        };
         if !self.order.reserve() {
             return fail(FailureCode::InvalidInput, 5);
         }
         // Full canonical validation above checked the independently linked
         // Type and complete extent before removing only its immutable prefix.
         let node = &bytes[self.channel.linked_type_bytes().len()..];
-        self.pending[..node.len()].copy_from_slice(node);
+        match &mut self.compact {
+            Some(compact) => compact.pending = packed,
+            None => self.pending[..node.len()].copy_from_slice(node),
+        }
         self.length = node.len();
         if io.consume(PortId(0)).is_err() {
             self.order.release();
@@ -150,8 +224,13 @@ impl<const P: usize> StepBack<P> for SourcePublicationBack {
     }
     fn step_committed(&mut self) {
         if self.staged && !self.cancelled {
-            self.current.clear();
-            self.current.extend_from_slice(&self.pending[..self.length]);
+            match &mut self.compact {
+                Some(compact) => compact.current = compact.pending.take(),
+                None => {
+                    self.current.clear();
+                    self.current.extend_from_slice(&self.pending[..self.length]);
+                }
+            }
             self.sequence = self.order.commit();
             self.events += 1;
             self.staged = false;
@@ -173,7 +252,7 @@ impl Drop for SourcePublicationBack {
 }
 
 #[allow(dead_code)]
-mod material {
+pub(super) mod material {
     include!(concat!(env!("OUT_DIR"), "/observation-material.rs"));
 }
 
@@ -196,3 +275,7 @@ mod tests {
         assert!(SourcePublicationBack::prepare(&contract, 1, order).is_ok());
     }
 }
+
+#[cfg(test)]
+#[path = "source_back_tests.rs"]
+mod compact_tests;

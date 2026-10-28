@@ -5,6 +5,7 @@ use conduit_core as c;
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 mod back;
 mod source_back;
+mod source_reading;
 pub use source_back::SourcePublicationBack;
 mod sequence;
 mod sink;

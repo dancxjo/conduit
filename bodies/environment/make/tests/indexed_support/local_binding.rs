@@ -225,6 +225,13 @@ fn local_verified_binding_preserves_owners_on_refusal_and_transfers_once() {
     .unwrap();
     assert!(slot.is_none());
     assert_eq!(prepared.roles, recipe.spec().roles);
+    match &prepared.drivers[usize::from(prepared.roles.publications[0].0)] {
+        conduit_environment_runtime::appliance::ApplianceBack::SourcePublication(publication) => {
+            assert!(publication.retained_value_storage_bytes() < 128)
+        }
+        _ => panic!("actual checked reading publication"),
+    }
+
     assert!(prepared.tables.calls().is_sealed());
     assert!(matches!(
         PreparedResidentSoftware::bind_local_direct_retained(

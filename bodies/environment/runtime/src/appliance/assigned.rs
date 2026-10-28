@@ -16,6 +16,8 @@ mod resident_offers;
 mod resident_software;
 pub use resident_offers::{ReadyResidentOffers, ResidentSoftwareOffer};
 #[cfg(feature = "local-planning")]
+pub(crate) use resident_software::VerifiedObservationPublication;
+#[cfg(feature = "local-planning")]
 pub use resident_software::{PreparedDirectLocalAppliance, PreparedLocalAppliance};
 pub use resident_software::{PreparedResidentSoftware, ResidentExpressionMaterial};
 
