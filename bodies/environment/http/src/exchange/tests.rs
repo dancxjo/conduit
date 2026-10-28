@@ -795,3 +795,67 @@ fn custody_ack_exact_limit_uses_existing_request_buffer_and_waits_for_complete_b
         Err(NetworkHttpRefusal::TooLarge)
     ));
 }
+
+#[test]
+fn network_snapshot_routes_pin_fixed_chunks_and_remain_read_only() {
+    use crate::network_custody::{self, Reply, Request};
+    let mut socket = Socket::new(b"GET /network/custody/offer HTTP/1.1\r\n\r\n");
+    assert_eq!(
+        poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+        Poll::Ready(Ok(ExchangeOutcome::NetworkSnapshot))
+    );
+    assert!(core::str::from_utf8(&socket.output[..socket.written])
+        .unwrap()
+        .contains("503"));
+    network_custody::install_provider(|request| match request {
+        Request::Offer => Reply::Pending,
+        Request::Chunk { snapshot, offset } if snapshot == [0; 32] && offset == 32256 => {
+            Reply::Offer(alloc::vec::Vec::from(&b"{\"bytes\":\"ff\"}"[..]))
+        }
+        _ => Reply::Refused,
+    })
+    .unwrap();
+    let zero = "0".repeat(64);
+    for (target, status) in [
+        ("/network/custody/offer".into(), "202 Accepted"),
+        (
+            alloc::format!("/network/custody/chunk?snapshot={zero}&offset=32256"),
+            "200 OK",
+        ),
+        (
+            alloc::format!("/network/custody/chunk?snapshot={zero}&offset=0"),
+            "409 Conflict",
+        ),
+    ] {
+        let request = alloc::format!("GET {target} HTTP/1.1\r\n\r\n");
+        let mut socket = Socket::new(request.as_bytes());
+        assert_eq!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Ok(ExchangeOutcome::NetworkSnapshot))
+        );
+        assert!(core::str::from_utf8(&socket.output[..socket.written])
+            .unwrap()
+            .contains(status));
+    }
+    for target in [
+        alloc::format!("/network/custody/chunk?snapshot={zero}&offset=1"),
+        alloc::format!("/network/custody/chunk?snapshot={zero}&offset=32768"),
+        alloc::format!("/network/custody/chunk?snapshot={zero}&offset=00"),
+        "/network/custody/chunk?snapshot=ff&offset=0".into(),
+        alloc::format!("/network/custody/chunk?snapshot={zero}&offset=0&erase=1"),
+        "/network/custody/erase".into(),
+    ] {
+        let request = alloc::format!("GET {target} HTTP/1.1\r\n\r\n");
+        let mut socket = Socket::new(request.as_bytes());
+        assert!(!matches!(
+            poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+            Poll::Ready(Ok(ExchangeOutcome::NetworkSnapshot))
+        ));
+    }
+    let mut socket =
+        Socket::new(b"POST /network/custody/offer HTTP/1.1\r\nContent-Length: 0\r\n\r\n");
+    assert!(!matches!(
+        poll(exchange_with_reading(&mut socket, || 0, None, |_, _| None)),
+        Poll::Ready(Ok(ExchangeOutcome::NetworkSnapshot))
+    ));
+}

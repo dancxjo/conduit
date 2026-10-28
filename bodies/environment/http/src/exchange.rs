@@ -66,6 +66,7 @@ pub enum ExchangeOutcome {
     ReadingUnavailable,
     History,
     ObservedOffer,
+    NetworkSnapshot,
     ObservedAck,
     BodyJoin,
     NetworkPage,
@@ -158,6 +159,18 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
                 write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
                 Ok(ExchangeOutcome::ReadingUnavailable)
             }
+        }
+        (Some(NetworkHttpRequest::NetworkSnapshot(request)), route) => {
+            let reply = if route.as_ref().is_none_or(|route| route.reading_available) {
+                crate::network_custody::dispatch(request)
+            } else {
+                crate::network_custody::Reply::Unavailable
+            };
+            if !crate::network_custody::render(reply, response) {
+                return Err(ExchangeRefusal::Submission(NetworkSetupRefusal::TooLarge));
+            }
+            write(io, response.as_bytes()).await?;
+            Ok(ExchangeOutcome::NetworkSnapshot)
         }
         (Some(NetworkHttpRequest::ObservedAck { slot, bytes }), route) => {
             let reply = if route.as_ref().is_none_or(|route| route.reading_available) {

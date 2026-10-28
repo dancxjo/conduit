@@ -10,6 +10,7 @@ const HEADER_BYTES: usize = REQUEST_BYTES;
 
 pub enum NetworkHttpRequest {
     Page,
+    NetworkSnapshot(crate::network_custody::Request),
     ObservedOffer {
         slot: u8,
     },
@@ -145,6 +146,11 @@ fn parse(
     } else {
         None
     };
+    let network_snapshot = if readings {
+        crate::network_custody::parse(line).map_err(|_| E::Malformed)?
+    } else {
+        None
+    };
     let observed_offer = if readings && line.starts_with("GET /history/custody/offer?slot=") {
         let tail = line
             .strip_prefix("GET /history/custody/offer?slot=")
@@ -209,6 +215,7 @@ fn parse(
         _ if body_join_post || observed_ack.is_some() => false,
         _ if reading.is_some()
             || observed_offer.is_some()
+            || network_snapshot.is_some()
             || history.is_some()
             || body_join_page
             || body_join_options
@@ -268,6 +275,9 @@ fn parse(
         return Err(E::Malformed);
     }
     if page {
+        if let Some(request) = network_snapshot {
+            return Ok(Some(NetworkHttpRequest::NetworkSnapshot(request)));
+        }
         if let Some(slot) = observed_offer {
             return Ok(Some(NetworkHttpRequest::ObservedOffer { slot }));
         }
