@@ -185,6 +185,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 ],
             ),
             Step::new(
+                "device-protocols.spi",
+                "Check finite BCM2835 SPI transfers, terminal cleanup and revocation",
+                "cargo",
+                &["test", "--locked", "-p", "conduitos", "--lib", "spi_base"],
+            ),
+            Step::new(
                 "device-protocols.i2c",
                 "Check exact I2C schemas, finite geometry and typed outcomes",
                 "cargo",
