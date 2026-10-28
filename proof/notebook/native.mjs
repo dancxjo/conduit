@@ -133,6 +133,15 @@ export async function prepareNative({ installed, state, bodyId, build, privateRo
       const ack = shown && subsequent.findLast(face => face.status === 'acknowledged' && face.show_id === shown.show_id);
       return ack && { shown, ack };
     }, 'acknowledged current native Show', 30000);
+    const awaitExhaustedShown = async prior => wait(async () => {
+      const faces = await records('CONDUIT_NATIVE_OWNER_FACE');
+      const boundary = faces.findLastIndex(face => face.status === 'acknowledged' && face.show_id === prior);
+      if (boundary < 0) return null;
+      const shown = faces.slice(boundary + 1).findLast(face => face.status === 'shown'
+        && face.show_id !== prior && face.local_show_available && !face.interactions_admitted
+        && !face.continuing_owner_route && !face.owner_show_acknowledged);
+      return shown && { shown, ack: null, refusal: 'finite-four-action-return-exhausted' };
+    }, 'read-only native Show after the fourth and final return', 30000);
     let browserName;
     const refreshBrowser = async page => {
       const expected = currentFace().identity;
@@ -224,7 +233,11 @@ export async function prepareNative({ installed, state, bodyId, build, privateRo
         await sendKey('ret', false);
         assert.equal(action.status, 'accepted'); assert.equal(action.action_id, 'notebook.replace');
         assert.equal(action.prior_show_id, before.shown.show_id); assert.equal(action.face_id, before.shown.face_id);
-        const after = await awaitShown(before.shown.show_id), ownerAfter = currentFace();
+        // Three navigation actions and this edit consume the existing four-action
+        // grant. Its last response presents the exact new Face without another
+        // interactive route; do not invent an acknowledgement or replenish it.
+        assert.equal(navigation.length, 3);
+        const after = await awaitExhaustedShown(before.shown.show_id), ownerAfter = currentFace();
         assert.equal(after.shown.face_id, ownerAfter.identity); assert.notEqual(after.shown.face_id, before.shown.face_id);
         assert.equal(notebook().text, replacement); assert.equal(notebook().revision, 3);
         await shot('notebook-native-after');
