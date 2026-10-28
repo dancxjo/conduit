@@ -17,6 +17,24 @@ impl Cursor {
     pub(crate) fn bytes(&self) -> &[u8; CURSOR_BYTES] {
         &self.0
     }
+    /// Only an authenticated Clean checkpoint can precede a new offer.
+    pub(crate) fn offer_chain(
+        &self,
+        body: &BodyId,
+        root: &VerifyingKey,
+    ) -> Result<(u64, [u8; 32]), &'static str> {
+        self.validate(body, root)?;
+        if self.0[8] != 2 {
+            return Err("network-snapshot-pending-reclaim");
+        }
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/network-retirement-predecessor@1\0");
+        hash.update(self.0);
+        Ok((
+            u64::from_le_bytes(self.0[16..24].try_into().unwrap()),
+            hash.finalize().into(),
+        ))
+    }
     pub(crate) fn validate(&self, body: &BodyId, root: &VerifyingKey) -> Result<(), &'static str> {
         let bytes = &self.0;
         if &bytes[..8] != b"NCURSOR1"
@@ -147,6 +165,24 @@ mod tests {
             let (cursor, body, root) = fixture(phase, epoch);
             assert!(cursor.validate(&body, &root).is_err());
         }
+    }
+    #[test]
+    fn next_offer_requires_authenticated_clean_predecessor() {
+        let (pending, body, root) = fixture(1, 3);
+        assert!(pending.offer_chain(&body, &root).is_err());
+        let (clean, body, root) = fixture(2, 4);
+        let (epoch, predecessor) = clean.offer_chain(&body, &root).unwrap();
+        assert_eq!(epoch, 4);
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/network-retirement-predecessor@1\0");
+        hash.update(clean.bytes());
+        assert_eq!(predecessor, <[u8; 32]>::from(hash.finalize()));
+        let mut forged = clean.clone();
+        forged.0[16] ^= 1;
+        assert!(forged.offer_chain(&body, &root).is_err());
+        assert!(clean
+            .offer_chain(&body, &SigningKey::from_bytes(&[74; 32]).verifying_key())
+            .is_err());
     }
     #[test]
     fn every_receipt_and_cursor_byte_is_authenticated_or_canonical() {

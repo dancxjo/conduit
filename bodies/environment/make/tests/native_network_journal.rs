@@ -292,5 +292,88 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert!(journal::inspect().is_ok());
     assert_eq!(flash.lock().unwrap().bytes, expected);
     assert_eq!(flash.lock().unwrap().writes, writes);
+    // The draft owns the verified physical snapshot through signing/ACK checks.
+    let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());
+    while !verifier.step(&mut [0; 512]).unwrap() {}
+    let body: conduit_body::BodyId =
+        serde_json::from_str("\"body/network-snapshot-test\"").unwrap();
+    let boot = conduit_core::BootId::new("boot/current");
+    let predecessor = [0x42; 32];
+    let scope = || journal::snapshot::Scope {
+        body: &body,
+        boot: &boot,
+        epoch: 7,
+        predecessor,
+    };
+    use ed25519_dalek::{Signature, Signer, SigningKey};
+    let key = SigningKey::from_bytes(&[0x43; 32]);
+    let root = key.verifying_key();
+    let draft = verifier
+        .finish()
+        .unwrap()
+        .offer(scope(), root.to_bytes())
+        .unwrap();
+    assert!(draft.matches_scope(scope()));
+    let foreign_body = serde_json::from_str("\"body/foreign\"").unwrap();
+    assert!(!draft.matches_scope(journal::snapshot::Scope {
+        body: &foreign_body,
+        ..scope()
+    }));
+    let foreign_boot = conduit_core::BootId::new("boot/foreign");
+    assert!(!draft.matches_scope(journal::snapshot::Scope {
+        boot: &foreign_boot,
+        ..scope()
+    }));
+    assert!(!draft.matches_scope(journal::snapshot::Scope {
+        epoch: 8,
+        ..scope()
+    }));
+    assert!(!draft.matches_scope(journal::snapshot::Scope {
+        predecessor: [0x44; 32],
+        ..scope()
+    }));
+    assert_eq!(*draft.root(), root.to_bytes());
+    let signed = draft.signed(key.sign(&draft.transcript()).to_bytes());
+    assert_eq!(
+        &signed[..32],
+        Sha256::digest(body.as_str().as_bytes()).as_slice()
+    );
+    assert_eq!(&signed[32..64], &[0x41; 32]);
+    assert_eq!(&signed[64..72], &7u64.to_le_bytes());
+    assert_eq!(
+        &signed[72..104],
+        Sha256::digest(boot.as_str().as_bytes()).as_slice()
+    );
+    assert_eq!(&signed[104..108], &wire::CAPACITY.to_le_bytes());
+    assert_eq!(signed[108], 8);
+    assert_eq!(&signed[109..112], &[0; 3]);
+    assert_eq!(&signed[112..144], &expected_digest);
+    assert_eq!(&signed[144..176], &predecessor);
+    let transcript = |bytes: &[u8; 240]| {
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/network-retirement-offer@1\0");
+        hash.update(root.as_bytes());
+        hash.update(&bytes[..176]);
+        <[u8; 32]>::from(hash.finalize())
+    };
+    let signature = Signature::from_bytes(signed[176..].try_into().unwrap());
+    root.verify_strict(&transcript(&signed), &signature)
+        .unwrap();
+    for at in 0..176 {
+        let mut forged = signed;
+        forged[at] ^= 1;
+        assert!(root
+            .verify_strict(&transcript(&forged), &signature)
+            .is_err());
+    }
+    assert!(journal::inspect().is_err());
+    assert_eq!(
+        journal::append(&retired(9)),
+        Err("network-evidence-unavailable")
+    );
+    drop(draft);
+    assert!(journal::inspect().is_ok());
+    assert_eq!(flash.lock().unwrap().bytes, expected);
+    assert_eq!(flash.lock().unwrap().writes, writes);
     println!("scratch={} bytes; retained after open/append=0; eight exact Boot records; final-slot commit retry preserved",wire::MAXIMUM_BYTES);
 }

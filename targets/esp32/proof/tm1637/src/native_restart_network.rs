@@ -26,6 +26,13 @@ impl Cursor {
     pub(crate) fn bytes(&self) -> &[u8; wire::CURSOR_BYTES] {
         self.0.bytes()
     }
+    pub(crate) fn offer_chain(
+        &self,
+        body: &conduit_body::BodyId,
+        root: &ed25519_dalek::VerifyingKey,
+    ) -> Result<(u64, [u8; 32]), &'static str> {
+        self.0.offer_chain(body, root)
+    }
     pub(crate) fn validate(
         &self,
         body: &conduit_body::BodyId,

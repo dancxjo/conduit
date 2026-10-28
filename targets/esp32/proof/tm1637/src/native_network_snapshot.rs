@@ -74,3 +74,65 @@ impl Verified {
         check(&self)
     }
 }
+
+/// Root supplies its current authenticated scope; the physical fields below
+/// are always derived from Verified, never accepted from a transport request.
+pub(crate) struct Scope<'a> {
+    pub body: &'a conduit_body::BodyId,
+    pub boot: &'a conduit_core::BootId,
+    pub epoch: u64,
+    pub predecessor: [u8; 32],
+}
+pub(crate) struct Draft {
+    _owner: Verified,
+    root: [u8; 32],
+    payload: [u8; 176],
+}
+impl Verified {
+    pub(crate) fn offer(self, scope: Scope<'_>, root: [u8; 32]) -> Result<Draft, &'static str> {
+        let count = self.committed_count();
+        if !(1..=8).contains(&count) {
+            return Err("network-snapshot-empty");
+        }
+        let mut payload = [0; 176];
+        payload[..32].copy_from_slice(&Sha256::digest(scope.body.as_str().as_bytes()));
+        payload[32..64].copy_from_slice(&self.region_identity());
+        payload[64..72].copy_from_slice(&scope.epoch.to_le_bytes());
+        payload[72..104].copy_from_slice(&Sha256::digest(scope.boot.as_str().as_bytes()));
+        payload[104..108].copy_from_slice(&CAPACITY.to_le_bytes());
+        payload[108] = count;
+        payload[112..144].copy_from_slice(self.digest());
+        payload[144..176].copy_from_slice(&scope.predecessor);
+        Ok(Draft {
+            _owner: self,
+            root,
+            payload,
+        })
+    }
+}
+impl Draft {
+    pub(crate) fn root(&self) -> &[u8; 32] {
+        &self.root
+    }
+    pub(crate) fn matches_scope(&self, scope: Scope<'_>) -> bool {
+        self.payload[..32] == Sha256::digest(scope.body.as_str().as_bytes())[..]
+            && self.payload[64..72] == scope.epoch.to_le_bytes()
+            && self.payload[72..104] == Sha256::digest(scope.boot.as_str().as_bytes())[..]
+            && self.payload[144..176] == scope.predecessor
+    }
+    pub(crate) fn transcript(&self) -> [u8; 32] {
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/network-retirement-offer@1\0");
+        hash.update(self.root);
+        hash.update(self.payload);
+        hash.finalize().into()
+    }
+    /// Signature presentation only; the Root signer separately checks actual
+    /// current durable scope. The same owner stays pinned for subsequent ACK.
+    pub(crate) fn signed(&self, signature: [u8; 64]) -> [u8; 240] {
+        let mut bytes = [0; 240];
+        bytes[..176].copy_from_slice(&self.payload);
+        bytes[176..].copy_from_slice(&signature);
+        bytes
+    }
+}

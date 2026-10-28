@@ -118,6 +118,35 @@ impl NativeAdmission {
         }
         Ok(self.key.sign(&draft.transcript()).to_bytes())
     }
+    #[cfg(all(
+        feature = "local-appliance",
+        feature = "body-persistence",
+        target_os = "none"
+    ))]
+    pub(crate) fn sign_network_snapshot(
+        &self,
+        draft: &crate::native_play::journal::snapshot::Draft,
+        owner: &conduit_body::SealedBodyLifecycleSession,
+        boot: &conduit_core::BootId,
+    ) -> Result<[u8; 240], &'static str> {
+        if !self.ready() || draft.root() != &self.verifying_key() {
+            return Err("network-snapshot-live-signer");
+        }
+        crate::native_restart::observed::check_live_owner(owner, &self.verifying_key())?;
+        let (epoch, predecessor) = crate::native_root::network_snapshot::current_chain(
+            &owner.evidence().body_id,
+            &self.verifying_key(),
+        )?;
+        if !draft.matches_scope(crate::native_play::journal::snapshot::Scope {
+            body: &owner.evidence().body_id,
+            boot,
+            epoch,
+            predecessor,
+        }) {
+            return Err("network-snapshot-stale-scope");
+        }
+        Ok(draft.signed(self.key.sign(&draft.transcript()).to_bytes()))
+    }
     /// Only an actual frozen-journal draft and durably current local Body may
     /// reach this signer. The caller retains the actual Root-owned session.
     #[cfg(all(

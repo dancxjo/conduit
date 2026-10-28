@@ -45,6 +45,9 @@ mod network_plan;
 ))]
 #[path = "native_root_observed_offer.rs"]
 mod observed_offer;
+#[cfg(all(feature = "local-appliance", feature = "body-persistence", target_os = "none"))]
+#[path = "native_root_network_snapshot.rs"]
+pub(crate) mod network_snapshot;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_root_policy.rs"]
