@@ -192,6 +192,7 @@ mod service_trap_reader_tests;
 #[cfg(test)]
 #[path = "ordinary_domain_proof/service_memory/trap_envelope/wire.rs"]
 mod service_trap_wire_tests;
+pub mod spi_base;
 // Exercise the Root loan boundary on hosted CPUs without installing a service.
 #[cfg(test)]
 #[path = "protected_runtime/ledger.rs"]
