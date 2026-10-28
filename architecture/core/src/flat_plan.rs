@@ -3,18 +3,23 @@
 //! This proof is not Source selection, current-offer admission, a Body seal,
 //! native ownership, or permission to execute. Those boundaries remain separate.
 use crate::*;
+#[path = "flat_plan_projection.rs"]
+mod projection;
+pub use projection::*;
 
 /// Stable owned records or immutable borrowed records; no caller reader callbacks.
 #[derive(Clone, Copy)]
 pub enum PlannedGearRefs<'a> {
     Owned(&'a [PlannedGear]),
     Borrowed(&'a [PlannedGearRef<'a>]),
+    Projected(&'a PlainLocalPlannedGears<'a>),
 }
 impl<'a> PlannedGearRefs<'a> {
     pub fn len(self) -> usize {
         match self {
             Self::Owned(v) => v.len(),
             Self::Borrowed(v) => v.len(),
+            Self::Projected(v) => v.len(),
         }
     }
     pub fn is_empty(self) -> bool {
@@ -24,6 +29,7 @@ impl<'a> PlannedGearRefs<'a> {
         (0..self.len()).map(move |i| match self {
             Self::Owned(v) => (&v[i]).into(),
             Self::Borrowed(v) => v[i],
+            Self::Projected(v) => v.get(i).expect("validated immutable placement index"),
         })
     }
 }

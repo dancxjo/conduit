@@ -169,7 +169,7 @@ pub(crate) fn starts_from_admitted_host_input_ref(p: conduit_core::PlannedGearRe
 }
 #[cfg(feature = "indexed-source")]
 pub(crate) fn plain_startup_order_ref<'a>(
-    placements: &[conduit_core::PlannedGearRef<'a>],
+    placements: conduit_core::PlannedGearRefs<'a>,
     connections: &[conduit_core::PlannedConnectionRef<'a>],
 ) -> Result<Option<alloc::vec::Vec<&'a str>>, crate::PlannerError> {
     let mut remaining = placements
@@ -185,7 +185,7 @@ pub(crate) fn plain_startup_order_ref<'a>(
                 id,
                 placements
                     .iter()
-                    .any(|p| p.placement_id == *id && starts_from_admitted_host_input_ref(*p)),
+                    .any(|p| p.placement_id == *id && starts_from_admitted_host_input_ref(p)),
                 conduit_core::PlannedConnectionRefs::Borrowed(connections),
                 |sink| remaining.binary_search(&sink).is_ok(),
                 |_| false,

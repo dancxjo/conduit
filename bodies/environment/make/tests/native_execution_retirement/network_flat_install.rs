@@ -69,7 +69,7 @@ fn temporary_placement_table_refusal_returns_ready_owners_before_root_issuance()
     let mut play = NativePlay::new();
     let count = image.linked_planning_facts().unwrap().gears.len();
     let _refusal = allocation_probe::refuse_next_allocation_size(
-        count * core::mem::size_of::<c::PlannedGearRef<'_>>(),
+        count * core::mem::size_of::<c::PlainLocalPlacementRef<'_>>(),
     );
     assert!(play
         .install_linked_held(
@@ -86,6 +86,32 @@ fn temporary_placement_table_refusal_returns_ready_owners_before_root_issuance()
     assert!(play.flat_refusal.is_empty());
     assert!(play.prepared.is_none() && play.source.is_none() && play.join.is_none());
     assert_eq!(play.phase, "installation-refused");
+}
+#[test]
+fn actual_flat_installer_never_allocates_the_full_placement_table() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let count = image.linked_planning_facts().unwrap().gears.len();
+    assert!(
+        core::mem::size_of::<c::PlainLocalPlacementRef<'_>>()
+            < core::mem::size_of::<c::PlannedGearRef<'_>>()
+    );
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let _refusal = allocation_probe::refuse_next_allocation_size(
+        count * core::mem::size_of::<c::PlannedGearRef<'_>>(),
+    );
+    play.install_linked_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+    )
+    .unwrap();
+    assert!(play.prepared.is_some() && play.flat_refusal.is_empty());
 }
 #[test]
 fn actual_flat_installer_retains_partial_issuance_and_never_overwrites_it() {

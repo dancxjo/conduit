@@ -141,52 +141,38 @@ pub fn with_linked_local_plan<R>(
             offer.capability_id,
         ));
     }
-    // This complete temporary placement table is the largest single allocation
-    // on the native network preparation path. Aggregate free bytes do not prove
-    // that a fragmented Host can back it. Refuse before invoking the consumer
-    // (and therefore before Root issuance), rather than aborting local Play.
-    let mut records = Vec::new();
-    records
+    // Binding admission has finished. Its accounting scratch is not part of
+    // the immutable Plan and need not overlap fingerprinting or verification.
+    drop(counts);
+    drop(usage);
+    // Keep immutable offer/Host facts once; each row stores only its selections
+    // and bindings. Core reconstructs complete records without reader callbacks.
+    let mut entries = Vec::new();
+    entries
         .try_reserve_exact(facts.gears.len())
         .map_err(|_| E::WorkspaceCapacity)?;
     for (i, gear) in facts.gears.iter().enumerate() {
-        let offer = host.capabilities.iter().nth(choices[i]).unwrap();
-        let base = selected_bases[i].map(|index| host.bases.iter().nth(index).unwrap());
-        records.push(c::PlannedGearRef {
+        entries.push(c::PlainLocalPlacementRef {
             placement_id: ids[i].as_str(),
             gear_id: gear.gear_id,
-            kind_id: offer.kind_id,
-            kind_contract_revision: offer.kind_contract_revision,
-            execution_profile_id: offer.execution_profile_id,
-            host_id: host.host_id,
-            boot_id: host.boot_id,
-            capability_id: offer.capability_id,
-            implementation_id: offer.implementation_id,
-            artifact_id: offer.artifact_id,
-            source_span: None,
-            offer_generation: host.offer_generation,
-            configuration: gear.configuration,
-            base: base.map(|b| c::BaseProviderBindingRef {
-                base_id: b.base_id,
-                provider_instance_id: b.provider_instance_id,
-                provider_generation: b.provider_generation,
-                implementation_id: b.implementation_id,
-                mechanism_family: b.mechanism_family,
-                enforcement_class: b.enforcement_class,
-            }),
-            realization_characteristics: &[],
-            realization_properties: offer.realization_properties,
-            limits: offer.limits,
-            inputs: offer.inputs,
-            outputs: offer.outputs,
-            semantic_contract: offer.semantic_contract,
-            terminal_transductions: gear.terminal_transductions,
-            host_calls: offer.host_calls,
+            source_span: Some(crate::canonical::checked_source_span_ref(
+                gear.gear_id,
+                facts
+                    .provenance
+                    .iter()
+                    .find(|p| p.gear_id == gear.gear_id)
+                    .map(|p| p.source_span),
+            )?),
+            capability_index: choices[i],
+            base_index: selected_bases[i],
             resources: c::ResourceBindingRefs::Borrowed(&resources[i]),
             authority: c::AuthorityBindingRefs::Borrowed(&authority[i]),
-            pool_references: gear.pool_references,
         });
     }
+    drop(choices);
+    drop(selected_bases);
+    let projected = c::PlainLocalPlannedGears::new(host, &entries).map_err(E::Verification)?;
+    let records = c::PlannedGearRefs::Projected(&projected);
     let connection_ids = facts
         .connections
         .iter()
@@ -204,8 +190,8 @@ pub fn with_linked_local_plan<R>(
             .iter()
             .position(|g| g.gear_id == connection.sink_gear_id)
             .ok_or_else(|| PlannerError::UnknownGear(connection.sink_gear_id.into()))?;
-        let source = records[source_index];
-        let sink = records[sink_index];
+        let source = records.iter().nth(source_index).unwrap();
+        let sink = records.iter().nth(sink_index).unwrap();
         validate_plain_local_cord_ref(
             *connection,
             source,
@@ -240,7 +226,7 @@ pub fn with_linked_local_plan<R>(
             byte_capacity,
         });
     }
-    let startup_order = startup::plain_startup_order_ref(&records, &connections)?
+    let startup_order = startup::plain_startup_order_ref(records, &connections)?
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(facts.name.into()))?;
     let dependencies = startup::plain_startup_dependencies_ref(&connections);
     let terminals = records
@@ -274,16 +260,6 @@ pub fn with_linked_local_plan<R>(
     let sign_budget =
         c::mandatory_sign_storage_requirement_ref(c::ExpectedSignRefs::Borrowed(&signs))
             .ok_or_else(|| PlannerError::SignBudgetOverflow(host.host_id.into()))?;
-    for record in &mut records {
-        record.source_span = Some(crate::canonical::checked_source_span_ref(
-            record.gear_id,
-            facts
-                .provenance
-                .iter()
-                .find(|p| p.gear_id == record.gear_id)
-                .map(|p| p.source_span),
-        )?);
-    }
     let completion = crate::plan_completion_policy(facts.completion);
     let header = c::FragmentFingerprintHeaderRef {
         source_document_id: facts.source_document_id,
@@ -311,9 +287,9 @@ pub fn with_linked_local_plan<R>(
         states: &[],
     };
     let mut fingerprint = c::FragmentFingerprintBuilder::new_ref(header, records.len());
-    for record in &records {
+    for record in records.iter() {
         fingerprint
-            .push_placement_ref(*record)
+            .push_placement_ref(record)
             .map_err(|_| E::UnsupportedProfile)?;
     }
     let fragment = fingerprint
@@ -340,7 +316,7 @@ pub fn with_linked_local_plan<R>(
         fragment_plan_id: plan.as_str(),
         fragment_id: fragment.as_str(),
         header,
-        placements: c::PlannedGearRefs::Borrowed(&records),
+        placements: records,
         tail,
         fragment_commitments: commitments,
     }

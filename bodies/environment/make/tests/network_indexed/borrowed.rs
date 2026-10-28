@@ -222,6 +222,62 @@ fn assert_refusals(
     bases: &[c::BaseImplementationId],
     grants: &[c::AuthorityGrant],
 ) {
+    conduit_planner::borrowed_local::with_linked_local_plan(
+        image,
+        host.into(),
+        bases,
+        c::AuthorityGrantRefs::Owned(grants),
+        1,
+        MAXIMUM_JOIN_INPUT_BYTES,
+        |scope| {
+            let original = scope.verified().view();
+            let mut entries = original
+                .placements
+                .iter()
+                .map(|gear| c::PlainLocalPlacementRef {
+                    placement_id: gear.placement_id,
+                    gear_id: gear.gear_id,
+                    source_span: gear.source_span,
+                    capability_index: host
+                        .capabilities
+                        .iter()
+                        .position(|offer| offer.capability_id.as_str() == gear.capability_id)
+                        .unwrap(),
+                    base_index: gear.base.map(|base| {
+                        host.bases
+                            .iter()
+                            .position(|offer| offer.base_id.as_str() == base.base_id)
+                            .unwrap()
+                    }),
+                    resources: gear.resources,
+                    authority: gear.authority,
+                })
+                .collect::<Vec<_>>();
+            {
+                let projection = c::PlainLocalPlannedGears::new(host.into(), &entries).unwrap();
+                let mut view = original;
+                view.placements = c::PlannedGearRefs::Projected(&projection);
+                assert!(view.verify().is_ok());
+                assert!(projection.get(entries.len()).is_none());
+            }
+            entries[0].gear_id = "forged/projected-gear";
+            {
+                let projection = c::PlainLocalPlannedGears::new(host.into(), &entries).unwrap();
+                let mut view = original;
+                view.placements = c::PlannedGearRefs::Projected(&projection);
+                assert!(
+                    view.verify().is_err(),
+                    "projection must not bypass canonical verification"
+                );
+            }
+            entries[0].capability_index = host.capabilities.len();
+            assert!(c::PlainLocalPlannedGears::new(host.into(), &entries).is_err());
+            entries[0].capability_index = 0;
+            entries[0].base_index = Some(host.bases.len());
+            assert!(c::PlainLocalPlannedGears::new(host.into(), &entries).is_err());
+        },
+    )
+    .unwrap();
     for mutation in 0..14 {
         let mut changed = host.clone();
         let mut authority = grants.to_vec();

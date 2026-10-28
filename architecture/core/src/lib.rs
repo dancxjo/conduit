@@ -69,7 +69,10 @@ mod body_time_quality;
 mod flat_plan;
 mod plan_fingerprint;
 mod plan_metadata;
-pub use flat_plan::{FlatPlanRef, FlatPlanRefusal, PlannedGearRefs, VerifiedFlatPlanRef};
+pub use flat_plan::{
+    FlatPlanRef, FlatPlanRefusal, PlainLocalPlacementRef, PlainLocalPlannedGears, PlannedGearRefs,
+    VerifiedFlatPlanRef,
+};
 mod plan_verification;
 pub use plan_metadata::{
     verify_plan_metadata_with_configurations, PlanMetadataRefusal, VerifiedFragmentMetadata,
