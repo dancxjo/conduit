@@ -48,10 +48,7 @@ struct State {
 // CPU-only lifecycle/status custody; no DMA, GPIO timing, or deep-sleep
 // persistence. Keep its finite backing in the admitted RTC slow RAM alongside
 // the sampler/Mask status, preserving ordinary SRAM for the CPU stack.
-#[cfg_attr(
-    all(target_os = "none", feature = "local-appliance"),
-    esp_hal::ram(unstable(rtc_slow))
-)]
+#[cfg_attr(target_os = "none", esp_hal::ram(unstable(rtc_slow)))]
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     cancelled: false,
     status: Status {
