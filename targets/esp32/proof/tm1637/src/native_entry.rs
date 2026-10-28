@@ -178,7 +178,11 @@ async fn main(spawner: Spawner) {
                     root.advance_observed_reclaim();
                     #[cfg(feature = "body-persistence")]
                     root.advance_network_export();
-                    if !root.local_renewal_pending() {
+                    #[cfg(feature = "body-persistence")]
+                    let network_writing = root.network_write_inflight();
+                    #[cfg(not(feature = "body-persistence"))]
+                    let network_writing = false;
+                    if !root.local_renewal_pending() && !network_writing {
                         root.prepare_setup();
                         let _ = await_outlined(root.advance_setup_prepared()).await;
                         #[cfg(feature = "body-persistence")]
@@ -191,7 +195,9 @@ async fn main(spawner: Spawner) {
                             .await;
                         }
                     }
-                    let _ = await_outlined(root.advance_local_renewal()).await;
+                    if !network_writing {
+                        let _ = await_outlined(root.advance_local_renewal()).await;
+                    }
                     if embassy_time::Instant::now() >= next_report {
                         root.report_local_progress();
                         next_report =

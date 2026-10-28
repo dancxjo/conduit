@@ -101,14 +101,14 @@ fn setup() -> (
     STORE.lock(|slot| {
         let mut slot = slot.borrow_mut();
         assert!(matches!(*slot, Slot::Uninitialized));
-        *slot = Slot::Available(store);
+        *slot = Slot::Available(Box::new(store));
     });
     (owner, host.boot_id, root, cursor)
 }
 fn remove() -> Store {
     STORE.lock(
         |slot| match core::mem::replace(&mut *slot.borrow_mut(), Slot::Uninitialized) {
-            Slot::Available(store) => store,
+            Slot::Available(store) => *store,
             _ => panic!("missing returned Store"),
         },
     )

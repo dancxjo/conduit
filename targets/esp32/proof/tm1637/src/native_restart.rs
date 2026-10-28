@@ -46,18 +46,18 @@ use restore::{restore_store, restore_store_retained};
 )]
 static STORE: Mutex<CriticalSectionRawMutex, RefCell<Slot>> =
     Mutex::new(RefCell::new(Slot::Uninitialized));
-// Inline static custody preserves the existing heap/stack reserve; boxing
-// would introduce a new fallible startup allocation.
-#[allow(clippy::large_enum_variant)]
+// One fallibly admitted Store allocation owns all authoritative custody. Static
+// state and every lease retain only its pointer; a live writer no longer reserves
+// a second Store-sized backing while the original static slot is borrowed.
 enum Slot {
     Uninitialized,
-    Available(Store),
+    Available(Box<Store>),
     Borrowed,
 }
 // Move exclusive ownership under a short critical section. Serialization and
 // flash I/O run after interrupts are restored. Readers fail closed while the
 // Store is borrowed; no second initializer or transaction can enter.
-struct StoreLease(Option<Store>);
+struct StoreLease(Option<Box<Store>>);
 impl Drop for StoreLease {
     fn drop(&mut self) {
         if let Some(store) = self.0.take() {
@@ -395,6 +395,7 @@ fn decode_checkpoint(
     Ok(loaded)
 }
 pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result<(), &'static str> {
+    let backing = store_backing::reserve()?;
     compiled
         .validate()
         .map_err(|_| "restart-compiled-biography")?;
@@ -443,12 +444,9 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             )
         }
     };
-    STORE.lock(|slot| {
-        let mut slot = slot.borrow_mut();
-        if !matches!(*slot, Slot::Uninitialized) {
-            return Err("restart-already-owned");
-        }
-        *slot = Slot::Available(Store {
+    let store = Box::write(
+        backing,
+        Store {
             journal,
             binding,
             seed,
@@ -460,7 +458,14 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             pristine,
             failed: false,
             ready: false,
-        });
+        },
+    );
+    STORE.lock(|slot| {
+        let mut slot = slot.borrow_mut();
+        if !matches!(*slot, Slot::Uninitialized) {
+            return Err("restart-already-owned");
+        }
+        *slot = Slot::Available(store);
         Ok(())
     })
 }
@@ -873,3 +878,6 @@ pub(crate) fn with_network_cursor<T>(
 
 #[path = "native_restart_network_pending_job.rs"]
 pub(crate) mod network_pending_job;
+
+#[path = "native_restart_store_backing.rs"]
+mod store_backing;

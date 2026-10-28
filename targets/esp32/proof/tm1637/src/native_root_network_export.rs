@@ -6,6 +6,8 @@ use alloc::boxed::Box;
 use conduit_environment_http::network_custody::{self as http, Reply, Request};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
+#[path = "native_root_network_ack.rs"]
+mod ack;
 const LEASE_MS: u64 = 120_000;
 const COOLDOWN_MS: u64 = 30_000;
 // Preserve the existing 8KiB Root and 8KiB child preparation allowances, plus
@@ -17,6 +19,7 @@ enum Phase {
         work: [u8; 512],
     },
     Ready(Export),
+    Writing(ack::Writing),
     Failed,
 }
 struct Session {
@@ -36,7 +39,11 @@ static SLOT: Mutex<CriticalSectionRawMutex, RefCell<Slot>> = Mutex::new(RefCell:
     not_before: 0,
 }));
 fn expire(slot: &mut Slot, now: u64) {
-    if slot.session.as_ref().is_some_and(|s| now >= s.deadline) {
+    if slot
+        .session
+        .as_ref()
+        .is_some_and(|s| now >= s.deadline && !matches!(s.phase, Phase::Writing(_)))
+    {
         slot.session = None;
         slot.requested = false;
         slot.not_before = now.saturating_add(COOLDOWN_MS);
@@ -62,7 +69,7 @@ fn response(request: Request) -> Reply {
                     }
                     reply
                 }
-                Phase::Verifying { .. } => Reply::Pending,
+                Phase::Verifying { .. } | Phase::Writing(_) => Reply::Pending,
                 Phase::Failed => Reply::Refused,
             };
         }
@@ -90,10 +97,17 @@ impl NativeRoot {
         }
         // Temporarily take the affine owner out of the mailbox for this bounded
         // Root turn. HTTP can only queue an Offer while it is checked here.
-        let (owned, requested) = SLOT.lock(|cell| {
+        ack::install();
+        let (mut owned, requested) = SLOT.lock(|cell| {
             let mut slot = cell.borrow_mut();
             (slot.session.take(), core::mem::take(&mut slot.requested))
         });
+        if self.advance_network_ack(&mut owned, now) {
+            SLOT.lock(|cell| {
+                cell.borrow_mut().session = owned;
+            });
+            return;
+        }
         let mut owned = match owned {
             Some(owned) => owned,
             None if requested && !self.local_renewal_pending() => {

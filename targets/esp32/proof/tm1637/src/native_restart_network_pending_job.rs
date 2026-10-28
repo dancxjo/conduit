@@ -50,26 +50,41 @@ pub(crate) fn start(
     root: &[u8; 32],
     draft: crate::native_play::journal::snapshot::Draft,
     request: &crate::native_play::journal::snapshot::ack::Request<'_>,
-) -> Result<Start, &'static str> {
-    let backing = reserve_with::<PendingJob>(|layout| unsafe { alloc::alloc::alloc(layout) })?;
-    let lease = take_store()?;
-    let store = lease.0.as_ref().ok_or("restart-not-ready")?;
-    let cursor = network_pending::authenticated_cursor(store, owner, boot, root, &draft, request)?;
-    if store.custody.as_ref().and_then(|c| c.network.as_ref()) == Some(&cursor) {
-        return Ok(Start::Committed(CommittedCustody {
-            generation: store.journal.generation().ok_or("network-pending-source")?,
-            offer: cursor.bytes()[168..200].try_into().unwrap(),
-        }));
+) -> Result<Start, (crate::native_play::journal::snapshot::Draft, &'static str)> {
+    enum Prepared {
+        Committed(CommittedCustody),
+        Writing(Box<core::mem::MaybeUninit<PendingJob>>, CheckpointJob),
     }
-    let core = CheckpointJob::initialize(lease, owner, boot, root, cursor)?;
-    Ok(Start::Writing(Box::write(
-        backing,
-        PendingJob {
-            core,
-            _snapshot: draft,
-        },
-    )))
+    // Borrow the actual pin throughout fallible preparation. Only the success
+    // branch moves it; every preeffects refusal returns the identical owner.
+    let prepared = (|| {
+        let backing = reserve_with::<PendingJob>(|layout| unsafe { alloc::alloc::alloc(layout) })?;
+        let lease = take_store()?;
+        let store = lease.0.as_ref().ok_or("restart-not-ready")?;
+        let cursor =
+            network_pending::authenticated_cursor(store, owner, boot, root, &draft, request)?;
+        if store.custody.as_ref().and_then(|c| c.network.as_ref()) == Some(&cursor) {
+            return Ok(Prepared::Committed(CommittedCustody {
+                generation: store.journal.generation().ok_or("network-pending-source")?,
+                offer: cursor.bytes()[168..200].try_into().unwrap(),
+            }));
+        }
+        let core = CheckpointJob::initialize(lease, owner, boot, root, cursor)?;
+        Ok(Prepared::Writing(backing, core))
+    })();
+    match prepared {
+        Err(reason) => Err((draft, reason)),
+        Ok(Prepared::Committed(receipt)) => Ok(Start::Committed(receipt)),
+        Ok(Prepared::Writing(backing, core)) => Ok(Start::Writing(Box::write(
+            backing,
+            PendingJob {
+                core,
+                _snapshot: draft,
+            },
+        ))),
+    }
 }
+
 fn emit<S: crate::native_body_checkpoint::Storage>(
     prepared: &payload::rewrite::PreparedRewrite<'_>,
     reader: &mut PayloadReader<'_, S>,

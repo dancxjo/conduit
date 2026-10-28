@@ -18,6 +18,10 @@ pub struct Status {
     pub last_terminal: &'static str,
     pub last_terminal_bytes: usize,
 }
+// CPU-only summary metadata, initialized by the image on every Boot. This is
+// neither DMA backing nor retained/deep-sleep state; Consumer.page stays in its
+// existing separately owned backing.
+#[cfg_attr(target_os = "none", esp_hal::ram(unstable(rtc_slow)))]
 static STATUS: Mutex<CriticalSectionRawMutex, RefCell<Status>> = Mutex::new(RefCell::new(Status {
     consumed: 0,
     last_closed_bytes: 0,

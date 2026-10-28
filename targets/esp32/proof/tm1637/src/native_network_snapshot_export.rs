@@ -34,6 +34,9 @@ impl Export {
             deadline,
         })
     }
+    pub(crate) fn into_parts(self) -> (Draft, [u8; 240], u64) {
+        (self.draft, self.signed, self.deadline)
+    }
     pub(crate) fn expired(&self, now: u64) -> bool {
         now >= self.deadline
     }

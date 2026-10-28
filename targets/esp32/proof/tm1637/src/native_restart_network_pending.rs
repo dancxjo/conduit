@@ -251,3 +251,27 @@ pub(super) fn prepare<'a>(
 #[cfg(test)]
 #[path = "native_restart_network_pending_tests.rs"]
 mod tests;
+
+/// Read only the actual authenticated adopted receipt under the same exclusive
+/// Store borrow as its checkpoint generation. Later rewrites may carry it on.
+pub(crate) fn with_committed_cursor<T>(
+    minimum_generation: u64,
+    offer: &[u8; 32],
+    read: impl FnOnce(u64, &[u8; 480]) -> T,
+) -> Result<T, &'static str> {
+    with_store(|store| {
+        if store.failed || store.parked || !store.ready {
+            return Err("network-receipt-unavailable");
+        }
+        let custody = store.custody.as_ref().ok_or("network-pending-source")?;
+        let generation = custody.source.generation();
+        if Some(generation) != store.journal.generation() || generation < minimum_generation {
+            return Err("network-receipt-generation");
+        }
+        let cursor = custody.network.as_ref().ok_or("network-receipt-missing")?;
+        if cursor.bytes()[168..200] != offer[..] {
+            return Err("network-receipt-offer");
+        }
+        Ok(read(generation, cursor.bytes()))
+    })
+}
