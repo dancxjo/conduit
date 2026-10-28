@@ -8,7 +8,7 @@ const source=html.match(/<script>\n([\s\S]*?)<\/script>/)[1];
 const elements=new Map();
 const bootstrap={invitation:{schema:'conduit.body/spawn-invitation@1',secret:Array(32).fill(7),claim:{body_id:'body/test',invitation_id:'invitation/test',nonce:Array(32).fill(9),expires_at_millis:99999}},root_key:[],producer_host:'esp32/test',producer_boot:'boot/root-old'};
 const saved=new Map();
-const context={crypto:webcrypto,TextEncoder,Uint8Array,URL,Blob,console,setTimeout,location:{protocol:'file:'},localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},document:{querySelector:k=>{if(!elements.has(k))elements.set(k,{textContent:k==='#bootstrap'?JSON.stringify(bootstrap):'',append(){},value:''});return elements.get(k)},createElement:()=>({style:{}})}};
+const context={crypto:webcrypto,TextEncoder,Uint8Array,URL,Blob,console,setTimeout,AbortSignal,location:{protocol:'file:'},localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v)},document:{querySelector:k=>{if(!elements.has(k))elements.set(k,{textContent:k==='#bootstrap'?JSON.stringify(bootstrap):'',append(){},value:''});return elements.get(k)},createElement:()=>({style:{}})}};
 vm.createContext(context);
 vm.runInContext(source+`;globalThis.api={join,verifyReceipt,validatePending,recover,proofTranscript,recoveryTranscript,currentTranscript,receiptTranscript,sign,setPending:p=>pending=p,getPending:()=>pending,setRoot:r=>bootstrap.root_key=r};`,context);
 (async()=>{
