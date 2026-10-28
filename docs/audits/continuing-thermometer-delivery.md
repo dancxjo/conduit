@@ -38,6 +38,14 @@ was requested. Snapshot SHA-256:
 `6a784123662275da01bd75c7dd53f21a4c525764c9c09f92c0e4f7d0b1a390f2`.
 This is raw evidence custody, not selected recorder State or journal reclamation.
 
+The first focused shared-memory extraction, [PR #6536](https://github.com/dancxjo/conduit/pull/6536),
+merged into `dev` as `25ad835abf2428fb39d1bdcc2a49d4a4d81400cd` on
+28 October. Candidate run `40751736116` passed. Exact merged-source Integration
+run `40757644728` was queued at observation; merged is not yet an Integration
+or stable-publication claim. The change reuses exact immutable common Unit
+definitions with full decoding fallback, and excludes its static table on AVR.
+It does not prove AVR firmware admission or complete #6341.
+
 ## Pending-custody preparation checkpoint
 
 The `39f04c6d3` candidate linked with unchanged Root/SDK grants and a
@@ -88,6 +96,26 @@ State. The bounded retry window spans the Root writer's 300-second deadline.
 | Resource budgeting | Both workers now fit the admitted ESP32 Root. The pending transaction uses bounded backing. | Measure overlap on the actual linked target; refusal must precede effects. Do not treat CPU size or a native build as a physical workspace proof. |
 | Pico target | White, Yellow and Green have useful physical sensing/display implementations with distinct hardware profiles. | They are not yet equivalent autonomous Conduit hosts. Prove the same checked workset, persistent Wi-Fi recovery and membership separately for each supported profile. |
 | Browser/recording | AP form submission, signed collection and some returning-browser paths have separate evidence. | Finish independent invitations, Pi joining, installed recording and fresh-process recovery through their existing owners. |
+
+## Native Pico membership remains unfinished
+
+Linux observer return and browser WebCrypto return have earlier physical proof,
+but neither makes White, Yellow or Green a member of the instrument's Body.
+Their current USB/radio firmware has no Body admission receiver. Blue's joining
+endpoint currently accepts empty observer advertisements and refuses real
+provider/resource advertisements. This is a software integration gap, not merely
+a missing Linux Raspberry Pi test.
+
+The smallest native journey starts with Yellow's DHT11/TM1637 profile: authenticate
+an invitation for the existing Body, admit its finite real offers, prepare the
+same checked sampling/display workset, transfer a bounded assignment, bind its
+actual providers and admit both local Plays. Disconnect and power-cycle proof
+must preserve Body/part identity and demonstrate local continuation. Existing
+Pico native admission proofs, indexed planning, bounded assignment transfer and
+hardware owners are reusable pieces; their separate demo runners do not already
+prove this journey. BME280 and HT16K33 profiles follow the same contracts.
+Observer-only admission would be an intermediate test, not the four-instrument
+Body outcome. This remains in the existing #6457/#6461 acceptance lanes.
 
 ## Existing owners and delivery slices
 
