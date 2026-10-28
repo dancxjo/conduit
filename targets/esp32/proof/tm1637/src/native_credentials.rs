@@ -9,8 +9,8 @@ use conduit_environment_http::network_setup::{
     NetworkSetupChannel, NetworkSetupReader, NetworkSetupRefusal, NetworkSetupWriter, Submission,
 };
 use conduit_network_join_call::{
-    CredentialSource, CredentialSourceRefusal, credential_installation::ReadyCredentialBase,
-    installation::NetworkNativeIdentity,
+    credential_installation::ReadyCredentialBase, installation::NetworkNativeIdentity,
+    CredentialSource, CredentialSourceRefusal,
 };
 use static_cell::StaticCell;
 static INPUT: StaticCell<NetworkSetupChannel> = StaticCell::new();
@@ -19,12 +19,38 @@ pub struct RootCredentialSource {
     generation: u64,
     // One affine allocation moves between Root and selected execution owners.
     // Inline profile arrays would multiply every dormant owner-slot reservation.
-    owner: Option<Box<known::Owner>>,
+    owner: Option<Box<PrivateProfiles>>,
+}
+// Correlations travel with the same affine allocation as the private profiles.
+// Dormant execution slots retain only its pointer, not another copy of them.
+struct PrivateProfiles {
+    profiles: known::Owner,
     chosen: Option<conduit_net::KnownProfileKey>,
     // A cached/retry selection never consumes a later AP submission.
     frozen_origin: Option<Submission>,
     // Preserve exact acknowledged correlation through unused-snapshot retirement.
     committed_pending: Option<(Submission, conduit_net::KnownProfileKey)>,
+}
+impl PrivateProfiles {
+    fn new(profiles: known::Owner) -> Self {
+        Self {
+            profiles,
+            chosen: None,
+            frozen_origin: None,
+            committed_pending: None,
+        }
+    }
+}
+impl core::ops::Deref for PrivateProfiles {
+    type Target = known::Owner;
+    fn deref(&self) -> &Self::Target {
+        &self.profiles
+    }
+}
+impl core::ops::DerefMut for PrivateProfiles {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.profiles
+    }
 }
 impl RootCredentialSource {
     pub fn generation(&self) -> u64 {
@@ -43,7 +69,7 @@ impl CredentialSource for RootCredentialSource {
         if output.len() < selected.wire_bytes {
             return Err(CredentialSourceRefusal::OutputCapacity);
         }
-        if let Some(origin) = self.frozen_origin {
+        if let Some(origin) = owner.frozen_origin {
             let mut mailbox = self
                 .reader
                 .try_lock()
@@ -88,8 +114,8 @@ impl CredentialSource for RootCredentialSource {
             let transferred = owner
                 .take_selected(output)
                 .expect("preflighted selected private transfer");
-            self.frozen_origin = None;
-            self.committed_pending = None;
+            owner.frozen_origin = None;
+            owner.committed_pending = None;
             Ok(transferred.wire_bytes)
         } else {
             // A new AP request belongs to the NEXT preparation. Do not lock,
@@ -126,9 +152,6 @@ pub fn prepare(
                 reader,
                 generation: 1,
                 owner: None,
-                chosen: None,
-                frozen_origin: None,
-                committed_pending: None,
             },
         )
     }
@@ -175,10 +198,10 @@ pub fn reprepare(
                 return Err(source);
             }
         }
+        // Retain the exact pending token/key; unused preparation retry must not
+        // commit or count this acknowledged input twice.
+        owner.frozen_origin = None;
     }
-    // The acknowledged input remains pending; committed_pending preserves its
-    // exact token/key so unused preparation retry does not commit/count it twice.
-    source.frozen_origin = None;
     source.generation = generation;
     // SAFETY: source is the actual non-Clone reader returned after capability
     // revocation. Root retains its backing and separately admits fresh selection.
@@ -240,19 +263,19 @@ impl RootCredentialSource {
             let journal = durable().ok_or("credential-journal-unavailable")?;
             let mut wire = PrivateWire([0; conduit_net::MAXIMUM_KNOWN_NETWORK_PRIVATE_BYTES]);
             let loaded = journal.lock(|journal| journal.borrow_mut().read(&mut wire.0));
-            self.owner = Some(Box::new(match loaded {
+            self.owner = Some(Box::new(PrivateProfiles::new(match loaded {
                 Ok((revision, length)) => known::Owner::load(&wire.0[..length], revision, 2)
                     .map_err(|_| "credential-profile-wire")?,
                 Err(journal::Refusal::Empty) => known::Owner::empty(2),
                 Err(_) => return Err("credential-journal-read"),
-            }));
+            })));
             Ok(())
         }
         #[cfg(not(any(feature = "local-evidence-store", feature = "network-credential-store")))]
         {
             // Existing nonpersistent feature: one retained volatile private
             // owner, finite mailbox/update limits, no flash/persistence claim.
-            self.owner = Some(Box::new(known::Owner::empty(2)));
+            self.owner = Some(Box::new(PrivateProfiles::new(known::Owner::empty(2))));
             Ok(())
         }
     }
@@ -261,7 +284,7 @@ impl RootCredentialSource {
         if owner.selection().is_some() {
             return Ok(());
         }
-        let key = self.chosen.ok_or("credential-selection")?;
+        let key = owner.chosen.ok_or("credential-selection")?;
         if owner
             .profiles()
             .info(key)
@@ -273,7 +296,7 @@ impl RootCredentialSource {
         }
         // Preserve the SDK's SAME chosen profile. New AP input belongs to a
         // later AP-only configuration, never silently changes a Waiting retry.
-        let origin = if let Some((token, pending_key)) = self
+        let origin = if let Some((token, pending_key)) = owner
             .committed_pending
             .filter(|(_, pending_key)| *pending_key == key)
         {
@@ -287,7 +310,7 @@ impl RootCredentialSource {
             None
         };
         owner.freeze(key).map_err(|_| "credential-selection")?;
-        self.frozen_origin = origin;
+        owner.frozen_origin = origin;
         Ok(())
     }
     fn prepare_configuration(
@@ -302,7 +325,7 @@ impl RootCredentialSource {
                 .map_err(|_| "credential-mailbox-busy")?;
             let (key, origin) = match mailbox.acknowledged_submission() {
                 Ok(submission) => {
-                    let key = if let Some((_, key)) = self
+                    let key = if let Some((_, key)) = owner
                         .committed_pending
                         .filter(|(token, _)| *token == submission)
                     {
@@ -353,7 +376,7 @@ impl RootCredentialSource {
                                     .map_err(|_| "credential-journal-commit")
                             })
                             .map_err(|_| "credential-not-acknowledged")??;
-                        self.committed_pending = Some((submission, key));
+                        owner.committed_pending = Some((submission, key));
                         key
                     };
                     (key, Some(submission))
@@ -363,7 +386,7 @@ impl RootCredentialSource {
                     // chosen supported profile within this Boot; first Boot
                     // deterministically selects the first supported WPA2 entry.
                     // This is NOT a best-network/RSSI or Body-peer decision.
-                    let key = self
+                    let key = owner
                         .chosen
                         .filter(|key| {
                             owner.profiles().info(*key).is_ok_and(|p| {
@@ -392,8 +415,8 @@ impl RootCredentialSource {
                 return Err("credential-auth-unsupported");
             }
             owner.freeze(key).map_err(|_| "credential-selection")?;
-            self.chosen = Some(key);
-            self.frozen_origin = origin;
+            owner.chosen = Some(key);
+            owner.frozen_origin = origin;
         }
         if owner.selection().ok_or("credential-selection")?.security
             != conduit_net::KnownSecurity::Wpa2Personal
