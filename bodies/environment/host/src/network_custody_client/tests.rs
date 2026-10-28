@@ -187,3 +187,121 @@ fn member_transcript_and_encoding_match_actual_native_canonical_codec() {
     let decoded = ack::Request::decode(&encoded).unwrap();
     assert_eq!(transcript, decoded.transcript(&f.scope.body));
 }
+
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_network_custody_wire.rs"]
+mod cursor;
+fn committed_cursor(
+    f: &Fixture,
+    token: &VerifiedDurableSnapshot,
+    ack: &[u8],
+    phase: u8,
+) -> [u8; 480] {
+    let mut bytes = [0; 480];
+    bytes[..8].copy_from_slice(b"NCURSOR1");
+    bytes[8] = phase;
+    bytes[16..24].copy_from_slice(&(f.scope.epoch + u64::from(phase == 2)).to_le_bytes());
+    bytes[24..168].copy_from_slice(&f.offer[..144]);
+    bytes[168..200].copy_from_slice(&offer_id(&f.scope.root, &f.offer));
+    bytes[200..232].copy_from_slice(&token.member_scope(&f.credential).unwrap());
+    bytes[232..264].copy_from_slice(
+        ed25519_dalek::SigningKey::from_bytes(&[22; 32])
+            .verifying_key()
+            .as_bytes(),
+    );
+    bytes[264..328].copy_from_slice(&ack[564..]);
+    bytes[328..360].copy_from_slice(&token.signing_transcript(&f.credential).unwrap());
+    bytes[360..392].copy_from_slice(&f.scope.predecessor);
+    resign_cursor(&mut bytes);
+    bytes
+}
+fn resign_cursor(bytes: &mut [u8; 480]) {
+    let mut h = Sha256::new();
+    h.update(b"conduit.environment/network-retirement-receipt@1\0");
+    h.update(&bytes[..408]);
+    let sig = ed25519_dalek::SigningKey::from_bytes(&[41; 32])
+        .sign(&h.finalize())
+        .to_bytes();
+    bytes[408..472].copy_from_slice(&sig);
+}
+fn receipt_response(cursor: &[u8; 480], generation: u64) -> Vec<u8> {
+    serde_json::to_vec(&serde_json::json!({"profile":"network-retirement-committed@1","reclaimed":false,"generation":generation,"receipt":cursor.iter().map(|b|format!("{b:02x}")).collect::<String>()})).unwrap()
+}
+#[test]
+fn committed_receipt_agrees_with_native_cursor_and_rejects_every_changed_byte() {
+    let f = fixture();
+    let token =
+        VerifiedDurableSnapshot::retain(&f.directory, &f.offer, &f.snapshot, &f.scope).unwrap();
+    let sig = ed25519_dalek::SigningKey::from_bytes(&[22; 32])
+        .sign(&token.signing_transcript(&f.credential).unwrap())
+        .to_bytes();
+    let ack = token.encode_ack(&f.credential, sig).unwrap();
+    for phase in [1, 2] {
+        let valid = committed_cursor(&f, &token, &ack, phase);
+        cursor::Cursor::decode(valid)
+            .validate(
+                &f.scope.body,
+                &VerifyingKey::from_bytes(&f.scope.root).unwrap(),
+            )
+            .unwrap();
+        let checked = token
+            .verify_committed_receipt(&f.credential, &ack, &receipt_response(&valid, 7))
+            .unwrap();
+        assert_eq!(checked.bytes(), &valid);
+        // Generation is unsigned presentation only; it cannot alter the proof.
+        assert_eq!(
+            token
+                .verify_committed_receipt(&f.credential, &ack, &receipt_response(&valid, 999))
+                .unwrap()
+                .bytes(),
+            checked.bytes()
+        );
+    }
+    let valid = committed_cursor(&f, &token, &ack, 1);
+    for at in 0..480 {
+        let mut changed = valid;
+        changed[at] ^= 0x80;
+        assert!(
+            token
+                .verify_committed_receipt(&f.credential, &ack, &receipt_response(&changed, 7))
+                .is_err(),
+            "cursor byte {at}"
+        );
+    }
+}
+#[test]
+fn root_signature_cannot_substitute_another_ack_offer_or_lost_durable_evidence() {
+    let f = fixture();
+    let token =
+        VerifiedDurableSnapshot::retain(&f.directory, &f.offer, &f.snapshot, &f.scope).unwrap();
+    let sig = ed25519_dalek::SigningKey::from_bytes(&[22; 32])
+        .sign(&token.signing_transcript(&f.credential).unwrap())
+        .to_bytes();
+    let ack = token.encode_ack(&f.credential, sig).unwrap();
+    let valid = committed_cursor(&f, &token, &ack, 1);
+    for at in [24, 56, 88, 96, 128, 132, 136, 168, 200, 232, 264, 328, 360] {
+        let mut changed = valid;
+        changed[at] ^= 1;
+        resign_cursor(&mut changed);
+        assert!(
+            token
+                .verify_committed_receipt(&f.credential, &ack, &receipt_response(&changed, 7))
+                .is_err(),
+            "Root-signed mismatch {at}"
+        );
+    }
+    let mut changed_ack = ack.clone();
+    changed_ack[52] ^= 1;
+    assert!(token
+        .verify_committed_receipt(&f.credential, &changed_ack, &receipt_response(&valid, 7))
+        .is_err());
+    let mut response: serde_json::Value =
+        serde_json::from_slice(&receipt_response(&valid, 7)).unwrap();
+    response["reclaimed"] = true.into();
+    assert!(token
+        .verify_committed_receipt(&f.credential, &ack, &serde_json::to_vec(&response).unwrap())
+        .is_err());
+    std::fs::remove_file(token.directory.join("snapshot.bin")).unwrap();
+    assert!(token
+        .verify_committed_receipt(&f.credential, &ack, &receipt_response(&valid, 7))
+        .is_err());
+}

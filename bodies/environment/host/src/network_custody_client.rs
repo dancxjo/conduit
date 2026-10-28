@@ -158,11 +158,7 @@ impl VerifiedDurableSnapshot {
     pub(crate) fn body_digest(&self) -> [u8; 32] {
         digest(self.scope.body.as_str().as_bytes())
     }
-    pub(crate) fn signing_transcript(&self, credential: &MembershipCredential) -> Result<[u8; 32]> {
-        self.revalidate()?;
-        if credential.body_id != self.scope.body {
-            return Err("network custody credential Body differs".into());
-        }
+    fn member_scope(&self, credential: &MembershipCredential) -> Result<[u8; 32]> {
         self.encode_fields(credential, [0; 64])?;
         let mut h = Sha256::new();
         h.update(b"conduit.environment/network-retirement-member@1\0");
@@ -177,7 +173,11 @@ impl VerifiedDurableSnapshot {
             h.update(id.as_bytes());
         }
         h.update(credential.issued_at_millis.to_le_bytes());
-        let scope = h.finalize();
+        Ok(h.finalize().into())
+    }
+    pub(crate) fn signing_transcript(&self, credential: &MembershipCredential) -> Result<[u8; 32]> {
+        self.revalidate()?;
+        let scope = self.member_scope(credential)?;
         let mut h = Sha256::new();
         h.update(b"conduit.environment/network-retirement-custody@1\0");
         h.update(self.offer);
@@ -227,3 +227,6 @@ use std::os::unix::fs::DirBuilderExt;
 #[cfg(test)]
 #[path = "network_custody_client/tests.rs"]
 mod tests;
+
+#[path = "network_custody_client/receipt.rs"]
+mod receipt;
