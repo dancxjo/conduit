@@ -59,14 +59,6 @@ unsafe fn first_matching(
     end: usize,
     used: bool,
 ) -> Option<usize> {
-    if needed > 64 {
-        // Large typed vectors can cross many fragmented words. The shared
-        // scan preserves exact first-fit placement with one pass over words;
-        // it never changes the heap extent, cursor or entry allowance.
-        // SAFETY: end is within the installed bitmap (or a test-owned extent).
-        let words = unsafe { core::slice::from_raw_parts(bitmap, end.div_ceil(64)) };
-        return bitmap::find(words, HEAP_START, index, end, needed, alignment);
-    }
     for word in start / 64..end.div_ceil(64) {
         let value = unsafe { bitmap.add(word).read() };
         let occupied = (if used { value } else { !value }) & word_mask(start, end, word);
@@ -83,6 +75,14 @@ unsafe fn find_in(
     needed: usize,
     alignment: usize,
 ) -> Option<usize> {
+    if needed > 64 {
+        // Large typed vectors can cross many fragmented words. The shared
+        // scan preserves exact first-fit placement with one pass over words;
+        // it never changes the heap extent, cursor or entry allowance.
+        // SAFETY: end is within the installed bitmap (or a test-owned extent).
+        let words = unsafe { core::slice::from_raw_parts(bitmap, end.div_ceil(64)) };
+        return bitmap::find(words, HEAP_START, index, end, needed, alignment);
+    }
     while index.checked_add(needed).is_some_and(|n| n <= end) {
         let address = (HEAP_START + index * UNIT).checked_add(alignment - 1)? & !(alignment - 1);
         index = (address - HEAP_START) / UNIT;
