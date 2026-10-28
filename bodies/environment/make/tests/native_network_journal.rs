@@ -188,5 +188,47 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
         wire::encode(page.scope(), s.events(), s, &mut expected).unwrap();
         assert_eq!(bytes, &expected);
     }
+    drop(f);
+    // Include unused tail bytes, not just reconstructed committed records.
+    flash.lock().unwrap().bytes[wire::CAPACITY as usize - 1] = 0x7f;
+    let expected = flash.lock().unwrap().bytes.clone();
+    let mut inspection = journal::inspect().unwrap();
+    assert_eq!(inspection.committed_count(), 8);
+    assert!(journal::exhausted());
+    assert!(journal::inspect().is_err());
+    assert_eq!(
+        journal::append(&retired(9)),
+        Err("network-evidence-unavailable")
+    );
+    let mut actual = vec![0; wire::CAPACITY as usize];
+    for (n, chunk) in actual.chunks_mut(512).enumerate() {
+        inspection.read_chunk(n as u32 * 512, chunk).unwrap();
+    }
+    assert_eq!(actual, expected);
+    assert!(inspection.read_chunk(wire::CAPACITY, &mut [0]).is_err());
+    assert!(inspection.read_chunk(0, &mut [0; 513]).is_err());
+    flash.lock().unwrap().fail_read = true;
+    assert!(inspection.read_chunk(0, &mut [0; 16]).is_err());
+    let (_, allocation) = allocation_probe::observe(|| drop(inspection));
+    assert_eq!(allocation.requested_bytes, 0);
+    FREE.store(8191, Ordering::Relaxed);
+    assert_eq!(
+        journal::append(&retired(8)),
+        Err("network-evidence-workspace")
+    );
+    // Pressure and unwind both retain the identical frozen region.
+    let result = std::panic::catch_unwind(|| {
+        let _inspection = journal::inspect().unwrap();
+        panic!("interrupted export");
+    });
+    assert!(result.is_err());
+    FREE.store(1_000_000, Ordering::Relaxed);
+    assert_eq!(journal::append(&retired(8)), Ok(()));
+    assert_eq!(
+        journal::append(&retired(9)),
+        Err(journal::capacity_refusal())
+    );
+    assert_eq!(flash.lock().unwrap().writes, writes);
+    assert_eq!(flash.lock().unwrap().bytes, expected);
     println!("scratch={} bytes; retained after open/append=0; eight exact Boot records; final-slot commit retry preserved",wire::MAXIMUM_BYTES);
 }

@@ -13,6 +13,8 @@ struct Archive {
 }
 enum State {
     Ready(Archive),
+    Frozen(wire::FrozenJournal<NetworkRegion>),
+    Inspecting { remaining: u8 },
     Retained { _region: NetworkRegion },
 }
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<Option<State>>> =
@@ -66,10 +68,26 @@ pub fn initialize(region: NetworkRegion) -> Result<(), &'static str> {
 pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str> {
     STATE.lock(|current| {
         let mut current = current.borrow_mut();
-        let Some(State::Ready(archive)) = current.as_mut() else {
+        if !matches!(current.as_ref(), Some(State::Ready(_) | State::Frozen(_))) {
             return Err("network-evidence-unavailable");
-        };
+        }
+        // Admit scratch before taking the frozen owner: pressure cannot lose it.
         let mut work = scratch()?;
+        if matches!(current.as_ref(), Some(State::Frozen(_))) {
+            let Some(State::Frozen(frozen)) = current.take() else {
+                unreachable!()
+            };
+            match frozen.reopen(&mut work) {
+                Ok(journal) => *current = Some(State::Ready(Archive { journal })),
+                Err((region, _)) => {
+                    *current = Some(State::Retained { _region: region });
+                    return Err("network-evidence-retained-refusal");
+                }
+            }
+        }
+        let Some(State::Ready(archive)) = current.as_mut() else {
+            unreachable!()
+        };
         let signs = retired.evidence.kernel.signs();
         wire::encode(
             wire::Scope {
@@ -117,10 +135,66 @@ impl wire::Storage for NetworkRegion {
 pub fn exhausted() -> bool {
     STATE.lock(|current| match &*current.borrow() {
         Some(State::Ready(archive)) => archive.journal.remaining_slots() == 0,
+        Some(State::Frozen(frozen)) => frozen.remaining_slots() == 0,
+        Some(State::Inspecting { remaining }) => *remaining == 0,
         _ => false,
     })
 }
 pub fn capacity_refusal() -> &'static str {
     // SAFETY: the immutable literal above is valid ASCII.
     unsafe { core::str::from_utf8_unchecked(&CAPACITY_REFUSAL) }
+}
+
+/// Affine custody of the actual physical snapshot. Transport values cannot
+/// replace this owner. No programming, erase, or acceptance entrance is exposed.
+pub(crate) struct Inspection {
+    frozen: Option<wire::FrozenJournal<NetworkRegion>>,
+}
+impl Inspection {
+    pub(crate) fn committed_count(&self) -> u8 {
+        self.frozen
+            .as_ref()
+            .expect("inspection owns region")
+            .committed_count()
+    }
+    pub(crate) fn read_chunk(&mut self, at: u32, out: &mut [u8]) -> Result<(), &'static str> {
+        self.frozen
+            .as_mut()
+            .expect("inspection owns region")
+            .read_chunk(at, out)
+            .map_err(|_| "network-evidence-snapshot-read")
+    }
+}
+impl Drop for Inspection {
+    fn drop(&mut self) {
+        if let Some(frozen) = self.frozen.take() {
+            STATE.lock(|current| {
+                let mut current = current.borrow_mut();
+                // initialize refuses every occupied state, including Inspecting.
+                assert!(matches!(current.as_ref(), Some(State::Inspecting { .. })));
+                *current = Some(State::Frozen(frozen));
+            });
+        }
+    }
+}
+/// Pin once across bounded export turns; no Root signature or member receipt
+/// is inferred from inspection. Dropping restores custody without allocation.
+pub(crate) fn inspect() -> Result<Inspection, &'static str> {
+    STATE.lock(|current| {
+        let mut current = current.borrow_mut();
+        if !matches!(current.as_ref(), Some(State::Ready(_) | State::Frozen(_))) {
+            return Err("network-evidence-unavailable");
+        }
+        let frozen = match current.take().expect("checked archive") {
+            State::Ready(archive) => archive.journal.freeze(),
+            State::Frozen(frozen) => frozen,
+            _ => unreachable!(),
+        };
+        *current = Some(State::Inspecting {
+            remaining: frozen.remaining_slots(),
+        });
+        Ok(Inspection {
+            frozen: Some(frozen),
+        })
+    })
 }
