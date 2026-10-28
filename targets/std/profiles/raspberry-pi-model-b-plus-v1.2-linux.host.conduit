@@ -1,6 +1,6 @@
-host raspberry-pi-model-b-plus-v1.2-linux {
+host raspberry-pi-model-b-plus-v1-2-linux {
   schema = 1
-  target = {architecture: "armv6", machine: "raspberry-pi-model-b-plus-v1.2", os: "raspberry-pi-os-32"}
+  target = {architecture: "armv6", machine: "raspberry-pi-model-b-plus-v1.2", board: "raspberry-pi-model-b-plus-v1.2", os: "raspberry-pi-os-32"}
   base = {kind: "clock/monotonic", implementation: "hosted/monotonic-clock@1"}
   base = {kind: "serial/text", implementation: "raspberry-pi-os/serial@1"}
   base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}

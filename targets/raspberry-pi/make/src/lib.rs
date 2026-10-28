@@ -193,6 +193,15 @@ mod tests {
         assert_eq!(linux.host_core, "host-core/std@1");
         assert_eq!(linux.maxima.heap_arena_bytes, 64 * 1024 * 1024);
         assert_eq!(linux.maxima.buffered_bytes, 16 * 1024 * 1024);
+        let profile = conduit_host_make::parse_host_configuration_conduit(include_str!(
+            "../../../std/profiles/raspberry-pi-model-b-plus-v1.2-linux.host.conduit"
+        ))
+        .unwrap();
+        assert_eq!(profile.target.architecture, linux.architecture);
+        assert_eq!(profile.target.machine, linux.machine);
+        assert_eq!(profile.target.board, linux.board);
+        assert_eq!(profile.target.os, linux.os);
+        assert_eq!(profile.limits, linux.maxima);
         let native = anchor
             .targets
             .iter()
