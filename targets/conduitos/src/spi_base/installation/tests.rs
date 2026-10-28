@@ -98,3 +98,24 @@ fn stale_boot_and_invalid_native_generations_are_not_advertised() {
     );
     assert_eq!(advertised, before);
 }
+
+#[test]
+fn invalid_ready_identity_revokes_the_supplied_physical_provider() {
+    use alloc::rc::Rc;
+    use core::cell::Cell;
+    struct Tracked(Rc<Cell<bool>>);
+    impl SpiProvider for Tracked {
+        fn exchange(&mut self, _: &SpiTransaction<'_>, _: &mut [u8]) -> Result<(), SpiDisposition> {
+            panic!("invalid preparation cannot transfer");
+        }
+        fn revoke(&mut self) {
+            self.0.set(true);
+        }
+    }
+    let revoked = Rc::new(Cell::new(false));
+    let mut invalid = identity();
+    invalid.provider_generation = 0;
+    // SAFETY: inert tracked provider has no physical resources; identity is deliberately invalid.
+    assert!(unsafe { ReadySpiBase::new(invalid, attachment(), Tracked(revoked.clone())) }.is_err());
+    assert!(revoked.get());
+}

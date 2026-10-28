@@ -32,6 +32,7 @@ impl<'a> SpiTransaction<'a> {
 /// Requests cannot change chip select, mode, frequency or physical routing.
 /// Success means all bytes shifted and exactly as many input bytes observed.
 /// Every return must quiesce hardware or permanently quarantine the provider.
+/// Revocation must be idempotent and enforce mandatory local safety.
 pub trait SpiProvider {
     fn exchange(
         &mut self,

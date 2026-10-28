@@ -26,10 +26,10 @@ pub struct SpiNativeIdentity {
     pub artifact_id: ArtifactId,
 }
 
-pub struct ReadySpiBase<P> {
+pub struct ReadySpiBase<P: SpiProvider> {
     identity: SpiNativeIdentity,
     attachment: SpiAttachment,
-    provider: P,
+    provider: Option<P>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SpiInstallationRefusal {
@@ -50,6 +50,7 @@ impl<P: SpiProvider> ReadySpiBase<P> {
         attachment: SpiAttachment,
         provider: P,
     ) -> Result<Self, SpiInstallationRefusal> {
+        let provider = super::provider_guard::ProviderGuard::new(provider);
         if identity.host_id.as_str().is_empty()
             || identity.boot_id.as_str().is_empty()
             || identity.base_id.as_str().is_empty()
@@ -67,8 +68,22 @@ impl<P: SpiProvider> ReadySpiBase<P> {
         Ok(Self {
             identity,
             attachment,
-            provider,
+            provider: Some(provider.into_inner()),
         })
+    }
+
+    /// Erase only the provider's Rust type during preparation; retain exact ownership.
+    pub fn erase(mut self) -> ReadySpiBase<alloc::boxed::Box<dyn SpiProvider>>
+    where
+        P: 'static,
+    {
+        ReadySpiBase {
+            identity: self.identity.clone(),
+            attachment: self.attachment,
+            provider: Some(alloc::boxed::Box::new(
+                self.provider.take().expect("retained native provider"),
+            )),
+        }
     }
 
     /// Offer only the provider retained by this ready native owner. No effects.
@@ -163,7 +178,7 @@ impl<P: SpiProvider> ReadySpiBase<P> {
 
     /// Consume native ownership into the exact selected Host Call.
     pub fn bind_selected(
-        self,
+        mut self,
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,
         claim: BaseOperationClaim,
@@ -208,7 +223,7 @@ impl<P: SpiProvider> ReadySpiBase<P> {
                 handle,
                 claim,
                 self.attachment,
-                self.provider,
+                self.provider.take().ok_or(SpiCallRefusal::Possession)?,
                 selection,
             )
         }
@@ -217,3 +232,11 @@ impl<P: SpiProvider> ReadySpiBase<P> {
 
 #[cfg(test)]
 mod tests;
+
+impl<P: SpiProvider> Drop for ReadySpiBase<P> {
+    fn drop(&mut self) {
+        if let Some(provider) = self.provider.as_mut() {
+            provider.revoke();
+        }
+    }
+}

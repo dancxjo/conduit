@@ -6,6 +6,14 @@ use conduit_kernel::NodeId;
 
 pub(super) enum Owner<P> {
     Pure(PureProtocolOwner),
+    Spi(Box<crate::spi_base::owner::SpiHostCall<Box<dyn crate::spi_base::SpiProvider>>>),
+    Digital(
+        Box<
+            crate::digital_base::owner::DigitalHostCall<
+                Box<dyn crate::digital_base::DigitalProvider>,
+            >,
+        >,
+    ),
     I2c(Box<I2cHostCall<P>>),
     #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
     EthernetFrame(Box<crate::ethernet_frame::owned_installation::OwnedNativeEthernetFrameHost>),

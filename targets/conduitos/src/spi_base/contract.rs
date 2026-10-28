@@ -89,8 +89,12 @@ impl SpiContract {
         PreparedStructuredValueValidator::new(&self.request, SPI_MAXIMUM_BYTES as usize)
     }
 
-    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
-        let mut startup = StartupCatalog::new();
+    /// Install inert checked contracts; this neither advertises a Back nor grants possession.
+    pub fn install_catalogs(
+        &self,
+        startup: &mut StartupCatalog,
+        profile: &mut ProfileCatalog,
+    ) -> Result<(), alloc::string::String> {
         for (name, path) in [
             ("SpiTransaction", "machine/spi/exchange/request"),
             ("SpiResult", "machine/spi/exchange/result"),
@@ -99,22 +103,23 @@ impl SpiContract {
                 .types
                 .iter()
                 .find(|ty| ty.name == name)
-                .expect("checked SPI Type");
-            startup
-                .insert_checked_native_type(path, ty)
-                .expect("SPI import");
+                .expect("prepared peripheral Type");
+            startup.insert_checked_native_type(path, ty)?;
         }
-        startup
-            .insert(conduit_plot::KindSignature {
-                kind: SPI_KIND.into(),
-                startup_parameters: vec![],
-            })
-            .expect("SPI startup");
-        startup
-            .insert_fore(SPI_KIND, self.kind.checked_front())
-            .expect("SPI Fore");
+        startup.insert(conduit_plot::KindSignature {
+            kind: SPI_KIND.into(),
+            startup_parameters: vec![],
+        })?;
+        startup.insert_fore(SPI_KIND, self.kind.checked_front())?;
+        profile
+            .insert_kind(self.kind.clone())
+            .map_err(|error| alloc::format!("{error:?}"))
+    }
+    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let mut startup = StartupCatalog::new();
         let mut profile = ProfileCatalog::new();
-        profile.insert_kind(self.kind.clone()).expect("SPI Kind");
+        self.install_catalogs(&mut startup, &mut profile)
+            .expect("prepared peripheral catalogs");
         (startup, profile)
     }
 }

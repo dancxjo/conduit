@@ -38,6 +38,24 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedTimedProtocolPlay<P, 
         )?;
         Ok(Self { play, clock })
     }
+    pub fn prepare_peripheral(
+        definition: KernelCompositeDefinition,
+        admission: super::PeripheralAdmission,
+        operations: crate::protocol_operations::ProtocolOperations,
+        clock: ClockAdmission<C>,
+    ) -> Result<Self, ProtocolCallRefusal> {
+        validate_fore(&definition)?;
+        let clock = PreparedClockDispatch::prepare(
+            &definition.internal_plan,
+            clock.ready,
+            clock.table,
+            clock.handle,
+            clock.claim,
+        )?;
+        let play =
+            PreparedProtocolPlay::prepare_peripheral_mode(definition, admission, operations, true)?;
+        Ok(Self { play, clock })
+    }
     pub fn start(&mut self) -> Result<(), ProtocolCallRefusal> {
         self.play.start()
     }
@@ -70,8 +88,10 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedTimedProtocolPlay<P, 
     }
 
     pub fn cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
-        self.clock.revoke(&self.play.kernel)?;
-        self.play.cancel()
+        let clock = self.clock.revoke(&self.play.kernel);
+        let play = self.play.cancel();
+        clock?;
+        play
     }
     pub fn admit_input(
         &mut self,

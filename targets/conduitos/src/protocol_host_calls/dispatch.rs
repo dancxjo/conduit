@@ -47,6 +47,8 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         let expected = match binding.owner {
             Owner::Pure(ref owner) => owner.contract(),
             Owner::I2c(_) => I2C_CALL,
+            Owner::Spi(_) => crate::spi_base::contract::SPI_CALL,
+            Owner::Digital(_) => crate::digital_base::contract::DIGITAL_CALL,
             #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
             Owner::EthernetFrame(_) => crate::ethernet_frame::contract::FRAME_CALL,
             #[cfg(any(
@@ -267,6 +269,14 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             ))]
             Owner::StorageAuthorize | Owner::StorageSettle => return Err(Refusal::InvalidPlan),
             Owner::Pure(owner) => owner.invoke(node, call.call, call.request, input),
+            Owner::Spi(owner) => owner
+                .invoke(node, call.call, call.request, input)
+                .map(Some)
+                .map_err(Refusal::Spi),
+            Owner::Digital(owner) => owner
+                .invoke(node, call.call, call.request, input)
+                .map(Some)
+                .map_err(Refusal::Digital),
             Owner::I2c(owner) => owner
                 .invoke(node, call.call, call.request, input)
                 .map(Some)

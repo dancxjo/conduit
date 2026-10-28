@@ -68,6 +68,7 @@ impl ProtocolSourcePackage {
             .map_err(Error::Contract)?
             .catalogs();
         install_clock(&mut startup, &mut profile)?;
+        peripheral_catalog::install(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
         storage_catalog::install(&mut startup, &mut profile)?;

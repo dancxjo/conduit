@@ -18,8 +18,14 @@ impl DigitalProvider for Provider {
     }
     fn revoke(&mut self) {}
 }
-#[test]
-fn ordinary_digital_source_plans_only_against_ready_native_possession_and_explicit_grant() {
+fn planned<P: DigitalProvider>(
+    provider: P,
+) -> (
+    Plan,
+    ReadyDigitalBase<P>,
+    DigitalNativeIdentity,
+    CapabilityOffer,
+) {
     let contract = DigitalContract::prepare().unwrap();
     let (startup, profile) = contract.catalogs();
     let checked = check_syntax_document(
@@ -43,7 +49,7 @@ fn ordinary_digital_source_plans_only_against_ready_native_possession_and_explic
         envelope_id: CapabilityEnvelopeId::from("envelope/native-digital"),
         artifact_id: ArtifactId::from("fixture/native-controller"),
     };
-    // SAFETY: this provider is inert and panics if preparation invokes hardware.
+    // SAFETY: callers supply inert or scripted providers without physical contacts.
     let ready = unsafe {
         ReadyDigitalBase::new(
             identity.clone(),
@@ -51,7 +57,7 @@ fn ordinary_digital_source_plans_only_against_ready_native_possession_and_explic
                 generation: 1,
                 resource_bytes: 1,
             },
-            Provider,
+            provider,
         )
     }
     .unwrap();
@@ -76,6 +82,7 @@ fn ordinary_digital_source_plans_only_against_ready_native_possession_and_explic
         boot_id: identity.boot_id.clone(),
         capability_id: CapabilityId::from("conduitos/digital-access@1"),
     }];
+    let external = host.capabilities[0].clone();
     let hosts = [host];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let limits = crate::protocol_kernel_fixture::queue_limits(
@@ -107,6 +114,12 @@ fn ordinary_digital_source_plans_only_against_ready_native_possession_and_explic
     assert!(plan(&[]).is_err());
     let planned = plan(&grants).unwrap();
     assert!(verify_plan(&planned));
+    (planned, ready, identity, external)
+}
+
+#[test]
+fn ordinary_digital_source_plans_only_against_ready_native_possession_and_explicit_grant() {
+    let (planned, _, identity, _) = planned(Provider);
     let [gear] = planned.fragments[0].placements.as_slice() else {
         panic!("one DIGITAL operation");
     };
@@ -143,3 +156,5 @@ fn admitted_contact_inventory_is_finite_unique_and_nonempty() {
         .is_err()
     );
 }
+
+mod execution;

@@ -41,11 +41,11 @@ pub enum DigitalCallRefusal {
     Canonical(StructuredInfoRefusal),
 }
 
-pub struct DigitalHostCall<P> {
+pub struct DigitalHostCall<P: DigitalProvider> {
     table: BaseCapabilityTable,
     handle: BaseCapabilityHandle,
     claim: BaseOperationClaim,
-    provider: P,
+    provider: super::provider_guard::ProviderGuard<P>,
     node: NodeId,
     next_request: u32,
     decoder: PreparedDigitalDecoder,
@@ -71,6 +71,7 @@ impl<P: DigitalProvider> DigitalHostCall<P> {
         provider: P,
         selection: DigitalCallSelection<'_>,
     ) -> Result<Self, DigitalCallRefusal> {
+        let provider = super::provider_guard::ProviderGuard::new(provider);
         let mut entries = table.inspections();
         let entry = entries.next().ok_or(DigitalCallRefusal::Possession)?;
         if entries.next().is_some()
@@ -166,11 +167,13 @@ impl<P: DigitalProvider> DigitalHostCall<P> {
 
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), DigitalCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
+        let result = self
+            .table
             .revoke(&self.handle)
-            .map_err(DigitalCallRefusal::Capability)?;
+            .map_err(DigitalCallRefusal::Capability);
+        // Mandatory local safety does not depend on a successful capability update.
         self.provider.revoke();
-        Ok(())
+        result
     }
 
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), DigitalCallRefusal> {

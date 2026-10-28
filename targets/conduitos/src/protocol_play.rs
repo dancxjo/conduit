@@ -12,6 +12,10 @@ use conduit_composite::{
 use conduit_core::*;
 
 mod lifecycle;
+mod peripheral;
+pub use peripheral::{
+    DigitalAdmission, NoI2cProvider, PeripheralAdmission, PreparedPeripheralPlay, SpiAdmission,
+};
 mod registry;
 mod timed;
 #[cfg(any(
@@ -109,6 +113,7 @@ pub(crate) struct UsbDuplexAdmission {
 #[derive(Clone, Copy)]
 enum PhysicalMode {
     I2c,
+    Peripheral,
     #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
     UsbEthernet,
     #[cfg(any(
@@ -310,7 +315,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         registry
             .install(ExpressionOperationFactory::default())
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
-        registry::install_physical(&mut registry, mode)?;
+        registry::install_physical(&mut registry, mode, &definition.internal_plan)?;
         registry
             .install(zip)
             .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;

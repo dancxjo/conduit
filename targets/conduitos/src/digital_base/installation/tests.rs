@@ -149,3 +149,26 @@ fn duplicate_custom_capability_id_refuses_without_advertisement_mutation() {
     );
     assert_eq!(host, before);
 }
+
+#[test]
+fn invalid_ready_identity_revokes_the_supplied_physical_provider() {
+    use alloc::rc::Rc;
+    use core::cell::Cell;
+    struct Tracked(Rc<Cell<bool>>);
+    impl DigitalProvider for Tracked {
+        fn access(&mut self, _: DigitalRequest) -> Result<bool, DigitalDisposition> {
+            panic!("invalid preparation cannot drive");
+        }
+        fn revoke(&mut self) {
+            self.0.set(true);
+        }
+    }
+    let revoked = Rc::new(Cell::new(false));
+    let mut invalid = identity();
+    invalid.provider_generation = 0;
+    // SAFETY: inert tracked provider has no physical resources; identity is deliberately invalid.
+    assert!(
+        unsafe { ReadyDigitalBase::new(invalid, attachment(), Tracked(revoked.clone())) }.is_err()
+    );
+    assert!(revoked.get());
+}

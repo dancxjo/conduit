@@ -32,12 +32,16 @@ pub enum ProtocolCallRefusal {
     Expression(ExpressionCallRefusal),
     Selector(SelectorCallRefusal),
     I2c(I2cCallRefusal),
+    Spi(crate::spi_base::owner::SpiCallRefusal),
+    Digital(crate::digital_base::owner::DigitalCallRefusal),
     Clock(crate::monotonic_clock::owner::ClockCallRefusal),
 }
 
 impl ProtocolCallRefusal {
     pub fn failure(&self) -> Failure {
+        use crate::digital_base::owner::DigitalCallRefusal as Digital;
         use crate::monotonic_clock::owner::ClockCallRefusal as Clock;
+        use crate::spi_base::owner::SpiCallRefusal as Spi;
         use ExpressionCallRefusal as Expression;
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
@@ -134,6 +138,24 @@ impl ProtocolCallRefusal {
             Self::Clock(Clock::Canonical(_)) => (FailureCode::InvalidInput, 1064),
             Self::Clock(Clock::Temporal(_)) => (FailureCode::InvalidInput, 1065),
             Self::Clock(Clock::Provider(_)) => (FailureCode::HostCallFailed, 1066),
+            Self::Spi(Spi::WrongBinding | Spi::StaleRequest) => {
+                (FailureCode::InvalidLifecycle, 1220)
+            }
+            Self::Spi(Spi::Possession | Spi::Capability(_)) => (FailureCode::HostCallDenied, 1221),
+            Self::Spi(Spi::SequenceExhausted) => (FailureCode::IdentityCapacityExhausted, 1222),
+            Self::Spi(Spi::Decode(_)) => (FailureCode::InvalidInput, 1223),
+            Self::Spi(Spi::Result(_) | Spi::Canonical(_)) => (FailureCode::HostCallFailed, 1224),
+            Self::Digital(Digital::WrongBinding | Digital::StaleRequest) => {
+                (FailureCode::InvalidLifecycle, 1230)
+            }
+            Self::Digital(Digital::Possession | Digital::Capability(_)) => {
+                (FailureCode::HostCallDenied, 1231)
+            }
+            Self::Digital(Digital::SequenceExhausted) => {
+                (FailureCode::IdentityCapacityExhausted, 1232)
+            }
+            Self::Digital(Digital::Decode(_)) => (FailureCode::InvalidInput, 1233),
+            Self::Digital(Digital::Canonical(_)) => (FailureCode::HostCallFailed, 1234),
             Self::I2c(I2c::WrongBinding | I2c::StaleRequest) => {
                 (FailureCode::InvalidLifecycle, 1030)
             }

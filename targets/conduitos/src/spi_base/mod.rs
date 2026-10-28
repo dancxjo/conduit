@@ -15,3 +15,18 @@ mod factory;
 pub mod installation;
 pub mod owner;
 pub use factory::SpiOperationFactory;
+
+impl<P: SpiProvider + ?Sized> SpiProvider for alloc::boxed::Box<P> {
+    fn exchange(
+        &mut self,
+        request: &SpiTransaction<'_>,
+        input: &mut [u8],
+    ) -> Result<(), SpiDisposition> {
+        (**self).exchange(request, input)
+    }
+    fn revoke(&mut self) {
+        (**self).revoke();
+    }
+}
+
+mod provider_guard;

@@ -90,8 +90,12 @@ impl DigitalContract {
         PreparedStructuredValueValidator::new(&self.request, DIGITAL_MAXIMUM_BYTES as usize)
     }
 
-    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
-        let mut startup = StartupCatalog::new();
+    /// Install inert checked contracts; this neither advertises a Back nor grants possession.
+    pub fn install_catalogs(
+        &self,
+        startup: &mut StartupCatalog,
+        profile: &mut ProfileCatalog,
+    ) -> Result<(), alloc::string::String> {
         for (name, path) in [
             ("DigitalRequest", "machine/digital/access/request"),
             ("DigitalResult", "machine/digital/access/result"),
@@ -100,24 +104,23 @@ impl DigitalContract {
                 .types
                 .iter()
                 .find(|ty| ty.name == name)
-                .expect("checked digital Type");
-            startup
-                .insert_checked_native_type(path, ty)
-                .expect("digital import");
+                .expect("prepared peripheral Type");
+            startup.insert_checked_native_type(path, ty)?;
         }
-        startup
-            .insert(conduit_plot::KindSignature {
-                kind: DIGITAL_KIND.into(),
-                startup_parameters: vec![],
-            })
-            .expect("digital startup");
-        startup
-            .insert_fore(DIGITAL_KIND, self.kind.checked_front())
-            .expect("digital Fore");
-        let mut profile = ProfileCatalog::new();
+        startup.insert(conduit_plot::KindSignature {
+            kind: DIGITAL_KIND.into(),
+            startup_parameters: vec![],
+        })?;
+        startup.insert_fore(DIGITAL_KIND, self.kind.checked_front())?;
         profile
             .insert_kind(self.kind.clone())
-            .expect("digital Kind");
+            .map_err(|error| alloc::format!("{error:?}"))
+    }
+    pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let mut startup = StartupCatalog::new();
+        let mut profile = ProfileCatalog::new();
+        self.install_catalogs(&mut startup, &mut profile)
+            .expect("prepared peripheral catalogs");
         (startup, profile)
     }
 }

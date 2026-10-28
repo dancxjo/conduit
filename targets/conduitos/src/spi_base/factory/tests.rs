@@ -18,8 +18,9 @@ impl SpiProvider for Provider {
     }
     fn revoke(&mut self) {}
 }
-#[test]
-fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_grant() {
+fn planned<P: SpiProvider>(
+    provider: P,
+) -> (Plan, ReadySpiBase<P>, SpiNativeIdentity, CapabilityOffer) {
     let contract = SpiContract::prepare().unwrap();
     let (startup, profile) = contract.catalogs();
     let checked = check_syntax_document(
@@ -42,7 +43,7 @@ fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_g
         envelope_id: CapabilityEnvelopeId::from("envelope/native-spi"),
         artifact_id: ArtifactId::from("fixture/native-controller"),
     };
-    // SAFETY: this provider is inert and panics if preparation invokes hardware.
+    // SAFETY: callers supply inert or scripted providers without hardware access.
     let ready = unsafe {
         ReadySpiBase::new(
             identity.clone(),
@@ -50,7 +51,7 @@ fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_g
                 generation: 1,
                 resource_bytes: 512,
             },
-            Provider,
+            provider,
         )
     }
     .unwrap();
@@ -75,6 +76,7 @@ fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_g
         boot_id: identity.boot_id.clone(),
         capability_id: CapabilityId::from("conduitos/spi-exchange@1"),
     }];
+    let external = host.capabilities[0].clone();
     let hosts = [host];
     let placements = default_expanded_placements(&authoring.expanded, &hosts).unwrap();
     let limits = crate::protocol_kernel_fixture::queue_limits(
@@ -106,6 +108,12 @@ fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_g
     assert!(plan(&[]).is_err());
     let planned = plan(&grants).unwrap();
     assert!(verify_plan(&planned));
+    (planned, ready, identity, external)
+}
+
+#[test]
+fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_grant() {
+    let (planned, _, _, _) = planned(Provider);
     let [gear] = planned.fragments[0].placements.as_slice() else {
         panic!("one SPI operation");
     };
@@ -125,3 +133,5 @@ fn ordinary_spi_source_plans_only_against_ready_native_possession_and_explicit_g
         assert!(factory.budget(&forged).is_err());
     }
 }
+
+mod execution;

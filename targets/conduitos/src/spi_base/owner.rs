@@ -42,11 +42,11 @@ pub enum SpiCallRefusal {
     Canonical(StructuredInfoRefusal),
 }
 
-pub struct SpiHostCall<P> {
+pub struct SpiHostCall<P: SpiProvider> {
     table: BaseCapabilityTable,
     handle: BaseCapabilityHandle,
     claim: BaseOperationClaim,
-    provider: P,
+    provider: super::provider_guard::ProviderGuard<P>,
     node: NodeId,
     next_request: u32,
     decoder: PreparedSpiDecoder,
@@ -73,6 +73,7 @@ impl<P: SpiProvider> SpiHostCall<P> {
         provider: P,
         selection: SpiCallSelection<'_>,
     ) -> Result<Self, SpiCallRefusal> {
+        let provider = super::provider_guard::ProviderGuard::new(provider);
         let mut entries = table.inspections();
         let entry = entries.next().ok_or(SpiCallRefusal::Possession)?;
         if entries.next().is_some()
@@ -172,11 +173,13 @@ impl<P: SpiProvider> SpiHostCall<P> {
 
     pub fn revoke(&mut self, node: NodeId, call: HostCallId) -> Result<(), SpiCallRefusal> {
         self.check_binding(node, call)?;
-        self.table
+        let result = self
+            .table
             .revoke(&self.handle)
-            .map_err(SpiCallRefusal::Capability)?;
+            .map_err(SpiCallRefusal::Capability);
+        // Mandatory local safety does not depend on a successful capability update.
         self.provider.revoke();
-        Ok(())
+        result
     }
 
     fn check_binding(&self, node: NodeId, call: HostCallId) -> Result<(), SpiCallRefusal> {
