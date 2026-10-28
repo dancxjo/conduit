@@ -10,7 +10,7 @@ const HEADER_BYTES: usize = REQUEST_BYTES;
 
 pub enum NetworkHttpRequest {
     Page,
-    NetworkSnapshot(crate::network_custody::Request),
+    NetworkSnapshot(alloc::boxed::Box<crate::network_custody::Request>),
     ObservedOffer {
         slot: u8,
     },
@@ -276,7 +276,9 @@ fn parse(
     }
     if page {
         if let Some(request) = network_snapshot {
-            return Ok(Some(NetworkHttpRequest::NetworkSnapshot(request)));
+            return Ok(Some(NetworkHttpRequest::NetworkSnapshot(
+                crate::network_custody::owned(request).map_err(|_| E::TooLarge)?,
+            )));
         }
         if let Some(slot) = observed_offer {
             return Ok(Some(NetworkHttpRequest::ObservedOffer { slot }));

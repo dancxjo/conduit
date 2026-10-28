@@ -162,7 +162,7 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
         }
         (Some(NetworkHttpRequest::NetworkSnapshot(request)), route) => {
             let reply = if route.as_ref().is_none_or(|route| route.reading_available) {
-                crate::network_custody::dispatch(request)
+                crate::network_custody::dispatch(*request)
             } else {
                 crate::network_custody::Reply::Unavailable
             };
