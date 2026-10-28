@@ -72,6 +72,10 @@ impl Drop for StoreLease {
 fn with_store<T>(
     action: impl FnOnce(&mut Store) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
+    let mut lease = take_store()?;
+    action(lease.0.as_mut().ok_or("restart-not-ready")?)
+}
+fn take_store() -> Result<StoreLease, &'static str> {
     let store = STORE.lock(|slot| {
         let mut slot = slot.borrow_mut();
         match core::mem::replace(&mut *slot, Slot::Borrowed) {
@@ -82,8 +86,7 @@ fn with_store<T>(
             }
         }
     })?;
-    let mut lease = StoreLease(Some(store));
-    action(lease.0.as_mut().ok_or("restart-not-ready")?)
+    Ok(StoreLease(Some(store)))
 }
 struct Store {
     journal: Checkpoint<BodyRegion>,
@@ -867,3 +870,6 @@ pub(crate) fn with_network_cursor<T>(
         ))
     })
 }
+
+#[path = "native_restart_network_pending_job.rs"]
+pub(crate) mod network_pending_job;

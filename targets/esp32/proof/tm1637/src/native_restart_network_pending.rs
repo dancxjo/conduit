@@ -8,8 +8,8 @@ use conduit_core::BootId;
 /// The caller still owns the actual pinned snapshot and must use the restart
 /// recovery protocol before any network evidence can be changed.
 pub(crate) struct CommittedCustody {
-    generation: u64,
-    offer: [u8; 32],
+    pub(super) generation: u64,
+    pub(super) offer: [u8; 32],
 }
 impl CommittedCustody {
     /// Current checkpoint carrying this receipt, including later rewrites.
@@ -20,7 +20,7 @@ impl CommittedCustody {
         &self.offer
     }
 }
-fn live_key(
+pub(super) fn live_key(
     store: &Store,
     owner: &SealedBodyLifecycleSession,
     root: &[u8; 32],
@@ -64,58 +64,73 @@ pub(crate) fn commit_pending(
     draft: &crate::native_play::journal::snapshot::Draft,
     request: &crate::native_play::journal::snapshot::ack::Request<'_>,
 ) -> Result<CommittedCustody, &'static str> {
-    use crate::native_play::journal::snapshot::{ack, Scope};
-    use ed25519_dalek::Signer;
     with_store(|store| {
-        let key = live_key(store, owner, root)?;
-        if draft.root() != root {
-            return Err("network-pending-snapshot-root");
-        }
-        let current = store.custody.as_ref().and_then(|c| c.network.as_ref());
-        let cursor = if let Some(current) = current.filter(|c| c.bytes()[8] == 1) {
-            current.validate(&owner.evidence().body_id, &key.verifying_key())?;
-            // Exact lost-ACK retry is a read of previously committed custody.
-            // It grants no new admission and never rewrites the checkpoint.
-            if !request.matches_pending(draft, &owner.evidence().body_id, current.bytes()) {
-                return Err("network-pending-already-committed");
-            }
-            current.try_clone()?
-        } else {
-            let (epoch, predecessor) = match current {
-                Some(cursor) => {
-                    cursor.offer_chain(&owner.evidence().body_id, &key.verifying_key())?
-                }
-                None => (0, [0; 32]),
-            };
-            if !draft.matches_scope(Scope {
-                body: &owner.evidence().body_id,
-                boot,
-                epoch,
-                predecessor,
-            }) {
-                return Err("network-pending-stale-snapshot");
-            }
-            let candidate = ack::verify(
-                draft,
-                store
-                    .admissions
-                    .as_ref()
-                    .ok_or("network-pending-admissions")?,
-                &owner.evidence().membership,
-                request,
-            )?;
-            if candidate.membership_revision() != owner.evidence().membership.revision.0
-                || candidate.root() != root
-            {
-                return Err("network-pending-stale-membership");
-            }
-            let signature = key.sign(&candidate.transcript()).to_bytes();
-            let signed = candidate.signed(signature);
-            payload::network::Cursor::decode(*signed.bytes())?
-        };
+        let cursor = authenticated_cursor(store, owner, boot, root, draft, request)?;
         persist_authenticated(store, owner, boot, root, cursor)
     })
 }
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    target_os = "none"
+))]
+pub(super) fn authenticated_cursor(
+    store: &Store,
+    owner: &SealedBodyLifecycleSession,
+    boot: &BootId,
+    root: &[u8; 32],
+    draft: &crate::native_play::journal::snapshot::Draft,
+    request: &crate::native_play::journal::snapshot::ack::Request<'_>,
+) -> Result<payload::network::Cursor, &'static str> {
+    use crate::native_play::journal::snapshot::{ack, Scope};
+    use ed25519_dalek::Signer;
+    let key = live_key(store, owner, root)?;
+    if draft.root() != root {
+        return Err("network-pending-snapshot-root");
+    }
+    let current = store.custody.as_ref().and_then(|c| c.network.as_ref());
+    let cursor = if let Some(current) = current.filter(|c| c.bytes()[8] == 1) {
+        current.validate(&owner.evidence().body_id, &key.verifying_key())?;
+        // Exact lost-ACK retry is a read of previously committed custody.
+        // It grants no new admission and never rewrites the checkpoint.
+        if !request.matches_pending(draft, &owner.evidence().body_id, current.bytes()) {
+            return Err("network-pending-already-committed");
+        }
+        current.try_clone()?
+    } else {
+        let (epoch, predecessor) = match current {
+            Some(cursor) => cursor.offer_chain(&owner.evidence().body_id, &key.verifying_key())?,
+            None => (0, [0; 32]),
+        };
+        if !draft.matches_scope(Scope {
+            body: &owner.evidence().body_id,
+            boot,
+            epoch,
+            predecessor,
+        }) {
+            return Err("network-pending-stale-snapshot");
+        }
+        let candidate = ack::verify(
+            draft,
+            store
+                .admissions
+                .as_ref()
+                .ok_or("network-pending-admissions")?,
+            &owner.evidence().membership,
+            request,
+        )?;
+        if candidate.membership_revision() != owner.evidence().membership.revision.0
+            || candidate.root() != root
+        {
+            return Err("network-pending-stale-membership");
+        }
+        let signature = key.sign(&candidate.transcript()).to_bytes();
+        let signed = candidate.signed(signature);
+        payload::network::Cursor::decode(*signed.bytes())?
+    };
+    Ok(cursor)
+}
+
 /// Replays an exact authenticated historical custody receipt without requiring
 /// a new physical snapshot or the producer's old Boot to be live. A later member
 /// return/revocation cannot undo an already committed recording.
@@ -208,7 +223,7 @@ fn persist_authenticated(
         ..result
     })
 }
-fn prepare<'a>(
+pub(super) fn prepare<'a>(
     previous: &'a ArchiveCustody,
     owner: &'a SealedBodyLifecycleSession,
     admissions: Option<&'a AdmissionManager>,
