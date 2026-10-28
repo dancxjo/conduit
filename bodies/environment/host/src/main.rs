@@ -122,6 +122,20 @@ fn main() -> Result<()> {
     }
     if args
         .get(1)
+        .is_some_and(|argument| argument == "--record-joined-continuing")
+    {
+        if args.len() != 6 {
+            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT".into());
+        }
+        return local_recorder::run_joined_continuing(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+            &args[5],
+            std::path::Path::new(&args[4]),
+        );
+    }
+    if args
+        .get(1)
         .is_some_and(|argument| argument == "--record-joined")
     {
         let once = args.last().is_some_and(|argument| argument == "--once");

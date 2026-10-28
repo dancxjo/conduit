@@ -281,6 +281,23 @@ unfinished.
 
 ## Live closed-epoch custody acceptance
 
+To collect and acknowledge complete closed epochs automatically, use the
+explicit joined-recorder mode:
+
+```sh
+conduit-environment-host --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT
+```
+
+Collection runs first. After a successful collection, at most one custody HTTP
+operation runs before the next collection period. The recorder scans six slots,
+signs only after verifying the exact durable files, and retains the same signed
+request across transport loss or pending replies. Authenticated acceptance leaves
+the host files intact and does not claim physical reclamation. An explicit
+protocol or authentication refusal disables automatic custody for that process;
+recording continues and the reason is logged. Run only one recorder against a
+history directory. The continuity private file is an explicit argument, never
+discovered from ambient credentials.
+
 The joined recorder can request Root acceptance of an exact closed epoch:
 
 ```sh

@@ -60,6 +60,142 @@ pub(crate) fn run(
     println!("observed epoch slot {slot}: exact durable recorder custody accepted; reclamation not confirmed");
     Ok(())
 }
+/// Incremental, bounded custody work. Collection remains the caller's first
+/// operation each cycle. Only one HTTP operation is attempted per tick; no
+/// empty slot can enter the one-shot command's 300-second polling loop.
+pub(crate) struct Continuing {
+    slot: u8,
+    pending: Option<(Vec<u8>, Vec<u8>)>,
+    accepted: [Option<[u8; 32]>; 6],
+    next: Instant,
+    disabled: bool,
+    pending_offers: u8,
+}
+impl Continuing {
+    pub(crate) fn new() -> Self {
+        Self {
+            slot: 0,
+            pending: None,
+            accepted: [None; 6],
+            next: Instant::now(),
+            disabled: false,
+            pending_offers: 0,
+        }
+    }
+    pub(crate) fn tick(&mut self, binding: &Path, continuity: &Path, peer: &str, history: &Path) {
+        if self.disabled || Instant::now() < self.next {
+            return;
+        }
+        self.next = Instant::now() + Duration::from_secs(30);
+        if let Err(error) = self.advance(binding, continuity, peer, history) {
+            // Explicit protocol/authentication refusal is not an invitation to
+            // sign again or try a different scope. Recording itself continues.
+            self.disabled = true;
+            eprintln!("automatic custody disabled; recording continues: {error}");
+        }
+    }
+    fn advance(
+        &mut self,
+        binding_path: &Path,
+        continuity: &Path,
+        peer: &str,
+        history: &Path,
+    ) -> Result<()> {
+        let slot = self.slot;
+        let (method, path, body) = match &self.pending {
+            Some((_, request)) => (
+                "POST",
+                format!("/history/custody/ack?slot={slot}"),
+                request.as_slice(),
+            ),
+            None => (
+                "GET",
+                format!("/history/custody/offer?slot={slot}"),
+                [].as_slice(),
+            ),
+        };
+        let (status, response) = match crate::body_join::http(peer, method, &path, body) {
+            Ok(response) => response,
+            // Keep the exact pending bytes after a possibly accepted request.
+            // Connection loss never changes the epoch or signs a new request.
+            Err(_) => return Ok(()),
+        };
+        if status == 202 || status == 503 {
+            if self.pending.is_none() {
+                self.pending_offers += 1;
+                if self.pending_offers >= 6 {
+                    self.pending_offers = 0;
+                    self.slot = (slot + 1) % 6;
+                }
+            }
+            return Ok(());
+        }
+        self.pending_offers = 0;
+        if self.pending.is_none() && status == 409 {
+            self.slot = (slot + 1) % 6;
+            return Ok(());
+        }
+        if status != 200 {
+            return Err(format!("custody HTTP refusal {status} at slot {slot}").into());
+        }
+        let binding = crate::local_recorder::validated_binding(binding_path)?;
+        if let Some((offer_bytes, request)) = &self.pending {
+            let offer: wire::Offer<'_> = serde_json::from_slice(offer_bytes)?;
+            verify_receipt(
+                &response,
+                &offer,
+                request,
+                &binding.credential().body_id,
+                binding.root(),
+            )?;
+            let key = checked(VerifyingKey::from_bytes(binding.root()))?;
+            self.accepted[usize::from(slot)] = Some(
+                checked(wire::verify_offer(
+                    &offer,
+                    &binding.credential().body_id,
+                    &key,
+                ))?
+                .id(),
+            );
+            self.pending = None;
+            self.slot = (slot + 1) % 6;
+            eprintln!("observed epoch slot {slot}: durable custody accepted; files retained, erase not confirmed");
+            return Ok(());
+        }
+        let offer: wire::Offer<'_> = serde_json::from_slice(&response)?;
+        let key = checked(VerifyingKey::from_bytes(binding.root()))?;
+        let authenticated = checked(wire::verify_offer(
+            &offer,
+            &binding.credential().body_id,
+            &key,
+        ))?;
+        if self.accepted[usize::from(slot)] == Some(authenticated.id()) {
+            self.slot = (slot + 1) % 6;
+            return Ok(());
+        }
+        let verified = match VerifiedDurableEpoch::verify(
+            &offer,
+            &binding.credential().body_id,
+            binding.root(),
+            &history.join(format!("epoch-{}", hex(&offer.scope.0))),
+        ) {
+            Ok(verified) => verified,
+            Err(error) => {
+                // Collection may not yet include the final closed-epoch batch.
+                // No signature or acknowledgment exists before durable proof.
+                eprintln!("custody slot {slot} awaits exact durable files: {error}");
+                self.slot = (slot + 1) % 6;
+                return Ok(());
+            }
+        };
+        let request = crate::body_join::sign_durable_custody(binding_path, continuity, &verified)?;
+        if request.len() > 768 {
+            return Err("live observed custody request exceeds HTTP admission".into());
+        }
+        self.pending = Some((response, request));
+        Ok(())
+    }
+}
 fn poll(peer: &str, method: &str, path: &str, request: &[u8]) -> Result<Vec<u8>> {
     let deadline = Instant::now() + DEADLINE;
     loop {
@@ -199,6 +335,77 @@ mod tests {
             poll(&peer, "POST", "/history/custody/ack?slot=1", b"exact-ack").unwrap(),
             b"receipt"
         );
+        server.join().unwrap();
+    }
+    #[test]
+    fn continuing_unavailable_offers_do_not_block_other_slots_or_require_signing_keys() {
+        use std::{
+            io::{Read, Write},
+            net::TcpListener,
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let peer = listener.local_addr().unwrap().to_string();
+        let server = std::thread::spawn(move || {
+            for attempt in 0..7 {
+                let (mut socket, _) = listener.accept().unwrap();
+                let mut bytes = [0; 1024];
+                let count = socket.read(&mut bytes).unwrap();
+                let request = std::str::from_utf8(&bytes[..count]).unwrap();
+                assert!(request.starts_with(if attempt < 6 {
+                    "GET /history/custody/offer?slot=0 "
+                } else {
+                    "GET /history/custody/offer?slot=1 "
+                }));
+                socket
+                    .write_all(if attempt < 6 {
+                        b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n"
+                    } else {
+                        b"HTTP/1.1 409 Conflict\r\nContent-Length: 0\r\n\r\n"
+                    })
+                    .unwrap();
+            }
+        });
+        let mut continuing = Continuing::new();
+        let absent = Path::new("/nonexistent/private-key");
+        for _ in 0..7 {
+            continuing.advance(absent, absent, &peer, absent).unwrap();
+        }
+        assert_eq!(continuing.slot, 2);
+        assert!(continuing.pending.is_none());
+        server.join().unwrap();
+    }
+    #[test]
+    fn incremental_lost_response_retains_exact_ack_without_loading_a_new_key() {
+        use std::{io::Read, net::TcpListener};
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let peer = listener.local_addr().unwrap().to_string();
+        let server = std::thread::spawn(move || {
+            for _ in 0..2 {
+                let (mut socket, _) = listener.accept().unwrap();
+                let mut bytes = Vec::new();
+                let mut block = [0; 1024];
+                loop {
+                    let count = socket.read(&mut block).unwrap();
+                    assert_ne!(count, 0);
+                    bytes.extend_from_slice(&block[..count]);
+                    if let Some(end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                        if bytes.len() >= end + 4 + 9 {
+                            assert_eq!(&bytes[end + 4..], b"exact-ack");
+                            break;
+                        }
+                    }
+                }
+                // A missing receipt is never interpreted as erased evidence.
+            }
+        });
+        let mut continuing = Continuing::new();
+        continuing.pending = Some((b"original-offer".to_vec(), b"exact-ack".to_vec()));
+        let absent = Path::new("/nonexistent/private-key");
+        for _ in 0..2 {
+            continuing.advance(absent, absent, &peer, absent).unwrap();
+        }
+        assert_eq!(continuing.pending.unwrap().1, b"exact-ack");
+        assert_eq!(continuing.slot, 0);
         server.join().unwrap();
     }
     fn fixture() -> (

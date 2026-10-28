@@ -161,9 +161,39 @@ fn collect(collector: &Collector, peer: &str, directory: &Path) -> Result<usize>
 /// SIGTERM/default process termination leaves only complete fsynced batch files;
 /// a subsequent invocation restores each original Boot's durable cursor.
 pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Result<()> {
+    run_loop(collector, peer, directory, once, None)
+}
+
+pub fn run_joined_continuing(
+    binding: &Path,
+    continuity: &Path,
+    peer: &str,
+    directory: &Path,
+) -> Result<()> {
+    let collector = admitted_collector(binding)?;
+    crate::observed_history::create_durable_directory(directory)?;
+    private_metadata(directory, true)?;
+    private_metadata(continuity.parent().ok_or("continuity parent")?, true)?;
+    private_metadata(continuity, false)?;
+    run_loop(
+        collector,
+        peer,
+        directory,
+        false,
+        Some((binding, continuity)),
+    )
+}
+fn run_loop(
+    collector: Collector,
+    peer: &str,
+    directory: &Path,
+    once: bool,
+    custody: Option<(&Path, &Path)>,
+) -> Result<()> {
     if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
         return Err("recorder peer must be HOST:PORT".into());
     }
+    let mut continuing = crate::observed_custody_live::Continuing::new();
     let mut backoff = Backoff::default();
     let mut connected = false;
     loop {
@@ -176,6 +206,9 @@ pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Re
                 backoff.succeeded();
                 if once {
                     return Ok(());
+                }
+                if let Some((binding, continuity)) = custody {
+                    continuing.tick(binding, continuity, peer, directory);
                 }
                 std::thread::sleep(Duration::from_secs(30));
             }
