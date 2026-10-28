@@ -59,6 +59,10 @@ const EMPTY_STATUS: Status = Status {
     failure: None,
     cleanup_refusal: None,
 };
+// CPU-only lifecycle/status custody: no DMA or GPIO timing. RTC slow RAM
+// supplies the same finite backing without consuming the CPU stack reserve.
+#[allow(unexpected_cfgs)]
+#[cfg_attr(target_os = "none", esp_hal::ram(unstable(rtc_slow)))]
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     cancelled: false,
     status: EMPTY_STATUS,
