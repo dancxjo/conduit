@@ -6,6 +6,7 @@ mod font;
 #[cfg(feature = "native-compositor-core")]
 mod icons;
 mod raw;
+pub mod rgb565;
 mod rounded;
 mod text_layout;
 mod tokens;

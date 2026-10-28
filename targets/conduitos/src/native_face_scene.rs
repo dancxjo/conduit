@@ -141,7 +141,7 @@ impl NativeFaceScene {
         interaction_admitted: bool,
     ) -> Result<Self, FaceSceneError> {
         face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
-        if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
+        if width < 240 || height < 240 || width > 16_384 || height > 16_384 {
             return Err(FaceSceneError::InvalidExtent);
         }
         let screen = LayoutRect {
@@ -462,3 +462,7 @@ mod structured_source_tests;
 #[cfg(test)]
 #[path = "native_face_scene/local_look_hint_tests.rs"]
 mod local_look_hint_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/compact_tests.rs"]
+mod compact_tests;
