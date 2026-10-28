@@ -1,7 +1,9 @@
 //! Actual held executor custody for the ordinary timed Mask. Registration is
 //! not Body start; activation and the exclusive release handle are separate.
 use super::session::NativeMaskSession;
-pub use super::session::{RetiredMask, RetiredMaskParts};
+pub use super::session::{InterruptedMask, RetiredMask, RetiredMaskParts};
+#[path = "native_mask_interruption.rs"]
+mod interruption;
 use super::worker::workspace;
 pub(crate) use workspace::{Permit as WorkspacePermit, Request as WorkspaceRequest};
 static WORKSPACE: workspace::Gate = workspace::Gate::new();

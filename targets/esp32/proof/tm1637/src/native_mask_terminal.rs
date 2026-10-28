@@ -38,6 +38,33 @@ impl Completion {
             && self.normally_drained
     }
 }
+/// A stopped finite prefix, deliberately disjoint from normal completion.
+/// All issued children must have actual accepted terminal evidence; unused
+/// reserved sequence numbers remain reserved and are never reset or reused.
+pub(crate) struct Interruption {
+    pub facts: Completion,
+}
+impl Interruption {
+    pub(crate) fn ready(&self) -> bool {
+        let f = &self.facts;
+        f.completed > 0
+            && f.completed < CHILDREN
+            && f.issued == f.completed
+            && f.accepted == f.completed
+            && f.first_sequence.checked_add(CHILDREN) == Some(f.end_sequence)
+            && f.first_sequence.checked_add(f.completed) == Some(f.next_sequence)
+            && f.next_sequence.checked_sub(1) == f.accepted_last
+            && f.revoked
+            && !f.lease_pending
+            && !f.first_lease_retained
+            && !f.closed_pending
+            && !f.call_retained
+            && f.renderer_retained
+            && !f.faulted
+            && !f.cleanup_refused
+            && f.normally_drained
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +127,43 @@ mod tests {
         let mut value = completed();
         value.first_sequence = u64::MAX - 1;
         assert!(!value.ready());
+    }
+    #[test]
+    fn interruption_is_exact_settled_prefix_never_normal_completion() {
+        fn prefix() -> Completion {
+            let mut f = completed();
+            f.completed = 3;
+            f.issued = 3;
+            f.accepted = 3;
+            f.next_sequence = f.first_sequence + 3;
+            f.accepted_last = Some(f.next_sequence - 1);
+            f
+        }
+        assert!(!prefix().ready());
+        assert!(Interruption { facts: prefix() }.ready());
+        assert!(!Interruption { facts: completed() }.ready());
+        for missing in 0..17 {
+            let mut f = prefix();
+            match missing {
+                0 => f.completed = 0,
+                1 => f.completed = CHILDREN,
+                2 => f.issued += 1,
+                3 => f.accepted -= 1,
+                4 => f.next_sequence += 1,
+                5 => f.end_sequence -= 1,
+                6 => f.accepted_last = None,
+                7 => f.revoked = false,
+                8 => f.lease_pending = true,
+                9 => f.first_lease_retained = true,
+                10 => f.closed_pending = true,
+                11 => f.call_retained = true,
+                12 => f.renderer_retained = false,
+                13 => f.faulted = true,
+                14 => f.cleanup_refused = true,
+                15 => f.normally_drained = false,
+                _ => f.first_sequence = u64::MAX,
+            }
+            assert!(!Interruption { facts: f }.ready(), "missing {missing}");
+        }
     }
 }

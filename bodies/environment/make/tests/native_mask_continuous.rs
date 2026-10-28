@@ -40,7 +40,7 @@ mod native_display {
     #[allow(unused_imports)] // Lease aliases are also used by target-cfg fixture builds.
     pub use crate::worker::{EvidenceSink, Lease, LeaseSource};
     pub mod task {
-        pub use crate::mask_session::RetiredMask;
+        pub use crate::mask_session::{InterruptedMask, RetiredMask};
     }
 }
 #[allow(dead_code)] // Actual owner API also serves separately tested admission paths.
@@ -216,7 +216,10 @@ impl worker::EvidenceSink for Evidence {
         Ok(())
     }
 }
+static WORKER_PROOF: std::sync::Mutex<()> = std::sync::Mutex::new(());
 struct Fixture {
+    root: lease_tests::RootIssuer,
+    initial: c::ActivePlayIdentity,
     session: Box<mask_session::NativeMaskSession>,
     leases: Limited,
     evidence: Evidence,
@@ -415,6 +418,8 @@ fn fixture_audited(refuse_once: bool, audit: bool) -> Fixture {
         )
         .unwrap();
     Fixture {
+        root,
+        initial,
         session,
         leases: Limited(*leases),
         evidence: Evidence::new(refuse_once),
@@ -438,6 +443,7 @@ fn run(fixture: &mut Fixture) -> Result<u64, &'static str> {
 }
 #[test]
 fn actual_worker_continuity_refusal_cleanup_and_terminal_evidence() {
+    let _serial = WORKER_PROOF.lock().unwrap();
     CLOCK.store(1000, Ordering::Relaxed);
     let mut good = fixture(false);
     assert_eq!(run(&mut good), Ok(3));
@@ -558,5 +564,9 @@ fn actual_worker_continuity_refusal_cleanup_and_terminal_evidence() {
 
 #[test]
 fn checked_execution_basis_retires_cold_metadata_after_exact_route_checks() {
+    let _serial = WORKER_PROOF.lock().unwrap();
     let _fixture = fixture_audited(false, true);
 }
+
+#[path = "native_mask_continuous/interruption.rs"]
+mod interruption_tests;

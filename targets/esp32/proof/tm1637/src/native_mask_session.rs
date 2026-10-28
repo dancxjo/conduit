@@ -3,12 +3,15 @@
 use crate::{electrical::DisplayPins, native_face::ReadLease};
 use crate::{native_authority::MaskLeaseIssuer, native_mask_evidence::Consumer};
 use alloc::{boxed::Box, sync::Arc};
+#[path = "native_mask_interrupted_session.rs"]
+mod interrupted;
 #[path = "native_mask_terminal.rs"]
 mod terminal;
 use conduit_core as c;
 use conduit_environment_runtime::{mask_kernel as m, mask_renderer as r};
 use conduit_face as f;
 use conduit_kernel::{self as k, scheduler::prepared_session as ps};
+pub use interrupted::InterruptedMask;
 pub type Values = &'static mut k::FixedValueStore<2, 8192>;
 pub type FixedKernel = m::PreparedMaskKernel<Values>;
 pub type Log = k::FixedSignLog<64, 12>;
@@ -235,7 +238,16 @@ impl RetiredMask {
         body: &conduit_body::SealedBodyLifecycleSession,
         initial: &c::ActivePlayIdentity,
     ) -> bool {
-        let parts = &self.parts;
+        self.parts.matches_current_body(body, initial)
+    }
+}
+impl RetiredMaskParts {
+    fn matches_current_body(
+        &self,
+        body: &conduit_body::SealedBodyLifecycleSession,
+        initial: &c::ActivePlayIdentity,
+    ) -> bool {
+        let parts = self;
         parts.basis.body_id() == &body.evidence().body_id
             && parts
                 .leases
@@ -259,11 +271,19 @@ impl NativeMaskSession {
             && self.cleanup_refusal.is_none()
             && self.session.kernel().decisions() == 0
     }
-    pub(crate) fn retirement_ready(
+    fn terminal_facts(
         &self,
         leases: &MaskLeaseIssuer,
         evidence: &Consumer,
-    ) -> Result<(), &'static str> {
+    ) -> Result<terminal::Completion, &'static str> {
+        if self.handoff.as_ref().is_some_and(|state| {
+            state.previous_log.is_some()
+                || state.receipt.is_some()
+                || state.successor.is_some()
+                || state.refused.is_some()
+        }) {
+            return Err("mask-terminal-handoff");
+        }
         let ready = self.ready.as_ref().ok_or("mask-terminal-renderer")?;
         let facts = leases.retirement_facts(ready)?;
         let (accepted, accepted_last) = evidence.completion();
@@ -285,7 +305,14 @@ impl NativeMaskSession {
             cleanup_refused: self.cleanup_refusal.is_some(),
             normally_drained: self.session.retirement_ready(),
         };
-        if !completion.ready() {
+        Ok(completion)
+    }
+    pub(crate) fn retirement_ready(
+        &self,
+        leases: &MaskLeaseIssuer,
+        evidence: &Consumer,
+    ) -> Result<(), &'static str> {
+        if !self.terminal_facts(leases, evidence)?.ready() {
             return Err("mask-terminal-incomplete");
         }
         if self.context.plan_id() != leases.plan_id() {

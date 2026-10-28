@@ -490,7 +490,9 @@ impl NativeMaskSession {
         self.session
             .discard_host_value(*value)
             .map_err(|_| "mask-closed-release")?;
-        if self.index + 1 < MAXIMUM_CHILDREN {
+        if self.index + 1 < MAXIMUM_CHILDREN
+            && leases.current(embassy_time::Instant::now().as_millis())
+        {
             let retired = self
                 .session
                 .begin_next([(); 3], Self::fresh_log()?)

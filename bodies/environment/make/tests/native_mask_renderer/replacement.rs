@@ -68,7 +68,8 @@ fn successor_ack_replaces_without_blanking_and_keeps_exact_cleanup_budget() {
                     },
                 },
             )
-            .unwrap().into_execution();
+            .unwrap()
+            .into_execution();
         let mut owner = Some(ready);
         let mut call = capsule
             .bind_retained(&mut owner, table, handle, claim, &first)

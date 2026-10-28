@@ -670,7 +670,7 @@ mod native_authority {
 }
 mod native_display {
     pub mod task {
-        pub use crate::mask_session::RetiredMask;
+        pub use crate::mask_session::{InterruptedMask, RetiredMask};
     }
     pub trait EvidenceSink {
         fn accept_replaced(
