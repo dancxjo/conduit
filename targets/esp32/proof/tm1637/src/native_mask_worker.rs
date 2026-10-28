@@ -119,6 +119,9 @@ impl NativeMaskSession {
                 self.cleanup_refusal = self.quiesce_failed().err();
                 self.faulted = true;
             }
+            // The continuous future is terminal; empty staging is no longer
+            // needed. This does not retire any actual failed native owner.
+            self.release_empty_handoff();
             return result;
         }
         esp_println::println!("{{\"event\":\"mask-continuity-refused\",\"reason\":\"retained-workspace-capacity\",\"required_free_bytes\":{},\"actual_free_bytes\":{},\"closed_page_mode\":true}}", core::mem::size_of::<Handoff>() + 3 * 8192, esp_alloc::HEAP.free());

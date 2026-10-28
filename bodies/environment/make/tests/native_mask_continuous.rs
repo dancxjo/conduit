@@ -380,14 +380,33 @@ fn actual_worker_continuity_refusal_cleanup_and_terminal_evidence() {
     assert_eq!(good.evidence.kinds, ["replaced", "replaced", "closed"]);
     assert!(good.session.call.is_none());
     assert!(good.session.ready.is_some());
-    assert!(good
-        .session
-        .handoff
-        .as_ref()
-        .unwrap()
-        .previous_log
-        .is_none());
-    assert!(good.session.handoff.as_ref().unwrap().receipt.is_none());
+    assert!(good.session.handoff.is_none());
+
+    CLOCK.store(1000, Ordering::Relaxed);
+    let mut first_nack = fixture(false);
+    first_nack.pins.nack.set(true);
+    assert_eq!(run(&mut first_nack), Err("mask-present-wire-nack"));
+    assert!(
+        first_nack.session.handoff.is_none(),
+        "unused backing must not pin network preparation RAM"
+    );
+    assert!(first_nack.session.ready.is_none());
+    assert!(
+        first_nack.session.call.is_some(),
+        "actual failed electrical owner remains retained"
+    );
+    assert_eq!(
+        first_nack.session.call.as_ref().unwrap().state(),
+        RendererState::Failed
+    );
+    assert!(first_nack.session.faulted);
+    assert_eq!(
+        first_nack.session.cleanup_refusal(),
+        Some("mask-electrical-cleanup-unconfirmed")
+    );
+    assert!(first_nack.evidence.kinds.is_empty());
+    assert!(!first_nack.session.pending_evidence());
+    assert_eq!(first_nack.session.completed(), 0);
 
     CLOCK.store(1000, Ordering::Relaxed);
     let mut interrupted = fixture(false);

@@ -60,6 +60,19 @@ pub struct NativeMaskSession {
     pub(super) cleanup_refusal: Option<&'static str>,
 }
 impl NativeMaskSession {
+    /// Terminal-worker memory release only. Physical renderer, kernel, issuer
+    /// and pending evidence custody remain in their existing owners. A staged
+    /// successor, predecessor log, receipt or refused lease pins this backing.
+    pub(super) fn release_empty_handoff(&mut self) {
+        if self.handoff.as_ref().is_some_and(|state| {
+            state.previous_log.is_none()
+                && state.receipt.is_none()
+                && state.successor.is_none()
+                && state.refused.is_none()
+        }) {
+            self.handoff = None;
+        }
+    }
     pub fn prepare(
         owner: &mut Option<NativeReady>,
         input: Preparation,
