@@ -38,9 +38,16 @@ impl NativePlay {
     ) -> Result<(), ()> {
         self.install_linked_mode(image, expected, generation, source, join, issuer, None)
     }
-    pub(crate) fn reserve_linked_backing(
-    ) -> Result<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>, ()> {
-        reserve_kernel_backing()
+    pub(crate) fn reserve_linked_backing() -> Result<n::PreparedNetworkKernelStorage, ()> {
+        #[cfg(test)]
+        let _refusal = if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {
+            Some(crate::allocation_probe::refuse_next_allocation_size(
+                core::mem::size_of::<PreparedNetworkKernel>(),
+            ))
+        } else {
+            None
+        };
+        n::PreparedNetworkKernelStorage::try_new().map_err(|_| ())
     }
     pub(crate) fn install_linked_reserved_held(
         &mut self,
@@ -50,7 +57,7 @@ impl NativePlay {
         source: &mut Option<ReadyCredentialBase<Source>>,
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
-        backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
+        backing: n::PreparedNetworkKernelStorage,
     ) -> Result<(), ()> {
         self.install_linked_mode(
             image,
@@ -70,7 +77,7 @@ impl NativePlay {
         source: &mut Option<ReadyCredentialBase<Source>>,
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
-        backing: Option<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>>,
+        backing: Option<n::PreparedNetworkKernelStorage>,
     ) -> Result<(), ()> {
         if self.attempted || !self.flat_refusal.is_empty() || source.is_none() || join.is_none() {
             return Err(());
@@ -156,19 +163,25 @@ impl NativePlay {
             checked?;
             refusal_stage = 5;
             let (checked, parts) = selected.ok_or(())?;
-            // Temporary planner descriptions have gone. Allocate final backing
-            // now to preserve the measured non-overlapping construction shape.
-            refusal_stage = 6;
-            let backing = match backing.map(Ok).unwrap_or_else(reserve_kernel_backing) {
-                Ok(backing) => backing,
-                Err(()) => {
-                    let (first, second) = checked.into_operations();
-                    *custody = IssuedCustody::Both(first, second);
-                    return Err(());
+            // All persistent storage was reserved at Root's boundary, or the
+            // compatible late path reserves fallibly after temporary planning.
+            let materialized = match backing {
+                Some(storage) => {
+                    refusal_stage = 7;
+                    finish_reserved_kernel(parts, storage)
+                }
+                None => {
+                    refusal_stage = 6;
+                    match reserve_kernel_backing() {
+                        Ok(backing) => {
+                            refusal_stage = 7;
+                            finish_linked_kernel(parts, backing)
+                        }
+                        Err(()) => Err(()),
+                    }
                 }
             };
-            refusal_stage = 7;
-            let prepared = match finish_linked_kernel(parts, backing) {
+            let prepared = match materialized {
                 Ok(prepared) => prepared,
                 Err(()) => {
                     let (first, second) = checked.into_operations();
@@ -223,6 +236,27 @@ fn finish_linked_kernel(
         backing,
         parts.finish().map_err(|_| ())?,
     ))
+}
+
+#[inline(never)]
+#[cold]
+fn finish_reserved_kernel(
+    parts: n::PreparedNetworkKernelParts,
+    storage: n::PreparedNetworkKernelStorage,
+) -> Result<alloc::boxed::Box<PreparedNetworkKernel>, ()> {
+    #[cfg(test)]
+    let before = crate::allocation_probe::current_observation();
+    let result = storage.finish(parts).map_err(|_| ());
+    #[cfg(test)]
+    if let Some(before) = before {
+        let after = crate::allocation_probe::current_observation().unwrap();
+        assert_eq!(
+            (before.allocations, before.reallocations),
+            (after.allocations, after.reallocations),
+            "reserved materialization must allocate nothing"
+        );
+    }
+    result
 }
 
 // Keep the concrete affine issuance/checking waist out of the generic planner

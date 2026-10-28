@@ -46,6 +46,44 @@ pub struct PreparedNetworkKernel {
     pub kernel: NetworkControlKernel,
     pub roles: NetworkControlRoles,
 }
+/// Finite execution backing only. This does not contain Source, Plan, grants,
+/// initialized providers or permission to dispatch. Private fields guarantee
+/// the exact empty 128-entry Sign log and unique uninitialized kernel backing.
+pub struct PreparedNetworkKernelStorage {
+    backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
+    signs: k::HostedSignLog,
+}
+impl PreparedNetworkKernelStorage {
+    pub const fn allocation_bytes() -> usize {
+        core::mem::size_of::<PreparedNetworkKernel>() + CONTROL_SIGN_BACKING_BYTES
+    }
+    pub fn try_new() -> Result<Self, ControlKernelRefusal> {
+        let layout = core::alloc::Layout::new::<PreparedNetworkKernel>();
+        // SAFETY: exact unique nonzero backing, initialized only by Box::write.
+        let raw = unsafe { alloc::alloc::alloc(layout) }
+            .cast::<core::mem::MaybeUninit<PreparedNetworkKernel>>();
+        if raw.is_null() {
+            return Err(ControlKernelRefusal::Storage);
+        }
+        let backing = unsafe { alloc::boxed::Box::from_raw(raw) };
+        let signs =
+            k::HostedSignLog::try_new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
+                .map_err(|_| ControlKernelRefusal::Storage)?;
+        Ok(Self { backing, signs })
+    }
+    /// Observes allocation identity only; it cannot borrow an initialized kernel.
+    pub fn as_ptr(&self) -> *const PreparedNetworkKernel {
+        self.backing.as_ptr()
+    }
+    #[inline(never)]
+    pub fn finish(
+        self,
+        parts: PreparedNetworkKernelParts,
+    ) -> Result<alloc::boxed::Box<PreparedNetworkKernel>, ControlKernelRefusal> {
+        let kernel = parts.finish_with_signs(self.signs)?;
+        Ok(alloc::boxed::Box::write(self.backing, kernel))
+    }
+}
 /// Opaque result of actual canonical fragment verification and lowering.
 /// No caller-supplied numeric tables can construct this certificate.
 pub struct CheckedNetworkLowering {
@@ -255,6 +293,15 @@ impl PreparedNetworkKernelParts {
     }
     /// Materialize full unchanged storage only after caller retires construction metadata.
     pub fn finish(self) -> Result<PreparedNetworkKernel, ControlKernelRefusal> {
+        let signs =
+            k::HostedSignLog::try_new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
+                .map_err(|_| ControlKernelRefusal::Storage)?;
+        self.finish_with_signs(signs)
+    }
+    fn finish_with_signs(
+        self,
+        signs: k::HostedSignLog,
+    ) -> Result<PreparedNetworkKernel, ControlKernelRefusal> {
         use ControlKernelRefusal as E;
         let Self {
             nodes,
@@ -274,9 +321,6 @@ impl PreparedNetworkKernelParts {
                 NetworkControlBack::attachment_sign()
             }
         });
-        let signs =
-            k::HostedSignLog::try_new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
-                .map_err(|_| E::Storage)?;
         let kernel = NetworkControlKernel::new_with_host_calls(
             nodes, cords, routes, bindings, drivers, values, signs,
         )

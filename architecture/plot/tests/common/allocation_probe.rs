@@ -124,3 +124,8 @@ pub fn refuse_next_allocation_size(bytes: usize) -> AllocationRefusal {
     REFUSE_ALLOCATION_SIZE.with(|size| assert!(size.replace(Some(bytes)).is_none()));
     AllocationRefusal
 }
+
+#[allow(dead_code)]
+pub fn current_observation() -> Option<Observation> {
+    TRACKING.with(|tracking| tracking.get().then(|| OBSERVATION.with(Cell::get)))
+}

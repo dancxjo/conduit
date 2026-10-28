@@ -314,11 +314,11 @@ fn reserved_constructor_measures_changed_overlap_explicitly() {
         play.prepared.as_ref().unwrap().as_ref() as *const _ as usize,
         address
     );
-    assert!(stats.peak_bytes <= 8192 + core::mem::size_of::<PreparedNetworkKernel>());
+    assert!(stats.peak_bytes <= 8192 + n::PreparedNetworkKernelStorage::allocation_bytes());
     println!(
         "reserved constructor CPU{} backing={} peak={} retained={}",
         usize::BITS,
-        core::mem::size_of::<PreparedNetworkKernel>(),
+        n::PreparedNetworkKernelStorage::allocation_bytes(),
         stats.peak_bytes,
         stats.retained_bytes()
     );
@@ -331,17 +331,15 @@ fn actual_sign_allocation_refusal_preserves_both_ready_owners_and_issued_bearers
     let mut issuer = issuer();
     let (mut source, mut join) = ready();
     let mut play = NativePlay::new();
-    let backing = NativePlay::reserve_linked_backing().unwrap();
     flat::refuse_next_log();
     assert!(play
-        .install_linked_reserved_held(
+        .install_linked_held(
             &image,
             &pins,
             c::OfferGeneration(u64::MAX),
             &mut source,
             &mut join,
-            &mut issuer,
-            backing
+            &mut issuer
         )
         .is_err());
     assert!(source.is_some() && join.is_some());
@@ -371,5 +369,41 @@ fn actual_sign_allocation_refusal_preserves_both_ready_owners_and_issued_bearers
     assert_eq!(
         (first.inspection(), second.inspection()),
         (&retained.0, &retained.1)
+    );
+}
+
+#[test]
+fn early_sign_storage_refusal_releases_kernel_before_any_owner_moves() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let refusal = allocation_probe::refuse_next_allocation_size(n::CONTROL_SIGN_BACKING_BYTES);
+    let (result, memory) = allocation_probe::observe(NativePlay::reserve_linked_backing);
+    assert!(result.is_err());
+    drop(refusal);
+    assert_eq!(memory.allocations, 1);
+    assert_eq!(
+        memory.deallocated_bytes,
+        core::mem::size_of::<PreparedNetworkKernel>()
+    );
+    assert_eq!(memory.retained_bytes(), 0);
+    assert!(!play.attempted && play.flat_refusal.is_empty());
+    assert!(source.is_some() && join.is_some());
+    let storage = NativePlay::reserve_linked_backing().unwrap();
+    play.install_linked_reserved_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+        storage,
+    )
+    .unwrap();
+    assert_eq!(
+        k::SignSink::len(play.prepared.as_ref().unwrap().kernel.signs()),
+        0
     );
 }

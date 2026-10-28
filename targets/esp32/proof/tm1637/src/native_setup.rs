@@ -102,11 +102,7 @@ impl NativeRoot {
         &mut self,
         window: Option<&WorkspacePermit<'_>>,
         release: bool,
-        backing: Option<
-            alloc::boxed::Box<
-                core::mem::MaybeUninit<conduit_network_join_call::PreparedNetworkKernel>,
-            >,
-        >,
+        backing: Option<conduit_network_join_call::PreparedNetworkKernelStorage>,
     ) -> &'static [u8] {
         #[cfg(not(feature = "flat-network-appliance"))]
         let _ = backing;
@@ -309,7 +305,7 @@ impl NativeRoot {
             memory.region_stats[i].as_ref().map_or(0, |r| r.free)
         });
         esp_println::println!("{{\"event\":\"network-workspace-phase\",\"phase\":\"{}\",\"backing_bytes\":{},\"baseline_used\":{},\"used\":{},\"peak\":{},\"free_bytes\":{},\"bank_free\":[{},{},{}]}}",
-            phase, core::mem::size_of::<conduit_network_join_call::PreparedNetworkKernel>(), baseline_used,
+            phase, conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes(), baseline_used,
             memory.current_usage, memory.max_usage, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2]);
     }
     #[cfg(feature = "local-appliance")]
@@ -400,7 +396,7 @@ impl NativeRoot {
         }
         #[cfg(feature = "flat-network-appliance")]
         let backing_bytes =
-            core::mem::size_of::<conduit_network_join_call::PreparedNetworkKernel>();
+            conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes();
         #[cfg(not(feature = "flat-network-appliance"))]
         let backing_bytes = 0;
         let Some(required) = minimum.checked_add(backing_bytes) else {
@@ -414,8 +410,8 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "current-body-refused");
             return;
         }
-        // Charge the changed overlap explicitly: actual final backing plus the
-        // unchanged 8KiB preparation envelope and 16KiB release floor.
+        // Charge all persistent execution storage (kernel and empty Sign log)
+        // plus the unchanged 8KiB preparation envelope and 16KiB release floor.
         #[cfg(feature = "flat-network-appliance")]
         let backing = match crate::native_play::NativePlay::reserve_linked_backing() {
             Ok(backing) => Some(backing),
