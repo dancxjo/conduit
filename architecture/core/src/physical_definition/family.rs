@@ -145,20 +145,24 @@ impl QuantityFamilyDefinition {
     }
     pub fn encode(self) -> [u8; QUANTITY_FAMILY_ENCODED_LEN] {
         let mut bytes = [0; QUANTITY_FAMILY_ENCODED_LEN];
-        bytes[0] = 1;
-        let dimension_start = 1 + DEFINITION_NAME_ENCODED_LEN;
-        self.name.encode_into(&mut bytes[1..dimension_start]);
-        bytes[dimension_start..dimension_start + DIMENSION_DEFINITION_ENCODED_LEN]
-            .copy_from_slice(&self.dimension.encode());
-        let delta_start = dimension_start + DIMENSION_DEFINITION_ENCODED_LEN;
-        bytes[delta_start] = self.delta_length;
-        bytes[delta_start + 1..delta_start + 65].copy_from_slice(&self.delta_name);
-        bytes[QUANTITY_FAMILY_ENCODED_LEN - 33] = match self.roles {
+        let mut at = 0;
+        self.write_encoding(&mut |part| {
+            bytes[at..at + part.len()].copy_from_slice(part);
+            at += part.len();
+        });
+        bytes
+    }
+    pub(crate) fn write_encoding(&self, write: &mut impl FnMut(&[u8])) {
+        write(&[1]);
+        self.name.write_encoding(write);
+        self.dimension.write_encoding(write);
+        write(&[self.delta_length]);
+        write(&self.delta_name);
+        write(&[match self.roles {
             QuantityRoles::Linear => 0,
             QuantityRoles::PointDelta => 1,
-        };
-        bytes[QUANTITY_FAMILY_ENCODED_LEN - 32..].copy_from_slice(&self.identity);
-        bytes
+        }]);
+        write(&self.identity);
     }
     pub fn decode(bytes: &[u8]) -> Result<Self, PhysicalDefinitionRefusal> {
         if bytes.len() != QUANTITY_FAMILY_ENCODED_LEN {
