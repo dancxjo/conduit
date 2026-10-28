@@ -31,7 +31,7 @@ class BootstrapTests(unittest.TestCase):
             'schema': 'conduit.release/armv6-build@1', 'source_identity': 'git/fixture',
             'target': 'arm-unknown-linux-gnueabihf', 'cpu': 'arm1176jzf-s',
             'rust_toolchain': '1.98.1', 'cross_version': '0.2.5', 'toolchain_image': 'fixture',
-            'c_flags': '-march=armv6 -marm -mfpu=vfp -mfloat-abi=hard',
+            'reviewed_compiler_defaults': '-march=armv6+fp -marm -mfpu=vfp -mfloat-abi=hard',
             'physical_execution_proved': False,
         }))
         self.manifest = {
