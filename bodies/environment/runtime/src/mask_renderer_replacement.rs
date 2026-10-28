@@ -71,7 +71,7 @@ impl ReplacedRenderer {
             .map_err(DeliveryRefusal::Encoding)
     }
 }
-impl PreparedRendererInvocation {
+impl PreparedRendererExecution {
     /// Refusal returns every actual incoming capability owner unchanged.
     #[allow(clippy::result_large_err)]
     pub fn stage_replacement<P: OpenDrain>(
@@ -86,8 +86,7 @@ impl PreparedRendererInvocation {
                 || current.state != RendererState::Available
                 || current.ready.identity != self.identity
                 || current.ready.bounds != self.bounds
-                || current.ready.realization_contract() != self.contract
-                || current.node != self.node.node
+                || current.node != self.node
                 || current.inspection().completed_operations != 1
                 || current.inspection().in_flight_operations != 0
                 || current.inspection().lifecycle != c::CapabilityLifecycle::Issued

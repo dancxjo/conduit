@@ -52,7 +52,7 @@ struct PreparedMaskAssembly {
 }
 pub(super) struct RetainedMask {
     leases: crate::native_authority::MaskLeaseIssuer,
-    invocation: conduit_environment_runtime::mask_renderer::PreparedRendererInvocation,
+    invocation: conduit_environment_runtime::mask_renderer::PreparedRendererExecution,
     routes: conduit_face::AdmittedMaskPlotRoutes,
     wardrobe: conduit_face::MaskWardrobeControl,
     wake: conduit_body::WakeId,
@@ -905,7 +905,7 @@ impl NativeRoot {
             mark("local-mask-lease-custody-live", 1);
             Some(RetainedMask {
                 leases,
-                invocation,
+                invocation: invocation.into_execution(),
                 routes,
                 wardrobe,
                 wake: current.plan.wake_id().clone(),

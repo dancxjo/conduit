@@ -93,7 +93,7 @@ fn capsule_reuses_verified_selection_only_after_exact_child_retirement() {
     assert!(ready
         .prepare_verified_invocation(&table, &claim, &[], selected())
         .is_err());
-    let (mut capsule, memory) = allocation_probe::observe(|| {
+    let (capsule, memory) = allocation_probe::observe(|| {
         ready
             .prepare_verified_invocation(&table, &claim, &gear.configuration, selected())
             .unwrap()
@@ -122,6 +122,20 @@ fn capsule_reuses_verified_selection_only_after_exact_child_retirement() {
         memory.retained_bytes(),
         memory.allocations
     );
+    let (mut capsule, retirement) = allocation_probe::observe(|| capsule.into_execution());
+    assert_eq!((retirement.allocations, retirement.reallocations), (0, 0));
+    println!("renderer cold retirement freed_heap={} rich_size={} execution_size={}",
+        retirement.deallocated_bytes,
+        core::mem::size_of::<PreparedRendererInvocation>(),
+        core::mem::size_of::<PreparedRendererExecution>());
+    // The old capsule additionally retained this immutable Kind, whose limits
+    // changed scalars only. Measure its actual owned allocations separately.
+    let (old_contract, contract_memory) = allocation_probe::observe(f::renderer_kind);
+    let freed_heap = retirement.deallocated_bytes + contract_memory.retained_bytes();
+    println!("renderer compact execution freed_heap_total={} old_contract_heap={}",
+        freed_heap, contract_memory.retained_bytes());
+    assert!(freed_heap >= 1512, "measured heap saving must cover observed admission deficit");
+    drop(old_contract);
     drop(verified);
     drop(lowered);
     drop(configurations);

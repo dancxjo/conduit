@@ -23,7 +23,7 @@ pub struct FaceScope {
 pub struct Preparation {
     pub context: f::PreparedMaskShowContext,
     pub kernel: FixedKernel,
-    pub invocation: r::PreparedRendererInvocation,
+    pub invocation: r::PreparedRendererExecution,
     pub routes: f::AdmittedMaskPlotRoutes,
     pub wardrobe: f::MaskWardrobeControl,
     pub producer: FaceScope,
@@ -43,7 +43,7 @@ pub(super) struct Handoff {
 pub struct NativeMaskSession {
     pub(super) ready: Option<NativeReady>,
     pub(super) call: Option<NativeCall>,
-    pub(super) invocation: r::PreparedRendererInvocation,
+    pub(super) invocation: r::PreparedRendererExecution,
     pub(super) context: Arc<f::PreparedMaskShowContext>,
     pub(super) session: Session,
     pub(super) face: conduit_plan_lowering::lowering::LoweredForePort,
@@ -191,7 +191,7 @@ pub struct RetiredMaskParts {
     pub leases: Box<MaskLeaseIssuer>,
     pub evidence: Box<Consumer>,
     pub context: Arc<f::PreparedMaskShowContext>,
-    pub invocation: r::PreparedRendererInvocation,
+    pub invocation: r::PreparedRendererExecution,
     pub routes: f::AdmittedMaskPlotRoutes,
     pub wardrobe: f::MaskWardrobeControl,
     pub producer: FaceScope,

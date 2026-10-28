@@ -2,9 +2,9 @@
 //! canonical started Body; pins remain deterministic CPU providers.
 use super::*;
 use conduit_body as b;
-struct RootIssuer {
-    host: c::HostId,
-    boot: c::BootId,
+pub(super) struct RootIssuer {
+    pub(super) host: c::HostId,
+    pub(super) boot: c::BootId,
     key: [u8; 32],
     display_issued: bool,
     reserved_display_play: Option<Box<c::ActivePlayIdentity>>,
@@ -34,7 +34,7 @@ impl RootIssuer {
 #[allow(unexpected_cfgs, dead_code)] // Included target cfg and compatible rich API are exercised separately.
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_mask_lease.rs"]
 pub(crate) mod production;
-fn new_body(planned: &f::PlannedMaskPlot) -> b::SealedBodyLifecycleSession {
+pub(super) fn new_body(planned: &f::PlannedMaskPlot) -> b::SealedBodyLifecycleSession {
     let fragment = &planned.plan.fragments[0];
     let host = &fragment.host_id;
     let boot = &fragment.boot_id;
@@ -107,7 +107,7 @@ fn new_body(planned: &f::PlannedMaskPlot) -> b::SealedBodyLifecycleSession {
 fn start(body: &mut b::SealedBodyLifecycleSession, host: &c::HostId, boot: &c::BootId) {
     start_at(body, host, boot, 1)
 }
-fn start_at(
+pub(super) fn start_at(
     body: &mut b::SealedBodyLifecycleSession,
     host: &c::HostId,
     boot: &c::BootId,
@@ -134,7 +134,7 @@ fn prepare(
 ) {
     prepare_at(ready, planned, 0)
 }
-fn prepare_at(
+pub(super) fn prepare_at(
     ready: &ReadyRenderer<native::Provider>,
     planned: &f::PlannedMaskPlot,
     sequence_base: u64,
@@ -464,12 +464,12 @@ fn run_complete_native_mask(
             conduit_environment_runtime::retained_publication_face::RetainedPublicationFace::prepare(
                 fixture::face().basis, 960, 120000).unwrap())));
     let (face_publisher, face_reader) = face_owner.claim().unwrap();
-    let reader = face_reader.lease();
+    let reader = face_reader.lease().into();
     let mut owner = Some(ready);
     let mut input = ms::Preparation {
         context,
         kernel,
-        invocation: capsule,
+        invocation: capsule.into_execution(),
         routes,
         wardrobe,
         producer: ms::FaceScope {
@@ -845,6 +845,7 @@ fn real_root_stages_only_one_successor_and_commits_only_actual_acknowledged_repl
     assert!(leases
         .validate_replaced(call.retained_identity(), &active, &before, &before)
         .is_err());
+    let mut capsule = capsule.into_execution();
     let (_, receipt) = capsule
         .replace_encoded(
             &mut call,

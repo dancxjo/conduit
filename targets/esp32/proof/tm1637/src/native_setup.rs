@@ -41,6 +41,39 @@ fn independent_workspace_minimum() -> Option<usize> {
         None
     }
 }
+// Exact immutable status payloads live in flash once. These diagnostics never
+// run in ROM flash callbacks or while the flash cache is disabled.
+#[used]
+#[link_section = ".rodata.native_network_status"]
+static NETWORK_PREPARED: [u8; 8] = *b"prepared";
+#[used]
+#[link_section = ".rodata.native_network_status"]
+static NETWORK_RECOVERY_REFUSED: [u8; 16] = *b"recovery-refused";
+#[used]
+#[link_section = ".rodata.native_network_status"]
+static NETWORK_RETRY_SOURCE_REFUSED: [u8; 32] = *b"retry-source-preparation-refused";
+#[cfg(feature = "local-appliance")]
+#[used]
+#[link_section = ".rodata.native_network_status"]
+static NETWORK_NON_ASCII: [u8; 16] = *b"non-ascii-status";
+// Diagnostic suppression only: a collision may omit a line, never affect
+// admission, ownership or execution. No Root field or received authority.
+#[cfg(feature = "local-appliance")]
+static WORKSPACE_TRACE: core::sync::atomic::AtomicU32 = core::sync::atomic::AtomicU32::new(0);
+#[cfg(feature = "local-appliance")]
+#[inline(never)]
+#[cold]
+fn changed_workspace_outcome(stage: &str, outcome: &str) -> bool {
+    let mut fingerprint = 2166136261u32;
+    for byte in stage
+        .bytes()
+        .chain(core::iter::once(0))
+        .chain(outcome.bytes())
+    {
+        fingerprint = (fingerprint ^ u32::from(byte)).wrapping_mul(16777619);
+    }
+    WORKSPACE_TRACE.swap(fingerprint, core::sync::atomic::Ordering::Relaxed) != fingerprint
+}
 impl NativeRoot {
     /// Preparation never consumes the selected source or changes radio mode.
     /// Once configured, subsequent offers reuse the retained SDK configuration.
@@ -68,7 +101,7 @@ impl NativeRoot {
             return b"awaiting-native-retirement";
         }
         if self.network.is_ready() {
-            return b"prepared";
+            return &NETWORK_PREPARED;
         }
         let now = embassy_time::Instant::now().as_millis();
         if self.network.recovery.access_point_only() {
@@ -111,12 +144,12 @@ impl NativeRoot {
         // chosen credentials only after real owner/evidence return, before
         // reserving a retry. New queued AP input cannot alter retained SDK config.
         if crate::native_credentials::prepare_retry(&mut self.credentials).is_err() {
-            return b"retry-source-preparation-refused";
+            return &NETWORK_RETRY_SOURCE_REFUSED;
         }
         let generation = match self.network.recovery.poll(now, true, false) {
             Ok(Action::PrepareAttempt { generation, .. }) => generation,
             Ok(_) => return b"retry-backoff",
-            Err(_) => return b"recovery-refused",
+            Err(_) => return &NETWORK_RECOVERY_REFUSED,
         };
         if generation != self.network.generation() {
             return b"attachment-generation-refused";
@@ -195,9 +228,39 @@ impl NativeRoot {
         }
     }
     #[cfg(feature = "local-appliance")]
+    #[inline(never)]
+    #[cold]
+    fn trace_network_workspace(&mut self, stage: &'static str, outcome: &'static str) {
+        if !changed_workspace_outcome(stage, outcome) {
+            return;
+        }
+        let memory = esp_alloc::HEAP.stats();
+        let banks = core::array::from_fn::<_, 3, _>(|i| {
+            memory.region_stats[i].as_ref().map_or(0, |r| r.free)
+        });
+        esp_println::println!(
+            "{{\"event\":\"network-workspace-outcome\",\"stage\":\"{}\",\"outcome\":\"{}\",\"free_bytes\":{},\"bank_free\":[{},{},{}],\"scope_current\":{},\"credential_revision\":{},\"recovery_revision\":{}}}",
+            stage, outcome, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2],
+            self.network_workspace_scope_current(), crate::native_credentials::committed_revision(), self.network.recovery.revision()
+        );
+    }
+    #[cfg(feature = "local-appliance")]
+    #[inline(never)]
+    #[cold]
+    fn trace_network_preparation(&mut self, outcome: &'static [u8]) {
+        // Keep status bytes borrowed from flash through one shared conversion;
+        // specializing UTF-8 checks at each caller materializes RAM constants.
+        let outcome = core::str::from_utf8(outcome).unwrap_or_else(|_| {
+            // SAFETY: this private immutable payload is the ASCII literal above.
+            unsafe { core::str::from_utf8_unchecked(&NETWORK_NON_ASCII) }
+        });
+        self.trace_network_workspace("prepare", outcome);
+    }
+    #[cfg(feature = "local-appliance")]
     fn advance_network_workspace(&mut self) {
         let Some(minimum) = independent_workspace_minimum() else {
             self.pending_network_workspace = None;
+            self.trace_network_workspace("eligibility", "profile-unbounded");
             return;
         };
         if !self.native_workspace_held()
@@ -217,6 +280,7 @@ impl NativeRoot {
                         > self.network.recovery.revision()));
         if !eligible {
             self.pending_network_workspace = None;
+            self.trace_network_workspace("eligibility", "not-eligible");
             return;
         }
         let now = embassy_time::Instant::now().as_millis();
@@ -226,19 +290,26 @@ impl NativeRoot {
             .is_some_and(|p| now >= p.deadline_ms)
         {
             self.pending_network_workspace = None;
+            self.trace_network_workspace("request", "timeout");
             return;
         }
         if self.pending_network_workspace.is_none() {
             let Some(worker) = &self.local_mask_worker else {
+                self.trace_network_workspace("request", "worker-absent");
                 return;
             };
             let request = worker
                 .request_workspace()
                 .or_else(|_| worker.request_terminal_workspace());
-            let Ok(request) = request else {
-                return;
+            let request = match request {
+                Ok(request) => request,
+                Err(reason) => {
+                    self.trace_network_workspace("request", reason);
+                    return;
+                }
             };
             let Some(deadline_ms) = now.checked_add(4000) else {
+                self.trace_network_workspace("request", "clock-exhausted");
                 return;
             };
             self.pending_network_workspace = Some(PendingWorkspace {
@@ -251,6 +322,7 @@ impl NativeRoot {
             .as_ref()
             .is_some_and(|p| p.request.ready())
         {
+            self.trace_network_workspace("request", "waiting");
             return;
         }
         let pending = self
@@ -258,37 +330,52 @@ impl NativeRoot {
             .take()
             .expect("checked pending workspace");
         let Ok(permit) = pending.request.claim() else {
+            self.trace_network_workspace("request", "claim-refused");
             return;
         };
         let memory = esp_alloc::HEAP.stats();
-        if permit.held()
-            && memory.size.saturating_sub(memory.current_usage) >= minimum
-            && self.network_workspace_scope_current()
-        {
-            // Actual fallible contiguous reserve, retained through construction.
-            // It protects the unchanged post-install floor from transient use;
-            // exact final kernel backing is fallible after planner retirement.
-            // Aggregate heap statistics cannot attest contiguous construction
-            // capacity. Probe the complete construction envelope with a fallible
-            // allocation before any network owner moves; no await intervenes.
-            let mut contiguous = alloc::vec::Vec::<u8>::new();
-            if contiguous.try_reserve_exact(minimum).is_err() {
-                return;
-            }
-            drop(contiguous);
-            let mut reserve = alloc::vec::Vec::<u8>::new();
-            if reserve.try_reserve_exact(8192 + 8192).is_ok() {
-                self.prepare_network_configuration_mode(Some(&permit), false);
-                drop(reserve);
-                let memory = esp_alloc::HEAP.stats();
-                if permit.held()
-                    && self.network_workspace_scope_current()
-                    && memory.size.saturating_sub(memory.current_usage) >= 8192 + 8192
-                {
-                    let _ = self.play.release_held();
-                }
-            }
+        if !permit.held() {
+            self.trace_network_workspace("scope", "permit-revoked");
+            return;
         }
+        if memory.size.saturating_sub(memory.current_usage) < minimum {
+            self.trace_network_workspace("capacity", "aggregate-construction-refused");
+            return;
+        }
+        if !self.network_workspace_scope_current() {
+            self.trace_network_workspace("scope", "current-body-refused");
+            return;
+        }
+        // The constructor makes multiple allocations. Its unchanged aggregate
+        // envelope is not a request for one contiguous 24KiB block. Protect the
+        // actual 16KiB release floor; exact final backing allocates fallibly only
+        // after temporary planner descriptions retire.
+        let mut reserve = alloc::vec::Vec::<u8>::new();
+        if reserve.try_reserve_exact(8192 + 8192).is_err() {
+            self.trace_network_workspace("reserve", "floor-contiguous-refused");
+            return;
+        }
+        let prepared = self.prepare_network_configuration_mode(Some(&permit), false);
+        drop(reserve);
+        if !self.play.installed() {
+            self.trace_network_preparation(prepared);
+            return;
+        }
+        let memory = esp_alloc::HEAP.stats();
+        if !permit.held() || !self.network_workspace_scope_current() {
+            self.trace_network_workspace("release", "current-scope-refused");
+            return;
+        }
+        if memory.size.saturating_sub(memory.current_usage) < 8192 + 8192 {
+            self.trace_network_workspace("release", "floor-refused");
+            return;
+        }
+        let outcome = if self.play.release_held().is_ok() {
+            "released"
+        } else {
+            "held-release-refused"
+        };
+        self.trace_network_workspace("release", outcome);
         // No await while holding construction custody. Drop precedes run().
         drop(permit);
     }

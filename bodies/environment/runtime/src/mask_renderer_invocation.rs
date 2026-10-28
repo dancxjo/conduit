@@ -6,19 +6,37 @@ use conduit_plan_lowering::{
     lowering::{LoweredHostCall, LoweredNode},
     selected_operation::SelectedVerifiedForeOperationPlan,
 };
+/// Cold inspection material. Consuming this wrapper retires rich descriptions.
 pub struct PreparedRendererInvocation {
+    execution: PreparedRendererExecution,
+    node: LoweredNode,
+    call: LoweredHostCall,
+    configuration: Vec<c::ConfigurationEntry>,
+    fore: Vec<c::PlannedForePort>,
+}
+/// Checked execution provenance, never a descriptor-derived native grant.
+/// Exact mutable scope and affine invocation state survive cold retirement.
+pub struct PreparedRendererExecution {
     pub(super) identity: RendererIdentity,
     pub(super) bounds: Bounds,
     pub(super) scope: c::BaseCapabilityScope,
     pub(super) initial: c::ActivePlayIdentity,
     pub(super) last: Option<c::ActivePlayIdentity>,
     pub(super) bound: bool,
-    pub(super) node: LoweredNode,
-    pub(super) call: LoweredHostCall,
-    pub(super) configuration: Vec<c::ConfigurationEntry>,
-    pub(super) fore: Vec<c::PlannedForePort>,
-    pub(super) contract: c::Kind,
+    pub(super) node: NodeId,
 }
+impl core::ops::Deref for PreparedRendererInvocation {
+    type Target = PreparedRendererExecution;
+    fn deref(&self) -> &Self::Target {
+        &self.execution
+    }
+}
+impl core::ops::DerefMut for PreparedRendererInvocation {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.execution
+    }
+}
+
 impl<P: OpenDrain> ReadyRenderer<P> {
     /// All independent Source/Fore/native/ordinary numeric checks run against
     /// the live Core-verified Plan before creating this opaque, owned capsule.
@@ -39,12 +57,15 @@ impl<P: OpenDrain> ReadyRenderer<P> {
             return Err("renderer-invocation-spent");
         }
         Ok(PreparedRendererInvocation {
-            identity: self.identity.clone(),
-            bounds: self.bounds,
-            scope: inspection.scope.clone(),
-            initial: initial.clone(),
-            last: None,
-            bound: false,
+            execution: PreparedRendererExecution {
+                identity: self.identity.clone(),
+                bounds: self.bounds,
+                scope: inspection.scope.clone(),
+                initial: initial.clone(),
+                last: None,
+                bound: false,
+                node,
+            },
             node: lowered
                 .nodes
                 .iter()
@@ -59,7 +80,6 @@ impl<P: OpenDrain> ReadyRenderer<P> {
                 .clone(),
             configuration: configuration.to_vec(),
             fore: fore.to_vec(),
-            contract: self.realization_contract(),
         })
     }
 }
@@ -79,6 +99,17 @@ impl PreparedRendererInvocation {
     pub fn numeric_call(&self) -> &LoweredHostCall {
         &self.call
     }
+    /// Retire complete cold descriptions after all checked construction.
+    #[cold]
+    #[inline(never)]
+    pub fn into_execution(self) -> PreparedRendererExecution {
+        self.execution
+    }
+}
+impl PreparedRendererExecution {
+    pub fn node(&self) -> NodeId {
+        self.node
+    }
     /// A fresh Root-issued two-operation lease remains mandatory. The exact
     /// physical owner and resource generation remain stable within the parent
     /// BodyPlay. No request counter or finite Look bound is reset here.
@@ -92,11 +123,10 @@ impl PreparedRendererInvocation {
         active: &c::ActivePlayIdentity,
     ) -> Result<RendererCall<P>, &'static str> {
         let ready = owner.as_ref().ok_or("renderer-unavailable")?;
-        if self.bound
-            || ready.identity != self.identity
-            || ready.bounds != self.bounds
-            || ready.realization_contract() != self.contract
-        {
+        // The renderer contract is immutable module material plus limits derived
+        // only from Bounds. Exact identity and Bounds equality therefore retain
+        // the same checked contract without an owned duplicate Kind.
+        if self.bound || ready.identity != self.identity || ready.bounds != self.bounds {
             return Err("renderer-invocation-owner");
         }
         if active.plan_id != self.initial.plan_id
@@ -303,17 +333,19 @@ impl<P: OpenDrain> ReadyRenderer<P> {
         }
         let (node, call) = projection.into_numeric();
         Ok(PreparedRendererInvocation {
-            identity: self.identity.clone(),
-            bounds: self.bounds,
-            scope: inspection.scope.clone(),
-            initial: selected.active.clone(),
-            last: None,
-            bound: false,
+            execution: PreparedRendererExecution {
+                identity: self.identity.clone(),
+                bounds: self.bounds,
+                scope: inspection.scope.clone(),
+                initial: selected.active.clone(),
+                last: None,
+                bound: false,
+                node: node.node,
+            },
             node,
             call,
             configuration: configuration.entries.clone(),
             fore: selected.fore.to_vec(),
-            contract: self.realization_contract(),
         })
     }
 }

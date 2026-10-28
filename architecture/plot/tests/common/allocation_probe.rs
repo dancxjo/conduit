@@ -8,6 +8,7 @@ pub struct Observation {
     pub allocations: usize,
     pub reallocations: usize,
     pub deallocations: usize,
+    pub deallocated_bytes: usize,
     pub peak_bytes: usize,
     pub requested_bytes: usize,
     live_bytes: usize,
@@ -23,7 +24,7 @@ impl Observation {
 }
 thread_local! {
     static TRACKING: Cell<bool> = const { Cell::new(false) };
-    static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
+    static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, deallocated_bytes: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
 }
 pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {
@@ -66,6 +67,7 @@ fn update(added: usize, removed: usize, reallocation: bool) {
                     state.allocations += 1;
                 } else if removed != 0 {
                     state.deallocations += 1;
+                    state.deallocated_bytes += removed;
                 }
                 state.live_bytes = state
                     .live_bytes

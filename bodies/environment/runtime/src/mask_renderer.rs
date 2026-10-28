@@ -51,7 +51,7 @@ pub use delivery::{
     DeliveryRefusal, PreparedPresentation, PresentationBasis, RendererCall, RendererState,
     VerifiedPresentation,
 };
-pub use invocation::PreparedRendererInvocation;
+pub use invocation::{PreparedRendererExecution, PreparedRendererInvocation};
 #[cfg(feature = "local-planning")]
 pub use invocation::{DirectRendererSelection, RendererSourceConfiguration};
 impl<P: OpenDrain> ReadyRenderer<P> {
