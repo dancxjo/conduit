@@ -124,35 +124,35 @@ impl NativeRoot {
                 .credential_writer
                 .try_lock()
                 .is_ok_and(|mailbox| mailbox.has_acknowledged());
-            if !acknowledged
-                && crate::native_credentials::committed_revision()
-                    <= self.network.recovery.revision()
+            // New acknowledged AP input wins over an expired cooldown.
+            if acknowledged
+                || crate::native_credentials::committed_revision()
+                    > self.network.recovery.revision()
             {
-                return b"waiting";
-            }
-            let configuration =
-                match crate::native_credentials::prepare_configuration(&mut self.credentials) {
-                    Ok(configuration) => configuration,
-                    Err("credential-unavailable" | "credential-not-acknowledged") => {
-                        return b"waiting";
-                    }
-                    Err(_) => return b"refused",
+                let configuration =
+                    match crate::native_credentials::prepare_configuration(&mut self.credentials) {
+                        Ok(configuration) => configuration,
+                        Err("credential-unavailable" | "credential-not-acknowledged") => {
+                            return b"waiting";
+                        }
+                        Err(_) => return b"refused",
+                    };
+                let revision = match crate::native_credentials::committed_revision() {
+                    0 => match self.network.recovery.revision().checked_add(1) {
+                        Some(revision) => revision,
+                        None => return b"configuration-exhausted",
+                    },
+                    revision => revision,
                 };
-            let revision = match crate::native_credentials::committed_revision() {
-                0 => match self.network.recovery.revision().checked_add(1) {
-                    Some(revision) => revision,
-                    None => return b"configuration-exhausted",
-                },
-                revision => revision,
-            };
-            if self.network.stage(configuration).is_err() {
-                return b"refused";
-            }
-            if self.network.recovery.configuration(revision, now).is_err() {
-                return b"configuration-refused";
+                if self.network.stage(configuration).is_err() {
+                    return b"refused";
+                }
+                if self.network.recovery.configuration(revision, now).is_err() {
+                    return b"configuration-refused";
+                }
             }
         }
-        if !self.network.recovery.awaiting_attempt() {
+        if !self.network.recovery.attempt_due(now) {
             return b"waiting";
         }
         // The previous selected read consumed its snapshot. Re-freeze SAME
@@ -322,7 +322,8 @@ impl NativeRoot {
             self.pending_network_workspace = None;
             return;
         }
-        let eligible = self.network.recovery.awaiting_attempt()
+        let now = embassy_time::Instant::now().as_millis();
+        let eligible = self.network.recovery.attempt_due(now)
             || (self.network.recovery.access_point_only()
                 && (self
                     .credential_writer
@@ -335,7 +336,6 @@ impl NativeRoot {
             self.trace_network_workspace("eligibility", "not-eligible");
             return;
         }
-        let now = embassy_time::Instant::now().as_millis();
         if self
             .pending_network_workspace
             .as_ref()
@@ -567,7 +567,9 @@ impl NativeRoot {
             }
         }
         if action == Action::None {
-            let workspace = !self.native_workspace_held();
+            // Monitoring may request restoration, never spend an attempt.
+            // Cold preparation supplies the actual admitted workspace.
+            let workspace = false;
             action = self
                 .network
                 .recovery

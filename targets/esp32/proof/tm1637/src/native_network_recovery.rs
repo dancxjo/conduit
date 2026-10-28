@@ -19,6 +19,9 @@ pub enum Refusal {
 enum Phase {
     AccessPoint,
     Waiting { at: u64 },
+    // AP services are acknowledged and owners returned; new input is accepted
+    // while the same saved revision waits for its next finite attempt burst.
+    Cooldown { at: u64 },
     Joining { deadline: u64 },
     Station,
     Restoring,
@@ -52,7 +55,7 @@ impl Recovery {
         if revision == 0 || revision <= self.revision {
             return Err(Refusal::StaleConfiguration);
         }
-        if self.phase != Phase::AccessPoint {
+        if !self.access_point_only() {
             return Err(Refusal::Busy);
         }
         self.clock(now)?;
@@ -71,10 +74,13 @@ impl Recovery {
     ) -> Result<Action, Refusal> {
         self.clock(now)?;
         match self.phase {
-            Phase::Waiting { at } if now >= at && workspace => {
+            Phase::Waiting { at } | Phase::Cooldown { at } if now >= at && workspace => {
                 let generation = self.generation.checked_add(1).ok_or(Refusal::Exhausted)?;
                 let deadline = now.checked_add(15_000).ok_or(Refusal::Clock)?;
                 self.generation = generation;
+                if matches!(self.phase, Phase::Cooldown { .. }) {
+                    self.attempts = 0;
+                }
                 self.attempts += 1;
                 self.phase = Phase::Joining { deadline };
                 Ok(Action::PrepareAttempt {
@@ -92,6 +98,7 @@ impl Recovery {
         if !matches!(self.phase, Phase::Joining { .. }) {
             return Err(Refusal::StaleAttempt);
         }
+        self.attempts = 0;
         self.phase = Phase::Station;
         Ok(())
     }
@@ -118,7 +125,9 @@ impl Recovery {
         self.phase = if !acknowledged {
             Phase::Faulted
         } else if self.attempts >= 3 {
-            Phase::AccessPoint
+            Phase::Cooldown {
+                at: now.checked_add(60_000).ok_or(Refusal::Clock)?,
+            }
         } else {
             Phase::Waiting {
                 at: now
@@ -138,10 +147,16 @@ impl Recovery {
         matches!(self.phase, Phase::Joining { .. })
     }
     pub fn awaiting_attempt(&self) -> bool {
-        matches!(self.phase, Phase::Waiting { .. })
+        matches!(self.phase, Phase::Waiting { .. } | Phase::Cooldown { .. })
     }
     pub fn access_point_only(&self) -> bool {
-        self.phase == Phase::AccessPoint
+        matches!(self.phase, Phase::AccessPoint | Phase::Cooldown { .. })
+    }
+    /// Eligibility only: callers still acquire actual preparation workspace and
+    /// returned owners. Monitoring must poll with workspace=false.
+    pub fn attempt_due(&self, now: u64) -> bool {
+        now >= self.last_now
+            && matches!(self.phase, Phase::Waiting { at } | Phase::Cooldown { at } if now >= at)
     }
     fn require_generation(&self, generation: u64) -> Result<(), Refusal> {
         if generation == 0 || generation != self.generation {
@@ -191,7 +206,9 @@ mod tests {
             }
         }
         assert!(r.access_point_only());
-        assert_eq!(r.poll(100_000, true, false), Ok(Action::None));
+        assert_eq!(r.poll(66_102, true, false), Ok(Action::None));
+        assert!(r.attempt_due(66_103));
+        assert_eq!(r.poll(100_000, false, false), Ok(Action::None));
         assert_eq!(
             r.configuration(1, 100_000),
             Err(Refusal::StaleConfiguration)
@@ -204,6 +221,101 @@ mod tests {
                 generation: 4
             })
         );
+    }
+    #[test]
+    fn repeated_cooldowns_preserve_generations_and_accept_new_configuration() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        let mut now = 0;
+        for generation in 1..=300 {
+            assert!(r.attempt_due(now));
+            assert_eq!(r.poll(now, false, false), Ok(Action::None));
+            assert_eq!(
+                r.poll(now, true, false),
+                Ok(Action::PrepareAttempt {
+                    revision: 1,
+                    generation,
+                })
+            );
+            assert_eq!(r.attached(generation + 1), Err(Refusal::StaleAttempt));
+            assert_eq!(
+                r.failed(generation),
+                Ok(Action::RestoreAccessPoint { generation })
+            );
+            assert_eq!(
+                r.restored(generation + 1, now, true),
+                Err(Refusal::StaleAttempt)
+            );
+            r.restored(generation, now, true).unwrap();
+            let delay = match generation % 3 {
+                1 => 1_000,
+                2 => 5_000,
+                _ => 60_000,
+            };
+            assert_eq!(r.access_point_only(), generation % 3 == 0);
+            assert!(!r.attempt_due(now + delay - 1));
+            assert_eq!(r.poll(now + delay - 1, true, false), Ok(Action::None));
+            now += delay;
+            // A monitoring poll at the deadline cannot spend or reset a burst.
+            assert_eq!(r.poll(now, false, false), Ok(Action::None));
+            assert!(r.attempt_due(now));
+        }
+        assert_eq!(r.revision(), 1);
+        assert_eq!(r.generation(), 300);
+        assert_eq!(r.configuration(1, now), Err(Refusal::StaleConfiguration));
+        r.configuration(2, now).unwrap();
+        assert_eq!(
+            r.poll(now, true, false),
+            Ok(Action::PrepareAttempt {
+                revision: 2,
+                generation: 301,
+            })
+        );
+    }
+    #[test]
+    fn cooldown_clock_and_generation_exhaustion_never_release_an_attempt() {
+        let mut r = Recovery::new();
+        r.revision = 1;
+        r.phase = Phase::Restoring;
+        r.generation = 3;
+        r.attempts = 3;
+        assert_eq!(r.restored(3, u64::MAX - 59_999, true), Err(Refusal::Clock));
+        assert!(!r.attempt_due(u64::MAX));
+        assert_eq!(r.poll(u64::MAX, true, false), Ok(Action::None));
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        r.generation = u64::MAX;
+        assert_eq!(r.poll(0, true, false), Err(Refusal::Exhausted));
+        assert_eq!(r.generation(), u64::MAX);
+        assert_eq!(r.attempts, 0);
+        assert_eq!(r.attached(u64::MAX), Err(Refusal::StaleAttempt));
+    }
+    #[test]
+    fn successful_attachment_starts_fresh_outage_burst_and_cleanup_failure_stops() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        r.poll(0, true, false).unwrap();
+        r.failed(1).unwrap();
+        r.restored(1, 0, true).unwrap();
+        r.poll(1_000, true, false).unwrap();
+        r.failed(2).unwrap();
+        r.restored(2, 1_000, true).unwrap();
+        r.poll(6_000, true, false).unwrap();
+        r.attached(3).unwrap();
+        assert_eq!(
+            r.poll(7_000, false, false),
+            Ok(Action::RestoreAccessPoint { generation: 3 })
+        );
+        r.restored(3, 7_000, true).unwrap();
+        assert!(!r.access_point_only());
+        assert!(!r.attempt_due(11_999));
+        assert!(r.attempt_due(12_000));
+        r.poll(12_000, true, false).unwrap();
+        r.failed(4).unwrap();
+        r.restored(4, 12_000, false).unwrap();
+        assert!(!r.attempt_due(u64::MAX));
+        assert_eq!(r.poll(u64::MAX, true, false), Ok(Action::None));
+        assert_eq!(r.configuration(2, u64::MAX), Err(Refusal::Busy));
     }
     #[test]
     fn link_loss_has_one_cleanup_and_no_implicit_success_or_clock_reset() {
