@@ -9,6 +9,33 @@ use conduit_face as f;
 use conduit_kernel::{self as k, scheduler::SchedulerStatus};
 pub const PERIOD_MS: u64 = 3000;
 pub const MAXIMUM_CHILDREN: u64 = 960 * 60_000 / PERIOD_MS;
+// Keep the actual refusal class: failed GPIO delivery is materially different
+// from an output reservation or a capability refusal before electrical work.
+fn presentation_refusal<E>(
+    error: k::scheduler::HostEncodingRefusal<r::DeliveryRefusal<E>>,
+) -> &'static str {
+    use k::{scheduler::HostEncodingRefusal as H, EncodedValueRefusal as V};
+    use r::DeliveryRefusal as D;
+    match error {
+        H::Scheduler(_) => "mask-present-scheduler",
+        H::Encoding(V::Storage(_)) => "mask-present-storage",
+        H::Encoding(V::Length) => "mask-present-length",
+        H::Encoding(V::Encoder(error)) => match error {
+            D::Binding => "mask-present-binding",
+            D::Lifecycle => "mask-present-lifecycle",
+            D::Face => "mask-present-face",
+            D::Show(_) => "mask-present-show",
+            D::Encoding(_) => "mask-present-encoding",
+            D::Mask(_) => "mask-present-mask",
+            D::Packets(_) => "mask-present-packets",
+            D::Capability(_) => "mask-present-capability",
+            D::Electrical(conduit_tm1637_wire::Failure::InvalidGeometry) => "mask-present-wire-geometry",
+            D::Electrical(conduit_tm1637_wire::Failure::Cancelled) => "mask-present-wire-cancelled",
+            D::Electrical(conduit_tm1637_wire::Failure::Nack { .. }) => "mask-present-wire-nack",
+            D::Electrical(conduit_tm1637_wire::Failure::Provider(_)) => "mask-present-wire-provider",
+        },
+    }
+}
 pub type Lease = (
     c::ActivePlayIdentity,
     c::BaseCapabilityTable,
@@ -248,7 +275,7 @@ impl NativeMaskSession {
                             || !leases.current(embassy_time::Instant::now().as_millis()),
                         )
                     })
-                    .map_err(|_| "mask-present")?;
+                    .map_err(presentation_refusal)?;
                 session
                     .complete_host_call(
                         request.node,

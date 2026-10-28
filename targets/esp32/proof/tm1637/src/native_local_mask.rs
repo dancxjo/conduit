@@ -9,7 +9,7 @@ use alloc::collections::BTreeMap;
 mod renewal_prepare;
 
 pub(super) type Bindings = crate::native_authority::NativeBindings<
-    conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+    crate::native_root::DevicePulse<'static>,
     crate::native_wait::EspWait,
 >;
 // Checked immutable planning/native custody crosses into software transfer;
@@ -40,6 +40,15 @@ struct PreparedMaskStage {
     proposal: conduit_body::PreparedVerifiedBodyProposal,
     mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
     context: Option<conduit_face::PreparedMaskShowContext>,
+}
+// The completed planning/custody phase ends before numeric kernel assembly.
+// Retain its affine products once, instead of nesting both large call frames.
+struct PreparedMaskAssembly {
+    sampler: alloc::boxed::Box<PreparedSamplerKernel>,
+    parts: alloc::boxed::Box<conduit_environment_runtime::mask_kernel::PreparedMaskKernelParts>,
+    values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
+    context: Option<conduit_face::PreparedMaskShowContext>,
+    retained: alloc::boxed::Box<Option<RetainedMask>>,
 }
 pub(super) struct RetainedMask {
     leases: crate::native_authority::MaskLeaseIssuer,
@@ -471,7 +480,8 @@ impl NativeRoot {
         )?;
         #[cfg(feature = "local-appliance")]
         self.restore_local_mask_body(parked)?;
-        self.finish_local_mask_stage(stage, sampler, kernel_backing, execute)
+        let assembly = self.finish_local_mask_stage(stage, sampler, kernel_backing, execute)?;
+        self.assemble_local_plots(assembly)
     }
     // Replay and its owned Body return temporaries must not enlarge the
     // coordinator that also surrounds the later numeric assembly stack.
@@ -525,7 +535,7 @@ impl NativeRoot {
         sampler: alloc::boxed::Box<PreparedSamplerParts>,
         kernel_backing: crate::native_kernel_storage::KernelBacking,
         execute: bool,
-    ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+    ) -> Result<alloc::boxed::Box<PreparedMaskAssembly>, &'static str> {
         let PreparedMaskStage {
             mask,
             proposal,
@@ -545,7 +555,22 @@ impl NativeRoot {
         )?;
         drop(mask);
         let sampler = Self::prepare_local_sampler_kernel(sampler, kernel_backing)?;
-        self.assemble_local_plots(sampler, mask_parts, mask_values, context, retained)
+        let memory = esp_alloc::HEAP.stats();
+        if memory.size.saturating_sub(memory.current_usage)
+            < core::mem::size_of::<PreparedMaskAssembly>() + 8192
+        {
+            return Err("local-mask-assembly-handoff-capacity");
+        }
+        Ok(alloc::boxed::Box::write(
+            alloc::boxed::Box::<PreparedMaskAssembly>::new_uninit(),
+            PreparedMaskAssembly {
+                sampler,
+                parts: mask_parts,
+                values: mask_values,
+                context,
+                retained,
+            },
+        ))
     }
     #[inline(never)]
     fn prepare_local_sampler_parts(
@@ -950,14 +975,15 @@ impl NativeRoot {
     #[inline(never)]
     fn assemble_local_plots(
         &mut self,
-        sampler: alloc::boxed::Box<PreparedSamplerKernel>,
-        mask_parts: alloc::boxed::Box<
-            conduit_environment_runtime::mask_kernel::PreparedMaskKernelParts,
-        >,
-        mask_values: &'static mut conduit_kernel::FixedValueStore<2, 8192>,
-        context: Option<conduit_face::PreparedMaskShowContext>,
-        mut retained: alloc::boxed::Box<Option<RetainedMask>>,
+        assembly: alloc::boxed::Box<PreparedMaskAssembly>,
     ) -> Result<Option<alloc::boxed::Box<PreparedLocalPlots>>, &'static str> {
+        let PreparedMaskAssembly {
+            sampler,
+            parts: mask_parts,
+            values: mask_values,
+            context,
+            mut retained,
+        } = *assembly;
         mark("ordinary-mask-numeric-assembly-entered", 1);
         // Reserve the outgoing handoff while retired planning storage is still
         // contiguous, before Face/session allocations divide that free space.
