@@ -77,6 +77,17 @@ Boot, despite the initially blank network region. Station address remained
 absent. This is a physical failure of the selected candidate, not a passing
 reconnect run. It was handed to forebrain's shared-code owner.
 
+A fresh complete post-test flash backup was retained and synchronized before
+resuming normal firmware. SHA-256:
+`f062e76f951005d366392e2864db68ba1d975fab440ad7ea31c705bfa8d3410e`.
+Its checkpoint banks are generations 641/642, 8,291/8,602 bytes. The production
+private Clean-cursor test again ran exactly once and passed for generation 642,
+237 biography archives and the same independently pinned Root/Body and original
+Clean cursor. All eight network pages pass NCE1 commit/CRC checks; each contains
+17 events, two Host Calls requested/completed and one BackFailed event. This
+inspection does not recover the underlying network failure reason or authorize
+erasure. New observations and failure journals remain preserved in the backup.
+
 The preserved credential journal has one valid revision-1 CNJ1 profile. Its
 SSID appears in victus's cached scan. Using those preserved credentials and
 the existing carrier protocol, Yellow actually attached to the saved network:
