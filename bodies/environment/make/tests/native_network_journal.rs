@@ -94,7 +94,7 @@ struct RetiredNetworkControl {
 #[allow(dead_code)]
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_network_journal.rs"]
 pub(crate) mod journal;
-include!("native_network_export_adapter.rs");
+include!("native_network_journal/export_adapter.rs");
 fn retired(n: u64) -> RetiredNetworkControl {
     use conduit_kernel::SignSink;
     let mut signs = conduit_kernel::FixedSignLog::<128>::new(

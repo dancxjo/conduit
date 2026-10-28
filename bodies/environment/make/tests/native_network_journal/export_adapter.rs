@@ -65,7 +65,7 @@ impl NativeRoot {
         Ok((draft, signed))
     }
 }
-#[path = "../../../../targets/esp32/proof/tm1637/src/native_root_network_export.rs"]
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_root_network_export.rs"]
 mod actual_root_export;
 fn exercise_root_export() {
     use conduit_environment_http::network_custody::{self as http, Reply, Request};
