@@ -134,3 +134,125 @@ fn pico_w_wireless_permission_is_checked_target_bound_not_a_usb_alias() {
     assert!(wireless.contains("conduit.environment-wifi-carrier@1"));
     assert!(wireless.contains("$p.I2C1,$p.PIN_7,$p.PIN_6"));
 }
+
+fn gpio_source() -> String {
+    let source = SOURCE
+        .lines()
+        .filter(|line| {
+            !line.trim_start().starts_with("bus =") && !line.trim_start().starts_with("device =")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    source.replace("  limits =", "  device = {kind: \"gpio\", id: \"sensor\", implementation: \"dht11@1\", pins: {data: 3}}\n  device = {kind: \"gpio\", id: \"display\", implementation: \"tm1637@1\", pins: {clk: 7, dio: 6}, configuration: {brightness: 3, layout: \"seven4\"}}\n  limits =")
+}
+#[test]
+fn checked_gpio_profile_roundtrips_and_emits_exact_driver_roles() {
+    let source = gpio_source();
+    let a = checked(&source).unwrap();
+    let rust = conduit_host_rp2040::environment_usb_rust(&a).unwrap();
+    for expected in [
+        "ENVIRONMENT_PROFILE:&str=\"dht11-tm1637\"",
+        "DHT_GPIO:u8=3",
+        "DISPLAY_CLK_GPIO:u8=7",
+        "DISPLAY_DIO_GPIO:u8=6",
+        "DISPLAY_HALF_PERIOD_US:u32=5",
+        "DISPLAY_WEAK_PULLUPS:bool=false",
+        "DhtPin=embassy_rp::peripherals::PIN_3",
+        "DisplayClk=embassy_rp::peripherals::PIN_7",
+        "DisplayDio=embassy_rp::peripherals::PIN_6",
+        "CapturePio=embassy_rp::peripherals::PIO1",
+        "CaptureDma=embassy_rp::peripherals::DMA_CH2",
+        "$p.PIO1,$p.DMA_CH2,$p.PIN_3,$p.PIN_7,$p.PIN_6",
+    ] {
+        assert!(rust.contains(expected), "{expected}");
+    }
+    let round = canonical_host_configuration_conduit(a.configuration()).unwrap();
+    assert_eq!(
+        checked(&round).unwrap().configuration_id(),
+        a.configuration_id()
+    );
+    assert_ne!(
+        checked(&source.replace("data: 3", "data: 4"))
+            .unwrap()
+            .configuration_id(),
+        a.configuration_id()
+    );
+    for invalid in [
+        source.replace("data: 3", "data: 6"),
+        source.replace("clk: 7, dio: 6", "clk: 7, dio: 7"),
+        source.replace("data: 3", "data: 3, data: 4"),
+    ] {
+        assert!(checked(&invalid).is_err());
+    }
+}
+#[test]
+fn rp_gpio_driver_rules_refuse_reserved_pins_roles_unknown_params_and_mixed_devices() {
+    let source = gpio_source();
+    for invalid in [
+        source.replace("data: 3", "data: 23"),
+        source.replace("data: 3", "channel: 3"),
+        source.replace("brightness: 3", "brightness: 8"),
+        source.replace("seven4", "alpha4"),
+        source.replace("dht11@1", "invented@1"),
+        source.replace("brightness: 3, layout", "extra: 1, brightness: 3, layout"),
+    ] {
+        assert!(
+            checked(&invalid)
+                .and_then(|c| conduit_host_rp2040::environment_usb_rust(&c))
+                .is_err(),
+            "{invalid}"
+        );
+    }
+    assert!(
+        conduit_host_rp2040::environment_usb_rust(&checked(SOURCE).unwrap())
+            .unwrap()
+            .contains("ENVIRONMENT_PROFILE:&str=\"bosch-ht16k33\"")
+    );
+}
+
+#[test]
+fn explicit_tm_electrical_parameters_are_typed_bounded_and_part_of_checked_identity() {
+    let default = gpio_source();
+    let configured = default.replace(
+        "layout: \"seven4\"",
+        "layout: \"seven4\", half_period_us: 50, weak_pullups: true",
+    );
+    let checked_default = checked(&default).unwrap();
+    let explicit = checked(&configured).unwrap();
+    assert_ne!(
+        checked_default.configuration_id(),
+        explicit.configuration_id()
+    );
+    let emitted = conduit_host_rp2040::environment_usb_rust(&explicit).unwrap();
+    assert!(emitted.contains("DISPLAY_HALF_PERIOD_US:u32=50"));
+    assert!(emitted.contains("DISPLAY_WEAK_PULLUPS:bool=true"));
+    for invalid in [
+        configured.replace("half_period_us: 50", "half_period_us: 4"),
+        configured.replace("half_period_us: 50", "half_period_us: 101"),
+        configured.replace("half_period_us: 50", "half_period_us: true"),
+        configured.replace("weak_pullups: true", "weak_pullups: 1"),
+        configured.replace("weak_pullups: true", "weak_pullups: \"true\""),
+    ] {
+        assert!(checked(&invalid)
+            .and_then(|c| conduit_host_rp2040::environment_usb_rust(&c))
+            .is_err());
+    }
+    for boundary in [5, 100] {
+        let source =
+            configured.replace("half_period_us: 50", &format!("half_period_us: {boundary}"));
+        assert!(conduit_host_rp2040::environment_usb_rust(&checked(&source).unwrap()).is_ok());
+    }
+    let actual = checked(include_str!(
+        "../../profiles/pico-w-dht11-tm1637.host.conduit"
+    ))
+    .unwrap();
+    let rust = conduit_host_rp2040::environment_usb_rust(&actual).unwrap();
+    for constant in [
+        "DISPLAY_CLK_GPIO:u8=7",
+        "DISPLAY_DIO_GPIO:u8=6",
+        "DISPLAY_HALF_PERIOD_US:u32=50",
+        "DISPLAY_WEAK_PULLUPS:bool=true",
+    ] {
+        assert!(rust.contains(constant));
+    }
+}

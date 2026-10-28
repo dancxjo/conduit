@@ -1,6 +1,6 @@
-# Green Pico W selected-peer HTTP carrier
+# Pico W selected-peer HTTP carrier
 
-`carrier.py` exposes a loopback HTTP endpoint through the green firmware role
+`carrier.py` exposes a loopback HTTP endpoint through the shared firmware role
 `conduit.environment-wifi-carrier@1`. It rejects the older USB relay role. The
 carrier remains `body_member:false`: forwarding traffic and observing DNS do
 not establish Body membership or authenticate the selected Root.
@@ -14,7 +14,7 @@ owned private directory; symlinks, duplicate fields/SSIDs and oversized inputs
 are refused. No password is accepted on the command line or logged.
 
 After independently identifying the actual Root's private on-link IPv4 address,
-run one process against the explicitly identified green CDC device:
+run one process against the explicitly identified Pico CDC device:
 
 ```sh
 python3 targets/rp2040/proof/environment-usb/carrier.py \
@@ -59,3 +59,12 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover \
 These tests do not prove physical USB, association, on-link routing, DNS, Root
 membership or autonomous measurement. Those require the separately recorded
 hardware and signed Root evidence.
+
+The same carrier supports distinct checked Host configurations:
+
+- `pico-w-environment-usb.host.conduit`: Bosch environmental sensor and HT16K33 on I²C (Green).
+- `pico-w-dht11-tm1637.host.conduit`: authored DHT11 capture/decoder and GPIO TM1637 (Yellow). Build with `--features wifi,dht11-tm1637`; the checked profile selects GP3 data, GP7 CLK, GP6 DIO,50µs electrical half-period and weak pull-ups. Pressure is unavailable on this sensor and is omitted.
+
+Both perform local continuous diagnostics independently of USB and report `body_member:false`. Neither diagnostic is an installed same-Body sampling/Mask Play, and current Wi-Fi credentials are session RAM rather than restart-persistent configuration. The host explicitly establishes the carrier session after a power cycle.
+
+When several devices are attached, select the actual physical USB path and verify its build/configuration. These firmware variants currently share a USB product/serial descriptor, so the shared `/dev/serial/by-id` alias can move between devices. Never open the same CDC stream from two clients. Display ACKs are electrical observations; working pixels require physical visual confirmation.

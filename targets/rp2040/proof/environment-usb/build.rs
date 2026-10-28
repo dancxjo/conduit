@@ -1,4 +1,5 @@
 //! The actual Host Conduitese checker/identity feeds executable pin selection.
+mod build_dht;
 use sha2::{Digest, Sha256};
 use std::{
     env, fs,
@@ -38,8 +39,21 @@ fn main() {
     );
     let generated =
         conduit_host_rp2040::environment_usb_rust(&checked).expect("RP2040 physical bindings");
+    println!("cargo:rustc-check-cfg=cfg(environment_dht11_tm1637)");
+    let dht = generated.contains("ENVIRONMENT_PROFILE:&str=\"dht11-tm1637\"");
+    assert_eq!(
+        dht,
+        env::var_os("CARGO_FEATURE_DHT11_TM1637").is_some(),
+        "checked DHT/TM Host requires exact dht11-tm1637 feature"
+    );
+    if dht {
+        println!("cargo:rustc-cfg=environment_dht11_tm1637");
+    }
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     fs::write(out.join("host.rs"), &generated).unwrap();
+    if dht {
+        build_dht::emit(&out);
+    }
     let memory = fs::read_to_string("../../firmware/pico-w-signal/memory.x").unwrap();
     fs::write(out.join("memory.x"), memory).unwrap();
     fs::write(out.join("bounds.x"),format!("ASSERT(__euninit - __sdata <= {}, \"Host static memory bound exceeded\");\nASSERT(_stack_start - __euninit >= 16384, \"USB Host stack below16KiB\");\n",checked.configuration().limits.static_memory_bytes)).unwrap();
@@ -67,6 +81,7 @@ fn main() {
     for p in [
         "Cargo.toml",
         "build.rs",
+        "build_dht.rs",
         "../../../../plots/seven-segment-mask/main.conduit",
         "../../../../plots/seven-segment-mask/types.conduit",
     ] {
@@ -104,6 +119,25 @@ fn main() {
                 )
                 .join(name),
             );
+        }
+    }
+    if dht {
+        for file in [
+            "dht11.conduit",
+            "pulse-types.conduit",
+            "dht11-capture.conduit",
+        ] {
+            files.push(Path::new("../../../../plots/device-protocols").join(file));
+        }
+        for directory in [
+            "../../pulse-capture",
+            "../../tm1637",
+            "../../../../mechanisms/io/pulse-capture",
+            "../../../../mechanisms/io/tm1637",
+        ] {
+            collect(&Path::new(directory).join("src"), &mut files);
+            files.push(Path::new(directory).join("Cargo.toml"));
+            optional.push(Path::new(directory).join("build.rs"));
         }
     }
     files.sort();

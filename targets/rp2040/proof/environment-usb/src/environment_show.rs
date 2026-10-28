@@ -2,6 +2,7 @@
 //! Diagnostic FaceBasis has no Body, Wake, Source, Plan, or active Play identity.
 extern crate alloc;
 use alloc::vec;
+#[cfg(not(environment_dht11_tm1637))]
 use conduit_bosch_env::{Humidity, Reading};
 use conduit_environment_face::{contribution_reading, EnvironmentalReading, SensorStatus};
 use conduit_face::{Face, FaceBasis, FaceContributionBasis};
@@ -19,6 +20,7 @@ fn profile() -> Tm1637Profile {
         colon: Some(conduit_seven_segment_mask::WireBit { address: 1, bit: 7 }),
     }
 }
+#[cfg(not(environment_dht11_tm1637))]
 pub fn render(reading: Reading, revision: u64, elapsed: u64) -> Result<[u8; 4], ()> {
     let humidity = match reading.humidity {
         Humidity::PercentQ10(v) => Some(v),
@@ -30,6 +32,13 @@ pub fn render(reading: Reading, revision: u64, elapsed: u64) -> Result<[u8; 4], 
         humidity,
     )
     .map_err(|_| ())?;
+    render_common(common, revision, elapsed)
+}
+pub fn render_common(
+    common: EnvironmentalReading,
+    revision: u64,
+    elapsed: u64,
+) -> Result<[u8; 4], ()> {
     // Explicit diagnostic correlation labels, never a claim of checked/admitted IDs.
     let basis = FaceContributionBasis {
         checked_plot_id: "diagnostic/environment-reading".into(),
@@ -72,6 +81,7 @@ pub fn render(reading: Reading, revision: u64, elapsed: u64) -> Result<[u8; 4], 
 /// This is not a general fourteen-segment renderer; it consumes logical Show
 /// segment Forms, independently of the TM1637 physical register mapping.
 /// This adapter performs no quantity formatting, rounding or page selection.
+#[cfg(not(environment_dht11_tm1637))]
 pub fn frame(reading: Reading, revision: u64, elapsed: u64) -> Result<[u8; 16], ()> {
     let digits = render(reading, revision, elapsed)?;
     let mut glyphs = [conduit_ht16k33::Glyph::from_char(' ').map_err(|_| ())?; 4];

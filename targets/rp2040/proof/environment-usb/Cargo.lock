@@ -369,13 +369,19 @@ version = "0.1.0"
 dependencies = [
  "aligned",
  "conduit-bosch-env",
+ "conduit-core",
  "conduit-environment-face",
  "conduit-face",
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-ht16k33",
  "conduit-net",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-rp2040-pulse-capture",
+ "conduit-rp2040-tm1637",
  "conduit-seven-segment-mask",
+ "conduit-tm1637-wire",
  "cortex-m",
  "cortex-m-rt",
  "critical-section",
@@ -423,6 +429,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
@@ -437,6 +452,26 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-rp2040-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-pulse-capture",
+ "embassy-rp",
+ "embassy-time",
+ "fixed",
+ "pio",
+]
+
+[[package]]
+name = "conduit-rp2040-tm1637"
+version = "0.1.0"
+dependencies = [
+ "conduit-tm1637-wire",
+ "embassy-rp",
+ "embassy-time",
 ]
 
 [[package]]
@@ -490,6 +525,10 @@ dependencies = [
  "conduit-plot",
  "serde",
 ]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
 
 [[package]]
 name = "conduit-web"

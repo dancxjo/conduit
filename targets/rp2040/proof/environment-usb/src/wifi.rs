@@ -10,9 +10,15 @@ use static_cell::StaticCell;
 mod mdns;
 #[path = "wifi_peer.rs"]
 mod peer;
+#[cfg(not(environment_dht11_tm1637))]
 #[path = "../../../firmware/pico-w-signal/src/radio.rs"]
 #[allow(unexpected_cfgs, dead_code)]
 mod radio;
+#[cfg(environment_dht11_tm1637)]
+#[path = "radio_environment.rs"]
+mod radio;
+#[cfg(environment_dht11_tm1637)]
+pub(crate) use radio::RadioIrqs as CaptureDmaIrqs;
 #[path = "wifi_transport.rs"]
 mod transport;
 use peer::Attachment;

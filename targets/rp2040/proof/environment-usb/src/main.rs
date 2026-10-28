@@ -10,6 +10,10 @@ use embassy_usb::{
 };
 use panic_halt as _;
 use static_cell::StaticCell;
+#[cfg(not(environment_dht11_tm1637))]
+mod environment;
+#[cfg(environment_dht11_tm1637)]
+#[path = "environment_dht.rs"]
 mod environment;
 mod environment_show;
 mod heap;

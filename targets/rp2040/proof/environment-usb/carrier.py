@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Loopback HTTP through an explicitly selected green Pico W carrier.
+"""Loopback HTTP through an explicitly selected Pico W carrier.
 
 This is transport only: no Body membership, discovery, HTTP replay, or host NIC
 changes. Credentials come exclusively from an owned private known-wifi file.
@@ -119,7 +119,7 @@ def load_profile(filename, selected_ssid, uid=None):
 
 def validate_status(value):
     if not isinstance(value, dict) or value.get("role") != ROLE or value.get("body_member") is not False:
-        raise CarrierError("Not the selected green carrier role")
+        raise CarrierError("Not the selected Pico carrier role")
     if not isinstance(value.get("build"), str) or not re.fullmatch(r"[0-9a-f]{64}", value["build"]):
         raise CarrierError("Carrier build identity refused")
     configuration = value.get("configuration")
@@ -192,7 +192,7 @@ class Carrier:
                         except (ValueError, UnicodeError):
                             raise CarrierError("Invalid carrier information") from None
                         if not isinstance(info, dict) or info.get("role") != ROLE:
-                            raise CarrierError("Not the green carrier role")
+                            raise CarrierError("Not the Pico carrier role")
                         if kind != MDNS_QUERY:
                             validate_status(info)
                             identity = (info["build"], info["configuration"])
@@ -347,7 +347,7 @@ class CarrierConnection:
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--port", required=True, help="explicit green CDC device; never the ESP UART")
+    parser.add_argument("--port", required=True, help="explicit Pico CDC device; never the ESP UART")
     parser.add_argument("--network-file", required=True, help="owned private known-wifi@1 JSON; never a password argument")
     parser.add_argument("--ssid", required=True, help="exact profile name, for example Troys")
     parser.add_argument("--peer", required=True, help="explicit actual Root private on-link IPv4; fixed TCP port 80")
@@ -360,14 +360,14 @@ def main(argv=None):
         connection = CarrierConnection(args.port, args.network_file, args.ssid, args.peer)
         connection.connect()
         server = HTTPServer(("127.0.0.1", args.http_port), handler(connection))
-        print(f"Green carrier loopback ready at http://127.0.0.1:{args.http_port}/ (selected peer {connection.peer_host}:80; transport only)", flush=True)
+        print(f"Pico carrier loopback ready at http://127.0.0.1:{args.http_port}/ (selected peer {connection.peer_host}:80; transport only)", flush=True)
         try:
             server.serve_forever()
         finally:
             server.server_close()
         return 0
     except (CarrierError, OSError, KeyboardInterrupt):
-        print("Green carrier stopped or refused; no HTTP request was replayed", file=__import__('sys').stderr)
+        print("Pico carrier stopped or refused; no HTTP request was replayed", file=__import__('sys').stderr)
         return 1
     finally:
         if connection is not None:
