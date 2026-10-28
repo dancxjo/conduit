@@ -447,8 +447,21 @@ impl NativeRoot {
         // actual 16KiB release floor across small regions. The same reserved
         // final backing initializes after temporary planner descriptions retire.
         let reserve = match floor_reserve::reserve(|bytes| {
-            let mut block = alloc::vec::Vec::<u8>::new();
-            block.try_reserve_exact(bytes).map(|()| block)
+            if bytes != floor_reserve::BLOCK_BYTES {
+                return Err(());
+            }
+            type Block = [core::mem::MaybeUninit<u8>; floor_reserve::BLOCK_BYTES];
+            let layout = core::alloc::Layout::new::<Block>();
+            // SAFETY: the exact nonzero Block layout is used for allocation and
+            // Box deallocation. MaybeUninit bytes need no initialization, are
+            // never read, and have no element destructor. Null retains refusal;
+            // only a successful unique allocation becomes an owned thin Box.
+            let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<Block>();
+            if raw.is_null() {
+                Err(())
+            } else {
+                Ok(unsafe { alloc::boxed::Box::from_raw(raw) })
+            }
         }) {
             Ok(reserve) => reserve,
             Err(_) => {

@@ -1,8 +1,9 @@
 //! Physical backing for the unchanged 16KiB construction floor. Several
 //! allocations can occupy smaller free regions without stranding the final
 //! kernel's contiguous backing. These blocks confer no execution authority.
-pub(super) const BLOCK_BYTES: usize = 2048;
-const BLOCKS: usize = 8;
+pub(super) const BLOCK_BYTES: usize = 512;
+const BLOCKS: usize = 32;
+const _: () = assert!(BLOCK_BYTES * BLOCKS == 16 * 1024);
 pub(super) fn reserve<T, E>(
     mut allocate: impl FnMut(usize) -> Result<T, E>,
 ) -> Result<[T; BLOCKS], E> {
@@ -18,17 +19,20 @@ mod tests {
     use std::{cell::RefCell, rc::Rc};
     // Finite first-fit holes matching observed free bank totals.
     // This models the allocation constraint, not a target allocator proof.
-    struct Block {
-        holes: Rc<RefCell<[usize; 4]>>,
+    struct Block<const N: usize> {
+        holes: Rc<RefCell<[usize; N]>>,
         hole: usize,
         bytes: usize,
     }
-    impl Drop for Block {
+    impl<const N: usize> Drop for Block<N> {
         fn drop(&mut self) {
             self.holes.borrow_mut()[self.hole] += self.bytes;
         }
     }
-    fn allocate(holes: &Rc<RefCell<[usize; 4]>>, bytes: usize) -> Result<Block, ()> {
+    fn allocate<const N: usize>(
+        holes: &Rc<RefCell<[usize; N]>>,
+        bytes: usize,
+    ) -> Result<Block<N>, ()> {
         let hole = holes
             .borrow()
             .iter()
@@ -62,6 +66,18 @@ mod tests {
         let kernel = allocate(&holes, 3288).unwrap();
         drop(kernel);
         drop(owner);
+        drop(floor);
+        assert_eq!(*holes.borrow(), initial);
+    }
+    #[test]
+    fn smaller_quantum_backs_exact_same_floor_across_subkilobyte_holes() {
+        let initial = [768; 32];
+        let holes = Rc::new(RefCell::new(initial));
+        assert!(allocate(&holes, 2048).is_err());
+        let floor = reserve(|bytes| allocate(&holes, bytes)).unwrap();
+        assert_eq!(floor.len(), 32);
+        assert_eq!(floor.iter().map(|block| block.bytes).sum::<usize>(), 16384);
+        assert_eq!(holes.borrow().iter().sum::<usize>(), 8192);
         drop(floor);
         assert_eq!(*holes.borrow(), initial);
     }
