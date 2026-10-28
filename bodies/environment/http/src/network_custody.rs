@@ -7,20 +7,6 @@ pub enum Request {
     Offer,
     Chunk { snapshot: [u8; 32], offset: u32 },
 }
-// Keep this rare control payload out of every retained HTTP task frame.
-// One exact fallible allocation belongs only to its active request.
-pub(crate) fn owned(request: Request) -> Result<alloc::boxed::Box<Request>, ()> {
-    let layout = core::alloc::Layout::new::<Request>();
-    let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<Request>();
-    if raw.is_null() {
-        return Err(());
-    }
-    // SAFETY: exact Request layout, checked nonnull, fully initialized before Box.
-    unsafe {
-        raw.write(request);
-        Ok(alloc::boxed::Box::from_raw(raw))
-    }
-}
 pub type Provider = fn(Request) -> Reply;
 static PROVIDER: critical_section::Mutex<RefCell<Option<Provider>>> =
     critical_section::Mutex::new(RefCell::new(None));
