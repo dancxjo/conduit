@@ -71,7 +71,7 @@ async function returnObserver(base){
  const part=pending.receipt?.credential.part_id||pending.recovery?.receipt?.credential.part_id;if(!part)throw Error('A verified admission receipt is required to reconnect.');
  if(!pending.returning){const boot='boot/'+crypto.randomUUID();pending.returning={boot,request:{schema:'conduit.environment/observer-return-challenge-request@1',body_id:claim.body_id,part_id:part,host_advertisement:{...pending.request.host_advertisement,boot_id:boot,bases:[]}},ticket:null};persist()}
  const state=pending.returning;await validateReturn(state);
- if(state.receipt){try{await recoverReturnResult(base,state);status('Recovered this browser’s signed membership receipt. Local measurement continues.');return}catch(error){if(error.message!=='Receipt HTTP 403')throw error;pending.previous_return=state;delete pending.returning;persist();await returnObserver(base);return}}
+ if(state.receipt){try{await recoverReturnResult(base,state)}catch(error){if(error.message!=='Receipt HTTP 403')throw error;pending.previous_return=state;delete pending.returning;persist();await returnObserver(base);return}}
  if(!state.challenge){status('Requesting a return challenge…');await submit(base,state,state.request);const r=await poll(base,state);if(!r)throw Error('Return mailbox expired. Retry retrieves the same challenge.');await verifyReturnChallenge(r,state);state.challenge=r;persist()}
  if(!state.finish){const c=state.challenge.challenge;state.finish={request:{schema:'conduit.environment/observer-return-request@1',body_id:claim.body_id,part_id:part,admission_id:c.admission_id,host_advertisement:state.request.host_advertisement,nonce:hex(c.nonce),signature:hex(await sign(await returnProofTranscript(c)))},ticket:null};persist()}
  if(!state.receipt){
