@@ -404,11 +404,9 @@ pub trait StepBack<const PORTS: usize> {
     /// Explicit opt-in: canonical bytes are composed only into the scheduler's
     /// admitted transactional slot, after the ordinary Step preflight. This
     /// declaration is stable before Play and independent of pending state.
-    #[cfg(feature = "alloc")]
     fn encodes_prepared_output(&self, _port: PortId) -> bool {
         false
     }
-    #[cfg(feature = "alloc")]
     fn encode_prepared_output(
         &self,
         port: PortId,
@@ -1138,7 +1136,6 @@ where
             &cord_specs,
             &routes,
         )?;
-        #[cfg(feature = "alloc")]
         validate_prepared_encoding_profile::<D, S, PORTS>(&drivers[..active_nodes], &values)?;
         Ok(Self {
             node_specs,
@@ -3811,7 +3808,6 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 #[cfg(test)]
 mod tests;
 
-#[cfg(feature = "alloc")]
 fn validate_prepared_encoding_profile<D: StepBack<P>, S: ValueStorage, const P: usize>(
     drivers: &[D],
     values: &S,

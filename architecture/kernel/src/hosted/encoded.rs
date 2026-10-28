@@ -1,11 +1,5 @@
 //! Encode directly into an admitted canonical slot, avoiding a second buffer.
 use super::*;
-#[derive(Debug, PartialEq, Eq)]
-pub enum EncodedValueRefusal<E> {
-    Storage(StorageError),
-    Encoder(E),
-    Length,
-}
 impl HostedValueStore {
     /// Reserve the complete finite byte ceiling before invoking the encoder.
     /// The encoder can only write that free slot. Success publishes its actual

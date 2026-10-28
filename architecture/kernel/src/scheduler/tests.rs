@@ -36,7 +36,6 @@ enum Driver {
         values: [Option<ValueRef>; 4],
         next: usize,
     },
-    #[cfg(feature = "alloc")]
     EncodedSource {
         mode: u8,
         emitted: bool,
@@ -90,11 +89,9 @@ enum Driver {
 }
 
 impl StepBack<PORTS> for Driver {
-    #[cfg(feature = "alloc")]
     fn encodes_prepared_output(&self, port: PortId) -> bool {
         matches!(self, Self::EncodedSource { .. }) && port == PortId(0)
     }
-    #[cfg(feature = "alloc")]
     fn encode_prepared_output(
         &self,
         _: PortId,
@@ -112,7 +109,6 @@ impl StepBack<PORTS> for Driver {
         }
     }
     fn step_committed(&mut self) {
-        #[cfg(feature = "alloc")]
         if let Self::EncodedSource { emitted, .. } = self {
             *emitted = true;
         }
@@ -207,7 +203,6 @@ impl StepBack<PORTS> for Driver {
                 *next += 1;
                 StepOutcome::Progress
             }
-            #[cfg(feature = "alloc")]
             Self::EncodedSource { emitted, .. } => {
                 if *emitted {
                     return StepOutcome::Complete;
@@ -528,7 +523,6 @@ fn prepared_back_storage_emits_beyond_the_inline_derived_value_envelope() {
     assert_eq!(scheduler.values().used_items(), 0);
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn direct_encoded_step_publication_is_transactional() {
     struct Profile {
@@ -670,7 +664,6 @@ fn direct_encoded_step_publication_is_transactional() {
     }
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn failed_direct_encoder_preserves_input_cursor_and_reference() {
     let mut values = FixedValueStore::<3, 256>::new(257).unwrap();

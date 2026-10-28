@@ -75,7 +75,6 @@ fn const_reserved_borrowed_store_preserves_canonical_capacity_and_generations() 
     assert!(matches!(ZERO, Err(StorageError::InvalidBudget)));
 }
 
-#[cfg(feature = "alloc")]
 #[test]
 fn fixed_encoding_refusals_and_unwind_release_ownership_without_reviving_generations() {
     extern crate std;

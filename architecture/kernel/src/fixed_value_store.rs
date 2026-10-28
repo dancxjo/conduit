@@ -183,11 +183,9 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
         self.used_bytes
     }
 
-    #[cfg(feature = "alloc")]
     fn supports_prepared_encoding(&self) -> bool {
         true
     }
-    #[cfg(feature = "alloc")]
     fn store_prepared_encoded(
         &mut self,
         maximum_bytes: usize,
@@ -286,11 +284,9 @@ impl<const S: usize, const M: usize> ValueStorage for &mut FixedValueStore<S, M>
     fn used_bytes(&self) -> u32 {
         (**self).used_bytes()
     }
-    #[cfg(feature = "alloc")]
     fn supports_prepared_encoding(&self) -> bool {
         (**self).supports_prepared_encoding()
     }
-    #[cfg(feature = "alloc")]
     fn store_prepared_encoded(
         &mut self,
         maximum_bytes: usize,
@@ -321,7 +317,6 @@ impl<const S: usize, const M: usize> ValueStorage for &mut FixedValueStore<S, M>
     }
 }
 
-#[cfg(feature = "alloc")]
 impl<const S: usize, const M: usize> crate::CanonicalEncodedValueStorage for FixedValueStore<S, M> {
     fn store_encoded<E>(
         &mut self,
@@ -351,13 +346,11 @@ impl<const S: usize, const M: usize> crate::CanonicalEncodedValueStorage for Fix
         Ok(pending.value)
     }
 }
-#[cfg(feature = "alloc")]
 struct FixedPending<'a, const S: usize, const M: usize> {
     store: &'a mut FixedValueStore<S, M>,
     value: ValueRef,
     committed: bool,
 }
-#[cfg(feature = "alloc")]
 impl<const S: usize, const M: usize> Drop for FixedPending<'_, S, M> {
     fn drop(&mut self) {
         if !self.committed {
@@ -368,7 +361,6 @@ impl<const S: usize, const M: usize> Drop for FixedPending<'_, S, M> {
         }
     }
 }
-#[cfg(feature = "alloc")]
 impl<const S: usize, const M: usize> crate::CanonicalEncodedValueStorage
     for &mut FixedValueStore<S, M>
 {

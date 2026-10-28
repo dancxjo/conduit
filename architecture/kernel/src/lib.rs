@@ -426,14 +426,12 @@ pub trait ValueStorage {
     fn used_bytes(&self) -> u32;
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
     /// Physical direct canonical encoding support, checked before Play.
-    #[cfg(feature = "alloc")]
     fn supports_prepared_encoding(&self) -> bool {
         false
     }
     /// Opt-in canonical publication into a free admitted slot. Unsupported
     /// profiles refuse without calling the encoder or changing ownership.
     /// Failure/unwind must discard partial bytes and retire the reservation.
-    #[cfg(feature = "alloc")]
     fn store_prepared_encoded(
         &mut self,
         _maximum_bytes: usize,
@@ -551,11 +549,12 @@ pub use owned_compact_output::{PendingCompactF32Publication, PreparedCompactF32O
 #[cfg(feature = "alloc")]
 mod hosted;
 
+mod encoded_value;
+pub use encoded_value::EncodedValueRefusal;
 #[cfg(feature = "alloc")]
-pub use hosted::{EncodedValueRefusal, Store as HostedValueStore};
+pub use hosted::Store as HostedValueStore;
 /// Encode canonical bytes into an already admitted free slot. Failed or
 /// unwound encoding retires its generation and releases all reserved ownership.
-#[cfg(feature = "alloc")]
 pub trait CanonicalEncodedValueStorage: ValueStorage {
     fn store_encoded<E>(
         &mut self,
