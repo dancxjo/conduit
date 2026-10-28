@@ -288,13 +288,20 @@ explicit joined-recorder mode:
 conduit-environment-host --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT
 ```
 
+The final argument may contain up to four comma-separated `HOST:PORT` routes.
+Each route uses the same pinned Body/Root and history directory. Authenticated
+collection selects the preferred route; failure tries the explicit alternatives.
+Pending custody requests retain their exact signed bytes across route changes.
+
 Collection runs first. After a successful collection, at most one custody HTTP
 operation runs before the next collection period. The recorder scans six slots,
 signs only after verifying the exact durable files, and retains the same signed
 request across transport loss or pending replies. Authenticated acceptance leaves
 the host files intact and does not claim physical reclamation. An explicit
-protocol or authentication refusal disables automatic custody for that process;
-recording continues and the reason is logged. Run only one recorder against a
+authentication or terminal protocol failure disables automatic custody for that
+process; recording continues and the reason is logged. A slot's HTTP 409 instead
+releases the pending request and resumes bounded scanning, without claiming
+acceptance or deleting files. A later offer must pass all checks again. Run only one recorder against a
 history directory. The continuity private file is an explicit argument, never
 discovered from ambient credentials.
 

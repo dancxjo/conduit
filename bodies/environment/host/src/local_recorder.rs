@@ -161,7 +161,10 @@ fn collect(collector: &Collector, peer: &str, directory: &Path) -> Result<usize>
 /// SIGTERM/default process termination leaves only complete fsynced batch files;
 /// a subsequent invocation restores each original Boot's durable cursor.
 pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Result<()> {
-    run_loop(collector, peer, directory, once, None)
+    if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
+        return Err("recorder peer must be HOST:PORT".into());
+    }
+    run_loop(collector, vec![peer], directory, once, None)
 }
 
 pub fn run_joined_continuing(
@@ -170,6 +173,7 @@ pub fn run_joined_continuing(
     peer: &str,
     directory: &Path,
 ) -> Result<()> {
+    let peers = continuing_peers(peer)?;
     let collector = admitted_collector(binding)?;
     crate::observed_history::create_durable_directory(directory)?;
     private_metadata(directory, true)?;
@@ -177,28 +181,75 @@ pub fn run_joined_continuing(
     private_metadata(continuity, false)?;
     run_loop(
         collector,
-        peer,
+        peers,
         directory,
         false,
         Some((binding, continuity)),
     )
 }
+/// Explicit transport alternatives never change the authenticated collector.
+/// DNS is resolved only when trying a route; malformed addresses fail up front.
+fn continuing_peers(value: &str) -> Result<Vec<&str>> {
+    let peers: Vec<_> = value.split(',').take(5).collect();
+    if peers.is_empty() || peers.len() > 4 {
+        return Err("continuing recorder requires one to four explicit peers".into());
+    }
+    for peer in &peers {
+        validate_peer(peer)?;
+    }
+    Ok(peers)
+}
+fn validate_peer(peer: &str) -> Result<()> {
+    let (host, port) = peer
+        .rsplit_once(':')
+        .ok_or("recorder peer must be HOST:PORT")?;
+    if peer.len() > 255
+        || host.is_empty()
+        || !host
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')
+        || port.is_empty()
+        || !port.bytes().all(|b| b.is_ascii_digit())
+        || port.parse::<u16>().ok().filter(|port| *port != 0).is_none()
+    {
+        return Err("recorder peer must be an IPv4 address or DNS host and nonzero port".into());
+    }
+    Ok(())
+}
+fn collect_routes(
+    collector: &Collector,
+    peers: &[&str],
+    preferred: usize,
+    directory: &Path,
+) -> Result<(usize, usize)> {
+    let mut failure = None;
+    for offset in 0..peers.len() {
+        let route = (preferred + offset) % peers.len();
+        match collect(collector, peers[route], directory) {
+            Ok(epochs) => return Ok((route, epochs)),
+            Err(error) => failure = Some(error),
+        }
+    }
+    Err(failure.unwrap_or_else(|| "no explicit recorder routes".into()))
+}
 fn run_loop(
     collector: Collector,
-    peer: &str,
+    peers: Vec<&str>,
     directory: &Path,
     once: bool,
     custody: Option<(&Path, &Path)>,
 ) -> Result<()> {
-    if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
-        return Err("recorder peer must be HOST:PORT".into());
-    }
+    let mut preferred = 0;
     let mut continuing = crate::observed_custody_live::Continuing::new();
     let mut backoff = Backoff::default();
     let mut connected = false;
     loop {
-        match collect(&collector, peer, directory) {
-            Ok(epochs) => {
+        match collect_routes(&collector, &peers, preferred, directory) {
+            Ok((route, epochs)) => {
+                if route != preferred {
+                    eprintln!("recorder selected authenticated transport {}", peers[route]);
+                }
+                preferred = route;
                 if !connected {
                     eprintln!("recorder connected; {epochs} authenticated epochs available");
                 }
@@ -208,7 +259,7 @@ fn run_loop(
                     return Ok(());
                 }
                 if let Some((binding, continuity)) = custody {
-                    continuing.tick(binding, continuity, peer, directory);
+                    continuing.tick(binding, continuity, peers[preferred], directory);
                 }
                 std::thread::sleep(Duration::from_secs(30));
             }
@@ -232,6 +283,29 @@ mod tests {
     use super::*;
     include!("local_recorder/restart.rs");
     include!("local_recorder/recovery.rs");
+    #[test]
+    fn explicit_routes_are_finite_and_validated_without_resolving() {
+        assert_eq!(
+            continuing_peers("127.0.0.1:8767,blue.local:80")
+                .unwrap()
+                .len(),
+            2
+        );
+        for invalid in [
+            "",
+            "host",
+            "host:0",
+            "host:65536",
+            "host:-1",
+            "host:80/path",
+            "user@host:80",
+            "host:80,",
+            "host:80, host:81",
+            "host:80,host:81,host:82,host:83,host:84",
+        ] {
+            assert!(continuing_peers(invalid).is_err(), "{invalid}");
+        }
+    }
     #[test]
     fn retry_delay_is_bounded_and_only_success_resets_it() {
         let mut backoff = Backoff::default();

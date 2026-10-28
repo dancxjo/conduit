@@ -88,8 +88,9 @@ impl Continuing {
         }
         self.next = Instant::now() + Duration::from_secs(30);
         if let Err(error) = self.advance(binding, continuity, peer, history) {
-            // Explicit protocol/authentication refusal is not an invitation to
-            // sign again or try a different scope. Recording itself continues.
+            // Invalid authenticated content or terminal protocol failures are
+            // not authority to sign again. A slot's explicit 409 is reconciled
+            // separately without claiming acceptance. Recording continues.
             self.disabled = true;
             eprintln!("automatic custody disabled; recording continues: {error}");
         }
@@ -131,7 +132,13 @@ impl Continuing {
             return Ok(());
         }
         self.pending_offers = 0;
-        if self.pending.is_none() && status == 409 {
+        if status == 409 {
+            // A producer restart may retire an acceptance cache or move its
+            // service slots. Explicit refusal releases only our pending request;
+            // it proves neither acceptance nor erasure. Durable files and the
+            // accepted identity cache remain untouched. Any later offer must
+            // pass Root authentication and exact durable verification anew.
+            self.pending = None;
             self.slot = (slot + 1) % 6;
             return Ok(());
         }
@@ -401,12 +408,96 @@ mod tests {
         let mut continuing = Continuing::new();
         continuing.pending = Some((b"original-offer".to_vec(), b"exact-ack".to_vec()));
         let absent = Path::new("/nonexistent/private-key");
-        for _ in 0..2 {
-            continuing.advance(absent, absent, &peer, absent).unwrap();
-        }
+        continuing.advance(absent, absent, &peer, absent).unwrap();
+        // Changing a transport endpoint preserves the same pending offer and
+        // signed bytes; no key is reloaded after a response disappears.
+        let alternate = TcpListener::bind("127.0.0.1:0").unwrap();
+        let alternate_peer = alternate.local_addr().unwrap().to_string();
+        let alternate_server = std::thread::spawn(move || {
+            let (mut socket, _) = alternate.accept().unwrap();
+            let mut bytes = Vec::new();
+            let mut block = [0; 1024];
+            loop {
+                let count = socket.read(&mut block).unwrap();
+                assert_ne!(count, 0);
+                bytes.extend_from_slice(&block[..count]);
+                if let Some(end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                    if bytes.len() >= end + 4 + 9 {
+                        assert_eq!(&bytes[end + 4..], b"exact-ack");
+                        break;
+                    }
+                }
+            }
+        });
+        continuing
+            .advance(absent, absent, &alternate_peer, absent)
+            .unwrap();
+        alternate_server.join().unwrap();
+        continuing.advance(absent, absent, &peer, absent).unwrap();
+        assert_eq!(continuing.pending.as_ref().unwrap().0, b"original-offer");
         assert_eq!(continuing.pending.unwrap().1, b"exact-ack");
         assert_eq!(continuing.slot, 0);
         server.join().unwrap();
+    }
+    #[test]
+    fn refused_pending_ack_rescans_without_claiming_custody_or_touching_files() {
+        use std::{
+            io::{Read, Write},
+            net::TcpListener,
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let peer = listener.local_addr().unwrap().to_string();
+        let server = std::thread::spawn(move || {
+            for expected in [
+                "POST /history/custody/ack?slot=0 ",
+                "GET /history/custody/offer?slot=1 ",
+            ] {
+                let (mut socket, _) = listener.accept().unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut request = Vec::new();
+                while !request.ends_with(b"\r\n\r\n") {
+                    let mut byte = [0];
+                    socket.read_exact(&mut byte).unwrap();
+                    request.push(byte[0]);
+                }
+                assert!(std::str::from_utf8(&request).unwrap().starts_with(expected));
+                if expected.starts_with("POST") {
+                    let mut body = [0; 9];
+                    socket.read_exact(&mut body).unwrap();
+                    assert_eq!(&body, b"exact-ack");
+                }
+                socket
+                    .write_all(
+                        b"HTTP/1.1 409 Conflict\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                    )
+                    .unwrap();
+            }
+        });
+        let history =
+            std::env::temp_dir().join(format!("custody-refusal-rescan-{}", std::process::id()));
+        std::fs::create_dir(&history).unwrap();
+        let retained = history.join("retained-observation");
+        std::fs::write(&retained, b"original durable evidence").unwrap();
+        let mut continuing = Continuing::new();
+        continuing.pending = Some((b"original-offer".to_vec(), b"exact-ack".to_vec()));
+        let absent = Path::new("/nonexistent/private-key");
+        continuing.advance(absent, absent, &peer, &history).unwrap();
+        assert!(continuing.pending.is_none());
+        assert_eq!(continuing.slot, 1);
+        assert_eq!(continuing.accepted, [None; 6]);
+        continuing.advance(absent, absent, &peer, &history).unwrap();
+        assert_eq!(continuing.slot, 2);
+        assert!(!continuing.disabled);
+        assert_eq!(continuing.accepted, [None; 6]);
+        assert_eq!(
+            std::fs::read(&retained).unwrap(),
+            b"original durable evidence"
+        );
+        assert_eq!(std::fs::read_dir(&history).unwrap().count(), 1);
+        server.join().unwrap();
+        std::fs::remove_dir_all(history).unwrap();
     }
     fn fixture() -> (
         conduit_body::BodyId,

@@ -128,8 +128,10 @@ fn private_joined_binding_recovers_old_and_new_producer_boot_after_outage() {
         }
     });
     let custody = directory.join("history");
+    // All explicit routes fail authentication/transport; none may create a
+    // durable batch, nor may the collection-first caller enter custody work.
     for _ in 0..3 {
-        assert!(collector.collect_epochs(address, &custody).is_err());
+        assert!(collect_routes(&collector, &[&address.to_string()], 0, &custody).is_err());
         assert!(!custody.exists());
     }
     // Run the actual joined recorder entry in two separate OS processes. Both
@@ -167,7 +169,44 @@ fn joined_recorder_process_helper() {
     };
     let history = std::env::var_os("CONDUIT_TEST_RECORDER_HISTORY").unwrap();
     let peer = std::env::var("CONDUIT_TEST_RECORDER_PEER").unwrap();
-    run_joined(Path::new(&binding), &peer, Path::new(&history), true).unwrap();
+    // Reserve then close a real socket to provide a refused primary route.
+    let refused = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let refused_peer = refused.local_addr().unwrap().to_string();
+    drop(refused);
+    use std::io::{Read, Write};
+    use ed25519_dalek::Signer;
+    use sha2::{Digest, Sha256};
+    #[allow(dead_code, clippy::duplicate_mod)]
+    #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_wire.rs"]
+    mod route_wire;
+    let foreign = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let foreign_peer = foreign.local_addr().unwrap().to_string();
+    let binding_scope = validated_binding(Path::new(&binding)).unwrap();
+    let mut raw = [0; route_wire::DIRECTORY_BYTES];
+    raw[..32].copy_from_slice(&Sha256::digest(binding_scope.credential().body_id.as_str().as_bytes()));
+    let wrong_root = ed25519_dalek::SigningKey::from_bytes(&[99; 32]);
+    let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    let response = serde_json::to_vec(&serde_json::json!({
+        "profile":"observed-epochs@1", "directory":hex(&raw),
+        "signature":hex(&wrong_root.sign(&route_wire::directory_transcript(&raw)).to_bytes())
+    })).unwrap();
+    let foreign_server = std::thread::spawn(move || {
+        let (mut socket, _) = foreign.accept().unwrap();
+        let mut request = Vec::new();
+        while !request.ends_with(b"\r\n\r\n") {
+            let mut byte = [0];
+            socket.read_exact(&mut byte).unwrap();
+            request.push(byte[0]);
+        }
+        assert!(std::str::from_utf8(&request).unwrap().starts_with("GET /history?after=4294967295 "));
+        socket.write_all(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n").unwrap();
+        socket.write_all(&response).unwrap();
+    });
+    let list = format!("{refused_peer},{foreign_peer},{peer}");
+    let peers = continuing_peers(&list).unwrap();
+    let collector = admitted_collector(Path::new(&binding)).unwrap();
+    run_loop(collector, peers, Path::new(&history), true, None).unwrap();
+    foreign_server.join().unwrap();
 }
 
 pub(super) fn canonical_admission(

@@ -125,7 +125,7 @@ fn main() -> Result<()> {
         .is_some_and(|argument| argument == "--record-joined-continuing")
     {
         if args.len() != 6 {
-            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT".into());
+            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT[,HOST:PORT...] (at most four explicit peers)".into());
         }
         return local_recorder::run_joined_continuing(
             std::path::Path::new(&args[2]),
