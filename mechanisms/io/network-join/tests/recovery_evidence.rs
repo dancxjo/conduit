@@ -209,3 +209,54 @@ fn frozen_snapshot_keeps_full_physical_extent_and_reopens_without_reclamation() 
     assert_eq!(journal.remaining_slots(), 6);
     assert_eq!(journal.into_storage().bytes, expected);
 }
+
+#[test]
+fn lost_commit_readback_retry_counts_each_physical_slot_once() {
+    struct ReadbackFlash {
+        flash: Flash,
+        fail_next: bool,
+    }
+    impl Storage for ReadbackFlash {
+        fn capacity(&self) -> u32 {
+            CAPACITY
+        }
+        fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
+            if core::mem::take(&mut self.fail_next) {
+                return Err(Refusal::Media);
+            }
+            self.flash.read(at, out)
+        }
+        fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
+            self.flash.program(at, bytes)?;
+            if bytes == b"nce1" {
+                self.fail_next = true;
+            }
+            Ok(())
+        }
+    }
+    let mut work = [0; MAXIMUM_BYTES];
+    let mut journal = Journal::open(
+        ReadbackFlash {
+            flash: Flash::erased(),
+            fail_next: false,
+        },
+        &mut work,
+    )
+    .unwrap_or_else(|_| panic!("open"));
+    for slot in 0..8u8 {
+        let wire = page_at(u64::from(slot) + 1);
+        assert_eq!(journal.append(&wire), Err(Refusal::Media));
+        assert_eq!(journal.committed_count(), slot);
+        for _ in 0..3 {
+            assert_eq!(journal.append(&wire).unwrap().slot(), slot);
+            assert_eq!(journal.committed_count(), slot + 1);
+            assert_eq!(journal.remaining_slots(), 7 - slot);
+        }
+    }
+    let frozen = journal.freeze();
+    assert_eq!(frozen.committed_count(), 8);
+    let reopened = frozen
+        .reopen(&mut work)
+        .unwrap_or_else(|_| panic!("reopen"));
+    assert_eq!(reopened.committed_count(), 8);
+}

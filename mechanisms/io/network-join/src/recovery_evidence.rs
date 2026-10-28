@@ -297,7 +297,7 @@ pub struct FrozenJournal<S> {
 impl<S: Storage> FrozenJournal<S> {
     pub const MAXIMUM_CHUNK_BYTES: usize = 512;
     pub fn committed_count(&self) -> u8 {
-        self.journal.count
+        self.journal.committed_count()
     }
     pub fn remaining_slots(&self) -> u8 {
         self.journal.remaining_slots()
@@ -324,7 +324,7 @@ impl<S: Storage> FrozenJournal<S> {
 pub struct Journal<S> {
     storage: S,
     next: u8,
-    count: u8,
+    committed_slots: u8,
 }
 impl<S: Storage> Journal<S> {
     pub fn freeze(self) -> FrozenJournal<S> {
@@ -335,7 +335,7 @@ impl<S: Storage> Journal<S> {
             return Err((storage, Refusal::Geometry));
         }
         let mut next = 0;
-        let mut count = 0;
+        let mut committed_slots = 0;
         for slot in 0..8 {
             if let Err(e) = storage.read(slot * SLOT_BYTES, work) {
                 return Err((storage, e));
@@ -348,13 +348,13 @@ impl<S: Storage> Journal<S> {
                 if let Err(e) = Page::parse(work) {
                     return Err((storage, e));
                 }
-                count += 1;
+                committed_slots |= 1 << slot;
             }
         }
         Ok(Self {
             storage,
             next,
-            count,
+            committed_slots,
         })
     }
     /// Unused physical slots, excluding torn writes. This is capacity telemetry,
@@ -363,7 +363,7 @@ impl<S: Storage> Journal<S> {
         8u8.saturating_sub(self.next)
     }
     pub fn committed_count(&self) -> u8 {
-        self.count
+        self.committed_slots.count_ones() as u8
     }
     pub fn read_slot(&mut self, slot: u8, work: &mut [u8; MAXIMUM_BYTES]) -> Result<(), Refusal> {
         if slot >= 8 {
@@ -378,6 +378,7 @@ impl<S: Storage> Journal<S> {
         // Retry recognizes the exact complete record instead of spending a slot.
         for slot in 0..self.next {
             if matching_committed(&mut self.storage, u32::from(slot) * SLOT_BYTES, wire)? {
+                self.committed_slots |= 1 << slot;
                 return Ok(Committed {
                     slot,
                     checksum: u32::from_le_bytes(wire[DATA..DATA + 4].try_into().unwrap()),
@@ -394,7 +395,7 @@ impl<S: Storage> Journal<S> {
         verify(&mut self.storage, at, &wire[..DATA + 4])?;
         self.storage.program(at + DATA as u32 + 4, COMMIT)?;
         verify(&mut self.storage, at, wire)?;
-        self.count += 1;
+        self.committed_slots |= 1 << slot;
         Ok(Committed {
             slot,
             checksum: u32::from_le_bytes(wire[DATA..DATA + 4].try_into().unwrap()),
