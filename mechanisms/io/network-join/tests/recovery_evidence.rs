@@ -170,3 +170,42 @@ fn torn_write_spends_capacity_without_becoming_committed() {
     assert_eq!(reopened.remaining_slots(), 7);
     assert_eq!(reopened.committed_count(), 0);
 }
+
+#[test]
+fn frozen_snapshot_keeps_full_physical_extent_and_reopens_without_reclamation() {
+    let mut work = [0; MAXIMUM_BYTES];
+    let mut journal = open(Flash::erased(), &mut work);
+    journal.append(&page()).unwrap();
+    let mut storage = journal.into_storage();
+    // Torn next page and non-page tail bytes must be retained exactly too.
+    storage.bytes[SLOT_BYTES as usize] = 0;
+    storage.bytes[(SLOT_BYTES - 1) as usize] = 0x37;
+    storage.bytes[(CAPACITY - 1) as usize] = 0x53;
+    let expected = storage.bytes.clone();
+    let mut frozen = open(storage, &mut work).freeze();
+    assert_eq!(frozen.committed_count(), 1);
+    assert_eq!(frozen.remaining_slots(), 6);
+    let mut snapshot = Vec::new();
+    let mut chunk = [0; 512];
+    for at in (0..CAPACITY).step_by(512) {
+        frozen.read_chunk(at, &mut chunk).unwrap();
+        snapshot.extend_from_slice(&chunk);
+    }
+    assert_eq!(snapshot, expected);
+    assert_eq!(
+        frozen.read_chunk(CAPACITY, &mut chunk[..1]),
+        Err(Refusal::Geometry)
+    );
+    assert_eq!(
+        frozen.read_chunk(u32::MAX, &mut chunk[..1]),
+        Err(Refusal::Geometry)
+    );
+    assert_eq!(frozen.read_chunk(0, &mut []), Err(Refusal::Geometry));
+    assert_eq!(frozen.read_chunk(0, &mut [0; 513]), Err(Refusal::Geometry));
+    let journal = frozen
+        .reopen(&mut work)
+        .unwrap_or_else(|_| panic!("reopen"));
+    assert_eq!(journal.committed_count(), 1);
+    assert_eq!(journal.remaining_slots(), 6);
+    assert_eq!(journal.into_storage().bytes, expected);
+}

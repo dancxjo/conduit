@@ -288,12 +288,48 @@ impl Committed {
         self.checksum
     }
 }
+/// Exclusive read-only custody of the complete physical journal, including
+/// unused bytes and torn writes. No append, program, or erase entrance exists.
+/// A signature or retention acknowledgment remains a separate obligation.
+pub struct FrozenJournal<S> {
+    journal: Journal<S>,
+}
+impl<S: Storage> FrozenJournal<S> {
+    pub const MAXIMUM_CHUNK_BYTES: usize = 512;
+    pub fn committed_count(&self) -> u8 {
+        self.journal.count
+    }
+    pub fn remaining_slots(&self) -> u8 {
+        self.journal.remaining_slots()
+    }
+    /// Read the exact physical extent rather than reconstructing valid pages.
+    /// The caller supplies finite backing; refused geometry never reaches media.
+    pub fn read_chunk(&mut self, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
+        if out.is_empty()
+            || out.len() > Self::MAXIMUM_CHUNK_BYTES
+            || at
+                .checked_add(out.len() as u32)
+                .is_none_or(|end| end > CAPACITY)
+        {
+            return Err(Refusal::Geometry);
+        }
+        self.journal.storage.read(at, out)
+    }
+    /// Cancel the closed view and revalidate physical storage before appending.
+    /// This preserves every byte; it supplies no reclamation authorization.
+    pub fn reopen(self, work: &mut [u8; MAXIMUM_BYTES]) -> Result<Journal<S>, (S, Refusal)> {
+        Journal::open(self.journal.storage, work)
+    }
+}
 pub struct Journal<S> {
     storage: S,
     next: u8,
     count: u8,
 }
 impl<S: Storage> Journal<S> {
+    pub fn freeze(self) -> FrozenJournal<S> {
+        FrozenJournal { journal: self }
+    }
     pub fn open(mut storage: S, work: &mut [u8; MAXIMUM_BYTES]) -> Result<Self, (S, Refusal)> {
         if storage.capacity() != CAPACITY {
             return Err((storage, Refusal::Geometry));
