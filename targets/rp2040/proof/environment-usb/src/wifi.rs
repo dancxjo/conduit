@@ -235,9 +235,13 @@ async fn join(
         .await
         .map_err(|_| "radio-leave-timeout")?;
     stack.set_config_v4(embassy_net::ConfigV4::Dhcp(Default::default()));
+    // The private carrier profile admits WPA2 Personal only. The pinned CYW43
+    // default selects WPA3, so it must not override that explicit policy.
+    let mut options = cyw43::JoinOptions::new(credential.as_bytes());
+    options.auth = cyw43::JoinAuth::Wpa2;
     with_timeout(
         Duration::from_secs(25),
-        control.join(ssid, cyw43::JoinOptions::new(credential.as_bytes())),
+        control.join(ssid, options),
     )
     .await
     .map_err(|_| "radio-join-timeout")?
