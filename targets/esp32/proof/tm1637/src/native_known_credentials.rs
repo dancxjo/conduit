@@ -1,7 +1,7 @@
 //! Portable private profile custody and one immutable selected CNJ1 snapshot.
 //! No radio, scan, policy, Play, grant or Body authority is established here.
-//! Not wired into native_credentials yet: Root must retain this SAME owner across
-//! selected executions and only access it through actual affine source custody.
+//! native_credentials retains this SAME owner across selected executions and
+//! accesses it only through actual affine source custody.
 use conduit_net as n;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {

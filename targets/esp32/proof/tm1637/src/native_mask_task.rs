@@ -146,7 +146,10 @@ impl Handle {
     }
     pub fn retry_evidence(&self) -> Result<(), &'static str> {
         let status = self.status();
-        if status.task_active || status.phase != "cleanup-refused" || !status.pending_evidence {
+        if status.task_active
+            || !matches!(status.phase, "failed" | "cleanup-refused")
+            || !status.pending_evidence
+        {
             return Err("mask-no-pending-evidence");
         }
         let mut session = self.slot.session.borrow_mut();
@@ -465,8 +468,10 @@ async fn held(slot: &'static Slot) {
         state.status.failure = result.err();
         state.status.cleanup_refusal = session.cleanup_refusal();
         state.status.task_active = false;
-        state.status.phase = if state.status.failure.is_some() {
+        state.status.phase = if state.status.cleanup_refusal.is_some() {
             "cleanup-refused"
+        } else if state.status.failure.is_some() {
+            "failed"
         } else {
             "quiesced"
         };

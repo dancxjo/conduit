@@ -645,7 +645,7 @@ fn checkpoint_store_timed(
                     "restart-checkpoint-storage"
                 } else {
                     store.failed = true;
-                    "restart-checkpoint-commit"
+                    checkpoint_commit_refusal(error)
                 }
             })?;
         let (summary, span) = metadata.ok_or("restart-checkpoint-metadata")?;
@@ -692,9 +692,9 @@ fn checkpoint_store_timed(
                 )
                 .map_err(stream_refusal)
             })
-            .map_err(|_| {
+            .map_err(|error| {
                 store.failed = true;
-                "restart-checkpoint-commit"
+                checkpoint_commit_refusal(error)
             })?;
         let mut checked_seed = PrivateSeed([0; 32]);
         let (resident, source) = decode_checkpoint(
@@ -810,6 +810,16 @@ pub fn generation() -> Option<u64> {
         Slot::Available(store) => store.journal.generation(),
         _ => None,
     })
+}
+
+fn checkpoint_commit_refusal(error: Refusal) -> &'static str {
+    match error {
+        Refusal::Storage => "restart-checkpoint-storage",
+        Refusal::Geometry => "restart-checkpoint-geometry",
+        Refusal::Corrupt => "restart-checkpoint-corrupt",
+        Refusal::Capacity => "restart-checkpoint-capacity",
+        Refusal::Generation => "restart-checkpoint-generation",
+    }
 }
 
 fn stream_refusal(error: payload::StreamRefusal<Refusal>) -> Refusal {

@@ -472,7 +472,7 @@ pub(super) fn prove_storage_policy() {
     let original = state.0[at];
     state.0[at] ^= 1; // Explicit simulated media bit corruption, never a journal write.
     drop(state);
-    assert_eq!(root.checkpoint_body(), Err("restart-checkpoint-commit"));
+    assert_eq!(root.checkpoint_body(), Err("restart-checkpoint-corrupt"));
     assert!(!native_restart::publication_ready());
     media.media.lock().unwrap().0[at] = original;
     assert_eq!(root.checkpoint_body(), Err("restart-failed"));
