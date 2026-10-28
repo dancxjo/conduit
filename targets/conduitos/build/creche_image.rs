@@ -5,12 +5,7 @@ use super::service_image_validation::{ServiceImage, ServiceProfile};
 
 pub fn generate() {
     println!("cargo:rustc-check-cfg=cfg(conduitos_creche_image)");
-    for source in [
-        "creche-service",
-        "creche-core",
-        "shared/private_heap_bitmap.rs",
-        "src/service_memory.rs",
-    ] {
+    for source in ["creche-service", "creche-core", "src/service_memory.rs"] {
         println!("cargo:rerun-if-changed={source}");
     }
     if env::var("CARGO_CFG_TARGET_ARCH").as_deref() != Ok("x86_64")

@@ -140,3 +140,7 @@ pub fn find(
         large_find(bitmap, heap_start, index, end, needed, alignment)
     }
 }
+
+#[cfg(test)]
+#[path = "bitmap_tests.rs"]
+mod tests;

@@ -4,7 +4,7 @@ use core::{
     alloc::{GlobalAlloc, Layout},
     ptr,
 };
-#[path = "../shared/private_heap_bitmap.rs"]
+#[path = "allocator/bitmap.rs"]
 mod bitmap;
 use bitmap::UNIT;
 const UNITS: usize = HEAP_BYTES / UNIT;

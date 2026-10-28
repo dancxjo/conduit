@@ -4,9 +4,7 @@ use core::{
     alloc::{GlobalAlloc, Layout},
     ptr,
 };
-#[path = "../../shared/private_heap_bitmap.rs"]
-mod bitmap;
-use bitmap::UNIT;
+const UNIT: usize = 32;
 const UNITS: usize = HEAP_BYTES / UNIT;
 const CURSOR: usize = METADATA + 8192;
 // A failed allocation is terminal for this instance. Root quarantines every
@@ -45,11 +43,22 @@ fn word_mask(start: usize, end: usize, word: usize) -> u64 {
     let last = (end - word * 64).min(64);
     (u64::MAX << first) & (u64::MAX >> (64 - last))
 }
+// SAFETY: callers provide start <= end within the installed bitmap extent.
+unsafe fn mark_in(bitmap: *mut u64, start: usize, end: usize, used: bool) {
+    for word in start / 64..end.div_ceil(64) {
+        let mask = word_mask(start, end, word);
+        let pointer = unsafe { bitmap.add(word) };
+        // Fully covered words need no read of their old contents.
+        let value = if mask == u64::MAX {
+            0
+        } else {
+            unsafe { pointer.read() }
+        };
+        unsafe { pointer.write(if used { value | mask } else { value & !mask }) };
+    }
+}
 unsafe fn mark(start: usize, end: usize, used: bool) {
-    // SAFETY: one exclusive guest entry owns the admitted bitmap extent.
-    let words = unsafe { core::slice::from_raw_parts_mut(BITMAP as *mut u64, UNITS.div_ceil(64)) };
-    let marked = bitmap::mark(words, start, end, used);
-    debug_assert!(marked);
+    unsafe { mark_in(BITMAP as *mut u64, start, end, used) }
 }
 // Return the first matching unit as a bit scan would, skipping opposite words.
 // SAFETY: callers provide start <= end within the installed bitmap extent.
@@ -75,14 +84,6 @@ unsafe fn find_in(
     needed: usize,
     alignment: usize,
 ) -> Option<usize> {
-    if needed > 64 {
-        // Large typed vectors can cross many fragmented words. The shared
-        // scan preserves exact first-fit placement with one pass over words;
-        // it never changes the heap extent, cursor or entry allowance.
-        // SAFETY: end is within the installed bitmap (or a test-owned extent).
-        let words = unsafe { core::slice::from_raw_parts(bitmap, end.div_ceil(64)) };
-        return bitmap::find(words, HEAP_START, index, end, needed, alignment);
-    }
     while index.checked_add(needed).is_some_and(|n| n <= end) {
         let address = (HEAP_START + index * UNIT).checked_add(alignment - 1)? & !(alignment - 1);
         index = (address - HEAP_START) / UNIT;
@@ -165,7 +166,7 @@ mod tests {
                             expected[index / 64] &= !mask;
                         }
                     }
-                    assert!(bitmap::mark(&mut words, start, end, used));
+                    unsafe { mark_in(words.as_mut_ptr(), start, end, used) };
                     assert_eq!(words, expected, "range {start}..{end} used={used}");
                 }
             }

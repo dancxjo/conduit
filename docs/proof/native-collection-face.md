@@ -92,22 +92,22 @@ The 16,413-byte compressed target represented 219,430 decoded bytes. Preflight
 consumed thirteen of its sixty-four RTC ticks; Commit exhausted the remaining
 fifty-one. This is an entry-work refusal, not collection payload capacity.
 
-Application's large private allocations reuse the existing exact-first-fit
-word scan from Crèche. It skips fragmented words that cannot contain a large
-run while preserving the same allocation address, alignment, cursor policy,
-and fixed metadata grant. Small Application allocations retain their prior
-scan. The shared bitmap is mechanical storage code, not another admission or
-execution policy. The sixty-four-tick logical operation allowance and its
-debit across Preflight, Commit and reads remain unchanged; a failed entry is
-still quarantined rather than resumed or retried.
+The Application service keeps its size-oriented release profile but compiles
+`miniz_oxide` and `serde_json` with speed optimization. These parsers consume
+complete retained targets during the same finite preparation operation. The
+build validates the resulting executable against the unchanged 2 MiB image
+window. Wire, decoded-byte, private-heap and RTC grants do not grow. The
+sixty-four-tick allowance remains shared across Preflight, Commit and reads;
+a failed entry is still quarantined rather than resumed or retried.
 
-The bitmap differential tests and exact private-grant actor regression exercise
-the allocator. The complete normal-product regression entrance is:
+The full normal journey regression entrance is:
 
 ```sh
 cargo xtask make conduitos journey-proof
 ```
 
-Its actual Application entry-cost records must establish successful complete
-preparation within the existing operation allowance. A passing Crèche controls
-proof alone does not establish the later Body/Patchbay wake preparation.
+CI independently builds the normal product and verifies its retained image
+with `cargo xtask make host verify <OUTPUT> --journey --locked`. Actual
+Application entry-cost records must establish successful complete preparation
+within the existing operation allowance. A passing Crèche controls proof alone
+does not establish the later Body/Patchbay wake preparation.
