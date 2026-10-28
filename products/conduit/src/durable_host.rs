@@ -462,16 +462,9 @@ fn start_runtime(state_dir: &Path) -> Result<RuntimeStatus, String> {
     prepare_runtime(state_dir).map(|(status, _)| status)
 }
 
-fn running_target_id() -> Result<&'static str, String> {
-    match (std::env::consts::OS, std::env::consts::ARCH) {
-        ("linux", "x86_64") => Ok("std/x86_64/computer"),
-        ("windows", "x86_64") => Ok("std/x86_64/windows-computer"),
-        ("macos", "aarch64") => Ok("std/aarch64/macos-computer"),
-        (os, architecture) => Err(format!(
-            "no reviewed durable host profile is installed for {os}/{architecture}"
-        )),
-    }
-}
+#[path = "durable_host/running_target.rs"]
+mod running_target;
+use running_target::running_target_id;
 
 fn status(state_dir: &Path, json: bool) -> Result<(), String> {
     let installation = read_installation(&state_dir.join("installation.json"))?;
