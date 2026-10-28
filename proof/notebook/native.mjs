@@ -126,8 +126,11 @@ export async function prepareNative({ installed, state, bodyId, build, privateRo
     const notebook = () => JSON.parse(call(installed, ['body', 'notebook', '--state-dir', state, 'show']));
     const awaitShown = async prior => wait(async () => {
       const faces = await records('CONDUIT_NATIVE_OWNER_FACE');
-      const shown = faces.findLast(face => face.status === 'shown' && face.interactions_admitted && face.show_id !== prior);
-      const ack = shown && faces.findLast(face => face.status === 'acknowledged' && face.show_id === shown.show_id);
+      const boundary = prior === undefined ? -1 : faces.findLastIndex(face => face.status === 'acknowledged' && face.show_id === prior);
+      if (prior !== undefined && boundary < 0) return null;
+      const subsequent = faces.slice(boundary + 1);
+      const shown = subsequent.findLast(face => face.status === 'shown' && face.interactions_admitted && face.show_id !== prior);
+      const ack = shown && subsequent.findLast(face => face.status === 'acknowledged' && face.show_id === shown.show_id);
       return ack && { shown, ack };
     }, 'acknowledged current native Show', 30000);
     let browserName;
