@@ -11,6 +11,7 @@ pub(super) fn validate(bytes: &[u8]) -> Result<(), Refusal> {
 pub(super) fn validate_plain(bytes: &[u8]) -> Result<(), Refusal> {
     validate_mode(bytes, false, None)
 }
+#[cfg(test)]
 pub(super) fn validate_publication(bytes: &[u8], maximum_plan: usize) -> Result<(), Refusal> {
     validate_mode(bytes, false, Some(maximum_plan))
 }

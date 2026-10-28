@@ -41,6 +41,7 @@ pub(crate) fn encode_to_slice<T: Serialize + ?Sized>(
 
 /// The direct publication carrier uses the same bounded ordinary JSON backend
 /// without the counted-sequence adapter. Other private formats stay unchanged.
+#[cfg(test)]
 pub(crate) fn encode_plain<T: Serialize + ?Sized>(
     value: &T,
     output: &mut [u8],
@@ -50,10 +51,6 @@ pub(crate) fn encode_plain<T: Serialize + ?Sized>(
 #[cfg(test)]
 pub(crate) fn preflight_plain(bytes: &[u8]) -> Result<(), Refusal> {
     preflight::validate_plain(bytes)
-}
-
-pub(crate) fn preflight_publication(bytes: &[u8], maximum_plan: usize) -> Result<(), Refusal> {
-    preflight::validate_publication(bytes, maximum_plan)
 }
 
 /// State validates these immutable bytes in a separate protected entry.

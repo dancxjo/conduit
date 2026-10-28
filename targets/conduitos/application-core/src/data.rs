@@ -131,7 +131,7 @@ pub enum Command {
         basis: conduit_face::FaceContributionBasis,
         actions_admitted: bool,
     },
-    // Coordinated private wire cut: publication is decoded only from CAPP1.
+    // Coordinated private wire cut: publication is decoded only from CAPP2.
     // Other Command serialization/discriminants and public Face/Show JSON stay.
     #[serde(skip_deserializing)]
     PatchbayPublish {

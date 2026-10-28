@@ -93,6 +93,15 @@ fn complete_plan_round_trip_preserves_public_json_and_canonical_validation() {
 #[test]
 fn old_private_publication_refuses_and_other_command_bytes_stay_exact() {
     let command = fixture();
+    let mut old_version = encode_command(&command).unwrap();
+    assert!(old_version.starts_with(MAGIC));
+    old_version[MAGIC.len() - 1] = 1;
+    assert!(
+        Workspace::new()
+            .unwrap()
+            .decode_command(&old_version)
+            .is_err()
+    );
     let legacy = super::super::encode_with(&command, transport_codec::encode_to_slice).unwrap();
     assert!(Workspace::new().unwrap().decode_command(&legacy).is_err());
     let input = encode_command(&Command::PatchbayConsume {
@@ -148,24 +157,21 @@ fn malformed_prefix_duplicate_fields_and_trailing_values_refuse() {
     let mut trailing = bytes.clone();
     trailing.push(0);
     assert!(Workspace::new().unwrap().decode_command(&trailing).is_err());
-    // Preserve every required field and append a duplicate: failure cannot be
-    // explained by an incomplete fixture or by malformed JSON framing.
-    let mut duplicate = bytes.clone();
-    assert_eq!(duplicate[MAGIC.len()], b'{');
-    assert_eq!(duplicate.pop(), Some(b'}'));
-    duplicate.extend_from_slice(br#","slot":0}"#);
+    let mut value: ciborium::Value = ciborium::de::from_reader(&bytes[MAGIC.len()..]).unwrap();
+    value.as_map_mut().unwrap().push((
+        ciborium::Value::Text("slot".into()),
+        ciborium::Value::Integer(0.into()),
+    ));
+    let mut duplicate = MAGIC.to_vec();
+    ciborium::ser::into_writer(&value, &mut duplicate).unwrap();
     assert_eq!(super::preflight(&duplicate), Ok(()));
     assert!(super::decode_preflighted(&duplicate).is_err());
-    let result: Result<Owned, _> = serde_json::from_slice(&duplicate[MAGIC.len()..]);
-    let error = match result {
-        Err(error) => error,
-        Ok(_) => panic!("duplicate slot admitted"),
-    };
-    assert!(alloc::format!("{error:?}").contains("duplicate field"));
+    let result: Result<Owned, _> = ciborium::de::from_reader(&duplicate[MAGIC.len()..]);
+    assert!(alloc::format!("{:?}", result.err().unwrap()).contains("duplicate field"));
 }
 
 #[test]
-fn direct_json_preserves_complete_integer_ranges() {
+fn json_and_binary_preserve_complete_integer_ranges() {
     #[derive(Debug, PartialEq, Serialize, Deserialize)]
     struct Numeric {
         u: u64,
@@ -185,6 +191,14 @@ fn direct_json_preserves_complete_integer_ranges() {
     let length = transport_codec::encode_plain(&value, &mut storage).unwrap();
     assert_eq!(transport_codec::preflight_plain(&storage[..length]), Ok(()));
     let actual: Numeric = serde_json::from_slice(&storage[..length]).unwrap();
+    assert_eq!(actual, value);
+    let mut binary = Vec::new();
+    ciborium::ser::into_writer(&value, &mut binary).unwrap();
+    assert_eq!(
+        super::preflight::validate(&binary, MAX_PLAN_CBOR_BYTES),
+        Ok(())
+    );
+    let actual: Numeric = ciborium::de::from_reader(binary.as_slice()).unwrap();
     assert_eq!(actual, value);
 }
 
@@ -225,51 +239,59 @@ fn direct_publication_still_invokes_checked_structured_configuration_constructor
     );
 }
 
+fn field_mut<'a>(value: &'a mut ciborium::Value, name: &str) -> &'a mut ciborium::Value {
+    &mut value
+        .as_map_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|(key, _)| key.as_text() == Some(name))
+        .unwrap()
+        .1
+}
+
 #[test]
-fn exact_expanded_plan_boundary_survives_outer_compression_and_escaped_keys() {
+fn exact_expanded_plan_boundary_survives_outer_compression() {
     let command = fixture();
     let Command::PatchbayPublish { show, .. } = &command else {
         unreachable!()
     };
-    let mut plan = vec![0; MAX_PLAN_JSON_BYTES];
-    let length = transport_codec::encode_plain(&show.planned_mask.plan, &mut plan).unwrap();
     let original = encode_command(&command).unwrap();
-    assert!(original.starts_with(MAGIC));
-    let key = br#""plan":"#;
-    let start = original.windows(key.len()).position(|v| v == key).unwrap() + key.len();
-    assert_eq!(original[start], b'{');
+    let value: ciborium::Value = ciborium::de::from_reader(&original[MAGIC.len()..]).unwrap();
     for extra in [0, 1] {
-        let mut wire = original.clone();
-        wire.splice(
-            start + 1..start + 1,
-            core::iter::repeat_n(b' ', MAX_PLAN_JSON_BYTES - length + extra),
+        let mut value = value.clone();
+        let plan = field_mut(
+            field_mut(field_mut(&mut value, "show"), "planned_mask"),
+            "plan",
         );
-        for escaped in [false, true] {
-            let bytes = if escaped {
-                let json = core::str::from_utf8(&wire[MAGIC.len()..])
-                    .unwrap()
-                    .replacen("\"show\":", "\"\\u0073how\":", 1)
-                    .replacen("\"planned_mask\":", "\"planned\\u005fmask\":", 1)
-                    .replacen("\"plan\":", "\"pl\\u0061n\":", 1);
-                let mut bytes = MAGIC.to_vec();
-                bytes.extend_from_slice(json.as_bytes());
-                bytes
-            } else {
-                wire.clone()
-            };
-            // The genuine old outer compression grant remains: a raw >128KiB
-            // test never bypasses the transfer ceiling to reach the decoder.
-            let compressed = super::super::compress_json(&bytes).unwrap();
-            assert!(compressed.len() <= crate::MAX_BLOB);
-            let decoded = Workspace::new().unwrap().decode_command(&compressed);
-            if extra == 0 {
-                let Command::PatchbayPublish { show: actual, .. } = decoded.unwrap() else {
-                    unreachable!()
-                };
-                assert_eq!(actual, *show);
-            } else {
-                assert_eq!(decoded.err(), Some(Refusal::Bounds));
+        plan.as_map_mut().unwrap().push((
+            ciborium::Value::Text("padding".into()),
+            ciborium::Value::Text("".into()),
+        ));
+        let mut encoded = Vec::new();
+        ciborium::ser::into_writer(&*plan, &mut encoded).unwrap();
+        let mut padding = MAX_PLAN_CBOR_BYTES - encoded.len() - 4 + extra;
+        loop {
+            *field_mut(plan, "padding") = ciborium::Value::Text(" ".repeat(padding));
+            encoded.clear();
+            ciborium::ser::into_writer(&*plan, &mut encoded).unwrap();
+            let wanted = MAX_PLAN_CBOR_BYTES + extra;
+            if encoded.len() == wanted {
+                break;
             }
+            padding = padding + wanted - encoded.len();
+        }
+        let mut wire = MAGIC.to_vec();
+        ciborium::ser::into_writer(&value, &mut wire).unwrap();
+        let compressed = super::super::compress_json(&wire).unwrap();
+        assert!(compressed.len() <= crate::MAX_BLOB);
+        let decoded = Workspace::new().unwrap().decode_command(&compressed);
+        if extra == 0 {
+            let Command::PatchbayPublish { show: actual, .. } = decoded.unwrap() else {
+                unreachable!()
+            };
+            assert_eq!(actual, *show);
+        } else {
+            assert_eq!(decoded.err(), Some(Refusal::Bounds));
         }
     }
 }
