@@ -63,6 +63,8 @@ static NETWORK_NON_ASCII: [u8; 16] = *b"non-ascii-status";
 // admission, ownership or execution. No Root field or received authority.
 #[cfg(feature = "local-appliance")]
 static WORKSPACE_TRACE: core::sync::atomic::AtomicU32 = core::sync::atomic::AtomicU32::new(0);
+#[cfg(feature = "flat-network-appliance")]
+static WORKSPACE_PHASE_LINES: core::sync::atomic::AtomicU32 = core::sync::atomic::AtomicU32::new(0);
 #[cfg(feature = "local-appliance")]
 #[inline(never)]
 #[cold]
@@ -94,6 +96,20 @@ impl NativeRoot {
         window: Option<&WorkspacePermit<'_>>,
         release: bool,
     ) -> &'static [u8] {
+        self.prepare_network_configuration_backed(window, release, None)
+    }
+    fn prepare_network_configuration_backed(
+        &mut self,
+        window: Option<&WorkspacePermit<'_>>,
+        release: bool,
+        backing: Option<
+            alloc::boxed::Box<
+                core::mem::MaybeUninit<conduit_network_join_call::PreparedNetworkKernel>,
+            >,
+        >,
+    ) -> &'static [u8] {
+        #[cfg(not(feature = "flat-network-appliance"))]
+        let _ = backing;
         if self.network.retirement.is_some() {
             return b"retirement-evidence-pending";
         }
@@ -167,14 +183,25 @@ impl NativeRoot {
         #[cfg(feature = "flat-network-appliance")]
         let result = {
             let image = crate::native_source::load();
-            let result = self.play.install_linked_held(
-                &image,
-                &self.network_source,
-                c::OfferGeneration(self.offer_generation),
-                &mut self.credentials,
-                self.network.ready_slot(),
-                &mut self.issuer,
-            );
+            let result = match backing {
+                Some(backing) => self.play.install_linked_reserved_held(
+                    &image,
+                    &self.network_source,
+                    c::OfferGeneration(self.offer_generation),
+                    &mut self.credentials,
+                    self.network.ready_slot(),
+                    &mut self.issuer,
+                    backing,
+                ),
+                None => self.play.install_linked_held(
+                    &image,
+                    &self.network_source,
+                    c::OfferGeneration(self.offer_generation),
+                    &mut self.credentials,
+                    self.network.ready_slot(),
+                    &mut self.issuer,
+                ),
+            };
             if result.is_ok() && window.is_none() && release {
                 self.play.release_held()
             } else {
@@ -259,6 +286,32 @@ impl NativeRoot {
         });
         self.trace_network_workspace("prepare", outcome);
     }
+    #[cfg(feature = "flat-network-appliance")]
+    #[inline(never)]
+    #[cold]
+    fn trace_network_phase(&self, phase: &'static str, baseline_used: usize) {
+        // Diagnostic quota only. It cannot grant capacity or suppress checks.
+        let count = WORKSPACE_PHASE_LINES.load(core::sync::atomic::Ordering::Relaxed);
+        if count >= 12
+            || WORKSPACE_PHASE_LINES
+                .compare_exchange(
+                    count,
+                    count + 1,
+                    core::sync::atomic::Ordering::Relaxed,
+                    core::sync::atomic::Ordering::Relaxed,
+                )
+                .is_err()
+        {
+            return;
+        }
+        let memory = esp_alloc::HEAP.stats();
+        let banks = core::array::from_fn::<_, 3, _>(|i| {
+            memory.region_stats[i].as_ref().map_or(0, |r| r.free)
+        });
+        esp_println::println!("{{\"event\":\"network-workspace-phase\",\"phase\":\"{}\",\"backing_bytes\":{},\"baseline_used\":{},\"used\":{},\"peak\":{},\"free_bytes\":{},\"bank_free\":[{},{},{}]}}",
+            phase, core::mem::size_of::<conduit_network_join_call::PreparedNetworkKernel>(), baseline_used,
+            memory.current_usage, memory.max_usage, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2]);
+    }
     #[cfg(feature = "local-appliance")]
     fn advance_network_workspace(&mut self) {
         let Some(minimum) = independent_workspace_minimum() else {
@@ -337,11 +390,23 @@ impl NativeRoot {
             return;
         };
         let memory = esp_alloc::HEAP.stats();
+        #[cfg(feature = "flat-network-appliance")]
+        let baseline_used = memory.current_usage;
+        #[cfg(feature = "flat-network-appliance")]
+        self.trace_network_phase("permit", baseline_used);
         if !permit.held() {
             self.trace_network_workspace("scope", "permit-revoked");
             return;
         }
-        if memory.size.saturating_sub(memory.current_usage) < minimum {
+        #[cfg(feature = "flat-network-appliance")]
+        let backing_bytes =
+            core::mem::size_of::<conduit_network_join_call::PreparedNetworkKernel>();
+        #[cfg(not(feature = "flat-network-appliance"))]
+        let backing_bytes = 0;
+        let Some(required) = minimum.checked_add(backing_bytes) else {
+            return;
+        };
+        if memory.size.saturating_sub(memory.current_usage) < required {
             self.trace_network_workspace("capacity", "aggregate-construction-refused");
             return;
         }
@@ -349,10 +414,31 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "current-body-refused");
             return;
         }
+        // Charge the changed overlap explicitly: actual final backing plus the
+        // unchanged 8KiB preparation envelope and 16KiB release floor.
+        #[cfg(feature = "flat-network-appliance")]
+        let backing = match crate::native_play::NativePlay::reserve_linked_backing() {
+            Ok(backing) => Some(backing),
+            Err(()) => {
+                self.trace_network_workspace("reserve", "kernel-backing-refused");
+                return;
+            }
+        };
+        #[cfg(not(feature = "flat-network-appliance"))]
+        let backing = None;
+        #[cfg(feature = "flat-network-appliance")]
+        self.trace_network_phase("backing-reserved", baseline_used);
+        if esp_alloc::HEAP.free() < minimum
+            || !permit.held()
+            || !self.network_workspace_scope_current()
+        {
+            self.trace_network_workspace("reserve", "remaining-workspace-refused");
+            return;
+        }
         // The constructor makes multiple allocations. Its unchanged aggregate
         // envelope is not a request for one contiguous 24KiB block. Protect the
-        // actual 16KiB release floor across small regions. Exact final backing
-        // allocates fallibly after temporary planner descriptions retire.
+        // actual 16KiB release floor across small regions. The same reserved
+        // final backing initializes after temporary planner descriptions retire.
         let reserve = match floor_reserve::reserve(|bytes| {
             let mut block = alloc::vec::Vec::<u8>::new();
             block.try_reserve_exact(bytes).map(|()| block)
@@ -363,7 +449,9 @@ impl NativeRoot {
                 return;
             }
         };
-        let prepared = self.prepare_network_configuration_mode(Some(&permit), false);
+        let prepared = self.prepare_network_configuration_backed(Some(&permit), false, backing);
+        #[cfg(feature = "flat-network-appliance")]
+        self.trace_network_phase("prepared-floor-held", baseline_used);
         drop(reserve);
         if !self.play.installed() {
             self.trace_network_preparation(prepared);

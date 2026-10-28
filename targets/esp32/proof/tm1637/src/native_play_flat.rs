@@ -36,6 +36,42 @@ impl NativePlay {
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
     ) -> Result<(), ()> {
+        self.install_linked_mode(image, expected, generation, source, join, issuer, None)
+    }
+    pub(crate) fn reserve_linked_backing(
+    ) -> Result<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>, ()> {
+        reserve_kernel_backing()
+    }
+    pub(crate) fn install_linked_reserved_held(
+        &mut self,
+        image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        expected: &c::PlotIdentity,
+        generation: c::OfferGeneration,
+        source: &mut Option<ReadyCredentialBase<Source>>,
+        join: &mut Option<ReadyNetworkJoinBase<Provider>>,
+        issuer: &mut RootIssuer,
+        backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
+    ) -> Result<(), ()> {
+        self.install_linked_mode(
+            image,
+            expected,
+            generation,
+            source,
+            join,
+            issuer,
+            Some(backing),
+        )
+    }
+    fn install_linked_mode(
+        &mut self,
+        image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        expected: &c::PlotIdentity,
+        generation: c::OfferGeneration,
+        source: &mut Option<ReadyCredentialBase<Source>>,
+        join: &mut Option<ReadyNetworkJoinBase<Provider>>,
+        issuer: &mut RootIssuer,
+        backing: Option<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>>,
+    ) -> Result<(), ()> {
         if self.attempted || !self.flat_refusal.is_empty() || source.is_none() || join.is_none() {
             return Err(());
         }
@@ -123,7 +159,7 @@ impl NativePlay {
             // Temporary planner descriptions have gone. Allocate final backing
             // now to preserve the measured non-overlapping construction shape.
             refusal_stage = 6;
-            let backing = match reserve_kernel_backing() {
+            let backing = match backing.map(Ok).unwrap_or_else(reserve_kernel_backing) {
                 Ok(backing) => backing,
                 Err(()) => {
                     let (first, second) = checked.into_operations();

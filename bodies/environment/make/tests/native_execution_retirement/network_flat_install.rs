@@ -218,3 +218,108 @@ fn final_backing_refusal_returns_actual_pair_and_retains_both_issued_bearers() {
         (&retained.0, &retained.1)
     );
 }
+
+#[test]
+fn reserved_backing_is_same_allocation_and_shared_checks_preserve_custody() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let backing = NativePlay::reserve_linked_backing().unwrap();
+    let address = backing.as_ptr() as usize;
+    play.install_linked_reserved_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+        backing,
+    )
+    .unwrap();
+    assert_eq!(
+        play.prepared.as_ref().unwrap().as_ref() as *const _ as usize,
+        address
+    );
+    assert_eq!(play.phase, "installed-held");
+    assert!(source.is_none() && join.is_none());
+
+    let mut issuer = self::issuer();
+    issuer.refuse_join_fixture();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let backing = NativePlay::reserve_linked_backing().unwrap();
+    assert!(play
+        .install_linked_reserved_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            backing
+        )
+        .is_err());
+    assert!(source.is_some() && join.is_some());
+    assert!(matches!(play.flat_refusal, flat::IssuedCustody::First(_)));
+}
+#[test]
+fn early_backing_allocation_refusal_precedes_any_owner_or_bearer_move() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    flat::refuse_next_backing();
+    assert!(NativePlay::reserve_linked_backing().is_err());
+    assert!(!play.attempted && play.flat_refusal.is_empty());
+    assert!(source.is_some() && join.is_some());
+    // The same original owners and fresh issuer still accept normal selection.
+    play.install_linked_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+    )
+    .unwrap();
+    assert_eq!(play.phase, "installed-held");
+}
+#[test]
+fn reserved_constructor_measures_changed_overlap_explicitly() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    // Match Root's actual boundary: initialized Ready owners already exist.
+    let (mut source, mut join) = ready();
+    let ((play, address), stats) = allocation_probe::observe(|| {
+        let backing = NativePlay::reserve_linked_backing().unwrap();
+        let address = backing.as_ptr() as usize;
+        let mut play = NativePlay::new();
+        play.install_linked_reserved_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            backing,
+        )
+        .unwrap();
+        (play, address)
+    });
+    assert_eq!(
+        play.prepared.as_ref().unwrap().as_ref() as *const _ as usize,
+        address
+    );
+    assert!(stats.peak_bytes <= 8192 + core::mem::size_of::<PreparedNetworkKernel>());
+    println!(
+        "reserved constructor CPU{} backing={} peak={} retained={}",
+        usize::BITS,
+        core::mem::size_of::<PreparedNetworkKernel>(),
+        stats.peak_bytes,
+        stats.retained_bytes()
+    );
+}
