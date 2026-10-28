@@ -80,6 +80,17 @@ fn main() -> Result<()> {
             std::path::Path::new(&args[5]),
         );
     }
+    if args.get(1).is_some_and(|a| a == "--return-observer") {
+        if args.len() != 6 {
+            return Err("expected --return-observer PRIVATE_BINDING CONTINUITY_PRIVATE NEW_PRIVATE_STATE HOST:PORT".into());
+        }
+        return body_join::return_observer(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+            std::path::Path::new(&args[4]),
+            &args[5],
+        );
+    }
     if args.get(1).is_some_and(|a| a == "--browser-join-proxy") {
         if !(3..=4).contains(&args.len()) {
             return Err(

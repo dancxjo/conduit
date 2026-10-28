@@ -2,6 +2,12 @@
 use crate::local_recorder::joined;
 #[path = "body_join/recovery.rs"]
 mod recovery_client;
+#[path = "body_join/returning.rs"]
+mod returning;
+/// Explicit fresh-Boot return; initial join remains idempotent admission recovery.
+pub fn return_observer(binding: &Path, continuity: &Path, state: &Path, peer: &str) -> Result<()> {
+    returning::run(binding, continuity, state, peer)
+}
 use crate::{checked, Result};
 use ed25519_dalek::Signer;
 use recovery_client::recover;
