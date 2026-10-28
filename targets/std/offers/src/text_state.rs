@@ -5,6 +5,7 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, Kind,
 };
 
+pub const TEXT_APPLY_EDIT_IMPLEMENTATION: &str = "std/kernel-text-apply-edit@1";
 pub const TEXT_STATE_HOST_CALL: &str = "conduit.host/text-state@1";
 pub const TEXT_EDIT_DOCUMENT_STD_IMPLEMENTATION: &str = "std/kernel-text-edit-document@1";
 pub const TEXT_EDIT_STD_IMPLEMENTATION: &str = "std/kernel-text-edit@1";
@@ -36,6 +37,22 @@ pub fn text_submit_lines_std_offer() -> CapabilityOffer {
         conduit_semantic_catalog::text_submit_lines_semantic_contract(),
         TEXT_SUBMIT_LINES_STD_IMPLEMENTATION,
     )
+}
+
+pub fn text_apply_edit_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::text_apply_edit_semantic_contract(),
+        Back {
+            capability_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
+            execution_profile_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
+            implementation_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
+            artifact_id: "conduit-std-host/text-apply-edit@1".into(),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
 }
 
 fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
@@ -97,21 +114,4 @@ mod tests {
             assert_eq!(offer.host_calls[0].maximum_in_flight, 1);
         }
     }
-}
-
-pub const TEXT_APPLY_EDIT_IMPLEMENTATION: &str = "std/kernel-text-apply-edit@1";
-pub fn text_apply_edit_offer() -> CapabilityOffer {
-    BackOfferBuilder::new(
-        conduit_semantic_catalog::text_apply_edit_semantic_contract(),
-        Back {
-            capability_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
-            execution_profile_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
-            implementation_id: TEXT_APPLY_EDIT_IMPLEMENTATION.into(),
-            artifact_id: "conduit-std-host/text-apply-edit@1".into(),
-            host_calls: Vec::new(),
-            resource_requirements: Vec::new(),
-            authority_requirements: Vec::new(),
-        },
-    )
-    .build()
 }
