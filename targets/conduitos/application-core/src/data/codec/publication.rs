@@ -1,10 +1,8 @@
 //! Private publication transfer; the complete ordinary Plan stays typed.
 //! Carry complete ordinary models through bounded CBOR, as the native Crèche
 //! already does. Public JSON and canonical admission remain unchanged.
-mod decoder;
-mod preflight;
 mod show;
-use super::{Command, Refusal};
+use super::{Command, Refusal, finite_cbor};
 use conduit_body::BodyId;
 use conduit_face::{Face, FaceContributionBasis};
 use serde::{Deserialize, Serialize};
@@ -49,33 +47,30 @@ pub(super) fn encode(command: &Command, output: &mut [u8]) -> Result<usize, Refu
         .get_mut(..MAGIC.len())
         .ok_or(Refusal::Capacity)?
         .copy_from_slice(MAGIC);
-    let capacity = output.len();
-    let mut remaining = &mut output[MAGIC.len()..];
-    ciborium::ser::into_writer(
-        &Borrowed {
-            slot: *slot,
-            body,
-            basis,
-            face,
-            show: show::ShowRef::from(show),
-        },
-        &mut remaining,
-    )
-    .map_err(|_| Refusal::Capacity)?;
-    let length = capacity - remaining.len();
+    let length = MAGIC.len()
+        + finite_cbor::encode(
+            &Borrowed {
+                slot: *slot,
+                body,
+                basis,
+                face,
+                show: show::ShowRef::from(show),
+            },
+            &mut output[MAGIC.len()..],
+        )?;
     preflight(&output[..length])?;
     Ok(length)
 }
 pub(super) fn preflight(bytes: &[u8]) -> Result<(), Refusal> {
-    preflight::validate(
+    finite_cbor::validate(
         bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?,
         MAX_PLAN_CBOR_BYTES,
     )
 }
 /// Only the immutable bytes already checked by Workspace may reach this path.
 pub(super) fn decode_preflighted(bytes: &[u8]) -> Result<Command, Refusal> {
-    let value: Owned = decoder::decode(bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?)
-        .map_err(|_| Refusal::Malformed)?;
+    let value: Owned =
+        finite_cbor::decode_preflighted(bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?)?;
     Ok(Command::PatchbayPublish {
         slot: value.slot,
         body: value.body,

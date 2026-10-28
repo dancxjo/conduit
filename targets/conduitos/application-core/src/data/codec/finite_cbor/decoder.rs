@@ -9,7 +9,7 @@ use serde::{
 pub(super) struct Error;
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("malformed private publication")
+        f.write_str("malformed private binary command")
     }
 }
 impl de::StdError for Error {}
