@@ -230,3 +230,6 @@ mod tests;
 
 #[path = "network_custody_client/receipt.rs"]
 mod receipt;
+
+#[path = "network_custody_client/live.rs"]
+pub(crate) mod live;

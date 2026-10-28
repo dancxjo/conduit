@@ -256,64 +256,8 @@ fn compact_request(request: &conduit_body::PortableSpawnAdmissionRequest) -> Res
     value["signature"] = serde_json::json!(hex(&request.signature));
     Ok(serde_json::to_vec(&value)?)
 }
-pub(crate) fn http(peer: &str, method: &str, path: &str, body: &[u8]) -> Result<(u16, Vec<u8>)> {
-    use std::net::ToSocketAddrs;
-    if peer.len() > 255 || peer.contains(['/', '@', '\r', '\n']) {
-        return Err("join peer must be HOST:PORT".into());
-    }
-    let mut last = None;
-    for address in peer.to_socket_addrs()?.filter(|a| a.is_ipv4()).take(8) {
-        let response = (|| -> Result<_> {
-            let mut s = std::net::TcpStream::connect_timeout(&address, Duration::from_secs(3))?;
-            s.set_read_timeout(Some(Duration::from_secs(3)))?;
-            s.set_write_timeout(Some(Duration::from_secs(3)))?;
-            let request_header = format!("{method} {path} HTTP/1.1\r\nHost: {peer}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n",body.len());
-            if request_header.len() + body.len() > 1024 {
-                return Err("join request exceeds native1024-byte frame".into());
-            }
-            s.write_all(request_header.as_bytes())?;
-            s.write_all(body)?;
-            let mut bytes = Vec::new();
-            let deadline = Instant::now() + Duration::from_secs(3);
-            let mut block = [0; 1024];
-            loop {
-                s.set_read_timeout(Some(
-                    deadline
-                        .checked_duration_since(Instant::now())
-                        .ok_or("join HTTP deadline")?,
-                ))?;
-                let n = s.read(&mut block)?;
-                if n == 0 {
-                    break;
-                }
-                if bytes.len() + n > 16384 {
-                    return Err("join HTTP extent".into());
-                }
-                bytes.extend_from_slice(&block[..n]);
-            }
-            if bytes.len() > 16384 {
-                return Err("join HTTP extent".into());
-            }
-            let at = bytes
-                .windows(4)
-                .position(|w| w == b"\r\n\r\n")
-                .ok_or("join HTTP framing")?;
-            let header = std::str::from_utf8(&bytes[..at])?;
-            let status = header
-                .lines()
-                .next()
-                .and_then(|v| v.split_whitespace().nth(1))
-                .ok_or("join HTTP status")?
-                .parse()?;
-            Ok((status, bytes[at + 4..].to_vec()))
-        })();
-        match response {
-            Ok(r) => return Ok(r),
-            Err(e) => last = Some(e),
-        }
-    }
-    Err(last.unwrap_or_else(|| "join peer has no bounded IPv4 route".into()))
-}
+mod http;
+pub(crate) use http::{http, http_binary};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Ticket {

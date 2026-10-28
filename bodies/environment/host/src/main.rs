@@ -25,11 +25,11 @@ mod native_owner_control;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_receipt.rs"]
 #[allow(dead_code)]
 mod native_owner_receipt;
+mod network_custody_client;
 mod observation;
 #[allow(clippy::duplicate_mod)] // Prototype tests separately include this exact portable client.
 #[allow(dead_code)] // Typed custody remains dormant until authenticated producer offers exist.
 mod observed_custody_client;
-mod network_custody_client;
 mod observed_custody_live;
 mod observed_history;
 mod owner_exchange;
@@ -43,6 +43,20 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|a| a == "--ack-network-snapshot") {
+        if args.len() != 9 {
+            return Err("expected --ack-network-snapshot BINDING CONTINUITY_PRIVATE PEER PRIVATE_STORE OFFER_JSON SNAPSHOT_BIN PRODUCER_BOOT".into());
+        }
+        return network_custody_client::live::run(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+            &args[4],
+            std::path::Path::new(&args[5]),
+            std::path::Path::new(&args[6]),
+            std::path::Path::new(&args[7]),
+            &args[8],
+        );
+    }
     if args.get(1).is_some_and(|a| a == "--ack-observed-live") {
         if args.len() != 7 {
             return Err("expected --ack-observed-live PRIVATE_BINDING CONTINUITY_PRIVATE PEER HISTORY_DIRECTORY SLOT".into());

@@ -3,6 +3,21 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     let words = args.iter().map(String::as_str).collect::<Vec<_>>();
     match words.as_slice() {
+        ["ack-network-snapshot", binding, continuity, peer, store, offer, snapshot, boot] => {
+            Some(host(
+                root,
+                &[
+                    "--ack-network-snapshot",
+                    binding,
+                    continuity,
+                    peer,
+                    store,
+                    offer,
+                    snapshot,
+                    boot,
+                ],
+            ))
+        }
         ["network-workspace-check-image", key] => Some(
             super::environment_esp32::build_network_workspace_check(root, Path::new(key)),
         ),

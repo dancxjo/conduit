@@ -305,3 +305,115 @@ fn root_signature_cannot_substitute_another_ack_offer_or_lost_durable_evidence()
         .verify_committed_receipt(&f.credential, &ack, &receipt_response(&valid, 7))
         .is_err());
 }
+#[test]
+fn attended_retry_posts_only_exact_reopened_ack_and_retains_signed_receipt() {
+    let f = fixture();
+    let token =
+        VerifiedDurableSnapshot::retain(&f.directory, &f.offer, &f.snapshot, &f.scope).unwrap();
+    let sig = ed25519_dalek::SigningKey::from_bytes(&[22; 32])
+        .sign(&token.signing_transcript(&f.credential).unwrap())
+        .to_bytes();
+    let ack = token.encode_ack(&f.credential, sig).unwrap();
+    let cursor = committed_cursor(&f, &token, &ack, 1);
+    let response = receipt_response(&cursor, 7);
+    let mut calls = 0;
+    live::exchange(
+        &token,
+        &f.credential,
+        &ack,
+        |sent| {
+            calls += 1;
+            assert_eq!(sent, ack);
+            assert_eq!(reopen(&token.directory.join("ack.bin"), 628).unwrap(), sent);
+            match calls {
+                1 => Err("lost reply".into()),
+                2 => Ok((202, vec![])),
+                _ => Ok((200, response.clone())),
+            }
+        },
+        || {},
+    )
+    .unwrap();
+    assert_eq!(calls, 3);
+    let id = digest(&cursor)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    assert_eq!(
+        reopen(&token.directory.join(format!("receipt-{id}.bin")), 480).unwrap(),
+        cursor
+    );
+    assert_eq!(
+        reopen(
+            &token.directory.join(format!("receipt-{id}.json")),
+            response.len()
+        )
+        .unwrap(),
+        response
+    );
+}
+#[test]
+fn attended_conflicting_ack_prevents_any_post_and_retry_bound_preserves_evidence() {
+    let f = fixture();
+    let token =
+        VerifiedDurableSnapshot::retain(&f.directory, &f.offer, &f.snapshot, &f.scope).unwrap();
+    let ack = token.encode_ack(&f.credential, [1; 64]).unwrap();
+    immutable(&token.directory.join("ack.bin"), &[0; 628]).unwrap();
+    assert!(live::exchange(
+        &token,
+        &f.credential,
+        &ack,
+        |_| panic!("must not post"),
+        || {}
+    )
+    .is_err());
+    std::fs::remove_file(token.directory.join("ack.bin")).unwrap();
+    let mut calls = 0;
+    assert!(live::exchange(
+        &token,
+        &f.credential,
+        &ack,
+        |_| {
+            calls += 1;
+            Ok((503, vec![]))
+        },
+        || {}
+    )
+    .is_err());
+    assert_eq!(calls, 12);
+    assert_eq!(reopen(&token.directory.join("ack.bin"), 628).unwrap(), ack);
+    assert!(token.directory.join("snapshot.bin").exists());
+}
+#[test]
+fn binary_http_preserves_exact_signed_bytes_and_content_type() {
+    use std::net::TcpListener;
+    let server = TcpListener::bind("127.0.0.1:0").unwrap();
+    let peer = server.local_addr().unwrap().to_string();
+    let sent = [31u8; 628];
+    let thread = std::thread::spawn(move || {
+        let (mut stream, _) = server.accept().unwrap();
+        let mut bytes = Vec::new();
+        let mut one = [0; 1];
+        while !bytes.ends_with(b"\r\n\r\n") {
+            stream.read_exact(&mut one).unwrap();
+            bytes.push(one[0]);
+        }
+        let text = std::str::from_utf8(&bytes).unwrap();
+        assert!(text.contains("Content-Type: application/octet-stream\r\n"));
+        assert!(text.starts_with("POST /network/custody/ack HTTP/1.1\r\n"));
+        assert!(text.contains("Content-Length: 628\r\n"));
+        let mut body = [0; 628];
+        stream.read_exact(&mut body).unwrap();
+        assert_eq!(body, sent);
+        stream
+            .write_all(b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+            .unwrap();
+    });
+    assert_eq!(
+        crate::body_join::http_binary(&peer, "/network/custody/ack", &sent)
+            .unwrap()
+            .0,
+        202
+    );
+    thread.join().unwrap();
+}
