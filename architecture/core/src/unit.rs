@@ -117,6 +117,9 @@ impl Unit {
         // Exact whole-encoding comparison reuses immutable Source data instead
         // of reconstructing and re-sealing it on every execution. Unknown or
         // altered encodings still pass through the complete general decoder.
+        // AVR needs explicit program-memory access for such tables; preserve
+        // its existing decoder instead of adding a multi-KiB SRAM resident table.
+        #[cfg(not(target_arch = "avr"))]
         static COMMON: [Unit; 5] = [
             Unit::Celsius,
             Unit::Fahrenheit,
@@ -124,6 +127,7 @@ impl Unit {
             Unit::Percent,
             Unit::Pascal,
         ];
+        #[cfg(not(target_arch = "avr"))]
         if bytes.len() == UNIT_ENCODED_LEN {
             for unit in &COMMON {
                 if bytes[UNIT_ENCODED_LEN - 32..] == unit.definition_identity()
