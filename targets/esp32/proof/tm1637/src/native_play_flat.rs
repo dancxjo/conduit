@@ -59,11 +59,14 @@ impl NativePlay {
             expected.expanded_plot_id.as_str(),
         );
         let mut active = None;
+        let mut refusal_stage = 1u16;
         let result = pair.prepare(|owners| {
-            let grants = [
-                issuer.grant_ref(owners.credential_identity(), Operation::Credentials)?,
-                issuer.grant_ref(owners.join_identity(), Operation::Join)?,
-            ];
+            refusal_stage = 1;
+            let credential_grant =
+                issuer.grant_ref(owners.credential_identity(), Operation::Credentials)?;
+            refusal_stage = 2;
+            let join_grant = issuer.grant_ref(owners.join_identity(), Operation::Join)?;
+            let grants = [credential_grant, join_grant];
             let attachment = conduit_net::PreparedCanonicalNetworkOffer::attachment_local(
                 CAP,
                 IMPLEMENTATION,
@@ -86,8 +89,10 @@ impl NativePlay {
             let mut selected = None;
             let mut checked = Err(());
             let mut planned = Err(());
+            refusal_stage = 3;
             owners
                 .with_advertisement(header, &attachment, |owners, host| {
+                    refusal_stage = 4;
                     planned = conduit_planner::borrowed_local::with_linked_local_plan(
                         image,
                         host,
@@ -104,6 +109,7 @@ impl NativePlay {
                                 &mut active,
                                 custody,
                                 &mut selected,
+                                &mut refusal_stage,
                             );
                         },
                     )
@@ -112,9 +118,11 @@ impl NativePlay {
                 .map_err(|_| ())?;
             planned?;
             checked?;
+            refusal_stage = 5;
             let (checked, parts) = selected.ok_or(())?;
             // Temporary planner descriptions have gone. Allocate final backing
             // now to preserve the measured non-overlapping construction shape.
+            refusal_stage = 6;
             let backing = match reserve_kernel_backing() {
                 Ok(backing) => backing,
                 Err(()) => {
@@ -135,9 +143,14 @@ impl NativePlay {
                 self.source = Some(credentials);
                 self.join = Some(join);
                 self.flat_refusal = IssuedCustody::Empty;
-                self.finish_linked_held(parts, backing)
+                let result = self.finish_linked_held(parts, backing);
+                if result.is_err() {
+                    trace_flat_refusal(7, &self.flat_refusal, self.active.is_some());
+                }
+                result
             }
             Err((pair, ())) => {
+                trace_flat_refusal(refusal_stage, &self.flat_refusal, self.active.is_some());
                 let (credentials, provider) = pair.into_ready();
                 *source = Some(credentials);
                 *join = Some(provider);
@@ -177,12 +190,16 @@ fn check_linked_scope<'owner>(
         n::PreparedNetworkPairBindings<'owner>,
         n::PreparedNetworkKernelParts,
     )>,
+    refusal_stage: &mut u16,
 ) -> Result<(), ()> {
+    *refusal_stage = 10;
     let tables = n::NetworkControlFlatDirectTables::prepare(scope.verified()).map_err(|_| ())?;
+    *refusal_stage = 11;
     let roles = n::PreparedNetworkKernelParts::check_flat_direct(&tables).map_err(|_| ())?;
     let view = scope.verified().view();
     // The pair checks Credentials and Join only. Keep this
     // independent actual attachment implementation preflight.
+    *refusal_stage = 12;
     let sign = view
         .placements
         .iter()
@@ -198,20 +215,24 @@ fn check_linked_scope<'owner>(
     {
         return Err(());
     }
+    *refusal_stage = 13;
     let credential = view
         .placements
         .iter()
         .nth(usize::from(roles.credentials.0))
         .ok_or(())?
         .placement_id;
+    *refusal_stage = 14;
     let join = view
         .placements
         .iter()
         .nth(usize::from(roles.join.0))
         .ok_or(())?
         .placement_id;
+    *refusal_stage = 15;
     *active = Some(issuer.reserve_linked_network_play(scope, pins)?);
     let current = active.as_ref().expect("reserved exact parent");
+    *refusal_stage = 16;
     let (table, handle, claim) = issuer.issue_linked_network(
         owners.credential_identity(),
         Operation::Credentials,
@@ -219,6 +240,7 @@ fn check_linked_scope<'owner>(
         pins,
         current,
     )?;
+    *refusal_stage = 17;
     let first = match owners.check_flat_credentials(
         NetworkOperationLease {
             table,
@@ -235,6 +257,7 @@ fn check_linked_scope<'owner>(
             return Err(());
         }
     };
+    *refusal_stage = 18;
     let issued =
         issuer.issue_linked_network(first.join_identity(), Operation::Join, scope, pins, current);
     let (table, handle, claim) = match issued {
@@ -244,6 +267,7 @@ fn check_linked_scope<'owner>(
             return Err(());
         }
     };
+    *refusal_stage = 19;
     let checked = match first.check_flat_join(
         NetworkOperationLease {
             table,
@@ -260,6 +284,7 @@ fn check_linked_scope<'owner>(
             return Err(());
         }
     };
+    *refusal_stage = 20;
     match n::PreparedNetworkKernelParts::from_flat_direct(tables) {
         Ok(parts) => {
             *selected = Some((checked, parts));
@@ -323,4 +348,27 @@ mod backing_tests {
             Some(core::alloc::Layout::new::<PreparedNetworkKernel>())
         );
     }
+}
+
+// One line per actual failed installation, no retained metadata. Stage codes:
+// 1/2 grants; 3 advertisement; 4 planner; 5 selected output; 6 backing;
+// 7 materialization; 10 tables; 11 kernel profile; 12 attachment;
+// 13/14 placement; 15 Root reserve; 16 credential issue; 17 credential check;
+// 18 join issue; 19 join check; 20 prepared kernel parts.
+#[inline(never)]
+#[cold]
+fn trace_flat_refusal(stage: u16, custody: &IssuedCustody, active: bool) {
+    #[cfg(target_os = "none")]
+    {
+        let custody = match custody {
+            IssuedCustody::Empty => 0,
+            IssuedCustody::Lease(_) => 1,
+            IssuedCustody::First(_) => 2,
+            IssuedCustody::FirstLease(_, _) => 3,
+            IssuedCustody::Both(_, _) => 4,
+        };
+        esp_println::println!("{{\"event\":\"network-flat-install-refused\",\"stage\":{},\"issued_custody\":{},\"active_reserved\":{}}}", stage, custody, active);
+    }
+    #[cfg(not(target_os = "none"))]
+    let _ = (stage, custody, active);
 }
