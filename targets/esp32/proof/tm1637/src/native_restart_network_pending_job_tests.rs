@@ -101,14 +101,14 @@ fn setup() -> (
     STORE.lock(|slot| {
         let mut slot = slot.borrow_mut();
         assert!(matches!(*slot, Slot::Uninitialized));
-        *slot = Slot::Available(Box::new(store));
+        *slot = Slot::Available(Box::leak(Box::new(store)));
     });
     (owner, host.boot_id, root, cursor)
 }
-fn remove() -> Store {
+fn remove() -> &'static mut Store {
     STORE.lock(
         |slot| match core::mem::replace(&mut *slot.borrow_mut(), Slot::Uninitialized) {
-            Slot::Available(store) => *store,
+            Slot::Available(store) => store,
             _ => panic!("missing returned Store"),
         },
     )
@@ -142,7 +142,7 @@ fn incremental_pending_bridge_custody_cancellation_and_actual_adoption() {
     let committed = job.finish(&owner).unwrap();
     assert_eq!(committed.generation(), 2);
     drop(job);
-    let mut store = remove();
+    let store = remove();
     assert!(store.ready && !store.failed);
     assert_eq!(
         store
@@ -175,7 +175,7 @@ fn incremental_pending_bridge_custody_cancellation_and_actual_adoption() {
     let store = remove();
     assert!(store.ready && !store.failed);
     assert_eq!(store.journal.generation(), Some(1));
-    assert!(store.custody.unwrap().network.is_none());
+    assert!(store.custody.as_ref().unwrap().network.is_none());
     // Cancellation and failed physical operations fence even ambiguous effects.
     for fail in [false, true] {
         let (owner, boot, root, cursor) = setup();
@@ -187,6 +187,6 @@ fn incremental_pending_bridge_custody_cancellation_and_actual_adoption() {
         let store = remove();
         assert!(store.failed && !store.ready);
         assert_eq!(store.journal.generation(), Some(1));
-        assert!(store.custody.unwrap().network.is_none());
+        assert!(store.custody.as_ref().unwrap().network.is_none());
     }
 }

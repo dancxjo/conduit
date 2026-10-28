@@ -46,18 +46,18 @@ use restore::{restore_store, restore_store_retained};
 )]
 static STORE: Mutex<CriticalSectionRawMutex, RefCell<Slot>> =
     Mutex::new(RefCell::new(Slot::Uninitialized));
-// One fallibly admitted Store allocation owns all authoritative custody. Static
-// state and every lease retain only its pointer; a live writer no longer reserves
-// a second Store-sized backing while the original static slot is borrowed.
+// One once-initialized Store backing owns authoritative custody in its original
+// CPU memory bank. Static state and every lease move only its unique pointer;
+// a live writer reserves neither another Store backing nor a startup heap Box.
 enum Slot {
     Uninitialized,
-    Available(Box<Store>),
+    Available(&'static mut Store),
     Borrowed,
 }
 // Move exclusive ownership under a short critical section. Serialization and
 // flash I/O run after interrupts are restored. Readers fail closed while the
 // Store is borrowed; no second initializer or transaction can enter.
-struct StoreLease(Option<Box<Store>>);
+struct StoreLease(Option<&'static mut Store>);
 impl Drop for StoreLease {
     fn drop(&mut self) {
         if let Some(store) = self.0.take() {
@@ -395,7 +395,6 @@ fn decode_checkpoint(
     Ok(loaded)
 }
 pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result<(), &'static str> {
-    let backing = store_backing::reserve()?;
     compiled
         .validate()
         .map_err(|_| "restart-compiled-biography")?;
@@ -444,22 +443,19 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
             )
         }
     };
-    let store = Box::write(
-        backing,
-        Store {
-            journal,
-            binding,
-            seed,
-            evidence: Some(evidence),
-            archives,
-            custody,
-            admissions: Some(admissions),
-            parked: false,
-            pristine,
-            failed: false,
-            ready: false,
-        },
-    );
+    let store = store_backing::initialize(Store {
+        journal,
+        binding,
+        seed,
+        evidence: Some(evidence),
+        archives,
+        custody,
+        admissions: Some(admissions),
+        parked: false,
+        pristine,
+        failed: false,
+        ready: false,
+    })?;
     STORE.lock(|slot| {
         let mut slot = slot.borrow_mut();
         if !matches!(*slot, Slot::Uninitialized) {

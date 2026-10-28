@@ -103,7 +103,10 @@ pub(super) fn exchange(
     }
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(300);
     let mut last = None;
-    for attempt in 0..12 {
+    // Let the absolute deadline govern 150 two-second polling intervals;
+    // fast 202 replies must not exhaust attempts before Root's 300-second job.
+    const MAX_ATTEMPTS: usize = 151;
+    for attempt in 0..MAX_ATTEMPTS {
         if std::time::Instant::now() >= deadline {
             return Err("network custody absolute deadline".into());
         }
@@ -135,7 +138,7 @@ pub(super) fn exchange(
             Ok((status, _)) => return Err(format!("network custody HTTP status {status}").into()),
             Err(error) => last = Some(error),
         }
-        if attempt < 11 {
+        if attempt + 1 < MAX_ATTEMPTS {
             pause();
         }
     }

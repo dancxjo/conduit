@@ -1,33 +1,24 @@
-//! Admit one authoritative Store backing before decoding or publication. Leases
-//! move only its pointer, including while an incremental writer owns custody.
+//! One authoritative Boot-local Store backing. Custody moves only its unique
+//! pointer, never another Store-sized allocation. Image initialization resets
+//! the once-cell every Boot; this is not DMA or retained/deep-sleep state.
 use super::*;
-pub(super) fn reserve_with(
-    allocate: impl FnOnce(core::alloc::Layout) -> *mut u8,
-) -> Result<Box<core::mem::MaybeUninit<Store>>, &'static str> {
-    let raw = allocate(core::alloc::Layout::new::<Store>()).cast::<core::mem::MaybeUninit<Store>>();
-    if raw.is_null() {
-        return Err("restart-store-capacity");
-    }
-    // SAFETY: exact nonzero Store layout; Box::write initializes it once, and
-    // every refusal drops only this uninitialized allocation.
-    Ok(unsafe { Box::from_raw(raw) })
-}
-pub(super) fn reserve() -> Result<Box<core::mem::MaybeUninit<Store>>, &'static str> {
-    reserve_with(|layout| unsafe { alloc::alloc::alloc(layout) })
+#[cfg_attr(
+    all(target_os = "none", feature = "local-appliance"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
+static BACKING: static_cell::StaticCell<Store> = static_cell::StaticCell::new();
+pub(super) fn initialize(store: Store) -> Result<&'static mut Store, &'static str> {
+    BACKING.try_init(store).ok_or("restart-store-already-owned")
 }
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn allocation_refusal_does_not_acquire_or_replace_store() {
-        let mut attempted = false;
-        assert!(reserve_with(|layout| {
-            attempted = true;
-            assert_eq!(layout.size(), core::mem::size_of::<Store>());
-            core::ptr::null_mut()
-        })
-        .is_err());
-        assert!(attempted);
+    fn pointer_custody_preserves_once_only_initialization() {
+        static CELL: static_cell::StaticCell<u32> = static_cell::StaticCell::new();
+        let first = CELL.try_init(7).unwrap();
+        assert!(CELL.try_init(9).is_none());
+        assert_eq!(*first, 7);
         assert_eq!(
             core::mem::size_of::<StoreLease>(),
             core::mem::size_of::<usize>()

@@ -38,6 +38,25 @@ was requested. Snapshot SHA-256:
 `6a784123662275da01bd75c7dd53f21a4c525764c9c09f92c0e4f7d0b1a390f2`.
 This is raw evidence custody, not selected recorder State or journal reclamation.
 
+## Pending-custody preparation checkpoint
+
+The `39f04c6d3` candidate linked with unchanged Root/SDK grants and a
+36,900-byte static stack against the existing 36,864-byte floor. Its pointer
+lease reduced the CPU pending core from 2,520 to 824 bytes. Physical startup
+exposed a separate bank-placement regression: moving the Store backing from
+RTC memory into the Root heap left 30,420 bytes free where network preparation
+requires 24,576 + 5,848 = 30,424. Admission repeatedly refused before network
+construction. Sampling and the Mask nevertheless continued: by 164,934 ms,
+the capture contained two observations and 50 Mask consumptions, without a
+reported sampler or Mask failure. This candidate is not a passing Wi-Fi build.
+
+The attended Linux acknowledgment caller is implemented separately. It retains
+and reopens the exact signed request before sending, retries those same bytes,
+verifies the Root-signed committed receipt, and retains both receipt encodings
+with file/directory synchronization. Thirteen custody tests, six join regression
+tests, the binary HTTP test and the actual CLI build passed. No physical network
+acknowledgment or reclamation has been proved by these checks.
+
 ## Reconcile the ten observations
 
 | Concern | Current assessment | Remaining acceptance |

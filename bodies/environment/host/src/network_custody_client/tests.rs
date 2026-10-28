@@ -380,7 +380,7 @@ fn attended_conflicting_ack_prevents_any_post_and_retry_bound_preserves_evidence
         || {}
     )
     .is_err());
-    assert_eq!(calls, 12);
+    assert_eq!(calls, 151);
     assert_eq!(reopen(&token.directory.join("ack.bin"), 628).unwrap(), ack);
     assert!(token.directory.join("snapshot.bin").exists());
 }
