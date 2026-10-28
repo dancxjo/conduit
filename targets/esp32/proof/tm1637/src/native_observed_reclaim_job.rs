@@ -28,6 +28,12 @@ impl<S> PreparedStart<S> {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Operation {
+    CommitMarker,
+    EraseSector,
+    VerifySector,
+}
 enum State<S> {
     Prepared(Box<PreparedStart<S>>),
     Pending(PendingReclaim<S>),
@@ -44,6 +50,18 @@ impl<S: WholeEpoch> ReclaimJob<S> {
         Self {
             state: Some(State::Prepared(prepared)),
             offset: 1,
+        }
+    }
+    /// Classify only this actual owner's next operation, never a received step.
+    pub(crate) fn operation(&self) -> Option<Operation> {
+        match self.state.as_ref() {
+            Some(State::Prepared(_)) => Some(Operation::CommitMarker),
+            Some(State::Pending(pending)) => Some(match pending.next_step() {
+                ReclaimStep::EraseSector(_) => Operation::EraseSector,
+                ReclaimStep::VerifySector(_) => Operation::VerifySector,
+                ReclaimStep::Publish => Operation::CommitMarker,
+            }),
+            _ => None,
         }
     }
     /// The scoped permit is necessary, not proof that this operation's duration
@@ -251,6 +269,14 @@ mod tests {
         assert_eq!(erases.get(), 0);
         fail.set(false);
         for ordinal in 0..62 {
+            assert_eq!(
+                job.operation(),
+                Some(match ordinal {
+                    0 | 61 => Operation::CommitMarker,
+                    1..=30 => Operation::EraseSector,
+                    _ => Operation::VerifySector,
+                })
+            );
             assert_eq!(job.step(), ordinal);
             job.advance(&permit, &mut work).unwrap();
             assert_eq!(job.step(), ordinal + 1);
@@ -264,6 +290,7 @@ mod tests {
             "closed journal inspection does not run inside flash window"
         );
         assert_eq!(erases.get(), 30);
+        assert_eq!(job.operation(), None);
         let storage = job.into_erased().ok().unwrap().into_storage();
         assert!(storage.bytes[..DATA].iter().all(|b| *b == 255));
     }

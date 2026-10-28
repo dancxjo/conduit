@@ -141,6 +141,14 @@ pub(crate) async fn serve_cold(
                 #[cfg(feature = "biography-maintenance")]
                 {
                     use crate::native_observed_archive::{cold, custody_acceptance::wire};
+                    if command == b"OBS TIME?" {
+                        json(
+                            uart,
+                            &crate::native_evidence_region::measurement::snapshot(),
+                        )?;
+                        deadline = Instant::now() + Duration::from_secs(60);
+                        return Ok(false);
+                    }
                     if let Some(slot) = command.strip_prefix(b"OBS? ") {
                         if slot.len() != 1 || !(b'0'..=b'5').contains(&slot[0]) {
                             return Err("observed-cold-slot");

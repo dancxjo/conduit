@@ -6,6 +6,9 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
 use esp_storage::FlashStorage;
 use static_cell::StaticCell;
+#[cfg(feature = "local-appliance")]
+#[path = "native_flash_measurement.rs"]
+pub(crate) mod measurement;
 // The autonomous appliance preserves the full signed history geometry while
 // retaining a smaller, disjoint display-evidence region. Other profiles retain
 // their original partition contract; a mismatched table is refused at boot.
@@ -39,6 +42,8 @@ pub struct Region {
     length: u32,
 }
 pub struct Regions {
+    #[cfg(feature = "local-appliance")]
+    pub(crate) flash_timing: Option<measurement::ReviewedTiming>,
     pub evidence: Region,
     /// Original CRC-only legacy region is absent in the fresh appliance profile.
     pub observations: Option<Region>,
@@ -59,6 +64,8 @@ pub struct BodyRegion(Region);
 #[inline(never)]
 pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &'static str> {
     let mut flash = FlashStorage::new(flash);
+    #[cfg(feature = "local-appliance")]
+    let flash_timing = measurement::report_rom_profile();
     if ReadNorFlash::capacity(&flash) != 0x400000 {
         return Err("evidence-flash-geometry");
     }
@@ -113,6 +120,8 @@ pub fn prepare(flash: esp_hal::peripherals::FLASH<'static>) -> Result<Regions, &
         .try_init(Mutex::new(RefCell::new(flash)))
         .ok_or("evidence-flash-already-owned")?;
     Ok(Regions {
+        #[cfg(feature = "local-appliance")]
+        flash_timing,
         evidence: Region {
             base,
             start: EVIDENCE_START,
@@ -341,9 +350,14 @@ impl ObservationEpoch {
             .whole
             .bound(relative, 4096)
             .map_err(|_| Error::Region)?;
-        self.whole.base.lock(|base| {
+        #[cfg(feature = "local-appliance")]
+        let started = embassy_time::Instant::now();
+        let result = self.whole.base.lock(|base| {
             NorFlash::erase(&mut *base.borrow_mut(), start, start + 4096).map_err(|_| Error::Media)
-        })
+        });
+        #[cfg(feature = "local-appliance")]
+        measurement::erase(started, result.is_err());
+        result
     }
 }
 #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
@@ -401,7 +415,12 @@ impl crate::native_observed_archive::custody_journal::WholeEpoch for Observation
     ) -> Result<(), crate::native_observed_archive::custody_journal::Error> {
         use crate::native_observed_archive::custody_journal::Error;
         let at = epoch_geometry::Geometry::marker(bank, at, bytes.len()).ok_or(Error::Region)?;
-        Storage::program(&mut self.whole, at, bytes).map_err(|_| Error::Media)
+        #[cfg(feature = "local-appliance")]
+        let started = embassy_time::Instant::now();
+        let result = Storage::program(&mut self.whole, at, bytes).map_err(|_| Error::Media);
+        #[cfg(feature = "local-appliance")]
+        measurement::program(started, bytes.len(), result.is_err());
+        result
     }
     fn erase_marker(
         &mut self,

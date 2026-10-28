@@ -208,8 +208,8 @@ impl NativeRoot {
             boot,
         }
     }
-    /// Retain the uniquely issued empty queue endpoint; this alone qualifies no
-    /// operation and admits no signed reclamation request or physical timing.
+    /// Retain the unique profile-filtered queue endpoint. It alone admits no
+    /// signed reclamation request and grants no actual wait window.
     #[cfg(all(feature = "local-appliance", target_os = "none"))]
     pub(crate) fn retain_reclaim_submitter(
         &mut self,

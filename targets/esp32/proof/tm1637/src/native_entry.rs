@@ -30,6 +30,8 @@ async fn main(spawner: Spawner) {
     let timer = TimerGroup::new(p.TIMG0);
     let interrupts = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timer.timer0, interrupts.software_interrupt0);
+    #[cfg(feature = "local-appliance")]
+    let flash_timing;
     #[cfg(any(
         feature = "local-evidence-store",
         feature = "network-credential-store",
@@ -39,6 +41,10 @@ async fn main(spawner: Spawner) {
     {
         let regions =
             crate::native_evidence_region::prepare(p.FLASH).expect("dedicated evidence backing");
+        #[cfg(feature = "local-appliance")]
+        {
+            flash_timing = regions.flash_timing;
+        }
         // Authenticate the retained Body and its layout receipts before any
         // observation epoch can be considered reusable after a power cut.
         #[cfg(feature = "body-persistence")]
@@ -62,7 +68,7 @@ async fn main(spawner: Spawner) {
     }
     #[cfg(feature = "local-appliance")]
     let (reclaim_submitter, maintenance_lane, pulse_gate) =
-        crate::native_flash_domain::prepare().expect("finite cooperative flash domain");
+        crate::native_flash_domain::prepare(flash_timing).expect("finite cooperative flash domain");
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     #[cfg(feature = "local-appliance")]
     let sensor = crate::native_pulse_fence::GatedPulse::new(sensor, pulse_gate);
