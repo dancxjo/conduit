@@ -344,3 +344,6 @@ fn valid_layout_cannot_hide_forged_prefix_at_post_eof_receipt_boundary() {
 ))]
 #[path = "native_restart_rewrite_tests.rs"]
 mod prepared_rewrite;
+
+#[path = "native_restart_network_tests.rs"]
+mod network_tests;

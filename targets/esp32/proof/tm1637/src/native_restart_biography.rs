@@ -180,7 +180,7 @@ fn retain_store_receipt(
         .journal
         .rewrite_streamed(&previous.source, &store.binding, &seed.0, |io| {
             let mut read_refusal = None;
-            let next = payload::stream_rewrite_with_layout(
+            let next = payload::stream_rewrite_with_network(
                 &resident.retained.evidence,
                 &[],
                 admissions,
@@ -190,6 +190,7 @@ fn retain_store_receipt(
                 0,
                 &key.to_bytes(),
                 &previous.layouts,
+                previous.network.as_ref(),
                 |out| {
                     io.read_source(out).map_err(|error| {
                         read_refusal = Some(error);
@@ -227,6 +228,7 @@ fn retain_store_receipt(
         || checked.span != span
         || checked.local_count != 0
         || checked.layouts != previous.layouts
+        || checked.network != previous.network
     {
         store.failed = true;
         return Err("biography-receipt-readback");
@@ -234,6 +236,7 @@ fn retain_store_receipt(
     store.custody = Some(ArchiveCustody {
         proof: checked.proof,
         layouts: checked.layouts,
+        network: checked.network,
         source: checked_source,
         summary: checked.summary,
         span: checked.span,

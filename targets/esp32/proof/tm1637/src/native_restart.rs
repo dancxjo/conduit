@@ -95,6 +95,7 @@ struct Store {
 struct ArchiveCustody {
     proof: Option<payload::rewrite::AuthenticatedReceipts>,
     layouts: payload::layout::Layouts,
+    network: Option<payload::network::Cursor>,
     source: crate::native_body_checkpoint::SourceSnapshot,
     summary: payload::archive::Summary,
     span: payload::archive::Span,
@@ -420,6 +421,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                 Some(ArchiveCustody {
                     proof: resident.proof,
                     layouts: resident.layouts,
+                    network: resident.network,
                     source,
                     summary: resident.summary,
                     span: resident.span,
@@ -498,6 +500,7 @@ pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static st
         store.custody = Some(ArchiveCustody {
             proof: resident.proof,
             layouts: resident.layouts,
+            network: resident.network,
             source,
             summary: resident.summary,
             span: resident.span,
@@ -562,12 +565,12 @@ fn checkpoint_store_timed(
         return Err("restart-body-binding");
     }
     timings.enter(TimingStage::Prepare);
-    let next_custody = if let Some(previous) = store.custody.as_ref() {
+    let mut next_custody = if let Some(previous) = store.custody.as_ref() {
         let prepared = previous
             .proof
             .as_ref()
             .map(|proof| {
-                payload::rewrite::PreparedRewrite::prepare_framed(
+                payload::rewrite::PreparedRewrite::prepare_framed_network(
                     proof,
                     &previous.source,
                     owner.evidence(),
@@ -582,6 +585,7 @@ fn checkpoint_store_timed(
                     previous.local_count,
                     verifying_key,
                     &previous.layouts,
+                    previous.network.as_ref(),
                 )
             })
             .transpose()?;
@@ -606,7 +610,7 @@ fn checkpoint_store_timed(
                             &mut |bytes| io.write(bytes),
                         )
                     } else {
-                        payload::stream_rewrite_with_layout(
+                        payload::stream_rewrite_with_network(
                             owner.evidence(),
                             owner.pending_archives(),
                             store.admissions.as_ref().ok_or(Refusal::Corrupt)?,
@@ -616,6 +620,7 @@ fn checkpoint_store_timed(
                             previous.local_count,
                             verifying_key,
                             &previous.layouts,
+                            previous.network.as_ref(),
                             |out| {
                                 io.read_source(out).map_err(|error| {
                                     read_refusal = Some(error);
@@ -661,6 +666,8 @@ fn checkpoint_store_timed(
         ArchiveCustody {
             proof,
             layouts: previous.layouts.clone(),
+            // The existing validated Box moves only after readback succeeds.
+            network: None,
             source,
             summary,
             span,
@@ -710,6 +717,7 @@ fn checkpoint_store_timed(
         ArchiveCustody {
             proof: resident.proof,
             layouts: resident.layouts,
+            network: resident.network,
             source,
             summary: resident.summary,
             span: resident.span,
@@ -718,6 +726,9 @@ fn checkpoint_store_timed(
         }
     };
     timings.enter(TimingStage::Acknowledge);
+    if let Some(previous) = store.custody.as_mut() {
+        next_custody.network = previous.network.take();
+    }
     store.custody = Some(next_custody);
     // save hashes physical readback and commits the marker last. Only those
     // exact, validated archive bytes can now discharge the owner's pending head.
@@ -832,3 +843,21 @@ fn stream_refusal(error: payload::StreamRefusal<Refusal>) -> Refusal {
 #[cfg(test)]
 #[path = "native_restart_park_tests.rs"]
 mod park_tests;
+
+/// Read descriptive custody only from the authenticated retained checkpoint.
+/// No raw bytes escape as a writable region or erase grant.
+pub(crate) fn with_network_cursor<T>(
+    read: impl FnOnce(Option<&payload::network::Cursor>) -> T,
+) -> Result<T, &'static str> {
+    with_store(|store| {
+        if store.failed || store.parked {
+            return Err("network-cursor-unavailable");
+        }
+        Ok(read(
+            store
+                .custody
+                .as_ref()
+                .and_then(|custody| custody.network.as_ref()),
+        ))
+    })
+}

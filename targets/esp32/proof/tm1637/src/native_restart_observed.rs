@@ -145,7 +145,7 @@ pub(super) fn persist(
     let source = store
         .journal
         .rewrite_streamed(&previous.source, &store.binding, &seed.0, |io| {
-            payload::stream_rewrite_with_layout(
+            payload::stream_rewrite_with_network(
                 &resident.retained.evidence,
                 &[],
                 admissions,
@@ -155,6 +155,7 @@ pub(super) fn persist(
                 previous.local_count,
                 &root.to_bytes(),
                 &layouts,
+                resident.network.as_ref(),
                 |out| io.read_source(out).map_err(|_| ()),
                 &mut |bytes| io.write(bytes),
             )
@@ -162,6 +163,11 @@ pub(super) fn persist(
             .map_err(stream_refusal)
         })
         .map_err(|_| "layout-rewrite")?;
+    let network = resident
+        .network
+        .as_ref()
+        .map(payload::network::Cursor::try_clone)
+        .transpose()?;
     drop(resident);
     // Independent authenticated decode of the committed successor, after the
     // journal's physical readback, validates every receipt against this pin.
@@ -170,7 +176,10 @@ pub(super) fn persist(
             .inspect_err(|_| {
                 store.failed = true;
             })?;
-    if checked.layouts != layouts || checked_source.generation() != source.generation() {
+    if checked.layouts != layouts
+        || checked.network != network
+        || checked_source.generation() != source.generation()
+    {
         store.failed = true;
         return Err("layout-readback");
     }
@@ -186,6 +195,7 @@ pub(super) fn persist(
         prefix: checked.prefix,
         local_count: checked.local_count,
         layouts: checked.layouts,
+        network: checked.network,
     });
     Ok(durable)
 }

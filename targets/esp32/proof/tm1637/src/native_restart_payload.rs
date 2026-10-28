@@ -19,6 +19,9 @@ mod read_json;
 pub(super) mod rewrite;
 pub const MAX_PLAIN_BYTES: usize = 128 * 1024;
 pub const SCHEMA: &str = "conduit.environment/root-restart@1";
+#[path = "native_restart_network.rs"]
+pub(crate) mod network;
+pub(crate) const SCHEMA_V4: &str = "conduit.environment/root-restart@4";
 pub(crate) const SCHEMA_V3: &str = "conduit.environment/root-restart@3";
 #[path = "native_restart_layout.rs"]
 pub(crate) mod layout;
@@ -40,6 +43,8 @@ pub struct Retained {
 #[derive(Serialize)]
 struct Snapshot<'a> {
     schema: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    network_cursor: Option<&'a network::Cursor>,
     evidence: profile::EvidenceRef<'a>,
     archives: Archives<'a>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -108,6 +113,7 @@ pub fn encode(
     validate_chain(evidence, archives, pending)?;
     let snapshot = Snapshot {
         schema: SCHEMA,
+        network_cursor: None,
         evidence: evidence.into(),
         archives: Archives(archives, pending),
         admissions: None,
@@ -463,12 +469,24 @@ pub fn stream_with_admissions<E>(
     admissions: Option<&AdmissionManager>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(), StreamRefusal<E>> {
+    stream_with_admissions_and_network(evidence, archives, pending, admissions, None, sink)
+}
+
+pub fn stream_with_admissions_and_network<E>(
+    evidence: &BodyBiographyEvidence,
+    archives: &[BodyBiographyArchiveSegment],
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: Option<&AdmissionManager>,
+    network: Option<&network::Cursor>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(), StreamRefusal<E>> {
     validate_chain(evidence, archives, pending).map_err(|_| StreamRefusal::Invalid)?;
     if admissions.is_some_and(|manager| manager.body_id != evidence.body_id) {
         return Err(StreamRefusal::Invalid);
     }
     let snapshot = Snapshot {
-        schema: SCHEMA,
+        schema: if network.is_some() { SCHEMA_V4 } else { SCHEMA },
+        network_cursor: network,
         evidence: evidence.into(),
         archives: Archives(archives, pending),
         admissions,
@@ -495,6 +513,19 @@ pub fn stream_compressed_with_admissions<E>(
     admissions: Option<&AdmissionManager>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(), StreamRefusal<E>> {
+    stream_compressed_with_admissions_and_network(
+        evidence, archives, pending, admissions, None, sink,
+    )
+}
+
+pub fn stream_compressed_with_admissions_and_network<E>(
+    evidence: &BodyBiographyEvidence,
+    archives: &[BodyBiographyArchiveSegment],
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: Option<&AdmissionManager>,
+    network: Option<&network::Cursor>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(), StreamRefusal<E>> {
     let mut failure = None;
     let mut capacity = false;
     let result = {
@@ -507,11 +538,12 @@ pub fn stream_compressed_with_admissions<E>(
             MAX_PLAIN_BYTES,
             MAX_BYTES,
         );
-        let result = stream_with_admissions(
+        let result = stream_with_admissions_and_network(
             evidence,
             archives,
             pending,
             admissions,
+            network,
             &mut |bytes: &[u8]| {
                 encoder.write(bytes).map_err(|error| {
                     capacity |= error == compress::Error::Capacity;
@@ -559,6 +591,7 @@ pub(crate) fn stream_rewrite<E>(
         previous.count,
         None,
         &layout::Layouts::default(),
+        None,
         read,
         sink,
     )
@@ -608,6 +641,36 @@ pub(crate) fn stream_rewrite_with_layout<E>(
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+    stream_rewrite_with_network(
+        evidence,
+        pending,
+        admissions,
+        previous,
+        previous_span,
+        prefix,
+        previous_local_count,
+        root,
+        layouts,
+        None,
+        read,
+        sink,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn stream_rewrite_with_network<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous: &archive::Summary,
+    previous_span: archive::Span,
+    prefix: Option<&wire::Receipt>,
+    previous_local_count: u64,
+    root: &[u8; 32],
+    layouts: &layout::Layouts,
+    network: Option<&network::Cursor>,
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
     stream_rewrite_inner(
         evidence,
         pending,
@@ -618,6 +681,7 @@ pub(crate) fn stream_rewrite_with_layout<E>(
         previous_local_count,
         Some(root),
         layouts,
+        network,
         read,
         sink,
     )
@@ -633,10 +697,11 @@ fn stream_rewrite_inner<E>(
     previous_local_count: u64,
     root: Option<&[u8; 32]>,
     layouts: &layout::Layouts,
+    network: Option<&network::Cursor>,
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
-    let key = if prefix.is_some() || !layouts.is_empty() {
+    let key = if prefix.is_some() || !layouts.is_empty() || network.is_some() {
         Some(
             ed25519_dalek::VerifyingKey::from_bytes(root.ok_or(StreamRefusal::Invalid)?)
                 .map_err(|_| StreamRefusal::Invalid)?,
@@ -644,9 +709,14 @@ fn stream_rewrite_inner<E>(
     } else {
         None
     };
-    let _checked =
-        rewrite::ValidatedReceipts::verify(&evidence.body_id, key.as_ref(), prefix, layouts)
-            .map_err(|_| StreamRefusal::Invalid)?;
+    let _checked = rewrite::ValidatedReceipts::verify_network(
+        &evidence.body_id,
+        key.as_ref(),
+        prefix,
+        layouts,
+        network,
+    )
+    .map_err(|_| StreamRefusal::Invalid)?;
     let summary = validate_rewrite_state(
         evidence,
         pending,
@@ -664,6 +734,7 @@ fn stream_rewrite_inner<E>(
         prefix,
         previous_local_count,
         layouts,
+        network,
         summary,
         read,
         sink,
@@ -722,6 +793,7 @@ fn emit_rewrite<E>(
     prefix: Option<&wire::Receipt>,
     previous_local_count: u64,
     layouts: &layout::Layouts,
+    network: Option<&network::Cursor>,
     summary: archive::Summary,
     read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
@@ -747,7 +819,9 @@ fn emit_rewrite<E>(
         };
         plain(b"{\"schema\":")?;
         json::stream(
-            &if !layouts.is_empty() {
+            &if network.is_some() {
+                SCHEMA_V4
+            } else if !layouts.is_empty() {
                 SCHEMA_V3
             } else if prefix.is_some() {
                 SCHEMA_V2
@@ -773,6 +847,13 @@ fn emit_rewrite<E>(
         if !layouts.is_empty() {
             plain(b",\"observation_layouts\":")?;
             json::stream(layouts, &mut |bytes: &[u8]| {
+                plain(bytes).map_err(|_| json::CodecError::Sink)
+            })
+            .map_err(|_| ())?;
+        }
+        if let Some(network) = network {
+            plain(b",\"network_cursor\":")?;
+            json::stream(network, &mut |bytes: &[u8]| {
                 plain(bytes).map_err(|_| json::CodecError::Sink)
             })
             .map_err(|_| ())?;

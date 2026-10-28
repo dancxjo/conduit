@@ -102,6 +102,7 @@ pub(crate) struct Resident {
     pub(crate) proof: Option<super::rewrite::AuthenticatedReceipts>,
     pub(super) validation: Option<super::rewrite::ValidatedReceipts>,
     pub layouts: super::layout::Layouts,
+    pub network: Option<super::network::Cursor>,
     pub retained: Retained,
     pub summary: Summary,
     pub prefix: Option<super::wire::Receipt>,
@@ -134,11 +135,12 @@ impl PendingResident {
         key: Option<&ed25519_dalek::VerifyingKey>,
     ) -> Result<Box<Resident>, &'static str> {
         let mut resident = self.0;
-        resident.validation = Some(super::rewrite::ValidatedReceipts::verify(
+        resident.validation = Some(super::rewrite::ValidatedReceipts::verify_network(
             body,
             key,
             resident.prefix.as_ref(),
             &resident.layouts,
+            resident.network.as_ref(),
         )?);
         Ok(resident)
     }
@@ -197,6 +199,7 @@ struct Envelope<'a> {
 }
 struct Decoded {
     layouts: super::layout::Layouts,
+    network: Option<super::network::Cursor>,
     schema: String,
     evidence: BodyBiographyEvidence,
     admissions: Option<AdmissionManager>,
@@ -219,6 +222,7 @@ impl<'de> Visitor<'de> for Envelope<'_> {
             (None, None, None, None, None);
         let mut admissions_seen = false;
         let mut layouts = None;
+        let mut network = None;
         while let Some(field) = map.next_key::<String>()? {
             match field.as_str() {
                 "schema" if schema.is_none() => schema = Some(map.next_value::<String>()?),
@@ -255,6 +259,11 @@ impl<'de> Visitor<'de> for Envelope<'_> {
                     }
                     layouts = Some(raw);
                 }
+                "network_cursor" if network.is_none() => {
+                    self.key
+                        .ok_or_else(|| de::Error::custom("network cursor requires pinned Root"))?;
+                    network = Some(map.next_value::<super::network::Cursor>()?);
+                }
                 "admissions" if !admissions_seen => {
                     admissions_seen = true;
                     admissions = read_admissions(&mut map)?;
@@ -265,8 +274,13 @@ impl<'de> Visitor<'de> for Envelope<'_> {
         let schema = schema.ok_or_else(|| de::Error::custom("restart schema missing"))?;
         if (schema == SCHEMA && prefix.is_some())
             || (schema == super::SCHEMA_V2 && prefix.is_none())
-            || (schema != SCHEMA && schema != super::SCHEMA_V2 && schema != super::SCHEMA_V3)
-            || ((schema == super::SCHEMA_V3) != layouts.is_some())
+            || (schema != SCHEMA
+                && schema != super::SCHEMA_V2
+                && schema != super::SCHEMA_V3
+                && schema != super::SCHEMA_V4)
+            || (schema == super::SCHEMA_V3 && layouts.is_none())
+            || (schema != super::SCHEMA_V3 && schema != super::SCHEMA_V4 && layouts.is_some())
+            || ((schema == super::SCHEMA_V4) != network.is_some())
         {
             return Err(de::Error::custom("restart schema/prefix mismatch"));
         }
@@ -285,6 +299,7 @@ impl<'de> Visitor<'de> for Envelope<'_> {
         }
         Ok(Decoded {
             layouts: layouts.unwrap_or_default(),
+            network,
             schema,
             evidence: evidence.ok_or_else(|| de::Error::custom("restart evidence missing"))?,
             admissions,
@@ -553,6 +568,7 @@ fn finish_decoded(
 ) -> Result<PendingResident, &'static str> {
     let Decoded {
         layouts,
+        network,
         schema,
         evidence,
         admissions,
@@ -604,6 +620,7 @@ fn finish_decoded(
             validation: None,
             proof: None,
             layouts,
+            network,
             retained: Retained {
                 schema,
                 evidence,

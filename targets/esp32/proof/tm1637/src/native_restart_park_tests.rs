@@ -306,3 +306,91 @@ fn archived_boot_history_stays_exact_on_flash_and_out_of_cold_resident_memory() 
     assert_eq!(checked.span, custody.span);
     assert_eq!(checked.retained.evidence, active);
 }
+
+pub(super) fn network_fixture() -> (
+    Store,
+    Option<Box<SealedBodyLifecycleSession>>,
+    conduit_core::HostAdvertisement,
+    [u8; 32],
+    payload::network::Cursor,
+) {
+    let (mut store, owner, host, root) = fixture();
+    let key = ed25519_dalek::SigningKey::from_bytes(&[7; 32]);
+    let expected = payload::network::fixture(&owner.as_ref().unwrap().evidence().body_id, &key, 1);
+    store
+        .journal
+        .save_streamed(&store.binding, &[7; 32], |sink| {
+            payload::stream_compressed_with_admissions_and_network(
+                owner.as_ref().unwrap().evidence(),
+                &store.archives,
+                &[],
+                store.admissions.as_ref(),
+                Some(&expected),
+                sink,
+            )
+            .map_err(stream_refusal)
+        })
+        .unwrap();
+    let mut seed = PrivateSeed([0; 32]);
+    let body = owner.as_ref().unwrap().evidence().body_id.clone();
+    let (resident, source) =
+        decode_checkpoint(&mut store.journal, &store.binding, &body, &mut seed.0, None).unwrap();
+    store.custody = Some(ArchiveCustody {
+        proof: resident.proof,
+        layouts: resident.layouts,
+        network: resident.network,
+        source,
+        summary: resident.summary,
+        span: resident.span,
+        prefix: resident.prefix,
+        local_count: resident.local_count,
+    });
+    store.archives.clear();
+    (store, owner, host, root, expected)
+}
+#[test]
+fn network_cursor_survives_actual_checkpoint_framed_rewrite_and_parked_restore() {
+    let (mut store, mut owner, host, root, expected) = network_fixture();
+    let body = owner.as_ref().unwrap().evidence().body_id.clone();
+    checkpoint_store(&mut store, owner.as_mut().unwrap(), &root).unwrap();
+    assert!(store.custody.as_ref().unwrap().network.as_ref() == Some(&expected));
+    // The old wrapper cannot silently drop a cursor using an authenticated proof.
+    let previous = store.custody.as_ref().unwrap();
+    assert!(payload::rewrite::PreparedRewrite::prepare_framed(
+        previous.proof.as_ref().unwrap(),
+        &previous.source,
+        owner.as_ref().unwrap().evidence(),
+        &[],
+        store.admissions.as_ref().unwrap(),
+        &previous.summary,
+        previous.span,
+        previous.prefix.as_ref(),
+        previous.local_count,
+        &root,
+        &previous.layouts
+    )
+    .is_err());
+    let changed =
+        payload::network::fixture(&body, &ed25519_dalek::SigningKey::from_bytes(&[7; 32]), 2);
+    assert!(payload::rewrite::PreparedRewrite::prepare_framed_network(
+        previous.proof.as_ref().unwrap(),
+        &previous.source,
+        owner.as_ref().unwrap().evidence(),
+        &[],
+        store.admissions.as_ref().unwrap(),
+        &previous.summary,
+        previous.span,
+        previous.prefix.as_ref(),
+        previous.local_count,
+        &root,
+        &previous.layouts,
+        Some(&changed)
+    )
+    .is_err());
+    let mut token =
+        park_store(&mut store, &mut owner, &root, &host.host_id, &host.boot_id).unwrap();
+    let restored =
+        restore_store(&mut store, &mut token, &host.host_id, &host.boot_id, &root).unwrap();
+    assert_eq!(restored.evidence().body_id, body);
+    assert!(store.custody.as_ref().unwrap().network.as_ref() == Some(&expected));
+}

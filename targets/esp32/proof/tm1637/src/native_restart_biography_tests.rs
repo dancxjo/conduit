@@ -203,6 +203,7 @@ fn private_backup_prefix_migration_preserves_exact_canonical_custody() {
         custody: Some(ArchiveCustody {
             proof: resident.proof,
             layouts: payload::layout::Layouts::default(),
+            network: None,
             source,
             summary: resident.summary,
             prefix: resident.prefix,
@@ -450,6 +451,7 @@ fn private_physical_offload_preserves_actual_receipt_and_complete_archives() {
         custody: Some(ArchiveCustody {
             proof: before.proof,
             layouts: payload::layout::Layouts::default(),
+            network: None,
             source,
             summary: before.summary,
             prefix: before.prefix,
@@ -543,4 +545,34 @@ fn prefix_offload_preserves_durable_layout_and_exact_persisted_manager() {
         serde_json::to_vec(&resident.retained.admissions).unwrap(),
         manager
     );
+}
+
+#[test]
+fn biography_custody_rewrite_and_followup_checkpoint_preserve_network_cursor() {
+    let (mut store, mut owner, host, root, expected) = super::super::park_tests::network_fixture();
+    let owner = owner.as_mut().unwrap();
+    checkpoint_store(&mut store, owner, &root).unwrap();
+    let original = owner.evidence().clone();
+    store.evidence = Some(original.clone());
+    store.ready = false;
+    let draft = prepare_store(&mut store).unwrap();
+    let receipt = endorsed(&draft);
+    retain_store_receipt(&mut store, receipt).unwrap();
+    assert!(store.custody.as_ref().unwrap().network.as_ref() == Some(&expected));
+    let mut seed = [0; 32];
+    let (resident, _) = decode_checkpoint(
+        &mut store.journal,
+        &store.binding,
+        &original.body_id,
+        &mut seed,
+        None,
+    )
+    .unwrap();
+    assert!(resident.network.as_ref() == Some(&expected));
+    assert_eq!(resident.retained.schema, payload::SCHEMA_V4);
+    assert_eq!(resident.local_count, 0);
+    let mut continued =
+        SealedBodyLifecycleSession::open_admitted(original, &host.host_id, &host.boot_id).unwrap();
+    checkpoint_store(&mut store, &mut continued, &root).unwrap();
+    assert!(store.custody.as_ref().unwrap().network.as_ref() == Some(&expected));
 }

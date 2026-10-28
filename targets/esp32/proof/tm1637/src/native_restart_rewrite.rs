@@ -20,10 +20,11 @@ pub(crate) struct AuthenticatedReceipts {
 fn fingerprint(
     prefix: Option<&wire::Receipt>,
     layouts: &layout::Layouts,
+    network: Option<&network::Cursor>,
 ) -> Result<[u8; 32], &'static str> {
     let mut hash = Sha256::new();
     hash.update(b"conduit.environment/private-rewrite-receipts@1\0");
-    json::stream(&(prefix, layouts), &mut |bytes: &[u8]| {
+    json::stream(&(prefix, layouts, network), &mut |bytes: &[u8]| {
         hash.update(bytes);
         Ok::<_, json::CodecError>(())
     })
@@ -42,6 +43,15 @@ impl ValidatedReceipts {
         prefix: Option<&wire::Receipt>,
         layouts: &layout::Layouts,
     ) -> Result<Self, &'static str> {
+        Self::verify_network(body, key, prefix, layouts, None)
+    }
+    pub(super) fn verify_network(
+        body: &conduit_body::BodyId,
+        key: Option<&ed25519_dalek::VerifyingKey>,
+        prefix: Option<&wire::Receipt>,
+        layouts: &layout::Layouts,
+        network: Option<&network::Cursor>,
+    ) -> Result<Self, &'static str> {
         #[cfg(test)]
         VERIFICATION_PASSES.with(|n| n.set(n.get() + 1));
         if let Some(key) = key {
@@ -51,13 +61,16 @@ impl ValidatedReceipts {
                     .map_err(|_| "restart-prefix-signature")?;
             }
             layouts.validate(body, key)?;
-        } else if prefix.is_some() || !layouts.is_empty() {
+            if let Some(network) = network {
+                network.validate(body, key)?;
+            }
+        } else if prefix.is_some() || !layouts.is_empty() || network.is_some() {
             return Err("receipts require pinned Root");
         }
         Ok(Self {
             body: binding(body),
             root: key.map(|k| k.to_bytes()),
-            fingerprint: fingerprint(prefix, layouts)?,
+            fingerprint: fingerprint(prefix, layouts, network)?,
         })
     }
     pub(super) fn bind(
@@ -93,11 +106,12 @@ impl AuthenticatedReceipts {
         root: &[u8; 32],
         prefix: Option<&wire::Receipt>,
         layouts: &layout::Layouts,
+        network: Option<&network::Cursor>,
     ) -> Result<(), &'static str> {
         if self.source != source.identity()
             || source.binding() != &binding(body)
             || self.root != Some(*root)
-            || self.fingerprint != fingerprint(prefix, layouts)?
+            || self.fingerprint != fingerprint(prefix, layouts, network)?
         {
             return Err("restart-receipt-custody-changed");
         }
@@ -119,6 +133,7 @@ pub(crate) struct PreparedRewrite<'a> {
     prefix: Option<&'a wire::Receipt>,
     local_count: u64,
     layouts: &'a layout::Layouts,
+    network: Option<&'a network::Cursor>,
     summary: archive::Summary,
     checked: &'a AuthenticatedReceipts,
 }
@@ -137,7 +152,37 @@ impl<'a> PreparedRewrite<'a> {
         root: &[u8; 32],
         layouts: &'a layout::Layouts,
     ) -> Result<Self, &'static str> {
-        checked.check(source, &evidence.body_id, root, prefix, layouts)?;
+        Self::prepare_network(
+            checked,
+            source,
+            evidence,
+            pending,
+            admissions,
+            previous,
+            span,
+            prefix,
+            local_count,
+            root,
+            layouts,
+            None,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_network(
+        checked: &'a AuthenticatedReceipts,
+        source: &SourceSnapshot,
+        evidence: &'a BodyBiographyEvidence,
+        pending: &'a [BodyBiographyArchiveSegment],
+        admissions: &'a AdmissionManager,
+        previous: &'a archive::Summary,
+        span: archive::Span,
+        prefix: Option<&'a wire::Receipt>,
+        local_count: u64,
+        root: &[u8; 32],
+        layouts: &'a layout::Layouts,
+        network: Option<&'a network::Cursor>,
+    ) -> Result<Self, &'static str> {
+        checked.check(source, &evidence.body_id, root, prefix, layouts, network)?;
         let summary = validate_rewrite_state::<()>(
             evidence,
             pending,
@@ -160,6 +205,7 @@ impl<'a> PreparedRewrite<'a> {
             prefix,
             local_count,
             layouts,
+            network,
             summary,
             checked,
         })
@@ -178,7 +224,7 @@ impl<'a> PreparedRewrite<'a> {
         root: &[u8; 32],
         layouts: &'a layout::Layouts,
     ) -> Result<Self, &'static str> {
-        let mut result = Self::prepare(
+        Self::prepare_framed_network(
             checked,
             source,
             evidence,
@@ -190,6 +236,37 @@ impl<'a> PreparedRewrite<'a> {
             local_count,
             root,
             layouts,
+            None,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_framed_network(
+        checked: &'a AuthenticatedReceipts,
+        source: &SourceSnapshot,
+        evidence: &'a BodyBiographyEvidence,
+        pending: &'a [BodyBiographyArchiveSegment],
+        admissions: &'a AdmissionManager,
+        previous: &'a archive::Summary,
+        span: archive::Span,
+        prefix: Option<&'a wire::Receipt>,
+        local_count: u64,
+        root: &[u8; 32],
+        layouts: &'a layout::Layouts,
+        network: Option<&'a network::Cursor>,
+    ) -> Result<Self, &'static str> {
+        let mut result = Self::prepare_network(
+            checked,
+            source,
+            evidence,
+            pending,
+            admissions,
+            previous,
+            span,
+            prefix,
+            local_count,
+            root,
+            layouts,
+            network,
         )?;
         result.reuse = checked
             .frames
@@ -225,6 +302,7 @@ impl<'a> PreparedRewrite<'a> {
                 self.prefix,
                 self.local_count,
                 self.layouts,
+                self.network,
                 self.summary.clone(),
                 self.reuse,
                 read,
@@ -245,6 +323,7 @@ impl<'a> PreparedRewrite<'a> {
                 self.prefix,
                 self.local_count,
                 self.layouts,
+                self.network,
                 self.summary.clone(),
                 read,
                 &mut output,

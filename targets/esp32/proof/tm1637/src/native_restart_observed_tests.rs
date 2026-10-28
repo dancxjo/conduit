@@ -284,3 +284,30 @@ fn layout_write_refusal_returns_no_durable_receipt_and_preserves_retry_source() 
         receipt.bytes()
     );
 }
+
+#[test]
+fn observation_layout_rewrite_preserves_authenticated_network_cursor() {
+    let (mut store, mut owner, _host, key, expected) = super::super::park_tests::network_fixture();
+    checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap();
+    let original = owner.as_ref().unwrap().evidence().clone();
+    store.evidence = Some(original.clone());
+    store.ready = false;
+    let layout = receipt(&original.body_id, &[7; 32], 1);
+    persist(&mut store, layout.clone()).unwrap();
+    assert!(store.custody.as_ref().unwrap().network.as_ref() == Some(&expected));
+    let mut seed = PrivateSeed([0; 32]);
+    let (decoded, _) = decode_checkpoint(
+        &mut store.journal,
+        &store.binding,
+        &original.body_id,
+        &mut seed.0,
+        None,
+    )
+    .unwrap();
+    assert!(decoded.network.as_ref() == Some(&expected));
+    assert_eq!(decoded.retained.schema, payload::SCHEMA_V4);
+    assert_eq!(
+        decoded.layouts.find(&[1; 32]).unwrap().bytes(),
+        layout.bytes()
+    );
+}

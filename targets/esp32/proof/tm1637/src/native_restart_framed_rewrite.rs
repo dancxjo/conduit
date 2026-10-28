@@ -10,6 +10,7 @@ pub(super) fn emit<E>(
     prefix: Option<&wire::Receipt>,
     local_count: u64,
     layouts: &layout::Layouts,
+    network: Option<&network::Cursor>,
     summary: archive::Summary,
     reuse: Option<frames::Range>,
     mut read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
@@ -37,7 +38,9 @@ pub(super) fn emit<E>(
             .frame(frames::PREFIX, |plain| {
                 plain(b"{\"schema\":")?;
                 json::stream(
-                    &if !layouts.is_empty() {
+                    &if network.is_some() {
+                        SCHEMA_V4
+                    } else if !layouts.is_empty() {
                         SCHEMA_V3
                     } else if prefix.is_some() {
                         SCHEMA_V2
@@ -62,6 +65,13 @@ pub(super) fn emit<E>(
                 if !layouts.is_empty() {
                     plain(b",\"observation_layouts\":")?;
                     json::stream(layouts, &mut |b: &[u8]| {
+                        plain(b).map_err(|_| json::CodecError::Sink)
+                    })
+                    .map_err(|_| ())?;
+                }
+                if let Some(network) = network {
+                    plain(b",\"network_cursor\":")?;
+                    json::stream(network, &mut |b: &[u8]| {
                         plain(b).map_err(|_| json::CodecError::Sink)
                     })
                     .map_err(|_| ())?;

@@ -145,6 +145,7 @@ fn finish_restore(
     store.custody = Some(ArchiveCustody {
         proof: resident.proof,
         layouts: resident.layouts,
+        network: resident.network,
         source,
         summary: resident.summary,
         span: resident.span,
