@@ -10,7 +10,6 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 static CAPACITY_REFUSAL: [u8; b"network-evidence-capacity".len()] = *b"network-evidence-capacity";
 struct Archive {
     journal: wire::Journal<NetworkRegion>,
-    work: alloc::boxed::Box<[u8; wire::MAXIMUM_BYTES]>,
 }
 enum State {
     Ready(Archive),
@@ -18,14 +17,42 @@ enum State {
 }
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<Option<State>>> =
     Mutex::new(RefCell::new(None));
+// This is the existing Root-control reserve, not a larger evidence grant.
+const ROOT_CONTROL_RESERVE: usize = 8192;
+#[used]
+#[link_section = ".rodata.native_network_status"]
+static WORKSPACE_REFUSAL: [u8; b"network-evidence-workspace".len()] =
+    *b"network-evidence-workspace";
+#[inline(never)]
+fn scratch() -> Result<alloc::boxed::Box<[u8; wire::MAXIMUM_BYTES]>, &'static str> {
+    let refusal = || unsafe { core::str::from_utf8_unchecked(&WORKSPACE_REFUSAL) };
+    if esp_alloc::HEAP.free() < ROOT_CONTROL_RESERVE + wire::MAXIMUM_BYTES {
+        return Err(refusal());
+    }
+    let layout = core::alloc::Layout::new::<[u8; wire::MAXIMUM_BYTES]>();
+    // SAFETY: zeroed bytes initialize this exact array layout. A null allocation
+    // is refused; Box uses the same layout on drop. No page-sized stack value.
+    let pointer = unsafe { alloc::alloc::alloc(layout) };
+    if pointer.is_null() {
+        return Err(refusal());
+    }
+    unsafe { pointer.write_bytes(0, wire::MAXIMUM_BYTES) };
+    let work = unsafe { alloc::boxed::Box::from_raw(pointer.cast::<[u8; wire::MAXIMUM_BYTES]>()) };
+    if esp_alloc::HEAP.free() < ROOT_CONTROL_RESERVE {
+        return Err(refusal());
+    }
+    Ok(work)
+}
 pub fn initialize(region: NetworkRegion) -> Result<(), &'static str> {
-    let mut work = alloc::boxed::Box::new([0; wire::MAXIMUM_BYTES]);
-    let (state, result) = match wire::Journal::open(region, &mut work) {
-        Ok(journal) => (State::Ready(Archive { journal, work }), Ok(())),
-        Err((region, _)) => (
-            State::Retained { _region: region },
-            Err("network-evidence-retained-refusal"),
-        ),
+    let (state, result) = match scratch() {
+        Ok(mut work) => match wire::Journal::open(region, &mut work) {
+            Ok(journal) => (State::Ready(Archive { journal }), Ok(())),
+            Err((region, _)) => (
+                State::Retained { _region: region },
+                Err("network-evidence-retained-refusal"),
+            ),
+        },
+        Err(error) => (State::Retained { _region: region }, Err(error)),
     };
     STATE.lock(|current| {
         let mut current = current.borrow_mut();
@@ -42,6 +69,7 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
         let Some(State::Ready(archive)) = current.as_mut() else {
             return Err("network-evidence-unavailable");
         };
+        let mut work = scratch()?;
         let signs = retired.evidence.kernel.signs();
         wire::encode(
             wire::Scope {
@@ -55,10 +83,10 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
             },
             signs.events(),
             signs,
-            &mut archive.work,
+            &mut work,
         )
         .map_err(|_| "network-evidence-encoding")?;
-        match archive.journal.append(&archive.work) {
+        match archive.journal.append(&work) {
             Ok(_) => (),
             Err(error) => {
                 return Err(if error == wire::Refusal::Capacity {
