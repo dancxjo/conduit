@@ -188,3 +188,20 @@ calling it a first-class member cannot manufacture that mechanism.
 
 These criteria guide the existing work; they do not introduce a new OS or loader
 implementation lane before the continuing instrument is delivered.
+
+## Proposed profile vocabulary
+
+“Tiny” can describe an implementation/resource profile; “moon” can describe a
+relationship in which a host uses planning or construction offered elsewhere.
+These are independent axes: a large host can delegate planning, and a small
+host can possess a bounded local planner. Neither name establishes a new Host
+species, authority class, kernel or `is_moon` execution branch.
+
+Keep offered operations, finite admission bounds, update support, retained-state
+promises and disconnected behavior explicit. Local Admit/Play/Keep/Lull/Wake
+responsibilities remain ordinary Host obligations for whatever is offered.
+Using a remote planning service expands what the Body can do; it does not
+transfer that service's implementation or authority into the requesting host.
+Local acquisition without reflashing requires an already-supported loader and
+sufficient admitted resources. This vocabulary is a design aid, not a delivered
+conformance profile or a new prerequisite for the thermometer.
