@@ -76,6 +76,30 @@ pub(super) fn restore_store(
         &mut seed.0,
         store.custody.as_ref(),
     )?;
+    finish_restore(
+        store, token, host, boot, key, seed, resident, source, length,
+    )
+}
+
+// Parsing must return before the admitted-session construction and its large
+// by-value temporaries acquire a stack frame. These phases share only affine
+// boxed resident custody, the authenticated snapshot and the private seed.
+#[inline(never)]
+#[allow(
+    clippy::too_many_arguments,
+    reason = "affine authenticated decode products cross the cold construction boundary without copying"
+)]
+fn finish_restore(
+    store: &mut Store,
+    token: &ParkedBody,
+    host: &conduit_core::HostId,
+    boot: &conduit_core::BootId,
+    key: &[u8; 32],
+    seed: PrivateSeed,
+    resident: Box<payload::archive::Resident>,
+    source: crate::native_body_checkpoint::SourceSnapshot,
+    length: usize,
+) -> Result<Box<SealedBodyLifecycleSession>, &'static str> {
     let retained = resident.retained;
     if store.seed.as_ref() != Some(&seed.0)
         || ed25519_dalek::SigningKey::from_bytes(&seed.0)
@@ -88,6 +112,8 @@ pub(super) fn restore_store(
     drop(seed);
     #[cfg(all(target_os = "none", feature = "local-appliance"))]
     crate::native_root::memory_check::mark("cold-body-restore-decoded", length);
+    #[cfg(not(all(target_os = "none", feature = "local-appliance")))]
+    let _ = length;
     if <[u8; 32]>::from(Sha256::digest(
         retained.evidence.body_id.as_str().as_bytes(),
     )) != store.binding

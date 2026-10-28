@@ -539,6 +539,18 @@ pub(super) fn decode_with_prefix(
         },
     )
     .map_err(|_| "restart-encoding")?;
+    finish_decoded(decoded, observer, expected_body, expected_local)
+}
+
+// Validation and final Resident construction do not surround the streaming
+// serde recursion. The completed envelope moves into this later cold phase.
+#[inline(never)]
+fn finish_decoded(
+    decoded: Decoded,
+    observer: SpanObserver,
+    expected_body: &BodyId,
+    expected_local: Option<u64>,
+) -> Result<PendingResident, &'static str> {
     let Decoded {
         layouts,
         schema,
