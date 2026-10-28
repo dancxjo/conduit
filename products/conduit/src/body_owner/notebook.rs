@@ -21,6 +21,8 @@ mod checkpoint;
 #[path = "notebook_face.rs"]
 mod face;
 pub(crate) use face::NotebookAction;
+#[path = "notebook_navigation.rs"]
+mod navigation;
 #[path = "notebook_waiting.rs"]
 mod waiting;
 pub(crate) use waiting::NotebookWaitingWorker;
@@ -36,6 +38,7 @@ pub(super) struct NotebookDocument {
     current: Vec<u8>,
     committed: Option<Vec<u8>>,
     save_failed: bool,
+    navigation: navigation::NotebookNavigation,
     #[cfg(target_os = "linux")]
     storage: Option<std::fs::File>,
     #[cfg(target_os = "linux")]
@@ -91,6 +94,7 @@ impl Owner {
             current,
             committed: None,
             save_failed: false,
+            navigation: navigation::NotebookNavigation::default(),
             #[cfg(target_os = "linux")]
             storage: None,
             #[cfg(target_os = "linux")]
