@@ -230,5 +230,59 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     );
     assert_eq!(flash.lock().unwrap().writes, writes);
     assert_eq!(flash.lock().unwrap().bytes, expected);
+    use sha2::{Digest, Sha256};
+    let expected_digest: [u8; 32] = Sha256::digest(&expected).into();
+    let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());
+    assert!(verifier.step(&mut []).is_err());
+    assert!(verifier.step(&mut [0; 512]).is_err());
+    assert!(verifier.finish().is_err());
+    let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());
+    flash.lock().unwrap().fail_read = true;
+    assert!(verifier.step(&mut [0; 512]).is_err());
+    assert!(verifier.step(&mut [0; 512]).is_err());
+    drop(verifier);
+    let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());
+    for n in 0..64 {
+        assert_eq!(verifier.step(&mut [0; 512]).unwrap(), n == 63);
+    }
+    assert!(verifier.step(&mut [0; 512]).unwrap());
+    let mut verified = verifier.finish().unwrap();
+    assert_eq!(*verified.digest(), expected_digest);
+    assert_eq!(verified.committed_count(), 8);
+    let mut tail = [0; 1];
+    verified.read_chunk(wire::CAPACITY - 1, &mut tail).unwrap();
+    assert_eq!(tail, [0x7f]);
+    verified.finish_with(|verified| {
+        assert_eq!(*verified.digest(), expected_digest);
+        assert!(journal::inspect().is_err());
+        assert_eq!(
+            journal::append(&retired(9)),
+            Err("network-evidence-unavailable")
+        );
+    });
+    // Non-divisor workspace exercises the final partial chunk without hashing
+    // unused scratch bytes. Construction/steps retain no heap allocation.
+    let (mut verifier, allocation) = allocation_probe::observe(|| {
+        journal::snapshot::Verifier::start(journal::inspect().unwrap())
+    });
+    assert_eq!(allocation.requested_bytes, 0);
+    let (_, allocation) =
+        allocation_probe::observe(|| while !verifier.step(&mut [0xa5; 257]).unwrap() {});
+    assert_eq!(allocation.requested_bytes, 0);
+    let verified = verifier.finish().unwrap();
+    assert_eq!(*verified.digest(), expected_digest);
+    drop(verified);
+    let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());
+    assert!(verifier.step(&mut [0; 513]).is_err());
+    assert!(verifier.finish().is_err());
+    // Early finish also drops and restores the same owner.
+    assert!(
+        journal::snapshot::Verifier::start(journal::inspect().unwrap())
+            .finish()
+            .is_err()
+    );
+    assert!(journal::inspect().is_ok());
+    assert_eq!(flash.lock().unwrap().bytes, expected);
+    assert_eq!(flash.lock().unwrap().writes, writes);
     println!("scratch={} bytes; retained after open/append=0; eight exact Boot records; final-slot commit retry preserved",wire::MAXIMUM_BYTES);
 }

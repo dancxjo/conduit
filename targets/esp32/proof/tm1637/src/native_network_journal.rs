@@ -198,3 +198,6 @@ pub(crate) fn inspect() -> Result<Inspection, &'static str> {
         })
     })
 }
+
+#[path = "native_network_snapshot.rs"]
+pub(crate) mod snapshot;
