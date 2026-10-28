@@ -195,7 +195,7 @@ fn json_and_binary_preserve_complete_integer_ranges() {
     let mut binary = Vec::new();
     ciborium::ser::into_writer(&value, &mut binary).unwrap();
     assert_eq!(
-        super::preflight::validate(&binary, MAX_PLAN_CBOR_BYTES),
+        super::super::finite_cbor::validate(&binary, MAX_PLAN_CBOR_BYTES),
         Ok(())
     );
     let actual: Numeric = ciborium::de::from_reader(binary.as_slice()).unwrap();

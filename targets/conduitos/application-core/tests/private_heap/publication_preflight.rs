@@ -4,7 +4,13 @@ use super::*;
 pub(super) fn run(transfer: &mut [u8]) {
     assert!(ACTIVE.load(Ordering::SeqCst));
     assert_eq!(LIVE.load(Ordering::Relaxed), 0);
-    for case in 0..6 {
+    for selected in 0..10 {
+        let graph = selected >= 6;
+        let case = if graph {
+            [0, 3, 4, 5][selected - 6]
+        } else {
+            selected
+        };
         let (wire, expected) = on_caller(|| {
             fn map(key: &str, value: &[u8], wide: bool) -> Vec<u8> {
                 let mut bytes = vec![0xa1];
@@ -45,7 +51,11 @@ pub(super) fn run(transfer: &mut [u8]) {
             } else {
                 map("payload", &value, false)
             };
-            let mut plain = b"CAPP\x02".to_vec();
+            let mut plain = if graph {
+                b"CAPG\x01".to_vec()
+            } else {
+                b"CAPP\x02".to_vec()
+            };
             plain.extend_from_slice(&encoded);
             let mut wire = b"CAPZ\x01\0\0\0".to_vec();
             wire.extend_from_slice(&(plain.len() as u32).to_le_bytes());

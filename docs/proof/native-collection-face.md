@@ -143,3 +143,22 @@ allocation-free hostile-count/depth rejection. Independent CBOR comparisons
 cover mutated frames, integer extremes, nested enum forms and all binary16 bit
 patterns. The normal retained-image journey remains the runtime entrance above;
 Candidate and stable acceptance remain separate gates.
+
+## Retained graph preparation
+
+[Candidate 40646531247](https://github.com/dancxjo/conduit/actions/runs/40646531247)
+refused earlier, while committing the fourth retained target after successful
+preflight. The retained CI Application image locates its exhausted instruction
+inside counted JSON decoding of `Vec<PatchbayCord>`. Complete target and graph
+projection preparation now use the private finite `CAPG1` carrier, sharing the
+publication decoder. Other commands and public graph custody JSON keep their
+existing representation. Legacy graph-preparation commands refuse.
+
+Both private binary carriers compact the closed schema's reserved
+`canonical_value` u8 sequences into CBOR byte strings. This uses forward
+in-place compaction of the serializer's bounded slice, without an intermediate
+tree or extra allocation. The ordinary typed decoder still invokes every
+checked constructor. Tests cover real retained targets, independent CBOR
+round trips, all byte values, count-width boundaries and malformed input.
+No wire, workspace, heap, image or RTC allowance grows. A successful local
+journey and required Candidate remain separate acceptance gates.

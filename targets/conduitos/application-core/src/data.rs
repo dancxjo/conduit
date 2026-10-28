@@ -145,6 +145,7 @@ pub enum Command {
         slot: u8,
         input: Vec<u8>,
     },
+    #[serde(skip_deserializing)]
     PrepareGraphProjection {
         graph: PatchbayGraph,
         scope: crate::graph_facts::Scope,
@@ -157,6 +158,8 @@ pub enum Command {
     PrepareInit {
         manifest: InitManifest,
     },
+    // Complete graph preparation is decoded only from CAPG1.
+    #[serde(skip_deserializing)]
     PrepareTarget {
         slot: u8,
         target: u8,
