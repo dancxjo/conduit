@@ -28,6 +28,10 @@ pub(crate) mod history;
 mod recovery;
 const WORK_BYTES: usize = 536;
 static BASIS: static_cell::StaticCell<Box<[u8; DESCRIPTOR_BYTES]>> = static_cell::StaticCell::new();
+// Immutable borrow of the one checked descriptor; StaticCell has no shared get.
+// Published once by prepare_shared, never reconstructed from incoming custody.
+static PREPARED_BASIS: Mutex<CriticalSectionRawMutex, RefCell<Option<&'static [u8]>>> =
+    Mutex::new(RefCell::new(None));
 static WORK: Mutex<CriticalSectionRawMutex, RefCell<Option<Box<[u8; WORK_BYTES]>>>> =
     Mutex::new(RefCell::new(None));
 struct WorkLease(Option<Box<[u8; WORK_BYTES]>>);
@@ -54,7 +58,9 @@ fn prepare_shared() -> Result<&'static [u8], &'static str> {
         .try_init(Box::new(basis))
         .ok_or("observed-history-already-owned")?;
     WORK.lock(|cell| *cell.borrow_mut() = Some(Box::new([0; WORK_BYTES])));
-    Ok(&basis[..])
+    let basis = &basis[..];
+    PREPARED_BASIS.lock(|cell| *cell.borrow_mut() = Some(basis));
+    Ok(basis)
 }
 static AUTHORIZED_BODY: Mutex<CriticalSectionRawMutex, RefCell<Option<[u8; 32]>>> =
     Mutex::new(RefCell::new(None));
@@ -76,6 +82,35 @@ type ArchiveRegion = crate::native_evidence_region::ObservationEpoch;
 #[cfg(not(all(feature = "local-appliance", target_os = "none")))]
 type ArchiveRegion = Region;
 type State = state::State<ArchiveRegion>;
+/// Runs synchronously under the actual wait provider's scoped permit. The
+/// shared scratch lease is taken/restored entirely inside this one operation.
+#[cfg(all(feature = "local-appliance", target_os = "none"))]
+pub(crate) fn advance_reclaim_step(
+    job: &mut crate::native_observed_reclaim_job::ReclaimJob<ArchiveRegion>,
+    permit: &crate::native_flash_window::FlashPermit<'_, '_>,
+) -> Result<(), custody_journal::Error> {
+    with_work(|work| {
+        let work = work.try_into().map_err(|_| "observed-reclaim-workspace")?;
+        Ok(job.advance(permit, work))
+    })
+    .map_err(|_| custody_journal::Error::Media)?
+}
+/// Completed authenticated reclaim supplies storage availability only. No scope,
+/// current writer, Play or ready/idle witness is manufactured by this conversion.
+#[cfg(all(feature = "local-appliance", target_os = "none"))]
+pub(crate) fn rearm_reclaimed(proof: custody_journal::ErasedData<ArchiveRegion>) -> State {
+    let region = ArchiveRegion::from_reclaimed(proof);
+    let basis = PREPARED_BASIS.lock(|cell| *cell.borrow());
+    let Some(basis) = basis else {
+        return State::FrozenRegion(region);
+    };
+    // ObservationEpoch is exact signed128KiB physical geometry; its exposed DATA
+    // capacity is122880, so never infer signedness from capacity==131072 here.
+    match state::prepare_cold(region, true, basis) {
+        Ok(cold) => State::Cold(cold),
+        Err((region, _)) => State::FrozenRegion(region),
+    }
+}
 #[inline(never)]
 fn open_epoch(region: Region, basis: &'static [u8]) -> Result<State, &'static str> {
     let signed = conduit_environment_runtime::display_evidence_journal::Storage::capacity(&region)

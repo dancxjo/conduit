@@ -371,3 +371,6 @@ fn actual_cold_service_keeps_admitted_durable_erase_authority_and_error_custody(
     native_observed_archive::prove(&evidence.body_id, &key, &receipt.credential, &media);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[path = "native_observed_cold/inspection.rs"]
+mod inspection;

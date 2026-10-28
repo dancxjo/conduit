@@ -147,7 +147,7 @@ pub(crate) fn acknowledge(request: &wire::Request<'_>) -> Result<u8, &'static st
                         return Err("observed-cold-reclaim");
                     }
                 };
-                *state = State::FrozenRegion(ArchiveRegion::from_reclaimed(erased));
+                *state = rearm_reclaimed(erased);
                 Ok(slot)
             })
         });
@@ -171,7 +171,7 @@ pub(crate) fn resume_pending() -> Result<(), &'static str> {
                 };
                 match custody.resume(work) {
                     Ok(erased) => {
-                        *state = State::FrozenRegion(ArchiveRegion::from_reclaimed(erased));
+                        *state = rearm_reclaimed(erased);
                         Ok(())
                     }
                     Err((custody, _)) => {

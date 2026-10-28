@@ -24,7 +24,7 @@ pub(super) struct Renewal {
     mask: Option<Box<crate::native_display::task::RetiredMask>>,
     pub(super) execution: Option<
         crate::native_worker::RetiredExecution<
-            conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+            crate::native_root::DevicePulse<'static>,
             crate::native_wait::EspWait,
         >,
     >,
@@ -532,7 +532,7 @@ fn linked_wait(
 
 fn inspect_terminal_sampler_signs(
     execution: &crate::native_worker::RetiredExecution<
-        conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+        crate::native_root::DevicePulse<'static>,
         crate::native_wait::EspWait,
     >,
 ) -> Result<(), &'static str> {

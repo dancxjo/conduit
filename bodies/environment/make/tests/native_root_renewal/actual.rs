@@ -1,3 +1,11 @@
+// Per-thread read faults affect only explicit receipt-proof minting tests.
+std::thread_local! {
+    static CHECKPOINT_DECODE_FAULT: std::cell::Cell<(u8,usize,usize)> = const { std::cell::Cell::new((0,0,0)) };
+}
+fn checkpoint_decode_fault(mode: u8) {
+    CHECKPOINT_DECODE_FAULT.with(|f| f.set((mode, 0, 0)));
+}
+
 // Actual Root/task/kernel/Face/history modules; adapters are in adapters.rs.
 use conduit_core as c;
 include!("adapters.rs");

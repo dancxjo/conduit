@@ -38,63 +38,142 @@ pub(crate) fn inspect<S: Storage + WholeEpoch>(
     key: &VerifyingKey,
     work: &mut [u8],
 ) -> Result<ClosedOfferDraft, &'static str> {
-    if !active.recovered || !active.signed || active.failed {
-        return Err("custody journal not frozen");
+    let mut inspector = Inspector::start(active, body, key)?;
+    while !inspector.step(work)? {}
+    inspector.finish()
+}
+/// Exclusive borrow pins the actual frozen owner for the entire inspection;
+/// neither decoded offers nor caller-selected cursors can construct this state.
+/// A failed step is terminal: replay may already have advanced before refusal.
+pub(crate) struct Inspector<'a, S> {
+    active: &'a mut Active<S>,
+    region: [u8; 32],
+    scope: [u8; 96],
+    forms: [u8; 32],
+    count: u32,
+    maximum: u32,
+    key: VerifyingKey,
+    cursor: conduit_environment_runtime::display_evidence_journal::Replay,
+    hash: Sha256,
+    sequence: u64,
+    clock: u64,
+    complete: bool,
+    failed: bool,
+}
+impl<'a, S: Storage + WholeEpoch> Inspector<'a, S> {
+    pub(crate) fn start(
+        active: &'a mut Active<S>,
+        body: &BodyId,
+        key: &VerifyingKey,
+    ) -> Result<Self, &'static str> {
+        if !active.recovered || !active.signed || active.failed {
+            return Err("custody journal not frozen");
+        }
+        let count = active.journal.committed_count();
+        if count == 0
+            || count > 960
+            || active.last_sequence != u64::from(count)
+            || active.scope[..32] != Sha256::digest(body.as_str().as_bytes())[..]
+        {
+            return Err("custody journal scope");
+        }
+        let region = active.journal.inspect_storage(WholeEpoch::identity);
+        let cursor = active.journal.replay_cursor();
+        Ok(Self {
+            region,
+            scope: active.scope,
+            forms: active.forms,
+            count,
+            maximum: active.maximum_records,
+            key: *key,
+            cursor,
+            hash: Sha256::new(),
+            sequence: 0,
+            clock: 0,
+            complete: false,
+            failed: false,
+            active,
+        })
     }
-    let count = active.journal.committed_count();
-    if count == 0
-        || count > 960
-        || active.last_sequence != u64::from(count)
-        || active.scope[..32] != Sha256::digest(body.as_str().as_bytes())[..]
-    {
-        return Err("custody journal scope");
+    /// At most one signed record is read/verified. End-of-prefix checking is a
+    /// separate zero-signature step. This is no scheduler or erase admission.
+    pub(crate) fn step(&mut self, work: &mut [u8]) -> Result<bool, &'static str> {
+        if self.failed {
+            return Err("custody inspection failed");
+        }
+        if self.complete {
+            return Ok(true);
+        }
+        let result = self.step_inner(work);
+        if result.is_err() {
+            self.failed = true;
+        }
+        result
     }
-    let region = active.journal.inspect_storage(WholeEpoch::identity);
-    let mut cursor = active.journal.replay_cursor();
-    let mut signed = [0; observed_record::BYTES + 64];
-    let mut hash = Sha256::new();
-    let mut sequence = 0;
-    let mut clock = 0;
-    while let Some(length) = active
-        .journal
-        .replay(&mut cursor, &mut signed, work)
-        .map_err(|_| "custody journal replay")?
-    {
+    fn step_inner(&mut self, work: &mut [u8]) -> Result<bool, &'static str> {
+        if !self.active.recovered
+            || !self.active.signed
+            || self.active.failed
+            || self.active.scope != self.scope
+            || self.active.forms != self.forms
+            || self.active.last_sequence != u64::from(self.count)
+            || self.active.journal.committed_count() != self.count
+            || self.active.maximum_records != self.maximum
+            || self.active.journal.inspect_storage(WholeEpoch::identity) != self.region
+        {
+            return Err("custody inspection changed");
+        }
+        let mut signed = [0; observed_record::BYTES + 64];
+        let Some(length) = self
+            .active
+            .journal
+            .replay(&mut self.cursor, &mut signed, work)
+            .map_err(|_| "custody journal replay")?
+        else {
+            if self.sequence != u64::from(self.count) {
+                return Err("custody journal count");
+            }
+            self.complete = true;
+            return Ok(true);
+        };
         if length != signed.len() {
             return Err("custody signed record extent");
         }
         let record = ObservedRecord::decode(&signed[..observed_record::BYTES])
             .map_err(|_| "custody record")?;
-        if record.sequence != sequence + 1 || record.observed_at_boot_ms < clock {
+        if record.sequence != self.sequence + 1 || record.observed_at_boot_ms < self.clock {
             return Err("custody record continuity");
         }
         super::history::verify(
-            key,
-            &active.scope,
-            &active.forms,
+            &self.key,
+            &self.scope,
+            &self.forms,
             &signed[..observed_record::BYTES],
             signed[observed_record::BYTES..].try_into().unwrap(),
         )
         .map_err(|_| "custody record signature")?;
-        hash.update(&signed[..observed_record::BYTES]);
-        sequence = record.sequence;
-        clock = record.observed_at_boot_ms;
+        self.hash.update(&signed[..observed_record::BYTES]);
+        self.sequence = record.sequence;
+        self.clock = record.observed_at_boot_ms;
+        Ok(false)
     }
-    if sequence != u64::from(count) {
-        return Err("custody journal count");
+    pub(crate) fn finish(self) -> Result<ClosedOfferDraft, &'static str> {
+        if self.failed || !self.complete {
+            return Err("custody inspection incomplete");
+        }
+        Ok(ClosedOfferDraft {
+            offer: Offer {
+                schema: wire::OFFER,
+                region: Hex(self.region),
+                scope: Hex(self.scope),
+                forms: Hex(self.forms),
+                committed: self.count,
+                digest: Hex(self.hash.finalize().into()),
+                signature: Hex([0; 64]),
+            },
+            root: self.key.to_bytes(),
+        })
     }
-    Ok(ClosedOfferDraft {
-        offer: Offer {
-            schema: wire::OFFER,
-            region: Hex(region),
-            scope: Hex(active.scope),
-            forms: Hex(active.forms),
-            committed: count,
-            digest: Hex(hash.finalize().into()),
-            signature: Hex([0; 64]),
-        },
-        root: key.to_bytes(),
-    })
 }
 /// Created only from the actual immutable journal and canonical opaque retained
 /// admitted-custody verification. Root's signer must require its exact key.

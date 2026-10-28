@@ -60,7 +60,12 @@ async fn main(spawner: Spawner) {
         crate::native_play::journal::initialize(regions.network_recovery)
             .expect("network recovery backing");
     }
+    #[cfg(feature = "local-appliance")]
+    let (reclaim_submitter, maintenance_lane, pulse_gate) =
+        crate::native_flash_domain::prepare().expect("finite cooperative flash domain");
     let sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
+    #[cfg(feature = "local-appliance")]
+    let sensor = crate::native_pulse_fence::GatedPulse::new(sensor, pulse_gate);
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);
     #[cfg(all(feature = "owner-wifi", not(feature = "biography-maintenance")))]
@@ -73,8 +78,12 @@ async fn main(spawner: Spawner) {
             crate::boot::ObservedBoot::observe().expect("initialized radio entropy required");
         // SAFETY: the actual TimerGroup was consumed by esp_rtos::start above.
         // Root retains one pending software-timer slot; Play admission is separate.
+        #[cfg(not(feature = "local-appliance"))]
         let wait = unsafe { crate::native_wait::prepare(&boot) }
             .expect("initialized monotonic timer slot");
+        #[cfg(feature = "local-appliance")]
+        let wait = unsafe { crate::native_wait::prepare_with_maintenance(&boot, maintenance_lane) }
+            .expect("initialized monotonic timer slot and maintenance lane");
         let display = crate::native_display::NativeDisplay::prepare(p.GPIO18, p.GPIO19, &boot)
             .expect("initialized Root display provider");
         let source = crate::native_source::identity();
@@ -88,6 +97,9 @@ async fn main(spawner: Spawner) {
             display,
         )
     };
+    #[cfg(feature = "local-appliance")]
+    root.retain_reclaim_submitter(reclaim_submitter)
+        .expect("unique Root maintenance endpoint");
     #[cfg(all(feature = "local-appliance", feature = "body-persistence"))]
     let mut invitation_uart = esp_hal::uart::Uart::new(p.UART0, esp_hal::uart::Config::default())
         .expect("private invitation UART0")

@@ -7,7 +7,7 @@ use conduit_core as c;
 mod scope;
 
 type Bindings = crate::native_authority::NativeBindings<
-    conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+    crate::native_root::DevicePulse<'static>,
     crate::native_wait::EspWait,
 >;
 

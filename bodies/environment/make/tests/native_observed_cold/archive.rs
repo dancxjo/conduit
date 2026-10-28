@@ -21,10 +21,24 @@ mod recovery;
 mod state;
 type ArchiveRegion = Epoch;
 enum State {
+    Cold(state::Cold<Epoch>),
     Active(state::Active<Epoch>),
     FrozenRegion(Epoch),
     Pending(custody_journal::Custody<Epoch>),
     Failed,
+}
+static PREPARED_BASIS: std::sync::OnceLock<&'static [u8]> = std::sync::OnceLock::new();
+// CPU adapter substitutes only physical region bookkeeping/static storage;
+// actual erased verification and unbound Cold construction are production code.
+fn rearm_reclaimed(proof: custody_journal::ErasedData<ArchiveRegion>) -> State {
+    let region = ArchiveRegion::from_reclaimed(proof);
+    let Some(basis) = PREPARED_BASIS.get().copied() else {
+        return State::FrozenRegion(region);
+    };
+    match state::prepare_cold(region, true, basis) {
+        Ok(cold) => State::Cold(cold),
+        Err((region, _)) => State::FrozenRegion(region),
+    }
 }
 static STATE: Lock<RefCell<Option<State>>> = Lock::new(RefCell::new(None));
 static EPOCHS: Lock<RefCell<Option<[State; 5]>>> = Lock::new(RefCell::new(None));
@@ -168,6 +182,7 @@ fn frozen(
     let contract =
         conduit_environment_runtime::observation::ObservationContract::prepare().unwrap();
     let basis: &'static [u8] = Box::leak(Box::new(observed_record::descriptor(&contract).unwrap()));
+    let _ = PREPARED_BASIS.set(basis);
     let forms = Sha256::digest(basis).into();
     let mut scope = [0; 96];
     scope[..32].copy_from_slice(&Sha256::digest(body.as_str().as_bytes()));
@@ -272,6 +287,7 @@ pub fn prove(
     body_media.lock().unwrap().1 = true;
     let b = frozen(2, body, key);
     let good = request(2, credential);
+    let good_second = request(2, credential);
     assert_eq!(cold::acknowledge(&good).unwrap(), 2);
     assert_eq!(b.lock().unwrap().erases, 30);
     assert!(b.lock().unwrap().bytes[..custody_journal::DATA]
@@ -314,19 +330,89 @@ pub fn prove(
     WORK.lock(|w| *w.borrow_mut() = workspace);
     cold::resume_pending().unwrap();
     assert_eq!(c.lock().unwrap().erases, 30);
+    EPOCHS.lock(|e| assert!(matches!(&e.borrow().as_ref().unwrap()[2], State::Cold(_))));
+    // Simulated reboot drops the sole awake Cold owner before reopening the
+    // same physical backend; production Boot independently reconstructs custody.
+    let State::Cold(cold) =
+        EPOCHS.lock(|e| std::mem::replace(&mut e.borrow_mut().as_mut().unwrap()[1], State::Failed))
+    else {
+        panic!("reclaimed epoch must become Cold");
+    };
+    assert!(cold.signed && cold.scope.is_none());
+    assert_eq!(cold.maximum_requested, 0);
+    assert_eq!(cold.capacity, custody_journal::DATA as u32);
+    let unbound = state::State::Cold(cold);
+    assert_eq!(
+        state::check_writer(&unbound, &[2; 32]),
+        Err("observed-history-scope")
+    );
+    let state::State::Cold(cold) = unbound else {
+        unreachable!()
+    };
+    // Storage-only CPU cycle: construct a distinct signed closed journal from
+    // actual erased custody. This does not assert real Root Play admission.
+    let basis = cold.basis;
+    let forms = Sha256::digest(basis).into();
+    let mut scope = [0; 96];
+    scope[..32].copy_from_slice(&Sha256::digest(body.as_str().as_bytes()));
+    scope[32..64].fill(3);
+    scope[64..].fill(42);
+    let mut work = [0; 536];
+    let mut journal =
+        evidence::Journal::create_prepared(cold.region, &scope, basis, 960, &mut work).unwrap();
+    let record = observed_record::ObservedRecord {
+        sequence: 1,
+        observed_at_boot_ms: 999,
+        disposition: conduit_environment_runtime::recording::RecordingDisposition::ProviderFailed,
+        quantities: None,
+    }
+    .encode()
+    .unwrap();
+    let mut signed = [0; observed_record::BYTES + 64];
+    signed[..observed_record::BYTES].copy_from_slice(&record);
+    signed[observed_record::BYTES..]
+        .copy_from_slice(&history::sign(key, &scope, &forms, &record).unwrap());
+    journal.append(&signed, &mut work).unwrap();
     EPOCHS.lock(|e| {
-        assert!(matches!(
-            &e.borrow().as_ref().unwrap()[2],
-            State::FrozenRegion(_)
-        ))
+        e.borrow_mut().as_mut().unwrap()[1] = State::Active(state::Active {
+            journal,
+            scope,
+            forms,
+            last_sequence: 1,
+            failed: false,
+            recovered: true,
+            signed: true,
+            maximum_records: 960,
+        })
     });
-    // The actual boot classifier must validate durable metadata before minting erased custody.
-    let State::FrozenRegion(region) =
+    // Old ACK cannot reclaim newly occupied data even though physical identity
+    // and signed layout receipt are unchanged.
+    assert!(cold::acknowledge(&good_second).is_err());
+    let second = request(2, credential);
+    assert_ne!(second.offer.0, good_second.offer.0);
+    assert_eq!(cold::acknowledge(&second).unwrap(), 2);
+    assert_eq!(b.lock().unwrap().erases, 60);
+    {
+        let media = b.lock().unwrap();
+        let mut generations = [0; 2];
+        for (bank, generation) in generations.iter_mut().enumerate() {
+            let at = custody_journal::DATA + bank * custody_journal::SECTOR;
+            *generation = u64::from_le_bytes(media.bytes[at + 8..at + 16].try_into().unwrap());
+        }
+        generations.sort();
+        assert_eq!(generations, [3, 4]);
+    }
+    let State::Cold(cold) =
         EPOCHS.lock(|e| std::mem::replace(&mut e.borrow_mut().as_mut().unwrap()[1], State::Failed))
     else {
         panic!()
     };
-    let mut work = [0; 536];
+    assert!(cold.scope.is_none() && cold.signed);
+    drop(cold);
+    let region = Epoch {
+        media: b.clone(),
+        identity: [2; 32],
+    };
     assert!(matches!(
         custody_boot::prepare(region, &mut work).unwrap(),
         custody_journal::Opened::Erased(_)

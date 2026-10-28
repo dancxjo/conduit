@@ -1174,3 +1174,50 @@ fn staged_publication_applied_error_retains_job_and_retries_exact_acceptance() {
         .unwrap();
     assert!(matches!(owner.classify(), Ok(custody::Opened::Erased(_))));
 }
+
+#[test]
+fn incremental_epoch_inspection_matches_complete_offer_and_never_skips_failed_step() {
+    let f = fixture("incremental-inspection");
+    let (body, _): (
+        conduit_body::BodyBiographyEvidence,
+        conduit_body::AdmissionManager,
+    ) = serde_json::from_slice(
+        &std::fs::read(f.directory.join("canonical-body-checkpoint.json")).unwrap(),
+    )
+    .unwrap();
+    let mut work = [0; WORK];
+    let (journal, scope, sequence) =
+        recovery::reopen_profile(f.media.snapshot(), f.basis, &mut work, true).unwrap();
+    let mut active = state::Active {
+        journal,
+        scope,
+        forms: Sha256::digest(f.basis).into(),
+        last_sequence: sequence,
+        failed: false,
+        recovered: true,
+        signed: true,
+        maximum_records: 960,
+    };
+    let key = f.key.verifying_key();
+    let expected = acceptance::inspect(&mut active, &body.body_id, &key, &mut work)
+        .unwrap()
+        .transcript();
+    let mut inspector = acceptance::Inspector::start(&mut active, &body.body_id, &key).unwrap();
+    for _ in 0..sequence {
+        assert!(!inspector.step(&mut work).unwrap());
+    }
+    assert!(inspector.step(&mut work).unwrap());
+    assert!(inspector.step(&mut work).unwrap());
+    assert_eq!(inspector.finish().unwrap().transcript(), expected);
+    let inspector = acceptance::Inspector::start(&mut active, &body.body_id, &key).unwrap();
+    assert!(inspector.finish().is_err());
+    let mut inspector = acceptance::Inspector::start(&mut active, &body.body_id, &key).unwrap();
+    assert!(inspector.step(&mut []).is_err());
+    assert_eq!(inspector.step(&mut work), Err("custody inspection failed"));
+    assert!(inspector.finish().is_err());
+    active.failed = true;
+    assert!(acceptance::Inspector::start(&mut active, &body.body_id, &key).is_err());
+    active.failed = false;
+    active.recovered = false;
+    assert!(acceptance::Inspector::start(&mut active, &body.body_id, &key).is_err());
+}

@@ -45,15 +45,20 @@ mod policy;
 #[path = "native_setup.rs"]
 mod setup;
 use conduit_core as c;
-use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
+use conduit_esp32_pulse_capture::{Esp32PulseCapture as RawPulse, LIMITS};
+#[cfg(all(feature = "local-appliance", target_os = "none"))]
+pub(crate) type DevicePulse<'a> = crate::native_pulse_fence::GatedPulse<RawPulse<'a>>;
+#[cfg(not(all(feature = "local-appliance", target_os = "none")))]
+pub(crate) type DevicePulse<'a> = RawPulse<'a>;
 use conduit_pulse_capture::{installation::*, owner::*};
+use DevicePulse as Esp32PulseCapture;
 
 include!("native_root_state.rs");
 
 impl NativeRoot {
     #[inline(never)]
     pub fn prepare(
-        sensor: Esp32PulseCapture<'static>,
+        mut sensor: Esp32PulseCapture<'static>,
         radio: crate::network::Radio,
         boot: &crate::boot::ObservedBoot,
         network_source: c::PlotIdentity,
@@ -66,7 +71,7 @@ impl NativeRoot {
         let (host, boot) = boot.ids();
         let host: c::HostId = host.into();
         let boot: c::BootId = boot.into();
-        // One owned pin, 64 bytes of capture attachment and the reviewed finite
+        // One owned pin, actual provider/future backing and the reviewed finite
         // cooperative limits. A future installation must separately admit its
         // cadence, capability authority and complete kernel memory/work before Play.
         let identity = PulseNativeIdentity {
@@ -85,12 +90,34 @@ impl NativeRoot {
         // SAFETY: Root consumes the actual exclusively initialized GPIO27 Flex
         // provider. Its read implementation has no allocation, releases low on
         // drop, and enforces these finite hold/timeout and capture bounds.
+        let resource_bytes = {
+            use conduit_pulse_capture::{
+                owner::PulseReadProvider, CheckedPulseRead, PulseReadRequest,
+            };
+            let checked = CheckedPulseRead::admit(
+                PulseReadRequest {
+                    hold_low_us: LIMITS.maximum_hold_low_us,
+                    skip_high_pulses: LIMITS.maximum_skipped_pulses,
+                    // Choose a jointly representable request; independent
+                    // maxima need not fit together inside the capture timeout.
+                    // Sizing this future never polls or captures any input.
+                    sample_after_rise_us: LIMITS.minimum_sample_offset_us,
+                    octets: LIMITS.maximum_octets,
+                    capture_timeout_us: LIMITS.maximum_capture_timeout_us,
+                },
+                LIMITS,
+            )
+            .expect("actual finite capture limits");
+            let retained = core::mem::size_of_val(&sensor);
+            let pending = PulseReadProvider::read(&mut sensor, checked);
+            (retained + core::mem::size_of_val(&pending)).max(64) as u64
+        };
         let pulse = unsafe {
             ReadyPulseBase::new(
                 identity,
                 PulseAttachment {
                     generation: 1,
-                    resource_bytes: 64,
+                    resource_bytes,
                     limits: LIMITS,
                 },
                 sensor,
@@ -135,6 +162,8 @@ impl NativeRoot {
             network_preparation: None,
             network_source: network_source_identity,
             credentials: Some(credentials),
+            #[cfg(all(feature = "local-appliance", target_os = "none"))]
+            reclaim_submitter: None,
             issuer,
             play: crate::native_play::NativePlay::new(),
             offer_generation: 1,
@@ -165,6 +194,19 @@ impl NativeRoot {
             host,
             boot,
         }
+    }
+    /// Retain the uniquely issued empty queue endpoint; this alone qualifies no
+    /// operation and admits no signed reclamation request or physical timing.
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    pub(crate) fn retain_reclaim_submitter(
+        &mut self,
+        submitter: crate::native_flash_domain::Submitter,
+    ) -> Result<(), &'static str> {
+        if self.reclaim_submitter.is_some() {
+            return Err("reclaim-endpoint-already-owned");
+        }
+        self.reclaim_submitter = Some(submitter);
+        Ok(())
     }
     pub fn owner_control_configured(&self) -> bool {
         self.owner_control.configured()

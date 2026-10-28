@@ -118,6 +118,70 @@ impl NativeAdmission {
         }
         Ok(self.key.sign(&draft.transcript()).to_bytes())
     }
+    /// Only an actual frozen-journal draft and durably current local Body may
+    /// reach this signer. The caller retains the actual Root-owned session.
+    #[cfg(all(
+        feature = "body-image-root",
+        feature = "body-persistence",
+        any(feature = "local-evidence-store", feature = "observation-store")
+    ))]
+    pub(crate) fn sign_closed_observed_offer(
+        &self,
+        draft: crate::native_observed_archive::custody_acceptance::ClosedOfferDraft,
+        owner: &conduit_body::SealedBodyLifecycleSession,
+    ) -> Result<
+        crate::native_observed_archive::custody_acceptance::wire::Offer<'static>,
+        &'static str,
+    > {
+        if !self.ready() || draft.root() != &self.verifying_key() {
+            return Err("observed-live-signer");
+        }
+        crate::native_restart::observed::check_live_owner(owner, &self.verifying_key())?;
+        crate::native_restart::with_admissions(|manager| {
+            if manager.body_id != owner.evidence().body_id {
+                return Err("observed-live-manager");
+            }
+            Ok(())
+        })?;
+        let signature = self.key.sign(&draft.transcript()).to_bytes();
+        let offer = draft.signed(signature);
+        use sha2::Digest;
+        if offer.scope.0[..32]
+            != sha2::Sha256::digest(owner.evidence().body_id.as_str().as_bytes())[..]
+        {
+            return Err("observed-offer-body");
+        }
+        Ok(offer)
+    }
+    #[cfg(all(
+        feature = "body-image-root",
+        feature = "body-persistence",
+        any(feature = "local-evidence-store", feature = "observation-store")
+    ))]
+    pub(crate) fn acknowledge_closed_observed(
+        &self,
+        draft: &crate::native_observed_archive::custody_acceptance::ClosedOfferDraft,
+        request: &crate::native_observed_archive::custody_acceptance::wire::Request<'_>,
+        owner: &conduit_body::SealedBodyLifecycleSession,
+    ) -> Result<[u8; 416], &'static str> {
+        if !self.ready() || draft.root() != &self.verifying_key() {
+            return Err("observed-live-signer");
+        }
+        crate::native_restart::observed::check_live_owner(owner, &self.verifying_key())?;
+        let accepted = crate::native_restart::with_admissions(|manager| {
+            crate::native_observed_archive::custody_acceptance::verify_ack(
+                draft,
+                manager,
+                &owner.evidence().membership,
+                request,
+            )
+        })?;
+        if accepted.root() != &self.verifying_key() {
+            return Err("observed-accepted-root");
+        }
+        let signature = self.key.sign(&accepted.transcript()).to_bytes();
+        Ok(accepted.signed(signature))
+    }
     /// Root supplies this only after exact reservation/lifecycle admission.
     pub fn sign_owner_receipt(&self, receipt: &crate::native_owner_receipt::Receipt) -> [u8; 64] {
         assert!(

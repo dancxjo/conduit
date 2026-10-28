@@ -13,14 +13,14 @@ use static_cell::StaticCell;
 mod terminal;
 
 type NativeProviders = crate::native_worker::RetiredProviders<
-    conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+    crate::native_root::DevicePulse<'static>,
     crate::native_wait::EspWait,
 >;
 /// Settled original execution material and publication custody, never a grant
 /// to reset their finite budgets or reuse their old execution scope.
 pub struct Retired {
     pub execution: crate::native_worker::RetiredExecution<
-        conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+        crate::native_root::DevicePulse<'static>,
         crate::native_wait::EspWait,
     >,
     #[cfg(feature = "native-face-root")]

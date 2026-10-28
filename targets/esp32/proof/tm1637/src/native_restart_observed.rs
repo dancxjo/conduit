@@ -216,3 +216,61 @@ pub(crate) fn read_layout_receipt(
 #[cfg(test)]
 #[path = "native_restart_observed_tests.rs"]
 pub(super) mod tests;
+
+/// Validate live custody without decoding another Body or creating a receipt.
+/// Actual Root session possession remains the crate-private caller's obligation.
+pub(crate) fn check_live_owner(
+    owner: &SealedBodyLifecycleSession,
+    root: &[u8; 32],
+) -> Result<(), &'static str> {
+    with_store(|store| {
+        live_custody(store, owner)?;
+        let key =
+            ed25519_dalek::SigningKey::from_bytes(store.seed.as_ref().ok_or("observed-live-key")?);
+        if key.verifying_key().as_bytes() != root {
+            return Err("observed-live-root");
+        }
+        Ok(())
+    })
+}
+fn live_custody<'a>(
+    store: &'a Store,
+    owner: &SealedBodyLifecycleSession,
+) -> Result<&'a ArchiveCustody, &'static str> {
+    if store.failed || store.parked || !store.ready {
+        return Err("observed-requires-live-custody");
+    }
+    let evidence = owner.evidence();
+    if <[u8; 32]>::from(Sha256::digest(evidence.body_id.as_str().as_bytes())) != store.binding
+        || evidence.body.body_id != evidence.body_id
+        || evidence.membership.body_id != evidence.body_id
+        || !owner.pending_archives().is_empty()
+    {
+        return Err("observed-live-body");
+    }
+    let custody = store.custody.as_ref().ok_or("observed-live-source")?;
+    if custody.source.binding() != &store.binding
+        || Some(custody.source.generation()) != store.journal.generation()
+    {
+        return Err("observed-live-source");
+    }
+    Ok(custody)
+}
+/// Cached receipts were fully authenticated on Boot and carried through every
+/// committed/readback checkpoint. This read grants no formatting, signing,
+/// persistence, region possession or erase authority, and performs no I/O.
+pub(crate) fn read_live_layout_receipt(
+    owner: &SealedBodyLifecycleSession,
+    region: &[u8; 32],
+) -> Result<layout::Receipt, &'static str> {
+    with_store(|store| {
+        live_custody(store, owner)?
+            .layouts
+            .find(region)
+            .ok_or("observed-live-layout-missing")
+    })
+}
+
+#[cfg(test)]
+#[path = "native_restart_observed_live_tests.rs"]
+mod live_tests;

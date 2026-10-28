@@ -1,4 +1,7 @@
 use super::*;
+// CPU profile uses the raw fake pulse provider, matching production cfg.
+pub(crate) type DevicePulse<'a> = crate::Esp32PulseCapture<'a>;
+
 use conduit_pulse_capture::{installation::*, owner::*};
 include!("../../../../../targets/esp32/proof/tm1637/src/native_root_state.rs");
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_body_root.rs"]
@@ -499,3 +502,9 @@ pub(super) fn prove_fresh_journal_failure_latches() {
 
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_display_native_offer.rs"]
 mod display_offers;
+
+impl NativeRoot {
+    fn control_status(&self) -> &'static str {
+        "cpu-network-uninstalled"
+    }
+}

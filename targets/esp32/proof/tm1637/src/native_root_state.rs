@@ -4,6 +4,8 @@ pub(crate) type DeviceExecution =
 type DeviceProviders =
     crate::native_worker::RetiredProviders<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
 pub struct NativeRoot {
+    #[cfg(all(feature = "local-appliance", target_os = "none"))]
+    reclaim_submitter: Option<crate::native_flash_domain::Submitter>,
     #[cfg(feature = "body-image-root")]
     body: Option<alloc::boxed::Box<conduit_body::SealedBodyLifecycleSession>>,
     retired_native: Option<DeviceProviders>,

@@ -126,6 +126,9 @@ mod native_play {
     pub struct NativePlay;
     impl NativePlay {
         pub fn append_offer(&self, _: &mut conduit_core::HostAdvertisement) {}
+        pub fn station_address(&self) -> Option<[u8; 4]> {
+            None
+        }
     }
     pub struct RetiredNetworkControl;
     impl RetiredNetworkControl {
@@ -267,9 +270,39 @@ mod native_evidence_region {
             {
                 return Err(super::native_body_checkpoint::Refusal::Geometry);
             }
-            out.copy_from_slice(
-                &self.media.lock().unwrap().0[at as usize..at as usize + out.len()],
-            );
+            let m = self.media.lock().unwrap();
+            out.copy_from_slice(&m.0[at as usize..at as usize + out.len()]);
+            crate::CHECKPOINT_DECODE_FAULT.with(|fault| {
+                use sha2::Digest;
+                let (mode, mut headers, mut payloads) = fault.get();
+                if mode == 0 {
+                    return;
+                }
+                if at.is_multiple_of(32768) && out.len() == 160 {
+                    headers += 1;
+                    payloads = 0;
+                    if mode == 1 && headers == 2 {
+                        // A completely authenticated second source with a
+                        // different private seed must still fail the root pin.
+                        out[56..88].fill(62);
+                        let length = u32::from_le_bytes(out[16..20].try_into().unwrap()) as usize;
+                        let mut hash = sha2::Sha256::new();
+                        hash.update(&out[..120]);
+                        hash.update(&m.0[at as usize + 160..at as usize + 160 + length]);
+                        out[120..152].copy_from_slice(&hash.finalize());
+                    }
+                } else if mode == 2 && headers == 2 && at % 32768 >= 160 {
+                    payloads += 1;
+                    let base = (at / 32768 * 32768) as usize;
+                    let length =
+                        u32::from_le_bytes(m.0[base + 16..base + 20].try_into().unwrap()) as usize;
+                    if payloads == length.div_ceil(128) + 1 && !out.is_empty() {
+                        out[0] ^= 1;
+                    }
+                }
+                fault.set((mode, headers, payloads));
+            });
+
             Ok(())
         }
         fn program(

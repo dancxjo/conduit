@@ -128,6 +128,18 @@ mod native_source;
 mod native_task;
 #[cfg(feature = "native-root")]
 mod native_wait;
+#[cfg(feature = "local-appliance")]
+mod native_flash_domain;
+#[cfg(feature = "local-appliance")]
+mod native_flash_jobs;
+#[cfg(feature = "local-appliance")]
+mod native_flash_wait;
+#[cfg(feature = "local-appliance")]
+mod native_flash_window;
+#[cfg(feature = "local-appliance")]
+mod native_observed_reclaim_job;
+#[cfg(feature = "local-appliance")]
+mod native_pulse_fence;
 #[cfg(feature = "native-root")]
 mod native_worker;
 #[cfg(feature = "ap")]
