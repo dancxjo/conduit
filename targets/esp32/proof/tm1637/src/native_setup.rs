@@ -413,9 +413,30 @@ impl NativeRoot {
                 .filter_map(|part| part.current.as_ref())
                 .any(|host| host.host_id == self.host && host.boot_id == self.boot)
     }
+    /// Cold synchronous preparation finishes before the execution/recovery
+    /// future is polled. No future frame for retirement or SDK dispatch remains
+    /// on the planner's stack; the same held installation guards still apply.
+    #[inline(never)]
+    pub fn prepare_setup(&mut self) {
+        #[cfg(not(feature = "network-workspace-check"))]
+        {
+            if self.network.retirement.is_some() {
+                return;
+            }
+            #[cfg(feature = "local-appliance")]
+            self.advance_network_workspace();
+            self.prepare_network_configuration();
+        }
+    }
+    /// Compatibility entrance for control callers without a separate prepare
+    /// phase. The appliance loop uses the phase-separated entrances directly.
+    pub async fn advance_setup(&mut self) {
+        self.prepare_setup();
+        self.advance_setup_prepared().await;
+    }
     /// Independent control polling. Current interface/service evidence controls
     /// availability; a receipt from an old successful join is insufficient.
-    pub async fn advance_setup(&mut self) {
+    pub async fn advance_setup_prepared(&mut self) {
         #[cfg(feature = "network-workspace-check")]
         {
             self.check_network_workspace();
@@ -432,9 +453,6 @@ impl NativeRoot {
             let _ = self.finish_network_retirement();
             return;
         }
-        #[cfg(all(feature = "local-appliance", not(feature = "network-workspace-check")))]
-        self.advance_network_workspace();
-        self.prepare_network_configuration();
         self.play.run().await;
         let generation = self.network.recovery.generation();
         let mut action = Action::None;

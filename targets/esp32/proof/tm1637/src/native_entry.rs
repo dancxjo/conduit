@@ -169,7 +169,8 @@ async fn main(spawner: Spawner) {
                     #[cfg(feature = "body-persistence")]
                     root.advance_observed_reclaim();
                     if !root.local_renewal_pending() {
-                        let _ = await_outlined(root.advance_setup()).await;
+                        root.prepare_setup();
+                        let _ = await_outlined(root.advance_setup_prepared()).await;
                         #[cfg(feature = "body-persistence")]
                         {
                             root.advance_join(embassy_time::Instant::now().as_millis());

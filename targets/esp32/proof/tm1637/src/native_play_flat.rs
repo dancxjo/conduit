@@ -135,12 +135,7 @@ impl NativePlay {
                 self.source = Some(credentials);
                 self.join = Some(join);
                 self.flat_refusal = IssuedCustody::Empty;
-                self.prepared = Some(alloc::boxed::Box::write(
-                    backing,
-                    parts.finish().map_err(|_| ())?,
-                ));
-                self.phase = "installed-held";
-                Ok(())
+                self.finish_linked_held(parts, backing)
             }
             Err((pair, ())) => {
                 let (credentials, provider) = pair.into_ready();
@@ -149,6 +144,22 @@ impl NativePlay {
                 Err(())
             }
         }
+    }
+    /// Materialization follows completed checked-owner selection. Its scheduler
+    /// construction temporaries must not share a frame with nested planning,
+    /// capability verification or SHA preparation.
+    #[inline(never)]
+    fn finish_linked_held(
+        &mut self,
+        parts: n::PreparedNetworkKernelParts,
+        backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
+    ) -> Result<(), ()> {
+        self.prepared = Some(alloc::boxed::Box::write(
+            backing,
+            parts.finish().map_err(|_| ())?,
+        ));
+        self.phase = "installed-held";
+        Ok(())
     }
 }
 
