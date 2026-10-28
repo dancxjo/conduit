@@ -88,7 +88,7 @@ pub struct InstalledRemoteFragment {
     vision_clock_basis: String,
     pending_body_context: Option<HostCallRequest>,
     delivered_body_context: Option<[u8; 32]>,
-    data_text_hosts: super::data_text_host::DataTextGenerationHosts,
+    data_text_hosts: super::data_text_host::DataTextGenerationHosts<'static>,
 }
 
 impl InstalledRemoteFragment {
@@ -169,6 +169,8 @@ impl InstalledRemoteFragment {
             fragment,
             &lowered.identity,
             &play,
+            #[cfg(target_os = "linux")]
+            None,
         )?;
         let drivers =
             preparation::prepare_operations(fragment, &lowered, &mut values, &play, None, None)?;

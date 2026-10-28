@@ -28,6 +28,7 @@ pub mod light_switch;
 mod local_model_pool_receipt;
 pub mod messaging_github;
 pub mod midi;
+pub mod notebook;
 pub mod ollama_embodiment;
 pub mod ollama_planning_advice;
 pub mod palette_icons;

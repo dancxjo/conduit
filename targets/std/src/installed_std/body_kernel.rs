@@ -25,6 +25,7 @@ use conduit_plan_lowering::{
 use std::io::Write;
 
 mod clock_observation;
+mod data_text;
 mod fore_route;
 mod parsec_acknowledged_map;
 mod parsec_sources;
@@ -48,6 +49,7 @@ pub(crate) struct BodyKernel<'a> {
     image_text_hosts: Vec<Option<super::image_text_back::ImageTextHost>>,
     image_text_record_hosts: Vec<Option<super::image_text_record_back::ImageTextRecordHost>>,
     text_state_hosts: Vec<Option<super::text_state_back::TextStateHost>>,
+    data_text_hosts: Vec<super::data_text_host::DataTextGenerationHosts<'a>>,
     input_keymaps: [Option<conduit_human::PreparedKeymapChoices>; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
@@ -178,9 +180,12 @@ impl<'a> BodyKernel<'a> {
             has_fore_output,
             None,
             None,
+            #[cfg(target_os = "linux")]
+            None,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_on_host(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
@@ -189,6 +194,9 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
         host: &conduit_core::HostAdvertisement,
+        #[cfg(target_os = "linux")] selected_file: Option<
+            &'a crate::text_file::SelectedTextFileResidence,
+        >,
     ) -> Result<Self, String> {
         let sources = parsec_sources::prepare(partitions, host)?;
         Self::prepare_with_live(
@@ -200,6 +208,8 @@ impl<'a> BodyKernel<'a> {
             has_fore_output,
             None,
             sources.as_ref(),
+            #[cfg(target_os = "linux")]
+            selected_file,
         )
     }
 
@@ -210,6 +220,9 @@ impl<'a> BodyKernel<'a> {
         queue: &BodyLiveForeQueue,
         control: &RunControl,
         host: &conduit_core::HostAdvertisement,
+        #[cfg(target_os = "linux")] selected_file: Option<
+            &'a crate::text_file::SelectedTextFileResidence,
+        >,
     ) -> Result<Self, String> {
         if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
             return Err("live Fore queue differs from the exact Body Plan or stop control".into());
@@ -227,6 +240,8 @@ impl<'a> BodyKernel<'a> {
             true,
             Some(queue),
             sources.as_ref(),
+            #[cfg(target_os = "linux")]
+            selected_file,
         )
     }
 
@@ -240,6 +255,9 @@ impl<'a> BodyKernel<'a> {
         has_fore_output: bool,
         live: Option<&BodyLiveForeQueue>,
         parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
+        #[cfg(target_os = "linux")] selected_file: Option<
+            &'a crate::text_file::SelectedTextFileResidence,
+        >,
     ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
@@ -321,6 +339,7 @@ impl<'a> BodyKernel<'a> {
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
                 && !text_state(&operation.contract_id)
+                && !data_text::is_file(&operation.contract_id)
                 && !input_semantic(&operation.contract_id)
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
@@ -448,6 +467,12 @@ impl<'a> BodyKernel<'a> {
                     .map(super::text_state_back::TextStateHost::from_placement)
             })
             .collect::<Result<Vec<_>, String>>()?;
+        let data_text_hosts = data_text::prepare(
+            &fragments,
+            &lowered.partitions,
+            #[cfg(target_os = "linux")]
+            selected_file,
+        )?;
         let mut face_labels = vec![None; MAX_NODES];
         for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
             for placement in &fragment.placements {
@@ -499,6 +524,7 @@ impl<'a> BodyKernel<'a> {
             image_text_hosts,
             image_text_record_hosts,
             text_state_hosts,
+            data_text_hosts,
             input_keymaps,
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
@@ -881,6 +907,24 @@ impl<'a> BodyKernel<'a> {
                         .scheduler
                         .host_value(request.input.value)
                         .map_err(|error| format!("Body request value: {error:?}"))?;
+                    if data_text::is_file(&operation.contract_id) {
+                        let source = self
+                            .data_text_hosts
+                            .iter_mut()
+                            .find(|host| host.contains_node(request.node))
+                            .ok_or("Body file Text operation has no prepared selected provider")?;
+                        let direction =
+                            super::data_text_host::operation_for_contract(&operation.contract_id)
+                                .ok_or("Body file Text operation is unknown")?;
+                        let completion = source.execute(request.node, direction, input);
+                        super::data_text_host::complete(
+                            &mut self.scheduler,
+                            operation,
+                            request,
+                            completion,
+                        )?;
+                        continue;
+                    }
                     if operation.contract_id.as_str()
                         == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
                     {

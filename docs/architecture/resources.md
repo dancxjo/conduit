@@ -18,6 +18,12 @@ leases, publication slots, and sensitivity. Offers add exact owner host/boot,
 base and residence profile. Bindings seal those facts into plan identity. Neither
 plot info nor canonical ResourceRef encoding contains residence or handles.
 
+A reference always has an exact byte extent and may also expose an item extent.
+Byte-only references, including immutable `&Text` generations, carry no item
+count. Content admission checks their identity, version, profile and byte bound;
+when an item count is present, it must also fit the offered item bound. An absent
+item extent never authorizes indexed item access or invents a collection count.
+
 Invocation, play, boot, body-durable and externally durable obligations are
 separate retention classes. The local provider in this slice implements only
 play retention and refuses other classes. Existing storage providers remain

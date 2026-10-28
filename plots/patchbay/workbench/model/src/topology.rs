@@ -435,7 +435,21 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
     7usize
         .saturating_add(report.hosts.len())
         .saturating_add(report.capabilities.len())
-        .saturating_add(report.capabilities.len())
+        .saturating_add(
+            report
+                .capabilities
+                .iter()
+                .filter(|capability| {
+                    crate::topology_hosts::current_device_for_capability(
+                        report,
+                        &capability.host_id,
+                        &capability.boot_id,
+                        &capability.capability_id,
+                    )
+                    .is_some()
+                })
+                .count(),
+        )
         .saturating_add(report.devices.len())
         .saturating_add(report.bases.len())
         .saturating_add(report.plans.len())

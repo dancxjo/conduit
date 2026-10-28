@@ -1,0 +1,11 @@
+# The owner invokes this ordinary one-shot Plot only for an explicit Save.
+plot notebook/publish (
+    >> value: Text <= 4KiB
+    saved: &Text <= 116B >>
+    failed: data/save-text-terminal@c9caf46f9958aa5b274309038c97d1bfb003fa64b48e043cf71cfcc57364994d <= 1B >>
+) {
+    publish: data/save/text
+    value >> publish.value
+    publish.data >> saved
+    publish.data! >> failed
+}

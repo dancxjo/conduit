@@ -1,8 +1,10 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
+mod finite_cbor;
 #[path = "codec/graph_encoding/mod.rs"]
 mod graph_encoding;
 mod graph_reply;
+mod preparation;
 mod publication;
 use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
@@ -90,7 +92,7 @@ pub fn decode_reply(bytes: &[u8]) -> Result<Reply, Refusal> {
         None => transport_codec::decode(decoded_json(bytes, &mut [])?),
     }
 }
-/// One admitted reusable JSON workspace, reserved before retained controllers.
+/// One admitted reusable decoded workspace, reserved before retained controllers.
 /// Graph methods preserve canonical JSON/custody bytes. Private service methods
 /// use versioned exact-sequence framing in the same admitted storage.
 pub struct Workspace {
@@ -114,6 +116,9 @@ impl Workspace {
         if publication::matches(decoded) {
             publication::preflight(decoded)?;
             publication::decode_preflighted(decoded)
+        } else if preparation::matches(decoded) {
+            preparation::preflight(decoded)?;
+            preparation::decode_preflighted(decoded)
         } else {
             transport_codec::decode(decoded)
         }
@@ -126,6 +131,8 @@ impl Workspace {
             let decoded = decoded_json(bytes, &mut self.json)?;
             if publication::matches(decoded) {
                 publication::preflight(decoded)?;
+            } else if preparation::matches(decoded) {
+                preparation::preflight(decoded)?;
             } else {
                 transport_codec::preflight(decoded)?;
             }
@@ -140,6 +147,8 @@ impl Workspace {
         let bytes = self.json.get(..length).ok_or(Refusal::Bounds)?;
         if publication::matches(bytes) {
             publication::decode_preflighted(bytes)
+        } else if preparation::matches(bytes) {
+            preparation::decode_preflighted(bytes)
         } else {
             transport_codec::decode_validated(bytes)
         }
@@ -223,6 +232,11 @@ pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, Refusal> {
 pub fn encode_command(command: &Command) -> Result<Vec<u8>, Refusal> {
     if matches!(command, Command::PatchbayPublish { .. }) {
         encode_with(command, publication::encode)
+    } else if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
+        encode_with(command, preparation::encode)
     } else {
         encode_with(command, transport_codec::encode_to_slice)
     }

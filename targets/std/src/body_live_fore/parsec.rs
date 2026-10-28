@@ -96,6 +96,7 @@ impl BodyLiveForeQueue {
                 play_terminal: false,
                 play_started: false,
                 started_at: None,
+                idle_stop: None,
             })),
         })
     }

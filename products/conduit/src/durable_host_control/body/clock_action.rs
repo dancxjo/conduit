@@ -81,6 +81,7 @@ impl DurableHostRuntime {
             }
             if interaction.action_id.starts_with("todo.")
                 || interaction.action_id.starts_with("thermostat.")
+                || interaction.action_id.starts_with("notebook.")
             {
                 None
             } else {
@@ -88,6 +89,10 @@ impl DurableHostRuntime {
             }
         };
         let Some(action) = action else {
+            #[cfg(target_os = "linux")]
+            if interaction.action_id.starts_with("notebook.") {
+                return self.submit_owned_notebook_action(show, interaction);
+            }
             return if interaction.action_id.starts_with("thermostat.") {
                 self.submit_owned_thermostat_action(show, interaction)
             } else {

@@ -5,6 +5,8 @@ pub use value_pair::*;
 
 mod flow_state;
 pub use flow_state::*;
+mod durable_text;
+pub use durable_text::*;
 mod data_text;
 pub use data_text::*;
 mod quantity_mapping;

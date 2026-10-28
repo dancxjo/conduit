@@ -43,6 +43,7 @@ pub(crate) const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
 fn supports_remote_mask_action_intent(intent: &str) -> bool {
     intent == crate::durable_host::owner::clock_interval_action()
+        || (cfg!(target_os = "linux") && matches!(intent, "notebook/replace@1" | "notebook/save@1"))
         || matches!(
             intent,
             "todo/add@1"
@@ -93,6 +94,9 @@ mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
+#[cfg(target_os = "linux")]
+#[path = "durable_host_control/notebook.rs"]
+pub(crate) mod notebook;
 #[cfg(unix)]
 #[path = "durable_host_control/speech_route.rs"]
 pub(crate) mod speech_route;
@@ -1212,6 +1216,12 @@ enum Request {
         interaction: FaceInteraction,
         not_after_millis: u64,
     },
+    #[cfg(target_os = "linux")]
+    Notebook {
+        protocol: u16,
+        token: Vec<u8>,
+        command: crate::cli::NotebookCommand,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1904,6 +1914,8 @@ pub(crate) fn join(
 
 fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRuntime) -> Response {
     let offered = match &mut request {
+        #[cfg(target_os = "linux")]
+        Request::Notebook { token, .. } => token,
         Request::Status { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
@@ -1951,7 +1963,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
     if !authenticated {
         return refused("unauthorized");
     }
+    #[cfg(target_os = "linux")]
+    let notebook_read = matches!(
+        &request,
+        Request::Notebook {
+            command: crate::cli::NotebookCommand::Show,
+            ..
+        }
+    );
+    #[cfg(not(target_os = "linux"))]
+    let notebook_read = false;
     if runtime.host.body_is_running()
+        && !notebook_read
         && !matches!(
             &request,
             Request::Status { .. }
@@ -2409,6 +2432,16 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|result| Response::BodyInteraction {
                 protocol: PROTOCOL,
                 result: Box::new(result),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        #[cfg(target_os = "linux")]
+        Request::Notebook {
+            protocol, command, ..
+        } if protocol == PROTOCOL => runtime
+            .notebook_control(command)
+            .map(|truth| Response::BodyTruth {
+                protocol: PROTOCOL,
+                truth,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyStart {

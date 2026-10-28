@@ -119,6 +119,7 @@ impl Owner {
             thermostat_live: None,
             todo_live: None,
             todo_verified: None,
+            notebook: None,
         }
     }
 }

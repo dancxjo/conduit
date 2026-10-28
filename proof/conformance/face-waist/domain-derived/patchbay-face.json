@@ -1,5 +1,5 @@
 {
-  "identity": "b0779bdc01c63b56e195b3d70b3cab43ee4e4917b31abdcefa5d050c31eb90ff",
+  "identity": "cd1042ac0261d18a43631281601bcee1df1983c299c1dfa4e4446f3e3fc22930",
   "revision": 1,
   "basis": {
     "body_id": "0b0de524d645eeae327aa9dd7db15af525dcc2411666cae9b28b52b4880b3868",
@@ -126,6 +126,11 @@
       "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit-document@1",
       "role": "Capability",
       "name": "Capability std/kernel-text-edit-document@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-apply-edit@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-apply-edit@1"
     },
     {
       "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
@@ -296,6 +301,11 @@
       "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit-document@1",
       "role": "Capability",
       "name": "Capability std/kernel-text-edit-document@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-apply-edit@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-apply-edit@1"
     },
     {
       "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit@1",
@@ -476,6 +486,11 @@
     },
     {
       "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-apply-edit@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
       "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
       "kind": "Contains"
     },
@@ -642,6 +657,11 @@
     {
       "source": "candidate/c88d2f4b2859659ecbde3b42daafc677932b52cedeecca768e77b83c3fa66deb",
       "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit-document@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/c88d2f4b2859659ecbde3b42daafc677932b52cedeecca768e77b83c3fa66deb",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-apply-edit@1",
       "kind": "Contains"
     },
     {
@@ -1832,7 +1852,7 @@
       "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
       "name": "capability-count",
       "value": {
-        "Count": 17
+        "Count": 18
       }
     },
     {
@@ -1984,6 +2004,34 @@
     },
     {
       "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit-document@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-apply-edit@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-apply-edit@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-apply-edit@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/apply-edit"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-apply-edit@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-apply-edit@1",
       "name": "freshness",
       "value": {
         "Text": "Fresh"
@@ -2595,7 +2643,7 @@
       "subject": "candidate/c88d2f4b2859659ecbde3b42daafc677932b52cedeecca768e77b83c3fa66deb",
       "name": "capability-count",
       "value": {
-        "Count": 17
+        "Count": 18
       }
     },
     {
@@ -2684,6 +2732,27 @@
     },
     {
       "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit-document@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-apply-edit@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-apply-edit@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-apply-edit@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/apply-edit"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-apply-edit@1",
       "name": "availability",
       "value": {
         "Text": "advertised"
