@@ -318,3 +318,10 @@ It reads counters through the already owned serial session, never through a
 second serial connection or a forwarded request to the selected peer. The
 returned identity remains explicitly a carrier, not a Body member. This route
 performs no Wi-Fi join or diagnostic retry after failure.
+
+Ordinary Boot now makes one bounded scan for previously authenticated pending
+reclamation. It resumes each through the same qualified wait lane; bootstrap
+performs no erase. Fresh uncommitted preparation cannot resume. A failed job is
+retained and is not blindly retried within that Boot. Wait-task wakeups are
+registered again after each completion so Root resubmission does not have to
+wait for the sampling deadline.

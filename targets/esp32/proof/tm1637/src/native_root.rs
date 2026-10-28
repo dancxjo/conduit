@@ -162,6 +162,12 @@ impl NativeRoot {
                 target_os = "none"
             ))]
             observed_reclaim: None,
+            #[cfg(all(
+                feature = "local-appliance",
+                feature = "body-persistence",
+                target_os = "none"
+            ))]
+            observed_reclaim_cursor: 0,
             retired_native: None,
             worker: None,
             #[cfg(feature = "native-face-root")]

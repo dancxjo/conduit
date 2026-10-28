@@ -50,6 +50,11 @@ impl<'a, J: Job, R, E> WaitLane<'a, J, R, E> {
                 // the mailbox; no user callback runs under its RefCell borrow.
                 if executor.register(context.waker().clone()).is_ready() {
                     let _ = executor.execute(window, now, |job, permit| run(job, permit));
+                    // Completion consumes the queued job and its wakeup. Root
+                    // may take/resubmit before this future is polled again;
+                    // retain the actual task waker now, without running another
+                    // step or replacing the original absolute timer.
+                    let _ = executor.register(context.waker().clone());
                 }
             }
             Poll::Pending

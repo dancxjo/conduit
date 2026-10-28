@@ -128,16 +128,25 @@ async fn proof() {
         assert!(manual_clock::wake_count() > wakes);
         assert!(once(waiting.as_mut()).await.is_pending());
         assert_eq!(calls.get(), 1);
-        assert_eq!(root.take(id).unwrap().owner.0, 1);
+        let mut owner = root.take(id).unwrap().owner;
+        assert_eq!(owner.0, 1);
+        for step in 2..=5 {
+            let id = root.submit(owner, 5).ok().unwrap();
+            assert!(once(waiting.as_mut()).await.is_pending());
+            owner = root.take(id).unwrap().owner;
+            assert_eq!(owner.0, step);
+            assert_eq!(calls.get(), step);
+            assert_eq!(manual_clock::next_deadline(), Some(deadline));
+        }
         assert_eq!(manual_clock::next_deadline(), Some(deadline));
         assert!(once(waiting.as_mut()).await.is_pending());
-        assert_eq!(calls.get(), 1);
+        assert_eq!(calls.get(), 5);
         // A second actual pulse fences a queued distinct operation, retaining owner.
         let now = embassy_time::Instant::now().as_millis();
         let pulse = gate.begin_pulse(now, now + 2).unwrap();
         let id = root.submit(Job(7), 5).ok().unwrap();
         assert!(once(waiting.as_mut()).await.is_pending());
-        assert_eq!(calls.get(), 1);
+        assert_eq!(calls.get(), 5);
         assert_eq!(root.cancel(id).unwrap().0, 7);
         drop(pulse);
         embassy_time::Timer::after_millis(30).await;
@@ -223,4 +232,46 @@ fn actual_provider_timer_and_pulse_future_custody() {
         assert!(executor.advance_next_timer());
     }
     assert!(DONE.load(Ordering::SeqCst));
+}
+
+static CHAIN_DONE: AtomicBool = AtomicBool::new(false);
+#[embassy_executor::task]
+async fn chained_wait(
+    executor: native_flash_jobs::WaitExecutor<'static, Job, (), ()>,
+    gate: &'static Gate,
+) {
+    let mut lane = native_flash_wait::WaitLane::new(gate, executor);
+    lane.wait(30, |owner, _| {
+        owner.0 += 1;
+        Ok(())
+    })
+    .await
+    .unwrap();
+    CHAIN_DONE.store(true, Ordering::SeqCst);
+}
+#[test]
+fn actual_task_is_woken_for_every_resubmitted_step_before_the_original_timer() {
+    let executor = manual_clock::Executor::new();
+    let gate = Box::leak(Box::new(Gate::new(100, 20, 10).unwrap()));
+    let mailbox = Box::leak(Box::new(native_flash_jobs::Mailbox::<Job, (), ()>::new()));
+    let (mut root, waiter) = mailbox.split().unwrap();
+    executor
+        .spawner()
+        .spawn(chained_wait(waiter, gate).unwrap());
+    executor.poll_ready();
+    let deadline = manual_clock::next_deadline().unwrap();
+    let mut owner = Job(0);
+    for step in 1..=62 {
+        let id = root.submit(owner, 5).ok().unwrap();
+        // Poll only tasks made runnable by their real wakers. No direct poll of
+        // the waiting future and no clock advance can hide a missed resubmission.
+        executor.poll_ready();
+        assert_eq!(root.phase(), native_flash_jobs::Phase::Completed(id));
+        owner = root.take(id).unwrap().owner;
+        assert_eq!(owner.0, step);
+        assert_eq!(manual_clock::next_deadline(), Some(deadline));
+        assert!(!CHAIN_DONE.load(Ordering::SeqCst));
+    }
+    executor.advance_millis(30);
+    assert!(CHAIN_DONE.load(Ordering::SeqCst));
 }

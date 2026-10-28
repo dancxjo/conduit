@@ -1,5 +1,6 @@
 //! Inspect custody metadata before granting any ordinary erased-data view.
-//! A pending erase retains its affine owner; ordinary boot never resumes it.
+//! A pending erase retains its affine owner; only later admitted wait-provider
+//! maintenance may resume it. Bootstrap itself performs no erase.
 use super::{custody_acceptance, custody_journal as journal, ArchiveRegion};
 use journal::{Custody, Error, Opened, WholeEpoch};
 

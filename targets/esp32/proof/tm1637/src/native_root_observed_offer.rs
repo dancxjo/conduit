@@ -192,9 +192,59 @@ pub(super) struct Reclamation {
     failed: bool,
 }
 impl NativeRoot {
+    /// One ordinary-Boot scan, before HTTP can admit another reclamation.
+    /// Refusals are not blindly retried in this Boot; a later Boot rereads the
+    /// durable marker and accepted signature independently.
+    fn resume_observed_reclaim(&mut self) -> Result<(), &'static str> {
+        let body = self.body.as_ref().ok_or("observed-resume-body")?;
+        crate::native_restart::observed::check_live_owner(body, &self.admission.verifying_key())?;
+        if !self
+            .reclaim_submitter
+            .as_ref()
+            .is_some_and(|submitter| submitter.available())
+        {
+            return Ok(());
+        }
+        while self.observed_reclaim_cursor < 6 {
+            let index = self.observed_reclaim_cursor;
+            self.observed_reclaim_cursor += 1;
+            if !crate::native_observed_archive::offer::pending(index) {
+                continue;
+            }
+            let backing = super::local_renewal::reserve_box::<Reclamation>()?;
+            let (destination, pending) =
+                crate::native_observed_archive::offer::resume_pending(index)?;
+            self.observed_reclaim = Some(Box::write(
+                backing,
+                Reclamation {
+                    destination: Some(destination),
+                    owner: Some(crate::native_observed_reclaim_job::ReclaimJob::new(pending)),
+                    queued: None,
+                    deadline: embassy_time::Instant::now()
+                        .as_millis()
+                        .saturating_add(300_000),
+                    failed: false,
+                },
+            ));
+            esp_println::println!(
+                "{{\"event\":\"observed-live-reclaim-resumed\",\"slot\":{}}}",
+                index
+            );
+            break;
+        }
+        Ok(())
+    }
     /// Root polls completions even during local renewal. The sampler's actual
     /// wait provider performs every physical step under its own scoped permit.
     pub(crate) fn advance_observed_reclaim(&mut self) {
+        if self.observed_reclaim.is_none() && self.observed_reclaim_cursor < 6 {
+            if let Err(reason) = self.resume_observed_reclaim() {
+                esp_println::println!(
+                    "{{\"event\":\"observed-live-reclaim-refused\",\"reason\":\"{}\"}}",
+                    reason
+                );
+            }
+        }
         let Some(mut state) = self.observed_reclaim.take() else {
             return;
         };

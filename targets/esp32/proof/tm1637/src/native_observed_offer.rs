@@ -224,3 +224,40 @@ impl Drop for Inspection {
         }
     }
 }
+
+/// Read-only scheduling hint. Taking custody still checks the actual slot.
+pub(crate) fn pending(index: u8) -> bool {
+    slot(index, |state| matches!(state, State::Pending(_))).unwrap_or(false)
+}
+/// Resume only a committed transaction already authenticated by ordinary Boot.
+/// No received ACK, new layout, or fresh signature can create this entrance.
+pub(crate) fn resume_pending(
+    index: u8,
+) -> Result<(ReclaimSlot, custody_journal::PendingReclaim<ArchiveRegion>), &'static str> {
+    let state = slot(index, |state| {
+        if !matches!(state, State::Pending(_)) {
+            return Err("observed-resume-not-pending");
+        }
+        Ok(core::mem::replace(state, State::Failed))
+    })??;
+    let mut lease = ClosedEpoch {
+        slot: index,
+        state: Some(state),
+        draft: None,
+    };
+    with_work(|work| {
+        let work: &mut [u8; custody_journal::WORK] =
+            work.try_into().map_err(|_| "observed-resume-workspace")?;
+        let Some(State::Pending(custody)) = lease.state.take() else {
+            unreachable!()
+        };
+        let identity = custody.identity();
+        match custody.resume_staged(work) {
+            Ok(pending) => Ok((ReclaimSlot { index, identity }, pending)),
+            Err((custody, _)) => {
+                lease.state = Some(State::Pending(custody));
+                Err("observed-resume-uncommitted")
+            }
+        }
+    })
+}

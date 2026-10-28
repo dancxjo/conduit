@@ -107,6 +107,10 @@ fn actual_live_epoch_handoff_refuses_substitution_and_only_rearms_after_permitte
     ));
     let retained = job.into_custody().ok().unwrap();
     destination.retained(retained);
+    assert!(
+        offer::resume_pending(1).is_err(),
+        "uncommitted preparation cannot resume as an accepted transaction"
+    );
     assert_eq!(
         media.lock().unwrap().bytes,
         before,
@@ -152,15 +156,35 @@ fn actual_live_epoch_handoff_refuses_substitution_and_only_rearms_after_permitte
     ));
     let gate = crate::native_flash_window::Gate::new(60_000, 60, 1000).unwrap();
     let wait = gate.begin_wait(0, 60_000).unwrap();
+    for _ in 0..2 {
+        let permit = wait.try_flash(1, 1000).unwrap();
+        job.advance(&permit, &mut [0; 536]).unwrap();
+    }
+    // Simulate interruption after the committed marker and first data erase.
+    // Reopen and authenticate physical metadata independently; do not carry a
+    // volatile step counter or old journal header into the next Boot.
+    let storage = job.into_custody().ok().unwrap().into_storage();
+    let reopened = custody_journal::Custody::open(storage, &mut [0; 536], |bytes| {
+        custody_acceptance::verify_accepted(bytes, &body, &key.verifying_key())
+    })
+    .ok()
+    .unwrap();
+    let custody_journal::Opened::PendingReclaim(custody) = reopened.classify().ok().unwrap() else {
+        panic!("committed authenticated transaction must survive interruption")
+    };
+    destination.retained(custody);
+    assert!(offer::pending(1));
+    let (destination, pending) = offer::resume_pending(1).unwrap();
+    let mut job = crate::native_observed_reclaim_job::ReclaimJob::new(pending);
     let mut steps = 0;
     while job.operation().is_some() {
         let permit = wait.try_flash(1, 1000).unwrap();
         job.advance(&permit, &mut [0; 536]).unwrap();
         steps += 1;
-        assert!(steps <= 62);
+        assert!(steps <= 61);
         EPOCHS.lock(|e| assert!(matches!(&e.borrow().as_ref().unwrap()[0], State::Failed)));
     }
-    assert_eq!(steps, 62);
+    assert_eq!(steps, 61);
     let erased = job.into_erased().ok().unwrap();
     destination.erased(erased);
     EPOCHS.lock(|e| {
@@ -171,7 +195,7 @@ fn actual_live_epoch_handoff_refuses_substitution_and_only_rearms_after_permitte
         assert!(cold.scope.is_none());
         assert_eq!(cold.maximum_requested, 0);
     });
-    assert_eq!(media.lock().unwrap().erases, 30);
+    assert_eq!(media.lock().unwrap().erases, 31);
     assert!(media.lock().unwrap().bytes[..custody_journal::DATA]
         .iter()
         .all(|byte| *byte == 255));
