@@ -82,3 +82,37 @@ exact canonical/linear equality, smaller-profile refusal without pixels, stale
 storage evidence, codec overflow/malformed input, old private wire refusal, and
 the exact private allocator grant. Candidate, combined Integration, and stable
 publication remain separate source-bound gates.
+
+## Retained preparation work
+
+The full post-merge journey at `5e44847d8790ba4ed0344bd1554c2ea7019335e8`
+exposed an Application preparation refusal in
+[Integration 40601259099](https://github.com/dancxjo/conduit/actions/runs/40601259099).
+The 16,413-byte compressed target represented 219,430 decoded bytes. Preflight
+consumed thirteen of its sixty-four RTC ticks; Commit exhausted the remaining
+fifty-one. This is an entry-work refusal, not collection payload capacity.
+
+The Application service keeps its size-oriented release profile but compiles
+`miniz_oxide` and `serde_json` with speed optimization. These parsers consume
+complete retained targets during the same finite preparation operation.
+Preflight skips ordinary string bytes in eight-byte words, returning to the
+scalar validator at the first quote, escape or control byte. UTF-8 validation,
+surrogate checks, sequence-count authentication and complete-input validation
+remain mandatory. Differential tests compare every byte at each word offset
+with the independent JSON parser, including Unicode and escape boundaries. The
+build validates the resulting executable against the unchanged 2 MiB image
+window. Wire, decoded-byte, private-heap and RTC grants do not grow. The
+sixty-four-tick allowance remains shared across Preflight, Commit and reads;
+a failed entry is still quarantined rather than resumed or retried.
+
+The full normal journey regression entrance is:
+
+```sh
+cargo xtask make conduitos journey-proof
+```
+
+CI independently builds the normal product and verifies its retained image
+with `cargo xtask make host verify <OUTPUT> --journey --locked`. Actual
+Application entry-cost records must establish successful complete preparation
+within the existing operation allowance. A passing Crèche controls proof alone
+does not establish the later Body/Patchbay wake preparation.
