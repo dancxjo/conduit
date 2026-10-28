@@ -371,3 +371,64 @@ fn actual_st7789_spi_failure_reports_source_refusal_and_requests_safe_low() {
     assert_eq!(f.trace.borrow().revoked, [true; 4]);
     assert_eq!(f.trace.borrow().backlight.last(), Some(&false));
 }
+
+#[test]
+fn actual_st7789_mid_frame_transfer_loss_never_completes_or_illuminates() {
+    let delivered = 112;
+    let mut f = fixture(Some(INITIAL.len() + delivered));
+    f.play.start().unwrap();
+    assert_eq!(drive(&mut f), Outcome::Refused(30));
+    assert_eq!(f.trace.borrow().frames, delivered);
+    assert_eq!(f.trace.borrow().spi, INITIAL.len() + delivered + 1);
+    assert_eq!(f.trace.borrow().backlight, [false, false]);
+    assert!(
+        f.play
+            .output_into(&f.completed.port.port_id, &mut f.completed.value)
+            .unwrap()
+            .is_none()
+    );
+    f.play.cancel().unwrap();
+    assert_eq!(f.trace.borrow().revoked, [true; 4]);
+}
+
+#[test]
+fn actual_st7789_pending_chunk_preserves_backpressure_and_cancels_safe() {
+    let mut f = fixture(None);
+    f.play.start().unwrap();
+    let mut request = None;
+    for _ in 0..100_000 {
+        f.play.step().unwrap();
+        request = f
+            .play
+            .output_into(&f.requested.port.port_id, &mut f.requested.value)
+            .unwrap();
+        if request.is_some() {
+            break;
+        }
+    }
+    assert!(
+        request.is_some(),
+        "the checked protocol must request its first chunk"
+    );
+    for _ in 0..1_000 {
+        f.play.step().unwrap();
+    }
+    assert_eq!(f.trace.borrow().spi, INITIAL.len());
+    assert_eq!(f.trace.borrow().frames, 0);
+    assert_eq!(f.trace.borrow().backlight, [false]);
+    assert_eq!(
+        f.play
+            .output_into(&f.requested.port.port_id, &mut f.requested.value)
+            .unwrap(),
+        request
+    );
+    assert!(
+        f.play
+            .output_into(&f.completed.port.port_id, &mut f.completed.value)
+            .unwrap()
+            .is_none()
+    );
+    f.play.cancel().unwrap();
+    assert_eq!(f.trace.borrow().revoked, [true; 4]);
+    assert_eq!(f.trace.borrow().backlight.last(), Some(&false));
+}

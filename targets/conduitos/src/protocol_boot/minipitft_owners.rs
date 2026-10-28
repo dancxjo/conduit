@@ -54,6 +54,36 @@ pub unsafe fn admit(
     artifact: &str,
     digital_gears: [GearId; 2],
 ) -> Result<(NativeOwners, RemainingButtons), &'static str> {
+    let (owners, buttons) =
+        unsafe { admit_contacts::<4>(host, boot, artifact, digital_gears, None) }?;
+    Ok((owners, buttons.ok_or("minipitft-input-retention-missing")?))
+}
+
+/// Admit all four independently selected digital contacts for a checked
+/// combined display/input protocol. Button providers remain input-only.
+///
+/// # Safety
+/// The caller must satisfy the same exclusive physical handoff, mappings and
+/// calibrated-clock requirements as [`admit`]. Gear names grant no authority.
+pub unsafe fn admit_with_buttons(
+    host: &HostId,
+    boot: &BootId,
+    artifact: &str,
+    display_gears: [GearId; 2],
+    button_gears: [GearId; 2],
+) -> Result<NativeOwners, &'static str> {
+    let (owners, _) =
+        unsafe { admit_contacts::<6>(host, boot, artifact, display_gears, Some(button_gears)) }?;
+    Ok(owners)
+}
+
+unsafe fn admit_contacts<const ENTROPY_REQUESTS: u32>(
+    host: &HostId,
+    boot: &BootId,
+    artifact: &str,
+    digital_gears: [GearId; 2],
+    button_gears: Option<[GearId; 2]>,
+) -> Result<(NativeOwners, Option<RemainingButtons>), &'static str> {
     if host.as_str().is_empty()
         || boot.as_str().is_empty()
         || artifact.is_empty()
@@ -61,6 +91,12 @@ pub unsafe fn admit(
         || digital_gears[0] == digital_gears[1]
     {
         return Err("minipitft-owner-identity-invalid");
+    }
+    let mut selected = alloc::collections::BTreeSet::new();
+    for gear in digital_gears.iter().chain(button_gears.iter().flatten()) {
+        if gear.as_str().is_empty() || !selected.insert(gear) {
+            return Err("minipitft-owner-identity-invalid");
+        }
     }
     CLAIMED
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -70,8 +106,8 @@ pub unsafe fn admit(
     let clock_provider = unsafe { arch::deadline::SystemTimer::admit() };
     let source =
         unsafe { arch::entropy::detect(1) }.map_err(|_| "minipitft-entropy-unavailable")?;
-    let mut entropy =
-        CryptographicEntropyBase::<_, 4>::admit(source).map_err(|_| "minipitft-entropy-refused")?;
+    let mut entropy = CryptographicEntropyBase::<_, ENTROPY_REQUESTS>::admit(source)
+        .map_err(|_| "minipitft-entropy-refused")?;
     let prefix = format!("conduitos/protocol/{}/minipitft", boot.as_str());
     let spi_identity = SpiNativeIdentity {
         host_id: host.clone(),
@@ -118,14 +154,29 @@ pub unsafe fn admit(
     .erase();
     let spi_issuer = unsafe { NativeProtocolIssuer::admit(spi_authority, &mut entropy) }
         .map_err(|_| "minipitft-spi-issuance-refused")?;
-    let mut digital = Vec::with_capacity(2);
-    for ((name, provider), gear) in [
-        ("backlight", physical.backlight),
-        ("command-data", physical.command_data),
-    ]
-    .into_iter()
-    .zip(digital_gears)
-    {
+    let mut contacts = Vec::with_capacity(if button_gears.is_some() { 4 } else { 2 });
+    contacts.extend([
+        ("backlight", physical.backlight, digital_gears[0].clone()),
+        (
+            "command-data",
+            physical.command_data,
+            digital_gears[1].clone(),
+        ),
+    ]);
+    let buttons = if let Some(gears) = button_gears {
+        contacts.extend([
+            ("button-a", physical.button_a, gears[0].clone()),
+            ("button-b", physical.button_b, gears[1].clone()),
+        ]);
+        None
+    } else {
+        Some(RemainingButtons {
+            button_a: physical.button_a,
+            button_b: physical.button_b,
+        })
+    };
+    let mut digital = Vec::with_capacity(contacts.len());
+    for (name, provider, gear) in contacts {
         let capability = format!("{prefix}/{name}/access");
         let identity = DigitalNativeIdentity {
             capability_id: capability.clone().into(),
@@ -223,9 +274,6 @@ pub unsafe fn admit(
             clock,
             clock_issuer,
         },
-        RemainingButtons {
-            button_a: physical.button_a,
-            button_b: physical.button_b,
-        },
+        buttons,
     ))
 }

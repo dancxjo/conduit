@@ -26,6 +26,8 @@ pub enum CheckScope {
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CheckSuite {
+    /// Prove Mini PiTFT software contracts; physical panel/button proof is separate.
+    Minipitft,
     Workspace,
     WorkspaceLint,
     WorkspaceTestFoundation,

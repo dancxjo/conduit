@@ -1,0 +1,41 @@
+# One administrative start seeds one finite polling lifetime. Logical contacts
+# are separately planned read-only resources; Source has no physical bindings.
+# Each sample waits 10ms after the previous sample timestamp, reads A then B,
+# and passes typed observations to the existing authored debounce transition.
+# Provider failure or wrong-phase completion commits a terminal typed result
+# before any further physical observation. Native cancellation revokes resources.
+plot two-button-autonomous (
+    >> start: Boolean...|
+    observed: TwoButtonState...| >>
+    ended: TwoButtonEnded...| >>
+) {
+    cell: two-button-cell
+    feedback: two-button-feedback
+    actions: two-button-loop-action()
+    outcomes-a: two-button-outcomes
+    outcomes-b: two-button-outcomes
+    outcomes: two-button-outcomes
+    digital-a: machine/digital/access
+    digital-b: machine/digital/access
+    clock: machine/clock/at
+    debounce: two-button-transition()
+
+    start >> two-button-initialize() >> two-button-loop-initialize() >> two-button-loop-frame() >> cell.seed
+    cell.current >> two-button-loop-frame-value() >> feedback.left
+    cell.current >> two-button-loop-frame-value() >> actions
+    actions >> select(TwoButtonLoopAction.clock, unmatched=drop) >> clock.request
+    actions >> select(TwoButtonLoopAction.a, unmatched=drop) >> digital-a.request
+    actions >> select(TwoButtonLoopAction.b, unmatched=drop) >> digital-b.request
+    actions >> select(TwoButtonLoopAction.commit, unmatched=drop) >> debounce
+    actions >> select(TwoButtonLoopAction.ended, unmatched=drop) >> ended
+
+    clock.result >> two-button-loop-clock-outcome() >> outcomes-a.left
+    digital-a.result >> two-button-loop-a-outcome() >> outcomes-a.right
+    outcomes-a.merged >> outcomes-b.left
+    digital-b.result >> two-button-loop-b-outcome() >> outcomes-b.right
+    outcomes-b.merged >> outcomes.left
+    debounce >> observed
+    debounce >> two-button-loop-commit-outcome() >> outcomes.right
+    outcomes.merged >> feedback.right
+    feedback.paired >> two-button-loop-pair() >> two-button-loop-transition() >> two-button-loop-frame() >> cell.next
+}

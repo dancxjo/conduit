@@ -251,3 +251,4 @@ mod peripheral;
 
 mod st7789;
 mod two_button;
+mod two_button_autonomous;

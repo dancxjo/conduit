@@ -1,0 +1,33 @@
+# A single sample waits for its selected monotonic clock, then observes A and B.
+# Deadlines saturate at U64 maximum instead of overflowing; each accepted sample
+# still consumes the existing finite debounce lifetime. No request selects a pin.
+plot two-button-loop-initialize (
+    buttons: TwoButtonState...| >> state: TwoButtonLoopState...|
+) = ({ buttons: ., phase: 0, a: completed({ high: true }), b: completed({ high: true }), clock: completed(0), stale: false })
+plot two-button-loop-deadline (
+    clock: U64...| >> deadline: U64...|
+) = (. > 18446744073709551605 ? 18446744073709551615 : . + 10)
+plot two-button-loop-action (
+    state: TwoButtonLoopState...| >> action: TwoButtonLoopAction...|
+) = (.phase == 0 ? clock({ deadline: (.buttons.clock > 18446744073709551605 ? 18446744073709551615 : .buttons.clock + 10) }) : (.phase == 1 ? a(observe(empty)) : (.phase == 2 ? b(observe(empty)) : (.phase == 3 ? commit({ state: .buttons, sample: { a: .a, b: .b, clock: .clock, sequence: (.stale ? (.buttons.sequence == 0 ? 1 : 0) : .buttons.sequence) } }) : ended({ state: .buttons, reason: (.buttons.failure != 0 ? .buttons.failure : 3) })))))
+plot two-button-loop-frame (
+    state: TwoButtonLoopState...| >> frame: TwoButtonLoopFrame...|
+) = ({ value: ., terminal: .phase == 4 })
+plot two-button-loop-frame-value (
+    frame: TwoButtonLoopFrame...| >> state: TwoButtonLoopState...|
+) = (.value)
+plot two-button-loop-a-outcome (
+    result: DigitalResult...| >> outcome: TwoButtonLoopOutcome...|
+) = (a(.))
+plot two-button-loop-b-outcome (
+    result: DigitalResult...| >> outcome: TwoButtonLoopOutcome...|
+) = (b(.))
+plot two-button-loop-clock-outcome (
+    result: ClockResult...| >> outcome: TwoButtonLoopOutcome...|
+) = (clock(.))
+plot two-button-loop-commit-outcome (
+    result: TwoButtonState...| >> outcome: TwoButtonLoopOutcome...|
+) = (commit(.))
+plot two-button-loop-pair (
+    pair: TwoButtonLoopPair...| >> transition: TwoButtonLoopTransition...|
+) = ({ state: .0, outcome: .1 })
