@@ -321,6 +321,11 @@ impl<S: Storage> Journal<S> {
             count,
         })
     }
+    /// Unused physical slots, excluding torn writes. This is capacity telemetry,
+    /// never permission to overwrite retained evidence.
+    pub fn remaining_slots(&self) -> u8 {
+        8u8.saturating_sub(self.next)
+    }
     pub fn committed_count(&self) -> u8 {
         self.count
     }

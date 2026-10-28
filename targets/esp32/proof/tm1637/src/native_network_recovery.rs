@@ -27,6 +27,18 @@ enum Phase {
     Restoring,
     Faulted,
 }
+/// Checked preparation eligibility, never selected ownership or radio authority.
+/// Private fields prevent a caller manufacturing the next generation.
+pub struct Candidate {
+    revision: u64,
+    generation: u64,
+    at: u64,
+}
+impl Candidate {
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+}
 pub struct Recovery {
     phase: Phase,
     revision: u64,
@@ -75,23 +87,54 @@ impl Recovery {
         self.clock(now)?;
         match self.phase {
             Phase::Waiting { at } | Phase::Cooldown { at } if now >= at && workspace => {
-                let generation = self.generation.checked_add(1).ok_or(Refusal::Exhausted)?;
-                let deadline = now.checked_add(15_000).ok_or(Refusal::Clock)?;
-                self.generation = generation;
-                if matches!(self.phase, Phase::Cooldown { .. }) {
-                    self.attempts = 0;
-                }
-                self.attempts += 1;
-                self.phase = Phase::Joining { deadline };
-                Ok(Action::PrepareAttempt {
-                    revision: self.revision,
-                    generation,
-                })
+                let candidate = self.preview_attempt(now)?.ok_or(Refusal::StaleAttempt)?;
+                self.begin_attempt(candidate, now)
             }
             Phase::Joining { deadline } if now >= deadline => self.restore(),
             Phase::Station if !station_link_address_services => self.restore(),
             _ => Ok(Action::None),
         }
+    }
+    /// Preview is immutable: allocation, planning or provider preparation may
+    /// refuse without spending a generation or starting a cleanup deadline.
+    pub fn preview_attempt(&self, now: u64) -> Result<Option<Candidate>, Refusal> {
+        if now < self.last_now {
+            return Err(Refusal::Clock);
+        }
+        if !self.attempt_due(now) {
+            return Ok(None);
+        }
+        let generation = self.generation.checked_add(1).ok_or(Refusal::Exhausted)?;
+        now.checked_add(15_000).ok_or(Refusal::Clock)?;
+        Ok(Some(Candidate {
+            revision: self.revision,
+            generation,
+            at: now,
+        }))
+    }
+    /// Cold callers invoke this only after preparation, immediately before the
+    /// selected installer can issue/retain affine possession. Installer refusal
+    /// remains terminal custody; this entrance never resets an attempted Play.
+    pub fn begin_attempt(&mut self, candidate: Candidate, now: u64) -> Result<Action, Refusal> {
+        if now < candidate.at {
+            return Err(Refusal::Clock);
+        }
+        let current = self.preview_attempt(now)?.ok_or(Refusal::StaleAttempt)?;
+        if candidate.revision != current.revision || candidate.generation != current.generation {
+            return Err(Refusal::StaleAttempt);
+        }
+        let deadline = now.checked_add(15_000).ok_or(Refusal::Clock)?;
+        self.clock(now)?;
+        self.generation = candidate.generation;
+        if matches!(self.phase, Phase::Cooldown { .. }) {
+            self.attempts = 0;
+        }
+        self.attempts += 1;
+        self.phase = Phase::Joining { deadline };
+        Ok(Action::PrepareAttempt {
+            revision: candidate.revision,
+            generation: candidate.generation,
+        })
     }
     pub fn attached(&mut self, generation: u64) -> Result<(), Refusal> {
         self.require_generation(generation)?;
@@ -269,6 +312,60 @@ mod tests {
             Ok(Action::PrepareAttempt {
                 revision: 2,
                 generation: 301,
+            })
+        );
+    }
+    #[test]
+    fn preview_refusal_does_not_spend_generation_or_start_deadline() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        let first = r.preview_attempt(0).unwrap().unwrap();
+        assert_eq!(first.generation(), 1);
+        // Cold provider/planner refusal discards only this candidate. No radio
+        // owner, revision, generation or attempt is reset to manufacture retry.
+        let _ = first;
+        assert_eq!(r.poll(60_000, false, false), Ok(Action::None));
+        assert_eq!(r.generation(), 0);
+        assert_eq!(r.attempts, 0);
+        let candidate = r.preview_attempt(60_000).unwrap().unwrap();
+        let duplicate = r.preview_attempt(60_000).unwrap().unwrap();
+        assert_eq!(
+            r.begin_attempt(candidate, 61_000),
+            Ok(Action::PrepareAttempt {
+                revision: 1,
+                generation: 1,
+            })
+        );
+        assert_eq!(
+            r.begin_attempt(duplicate, 61_000),
+            Err(Refusal::StaleAttempt)
+        );
+        assert_eq!(r.poll(75_999, false, false), Ok(Action::None));
+        assert_eq!(
+            r.poll(76_000, false, false),
+            Ok(Action::RestoreAccessPoint { generation: 1 })
+        );
+    }
+    #[test]
+    fn candidate_cannot_commit_after_configuration_change_or_clock_regression() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        let candidate = r.preview_attempt(10).unwrap().unwrap();
+        assert_eq!(r.begin_attempt(candidate, 9), Err(Refusal::Clock));
+        assert_eq!(r.generation(), 0);
+        let candidate = r.preview_attempt(10).unwrap().unwrap();
+        // A restored AP cooldown accepts a new revision; the old eligibility
+        // value can never become authority for that different configuration.
+        r.phase = Phase::Cooldown { at: 10 };
+        r.configuration(2, 10).unwrap();
+        assert_eq!(r.begin_attempt(candidate, 10), Err(Refusal::StaleAttempt));
+        assert_eq!(r.generation(), 0);
+        let candidate = r.preview_attempt(10).unwrap().unwrap();
+        assert_eq!(
+            r.begin_attempt(candidate, 10),
+            Ok(Action::PrepareAttempt {
+                revision: 2,
+                generation: 1,
             })
         );
     }

@@ -48,9 +48,6 @@ fn independent_workspace_minimum() -> Option<usize> {
 // run in ROM flash callbacks or while the flash cache is disabled.
 #[used]
 #[link_section = ".rodata.native_network_status"]
-static NETWORK_PREPARED: [u8; 8] = *b"prepared";
-#[used]
-#[link_section = ".rodata.native_network_status"]
 static NETWORK_RECOVERY_REFUSED: [u8; 16] = *b"recovery-refused";
 #[used]
 #[link_section = ".rodata.native_network_status"]
@@ -115,9 +112,6 @@ impl NativeRoot {
         if self.native_workspace_held() && !window.is_some_and(|window| window.held()) {
             return b"awaiting-native-retirement";
         }
-        if self.network.is_ready() {
-            return &NETWORK_PREPARED;
-        }
         let now = embassy_time::Instant::now().as_millis();
         if self.network.recovery.access_point_only() {
             let acknowledged = self
@@ -161,12 +155,12 @@ impl NativeRoot {
         if crate::native_credentials::prepare_retry(&mut self.credentials).is_err() {
             return &NETWORK_RETRY_SOURCE_REFUSED;
         }
-        let generation = match self.network.recovery.poll(now, true, false) {
-            Ok(Action::PrepareAttempt { generation, .. }) => generation,
-            Ok(_) => return b"retry-backoff",
+        let candidate = match self.network.recovery.preview_attempt(now) {
+            Ok(Some(candidate)) => candidate,
+            Ok(None) => return b"retry-backoff",
             Err(_) => return &NETWORK_RECOVERY_REFUSED,
         };
-        if generation != self.network.generation() {
+        if candidate.generation() != self.network.generation() {
             return b"attachment-generation-refused";
         }
         let Some(selected_generation) = self.offer_generation.checked_add(2) else {
@@ -179,6 +173,14 @@ impl NativeRoot {
         #[cfg(feature = "flat-network-appliance")]
         let result = {
             let image = crate::native_source::load();
+            if self
+                .network
+                .recovery
+                .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
+                .is_err()
+            {
+                return &NETWORK_RECOVERY_REFUSED;
+            }
             let result = match backing {
                 Some(backing) => self.play.install_linked_reserved_held(
                     &image,
@@ -216,6 +218,15 @@ impl NativeRoot {
                     return b"planning-refused";
                 }
             };
+            if self
+                .network
+                .recovery
+                .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
+                .is_err()
+            {
+                self.network_preparation = Some(Ok(prepared));
+                return &NETWORK_RECOVERY_REFUSED;
+            }
             let result = if window.is_some() || !release {
                 self.play.install_verified_owned_held(
                     prepared,
@@ -660,6 +671,10 @@ impl NativeRoot {
     }
     pub fn control_status(&self) -> &'static str {
         if self.network.retirement.is_some() {
+            #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
+            if crate::native_play::journal::exhausted() {
+                return crate::native_play::journal::capacity_refusal();
+            }
             return "retirement-evidence-pending";
         }
         if self.network.recovery.awaiting_attempt() && !self.play.attempted() {

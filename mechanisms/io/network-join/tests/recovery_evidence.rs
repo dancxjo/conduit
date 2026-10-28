@@ -116,6 +116,7 @@ fn full_or_corrupt_storage_never_overwrites_old_boot_records() {
     let mut work = [0; MAXIMUM_BYTES];
     let mut journal = open(Flash::erased(), &mut work);
     for slot in 0..8 {
+        assert_eq!(journal.remaining_slots(), 8 - slot);
         assert_eq!(
             journal
                 .append(&page_at(u64::from(slot) + 1))
@@ -124,6 +125,7 @@ fn full_or_corrupt_storage_never_overwrites_old_boot_records() {
             slot
         );
     }
+    assert_eq!(journal.remaining_slots(), 0);
     assert_eq!(journal.append(&page_at(9)), Err(Refusal::Capacity));
     let storage = journal.into_storage();
     let original = storage.bytes.clone();
@@ -150,4 +152,21 @@ fn exact_retry_reuses_committed_custody_without_programming_again() {
     let retry = reopened.append(&wire).unwrap();
     assert_eq!(first, retry);
     assert_eq!(reopened.committed_count(), 1);
+}
+
+#[test]
+fn torn_write_spends_capacity_without_becoming_committed() {
+    let mut work = [0; MAXIMUM_BYTES];
+    let mut flash = Flash::erased();
+    flash.budget = 1;
+    let mut journal = open(flash, &mut work);
+    assert_eq!(journal.remaining_slots(), 8);
+    assert_eq!(journal.append(&page()), Err(Refusal::Media));
+    assert_eq!(journal.remaining_slots(), 7);
+    assert_eq!(journal.committed_count(), 0);
+    let mut storage = journal.into_storage();
+    storage.budget = usize::MAX;
+    let reopened = open(storage, &mut work);
+    assert_eq!(reopened.remaining_slots(), 7);
+    assert_eq!(reopened.committed_count(), 0);
 }
