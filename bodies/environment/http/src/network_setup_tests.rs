@@ -238,7 +238,9 @@ fn browser_headers_share_the_existing_total_request_bound() {
     let mut encoded = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
     let mut mailbox = NetworkSetupMailbox::new(1);
     PendingNetworkResponse::prepare(&mut mailbox, input)
-        .unwrap().response_flushed().unwrap();
+        .unwrap()
+        .response_flushed()
+        .unwrap();
     let n = mailbox.take_acknowledged(&mut encoded).unwrap();
     let selected = conduit_net::decode_network_join_request(&encoded[..n]).unwrap();
     assert_eq!(selected.ssid, b"Test LAN");
@@ -248,9 +250,15 @@ fn browser_headers_share_the_existing_total_request_bound() {
     let at_limit = std::format!("{}{}\r\n\r\n", prefix, "a".repeat(1024 - prefix.len() - 4));
     let mut request = NetworkRequestBuffer::default();
     request.append(at_limit.as_bytes()).unwrap();
-    assert!(matches!(request.take(limits()).unwrap(), Some(NetworkHttpRequest::Page)));
+    assert!(matches!(
+        request.take(limits()).unwrap(),
+        Some(NetworkHttpRequest::Page)
+    ));
     let mut request = NetworkRequestBuffer::default();
-    assert_eq!(request.append(&[b'a'; 1025]), Err(NetworkHttpRefusal::TooLarge));
+    assert_eq!(
+        request.append(&[b'a'; 1025]),
+        Err(NetworkHttpRefusal::TooLarge)
+    );
 }
 
 #[test]
@@ -318,4 +326,53 @@ fn network_page_uses_selected_credential_bounds_and_posts_without_a_query() {
         }),
         Err(NetworkSetupRefusal::InvalidLimits)
     );
+}
+
+#[test]
+fn selected_reader_correlates_and_consumes_one_acknowledged_submission_under_one_lock() {
+    let mut channel = NetworkSetupChannel::new(2);
+    let (writer, reader) = channel.split();
+    let mut output = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let first = {
+        let mut mailbox = writer.try_lock().unwrap();
+        assert!(matches!(
+            reader.try_lock(),
+            Err(NetworkSetupReadRefusal::Busy)
+        ));
+        assert!(matches!(
+            mailbox.acknowledged_submission(),
+            Err(NetworkSetupRefusal::NoSubmission)
+        ));
+        let submission = mailbox.submit(input()).unwrap();
+        assert!(matches!(
+            mailbox.acknowledged_submission(),
+            Err(NetworkSetupRefusal::NotAcknowledged)
+        ));
+        mailbox.acknowledge(submission).unwrap();
+        submission
+    };
+    {
+        let mut mailbox = reader.try_lock().unwrap();
+        assert!(matches!(
+            writer.try_lock(),
+            Err(NetworkSetupReadRefusal::Busy)
+        ));
+        assert!(mailbox.acknowledged_submission().unwrap() == first);
+        assert!(mailbox.take_acknowledged(&mut [0; 1]).is_err());
+        assert!(mailbox.acknowledged_submission().unwrap() == first);
+        mailbox.take_acknowledged(&mut output).unwrap();
+        assert!(matches!(
+            mailbox.acknowledged_submission(),
+            Err(NetworkSetupRefusal::NoSubmission)
+        ));
+    }
+    let mut mailbox = writer.try_lock().unwrap();
+    let second = mailbox.submit(input()).unwrap();
+    mailbox.acknowledge(second).unwrap();
+    assert!(mailbox.acknowledged_submission().unwrap() != first);
+    assert!(matches!(
+        mailbox.acknowledge(first),
+        Err(NetworkSetupRefusal::StaleSubmission)
+    ));
+    assert!(mailbox.acknowledged_submission().unwrap() == second);
 }

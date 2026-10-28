@@ -54,6 +54,15 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
     pub fn native_identity(&self) -> &NetworkNativeIdentity {
         &self.identity
     }
+    /// Return the actual initialized, unbound owner for Root preparation.
+    /// This consumes readiness; it never extracts a source from an installed
+    /// Host Call or reconstructs possession from advertisement metadata. Root
+    /// must withdraw the projection while preparing and retain this same native
+    /// identity, source, generations and finite counters when reissuing readiness.
+    /// Preparing private input grants no credential invocation or radio effect.
+    pub fn into_unbound_parts(self) -> (NetworkNativeIdentity, P) {
+        (self.identity, self.source)
+    }
     pub(crate) fn into_checked_call(
         self,
         operation: conduit_core::BoundBaseOperation,

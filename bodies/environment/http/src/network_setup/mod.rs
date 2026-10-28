@@ -82,6 +82,18 @@ impl NetworkSetupMailbox {
             .as_ref()
             .is_some_and(|pending| pending.acknowledged)
     }
+    /// Correlate only the current response-acknowledged private submission.
+    /// This opaque value carries no credential, presence or execution authority.
+    pub fn acknowledged_submission(&self) -> Result<Submission, NetworkSetupRefusal> {
+        let pending = self
+            .pending
+            .as_ref()
+            .ok_or(NetworkSetupRefusal::NoSubmission)?;
+        if !pending.acknowledged {
+            return Err(NetworkSetupRefusal::NotAcknowledged);
+        }
+        Ok(pending.submission)
+    }
     /// Root preparation may borrow the acknowledged request to construct the
     /// selected implementation's SDK configuration before Play. This is not a
     /// credentials Host Call: it neither consumes input nor authorizes effects.

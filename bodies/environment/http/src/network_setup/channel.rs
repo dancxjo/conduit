@@ -48,6 +48,15 @@ pub enum NetworkSetupReadRefusal {
     Input(NetworkSetupRefusal),
 }
 impl NetworkSetupReader<'_> {
+    /// Borrow the actual private mailbox without waiting. Selected-source
+    /// preparation/transfer can preflight and consume the same acknowledged
+    /// submission under one lock; a busy response guard preserves all custody.
+    pub fn try_lock(
+        &self,
+    ) -> Result<MutexGuard<'_, CriticalSectionRawMutex, NetworkSetupMailbox>, NetworkSetupReadRefusal>
+    {
+        self.0.try_lock().map_err(|_| NetworkSetupReadRefusal::Busy)
+    }
     /// Root preparation borrows the same input that the selected source will
     /// later consume. Socket custody and flush must already have completed.
     /// This never waits or transfers the request out of the mailbox.
