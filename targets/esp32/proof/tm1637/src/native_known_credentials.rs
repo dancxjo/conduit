@@ -39,7 +39,7 @@ impl<const N: usize> Drop for Secret<N> {
 pub struct Selection {
     pub profile: n::KnownProfileKey,
     pub security: n::KnownSecurity,
-    pub durable_revision: u64,
+    pub store_revision: u64,
     pub sequence: u64,
     pub wire_bytes: usize,
 }
@@ -51,7 +51,7 @@ struct Frozen {
 /// Runtime profile keys reconstructed on load are correlations, never grants.
 pub struct Owner {
     profiles: n::KnownNetworkProfiles,
-    durable_revision: u64,
+    store_revision: u64,
     updates: u32,
     maximum_updates: u32,
     next_selection: u64,
@@ -63,7 +63,7 @@ impl Owner {
     pub fn empty(maximum_updates: u32) -> Self {
         Self {
             profiles: n::KnownNetworkProfiles::new(),
-            durable_revision: 0,
+            store_revision: 0,
             updates: 0,
             maximum_updates,
             next_selection: 0,
@@ -75,16 +75,16 @@ impl Owner {
     /// Caller owns/wipes input backing; a decode refusal publishes no owner.
     pub fn load(
         bytes: &[u8],
-        durable_revision: u64,
+        store_revision: u64,
         maximum_updates: u32,
     ) -> Result<Self, Refusal> {
-        if durable_revision == 0 {
+        if store_revision == 0 {
             return Err(Refusal::Revision);
         }
         let profiles = n::decode_private_known_networks_or_legacy(bytes)?;
         Ok(Self {
             profiles,
-            durable_revision,
+            store_revision,
             updates: 0,
             maximum_updates,
             next_selection: 0,
@@ -94,8 +94,8 @@ impl Owner {
     pub fn profiles(&self) -> &n::KnownNetworkProfiles {
         &self.profiles
     }
-    pub fn durable_revision(&self) -> u64 {
-        self.durable_revision
+    pub fn store_revision(&self) -> u64 {
+        self.store_revision
     }
     pub fn accepted_updates(&self) -> u32 {
         self.updates
@@ -106,8 +106,11 @@ impl Owner {
     /// CALLER ACKNOWLEDGEMENT BOUNDARY: construct input only within the real
     /// mailbox's acknowledged preparation callback; this method cannot prove
     /// HTTP flush. It neither consumes nor resets that external mailbox.
-    /// Commit callback must durably write/read back these EXACT complete bytes
-    /// and return the next journal revision. It must not publish/execute owners.
+    /// Commit callback must retain these EXACT complete bytes in its private
+    /// store and return the next store revision. Persistent adapters must write
+    /// and read back committed media. Legacy volatile adapters retain only RAM
+    /// custody: their store revision MUST NOT be projected as durable custody.
+    /// This callback must not publish execution owners or authorize effects.
     /// On refusal the prior in-memory set/revision/counters remain unchanged;
     /// ambiguous storage failure recovery remains the durable adapter's duty.
     /// Callback's borrow cannot outlive private scratch. All temporary candidates
@@ -124,7 +127,7 @@ impl Owner {
             return Err(Refusal::UpdateLimit);
         }
         let revision = self
-            .durable_revision
+            .store_revision
             .checked_add(1)
             .ok_or(Refusal::Exhausted)?;
         let updates = self.updates.checked_add(1).ok_or(Refusal::Exhausted)?;
@@ -163,7 +166,7 @@ impl Owner {
             .profiles
             .upsert(publication)
             .expect("preflighted private publication");
-        self.durable_revision = revision;
+        self.store_revision = revision;
         self.updates = updates;
         Ok(key)
     }
@@ -187,7 +190,7 @@ impl Owner {
         let info = Selection {
             profile: key,
             security: self.profiles.info(key)?.security,
-            durable_revision: self.durable_revision,
+            store_revision: self.store_revision,
             sequence,
             wire_bytes: length,
         };
@@ -242,7 +245,7 @@ mod tests {
         n::PrivateNetworkInput::new(name, pass, n::KnownSecurity::Wpa2Personal, priority).unwrap()
     }
     fn insert(owner: &mut Owner, name: &[u8], pass: &[u8]) -> n::KnownProfileKey {
-        let revision = owner.durable_revision() + 1;
+        let revision = owner.store_revision() + 1;
         owner
             .upsert_after_acknowledgement(input(name, pass, 0), |wire| {
                 let decoded = n::decode_private_known_networks(wire).unwrap();
@@ -258,13 +261,13 @@ mod tests {
         let b = insert(&mut owner, b"b", b"public-second-pass");
         assert_eq!(owner.profiles().len(), 2);
         assert_eq!(owner.accepted_updates(), 2);
-        assert_eq!(owner.durable_revision(), 2);
+        assert_eq!(owner.store_revision(), 2);
         assert_eq!(
             owner.upsert_after_acknowledgement(input(b"a", b"public-new-pass", 2), |_| Err(())),
             Err(Refusal::Commit)
         );
         assert_eq!(owner.accepted_updates(), 2);
-        assert_eq!(owner.durable_revision(), 2);
+        assert_eq!(owner.store_revision(), 2);
         assert!(owner.profiles().info(a).is_ok());
         assert!(owner.profiles().info(b).is_ok());
         owner
@@ -287,7 +290,7 @@ mod tests {
         assert!(owner.profiles().info(a).is_err());
         assert!(owner.profiles().info(b).is_ok());
         assert_eq!(owner.accepted_updates(), 3);
-        assert_eq!(owner.durable_revision(), 3);
+        assert_eq!(owner.store_revision(), 3);
         let next = owner
             .upsert_after_acknowledgement(input(b"b", b"public-another-pass", 1), |_| Ok(4))
             .unwrap();
@@ -302,7 +305,7 @@ mod tests {
         let b = insert(&mut owner, b"b", b"public-second-pass");
         let frozen = owner.freeze(b).unwrap();
         assert_eq!(frozen.profile, b);
-        assert_eq!(frozen.durable_revision, 2);
+        assert_eq!(frozen.store_revision, 2);
         assert_eq!(owner.freeze(a), Err(Refusal::Pending));
         let mut called = false;
         assert_eq!(
@@ -385,19 +388,21 @@ mod tests {
             insert(&mut owner, name, b"public-test-pass");
         }
         let mut called = false;
-        assert!(owner
-            .upsert_after_acknowledgement(input(b"e", b"public-test-pass", 0), |_| {
-                called = true;
-                Ok(5)
-            })
-            .is_err());
+        assert!(
+            owner
+                .upsert_after_acknowledgement(input(b"e", b"public-test-pass", 0), |_| {
+                    called = true;
+                    Ok(5)
+                })
+                .is_err()
+        );
         assert!(!called);
         assert_eq!(owner.accepted_updates(), 4);
         assert!(owner.profiles().info(a).is_ok());
         owner.next_selection = u64::MAX;
         assert_eq!(owner.freeze(a), Err(Refusal::Exhausted));
         assert!(owner.selection().is_none());
-        owner.durable_revision = u64::MAX;
+        owner.store_revision = u64::MAX;
         assert_eq!(
             owner.upsert_after_acknowledgement(input(b"a", b"public-new-pass", 0), |_| {
                 called = true;
@@ -419,7 +424,7 @@ mod tests {
         owner.retire_unconsumed(first).unwrap();
         assert!(owner.selection().is_none());
         assert_eq!(owner.accepted_updates(), 1);
-        assert_eq!(owner.durable_revision(), 1);
+        assert_eq!(owner.store_revision(), 1);
         assert!(owner.profiles().info(key).is_ok());
         let next = owner.freeze(key).unwrap();
         assert_eq!(next.sequence, first.sequence + 1);

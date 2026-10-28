@@ -31,9 +31,13 @@ pub(super) struct PendingWorkspace {
 #[cfg(feature = "local-appliance")]
 fn independent_workspace_minimum() -> Option<usize> {
     #[cfg(feature = "flat-network-appliance")]
-    { Some(24 * 1024) }
+    {
+        Some(24 * 1024)
+    }
     #[cfg(not(feature = "flat-network-appliance"))]
-    { None }
+    {
+        None
+    }
 }
 impl NativeRoot {
     /// Preparation never consumes the selected source or changes radio mode.
@@ -77,7 +81,7 @@ impl NativeRoot {
                 return b"waiting";
             }
             let configuration =
-                match crate::native_credentials::prepare_configuration(&self.credential_writer) {
+                match crate::native_credentials::prepare_configuration(&mut self.credentials) {
                     Ok(configuration) => configuration,
                     Err("credential-unavailable" | "credential-not-acknowledged") => {
                         return b"waiting";
@@ -100,6 +104,12 @@ impl NativeRoot {
         }
         if !self.network.recovery.awaiting_attempt() {
             return b"waiting";
+        }
+        // The previous selected read consumed its snapshot. Re-freeze SAME
+        // chosen credentials only after real owner/evidence return, before
+        // reserving a retry. New queued AP input cannot alter retained SDK config.
+        if crate::native_credentials::prepare_retry(&mut self.credentials).is_err() {
+            return b"retry-source-preparation-refused";
         }
         let generation = match self.network.recovery.poll(now, true, false) {
             Ok(Action::PrepareAttempt { generation, .. }) => generation,
