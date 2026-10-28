@@ -1033,3 +1033,144 @@ fn typed_offer_requires_reopened_durable_files_and_current_admitted_ack() {
     )
     .is_err());
 }
+
+#[test]
+fn staged_reclaim_separates_each_sector_and_final_publication() {
+    let f = fixture("staged-steps");
+    let key = f.key.verifying_key();
+    let mut work = [0; WORK];
+    let owner = Custody::open(f.media.snapshot(), &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    let job = owner
+        .begin_staged(
+            &f.accepted,
+            &mut work,
+            |a| authenticated(a, &key),
+            |m, a| closed(m, a, f.basis, &key),
+        )
+        .ok()
+        .unwrap();
+    let (mut job, error) = job.publish(&mut work).err().unwrap();
+    assert_eq!(error, Error::Phase);
+    for sector in 0..30 {
+        assert_eq!(job.next_step(), custody::ReclaimStep::EraseSector(sector));
+        job.step().unwrap();
+        work.fill(0xa5);
+    }
+    for sector in 0..30 {
+        assert_eq!(job.next_step(), custody::ReclaimStep::VerifySector(sector));
+        job.step().unwrap();
+    }
+    assert_eq!(job.next_step(), custody::ReclaimStep::Publish);
+    assert_eq!(job.step(), Err(Error::Phase));
+    let before = job.into_custody().into_storage();
+    assert_eq!(
+        before
+            .operations
+            .iter()
+            .filter(|op| matches!(op.kind, Kind::DataErase))
+            .count(),
+        30
+    );
+    assert_eq!(
+        before
+            .operations
+            .iter()
+            .filter(|op| matches!(op.kind, Kind::MarkerErase))
+            .count(),
+        1
+    );
+    let owner = Custody::open(before, &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    // Reboot restarts verification/erasure safely, without trusting RAM progress.
+    let mut job = owner.resume_staged(&mut work).ok().unwrap();
+    assert_eq!(job.next_step(), custody::ReclaimStep::EraseSector(0));
+    for _ in 0..60 {
+        job.step().unwrap();
+    }
+    work.fill(0x5a);
+    let media = job.publish(&mut work).ok().unwrap().into_storage();
+    media.guards();
+    assert!(media.bytes[GUARD..GUARD + DATA].iter().all(|b| *b == 255));
+}
+
+#[test]
+fn staged_reclaim_error_keeps_owner_position_and_reboot_pending() {
+    let f = fixture("staged-retry");
+    let key = f.key.verifying_key();
+    let mut work = [0; WORK];
+    let owner = Custody::open(f.media.snapshot(), &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    let job = owner
+        .begin_staged(
+            &f.accepted,
+            &mut work,
+            |a| authenticated(a, &key),
+            |m, a| closed(m, a, f.basis, &key),
+        )
+        .ok()
+        .unwrap();
+    let mut media = job.into_custody().into_storage();
+    assert!(!media
+        .operations
+        .iter()
+        .any(|op| matches!(op.kind, Kind::DataErase)));
+    media.fault = Some((media.operations.len(), 511));
+    let owner = Custody::open(media, &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    let mut job = owner.resume_staged(&mut work).ok().unwrap();
+    assert_eq!(job.step(), Err(Error::Media));
+    assert_eq!(job.next_step(), custody::ReclaimStep::EraseSector(0));
+    // A partial erase and lost RAM progress remain recoverable pending custody.
+    let mut media = job.into_custody().into_storage();
+    media.fault = None;
+    let owner = Custody::open(media.snapshot(), &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    let mut job = owner.resume_staged(&mut work).ok().unwrap();
+    for _ in 0..60 {
+        job.step().unwrap();
+    }
+    let media = job.publish(&mut work).ok().unwrap().into_storage();
+    media.guards();
+}
+
+#[test]
+fn staged_publication_applied_error_retains_job_and_retries_exact_acceptance() {
+    let f = fixture("staged-publish-retry");
+    let finished = run(f.media.snapshot(), &f).ok().unwrap().into_storage();
+    let last = finished.operations.len() - 1;
+    assert!(matches!(finished.operations[last].kind, Kind::Program));
+    let mut media = f.media.snapshot();
+    media.fault = Some((last, 4)); // COMMIT reached flash although the operation reported failure.
+    let key = f.key.verifying_key();
+    let mut work = [0; WORK];
+    let owner = Custody::open(media, &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    let mut job = owner
+        .begin_staged(
+            &f.accepted,
+            &mut work,
+            |a| authenticated(a, &key),
+            |m, a| closed(m, a, f.basis, &key),
+        )
+        .ok()
+        .unwrap();
+    for _ in 0..60 {
+        job.step().unwrap();
+    }
+    let (job, error) = job.publish(&mut work).err().unwrap();
+    assert_eq!(error, Error::Media);
+    assert_eq!(job.next_step(), custody::ReclaimStep::Publish);
+    work.fill(0);
+    let media = job.publish(&mut work).ok().unwrap().into_storage();
+    let owner = Custody::open(media, &mut work, |a| authenticated(a, &key))
+        .ok()
+        .unwrap();
+    assert!(matches!(owner.classify(), Ok(custody::Opened::Erased(_))));
+}

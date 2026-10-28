@@ -3,6 +3,7 @@
 //! callers must verify those separately before `begin`; recovery additionally
 //! verifies the retained Root endorsement against independently restored keys.
 //! No raw flash address or arbitrary erase entrance escapes this affine owner.
+use sha2::{Digest, Sha256};
 pub(crate) const SECTOR: usize = 4096;
 pub(crate) const DATA: usize = 30 * SECTOR;
 pub(crate) const TOTAL: usize = 32 * SECTOR;
@@ -50,6 +51,7 @@ struct Stamp {
     bank: u8,
     generation: u64,
     phase: Phase,
+    acceptance: [u8; 32],
 }
 pub(crate) struct Custody<S> {
     storage: S,
@@ -139,6 +141,7 @@ impl<S: WholeEpoch> Custody<S> {
                     bank,
                     generation,
                     phase,
+                    acceptance: Sha256::digest(acceptance).into(),
                 };
                 if let Some(previous) = latest {
                     let (old, new) = if previous.generation < generation {
@@ -257,12 +260,26 @@ impl<S: WholeEpoch> Custody<S> {
     /// The prototype's closure boundary grants no remote or lifecycle authority.
     #[allow(clippy::result_large_err)]
     pub(crate) fn begin(
-        mut self,
+        self,
         acceptance: &[u8; ACCEPTANCE],
         work: &mut [u8; WORK],
         verify: impl Fn(&[u8; ACCEPTANCE]) -> bool,
         closed: impl FnOnce(&mut S, &[u8; ACCEPTANCE]) -> Result<(), Error>,
     ) -> Result<ErasedData<S>, (Self, Error)> {
+        let job = self.begin_staged(acceptance, work, verify, closed)?;
+        job.complete(work)
+    }
+    /// Commit the exact authenticated acceptance before any data erase. This
+    /// metadata operation requires its own caller scheduling admission; returning
+    /// a job establishes no timing, execution, membership or erase-window grant.
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn begin_staged(
+        mut self,
+        acceptance: &[u8; ACCEPTANCE],
+        work: &mut [u8; WORK],
+        verify: impl Fn(&[u8; ACCEPTANCE]) -> bool,
+        closed: impl FnOnce(&mut S, &[u8; ACCEPTANCE]) -> Result<(), Error>,
+    ) -> Result<PendingReclaim<S>, (Self, Error)> {
         let result = (|| {
             if self.latest.is_some_and(|s| s.phase != Phase::Reclaimed) {
                 return Err(Error::Phase);
@@ -279,30 +296,61 @@ impl<S: WholeEpoch> Custody<S> {
             }
             closed(&mut self.storage, acceptance)?;
             work[PAYLOAD..CRC].copy_from_slice(acceptance);
-            self.publish(Phase::Reclaiming, work)?;
-            self.complete(work)
+            self.publish(Phase::Reclaiming, work)
         })();
         match result {
-            Ok(()) => Ok(ErasedData(self.storage)),
+            Ok(()) => Ok(PendingReclaim {
+                custody: self,
+                next: 0,
+            }),
             Err(error) => Err((self, error)),
         }
     }
     #[allow(clippy::result_large_err)]
-    pub(crate) fn resume(mut self, work: &mut [u8; WORK]) -> Result<ErasedData<S>, (Self, Error)> {
+    pub(crate) fn resume(self, work: &mut [u8; WORK]) -> Result<ErasedData<S>, (Self, Error)> {
+        self.resume_staged(work)?.complete(work)
+    }
+    /// Resume only an already authenticated committed Reclaiming owner. Sector
+    /// progress is deliberately not trusted across reboot: all steps restart.
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn resume_staged(
+        mut self,
+        work: &mut [u8; WORK],
+    ) -> Result<PendingReclaim<S>, (Self, Error)> {
         let result = (|| {
             let stamp = self.latest.ok_or(Error::Phase)?;
             if stamp.phase != Phase::Reclaiming {
                 return Err(Error::Phase);
             }
             stamp.generation.checked_add(1).ok_or(Error::Exhausted)?;
-            self.storage
-                .read(bank_at(stamp.bank), &mut work[..RECORD])?;
-            self.complete(work)
+            self.read_reclaiming(work)
         })();
         match result {
-            Ok(()) => Ok(ErasedData(self.storage)),
+            Ok(()) => Ok(PendingReclaim {
+                custody: self,
+                next: 0,
+            }),
             Err(error) => Err((self, error)),
         }
+    }
+    fn read_reclaiming(&mut self, work: &mut [u8; WORK]) -> Result<(), Error> {
+        let stamp = self.latest.ok_or(Error::Phase)?;
+        if stamp.phase != Phase::Reclaiming {
+            return Err(Error::Phase);
+        }
+        self.storage
+            .read(bank_at(stamp.bank), &mut work[..RECORD])?;
+        if &work[..8] != MAGIC
+            || u64::from_le_bytes(work[8..16].try_into().unwrap()) != stamp.generation
+            || u32::from_le_bytes(work[16..20].try_into().unwrap()) != Phase::Reclaiming as u32
+            || work[20..24] != [0; 4]
+            || &work[COMMIT..RECORD] != DONE
+            || u32::from_le_bytes(work[CRC..COMMIT].try_into().unwrap()) != checksum(&work[..CRC])
+            || <[u8; 32]>::from(Sha256::digest(&work[PAYLOAD..CRC])) != stamp.acceptance
+        {
+            return Err(Error::Corrupt);
+        }
+        Ok(())
     }
     #[allow(clippy::result_large_err)]
     pub(crate) fn release(mut self) -> Result<ErasedData<S>, (Self, Error)> {
@@ -329,13 +377,6 @@ impl<S: WholeEpoch> Custody<S> {
             }
         }
         Ok(())
-    }
-    fn complete(&mut self, work: &mut [u8; WORK]) -> Result<(), Error> {
-        for sector in 0..(DATA / SECTOR) {
-            self.storage.erase_data(sector as u8)?;
-        }
-        self.erased()?;
-        self.publish(Phase::Reclaimed, work)
     }
     fn publish(&mut self, phase: Phase, work: &mut [u8; WORK]) -> Result<(), Error> {
         let generation = self
@@ -386,7 +427,88 @@ impl<S: WholeEpoch> Custody<S> {
             bank,
             generation,
             phase,
+            acceptance: Sha256::digest(&work[PAYLOAD..CRC]).into(),
         });
         Ok(())
+    }
+}
+
+/// Affine progress only. It neither exposes storage nor substitutes for an
+/// actual scheduler/provider-idle witness. Each operation must be admitted by
+/// its caller separately; no shared work buffer is retained between turns.
+pub(crate) struct PendingReclaim<S> {
+    custody: Custody<S>,
+    next: u8,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ReclaimStep {
+    EraseSector(u8),
+    VerifySector(u8),
+    Publish,
+}
+impl<S: WholeEpoch> PendingReclaim<S> {
+    pub(crate) fn next_step(&self) -> ReclaimStep {
+        let sectors = (DATA / SECTOR) as u8;
+        if self.next < sectors {
+            ReclaimStep::EraseSector(self.next)
+        } else if self.next < 2 * sectors {
+            ReclaimStep::VerifySector(self.next - sectors)
+        } else {
+            ReclaimStep::Publish
+        }
+    }
+    /// At most one 4 KiB data erase plus its full readback, or one 4 KiB
+    /// verification pass. Errors retain this exact owner and retry position.
+    /// A second verification sweep preserves the former post-erase full check.
+    pub(crate) fn step(&mut self) -> Result<(), Error> {
+        let sector = match self.next_step() {
+            ReclaimStep::EraseSector(sector) => {
+                self.custody.storage.erase_data(sector)?;
+                sector
+            }
+            ReclaimStep::VerifySector(sector) => sector,
+            ReclaimStep::Publish => return Err(Error::Phase),
+        };
+        let mut bytes = [0; 64];
+        for at in (0..SECTOR).step_by(bytes.len()) {
+            self.custody
+                .storage
+                .read(usize::from(sector) * SECTOR + at, &mut bytes)?;
+            if bytes.iter().any(|byte| *byte != 255) {
+                return Err(Error::Occupied);
+            }
+        }
+        self.next += 1;
+        Ok(())
+    }
+    /// Only all completed data steps may publish Reclaimed. This separately
+    /// bounded metadata operation erases one marker sector and commits last.
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn publish(mut self, work: &mut [u8; WORK]) -> Result<ErasedData<S>, (Self, Error)> {
+        let result = (|| {
+            if self.next_step() != ReclaimStep::Publish {
+                return Err(Error::Phase);
+            }
+            self.custody.read_reclaiming(work)?;
+            self.custody.publish(Phase::Reclaimed, work)
+        })();
+        match result {
+            Ok(()) => Ok(ErasedData(self.custody.storage)),
+            Err(error) => Err((self, error)),
+        }
+    }
+    /// Return the same durable pending custody, never an erased/writeable view.
+    pub(crate) fn into_custody(self) -> Custody<S> {
+        self.custody
+    }
+    #[allow(clippy::result_large_err)]
+    fn complete(mut self, work: &mut [u8; WORK]) -> Result<ErasedData<S>, (Custody<S>, Error)> {
+        while self.next_step() != ReclaimStep::Publish {
+            if let Err(error) = self.step() {
+                return Err((self.into_custody(), error));
+            }
+        }
+        self.publish(work)
+            .map_err(|(job, error)| (job.into_custody(), error))
     }
 }
