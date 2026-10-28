@@ -2,6 +2,8 @@
 //! Kept separate from the initial boot planner and its stack-sensitive frames.
 use super::*;
 use crate::native_root::local_renewal;
+#[path = "native_local_renewal_register.rs"]
+mod register;
 
 impl NativeRoot {
     #[inline(never)]
@@ -426,53 +428,6 @@ impl NativeRoot {
             crate::native_mask_evidence::Consumer::new(),
         ));
         Ok(())
-    }
-    async fn register_returned_local(
-        &mut self,
-        state: &mut local_renewal::Renewal,
-    ) -> Result<(), &'static str> {
-        let spawner = self.worker_spawner.ok_or("renewal-worker-executor")?;
-        if self.local_mask_worker.is_none() {
-            let old = state
-                .mask_handle
-                .take()
-                .ok_or("renewal-retired-mask-handle")?;
-            match old.prepare_next(
-                &mut state.fresh_session,
-                &mut state.fresh_leases,
-                &mut state.fresh_evidence,
-                spawner,
-            ) {
-                Ok(handle) => self.local_mask_worker = Some(handle),
-                Err((handle, reason)) => {
-                    state.mask_handle = Some(handle);
-                    return Err(reason);
-                }
-            }
-            self.display.mark_local_task_registered()?;
-        }
-        let mask = self
-            .local_mask_worker
-            .as_ref()
-            .expect("retained next Mask task");
-        embassy_time::with_timeout(embassy_time::Duration::from_secs(2), mask.wait_ready())
-            .await
-            .map_err(|_| "renewal-mask-ready-timeout")?;
-        if mask.status().phase != "ready-held" {
-            return Err("renewal-mask-not-held");
-        }
-        self.prepare_returned_sampler_worker(
-            &mut state.fresh_kernel,
-            &mut state.fresh_native,
-            &mut state.registered_publisher,
-            state.fresh_active.as_ref().ok_or("renewal-fresh-active")?,
-            state
-                .fresh_fragment
-                .as_ref()
-                .ok_or("renewal-fresh-fragment")?,
-            &mut state.sampler_handle,
-        )
-        .await
     }
     fn start_returned_local(
         &mut self,

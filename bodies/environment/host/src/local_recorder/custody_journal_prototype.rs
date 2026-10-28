@@ -11,6 +11,15 @@ mod custody;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_recovery.rs"]
 mod recovery;
 #[allow(dead_code)]
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_local_renewal_policy.rs"]
+mod renewal_policy;
+#[allow(dead_code)]
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_task_terminal.rs"]
+mod sampler_retirement_gate;
+#[allow(dead_code)]
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_sampler_terminal.rs"]
+mod sampler_terminal;
+#[allow(dead_code)]
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_state.rs"]
 mod state;
 #[allow(dead_code, clippy::duplicate_mod)] // Same actual producer wire as the recorder fixture.
@@ -510,6 +519,85 @@ fn recover(mut captured: Media, f: &Fixture) -> Media {
         },
         Err((_, error)) => panic!("recovery {error:?}"),
     }
+}
+#[test]
+fn failed_primary_recovers_only_after_durable_custody_and_a_distinct_fresh_play() {
+    let f = fixture("failed-primary-recovery");
+    let old: [u8; 96] = f.accepted[32..128].try_into().unwrap();
+    let mut fresh = old;
+    fresh[64] ^= 1;
+    let original = f.media.bytes.clone();
+    let mut primary = state::State::Failed;
+    let mut epochs = core::array::from_fn(|_| state::State::Failed);
+    assert!(!state::recovery_capacity(&primary, &epochs, 960));
+    assert_eq!(
+        state::rotate(&mut primary, &mut epochs, &old, fresh, 960),
+        Err("observed-history-no-next-epoch")
+    );
+    assert_eq!(f.media.bytes, original);
+    // A cancelled/torn custody marker cannot be mistaken for reusable DATA.
+    let mut interrupted = f.media.snapshot();
+    interrupted.fault = Some((0, 3));
+    let (retained, _) = run(interrupted, &f).err().unwrap();
+    let retained = retained.into_storage();
+    assert_eq!(
+        &retained.bytes[GUARD..GUARD + DATA],
+        &original[GUARD..GUARD + DATA]
+    );
+    assert!(state::prepare_cold(retained, true, f.basis).is_err());
+    // fixture() has real admitted-member endorsement and fsynced/reopened
+    // signed history. Only the actual completed custody journal yields DATA.
+    let erased = run(f.media.snapshot(), &f).ok().unwrap().into_storage();
+    let cold = state::prepare_cold(erased, true, f.basis).ok().unwrap();
+    epochs[2] = state::State::Cold(cold);
+    assert!(state::recovery_capacity(&primary, &epochs, 960));
+    assert_eq!(
+        state::rotate(&mut primary, &mut epochs, &old, old, 960),
+        Err("observed-history-next-scope")
+    );
+    assert!(matches!(epochs[2], state::State::Cold(_)));
+    state::rotate(&mut primary, &mut epochs, &old, fresh, 960).unwrap();
+    assert!(matches!(epochs[2], state::State::Failed));
+    assert!(!state::recovery_capacity(&primary, &epochs, 960));
+    assert!(state::check_writer(&primary, old[64..].try_into().unwrap()).is_err());
+    state::check_writer(&primary, fresh[64..].try_into().unwrap()).unwrap();
+    let state::State::Cold(cold) = primary else {
+        panic!("checked fresh owner");
+    };
+    assert_eq!(cold.scope, Some(fresh));
+    let mut work = [0; WORK];
+    let mut journal = evidence::Journal::create_prepared(
+        cold.region,
+        &fresh,
+        cold.basis,
+        cold.maximum_requested,
+        &mut work,
+    )
+    .unwrap();
+    // A new actual sampler Play starts at one. No old Play sample is offset,
+    // invented, copied, or retrospectively claimed as recorded.
+    let record = ObservedRecord {
+        sequence: 1,
+        observed_at_boot_ms: 60000,
+        disposition: conduit_environment_runtime::recording::RecordingDisposition::Available,
+        quantities: Some((
+            conduit_core::Quantity::new(21, conduit_core::Unit::Celsius),
+            conduit_core::Quantity::new(50, conduit_core::Unit::Percent),
+        )),
+    }
+    .encode()
+    .unwrap();
+    let forms = Sha256::digest(f.basis);
+    let mut signed = [0; observed_record::BYTES + 64];
+    signed[..record.len()].copy_from_slice(&record);
+    signed[record.len()..].copy_from_slice(
+        &f.key
+            .sign(&wire::record_transcript(&fresh, &forms.into(), &record))
+            .to_bytes(),
+    );
+    journal.append(&signed, &mut work).unwrap();
+    assert_eq!(journal.committed_count(), 1);
+    assert_eq!(f.media.bytes, original);
 }
 #[test]
 fn admitted_closed_signed_journal_reclaim_and_every_marker_program_byte_cut_preserve_custody() {

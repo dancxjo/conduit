@@ -37,7 +37,18 @@ enum Command {
     Release,
     Cancel,
 }
+// CPU-only Boot-initialized task handshake/waker state, alongside STATE below.
+// These are neither peripheral/DMA backing nor retained authority across reset.
+// The linked 8KiB RTC-slow bank remains bounded by the actual memory profile.
+#[cfg_attr(
+    all(target_os = "none", feature = "local-appliance"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
 static COMMAND: Signal<CriticalSectionRawMutex, Command> = Signal::new();
+#[cfg_attr(
+    all(target_os = "none", feature = "local-appliance"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
 static READY: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 #[derive(Clone, Copy, serde::Serialize)]
 pub struct Status {

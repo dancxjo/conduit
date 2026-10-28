@@ -833,6 +833,37 @@ pub fn generation() -> Option<u64> {
     })
 }
 
+/// Read-only finite facts from the actual leased committed Store. These are
+/// descriptive headroom inputs, never permission to write or reuse a journal.
+pub(crate) fn checkpoint_extent() -> Result<(u64, usize), &'static str> {
+    with_store(|store| checkpoint_extent_store(store))
+}
+fn checkpoint_extent_store(store: &Store) -> Result<(u64, usize), &'static str> {
+    if !store.ready || store.failed || store.parked {
+        return Err("restart-extent-unavailable");
+    }
+    let generation = store
+        .journal
+        .generation()
+        .ok_or("restart-extent-generation")?;
+    let custody = store.custody.as_ref().ok_or("restart-extent-custody")?;
+    let length = store
+        .journal
+        .payload_length(&store.binding)
+        .map_err(|_| "restart-extent-binding")?
+        .ok_or("restart-extent-missing")?;
+    if custody.source.generation() != generation
+        || custody.source.binding() != &store.binding
+        || custody.source.payload_length() != length
+    {
+        return Err("restart-extent-source");
+    }
+    Ok((generation, length))
+}
+#[cfg(test)]
+#[path = "native_restart_checkpoint_extent_tests.rs"]
+mod checkpoint_extent_tests;
+
 fn checkpoint_commit_refusal(error: Refusal) -> &'static str {
     match error {
         Refusal::Storage => "restart-checkpoint-storage",

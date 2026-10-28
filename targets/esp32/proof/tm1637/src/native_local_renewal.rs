@@ -5,6 +5,33 @@ use super::{c, NativeRoot};
 use alloc::boxed::Box;
 use conduit_kernel as k;
 
+#[path = "native_local_renewal_capacity.rs"]
+mod capacity;
+#[path = "native_local_renewal_policy.rs"]
+mod policy;
+#[path = "native_local_renewal_retirement.rs"]
+mod retirement;
+#[path = "native_sampler_terminal.rs"]
+mod sampler_terminal;
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum RenewalReason {
+    NormalCompleted,
+    CapacityReturned,
+}
+impl RenewalReason {
+    fn name(self) -> &'static str {
+        match self {
+            Self::NormalCompleted => "normal-completed",
+            Self::CapacityReturned => "capacity-returned",
+        }
+    }
+}
+#[allow(clippy::large_enum_variant)]
+enum MaskReturn {
+    Completed(crate::native_display::task::RetiredMask),
+    Interrupted(crate::native_display::task::InterruptedMask),
+}
+
 /// Oldest still-bound outgoing journal scope. One bounded witness survives
 /// capacity refusal; no overwrite or implicit ACK can erase its history.
 pub(super) struct HistoryCustody {
@@ -13,6 +40,8 @@ pub(super) struct HistoryCustody {
 }
 pub(super) struct Renewal {
     pub(super) phase: Phase,
+    pub(super) reason: RenewalReason,
+    pub(super) mask_interrupted: bool,
     pub(super) failure: Option<&'static str>,
     retry_after_ms: u64,
     pub(super) old_sampler: c::ActivePlayIdentity,
@@ -21,7 +50,8 @@ pub(super) struct Renewal {
     pub(super) sampler_handle: Option<crate::native_task::Handle>,
     pub(super) mask_handle: Option<crate::native_display::task::Handle>,
     sampler: Option<crate::native_task::Retired>,
-    mask: Option<Box<crate::native_display::task::RetiredMask>>,
+    mask: Option<Box<MaskReturn>>,
+    mask_backing: Option<Box<core::mem::MaybeUninit<MaskReturn>>>,
     pub(super) execution: Option<
         crate::native_worker::RetiredExecution<
             crate::native_root::DevicePulse<'static>,
@@ -75,6 +105,8 @@ pub(super) enum FaceReturn {
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) enum Phase {
+    RequestInterruption,
+    AwaitInterruption,
     RetireSampler,
     RetireMask,
     FinishMask,
@@ -96,7 +128,7 @@ pub(super) enum Phase {
     Complete,
 }
 impl Renewal {
-    fn new(root: &NativeRoot) -> Result<Self, &'static str> {
+    fn new(root: &NativeRoot, reason: RenewalReason) -> Result<Self, &'static str> {
         let current = root
             .body
             .as_ref()
@@ -114,7 +146,13 @@ impl Renewal {
             .ok_or("renewal-mask-scope")?
             .clone();
         Ok(Self {
-            phase: Phase::RetireSampler,
+            phase: if reason == RenewalReason::CapacityReturned {
+                Phase::RequestInterruption
+            } else {
+                Phase::RetireSampler
+            },
+            reason,
+            mask_interrupted: false,
             failure: None,
             retry_after_ms: 0,
             old_sampler,
@@ -124,6 +162,7 @@ impl Renewal {
             mask_handle: None,
             sampler: None,
             mask: None,
+            mask_backing: Some(reserve_box::<MaskReturn>()?),
             execution: None,
             receipt: None,
             face: None,
@@ -162,6 +201,8 @@ impl Renewal {
     }
     pub(super) fn phase_name(&self) -> &'static str {
         match self.phase {
+            Phase::RequestInterruption => "request-interruption",
+            Phase::AwaitInterruption => "await-interruption",
             Phase::RetireSampler => "retire-sampler",
             Phase::RetireMask => "retire-mask",
             Phase::FinishMask => "finish-mask",
@@ -215,21 +256,43 @@ impl NativeRoot {
             && mask.failure.is_none()
             && mask.cleanup_refusal.is_none()
     }
-    /// Called by Root's ordinary control loop; independent workers remain running
-    /// until BOTH normal terminal gates hold. A refusal keeps cold custody and
-    /// reports its exact phase instead of reinitializing any owner.
+    /// Normal renewal waits for BOTH finite terminal gates. Capacity recovery
+    /// instead requests an explicit interrupted handoff only after real reusable
+    /// storage and cold control backing exist. Neither path fabricates completed
+    /// work or changes the old scope's sequence; refusals retain actual custody.
     pub async fn advance_local_renewal(&mut self) -> Result<(), &'static str> {
         if self.local_renewal.is_none() {
-            if !self.local_normal_completion() {
+            let reason = if self.local_normal_completion() {
+                RenewalReason::NormalCompleted
+            } else if self.local_capacity_returned() {
+                RenewalReason::CapacityReturned
+            } else {
+                return Ok(());
+            };
+            if reason == RenewalReason::CapacityReturned && !self.capacity_checkpoint_preflight() {
                 return Ok(());
             }
-            let needed = core::mem::size_of::<Renewal>() + 8192;
+            let needed = core::mem::size_of::<Renewal>()
+                .saturating_add(core::mem::size_of::<MaskReturn>())
+                .saturating_add(8192);
             let memory = esp_alloc::HEAP.stats();
             if memory.size.saturating_sub(memory.current_usage) < needed {
                 return Err("renewal-control-capacity");
             }
             let backing = reserve_box::<Renewal>()?;
-            self.local_renewal = Some(Box::write(backing, Renewal::new(self)?));
+            self.local_renewal = Some(Box::write(backing, Renewal::new(self, reason)?));
+        }
+        // Store custody can change between allocation and the next service
+        // turn. Recheck immediately BEFORE any signal; unknown/full capacity
+        // discards only unused cold control state and keeps both old workers.
+        if self
+            .local_renewal
+            .as_ref()
+            .is_some_and(|state| state.phase == Phase::RequestInterruption)
+            && !self.capacity_checkpoint_preflight()
+        {
+            self.local_renewal = None;
+            return Ok(());
         }
         let mut renewal = self.local_renewal.take().expect("retained renewal state");
         let now = embassy_time::Instant::now().as_millis();
@@ -248,175 +311,28 @@ impl NativeRoot {
                 return Err(reason);
             }
         }
-        let result = self.advance_local_renewal_phase(&mut renewal).await;
+        // Retain no redundant async wrapper around this disjoint phase split.
+        // The actual affine retirement helper remains synchronously outlined.
+        let result = match self.advance_local_retirement_phase(&mut renewal) {
+            Ok(true) => Ok(()),
+            Ok(false) => self.advance_returned_local_preparation(&mut renewal).await,
+            Err(reason) => Err(reason),
+        };
         renewal.failure = result.as_ref().err().copied();
         renewal.retry_after_ms = now.saturating_add(1000);
         if result.is_ok() && renewal.phase == Phase::Complete {
             self.local_renewal_archive_refusal = renewal.archive_refusal;
-            let elapsed = embassy_time::Instant::now()
-                .as_millis()
-                .saturating_sub(renewal.started_ms);
-            let last_reading_age = renewal.last_reading_ms.map(|time| {
-                embassy_time::Instant::now()
-                    .as_millis()
-                    .saturating_sub(time)
-            });
-            if let Some(age) = last_reading_age {
-                esp_println::println!("{{\"event\":\"local-finite-renewed\",\"handoff_ms\":{},\"last_reading_age_ms\":{}}}",elapsed,age);
-            } else {
-                esp_println::println!("{{\"event\":\"local-finite-renewed\",\"handoff_ms\":{},\"last_reading_age_ms\":null}}",elapsed);
-            }
+            capacity::report_completion(&renewal);
             // All old scopes and their terminal evidence passed canonical Lull
             // and complete durable checkpoint before fresh owners were released.
             // Signed reading journals remain separately retained without ACK.
+            // CapacityReturned has distinct cancellation/withdrawal evidence;
+            // its fresh first sample never fills gaps in the interrupted Play.
             drop(renewal);
         } else {
             self.local_renewal = Some(renewal);
         }
         result
-    }
-    async fn advance_local_renewal_phase(
-        &mut self,
-        state: &mut Renewal,
-    ) -> Result<(), &'static str> {
-        if !self.advance_local_retirement_phase(state)? {
-            self.advance_returned_local_preparation(state).await?;
-        }
-        Ok(())
-    }
-    // Keep affine retirement payload temporaries out of replacement preparation's
-    // async ancestor frame. Exactly one phase still advances per service tick.
-    #[inline(never)]
-    fn advance_local_retirement_phase(
-        &mut self,
-        state: &mut Renewal,
-    ) -> Result<bool, &'static str> {
-        match state.phase {
-            Phase::RetireSampler => {
-                let worker = self.worker.take().ok_or("renewal-sampler-handle")?;
-                match worker.retire_with_publication() {
-                    Ok((handle, retired)) => {
-                        state.sampler_handle = Some(handle);
-                        state.sampler = Some(retired);
-                        state.phase = Phase::RetireMask;
-                    }
-                    Err((handle, reason)) => {
-                        self.worker = Some(handle);
-                        return Err(reason);
-                    }
-                }
-            }
-            Phase::RetireMask => {
-                let backing = reserve_box::<crate::native_display::task::RetiredMask>()?;
-                let worker = self.local_mask_worker.take().ok_or("renewal-mask-handle")?;
-                match worker.retire_completed() {
-                    Ok((handle, retired)) => {
-                        state.mask_handle = Some(handle);
-                        state.mask = Some(Box::write(backing, retired));
-                        state.phase = Phase::FinishMask;
-                    }
-                    Err((handle, reason)) => {
-                        self.local_mask_worker = Some(handle);
-                        return Err(reason);
-                    }
-                }
-            }
-            Phase::FinishMask => {
-                inspect_terminal_sampler_signs(
-                    &state
-                        .sampler
-                        .as_ref()
-                        .ok_or("renewal-retired-sampler")?
-                        .execution,
-                )?;
-                self.issuer.finish_mask_play(
-                    self.body.as_ref().ok_or("renewal-body")?,
-                    &state.old_mask,
-                    state.mask.as_ref().ok_or("renewal-retired-mask")?,
-                )?;
-                state.phase = Phase::FinishSampler;
-            }
-            Phase::FinishSampler => {
-                self.issuer
-                    .finish_native_play(
-                        &state.old_sampler,
-                        &state
-                            .sampler
-                            .as_ref()
-                            .ok_or("renewal-retired-sampler")?
-                            .execution
-                            .providers,
-                    )
-                    .map_err(|_| "renewal-native-finish")?;
-                state.phase = Phase::ReuniteFace;
-            }
-            Phase::ReuniteFace => {
-                if state.face.is_none() {
-                    let backing = reserve_box::<FaceReturn>()?;
-                    let reader = self.face_reader.take().ok_or("renewal-face-reader")?;
-                    let retired = state.sampler.take().expect("retained settled sampler");
-                    state.receipt = Some(retired.execution.scope_receipt());
-                    state.execution = Some(retired.execution);
-                    let returned = match crate::native_face::reunite(retired.publisher, reader) {
-                        Ok(face) => FaceReturn::Returned(face),
-                        Err((returning, _)) => FaceReturn::Returning(returning),
-                    };
-                    state.face = Some(Box::write(backing, returned));
-                }
-                let (face, backing) = take_box(state.face.take().expect("retained Face return"));
-                let returned = match face {
-                    FaceReturn::Returning(returning) => match returning.retry() {
-                        Ok(face) => FaceReturn::Returned(face),
-                        Err((returning, reason)) => {
-                            state.face =
-                                Some(Box::write(backing, FaceReturn::Returning(returning)));
-                            return Err(reason);
-                        }
-                    },
-                    retained => retained,
-                };
-                state.face = Some(Box::write(backing, returned));
-                if !matches!(state.face.as_deref(), Some(FaceReturn::Returned(_))) {
-                    return Err("renewal-face-return-state");
-                }
-                state.phase = Phase::Lull;
-            }
-            Phase::Lull => {
-                self.body
-                    .as_mut()
-                    .ok_or("renewal-body")?
-                    .lull(&self.host, &self.boot, Some(&state.old_body_play))
-                    .map_err(|_| "renewal-body-lull")?;
-                state.phase = Phase::CheckpointLull;
-            }
-            Phase::CheckpointLull => {
-                // First persist the Lull, or retry an archive already staged by
-                // a previous failed commit. Never stage another segment while
-                // its predecessor still awaits durable checkpoint/ACK.
-                self.checkpoint_body()?;
-                loop {
-                    let sealed = self
-                        .body
-                        .as_mut()
-                        .ok_or("renewal-body")?
-                        .seal_terminal_wake_for_checkpoint()
-                        .map_err(|error| match error {
-                            conduit_body::BodyLifecycleSessionError::ArchivePersistenceRequired
-                            | conduit_body::BodyLifecycleSessionError::Biography(
-                                conduit_body::BodyBiographyError::CapacityExhausted,
-                            ) => "renewal-wake-archive-capacity",
-                            _ => "renewal-wake-archive-invalid",
-                        })?;
-                    if !sealed {
-                        break;
-                    }
-                    self.checkpoint_body()?;
-                }
-                state.phase = Phase::Reclaim;
-            }
-            _ => return Ok(false),
-        }
-        Ok(true)
     }
 }
 
@@ -431,7 +347,10 @@ impl NativeRoot {
             .checked_add(1)
             .ok_or("renewal-offer-exhausted")?;
         if state.mask_values.is_none() {
-            let parts = (*state.mask.take().ok_or("renewal-mask-material")?).into_parts();
+            let parts = match *state.mask.take().ok_or("renewal-mask-material")? {
+                MaskReturn::Completed(retired) => retired.into_parts(),
+                MaskReturn::Interrupted(retired) => retired.into_parts(),
+            };
             let values = parts.kernel.values;
             values.clear(); // Original slot generations/retired slots survive.
             state.mask_values = Some(values);
@@ -528,38 +447,6 @@ fn linked_wait(
         implementation_id: "esp32/monotonic-wait@1".into(),
         base_implementation_id: "esp32/monotonic-wait-base@1".into(),
     }
-}
-
-fn inspect_terminal_sampler_signs(
-    execution: &crate::native_worker::RetiredExecution<
-        crate::native_root::DevicePulse<'static>,
-        crate::native_wait::EspWait,
-    >,
-) -> Result<(), &'static str> {
-    use k::KernelEventKind as Kind;
-    let mut completed = [false; conduit_environment_runtime::appliance::assigned::NODES];
-    for event in execution.material.kernel().signs().events() {
-        match event.kind {
-            Kind::BackCompleted => {
-                let Some(slot) = completed.get_mut(usize::from(event.node.0)) else {
-                    return Err("renewal-terminal-node");
-                };
-                if *slot {
-                    return Err("renewal-terminal-duplicate");
-                }
-                *slot = true;
-            }
-            Kind::StepFuelExceeded
-            | Kind::BackFailed
-            | Kind::SemanticAbnormal
-            | Kind::RunCancelled => return Err("renewal-terminal-disposition"),
-            _ => {}
-        }
-    }
-    if completed.iter().any(|complete| !*complete) {
-        return Err("renewal-terminal-signs");
-    }
-    Ok(())
 }
 
 /// Reserve cold control storage before consuming any actual input owner.

@@ -71,11 +71,15 @@ pub(crate) fn rotate<S: Storage>(
     {
         return Err("observed-history-next-scope");
     }
-    let State::Active(old) = primary else {
-        return Err("observed-history-not-active");
-    };
-    if old.recovered || !old.signed || &old.scope != old_scope {
-        return Err("observed-history-retired-scope");
+    match primary {
+        State::Active(old) if !old.recovered && old.signed && &old.scope == old_scope => {}
+        // This branch owns no journal. Only the Root wrapper may reach it,
+        // after actual old sampler settlement and a distinct installed Play.
+        // Never rebind the running Play: its missing sequence prefix cannot
+        // be reconstructed or silently relabelled as a new first sample.
+        State::Failed => {}
+        State::Active(_) => return Err("observed-history-retired-scope"),
+        _ => return Err("observed-history-not-active"),
     }
     let next = epochs
         .iter()
@@ -87,7 +91,9 @@ pub(crate) fn rotate<S: Storage>(
         })
         .ok_or("observed-history-no-next-epoch")?;
     // No fallible work follows the complete owner/scope/capacity preflight.
-    old.recovered = true;
+    if let State::Active(old) = primary {
+        old.recovered = true;
+    }
     core::mem::swap(primary, &mut epochs[next]);
     let State::Cold(cold) = primary else {
         unreachable!("preflighted erased owner")
@@ -95,6 +101,23 @@ pub(crate) fn rotate<S: Storage>(
     cold.scope = Some(fresh_scope);
     cold.maximum_requested = maximum;
     Ok(())
+}
+
+/// Availability is only a trigger hint. Binding still consumes the actual
+/// exclusive Cold through Root's installed fresh proposal and settlement gate.
+pub(crate) fn recovery_capacity<S>(
+    primary: &State<S>,
+    epochs: &[State<S>; 5],
+    maximum: u32,
+) -> bool {
+    matches!(primary, State::Failed)
+        && maximum > 0
+        && maximum <= 960
+        && epochs.iter().any(|state| {
+            matches!(state,
+            State::Cold(cold) if cold.signed && cold.scope.is_none()
+                && cold.capacity.saturating_sub(536) / 104 >= maximum)
+        })
 }
 
 /// Fence the actual producer Play before projection failures, signing, or flash

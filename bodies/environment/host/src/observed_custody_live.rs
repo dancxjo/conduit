@@ -69,7 +69,6 @@ pub(crate) struct Continuing {
     accepted: [Option<[u8; 32]>; 6],
     next: Instant,
     disabled: bool,
-    pending_offers: u8,
 }
 impl Continuing {
     pub(crate) fn new() -> Self {
@@ -79,7 +78,6 @@ impl Continuing {
             accepted: [None; 6],
             next: Instant::now(),
             disabled: false,
-            pending_offers: 0,
         }
     }
     pub(crate) fn tick(&mut self, binding: &Path, continuity: &Path, peer: &str, history: &Path) {
@@ -123,15 +121,14 @@ impl Continuing {
         };
         if status == 202 || status == 503 {
             if self.pending.is_none() {
-                self.pending_offers += 1;
-                if self.pending_offers >= 6 {
-                    self.pending_offers = 0;
-                    self.slot = (slot + 1) % 6;
-                }
+                // A stalled or unavailable slot must not hold every other
+                // closed epoch behind it. Revisit this same hint on the next
+                // finite round; a slot is never identity or erase authority.
+                self.slot = (slot + 1) % 6;
             }
+            // A possibly accepted POST retains its exact immutable request.
             return Ok(());
         }
-        self.pending_offers = 0;
         if status == 409 {
             // A producer restart may retire an acceptance cache or move its
             // service slots. Explicit refusal releases only our pending request;
@@ -358,11 +355,8 @@ mod tests {
                 let mut bytes = [0; 1024];
                 let count = socket.read(&mut bytes).unwrap();
                 let request = std::str::from_utf8(&bytes[..count]).unwrap();
-                assert!(request.starts_with(if attempt < 6 {
-                    "GET /history/custody/offer?slot=0 "
-                } else {
-                    "GET /history/custody/offer?slot=1 "
-                }));
+                assert!(request
+                    .starts_with(&format!("GET /history/custody/offer?slot={} ", attempt % 6)));
                 socket
                     .write_all(if attempt < 6 {
                         b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n"
@@ -377,7 +371,7 @@ mod tests {
         for _ in 0..7 {
             continuing.advance(absent, absent, &peer, absent).unwrap();
         }
-        assert_eq!(continuing.slot, 2);
+        assert_eq!(continuing.slot, 1);
         assert!(continuing.pending.is_none());
         server.join().unwrap();
     }

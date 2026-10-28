@@ -293,10 +293,30 @@ pub(crate) fn bind_local(
         outcome => outcome,
     }
 }
+/// Read-only availability hint; this grants no scope, cancellation or append.
+#[cfg(all(feature = "body-image-root", feature = "native-face-root"))]
+pub(crate) fn recovery_capacity_available() -> bool {
+    let (_, cadence) = crate::native_software::source_facts();
+    let Ok(maximum) = u32::try_from(cadence.count) else {
+        return false;
+    };
+    STATE.lock(|primary| {
+        EPOCHS.lock(
+            |epochs| match (primary.borrow().as_ref(), epochs.borrow().as_ref()) {
+                (Some(primary), Some(epochs)) => state::recovery_capacity(primary, epochs, maximum),
+                _ => false,
+            },
+        )
+    })
+}
+
 /// Rotate outgoing storage only after the actual sampler returned its native
 /// owners and Root installed a distinct admitted proposal. This does not prove
 /// normal finite completion or perform the separate Body Lull/Wake transition.
 #[cfg(all(feature = "body-image-root", feature = "native-face-root"))]
+// A Failed primary may regain recording capacity only here, through the same
+// real settlement, installed proposal and generation checks as normal rotation.
+// This binds the fresh sampler Play, whose first publication is sequence one.
 pub(crate) fn rotate_local(
     owner: &conduit_body::SealedBodyLifecycleSession,
     fragment: &conduit_core::FragmentId,
