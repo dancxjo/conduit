@@ -1,5 +1,5 @@
 {
-  "identity": "f3498156b480a0be1700c6c8d3fed7934f58624d63f4938cfe407712cbe48c1e",
+  "identity": "9836754fda6a828f85cdf325ea6c8a21d9f3e9ac747731982ef311388574643c",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -576,10 +576,31 @@
       }
     },
     {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "choice-multiplicity",
+      "value": {
+        "Text": "independent"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "item-count",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
       "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
       "name": "selected",
       "value": {
         "Flag": true
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/0",
+      "name": "order",
+      "value": {
+        "Count": 0
       }
     },
     {
@@ -594,6 +615,13 @@
       "name": "selected",
       "value": {
         "Flag": false
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots/1",
+      "name": "order",
+      "value": {
+        "Count": 1
       }
     },
     {

@@ -3,9 +3,12 @@ mod codec;
 pub use codec::{decode_request, decode_response, encode_request, encode_response};
 pub const EXCHANGE_BYTES: usize = 4096;
 pub const TRANSFER_BYTES: u32 = 16 * 1024;
-pub const MAX_BLOB_BYTES: u32 = 128 * 1024;
+/// Collection deployment: complete canonical Face plus its scoped envelope.
+/// Version six pairs this finite receiver with Root; version-five peers refuse.
+/// Transfer windows and per-write work remain 16 KiB.
+pub const MAX_BLOB_BYTES: u32 = 256 * 1024;
 pub const HEADER_BYTES: usize = 32;
-pub const VERSION: u16 = 5;
+pub const VERSION: u16 = 6;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Envelope {
     pub instance: u64,

@@ -25,7 +25,7 @@ impl InputCost {
         }
     }
     pub fn write(&mut self, before: DomainCost, after: DomainCost) {
-        self.writes += 1; // At most 128KiB / 16KiB = eight existing writes.
+        self.writes += 1; // At most 256KiB / 16KiB = sixteen bounded writes.
         self.max_write_rtc = self.max_write_rtc.max(rtc(before, after));
     }
     pub fn finish(self, bytes: u32, commit_before: DomainCost, after: DomainCost) {

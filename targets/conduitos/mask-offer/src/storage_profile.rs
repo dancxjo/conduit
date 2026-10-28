@@ -182,6 +182,30 @@ pub fn prepare_collection_creche_stage_from_offer(
     )
 }
 
+/// Complete reviewed visual roots with matching explicitly admitted Collection storage.
+pub fn prepare_collection_creche_visual_stage_from_offer(
+    host: &HostAdvertisement,
+    selection: ComponentVisualSelection,
+    recipe: CrecheComponentRecipe,
+    typography: conduit_face::VisualTypography,
+    navy: bool,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    let root = if navy {
+        selection.creche_navy_root(recipe, typography)
+    } else {
+        selection.creche_root_with_typography(recipe, typography)
+    };
+    layout_configured::prepare_offered_component_document(
+        host,
+        (
+            conduit_face::CRECHE_COMPONENT_MASK_SOURCE,
+            conduit_face::CRECHE_LAYOUT_MASK_SOURCE,
+        ),
+        root,
+        NativeMaskStorageProfile::Collection,
+    )
+}
+
 #[cfg(test)]
 mod tests;
 

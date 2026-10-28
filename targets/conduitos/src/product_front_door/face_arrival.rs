@@ -81,7 +81,7 @@ impl FaceArrival {
                 owner_route,
             )
         } else {
-            NativeFaceMask::prepare_creche(
+            NativeFaceMask::prepare_collection_creche(
                 host_id.clone(),
                 boot_id.clone(),
                 generation,
@@ -90,6 +90,9 @@ impl FaceArrival {
                 "conduitos/creche/face",
                 provider,
                 conduit_face::CrecheComponentRecipe::ResponsiveColumns,
+                conduit_face::ComponentVisualSelection::default(),
+                conduit_face::VisualTypography::Editorial,
+                false,
             )
         }
         .map_err(|error| error.as_str())?;
@@ -439,7 +442,13 @@ impl FaceArrival {
             .present(face.clone(), observation, play, display)
             .map_err(|error| error.as_str())?;
         let show = self.mask.show().ok_or("creche-face-show-absent")?;
-        super::native_action_evidence::face(&face, show, observation, play)?;
+        super::native_action_evidence::face_with_storage(
+            &face,
+            show,
+            observation,
+            play,
+            self.mask.publication().zip(self.mask.render_receipt()),
+        )?;
         Ok(receipt)
     }
 }
@@ -451,3 +460,6 @@ mod tests;
 mod look_selection;
 
 mod owner_selection;
+
+#[cfg(all(test, feature = "native-compositor"))]
+mod collection_tests;

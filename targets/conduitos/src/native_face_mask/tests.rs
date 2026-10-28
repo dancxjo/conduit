@@ -19,7 +19,7 @@ fn compositor_refusal_keeps_its_specific_machine_reason() {
 
 #[derive(Default)]
 pub(crate) struct CountingDisplay {
-    writes: u32,
+    pub(crate) writes: u32,
     fail: bool,
 }
 
@@ -60,7 +60,7 @@ pub(super) fn fixture() -> (NativeFaceMask, BirthDraft) {
     (service, draft())
 }
 
-pub(super) fn draft() -> BirthDraft {
+pub(crate) fn draft() -> BirthDraft {
     let choices = crate::native_workset::profile()
         .installed()
         .iter()
@@ -73,6 +73,34 @@ pub(super) fn draft() -> BirthDraft {
         })
         .collect();
     BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap()
+}
+
+/// Actual five-candidate entrance, including the visible unavailable Plot.
+/// The older `draft` helper intentionally covers only the four installed Plots.
+pub(crate) fn default_creche_face(basis: &conduit_birth_plot::BirthFaceBasis) -> Face {
+    let mut door = crate::front_door::FrontDoor::new(
+        basis.host_id.clone(),
+        basis.boot_id.clone(),
+        OfferGeneration(1),
+        "cpu/native-profile",
+        "build",
+        "image/cpu-fixture",
+        "source/cpu-host".into(),
+        "checked/cpu-host".into(),
+        0,
+        true,
+    );
+    door.open_creche("550e8400-e29b-41d4-a716-446655440000".into(), None)
+        .unwrap();
+    let face = door.creche_face(basis).unwrap();
+    assert_eq!(
+        face.subjects
+            .iter()
+            .filter(|s| s.role == FaceRole::Plot)
+            .count(),
+        5
+    );
+    face
 }
 
 #[test]

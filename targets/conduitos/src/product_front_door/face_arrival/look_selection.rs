@@ -69,12 +69,7 @@ impl FaceArrival {
             return Err("creche-look-face-stale");
         }
         let context = &self.preparation;
-        let prepare = if navy {
-            NativeFaceMask::prepare_creche_navy
-        } else {
-            NativeFaceMask::prepare_creche_typographic
-        };
-        let mut replacement = prepare(
+        let mut replacement = NativeFaceMask::prepare_collection_creche(
             context.host_id.clone(),
             context.boot_id.clone(),
             context.generation,
@@ -85,6 +80,7 @@ impl FaceArrival {
             CrecheComponentRecipe::ResponsiveColumns,
             selection,
             typography,
+            navy,
         )
         .map_err(|error| error.as_str())?;
         replacement
