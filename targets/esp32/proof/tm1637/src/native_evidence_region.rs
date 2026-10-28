@@ -456,3 +456,7 @@ impl crate::native_observed_archive::custody_journal::WholeEpoch for Observation
 #[cfg(feature = "body-persistence")]
 #[path = "native_network_region_recovery.rs"]
 mod network_recovery;
+
+#[cfg(all(feature = "body-persistence", feature = "local-appliance"))]
+#[path = "native_checkpoint_flash_access.rs"]
+pub(crate) mod checkpoint_access;

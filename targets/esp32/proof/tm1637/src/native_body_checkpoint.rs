@@ -725,3 +725,6 @@ impl Storage for crate::native_evidence_region::BodyRegion {
         Self::erase_bank(self, bank).map_err(|_| Refusal::Storage)
     }
 }
+
+#[path = "native_checkpoint_incremental.rs"]
+pub(crate) mod incremental;
