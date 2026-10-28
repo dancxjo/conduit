@@ -153,6 +153,10 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             if let Some(path) = mtools_dir {
                 command.arg("--mtools-dir").arg(path);
             }
+            if opts.dry_run {
+                println!("{command:?}");
+                return Ok(());
+            }
             if !command.status()?.success() {
                 return Err("Linux B+ image preparation failed".into());
             }
