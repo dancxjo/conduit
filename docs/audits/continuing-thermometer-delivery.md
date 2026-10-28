@@ -22,29 +22,59 @@ absent from that `dev`, while `dev` had 256 commits absent from the instrument
 branch. Refresh useful source onto current `dev` in small changes; do not merge
 this accumulated ancestry or restore historical captures.
 
-Blue's installed source is `c59d143463d4ce78f01f57826629d0a8637056ff`, not the
-latest branch head. Its physical install resumed the pinned Body on a new Boot,
-ran both local workers, completed two sensor observations and 50 Mask updates,
-and attached to Troys. The observed Root grant remained 118,768 bytes; steady
-free space was 23,424 bytes. The user separately confirmed clean real readings
-and display transitions on the preceding display fix. Subsequent read-only
-queries show that sampling continues. This establishes useful physical progress,
-not an accepted release or every interruption/restart scenario.
+Blue now runs `e3374b324f9f6c365acb754491472df509abe852`. The combined
+sampling/Mask startup test passed with unchanged 118,768-byte Root and 73,728-byte
+SDK grants and a 36,900-byte static stack. Its signed full network snapshot was
+retained by the authorized Linux member; the actual typed acknowledgment produced
+a retained Root-signed Pending receipt. During that exchange the MCU reached six
+fresh readings and 132 clean display updates. This is raw journal custody, not
+installed selected recorder State.
 
-The same instrument's complete 32 KiB network journal was exported in 64 signed,
-pinned chunks, retained with fsync/reopen, and compared byte-for-byte with the
-fresh pre-install backup. All eight pages matched; no acknowledgment or erase
-was requested. Snapshot SHA-256:
-`6a784123662275da01bd75c7dd53f21a4c525764c9c09f92c0e4f7d0b1a390f2`.
-This is raw evidence custody, not selected recorder State or journal reclamation.
+The longer run subsequently reported a display wire NACK after 164 updates; low
+clock settling alone is not a proved resolution. The user power-cycled Blue.
+Later capture showed 212 clean updates, but its new observation archive had
+refused capacity. Signed retirement freed an epoch; that running Play could not
+truthfully restart its journal at sequence one. A controlled restart restored
+recording through a fresh admitted scope: two committed readings, 50 clean Mask
+updates, Troys attached, and the same pinned Body resumed. Automatic in-Boot
+capacity recovery is prepared separately, not physically accepted. A later capture
+reached 27 committed readings but reported `mask-present-wire-nack` after 66
+updates; the short clean run does not establish display durability.
+
+The user confirmed Blue's display VCC is 3V3. The Titan TM1637 v2.4 datasheet
+specifically recommends 5 V for blue LEDs and characterizes electrical timing at
+4.5–5.5 V. This is a supply-envelope mismatch to investigate, not proof of the
+fault's cause. Directly moving VCC to 5 V is not a qualified repair: module
+pull-ups and ESP32 signal voltage limits require inspection and suitable level
+translation. The datasheet specifies no maximum clock-high/low timeout, so an
+interrupt-induced controller timeout remains unproved.
+
+The next combined candidate (`0ac6b9a6c`, ELF SHA-256
+`aa3c2636850b83dad716b0d88afefc42587b1000e49c68f4310be369e8e49c1f`)
+compiled and packaged within the existing grants and flash partition. It has
+not been installed. The private biography-maintenance plan preserves the exact
+Clean cursor, requires unchanged observation/network bytes and the original
+dense bank on readback, and requires a newly compacted bank before normal Boot.
+Its offline preparation has performed no hardware actions.
+
+Cold network recovery is physically proved: all eight 4 KiB journal slots are
+blank after recovery, while the entire 655,360-byte observation region and Body
+banks were backed up. The actual production payload decoder independently pins
+the Root/Body, loads generation 621/schema `root-restart@4`, authenticates the
+Clean cursor, and checks its original member-receipt scope and exact epoch
+increment. The physical Body banks contain 26,402/26,064 encoded bytes, exceeding
+the existing installer's conservative 26,000-byte gate. Do not bypass that gate
+or fall back to a pre-cursor firmware image.
 
 The first focused shared-memory extraction, [PR #6536](https://github.com/dancxjo/conduit/pull/6536),
 merged into `dev` as `25ad835abf2428fb39d1bdcc2a49d4a4d81400cd` on
-28 October. Candidate run `40751736116` passed. Exact merged-source Integration
-run `40757644728` was queued at observation; merged is not yet an Integration
-or stable-publication claim. The change reuses exact immutable common Unit
-definitions with full decoding fallback, and excludes its static table on AVR.
-It does not prove AVR firmware admission or complete #6341.
+28 October. Candidate run `40751736116` passed; exact merged-source Integration
+`40757644728` remains in progress at observation. The change reuses exact
+immutable common Unit definitions with full decoding fallback and excludes its
+static table on AVR. It does not prove AVR firmware admission or complete #6341.
+[PR #6537](https://github.com/dancxjo/conduit/pull/6537) separately extracts only
+the shared TM1637 STOP/low-settling changes; its physical-fault limitation is
+explicit, and its Candidate checks remain in progress.
 
 ## Pending-custody preparation checkpoint
 
@@ -79,7 +109,8 @@ PRODUCER_BOOT` (one command). Inputs are private file paths and an explicitly
 pinned producer Boot; credentials are not command-line values. The snapshot
 must already have been exported and verified. A successful command proves the
 retained signed custody receipt, not physical reclamation or installed recorder
-State. The bounded retry window spans the Root writer's 300-second deadline.
+State. The bounded retry window spans the live transaction's 900-second deadline;
+individual flash-operation and sampling deadlines remain unchanged.
 
 
 ## Reconcile the ten observations
