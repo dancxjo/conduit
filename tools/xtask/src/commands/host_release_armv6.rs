@@ -7,22 +7,29 @@ const TOOLCHAIN: &str = "1.98.1";
 // Its crosstool configuration selects armv6, VFP and the hard-float ABI:
 // https://github.com/cross-rs/cross/blob/v0.2.5/docker/crosstool-config/arm-unknown-linux-gnueabihf.config
 const IMAGE: &str = "ghcr.io/cross-rs/arm-unknown-linux-gnueabihf@sha256:0151546031f7255e58249d57d3307f5f08150373c5597951e1fc61dd753f2ac8";
-const C_FLAGS: &str = "-march=armv6 -marm -mfpu=vfp -mfloat-abi=hard";
+// Verified with the pinned compiler's -Q --help=target; these are defaults,
+// not environment flags forwarded into the container.
+const COMPILER_DEFAULTS: &str = "-march=armv6+fp -marm -mfpu=vfp -mfloat-abi=hard";
 
 fn build_command() -> Command {
     let mut command = Command::new("cross");
     command
         .args([
             &format!("+{TOOLCHAIN}"),
-            "build", "--locked", "--release", "-p", "conduit", "--target", TARGET,
+            "build",
+            "--locked",
+            "--release",
+            "-p",
+            "conduit",
+            "--target",
+            TARGET,
         ])
         .env("CROSS_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_IMAGE", IMAGE)
         .env("CROSS_CONTAINER_ENGINE", "docker")
-        .env("CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS", "-C target-cpu=arm1176jzf-s")
-        .env("CFLAGS_arm_unknown_linux_gnueabihf", C_FLAGS)
-        .env("CXXFLAGS_arm_unknown_linux_gnueabihf", C_FLAGS)
-        .env("CROSS_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_ENV_PASSTHROUGH",
-            "CFLAGS_arm_unknown_linux_gnueabihf CXXFLAGS_arm_unknown_linux_gnueabihf CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS")
+        .env(
+            "CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS",
+            "-C target-cpu=arm1176jzf-s",
+        )
         // Ambient flags must not override the exact CPU profile.
         .env_remove("RUSTFLAGS")
         .env_remove("CARGO_ENCODED_RUSTFLAGS");
@@ -58,7 +65,7 @@ pub(super) fn build(
             "cpu": "arm1176jzf-s",
             "cross_version": "0.2.5",
             "toolchain_image": IMAGE,
-            "c_flags": C_FLAGS,
+            "reviewed_compiler_defaults": COMPILER_DEFAULTS,
             "physical_execution_proved": false,
         }))?,
     )?;
@@ -113,10 +120,6 @@ mod tests {
         assert_eq!(
             env[std::ffi::OsStr::new("CARGO_TARGET_ARM_UNKNOWN_LINUX_GNUEABIHF_RUSTFLAGS")],
             Some(std::ffi::OsStr::new("-C target-cpu=arm1176jzf-s"))
-        );
-        assert_eq!(
-            env[std::ffi::OsStr::new("CFLAGS_arm_unknown_linux_gnueabihf")],
-            Some(std::ffi::OsStr::new(C_FLAGS))
         );
         assert_eq!(env[std::ffi::OsStr::new("RUSTFLAGS")], None);
         assert_eq!(env[std::ffi::OsStr::new("CARGO_ENCODED_RUSTFLAGS")], None);

@@ -15,7 +15,7 @@ invitation is cloned from the builder. Joining a Body remains an explicit action
 
 The release builder requires cross 0.2.5, Docker and Rust 1.98.1 with the
 `arm-unknown-linux-gnueabihf` standard library. Its adapter pins the ARM1176 CPU,
-VFP hard-float flags and ARMv6-capable cross sysroot; do not substitute a Debian
+pinned compiler defaults for ARMv6 and VFP hard float, with an ARMv6-capable sysroot; do not substitute a Debian
 ARMv7 sysroot.
 
 ```sh
