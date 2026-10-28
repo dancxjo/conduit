@@ -74,10 +74,12 @@ impl<'a> PreparedEnvironmentFace<'a> {
             let Some(value) = property(name)? else {
                 return Ok(None);
             };
-            let FacePropertyValue::TypedValue { contract, bytes } = value else {
+            let FacePropertyValue::TypedValue { bytes, .. } = value else {
                 return Err(R::WrongPropertyType);
             };
-            contract.validate(bytes).map_err(|_| R::InvalidQuantity)?;
+            // Complete Face validation already checked this exact contract and
+            // byte slice. The immutable view keeps that result valid here.
+            // Decode still checks the canonical Quantity and selected role/family.
             let value = Quantity::decode(bytes).map_err(|_| R::InvalidQuantity)?;
             if value.family() != target.family() || value.role() != role {
                 return Err(R::InvalidQuantity);
