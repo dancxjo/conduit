@@ -122,19 +122,57 @@ fn capsule_reuses_verified_selection_only_after_exact_child_retirement() {
         memory.retained_bytes(),
         memory.allocations
     );
+    // Independently retain the exact comparison values the former execution
+    // capsule cloned. The current capsule keeps fixed digests and no such heap.
+    let (legacy_comparison, comparison_memory) = allocation_probe::observe(|| {
+        (
+            ready.identity().clone(),
+            table.inspections().next().unwrap().scope.clone(),
+            first.clone(),
+        )
+    });
+    drop(legacy_comparison);
+    #[allow(dead_code)]
+    struct LegacyExecutionLayout {
+        identity: RendererIdentity,
+        bounds: Bounds,
+        scope: c::BaseCapabilityScope,
+        initial: c::ActivePlayIdentity,
+        last: Option<c::ActivePlayIdentity>,
+        bound: bool,
+        node: conduit_kernel::NodeId,
+    }
+    let inline = core::mem::size_of::<LegacyExecutionLayout>()
+        - core::mem::size_of::<PreparedRendererExecution>();
+    let (last, last_memory) = allocation_probe::observe(|| first.clone());
+    drop(last);
+    let initial_saving = comparison_memory.retained_bytes() + inline;
+    println!("renderer fingerprint execution removed_initial_heap={} removed_last_heap={} old_inline={} fixed_execution_bytes={} initial_CPU_saving={} bound_CPU_saving={}", comparison_memory.retained_bytes(), last_memory.retained_bytes(), core::mem::size_of::<LegacyExecutionLayout>(), core::mem::size_of::<PreparedRendererExecution>(), initial_saving, initial_saving + last_memory.retained_bytes());
+    assert!(
+        initial_saving > 1000,
+        "measured heap and inline reduction is substantial"
+    );
     let (mut capsule, retirement) = allocation_probe::observe(|| capsule.into_execution());
     assert_eq!((retirement.allocations, retirement.reallocations), (0, 0));
-    println!("renderer cold retirement freed_heap={} rich_size={} execution_size={}",
+    println!(
+        "renderer cold retirement freed_heap={} rich_size={} execution_size={}",
         retirement.deallocated_bytes,
         core::mem::size_of::<PreparedRendererInvocation>(),
-        core::mem::size_of::<PreparedRendererExecution>());
+        core::mem::size_of::<PreparedRendererExecution>()
+    );
     // The old capsule additionally retained this immutable Kind, whose limits
     // changed scalars only. Measure its actual owned allocations separately.
     let (old_contract, contract_memory) = allocation_probe::observe(f::renderer_kind);
     let freed_heap = retirement.deallocated_bytes + contract_memory.retained_bytes();
-    println!("renderer compact execution freed_heap_total={} old_contract_heap={}",
-        freed_heap, contract_memory.retained_bytes());
-    assert!(freed_heap >= 1512, "measured heap saving must cover observed admission deficit");
+    println!(
+        "renderer compact execution freed_heap_total={} old_contract_heap={}",
+        freed_heap,
+        contract_memory.retained_bytes()
+    );
+    assert!(
+        freed_heap >= 1512,
+        "measured heap saving must cover observed admission deficit"
+    );
     drop(old_contract);
     drop(verified);
     drop(lowered);
@@ -145,11 +183,49 @@ fn capsule_reuses_verified_selection_only_after_exact_child_retirement() {
     let face_wire = serde_json::to_vec(&face).unwrap();
     for sequence in 1..=2 {
         let active = c::bind_active_play(&first.plan_id, &first.host_id, &first.boot_id, sequence);
-        for failure in ["play", "claim", "revoked", "inflight", "spent"] {
+        for failure in [
+            "play",
+            "host",
+            "boot",
+            "plan",
+            "active-id",
+            "claim",
+            "revoked",
+            "inflight",
+            "spent",
+        ] {
             let (mut table, handle, mut claim) = native::issue(owner.as_ref().unwrap(), &active);
             let mut wrong = active.clone();
             if failure == "play" {
                 wrong.play_sequence += 1;
+            }
+            match failure {
+                "host" => {
+                    wrong = c::bind_active_play(
+                        &active.plan_id,
+                        &"host/foreign".into(),
+                        &active.boot_id,
+                        active.play_sequence,
+                    )
+                }
+                "boot" => {
+                    wrong = c::bind_active_play(
+                        &active.plan_id,
+                        &active.host_id,
+                        &"boot/foreign".into(),
+                        active.play_sequence,
+                    )
+                }
+                "plan" => {
+                    wrong = c::bind_active_play(
+                        &"plan/foreign".into(),
+                        &active.host_id,
+                        &active.boot_id,
+                        active.play_sequence,
+                    )
+                }
+                "active-id" => wrong.active_play_id = "active/foreign".into(),
+                _ => (),
             }
             if failure == "claim" {
                 claim.resource_generation_id.0.push_str("-foreign");

@@ -276,6 +276,7 @@ dependencies = [
  "conduit-time",
  "conduit-tm1637-wire",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]

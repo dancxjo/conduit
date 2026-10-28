@@ -1,6 +1,5 @@
 //! One affine successor, never a second physical display owner. The predecessor
 //! retains its cleanup operation until the successor's complete frame is ACKed.
-use super::invocation::same_scope;
 use super::*;
 use delivery::PreparedPresentation;
 /// Available metadata only: drops copied Face bytes and encoded packets as soon
@@ -82,17 +81,14 @@ impl PreparedRendererExecution {
         let check = || -> Result<(), &'static str> {
             let (active, table, _, claim) = &lease;
             if !self.bound
-                || self.last.as_ref() != Some(&current.active)
+                || !self.matches_last(&current.active)
                 || current.state != RendererState::Available
-                || current.ready.identity != self.identity
-                || current.ready.bounds != self.bounds
+                || !self.matches_owner(&current.ready)
                 || current.node != self.node
                 || current.inspection().completed_operations != 1
                 || current.inspection().in_flight_operations != 0
                 || current.inspection().lifecycle != c::CapabilityLifecycle::Issued
-                || active.plan_id != self.initial.plan_id
-                || active.host_id != self.initial.host_id
-                || active.boot_id != self.initial.boot_id
+                || !self.matches_parent(active)
                 || active.play_sequence <= current.active.play_sequence
                 || c::bind_active_play(
                     &active.plan_id,
@@ -116,7 +112,7 @@ impl PreparedRendererExecution {
                 return Err("renderer-replacement-possession");
             }
             let scope = &next.scope;
-            if !same_scope(&self.scope, scope)
+            if !self.matches_scope(scope)
                 || scope.active_play_id != active.active_play_id
                 || claim.host_id != scope.host_id
                 || claim.boot_id != scope.boot_id
@@ -185,7 +181,7 @@ impl PreparedRendererExecution {
         let prepared = verified.prepared;
         use DeliveryRefusal as E;
         if !self.bound
-            || self.last.as_ref() != Some(&current.active)
+            || !self.matches_last(&current.active)
             || successor.predecessor != current.active
             || successor.spent
             || current.state != RendererState::Available
@@ -242,7 +238,7 @@ impl PreparedRendererExecution {
         current.claim = claim;
         current.ready.next_request += 1;
         current.state = RendererState::Available;
-        self.last = Some(active);
+        self.record_last(&active);
         Ok((length, receipt))
     }
 }

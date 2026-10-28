@@ -14,17 +14,26 @@ pub struct PreparedRendererInvocation {
     configuration: Vec<c::ConfigurationEntry>,
     fore: Vec<c::PlannedForePort>,
 }
-/// Checked execution provenance, never a descriptor-derived native grant.
-/// Exact mutable scope and affine invocation state survive cold retirement.
+#[path = "mask_renderer_fingerprint.rs"]
+mod fingerprint;
+/// Checked comparison provenance, never a descriptor-derived native grant.
+/// Actual Ready/capability owners remain mandatory; fixed fingerprints retire
+/// duplicated immutable metadata while preserving exact scope and lifecycle.
 pub struct PreparedRendererExecution {
-    pub(super) identity: RendererIdentity,
+    owner: [u8; 32],
+    scope: [u8; 32],
+    parent: [u8; 32],
+    minimum_sequence: u64,
+    last: Option<LastPlay>,
     pub(super) bounds: Bounds,
-    pub(super) scope: c::BaseCapabilityScope,
-    pub(super) initial: c::ActivePlayIdentity,
-    pub(super) last: Option<c::ActivePlayIdentity>,
     pub(super) bound: bool,
     pub(super) node: NodeId,
 }
+struct LastPlay {
+    fingerprint: [u8; 32],
+    sequence: u64,
+}
+
 impl core::ops::Deref for PreparedRendererInvocation {
     type Target = PreparedRendererExecution;
     fn deref(&self) -> &Self::Target {
@@ -57,15 +66,13 @@ impl<P: OpenDrain> ReadyRenderer<P> {
             return Err("renderer-invocation-spent");
         }
         Ok(PreparedRendererInvocation {
-            execution: PreparedRendererExecution {
-                identity: self.identity.clone(),
-                bounds: self.bounds,
-                scope: inspection.scope.clone(),
-                initial: initial.clone(),
-                last: None,
-                bound: false,
+            execution: PreparedRendererExecution::checked(
+                &self.identity,
+                self.bounds,
+                &inspection.scope,
+                initial,
                 node,
-            },
+            ),
             node: lowered
                 .nodes
                 .iter()
@@ -107,6 +114,47 @@ impl PreparedRendererInvocation {
     }
 }
 impl PreparedRendererExecution {
+    // This constructor stays private to the verified preparation module. Hashes
+    // cannot be supplied by a caller or used to issue native possession.
+    fn checked(
+        identity: &RendererIdentity,
+        bounds: Bounds,
+        scope: &c::BaseCapabilityScope,
+        initial: &c::ActivePlayIdentity,
+        node: NodeId,
+    ) -> Self {
+        Self {
+            owner: fingerprint::owner(identity, bounds, node),
+            scope: fingerprint::scope(scope),
+            parent: fingerprint::parent(initial),
+            minimum_sequence: initial.play_sequence,
+            last: None,
+            bounds,
+            bound: false,
+            node,
+        }
+    }
+    pub(super) fn matches_owner<P: OpenDrain>(&self, ready: &ReadyRenderer<P>) -> bool {
+        ready.bounds == self.bounds
+            && fingerprint::owner(&ready.identity, ready.bounds, self.node) == self.owner
+    }
+    pub(super) fn matches_parent(&self, active: &c::ActivePlayIdentity) -> bool {
+        fingerprint::parent(active) == self.parent
+    }
+    pub(super) fn matches_scope(&self, scope: &c::BaseCapabilityScope) -> bool {
+        fingerprint::scope(scope) == self.scope
+    }
+    pub(super) fn matches_last(&self, active: &c::ActivePlayIdentity) -> bool {
+        self.last.as_ref().is_some_and(|last| {
+            last.sequence == active.play_sequence && last.fingerprint == fingerprint::active(active)
+        })
+    }
+    pub(super) fn record_last(&mut self, active: &c::ActivePlayIdentity) {
+        self.last = Some(LastPlay {
+            fingerprint: fingerprint::active(active),
+            sequence: active.play_sequence,
+        });
+    }
     pub fn node(&self) -> NodeId {
         self.node
     }
@@ -126,17 +174,15 @@ impl PreparedRendererExecution {
         // The renderer contract is immutable module material plus limits derived
         // only from Bounds. Exact identity and Bounds equality therefore retain
         // the same checked contract without an owned duplicate Kind.
-        if self.bound || ready.identity != self.identity || ready.bounds != self.bounds {
+        if self.bound || !self.matches_owner(ready) {
             return Err("renderer-invocation-owner");
         }
-        if active.plan_id != self.initial.plan_id
-            || active.host_id != self.initial.host_id
-            || active.boot_id != self.initial.boot_id
-            || active.play_sequence < self.initial.play_sequence
+        if !self.matches_parent(active)
+            || active.play_sequence < self.minimum_sequence
             || self
                 .last
                 .as_ref()
-                .is_some_and(|last| active.play_sequence <= last.play_sequence)
+                .is_some_and(|last| active.play_sequence <= last.sequence)
             || c::bind_active_play(
                 &active.plan_id,
                 &active.host_id,
@@ -158,7 +204,7 @@ impl PreparedRendererExecution {
         let scope = &current.scope;
         // Compare every originally verified scope field; only the independently
         // issued child ActivePlay changes. No new grants/native metadata enter.
-        if !same_scope(&self.scope, scope)
+        if !self.matches_scope(scope)
             || scope.active_play_id != active.active_play_id
             || claim.host_id != scope.host_id
             || claim.boot_id != scope.boot_id
@@ -180,7 +226,7 @@ impl PreparedRendererExecution {
         drop(inspections);
         let active = active.clone();
         let ready = owner.take().expect("preflighted renderer");
-        self.last = Some(active.clone());
+        self.record_last(&active);
         self.bound = true;
         Ok(RendererCall {
             ready,
@@ -200,9 +246,8 @@ impl PreparedRendererExecution {
     ) -> Result<ReadyRenderer<P>, &'static str> {
         let current = call.as_ref().ok_or("renderer-unavailable")?;
         if !self.bound
-            || self.last.as_ref() != Some(&current.active)
-            || current.ready.identity != self.identity
-            || current.ready.bounds != self.bounds
+            || !self.matches_last(&current.active)
+            || !self.matches_owner(&current.ready)
             || current.node != self.node()
         {
             return Err("renderer-invocation-retirement");
@@ -212,28 +257,6 @@ impl PreparedRendererExecution {
         Ok(ready)
     }
 }
-pub(super) fn same_scope(a: &c::BaseCapabilityScope, b: &c::BaseCapabilityScope) -> bool {
-    a.host_id == b.host_id
-        && a.boot_id == b.boot_id
-        && a.base_instance_id == b.base_instance_id
-        && a.base_provider_generation == b.base_provider_generation
-        && a.plan_id == b.plan_id
-        && a.authority_grant_id == b.authority_grant_id
-        && a.authority_contract_id == b.authority_contract_id
-        && a.capability_id == b.capability_id
-        && a.implementation_id == b.implementation_id
-        && a.operation_contract_id == b.operation_contract_id
-        && a.subject_kind == b.subject_kind
-        && a.resource_pool_id == b.resource_pool_id
-        && a.resource_generation_id == b.resource_generation_id
-        && a.envelope_id == b.envelope_id
-        && a.maximum_parameter_bytes == b.maximum_parameter_bytes
-        && a.maximum_result_bytes == b.maximum_result_bytes
-        && a.maximum_work_units == b.maximum_work_units
-        && a.maximum_in_flight == b.maximum_in_flight
-        && a.maximum_operations == b.maximum_operations
-}
-
 /// Independently checked linked Source configuration. Private fields prevent a
 /// claimed Source/placement ID from becoming expected executable configuration.
 #[cfg(feature = "local-planning")]
@@ -333,15 +356,13 @@ impl<P: OpenDrain> ReadyRenderer<P> {
         }
         let (node, call) = projection.into_numeric();
         Ok(PreparedRendererInvocation {
-            execution: PreparedRendererExecution {
-                identity: self.identity.clone(),
-                bounds: self.bounds,
-                scope: inspection.scope.clone(),
-                initial: selected.active.clone(),
-                last: None,
-                bound: false,
-                node: node.node,
-            },
+            execution: PreparedRendererExecution::checked(
+                &self.identity,
+                self.bounds,
+                &inspection.scope,
+                selected.active,
+                node.node,
+            ),
             node,
             call,
             configuration: configuration.entries.clone(),

@@ -374,7 +374,9 @@ fn fixture_audited(refuse_once: bool, audit: bool) -> Fixture {
     } else {
         0
     };
-    let body_bytes = input.routes.body_id().as_str().len();
+    let (body_copy, body_memory) = allocation_probe::observe(|| input.routes.body_id().clone());
+    drop(body_copy);
+    let body_bytes = body_memory.retained_bytes();
     let (session, construction) = allocation_probe::observe(|| {
         ms::NativeMaskSession::prepare_retained(&mut owner, input)
             .unwrap_or_else(|_| panic!("checked actual session preparation refused"))

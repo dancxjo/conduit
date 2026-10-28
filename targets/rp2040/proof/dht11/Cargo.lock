@@ -363,6 +363,7 @@ dependencies = [
  "conduit-plot",
  "conduit-pulse-capture",
  "conduit-time",
+ "sha2",
 ]
 
 [[package]]
