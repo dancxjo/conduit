@@ -1,7 +1,7 @@
 //! Leases only an actual frozen epoch. One service turn verifies one record;
 //! dropping or finishing returns the same owner to its original slot.
-use super::*;
 use super::state::Active;
+use super::*;
 use conduit_body::BodyId;
 use custody_acceptance::{ClosedOfferDraft, OwnedInspector};
 use ed25519_dalek::VerifyingKey;
@@ -57,11 +57,33 @@ impl Inspection {
         let owned = self.owned.as_mut().ok_or("observed-offer-consumed")?;
         with_work(|work| owned.step(work))
     }
-    pub(crate) fn finish(mut self) -> Result<ClosedOfferDraft, &'static str> {
+    pub(crate) fn finish(self) -> Result<ClosedOfferDraft, &'static str> {
+        self.finish_with(Ok)
+    }
+    /// Keep the actual frozen owner leased through the synchronous Root check.
+    /// No callback, accepted bytes, or decoded offer can replace this owner.
+    pub(crate) fn finish_with<R>(
+        mut self,
+        check: impl FnOnce(ClosedOfferDraft) -> Result<R, &'static str>,
+    ) -> Result<R, &'static str> {
         let owned = self.owned.take().ok_or("observed-offer-consumed")?;
         let (active, result) = owned.finish();
-        restore(self.slot, active);
-        result
+        let _lease = ClosedLease {
+            slot: self.slot,
+            active: Some(active),
+        };
+        result.and_then(check)
+    }
+}
+struct ClosedLease {
+    slot: u8,
+    active: Option<Active<ArchiveRegion>>,
+}
+impl Drop for ClosedLease {
+    fn drop(&mut self) {
+        if let Some(active) = self.active.take() {
+            restore(self.slot, active);
+        }
     }
 }
 fn restore(index: u8, active: Active<ArchiveRegion>) {

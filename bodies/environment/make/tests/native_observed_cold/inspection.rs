@@ -227,3 +227,60 @@ fn owned_inspection_can_move_between_turns_and_always_returns_the_same_media() {
         &media
     ));
 }
+
+#[test]
+fn accepted_endorsement_must_match_the_actual_inspected_closed_owner() {
+    let (mut active, _, body, key) = fixture(2);
+    let draft =
+        acceptance::inspect(&mut active, &body, &key.verifying_key(), &mut [0; 536]).unwrap();
+    let signature = key.sign(&draft.transcript()).to_bytes();
+    let offer = draft.signed(signature);
+    // Reinspect the same actual journal rather than constructing a draft from
+    // the offered fields or the received endorsement.
+    let draft =
+        acceptance::inspect(&mut active, &body, &key.verifying_key(), &mut [0; 536]).unwrap();
+    let mut accepted = [0; 416];
+    accepted[..32].copy_from_slice(&offer.region.0);
+    accepted[32..128].copy_from_slice(&offer.scope.0);
+    accepted[128..160].copy_from_slice(&offer.forms.0);
+    accepted[160..164].copy_from_slice(&offer.committed.to_le_bytes());
+    accepted[164..196].copy_from_slice(&offer.digest.0);
+    let endorse = |bytes: &mut [u8; 416]| {
+        let signature = key.sign(&acceptance::wire::accepted_transcript(bytes));
+        bytes[352..].copy_from_slice(&signature.to_bytes());
+    };
+    endorse(&mut accepted);
+    assert!(draft.matches_accepted(&accepted, &body, &key.verifying_key()));
+    // Every substitution is authentically signed by the pinned Root. A valid
+    // endorsement for another epoch must still fail this owner's identity.
+    for offset in [0, 32, 64, 96, 128, 160, 164] {
+        let mut changed = accepted;
+        changed[offset] ^= 1;
+        endorse(&mut changed);
+        assert!(
+            !draft.matches_accepted(&changed, &body, &key.verifying_key()),
+            "offset {offset}"
+        );
+    }
+    let mut reserved = accepted;
+    reserved[324] = 1;
+    endorse(&mut reserved);
+    assert!(!draft.matches_accepted(&reserved, &body, &key.verifying_key()));
+    let mut tampered = accepted;
+    tampered[228] ^= 1;
+    assert!(!draft.matches_accepted(&tampered, &body, &key.verifying_key()));
+    let other = ed25519_dalek::SigningKey::from_bytes(&[42; 32]);
+    let mut foreign = accepted;
+    foreign[352..].copy_from_slice(
+        &other
+            .sign(&acceptance::wire::accepted_transcript(&accepted))
+            .to_bytes(),
+    );
+    assert!(!draft.matches_accepted(&foreign, &body, &other.verifying_key()));
+    assert!(!draft.matches_accepted(&foreign, &body, &key.verifying_key()));
+    assert!(!draft.matches_accepted(
+        &accepted,
+        &serde_json::from_value(serde_json::json!("03".repeat(32))).unwrap(),
+        &key.verifying_key()
+    ));
+}

@@ -548,11 +548,26 @@ fn live_offer_lease_yields_outside_locks_and_restores_closed_media_on_every_exit
         assert!(!inspection.step().unwrap());
     }
     assert!(inspection.step().unwrap());
-    inspection.finish().unwrap();
+    inspection
+        .finish_with(|_| {
+            assert!(
+                offer::Inspection::start(1, &body, &key.verifying_key()).is_err(),
+                "Root verification must retain the actual immutable owner"
+            );
+            EPOCHS.lock(|e| assert!(matches!(&e.borrow().as_ref().unwrap()[0], State::Failed)));
+            Ok(())
+        })
+        .unwrap();
+    let mut inspection = offer::Inspection::start(1, &body, &key.verifying_key()).unwrap();
+    while !inspection.step().unwrap() {}
+    assert_eq!(
+        inspection.finish_with::<()>(|_| Err("canonical-check-refused")),
+        Err("canonical-check-refused")
+    );
     EPOCHS.lock(|e| {
         let mut slots = e.borrow_mut();
         let State::Active(active) = &mut slots.as_mut().unwrap()[0] else {
-            panic!("same journal returned");
+            panic!("same journal returned after successful and refused Root checks");
         };
         assert!(Arc::ptr_eq(
             &active.journal.inspect_storage(|s| s.media.clone()),

@@ -23,6 +23,22 @@ impl ClosedOfferDraft {
     pub(crate) fn root(&self) -> &[u8; 32] {
         &self.root
     }
+    /// Match a Root endorsement to this inspected immutable owner. This checks
+    /// identity only; it neither transfers the owner nor authorizes an erase.
+    pub(crate) fn matches_accepted(
+        &self,
+        bytes: &[u8; 416],
+        body: &BodyId,
+        key: &VerifyingKey,
+    ) -> bool {
+        self.root == key.to_bytes()
+            && wire::verify_accepted(bytes, body, key)
+            && bytes[..32] == self.offer.region.0
+            && bytes[32..128] == self.offer.scope.0
+            && bytes[128..160] == self.offer.forms.0
+            && bytes[160..164] == self.offer.committed.to_le_bytes()
+            && bytes[164..196] == self.offer.digest.0
+    }
     pub(crate) fn signed(self, signature: [u8; 64]) -> Offer<'static> {
         Offer {
             signature: Hex(signature),

@@ -9,8 +9,15 @@ use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 mod queue;
 use queue::{Key, Queue, Request, Response};
 #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
-static MAILBOX: Mutex<CriticalSectionRawMutex, RefCell<Queue>> =
+static MAILBOX: Mutex<CriticalSectionRawMutex, RefCell<Queue<Completed>>> =
     Mutex::new(RefCell::new(Queue::new()));
+// Cache the exact compact immutable proof once. JSON is response presentation,
+// not retained Root metadata or another copy of the inspected epoch.
+#[derive(Clone, Copy)]
+enum Completed {
+    Offer(crate::native_observed_archive::custody_acceptance::wire::Offer<'static>),
+    Accepted([u8; 416]),
+}
 pub(super) struct Job {
     request: Request,
     inspection: crate::native_observed_archive::offer::Inspection,
@@ -28,12 +35,16 @@ fn submit(request: Request) -> Reply {
     if request.key.slot > 5 || !crate::native_restart::publication_ready() {
         return Reply::Unavailable;
     }
-    MAILBOX.lock(|cell| match cell.borrow_mut().submit(request) {
+    let result = MAILBOX.lock(|cell| cell.borrow_mut().submit(request));
+    match result {
         Response::Pending => Reply::Pending,
         Response::Busy => Reply::Unavailable,
-        Response::Completed(Ok(bytes)) => Reply::Offer(bytes),
+        Response::Completed(Ok(proof)) => match render_proof(proof) {
+            Ok(bytes) => Reply::Offer(bytes),
+            Err(_) => Reply::Unavailable,
+        },
         Response::Completed(Err(())) => Reply::Refused,
-    })
+    }
 }
 impl NativeRoot {
     pub(crate) fn advance_observed_offer(&mut self) {
@@ -87,8 +98,7 @@ impl NativeRoot {
             result => {
                 let job = *self.observed_offer.take().expect("owned inspection");
                 let key = job.request.key;
-                let response = (|| {
-                    let draft = job.inspection.finish()?;
+                let response = job.inspection.finish_with(|draft| {
                     result?;
                     let body = self.body.as_ref().ok_or("observed-offer-no-body")?;
                     if let Some(bytes) = job.request.ack {
@@ -103,26 +113,41 @@ impl NativeRoot {
                         let accepted = self
                             .admission
                             .acknowledge_closed_observed(&draft, &request, body)?;
-                        return accepted_receipt(&accepted);
+                        let root_key = ed25519_dalek::VerifyingKey::from_bytes(
+                            &self.admission.verifying_key(),
+                        )
+                        .map_err(|_| "observed-ack-root")?;
+                        if !draft.matches_accepted(&accepted, &body.evidence().body_id, &root_key) {
+                            return Err("observed-ack-closed-owner");
+                        }
+                        return Ok(Completed::Accepted(accepted));
                     }
                     let offer = self.admission.sign_closed_observed_offer(draft, body)?;
-                    let mut bytes = Vec::new();
-                    bytes
-                        .try_reserve_exact(1024)
-                        .map_err(|_| "observed-offer-response")?;
-                    bytes.resize(1024, 0);
-                    let length = serde_json_core::to_slice(&offer, &mut bytes)
-                        .map_err(|_| "observed-offer-response")?;
-                    bytes.truncate(length);
-                    Ok::<_, &'static str>(bytes)
-                })();
+                    Ok::<_, &'static str>(Completed::Offer(offer))
+                });
                 complete(key, response.map_err(|_| ()));
             }
         }
     }
 }
-fn complete(key: Key, result: Result<Vec<u8>, ()>) {
+fn complete(key: Key, result: Result<Completed, ()>) {
     MAILBOX.lock(|cell| cell.borrow_mut().complete(key, result));
+}
+fn render_proof(proof: Completed) -> Result<Vec<u8>, &'static str> {
+    match proof {
+        Completed::Accepted(accepted) => accepted_receipt(&accepted),
+        Completed::Offer(offer) => {
+            let mut bytes = Vec::new();
+            bytes
+                .try_reserve_exact(1024)
+                .map_err(|_| "observed-offer-response")?;
+            bytes.resize(1024, 0);
+            let length = serde_json_core::to_slice(&offer, &mut bytes)
+                .map_err(|_| "observed-offer-response")?;
+            bytes.truncate(length);
+            Ok(bytes)
+        }
+    }
 }
 /// Signed acceptance confirms custody authorization only. It does not claim that
 /// a reclaim marker has committed, data was erased, or storage is reusable.

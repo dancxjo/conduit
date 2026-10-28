@@ -30,17 +30,17 @@ impl Request {
         })
     }
 }
-pub(super) enum Response {
+pub(super) enum Response<T> {
     Pending,
-    Completed(Result<Vec<u8>, ()>),
+    Completed(Result<T, ()>),
     Busy,
 }
-pub(super) struct Queue {
+pub(super) struct Queue<T> {
     pending: Option<Request>,
     inflight: Option<Key>,
-    completed: Option<(Key, Result<Vec<u8>, ()>)>,
+    completed: Option<(Key, Result<T, ()>)>,
 }
-impl Queue {
+impl<T: Copy> Queue<T> {
     pub(super) const fn new() -> Self {
         Self {
             pending: None,
@@ -48,20 +48,10 @@ impl Queue {
             completed: None,
         }
     }
-    pub(super) fn submit(&mut self, request: Request) -> Response {
+    pub(super) fn submit(&mut self, request: Request) -> Response<T> {
         if let Some((key, result)) = &self.completed {
             if *key == request.key {
-                let result = match result {
-                    Ok(bytes) => {
-                        let mut copy = Vec::new();
-                        if copy.try_reserve_exact(bytes.len()).is_err() {
-                            return Response::Busy;
-                        }
-                        copy.extend_from_slice(bytes);
-                        Ok(copy)
-                    }
-                    Err(()) => Err(()),
-                };
+                let result = *result;
                 // An empty slot can become closed later. A refusal is delivered
                 // once; accepted receipts remain retryable after a lost response.
                 if result.is_err() {
@@ -98,7 +88,7 @@ impl Queue {
         self.inflight = Some(request.key);
         Some(request)
     }
-    pub(super) fn complete(&mut self, key: Key, result: Result<Vec<u8>, ()>) {
+    pub(super) fn complete(&mut self, key: Key, result: Result<T, ()>) {
         assert!(
             self.inflight == Some(key),
             "completion must own the in-flight request"
@@ -115,7 +105,7 @@ mod tests {
     }
     #[test]
     fn duplicate_request_is_pending_and_other_requests_cannot_replace_actual_work() {
-        let mut queue = Queue::new();
+        let mut queue = Queue::<[u8; 7]>::new();
         assert!(matches!(
             queue.submit(ack(1, b"original")),
             Response::Pending
@@ -129,10 +119,10 @@ mod tests {
             queue.submit(ack(1, b"original")),
             Response::Pending
         ));
-        queue.complete(request.key, Ok(b"receipt".to_vec()));
+        queue.complete(request.key, Ok(*b"receipt"));
         for _ in 0..2 {
             assert!(
-                matches!(queue.submit(ack(1,b"original")), Response::Completed(Ok(bytes)) if bytes==b"receipt")
+                matches!(queue.submit(ack(1,b"original")), Response::Completed(Ok(bytes)) if bytes==*b"receipt")
             );
         }
         assert!(queue.take().is_none());
@@ -147,7 +137,7 @@ mod tests {
     }
     #[test]
     fn refused_empty_slot_can_be_inspected_again_after_rotation() {
-        let mut queue = Queue::new();
+        let mut queue = Queue::<[u8; 7]>::new();
         queue.submit(Request::offer(3));
         let request = queue.take().unwrap();
         queue.complete(request.key, Err(()));
