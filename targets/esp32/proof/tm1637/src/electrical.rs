@@ -1,10 +1,13 @@
 //! Owned open-drain diagnostic pins; no assumed voltage translation.
 use conduit_tm1637_wire::OpenDrain;
-use core::convert::Infallible;
 use esp_hal::{
     delay::Delay,
     gpio::{Flex, InputConfig, Pin, Pull},
 };
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DisplayPinError {
+    ClockDidNotRise,
+}
 pub struct DisplayPins<'a> {
     clock: Flex<'a>,
     data: Flex<'a>,
@@ -45,9 +48,20 @@ impl<'a> DisplayPins<'a> {
     }
 }
 impl OpenDrain for DisplayPins<'_> {
-    type Error = Infallible;
+    type Error = DisplayPinError;
     fn clock(&mut self, released: bool) -> Result<(), Self::Error> {
         self.clock.set_output_enable(!released);
+        if released {
+            // Count the high half-period only after the released physical line
+            // has risen. A finite refusal replaces an assumed clock edge.
+            for _ in 0..1000 {
+                if self.clock.is_high() {
+                    return Ok(());
+                }
+                self.delay.delay_micros(1);
+            }
+            return Err(DisplayPinError::ClockDidNotRise);
+        }
         Ok(())
     }
     fn data(&mut self, released: bool) -> Result<(), Self::Error> {

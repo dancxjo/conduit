@@ -16,17 +16,49 @@ embassy_rp::bind_interrupts!(struct CaptureIrqs{PIO1_IRQ_0=>embassy_rp::pio::Int
 embassy_rp::bind_interrupts!(struct CaptureIrqs{PIO1_IRQ_0=>embassy_rp::pio::InterruptHandler<config::CapturePio>;DMA_IRQ_0=>embassy_rp::dma::InterruptHandler<config::CaptureDma>;});
 // Only electrical timing changes: every transition and ACK read remains with
 // the actual owned provider. No swap, driven-high pin or synthetic ACK exists.
-struct ConfiguredDisplay(PicoTm1637<'static>);
+struct ConfiguredDisplay {
+    pins: PicoTm1637<'static>,
+    maximum_clock_rise_us: u64,
+    clock_release_timeouts: u64,
+}
+#[derive(Clone, Copy)]
+enum DisplayError {
+    ClockDidNotRise,
+}
+
 impl OpenDrain for ConfiguredDisplay {
-    type Error = core::convert::Infallible;
+    type Error = DisplayError;
     fn clock(&mut self, released: bool) -> Result<(), Self::Error> {
-        self.0.clock(released)
+        match self.pins.clock(released) {
+            Ok(()) => {}
+            Err(error) => match error {},
+        }
+        if released {
+            let start = Instant::now();
+            for _ in 0..1000 {
+                if self.pins.levels().0 {
+                    self.maximum_clock_rise_us =
+                        self.maximum_clock_rise_us.max(start.elapsed().as_micros());
+                    return Ok(());
+                }
+                embassy_time::block_for(Duration::from_micros(1));
+            }
+            self.clock_release_timeouts = self.clock_release_timeouts.saturating_add(1);
+            return Err(DisplayError::ClockDidNotRise);
+        }
+        Ok(())
     }
     fn data(&mut self, released: bool) -> Result<(), Self::Error> {
-        self.0.data(released)
+        match self.pins.data(released) {
+            Ok(()) => Ok(()),
+            Err(error) => match error {},
+        }
     }
     fn read_data(&mut self) -> Result<bool, Self::Error> {
-        self.0.read_data()
+        match self.pins.read_data() {
+            Ok(value) => Ok(value),
+            Err(error) => match error {},
+        }
     }
     fn half_period(&mut self) -> Result<(), Self::Error> {
         embassy_time::block_for(Duration::from_micros(u64::from(
@@ -40,7 +72,7 @@ impl ConfiguredDisplay {
         let _ = self.clock(true);
         let _ = self.data(true);
         embassy_time::block_for(Duration::from_micros(1000));
-        self.0.levels()
+        self.pins.levels()
     }
 }
 #[derive(Clone, Copy)]
@@ -56,6 +88,8 @@ struct Snapshot {
     wire_error: &'static str,
     nack: Option<(u8, u8)>,
     digits: [u8; 4],
+    maximum_clock_rise_us: u64,
+    clock_release_timeouts: u64,
 }
 static STATE: critical_section::Mutex<RefCell<Snapshot>> =
     critical_section::Mutex::new(RefCell::new(Snapshot {
@@ -70,6 +104,8 @@ static STATE: critical_section::Mutex<RefCell<Snapshot>> =
         wire_error: "not-attempted",
         nack: None,
         digits: [0; 4],
+        maximum_clock_rise_us: 0,
+        clock_release_timeouts: 0,
     }));
 fn update(f: impl FnOnce(&mut Snapshot)) {
     critical_section::with(|cs| f(&mut STATE.borrow(cs).borrow_mut()))
@@ -80,6 +116,12 @@ pub fn status() -> Result<heapless::String<1536>, ()> {
     let mut out = heapless::String::new();
     write!(&mut out,"{{\"role\":\"{}\",\"build\":\"{}\",\"configuration\":\"{}\",\"sensor\":\"dht11\",\"display\":\"tm1637\",\"body_member\":false,\"attempts\":{},\"samples\":{},\"frames\":{},\"acks\":{},\"heap_peak\":{},\"status\":\"{}\"",config::ROLE,crate::protocol::BUILD_ID,config::CONFIGURATION_ID,s.attempts,s.samples,s.frames,s.acks,peak,s.error).map_err(|_|())?;
     write!(&mut out,",\"clock_gpio\":{},\"data_gpio\":{},\"half_period_us\":{},\"weak_pullups\":{},\"settled_us\":1000,\"idle_clock_high\":{},\"idle_data_high\":{},\"after_clock_high\":{},\"after_data_high\":{},\"last_wire_error\":\"{}\",\"display_frame\":[{},{},{},{}]",config::DISPLAY_CLK_GPIO,config::DISPLAY_DIO_GPIO,config::DISPLAY_HALF_PERIOD_US,config::DISPLAY_WEAK_PULLUPS,s.before.0,s.before.1,s.after.0,s.after.1,s.wire_error,s.digits[0],s.digits[1],s.digits[2],s.digits[3]).map_err(|_|())?;
+    write!(
+        &mut out,
+        ",\"maximum_clock_rise_us\":{},\"clock_release_timeouts\":{}",
+        s.maximum_clock_rise_us, s.clock_release_timeouts
+    )
+    .map_err(|_| ())?;
     if let Some((packet, byte)) = s.nack {
         write!(&mut out, ",\"nack_packet\":{packet},\"nack_byte\":{byte}").map_err(|_| ())?;
     }
@@ -106,7 +148,11 @@ pub async fn run(
     let mut sensor = PicoPulseCapture::new(&mut pio.common, pio.sm0, dma, data, program);
     let mut provider = PicoTm1637::new(clk, dio);
     provider.set_internal_pullups(config::DISPLAY_WEAK_PULLUPS);
-    let mut display = ConfiguredDisplay(provider);
+    let mut display = ConfiguredDisplay {
+        pins: provider,
+        maximum_clock_rise_us: 0,
+        clock_release_timeouts: 0,
+    };
     let mut decoder = source::SourceDecoder::prepare();
     decoder.check_adapter();
     let mut sampled = None;
@@ -160,9 +206,11 @@ pub async fn run(
             Err(Failure::Nack { packet, byte }) => ("nack", Some((*packet, *byte))),
             Err(Failure::InvalidGeometry) => ("invalid-geometry", None),
             Err(Failure::Cancelled) => ("cancelled", None),
-            Err(Failure::Provider(error)) => match *error {},
+            Err(Failure::Provider(DisplayError::ClockDidNotRise)) => ("clock-did-not-rise", None),
         };
         update(|s| {
+            s.maximum_clock_rise_us = display.maximum_clock_rise_us;
+            s.clock_release_timeouts = display.clock_release_timeouts;
             s.before = before;
             s.after = after;
             s.wire_error = wire_error;
