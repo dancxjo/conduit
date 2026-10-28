@@ -133,6 +133,33 @@ pub(crate) fn sign_durable_custody(
     verified.encode_ack(binding.credential(), signature)
 }
 
+/// Sign only an authenticated snapshot reopened after durable file retention.
+pub(crate) fn sign_durable_network_custody(
+    binding: &Path,
+    continuity_private: &Path,
+    verified: &crate::network_custody_client::VerifiedDurableSnapshot,
+) -> Result<Vec<u8>> {
+    use sha2::{Digest, Sha256};
+    let binding = crate::local_recorder::validated_binding(binding)?;
+    let bootstrap: Bootstrap = load(continuity_private)?;
+    checked(bootstrap.invitation.validate(0))?;
+    if bootstrap.root_key != *binding.root()
+        || bootstrap.invitation.claim != *binding.invitation()
+        || verified.root() != binding.root()
+        || verified.body_digest()
+            != <[u8; 32]>::from(Sha256::digest(
+                binding.credential().body_id.as_str().as_bytes(),
+            ))
+    {
+        return Err("network custody bootstrap/binding/snapshot scope differs".into());
+    }
+    let transcript = verified.signing_transcript(binding.credential())?;
+    let signature = ed25519_dalek::SigningKey::from_bytes(&bootstrap.invitation.secret)
+        .sign(&transcript)
+        .to_bytes();
+    verified.encode_ack(binding.credential(), signature)
+}
+
 /// Export the private bootstrap only into an explicitly selected local helper.
 /// The public AP/LAN page never receives this bearer secret.
 pub fn browser(input: &Path, output: &Path) -> Result<()> {
