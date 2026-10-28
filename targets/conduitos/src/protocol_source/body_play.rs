@@ -374,6 +374,25 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
     }
 }
 
+impl<C: MonotonicDeadlineProvider>
+    PreparedProtocolBodyPlay<crate::protocol_play::NoI2cProvider, C>
+{
+    /// Independently admitted SPI and contacts share the canonical Body lifecycle.
+    pub fn prepare_peripheral(
+        artifact: PreparedProtocolArtifact,
+        session: BodyLifecycleSession,
+        play_sequence: u64,
+        admission: crate::protocol_play::PeripheralAdmission,
+        clock: ClockAdmission<C>,
+    ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
+        Self::prepare_with(artifact, session, play_sequence, |artifact| {
+            artifact
+                .prepare_peripheral(admission, clock)
+                .map(|kernel| ProtocolKernel::WithClock(Box::new(kernel)))
+        })
+    }
+}
+
 fn validate_workset(
     session: &BodyLifecycleSession,
     partition: &conduit_body::BodyPlotPlan,

@@ -3,6 +3,7 @@
 mod absent_providers;
 #[cfg(any(
     target_arch = "x86_64",
+    target_arch = "arm",
     all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod authority;
@@ -17,9 +18,12 @@ mod owners;
 
 #[cfg(any(
     target_arch = "x86_64",
+    target_arch = "arm",
     all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod body;
+#[cfg(target_arch = "arm")]
+pub(crate) mod minipitft_owners;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-board"))

@@ -99,6 +99,23 @@ impl PreparedProtocolSource {
 }
 
 impl PreparedProtocolArtifact {
+    pub(crate) fn prepare_peripheral<
+        C: crate::monotonic_clock::owner::MonotonicDeadlineProvider,
+    >(
+        self,
+        admission: crate::protocol_play::PeripheralAdmission,
+        clock: crate::protocol_play::ClockAdmission<C>,
+    ) -> Result<
+        crate::protocol_play::PreparedTimedProtocolPlay<crate::protocol_play::NoI2cProvider, C>,
+        ProtocolCallRefusal,
+    > {
+        crate::protocol_play::PreparedTimedProtocolPlay::prepare_peripheral(
+            self.artifact.into_definition(),
+            admission,
+            self.operations,
+            clock,
+        )
+    }
     /// Exact packaged bytes are retained only through PreparedProtocolEntry.
     /// The digest is correlation/provenance, never storage possession.
     pub fn package_digest(&self) -> Option<&[u8; 32]> {
