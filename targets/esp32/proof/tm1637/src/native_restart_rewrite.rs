@@ -438,3 +438,6 @@ pub(super) fn verification_passes() -> usize {
 ))]
 #[path = "native_restart_frames_tests.rs"]
 mod frame_tests;
+
+#[path = "native_restart_rewrite_network.rs"]
+mod network_transition;

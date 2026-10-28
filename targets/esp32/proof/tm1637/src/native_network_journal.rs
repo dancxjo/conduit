@@ -65,7 +65,10 @@ pub fn initialize(region: NetworkRegion) -> Result<(), &'static str> {
         result
     })
 }
+#[allow(unexpected_cfgs)] // Native profile is absent from CPU archive proof.
 pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str> {
+    #[cfg(all(feature = "body-persistence", target_os = "none"))]
+    crate::native_restart::network_recovery::ensure_append_allowed()?;
     STATE.lock(|current| {
         let mut current = current.borrow_mut();
         if !matches!(current.as_ref(), Some(State::Ready(_) | State::Frozen(_))) {

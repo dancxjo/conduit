@@ -452,3 +452,7 @@ impl crate::native_observed_archive::custody_journal::WholeEpoch for Observation
         self.erase_sector(at)
     }
 }
+
+#[cfg(feature = "body-persistence")]
+#[path = "native_network_region_recovery.rs"]
+mod network_recovery;

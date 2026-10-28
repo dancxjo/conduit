@@ -381,3 +381,6 @@ fn actual_cold_service_keeps_admitted_durable_erase_authority_and_error_custody(
 
 #[path = "native_observed_cold/inspection.rs"]
 mod inspection;
+
+#[path = "native_observed_cold/private_body.rs"]
+mod private_preflight;

@@ -62,9 +62,17 @@ async fn main(spawner: Spawner) {
         #[cfg(feature = "network-credential-store")]
         crate::native_credentials::initialize_journal(regions.credentials)
             .expect("credential backing");
+        #[cfg(all(feature = "network-credential-store", feature = "body-persistence"))]
+        let network_region =
+            crate::native_restart::network_recovery::recover(regions.network_recovery)
+                .expect("authenticated network restart recovery");
+        #[cfg(all(
+            feature = "network-credential-store",
+            not(feature = "body-persistence")
+        ))]
+        let network_region = regions.network_recovery;
         #[cfg(feature = "network-credential-store")]
-        crate::native_play::journal::initialize(regions.network_recovery)
-            .expect("network recovery backing");
+        crate::native_play::journal::initialize(network_region).expect("network recovery backing");
     }
     #[cfg(feature = "local-appliance")]
     let (reclaim_submitter, maintenance_lane, pulse_gate) =

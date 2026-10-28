@@ -1,6 +1,7 @@
 //! CPU transaction and every mocked media-operation cut. Canonical ACK input
 //! is proved separately; the writer tests use independently signed DTO fixtures.
 use super::*;
+use crate::native_body_checkpoint::Storage;
 use ed25519_dalek::{Signer, SigningKey};
 use std::{cell::RefCell, rc::Rc};
 fn digest(domain: &[u8], parts: &[&[u8]]) -> [u8; 32] {

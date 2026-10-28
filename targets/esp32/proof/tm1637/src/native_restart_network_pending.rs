@@ -1,7 +1,7 @@
 //! Dedicated live Pending transition. No cursor setter, erase API or transport.
 //! Physical readback is required before a committed result can leave this module.
+use super::network_transition::write_prepared;
 use super::*;
-use crate::native_body_checkpoint::Storage;
 use conduit_core::BootId;
 
 /// Describes an accepted checkpoint, never permission to erase a region.
@@ -232,51 +232,6 @@ fn prepare<'a>(
         previous.network.as_ref(),
         cursor,
     )
-}
-struct CommittedRewrite {
-    source: crate::native_body_checkpoint::SourceSnapshot,
-    proof: payload::rewrite::AuthenticatedReceipts,
-    summary: payload::archive::Summary,
-    span: payload::archive::Span,
-}
-/// Shared with fault-injected CPU media. The emitted transcript and new
-/// fingerprint are bound to the actual two-pass writer's full physical readback.
-fn write_prepared<S: Storage>(
-    journal: &mut Checkpoint<S>,
-    binding: &[u8; 32],
-    seed: &[u8; 32],
-    previous: &ArchiveCustody,
-    prepared: &payload::rewrite::PreparedRewrite<'_>,
-) -> Result<CommittedRewrite, &'static str> {
-    let mut metadata = None;
-    let completion = journal
-        .rewrite_streamed_attested(&previous.source, binding, seed, |io| {
-            let mut read_refusal = None;
-            let next = prepared
-                .emit(
-                    |out| {
-                        io.read_source(out).map_err(|e| {
-                            read_refusal = Some(e);
-                        })
-                    },
-                    &mut |bytes| io.write(bytes),
-                )
-                .map_err(|e| read_refusal.unwrap_or_else(|| stream_refusal(e)))?;
-            if next.0 != previous.summary || metadata.as_ref().is_some_and(|prior| prior != &next) {
-                return Err(Refusal::Corrupt);
-            }
-            metadata = Some(next);
-            Ok(())
-        })
-        .map_err(checkpoint_commit_refusal)?;
-    let (source, proof) = prepared.committed(completion)?;
-    let (summary, span) = metadata.ok_or("network-pending-metadata")?;
-    Ok(CommittedRewrite {
-        source,
-        proof,
-        summary,
-        span,
-    })
 }
 #[cfg(test)]
 #[path = "native_restart_network_pending_tests.rs"]
