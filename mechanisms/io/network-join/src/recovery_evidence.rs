@@ -296,6 +296,11 @@ pub struct FrozenJournal<S> {
 }
 impl<S: Storage> FrozenJournal<S> {
     pub const MAXIMUM_CHUNK_BYTES: usize = 512;
+    /// Inspect descriptive identity through an immutable owner borrow. The
+    /// storage cannot be moved out or programmed through this entrance.
+    pub fn inspect_storage<R>(&self, read: impl FnOnce(&S) -> R) -> R {
+        read(&self.journal.storage)
+    }
     pub fn committed_count(&self) -> u8 {
         self.journal.committed_count()
     }

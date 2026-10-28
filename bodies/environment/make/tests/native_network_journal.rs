@@ -32,6 +32,11 @@ struct Flash {
 mod native_evidence_region {
     use super::*;
     pub struct NetworkRegion(pub Arc<Mutex<Flash>>);
+    impl NetworkRegion {
+        pub(crate) fn identity(&self) -> [u8; 32] {
+            [0x41; 32]
+        }
+    }
     impl conduit_environment_runtime::display_evidence_journal::Storage for NetworkRegion {
         fn capacity(&self) -> u32 {
             wire::CAPACITY
@@ -247,12 +252,14 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     }
     assert!(verifier.step(&mut [0; 512]).unwrap());
     let mut verified = verifier.finish().unwrap();
+    assert_eq!(verified.region_identity(), [0x41; 32]);
     assert_eq!(*verified.digest(), expected_digest);
     assert_eq!(verified.committed_count(), 8);
     let mut tail = [0; 1];
     verified.read_chunk(wire::CAPACITY - 1, &mut tail).unwrap();
     assert_eq!(tail, [0x7f]);
     verified.finish_with(|verified| {
+        assert_eq!(verified.region_identity(), [0x41; 32]);
         assert_eq!(*verified.digest(), expected_digest);
         assert!(journal::inspect().is_err());
         assert_eq!(
@@ -270,6 +277,7 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
         allocation_probe::observe(|| while !verifier.step(&mut [0xa5; 257]).unwrap() {});
     assert_eq!(allocation.requested_bytes, 0);
     let verified = verifier.finish().unwrap();
+    assert_eq!(verified.region_identity(), [0x41; 32]);
     assert_eq!(*verified.digest(), expected_digest);
     drop(verified);
     let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());

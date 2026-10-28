@@ -151,6 +151,12 @@ pub(crate) struct Inspection {
     frozen: Option<wire::FrozenJournal<NetworkRegion>>,
 }
 impl Inspection {
+    pub(crate) fn region_identity(&self) -> [u8; 32] {
+        self.frozen
+            .as_ref()
+            .expect("inspection owns region")
+            .inspect_storage(NetworkRegion::identity)
+    }
     pub(crate) fn committed_count(&self) -> u8 {
         self.frozen
             .as_ref()

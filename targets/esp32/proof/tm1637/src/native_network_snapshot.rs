@@ -57,6 +57,9 @@ pub(crate) struct Verified {
     digest: [u8; 32],
 }
 impl Verified {
+    pub(crate) fn region_identity(&self) -> [u8; 32] {
+        self.owner.region_identity()
+    }
     pub(crate) fn digest(&self) -> &[u8; 32] {
         &self.digest
     }

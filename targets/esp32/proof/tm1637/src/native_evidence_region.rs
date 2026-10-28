@@ -285,6 +285,19 @@ impl BodyRegion {
         Ok(())
     }
 }
+impl NetworkRegion {
+    /// Exact checked partition geometry, scoped separately by the Root key and
+    /// journal epoch in custody offers. This is descriptive, never an erase grant.
+    pub(crate) fn identity(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/physical-network-region@1\0");
+        for value in [0x400000u32, self.0.start, self.0.length] {
+            hash.update(value.to_le_bytes());
+        }
+        hash.finalize().into()
+    }
+}
 impl Storage for NetworkRegion {
     fn capacity(&self) -> u32 {
         self.0.length
