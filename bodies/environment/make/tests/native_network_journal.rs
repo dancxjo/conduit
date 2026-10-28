@@ -93,7 +93,8 @@ struct RetiredNetworkControl {
 }
 #[allow(dead_code)]
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_network_journal.rs"]
-mod journal;
+pub(crate) mod journal;
+include!("native_network_export_adapter.rs");
 fn retired(n: u64) -> RetiredNetworkControl {
     use conduit_kernel::SignSink;
     let mut signs = conduit_kernel::FixedSignLog::<128>::new(
@@ -375,5 +376,112 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert!(journal::inspect().is_ok());
     assert_eq!(flash.lock().unwrap().bytes, expected);
     assert_eq!(flash.lock().unwrap().writes, writes);
+    use conduit_environment_http::network_custody::{Reply, Request};
+    let make_draft = || {
+        let mut verifier = journal::snapshot::Verifier::start(journal::inspect().unwrap());
+        while !verifier.step(&mut [0; 512]).unwrap() {}
+        let draft = verifier
+            .finish()
+            .unwrap()
+            .offer(scope(), root.to_bytes())
+            .unwrap();
+        let signed = draft.signed(key.sign(&draft.transcript()).to_bytes());
+        (draft, signed)
+    };
+    let (draft, mut signed) = make_draft();
+    signed[10] ^= 1;
+    assert!(journal::snapshot::export::Export::new(draft, signed, 100).is_err());
+    let (draft, mut signed) = make_draft();
+    signed[176] ^= 1;
+    assert!(journal::snapshot::export::Export::new(draft, signed, 100).is_err());
+    let (draft, signed) = make_draft();
+    let mut export = journal::snapshot::export::Export::new(draft, signed, 100).unwrap();
+    let Reply::Offer(bytes) = export.reply(Request::Offer, 1) else {
+        panic!("offer")
+    };
+    let offer: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(offer["profile"], "network-retirement-offer@1");
+    let unhex = |text: &str| -> Vec<u8> {
+        text.as_bytes()
+            .chunks_exact(2)
+            .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
+            .collect()
+    };
+    let snapshot: [u8; 32] = unhex(offer["snapshot"].as_str().unwrap())
+        .try_into()
+        .unwrap();
+    assert_eq!(unhex(offer["offer"].as_str().unwrap()), signed);
+    assert!(matches!(
+        export.reply(
+            Request::Chunk {
+                snapshot: [0; 32],
+                offset: 0
+            },
+            1
+        ),
+        Reply::Refused
+    ));
+    assert!(matches!(
+        export.reply(
+            Request::Chunk {
+                snapshot,
+                offset: 1
+            },
+            1
+        ),
+        Reply::Refused
+    ));
+    assert!(matches!(
+        export.reply(
+            Request::Chunk {
+                snapshot,
+                offset: 32768
+            },
+            1
+        ),
+        Reply::Refused
+    ));
+    flash.lock().unwrap().fail_read = true;
+    assert!(matches!(
+        export.reply(
+            Request::Chunk {
+                snapshot,
+                offset: 0
+            },
+            1
+        ),
+        Reply::Unavailable
+    ));
+    let mut received = Vec::new();
+    for offset in (0..32768).step_by(512) {
+        let Reply::Offer(bytes) = export.reply(Request::Chunk { snapshot, offset }, 99) else {
+            panic!("chunk")
+        };
+        assert!(bytes.len() <= journal::snapshot::export::REPLY_BYTES);
+        let chunk: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(chunk["snapshot"], offer["snapshot"]);
+        assert_eq!(chunk["offset"], offset);
+        let data = unhex(chunk["bytes"].as_str().unwrap());
+        assert_eq!(data.len(), 512);
+        received.extend(data);
+        let mut response = heapless::String::new();
+        assert!(conduit_environment_http::network_custody::render(
+            Reply::Offer(bytes),
+            &mut response
+        ));
+        assert!(response.starts_with("HTTP/1.1 200 OK"));
+    }
+    assert_eq!(received, expected);
+    assert!(!export.expired(99));
+    assert!(export.expired(100));
+    assert!(matches!(export.reply(Request::Offer, 100), Reply::Refused));
+    assert!(journal::inspect().is_err());
+    drop(export);
+    assert!(journal::inspect().is_ok());
+    assert_eq!(flash.lock().unwrap().writes, writes);
+    assert_eq!(flash.lock().unwrap().bytes, expected);
+    exercise_root_export();
+    assert_eq!(flash.lock().unwrap().writes, writes);
+    assert_eq!(flash.lock().unwrap().bytes, expected);
     println!("scratch={} bytes; retained after open/append=0; eight exact Boot records; final-slot commit retry preserved",wire::MAXIMUM_BYTES);
 }

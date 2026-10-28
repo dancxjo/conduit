@@ -33,6 +33,13 @@ mod mask;
 #[cfg(any(feature = "target-memory-check", feature = "target-mask-memory-check"))]
 #[path = "native_memory_check.rs"]
 pub(crate) mod memory_check;
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    target_os = "none"
+))]
+#[path = "native_root_network_export.rs"]
+mod network_export;
 #[path = "native_network_offer.rs"]
 mod network_offer;
 #[cfg(not(feature = "flat-network-appliance"))]
@@ -43,11 +50,15 @@ mod network_plan;
     feature = "body-persistence",
     target_os = "none"
 ))]
-#[path = "native_root_observed_offer.rs"]
-mod observed_offer;
-#[cfg(all(feature = "local-appliance", feature = "body-persistence", target_os = "none"))]
 #[path = "native_root_network_snapshot.rs"]
 pub(crate) mod network_snapshot;
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    target_os = "none"
+))]
+#[path = "native_root_observed_offer.rs"]
+mod observed_offer;
 #[path = "native_offer.rs"]
 mod offers;
 #[path = "native_root_policy.rs"]

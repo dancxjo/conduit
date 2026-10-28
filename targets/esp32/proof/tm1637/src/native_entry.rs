@@ -168,6 +168,8 @@ async fn main(spawner: Spawner) {
                     // remains a separate scoped entrance.
                     #[cfg(feature = "body-persistence")]
                     root.advance_observed_reclaim();
+                    #[cfg(feature = "body-persistence")]
+                    root.advance_network_export();
                     if !root.local_renewal_pending() {
                         root.prepare_setup();
                         let _ = await_outlined(root.advance_setup_prepared()).await;
