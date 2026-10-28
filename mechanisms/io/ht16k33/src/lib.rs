@@ -144,7 +144,8 @@ impl Glyph {
             'h' => 0x1070,
             'r' => 0x0050,
             'o' => 0x00dc,
-            '°' => 0x0063,
+            // Upper loop spans both middle halves on an alpha14 display.
+            '°' => 0x00e3,
             _ => return Err(Refusal::Glyph),
         };
         Ok(Self(bits))

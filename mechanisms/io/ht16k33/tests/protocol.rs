@@ -161,3 +161,37 @@ fn finite_alpha_profile_preserves_positions_decimal_and_refuses_aliases() {
     assert!(Profile::new([0, 1, 2, 3], [0; 14], 14).is_err());
     assert!(Profile::new([0, 1, 2, 3], core::array::from_fn(|i| i as u8), 0).is_err());
 }
+
+#[test]
+fn degree_has_complete_upper_loop_in_exact_controller_wire_words() {
+    let profile = Profile::adafruit_alpha4();
+    let glyphs = ['7', '2', '°', 'F'].map(|c| Glyph::from_char(c).unwrap());
+    let frame = profile.encode(glyphs, [false; 4]);
+    assert_eq!(
+        frame,
+        [7, 0, 0xdb, 0, 0xe3, 0, 0x71, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+    let degree = u16::from_le_bytes([frame[4], frame[5]]);
+    assert_eq!(
+        degree & 0x0063,
+        0x0063,
+        "top and both upper verticals preserved"
+    );
+    assert_eq!(
+        degree & 0x00c0,
+        0x00c0,
+        "both bottom halves close the upper loop"
+    );
+    assert_eq!(
+        degree & !0x00e3,
+        0,
+        "no lower verticals or diagonal substitute"
+    );
+    let mut bus = Bus::default();
+    run(write_frame(&mut bus, Address::new(0x70).unwrap(), &frame)).unwrap();
+    assert_eq!(bus.lengths[0], 17);
+    assert_eq!(
+        bus.packets[0],
+        [0, 7, 0, 0xdb, 0, 0xe3, 0, 0x71, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
+}
