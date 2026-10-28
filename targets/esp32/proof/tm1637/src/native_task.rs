@@ -104,6 +104,11 @@ const EMPTY_STATUS: Status = Status {
     native_lifecycles: None,
     native_in_flight: None,
 };
+// CPU-only volatile status, initialized on every Boot; no DMA or peripheral backing.
+#[cfg_attr(
+    all(target_os = "none", feature = "local-appliance"),
+    esp_hal::ram(unstable(rtc_slow))
+)]
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     cancel_requested: false,
     status: EMPTY_STATUS,
