@@ -13,6 +13,17 @@ pub const PERIOD_MS: u64 = 3000;
 pub const MAXIMUM_CHILDREN: u64 = 960 * 60_000 / PERIOD_MS;
 // Keep the actual refusal class: failed GPIO delivery is materially different
 // from an output reservation or a capability refusal before electrical work.
+#[cold]
+#[inline(never)]
+fn report_wire_nack(packet: u8, byte: u8) {
+    // Existing wire evidence only: zero-based Source packet/byte offsets. No
+    // additional pin access, retry, allocation or retained diagnostic backing.
+    esp_println::println!(
+        "{{\"event\":\"native-mask-wire-nack\",\"packet\":{},\"byte\":{}}}",
+        packet,
+        byte
+    );
+}
 fn presentation_refusal<E>(
     error: k::scheduler::HostEncodingRefusal<r::DeliveryRefusal<E>>,
 ) -> &'static str {
@@ -35,7 +46,10 @@ fn presentation_refusal<E>(
                 "mask-present-wire-geometry"
             }
             D::Electrical(conduit_tm1637_wire::Failure::Cancelled) => "mask-present-wire-cancelled",
-            D::Electrical(conduit_tm1637_wire::Failure::Nack { .. }) => "mask-present-wire-nack",
+            D::Electrical(conduit_tm1637_wire::Failure::Nack { packet, byte }) => {
+                report_wire_nack(packet, byte);
+                "mask-present-wire-nack"
+            }
             D::Electrical(conduit_tm1637_wire::Failure::Provider(_)) => {
                 "mask-present-wire-provider"
             }
