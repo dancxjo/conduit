@@ -1,0 +1,34 @@
+# Phase 0: initial safe-off; 1: D/C; 2: wire; 3: time observation;
+# 4: deadline; 5: chunk input; 6: chunk wire; 7: illuminate; 8: complete;
+# 9: mandatory safe-off after failure; 10: terminal refusal.
+# Wire step 14 sets D/C high after RAMWR, before accepting pixel chunks.
+plot st7789-command-bank (
+    bank: Bytes <= 2048B >>
+) {
+    literal: bytes/literal("01113a5536c02113292a000000ef2b0050013f2c")
+    literal >> bank
+}
+plot st7789-bank-begin (
+    bank: Bytes <= 2048B >> begin: St7789Begin
+) = ({ bank: bytes/window(., 0, 20) })
+
+plot st7789-step-high (
+    state: St7789State...| >> high: Boolean...|
+) = ((.step == 3 || .step == 5 || .step == 10 || .step == 12 || .step == 14))
+plot st7789-step-length (
+    state: St7789State...| >> count: U64...|
+) = ((.step == 10 || .step == 12 ? 4 : 1))
+plot st7789-step-delay (
+    state: St7789State...| >> delay: U64...|
+) = (.step == 0 ? 150 : (.step == 1 || .step == 8 ? 500 : (.step == 3 || .step == 7 ? 10 : 0)))
+
+plot st7789-protocol-action (
+    state: St7789State...| >> action: St7789Action...|
+) = ((.phase < 5 ? (.phase < 2 ? (.phase == 0 ? backlight({ ordinal: .ordinal, request: drive({ high: false }) }) : command-data({ ordinal: .ordinal, request: drive({ high: (.step == 3 || .step == 5 || .step == 10 || .step == 12 || .step == 14) }) })) : (.phase == 2 ? spi({ ordinal: .ordinal, request: { output: (.step == 10 || .step == 12 ? bytes/window(.bank, (.step == 10 ? 10 : 15), 4) : bytes/window(.bank, (.step < 10 ? .step : (.step == 11 ? 14 : 19)), 1)) } }) : clock({ ordinal: .ordinal, request: { deadline: (.phase == 3 ? 0 : .deadline) } }))) : (.phase < 8 ? (.phase == 5 ? awaiting-chunk({ ordinal: .ordinal, index: .chunks }) : (.phase == 6 ? spi({ ordinal: .ordinal, request: { output: .wire } }) : backlight({ ordinal: .ordinal, request: drive({ high: true }) }))) : (.phase == 8 ? completed({ value: .chunks }) : (.phase == 9 ? backlight({ ordinal: .ordinal, request: drive({ high: false }) }) : refused({ value: .failure }))))))
+
+plot st7789-protocol-frame (
+    state: St7789State...| >> frame: St7789Frame...|
+) = ({ value: ., terminal: .phase == 8 || .phase == 10 })
+plot st7789-protocol-frame-value (
+    frame: St7789Frame...| >> state: St7789State...|
+) = (.value)

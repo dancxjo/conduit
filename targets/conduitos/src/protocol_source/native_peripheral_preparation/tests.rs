@@ -2,22 +2,10 @@
 //! These fixtures establish no physical attachment or hardware entropy proof.
 use super::*;
 use crate::{
-    digital_base::{
-        DigitalDisposition, DigitalRequest,
-        installation::{DIGITAL_AUTHORITY, DigitalNativeIdentity},
-        owner::DigitalAttachment,
-    },
-    monotonic_clock::{
-        codec::ClockDisposition,
-        installation::{CLOCK_AUTHORITY, ClockNativeIdentity},
-        owner::MAXIMUM_POLL_STEPS,
-    },
+    digital_base::{DigitalDisposition, DigitalRequest},
+    monotonic_clock::codec::ClockDisposition,
     protocol_source::ProtocolSourcePackage,
-    spi_base::{
-        SpiDisposition, SpiTransaction,
-        installation::{SPI_AUTHORITY, SpiNativeIdentity},
-        owner::SpiAttachment,
-    },
+    spi_base::{SpiDisposition, SpiTransaction},
 };
 use alloc::{format, rc::Rc};
 use core::cell::RefCell;
@@ -103,41 +91,7 @@ impl MonotonicDeadlineProvider for Provider {
         self.stop();
     }
 }
-fn authority(
-    name: &str,
-    contract: &str,
-    call: &str,
-    kind: &str,
-    capability: &str,
-    bytes: u32,
-    work: u64,
-) -> BaseCapabilityAuthority {
-    BaseCapabilityAuthority {
-        grant: AuthorityGrant {
-            grant_id: format!("grant/{name}").into(),
-            contract_id: contract.into(),
-            host_call_contract_id: call.into(),
-            subject_kind: kind.into(),
-            host_id: "host/peripheral-fixture".into(),
-            boot_id: "boot/peripheral-fixture".into(),
-            capability_id: capability.into(),
-        },
-        base_instance_id: format!("provider/{name}").into(),
-        base_provider_generation: 1,
-        resource_pool_id: format!("resource/{name}").into(),
-        resource_generation_id: ResourceGenerationId(format!("generation/{name}/1")),
-        operation_contract_id: call.into(),
-        envelope_id: format!("envelope/{name}").into(),
-        maximum_parameter_bytes: bytes,
-        maximum_result_bytes: bytes,
-        maximum_work_units: work,
-        maximum_in_flight: 1,
-        maximum_operations: 8,
-    }
-}
-fn issuer(a: BaseCapabilityAuthority, key: u8) -> NativeProtocolIssuer {
-    NativeProtocolIssuer::from_test_authority(a, [key; 32]).unwrap()
-}
+mod owners;
 struct Fixture {
     entry: PreparedProtocolEntry,
     session: BodyLifecycleSession,
@@ -160,145 +114,28 @@ fn fixture() -> Fixture {
         .map(|gear| gear.gear_id.clone())
         .collect();
     assert_eq!(gears.len(), 2);
-    let spi_a = authority(
-        "spi",
-        SPI_AUTHORITY,
-        crate::spi_base::contract::SPI_CALL,
-        "machine/spi/exchange",
-        "conduitos/spi-exchange@1",
-        4096,
-        1,
-    );
-    let clock_a = authority(
-        "clock",
-        CLOCK_AUTHORITY,
-        crate::monotonic_clock::contract::CLOCK_CALL,
-        "machine/clock/at",
-        "conduitos/monotonic-clock-at@1",
-        512,
-        MAXIMUM_POLL_STEPS,
-    );
-    let host = HostAdvertisement {
-        protocol_version: PROTOCOL_VERSION,
-        host_id: spi_a.grant.host_id.clone(),
-        boot_id: spi_a.grant.boot_id.clone(),
-        offer_generation: OfferGeneration(1),
-        profile: "conduitos/native@1".into(),
-        bases: vec![],
-        resources: vec![],
-        capabilities: vec![],
-        planner_capabilities: vec![],
-    };
-    let expanded = &entry.expanded().expanded;
-    let session = crate::protocol_test_support::protocol_body_for_resident(
-        &conduit_body::ResidentPlot::new(
-            expanded.source_document_id.clone(),
-            expanded.checked_plot_id.clone(),
-        ),
-        &host.host_id,
-        &host.boot_id,
-    );
     let counts = Rc::new(RefCell::new(Counts::default()));
     let provider = |index| Provider {
         counts: counts.clone(),
         index,
     };
-    let spi = unsafe {
-        ReadySpiBase::new(
-            SpiNativeIdentity {
-                host_id: host.host_id.clone(),
-                boot_id: host.boot_id.clone(),
-                base_id: "base/spi".into(),
-                provider_instance_id: spi_a.base_instance_id.clone(),
-                provider_generation: 1,
-                resource_pool_id: spi_a.resource_pool_id.clone(),
-                resource_generation_id: spi_a.resource_generation_id.clone(),
-                envelope_id: spi_a.envelope_id.clone(),
-                artifact_id: "artifact/fixture".into(),
-            },
-            SpiAttachment {
-                generation: 1,
-                resource_bytes: 512,
-            },
-            provider(0),
-        )
-    }
-    .unwrap()
-    .erase();
-    let mut digital = Vec::new();
-    for (index, gear) in gears.iter().enumerate() {
-        let name = format!("contact-{index}");
-        let capability = format!("capability/{name}");
-        let a = authority(
-            &name,
-            DIGITAL_AUTHORITY,
-            crate::digital_base::contract::DIGITAL_CALL,
-            "machine/digital/access",
-            &capability,
-            512,
-            1,
-        );
-        let ready = unsafe {
-            ReadyDigitalBase::new(
-                DigitalNativeIdentity {
-                    capability_id: capability.into(),
-                    host_id: host.host_id.clone(),
-                    boot_id: host.boot_id.clone(),
-                    base_id: format!("base/{name}").into(),
-                    provider_instance_id: a.base_instance_id.clone(),
-                    provider_generation: 1,
-                    resource_pool_id: a.resource_pool_id.clone(),
-                    resource_generation_id: a.resource_generation_id.clone(),
-                    envelope_id: a.envelope_id.clone(),
-                    artifact_id: "artifact/fixture".into(),
-                },
-                DigitalAttachment {
-                    generation: 1,
-                    resource_bytes: 1,
-                },
-                provider(index + 1),
-            )
-        }
-        .unwrap()
-        .erase();
-        digital.push(NativeDigitalOwner {
-            gear: gear.clone(),
-            ready,
-            issuer: issuer(a, index as u8 + 2),
-        });
-    }
-    let clock = unsafe {
-        ReadyClockBase::new(
-            ClockNativeIdentity {
-                host_id: host.host_id.clone(),
-                boot_id: host.boot_id.clone(),
-                base_id: "base/clock".into(),
-                provider_instance_id: clock_a.base_instance_id.clone(),
-                provider_generation: 1,
-                resource_pool_id: clock_a.resource_pool_id.clone(),
-                resource_generation_id: clock_a.resource_generation_id.clone(),
-                envelope_id: clock_a.envelope_id.clone(),
-                artifact_id: "artifact/fixture".into(),
-            },
-            provider(3),
-        )
-    }
-    .unwrap();
+    let (session, host, owners) = owners::prepare(
+        &entry,
+        [gears[0].clone(), gears[1].clone()],
+        provider(0),
+        [provider(1), provider(2)],
+        provider(3),
+    );
     Fixture {
         entry,
         session,
         host,
-        owners: NativePeripheralOwners {
-            spi,
-            spi_issuer: issuer(spi_a, 1),
-            digital,
-            clock,
-            clock_issuer: issuer(clock_a, 4),
-        },
+        owners,
         counts,
         gears,
     }
 }
+
 fn record(schema: &StructuredInfoType, bytes: &[u8]) -> Vec<u8> {
     let StructuredInfoTypeShape::Record { fields, .. } = schema.shape() else {
         panic!("record");

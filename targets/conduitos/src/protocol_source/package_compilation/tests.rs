@@ -249,4 +249,5 @@ fn larger_finite_specializations_preserve_the_exact_declared_envelope() {
 
 mod peripheral;
 
+mod st7789;
 mod two_button;

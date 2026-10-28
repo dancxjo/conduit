@@ -23,6 +23,7 @@ pub struct NativeDigitalOwner {
     pub issuer: NativeProtocolIssuer,
 }
 pub struct NativePeripheralOwners<C> {
+    pub sign_storage: conduit_composite::KernelCompositeSignStorage,
     pub spi: ReadySpiBase<Box<dyn SpiProvider>>,
     pub spi_issuer: NativeProtocolIssuer,
     pub digital: Vec<NativeDigitalOwner>,
@@ -217,6 +218,7 @@ pub fn prepare_native_peripheral<C: MonotonicDeadlineProvider>(
                 handle: clock.handle,
                 claim: clock.claim,
             },
+            owners.sign_storage,
         ) {
             Ok(play) => Ok(play),
             Err(refusal) => {

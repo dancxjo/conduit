@@ -75,6 +75,13 @@ bench = false
 required-features = ["armv6-rpi-b-plus-a3"]
 
 [[bin]]
+name = "conduitos-armv6-rpi-b-plus-minipitft"
+path = "proof/appliances/armv6-rpi-b-plus/minipitft.rs"
+test = false
+bench = false
+required-features = ["armv6-rpi-b-plus-minipitft"]
+
+[[bin]]
 name = "conduitos-ia32-a0"
 path = "proof/appliances/ia32/a0.rs"
 test = false
@@ -183,7 +190,8 @@ usb-configuration-proof = []
 usb-endpoint-read-proof = ["scripted-keyboard-proof"]
 usb-hid-endpoint-proof = ["usb-endpoint-read-proof"]
 usb-hid-mouse-proof = ["usb-hid-endpoint-proof"]
-native-compositor-core = ["dep:fontdue"]
+native-face-raster = ["dep:fontdue"]
+native-compositor-core = ["native-face-raster"]
 native-compositor = ["native-compositor-core", "native-owner-network"]
 # Selected only by the explicit native latency observation entrance.
 native-latency-observation = ["native-compositor"]
@@ -212,6 +220,8 @@ aarch64-jetson-nano = ["aarch64-board"]
 armv6-rpi-b-plus-a0 = []
 armv6-rpi-b-plus-a2 = []
 armv6-rpi-b-plus-a3 = []
+# Explicit physical display diagnostic; complete button/product support is separate.
+armv6-rpi-b-plus-minipitft = ["native-face-raster"]
 ia32-a0 = []
 ia32-a2 = []
 ia32-a3 = []

@@ -22,8 +22,18 @@ mod owners;
     all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod body;
+pub mod frame_chunks;
+#[cfg(all(target_arch = "arm", feature = "armv6-rpi-b-plus-minipitft"))]
+pub mod minipitft;
+#[cfg(feature = "native-face-raster")]
+pub(crate) mod minipitft_face;
+#[cfg(test)]
+mod minipitft_kernel_tests;
 #[cfg(target_arch = "arm")]
 pub(crate) mod minipitft_owners;
+#[cfg(all(target_arch = "arm", feature = "native-face-raster"))]
+mod minipitft_runtime;
+pub(crate) mod minipitft_source;
 #[cfg(any(
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-board"))

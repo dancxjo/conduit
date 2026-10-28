@@ -47,20 +47,27 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         admission: PeripheralAdmission,
         operations: crate::protocol_operations::ProtocolOperations,
     ) -> Result<Self, ProtocolCallRefusal> {
-        Self::prepare_peripheral_mode(definition, admission, operations, false)
+        Self::prepare_peripheral_mode(
+            definition,
+            admission,
+            operations,
+            false,
+            conduit_composite::KernelCompositeSignStorage::default(),
+        )
     }
     pub(super) fn prepare_peripheral_mode(
         definition: KernelCompositeDefinition,
         admission: PeripheralAdmission,
         operations: crate::protocol_operations::ProtocolOperations,
         allow_clock: bool,
+        sign_storage: conduit_composite::KernelCompositeSignStorage,
     ) -> Result<Self, ProtocolCallRefusal> {
         Self::prepare_selected(
             definition,
             operations,
             allow_clock,
             PhysicalMode::Peripheral,
-            conduit_composite::KernelCompositeSignStorage::default(),
+            sign_storage,
             |plan, zip, states| {
                 PreparedProtocolCalls::prepare_peripheral(plan, admission, zip, states)
             },

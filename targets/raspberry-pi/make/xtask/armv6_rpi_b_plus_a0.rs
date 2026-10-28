@@ -11,12 +11,14 @@ use crate::cli::GlobalOpts;
 
 use super::{
     armv6_rpi_board::Armv6RpiBoard,
+    armv6_rpi_profile::RpiImageProfile,
     profile::Paths,
     report::{git_head, sha256_file, ArtifactRole, BuildRecord},
-    ConduitosArch, ConduitosError,
+    ConduitosError,
 };
 
 pub const TARGET: &str = "armv6-none-eabi";
+#[cfg(test)]
 const BINARY: &str = "conduitos-armv6-rpi-b-plus-a3";
 const ENTRY: &str = "conduitos_armv6_rpi_b_plus_product_entry";
 const LOAD_ADDRESS: u32 = 0x8000;
@@ -52,10 +54,21 @@ struct Inspection {
 }
 
 pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
-    let paths = Paths::new(ConduitosArch::Armv6)?;
+    execute_profile(board, RpiImageProfile::Product, opts)
+}
+
+pub(super) fn execute_profile(
+    board: Armv6RpiBoard,
+    profile: RpiImageProfile,
+    opts: &GlobalOpts,
+) -> Result<BuildRecord, ConduitosError> {
+    profile.validate(board)?;
+    let paths = profile.paths()?;
+    let binary = profile.binary();
+    let feature = profile.feature();
     if opts.dry_run {
         println!(
-            "cargo build -Zbuild-std=core,alloc -p conduitos --bin {BINARY} --features armv6-rpi-b-plus-a3 --target {TARGET} --release"
+            "cargo build -Zbuild-std=core,alloc -p conduitos --bin {binary} --features {feature} --target {TARGET} --release"
         );
         return record(&paths, "dry-run".into());
     }
@@ -70,9 +83,9 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
             "-p",
             "conduitos",
             "--bin",
-            BINARY,
+            binary,
             "--features",
-            "armv6-rpi-b-plus-a3",
+            feature,
             "--target",
             TARGET,
             "--release",
@@ -84,11 +97,17 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
         .env("CARGO_PROFILE_RELEASE_STRIP", "debuginfo")
         .env(
             "CONDUITOS_BUILD_ID",
-            format!("conduitos-build/{base_commit}/{}/v1", board.identity_slug()),
+            format!(
+                "conduitos-build/{base_commit}/{}/v1",
+                profile.identity_slug(board)
+            ),
         )
         .env(
             "CONDUITOS_IMAGE_ID",
-            format!("conduitos-image/{base_commit}/{}/v1", board.identity_slug()),
+            format!(
+                "conduitos-image/{base_commit}/{}/v1",
+                profile.identity_slug(board)
+            ),
         )
         .env("CONDUITOS_BOARD_ID", board.id())
         .env(
@@ -105,7 +124,11 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
         return Err(refusal("armv6-compile-link-failed", status));
     }
 
-    let built = built_binary_path(&paths.root, std::env::var_os("CARGO_TARGET_DIR").as_deref());
+    let built = built_binary_path(
+        &paths.root,
+        std::env::var_os("CARGO_TARGET_DIR").as_deref(),
+        binary,
+    );
     fs::copy(&built, &paths.kernel).map_err(|error| refusal("build-output-unavailable", error))?;
     let elf = fs::read(&paths.kernel).map_err(|error| refusal("artifact-unavailable", error))?;
     let facts = inspect_elf(&elf)?;
@@ -141,9 +164,10 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
         kernel_image_bytes: image.len(),
     };
     fs::write(
-        paths
-            .target
-            .join(format!("{}-a0-inspection.json", board.artifact_slug())),
+        paths.target.join(format!(
+            "{}-a0-inspection.json",
+            profile.artifact_slug(board)
+        )),
         serde_json::to_vec_pretty(&inspection)
             .map_err(|error| refusal("build-record-failed", error))?,
     )
@@ -152,7 +176,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
     fs::write(
         paths
             .target
-            .join(format!("{}-build.json", board.artifact_slug())),
+            .join(format!("{}-build.json", profile.artifact_slug(board))),
         serde_json::to_vec_pretty(&record)
             .map_err(|error| refusal("build-record-failed", error))?,
     )
@@ -164,11 +188,11 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<BuildRecord, C
     Ok(record)
 }
 
-fn built_binary_path(root: &Path, cargo_target_dir: Option<&OsStr>) -> PathBuf {
+fn built_binary_path(root: &Path, cargo_target_dir: Option<&OsStr>, binary: &str) -> PathBuf {
     root.join(cargo_target_dir.unwrap_or_else(|| OsStr::new("target")))
         .join(TARGET)
         .join("release")
-        .join(BINARY)
+        .join(binary)
 }
 
 #[derive(Debug)]
@@ -348,15 +372,15 @@ mod tests {
         let root = Path::new("/repo");
         let artifact = format!("{TARGET}/release/{BINARY}");
         assert_eq!(
-            built_binary_path(root, None),
+            built_binary_path(root, None, BINARY),
             root.join("target").join(&artifact)
         );
         assert_eq!(
-            built_binary_path(root, Some(OsStr::new("build/cache"))),
+            built_binary_path(root, Some(OsStr::new("build/cache")), BINARY),
             root.join("build/cache").join(&artifact)
         );
         assert_eq!(
-            built_binary_path(root, Some(OsStr::new("/shared/cargo"))),
+            built_binary_path(root, Some(OsStr::new("/shared/cargo")), BINARY),
             Path::new("/shared/cargo").join(artifact)
         );
     }

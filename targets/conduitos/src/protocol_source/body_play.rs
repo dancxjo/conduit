@@ -384,10 +384,11 @@ impl<C: MonotonicDeadlineProvider>
         play_sequence: u64,
         admission: crate::protocol_play::PeripheralAdmission,
         clock: ClockAdmission<C>,
+        sign_storage: conduit_composite::KernelCompositeSignStorage,
     ) -> Result<Self, Box<ProtocolBodyPreparationRefusal>> {
         Self::prepare_with(artifact, session, play_sequence, |artifact| {
             artifact
-                .prepare_peripheral(admission, clock)
+                .prepare_peripheral(admission, clock, sign_storage)
                 .map(|kernel| ProtocolKernel::WithClock(Box::new(kernel)))
         })
     }

@@ -188,11 +188,18 @@ pub const ARCHITECTURE: &str = "loongarch64";
 #[cfg(target_arch = "arm")]
 mod armv6;
 #[cfg(target_arch = "arm")]
+pub use armv6::boot_indicator;
+#[cfg(target_arch = "arm")]
 pub use armv6::deadline;
+#[cfg(test)]
+#[path = "armv6/boot_indicator.rs"]
+mod armv6_boot_indicator_conformance;
 #[cfg(target_arch = "arm")]
 pub use armv6::entropy;
 #[cfg(target_arch = "arm")]
 pub use armv6::minipitft;
+#[cfg(target_arch = "arm")]
+pub use armv6::present as early_write;
 #[cfg(test)]
 #[path = "armv6/deadline.rs"]
 mod armv6_deadline_conformance;

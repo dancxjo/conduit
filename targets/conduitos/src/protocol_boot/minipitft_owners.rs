@@ -216,6 +216,7 @@ pub unsafe fn admit(
         .map_err(|_| "minipitft-clock-issuance-refused")?;
     Ok((
         NativePeripheralOwners {
+            sign_storage: conduit_composite::KernelCompositeSignStorage::default(),
             spi,
             spi_issuer,
             digital,

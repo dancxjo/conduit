@@ -1,0 +1,49 @@
+plot st7789-digital-context (
+    action: St7789DigitalAction...| >> context: St7789Context...|
+) = ({ ordinal: .ordinal })
+plot st7789-spi-context (
+    action: St7789SpiAction...| >> context: St7789Context...|
+) = ({ ordinal: .ordinal })
+plot st7789-clock-context (
+    action: St7789ClockAction...| >> context: St7789Context...|
+) = ({ ordinal: .ordinal })
+plot st7789-chunk-context (
+    action: St7789ChunkAction...| >> context: St7789Context...|
+) = ({ ordinal: .ordinal })
+
+plot st7789-digital-request (
+    action: St7789DigitalAction...| >> request: DigitalRequest...|
+) = (.request)
+plot st7789-spi-request (
+    action: St7789SpiAction...| >> request: SpiTransaction...|
+) = (.request)
+plot st7789-clock-request (
+    action: St7789ClockAction...| >> request: ClockRequest...|
+) = (.request)
+
+plot st7789-backlight-outcome (
+    result: DigitalResult...| >> outcome: St7789Outcome...|
+) = (backlight(.))
+plot st7789-command-data-outcome (
+    result: DigitalResult...| >> outcome: St7789Outcome...|
+) = (command-data(.))
+plot st7789-spi-outcome (
+    result: SpiResult...| >> outcome: St7789Outcome...|
+) = (spi(.))
+plot st7789-clock-outcome (
+    result: ClockResult...| >> outcome: St7789Outcome...|
+) = (clock(.))
+plot st7789-chunk-outcome (
+    result: St7789Chunk...| >> outcome: St7789Outcome...|
+) = (chunk(.))
+
+plot st7789-completion-event (
+    pair: St7789CompletionPair...| >> event: St7789Event...|
+) = ({ ordinal: .0.ordinal, outcome: .1 })
+plot st7789-state-event (
+    pair: St7789StatePair...| >> transition: St7789Transition...|
+) = ({ state: .0, event: .1 })
+
+plot st7789-terminal-value (
+    value: St7789TerminalValue...| >> output: U64...|
+) = (.value)

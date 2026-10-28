@@ -105,15 +105,17 @@ impl PreparedProtocolArtifact {
         self,
         admission: crate::protocol_play::PeripheralAdmission,
         clock: crate::protocol_play::ClockAdmission<C>,
+        sign_storage: conduit_composite::KernelCompositeSignStorage,
     ) -> Result<
         crate::protocol_play::PreparedTimedProtocolPlay<crate::protocol_play::NoI2cProvider, C>,
         ProtocolCallRefusal,
     > {
-        crate::protocol_play::PreparedTimedProtocolPlay::prepare_peripheral(
+        crate::protocol_play::PreparedTimedProtocolPlay::prepare_peripheral_with_sign_storage(
             self.artifact.into_definition(),
             admission,
             self.operations,
             clock,
+            sign_storage,
         )
     }
     /// Exact packaged bytes are retained only through PreparedProtocolEntry.

@@ -112,7 +112,7 @@ mod native_components;
 pub mod native_compositor;
 #[cfg(feature = "native-compositor-core")]
 pub mod native_face_mask;
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_guest_face;
