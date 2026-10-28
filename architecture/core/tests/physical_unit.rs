@@ -147,3 +147,40 @@ fn temperature_difference_configuration_owns_its_structured_profile_identity() {
         serde_json::from_value::<ExactTemperatureDifferenceConfigurationValue>(encoded).is_err()
     );
 }
+
+#[test]
+fn immutable_common_unit_decode_matches_complete_decoder_for_every_byte() {
+    for unit in [
+        Unit::Celsius,
+        Unit::Fahrenheit,
+        Unit::Kelvin,
+        Unit::Percent,
+        Unit::Pascal,
+    ] {
+        let wire = unit.encode();
+        assert_eq!(
+            UnitDefinition::decode(&wire).map(Unit::from_definition),
+            Ok(unit)
+        );
+        assert_eq!(Unit::decode(&wire), Ok(unit));
+        for at in 0..wire.len() {
+            let mut altered = wire;
+            altered[at] ^= 1;
+            let full = UnitDefinition::decode(&altered)
+                .map(Unit::from_definition)
+                .map_err(UnitRefusal::Definition);
+            assert_eq!(
+                Unit::decode(&altered),
+                full,
+                "{} byte {}",
+                unit.symbol(),
+                at
+            );
+        }
+    }
+    // Valid independently authored definitions keep the general path.
+    let alias = Unit::Celsius.with_symbol_alias("test_temperature").unwrap();
+    assert_eq!(Unit::decode(&alias.encode()), Ok(alias));
+    let prefixed = Unit::resolve("mPa").unwrap();
+    assert_eq!(Unit::decode(&prefixed.encode()), Ok(prefixed));
+}

@@ -130,13 +130,19 @@ impl DimensionDefinition {
     }
     pub fn encode(self) -> [u8; DIMENSION_DEFINITION_ENCODED_LEN] {
         let mut output = [0; DIMENSION_DEFINITION_ENCODED_LEN];
-        output[0] = self.length;
-        for (index, term) in self.terms.iter().enumerate() {
-            let start = 1 + index * 33;
-            output[start..start + 32].copy_from_slice(&term.anchor);
-            output[start + 32] = term.power as u8;
-        }
+        let mut at = 0;
+        self.write_encoding(&mut |part| {
+            output[at..at + part.len()].copy_from_slice(part);
+            at += part.len();
+        });
         output
+    }
+    pub(crate) fn write_encoding(&self, write: &mut impl FnMut(&[u8])) {
+        write(&[self.length]);
+        for term in &self.terms {
+            write(&term.anchor);
+            write(&[term.power as u8]);
+        }
     }
     pub fn decode(input: &[u8]) -> Result<Self, PhysicalDefinitionRefusal> {
         if input.len() != DIMENSION_DEFINITION_ENCODED_LEN {
