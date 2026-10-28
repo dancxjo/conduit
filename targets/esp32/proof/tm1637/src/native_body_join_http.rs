@@ -1,5 +1,7 @@
 //! Untrusted proof mailbox; only the owning Root pump can admit or sign. No
 //! private invitation/continuity secret enters this HTTP state or its responses.
+#[path = "native_body_join_cache.rs"]
+mod cache;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
@@ -13,6 +15,9 @@ struct Completed {
     ticket: u32,
     digest: [u8; 32],
     bytes: Vec<u8>,
+    // Only a typed Root-issued challenge supplies a deadline. Durable admission
+    // and return receipts have no transport-cache expiry.
+    deadline: Option<u64>,
 }
 struct State {
     enabled: bool,
@@ -53,6 +58,7 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
     owned.extend_from_slice(bytes);
     STATE.lock(|state| {
         let mut state = state.borrow_mut();
+        prune_completed(&mut state, embassy_time::Instant::now().as_millis());
         if !state.enabled || !crate::native_restart::publication_ready() {
             return Err("body-join-unavailable");
         }
@@ -87,7 +93,8 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
 }
 pub(crate) fn result(ticket: u32) -> ResultReply {
     STATE.lock(|state| {
-        let state = state.borrow();
+        let mut state = state.borrow_mut();
+        prune_completed(&mut state, embassy_time::Instant::now().as_millis());
         if !state.enabled {
             return ResultReply::Unavailable;
         }
@@ -116,6 +123,9 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
         }
     })
 }
+fn prune_completed(state: &mut State, now_ms: u64) {
+    cache::prune(&mut state.completed, now_ms, |done| done.deadline);
+}
 impl crate::native_root::NativeRoot {
     /// Call from Root's ordinary50ms service tick, independently of both local
     /// workers. Canonical admission and checkpoint complete before receipt release.
@@ -128,6 +138,7 @@ impl crate::native_root::NativeRoot {
         }
         let pending = STATE.lock(|state| {
             let mut state = state.borrow_mut();
+            prune_completed(&mut state, now_ms);
             state.enabled = crate::native_restart::publication_ready();
             if !state.enabled {
                 return None;
@@ -150,11 +161,13 @@ impl crate::native_root::NativeRoot {
                 .try_reserve_exact(2048)
                 .map_err(|_| "body-join-memory")?;
             bytes.resize(2048, 0);
+            let mut deadline = None;
             let length = match request {
                 crate::native_body_join::Command::ReturnChallenge(request) => {
                     let mut nonce = [0; 32];
                     crate::native_body_join_uart::entropy(&mut nonce)?;
                     let challenge = self.begin_body_observer_return(&request, nonce, now_ms)?;
+                    deadline = Some(challenge.challenge.expires_at_millis);
                     serde_json_core::to_slice(&challenge, &mut bytes)
                 }
                 crate::native_body_join::Command::Return(request) => {
@@ -172,17 +185,18 @@ impl crate::native_root::NativeRoot {
             }
             .map_err(|_| "body-join-response-capacity")?;
             bytes.truncate(length);
-            Ok::<_, &'static str>(bytes)
+            Ok::<_, &'static str>((bytes, deadline))
         })();
         STATE.lock(|state| {
             let mut state = state.borrow_mut();
             state.inflight = None;
             match result {
-                Ok(bytes) => {
+                Ok((bytes, deadline)) => {
                     state.completed = Some(Completed {
                         ticket,
                         digest,
                         bytes,
+                        deadline,
                     })
                 }
                 Err(_) => state.refused = Some(ticket),
