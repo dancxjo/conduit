@@ -219,7 +219,8 @@ export async function prepareNative({ installed, state, bodyId, build, privateRo
         await shot('notebook-native-draft');
         assert.equal(notebook().revision, 2);
         await sendKey('ret', true);
-        const action = await wait(async () => (await records('CONDUIT_NATIVE_OWNER_ACTION')).at(-1), 'native typed edit', 30000);
+        const action = await wait(async () => (await records('CONDUIT_NATIVE_OWNER_ACTION')).findLast(action =>
+          action.prior_show_id === before.shown.show_id && action.action_id === 'notebook.replace'), 'native typed edit', 30000);
         await sendKey('ret', false);
         assert.equal(action.status, 'accepted'); assert.equal(action.action_id, 'notebook.replace');
         assert.equal(action.prior_show_id, before.shown.show_id); assert.equal(action.face_id, before.shown.face_id);
