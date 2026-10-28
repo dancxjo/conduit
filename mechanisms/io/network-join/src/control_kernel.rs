@@ -275,7 +275,7 @@ impl PreparedNetworkKernelParts {
             }
         });
         let signs =
-            k::HostedSignLog::new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
+            k::HostedSignLog::try_new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
                 .map_err(|_| E::Storage)?;
         let kernel = NetworkControlKernel::new_with_host_calls(
             nodes, cords, routes, bindings, drivers, values, signs,

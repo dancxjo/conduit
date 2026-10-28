@@ -167,23 +167,30 @@ impl NativePlay {
                     return Err(());
                 }
             };
-            Ok((checked, (parts, backing)))
+            refusal_stage = 7;
+            let prepared = match finish_linked_kernel(parts, backing) {
+                Ok(prepared) => prepared,
+                Err(()) => {
+                    let (first, second) = checked.into_operations();
+                    *custody = IssuedCustody::Both(first, second);
+                    return Err(());
+                }
+            };
+            Ok((checked, prepared))
         });
         // No Plan, owner projection, grants, or borrowed lowering survives this
-        // point. Final backing was allocated only after temporary descriptions
-        // retired; initialization transfers it without a further allocation.
+        // point. Final storage is initialized and all fallible allocation has
+        // completed before the actual Ready providers become selected calls.
         drop(bases);
         self.active = active;
         match result {
-            Ok((credentials, join, (parts, backing))) => {
+            Ok((credentials, join, prepared)) => {
                 self.source = Some(credentials);
                 self.join = Some(join);
                 self.flat_refusal = IssuedCustody::Empty;
-                let result = self.finish_linked_held(parts, backing);
-                if result.is_err() {
-                    trace_flat_refusal(7, &self.flat_refusal, self.active.is_some());
-                }
-                result
+                self.prepared = Some(prepared);
+                self.phase = "installed-held";
+                Ok(())
             }
             Err((pair, ())) => {
                 trace_flat_refusal(refusal_stage, &self.flat_refusal, self.active.is_some());
@@ -194,22 +201,28 @@ impl NativePlay {
             }
         }
     }
-    /// Materialization follows completed checked-owner selection. Its scheduler
-    /// construction temporaries must not share a frame with nested planning,
-    /// capability verification or SHA preparation.
-    #[inline(never)]
-    fn finish_linked_held(
-        &mut self,
-        parts: n::PreparedNetworkKernelParts,
-        backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
-    ) -> Result<(), ()> {
-        self.prepared = Some(alloc::boxed::Box::write(
-            backing,
-            parts.finish().map_err(|_| ())?,
-        ));
-        self.phase = "installed-held";
-        Ok(())
-    }
+}
+/// Materialization occurs after all planner callbacks and checks have returned,
+/// while the actual Ready pair and both checked bearers remain affine. A Sign
+/// allocation refusal returns them before selected Host Call conversion.
+#[inline(never)]
+#[cold]
+fn finish_linked_kernel(
+    parts: n::PreparedNetworkKernelParts,
+    backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
+) -> Result<alloc::boxed::Box<PreparedNetworkKernel>, ()> {
+    #[cfg(test)]
+    let _refusal = if REFUSE_NEXT_LOG.with(|flag| flag.replace(false)) {
+        Some(crate::allocation_probe::refuse_next_allocation_size(
+            128 * core::mem::size_of::<Option<k::KernelEvent>>(),
+        ))
+    } else {
+        None
+    };
+    Ok(alloc::boxed::Box::write(
+        backing,
+        parts.finish().map_err(|_| ())?,
+    ))
 }
 
 // Keep the concrete affine issuance/checking waist out of the generic planner
@@ -337,6 +350,11 @@ fn check_linked_scope<'owner>(
 #[cfg(test)]
 std::thread_local! {
     static REFUSE_NEXT_BACKING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    static REFUSE_NEXT_LOG: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+#[cfg(test)]
+pub(super) fn refuse_next_log() {
+    REFUSE_NEXT_LOG.with(|flag| flag.set(true));
 }
 #[cfg(test)]
 pub(super) fn refuse_next_backing() {

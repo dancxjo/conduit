@@ -23,12 +23,26 @@ impl Observation {
     }
 }
 thread_local! {
+    static REFUSE_ALLOCATION_SIZE: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, deallocated_bytes: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
 }
 pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if REFUSE_ALLOCATION_SIZE
+            .try_with(|size| {
+                if size.get() == Some(layout.size()) {
+                    size.set(None);
+                    true
+                } else {
+                    false
+                }
+            })
+            .unwrap_or(false)
+        {
+            return core::ptr::null_mut();
+        }
         let pointer = unsafe { System.alloc(layout) };
         if !pointer.is_null() {
             update(layout.size(), 0, false);
@@ -94,4 +108,19 @@ pub fn observe<T>(work: impl FnOnce() -> T) -> (T, Observation) {
     drop(guard);
     let observation = OBSERVATION.with(Cell::get);
     (result, observation)
+}
+
+/// Thread-scoped allocator refusal for the actual fallible allocation path.
+/// Drop clears an unconsumed request so it cannot affect another phase/test.
+#[allow(dead_code)]
+pub struct AllocationRefusal;
+impl Drop for AllocationRefusal {
+    fn drop(&mut self) {
+        REFUSE_ALLOCATION_SIZE.with(|size| size.set(None));
+    }
+}
+#[allow(dead_code)]
+pub fn refuse_next_allocation_size(bytes: usize) -> AllocationRefusal {
+    REFUSE_ALLOCATION_SIZE.with(|size| assert!(size.replace(Some(bytes)).is_none()));
+    AllocationRefusal
 }

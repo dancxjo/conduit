@@ -323,3 +323,53 @@ fn reserved_constructor_measures_changed_overlap_explicitly() {
         stats.retained_bytes()
     );
 }
+
+#[test]
+fn actual_sign_allocation_refusal_preserves_both_ready_owners_and_issued_bearers() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let backing = NativePlay::reserve_linked_backing().unwrap();
+    flat::refuse_next_log();
+    assert!(play
+        .install_linked_reserved_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            backing
+        )
+        .is_err());
+    assert!(source.is_some() && join.is_some());
+    assert!(play.source.is_none() && play.join.is_none() && play.prepared.is_none());
+    let flat::IssuedCustody::Both(first, second) = &play.flat_refusal else {
+        panic!("actual Sign allocation refusal must retain both issued bearers");
+    };
+    let retained = (first.inspection().clone(), second.inspection().clone());
+    let active = play.active.clone().unwrap();
+    assert_eq!(retained.0.scope.active_play_id, active.active_play_id);
+    assert_eq!(retained.1.scope.active_play_id, active.active_play_id);
+    let (result, memory) = allocation_probe::observe(|| {
+        play.install_linked_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+        )
+    });
+    assert!(result.is_err());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let flat::IssuedCustody::Both(first, second) = &play.flat_refusal else {
+        panic!("lost custody");
+    };
+    assert_eq!(
+        (first.inspection(), second.inspection()),
+        (&retained.0, &retained.1)
+    );
+}
