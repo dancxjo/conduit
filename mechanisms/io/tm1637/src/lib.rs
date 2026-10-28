@@ -46,7 +46,8 @@ pub enum Failure<E> {
 }
 
 /// A transaction admits at most three packets, each containing 1..=7 bytes.
-/// Cancellation is observed before START and before each byte. On any terminal
+/// A leading STOP discards any partial transfer left by an interrupted owner.
+/// Cancellation is observed before that STOP, START and each byte. On any terminal
 /// outcome both lines are released; cleanup is best effort after provider loss.
 /// No retry, clock source, scheduling policy or ambient GPIO is introduced.
 pub fn transmit<P: OpenDrain>(
@@ -80,6 +81,12 @@ fn send<P: OpenDrain>(
     for (packet, contents) in packets.iter().enumerate() {
         if cancelled() {
             return Err(Failure::Cancelled);
+        }
+        if packet == 0 {
+            // TM1637 datasheet: STOP during command/data transfer initializes
+            // serial communication and invalidates that unfinished transfer.
+            // This runs only inside the admitted write, never at advertisement.
+            stop(pins).map_err(Failure::Provider)?;
         }
         start(pins).map_err(Failure::Provider)?;
         for (byte, value) in contents.bytes.iter().copied().enumerate() {

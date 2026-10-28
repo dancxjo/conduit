@@ -53,7 +53,19 @@ impl OpenDrain for Pins {
 fn least_significant_bit_first_and_ninth_clock_releases_data() {
     let mut pins = Pins::default();
     transmit(&mut pins, &[Packet { bytes: &[0x96] }], || false).unwrap();
-    let e = &pins.events;
+    assert_eq!(
+        &pins.events[..7],
+        &[
+            Event::Clock(false),
+            Event::Data(false),
+            Event::Delay,
+            Event::Clock(true),
+            Event::Delay,
+            Event::Data(true),
+            Event::Delay,
+        ]
+    );
+    let e = &pins.events[7..];
     assert_eq!(
         &e[..6],
         &[
@@ -173,4 +185,52 @@ fn provider_failure_at_every_transition_attempts_both_releases() {
         );
         pins.released();
     }
+}
+
+#[test]
+fn interrupted_transfer_is_stopped_before_any_new_command_and_cancel_does_not_start_recovery() {
+    struct Interrupted {
+        clock: bool,
+        data: bool,
+        stopped: bool,
+        reads: u32,
+    }
+    impl OpenDrain for Interrupted {
+        type Error = ();
+        fn clock(&mut self, released: bool) -> Result<(), ()> {
+            self.clock = released;
+            Ok(())
+        }
+        fn data(&mut self, released: bool) -> Result<(), ()> {
+            if self.clock && !self.data && released {
+                self.stopped = true;
+            }
+            self.data = released;
+            Ok(())
+        }
+        fn half_period(&mut self) -> Result<(), ()> {
+            Ok(())
+        }
+        fn read_data(&mut self) -> Result<bool, ()> {
+            self.reads += 1;
+            // Model a peripheral refusing new commands until its documented
+            // STOP condition has discarded the interrupted transfer.
+            Ok(!self.stopped)
+        }
+    }
+    let mut pins = Interrupted {
+        clock: false,
+        data: true,
+        stopped: false,
+        reads: 0,
+    };
+    transmit(&mut pins, &[Packet { bytes: &[0x40] }], || false).unwrap();
+    assert!(pins.stopped);
+    assert_eq!(pins.reads, 1);
+    let mut cancelled = Pins::default();
+    assert_eq!(
+        transmit(&mut cancelled, &[Packet { bytes: &[0x40] }], || true),
+        Err(Failure::Cancelled)
+    );
+    assert_eq!(cancelled.events, [Event::Data(true), Event::Clock(true)]);
 }
