@@ -1,4 +1,6 @@
 //! Actual private input custody retained by Root before projecting availability.
+#[path = "native_credential_backing.rs"]
+mod backing;
 #[path = "native_credential_configuration.rs"]
 mod configuration;
 #[path = "native_credential_failover.rs"]
@@ -282,19 +284,25 @@ impl RootCredentialSource {
             let journal = durable().ok_or("credential-journal-unavailable")?;
             let mut wire = PrivateWire([0; conduit_net::MAXIMUM_KNOWN_NETWORK_PRIVATE_BYTES]);
             let loaded = journal.lock(|journal| journal.borrow_mut().read(&mut wire.0));
-            self.owner = Some(Box::new(PrivateProfiles::new(match loaded {
-                Ok((revision, length)) => known::Owner::load(&wire.0[..length], revision, 2)
-                    .map_err(|_| "credential-profile-wire")?,
-                Err(journal::Refusal::Empty) => known::Owner::empty(2),
-                Err(_) => return Err("credential-journal-read"),
-            })));
+            self.owner = Some(
+                backing::try_box(PrivateProfiles::new(match loaded {
+                    Ok((revision, length)) => known::Owner::load(&wire.0[..length], revision, 2)
+                        .map_err(|_| "credential-profile-wire")?,
+                    Err(journal::Refusal::Empty) => known::Owner::empty(2),
+                    Err(_) => return Err("credential-journal-read"),
+                }))
+                .map_err(|_| "credential-owner-capacity")?,
+            );
             Ok(())
         }
         #[cfg(not(any(feature = "local-evidence-store", feature = "network-credential-store")))]
         {
             // Existing nonpersistent feature: one retained volatile private
             // owner, finite mailbox/update limits, no flash/persistence claim.
-            self.owner = Some(Box::new(PrivateProfiles::new(known::Owner::empty(2))));
+            self.owner = Some(
+                backing::try_box(PrivateProfiles::new(known::Owner::empty(2)))
+                    .map_err(|_| "credential-owner-capacity")?,
+            );
             Ok(())
         }
     }
