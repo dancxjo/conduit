@@ -21,6 +21,7 @@ fn checked_source_and_biography_replay_as_one_owner_transaction() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     write_json_atomic(&root.join("installation.json"), &installation).unwrap();
@@ -113,6 +114,7 @@ fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     write_json_atomic(&root.join("installation.json"), &installation).unwrap();
