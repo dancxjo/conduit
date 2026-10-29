@@ -13,6 +13,8 @@ use std::path::Path;
 
 #[path = "selected_host_configuration/microphone.rs"]
 mod microphone;
+#[path = "selected_host_configuration/playback.rs"]
+mod playback;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -34,6 +36,22 @@ impl Selection {
             source,
             configuration_id: checked.configuration_id().into(),
         })
+    }
+    pub(super) fn validate_speech_overlap(
+        &self,
+        speech: Option<&super::selected_speech::Selection>,
+    ) -> Result<(), String> {
+        if speech.is_some_and(|selection| selection.uses_physical_speaker())
+            && self
+                .checked()?
+                .configuration()
+                .bases
+                .iter()
+                .any(|base| base.kind == "audio/speaker" && base.initialization.is_some())
+        {
+            return Err("checked speaker conflicts with retained physical speech selection; explicitly remove one selection".into());
+        }
+        Ok(())
     }
     fn checked(&self) -> Result<CheckedHostConfiguration, String> {
         let checked = check(&self.source)?;
@@ -70,6 +88,10 @@ impl Selection {
                     let adapter = microphone::initialize(initialization, implementation)?;
                     host.attach_microphone(adapter)?;
                 }
+                Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
+                    let selected = playback::initialize(initialization, host)?;
+                    host.attach_selected_playback(selected)?;
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -100,6 +122,9 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     implementation @ (conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
                     | conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION),
                 ) => microphone::validate(initialization, implementation)?,
+                Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
+                    playback::validate(initialization)?
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -145,6 +170,9 @@ pub(super) fn configure(
     } else {
         None
     };
+    if let Some(selection) = &selection {
+        selection.validate_speech_overlap(installation.selected_speech.as_ref())?;
+    }
     installation.selected_host_configuration = selection;
     let bytes = serde_json::to_vec_pretty(&installation).map_err(|e| e.to_string())?;
     if bytes.len() > 64 * 1024 {
