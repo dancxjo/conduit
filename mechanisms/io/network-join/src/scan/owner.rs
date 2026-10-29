@@ -244,10 +244,10 @@ impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
         if id != RequestId(0) || self.invoked {
             return Err(ScanCallRefusal::StaleRequest);
         }
-        let request = NetworkScanRequest::decode(input).map_err(ScanCallRefusal::Representation)?;
-        if request != self.request {
-            return Err(ScanCallRefusal::WrongBinding);
+        if !input.is_empty() {
+            return Err(ScanCallRefusal::Representation(ScanFailure::Malformed));
         }
+        let request = self.request;
         let started = self.provider.now_ms();
         if started >= request.scan_deadline_ms {
             return Err(ScanCallRefusal::Deadline);

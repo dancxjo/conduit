@@ -5,7 +5,9 @@ pub const NETWORK_SCAN_HOST_CALL: &str = "conduit.host/network-scan@1";
 pub const NETWORK_SCAN_AUTHORITY: &str = "conduit.authority/network-scan@1";
 pub const NETWORK_SCAN_SUBJECT: &str = "authority/network-scanner";
 pub const MAXIMUM_SCAN_OBSERVATIONS: usize = 16;
-pub const MAXIMUM_SCAN_INPUT_BYTES: u32 = 28;
+pub const MAXIMUM_SCAN_INPUT_BYTES: u32 = 0;
+/// Optional private provider-context representation, never an authored input port.
+pub const SCAN_PROVIDER_CONTEXT_BYTES: usize = 28;
 pub const MAXIMUM_SCAN_OUTPUT_BYTES: u32 = 728;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ScanFailure {
@@ -16,6 +18,8 @@ pub enum ScanFailure {
     Unavailable,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Independently admitted Root invocation context supplied by the retained
+/// initialized owner. These fields are not authored or remote request input.
 pub struct NetworkScanRequest {
     pub generation: u64,
     pub scan_deadline_ms: u64,
@@ -32,7 +36,7 @@ impl NetworkScanRequest {
             Ok(self)
         }
     }
-    pub fn encode(self) -> Result<[u8; 28], ScanFailure> {
+    pub fn encode_context(self) -> Result<[u8; SCAN_PROVIDER_CONTEXT_BYTES], ScanFailure> {
         self.validate()?;
         let mut b = [0; 28];
         b[..4].copy_from_slice(b"CNS1");
@@ -48,7 +52,7 @@ impl NetworkScanRequest {
         }
         Ok(b)
     }
-    pub fn decode(b: &[u8]) -> Result<Self, ScanFailure> {
+    pub fn decode_context(b: &[u8]) -> Result<Self, ScanFailure> {
         if b.len() != 28 || &b[..4] != b"CNS1" {
             return Err(ScanFailure::Malformed);
         }
@@ -199,13 +203,6 @@ impl ScanCompletion {
 pub const NETWORK_SCAN_EXECUTION_PROFILE: &str = "conduit.network/scan-base@1";
 pub fn network_scan_contract_ref() -> conduit_core::KindDefinitionRef<'static> {
     use conduit_core::*;
-    const INPUT: &[PortDescriptorRef<'static>] = &[PortDescriptorRef {
-        port_id: "request",
-        value_kind: "network/scan-request",
-        direction: PortDirection::Input,
-        temporal: PortTemporal::Value,
-        abnormal_kind: None,
-    }];
     const OUTPUT: &[PortDescriptorRef<'static>] = &[PortDescriptorRef {
         port_id: "observations",
         value_kind: "network/scan-observations",
@@ -220,10 +217,10 @@ pub fn network_scan_contract_ref() -> conduit_core::KindDefinitionRef<'static> {
     };
     KindDefinitionRef {
         startup_parameters: &[],
-        shorthand: Some(("request", "observations")),
+        shorthand: None,
         kind_id: NETWORK_SCAN_OPERATION,
         kind_contract_revision: "conduit.network/scan@1",
-        inputs: PortDescriptorRefs::Borrowed(INPUT),
+        inputs: PortDescriptorRefs::Borrowed(&[]),
         outputs: PortDescriptorRefs::Borrowed(OUTPUT),
         configuration: &[],
         semantic_laws: &[],

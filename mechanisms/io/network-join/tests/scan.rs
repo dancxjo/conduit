@@ -291,13 +291,16 @@ fn run<T>(future: impl Future<Output = T>) -> T {
 fn selected_scan_preserves_unknown_truncation_and_requires_actual_cleanup() {
     let state = Rc::new(State::default());
     let (mut owner, node) = ready(state.clone());
-    let bytes = run(owner.invoke(
+    assert!(PreparedScanContract::prepare().kind().inputs.is_empty());
+    assert!(run(owner.invoke(
         node,
         HostCallId(0),
         RequestId(0),
-        &request().encode().unwrap(),
+        b"not-an-authored-request"
     ))
-    .unwrap();
+    .is_err());
+    assert_eq!(state.effects.get(), 0);
+    let bytes = run(owner.invoke(node, HostCallId(0), RequestId(0), &[])).unwrap();
     let mut records = [ScanObservation::EMPTY; 16];
     let completion = ScanCompletion::decode(bytes, &mut records).unwrap();
     assert!(completion.truncated());
@@ -308,13 +311,7 @@ fn selected_scan_preserves_unknown_truncation_and_requires_actual_cleanup() {
         b"actual-observed"
     );
     assert_eq!(state.effects.get(), 1);
-    assert!(run(owner.invoke(
-        node,
-        HostCallId(0),
-        RequestId(0),
-        &request().encode().unwrap()
-    ))
-    .is_err());
+    assert!(run(owner.invoke(node, HostCallId(0), RequestId(0), &[])).is_err());
     owner.revoke(node, HostCallId(0)).unwrap();
     let mut slot = Some(owner);
     assert!(NetworkScanHostCall::retire_retained(&mut slot).is_err());
@@ -332,7 +329,7 @@ fn cancellation_and_deadline_never_return_a_still_owned_provider() {
     let state = Rc::new(State::default());
     state.pending.set(true);
     let (mut owner, node) = ready(state.clone());
-    let bytes = request().encode().unwrap();
+    let bytes = [];
     {
         let mut future = core::pin::pin!(owner.invoke(node, HostCallId(0), RequestId(0), &bytes));
         assert!(future
@@ -359,13 +356,7 @@ fn late_completion_and_foreign_lowering_do_not_publish_or_transfer() {
     let state = Rc::new(State::default());
     state.late.set(true);
     let (mut owner, node) = ready(state);
-    assert!(run(owner.invoke(
-        node,
-        HostCallId(0),
-        RequestId(0),
-        &request().encode().unwrap()
-    ))
-    .is_err());
+    assert!(run(owner.invoke(node, HostCallId(0), RequestId(0), &[])).is_err());
     assert!(owner.completed_output().is_none());
     assert!(owner.completed_observations().is_none());
     assert!(owner.cleanup_required());
@@ -375,7 +366,7 @@ fn late_completion_and_foreign_lowering_do_not_publish_or_transfer() {
 fn selected_dispatch_cleanup_and_wire_validation_need_no_heap() {
     let state = Rc::new(State::default());
     let (mut owner, node) = ready(state);
-    let request = request().encode().unwrap();
+    let request = [];
     let ((), usage) = allocation_probe::observe(|| {
         let bytes = run(owner.invoke(node, HostCallId(0), RequestId(0), &request)).unwrap();
         let mut output = [ScanObservation::EMPTY; 16];
@@ -417,7 +408,7 @@ fn malformed_result_never_partially_replaces_caller_observations() {
         scan_deadline_ms: 10,
         cleanup_deadline_ms: 10
     }
-    .encode()
+    .encode_context()
     .is_err());
 }
 
@@ -425,13 +416,7 @@ fn malformed_result_never_partially_replaces_caller_observations() {
 fn canonical_compact_assignment_preserves_selected_scope_and_owner_refusals() {
     let state = Rc::new(State::default());
     let (mut owner, node) = prepare_owner_mode(state.clone(), 0, true).unwrap();
-    run(owner.invoke(
-        node,
-        HostCallId(0),
-        RequestId(0),
-        &request().encode().unwrap(),
-    ))
-    .unwrap();
+    run(owner.invoke(node, HostCallId(0), RequestId(0), &[])).unwrap();
     assert_eq!(state.effects.get(), 1);
     run(owner.cleanup()).unwrap();
     owner.revoke(node, HostCallId(0)).unwrap();
