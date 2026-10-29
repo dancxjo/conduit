@@ -98,3 +98,36 @@ impl NativeNetwork {
         }
     }
 }
+
+impl NativeNetwork {
+    /// Return an unissued scan preparation without spending its generation.
+    /// The Ready type cannot invoke the provider; actual AP acknowledgment is
+    /// still checked by the adapter before physical custody is restored.
+    pub(crate) fn return_unselected_scan(
+        &mut self,
+        ready: ReadyNetworkScanBase<ScanProvider>,
+    ) -> Result<(), ReadyNetworkScanBase<ScanProvider>> {
+        if !self.can_reclaim_restored()
+            || self.retirement.is_some()
+            || ready.native_identity().provider_generation != self.generation
+        {
+            return Err(ready);
+        }
+        let (identity, request, provider) = ready.into_unbound_parts();
+        match provider.try_into_restored() {
+            Ok(adapter) => {
+                self.adapter = Some(adapter);
+                self.selected = false;
+                Ok(())
+            }
+            Err(provider) => {
+                // SAFETY: unchanged already-validated identity/request and same
+                // exclusive provider; no issued operation was accepted here.
+                Err(
+                    unsafe { ReadyNetworkScanBase::new(identity, request, provider) }
+                        .unwrap_or_else(|_| unreachable!("unchanged scan Ready")),
+                )
+            }
+        }
+    }
+}

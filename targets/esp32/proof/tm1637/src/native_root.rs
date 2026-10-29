@@ -208,6 +208,8 @@ impl NativeRoot {
             reclaim_submitter: None,
             issuer,
             play: crate::native_play::NativePlay::new(),
+            #[cfg(all(feature = "network-scan", feature = "local-appliance"))]
+            scan: None,
             offer_generation: 1,
             #[cfg(all(not(feature = "display-ready-root"), not(feature = "local-appliance")))]
             software: Some(

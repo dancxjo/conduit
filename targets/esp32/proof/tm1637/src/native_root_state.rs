@@ -61,6 +61,8 @@ pub struct NativeRoot {
     >,
     issuer: crate::native_authority::RootIssuer,
     play: crate::native_play::NativePlay,
+    #[cfg(all(feature = "network-scan", feature = "local-appliance"))]
+    scan: Option<setup::scan::Job>,
     offer_generation: u64,
     software: Option<alloc::boxed::Box<crate::native_software::Software>>,
     pub(crate) assignment: Option<

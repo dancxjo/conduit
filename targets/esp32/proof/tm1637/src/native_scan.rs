@@ -29,7 +29,7 @@ pub(crate) struct NativeScan<P> {
 /// Original returned custody, not a durable commitment or renewal permission.
 #[must_use = "retain original scan observations and Signs until commitment"]
 pub(crate) struct RetiredNativeScan<P> {
-    pub provider: P,
+    pub provider: Option<P>,
     evidence: Option<Evidence>,
     pub signs: k::HostedSignLog,
     pub active: c::ActivePlayIdentity,
@@ -397,7 +397,7 @@ impl<P: NetworkScanProvider> NativeScan<P> {
             Err(_) => unreachable!("exclusive terminal scheduler preflight"),
         };
         Ok(RetiredNativeScan {
-            provider,
+            provider: Some(provider),
             evidence: Some(Evidence::Retained(evidence)),
             signs,
             active: self.active.take().expect("checked active"),

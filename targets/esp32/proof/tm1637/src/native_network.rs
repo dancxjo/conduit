@@ -4,7 +4,7 @@
 pub(crate) mod recovery;
 #[cfg(feature = "network-scan")]
 #[path = "native_network_scan.rs"]
-mod scan;
+pub(crate) mod scan;
 use conduit_core as c;
 use conduit_esp32_network_switch::{Esp32ApStationSwitch, Esp32NetworkJoinProvider};
 use conduit_network_join_call::installation::ReadyNetworkJoinBase;

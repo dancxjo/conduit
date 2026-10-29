@@ -171,7 +171,7 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
         assert!(scan.take_retired().is_err());
         embassy_futures::block_on(scan.restore_for_retirement()).unwrap();
         let mut retired = scan.take_retired().unwrap();
-        assert!(Rc::ptr_eq(&retired.provider.0, &state));
+        assert!(Rc::ptr_eq(&retired.provider.as_ref().unwrap().0, &state));
         assert!(!retired.evidence_seen);
         assert!(retired.evidence().completed_output().is_none());
         assert!(retired.evidence().completed_observations().is_none());
@@ -290,7 +290,7 @@ fn actual_root_scan_admission_dispatch_and_retirement_preserve_original_custody(
     let (mut retired, memory) = allocation_probe::observe(|| scan.take_retired().unwrap());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert!(retired.evidence_seen);
-    assert!(Rc::ptr_eq(&retired.provider.0, &state));
+    assert!(Rc::ptr_eq(&retired.provider.as_ref().unwrap().0, &state));
     assert_eq!(retired.evidence().completed_output().unwrap().len(), 728);
     assert_eq!(
         retired.evidence().completed_observations().unwrap().len(),

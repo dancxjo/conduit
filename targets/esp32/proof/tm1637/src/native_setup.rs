@@ -13,6 +13,9 @@ mod input;
 mod retirement;
 #[path = "native_network_retirement_backing.rs"]
 mod retirement_backing;
+#[cfg(all(feature = "network-scan", feature = "local-appliance"))]
+#[path = "native_setup_scan.rs"]
+pub(super) mod scan;
 #[cfg(feature = "network-workspace-check")]
 #[path = "native_setup_workspace_check.rs"]
 mod workspace_check;
@@ -106,6 +109,11 @@ impl NativeRoot {
         // Actual old owners/evidence returned before changing a saved profile.
         // This does not consume a later AP input or change recovery revision.
         if let Err(reason) = self.stage_saved_network_retry() {
+            #[cfg(all(feature = "network-scan", feature = "local-appliance"))]
+            if reason == "credential-policy-exhausted" {
+                drop(backing);
+                return self.prepare_recovery_scan(window);
+            }
             return reason.as_bytes();
         }
         let candidate = match self.network.recovery.preview_attempt(now) {
@@ -415,7 +423,11 @@ impl NativeRoot {
         #[cfg(feature = "flat-network-appliance")]
         self.trace_network_phase("prepared-floor-held", baseline_used);
         drop(reserve);
-        if !self.play.installed() {
+        #[cfg(feature = "network-scan")]
+        let scan_prepared = self.scan.is_some();
+        #[cfg(not(feature = "network-scan"))]
+        let scan_prepared = false;
+        if !self.play.installed() && !scan_prepared {
             self.trace_network_preparation(prepared);
             return;
         }
@@ -426,6 +438,16 @@ impl NativeRoot {
         }
         if memory.size.saturating_sub(memory.current_usage) < 8192 + 8192 {
             self.trace_network_workspace("release", "floor-refused");
+            return;
+        }
+        #[cfg(feature = "network-scan")]
+        if scan_prepared {
+            let outcome = if self.release_recovery_scan().is_ok() {
+                "scan-released"
+            } else {
+                "scan-held-release-refused"
+            };
+            self.trace_network_workspace("release", outcome);
             return;
         }
         let outcome = if self.play.release_held().is_ok() {
@@ -481,6 +503,10 @@ impl NativeRoot {
             if self.network.retirement.is_some() {
                 return;
             }
+            #[cfg(all(feature = "network-scan", feature = "local-appliance"))]
+            if self.scan.is_some() {
+                return;
+            }
             #[cfg(feature = "local-appliance")]
             self.advance_network_workspace();
             self.prepare_network_configuration();
@@ -507,6 +533,11 @@ impl NativeRoot {
     }
     #[cfg(not(feature = "network-workspace-check"))]
     async fn advance_setup_enabled(&mut self) {
+        #[cfg(all(feature = "network-scan", feature = "local-appliance"))]
+        if self.scan.is_some() {
+            self.advance_recovery_scan().await;
+            return;
+        }
         if self.network.retirement.is_some() {
             let _ = self.finish_network_retirement();
             return;

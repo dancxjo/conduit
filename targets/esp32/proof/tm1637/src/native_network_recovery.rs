@@ -210,13 +210,7 @@ impl Recovery {
         now: u64,
         renewed: bool,
     ) -> Result<(), Refusal> {
-        if now < self.last_now {
-            return Err(Refusal::Clock);
-        }
-        let next = self.generation.checked_add(1).ok_or(Refusal::Exhausted)?;
-        if generation != next || generation == u64::MAX {
-            return Err(Refusal::StaleAttempt);
-        }
+        self.check_scan_retirement(generation, now)?;
         let at = now
             .checked_add(if renewed { 1_000 } else { 30_000 })
             .ok_or(Refusal::Clock)?;
@@ -228,6 +222,22 @@ impl Recovery {
         self.clock(now)?;
         self.generation = generation;
         self.phase = phase;
+        Ok(())
+    }
+    /// Immutable preflight before returned-owner/evidence settlement. It spends
+    /// neither a generation nor a retry; scan_retired repeats these checks.
+    pub fn check_scan_retirement(&self, generation: u64, now: u64) -> Result<(), Refusal> {
+        if now < self.last_now {
+            return Err(Refusal::Clock);
+        }
+        let next = self.generation.checked_add(1).ok_or(Refusal::Exhausted)?;
+        if generation != next || generation == u64::MAX {
+            return Err(Refusal::StaleAttempt);
+        }
+        now.checked_add(30_000).ok_or(Refusal::Clock)?;
+        if !matches!(self.phase, Phase::Waiting { .. } | Phase::Cooldown { .. }) {
+            return Err(Refusal::Busy);
+        }
         Ok(())
     }
     pub fn generation(&self) -> u64 {
