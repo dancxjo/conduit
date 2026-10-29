@@ -7,6 +7,7 @@ use std::{
     path::Path,
 };
 #[derive(Deserialize)]
+#[cfg_attr(test, derive(serde::Serialize))]
 #[serde(deny_unknown_fields)]
 struct Document {
     schema: String,
@@ -38,10 +39,40 @@ fn hex(text: &str, maximum: usize) -> Result<Vec<u8>, String> {
         })
         .collect()
 }
-pub fn read(
-    path: &Path,
+/// Exact bounded bytes own one immutable prepared scene. Unit preference is
+/// fixed for this preparation; changing it requires a new HistoryInput.
+pub struct HistoryInput {
+    accepted: Option<(Vec<u8>, conduit_face::GraphicsScene)>,
     preferred: Option<conduit_core::Unit>,
-) -> Result<conduit_face::GraphicsScene, String> {
+}
+impl HistoryInput {
+    pub fn new(preferred: Option<conduit_core::Unit>) -> Self {
+        Self {
+            accepted: None,
+            preferred,
+        }
+    }
+    pub fn scene(&self) -> Option<&conduit_face::GraphicsScene> {
+        self.accepted.as_ref().map(|(_, scene)| scene)
+    }
+    pub fn refresh(&mut self, path: &Path) -> Result<bool, String> {
+        self.accept(read_bytes(path)?)
+    }
+    fn accept(&mut self, bytes: Vec<u8>) -> Result<bool, String> {
+        if self
+            .accepted
+            .as_ref()
+            .is_some_and(|(original, _)| original == &bytes)
+        {
+            return Ok(false);
+        }
+        let document: Document = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        let prepared = validate(document, self.preferred)?;
+        self.accepted = Some((bytes, prepared));
+        Ok(true)
+    }
+}
+fn read_bytes(path: &Path) -> Result<Vec<u8>, String> {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
@@ -62,8 +93,7 @@ pub fn read(
     if bytes.len() > 8192 {
         return Err("history extent".into());
     }
-    let document: Document = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
-    validate(document, preferred)
+    Ok(bytes)
 }
 fn validate(
     document: Document,
@@ -97,7 +127,7 @@ fn validate(
         .map_err(|_| "history contract")?;
     let descriptor = conduit_environment_runtime::observed_record::descriptor(&contract)
         .map_err(|_| "history forms")?;
-    if forms.as_slice() != Sha256::digest(descriptor).as_slice() {
+    if forms.as_slice() != &Sha256::digest(descriptor)[..] {
         return Err("history forms mismatch".into());
     }
     let records = hex(
@@ -168,5 +198,21 @@ mod tests {
         let mut commitment = document();
         commitment.custody = "committed-recording".into();
         assert!(validate(commitment, None).is_err());
+    }
+    #[test]
+    fn immutable_scene_reused_for_exact_bytes_and_bad_successor_retains_old_artifact() {
+        let bytes = serde_json::to_vec(&document()).unwrap();
+        let mut input = HistoryInput::new(Some(conduit_core::Unit::Fahrenheit));
+        assert!(input.accept(bytes.clone()).unwrap());
+        let original = input.scene().unwrap().encode();
+        let identity = input.scene().unwrap() as *const _;
+        assert!(!input.accept(bytes).unwrap());
+        assert_eq!(identity, input.scene().unwrap() as *const _);
+        assert!(input.accept(b"malformed".to_vec()).is_err());
+        assert_eq!(input.scene().unwrap().encode(), original);
+        let mut next = document();
+        next.samples_outside_view = 22;
+        assert!(input.accept(serde_json::to_vec(&next).unwrap()).unwrap());
+        assert_ne!(input.scene().unwrap().encode(), original);
     }
 }

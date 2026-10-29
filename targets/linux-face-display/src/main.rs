@@ -40,6 +40,8 @@ fn run() -> Result<(), String> {
     let mut previous = String::new();
     let mut retained = input::RetainedView::default();
     let mut recovered_history = false;
+    let mut history = history_input::HistoryInput::new(preferred);
+    let mut history_status = String::new();
     loop {
         let now = input::now_ms()?;
         if retained.last(now).is_none() {
@@ -74,18 +76,22 @@ fn run() -> Result<(), String> {
             }
         };
         let tick = (start.elapsed().as_secs() / 8) as usize;
-        let history =
-            history_path
-                .as_ref()
-                .and_then(|path| match history_input::read(path, preferred) {
-                    Ok(scene) => Some(scene),
-                    Err(error) => {
-                        eprintln!("Retained history refused: {error}");
-                        None
-                    }
-                });
+        if let Some(path) = history_path.as_ref() {
+            let status = match history.refresh(path) {
+                Ok(_) => String::new(),
+                Err(error) => format!(
+                    "Retained history input unavailable; last accepted history retained: {error}"
+                ),
+            };
+            if status != history_status {
+                if !status.is_empty() {
+                    eprintln!("{status}");
+                }
+                history_status = status;
+            }
+        }
         let rendered = if tick.is_multiple_of(2) {
-            if let Some(history) = history.as_ref() {
+            if let Some(history) = history.scene() {
                 view::render_graphics(history, width, height, &mut pixels)
             } else {
                 view::render(face, width, height, tick, &mut pixels, preferred).map(|_| ())
@@ -97,6 +103,16 @@ fn run() -> Result<(), String> {
             Ok(_) => {
                 if let Some(notice) = historical_notice.as_deref() {
                     view::render_notice(notice, width, height, &mut pixels)?;
+                } else if !history_status.is_empty()
+                    && tick.is_multiple_of(2)
+                    && history.scene().is_some()
+                {
+                    view::render_notice(
+                        "RETAINED HISTORY / INPUT UNAVAILABLE / LAST ACCEPTED ARTIFACT",
+                        width,
+                        height,
+                        &mut pixels,
+                    )?;
                 }
                 fb.present(&pixels)?;
             }

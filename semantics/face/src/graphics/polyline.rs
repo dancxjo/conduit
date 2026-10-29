@@ -124,5 +124,20 @@ mod tests {
         assert!(GraphicsPolyline::new(&[point]).is_err());
         assert!(GraphicsPolyline::new(&[point, point]).is_err());
         assert!(GraphicsPolyline::new(&[point; MAX_GRAPHICS_POLYLINE_POINTS + 1]).is_err());
+        assert!(
+            GraphicsPolyline::new(&[
+                GraphicsPoint::new(-20000, 0).unwrap(),
+                GraphicsPoint::new(20000, 1).unwrap()
+            ])
+            .is_err()
+        );
+        assert_eq!(
+            crate::GraphicsCommandKindForm::encode(crate::GraphicsCommandKind::OrthogonalPath),
+            [4]
+        );
+        assert_eq!(
+            crate::GraphicsCommandKindForm::encode(crate::GraphicsCommandKind::Polyline),
+            [5]
+        );
     }
 }

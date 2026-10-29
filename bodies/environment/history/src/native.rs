@@ -160,7 +160,8 @@ impl ChartGeometry<'_> {
                     let point = conduit_face::GraphicsPoint::new(
                         self.x(sample) as i16,
                         self.y(value, humidity) as i16,
-                    )?;
+                    )
+                    .map_err(|_| GraphicsError::InvalidGeometry)?;
                     // Equal coordinates carry no additional visible segment.
                     if run.last() != Some(&point) {
                         run.push(point);
