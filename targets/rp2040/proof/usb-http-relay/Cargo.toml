@@ -18,6 +18,9 @@ name = "conduit-pico-usb-http-relay"
 path = "src/main.rs"
 required-features = ["firmware"]
 
+[dependencies]
+conduit-device-carrier-protocol = { path = "../../../../mechanisms/io/device-carrier-protocol" }
+
 [target.'cfg(target_arch = "arm")'.dependencies]
 conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
 conduit-rp2040-network-realization = { path = "../../../../targets/rp2040/network-realization" }

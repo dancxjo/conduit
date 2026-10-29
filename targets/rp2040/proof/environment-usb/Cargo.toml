@@ -13,6 +13,7 @@ pio-capture = []
 wifi = ["appliance-hil-client", "dep:cyw43", "dep:cyw43-pio", "dep:embassy-net", "dep:aligned", "dep:embassy-sync", "dep:conduit-net"]
 appliance-hil-client = []
 [dependencies]
+conduit-device-carrier-protocol = { path = "../../../../mechanisms/io/device-carrier-protocol" }
 conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
 conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
 conduit-environment-face = { path = "../../../../bodies/environment/face" }
