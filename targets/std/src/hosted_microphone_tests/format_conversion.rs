@@ -114,3 +114,45 @@ fn failed_recapture_cannot_reuse_an_earlier_receipt() {
     assert!(adapter.take_receipt().is_none());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn realistic_capture_durations_obey_shared_pcm_block_bounds_and_contiguity() {
+    let _process = microphone_process();
+    for milliseconds in [128, 129, 1000, 3000, MAXIMUM_CAPTURE_MILLISECONDS] {
+        let bytes = raw_bytes_for_duration(milliseconds);
+        let script = format!("#!/bin/sh\ndd if=/dev/zero bs={bytes} count=1 2>/dev/null\n");
+        let (root, discovery) = parsed_fixture(&script, "realistic-duration");
+        let selected = discovery.observations[0].clone();
+        let mut adapter = discovery
+            .initialize_with_format(
+                &selected,
+                MicrophoneLimits {
+                    capture_milliseconds: milliseconds,
+                    timeout: Duration::from_secs(2),
+                },
+                AlsaMicrophoneFormat::AlsaPlug,
+            )
+            .unwrap();
+        let encoded = adapter.capture_clip(|| false).unwrap();
+        let clip = conduit_audio::decode_pcm_clip(&encoded).unwrap();
+        let frames = milliseconds * 16;
+        assert_eq!(clip.frame_count, frames);
+        assert_eq!(
+            clip.blocks.len(),
+            (frames as usize).div_ceil(usize::from(conduit_audio::MAXIMUM_PCM_FRAMES_PER_BLOCK))
+        );
+        assert!(clip.blocks.len() <= conduit_audio::MAXIMUM_PCM_CLIP_BLOCKS);
+        let mut next = 0_u64;
+        for block in &clip.blocks {
+            assert!(block.header.frame_count() <= conduit_audio::MAXIMUM_PCM_FRAMES_PER_BLOCK);
+            assert_eq!(block.header.start_frame(), next);
+            next += u64::from(block.header.frame_count());
+        }
+        assert_eq!(next, u64::from(frames));
+        assert_eq!(
+            adapter.take_receipt().unwrap().raw_pcm_bytes as usize,
+            bytes
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+}

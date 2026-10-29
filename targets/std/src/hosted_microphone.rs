@@ -249,9 +249,11 @@ impl AlsaMicrophoneAdapter {
     ) -> Result<Vec<u8>, MicrophoneFailure> {
         let raw = self.capture(cancelled)?;
         let bytes_per_frame = CHANNELS as usize * BYTES_PER_SAMPLE as usize;
-        let mut encoded_frames = Vec::new();
+        let block_bytes =
+            usize::from(conduit_audio::MAXIMUM_PCM_FRAMES_PER_BLOCK) * bytes_per_frame;
+        let mut encoded_frames = Vec::with_capacity(raw.len().div_ceil(block_bytes));
         let mut start_frame = 0_u64;
-        for payload in raw.chunks(SAMPLE_RATE_HZ as usize * bytes_per_frame) {
+        for payload in raw.chunks(block_bytes) {
             let frame_count = u16::try_from(payload.len() / bytes_per_frame)
                 .map_err(|_| MicrophoneFailure::OutputOverflow)?;
             let header = conduit_audio::PcmFrameHeader::new(
