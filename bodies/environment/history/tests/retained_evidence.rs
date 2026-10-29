@@ -135,7 +135,7 @@ fn nice_fahrenheit_axes_and_worst_fragmentation_stay_within_48_commands() {
             .commands()
             .iter()
             .filter_map(|c| c.polyline_geometry())
-            .flat_map(|p| p.points())
+            .flat_map(|p| p.points().to_vec())
         {
             assert!(*point.y() >= 0 && *point.y() < 564);
         }
