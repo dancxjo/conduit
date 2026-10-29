@@ -86,7 +86,11 @@ impl NativeRoot {
             })();
             match started {
                 Ok(job) => self.observed_offer = Some(job),
-                Err(_) => {
+                Err(reason) => {
+                    esp_println::println!(
+                        "{{\"event\":\"observed-custody-refused\",\"stage\":\"start\",\"reason\":\"{}\"}}",
+                        reason
+                    );
                     complete(key, Err(()));
                     return;
                 }
