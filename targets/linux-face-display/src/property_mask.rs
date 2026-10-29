@@ -70,6 +70,35 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
     rows.sort_by_key(|row| !row.quantity);
     (!rows.is_empty()).then_some(rows)
 }
+/// A property Look replaces the native snapshot only when no semantic content
+/// would be omitted. Unsupported properties and empty Info subjects retain it.
+pub fn covers_entire_face(face: &Face) -> bool {
+    !face.subjects.is_empty()
+        && !face.properties.is_empty()
+        && face.subjects.iter().all(|subject| {
+            subject.role == FaceRole::Info
+                && face
+                    .properties
+                    .iter()
+                    .any(|p| p.subject == subject.identity)
+        })
+        && face.properties.iter().all(|p| {
+            matches!(
+                p.value,
+                FacePropertyValue::TypedValue { .. }
+                    | FacePropertyValue::Text(_)
+                    | FacePropertyValue::Flag(_)
+            )
+        })
+        && face.text.is_empty()
+        && face.relationships.is_empty()
+        && face.composition.is_empty()
+        && face.actions.is_empty()
+        && face.disclosures.is_empty()
+        && face.temporal_references.is_empty()
+        && face.temporal_facts.is_empty()
+}
+
 fn text(
     scene: &mut GraphicsScene,
     screen: LayoutRect,

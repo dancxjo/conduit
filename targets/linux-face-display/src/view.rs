@@ -270,8 +270,13 @@ fn frame(
                 .ok()
         })
         .collect();
-    let native_pages = scene.pages();
     let property_pages = property.as_ref().map_or(0, |(_, _, pages)| *pages);
+    let native_pages =
+        if property_pages > 0 && crate::property_mask::covers_entire_face(&property_face) {
+            0
+        } else {
+            scene.pages()
+        };
     let pages = charts.len() + native_pages + property_pages;
     let page = page_tick % pages;
     if page < charts.len() {
@@ -299,6 +304,47 @@ fn frame(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn complete_info_property_pages_do_not_alternate_with_an_empty_snapshot() {
+        let base = unavailable("unused");
+        let make = |properties| {
+            Face::new(
+                9,
+                base.basis.clone(),
+                vec![FaceSubject {
+                    identity: "instrument".into(),
+                    role: FaceRole::Info,
+                    name: "Room conditions".into(),
+                }],
+                vec![],
+                properties,
+                vec![],
+            )
+            .unwrap()
+        };
+        let property = conduit_face::FaceProperty {
+            subject: "instrument".into(),
+            name: "reading".into(),
+            value: conduit_face::FacePropertyValue::Text("Real value".into()),
+        };
+        let face = make(vec![property.clone()]);
+        for tick in 0..6 {
+            let (scene, page, pages, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
+            assert_eq!((page, pages), (0, 1));
+            assert!(scene.commands().iter().any(|c| c.payload() == "Real value"));
+        }
+        let unsupported = conduit_face::FaceProperty {
+            subject: "instrument".into(),
+            name: "count".into(),
+            value: conduit_face::FacePropertyValue::Count(12),
+        };
+        let mixed = make(vec![property, unsupported]);
+        let (_, _, pages, _) = frame(mixed, 1024, 600, 0, None).unwrap();
+        assert!(
+            pages >= 2,
+            "unsupported properties must retain native pages"
+        );
+    }
     #[test]
     fn sensor_pages_do_not_hide_transcript_from_the_same_face() {
         let base = unavailable("Transcript: the greenhouse is quiet");
