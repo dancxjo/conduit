@@ -26,22 +26,23 @@ impl crate::StdHost {
             conduit_std_offers::MICROPHONE_CAPTURE_RESOURCE_CLASS,
             1,
         );
-        let capability = conduit_std_offers::microphone_clip_offer();
+        let capability = adapter.offer();
         let observation = adapter.observation();
         let mut registry = self.base_registry.clone();
         registry
             .register(conduit_core::BaseProviderEntry {
                 base_id: conduit_core::HostBaseId::from(observation.base_identity.clone()),
                 provider_instance_id: conduit_core::BaseInstanceId::from(format!(
-                    "std/alsa/{}/card-{}/device-{}/{}",
+                    "std/alsa/{}/card-{}/device-{}/{}/{}",
                     observation.base_identity,
                     observation.card_id,
                     observation.device,
-                    adapter.executable_sha256()
+                    adapter.executable_sha256(),
+                    adapter.implementation_id()
                 )),
                 provider_generation: next_generation,
                 implementation_id: conduit_core::BaseImplementationId::from(
-                    conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
+                    adapter.implementation_id(),
                 ),
                 mechanism_family: conduit_core::HostBaseKindId::from("std.base/alsa-microphone@1"),
                 enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
@@ -118,7 +119,11 @@ impl crate::StdHost {
             .iter()
             .find(|offer| {
                 offer.implementation.implementation_id.as_str()
-                    == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+                    == self
+                        .microphone
+                        .as_ref()
+                        .expect("selected microphone")
+                        .implementation_id()
             })
             .ok_or_else(|| "selected microphone capability is not advertised".to_string())?;
         let requirement = capability
