@@ -173,9 +173,9 @@ fn joined_recorder_process_helper() {
     let refused = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let refused_peer = refused.local_addr().unwrap().to_string();
     drop(refused);
-    use std::io::{Read, Write};
     use ed25519_dalek::Signer;
     use sha2::{Digest, Sha256};
+    use std::io::{Read, Write};
     #[allow(dead_code, clippy::duplicate_mod)]
     #[path = "../../../../../targets/esp32/proof/tm1637/src/native_observed_wire.rs"]
     mod route_wire;
@@ -183,13 +183,16 @@ fn joined_recorder_process_helper() {
     let foreign_peer = foreign.local_addr().unwrap().to_string();
     let binding_scope = validated_binding(Path::new(&binding)).unwrap();
     let mut raw = [0; route_wire::DIRECTORY_BYTES];
-    raw[..32].copy_from_slice(&Sha256::digest(binding_scope.credential().body_id.as_str().as_bytes()));
+    raw[..32].copy_from_slice(&Sha256::digest(
+        binding_scope.credential().body_id.as_str().as_bytes(),
+    ));
     let wrong_root = ed25519_dalek::SigningKey::from_bytes(&[99; 32]);
     let hex = |bytes: &[u8]| bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
     let response = serde_json::to_vec(&serde_json::json!({
         "profile":"observed-epochs@1", "directory":hex(&raw),
         "signature":hex(&wrong_root.sign(&route_wire::directory_transcript(&raw)).to_bytes())
-    })).unwrap();
+    }))
+    .unwrap();
     let foreign_server = std::thread::spawn(move || {
         let (mut socket, _) = foreign.accept().unwrap();
         let mut request = Vec::new();
@@ -198,14 +201,18 @@ fn joined_recorder_process_helper() {
             socket.read_exact(&mut byte).unwrap();
             request.push(byte[0]);
         }
-        assert!(std::str::from_utf8(&request).unwrap().starts_with("GET /history?after=4294967295 "));
-        socket.write_all(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n").unwrap();
+        assert!(std::str::from_utf8(&request)
+            .unwrap()
+            .starts_with("GET /history?after=4294967295 "));
+        socket
+            .write_all(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n")
+            .unwrap();
         socket.write_all(&response).unwrap();
     });
     let list = format!("{refused_peer},{foreign_peer},{peer}");
     let peers = continuing_peers(&list).unwrap();
     let collector = admitted_collector(Path::new(&binding)).unwrap();
-    run_loop(collector, peers, Path::new(&history), true, None).unwrap();
+    run_loop(collector, peers, Path::new(&history), true, None, None).unwrap();
     foreign_server.join().unwrap();
 }
 
