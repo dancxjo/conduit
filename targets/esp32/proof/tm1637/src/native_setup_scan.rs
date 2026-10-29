@@ -123,20 +123,35 @@ impl NativeRoot {
             if scan.restore_for_retirement().await.is_err() {
                 return;
             }
-            // Reserve the destination before relinquishing the live executor.
-            let Ok(backing) = crate::native_box_backing::reserve_box() else {
+            if let Err(reason) = self.retain_recovery_scan() {
+                self.trace_network_workspace("scan-retirement", reason);
                 return;
-            };
-            let Ok(record) = scan.take_retired() else {
-                return;
-            };
-            self.scan = Some(Job::Retired {
-                record: Box::write(backing, record),
-                root_finished: false,
-            });
+            }
         }
-        let _ = self.finish_recovery_scan();
+        if let Err(reason) = self.finish_recovery_scan() {
+            self.trace_network_workspace("scan-retirement", reason);
+        }
     }
+    // Keep large affine return values and synchronous journal scratch outside
+    // the SDK future frame. This changes storage overlap, never custody gates.
+    #[inline(never)]
+    fn retain_recovery_scan(&mut self) -> Result<(), &'static str> {
+        let Some(Job::Running(scan) | Job::Held(scan)) = self.scan.as_mut() else {
+            return Err("scan-executor-unavailable");
+        };
+        // Reserve the destination before relinquishing the live executor.
+        let backing =
+            crate::native_box_backing::reserve_box().map_err(|_| "scan-retirement-capacity")?;
+        let record = scan
+            .take_retired()
+            .map_err(|_| "scan-retirement-not-ready")?;
+        self.scan = Some(Job::Retired {
+            record: Box::write(backing, record),
+            root_finished: false,
+        });
+        Ok(())
+    }
+    #[inline(never)]
     fn finish_recovery_scan(&mut self) -> Result<(), &'static str> {
         #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
         {
