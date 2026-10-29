@@ -190,7 +190,7 @@ fn member_transcript_and_encoding_match_actual_native_canonical_codec() {
 
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_network_custody_wire.rs"]
 mod cursor;
-fn committed_cursor(
+pub(super) fn committed_cursor(
     f: &Fixture,
     token: &VerifiedDurableSnapshot,
     ack: &[u8],
@@ -223,7 +223,7 @@ fn resign_cursor(bytes: &mut [u8; 480]) {
         .to_bytes();
     bytes[408..472].copy_from_slice(&sig);
 }
-fn receipt_response(cursor: &[u8; 480], generation: u64) -> Vec<u8> {
+pub(super) fn receipt_response(cursor: &[u8; 480], generation: u64) -> Vec<u8> {
     serde_json::to_vec(&serde_json::json!({"profile":"network-retirement-committed@1","reclaimed":cursor[8]==2,"generation":generation,"receipt":cursor.iter().map(|b|format!("{b:02x}")).collect::<String>()})).unwrap()
 }
 #[test]

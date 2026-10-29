@@ -113,3 +113,31 @@ impl VerifiedDurableSnapshot {
         Ok(CommittedNetworkCustody { cursor })
     }
 }
+
+impl VerifiedDurableSnapshot {
+    /// Retain and independently reopen the signed response and its exact cursor.
+    /// This establishes evidence custody, never physical erase authority.
+    pub(super) fn retain_committed_receipt(
+        &self,
+        credential: &MembershipCredential,
+        ack: &[u8],
+        response: &[u8],
+    ) -> Result<CommittedNetworkCustody> {
+        let receipt = self.verify_committed_receipt(credential, ack, response)?;
+        let id = digest(receipt.bytes())
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>();
+        let json = self.directory.join(format!("receipt-{id}.json"));
+        let cursor = self.directory.join(format!("receipt-{id}.bin"));
+        immutable(&json, response)?;
+        immutable(&cursor, receipt.bytes())?;
+        File::open(&self.directory)?.sync_all()?;
+        let reopened = reopen(&json, response.len())?;
+        let checked = self.verify_committed_receipt(credential, ack, &reopened)?;
+        if reopen(&cursor, 480)?.as_slice() != checked.bytes() {
+            return Err("network receipt durable cursor differs".into());
+        }
+        Ok(checked)
+    }
+}
