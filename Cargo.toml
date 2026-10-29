@@ -44,6 +44,7 @@ members = [
 	"make/workspace",
 
 	# Reusable lower mechanisms and implementations.
+	"mechanisms/io/i2c-transaction",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
