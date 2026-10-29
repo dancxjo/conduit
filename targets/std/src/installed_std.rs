@@ -78,6 +78,7 @@ mod logic_backs;
 mod math_backs;
 mod math_host;
 mod microphone_clip_back;
+mod microphone_host;
 mod midi_input_back;
 mod midi_output_back;
 mod model_host;
@@ -1036,13 +1037,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete durable State operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
-                if input != b"capture" {
-                    return Err("microphone clip capture request is not exact".into());
-                }
-                let adapter = microphone.as_deref_mut().ok_or_else(|| {
-                    "microphone clip request has no initialized adapter".to_string()
+                let capture = microphone_host::execute(input, microphone.as_deref_mut(), || {
+                    control.requested_stop().is_some()
                 })?;
-                let capture = adapter.capture_clip(|| control.requested_stop().is_some());
                 let (disposition, output, failure) = match capture {
                     Ok(clip) => {
                         let value = scheduler.store_host_value(&clip).map_err(|error| {
@@ -1055,17 +1052,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .map_err(|error| format!("bound captured microphone clip: {error:?}"))?;
                         (HostCallDisposition::Completed, Some(output), None)
                     }
-                    Err(crate::hosted_microphone::MicrophoneFailure::Cancelled) => {
-                        (HostCallDisposition::Cancelled, None, None)
+                    Err(error) => {
+                        let outcome = microphone_host::failure_outcome(error);
+                        (outcome.disposition, None, outcome.failure)
                     }
-                    Err(error) => (
-                        HostCallDisposition::Failed,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallFailed,
-                            detail: error as u16,
-                        }),
-                    ),
                 };
                 host_calls.record(request)?;
                 scheduler

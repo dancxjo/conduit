@@ -61,6 +61,7 @@ pub struct RemoteValueTransfer {
 }
 
 mod host_work;
+mod microphone;
 pub use host_work::{RemoteHostWork, RemoteHostWorkRef};
 
 pub struct InstalledRemoteFragment {

@@ -463,3 +463,5 @@ fn canonical_arecord_symlink_explicitly_selects_capture_for_discovery_and_audio(
     );
     fs::remove_dir_all(root).unwrap();
 }
+#[path = "hosted_microphone_tests/remote.rs"]
+mod remote;
