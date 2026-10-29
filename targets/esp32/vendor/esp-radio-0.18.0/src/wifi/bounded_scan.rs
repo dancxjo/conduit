@@ -21,6 +21,7 @@ pub enum Error {
     Subscribers,
     Sdk(i32),
     InvalidRecord,
+    MappingRefused { written: u8 },
     Quarantined,
 }
 /// Exact terminal event and actual SDK list size; status zero alone means scan
@@ -124,6 +125,17 @@ impl<'d> OwnedScan<'d> {
     /// actual raw SDK authentication value, avoiding upstream's unknown→Open
     /// enum conversion. Reading or clearing errors retain cleanup custody in self.
     pub async fn finish(&mut self, output: &mut [Record]) -> Result<Report, Error> {
+        self.finish_mapped(output, Some).await
+    }
+    /// Convert each real SDK record directly into caller-owned storage, without
+    /// retaining a second record array. Mapping refusal reports the exact
+    /// initialized prefix and retains terminal/list custody for cleanup. The
+    /// selected caller still decides whether any failed result is publishable.
+    pub async fn finish_mapped<T>(
+        &mut self,
+        output: &mut [T],
+        mut map: impl FnMut(Record) -> Option<T>,
+    ) -> Result<Report, Error> {
         if output.len() < self.maximum {
             return Err(Error::Capacity);
         }
@@ -135,15 +147,29 @@ impl<'d> OwnedScan<'d> {
         unsafe {
             sdk(include::esp_wifi_scan_get_ap_num(&mut total))?;
         }
+        let mut written = 0;
         let copied = if completion.status == 0 {
-            custody::copy_prefix(&mut output[..self.maximum], total, &mut || {
+            let copy = custody::copy_prefix(&mut output[..self.maximum], total, &mut || {
                 let mut record = MaybeUninit::<include::wifi_ap_record_t>::uninit();
                 unsafe {
                     sdk(include::esp_wifi_scan_get_ap_record(record.as_mut_ptr()))?;
                     let raw = record.assume_init_ref();
-                    Record::from_sdk(&raw.ssid, raw.rssi, raw.authmode).ok_or(Error::InvalidRecord)
+                    let record = Record::from_sdk(&raw.ssid, raw.rssi, raw.authmode)
+                        .ok_or(Error::InvalidRecord)?;
+                    let mapped = map(record).ok_or(Error::MappingRefused { written })?;
+                    written += 1;
+                    Ok(mapped)
                 }
-            })?
+            });
+            match copy {
+                Ok(count) => count,
+                Err(error) => {
+                    // A prefix was consumed from the SDK list. It cannot become
+                    // a new full result by retrying finish with the remainder.
+                    self.custody.quarantine();
+                    return Err(error);
+                }
+            }
         } else {
             0
         };
@@ -168,8 +194,9 @@ impl<'d> OwnedScan<'d> {
         self.clear_terminal_list()
     }
     fn clear_terminal_list(&mut self) -> Result<(), Error> {
-        unsafe {
-            sdk(include::esp_wifi_clear_ap_list())?;
+        if let Err(error) = unsafe { sdk(include::esp_wifi_clear_ap_list()) } {
+            self.custody.quarantine();
+            return Err(error);
         }
         if !self.custody.cleared() {
             return Err(Error::Quarantined);

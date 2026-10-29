@@ -389,3 +389,52 @@ fn capacity_refuses_before_start_and_sdk_start_error_is_preserved_quarantined() 
     drop(owner);
     SDK.with_borrow(|s| assert_eq!(s.dropped, 0));
 }
+
+#[test]
+fn direct_mapping_refusal_reports_exact_prefix_and_retains_terminal_cleanup() {
+    let mut owner = owner();
+    owner.start(&scan::ScanConfig::default(), 4).unwrap();
+    SDK.with_borrow_mut(|s| s.total = 8);
+    event(0, 8, 19);
+    let mut output = [u32::MAX; 4];
+    {
+        let mut finish = core::pin::pin!(owner.finish_mapped(&mut output, |record| {
+            if record.ssid[0] == 3 {
+                None
+            } else {
+                Some(u32::from(record.ssid[0]))
+            }
+        }));
+        assert!(matches!(
+            poll(finish.as_mut()),
+            Poll::Ready(Err(Error::MappingRefused { written: 2 }))
+        ));
+    }
+    assert_eq!(output, [1, 2, u32::MAX, u32::MAX]);
+    {
+        let mut retry = core::pin::pin!(
+            owner.finish_mapped(&mut output, |record| Some(u32::from(record.ssid[0])))
+        );
+        assert!(matches!(
+            poll(retry.as_mut()),
+            Poll::Ready(Err(Error::Quarantined))
+        ));
+    }
+    SDK.with_borrow(|s| {
+        assert_eq!(s.reads, 3);
+        assert_eq!(s.clears, 0);
+    });
+    let mut owner = match owner.try_into_controller() {
+        Err(owner) => owner,
+        Ok(_) => panic!("mapping refusal cannot return uncleared list"),
+    };
+    {
+        let mut cleanup = core::pin::pin!(owner.cleanup());
+        assert!(matches!(poll(cleanup.as_mut()), Poll::Ready(Ok(()))));
+    }
+    SDK.with_borrow(|s| {
+        assert_eq!(s.stops, 0);
+        assert_eq!(s.clears, 1);
+    });
+    drop(returned(owner));
+}
