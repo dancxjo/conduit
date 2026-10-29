@@ -26,6 +26,8 @@ type Provider = crate::native_network::Provider;
 const CAP: &str = "conduit/esp32/network-attachment-receipt@1";
 const IMPLEMENTATION: &str = "esp32/network-attachment-receipt@1";
 const ARTIFACT: &str = "native/esp32-network-attachment-receipt@1";
+#[path = "native_play_completed.rs"]
+mod completed;
 #[path = "native_play_execution.rs"]
 mod execution;
 pub use execution::NativePlay;

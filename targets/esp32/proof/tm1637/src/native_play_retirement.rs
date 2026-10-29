@@ -78,21 +78,25 @@ impl NativePlay {
     /// AP services through the provider's original absolute cleanup deadline.
     /// Failure keeps all actual owners and cleanup obligation in this Play.
     pub async fn restore_for_retirement(&mut self) -> Result<(), &'static str> {
-        let prepared = self.prepared.as_mut().ok_or("network-retirement-kernel")?;
+        let join_role = self.execution_join_role()?;
         let source = self.source.as_mut().ok_or("network-retirement-source")?;
         let join = self.join.as_mut().ok_or("network-retirement-provider")?;
         self.receipt.fill(0);
         self.receipt_len = 0;
         self.expected.fill(0);
         self.expected_len = 0;
-        prepared
-            .kernel
-            .cancel()
-            .map_err(|_| "network-retirement-cancel")?;
+        // An already-retired completed scheduler cannot be cancelled again.
+        // Its original Signs stay owned while actual native cleanup proceeds.
+        if let Some(prepared) = self.prepared.as_mut() {
+            prepared
+                .kernel
+                .cancel()
+                .map_err(|_| "network-retirement-cancel")?;
+        }
         source
             .revoke()
             .map_err(|_| "network-retirement-source-revoke")?;
-        join.revoke(prepared.roles.join, k::HostCallId(0))
+        join.revoke(join_role, k::HostCallId(0))
             .map_err(|_| "network-retirement-join-revoke")?;
         self.phase = "restoring-access-point";
         match join.cleanup().await {
@@ -112,10 +116,7 @@ impl NativePlay {
     pub fn take_retired(&mut self) -> Result<RetiredNetworkControl, &'static str> {
         if self.phase != "access-point-restored"
             || self.active.is_none()
-            || !self
-                .prepared
-                .as_ref()
-                .is_some_and(|prepared| prepared.kernel.can_retire())
+            || !self.execution_can_retire()
             || !self
                 .source
                 .as_ref()
@@ -141,10 +142,7 @@ impl NativePlay {
         let source = n::NetworkCredentialsHostCall::retire_retained(&mut self.source)
             .expect("preflighted source retirement");
         let evidence = self
-            .prepared
-            .take()
-            .expect("preflighted kernel")
-            .try_retire_signs()
+            .take_execution_signs()
             .unwrap_or_else(|_| unreachable!("exclusive terminal kernel preflight"));
         let active = self.active.take().expect("preflighted scope");
         *self = Self::new();
