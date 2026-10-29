@@ -7,6 +7,10 @@ pub struct Options<'a> {
     pub producer_boot: &'a str,
     pub private_run: &'a Path,
 }
+// Exactly one foreground transaction owns this finite inline state (608 bytes
+// on the qualified CPU). Boxing a phase solely for enum size adds an allocation
+// at its lifecycle boundary; this is not an extensible collection of sessions.
+#[allow(clippy::large_enum_variant)]
 enum State {
     Export(resume::Export),
     Acknowledge(ack::Acknowledgement),
