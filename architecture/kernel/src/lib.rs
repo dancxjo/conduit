@@ -10,6 +10,8 @@
 #[cfg(feature = "alloc")]
 mod hosted_sign_preparation;
 #[cfg(feature = "alloc")]
+mod packed_sign;
+#[cfg(feature = "alloc")]
 pub use hosted_sign_preparation::HostedSignPreparationError;
 mod sign_retention;
 use sign_retention::{
@@ -1005,7 +1007,7 @@ impl<const EVENTS: usize, const REMOTE_EVENTS: usize> SignQuery
 
 #[cfg(feature = "alloc")]
 pub struct HostedSignLog {
-    entries: alloc::vec::Vec<Option<KernelEvent>>,
+    entries: alloc::vec::Vec<Option<packed_sign::PackedKernelEvent>>,
     len: u16,
     // Non-transient entries are never evicted; updated only on publication.
     retained_items: u16,
@@ -1025,8 +1027,7 @@ impl HostedSignLog {
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
         self.entries[..usize::from(self.len)]
             .iter()
-            .copied()
-            .flatten()
+            .filter_map(|event| event.map(KernelEvent::from))
     }
 
     pub fn allocation_capacity(&self) -> usize {
@@ -1095,8 +1096,10 @@ impl SignSink for HostedSignLog {
             Some(used) if used <= self.byte_capacity
         );
         let eviction = if item_pressure || byte_pressure {
-            Some(prepare_transient_eviction(
-                &self.entries[..usize::from(self.len)],
+            Some(sign_retention::prepare_transient_eviction_iter(
+                self.entries[..usize::from(self.len)]
+                    .iter()
+                    .map(|event| event.map(KernelEvent::from)),
                 self.retention_gap,
                 if item_pressure {
                     SignError::ItemCapacityExceeded
@@ -1128,7 +1131,7 @@ impl SignSink for HostedSignLog {
             request,
             kind,
         };
-        self.entries[usize::from(self.len)] = Some(event);
+        self.entries[usize::from(self.len)] = Some(event.into());
         self.len += 1;
         self.retained_items += u16::from(!transient_sign(kind));
         self.used_bytes += charge;
@@ -1153,8 +1156,10 @@ impl SignSink for HostedSignLog {
             Some(used) if used <= self.byte_capacity
         );
         let eviction = if item_pressure || byte_pressure {
-            Some(prepare_transient_eviction(
-                &self.entries[..usize::from(self.len)],
+            Some(sign_retention::prepare_transient_eviction_iter(
+                self.entries[..usize::from(self.len)]
+                    .iter()
+                    .map(|event| event.map(KernelEvent::from)),
                 self.retention_gap,
                 if item_pressure {
                     SignError::ItemCapacityExceeded
@@ -1188,7 +1193,7 @@ impl SignSink for HostedSignLog {
             kind,
         };
         let index = usize::from(self.len);
-        self.entries[index] = Some(event);
+        self.entries[index] = Some(event.into());
         self.remote_entries[usize::from(self.remote_len)] = Some(RemoteLifecycleSign {
             event_sequence: sequence,
             identity: remote,

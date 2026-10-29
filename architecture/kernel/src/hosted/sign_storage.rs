@@ -2,19 +2,25 @@
 impl crate::HostedSignLog {
     /// Required backing before allocation, including each optional entry's
     /// representation. Byte-retention admission remains the constructor's gate.
-    pub fn canonical_storage_bytes(items: u16, remote_items: u16) -> Option<usize> {
+    pub const fn canonical_storage_bytes(items: u16, remote_items: u16) -> Option<usize> {
         if items == 0 || remote_items > items {
             return None;
         }
-        usize::from(items)
-            .checked_mul(core::mem::size_of::<Option<crate::KernelEvent>>())?
-            .checked_add(
-                usize::from(remote_items)
-                    .checked_mul(core::mem::size_of::<Option<crate::RemoteLifecycleSign>>())?,
-            )
+        let Some(local) = (items as usize).checked_mul(core::mem::size_of::<
+            Option<crate::packed_sign::PackedKernelEvent>,
+        >()) else {
+            return None;
+        };
+        let Some(remote) = (remote_items as usize)
+            .checked_mul(core::mem::size_of::<Option<crate::RemoteLifecycleSign>>())
+        else {
+            return None;
+        };
+        local.checked_add(remote)
     }
     pub fn reserved_storage_bytes(&self) -> usize {
-        self.entries.capacity() * core::mem::size_of::<Option<crate::KernelEvent>>()
+        self.entries.capacity()
+            * core::mem::size_of::<Option<crate::packed_sign::PackedKernelEvent>>()
             + self.remote_entries.capacity()
                 * core::mem::size_of::<Option<crate::RemoteLifecycleSign>>()
     }

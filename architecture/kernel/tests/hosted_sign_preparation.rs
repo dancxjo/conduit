@@ -134,3 +134,34 @@ fn successful_reservation_keeps_existing_finite_sign_and_retention_semantics() {
     }
     assert_eq!(legacy.ensure_capacity(4), fallible.ensure_capacity(4));
 }
+
+#[test]
+fn packed_backing_keeps_the_full_logical_quota_with_less_real_allocation() {
+    let items = 128;
+    let (result, calls, live) = observe(usize::MAX, || {
+        HostedSignLog::try_new(items, byte_budget(items))
+    });
+    let mut log = result.unwrap();
+    assert_eq!(calls, 1);
+    assert_eq!(
+        live as usize,
+        HostedSignLog::canonical_storage_bytes(items, 0).unwrap()
+    );
+    assert!((live as usize) < usize::from(items) * size_of::<Option<KernelEvent>>());
+    assert_eq!(log.item_capacity(), items);
+    assert_eq!(log.byte_capacity(), byte_budget(items));
+    for _ in 0..items {
+        log.record(NodeId(0), None, None, KernelEventKind::BackCompleted)
+            .unwrap();
+    }
+    assert_eq!(log.used_bytes(), byte_budget(items));
+    assert_eq!(
+        log.record(NodeId(0), None, None, KernelEventKind::BackCompleted),
+        Err(SignError::ItemCapacityExceeded)
+    );
+    assert_eq!(log.len(), items);
+    eprintln!(
+        "physical_sign_backing_bytes={live} canonical_logical_bytes={}",
+        byte_budget(items)
+    );
+}

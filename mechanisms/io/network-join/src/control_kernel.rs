@@ -23,7 +23,11 @@ pub type NetworkControlKernel = FixedScheduler<
 >;
 // The retained footprint includes the exact preallocated local sign backing.
 // There are no remote endpoints and therefore no remote-sign allocation.
-pub const CONTROL_SIGN_BACKING_BYTES: usize = 128 * core::mem::size_of::<Option<k::KernelEvent>>();
+pub const CONTROL_SIGN_BACKING_BYTES: usize =
+    match k::HostedSignLog::canonical_storage_bytes(128, 0) {
+        Some(bytes) => bytes,
+        None => panic!("fixed network Sign storage"),
+    };
 pub const CONTROL_KERNEL_BYTES: usize =
     core::mem::size_of::<NetworkControlKernel>() + CONTROL_SIGN_BACKING_BYTES;
 
