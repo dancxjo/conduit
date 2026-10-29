@@ -328,6 +328,40 @@ mod tests {
     use super::*;
     use alloc::vec;
     #[test]
+    fn authored_source_accepts_bare_empty_trigger_with_the_existing_one_byte_bound() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profile = conduit_plot::ProfileCatalog::new();
+        install_catalog(&mut startup, &mut profile).unwrap();
+        let source = alloc::format!(
+            "plot capture (\n >> begin: Empty...| <= 1B\n) {{\n source: {}\n publish: {}\n begin >> source.request\n source.observation >> publish.value\n}}\n",
+            conduit_environment_measurement::source_observation::SOURCE_KIND,
+            conduit_environment_measurement::source_observation::PUBLICATION_KIND,
+        );
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&source),
+            &startup,
+        )
+        .expect("a bare Empty request must connect to the actual environmental Source");
+        let authored =
+            conduit_plot::expand_canonical_plot_for_authoring(&checked, "capture", &profile)
+                .expect("the real Source/publication edge must expand with the same checked Types");
+        assert_eq!(authored.input_bindings.len(), 1);
+        let source = authored
+            .expanded
+            .gears
+            .iter()
+            .find(|gear| {
+                gear.kind_id.as_str()
+                    == conduit_environment_measurement::source_observation::SOURCE_KIND
+            })
+            .unwrap();
+        // Validate the actual wire input selected by the checked expansion,
+        // rather than merely comparing a Kind constant with itself. This is
+        // the primitive validation used by the ordinary lowered Fore boundary.
+        c::validate_primitive_info(source.inputs[0].value_kind.as_str(), &[])
+            .expect("the actual selected Source input must accept a bare Empty value");
+    }
+    #[test]
     fn actual_source_edge_rejects_substitution_duplicate_or_underreserved_routes() {
         let source: c::PlacementId = "source/test".into();
         let sink: c::PlacementId = "sink/test".into();

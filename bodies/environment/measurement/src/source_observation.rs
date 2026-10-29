@@ -13,8 +13,8 @@ pub const INFO: &str = "environment/source-observation@1";
 pub const FORM: &str = "environment/source-observation-decimal-coordinates@1";
 pub const FORM_BYTES: usize = 82;
 pub const MAXIMUM_BYTES: usize = 128;
-pub const SOURCE_KIND: &str = "environment/read-environmental-source@1";
-pub const PUBLICATION_KIND: &str = "environment/publish-environmental-observation@1";
+pub const SOURCE_KIND: &str = "environment/read-environmental-source";
+pub const PUBLICATION_KIND: &str = "environment/publish-environmental-observation";
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SourceFailure {
     ProviderFailed,
@@ -95,10 +95,10 @@ impl ObservationContract {
             } else {
                 vec![c::PortDescriptor {
                     port_id: "request".into(),
-                    value_kind: Type::leaf(c::EMPTY_INFO_ID.into())?
-                        .profile()?
-                        .value_kind()
-                        .clone(),
+                    // A native read is triggered by bare Empty, like the
+                    // existing DHT Source. A structured Empty profile has a
+                    // canonical envelope and cannot fit this 1-byte operation.
+                    value_kind: c::EMPTY_INFO_ID.into(),
                     direction: c::PortDirection::Input,
                     temporal: c::PortTemporal::Flow { closes: true },
                     abnormal_kind: None,
