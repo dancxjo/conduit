@@ -99,6 +99,7 @@ fn return_proof(
 #[test]
 fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
     let (mut manager, mut membership, key) = admitted();
+    manager.try_compact_storage().unwrap();
     let part_id = membership.parts[0].part_id.clone();
     membership
         .observe_offline(
@@ -115,6 +116,7 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
     let challenge = manager
         .begin_return(&membership, &part_id, &returned, [63; 32], 2_100, 3_100)
         .unwrap();
+    manager.try_compact_storage().unwrap();
     let returned_credential = manager
         .complete_return(
             &mut membership,
@@ -124,6 +126,7 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
             SignId::from("sign/host-returned"),
         )
         .unwrap();
+    manager.try_compact_storage().unwrap();
     assert_eq!(returned_credential.body_id, membership.body_id);
     assert_eq!(returned_credential.part_id, part_id);
     assert_eq!(
