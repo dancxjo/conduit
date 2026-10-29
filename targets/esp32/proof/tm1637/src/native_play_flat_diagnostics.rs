@@ -5,7 +5,8 @@ use super::IssuedCustody;
 // 105 selection entry; 1051 tables; 1052 roles; 1053 attachment; 1054 placements;
 // 1055 Root preparation; 1056/1057 expected credential/Join scopes;
 // 1058 pair selection; 1059 numeric parts; 110 claim memory; 111/112 issuer memory; 113 reservation memory;
-// 114 kernel/Sign backing; 115 admission callback; 120 actual Root reservation;
+// 114 kernel/Sign backing; 115 admission callback; 116 local mechanism ID memory;
+// 120 actual Root reservation;
 // 121/122 credential issue/check; 123/124 Join issue/check; 125 materialization.
 // Scalar diagnostics only; no payload, authority or retained execution state.
 #[inline(never)]

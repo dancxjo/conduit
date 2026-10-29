@@ -1,5 +1,30 @@
 //! Fallible cold backing placement and explicit unused-storage retirement.
 use super::*;
+/// Descriptive local mechanism ID only; this allocation conveys no grant.
+pub(super) fn reserve_local_base_id() -> Result<c::BaseImplementationId, ()> {
+    let mut id = alloc::string::String::new();
+    id.try_reserve_exact(c::LOCAL_BASE_IMPLEMENTATION_ID.len())
+        .map_err(|_| ())?;
+    id.push_str(c::LOCAL_BASE_IMPLEMENTATION_ID);
+    Ok(id.into())
+}
+
+/// Protect both exact execution allocations before temporary descriptions can
+/// fragment their holes. Every byte remains inside the same admitted workspace.
+pub(super) fn reserve_phased_storage(
+    storage: Option<n::PreparedNetworkKernelStorage>,
+    custody: &IssuedCustody,
+) -> Result<(n::PreparedNetworkKernelStorage, c::BaseImplementationId), ()> {
+    let storage = storage
+        .map_or_else(NativePlay::reserve_linked_backing, Ok)
+        .map_err(|()| trace_phased_refusal(114, custody, false, false))?;
+    #[cfg(test)]
+    record_phased(9, Some(storage.as_ptr() as usize));
+    let local_base =
+        reserve_local_base_id().map_err(|()| trace_phased_refusal(116, custody, false, false))?;
+    Ok((storage, local_base))
+}
+
 impl NativePlay {
     pub(crate) fn reserve_linked_backing() -> Result<n::PreparedNetworkKernelStorage, ()> {
         #[cfg(test)]

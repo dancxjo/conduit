@@ -78,18 +78,7 @@ impl NativePlay {
             );
             return Err(());
         }
-        // Reserve both actual execution allocations before temporary descriptions
-        // fragment their holes. Their full overlap with cold preparation counts
-        // against the SAME admitted workspace; neither backing conveys authority.
-        let storage = match storage.map_or_else(Self::reserve_linked_backing, Ok) {
-            Ok(backing) => backing,
-            Err(()) => {
-                trace_phased_refusal(114, &self.flat_refusal, false, false);
-                return Err(());
-            }
-        };
-        #[cfg(test)]
-        record_phased(9, Some(storage.as_ptr() as usize));
+        let (storage, local_base) = backing::reserve_phased_storage(storage, &self.flat_refusal)?;
         let pair = ReadyNetworkPair::new(source.take().ok_or(())?, join.take().ok_or(())?);
         let pins = (
             expected.source_document_id.as_str(),
@@ -107,9 +96,7 @@ impl NativePlay {
                 refusal_stage = 102;
                 let join_grant = issuer.grant_ref(owners.join_identity(), Operation::Join)?;
                 let grants = [credential_grant, join_grant];
-                let bases = [c::BaseImplementationId::from(
-                    c::LOCAL_BASE_IMPLEMENTATION_ID,
-                )];
+                let bases = [local_base];
                 let attachment = conduit_net::PreparedCanonicalNetworkOffer::attachment_local(
                     CAP,
                     IMPLEMENTATION,
