@@ -6,6 +6,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+#[path = "hosted_microphone/provider_discovery.rs"]
+mod provider_discovery;
+use provider_discovery::capture_command;
+
 pub const SAMPLE_RATE_HZ: u32 = 16_000;
 pub const CHANNELS: u8 = 1;
 pub const BYTES_PER_SAMPLE: u8 = 2;
@@ -61,6 +65,7 @@ pub enum MicrophoneFailure {
     OutputOverflow = 13,
     Timeout = 14,
     Cancelled = 15,
+    InexactFormat = 16,
 }
 
 impl core::fmt::Display for MicrophoneFailure {
@@ -73,6 +78,7 @@ impl std::error::Error for MicrophoneFailure {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MicrophoneCaptureReceipt {
+    pub implementation_id: String,
     pub executable_sha256: String,
     pub base_identity: String,
     pub card_id: String,
@@ -86,53 +92,46 @@ pub struct MicrophoneCaptureReceipt {
     pub diagnostic_bytes: u16,
 }
 
+/// Provider format policy is selected by the Host, never inferred from failure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AlsaMicrophoneFormat {
+    ExactHardware,
+    AlsaPlug,
+}
+impl AlsaMicrophoneFormat {
+    pub fn implementation_id(self) -> &'static str {
+        match self {
+            Self::ExactHardware => conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
+            Self::AlsaPlug => conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION,
+        }
+    }
+    fn device_prefix(self) -> &'static str {
+        match self {
+            Self::ExactHardware => "hw",
+            Self::AlsaPlug => "plughw",
+        }
+    }
+}
+
 pub struct AlsaMicrophoneAdapter {
+    format: AlsaMicrophoneFormat,
     discovery: AlsaMicrophoneDiscovery,
     selection: AlsaMicrophoneObservation,
     limits: MicrophoneLimits,
     last_receipt: Option<MicrophoneCaptureReceipt>,
 }
 
-impl AlsaMicrophoneDiscovery {
-    /// Enumerates ALSA control metadata without opening a PCM capture stream.
-    pub fn inspect(executable: impl AsRef<Path>) -> Result<Self, MicrophoneFailure> {
-        let executable = exact_file(executable.as_ref())?;
-        let output = bounded_discovery(&executable)?;
-        let listing =
-            std::str::from_utf8(&output).map_err(|_| MicrophoneFailure::InvalidDiscovery)?;
-        let observations = parse_arecord_list(listing, Path::new("/sys/class/sound"))?;
-        Ok(Self {
-            executable_sha256: digest_file(&executable)?,
-            executable,
-            observations,
-        })
-    }
-
-    pub fn initialize(
-        self,
-        selected: &AlsaMicrophoneObservation,
-        limits: MicrophoneLimits,
-    ) -> Result<AlsaMicrophoneAdapter, MicrophoneFailure> {
-        validate_limits(limits)?;
-        if self.observations.is_empty() {
-            return Err(MicrophoneFailure::NoEndpoint);
-        }
-        let selection = self
-            .observations
-            .iter()
-            .find(|candidate| *candidate == selected)
-            .cloned()
-            .ok_or(MicrophoneFailure::SelectionDrift)?;
-        Ok(AlsaMicrophoneAdapter {
-            discovery: self,
-            selection,
-            limits,
-            last_receipt: None,
-        })
-    }
-}
-
 impl AlsaMicrophoneAdapter {
+    pub fn implementation_id(&self) -> &'static str {
+        self.format.implementation_id()
+    }
+    pub fn offer(&self) -> conduit_core::CapabilityOffer {
+        match self.format {
+            AlsaMicrophoneFormat::ExactHardware => conduit_std_offers::microphone_clip_offer(),
+            AlsaMicrophoneFormat::AlsaPlug => conduit_std_offers::converted_microphone_clip_offer(),
+        }
+    }
+
     pub fn executable_sha256(&self) -> &str {
         &self.discovery.executable_sha256
     }
@@ -156,6 +155,7 @@ impl AlsaMicrophoneAdapter {
         &mut self,
         mut cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, MicrophoneFailure> {
+        self.last_receipt = None;
         let mut child = self.spawn()?;
         let stdout = child.stdout.take().ok_or(MicrophoneFailure::SpawnFailed)?;
         let stderr = child.stderr.take().ok_or(MicrophoneFailure::SpawnFailed)?;
@@ -205,6 +205,16 @@ impl AlsaMicrophoneAdapter {
         if !provider_succeeded {
             return Err(MicrophoneFailure::ProviderLost);
         }
+        if diagnostics.overflowed {
+            return Err(MicrophoneFailure::OutputOverflow);
+        }
+        if diagnostics
+            .bytes
+            .windows(b"rate is not accurate".len())
+            .any(|v| v == b"rate is not accurate")
+        {
+            return Err(MicrophoneFailure::InexactFormat);
+        }
         if audio.overflowed {
             return Err(MicrophoneFailure::OutputOverflow);
         }
@@ -215,6 +225,7 @@ impl AlsaMicrophoneAdapter {
             return Err(MicrophoneFailure::ShortCapture);
         }
         self.last_receipt = Some(MicrophoneCaptureReceipt {
+            implementation_id: self.implementation_id().into(),
             executable_sha256: self.discovery.executable_sha256.clone(),
             base_identity: self.selection.base_identity.clone(),
             card_id: self.selection.card_id.clone(),
@@ -238,9 +249,11 @@ impl AlsaMicrophoneAdapter {
     ) -> Result<Vec<u8>, MicrophoneFailure> {
         let raw = self.capture(cancelled)?;
         let bytes_per_frame = CHANNELS as usize * BYTES_PER_SAMPLE as usize;
-        let mut encoded_frames = Vec::new();
+        let block_bytes =
+            usize::from(conduit_audio::MAXIMUM_PCM_FRAMES_PER_BLOCK) * bytes_per_frame;
+        let mut encoded_frames = Vec::with_capacity(raw.len().div_ceil(block_bytes));
         let mut start_frame = 0_u64;
-        for payload in raw.chunks(SAMPLE_RATE_HZ as usize * bytes_per_frame) {
+        for payload in raw.chunks(block_bytes) {
             let frame_count = u16::try_from(payload.len() / bytes_per_frame)
                 .map_err(|_| MicrophoneFailure::OutputOverflow)?;
             let header = conduit_audio::PcmFrameHeader::new(
@@ -272,11 +285,13 @@ impl AlsaMicrophoneAdapter {
 
     fn spawn(&self) -> Result<Child, MicrophoneFailure> {
         let device = format!(
-            "hw:CARD={},DEV={}",
-            self.selection.card_id, self.selection.device
+            "{}:CARD={},DEV={}",
+            self.format.device_prefix(),
+            self.selection.card_id,
+            self.selection.device
         );
         let samples = capture_frames(self.limits.capture_milliseconds).to_string();
-        Command::new(&self.discovery.executable)
+        capture_command(&self.discovery.executable)
             .args([
                 "--device",
                 &device,
@@ -288,7 +303,7 @@ impl AlsaMicrophoneAdapter {
                 "1",
                 "--samples",
                 &samples,
-                "--type",
+                "--file-type",
                 "raw",
             ])
             .stdin(Stdio::null())
@@ -320,55 +335,6 @@ fn bounded_read(mut reader: impl Read, maximum: usize) -> Result<BoundedRead, Mi
         overflowed |= count > remaining;
     }
     Ok(BoundedRead { bytes, overflowed })
-}
-
-fn bounded_discovery(executable: &Path) -> Result<Vec<u8>, MicrophoneFailure> {
-    let mut child = Command::new(executable)
-        .arg("-l")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or(MicrophoneFailure::DiscoveryFailed)?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or(MicrophoneFailure::DiscoveryFailed)?;
-    let listing = std::thread::spawn(move || bounded_read(stdout, MAXIMUM_DISCOVERY_BYTES));
-    let diagnostics = std::thread::spawn(move || bounded_read(stderr, MAXIMUM_DIAGNOSTIC_BYTES));
-    let started = Instant::now();
-    let status = loop {
-        if started.elapsed() >= DISCOVERY_TIMEOUT {
-            stop(&mut child);
-            let _ = listing.join();
-            let _ = diagnostics.join();
-            return Err(MicrophoneFailure::DiscoveryFailed);
-        }
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) => std::thread::sleep(Duration::from_millis(2)),
-            Err(_) => {
-                stop(&mut child);
-                return Err(MicrophoneFailure::DiscoveryFailed);
-            }
-        }
-    };
-    let listing = listing
-        .join()
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?;
-    let diagnostics = diagnostics
-        .join()
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?;
-    if !status.success() || listing.overflowed || diagnostics.overflowed {
-        return Err(MicrophoneFailure::DiscoveryFailed);
-    }
-    Ok(listing.bytes)
 }
 
 fn exact_file(path: &Path) -> Result<PathBuf, MicrophoneFailure> {

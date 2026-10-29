@@ -111,6 +111,7 @@ pub(crate) fn prompt(
             kind,
             implementation: Some(exact_implementation(implementations, &selected)?),
             implementations: Vec::new(),
+            initialization: None,
         });
     }
 
@@ -252,6 +253,7 @@ mod tests {
                 kind: kind.clone(),
                 implementation: Some(implementations[0].clone()),
                 implementations: Vec::new(),
+                initialization: None,
             }],
             resources: Vec::new(),
             limits: descriptor.maxima.clone(),

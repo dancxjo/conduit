@@ -110,3 +110,57 @@ pub(super) fn build_linux_set(
 
     Ok(())
 }
+
+/// Exact 64-bit Linux Pi deliveries, built off-device without an x86 build.
+pub(super) fn build_aarch64(
+    output: &Path,
+    source_identity: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    require_success(
+        Command::new("aarch64-linux-gnu-gcc").arg("--version"),
+        "AArch64 C cross compiler",
+    )?;
+    require_success(
+        Command::new("cargo")
+            .args([
+                "+1.98.1",
+                "build",
+                "--locked",
+                "--release",
+                "-p",
+                "conduit",
+                "--target",
+                "aarch64-unknown-linux-gnu",
+            ])
+            .env(
+                "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER",
+                "aarch64-linux-gnu-gcc",
+            ),
+        "compile AArch64 Linux Host",
+    )?;
+    fs::create_dir_all(output)?;
+    copy(
+        cargo_release_artifact(Some("aarch64-unknown-linux-gnu"), "conduit"),
+        &output.join("conduit-linux-aarch64"),
+    )?;
+    for machine in [
+        "raspberry-pi-3-model-b-plus-rev-1.3",
+        "raspberry-pi-5-model-b-rev-1.1-8gb",
+    ] {
+        seal(
+            output,
+            &format!("linux-aarch64-{machine}.json"),
+            &format!("std/aarch64/{machine}"),
+            "conduit-host-raspberry-pi@1",
+            "native-bundle",
+            "conduit-host-raspberry-pi/build-raspios-native@1",
+            "conduit-host-raspberry-pi/install-raspios-package@1",
+            source_identity,
+            &[(
+                "conduit-linux-aarch64",
+                "application/vnd.conduit.host+executable",
+            )],
+        )?;
+    }
+    Ok(())
+}

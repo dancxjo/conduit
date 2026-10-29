@@ -7,6 +7,7 @@ thread_local! {
     static FAIL_AFTER: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+    static RELEASED: Cell<usize> = const { Cell::new(0) };
 }
 
 struct CountedAllocator;
@@ -72,6 +73,9 @@ unsafe impl GlobalAlloc for CountedAllocator {
         unsafe { System.realloc(pointer, layout, size) }
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        if TRACKING.try_with(Cell::get).unwrap_or(false) {
+            let _ = RELEASED.try_with(|count| count.set(count.get() + layout.size()));
+        }
         unsafe { System.dealloc(pointer, layout) }
     }
 }
@@ -151,4 +155,22 @@ fn invalid_issuance_is_checked_before_allocating_and_does_not_consume_identity()
     assert_eq!(result.err(), Some(BaseCapabilityRefusal::InvalidBound));
     let expected = table(7).issue(request()).unwrap();
     assert!(actual.issue(request()).unwrap() == expected);
+}
+
+pub(super) fn without_allocations(f: impl FnOnce()) {
+    ALLOCATIONS.with(|count| count.set(0));
+    TRACKING.with(|tracking| tracking.set(true));
+    f();
+    TRACKING.with(|tracking| tracking.set(false));
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+}
+
+pub(super) fn released_bytes<T>(f: impl FnOnce() -> T) -> (T, usize) {
+    ALLOCATIONS.with(|count| count.set(0));
+    RELEASED.with(|count| count.set(0));
+    TRACKING.with(|tracking| tracking.set(true));
+    let result = f();
+    TRACKING.with(|tracking| tracking.set(false));
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    (result, RELEASED.with(Cell::get))
 }

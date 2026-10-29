@@ -57,7 +57,9 @@ pub(crate) use near_back::{
     admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
     IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
 };
+mod committed_fore;
 mod fore_outputs;
+pub use committed_fore::{CommittedForeScope, CommittedForeValue};
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
@@ -78,6 +80,7 @@ mod logic_backs;
 mod math_backs;
 mod math_host;
 mod microphone_clip_back;
+mod microphone_host;
 mod midi_input_back;
 mod midi_output_back;
 mod model_host;
@@ -492,6 +495,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .saturating_mul(usize::from(external_input_items)),
     );
     let mut prepared_fore_outputs = fore_outputs::PreparedForeOutputs::prepare(&lowered.fore_ports);
+    let mut committed_fore =
+        committed_fore::PreparedCommittedFore::prepare(fragment, &lowered, &active_play)?;
     fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
@@ -832,13 +837,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .filter(|port| port.direction == conduit_core::PortDirection::Output)
         {
-            while let Some(offer) = scheduler
-                .remote_egress_offer(planned.endpoint, planned.cord)
-                .map_err(|error| format!("offer external Fore output: {error:?}"))?
-            {
-                let borrowed = scheduler
-                    .host_value(offer.value)
-                    .map_err(|error| format!("read external Fore output: {error:?}"))?;
+            while let Some((offer, committed)) = committed_fore.offer(&mut scheduler, planned)? {
+                let borrowed = committed.bytes();
                 let (delivery, adapter_delivery) =
                     if planned.temporal == conduit_core::PortTemporal::Value {
                         let (report, adapter) =
@@ -854,9 +854,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .expect("output adapter checked above")
                     .output;
                 if let Some(adapter_delivery) = adapter_delivery {
-                    adapter.deliver(adapter_delivery)?;
+                    adapter.deliver_committed(committed, adapter_delivery)?;
                 } else {
-                    adapter.deliver_flow(&delivery)?;
+                    adapter.deliver_committed(committed, delivery.clone())?;
                 }
                 scheduler
                     .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
@@ -1036,13 +1036,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete durable State operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
-                if input != b"capture" {
-                    return Err("microphone clip capture request is not exact".into());
-                }
-                let adapter = microphone.as_deref_mut().ok_or_else(|| {
-                    "microphone clip request has no initialized adapter".to_string()
-                })?;
-                let capture = adapter.capture_clip(|| control.requested_stop().is_some());
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or("microphone request has no exact placement")?;
+                let capture = microphone_host::execute(
+                    input,
+                    placement.implementation_id.as_str(),
+                    microphone.as_deref_mut(),
+                    || control.requested_stop().is_some(),
+                )?;
                 let (disposition, output, failure) = match capture {
                     Ok(clip) => {
                         let value = scheduler.store_host_value(&clip).map_err(|error| {
@@ -1055,17 +1058,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .map_err(|error| format!("bound captured microphone clip: {error:?}"))?;
                         (HostCallDisposition::Completed, Some(output), None)
                     }
-                    Err(crate::hosted_microphone::MicrophoneFailure::Cancelled) => {
-                        (HostCallDisposition::Cancelled, None, None)
+                    Err(error) => {
+                        let outcome = microphone_host::failure_outcome(error);
+                        (outcome.disposition, None, outcome.failure)
                     }
-                    Err(error) => (
-                        HostCallDisposition::Failed,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallFailed,
-                            detail: error as u16,
-                        }),
-                    ),
                 };
                 host_calls.record(request)?;
                 scheduler

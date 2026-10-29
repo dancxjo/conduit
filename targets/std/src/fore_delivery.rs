@@ -145,6 +145,22 @@ impl Deref for ExternalForeDelivery {
 pub trait ExternalForeOutputAdapter {
     fn deliver(&mut self, output: ExternalForeDelivery) -> Result<(), String>;
 
+    /// Called only with an actual installed kernel offer. The separate legacy
+    /// delivery remains an effect request; it cannot create commit evidence.
+    /// Consumers needing evidence must decode `committed.bytes()` and recheck
+    /// its exact selected Source/Play/Fore scope, not trust the legacy DTO.
+    fn deliver_committed(
+        &mut self,
+        committed: crate::CommittedForeValue<'_>,
+        output: ExternalForeDelivery,
+    ) -> Result<(), String> {
+        if committed.scope().fore.temporal == conduit_core::PortTemporal::Value {
+            self.deliver(output)
+        } else {
+            self.deliver_flow(&output)
+        }
+    }
+
     /// Synchronous adapters can borrow; retaining adapters receive a cheap shared clone.
     fn deliver_flow(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
         self.deliver(output.clone())

@@ -244,9 +244,11 @@ pub mod virtio_tcp;
 pub(crate) mod virtio_tcp_stream;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tls;
-#[cfg(all(
-    target_arch = "x86_64",
-    any(feature = "virtio-net-proof", feature = "hosted-tools")
+// Public fixture data is also used by hosted proof tools running on ARM.
+// The device/network implementations above retain their architecture gates.
+#[cfg(any(
+    all(target_arch = "x86_64", feature = "virtio-net-proof"),
+    feature = "hosted-tools"
 ))]
 pub mod virtio_tls_fixture;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]

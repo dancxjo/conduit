@@ -12,6 +12,7 @@ pub(super) struct MicrophoneWhisperRequest {
     pub arecord_executable: PathBuf,
     pub card_id: String,
     pub device: u16,
+    pub alsa_plug: bool,
     pub capture_milliseconds: u32,
     pub capture_timeout_seconds: u64,
     pub whisper_executable: PathBuf,
@@ -70,11 +71,16 @@ pub(super) fn prove(
         )
         .into());
     };
-    let microphone = discovery.initialize(
+    let microphone = discovery.initialize_with_format(
         selected,
         MicrophoneLimits {
             capture_milliseconds: request.capture_milliseconds,
             timeout: Duration::from_secs(request.capture_timeout_seconds),
+        },
+        if request.alsa_plug {
+            conduit_std_host::hosted_microphone::AlsaMicrophoneFormat::AlsaPlug
+        } else {
+            conduit_std_host::hosted_microphone::AlsaMicrophoneFormat::ExactHardware
         },
     )?;
     let coverage = conduit_std_host::hosted_speech_recognition::read_language_coverage(
