@@ -160,7 +160,7 @@ impl NativeNetwork {
     /// SDK C allocation is confined to this retained fixed reservation, with
     /// null/Pressure on exhaustion and no Root-heap fallback. Configuration strings
     /// were prepared before this transfer; no credential is cloned or consumed.
-    pub fn prepare(&mut self, host: &c::HostId, boot: &c::BootId) -> Result<(), ()> {
+    pub fn prepare(&mut self, host: &c::HostId, boot: &c::BootId) -> Result<(), &'static str> {
         if self.is_ready() {
             return Ok(());
         }
@@ -168,7 +168,7 @@ impl NativeNetwork {
             || boot.as_str().is_empty()
             || self.sdk.bytes() != crate::sdk_memory::SDK_BYTES
         {
-            return Err(());
+            return Err("network-native-identity-invalid");
         }
         // Identity allocation precedes transferring any initialized owner.
         let identity = crate::native_network_identity::prepare(
@@ -176,12 +176,14 @@ impl NativeNetwork {
             host,
             boot,
             self.generation,
-        )?;
+        )
+        .map_err(|_| "network-native-identity-capacity")?;
         let attachment =
-            crate::native_network_identity::GenerationText::attachment(self.generation)?;
+            crate::native_network_identity::GenerationText::attachment(self.generation)
+                .map_err(|_| "network-attachment-capacity")?;
         if self.adapter.is_none() {
             if self.radio.is_none() || self.services.is_none() || self.configuration.is_none() {
-                return Err(());
+                return Err("network-owner-unavailable");
             }
             let radio = self.radio.take().expect("retained controller");
             let configuration = self.configuration.take().expect("prepared configuration");
@@ -218,7 +220,7 @@ impl NativeNetwork {
                 },
             )
         }
-        .map_err(|_| ())?;
+        .map_err(|_| "network-provider-preparation-refused")?;
         // SAFETY: the actual provider and its SDK backing remain retained here.
         // The initialized ownership is distinct from successful association and
         // from the opaque authority/selection still required before invocation.

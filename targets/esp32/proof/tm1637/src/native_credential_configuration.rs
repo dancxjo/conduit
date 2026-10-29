@@ -125,7 +125,7 @@ impl RootCredentialSource {
         owner
             .with_selected_request(conduit_esp32_network_switch::prepare_station_configuration)
             .map_err(|_| "credential-selection")?
-            .map_err(|_| "credential-configuration")
+            .map_err(configuration_refusal)
     }
     pub(super) fn prepare_saved_retry(
         &mut self,
@@ -153,6 +153,19 @@ impl RootCredentialSource {
         owner
             .with_selected_request(conduit_esp32_network_switch::prepare_station_configuration)
             .map_err(|_| "credential-selection")?
-            .map_err(|_| "credential-configuration")
+            .map_err(configuration_refusal)
+    }
+}
+
+// Public status distinguishes finite preparation pressure without exposing the
+// selected SSID, password, profile key, or any native identity.
+fn configuration_refusal(
+    reason: conduit_esp32_network_switch::StationConfigurationRefusal,
+) -> &'static str {
+    match reason {
+        conduit_esp32_network_switch::StationConfigurationRefusal::Capacity => {
+            "credential-config-capacity"
+        }
+        _ => "credential-configuration",
     }
 }

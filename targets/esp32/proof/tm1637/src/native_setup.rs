@@ -117,8 +117,8 @@ impl NativeRoot {
         let Some(selected_generation) = self.offer_generation.checked_add(2) else {
             return b"offer-generation-exhausted";
         };
-        if self.network.prepare(&self.host, &self.boot).is_err() {
-            return b"refused";
+        if let Err(reason) = self.network.prepare(&self.host, &self.boot) {
+            return reason.as_bytes();
         }
         self.offer_generation = selected_generation - 1;
         #[cfg(feature = "flat-network-appliance")]
