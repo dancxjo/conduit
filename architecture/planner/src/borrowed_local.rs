@@ -134,12 +134,15 @@ pub fn with_linked_local_plan<R>(
         }
         bound.sort_by(|a, b| compare_authority_bindings_ref(*a, *b));
         authority.push(bound);
-        ids.push(placement_identity_ref(
-            facts.checked_plot_id,
-            gear.gear_id,
-            host.host_id,
-            offer.capability_id,
-        ));
+        ids.push(
+            crate::streamed_identity::placement(
+                facts.checked_plot_id,
+                gear.gear_id,
+                host.host_id,
+                offer.capability_id,
+            )
+            .map_err(|_| E::WorkspaceCapacity)?,
+        );
     }
     // Binding admission has finished. Its accounting scratch is not part of
     // the immutable Plan and need not overlap fingerprinting or verification.
@@ -173,11 +176,9 @@ pub fn with_linked_local_plan<R>(
     drop(selected_bases);
     let projected = c::PlainLocalPlannedGears::new(host, &entries).map_err(E::Verification)?;
     let records = c::PlannedGearRefs::Projected(&projected);
-    let connection_ids = facts
-        .connections
-        .iter()
-        .map(|v| connection_identity_ref(facts.checked_plot_id, *v))
-        .collect::<Vec<_>>();
+    let connection_ids =
+        crate::streamed_identity::connections(facts.checked_plot_id, facts.connections)
+            .map_err(|_| E::WorkspaceCapacity)?;
     let mut connections = Vec::with_capacity(facts.connections.len());
     for (i, connection) in facts.connections.iter().enumerate() {
         let source_index = facts
