@@ -120,7 +120,7 @@ fn finish_restore(
     {
         return Err("restart-restore-binding");
     }
-    let admissions = retained.admissions.ok_or("restart-admissions-missing")?;
+    let mut admissions = retained.admissions.ok_or("restart-admissions-missing")?;
     let mut body = SealedBodyLifecycleSession::open_admitted(retained.evidence, host, boot)
         .map_err(|_| "restart-restore-admitted")?;
     if let Some(plot) = token.foreground.as_ref() {
@@ -141,6 +141,9 @@ fn finish_restore(
     }
     // SAFETY: the unique non-null allocation has this Box's exact layout.
     let body = Box::write(unsafe { Box::from_raw(pointer) }, body);
+    // This is a fresh streamed decode, even if initial cold loading compacted
+    // its predecessor. Preserve exact metadata while releasing optional slack.
+    compact_admission_storage(&mut admissions);
     store.archives = Vec::new();
     store.custody = Some(ArchiveCustody {
         proof: resident.proof,

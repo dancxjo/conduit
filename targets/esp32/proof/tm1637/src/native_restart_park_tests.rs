@@ -394,3 +394,6 @@ fn network_cursor_survives_actual_checkpoint_framed_rewrite_and_parked_restore()
     assert_eq!(restored.evidence().body_id, body);
     assert!(store.custody.as_ref().unwrap().network.as_ref() == Some(&expected));
 }
+
+#[path = "native_restart_admission_storage_tests.rs"]
+mod admission_storage_tests;

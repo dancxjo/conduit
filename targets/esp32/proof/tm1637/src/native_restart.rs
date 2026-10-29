@@ -424,18 +424,7 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                 None => return Err("restart-missing-admissions"),
             };
             admissions.retire_unfinished_challenges();
-            // Decoding may geometrically over-reserve retained records. Compact
-            // their backing before publishing this Boot's provider baseline;
-            // no receipt/key/order or admission limit is retired by this step.
-            if admissions.try_compact_storage().is_err() {
-                // Spare-capacity reclamation is optional. A valid restored
-                // manager remains authoritative and local work may still fit;
-                // later actual workset admission retains its unchanged bounds.
-                #[cfg(all(target_os = "none", feature = "local-appliance"))]
-                esp_println::println!(
-                    "{{\"event\":\"restart-admission-storage\",\"status\":\"capacity-refused\"}}"
-                );
-            }
+            compact_admission_storage(&mut admissions);
             (
                 retained.evidence,
                 Vec::new(),
@@ -477,6 +466,20 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
         Ok(())
     })
 }
+// Every streamed decode can reintroduce geometric spare capacity. Keep this
+// optional cold optimization at each publication boundary, not just first boot.
+#[inline(never)]
+fn compact_admission_storage(admissions: &mut AdmissionManager) {
+    if admissions.try_compact_storage().is_err() {
+        // Capacity pressure must not discard valid metadata or block otherwise
+        // admissible local work. Later workset bounds remain unchanged.
+        #[cfg(all(target_os = "none", feature = "local-appliance"))]
+        esp_println::println!(
+            "{{\"event\":\"restart-admission-storage\",\"status\":\"capacity-refused\"}}"
+        );
+    }
+}
+
 /// New entropy is used only when the whole journal is verified erased. Persist
 /// the exact initial biography and key before returning a publishable signer.
 pub fn select_signer_seed(mut entropy: [u8; 32]) -> Result<[u8; 32], &'static str> {
