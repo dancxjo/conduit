@@ -30,7 +30,7 @@ mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
-mod factory;
+pub(crate) mod factory;
 mod final_normalized_pattern_back;
 mod flow_first_back;
 mod flow_gate_back;
@@ -57,7 +57,11 @@ pub(crate) use near_back::{
     admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
     IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
 };
+mod committed_fore;
+mod native_source_dispatch;
+pub(crate) use native_source_dispatch::supports_with_native;
 mod fore_outputs;
+pub use committed_fore::{CommittedForeScope, CommittedForeValue};
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
@@ -78,6 +82,7 @@ mod logic_backs;
 mod math_backs;
 mod math_host;
 mod microphone_clip_back;
+mod microphone_host;
 mod midi_input_back;
 mod midi_output_back;
 mod model_host;
@@ -294,6 +299,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         #[cfg(target_os = "linux")]
         selected_text_file,
         advertisement,
+        native_source,
         playback,
         midi_input,
         midi_output,
@@ -307,8 +313,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
-    if !supports(fragment)
-        || active_nodes == 0
+    if !supports_with_native(
+        fragment,
+        native_source.as_ref().map(|(_, source)| &**source),
+    ) || active_nodes == 0
         || active_nodes > MAX_NODES
         || active_cords == 0
         || active_cords > MAX_CORDS
@@ -355,7 +363,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let budget = preparation::back_budget(placement)?;
+        let budget = if let Some(source) = native_source
+            .as_ref()
+            .map(|(_, source)| &**source)
+            .filter(|source| source.matches(placement))
+        {
+            source.budget()
+        } else {
+            preparation::back_budget(placement)?
+        };
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;
@@ -413,13 +429,22 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     if spoken_mask_session.is_some() && direct_spoken_mask_session.is_some() {
         return Err("one Play cannot prepare two spoken Mask semantic sessions".into());
     }
-    let drivers = preparation::prepare_operations(
+    let mut native_call = match native_source {
+        Some((registry, source)) => {
+            source.prepare(registry, advertisement, fragment, &lowered, &active_play)?
+        }
+        None => None,
+    };
+    let drivers = preparation::prepare_operations_with_native(
         fragment,
         &lowered,
         &mut values,
         &active_play,
         retained,
         durable_state.as_ref().map(|state| state.body),
+        native_call
+            .as_ref()
+            .map(|source| (source.node, source.input_bytes())),
     )?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
@@ -492,6 +517,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .saturating_mul(usize::from(external_input_items)),
     );
     let mut prepared_fore_outputs = fore_outputs::PreparedForeOutputs::prepare(&lowered.fore_ports);
+    let mut committed_fore =
+        committed_fore::PreparedCommittedFore::prepare(fragment, &lowered, &active_play)?;
     fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
@@ -832,13 +859,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .filter(|port| port.direction == conduit_core::PortDirection::Output)
         {
-            while let Some(offer) = scheduler
-                .remote_egress_offer(planned.endpoint, planned.cord)
-                .map_err(|error| format!("offer external Fore output: {error:?}"))?
-            {
-                let borrowed = scheduler
-                    .host_value(offer.value)
-                    .map_err(|error| format!("read external Fore output: {error:?}"))?;
+            while let Some((offer, committed)) = committed_fore.offer(&mut scheduler, planned)? {
+                let borrowed = committed.bytes();
                 let (delivery, adapter_delivery) =
                     if planned.temporal == conduit_core::PortTemporal::Value {
                         let (report, adapter) =
@@ -854,9 +876,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .expect("output adapter checked above")
                     .output;
                 if let Some(adapter_delivery) = adapter_delivery {
-                    adapter.deliver(adapter_delivery)?;
+                    adapter.deliver_committed(committed, adapter_delivery)?;
                 } else {
-                    adapter.deliver_flow(&delivery)?;
+                    adapter.deliver_committed(committed, delivery.clone())?;
                 }
                 scheduler
                     .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
@@ -884,7 +906,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let cancelled_operation = host_calls
                 .get(cancellation.node, cancellation.call)
                 .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
-            if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
+            if native_call
+                .as_ref()
+                .is_some_and(|source| source.node == cancellation.node)
+            {
+                // Immediate native reads cannot leave asynchronous work in flight.
+            } else if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
                 let session = playback_sessions
                     .get_mut(usize::from(cancellation.node.0))
                     .and_then(Option::as_mut)
@@ -964,6 +991,24 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let Some(request) = scheduler.next_host_request() else {
                 break;
             };
+            if let Some(source) = native_call
+                .as_mut()
+                .filter(|source| source.node == request.node)
+            {
+                let maximum_output_bytes = host_calls
+                    .get(request.node, request.call)
+                    .ok_or("native Source request has no lowered contract identity")?
+                    .binding
+                    .maximum_output_bytes;
+                native_source_dispatch::complete(
+                    source,
+                    request,
+                    &mut scheduler,
+                    &mut host_calls,
+                    maximum_output_bytes,
+                )?;
+                continue;
+            }
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read std host input: {error:?}"))?;
@@ -1036,13 +1081,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete durable State operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
-                if input != b"capture" {
-                    return Err("microphone clip capture request is not exact".into());
-                }
-                let adapter = microphone.as_deref_mut().ok_or_else(|| {
-                    "microphone clip request has no initialized adapter".to_string()
-                })?;
-                let capture = adapter.capture_clip(|| control.requested_stop().is_some());
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or("microphone request has no exact placement")?;
+                let capture = microphone_host::execute(
+                    input,
+                    placement.implementation_id.as_str(),
+                    microphone.as_deref_mut(),
+                    || control.requested_stop().is_some(),
+                )?;
                 let (disposition, output, failure) = match capture {
                     Ok(clip) => {
                         let value = scheduler.store_host_value(&clip).map_err(|error| {
@@ -1055,17 +1103,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         .map_err(|error| format!("bound captured microphone clip: {error:?}"))?;
                         (HostCallDisposition::Completed, Some(output), None)
                     }
-                    Err(crate::hosted_microphone::MicrophoneFailure::Cancelled) => {
-                        (HostCallDisposition::Cancelled, None, None)
+                    Err(error) => {
+                        let outcome = microphone_host::failure_outcome(error);
+                        (outcome.disposition, None, outcome.failure)
                     }
-                    Err(error) => (
-                        HostCallDisposition::Failed,
-                        None,
-                        Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallFailed,
-                            detail: error as u16,
-                        }),
-                    ),
                 };
                 host_calls.record(request)?;
                 scheduler

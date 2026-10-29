@@ -5,7 +5,9 @@
 //! Plan can carry the playback operation.
 
 mod alsa_aplay;
+mod base_registration;
 mod discovery;
+mod executable_identity;
 #[cfg(test)]
 mod fake;
 mod proof;
@@ -77,6 +79,7 @@ pub struct HostedPlaybackSelection {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     delivery_mode: PlaybackDeliveryMode,
+    executable_sha256: Option<[u8; 32]>,
     #[cfg(test)]
     fake_behavior: Option<fake::FakePlaybackBehavior>,
 }
@@ -92,6 +95,7 @@ impl HostedPlaybackSelection {
             boot_id,
             offer_generation,
             delivery_mode: PlaybackDeliveryMode::Direct,
+            executable_sha256: None,
             #[cfg(test)]
             fake_behavior: None,
         }
@@ -208,6 +212,7 @@ impl HostedPlaybackSelection {
             boot_id,
             offer_generation,
             delivery_mode: PlaybackDeliveryMode::Direct,
+            executable_sha256: None,
             fake_behavior: Some(behavior),
         }
     }

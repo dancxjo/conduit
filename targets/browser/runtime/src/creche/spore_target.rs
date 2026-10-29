@@ -220,6 +220,7 @@ fn orange_pi_target() -> Result<TargetFacts, String> {
                 kind: "serial/text".into(),
                 implementation: Some("orange-pi/dw-apb-uart2@1".into()),
                 implementations: Vec::new(),
+                initialization: None,
             }],
             resources: Vec::new(),
             limits: descriptor.maxima,
@@ -299,6 +300,7 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
                         kind: kind.into(),
                         implementation: Some(implementation.into()),
                         implementations: Vec::new(),
+                        initialization: None,
                     }]
                 })
                 .unwrap_or_default(),
@@ -367,6 +369,7 @@ fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
                     "raspberry-pi/pl011@1".into()
                 }),
                 implementations: Vec::new(),
+                initialization: None,
             }],
             resources: Vec::new(),
             limits: descriptor.maxima,
@@ -457,11 +460,13 @@ fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
                     kind: "clock/monotonic".into(),
                     implementation: Some("hosted/monotonic-clock@1".into()),
                     implementations: Vec::new(),
+                    initialization: None,
                 },
                 ConfigurationBase {
                     kind: "serial/text".into(),
                     implementation: Some("hosted/serial@1".into()),
                     implementations: Vec::new(),
+                    initialization: None,
                 },
             ],
             resources: Vec::new(),
@@ -528,6 +533,7 @@ fn pico_target() -> Result<TargetFacts, String> {
                 kind: "serial/text".into(),
                 implementation: Some("pico/usb-cdc@1".into()),
                 implementations: Vec::new(),
+                initialization: None,
             }],
             resources: Vec::new(),
             limits: HostBounds {
@@ -583,11 +589,13 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
                     kind: "kernel/signal".into(),
                     implementation: Some("esp32/kernel-signal@1".into()),
                     implementations: Vec::new(),
+                    initialization: None,
                 },
                 ConfigurationBase {
                     kind: "line/bluetooth-le-gatt".into(),
                     implementation: Some("esp32/bluetooth-le-gatt@1".into()),
                     implementations: Vec::new(),
+                    initialization: None,
                 },
             ],
             resources: Vec::new(),

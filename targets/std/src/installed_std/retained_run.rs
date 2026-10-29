@@ -32,6 +32,10 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
 }
 
 pub(crate) struct InstalledRunHost<'a, 'keyboard, 'model> {
+    pub native_source: Option<(
+        &'a conduit_core::BaseRegistry,
+        &'model mut crate::selected_native_source::InitializedNativeSource,
+    )>,
     #[cfg(target_os = "linux")]
     pub selected_text_file: Option<&'a crate::text_file::SelectedTextFileResidence>,
     pub advertisement: &'a HostAdvertisement,

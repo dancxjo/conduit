@@ -111,6 +111,7 @@ fn authored_quantities_survive_plan_play_sign_and_typed_face() {
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            native_source: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,

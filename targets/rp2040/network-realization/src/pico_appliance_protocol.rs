@@ -124,6 +124,21 @@ impl DhcpLeasePool {
         self.available = false;
     }
 
+    /// Read-only lookup: renewal cannot allocate another client's finite slot.
+    pub(crate) fn existing_lease(
+        &self,
+        client: [u8; 6],
+    ) -> Result<Option<DhcpLease>, ApplianceFailure> {
+        if !self.available {
+            return Err(ApplianceFailure::ServiceBaseLost(ApplianceService::Dhcp));
+        }
+        Ok(self
+            .clients
+            .iter()
+            .position(|entry| *entry == Some(client))
+            .map(|index| lease_at(index, client)))
+    }
+
     pub fn lease(&mut self, client: [u8; 6]) -> Result<DhcpLease, ApplianceFailure> {
         if !self.available {
             return Err(ApplianceFailure::ServiceBaseLost(ApplianceService::Dhcp));

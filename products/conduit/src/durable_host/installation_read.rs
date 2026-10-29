@@ -6,7 +6,7 @@ use super::{
 use std::path::Path;
 
 pub(super) fn read_installation(path: &Path) -> Result<Installation, String> {
-    read(path, false, false)
+    read(path, false, false, false)
 }
 
 pub(super) fn read_installation_for_equipment_change(
@@ -24,13 +24,19 @@ pub(super) fn read_installation_for_equipment_change(
             todo_change,
             selected_todo::Change::Replace(_) | selected_todo::Change::Remove
         ),
+        false,
     )
+}
+
+pub(super) fn read_for_configuration_change(path: &Path) -> Result<Installation, String> {
+    read(path, false, false, true)
 }
 
 fn read(
     path: &Path,
     explicit_reselection: bool,
     explicit_todo_reselection: bool,
+    explicit_configuration_reselection: bool,
 ) -> Result<Installation, String> {
     let bytes = bounded_read(path, 64 * 1024)?;
     let value: Installation =
@@ -56,6 +62,14 @@ fn read(
             selection.validate_for_reselection()?;
         } else {
             selection.validate()?;
+        }
+    }
+    if !explicit_configuration_reselection {
+        if let Some(selection) = &value.selected_host_configuration {
+            selection.validate()?;
+            if !explicit_reselection {
+                selection.validate_speech_overlap(value.selected_speech.as_ref())?;
+            }
         }
     }
     if let Some(binding) = &value.body_state {

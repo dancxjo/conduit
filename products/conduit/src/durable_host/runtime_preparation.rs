@@ -123,7 +123,8 @@ fn prepare_runtime_with_composition(
     if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
             || installation.selected_speech.is_some()
-            || installation.selected_todo_checkpoint.is_some())
+            || installation.selected_todo_checkpoint.is_some()
+            || installation.selected_host_configuration.is_some())
     {
         return Err(if thermostat.is_some() {
             "installed Thermostat scan cannot preserve selected equipment in its scoped Host"
@@ -131,6 +132,13 @@ fn prepare_runtime_with_composition(
             "installed Todo scan cannot preserve selected equipment in its scoped Host"
         }
         .into());
+    }
+    if installation.selected_todo_checkpoint.is_some()
+        && installation.selected_host_configuration.is_some()
+    {
+        return Err(
+            "scoped Todo checkpoint Host cannot initialize additional checked equipment".into(),
+        );
     }
     let config = trace.run(Phase::BootIdentity, || {
         let boot_id = fresh_identity("boot/installed", &installation.host_id);
@@ -168,6 +176,9 @@ fn prepare_runtime_with_composition(
         })
     })?;
     let selected_equipment = trace.run(Phase::EquipmentSelection, || {
+        if let Some(selection) = &installation.selected_host_configuration {
+            selection.attach_to_fresh_host(&mut host)?;
+        }
         Ok(if let Some(selection) = &installation.selected_speech {
             let artifact_dir = state_dir.join("spoken-artifacts");
             fs::create_dir_all(&artifact_dir)

@@ -367,3 +367,40 @@ fn orifina_journey() -> Result<PreparedOrifinaJourney, Box<dyn std::error::Error
         },
     })
 }
+
+/// One exact streaming operation; unrelated structured profiles are not prerequisites.
+pub(super) fn prove_stream(
+    model: &str,
+    endpoint: &str,
+    memory_mib: u32,
+    opts: &GlobalOpts,
+) -> Result<(), Box<dyn std::error::Error>> {
+    if opts.dry_run {
+        if opts.json {
+            println!(
+                "{}",
+                serde_json::json!({"schema":"conduit.tools/local-model-stream-proof@1","dry_run":true,"effects_performed":false})
+            );
+        } else if !opts.quiet {
+            println!("Would admit one already-local model for bounded streaming Plan/Play.");
+        }
+        return Ok(());
+    }
+    let initialized = std::time::Instant::now();
+    let adapter = OllamaDiscovery::discover_at(endpoint, model)?
+        .initialize(memory_mib, vec![LocalModelKindProfile::StreamGenerate])?;
+    let initialization_us = initialized.elapsed().as_micros() as u64;
+    let receipt = conduit_std_host::local_model_stream_proof::run(adapter)?;
+    if opts.json {
+        println!(
+            "{}",
+            serde_json::json!({"schema":"conduit.tools/local-model-stream-proof@1","initialization_us":initialization_us,"stream":receipt})
+        );
+    } else if !opts.quiet {
+        println!(
+            "STREAM PLAN/PLAY COMPLETED: chunks={} plan={} first-delivery={}us",
+            receipt.chunk_count, receipt.plan_id, receipt.first_delivery_us
+        );
+    }
+    Ok(())
+}

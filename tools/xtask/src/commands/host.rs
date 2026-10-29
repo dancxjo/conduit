@@ -79,6 +79,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             arecord_executable,
             card_id,
             device,
+            alsa_plug,
             capture_milliseconds,
             capture_timeout_seconds,
             whisper_executable,
@@ -93,6 +94,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 arecord_executable,
                 card_id,
                 device,
+                alsa_plug,
                 capture_milliseconds,
                 capture_timeout_seconds,
                 whisper_executable,
@@ -297,18 +299,25 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             model,
             ollama_endpoint,
             admitted_memory_mib,
+            stream,
             orifina_presenter,
             journey_documentary,
             speech,
-        } => host_local_model::prove(
-            &model,
-            &ollama_endpoint,
-            admitted_memory_mib,
-            orifina_presenter,
-            journey_documentary,
-            &speech,
-            opts,
-        ),
+        } => {
+            if stream {
+                host_local_model::prove_stream(&model, &ollama_endpoint, admitted_memory_mib, opts)
+            } else {
+                host_local_model::prove(
+                    &model,
+                    &ollama_endpoint,
+                    admitted_memory_mib,
+                    orifina_presenter,
+                    journey_documentary,
+                    &speech,
+                    opts,
+                )
+            }
+        }
         HostCommand::Launch { output } => {
             super::conduitos::persistent_launch::launch(&output, opts)?;
             Ok(())

@@ -84,6 +84,46 @@ base, authorable finite `need` templates, and complete finite host limits.
 Resource capacity and bases remain explicit in the source. It contains no plot,
 application pin meaning, current presence, or authority truth.
 
+For Linux microphone equipment, `audio/microphone` can explicitly select
+`std/alsa-microphone-clip@1` for direct ALSA hardware or
+`std/alsa-plug-microphone-clip@1` for ALSA channel/rate conversion. Both produce
+bounded mono signed-16-bit little-endian PCM at 16 kHz. They have distinct
+implementation, execution-profile, artifact and capability identities; neither
+silently falls back to the other. Both reserve the same physical endpoint pool
+and require the existing capture authority.
+
+Each requires an `initialization` object with `executable`,
+`executable_sha256`, `card_id`, `device`, `base_identity`,
+`capture_milliseconds` and `timeout_milliseconds`. These package-owned fields
+are checked without capture. Installed startup verifies provider and endpoint
+identity before advertising the selected implementation; it does not record
+audio. An admitted capture can still refuse unsupported hardware, provider
+loss or an inexact negotiated sample rate. Changing the implementation changes
+the checked construction identity and takes effect through a fresh Boot.
+Existing direct selections retain their explicit direct behavior.
+
+Linux speaker initialization can select `audio/speaker` with
+`std/kernel-audio-play-alsa-hw@1`. Its explicit `initialization` fields are
+`executable_sha256`, `card_id`, `device`, and `base_identity`. This implementation
+owns the fixed `/usr/bin/aplay` provider path and the existing 48 kHz stereo
+signed-16-bit direct-hardware profile. Checking source opens no PCM stream.
+Startup verifies the executable and exact observed endpoint before attaching
+one playback resource and non-authorizing Ready Base-provider provenance through
+the existing Core registry. Playback rechecks the retained executable digest
+before opening a stream. Metadata discovery has a five-second deadline and
+finite output limits. Initialization grants no playback authority.
+
+Existing retained speech settings are preserved. A checked speaker and retained
+physical speech playback are explicitly contradictory selections and refuse;
+remove one through its stopped equipment-change entrance before selecting the
+other. Artifact-only speech does not reserve the speaker and may coexist. This
+is checked initialization, not body admission or proof of physical sound.
+
+The bounded repository proof entrance is
+`cargo xtask make host prove-microphone-whisper`; its optional `--alsa-plug`
+explicitly selects conversion. That repository proof does not admit an installed
+Host to a body or establish shared-face execution.
+
 host construction uses the same lossless tokenizer, declaration syntax,
 structured values, source spans, and diagnostic model as ordinary plot source.
 `host` selects the document role; it does not introduce another language or an

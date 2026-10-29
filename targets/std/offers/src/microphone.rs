@@ -9,6 +9,10 @@ use conduit_core::{
 pub const MICROPHONE_CLIP_PROFILE: &str = "std/alsa-microphone-clip-s16le-16000-mono@1";
 pub const MICROPHONE_CLIP_IMPLEMENTATION: &str = "std/alsa-microphone-clip@1";
 pub const MICROPHONE_CLIP_ARTIFACT: &str = "conduit-std-host/alsa-microphone-clip@1";
+pub const CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION: &str = "std/alsa-plug-microphone-clip@1";
+pub const CONVERTED_MICROPHONE_CLIP_PROFILE: &str =
+    "std/alsa-plug-microphone-clip-s16le-16000-mono@1";
+pub const CONVERTED_MICROPHONE_CLIP_ARTIFACT: &str = "conduit-std-host/alsa-plug-microphone-clip@1";
 pub const MICROPHONE_CLIP_OPERATION: &str = "conduit.host/capture-microphone-clip@1";
 pub const MICROPHONE_CAPTURE_RESOURCE_CLASS: &str = "conduit.resource/audio-capture-alsa-hw@1";
 pub const MICROPHONE_CAPTURE_AUTHORITY: &str = "conduit.authority/audio-capture@1";
@@ -38,6 +42,17 @@ pub fn microphone_clip_offer() -> CapabilityOffer {
         },
     )
     .build()
+}
+
+/// ALSA plug performs explicit channel/rate conversion below the fixed PCM profile.
+/// Capture authority and the physical endpoint resource remain unchanged.
+pub fn converted_microphone_clip_offer() -> CapabilityOffer {
+    let mut offer = microphone_clip_offer();
+    offer.capability_id = "audio-capture-alsa-plug-microphone-clip".into();
+    offer.implementation.implementation_id = CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION.into();
+    offer.implementation.execution_profile_id = CONVERTED_MICROPHONE_CLIP_PROFILE.into();
+    offer.implementation.artifact_id = CONVERTED_MICROPHONE_CLIP_ARTIFACT.into();
+    offer
 }
 
 #[cfg(test)]

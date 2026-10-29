@@ -147,6 +147,9 @@ pub(super) enum HostCommand {
         /// Finite admitted RAM/VRAM ceiling expressed in MiB.
         #[arg(long)]
         admitted_memory_mib: u32,
+        /// Prove one bounded incremental generation Flow without structured presenters.
+        #[arg(long, conflicts_with_all = ["orifina_presenter", "journey_documentary"])]
+        stream: bool,
         /// Run the fixed-policy Orifina comparison over one exact Workspace tutorial state.
         #[arg(long)]
         orifina_presenter: bool,
@@ -201,6 +204,9 @@ pub(super) enum HostCommand {
         card_id: String,
         #[arg(long)]
         device: u16,
+        /// Explicitly select ALSA channel/rate conversion instead of direct hardware.
+        #[arg(long)]
+        alsa_plug: bool,
         #[arg(long, default_value_t = 3_000)]
         capture_milliseconds: u32,
         #[arg(long, default_value_t = 10)]

@@ -2136,6 +2136,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-i2c-transaction"
+version = "0.1.0"
+dependencies = [
+ "conduit-composite",
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
@@ -2889,6 +2900,7 @@ dependencies = [
  "conduit-face",
  "conduit-home-model",
  "conduit-human",
+ "conduit-i2c-transaction",
  "conduit-kernel",
  "conduit-observatory",
  "conduit-plan-lowering",

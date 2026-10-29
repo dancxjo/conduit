@@ -105,7 +105,7 @@ fn malformed_rows_and_invalid_limits_fail_closed() {
 fn exact_discovery_selection_and_bounded_capture_produce_a_receipt() {
     let _process = microphone_process();
     let script = format!(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\nprintf diagnostic >&2\n",
+        "#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\nprintf diagnostic >&2\n",
         listing().replace('\n', "\\n")
     );
     let (root, executable) = fixture(&script, "success");
@@ -182,7 +182,7 @@ fn stale_selection_and_oversized_capture_are_distinct() {
 fn discovery_overflow_fails_closed() {
     let _process = microphone_process();
     let oversized = format!(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then dd if=/dev/zero bs={} count=1 2>/dev/null; exit 0; fi\n",
+        "#!/bin/sh\nif [ \"$2\" = -l ]; then dd if=/dev/zero bs={} count=1 2>/dev/null; exit 0; fi\n",
         MAXIMUM_DISCOVERY_BYTES + 1
     );
     let (overflow_root, overflow_executable) = fixture(&oversized, "discovery-overflow");
@@ -230,7 +230,7 @@ fn short_capture_fails_closed() {
 fn cancellation_kills_and_reaps_the_provider() {
     let _process = microphone_process();
     let script = format!(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\nwhile :; do :; done\n",
+        "#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\ntouch \"$0.started\"\nwhile :; do :; done\n",
         listing().replace('\n', "\\n")
     );
     let (root, executable) = fixture(&script, "cancel");
@@ -245,7 +245,10 @@ fn cancellation_kills_and_reaps_the_provider() {
             },
         )
         .unwrap();
-    assert_eq!(adapter.capture(|| true), Err(MicrophoneFailure::Cancelled));
+    assert_eq!(
+        adapter.capture(|| root.join("arecord.started").exists()),
+        Err(MicrophoneFailure::Cancelled)
+    );
     assert!(adapter.take_receipt().is_none());
     fs::remove_dir_all(root).unwrap();
 }
@@ -254,7 +257,7 @@ fn cancellation_kills_and_reaps_the_provider() {
 fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
     let _process = microphone_process();
     let microphone_script = format!(
-        "#!/bin/sh\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=320 count=1 2>/dev/null\n",
+        "#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=320 count=1 2>/dev/null\n",
         listing().replace('\n', "\\n")
     );
     let (microphone_root, microphone_executable) = fixture(&microphone_script, "plan-microphone");
@@ -433,3 +436,42 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
     fs::remove_dir_all(microphone_root).unwrap();
     fs::remove_dir_all(whisper_root).unwrap();
 }
+
+#[path = "hosted_microphone_tests/remote.rs"]
+mod remote;
+
+#[test]
+fn canonical_arecord_symlink_explicitly_selects_capture_for_discovery_and_audio() {
+    let _process = microphone_process();
+    let script = format!("#!/bin/sh\nif [ \"$1\" != --capture ]; then printf 'card 9: Playback [Playback], device 0: Output [Output]\\n'; exit 0; fi\nshift\nif [ \"$1\" = -l ]; then printf '{}'; exit 0; fi\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n", listing());
+    let (root, executable) = fixture(&script, "multimode");
+    let canonical = root.join("aplay");
+    fs::rename(&executable, &canonical).unwrap();
+    std::os::unix::fs::symlink(&canonical, &executable).unwrap();
+    let discovery = AlsaMicrophoneDiscovery::inspect(&executable).unwrap();
+    assert_eq!(discovery.executable, canonical);
+    assert_eq!(discovery.observations.len(), 1);
+    assert_eq!(discovery.observations[0].card_id, "DSP");
+    let selected = discovery.observations[0].clone();
+    let mut adapter = discovery
+        .initialize(
+            &selected,
+            MicrophoneLimits {
+                capture_milliseconds: 1,
+                timeout: Duration::from_secs(2),
+            },
+        )
+        .unwrap();
+    assert_eq!(adapter.capture(|| false).unwrap(), vec![0; 32]);
+    assert_eq!(
+        adapter.take_receipt().unwrap().executable_sha256,
+        digest_file(&canonical).unwrap()
+    );
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[path = "hosted_microphone_tests/format_conversion.rs"]
+mod format_conversion;
+
+#[path = "hosted_microphone_tests/provider_drift.rs"]
+mod provider_drift;

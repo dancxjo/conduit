@@ -35,6 +35,8 @@ pub struct DhcpResponse {
     pub len: usize,
     pub kind: DhcpResponseKind,
     pub lease: DhcpLease,
+    /// Validated IP destination for the existing UDP transport, not authority.
+    pub destination: [u8; 4],
 }
 
 pub fn answer_appliance_dhcp(
@@ -51,7 +53,23 @@ pub fn answer_appliance_dhcp(
         return Err(ApplianceFailure::OversizedDhcpRequest);
     }
     let parsed = parse_request(request)?;
-    let lease = leases.lease(parsed.client)?;
+    if parsed
+        .server_identifier
+        .is_some_and(|server| server != DHCP_SERVER_ADDRESS)
+    {
+        return Err(ApplianceFailure::DhcpServerMismatch);
+    }
+    let renewing = parsed.client_address != [0; 4];
+    let lease = if renewing {
+        // An ACK for an already configured client must refer to this exact
+        // retained lease, never allocate a fresh slot from a claimed address.
+        leases
+            .existing_lease(parsed.client)?
+            .filter(|lease| lease.address == parsed.client_address)
+            .ok_or(ApplianceFailure::DhcpAddressMismatch)?
+    } else {
+        leases.lease(parsed.client)?
+    };
     if parsed.kind == DhcpRequestKind::Request
         && parsed
             .requested_address
@@ -59,24 +77,28 @@ pub fn answer_appliance_dhcp(
     {
         return Err(ApplianceFailure::DhcpAddressMismatch);
     }
-    if parsed
-        .server_identifier
-        .is_some_and(|server| server != DHCP_SERVER_ADDRESS)
-    {
-        return Err(ApplianceFailure::DhcpServerMismatch);
-    }
     let kind = match parsed.kind {
         DhcpRequestKind::Discover => DhcpResponseKind::Offer,
         DhcpRequestKind::Request => DhcpResponseKind::Acknowledgement,
     };
     let len = encode_response(request, parsed, lease, kind, output)?;
-    Ok(DhcpResponse { len, kind, lease })
+    Ok(DhcpResponse {
+        len,
+        kind,
+        lease,
+        destination: if renewing {
+            parsed.client_address
+        } else {
+            [255; 4]
+        },
+    })
 }
 
 #[derive(Clone, Copy)]
 struct ParsedRequest {
     kind: DhcpRequestKind,
     client: [u8; 6],
+    client_address: [u8; 4],
     requested_address: Option<[u8; 4]>,
     server_identifier: Option<[u8; 4]>,
 }
@@ -91,6 +113,13 @@ fn parse_request(request: &[u8]) -> Result<ParsedRequest, ApplianceFailure> {
     {
         return Err(ApplianceFailure::MalformedDhcpRequest);
     }
+    // This finite AP server has no relay transport or lease authority.
+    if request[24..28] != [0; 4] {
+        return Err(ApplianceFailure::MalformedDhcpRequest);
+    }
+    let client_address: [u8; 4] = request[12..16]
+        .try_into()
+        .map_err(|_| ApplianceFailure::MalformedDhcpRequest)?;
     let client: [u8; 6] = request[28..34]
         .try_into()
         .map_err(|_| ApplianceFailure::MalformedDhcpRequest)?;
@@ -145,9 +174,13 @@ fn parse_request(request: &[u8]) -> Result<ParsedRequest, ApplianceFailure> {
         Some(3) => DhcpRequestKind::Request,
         _ => return Err(ApplianceFailure::MalformedDhcpRequest),
     };
+    if client_address != [0; 4] && kind != DhcpRequestKind::Request {
+        return Err(ApplianceFailure::MalformedDhcpRequest);
+    }
     Ok(ParsedRequest {
         kind,
         client,
+        client_address,
         requested_address,
         server_identifier,
     })
@@ -171,6 +204,7 @@ fn encode_response(
     output[0..4].copy_from_slice(&[2, 1, 6, 0]);
     output[4..8].copy_from_slice(&request[4..8]);
     output[10..12].copy_from_slice(&request[10..12]);
+    output[12..16].copy_from_slice(&parsed.client_address);
     output[16..20].copy_from_slice(&lease.address);
     output[20..24].copy_from_slice(&DHCP_SERVER_ADDRESS);
     output[28..34].copy_from_slice(&parsed.client);

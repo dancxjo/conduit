@@ -400,3 +400,35 @@ fn output_pressure_retains_one_completion_without_repeating_register_effects() {
     host.cancel(NodeId(1), HostCallId(0)).unwrap();
     assert_eq!(kernel.values().used_items(), 0);
 }
+
+#[test]
+fn capability_refusals_keep_stable_distinct_failure_details() {
+    use conduit_core::BaseCapabilityRefusal as Base;
+    use conduit_kernel::FailureCode as Code;
+    // Stable retained-sign ABI: pressure must not become authority denial or
+    // renumber the existing native refusal details.
+    let cases = [
+        (Base::InvalidIssuer, 101, Code::HostCallDenied),
+        (Base::TableFull, 102, Code::HostCallDenied),
+        (Base::EmptyIdentity, 103, Code::HostCallDenied),
+        (Base::InvalidBound, 104, Code::HostCallDenied),
+        (Base::AuthorityMismatch, 105, Code::HostCallDenied),
+        (Base::ScopeBroadening, 106, Code::HostCallDenied),
+        (Base::UnknownCapability, 107, Code::HostCallDenied),
+        (Base::Revoked, 108, Code::HostCallDenied),
+        (Base::Exhausted, 109, Code::WorkBudgetExhausted),
+        (Base::WrongScope, 110, Code::HostCallDenied),
+        (Base::ParameterEnvelope, 111, Code::HostCallDenied),
+        (Base::WorkEnvelope, 112, Code::WorkBudgetExhausted),
+        (Base::InFlightFull, 113, Code::HostCallDenied),
+        (Base::UnknownLease, 114, Code::HostCallDenied),
+        (Base::StaleCompletion, 115, Code::HostCallDenied),
+        (Base::ResultEnvelope, 116, Code::HostCallDenied),
+        (Base::Capacity, 117, Code::StorageExhausted),
+    ];
+    for (reason, detail, code) in cases {
+        let failure = RegisterRefusal::Capability(reason.clone()).failure();
+        assert_eq!(failure.code, code, "{reason:?}");
+        assert_eq!(failure.detail, detail, "{reason:?}");
+    }
+}
