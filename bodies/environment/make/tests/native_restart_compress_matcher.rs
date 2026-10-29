@@ -80,7 +80,32 @@ fn encode(
         run!(reference::Encoder<_>)
     } else {
         use codec::Error as E;
-        run!(codec::Encoder<_>)
+        let mut index = codec::MatchIndex::new();
+        let mut e = codec::Encoder::with_index(&mut sink, max_plain, max_encoded, &mut index);
+        let mut at = 0;
+        let mut index = 0;
+        loop {
+            if at == bytes.len() {
+                break e
+                    .finish()
+                    .map(|n| (n.plain, n.encoded))
+                    .map_err(|e| match e {
+                        E::Capacity => 1,
+                        E::Invalid => 2,
+                    });
+            }
+            let n = widths[index % widths.len()].min(bytes.len() - at);
+            index += 1;
+            match e.write(&bytes[at..at + n]) {
+                Ok(()) => at += n,
+                Err(e) => {
+                    break Err(match e {
+                        E::Capacity => 1,
+                        E::Invalid => 2,
+                    })
+                }
+            }
+        }
     };
     (out, result)
 }
@@ -183,11 +208,18 @@ fn indexed_encoder_has_exact_bounded_workspace_and_zero_allocations() {
     fn sink(_: &[u8]) -> Result<(), ()> {
         Ok(())
     }
-    let mut e = codec::Encoder::new(sink as fn(&[u8]) -> Result<(), ()>, 4096, 8192);
+    let default = codec::Encoder::new(sink as fn(&[u8]) -> Result<(), ()>, 4096, 8192);
+    let mut index = codec::MatchIndex::new();
+    let mut e =
+        codec::Encoder::with_index(sink as fn(&[u8]) -> Result<(), ()>, 4096, 8192, &mut index);
     let old = reference::Encoder::new(sink as fn(&[u8]) -> Result<(), ()>, 4096, 8192);
     assert_eq!(
         core::mem::size_of_val(&e),
-        core::mem::size_of_val(&old) + 704
+        core::mem::size_of_val(&old) + core::mem::size_of::<&mut codec::MatchIndex>()
+    );
+    assert_eq!(
+        core::mem::size_of_val(&default),
+        core::mem::size_of_val(&old)
     );
     let bytes = [b'a'; 2049];
     ALLOCS.with(|n| n.set(0));
@@ -266,13 +298,15 @@ fn indexed_encoder_reset_preserves_exact_bytes_after_wrapped_private_history() {
     for bytes in [random(8193, 256), random(8193, 7), vec![b'a'; 8193]] {
         let expected = encode(&bytes, &[7], true, 10000, 20000, None).0;
         let mut actual = Vec::new();
-        let mut encoder = codec::Encoder::new(
+        let mut index = codec::MatchIndex::new();
+        let mut encoder = codec::Encoder::with_index(
             |b: &[u8]| {
                 actual.extend_from_slice(b);
                 Ok(())
             },
             10000,
             20000,
+            &mut index,
         );
         for width in [1, 65, 1408] {
             for chunk in bytes.chunks(width) {

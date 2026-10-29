@@ -4,11 +4,16 @@
 use super::V4_HISTORY;
 // Production ownership is solely inside Encoder. Its existing Drop and reset
 // clear this derived private state; no separate aggregate Drop is necessary.
-pub(in super::super) struct Index {
+pub struct Index {
     bits: [[u32; 44]; 4],
 }
+impl Default for Index {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl Index {
-    pub(in super::super) const fn new() -> Self {
+    pub const fn new() -> Self {
         Self { bits: [[0; 44]; 4] }
     }
     pub(in super::super) fn bucket(&self, byte: u8) -> &[u32; 44] {
@@ -82,6 +87,35 @@ impl Iterator for Candidates<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn borrowed_encoder_releases_only_wiped_workspace_on_failure() {
+        let mut index = Index::new();
+        {
+            let mut calls = 0;
+            let mut encoder = super::super::super::Encoder::with_index(
+                |_: &[u8]| {
+                    calls += 1;
+                    if calls > 2 {
+                        Err(())
+                    } else {
+                        Ok(())
+                    }
+                },
+                4096,
+                4096,
+                &mut index,
+            );
+            assert!(encoder.write(&[b'a'; 2049]).is_err());
+        }
+        assert!(index.bits.iter().flatten().all(|word| *word == 0));
+        {
+            let mut encoder =
+                super::super::super::Encoder::with_index(|_: &[u8]| Ok(()), 4096, 4096, &mut index);
+            encoder.write(&[b'b'; 2049]).unwrap();
+            encoder.finish().unwrap();
+        }
+        assert!(index.bits.iter().flatten().all(|word| *word == 0));
+    }
     #[test]
     fn exact_ring_order_overwrite_and_private_clear() {
         let mut index = Index::new();

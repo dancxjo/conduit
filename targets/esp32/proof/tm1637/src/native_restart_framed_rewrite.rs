@@ -32,7 +32,8 @@ pub(super) fn emit<E>(
         Ok(())
     };
     let result = (|| {
-        let mut encoder = frames::Encoder::new(&mut output);
+        let mut index = compress::MatchIndex::new();
+        let mut encoder = frames::Encoder::with_index(&mut output, &mut index);
         encoder.raw(frames::MAGIC)?;
         let head = encoder
             .frame(frames::PREFIX, |plain| {

@@ -223,8 +223,8 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> compress::Output for ChunkWriter<W> {
         Ok(())
     }
 }
-pub(super) struct Encoder<W> {
-    encoder: compress::Encoder<ChunkWriter<W>>,
+pub(super) struct Encoder<W, I: compress::MatchWorkspace = ()> {
+    encoder: compress::Encoder<ChunkWriter<W>, I>,
 }
 impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
     pub(super) fn new(write: W) -> Self {
@@ -240,6 +240,24 @@ impl<W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W> {
             ),
         }
     }
+}
+impl<'a, W: FnMut(&[u8]) -> Result<(), ()>> Encoder<W, &'a mut compress::MatchIndex> {
+    pub(super) fn with_index(write: W, index: &'a mut compress::MatchIndex) -> Self {
+        Self {
+            encoder: compress::Encoder::with_index(
+                ChunkWriter {
+                    write,
+                    buffer: [0; 128],
+                    used: 0,
+                },
+                MAX_PLAIN_BYTES,
+                MAX_BYTES,
+                index,
+            ),
+        }
+    }
+}
+impl<W: FnMut(&[u8]) -> Result<(), ()>, I: compress::MatchWorkspace> Encoder<W, I> {
     pub(super) fn raw(&mut self, bytes: &[u8]) -> Result<(), ()> {
         let writer = self.encoder.output_mut();
         if writer.used != 0 {

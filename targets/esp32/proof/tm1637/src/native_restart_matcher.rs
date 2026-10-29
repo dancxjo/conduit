@@ -3,7 +3,7 @@ use super::{MATCH, NEAR_WINDOW, V4_HISTORY, WINDOW};
 #[path = "native_restart_match_index.rs"]
 mod index;
 use index::Candidates;
-pub(super) use index::Index;
+pub use index::Index;
 fn length(
     history: &[u8; WINDOW],
     look: &[u8; MATCH],
@@ -43,16 +43,14 @@ fn length(
     length
 }
 pub(super) fn longest(
-    index: &Index,
+    index: Option<&Index>,
     history: &[u8; WINDOW],
     look: &[u8; MATCH],
     look_len: usize,
     consumed: usize,
 ) -> (usize, usize, usize, usize) {
     let (mut best, mut best_distance, mut near, mut near_distance) = (0, 0, 0, 0);
-    for (distance, at) in
-        Candidates::new(index.bucket(look[0]), consumed, consumed.min(V4_HISTORY), 1)
-    {
+    for (distance, at) in Positions::new(index, look[0], consumed, consumed.min(V4_HISTORY), 1) {
         let length = length(history, look, look_len, 0, distance, at);
         if distance <= NEAR_WINDOW && length > near {
             near = length;
@@ -69,7 +67,7 @@ pub(super) fn longest(
     (best, best_distance, near, near_distance)
 }
 pub(super) fn lazy(
-    index: &Index,
+    index: Option<&Index>,
     history: &[u8; WINDOW],
     look: &[u8; MATCH],
     look_len: usize,
@@ -82,8 +80,9 @@ pub(super) fn lazy(
     if first >= 3 && (first + 1) * ordinary_cost > ordinary_used * 3 {
         return true;
     }
-    for (distance, at) in Candidates::new(
-        index.bucket(look[1]),
+    for (distance, at) in Positions::new(
+        index,
+        look[1],
         consumed + 1,
         (consumed + 1).min(V4_HISTORY),
         2,
@@ -95,4 +94,59 @@ pub(super) fn lazy(
         }
     }
     false
+}
+
+enum Positions<'a> {
+    Indexed(Candidates<'a>),
+    Exhaustive {
+        at: usize,
+        remaining: usize,
+        distance: usize,
+    },
+}
+impl<'a> Positions<'a> {
+    fn new(
+        index: Option<&'a Index>,
+        byte: u8,
+        consumed: usize,
+        maximum: usize,
+        first: usize,
+    ) -> Self {
+        if let Some(index) = index {
+            Self::Indexed(Candidates::new(
+                index.bucket(byte),
+                consumed,
+                maximum,
+                first,
+            ))
+        } else {
+            Self::Exhaustive {
+                at: ((consumed % V4_HISTORY) + V4_HISTORY - first) % V4_HISTORY,
+                remaining: maximum.saturating_sub(first - 1),
+                distance: first,
+            }
+        }
+    }
+}
+impl Iterator for Positions<'_> {
+    type Item = (usize, usize);
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            Self::Indexed(candidates) => candidates.next(),
+            Self::Exhaustive {
+                at,
+                remaining,
+                distance,
+            } => {
+                if *remaining == 0 {
+                    return None;
+                }
+                let next = (*distance, *at);
+                *remaining -= 1;
+                *distance += 1;
+                *at = if *at == 0 { V4_HISTORY - 1 } else { *at - 1 };
+                Some(next)
+            }
+        }
+    }
 }
