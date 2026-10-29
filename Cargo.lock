@@ -1991,6 +1991,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-device-carrier-protocol"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [

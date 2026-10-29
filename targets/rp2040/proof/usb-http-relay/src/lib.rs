@@ -10,11 +10,9 @@ pub const BOOTSEL_ACK: u8 = 133;
 pub fn bootsel_matches(payload: &[u8]) -> bool {
     payload == BUILD_ID.as_bytes()
 }
-pub const HEADER: usize = 12;
-pub const MAX_REQUEST: usize = 8192;
+pub use conduit_device_carrier_protocol::{wipe, Frame, Scratch, HEADER, MAX_REQUEST};
 pub const MAX_RESPONSE: usize = 65536;
 pub const CHUNK: usize = 512;
-const MAGIC: &[u8; 4] = b"CPBR";
 pub const JOIN: u8 = 1;
 pub const REQUEST: u8 = 2;
 pub const STATUS: u8 = 3;
@@ -42,16 +40,23 @@ pub enum Refusal {
     Credentials,
     Peer,
 }
-#[inline(never)]
-pub fn wipe(bytes: &mut [u8]) {
-    for byte in bytes {
-        unsafe { core::ptr::write_volatile(byte, 0) }
+
+impl From<conduit_device_carrier_protocol::Refusal> for Refusal {
+    fn from(value: conduit_device_carrier_protocol::Refusal) -> Self {
+        use conduit_device_carrier_protocol::Refusal as R;
+        match value {
+            R::Header => Self::Header,
+            R::Version => Self::Version,
+            R::Kind => Self::Kind,
+            R::Capacity => Self::Capacity,
+            R::Pipeline => Self::Pipeline,
+            R::Incomplete => Self::Incomplete,
+            R::Stale => Self::Stale,
+        }
     }
 }
 pub struct Decoder {
-    bytes: [u8; HEADER + MAX_REQUEST],
-    used: usize,
-    expected: Option<usize>,
+    frame: conduit_device_carrier_protocol::FrameDecoder<{ HEADER + MAX_REQUEST }>,
     join_limit: usize,
     selected_peer: bool,
 }
@@ -63,15 +68,11 @@ impl Default for Decoder {
 impl Decoder {
     pub const fn new() -> Self {
         Self {
-            bytes: [0; HEADER + MAX_REQUEST],
-            used: 0,
-            expected: None,
+            frame: conduit_device_carrier_protocol::FrameDecoder::new(),
             join_limit: 97,
             selected_peer: false,
         }
     }
-    /// Explicit caller-selected JOIN framing extent. The default relay keeps
-    /// its existing97-byte carrier; semantic credential validation is separate.
     pub const fn with_join_limit(join_limit: usize) -> Result<Self, Refusal> {
         if join_limit < 2 || join_limit > MAX_REQUEST {
             return Err(Refusal::Capacity);
@@ -80,37 +81,24 @@ impl Decoder {
         decoder.join_limit = join_limit;
         Ok(decoder)
     }
-    /// Permit fixed four-byte selected-peer command framing for this carrier.
-    /// Legacy relay construction continues to reject the command as unknown.
     pub const fn with_selected_peer(mut self) -> Self {
         self.selected_peer = true;
         self
     }
     pub fn reset(&mut self) {
-        wipe(&mut self.bytes);
-        self.used = 0;
-        self.expected = None;
+        self.frame.reset()
     }
     pub fn accept(&mut self, input: &[u8]) -> Result<(), Refusal> {
-        for &byte in input {
-            if self.expected == Some(self.used) {
-                return Err(Refusal::Pipeline);
-            }
-            let out = self.bytes.get_mut(self.used).ok_or(Refusal::Capacity)?;
-            *out = byte;
-            self.used += 1;
-            if self.used == HEADER {
-                if &self.bytes[..4] != MAGIC {
-                    return Err(Refusal::Header);
-                }
-                if self.bytes[4] != 1 {
-                    return Err(Refusal::Version);
-                }
-                let length = u16::from_le_bytes([self.bytes[10], self.bytes[11]]) as usize;
-                match self.bytes[5] {
-                    JOIN if (2..=self.join_limit).contains(&length) => {}
-                    SELECT_PEER if self.selected_peer && length == 4 => {}
-                    SELECT_PEER if self.selected_peer => return Err(Refusal::Capacity),
+        let join_limit = self.join_limit;
+        let selected_peer = self.selected_peer;
+        self.frame
+            .accept(input, |header| {
+                use conduit_device_carrier_protocol::Refusal as R;
+                let length = header.length;
+                match header.kind {
+                    JOIN if (2..=join_limit).contains(&length) => {}
+                    SELECT_PEER if selected_peer && length == 4 => {}
+                    SELECT_PEER if selected_peer => return Err(R::Capacity),
                     REQUEST if (1..=MAX_REQUEST).contains(&length) => {}
                     TEST_AP_START if length == 6 => {}
                     MDNS_QUERY if (9..=56).contains(&length) => {}
@@ -119,42 +107,38 @@ impl Decoder {
                     BOOTSEL_REQUEST if length == 64 => {}
                     JOIN | REQUEST | STATUS | BOOTSEL_QUERY | BOOTSEL_REQUEST | SENSOR_STATUS
                     | SENSOR_DIAGNOSTIC | TEST_AP_START | TEST_AP_STOP | MDNS_QUERY => {
-                        return Err(Refusal::Capacity)
+                        return Err(R::Capacity)
                     }
-                    _ => return Err(Refusal::Kind),
+                    _ => return Err(R::Kind),
                 }
-                self.expected = Some(HEADER + length);
-            }
-        }
-        Ok(())
+                Ok(())
+            })
+            .map_err(Into::into)
     }
     pub fn has_partial(&self) -> bool {
-        self.used != 0
+        self.frame.has_partial()
     }
     pub fn complete(&self) -> bool {
-        self.expected == Some(self.used)
+        self.frame.complete()
     }
     pub fn frame(&self) -> Result<Frame<'_>, Refusal> {
-        if !self.complete() {
-            return Err(Refusal::Incomplete);
-        }
-        Ok(Frame {
-            kind: self.bytes[5],
-            id: u32::from_le_bytes(self.bytes[6..10].try_into().unwrap()),
-            payload: &self.bytes[HEADER..self.used],
-        })
+        self.frame.frame().map_err(Into::into)
     }
 }
-impl Drop for Decoder {
-    fn drop(&mut self) {
-        self.reset();
+#[derive(Default)]
+pub struct Session {
+    inner: conduit_device_carrier_protocol::Session,
+}
+impl Session {
+    pub fn admit(&mut self, id: u32) -> Result<(), Refusal> {
+        self.inner.admit(id).map_err(Into::into)
+    }
+    pub fn reset(&mut self) {
+        self.inner.reset()
     }
 }
-#[derive(Debug)]
-pub struct Frame<'a> {
-    pub kind: u8,
-    pub id: u32,
-    pub payload: &'a [u8],
+pub fn header(kind: u8, id: u32, length: usize) -> Result<[u8; HEADER], Refusal> {
+    conduit_device_carrier_protocol::header(kind, id, length).map_err(Into::into)
 }
 pub struct Credentials<'a> {
     pub ssid: &'a str,
@@ -189,35 +173,6 @@ pub fn credentials(bytes: &[u8]) -> Result<Credentials<'_>, Refusal> {
         password: &tail[ssid_len..],
     })
 }
-#[derive(Default)]
-pub struct Session {
-    last: u32,
-}
-impl Session {
-    pub fn admit(&mut self, id: u32) -> Result<(), Refusal> {
-        if id == 0 || id <= self.last {
-            return Err(Refusal::Stale);
-        }
-        self.last = id;
-        Ok(())
-    }
-    pub fn reset(&mut self) {
-        self.last = 0;
-    }
-}
-pub fn header(kind: u8, id: u32, length: usize) -> Result<[u8; HEADER], Refusal> {
-    if length > MAX_REQUEST {
-        return Err(Refusal::Capacity);
-    }
-    let mut out = [0; HEADER];
-    out[..4].copy_from_slice(MAGIC);
-    out[4] = 1;
-    out[5] = kind;
-    out[6..10].copy_from_slice(&id.to_le_bytes());
-    out[10..12].copy_from_slice(&(length as u16).to_le_bytes());
-    Ok(out)
-}
-
 /// Require the exact on-link ESP AP subnet; a default router is unnecessary.
 /// Refuse an advertised router other than the fixed ESP peer.
 pub fn peer_network(address: [u8; 4], prefix: u8, gateway: Option<[u8; 4]>) -> bool {
@@ -225,17 +180,4 @@ pub fn peer_network(address: [u8; 4], prefix: u8, gateway: Option<[u8; 4]>) -> b
         && (2..=254).contains(&address[3])
         && prefix == 24
         && (gateway.is_none() || gateway == Some([192, 168, 4, 1]))
-}
-
-/// Fixed sensitive scratch, also wiped when a cancelled future drops it.
-pub struct Scratch<const N: usize>(pub [u8; N]);
-impl<const N: usize> Default for Scratch<N> {
-    fn default() -> Self {
-        Self([0; N])
-    }
-}
-impl<const N: usize> Drop for Scratch<N> {
-    fn drop(&mut self) {
-        wipe(&mut self.0);
-    }
 }

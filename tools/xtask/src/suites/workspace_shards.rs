@@ -66,6 +66,7 @@ package_test_shard!(
         "conduit-face",
         "conduit-protected-line",
         "conduit-resource-snapshot",
+        "conduit-device-carrier-protocol",
         "conduit-process",
         "conduit-purpose",
         "conduit-robotics",

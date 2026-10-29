@@ -49,6 +49,7 @@ fn main() {
         "../../../../bodies/environment/face/main.conduit",
         "../../../../bodies/environment/measurement/Cargo.toml",
         "../../../../targets/rp2040/network-realization/Cargo.toml",
+        "../../../../mechanisms/io/device-carrier-protocol/Cargo.toml",
     ] {
         if std::path::Path::new(file).is_file() {
             println!("cargo:rerun-if-changed={file}");
@@ -60,6 +61,7 @@ fn main() {
         "../../../../bodies/environment/face/src",
         "../../../../bodies/environment/measurement/src",
         "../../../../targets/rp2040/network-realization/src",
+        "../../../../mechanisms/io/device-carrier-protocol/src",
     ] {
         println!("cargo:rerun-if-changed={directory}");
         collect(std::path::Path::new(directory), &mut presentation);
