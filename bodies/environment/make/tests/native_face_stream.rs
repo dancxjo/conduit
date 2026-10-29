@@ -147,3 +147,28 @@ fn abandoned_response_releases_storage_at_expiry_without_more_http_input() {
     assert!(memory.peak_bytes >= 1408);
     assert_eq!(memory.retained_bytes(), 0);
 }
+
+#[test]
+fn competing_reader_cannot_discard_completed_response() {
+    use conduit_environment_http::face_export::{Reply, Request};
+    let first = Request::Snapshot { nonce: [1; 32] };
+    let second = Request::Snapshot { nonce: [2; 32] };
+    let mut state = export_state::State {
+        pending: None,
+        completed: None,
+    };
+    assert!(matches!(state.request(first, 0), Reply::Pending));
+    assert!(matches!(state.request(second, 1), Reply::Unavailable));
+    state.pending = None;
+    state.completed = Some((first, 5000, Ok(vec![42; 16])));
+    for now in [2, 100, 4999] {
+        assert!(matches!(state.request(second, now), Reply::Unavailable));
+        assert!(state.completed.is_some());
+    }
+    assert!(matches!(state.request(first, 4999), Reply::Offer(bytes) if bytes == vec![42; 16]));
+    assert!(matches!(state.request(second, 4999), Reply::Pending));
+    state.pending = None;
+    state.completed = Some((second, 5000, Ok(vec![7])));
+    assert!(matches!(state.request(first, 5000), Reply::Pending));
+    assert!(state.completed.is_none());
+}

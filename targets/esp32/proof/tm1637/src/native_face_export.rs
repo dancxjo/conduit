@@ -16,37 +16,9 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCel
 }));
 fn request(request: Request) -> Reply {
     STATE.lock(|state| {
-        let mut state = state.borrow_mut();
-        let now = embassy_time::Instant::now().as_millis();
-        state.expire(now);
-        if state
-            .completed
-            .as_ref()
-            .is_some_and(|(key, _, _)| *key == request)
-        {
-            return match state.completed.take().unwrap().2 {
-                Ok(bytes) => Reply::Offer(bytes),
-                Err(
-                    "face-export-memory"
-                    | "face-export-no-producer"
-                    | "face-export-unavailable"
-                    | "face-export-not-durable",
-                ) => Reply::Unavailable,
-                Err(_) => Reply::Refused,
-            };
-        }
-        if let Some(pending) = state.pending {
-            return if pending == request {
-                Reply::Pending
-            } else {
-                Reply::Unavailable
-            };
-        }
-        // Read-only cache only: an unrelated request may evict no authority or
-        // durable receipt. Drop prior bytes before reserving another response.
-        state.completed = None;
-        state.pending = Some(request);
-        Reply::Pending
+        state
+            .borrow_mut()
+            .request(request, embassy_time::Instant::now().as_millis())
     })
 }
 /// Only this Root child module constructs endorsement drafts, from its actual
