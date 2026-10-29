@@ -348,6 +348,7 @@ fn test_catalog_metadata() -> PackageCatalogContribution {
         },
     );
     PackageCatalogContribution {
+        initialization_contracts: BTreeMap::new(),
         implementations,
         presenters: BTreeMap::from([
             (

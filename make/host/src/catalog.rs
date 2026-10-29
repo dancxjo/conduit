@@ -7,6 +7,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MakeCatalog {
+    pub initialization_contracts: BTreeMap<String, crate::BaseInitializationContract>,
     pub implementations: BTreeMap<String, ImplementationMetadata>,
     pub presenters: BTreeMap<String, PresenterMetadata>,
     pub dependencies: BTreeMap<PrerequisiteNode, Vec<PrerequisiteNode>>,
@@ -27,6 +28,7 @@ pub struct MakeCatalog {
 impl MakeCatalog {
     pub fn canonical() -> Self {
         Self {
+            initialization_contracts: BTreeMap::new(),
             implementations: BTreeMap::new(),
             presenters: BTreeMap::new(),
             dependencies: BTreeMap::new(),
@@ -134,6 +136,8 @@ impl MakeCatalog {
     }
 
     fn merge_catalog_contribution(&mut self, contribution: &PackageCatalogContribution) {
+        self.initialization_contracts
+            .extend(contribution.initialization_contracts.clone());
         self.implementations
             .extend(contribution.implementations.clone());
         self.presenters.extend(contribution.presenters.clone());
