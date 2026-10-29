@@ -57,7 +57,9 @@ pub(crate) use near_back::{
     admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
     IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
 };
+mod committed_fore;
 mod fore_outputs;
+pub use committed_fore::{CommittedForeScope, CommittedForeValue};
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
@@ -493,6 +495,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .saturating_mul(usize::from(external_input_items)),
     );
     let mut prepared_fore_outputs = fore_outputs::PreparedForeOutputs::prepare(&lowered.fore_ports);
+    let mut committed_fore =
+        committed_fore::PreparedCommittedFore::prepare(fragment, &lowered, &active_play)?;
     fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
@@ -833,13 +837,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .iter()
             .filter(|port| port.direction == conduit_core::PortDirection::Output)
         {
-            while let Some(offer) = scheduler
-                .remote_egress_offer(planned.endpoint, planned.cord)
-                .map_err(|error| format!("offer external Fore output: {error:?}"))?
-            {
-                let borrowed = scheduler
-                    .host_value(offer.value)
-                    .map_err(|error| format!("read external Fore output: {error:?}"))?;
+            while let Some((offer, committed)) = committed_fore.offer(&mut scheduler, planned)? {
+                let borrowed = committed.bytes();
                 let (delivery, adapter_delivery) =
                     if planned.temporal == conduit_core::PortTemporal::Value {
                         let (report, adapter) =
@@ -855,9 +854,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .expect("output adapter checked above")
                     .output;
                 if let Some(adapter_delivery) = adapter_delivery {
-                    adapter.deliver(adapter_delivery)?;
+                    adapter.deliver_committed(committed, adapter_delivery)?;
                 } else {
-                    adapter.deliver_flow(&delivery)?;
+                    adapter.deliver_committed(committed, delivery.clone())?;
                 }
                 scheduler
                     .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)

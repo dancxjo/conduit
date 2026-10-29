@@ -290,6 +290,7 @@ pub(super) fn review(
                 kind: kind.clone(),
                 implementation: implementations.first().cloned(),
                 implementations: implementations.iter().skip(1).cloned().collect(),
+                initialization: None,
             })
             .collect(),
         resources: Vec::new(),

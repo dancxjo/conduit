@@ -294,6 +294,7 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
@@ -440,6 +441,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
@@ -574,6 +576,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
@@ -675,6 +678,7 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
@@ -912,6 +916,7 @@ fn actual_execution_receipt_survives_fresh_boot_as_history_only() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
@@ -967,6 +972,7 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::write_json_atomic(&root.join("installation.json"), &installation).unwrap();

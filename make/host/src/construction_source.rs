@@ -132,6 +132,27 @@ pub fn canonical_host_configuration_conduit(
                 }
             })?;
         }
+        if let Some(initialization) = &base.initialization {
+            initialization
+                .validate_source()
+                .map_err(|detail| ConfigurationDiagnostic::Encode { detail })?;
+            write!(&mut source, ", initialization: {{").map_err(|error| {
+                ConfigurationDiagnostic::Encode {
+                    detail: error.to_string(),
+                }
+            })?;
+            for (index, (key, value)) in initialization.values.iter().enumerate() {
+                if index != 0 {
+                    source.push_str(", ");
+                }
+                write!(&mut source, "{}: {}", key, value).map_err(|error| {
+                    ConfigurationDiagnostic::Encode {
+                        detail: error.to_string(),
+                    }
+                })?;
+            }
+            source.push('}');
+        }
         source.push_str("}\n");
     }
     for need in &canonical.resources {

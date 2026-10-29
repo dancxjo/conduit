@@ -49,6 +49,7 @@ impl ConduitOsProductArtifact {
 
 fn package_catalog() -> PackageCatalogContribution {
     PackageCatalogContribution {
+        initialization_contracts: BTreeMap::new(),
         implementations: BTreeMap::from([(
             "conduitos/kernel-http-client-http1-literal".into(),
             ImplementationMetadata {
