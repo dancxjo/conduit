@@ -41,13 +41,13 @@ impl Projection<'_> {
             if scope[..32] != body[..] || scope[32..64] != boot[..] {
                 continue;
             }
-            let collector = Collector::from_authenticated_scope(scope, admitted.root())?;
-            tail(&collector, &path)?;
             if selected.replace(path).is_some() {
-                return Err("ambiguous retained producer Play".into());
+                return Err("ambiguous retained producer Play candidates".into());
             }
         }
         let epoch = selected.ok_or("no retained epoch for pinned producer Boot")?;
+        // The existing publisher now verifies this one complete immutable
+        // prefix exactly once. A name alone never authorizes its contents.
         run(binding, &epoch, self.producer_boot, self.output)
     }
     pub(crate) fn after_attempt(&self, binding: &Path, directory: &Path) {
