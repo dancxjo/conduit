@@ -150,7 +150,7 @@ pub fn chords_contract() -> StandardKindContract {
         )],
         configuration: vec![KindConfigurationField {
             key: "map".to_string(),
-            default_value: ConfigurationValue::Text(CORE_CHORD_MAP.to_string()),
+            default_value: ConfigurationValue::Text(CORE_CHORD_MAP.to_string().into()),
             rule: KindConfigurationRule::TextOneOf {
                 values: vec![CORE_CHORD_MAP.to_string()],
             },
@@ -294,7 +294,7 @@ mod tests {
         assert_eq!(chords.outputs[0].value_kind.as_str(), CHORD_INFO_ID);
         assert_eq!(
             chords.configuration[0].default_value,
-            ConfigurationValue::Text(CORE_CHORD_MAP.to_string())
+            ConfigurationValue::Text(CORE_CHORD_MAP.to_string().into())
         );
         assert!(key_event_tee_contract().configuration.is_empty());
         assert_eq!(keymap_contract().configuration.len(), 2);

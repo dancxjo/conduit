@@ -16,6 +16,22 @@ pub struct PicoTm1637<'d> {
 
 impl<'d> PicoTm1637<'d> {
     /// Observed digital levels, not a voltage measurement or wiring proof.
+    /// Opt-in diagnostic GPIO pulls to the RP2040 3.3 V I/O supply. These
+    /// are weak pulls, not driven-high outputs, voltage measurements, or proof
+    /// of external power/level translation. The default constructor leaves
+    /// pulls disabled; the caller must select a compatible electrical setup.
+    pub fn set_internal_pullups(&mut self, enabled: bool) {
+        let pull = if enabled { Pull::Up } else { Pull::None };
+        self.clock.set_pull(pull);
+        self.data.set_pull(pull);
+    }
+    /// Diagnostic role reversal of the same two owned pins. Release both lines
+    /// before exchanging roles; this claims no new pin and supplies no ACK.
+    pub fn swap_lines(&mut self) {
+        self.clock.set_as_input();
+        self.data.set_as_input();
+        core::mem::swap(&mut self.clock, &mut self.data);
+    }
     pub fn levels(&self) -> (bool, bool) {
         (self.clock.is_high(), self.data.is_high())
     }

@@ -11,6 +11,8 @@ use super::{
 };
 
 mod canonical_selection;
+mod prepared_canonical;
+pub use prepared_canonical::PreparedCanonicalStructuredSelector;
 mod predicate;
 
 fn selection_shape(value_type: &StructuredInfoType) -> StructuredInfoTypeShape<'_> {

@@ -58,7 +58,7 @@ impl CarriedFormantFactory {
         let mut configuration = vec![
             ConfigurationEntry {
                 key: "offline-authoring".into(),
-                value: ConfigurationValue::Text(hex(&self.admission_identity)),
+                value: ConfigurationValue::Text(hex(&self.admission_identity).into()),
             },
             ConfigurationEntry {
                 key: "clock".into(),
@@ -66,11 +66,11 @@ impl CarriedFormantFactory {
             },
             ConfigurationEntry {
                 key: "source".into(),
-                value: ConfigurationValue::Text(hex(self.source().source_identity())),
+                value: ConfigurationValue::Text(hex(self.source().source_identity()).into()),
             },
             ConfigurationEntry {
                 key: "projection".into(),
-                value: ConfigurationValue::Text(hex(self.source().projection_identity())),
+                value: ConfigurationValue::Text(hex(self.source().projection_identity()).into()),
             },
         ];
         configuration.sort_by(|a, b| a.key.cmp(&b.key));
@@ -114,7 +114,7 @@ impl CarriedFormantFactory {
                             maximum: *value,
                         },
                         ConfigurationValue::Text(value) => KindConfigurationRule::TextOneOf {
-                            values: vec![value.clone()],
+                            values: vec![value.to_string()],
                         },
                         _ => unreachable!(),
                     };

@@ -4,7 +4,73 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 [workspace]
+[features]
+body-persistence = ["conduit-environment-runtime/evidence-journal", "body-image-root", "dep:esp-storage", "dep:embedded-storage"]
+network-mdns = ["native-root", "embassy-net/multicast"]
+network-credential-store = ["conduit-environment-runtime/evidence-journal", "owner-wifi", "dep:esp-storage", "dep:embedded-storage"]
+observation-store = ["conduit-environment-runtime/evidence-journal", "native-face-root", "dep:esp-storage", "dep:embedded-storage"]
+local-evidence-store = ["display-physical-check", "owner-wifi", "dep:esp-storage", "dep:embedded-storage"]
+owner-wifi = ["native-root"]
+mask-root = ["native-face-root", "conduit-environment-runtime/mask-renderer"]
+target-memory-check = ["body-image-root", "display-fit-root", "conduit-planner/indexed-source", "conduit-environment-runtime/local-planning", "esp-backtrace/custom-pre-backtrace"]
+# Verbose allocation-stage tracing is separate from the appliance's admission guards.
+target-memory-trace = []
+target-mask-memory-check = ["body-image-root", "mask-root", "conduit-planner/indexed-source", "conduit-environment-runtime/local-planning", "esp-backtrace/custom-pre-backtrace"]
+target-mask-native-check = ["target-mask-memory-check"]
+local-appliance = ["target-mask-native-check", "body-persistence", "observation-store", "network-credential-store", "network-mdns"]
+# Qualification profile for the borrowed network constructor. Its workspace
+# admission remains disabled until native whole-construction proof passes.
+flat-network-appliance = ["local-appliance"]
+network-workspace-check = ["flat-network-appliance"]
+# Typed cold biography custody is optional in the full autonomous appliance.
+biography-service = ["local-appliance"]
+# Recovery image: serve custody without resuming the linked Body or creating a Boot.
+biography-maintenance = ["biography-service"]
+body-image-root = ["native-face-root", "conduit-environment-runtime/body-image"]
+native-face-root = ["native-root", "conduit-environment-runtime/face-projection"]
+display-fit-root = ["native-face-root", "conduit-environment-runtime/display-output", "conduit-environment-runtime/display-mask"]
+display-physical-check = ["display-fit-root", "conduit-environment-runtime/display-session"]
+display-ready-root = ["native-root", "conduit-environment-runtime/display-output"]
+native-root = ["dep:serde_json", "conduit-environment-runtime/construction", "conduit-tm1637-wire/host-call", "dep:embassy-sync", "dep:conduit-body", "dep:ed25519-dalek", "dep:serde", "dep:conduit-environment-make", "dep:conduit-time", "dep:conduit-monotonic-wait", "esp-alloc/internal-heap-stats", "conduit-environment-runtime/appliance", "dep:conduit-kernel", "dep:conduit-planner", "dep:conduit-plan-lowering", "dep:conduit-plot", "dep:sha2", "dep:conduit-network-join-call", "ap", "dep:conduit-core", "dep:serde-json-core", "conduit-esp32-pulse-capture/host-call", "conduit-pulse-capture/host-call"]
+ap = ["live", "dep:conduit-esp32-network-switch", "dep:conduit-net", "dep:esp-radio", "dep:esp-rtos", "dep:embassy-executor", "dep:embassy-time", "dep:embassy-net", "dep:embassy-futures", "dep:static_cell", "dep:heapless", "dep:conduit-rp2040-network-realization"]
+live = ["capture", "dep:conduit-environment-runtime", "dep:conduit-environment-http", "dep:conduit-seven-segment-mask", "dep:conduit-face", "dep:esp-alloc"]
+capture = ["dep:conduit-esp32-pulse-capture", "dep:conduit-pulse-capture"]
 [dependencies]
+esp-storage = { version = "=0.8.1", features = ["esp32"], optional = true }
+embedded-storage = { version = "=0.3.2", optional = true }
+serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
+embassy-sync = { version = "=0.8.0", default-features = false, optional = true }
+conduit-body = { path = "../../../../architecture/body", optional = true }
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"], optional = true }
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+conduit-time = { path = "../../../../semantics/time", default-features = false, optional = true }
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait", optional = true }
+conduit-kernel = { path = "../../../../architecture/kernel", optional = true }
+conduit-planner = { path = "../../../../architecture/planner", features = ["indexed-source"], optional = true }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", optional = true }
+conduit-plot = { path = "../../../../architecture/plot", features = ["flat-image"], optional = true }
+sha2 = { version = "0.10", default-features = false, features = ["force-soft-compact"], optional = true }
+conduit-network-join-call = { path = "../../../../mechanisms/io/network-join", optional = true }
+conduit-core = { path = "../../../../architecture/core", optional = true }
+serde-json-core = { version = "=0.6.0", optional = true }
+conduit-esp32-network-switch = { path = "../../network-switch", optional = true }
+conduit-net = { path = "../../../../semantics/net", optional = true }
+esp-radio = { version = "=0.18.0", default-features = false, features = ["wifi", "esp32", "unstable"], optional = true }
+esp-rtos = { version = "=0.3.0", features = ["embassy", "esp-radio", "esp32"], optional = true }
+embassy-executor = { version = "=0.10.0", optional = true }
+embassy-time = { version = "=0.5.1", optional = true }
+embassy-futures = { version = "0.1", optional = true }
+embassy-net = { version = "=0.9.1", features = ["medium-ethernet", "proto-ipv4", "tcp", "udp"], optional = true }
+static_cell = { version = "2.1.1", optional = true }
+heapless = { version = "0.8", optional = true }
+conduit-rp2040-network-realization = { path = "../../../rp2040/network-realization", optional = true }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["source-capture"], optional = true }
+conduit-environment-http = { path = "../../../../bodies/environment/http", optional = true }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask", optional = true }
+conduit-face = { path = "../../../../semantics/face", default-features = false, optional = true }
+esp-alloc = { version = "=0.10.0", default-features = false, features = ["esp32", "global-allocator"], optional = true }
+conduit-esp32-pulse-capture = { path = "../../pulse-capture", optional = true }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", optional = true }
 conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }
 esp-hal = { version = "=1.1.2", features = ["esp32", "unstable"] }
 esp-backtrace = { version = "=0.19.0", features = ["esp32", "panic-handler", "println"] }
@@ -14,3 +80,15 @@ esp-println = { version = "=0.17.0", features = ["esp32"] }
 opt-level = "s"
 lto = "fat"
 codegen-units = 1
+
+[build-dependencies]
+conduit-core = { path = "../../../../architecture/core" }
+serde_json = "1"
+conduit-environment-make = { path = "../../../../bodies/environment/make", optional = true }
+conduit-plot = { path = "../../../../architecture/plot", features = ["flat-image"] }
+conduit-net = { path = "../../../../semantics/net", features = ["plot-catalog"] }
+sha2 = { version = "0.10", default-features = false }
+
+# Source generation runs on the build host, before MCU execution.
+[profile.release.build-override]
+opt-level = 1

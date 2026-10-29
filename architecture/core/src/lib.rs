@@ -1,7 +1,9 @@
 #![no_std]
 
 extern crate alloc;
+mod canonical_bytes;
 
+use alloc::boxed::Box;
 use alloc::collections::VecDeque;
 use alloc::format;
 use alloc::string::{String, ToString};
@@ -16,11 +18,19 @@ mod capability_offer;
 mod characteristic;
 pub mod claims;
 mod completion;
+mod configuration_text;
+pub use configuration_text::ConfigurationText;
 mod configuration;
 mod consequential_effect;
 mod control_loop;
 mod deadline;
 mod delivery;
+mod offer_ref;
+pub use offer_ref::*;
+mod descriptor_ref;
+pub use descriptor_ref::{
+    HostCallRequirementRef, HostCallRequirementRefs, PortDescriptorRef, PortDescriptorRefs,
+};
 mod device;
 mod exact_numeric;
 mod fore_ports;
@@ -58,7 +68,18 @@ use resource_canonical::push_resource_binding;
 mod body_time;
 mod body_time_exchange;
 mod body_time_quality;
+mod flat_plan;
 mod plan_fingerprint;
+mod plan_metadata;
+pub use flat_plan::{
+    FlatPlanRef, FlatPlanRefusal, PlainLocalPlacementRef, PlainLocalPlannedGears, PlannedGearRefs,
+    VerifiedFlatPlanRef,
+};
+mod plan_verification;
+pub use plan_metadata::{
+    verify_plan_metadata_with_configurations, PlanMetadataRefusal, VerifiedFragmentMetadata,
+    VerifiedPlanMetadata, VerifiedPlanSerialization,
+};
 mod planned_gear;
 mod resource_acquisition;
 mod resource_admission;
@@ -72,7 +93,16 @@ mod shared_pool;
 mod state_delay;
 mod stream_sampling;
 use plan_fingerprint::compute_plan_id;
-pub use plan_fingerprint::{compute_checked_front_fingerprint, compute_fragment_id};
+pub use plan_fingerprint::compute_plan_id as compute_plan_fingerprint;
+pub use plan_fingerprint::{
+    compute_checked_front_fingerprint, compute_fragment_id, FragmentFingerprintBuilder,
+    FragmentFingerprintHeader, FragmentFingerprintHeaderRef, FragmentFingerprintPreparationRefusal,
+    FragmentFingerprintRefusal, FragmentFingerprintTail, FragmentFingerprintTailRef,
+};
+pub use plan_fingerprint::{
+    compute_plan_fingerprint_ref, try_compute_plan_fingerprint_ref, FragmentCommitmentRef,
+    FragmentCommitmentRefs, PlanFingerprintInputRef,
+};
 mod structured_info;
 mod temporal;
 mod temporal_civil_conversion;
@@ -325,6 +355,42 @@ pub struct ActivePlayIdentity {
     pub play_sequence: u64,
 }
 
+impl ActivePlayIdentity {
+    /// Verify the complete canonical binding against independently selected
+    /// scope, without constructing another owned identity. This checks identity
+    /// correspondence only; it does not establish a reservation or authority.
+    pub fn is_bound_to(
+        &self,
+        plan_id: &PlanId,
+        host_id: &HostId,
+        boot_id: &BootId,
+        play_sequence: u64,
+    ) -> bool {
+        if &self.plan_id != plan_id
+            || &self.host_id != host_id
+            || &self.boot_id != boot_id
+            || self.play_sequence != play_sequence
+        {
+            return false;
+        }
+        let encoded = self.active_play_id.as_str().as_bytes();
+        if encoded.len() != 64 {
+            return false;
+        }
+        let digest = active_play_digest(
+            plan_id.as_str(),
+            host_id.as_str(),
+            boot_id.as_str(),
+            play_sequence,
+        );
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        digest.iter().enumerate().all(|(index, byte)| {
+            encoded[index * 2] == HEX[usize::from(byte >> 4)]
+                && encoded[index * 2 + 1] == HEX[usize::from(byte & 15)]
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignIdentity {
     pub sign_id: SignId,
@@ -565,6 +631,10 @@ pub enum ConnectionOutcome {
     Terminal,
 }
 
+mod planned_connection_ref;
+pub use planned_connection_ref::*;
+mod planned_gear_ref;
+pub use planned_gear_ref::*;
 mod planned_gear_record;
 pub use planned_gear_record::PlannedGear;
 
@@ -620,14 +690,20 @@ pub struct MandatorySignReport {
 }
 
 pub fn mandatory_sign_storage_requirement(sign: &[ExpectedSign]) -> Option<SignStorageBudget> {
+    mandatory_sign_storage_requirement_ref(ExpectedSignRefs::Owned(sign))
+}
+/// Exact existing Sign storage law over immutable owned or borrowed records.
+pub fn mandatory_sign_storage_requirement_ref(
+    sign: ExpectedSignRefs<'_>,
+) -> Option<SignStorageBudget> {
     let item_capacity = u16::try_from(sign.len()).ok()?;
     let mut byte_capacity = 0u32;
-    for item in sign {
+    for item in sign.iter() {
         let identity = match item {
-            ExpectedSign::PlanFragmentReceived | ExpectedSign::PlanTerminal => None,
-            ExpectedSign::PlacementPrepared(placement_id)
-            | ExpectedSign::PlacementTerminal(placement_id) => Some(placement_id.as_str()),
-            ExpectedSign::ConnectionTerminal(connection_id) => Some(connection_id.as_str()),
+            ExpectedSignRef::PlanFragmentReceived | ExpectedSignRef::PlanTerminal => None,
+            ExpectedSignRef::PlacementPrepared(placement_id)
+            | ExpectedSignRef::PlacementTerminal(placement_id) => Some(placement_id),
+            ExpectedSignRef::ConnectionTerminal(connection_id) => Some(connection_id),
         };
         let identity_bytes = match identity {
             Some(value) => u32::try_from(value.len()).ok()?,
@@ -656,9 +732,11 @@ pub struct PlannedConnection {
     pub sink_port_id: PortId,
     pub value_kind: KindId,
     /// Resource authority contract and exact admitted source binding. The
-    /// opaque bearer remains local to the issuing capability table.
+    /// opaque bearer remains local to the issuing capability table. Boxed so
+    /// ordinary value Cords do not reserve the complete resource record.
+    /// Serde preserves the original optional-record wire.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub resource: Option<PlannedResourceConnection>,
+    pub resource: Option<Box<PlannedResourceConnection>>,
     /// Exact typed semantic abnormal truth promised by the source Fore port.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub abnormal_kind: Option<KindId>,
@@ -669,9 +747,10 @@ pub struct PlannedConnection {
     pub temporal: PortTemporal,
     #[serde(default)]
     pub pressure_policy: DeliveryPressurePolicy,
-    /// Initially selected exact Line. Local Cords have no Line.
+    /// Initially selected exact Line. Local Cords have no Line; boxing avoids
+    /// reserving a remote binding in each local Cord without changing its wire.
     #[serde(default)]
-    pub selected_line: Option<AdmittedLine>,
+    pub selected_line: Option<Box<AdmittedLine>>,
     /// Exact ordered permissible Lines. Runtime may select only from this
     /// immutable set; availability remains outside the plan as Signs.
     #[serde(default)]
@@ -715,7 +794,7 @@ pub struct PlannedForePort {
     /// Exact external Line selected for this Fore, if it crosses a Host.
     /// Availability remains a current Sign and must be checked at use.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub selected_line: Option<AdmittedLine>,
+    pub selected_line: Option<Box<AdmittedLine>>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -924,67 +1003,9 @@ pub fn verify_plan(plan: &Plan) -> bool {
 }
 
 pub(crate) fn verify_plan_at_depth(plan: &Plan, depth: u8) -> bool {
-    let plot_identity = PlotIdentity {
-        source_document_id: plan.source_document_id.clone(),
-        checked_plot_id: plan.checked_plot_id.clone(),
-        expanded_plot_id: plan.expanded_plot_id.clone(),
-    };
-    let mut commitments = plan
-        .fragments
-        .iter()
-        .map(|fragment| FragmentCommitment {
-            host_id: fragment.host_id.clone(),
-            fragment_id: fragment.fragment_id.clone(),
-        })
-        .collect::<Vec<_>>();
-    commitments.sort();
-    plan.realization_backs
-        .windows(2)
-        .all(|pair| pair[0] < pair[1])
-        && plan.realization_backs.iter().all(|back| {
-            !back.invocation_path.is_empty()
-                && !back.kind_id.as_str().is_empty()
-                && !back.kind_contract_revision.as_str().is_empty()
-                && !back.source_document_id.as_str().is_empty()
-                && !back.checked_plot_id.as_str().is_empty()
-        })
-        && plan.plan_id
-            == compute_plan_id(
-                &plot_identity,
-                &plan.realization_backs,
-                &plan.activations,
-                &commitments,
-                &plan.activation_preparations,
-            )
-        && plan.fragments.iter().all(verify_plan_fragment_contents)
-        && plan.fragments.iter().all(|fragment| {
-            fragment.plan_id == plan.plan_id
-                && fragment.source_document_id == plan.source_document_id
-                && fragment.checked_plot_id == plan.checked_plot_id
-                && fragment.expanded_plot_id == plan.expanded_plot_id
-                && fragment.completion_policy == plan.completion_policy
-                && fragment.realization_backs == plan.realization_backs
-        })
-        && plan
-            .fragments
-            .first()
-            .is_none_or(|first| first.plan_fragments.len() == plan.fragments.len())
-        && plan.fragments.first().is_none_or(|first| {
-            first
-                .shared_pools
-                .iter()
-                .all(|pool| pool.validate().is_ok())
-                && plan
-                    .fragments
-                    .iter()
-                    .all(|fragment| fragment.shared_pools == first.shared_pools)
-        })
-        && state_delay::verify_plan_states(plan)
-        && verify_plan_shared_pools(plan)
-        && verify_plan_fore_lines(plan)
-        && verify_plan_connections(plan)
-        && planned_activation::verify_planned_activations(plan, depth)
-        && planned_activation::verify_activation_preparations(plan)
+    plan_verification::verify_at_depth(plan, depth, &mut |fragment| {
+        Some(compute_fragment_id(fragment))
+    })
 }
 
 fn verify_plan_fore_lines(plan: &Plan) -> bool {
@@ -1241,49 +1262,36 @@ pub fn verify_plan_fragment(fragment: &PlanFragment) -> bool {
 }
 
 fn verify_plan_fragment_contents(fragment: &PlanFragment) -> bool {
-    if compute_fragment_id(fragment) != fragment.fragment_id {
+    verify_plan_fragment_contents_with_fingerprint(fragment, &compute_fragment_id(fragment))
+}
+fn verify_plan_fragment_contents_with_fingerprint(
+    fragment: &PlanFragment,
+    fingerprint: &FragmentId,
+) -> bool {
+    if fingerprint != &fragment.fragment_id {
         return false;
     }
-    let mut commitments = fragment.plan_fragments.clone();
-    commitments.sort();
-    if commitments != fragment.plan_fragments
-        || commitments
-            .windows(2)
-            .any(|pair| pair[0].host_id == pair[1].host_id)
-    {
-        return false;
-    }
-    let own_matches = commitments
-        .iter()
-        .filter(|item| item.host_id == fragment.host_id && item.fragment_id == fragment.fragment_id)
-        .count();
-    own_matches == 1
-        && verify_fragment_fore_ports(fragment)
-        && fragment.placements.iter().all(|placement| {
-            placement.terminal_transductions.iter().all(|profile| {
-                capability_offer::validate_terminal_transduction_ports(
-                    &placement.inputs,
-                    &placement.outputs,
-                    profile,
-                )
-                .is_ok()
-            })
-        })
+    flat_plan::verify_commitments(
+        fragment.host_id.as_str(),
+        fragment.fragment_id.as_str(),
+        FragmentCommitmentRefs::Owned(&fragment.plan_fragments),
+    ) && verify_fragment_fore_ports(fragment)
+        && flat_plan::verify_terminal_ports(PlannedGearRefs::Owned(&fragment.placements))
         && state_delay::verify_fragment_state(fragment)
         && execution::verify_execution_regions(fragment)
         && execution_fusion::verify(fragment)
 }
 
-fn push_string(canonical: &mut Vec<u8>, value: &str) {
+fn push_string(canonical: &mut impl canonical_bytes::CanonicalSink, value: &str) {
     push_u32(canonical, value.len() as u32);
     canonical.extend_from_slice(value.as_bytes());
 }
 
-fn push_u32(canonical: &mut Vec<u8>, value: u32) {
+fn push_u32(canonical: &mut impl canonical_bytes::CanonicalSink, value: u32) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 
-fn push_u64(canonical: &mut Vec<u8>, value: u64) {
+fn push_u64(canonical: &mut impl canonical_bytes::CanonicalSink, value: u64) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 
@@ -1292,17 +1300,8 @@ fn hash_bytes(bytes: &[u8]) -> String {
     hex_digest(&digest)
 }
 
-fn hex_digest(digest: &[u8]) -> String {
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    let mut encoded = alloc::vec![0; digest.len() * 2];
-    for (byte, pair) in digest.iter().zip(encoded.as_chunks_mut::<2>().0) {
-        pair[0] = DIGITS[(byte >> 4) as usize];
-        pair[1] = DIGITS[(byte & 15) as usize];
-    }
-    // Every initialized byte comes from the ASCII table above. Keep the safe
-    // UTF-8 check while avoiding sixty-four String::push calls per digest.
-    String::from_utf8(encoded).expect("hex digits are ASCII")
-}
+mod digest_hex;
+use digest_hex::{hex_digest, try_hex_digest};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlacementLifecycleState {

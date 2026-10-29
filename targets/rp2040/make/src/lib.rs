@@ -4,6 +4,7 @@ use conduit_host_make::{
 };
 
 pub const PACKAGE_ID: &str = "conduit-host-rp2040@1";
+pub const PICO_TARGET_ID: &str = "conduitos/thumbv6m/pico";
 pub const TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub const BUILDER_ADAPTER: &str = "conduit-host-rp2040/build-uf2@1";
 
@@ -11,7 +12,7 @@ pub struct Rp2040MakePackage;
 
 impl HostMakePackage for Rp2040MakePackage {
     fn contribution(&self) -> MakeContribution {
-        MakeContribution::Anchor(MakeAnchor {
+        let mut anchor = MakeAnchor {
             package_id: PACKAGE_ID.into(),
             package_revision: 1,
             catalog: Default::default(),
@@ -49,10 +50,19 @@ impl HostMakePackage for Rp2040MakePackage {
                 base_kind: "serial/text".into(),
                 implementation_id: "pico/usb-cdc@1".into(),
                 implementation_revision: 1,
-                target_patterns: vec![TARGET_ID.into()],
+                target_patterns: vec![TARGET_ID.into(), PICO_TARGET_ID.into()],
                 prerequisites: Vec::new(),
                 build_feature: Some("line-usb-cdc".into()),
             }],
-        })
+        };
+        let mut pico = anchor.targets[0].clone();
+        pico.label = "Pico USB".into();
+        pico.machine = "pico".into();
+        pico.board = Some("pico".into());
+        anchor.targets.push(pico);
+        MakeContribution::Anchor(anchor)
     }
 }
+
+mod environment_usb;
+pub use environment_usb::environment_usb_rust;

@@ -11,8 +11,12 @@ use linked_list_allocator::Heap;
 pub const CAPACITY: usize = 96 * 1024;
 #[cfg(all(feature = "kernel-evaluation", not(feature = "http-ap")))]
 pub const CAPACITY: usize = 196 * 1024;
-#[cfg(feature = "http-ap")]
+#[cfg(all(feature = "http-ap", not(feature = "maximal-target")))]
 pub const CAPACITY: usize = 196 * 1024;
+// Separate comparative profile: use 16 KiB of spare SRAM for preparation.
+// The maximal linker still admits the unchanged 36 KiB CPU stack floor.
+#[cfg(feature = "maximal-target")]
+pub const CAPACITY: usize = 212 * 1024;
 static mut BYTES: [u8; CAPACITY] = [0; CAPACITY];
 struct State {
     heap: Heap,

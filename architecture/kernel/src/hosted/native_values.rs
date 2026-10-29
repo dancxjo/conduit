@@ -16,7 +16,7 @@ impl HostedValueStore {
         let items = self
             .slots
             .iter()
-            .filter(|s| s.references == 0 && s.generation != u16::MAX && s.bytes.capacity() >= 8)
+            .filter(|s| s.references == 0 && s.generation != u32::MAX && s.bytes.capacity() >= 8)
             .count();
         (items as u16, self.byte_capacity - self.used_bytes)
     }

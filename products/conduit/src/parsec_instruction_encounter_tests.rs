@@ -183,7 +183,7 @@ impl Validation {
         // not proof that a copied generation exists in a current live store.
         if slot >= u64::from(lowered.cord_value_slots) + lowered.host_calls.len() as u64
             || generation == 0
-            || generation > u64::from(u16::MAX)
+            || generation > u64::from(u32::MAX)
         {
             return Err("recorded ValueRef exceeds exact prepared value-store bounds".into());
         }

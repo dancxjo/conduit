@@ -116,7 +116,7 @@ pub fn measurement_plot_kind_projection() -> KindProjection {
             },
             KindConfigurationField {
                 key: "when-full".to_string(),
-                default_value: ConfigurationValue::Text("evenly-spaced".to_string()),
+                default_value: ConfigurationValue::Text("evenly-spaced".to_string().into()),
                 rule: KindConfigurationRule::TextOneOf {
                     values: vec!["reject".to_string(), "evenly-spaced".to_string()],
                 },

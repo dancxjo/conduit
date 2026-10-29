@@ -1,4 +1,4 @@
-use super::{sign, BodyLifecycleSession, BodyLifecycleSessionError};
+use super::{sign, BodyLifecycleSessionError};
 #[cfg(feature = "authenticated-admission")]
 use crate::{
     AdmissionManager, AdmissionSigns, MembershipCredential, SpawnAdmissionProof,
@@ -11,7 +11,7 @@ use alloc::vec::Vec;
 use conduit_core::HostAdvertisement;
 use conduit_core::{BootId, HostId};
 
-impl BodyLifecycleSession {
+impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
     #[cfg(feature = "authenticated-admission")]
     #[allow(clippy::too_many_arguments)]
     pub fn issue_invitation(
@@ -45,8 +45,24 @@ impl BodyLifecycleSession {
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
-        self.make_membership_room(2)?;
-        let first_sequence = self.next_sequence()?;
+        // Ordinary admission stages only membership and records. If history
+        // capacity requires archival, retain the existing private-copy fallback
+        // so a refused invitation cannot publish a compaction or lose custody.
+        let mut prepared = None;
+        let archive = if super::has_membership_room(&self.evidence, 2) {
+            None
+        } else {
+            let mut evidence = self.evidence.clone();
+            let archive =
+                super::prepare_membership_room(&mut evidence, self.pending_archives.len(), 2)?;
+            prepared = Some(evidence);
+            archive
+        };
+        let evidence = prepared.as_ref().unwrap_or(&self.evidence);
+        let first_sequence = evidence
+            .last_sequence()
+            .checked_add(1)
+            .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
         let second_sequence = first_sequence
             .checked_add(1)
             .ok_or(BodyLifecycleSessionError::SequenceExhausted)?;
@@ -55,7 +71,7 @@ impl BodyLifecycleSession {
             host_attached: sign(authority_host, authority_boot, second_sequence),
             candidate_admitted: sign(authority_host, authority_boot, second_sequence),
         };
-        let mut membership = self.evidence.membership.clone();
+        let mut membership = evidence.membership.clone();
         let mut next_admissions = admissions.clone();
         let prior_events = membership.events.len();
         let credential = next_admissions
@@ -71,11 +87,19 @@ impl BodyLifecycleSession {
                 BodyBiographyError::InvalidEvidence,
             ));
         }
-        let mut evidence = self.evidence.clone();
-        evidence
-            .append_membership_events(membership, &events)
-            .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
+        if let Some(mut evidence) = prepared {
+            evidence
+                .append_membership_events(membership, &events)
+                .map_err(BodyLifecycleSessionError::Biography)?;
+            self.evidence = evidence;
+        } else {
+            self.evidence
+                .append_membership_events(membership, &events)
+                .map_err(BodyLifecycleSessionError::Biography)?;
+        }
+        if let Some(archive) = archive {
+            self.pending_archives.push(archive);
+        }
         *admissions = next_admissions;
         Ok(credential)
     }

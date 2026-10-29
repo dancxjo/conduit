@@ -63,7 +63,10 @@ pub(crate) fn verify(fragment: &PlanFragment) -> bool {
     })
 }
 
-pub(crate) fn push_canonical(output: &mut Vec<u8>, fusions: &[PlannedFusion]) {
+pub(crate) fn push_canonical(
+    output: &mut impl crate::canonical_bytes::CanonicalSink,
+    fusions: &[PlannedFusion],
+) {
     if fusions.is_empty() {
         return;
     }
@@ -84,11 +87,11 @@ pub(crate) fn push_canonical(output: &mut Vec<u8>, fusions: &[PlannedFusion]) {
     }
 }
 
-fn push_u32(output: &mut Vec<u8>, value: u32) {
+fn push_u32(output: &mut impl crate::canonical_bytes::CanonicalSink, value: u32) {
     output.extend_from_slice(&value.to_le_bytes());
 }
 
-fn push_string(output: &mut Vec<u8>, value: &str) {
+fn push_string(output: &mut impl crate::canonical_bytes::CanonicalSink, value: &str) {
     push_u32(output, value.len() as u32);
     output.extend_from_slice(value.as_bytes());
 }

@@ -78,7 +78,9 @@ where
             return Ok(0);
         }
         let slot = queue_slot(spec, state.head, state.len - 1);
-        let newest = self.queue_slots[slot].ok_or(SchedulerError::InvalidPlan)?;
+        let newest = self.queue_slots[slot]
+            .ok_or(SchedulerError::InvalidPlan)?
+            .resolve(&self.values)?;
         Ok(spec
             .byte_capacity
             .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))
@@ -189,6 +191,28 @@ where
                     return Err(SchedulerError::InvalidPortAccess);
                 }
                 *slot = Some(value);
+                return Ok(Some(GeneratedStepOutput::copied(value)));
+            }
+            if self.drivers[node].encodes_prepared_output(port) {
+                self.ensure_output_value_envelope(node, port, declared_len)?;
+                let output = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if output.is_some() {
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                let declared =
+                    usize::try_from(declared_len).map_err(|_| StorageError::ValueTooLarge)?;
+                let driver = &self.drivers[node];
+                let value = self.values.store_prepared_encoded(declared, &mut |bytes| {
+                    let length = driver.encode_prepared_output(port, bytes)?;
+                    if length != declared {
+                        return Err(StorageError::ValueTooLarge);
+                    }
+                    Ok(length)
+                })?;
+                *output = Some(value);
                 return Ok(Some(GeneratedStepOutput::copied(value)));
             }
             let bytes = self.drivers[node]

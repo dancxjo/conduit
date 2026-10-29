@@ -101,6 +101,9 @@ impl ValueStorage for Counted {
     fn release(&mut self, v: ValueRef) -> Result<(), StorageError> {
         self.inner.release(v)
     }
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        self.inner.resolve_identity(slot, generation)
+    }
     fn reference_count(&self, v: ValueRef) -> Result<u16, StorageError> {
         if self.deny_compact_refs.get() && self.inner.compact_f32(v)?.is_some() {
             return Err(StorageError::RepresentationMismatch);

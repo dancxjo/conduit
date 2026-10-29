@@ -2,11 +2,11 @@
 //! finite packet bytes. No native command synthesis, I/O, admission or scheduler.
 use conduit_core::{
     validate_canonical_structured_value as validate, PreparedStructuredComposer as C,
-    StructuredInfoRefusal as R, StructuredInfoTypeShape as S,
+    StructuredInfoRefusal as R,
 };
 use conduit_plot::{
-    PortableExpressionEvaluationRefusal, PortableExpressionProgram,
-    PortableExpressionProgramRefusal, PreparedPortableExpressionEvaluator,
+    PortableExpressionEvaluationRefusal, PortableExpressionProgramRefusal,
+    PreparedPortableExpressionEvaluator,
 };
 #[path = "display_frame.rs"]
 mod frame;
@@ -47,23 +47,33 @@ pub struct PreparedDisplayPackets {
 }
 impl PreparedDisplayPackets {
     pub fn prepare() -> Result<Self, DisplayPacketRefusal> {
-        let program = PortableExpressionProgram::from_canonical_bytes(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/tm1637-packets.program"
-        )))
-        .map_err(DisplayPacketRefusal::Program)?;
-        let S::Variant { cases, .. } = program.output_type.shape() else {
-            return Err(R::WrongType.into());
-        };
-        let packet_type = cases
-            .iter()
-            .find(|case| case.tag() == "packets")
-            .ok_or(R::WrongType)?
-            .payload_type();
+        mod material {
+            include!(concat!(env!("OUT_DIR"), "/tm1637-expression-material.rs"));
+        }
+        let canonical = include_bytes!(concat!(env!("OUT_DIR"), "/tm1637-packets.program"));
+        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/tm1637-expression.make"));
+        if conduit_core::assigned_plan_payload_digest(canonical) != material::PROGRAM_DIGEST
+            || conduit_core::assigned_plan_payload_digest(bytes) != material::MATERIAL_DIGEST
+        {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram.into());
+        }
+        let packet_type = conduit_core::StructuredInfoType::from_canonical_bytes(include_bytes!(
+            concat!(env!("OUT_DIR"), "/tm1637-packet-output.type")
+        ))?;
+        // SAFETY: complete canonical Source/configuration, checked lowering and
+        // independent digests are linked from this same trusted Make build;
+        // received frame data cannot establish or replace any of this origin.
+        let evaluator = unsafe {
+            PreparedPortableExpressionEvaluator::from_linked_make_with_bounds(
+                bytes,
+                material::PROGRAM_DIGEST,
+                material::BOUNDS,
+            )
+        }?;
         Ok(Self {
-            evaluator: PreparedPortableExpressionEvaluator::new(&program)?,
+            evaluator,
             frame: PreparedDisplayFrame::prepare()?,
-            packet_output: C::new(packet_type, 1024)?,
+            packet_output: C::new(&packet_type, 1024)?,
         })
     }
     /// Canonical packet input for the selected electrical Host Call. The bytes

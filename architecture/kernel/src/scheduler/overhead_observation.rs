@@ -137,6 +137,9 @@ impl<const N: usize> ValueStorage for ObservedValues<N> {
         self.access.set(counts);
         Ok(bytes)
     }
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        self.inner.resolve_identity(slot, generation)
+    }
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
         self.inner.reference_count(value)
     }

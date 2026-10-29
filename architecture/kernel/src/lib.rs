@@ -8,7 +8,11 @@
 //! the same value/sign contracts.
 
 #[cfg(feature = "alloc")]
+mod hosted_sign_preparation;
+#[cfg(feature = "alloc")]
 mod packed_sign;
+#[cfg(feature = "alloc")]
+pub use hosted_sign_preparation::HostedSignPreparationError;
 mod sign_retention;
 use sign_retention::{
     ensure_retained_sign_capacity, ensure_sign_sequence_capacity, prepare_transient_eviction,
@@ -93,7 +97,7 @@ pub enum SignExpectationTarget {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ValueRef {
     pub slot: u16,
-    pub generation: u16,
+    pub generation: u32,
     pub byte_len: u32,
 }
 
@@ -423,7 +427,25 @@ pub trait ValueStorage {
     fn used_items(&self) -> u16;
     fn used_bytes(&self) -> u32;
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError>;
+    /// Physical direct canonical encoding support, checked before Play.
+    fn supports_prepared_encoding(&self) -> bool {
+        false
+    }
+    /// Opt-in canonical publication into a free admitted slot. Unsupported
+    /// profiles refuse without calling the encoder or changing ownership.
+    /// Failure/unwind must discard partial bytes and retire the reservation.
+    fn store_prepared_encoded(
+        &mut self,
+        _maximum_bytes: usize,
+        _encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
+    /// Reconstruct a live store-local identity with its canonical logical length.
+    /// Implementations must refuse stale generations and vacant/retired slots;
+    /// compact physical representations must return their logical byte bounds.
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError>;
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError>;
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
@@ -529,8 +551,29 @@ pub use owned_compact_output::{PendingCompactF32Publication, PreparedCompactF32O
 #[cfg(feature = "alloc")]
 mod hosted;
 
+mod encoded_value;
+pub use encoded_value::EncodedValueRefusal;
 #[cfg(feature = "alloc")]
 pub use hosted::Store as HostedValueStore;
+/// Encode canonical bytes into an already admitted free slot. Failed or
+/// unwound encoding retires its generation and releases all reserved ownership.
+pub trait CanonicalEncodedValueStorage: ValueStorage {
+    fn store_encoded<E>(
+        &mut self,
+        maximum_bytes: usize,
+        encode: impl FnOnce(&mut [u8]) -> Result<usize, E>,
+    ) -> Result<ValueRef, EncodedValueRefusal<E>>;
+}
+#[cfg(feature = "alloc")]
+impl CanonicalEncodedValueStorage for HostedValueStore {
+    fn store_encoded<E>(
+        &mut self,
+        maximum_bytes: usize,
+        encode: impl FnOnce(&mut [u8]) -> Result<usize, E>,
+    ) -> Result<ValueRef, EncodedValueRefusal<E>> {
+        HostedValueStore::store_encoded(self, maximum_bytes, encode)
+    }
+}
 
 mod remote_sign;
 use remote_sign::RemoteLifecycleSign;
@@ -663,7 +706,7 @@ pub trait SignQuery {
     }
 }
 
-pub struct FixedSignLog<const EVENTS: usize> {
+pub struct FixedSignLog<const EVENTS: usize, const REMOTE_EVENTS: usize = EVENTS> {
     entries: [Option<KernelEvent>; EVENTS],
     len: u16,
     // Non-transient entries are never evicted; updated only on publication.
@@ -671,7 +714,7 @@ pub struct FixedSignLog<const EVENTS: usize> {
     byte_capacity: u32,
     used_bytes: u32,
     next_sequence: u32,
-    remote_entries: [Option<RemoteLifecycleSign>; EVENTS],
+    remote_entries: [Option<RemoteLifecycleSign>; REMOTE_EVENTS],
     remote_item_capacity: u16,
     remote_byte_capacity: u32,
     remote_len: u16,
@@ -679,7 +722,7 @@ pub struct FixedSignLog<const EVENTS: usize> {
     retention_gap: Option<SignRetentionGap>,
 }
 
-impl<const EVENTS: usize> FixedSignLog<EVENTS> {
+impl<const EVENTS: usize, const REMOTE_EVENTS: usize> FixedSignLog<EVENTS, REMOTE_EVENTS> {
     pub fn new(byte_capacity: u32) -> Result<Self, SignError> {
         Self::new_with_remote_storage(byte_capacity, 0, 0)
     }
@@ -700,6 +743,7 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
             || byte_capacity == 0
             || byte_capacity > physical_bytes
             || usize::from(remote_item_capacity) > EVENTS
+            || usize::from(remote_item_capacity) > REMOTE_EVENTS
             || (remote_item_capacity == 0 && remote_byte_capacity != 0)
             || (remote_item_capacity != 0
                 && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
@@ -713,7 +757,7 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
             byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
-            remote_entries: [None; EVENTS],
+            remote_entries: [None; REMOTE_EVENTS],
             remote_item_capacity,
             remote_byte_capacity,
             remote_len: 0,
@@ -754,7 +798,9 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
+impl<const EVENTS: usize, const REMOTE_EVENTS: usize> SignSink
+    for FixedSignLog<EVENTS, REMOTE_EVENTS>
+{
     fn requires_canonical_debug_values(&self) -> bool {
         false
     }
@@ -938,7 +984,9 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
     }
 }
 
-impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
+impl<const EVENTS: usize, const REMOTE_EVENTS: usize> SignQuery
+    for FixedSignLog<EVENTS, REMOTE_EVENTS>
+{
     fn contains_kind(&self, kind: KernelEventKind) -> bool {
         self.events().any(|event| event.kind == kind)
     }
@@ -976,52 +1024,6 @@ pub struct HostedSignLog {
 
 #[cfg(feature = "alloc")]
 impl HostedSignLog {
-    pub fn new(item_capacity: u16, byte_capacity: u32) -> Result<Self, SignError> {
-        Self::new_with_remote_storage(item_capacity, byte_capacity, 0, 0)
-    }
-
-    pub fn new_with_remote_storage(
-        item_capacity: u16,
-        byte_capacity: u32,
-        remote_item_capacity: u16,
-        remote_byte_capacity: u32,
-    ) -> Result<Self, SignError> {
-        let physical_bytes = usize::from(item_capacity)
-            .checked_mul(size_of::<KernelEvent>())
-            .and_then(|value| u32::try_from(value).ok())
-            .ok_or(SignError::InvalidBudget)?;
-        let remote_physical_bytes =
-            remote_sign_storage_bytes(remote_item_capacity).ok_or(SignError::InvalidBudget)?;
-        if item_capacity == 0
-            || byte_capacity == 0
-            || byte_capacity > physical_bytes
-            || remote_item_capacity > item_capacity
-            || (remote_item_capacity == 0 && remote_byte_capacity != 0)
-            || (remote_item_capacity != 0
-                && (remote_byte_capacity == 0 || remote_byte_capacity > remote_physical_bytes))
-        {
-            return Err(SignError::InvalidBudget);
-        }
-        let mut entries = alloc::vec::Vec::with_capacity(usize::from(item_capacity));
-        entries.resize(usize::from(item_capacity), None);
-        let mut remote_entries = alloc::vec::Vec::with_capacity(usize::from(remote_item_capacity));
-        remote_entries.resize(usize::from(remote_item_capacity), None);
-        Ok(Self {
-            entries,
-            len: 0,
-            retained_items: 0,
-            byte_capacity,
-            used_bytes: 0,
-            next_sequence: 0,
-            remote_entries,
-            remote_item_capacity,
-            remote_byte_capacity,
-            remote_len: 0,
-            remote_used_bytes: 0,
-            retention_gap: None,
-        })
-    }
-
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
         self.entries[..usize::from(self.len)]
             .iter()
@@ -1252,3 +1254,6 @@ impl SignQuery for HostedSignLog {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod fixed_sign_capacity_tests;

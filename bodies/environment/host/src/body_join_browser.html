@@ -1,0 +1,120 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Join thermometer Body</title><style>body{font:17px system-ui;max-width:44rem;margin:3rem auto;padding:0 1rem;background:#f5f3ed;color:#22332c}input,button{font:inherit;padding:.7rem;margin:.4rem 0}input{width:95%}button{cursor:pointer}pre{white-space:pre-wrap}small{display:block}a{color:#245c46}</style><h1>Join thermometer Body</h1><p>This private local file holds one invitation. The thermometer keeps sampling while this browser joins.</p><label>Local joining proxy<input id="endpoint" placeholder="http://127.0.0.1:8787"></label><p>On this browser's machine, run <code id="proxy-command"></code>. The loopback proxy forwards signed proofs; this browser verifies the private Root pin.</p><button id="join">Join this Body</button><button id="return">Reconnect this browser</button><pre id="status">Ready. Open this file locally; no invitation secret is sent in an HTTP address.</pre><div id="downloads"></div><small>Keep this file private; it retains your continuity secret. The recorder binding contains the signed admission receipt.</small>
+<script id="bootstrap" type="application/json">__PRIVATE_BOOTSTRAP_JSON__</script>
+<script>
+'use strict';
+const bootstrap=JSON.parse(document.querySelector('#bootstrap').textContent),claim=bootstrap.invitation.claim;
+document.querySelector('#bootstrap').textContent='';
+const text=new TextEncoder(),bytes=v=>new Uint8Array(v),hex=v=>Array.from(v,b=>b.toString(16).padStart(2,'0')).join('');
+function le(n,width){if(!Number.isSafeInteger(n)||n<0)throw Error('Invalid bounded counter');let x=BigInt(n),out=new Uint8Array(width);for(let i=0;i<width;i++){out[i]=Number(x&255n);x>>=8n}if(x)throw Error('Counter overflow');return out}
+function cat(...parts){let out=new Uint8Array(parts.reduce((n,p)=>n+p.length,0)),at=0;for(const p of parts){out.set(p,at);at+=p.length}return out}
+function framed(value,width){let b=text.encode(value);return cat(le(b.length,width),b)}
+async function digest(...parts){return new Uint8Array(await crypto.subtle.digest('SHA-256',cat(...parts)))}
+async function proofTranscript(host,boot){return digest(...['spawn-invitation-v1',claim.body_id,claim.invitation_id,host,boot].map(v=>framed(v,4)),le(1,8),bytes(claim.nonce),le(claim.expires_at_millis,8))}
+async function receiptTranscript(r){let c=r.credential;return digest(text.encode('conduit.environment/joined-host@1\0'),...[c.credential_id,c.body_id,c.part_id,c.host_id,c.boot_id,r.producer_host,r.producer_boot,r.invitation_id].map(v=>framed(v,8)),le(c.issued_at_millis,8),le(r.membership_revision,8),le(r.offer_generation,8),bytes(r.producer_key))}
+async function recoveryTranscript(q){return digest(text.encode('conduit.environment/observer-recovery-request@1\0'),...[q.body_id,q.host_id,q.boot_id].map(v=>framed(v,8)),bytes(q.nonce))}
+async function currentTranscript(r){const c=r.credential;return digest(text.encode('conduit.environment/current-observer@1\0'),...[c.credential_id,c.body_id,c.part_id,c.host_id,c.boot_id,r.producer_host,r.producer_boot].map(v=>framed(v,8)),le(c.issued_at_millis,8),le(r.membership_revision,8),bytes(r.producer_key),bytes(r.request_nonce))}
+function extent(a,n){return Array.isArray(a)&&a.length===n&&a.every(v=>Number.isInteger(v)&&v>=0&&v<=255)}
+function positive(n){return Number.isSafeInteger(n)&&n>0}
+async function continuityKey(){return crypto.subtle.importKey('pkcs8',cat(bytes([48,46,2,1,0,48,5,6,3,43,101,112,4,34,4,32]),bytes(bootstrap.invitation.secret)),{name:'Ed25519'},false,['sign'])}
+async function sign(value){return new Uint8Array(await crypto.subtle.sign('Ed25519',await continuityKey(),value))}
+async function verifyReceipt(r,recovery){
+ const c=r?.credential;
+ if(!c||!extent(r.producer_key,32)||!same(r.producer_key,bootstrap.root_key)||r.producer_host!==bootstrap.producer_host||typeof r.producer_boot!=='string'||!r.producer_boot||c.body_id!==claim.body_id||c.host_id!==pending.host||c.boot_id!==pending.boot||typeof c.credential_id!=='string'||!c.credential_id||typeof c.part_id!=='string'||!c.part_id||!Number.isSafeInteger(c.issued_at_millis)||c.issued_at_millis<0||!positive(r.membership_revision)||!extent(r.signature,64))throw Error('Receipt scope differs from private invitation');
+ if(recovery){if(r.schema!=='conduit.environment/current-observer@1'||!extent(r.request_nonce,32)||!same(r.request_nonce,pending.recovery.request.nonce))throw Error('Recovery receipt scope differs')}
+ else if(r.schema!=='conduit.environment/joined-host@1'||r.producer_boot!==bootstrap.producer_boot||r.invitation_id!==claim.invitation_id||c.issued_at_millis>claim.expires_at_millis||r.offer_generation!==1)throw Error('Admission receipt scope differs');
+ const root=await crypto.subtle.importKey('raw',bytes(bootstrap.root_key),{name:'Ed25519'},false,['verify']);
+ if(!await crypto.subtle.verify('Ed25519',root,bytes(r.signature),await(recovery?currentTranscript(r):receiptTranscript(r))))throw Error('Root signature refused');
+}
+function persist(){localStorage.setItem(storageKey,JSON.stringify(pending))}
+async function validatePending(){
+ if(typeof pending.host!=='string'||!pending.host.startsWith('browser/')||typeof pending.boot!=='string'||!pending.boot.startsWith('boot/'))throw Error('Retained host scope differs');
+ const q=pending.request,a=q?.host_advertisement;
+ if(q?.schema!=='conduit.environment/observer-admission@1'||q.invitation_id!==claim.invitation_id||q.body_id!==claim.body_id||q.nonce!==hex(claim.nonce)||a?.host_id!==pending.host||a.boot_id!==pending.boot||a.protocol_version!==1||a.offer_generation!==1||a.profile!=='conduit/environment/browser-observer@1'||!['resources','capabilities','planner_capabilities'].every(k=>Array.isArray(a[k])&&a[k].length===0)||q.membership_admitted!==false||q.plan_created!==false||q.play_created!==false||q.signature!==hex(await sign(await proofTranscript(pending.host,pending.boot))))throw Error('Retained admission proof differs');
+ if(pending.ticket!==null&&!positive(pending.ticket))throw Error('Retained ticket invalid');
+ if(pending.receipt)await verifyReceipt(pending.receipt,false);
+ if(pending.recovery){const r=pending.recovery,q=r.request;if(q?.schema!=='conduit.environment/observer-recovery-request@1'||q.body_id!==claim.body_id||q.host_id!==pending.host||q.boot_id!==pending.boot||!extent(q.nonce,32)||q.nonce.every(v=>v===0)||!extent(q.signature,64)||!same(q.signature,await sign(await recoveryTranscript(q)))||(r.ticket!==null&&!positive(r.ticket)))throw Error('Retained recovery proof differs');if(r.receipt)await verifyReceipt(r.receipt,true)}
+}
+async function submit(base,state,request){if(state.ticket!==null)return;const response=await fetch(base+'/body/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});if(response.status!==202)throw Error('Submission HTTP '+response.status);const queued=await response.json();if(queued.schema!=='conduit.environment/body-join-queued@1'||!positive(queued.ticket))throw Error('Invalid queue receipt');state.ticket=queued.ticket;persist()}
+async function poll(base,state){const until=Date.now()+60000;const retry=()=>new Promise(r=>setTimeout(r,Math.max(0,Math.min(500,until-Date.now()))));while(Date.now()<until){let response;try{response=await fetch(base+'/body/join/result?id='+state.ticket,{cache:'no-store',signal:AbortSignal.timeout(Math.max(0,until-Date.now()))})}catch{await retry();continue}if(response.status===502||response.status===503){await retry();continue}if(response.status===404){if(state!==pending){state.ticket=null;persist()}return null}if(response.status===202){const queued=await response.json();if(queued.schema!=='conduit.environment/body-join-queued@1'||queued.ticket!==state.ticket)throw Error('Pending ticket changed');await retry();continue}if(response.status!==200)throw Error('Receipt HTTP '+response.status);return response.json()}throw Error('Receipt pending. Retry preserves the same proof and ticket.')}
+async function recover(base){
+ if(!pending.recovery){const nonce=Array.from(crypto.getRandomValues(new Uint8Array(32)));if(nonce.every(v=>v===0))throw Error('Recovery entropy unavailable');const request={schema:'conduit.environment/observer-recovery-request@1',body_id:claim.body_id,host_id:pending.host,boot_id:pending.boot,nonce,signature:[]};request.signature=Array.from(await sign(await recoveryTranscript(request)));pending.recovery={request,ticket:null};persist()}
+ const state=pending.recovery;await submit(base,state,state.request);const receipt=await poll(base,state);if(!receipt)throw Error('Recovery mailbox expired. Retry resubmits the same signed recovery proof.');await verifyReceipt(receipt,true);state.receipt=receipt;persist();
+ download('recorder-binding.json',{schema:'conduit.environment/joined-recorder@2',invitation:claim,root_key:bootstrap.root_key,local_host:pending.host,local_boot:pending.boot,recovery_request:state.request,receipt},'Save recovered recorder binding');status('Recovered a Root-signed receipt for the original admitted Host and Boot. This does not refresh presence, establish a new Boot, or create a Play.');
+}
+function same(a,b){return a.length===b.length&&a.every((v,i)=>v===b[i])}
+async function returnChallengeTranscript(r){const c=r.challenge;return digest(text.encode('conduit.environment/observer-return-challenge@1\0'),...[c.admission_id,c.body_id,c.part_id,c.host_id,c.boot_id].map(v=>framed(v,8)),le(c.offer_generation,8),bytes(c.nonce),le(c.issued_at_millis,8),le(c.expires_at_millis,8),framed(r.producer_host,8),framed(r.producer_boot,8),bytes(r.producer_key))}
+async function returnProofTranscript(c){return digest(...['part-return-v1',c.body_id,c.part_id,c.host_id,c.boot_id].map(v=>framed(v,4)),le(c.offer_generation,8),bytes(c.nonce),le(c.expires_at_millis,8))}
+async function verifyReturnChallenge(r,state){
+ const c=r?.challenge,a=state.request.host_advertisement;
+ if(r?.schema!=='conduit.environment/observer-return-challenge@1'||!c||c.body_id!==claim.body_id||c.part_id!==state.request.part_id||c.host_id!==pending.host||c.boot_id!==state.boot||c.offer_generation!==a.offer_generation||typeof c.admission_id!=='string'||!c.admission_id||!extent(c.nonce,32)||c.nonce.every(v=>v===0)||!Number.isSafeInteger(c.issued_at_millis)||c.issued_at_millis<0||!Number.isSafeInteger(c.expires_at_millis)||c.expires_at_millis<=c.issued_at_millis||r.producer_host!==bootstrap.producer_host||typeof r.producer_boot!=='string'||!r.producer_boot||!extent(r.producer_key,32)||!same(r.producer_key,bootstrap.root_key)||!extent(r.signature,64))throw Error('Return challenge scope differs');
+ const key=await crypto.subtle.importKey('raw',bytes(bootstrap.root_key),{name:'Ed25519'},false,['verify']);if(!await crypto.subtle.verify('Ed25519',key,bytes(r.signature),await returnChallengeTranscript(r)))throw Error('Return challenge Root signature refused');
+}
+async function verifyReturnedReceipt(r,state,recovered=false){
+ const c=r?.credential,ch=state.challenge.challenge;
+ if(r?.schema!=='conduit.environment/current-observer@1'||!c||c.body_id!==claim.body_id||c.part_id!==state.request.part_id||c.host_id!==pending.host||c.boot_id!==state.boot||typeof c.credential_id!=='string'||!c.credential_id||!Number.isSafeInteger(c.issued_at_millis)||c.issued_at_millis<ch.issued_at_millis||c.issued_at_millis>ch.expires_at_millis||r.producer_host!==state.challenge.producer_host||(!recovered&&r.producer_boot!==state.challenge.producer_boot)||typeof r.producer_boot!=='string'||!r.producer_boot||!extent(r.producer_key,32)||!same(r.producer_key,bootstrap.root_key)||!positive(r.membership_revision)||!extent(r.request_nonce,32)||!same(r.request_nonce,ch.nonce)||!extent(r.signature,64))throw Error('Returned receipt scope differs');
+ const key=await crypto.subtle.importKey('raw',bytes(bootstrap.root_key),{name:'Ed25519'},false,['verify']);if(!await crypto.subtle.verify('Ed25519',key,bytes(r.signature),await currentTranscript(r)))throw Error('Returned receipt Root signature refused');
+}
+async function validateReturn(state){
+ const a=state?.request?.host_advertisement,part=pending.receipt?.credential.part_id||pending.recovery?.receipt?.credential.part_id;
+ if(typeof state?.boot!=='string'||!state.boot.startsWith('boot/')||state.boot===pending.boot||state.request.schema!=='conduit.environment/observer-return-challenge-request@1'||state.request.body_id!==claim.body_id||!part||state.request.part_id!==part||a?.host_id!==pending.host||a.boot_id!==state.boot||a.protocol_version!==1||a.offer_generation!==1||a.profile!=='conduit/environment/browser-observer@1'||!['bases','resources','capabilities','planner_capabilities'].every(k=>Array.isArray(a[k])&&a[k].length===0)||(state.ticket!==null&&!positive(state.ticket)))throw Error('Retained return request differs');
+ if(state.challenge){await verifyReturnChallenge(state.challenge,state);if(state.finish){const q=state.finish.request,c=state.challenge.challenge;if(q?.schema!=='conduit.environment/observer-return-request@1'||q.body_id!==claim.body_id||q.part_id!==part||q.admission_id!==c.admission_id||JSON.stringify(q.host_advertisement)!==JSON.stringify(a)||q.nonce!==hex(c.nonce)||q.signature!==hex(await sign(await returnProofTranscript(c)))||(state.finish.ticket!==null&&!positive(state.finish.ticket)))throw Error('Retained return proof differs')}if(state.receipt)await verifyReturnedReceipt(state.receipt,state,!!state.receipt_from_recovery)}
+ else if(state.finish||state.receipt)throw Error('Retained return challenge missing');
+}
+async function recoverReturnResult(base,state){
+ const c=state.challenge.challenge;
+ if(!state.recovery){const q={schema:'conduit.environment/observer-recovery-request@1',body_id:claim.body_id,host_id:pending.host,boot_id:state.boot,nonce:c.nonce,signature:[]};q.signature=Array.from(await sign(await recoveryTranscript(q)));state.recovery={request:q,ticket:null};persist()}
+ const q=state.recovery.request;if(q.schema!=='conduit.environment/observer-recovery-request@1'||q.body_id!==claim.body_id||q.host_id!==pending.host||q.boot_id!==state.boot||!extent(q.nonce,32)||!same(q.nonce,c.nonce)||!extent(q.signature,64)||!same(q.signature,await sign(await recoveryTranscript(q)))||(state.recovery.ticket!==null&&!positive(state.recovery.ticket)))throw Error('Retained return recovery differs');
+ await submit(base,state.recovery,q);const r=await poll(base,state.recovery);if(!r)throw Error('Return recovery result expired. Retry preserves the same recovery proof.');await verifyReturnedReceipt(r,state,true);state.receipt=r;state.receipt_from_recovery=true;persist();return r;
+}
+async function returnObserver(base){
+ await validatePending();
+ const part=pending.receipt?.credential.part_id||pending.recovery?.receipt?.credential.part_id;if(!part)throw Error('A verified admission receipt is required to reconnect.');
+ if(!pending.returning){const boot='boot/'+crypto.randomUUID();pending.returning={boot,request:{schema:'conduit.environment/observer-return-challenge-request@1',body_id:claim.body_id,part_id:part,host_advertisement:{...pending.request.host_advertisement,boot_id:boot,bases:[]}},ticket:null};persist()}
+ const state=pending.returning;await validateReturn(state);
+ if(state.receipt){try{await recoverReturnResult(base,state)}catch(error){if(error.message!=='Receipt HTTP 403')throw error;pending.previous_return=state;delete pending.returning;persist();await returnObserver(base);return}}
+ if(!state.challenge){status('Requesting a return challenge…');await submit(base,state,state.request);const r=await poll(base,state);if(!r)throw Error('Return mailbox expired. Retry retrieves the same challenge.');await verifyReturnChallenge(r,state);state.challenge=r;persist()}
+ if(!state.finish){const c=state.challenge.challenge;state.finish={request:{schema:'conduit.environment/observer-return-request@1',body_id:claim.body_id,part_id:part,admission_id:c.admission_id,host_advertisement:state.request.host_advertisement,nonce:hex(c.nonce),signature:hex(await sign(await returnProofTranscript(c)))},ticket:null};persist()}
+ if(!state.receipt){
+  status('Restoring this browser’s membership…');await submit(base,state.finish,state.finish.request);let r;
+  try{r=await poll(base,state.finish);if(!r)r=await recoverReturnResult(base,state)}catch(error){if(error.message==='Receipt HTTP 403'){try{r=await recoverReturnResult(base,state)}catch(recoveryError){if(recoveryError.message!=='Receipt HTTP 403')throw recoveryError;delete state.challenge;delete state.finish;delete state.recovery;state.ticket=null;persist();throw Error('Return was refused. Retry requests a current challenge.')}}else throw error}
+  await verifyReturnedReceipt(r,state,!!state.receipt_from_recovery);state.receipt=r;persist();
+ }
+ const c=state.challenge.challenge,query={schema:'conduit.environment/observer-recovery-request@1',body_id:claim.body_id,host_id:pending.host,boot_id:state.boot,nonce:c.nonce,signature:[]};query.signature=Array.from(await sign(await recoveryTranscript(query)));
+ download('recorder-binding.json',{schema:'conduit.environment/joined-recorder@2',invitation:claim,root_key:bootstrap.root_key,local_host:pending.host,local_boot:state.boot,recovery_request:query,receipt:state.receipt},'Save reconnected recorder binding');status('Reconnected to this Body. Local measurement continues.');
+}
+function download(name,value,label){const a=document.createElement('a');a.textContent=label;a.download=name;a.href=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));a.style.display='block';document.querySelector('#downloads').append(a);return a}
+const storageKey='conduit-body-join:'+claim.invitation_id;
+let pending;
+try{pending=JSON.parse(localStorage.getItem(storageKey)||'null')}catch{}
+const suffix=bootstrap.producer_host.replace(/^esp32\//,'').replace(/[^a-f0-9]/gi,'');
+document.querySelector('#endpoint').value=pending?.endpoint||'http://127.0.0.1:8787';
+document.querySelector('#proxy-command').textContent='conduit-environment-host --browser-join-proxy '+(suffix?'conduit-climate-'+suffix+'.local:80':'192.168.4.1:80')+' 8787';
+function status(value){document.querySelector('#status').textContent=value}
+async function join(){
+ if(location.protocol!=='file:'&&location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')throw Error('Open the private helper locally.');
+ if(!crypto.subtle)throw Error('This browser requires the local helper to run on localhost for WebCrypto.');
+ if(bootstrap.invitation.schema!=='conduit.body/spawn-invitation@1'||bootstrap.invitation.secret.length!==32||bootstrap.root_key.length!==32)throw Error('Invalid private bootstrap');
+ const endpoint=new URL(document.querySelector('#endpoint').value);if(endpoint.protocol!=='http:'||!['127.0.0.1','localhost'].includes(endpoint.hostname)||endpoint.username||endpoint.password||endpoint.pathname!=='/'||endpoint.search||endpoint.hash)throw Error('Use the local loopback proxy origin only');
+ const base=endpoint.origin;
+ if(pending&&pending.endpoint!==base)throw Error('Use the original loopback proxy address for this pending invitation.');
+ if(!pending){
+  let host='browser/'+crypto.randomUUID(),boot='boot/'+crypto.randomUUID();
+  let prefix=bytes([48,46,2,1,0,48,5,6,3,43,101,112,4,34,4,32]);
+  let key=await crypto.subtle.importKey('pkcs8',cat(prefix,bytes(bootstrap.invitation.secret)),{name:'Ed25519'},false,['sign']);
+  let signature=new Uint8Array(await crypto.subtle.sign('Ed25519',key,await proofTranscript(host,boot)));
+  let request={schema:'conduit.environment/observer-admission@1',invitation_id:claim.invitation_id,body_id:claim.body_id,host_advertisement:{protocol_version:1,host_id:host,boot_id:boot,offer_generation:1,profile:'conduit/environment/browser-observer@1',resources:[],capabilities:[],planner_capabilities:[]},nonce:hex(claim.nonce),signature:hex(signature),membership_admitted:false,plan_created:false,play_created:false};
+  pending={endpoint:base,host,boot,request,ticket:null};localStorage.setItem(storageKey,JSON.stringify(pending));
+ }
+ await validatePending();
+ if(pending.receipt||pending.recovery){await recover(base);return}
+ status('Submitting signed proof…');await submit(base,pending,pending.request);
+ status('Waiting for durable admission…');const receipt=await poll(base,pending);
+ if(!receipt){await recover(base);return}
+ await verifyReceipt(receipt,false);pending.receipt=receipt;persist();
+ const binding={schema:'conduit.environment/joined-recorder@1',invitation:claim,root_key:bootstrap.root_key,local_host:pending.host,local_boot:pending.boot,receipt};
+ download('recorder-binding.json',binding,'Save admitted recorder binding');
+ status('Joined this Body. The Root signature and private invitation match. Local measurement continues.');
+}
+document.querySelector('#join').onclick=async()=>{document.querySelector('#join').disabled=true;try{await join()}catch(error){status(error.message+' Retry preserves the same signed proof and ticket.')}finally{document.querySelector('#join').disabled=false}};
+document.querySelector('#return').onclick=async()=>{document.querySelector('#return').disabled=true;try{if(!pending)throw Error('Join this Body first.');const endpoint=new URL(document.querySelector('#endpoint').value);if(endpoint.protocol!=='http:'||!['127.0.0.1','localhost'].includes(endpoint.hostname)||endpoint.username||endpoint.password||endpoint.pathname!=='/'||endpoint.search||endpoint.hash||endpoint.origin!==pending.endpoint)throw Error('Use the original loopback proxy address.');await returnObserver(endpoint.origin)}catch(error){status(error.message+' Your original admission is retained.')}finally{document.querySelector('#return').disabled=false}};
+</script></html>

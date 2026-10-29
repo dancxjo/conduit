@@ -7,21 +7,29 @@ use conduit_plan_lowering::selected_assigned_operation::{
 use conduit_tm1637_wire::installation::*;
 #[test]
 fn assigned_output_preserves_slot_on_refusal_then_transfers_and_writes() {
-    assigned_output_control(false, false);
+    assigned_output_control(false, false, false);
 }
 #[test]
 fn borrowed_assignment_preserves_slot_then_transfers_and_writes() {
-    assigned_output_control(true, false);
+    assigned_output_control(true, false, false);
 }
 #[test]
 fn local_fore_assignment_preserves_slot_then_transfers_and_writes() {
-    assigned_output_control(false, true);
+    assigned_output_control(false, true, false);
 }
 #[test]
 fn borrowed_local_fore_preserves_slot_then_transfers_and_writes() {
-    assigned_output_control(true, true);
+    assigned_output_control(true, true, false);
 }
-fn assigned_output_control(borrowed: bool, fore: bool) {
+#[test]
+fn configured_local_fore_checks_independent_configuration_before_possession_transfer() {
+    assigned_output_control(true, true, true);
+}
+#[test]
+fn configured_contiguous_fore_checks_the_same_native_configuration() {
+    assigned_output_control(false, true, true);
+}
+fn assigned_output_control(borrowed: bool, fore: bool, configured: bool) {
     let state = Rc::new(State::default());
     let mut slot = Some(installation::ready(state.clone()));
     let (mut fragment, _, _, _) = fixture::selected();
@@ -49,6 +57,12 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
             byte_capacity: MAXIMUM_BYTES,
             selected_line: None,
         });
+    }
+    if configured {
+        fragment.placements[0].configuration = vec![ConfigurationEntry {
+            key: "label".into(),
+            value: ConfigurationValue::Text("retained Source label".into()),
+        }];
     }
     let plan = seal_plan(
         PlotIdentity {
@@ -176,6 +190,62 @@ fn assigned_output_control(borrowed: bool, fore: bool) {
         scope.authority_contract_id = WRITE_AUTHORITY.into();
         fixture::authorization(scope, fragment, &active)
     };
+    if configured {
+        use conduit_plan_lowering::{selected_assigned_operation::*, selected_operation::*};
+        let image = fore_image.as_ref().unwrap();
+        let (table, _, claim) = issue();
+        let native_id = slot.as_ref().unwrap().native_identity();
+        let check = |expected: &[ConfigurationEntry]| {
+            bind_selected_assigned_configured_fore_operation(
+                &table,
+                &claim,
+                SelectedOperationContract {
+                    kind: contract.kind(),
+                    call: WRITE_CALL,
+                    input_bytes: MAXIMUM_BYTES,
+                    output_bytes: 0,
+                    resource_bytes: 4096,
+                },
+                expected,
+                AssignedNativeIdentity {
+                    capability: WRITE_CAPABILITY,
+                    execution_profile: WRITE_EXECUTION_PROFILE,
+                    artifact: native_id.artifact_id.as_str(),
+                    base: native_id.base_id.as_str(),
+                    base_implementation: native_id.base_implementation_id.as_str(),
+                    mechanism: WRITE_ATTACHMENT_CLASS,
+                    authority: WRITE_AUTHORITY,
+                    resource_class: WRITE_ATTACHMENT_CLASS,
+                },
+                SelectedAssignedForeOperationPlan {
+                    operation: selected(&active),
+                    fore: image.fore(),
+                },
+            )
+        };
+        let expected = &fragment.placements[0].configuration;
+        assert_eq!(check(expected), Ok(lowered.nodes[0].node));
+        assert!(check(&[]).is_err());
+        let mut wrong = expected.clone();
+        wrong[0].value = ConfigurationValue::Text("foreign label".into());
+        assert!(check(&wrong).is_err());
+        assert!(slot
+            .as_ref()
+            .unwrap()
+            .check_assigned_fore(
+                &table,
+                &claim,
+                &contract,
+                SelectedAssignedForeOperationPlan {
+                    operation: selected(&active),
+                    fore: image.fore()
+                },
+            )
+            .is_err());
+        assert_eq!(state.edges.get(), 0);
+        assert!(slot.is_some());
+        return;
+    }
     if let Some(image) = &fore_image {
         let (table, _, claim) = issue();
         assert!(slot

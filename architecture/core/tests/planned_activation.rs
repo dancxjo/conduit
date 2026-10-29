@@ -282,3 +282,19 @@ fn fold_activation_seals_two_inputs_initial_storage_and_child_plan() {
     fold.initial_accumulator.push(1);
     assert!(!verify_plan(&stale));
 }
+
+#[test]
+fn streamed_flat_metadata_explicitly_refuses_activation_owned_plans() {
+    let plan = outer_plan(selected_plan("metadata-refusal"));
+    assert!(verify_plan(&plan));
+    let reads = core::cell::Cell::new(0);
+    let result = verify_plan_metadata_with_configurations(plan, |_| {
+        reads.set(reads.get() + 1);
+        Ok::<Vec<ConfigurationEntry>, ()>(vec![])
+    });
+    assert_eq!(
+        result.unwrap_err(),
+        PlanMetadataRefusal::UnsupportedActivations
+    );
+    assert_eq!(reads.get(), 0);
+}

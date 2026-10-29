@@ -97,7 +97,7 @@ fn selected_program(
     gear.artifact_id = expected.implementation.artifact_id;
     gear.configuration = vec![ConfigurationEntry {
         key: "program".into(),
-        value: ConfigurationValue::Text(program.canonical_hex().unwrap()),
+        value: ConfigurationValue::Text(program.canonical_hex().unwrap().into()),
     }];
     gear.base = None;
     gear.resources.clear();

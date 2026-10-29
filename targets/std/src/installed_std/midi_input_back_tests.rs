@@ -57,7 +57,7 @@ fn completion(
     let output = BoundedValueRef::new(
         ValueRef {
             slot: 1,
-            generation: u16::try_from(request.0).unwrap() + 1,
+            generation: request.0 + 1,
             byte_len: observation.len() as u32,
         },
         observation.len() as u32,

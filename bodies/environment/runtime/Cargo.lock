@@ -33,31 +33,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-alife"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-face",
- "conduit-plot",
- "conduit-time",
- "sha2",
-]
-
-[[package]]
 name = "conduit-assigned-plan"
 version = "0.1.0"
 dependencies = [
- "serde",
-]
-
-[[package]]
-name = "conduit-audio"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-data",
- "conduit-plot",
- "libm",
  "serde",
 ]
 
@@ -67,9 +45,20 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "minicbor",
+ "portable-atomic",
+ "portable-atomic-util",
  "postcard",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-computation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -80,24 +69,6 @@ dependencies = [
  "libm",
  "serde",
  "sha2",
-]
-
-[[package]]
-name = "conduit-data"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
- "conduit-time",
-]
-
-[[package]]
-name = "conduit-education"
-version = "0.1.0"
-dependencies = [
- "conduit-audio",
- "conduit-core",
- "conduit-plot",
 ]
 
 [[package]]
@@ -115,27 +86,38 @@ name = "conduit-environment-face"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-environment-measurement",
  "conduit-face",
+]
+
+[[package]]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
+ "conduit-computation",
  "conduit-core",
  "conduit-embedded-build",
  "conduit-environment-face",
+ "conduit-environment-measurement",
  "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
- "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -181,23 +163,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-midi"
-version = "0.1.0"
-dependencies = [
- "conduit-audio",
- "conduit-core",
-]
-
-[[package]]
-name = "conduit-net"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
- "serde",
-]
-
-[[package]]
 name = "conduit-plan-lowering"
 version = "0.1.0"
 dependencies = [
@@ -222,15 +187,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "serde",
+ "serde_json",
  "sha2",
-]
-
-[[package]]
-name = "conduit-process"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
 ]
 
 [[package]]
@@ -241,47 +199,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
-]
-
-[[package]]
-name = "conduit-purpose"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
-]
-
-[[package]]
-name = "conduit-robotics"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-face",
- "conduit-plot",
-]
-
-[[package]]
-name = "conduit-semantic-catalog"
-version = "0.1.0"
-dependencies = [
- "conduit-alife",
- "conduit-audio",
- "conduit-core",
- "conduit-data",
- "conduit-education",
- "conduit-face",
- "conduit-human",
- "conduit-kernel",
- "conduit-midi",
- "conduit-net",
- "conduit-plot",
- "conduit-process",
- "conduit-purpose",
- "conduit-robotics",
- "conduit-text",
- "conduit-time",
- "conduit-web",
- "serde",
+ "sha2",
 ]
 
 [[package]]
@@ -291,16 +209,6 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
-]
-
-[[package]]
-name = "conduit-text"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -324,15 +232,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-web"
-version = "0.1.0"
-dependencies = [
- "conduit-core",
- "conduit-plot",
- "serde",
-]
-
-[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -340,6 +239,12 @@ checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "critical-section"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
 
 [[package]]
 name = "crypto-common"
@@ -420,6 +325,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
+]
+
+[[package]]
+name = "portable-atomic"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
+dependencies = [
+ "critical-section",
+]
+
+[[package]]
+name = "portable-atomic-util"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
+dependencies = [
+ "portable-atomic",
+ "serde",
 ]
 
 [[package]]

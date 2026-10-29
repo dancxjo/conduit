@@ -6,6 +6,31 @@ pub struct DisplayOutputSource {
     value_bounds: Vec<(c::KindId, u32)>,
 }
 impl DisplayOutputSource {
+    /// Retain initialized portable output computations before advertising them.
+    /// The electrical sink requires a separate actual Ready provider.
+    pub fn prepare_software(
+        &self,
+        host: c::HostId,
+        boot: c::BootId,
+    ) -> Result<
+        conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
+        conduit_environment_runtime::appliance::software::SoftwareRefusal,
+    > {
+        let gears: Vec<_> = self
+            .plot
+            .expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() != conduit_tm1637_wire::WRITE_KIND)
+            .map(|gear| gear.gear_id.clone())
+            .collect();
+        conduit_environment_runtime::appliance::software::ReadySoftwareBacks::prepare_portable(
+            &self.plot.expanded,
+            &gears,
+            host,
+            boot,
+        )
+    }
     pub fn compile() -> Result<Self, String> {
         let contract = conduit_tm1637_wire::WriteContract::prepare().map_err(debug)?;
         let kind = contract.kind();

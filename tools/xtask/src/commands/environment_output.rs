@@ -1,11 +1,92 @@
 //! Checked output construction; this entrance installs no Body or native Play.
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
-    for (manifest, test) in [
-        ("bodies/environment/make/Cargo.toml", "display_output"),
-        ("bodies/environment/runtime/Cargo.toml", "display_packets"),
+    for (manifest, selector, test) in [
+        ("mechanisms/io/tm1637/Cargo.toml", "--test", "owner"),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "native_mask_renderer",
+        ),
+        ("bodies/environment/make/Cargo.toml", "--test", "mask_plan"),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "mask_cold_source",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "mask_show_context",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "mask_assigned",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "mask_session",
+        ),
+        (
+            "architecture/plot/Cargo.toml",
+            "--test",
+            "compact_scalar_children",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_output",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "native_root_policy",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_compact",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_session",
+        ),
+        (
+            "bodies/environment/host/Cargo.toml",
+            "--test",
+            "display_evidence",
+        ),
+        (
+            "bodies/environment/host/Cargo.toml",
+            "--bin",
+            "conduit-environment-host",
+        ),
+        (
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "display_compact_kernel",
+        ),
         (
             "bodies/environment/runtime/Cargo.toml",
+            "--test",
+            "display_packets",
+        ),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "--test",
+            "observation_templates",
+        ),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "--test",
+            "display_value_budget",
+        ),
+        (
+            "bodies/environment/runtime/Cargo.toml",
+            "--test",
             "display_frame_material",
         ),
     ] {
@@ -16,9 +97,15 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "--locked",
                 "--manifest-path",
                 manifest,
-                "--test",
+                selector,
                 test,
             ]);
+            if manifest == "bodies/environment/runtime/Cargo.toml" {
+                command.args(["--features", "display-output"]);
+            }
+            if manifest == "mechanisms/io/tm1637/Cargo.toml" {
+                command.args(["--features", "host-call"]);
+            }
             if operation == "clippy" {
                 command.args(["--", "-D", "warnings"]);
             }

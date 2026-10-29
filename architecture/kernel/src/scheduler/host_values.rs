@@ -60,7 +60,16 @@ where
     }
 
     pub fn discard_host_value(&mut self, value: ValueRef) -> Result<(), HostValueDiscardRefusal> {
-        if self.pending_owns_host_value(value) || self.queue_owns_host_value(value) {
+        self.values
+            .reference_count(value)
+            .map_err(HostValueDiscardRefusal::Storage)?;
+        if self
+            .pending_owns_host_value(value)
+            .map_err(HostValueDiscardRefusal::Storage)?
+            || self
+                .queue_owns_host_value(value)
+                .map_err(HostValueDiscardRefusal::Storage)?
+        {
             return Err(HostValueDiscardRefusal::ValueOwned);
         }
         self.values
@@ -68,7 +77,7 @@ where
             .map_err(HostValueDiscardRefusal::Storage)
     }
 
-    fn pending_owns_host_value(&self, value: ValueRef) -> bool {
+    fn pending_owns_host_value(&self, value: ValueRef) -> Result<bool, StorageError> {
         let mut remaining = self.pending_host_count;
         for entry in &self.pending_host_calls {
             // Occupancy includes completions awaiting consumption. Once all
@@ -89,32 +98,38 @@ where
             if pending.request.input.value == value
                 || pending
                     .completion
+                    .map(|outcome| outcome.resolve(&self.values))
+                    .transpose()?
                     .and_then(|outcome| outcome.output)
                     .map(|output| output.value)
                     == Some(value)
             {
-                return true;
+                return Ok(true);
             }
         }
-        false
+        Ok(false)
     }
 
-    fn queue_owns_host_value(&self, value: ValueRef) -> bool {
-        self.cords[..self.active_cords]
-            .iter()
-            .enumerate()
-            .any(|(cord, state)| {
-                let spec = self.cord_specs[cord];
-                (0..state.len).any(|offset| {
-                    let slot = super::queue_index::queue_slot(spec, state.head, offset);
-                    #[cfg(test)]
-                    {
-                        let mut counts = self.scan_counts.get();
-                        counts.value_owner_queue_slots += 1;
-                        self.scan_counts.set(counts);
-                    }
-                    self.queue_slots[slot] == Some(value)
-                })
-            })
+    fn queue_owns_host_value(&self, value: ValueRef) -> Result<bool, StorageError> {
+        for (cord, state) in self.cords[..self.active_cords].iter().enumerate() {
+            let spec = self.cord_specs[cord];
+            for offset in 0..state.len {
+                let slot = super::queue_index::queue_slot(spec, state.head, offset);
+                #[cfg(test)]
+                {
+                    let mut counts = self.scan_counts.get();
+                    counts.value_owner_queue_slots += 1;
+                    self.scan_counts.set(counts);
+                }
+                if self.queue_slots[slot]
+                    .map(|key| key.resolve(&self.values))
+                    .transpose()?
+                    == Some(value)
+                {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
     }
 }

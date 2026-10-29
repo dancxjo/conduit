@@ -1035,7 +1035,10 @@ fn planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases() {
         .connections
         .first()
         .expect("remote connection exists");
-    assert_eq!(connection.selected_line.as_ref(), Some(&(&secured).into()));
+    assert_eq!(
+        connection.selected_line.as_deref(),
+        Some(&(&secured).into())
+    );
 }
 
 #[test]
@@ -1119,7 +1122,7 @@ fn planning_link_binding_mutations_change_fragment_identity() {
             _ => unreachable!(),
         }
         mutated.connections[0].admitted_lines[0] =
-            mutated.connections[0].selected_line.clone().unwrap();
+            *mutated.connections[0].selected_line.clone().unwrap();
         assert!(
             !verify_plan_fragment(&mutated),
             "field {field}: every admitted binding fact is sealed"

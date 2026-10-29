@@ -3,14 +3,20 @@
 //! This preparation step neither authorizes effects nor admits evaluator storage.
 use conduit_core as c;
 use conduit_kernel as k;
+use core::mem::MaybeUninit;
 mod boundary;
+#[path = "assigned/record_input.rs"]
 mod record_input;
 use boundary::endpoint;
 use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
 };
-use record_input::RecordInput;
+pub(crate) use record_input::RecordInput;
 
+pub(crate) const MAXIMUM_RESIDENT_RECORDS: usize = 256;
+
+/// Exact Make-owned graph and configuration records. Programs are also checked
+/// against the admitted computation inventory; incoming digests confer no authority.
 pub struct ResidentLayout<'a> {
     pub records: &'a [c::AssignedRecordRequirement],
     pub counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
@@ -75,8 +81,8 @@ impl<
             layout,
         )
     }
-    /// Admit borrowed canonical records through the same validator and table
-    /// builder. The layout and computation inventory remain independently trusted.
+    /// Same fixed-table admission over borrowed canonical records. The caller
+    /// supplies independent resident layout/computation pins, never packet claims.
     pub fn prepare_records(
         header: &[u8],
         records: &[c::AssignedRecord<'_>],
@@ -93,17 +99,20 @@ impl<
             layout,
         )
     }
-    fn prepare_input(
+    pub(crate) fn prepare_input(
         input: RecordInput<'_>,
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
     ) -> Result<Self, AssignedKernelRefusal> {
-        Self::prepare_profile(input, maxima, required, computations, layout, None)
+        let mut output = MaybeUninit::uninit();
+        Self::prepare_input_into(input, maxima, required, computations, layout, &mut output)?;
+        // SAFETY: the shared builder initializes every field before Ok.
+        Ok(unsafe { output.assume_init() })
     }
-    /// Explicit local fore admission over a contiguous canonical projection.
-    /// Root retains typed value contracts and separately authorizes submissions.
+    /// Explicit local Fore profile. Root must retain the separately checked
+    /// value contracts and authorize ingress before submitting to these cords.
     pub fn prepare_with_fore(
         bytes: &[u8],
         maxima: c::AssignedPlanMaxima,
@@ -112,16 +121,21 @@ impl<
         layout: &ResidentLayout<'_>,
         fore: &[c::AssignedForeRequirement],
     ) -> Result<Self, AssignedKernelRefusal> {
-        Self::prepare_profile(
+        let mut output = MaybeUninit::uninit();
+        Self::prepare_input_with_fore_into(
             RecordInput::Bytes(bytes),
             maxima,
             required,
             computations,
             layout,
             Some(fore),
-        )
+            &mut output,
+        )?;
+        // SAFETY: the shared builder initializes every field before Ok.
+        Ok(unsafe { output.assume_init() })
     }
-    /// The same exact local fore profile over borrowed canonical records.
+    /// Same explicit Fore admission over borrowed records, without assembling
+    /// a contiguous projection in MCU memory.
     pub fn prepare_records_with_fore(
         header: &[u8],
         records: &[c::AssignedRecord<'_>],
@@ -131,26 +145,52 @@ impl<
         layout: &ResidentLayout<'_>,
         fore: &[c::AssignedForeRequirement],
     ) -> Result<Self, AssignedKernelRefusal> {
-        Self::prepare_profile(
+        let mut output = MaybeUninit::uninit();
+        Self::prepare_input_with_fore_into(
             RecordInput::Records { header, records },
             maxima,
             required,
             computations,
             layout,
             Some(fore),
+            &mut output,
+        )?;
+        // SAFETY: the shared builder initializes every field before Ok.
+        Ok(unsafe { output.assume_init() })
+    }
+    /// Writes every field only after all checks succeed; Err leaves output alone.
+    #[inline(never)]
+    pub(crate) fn prepare_input_into(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        output: &mut MaybeUninit<Self>,
+    ) -> Result<(), AssignedKernelRefusal> {
+        Self::prepare_input_with_fore_into(
+            input,
+            maxima,
+            required,
+            computations,
+            layout,
+            None,
+            output,
         )
     }
-    fn prepare_profile(
+    fn prepare_input_with_fore_into(
         input: RecordInput<'_>,
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
         fore: Option<&[c::AssignedForeRequirement]>,
-    ) -> Result<Self, AssignedKernelRefusal> {
+        output: &mut MaybeUninit<Self>,
+    ) -> Result<(), AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
+        let schema = u16_at(input.header(), 8)?;
         if !matches!(
-            u16_at(input.header(), 8)?,
+            schema,
             c::ASSIGNED_KERNEL_PLAN_SCHEMA
                 | c::ASSIGNED_NATIVE_PLAN_SCHEMA
                 | c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA
@@ -173,7 +213,7 @@ impl<
         {
             return Err(E::Unsupported);
         }
-        validate_layout(input, layout)?;
+        validate_layout(input, schema, layout)?;
         let mut nodes = [NodeSpec {
             input_cords: [None; P],
             maximum_step_fuel: 0,
@@ -334,14 +374,19 @@ impl<
         }
         routes.seal()?;
         calls.seal()?;
-        Ok(Self {
-            identity,
-            nodes,
-            cords,
-            routes,
-            calls,
-            startup_order,
-        })
+        let target = output.as_mut_ptr();
+        // SAFETY: output exclusively owns aligned storage for Self. Each field
+        // receives its complete initialized value, without reading uninitialized
+        // storage or creating a reference to it. No refusal follows these writes.
+        unsafe {
+            core::ptr::addr_of_mut!((*target).identity).write(identity);
+            core::ptr::addr_of_mut!((*target).nodes).write(nodes);
+            core::ptr::addr_of_mut!((*target).cords).write(cords);
+            core::ptr::addr_of_mut!((*target).routes).write(routes);
+            core::ptr::addr_of_mut!((*target).calls).write(calls);
+            core::ptr::addr_of_mut!((*target).startup_order).write(startup_order);
+        }
+        Ok(())
     }
     /// Prepare existing production Backs in the exact dependency-respecting
     /// assigned order. No Play may start until this succeeds for every node.
@@ -361,23 +406,29 @@ impl<
 }
 fn validate_layout(
     input: RecordInput<'_>,
+    schema: u16,
     layout: &ResidentLayout<'_>,
 ) -> Result<(), AssignedKernelRefusal> {
     use AssignedKernelRefusal as E;
-    if layout.records.len() > 256 {
+    if layout.records.len() > MAXIMUM_RESIDENT_RECORDS {
         return Err(E::Capacity);
     }
-    let mut seen = [false; 256];
+    // Existing layouts pin topology while computation inventories validate their
+    // own configuration. A resident appliance can additionally pin every
+    // configuration record, without changing that established generic profile.
+    let pins_configuration = layout
+        .records
+        .iter()
+        .any(|record| record.tag == c::ASSIGNED_CONFIGURATION);
+    let mut seen = [false; MAXIMUM_RESIDENT_RECORDS];
     for record in input.records()? {
         let record = record?;
-        if matches!(
-            record.tag,
-            c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
-        ) {
+        if matches!(record.tag, c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL)
+            || (record.tag == c::ASSIGNED_CONFIGURATION && !pins_configuration)
+        {
             continue;
         }
-        let expected =
-            c::AssignedRecordRequirement::from_kernel_record(record, u16_at(input.header(), 8)?);
+        let expected = c::AssignedRecordRequirement::from_kernel_record(record, schema);
         let index = layout
             .records
             .iter()

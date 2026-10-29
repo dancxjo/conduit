@@ -41,6 +41,18 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "bodies/environment/runtime/Cargo.lock",
     },
     StandaloneLock {
+        manifest: "mechanisms/io/network-join/Cargo.toml",
+        lock: "mechanisms/io/network-join/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/esp32/network-switch/Cargo.toml",
+        lock: "targets/esp32/network-switch/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/esp32/pulse-capture/Cargo.toml",
+        lock: "targets/esp32/pulse-capture/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "mechanisms/io/monotonic-wait/Cargo.toml",
         lock: "mechanisms/io/monotonic-wait/Cargo.lock",
     },
@@ -227,7 +239,13 @@ mod tests {
                 Ok(())
             }
         });
-        assert_eq!(failures.len(), 5);
+        assert_eq!(failures.len(), 7);
+        assert!(failures
+            .iter()
+            .any(|failure| failure.contains("esp32/network-switch")));
+        assert!(failures
+            .iter()
+            .any(|failure| failure.contains("esp32/pulse-capture")));
         assert!(failures
             .iter()
             .any(|failure| failure.contains("proof/tm1637")));

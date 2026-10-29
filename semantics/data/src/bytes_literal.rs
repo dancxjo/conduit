@@ -58,7 +58,7 @@ pub fn definition() -> Kind {
         outputs: vec![output.clone()],
         configuration: vec![KindConfigurationField {
             key: "hex".into(),
-            default_value: ConfigurationValue::Text(String::new()),
+            default_value: ConfigurationValue::Text(String::new().into()),
             rule: KindConfigurationRule::TextBytes {
                 maximum: MAXIMUM_LITERAL_BYTES * 2,
             },

@@ -9,6 +9,7 @@ use crate::{
     CordEndpoint, HostCallOutcome, NodeId, RequestId, SignQuery, SignSink, ValueRef, ValueStorage,
 };
 use alloc::boxed::Box;
+mod encoded;
 mod owned_boundaries;
 pub use owned_boundaries::OwnedValueBoundary;
 
@@ -75,6 +76,9 @@ pub struct PreparedKernelSession<
     phase: Phase,
     remote_sign_reservation: u16,
     owned_value_index: u64,
+    // Allocated only by the explicit zero-or-one output profile. Each entry
+    // records that cord's sequence at the start of the current invocation.
+    optional_output_starts: Option<Box<[Option<u64>; C]>>,
 }
 impl<
         D,
@@ -160,6 +164,7 @@ where
             phase: Phase::Prepared,
             remote_sign_reservation,
             owned_value_index: 0,
+            optional_output_starts: None,
         })
     }
     pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A> {
@@ -214,6 +219,12 @@ where
             self.phase = Phase::Faulted;
         }
         result
+    }
+    pub fn discard_host_value(
+        &mut self,
+        value: ValueRef,
+    ) -> Result<(), super::HostValueDiscardRefusal> {
+        self.kernel.discard_host_value(value)
     }
     /// An explicit resident pin; it does not create or invalidate a ValueRef.
     pub fn retain_between_invocations(&mut self, value: ValueRef) -> Result<(), SchedulerError> {
@@ -272,6 +283,13 @@ where
             *cord = CordState::EMPTY;
             cord.next_remote_sequence = sequence;
         }
+        if let Some(starts) = self.optional_output_starts.as_mut() {
+            for (start, cord) in starts.iter_mut().zip(&self.kernel.cords) {
+                if start.is_some() {
+                    *start = Some(cord.next_remote_sequence);
+                }
+            }
+        }
         self.kernel.armed_quiescence_count = 0;
         self.kernel.cursor = 0;
         self.kernel.host_request_cursor = 0;
@@ -286,11 +304,32 @@ where
         self.phase = Phase::Prepared;
         Ok(old)
     }
-    fn preflight(&self, next: &[D::Next; N], signs: &E) -> Result<(), SessionRefusal> {
-        let kernel = &self.kernel;
-        if self.remote_sign_reservation != 0 && self.owned_value_index >= u64::MAX - 1 {
-            return Err(SessionRefusal::InvocationExhausted);
+    /// Read-only preflight for the same normal-drain ownership transfer.
+    /// Passing this grants no rearm or replacement execution authority.
+    pub fn retirement_ready(&self) -> bool {
+        self.check_drained().is_ok()
+    }
+    /// Return the actual drivers, value backing and exact evidence only after
+    /// normal drain with all adapter/Host Call ownership settled. This grants
+    /// no new invocation, Body scope or replacement native claim. Every refusal
+    /// returns the unchanged session, including its original kernel allocation.
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal preserves exclusive session ownership"
+    )]
+    pub fn try_retire(self) -> Result<super::RetiredExecution<D, S, E, N>, Self> {
+        if self.check_drained().is_err() {
+            return Err(self);
         }
+        // check_drained includes every FixedScheduler::try_retire condition.
+        // No mutation or callback occurs between preflight and transfer.
+        match (*self.kernel).try_retire() {
+            Ok(retired) => Ok(retired),
+            Err(_) => unreachable!("preflighted normal session retirement"),
+        }
+    }
+    fn check_drained(&self) -> Result<(), SessionRefusal> {
+        let kernel = &self.kernel;
         if self.phase != Phase::Drained
             || kernel.cancelled
             || !kernel.completed[..kernel.active_nodes]
@@ -327,11 +366,20 @@ where
                                 ) || !matches!(
                                     kernel.cord_specs[index].sink,
                                     CordEndpoint::Local { .. }
-                                )) && cord.next_remote_sequence != self.owned_value_index + 1)))
+                                )) && !self
+                                    .completed_owned_sequence(index, cord.next_remote_sequence))))
                 })
         {
             return Err(SessionRefusal::OutstandingOwnership);
         }
+        Ok(())
+    }
+    fn preflight(&self, next: &[D::Next; N], signs: &E) -> Result<(), SessionRefusal> {
+        if self.remote_sign_reservation != 0 && self.owned_value_index >= u64::MAX - 1 {
+            return Err(SessionRefusal::InvocationExhausted);
+        }
+        self.check_drained()?;
+        let kernel = &self.kernel;
         if !signs.is_empty()
             || signs.item_capacity() != kernel.signs.item_capacity()
             || signs.byte_capacity() != kernel.signs.byte_capacity()

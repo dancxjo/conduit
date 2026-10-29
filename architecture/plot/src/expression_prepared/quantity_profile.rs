@@ -124,7 +124,12 @@ impl super::PreparedPortableExpressionEvaluator {
     /// storage has not been reviewed for the installed exact profile.
     pub fn exact_quantity_profile_bounds(&self) -> Option<(usize, usize, usize, u64)> {
         use super::{PreparedInput, PreparedOperation as Op, PreparedRoot};
-        if self.input.quantity_profile() != QuantityValueProfile::Exact {
+        // Predicate ownership has a separate work/schema ledger. This concrete
+        // tree bound does not claim the complete retained predicate closure.
+        if self.input.quantity_profile() != QuantityValueProfile::Exact
+            || self.input_value_contract.is_some()
+            || self.output_value_contract.is_some()
+        {
             return None;
         }
         let PreparedRoot::Primitive {

@@ -208,3 +208,43 @@ fn projecting_one_ready_base_preserves_existing_owners_and_refuses_duplicates() 
     );
     assert_eq!(advertisement, unchanged);
 }
+
+#[test]
+fn borrowed_entry_checks_match_ordinary_registration_refusals() {
+    use conduit_core::{validate_base_provider_entry_ref, BaseProviderEntryRef};
+    for case in 0..8 {
+        let mut entry = base("base/current", 1, "cap/current");
+        match case {
+            1 => entry.base_id = "".into(),
+            2 => entry.provider_instance_id = "".into(),
+            3 => entry.implementation_id = "".into(),
+            4 => entry.mechanism_family = "".into(),
+            5 => entry.provider_generation = 0,
+            6 => entry.capabilities.push(capability("cap/second")),
+            7 => {
+                entry.base_id = "".into();
+                entry.provider_generation = 0;
+            }
+            _ => {}
+        }
+        let owned = BaseProviderEntryRef::from(&entry);
+        let capabilities: Vec<_> = entry.capabilities.iter().map(Into::into).collect();
+        let resources: Vec<_> = entry.resources.iter().map(Into::into).collect();
+        let borrowed = BaseProviderEntryRef {
+            capabilities: conduit_core::CapabilityOfferRefs::Borrowed(&capabilities),
+            resources: conduit_core::ResourceOfferRefs::Borrowed(&resources),
+            ..owned
+        };
+        let expected = BaseRegistry::new(limits()).unwrap().register(entry.clone());
+        assert_eq!(
+            validate_base_provider_entry_ref(owned, limits()),
+            expected,
+            "owned case {case}"
+        );
+        assert_eq!(
+            validate_base_provider_entry_ref(borrowed, limits()),
+            expected,
+            "borrowed case {case}"
+        );
+    }
+}

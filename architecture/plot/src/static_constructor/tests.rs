@@ -116,7 +116,7 @@ fn combined_configuration_pressure_refuses_before_owner_work_or_retention() {
     }];
     owner.kind.configuration = vec![conduit_core::KindConfigurationField {
         key: "payload".into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text(String::new().into()),
         rule: conduit_core::KindConfigurationRule::TextBytes {
             maximum: MAXIMUM_CONFIGURATION_BYTES as u32,
         },
@@ -134,13 +134,16 @@ fn combined_configuration_pressure_refuses_before_owner_work_or_retention() {
         .unwrap();
     let exact = [ConfigurationEntry {
         key: "payload".into(),
-        value: ConfigurationValue::Text("x".repeat(MAXIMUM_CONFIGURATION_BYTES - "payload".len())),
+        value: ConfigurationValue::Text(
+            "x".repeat(MAXIMUM_CONFIGURATION_BYTES - "payload".len())
+                .into(),
+        ),
     }];
     prepare_static_constructor(&owner, &startup, &profile, &exact).unwrap();
     assert_eq!(owner.calls.get(), 1);
     let exceeds = [ConfigurationEntry {
         key: "payload".into(),
-        value: ConfigurationValue::Text("x".repeat(MAXIMUM_CONFIGURATION_BYTES)),
+        value: ConfigurationValue::Text("x".repeat(MAXIMUM_CONFIGURATION_BYTES).into()),
     }];
     assert!(matches!(
         prepare_static_constructor(&owner, &startup, &profile, &exceeds),

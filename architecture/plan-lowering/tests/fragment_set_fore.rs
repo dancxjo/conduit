@@ -45,7 +45,7 @@ fn selected_fore_line_still_refuses_local_fragment_set() {
     use conduit_core::*;
     let first = local_fore_plan("line-source");
     let mut fragment = first.fragments[0].clone();
-    fragment.fore_ports[1].selected_line = Some(AdmittedLine {
+    fragment.fore_ports[1].selected_line = Some(Box::new(AdmittedLine {
         line_id: LineId::from("remote-line"),
         binding: BoundLink {
             binding_id: LinkBindingId::from("remote-binding"),
@@ -79,7 +79,7 @@ fn selected_fore_line_still_refuses_local_fragment_set() {
             continuation: LineContinuation::None,
             security: LineSecurity::PlaintextNetwork,
         },
-    });
+    }));
     let plan = common::seal(fragment);
     assert!(verify_plan(&plan));
     assert!(matches!(

@@ -1,9 +1,18 @@
 use crate::{push_string, push_u32, push_u64, ResourceBinding, ResourceContentOffer};
-use alloc::vec::Vec;
 
-pub(crate) fn push_resource_binding(canonical: &mut Vec<u8>, binding: &ResourceBinding) {
-    push_string(canonical, binding.pool_id.as_str());
-    push_string(canonical, binding.class_id.as_str());
+pub(crate) fn push_resource_binding(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    binding: &ResourceBinding,
+) {
+    push_resource_binding_ref(canonical, binding.into());
+}
+
+pub(crate) fn push_resource_binding_ref(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    binding: crate::ResourceBindingRef<'_>,
+) {
+    push_string(canonical, binding.pool_id);
+    push_string(canonical, binding.class_id);
     push_u32(canonical, binding.units);
     if let Some(content) = &binding.content {
         canonical.extend_from_slice(b"resource-content@1");
@@ -53,7 +62,10 @@ pub(crate) fn push_resource_binding(canonical: &mut Vec<u8>, binding: &ResourceB
     }
 }
 
-fn push_content(bytes: &mut Vec<u8>, offer: &ResourceContentOffer) {
+fn push_content(
+    bytes: &mut impl crate::canonical_bytes::CanonicalSink,
+    offer: &ResourceContentOffer,
+) {
     let c = &offer.contract;
     bytes.extend_from_slice(&c.identity.digest());
     bytes.extend_from_slice(&c.version.digest());

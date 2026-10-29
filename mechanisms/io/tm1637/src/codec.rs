@@ -25,10 +25,13 @@ impl DecodedPackets {
 pub(crate) struct PreparedPackets(c::PreparedStructuredValueValidator);
 impl PreparedPackets {
     pub(crate) fn prepare(contract: &WriteContract) -> Result<Self, c::StructuredInfoRefusal> {
-        Ok(Self(c::PreparedStructuredValueValidator::new(
-            contract.packets_type(),
-            MAXIMUM_BYTES as usize,
-        )?))
+        Ok(Self(
+            c::PreparedStructuredValueValidator::with_static_schema(
+                contract.packets_type(),
+                crate::contract::PACKETS_SCHEMA,
+                MAXIMUM_BYTES as usize,
+            )?,
+        ))
     }
     pub(crate) fn decode(&self, bytes: &[u8]) -> Result<DecodedPackets, PacketRefusal> {
         self.0.validate(bytes)?;

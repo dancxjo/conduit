@@ -415,15 +415,15 @@ fn browser_mask_planning_requires_the_reviewed_back_and_face_resource() {
     };
     assert_eq!(
         selected_line("face"),
-        Some(carrier_evidence.face.admitted_line())
+        Some(Box::new(carrier_evidence.face.admitted_line()))
     );
     assert_eq!(
         selected_line("show"),
-        Some(carrier_evidence.returned.admitted_line())
+        Some(Box::new(carrier_evidence.returned.admitted_line()))
     );
     assert_eq!(
         selected_line("interaction"),
-        Some(carrier_evidence.interaction.admitted_line())
+        Some(Box::new(carrier_evidence.interaction.admitted_line()))
     );
     assert_eq!(
         selected.interaction_line,

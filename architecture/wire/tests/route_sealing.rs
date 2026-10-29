@@ -31,7 +31,7 @@ fn connection_with_routes(selected: AdmittedLine, lines: Vec<AdmittedLine>) -> P
         track: Default::default(),
         temporal: PortTemporal::Flow { closes: true },
         pressure_policy: Default::default(),
-        selected_line: Some(selected),
+        selected_line: Some(Box::new(selected)),
         admitted_lines: lines,
         item_capacity: 1,
         byte_capacity: 64,

@@ -251,11 +251,11 @@ impl BrowserChatSession {
                 .ok_or(-212)
         };
         let chat_state = conduit_chat::ChatFaceState::new(conduit_chat::ChatFaceConfiguration {
-            title: text("title")?,
-            history_label: text("history-label")?,
-            input_label: text("input-label")?,
-            submit_label: text("submit-label")?,
-            status_label: text("status-label")?,
+            title: text("title")?.to_string(),
+            history_label: text("history-label")?.to_string(),
+            input_label: text("input-label")?.to_string(),
+            submit_label: text("submit-label")?.to_string(),
+            status_label: text("status-label")?.to_string(),
             maximum_history_items: count("maximum-history-items")? as usize,
             maximum_message_bytes: count("maximum-message-bytes")? as u32,
         })

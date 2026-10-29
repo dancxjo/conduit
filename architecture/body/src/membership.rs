@@ -1,5 +1,7 @@
 use alloc::vec::Vec;
+mod parts;
 use conduit_core::{BootId, HostId, OfferGeneration, SignId};
+pub use parts::MembershipParts;
 use serde::{Deserialize, Serialize};
 
 use crate::identity::{bind_identity, validate_ids};
@@ -40,7 +42,7 @@ pub struct PartMembership {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BodyMembershipCheckpoint {
     pub revision: BodyMembershipRevision,
-    pub parts: Vec<PartMembership>,
+    pub parts: MembershipParts,
 }
 
 impl PartMembership {
@@ -77,7 +79,7 @@ pub struct MembershipEvent {
 pub struct BodyMembership {
     pub body_id: BodyId,
     pub revision: BodyMembershipRevision,
-    pub parts: Vec<PartMembership>,
+    pub parts: MembershipParts,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checkpoint: Option<BodyMembershipCheckpoint>,
     pub events: Vec<MembershipEvent>,
@@ -121,7 +123,7 @@ impl BodyMembership {
         Ok(Self {
             body_id,
             revision: BodyMembershipRevision(0),
-            parts: Vec::new(),
+            parts: MembershipParts::default(),
             checkpoint: None,
             events: Vec::new(),
             fulfilled_sign_id: None,
@@ -312,13 +314,28 @@ impl BodyMembership {
         let base_parts = self
             .checkpoint
             .as_ref()
-            .map_or_else(Vec::new, |checkpoint| checkpoint.parts.clone());
+            .map_or_else(MembershipParts::default, |checkpoint| {
+                checkpoint.parts.clone()
+            });
         validate_parts(&base_parts)?;
         let replayed = replay_events(&self.body_id, base_parts, &self.events)?;
         if replayed != self.parts {
             return Err(MembershipRefusal::MalformedState);
         }
         validate_parts(&self.parts)?;
+        Ok(())
+    }
+
+    /// Reuse identical immutable current/checkpoint storage only after canonical
+    /// replay validation. Independently decoded wire values are never presumed
+    /// to share storage; this changes no values, revisions, events or authority.
+    pub(crate) fn share_validated_checkpoint_parts(&mut self) -> Result<(), MembershipRefusal> {
+        self.validate()?;
+        if self.events.is_empty() {
+            if let Some(checkpoint) = self.checkpoint.as_mut() {
+                checkpoint.parts = self.parts.clone();
+            }
+        }
         Ok(())
     }
 
@@ -424,9 +441,9 @@ impl BodyMembership {
 
 fn replay_events(
     body_id: &BodyId,
-    mut parts: Vec<PartMembership>,
+    mut parts: MembershipParts,
     events: &[MembershipEvent],
-) -> Result<Vec<PartMembership>, MembershipRefusal> {
+) -> Result<MembershipParts, MembershipRefusal> {
     for event in events {
         match &event.kind {
             MembershipEventKind::Admitted { proof_id } => {
@@ -522,4 +539,51 @@ fn validate_observation(
         observation.proof_id.as_str(),
     ])?;
     Ok(())
+}
+#[cfg(test)]
+mod storage_tests {
+    use super::*;
+    #[test]
+    fn independently_decoded_checkpoint_reuses_only_exact_validated_truth() {
+        let body = crate::Body::born(
+            "source/storage".into(),
+            "checked/storage".into(),
+            1,
+            "sign/storage".into(),
+        )
+        .unwrap();
+        let mut membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        membership
+            .admit(
+                &body.body_id,
+                BodyMembershipRevision(0),
+                PartId::bind(&body.body_id, "part/storage", 1).unwrap(),
+                MembershipProofId::bind("proof/storage").unwrap(),
+                "sign/admit".into(),
+            )
+            .unwrap();
+        membership.checkpoint_events().unwrap();
+        let wire = serde_json::to_vec(&membership).unwrap();
+        let mut decoded: BodyMembership = serde_json::from_slice(&wire).unwrap();
+        assert!(!decoded
+            .parts
+            .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts));
+        decoded.share_validated_checkpoint_parts().unwrap();
+        assert!(decoded
+            .parts
+            .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts));
+        assert_eq!(serde_json::to_vec(&decoded).unwrap(), wire);
+        let mut invalid = decoded.clone();
+        invalid.parts[0].state = MembershipState::Revoked;
+        let before = serde_json::to_vec(&invalid).unwrap();
+        assert_eq!(
+            invalid.share_validated_checkpoint_parts(),
+            Err(MembershipRefusal::MalformedState)
+        );
+        assert_eq!(serde_json::to_vec(&invalid).unwrap(), before);
+        assert_eq!(
+            decoded.checkpoint.as_ref().unwrap().parts[0].state,
+            MembershipState::Admitted
+        );
+    }
 }

@@ -49,7 +49,10 @@ fn large_wrapped_queue_preserves_order_and_coalescing_without_u16_addition() {
                 .unwrap());
             assert_eq!(scheduler.push(0, replacement), Ok(Some(original)));
             scheduler.values.release(original).unwrap();
-            assert_eq!(scheduler.queue_slots[58_999], Some(replacement));
+            assert_eq!(
+                scheduler.queue_slots[58_999].map(|key| key.resolve(&scheduler.values).unwrap()),
+                Some(replacement)
+            );
             assert_eq!(scheduler.peek(0), Ok(Some(original)));
             for _ in 0..1_000 {
                 assert_eq!(scheduler.pop(0), Ok(original));
@@ -57,7 +60,10 @@ fn large_wrapped_queue_preserves_order_and_coalescing_without_u16_addition() {
             }
             assert_eq!(scheduler.cords[0].head, 0);
             assert_eq!(scheduler.cords[0].len, 59_000);
-            assert_eq!(scheduler.queue_slots[58_999], Some(replacement));
+            assert_eq!(
+                scheduler.queue_slots[58_999].map(|key| key.resolve(&scheduler.values).unwrap()),
+                Some(replacement)
+            );
             assert_eq!(
                 scheduler.discard_host_value(replacement),
                 Err(crate::scheduler::HostValueDiscardRefusal::ValueOwned)
@@ -77,7 +83,10 @@ fn admitted_queue_arena_can_cross_the_u16_slot_address_boundary() {
             scheduler.cords[0].head = 550;
             let value = scheduler.values.store(b"x").unwrap();
             assert_eq!(scheduler.push(0, value), Ok(None));
-            assert_eq!(scheduler.queue_slots[65_550], Some(value));
+            assert_eq!(
+                scheduler.queue_slots[65_550].map(|key| key.resolve(&scheduler.values).unwrap()),
+                Some(value)
+            );
             assert_eq!(scheduler.peek(0), Ok(Some(value)));
             assert_eq!(scheduler.pop(0), Ok(value));
             scheduler.discard_host_value(value).unwrap();

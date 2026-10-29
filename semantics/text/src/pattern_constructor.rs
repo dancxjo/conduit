@@ -1,5 +1,6 @@
 //! One ordinary checked pattern-specification constructor and its glyph adapter.
 use crate::{PortablePatternSpecification, PortablePatternSpecificationRefusal};
+use alloc::string::ToString;
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::*;
 use conduit_plot::{
@@ -110,7 +111,7 @@ impl StaticValueConstructor for PortablePatternConstructor {
             return Err(PatternConstructorRefusal::Configuration);
         }
         let specification =
-            PortablePatternSpecification::new(source.clone(), *insensitive, *start, *end)
+            PortablePatternSpecification::new(source.to_string(), *insensitive, *start, *end)
                 .map_err(PatternConstructorRefusal::Specification)?;
         let encoded = specification
             .encode()
@@ -153,7 +154,7 @@ impl LiteralValueConstructor for PortablePatternConstructor {
         Ok(vec![
             ConfigurationEntry {
                 key: FIELDS[0].into(),
-                value: ConfigurationValue::Text(literal.payload.clone()),
+                value: ConfigurationValue::Text(literal.payload.clone().into()),
             },
             ConfigurationEntry {
                 key: FIELDS[1].into(),

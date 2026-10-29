@@ -16,7 +16,7 @@ pub fn valid_data_label(value: &str) -> bool {
 pub fn data_label_configuration() -> Vec<KindConfigurationField> {
     vec![KindConfigurationField {
         key: "label".into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text(String::new().into()),
         rule: KindConfigurationRule::DataLabel {
             maximum: MAXIMUM_DATA_LABEL_BYTES,
         },

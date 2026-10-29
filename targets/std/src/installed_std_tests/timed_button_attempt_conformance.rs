@@ -196,7 +196,9 @@ fn catalogs(
                 outputs: offer.outputs.clone(),
                 configuration: vec![KindConfigurationField {
                     key: parameter.into(),
-                    default_value: ConfigurationValue::Text(hex(&value.canonical_bytes().unwrap())),
+                    default_value: ConfigurationValue::Text(
+                        hex(&value.canonical_bytes().unwrap()).into(),
+                    ),
                     rule: KindConfigurationRule::TextBytes {
                         maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 8) as u32,
                     },

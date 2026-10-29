@@ -7,6 +7,7 @@ use conduit_kernel::{
 #[derive(Clone, Copy)]
 enum Phase {
     Ready(u32),
+    Complete(u32),
     Pending { request: RequestId, next: u32 },
     Cancelled,
 }
@@ -30,6 +31,10 @@ impl<const P: usize> StepBack<P> for WriteBack {
     fn step(&mut self, io: &mut StepIo<P>, _: &StepInputBytes<'_, P>) -> StepOutcome {
         self.staged = None;
         match self.phase {
+            Phase::Complete(next) => {
+                debug_assert!(next <= self.maximum_operations);
+                StepOutcome::Complete
+            }
             Phase::Cancelled => fail(FailureCode::Cancelled, 0),
             Phase::Ready(next) => {
                 if io.host_completion().is_some() {
@@ -64,6 +69,7 @@ impl<const P: usize> StepBack<P> for WriteBack {
                     if io.consume_closed(PortId(0)).is_err() {
                         return fail(FailureCode::InvalidLifecycle, 7);
                     }
+                    self.staged = Some(Phase::Complete(next));
                     return StepOutcome::Complete;
                 }
                 StepOutcome::Await
@@ -107,6 +113,23 @@ impl<const P: usize> StepBack<P> for WriteBack {
     fn cancel(&mut self) {
         self.staged = None;
         self.phase = Phase::Cancelled;
+    }
+}
+#[cfg(feature = "prepared-write-session")]
+impl<const P: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBack<P>
+    for WriteBack
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.staged.is_none()
+            && matches!(self.phase, Phase::Complete(next) if next < self.maximum_operations)
+    }
+    fn begin_next(&mut self, _: ()) {
+        if let Phase::Complete(next) = self.phase {
+            // Retain the original admission ceiling and request generation.
+            // A new Value invocation conveys no fresh electrical authority.
+            self.phase = Phase::Ready(next);
+        }
     }
 }
 const fn fail(code: FailureCode, detail: u16) -> StepOutcome {

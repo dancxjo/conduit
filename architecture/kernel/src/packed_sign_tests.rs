@@ -55,7 +55,7 @@ fn every_kind_and_full_identifier_range_round_trip_without_sentinels() {
 fn packed_hosted_and_canonical_fixed_logs_match_under_pressure_and_refusal() {
     let charge = core::mem::size_of::<KernelEvent>() as u32;
     for slots in [1, 3, 7] {
-        let mut fixed = FixedSignLog::<7>::new_with_remote_storage(
+        let mut fixed = FixedSignLog::<7, 3>::new_with_remote_storage(
             slots * charge,
             3,
             crate::remote_sign_storage_bytes(3).unwrap(),

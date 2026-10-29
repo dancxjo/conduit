@@ -67,7 +67,7 @@ refusal before effects, one-time provider transfer and replay refusal.
 The assigned tests drop the assignment storage before allocation-free invocation,
 then revoke and return that same provider through idle retirement. These are CPU
 fixtures, not actual initialized ESP32 pins, Root installation or complete native
-memory/work admission. The running firmware has not adopted this component yet.
+memory/work admission. The native display checkpoint now binds this owner; ordinary Mask admission remains separate.
 
 `WriteBack` is the finite sink in the production kernel. It consumes packet input,
 requests the selected zero-result Host Call and waits for that exact completion.
@@ -82,3 +82,14 @@ same request. It checks NACK, cancellation, operation exhaustion, late completio
 after kernel cancellation and zero heap allocations across execution. Numeric
 routing/admission, native pin ownership and authority remain explicit fixtures;
 this is not an installed MCU Mask Play or physical-display proof.
+
+The opt-in `prepared-write-session` feature allows the ordinary kernel's
+`PreparedKernelSession` to retain this sink across normally drained Value
+invocations. Rearming preserves the original total operation ceiling and the
+next Host Call request identity. Pending, cancelled, failed and exhausted sinks
+cannot rearm. Each invocation transfers its exact evidence to its caller;
+the session never silently clears lifecycle records. The focused output check
+includes 960 CPU invocations with fixed backing, no execution allocations and
+no sign retention gaps. Host completions in that proof are fixtures. Continuous
+MCU output still requires admission of the complete Mask path and an evidence
+consumer with bounded transfer, acknowledgement and pressure behavior.

@@ -1,5 +1,7 @@
+mod attachments;
 #[path = "configuration/presentation.rs"]
 mod presentation;
+pub use attachments::{ConfigurationBus, ConfigurationDevice, ConfigurationScalar};
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -24,6 +26,10 @@ pub struct HostConfiguration {
     #[serde(default)]
     pub resources: Vec<ResourceBudget>,
     pub limits: HostBounds,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub buses: Vec<ConfigurationBus>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub devices: Vec<ConfigurationDevice>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -164,6 +170,18 @@ fn stable_host_configuration_identity_source(
     canonical
         .resources
         .sort_by(|left, right| left.id.cmp(&right.id));
+    canonical.buses.sort_by(|a, b| a.id().cmp(b.id()));
+    canonical.devices.sort_by(|a, b| a.id().cmp(b.id()));
+    // Attachment configurations have a distinct deterministic identity domain:
+    // their generic unsigned parameters include u64 values outside TOML's i64.
+    // Empty legacy configurations retain their original byte encoding below.
+    if !canonical.devices.is_empty() {
+        return serde_json::to_string(&canonical)
+            .map(|json| format!("conduit.host.attachments@1\n{json}"))
+            .map_err(|error| ConfigurationDiagnostic::Encode {
+                detail: error.to_string(),
+            });
+    }
     toml::to_string_pretty(&canonical).map_err(|error| ConfigurationDiagnostic::Encode {
         detail: error.to_string(),
     })
@@ -175,6 +193,8 @@ pub fn check_host_configuration(
     packages: &MakePackageSet,
 ) -> Result<CheckedHostConfiguration, Vec<ConfigurationDiagnostic>> {
     let mut configuration = configuration;
+    attachments::validate(&configuration.buses, &configuration.devices)
+        .map_err(|detail| vec![ConfigurationDiagnostic::Decode { detail }])?;
     // Schema-1 descriptions may retain the retired deployment-role machine
     // labels. Migrate them at the checked-description boundary; the canonical
     // catalog and emitted identity contain only the hosted computer target.
@@ -481,4 +501,12 @@ fn validate_limits(
     limit!(timer_slots);
     limit!(line_sessions);
     limit!(evidence_items);
+}
+
+pub(crate) fn write_attachment_conduit(
+    source: &mut String,
+    buses: &[ConfigurationBus],
+    devices: &[ConfigurationDevice],
+) -> Result<(), serde_json::Error> {
+    attachments::write(source, buses, devices)
 }

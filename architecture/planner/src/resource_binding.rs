@@ -2,7 +2,6 @@ use crate::{protected_resources::bind_protected_resource, PlannerError};
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     format,
-    string::ToString,
     vec::Vec,
 };
 use conduit_core::{
@@ -11,7 +10,7 @@ use conduit_core::{
 };
 use conduit_plot::CheckedGear;
 
-mod pool_selection;
+pub(crate) mod pool_selection;
 pub(crate) use pool_selection::resolve_resource_pool;
 
 pub(crate) struct ResourcePlanningState<'a> {
@@ -66,17 +65,12 @@ pub(crate) fn bind_resources(
         let selected_units = compute
             .as_ref()
             .map_or(requirement.units, |reservation| reservation.selected_lanes);
-        *used = used.checked_add(selected_units).ok_or_else(|| {
-            PlannerError::ResourceCapacityExceeded(resource.pool_id.as_str().to_string())
-        })?;
-        if *used > resource.capacity_units {
-            return Err(PlannerError::ResourceCapacityExceeded(format!(
-                "pool '{}' requires {} units above capacity {}",
-                resource.pool_id.as_str(),
-                *used,
-                resource.capacity_units
-            )));
-        }
+        consume_units_ref(
+            resource.pool_id.as_str(),
+            resource.capacity_units,
+            used,
+            selected_units,
+        )?;
         if requirement.content.as_ref().is_some_and(|content| {
             content.access == conduit_core::ResourceAccessMode::WriteCandidatePublish
         }) && !state
@@ -113,4 +107,22 @@ pub(crate) fn bind_resources(
     resource_bindings.sort();
 
     Ok(resource_bindings)
+}
+
+pub(crate) fn consume_units_ref(
+    pool: &str,
+    capacity: u32,
+    used: &mut u32,
+    units: u32,
+) -> Result<(), PlannerError> {
+    *used = used
+        .checked_add(units)
+        .ok_or_else(|| PlannerError::ResourceCapacityExceeded(pool.into()))?;
+    if *used > capacity {
+        return Err(PlannerError::ResourceCapacityExceeded(format!(
+            "pool '{}' requires {} units above capacity {}",
+            pool, *used, capacity
+        )));
+    }
+    Ok(())
 }

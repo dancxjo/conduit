@@ -1,14 +1,15 @@
 use alloc::vec::Vec;
 
-use super::{StorageError, ValueRef, ValueStorage};
+use super::{EncodedValueRefusal, StorageError, ValueRef, ValueStorage};
 mod compact_f32;
+mod encoded;
 mod native_values;
 mod owned_compact_f32;
 mod sign_storage;
 mod value_admission;
 
 struct HostedValueSlot {
-    generation: u16,
+    generation: u32,
     references: u16,
     bytes: Vec<u8>,
 }
@@ -184,6 +185,25 @@ impl HostedValueStore {
 }
 
 impl ValueStorage for HostedValueStore {
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        true
+    }
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        maximum_bytes: usize,
+        encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        crate::CanonicalEncodedValueStorage::store_encoded(self, maximum_bytes, encode).map_err(
+            |error| match error {
+                crate::EncodedValueRefusal::Storage(error)
+                | crate::EncodedValueRefusal::Encoder(error) => error,
+                crate::EncodedValueRefusal::Length => StorageError::ValueTooLarge,
+            },
+        )
+    }
+
     fn preflight_owned_compact_f32_outputs(
         &self,
         requests: &[(crate::scheduler::CompactF32Layout, u16)],
@@ -295,6 +315,35 @@ impl ValueStorage for HostedValueStore {
         Ok(slot.bytes.as_slice())
     }
 
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        let entry = self
+            .slots
+            .get(usize::from(slot))
+            .ok_or(StorageError::StaleReference)?;
+        let byte_len = if self
+            .native_words
+            .get(usize::from(slot))
+            .is_some_and(Option::is_some)
+        {
+            8
+        } else if let Some(logical) = self
+            .compact_f32_lengths
+            .get(usize::from(slot))
+            .copied()
+            .flatten()
+        {
+            logical.get()
+        } else {
+            u32::try_from(entry.bytes.len()).map_err(|_| StorageError::StaleReference)?
+        };
+        let value = ValueRef {
+            slot,
+            generation,
+            byte_len,
+        };
+        self.slot(value)?;
+        Ok(value)
+    }
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
         Ok(self.slot(value)?.references)
     }
@@ -321,7 +370,7 @@ impl ValueStorage for HostedValueStore {
             self.clear_owned_pending(usize::from(value.slot));
             self.used_items -= 1;
             self.used_bytes -= len;
-            if self.slots[usize::from(value.slot)].generation == u16::MAX {
+            if self.slots[usize::from(value.slot)].generation == u32::MAX {
                 self.has_retired_slots = true;
             } else if self.uniform_slots && !self.is_owned_compact(usize::from(value.slot)) {
                 self.free_search_start = self.free_search_start.min(usize::from(value.slot));
@@ -332,7 +381,7 @@ impl ValueStorage for HostedValueStore {
 
     fn clear(&mut self) {
         for slot in &mut self.slots {
-            self.has_retired_slots |= slot.generation == u16::MAX;
+            self.has_retired_slots |= slot.generation == u32::MAX;
             slot.references = 0;
             slot.bytes.clear();
         }

@@ -21,6 +21,7 @@ pub enum MaskDisposition {
     Temperature { decimal_places: u8 },
     Humidity,
     Clock,
+    PressureHectopascal,
     Unavailable(MaskUnavailable),
 }
 pub struct RenderedShow<'a> {
@@ -47,7 +48,7 @@ pub fn render<'a>(
         Selection::Humidity => face
             .humidity
             .ok_or(MaskUnavailable::MissingValue)
-            .and_then(humidity),
+            .and_then(|value| humidity(value, look)),
     };
     let (mut show, disposition) =
         value.unwrap_or_else(|why| (unavailable(), MaskDisposition::Unavailable(why)));
@@ -127,6 +128,20 @@ fn number(value: i128, places: usize, suffix: u8) -> Result<SevenSegmentShow, Ma
     }
     Ok(SevenSegmentShow::from_parts(digits, decimal_points, false))
 }
+// Two numeric positions keep the explicit unit: 72°F. A three-position
+// number (including its sign) uses the final position for °: 100° or -10°.
+fn degree_number(value: i128, unit: u8) -> Result<SevenSegmentShow, MaskUnavailable> {
+    const DEGREE: u8 = 0x63; // upper square: a, b, f, g
+    if (-9..=99).contains(&value) {
+        let numeric = number(value, 0, DEGREE)?;
+        let mut digits = [pattern(0); 4];
+        digits[..3].copy_from_slice(&numeric.digits()[1..]);
+        digits[3] = pattern(unit);
+        Ok(SevenSegmentShow::from_parts(digits, [false; 4], false))
+    } else {
+        number(value, 0, DEGREE)
+    }
+}
 fn temperature(
     value: Quantity,
     look: &SevenSegmentLook,
@@ -136,6 +151,14 @@ fn temperature(
         SevenSegmentTemperatureUnit::Fahrenheit => (Unit::Fahrenheit, 0x71),
         SevenSegmentTemperatureUnit::Celsius => (Unit::Celsius, 0x39),
     };
+    if matches!(
+        look.temperature_format(),
+        super::SevenSegmentTemperatureFormat::WholeDegrees
+    ) {
+        let whole = rounded(value, unit, 0)?;
+        let show = degree_number(whole, glyph)?;
+        return Ok((show, MaskDisposition::Temperature { decimal_places: 0 }));
+    }
     if decimal_allowed {
         let tenths = rounded(value, unit, 1)?;
         if let Ok(show) = number(tenths, 1, glyph) {
@@ -148,12 +171,29 @@ fn temperature(
         MaskDisposition::Temperature { decimal_places: 0 },
     ))
 }
-fn humidity(value: Quantity) -> Result<(SevenSegmentShow, MaskDisposition), MaskUnavailable> {
+fn humidity(
+    value: Quantity,
+    _look: &SevenSegmentLook,
+) -> Result<(SevenSegmentShow, MaskDisposition), MaskUnavailable> {
+    let whole = rounded(value, Unit::Percent, 0)?;
+    if !(0..=100).contains(&whole) {
+        return Err(MaskUnavailable::Overflow);
+    }
     Ok((
-        number(rounded(value, Unit::Percent, 0)?, 0, 0x76)?,
+        SevenSegmentShow::from_parts(
+            [
+                pattern(0x76), // H
+                pattern(if whole == 100 { NUMERALS[1] } else { 0 }),
+                pattern(NUMERALS[((whole / 10) % 10) as usize]),
+                pattern(NUMERALS[(whole % 10) as usize]),
+            ],
+            [false; 4],
+            false,
+        ),
         MaskDisposition::Humidity,
     ))
 }
+
 fn clock(
     face: &PreparedEnvironmentFace<'_>,
 ) -> Result<(SevenSegmentShow, MaskDisposition), MaskUnavailable> {

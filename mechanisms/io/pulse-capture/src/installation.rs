@@ -1,5 +1,11 @@
 //! Ready native ownership advertised before planning, consumed by exact Play.
 //! Follows the retained I2C installation lifecycle; no peripheral protocol lives here.
+#[path = "continuation.rs"]
+mod continuation;
+pub(crate) use continuation::{identity_seal, NativeReturnSeal};
+pub use continuation::{ReattachRefusal, RetiredPulseBase};
+#[path = "verified.rs"]
+mod verified;
 use crate::{owner::*, *};
 use alloc::vec;
 use conduit_core::*;
@@ -36,6 +42,11 @@ pub enum PulseInstallationRefusal {
     Advertisement,
 }
 impl<P: PulseReadProvider> ReadyPulseBase<P> {
+    /// Borrow the identity of this retained owner for Root policy projection.
+    /// The borrowed facts confer no capability or independent Ready ownership.
+    pub fn native_identity(&self) -> &PulseNativeIdentity {
+        &self.identity
+    }
     /// Retain exclusively owned electrical resources before advertising them.
     ///
     /// # Safety
@@ -175,6 +186,29 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             .iter()
             .find(|g| &g.placement_id == selection.placement_id)
             .ok_or(PulseCallRefusal::WrongBinding)?;
+        self.check_native(&claim, contract, gear)?;
+        let seal = identity_seal(&self.identity, self.identity.provider_generation);
+        // SAFETY: new retained actual native ownership; the exact claim preserves
+        // its Host/Boot, provider, resource generation and attachment envelope.
+        unsafe {
+            PulseHostCall::bind_selected(
+                table,
+                handle,
+                claim,
+                self.attachment,
+                self.provider,
+                contract,
+                selection,
+            )
+        }
+        .map(|owner| owner.with_native_return(seal))
+    }
+    fn check_native(
+        &self,
+        claim: &BaseOperationClaim,
+        contract: &PulseReadContract,
+        gear: &PlannedGear,
+    ) -> Result<(), PulseCallRefusal> {
         let base = gear.base.as_ref().ok_or(PulseCallRefusal::WrongBinding)?;
         let identity = &self.identity;
         if claim.host_id != identity.host_id
@@ -201,30 +235,27 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
         {
             return Err(PulseCallRefusal::WrongBinding);
         }
-        // SAFETY: new retained actual native ownership; the exact claim preserves
-        // its Host/Boot, provider, resource generation and attachment envelope.
-        unsafe {
-            PulseHostCall::bind_selected(
-                table,
-                handle,
-                claim,
-                self.attachment,
-                self.provider,
-                contract,
-                selection,
-            )
-        }
+        Ok(())
     }
-    /// Consume actual native ownership under an independently authorized assigned
-    /// Plan/Play. The selected native facts are checked against this owner.
-    pub fn bind_assigned(
-        self,
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
+    /// Check exact assigned selection without transferring the retained GPIO,
+    /// invoking capture, or consuming an operation lease.
+    pub fn check_assigned(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
         contract: &PulseReadContract,
         plan: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<'_>,
-    ) -> Result<PulseHostCall<P>, PulseCallRefusal> {
+    ) -> Result<conduit_kernel::NodeId, PulseCallRefusal> {
+        self.prepare_assigned(table, claim, contract, plan)
+            .map(|prepared| prepared.node)
+    }
+    fn prepare_assigned(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        contract: &PulseReadContract,
+        plan: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<'_>,
+    ) -> Result<crate::owner::PreparedAssignedPulse, PulseCallRefusal> {
         let identity = &self.identity;
         if claim.host_id != identity.host_id
             || claim.boot_id != identity.boot_id
@@ -247,22 +278,64 @@ impl<P: PulseReadProvider> ReadyPulseBase<P> {
             authority: PULSE_AUTHORITY,
             resource_class: PULSE_ATTACHMENT_CLASS,
         };
-        // SAFETY: new retained actual ownership; above preserves its native epoch,
-        // resource generation and envelope. The common binder checks the selected
-        // native facts and the local opaque capability before any electrical work.
-        unsafe {
-            PulseHostCall::bind_assigned(
-                table,
-                handle,
-                claim,
-                self.attachment,
-                self.provider,
-                crate::owner::AssignedPulseSelection {
-                    contract,
-                    native,
-                    plan,
-                },
-            )
-        }
+        crate::owner::prepare_assigned(
+            table,
+            claim,
+            self.attachment,
+            crate::owner::AssignedPulseSelection {
+                contract,
+                native,
+                plan,
+            },
+        )
+    }
+    /// Consume ready ownership after the same preflight used by retained transfer.
+    pub fn bind_assigned(
+        self,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PulseReadContract,
+        plan: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<'_>,
+    ) -> Result<PulseHostCall<P>, PulseCallRefusal> {
+        let prepared = self.prepare_assigned(&table, &claim, contract, plan)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(PulseCallRefusal::Capability)?;
+        let seal = identity_seal(&self.identity, self.identity.provider_generation);
+        Ok(PulseHostCall::from_assigned(
+            table,
+            handle,
+            claim,
+            self.attachment,
+            self.provider,
+            prepared,
+        )
+        .with_native_return(seal))
+    }
+    /// Refusal leaves the exact initialized pin in Root's slot. Both binding and
+    /// codec preparation complete before taking ownership; no effects occur here.
+    pub fn bind_assigned_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PulseReadContract,
+        plan: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<'_>,
+    ) -> Result<PulseHostCall<P>, PulseCallRefusal> {
+        let prepared = slot
+            .as_ref()
+            .ok_or(PulseCallRefusal::Possession)?
+            .prepare_assigned(&table, &claim, contract, plan)?;
+        BoundBaseOperation::check(&table, &handle, &claim).map_err(PulseCallRefusal::Capability)?;
+        let owner = slot.take().expect("preflighted retained pulse owner");
+        let seal = identity_seal(&owner.identity, owner.identity.provider_generation);
+        Ok(PulseHostCall::from_assigned(
+            table,
+            handle,
+            claim,
+            owner.attachment,
+            owner.provider,
+            prepared,
+        )
+        .with_native_return(seal))
     }
 }

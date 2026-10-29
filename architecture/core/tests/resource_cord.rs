@@ -82,7 +82,7 @@ fn connection() -> PlannedConnection {
         sink_placement_id: PlacementId::from("mask/renderer"),
         sink_port_id: PortId::from("surface"),
         value_kind: KindId::from("conduitos.resource/framebuffer@1"),
-        resource: Some(PlannedResourceConnection {
+        resource: Some(Box::new(PlannedResourceConnection {
             contract: ResourcePortContract {
                 port_id: PortId::from("surface"),
                 class_id: ResourceClassId::from("conduitos.resource/framebuffer@1"),
@@ -99,7 +99,7 @@ fn connection() -> PlannedConnection {
                 compute: None,
                 content: None,
             },
-        }),
+        })),
         abnormal_kind: None,
         track: ConnectionTrack::Payload,
         temporal: PortTemporal::Value,

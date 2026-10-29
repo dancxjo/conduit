@@ -335,7 +335,7 @@ fn catalogs(
             outputs: offer.outputs.clone(),
             configuration: vec![KindConfigurationField {
                 key: "value".into(),
-                default_value: conduit_core::ConfigurationValue::Text(String::new()),
+                default_value: conduit_core::ConfigurationValue::Text(String::new().into()),
                 rule: KindConfigurationRule::TextBytes {
                     maximum: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 * 2,
                 },

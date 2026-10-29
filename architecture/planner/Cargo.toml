@@ -3,6 +3,9 @@ name = "conduit-planner"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+indexed-source = ["conduit-plot/flat-image"]
+
 [dependencies]
 conduit-core = { path = "../core" }
 conduit-language = { path = "../../semantics/language" }

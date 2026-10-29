@@ -100,7 +100,7 @@ pub fn prepare(
         track: conduit_core::ConnectionTrack::Payload,
         temporal: PortTemporal::Value,
         pressure_policy: Default::default(),
-        selected_line: Some(line.clone()),
+        selected_line: Some(alloc::boxed::Box::new(line.clone())),
         admitted_lines: vec![line],
         item_capacity: 1,
         byte_capacity: crate::usb_line_offer::USB_LINE_MAXIMUM_PAYLOAD_BYTES,

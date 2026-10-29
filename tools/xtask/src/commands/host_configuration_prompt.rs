@@ -116,6 +116,8 @@ pub(crate) fn prompt(
     }
 
     let configuration = HostConfiguration {
+        buses: Vec::new(),
+        devices: Vec::new(),
         schema: HOST_CONFIGURATION_SCHEMA,
         name,
         target: ConfigurationTarget {
@@ -240,6 +242,8 @@ mod tests {
         let choices = compatible_base_implementations(descriptor, &packages);
         let (kind, implementations) = choices.first().unwrap();
         let prompted = prepare(HostConfiguration {
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: HOST_CONFIGURATION_SCHEMA,
             name: "shared-host".into(),
             target: ConfigurationTarget {

@@ -27,12 +27,10 @@ pub use generated::{
 use alloc::string::{String, ToString};
 use alloc::vec;
 use conduit_core::{
-    kind_id, resource_offer, resource_requirement, ArtifactId, AuthorityContractId, AuthorityGrant,
-    AuthorityRequirement, Back, BackOfferBuilder, BootId, CapabilityId, CapabilityLimits,
-    CapabilityOffer, ExecutionProfileId, HostAdvertisement, HostCallContractId,
-    HostCallRequirement, HostId, HostProfileId, ImplementationId, Kind, KindIdentity,
-    OfferGeneration, PortDescriptor, PortDirection, PortId, PortTemporal, ResourceBinding,
-    ResourceOffer, PROTOCOL_VERSION,
+    resource_offer, ArtifactId, AuthorityGrant, AuthorityRequirement, Back, BackOfferBuilder,
+    BootId, CapabilityId, CapabilityLimits, CapabilityOffer, HostAdvertisement,
+    HostCallRequirement, HostId, HostProfileId, ImplementationId, Kind, OfferGeneration,
+    PortDirection, PortTemporal, ResourceBinding, ResourceOffer, PROTOCOL_VERSION,
 };
 
 mod external_websocket;
@@ -67,6 +65,13 @@ pub use record_transcript_catalog::*;
 mod record_delivery_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use record_delivery_catalog::*;
+mod borrowed_contracts;
+pub use borrowed_contracts::{
+    network_attachment_sign_contract_ref, network_credentials_contract_ref,
+    network_join_contract_ref, CheckedNetworkContract, PreparedCanonicalNetworkOffer,
+};
+mod known_networks;
+pub use known_networks::*;
 mod network_info;
 pub use network_info::*;
 mod application_info;
@@ -78,6 +83,7 @@ pub use application_catalog::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
+pub const NETWORK_JOIN_EXECUTION_PROFILE: &str = "conduit.network/join-base@1";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_SIGN_OPERATION: &str = "network/attachment-sign";
 pub const NETWORK_JOIN_CONTRACT_REVISION: &str = "conduit.network/join@1";
@@ -107,59 +113,17 @@ pub fn network_join_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    BackOfferBuilder::new(
-        network_join_contract(),
-        Back {
-            capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/join-base@1"),
-            implementation_id,
-            artifact_id,
-            host_calls: vec![HostCallRequirement {
-                contract_id: HostCallContractId::from(NETWORK_JOIN_HOST_CALL),
-                target_kind: Some(kind_id(NETWORK_CONFIG_SUBJECT)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_JOIN_INPUT_BYTES,
-                maximum_output_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
-            }],
-            resource_requirements: vec![resource_requirement(WIFI_STATION_RESOURCE_CLASS, 1)],
-            authority_requirements: vec![AuthorityRequirement {
-                contract_id: AuthorityContractId::from(NETWORK_CONFIG_AUTHORITY),
-                host_call_contract_id: HostCallContractId::from(NETWORK_JOIN_HOST_CALL),
-                subject_kind: kind_id(NETWORK_CONFIG_SUBJECT),
-            }],
-        },
+    borrowed_contracts::materialize(
+        borrowed_contracts::Shape::Join,
+        capability_id,
+        implementation_id,
+        artifact_id,
     )
-    .build()
 }
 
-fn network_join_contract() -> Kind {
-    Kind {
-        startup_parameters: vec![],
-        shorthand: Some((PortId::from("request"), PortId::from("attachment"))),
-        kind_id: kind_id(NETWORK_JOIN_OPERATION),
-        kind_contract_revision: KindIdentity::from(NETWORK_JOIN_CONTRACT_REVISION),
-        inputs: vec![PortDescriptor {
-            port_id: PortId::from("request"),
-            value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
-            direction: PortDirection::Input,
-            temporal: PortTemporal::Value,
-            abnormal_kind: None,
-        }],
-        outputs: vec![PortDescriptor {
-            port_id: PortId::from("attachment"),
-            value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
-            direction: PortDirection::Output,
-            temporal: PortTemporal::Value,
-            abnormal_kind: None,
-        }],
-        configuration: Default::default(),
-        semantic_laws: Default::default(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_JOIN_INPUT_BYTES,
-        },
-    }
+/// The semantic join Kind, independent of any initialized radio or authority.
+pub fn network_join_contract() -> Kind {
+    borrowed_contracts::network_join_contract_ref().materialize()
 }
 
 /// Semantic source of one volatile credential-bearing join request. The plan
@@ -170,53 +134,16 @@ pub fn network_credentials_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    BackOfferBuilder::new(
-        network_credentials_contract(),
-        Back {
-            capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/credentials-hosted@1"),
-            implementation_id,
-            artifact_id,
-            host_calls: vec![HostCallRequirement {
-                contract_id: HostCallContractId::from(NETWORK_CREDENTIALS_HOST_CALL),
-                target_kind: Some(kind_id(NETWORK_CREDENTIALS_SUBJECT)),
-                maximum_in_flight: 1,
-                maximum_input_bytes: 1,
-                maximum_output_bytes: MAXIMUM_JOIN_INPUT_BYTES,
-            }],
-            resource_requirements: vec![],
-            authority_requirements: vec![AuthorityRequirement {
-                contract_id: AuthorityContractId::from(NETWORK_CREDENTIALS_AUTHORITY),
-                host_call_contract_id: HostCallContractId::from(NETWORK_CREDENTIALS_HOST_CALL),
-                subject_kind: kind_id(NETWORK_CREDENTIALS_SUBJECT),
-            }],
-        },
+    borrowed_contracts::materialize(
+        borrowed_contracts::Shape::Credentials,
+        capability_id,
+        implementation_id,
+        artifact_id,
     )
-    .build()
 }
 
-fn network_credentials_contract() -> Kind {
-    Kind {
-        startup_parameters: vec![],
-        shorthand: None,
-        kind_id: kind_id(NETWORK_CREDENTIALS_OPERATION),
-        kind_contract_revision: KindIdentity::from(NETWORK_CREDENTIALS_CONTRACT_REVISION),
-        inputs: vec![],
-        outputs: vec![PortDescriptor {
-            port_id: PortId::from("request"),
-            value_kind: kind_id(NETWORK_JOIN_REQUEST_KIND),
-            direction: PortDirection::Output,
-            temporal: PortTemporal::Value,
-            abnormal_kind: None,
-        }],
-        configuration: Default::default(),
-        semantic_laws: Default::default(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_JOIN_INPUT_BYTES,
-        },
-    }
+pub fn network_credentials_contract() -> Kind {
+    borrowed_contracts::network_credentials_contract_ref().materialize()
 }
 
 pub fn network_attachment_sign_offer(
@@ -224,49 +151,33 @@ pub fn network_attachment_sign_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    BackOfferBuilder::new(
-        network_attachment_sign_contract(),
-        Back {
-            capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
-            implementation_id,
-            artifact_id,
-            host_calls: vec![HostCallRequirement {
-                contract_id: HostCallContractId::from(NETWORK_ATTACHMENT_SIGN_HOST_CALL),
-                target_kind: None,
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
-                maximum_output_bytes: 1,
-            }],
-            resource_requirements: vec![],
-            authority_requirements: vec![],
-        },
+    borrowed_contracts::materialize(
+        borrowed_contracts::Shape::AttachmentUsb,
+        capability_id,
+        implementation_id,
+        artifact_id,
     )
-    .build()
 }
 
+pub const NETWORK_ATTACHMENT_LOCAL_PROFILE: &str = "conduit.network/attachment-sign-local@1";
+/// The caller retains an actual bounded local receipt sink. This describes its
+/// implementation; it does not create a sink, an attachment or authority.
+pub fn network_attachment_sign_local_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+) -> CapabilityOffer {
+    borrowed_contracts::materialize(
+        borrowed_contracts::Shape::AttachmentLocal,
+        capability_id,
+        implementation_id,
+        artifact_id,
+    )
+}
+
+#[cfg(feature = "plot-catalog")]
 fn network_attachment_sign_contract() -> Kind {
-    Kind {
-        startup_parameters: vec![],
-        shorthand: None,
-        kind_id: kind_id(NETWORK_ATTACHMENT_SIGN_OPERATION),
-        kind_contract_revision: KindIdentity::from(NETWORK_ATTACHMENT_SIGN_CONTRACT_REVISION),
-        inputs: vec![PortDescriptor {
-            port_id: PortId::from("attachment"),
-            value_kind: kind_id(NETWORK_ATTACHMENT_KIND),
-            direction: PortDirection::Input,
-            temporal: PortTemporal::Value,
-            abnormal_kind: None,
-        }],
-        outputs: vec![],
-        configuration: Default::default(),
-        semantic_laws: Default::default(),
-        limits: CapabilityLimits {
-            max_active_instances: 1,
-            max_queue_items: 1,
-            max_queue_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
-        },
-    }
+    borrowed_contracts::network_attachment_sign_contract_ref().materialize()
 }
 
 #[cfg(feature = "plot-catalog")]
@@ -406,3 +317,6 @@ pub fn execute_fixture_join(
         generation,
     })
 }
+
+mod station_attempt;
+pub use station_attempt::*;

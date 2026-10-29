@@ -25,6 +25,9 @@ impl ValueStorage for LimitedReferences {
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
         self.inner.get(value)
     }
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        self.inner.resolve_identity(slot, generation)
+    }
     fn reference_count(&self, value: ValueRef) -> Result<u16, StorageError> {
         self.inner.reference_count(value)
     }

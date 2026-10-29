@@ -125,3 +125,50 @@ fn structured_child_keeps_conditional_failure_lazy() {
         );
     }
 }
+
+#[test]
+fn wide_integer_literal_padding_uses_constant_material_and_preserves_dynamic_input() {
+    let program = compile(
+        "type Frame = {\n value: U64\n padding: collection U64 = 16\n}\nplot envelope (\n value: U64 >> result: Frame\n) = ({value: ., padding: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]})",
+        "envelope",
+    );
+    let (mut prepared, retained) = allocation::rounded_retained_bytes(|| {
+        PreparedPortableExpressionEvaluator::new(&program).unwrap()
+    });
+    eprintln!("wide-literal-padding rounded retained bytes: {retained}");
+    if cfg!(target_pointer_width = "64") {
+        assert!(retained <= 2048, "wide constant child storage regressed");
+    }
+    for value in [0u64, 1, 255, u32::MAX as u64, u64::MAX] {
+        let bytes = value.to_le_bytes();
+        let expected = program.evaluate(&bytes).unwrap();
+        assert_eq!(
+            allocation::allocations(|| {
+                assert_eq!(prepared.evaluate(&bytes).unwrap(), expected);
+            }),
+            0
+        );
+    }
+    assert!(prepared.evaluate(&[]).is_err());
+    assert!(prepared.evaluate(&[0]).is_err());
+}
+
+#[test]
+fn fixed_width_constant_fields_keep_their_exact_signed_and_unsigned_types() {
+    for kind in [
+        "U16", "U32", "U64", "U128", "I8", "I16", "I32", "I64", "I128",
+    ] {
+        let source = format!("type Frame = {{\n value: U8\n constant: {kind}\n}}\nplot envelope (\n value: U8 >> result: Frame\n) = ({{value: ., constant: 0}})");
+        let program = compile(&source, "envelope");
+        let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        for input in [[0], [255]] {
+            let expected = program.evaluate(&input).unwrap();
+            assert_eq!(
+                allocation::allocations(|| {
+                    assert_eq!(prepared.evaluate(&input).unwrap(), expected);
+                }),
+                0
+            );
+        }
+    }
+}

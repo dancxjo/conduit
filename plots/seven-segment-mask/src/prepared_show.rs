@@ -7,14 +7,14 @@ pub enum ShowPreparationRefusal {
     Wiring(WiringRefusal),
 }
 
-struct Page {
+pub(crate) struct Page {
     digits: [u8; 4],
     decimal_points: [bool; 4],
     colon: bool,
     disposition: MaskDisposition,
 }
 impl Page {
-    fn prepare(rendered: RenderedShow<'_>) -> Self {
+    pub(crate) fn prepare(rendered: RenderedShow<'_>) -> Self {
         Self {
             digits: (*rendered.show.digits()).map(|pattern| SegmentPatternForm::encode(pattern)[0]),
             decimal_points: *rendered.show.decimal_points(),
@@ -22,7 +22,7 @@ impl Page {
             disposition: rendered.disposition,
         }
     }
-    fn show(&self) -> (SevenSegmentShow, MaskDisposition) {
+    pub(crate) fn show(&self) -> (SevenSegmentShow, MaskDisposition) {
         // Only the generated checked Form encoder writes these private bytes.
         let digits = self
             .digits

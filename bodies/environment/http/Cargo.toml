@@ -7,6 +7,10 @@ publish = false
 [workspace]
 
 [dependencies]
+embedded-io-async = "=0.7.0"
+embassy-sync = "=0.8.0"
+conduit-net = { path = "../../../semantics/net" }
+zeroize = { version = "=1.9.0", default-features = false }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-environment-face = { path = "../face" }

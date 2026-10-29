@@ -205,8 +205,8 @@ fn configuration_integer_thresholds_extrema_and_escaped_text_match_wire() {
     for value in [false, true] {
         configuration(&ConfigurationValue::Bool(value));
     }
-    configuration(&ConfigurationValue::Text(String::new()));
-    configuration(&ConfigurationValue::Text(escaped()));
+    configuration(&ConfigurationValue::Text(String::new().into()));
+    configuration(&ConfigurationValue::Text(escaped().into()));
 }
 
 fn physical_configurations() -> Vec<ConfigurationValue> {

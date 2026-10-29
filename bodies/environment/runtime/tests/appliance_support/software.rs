@@ -166,3 +166,83 @@ fn cached_cadence_and_changed_expansion_cannot_initialize_current_software() {
         Err(E::Source)
     ));
 }
+
+#[test]
+fn verified_selection_checks_retained_configuration_and_offer_before_transfer() {
+    let source = compile(1, 0).unwrap();
+    let (pulse, effects) = pulse::ready(0);
+    let mut software = software(&source);
+    let host = appliance_support::advertisement(&source, &mut software, &pulse);
+    let plan = source
+        .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+        .unwrap();
+    let target = plan.fragments[0]
+        .placements
+        .iter()
+        .position(|g| g.kind_id.as_str() == Channel::Reading.kind_id())
+        .unwrap();
+    let placement = plan.fragments[0].placements[target].placement_id.clone();
+    let fragment = plan.fragments[0].fragment_id.clone();
+    for change in 0..8 {
+        let mut fragments = plan.fragments.clone();
+        let gear = &mut fragments[0].placements[target];
+        match change {
+            0 => gear.configuration.push(c::ConfigurationEntry {
+                key: "extra".into(),
+                value: c::ConfigurationValue::U64(1),
+            }),
+            1 => gear.artifact_id = "foreign/artifact".into(),
+            2 => gear.implementation_id = "foreign/implementation".into(),
+            3 => gear.capability_id = "foreign/capability".into(),
+            4 => gear.execution_profile_id = "foreign/profile".into(),
+            5 => gear.limits.max_queue_bytes += 1,
+            6 => gear.boot_id = "stale".into(),
+            _ => gear.offer_generation = c::OfferGeneration(2),
+        }
+        let forged = c::seal_plan_with_realization_backs_and_completion(
+            c::PlotIdentity {
+                source_document_id: plan.source_document_id.clone(),
+                checked_plot_id: plan.checked_plot_id.clone(),
+                expanded_plot_id: plan.expanded_plot_id.clone(),
+            },
+            plan.completion_policy,
+            plan.realization_backs.clone(),
+            fragments,
+        );
+        let verified = verified_metadata::from_plan(&forged);
+        let id = &verified.preparation_metadata().fragments[0].fragment_id;
+        assert_eq!(
+            software.check_verified(&verified, id, &placement),
+            Err(E::Selection)
+        );
+        assert!(matches!(
+            software.take_verified(&verified, id, &placement),
+            Err(E::Selection)
+        ));
+        // Refusal must preserve the actual initialized operation.
+        software
+            .check_selected(&plan.fragments[0], &placement)
+            .unwrap();
+    }
+    let verified = verified_metadata::from_plan(&plan);
+    assert_eq!(
+        software.check_verified(&verified, &"absent".into(), &placement),
+        Err(E::Selection)
+    );
+    software
+        .check_verified(&verified, &fragment, &placement)
+        .unwrap();
+    let selected = software
+        .take_verified(&verified, &fragment, &placement)
+        .unwrap();
+    assert!(matches!(selected.driver, Driver::Publication(_)));
+    assert!(matches!(
+        software.take_verified(&verified, &fragment, &placement),
+        Err(E::AlreadySelected)
+    ));
+    assert_eq!(
+        software.check_selected(&plan.fragments[0], &placement),
+        Err(E::AlreadySelected)
+    );
+    assert_eq!(effects.get(), 0);
+}
