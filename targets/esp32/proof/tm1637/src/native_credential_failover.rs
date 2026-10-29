@@ -1,5 +1,5 @@
 //! Finite saved-profile policy, retained with the actual private source owner.
-//! No scan or automatic exhausted-round renewal is supplied by this adapter.
+//! Scan-backed renewal requires committed evidence and Root retirement below.
 use super::known;
 use conduit_net::{KnownNetworkPolicy, KnownProfileKey, KnownSelection};
 struct Reservation {
@@ -13,6 +13,47 @@ pub(super) struct Fallback {
     taken: Option<known::Selection>,
 }
 impl Fallback {
+    /// ROOT-ONLY boundary: caller must have reclaimed the actual AP owner and
+    /// finished the exact committed Root scan scope. Never expose to a route,
+    /// timer or raw scan packet. This method changes only the selected profile's
+    /// bounded policy round, not any grant, mailbox or service-command allowance.
+    pub(super) fn renew_committed_scan(
+        &mut self,
+        profiles: &conduit_net::KnownNetworkProfiles,
+        committed: &conduit_network_join_call::scan::CommittedScanEvidence,
+        now: u64,
+    ) -> Result<KnownProfileKey, &'static str> {
+        if self.reserved.is_some()
+            || self.pending.is_some()
+            || self.taken.is_some()
+            || !committed.evidence_seen()
+        {
+            return Err("credential-scan-custody-pending");
+        }
+        let output = committed
+            .evidence()
+            .completed_output()
+            .ok_or("credential-scan-no-result")?;
+        let view =
+            conduit_net::ScanCompletionView::parse(output).map_err(|_| "credential-scan-result")?;
+        let request = self
+            .policy
+            .request_observed_recovery_round(
+                profiles,
+                now,
+                view.observations(),
+                conduit_net::KnownBackendAuth {
+                    wpa2_personal: true,
+                    wpa3_personal: false,
+                },
+            )
+            .map_err(|_| "credential-scan-no-eligible-round")?;
+        let key = request.profile();
+        self.policy
+            .renew_after_retirement(profiles, request, now)
+            .map_err(|_| "credential-scan-renewal")?;
+        Ok(key)
+    }
     pub(super) fn new() -> Self {
         Self {
             policy: KnownNetworkPolicy::new(),

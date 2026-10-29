@@ -138,7 +138,7 @@ impl RootCredentialSource {
             let now = embassy_time::Instant::now().as_millis();
             let key = owner
                 .fallback
-                .choose(owner.profiles.profiles(), now, None)?;
+                .choose(owner.profiles.profiles(), now, owner.chosen)?;
             let frozen = owner.freeze(key).map_err(|_| "credential-selection")?;
             owner.fallback.frozen(frozen, self.generation)?;
             owner.chosen = Some(key);

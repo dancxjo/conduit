@@ -259,9 +259,11 @@ fn actual_root_scan_admission_dispatch_and_retirement_preserve_original_custody(
         .unwrap_or_else(|_| panic!("unissued actual owner"));
     assert!(scan.take_unselected_ready().is_err());
     let mut scan = NativeScan::new(returned_ready);
-    assert!(scan
-        .install_held(&image, pins, c::OfferGeneration(1), &mut root, || Ok(()))
-        .is_ok());
+    let (installed, preparation) = allocation_probe::observe(|| {
+        scan.install_held(&image, pins, c::OfferGeneration(1), &mut root, || Ok(()))
+    });
+    installed.unwrap();
+    println!("CPU64 scan preparation heap_peak={} retained={} boxed_owner_bytes={} (excludes Ready identity/Root/ROM/SDK/stack; not target fit)", preparation.peak_bytes, preparation.retained_bytes(), core::mem::size_of_val(&scan));
     assert!(embassy_futures::block_on(scan.drive()).is_err());
     assert_eq!(state.scans.get(), 0);
     assert!(scan.take_retired().is_err());

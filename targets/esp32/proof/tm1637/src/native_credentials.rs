@@ -223,6 +223,7 @@ pub fn reprepare(
         // Retain the exact pending token/key; unused preparation retry must not
         // commit or count this acknowledged input twice.
         owner.frozen_origin = None;
+        owner.chosen = None;
     }
     source.generation = generation;
     // SAFETY: source is the actual non-Clone reader returned after capability
@@ -339,6 +340,40 @@ pub fn prepare_retry(
     slot: &mut Option<ReadyCredentialBase<RootCredentialSource>>,
 ) -> Result<esp_radio::wifi::sta::StationConfig, &'static str> {
     with_unbound_source(slot, RootCredentialSource::prepare_saved_retry)
+}
+/// Root calls only after actual AP reclaim and finish_scan_play. Preserve the
+/// same unbound private source, all generations and the original pending input.
+#[cfg(feature = "network-scan")]
+pub(crate) fn renew_after_scan(
+    slot: &mut Option<ReadyCredentialBase<RootCredentialSource>>,
+    committed: &conduit_network_join_call::scan::CommittedScanEvidence,
+    now: u64,
+) -> Result<(), &'static str> {
+    let native = slot
+        .as_ref()
+        .ok_or("credential-owner-unavailable")?
+        .native_identity();
+    let scope = &committed.evidence().inspection().scope;
+    if scope.host_id != native.host || scope.boot_id != native.boot {
+        return Err("credential-scan-foreign-scope");
+    }
+    with_unbound_source(slot, |source| {
+        let owner = source
+            .owner
+            .as_deref_mut()
+            .ok_or("credential-owner-unavailable")?;
+        if owner.selection().is_some()
+            || owner.frozen_origin.is_some()
+            || owner.committed_pending.is_some()
+        {
+            return Err("credential-scan-selection-pending");
+        }
+        let key = owner
+            .fallback
+            .renew_committed_scan(owner.profiles.profiles(), committed, now)?;
+        owner.chosen = Some(key);
+        Ok(())
+    })
 }
 fn with_unbound_source<T>(
     slot: &mut Option<ReadyCredentialBase<RootCredentialSource>>,

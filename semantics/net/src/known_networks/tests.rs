@@ -1,4 +1,6 @@
 use super::*;
+#[path = "tests/observed_round.rs"]
+mod observed_round;
 fn input(ssid: &[u8], priority: i8) -> PrivateNetworkInput {
     PrivateNetworkInput::new(
         ssid,

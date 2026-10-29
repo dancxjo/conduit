@@ -38,7 +38,9 @@ impl<'a> ScanCompletionView<'a> {
     pub fn bytes(&self) -> &'a [u8] {
         self.bytes
     }
-    pub fn observations(&self) -> impl ExactSizeIterator<Item = KnownScanObservation<'a>> + '_ {
+    pub fn observations(
+        &self,
+    ) -> impl ExactSizeIterator<Item = KnownScanObservation<'a>> + Clone + '_ {
         self.bytes[24..]
             .chunks_exact(44)
             .map(|row| observation(row).expect("same completely validated immutable scan extent"))
