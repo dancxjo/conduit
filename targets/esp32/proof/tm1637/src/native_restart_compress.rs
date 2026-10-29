@@ -110,6 +110,7 @@ impl<W> Drop for Encoder<W> {
         wipe(&mut self.history);
         wipe(&mut self.look);
         wipe(&mut self.group);
+        self.index.clear();
     }
 }
 impl<W: Output> Encoder<W> {
