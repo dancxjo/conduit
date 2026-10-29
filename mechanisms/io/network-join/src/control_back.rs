@@ -12,7 +12,9 @@ enum Phase {
     Done,
     Cancelled,
 }
-struct Endpoint {
+pub(crate) struct Endpoint<
+    const MAXIMUM_INPUT_BYTES: u32 = { conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES },
+> {
     phase: Phase,
     staged: Option<Phase>,
     empty: Option<ValueRef>,
@@ -79,8 +81,34 @@ impl<const P: usize> StepBack<P> for NetworkControlBack {
         }
     }
 }
-impl Endpoint {
-    fn source<const P: usize>(&mut self, io: &mut StepIo<P>) -> StepOutcome {
+impl<const MAXIMUM_INPUT_BYTES: u32> Endpoint<MAXIMUM_INPUT_BYTES> {
+    pub(crate) fn prepared_source(empty: ValueRef) -> Result<Self, Failure> {
+        if empty.byte_len != 0 {
+            return Err(failure(1));
+        }
+        Ok(Self {
+            phase: Phase::Ready,
+            staged: None,
+            empty: Some(empty),
+        })
+    }
+    pub(crate) fn prepared_sink() -> Self {
+        Self {
+            phase: Phase::Ready,
+            staged: None,
+            empty: None,
+        }
+    }
+    pub(crate) fn commit(&mut self) {
+        if let Some(phase) = self.staged.take() {
+            self.phase = phase;
+        }
+    }
+    pub(crate) fn cancel(&mut self) {
+        self.staged = None;
+        self.phase = Phase::Cancelled;
+    }
+    pub(crate) fn source<const P: usize>(&mut self, io: &mut StepIo<P>) -> StepOutcome {
         self.staged = None;
         match self.phase {
             Phase::Cancelled => cancelled(),
@@ -123,7 +151,7 @@ impl Endpoint {
             }
         }
     }
-    fn sink<const P: usize>(&mut self, io: &mut StepIo<P>) -> StepOutcome {
+    pub(crate) fn sink<const P: usize>(&mut self, io: &mut StepIo<P>) -> StepOutcome {
         self.staged = None;
         match self.phase {
             Phase::Cancelled => cancelled(),
@@ -137,8 +165,7 @@ impl Endpoint {
                 let Some(value) = io.input(PortId(0)) else {
                     return close(io);
                 };
-                let Ok(input) = BoundedValueRef::new(value, conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES)
-                else {
+                let Ok(input) = BoundedValueRef::new(value, MAXIMUM_INPUT_BYTES) else {
                     return fail(7);
                 };
                 if io.consume(PortId(0)).is_err()

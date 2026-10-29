@@ -1,8 +1,10 @@
 //! Selected finite scan ownership; no ambient radio access or policy renewal.
+mod kernel_back;
 mod owner;
 use conduit_core::{Kind, KindId};
 use conduit_net::*;
 use conduit_plan_lowering::selected_operation::SelectedOperationContract;
+pub use kernel_back::NetworkScanBack;
 pub use owner::*;
 /// Root must independently admit the exclusive initialized controller, SDK
 /// memory and service transitions. A cancelled future must leave persistent

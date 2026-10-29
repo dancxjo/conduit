@@ -191,6 +191,8 @@ pub fn install_network_bootstrap_catalogs(
         network_credentials_contract(),
         network_join_contract(),
         network_attachment_sign_contract(),
+        network_scan_contract(),
+        network_scan_sign_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -323,3 +325,5 @@ pub use station_attempt::*;
 
 mod network_scan;
 pub use network_scan::*;
+mod network_scan_sign;
+pub use network_scan_sign::*;
