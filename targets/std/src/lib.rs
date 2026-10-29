@@ -205,6 +205,8 @@ mod local_model_observation;
 mod local_model_pool_member;
 #[cfg(feature = "local-model-proof")]
 pub mod local_model_proof;
+#[cfg(any(test, feature = "local-model-proof"))]
+pub mod local_model_stream_proof;
 mod run_control;
 #[cfg(feature = "local-model-proof")]
 pub mod spoken_birth_journey;
