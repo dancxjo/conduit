@@ -296,6 +296,27 @@ impl Recovery {
 mod tests {
     use super::*;
     #[test]
+    fn scan_retirement_preflight_neither_spends_generation_nor_moves_clock() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        let candidate = r.preview_attempt(0).unwrap().unwrap();
+        r.begin_attempt(candidate, 0).unwrap();
+        r.failed(1).unwrap();
+        r.restored(1, 1, true).unwrap();
+        let original = (r.phase, r.revision, r.generation, r.attempts, r.last_now);
+        assert_eq!(r.check_scan_retirement(2, 1001), Ok(()));
+        assert_eq!(r.check_scan_retirement(2, 1001), Ok(()));
+        assert_eq!(r.check_scan_retirement(3, 1001), Err(Refusal::StaleAttempt));
+        assert_eq!(r.check_scan_retirement(2, 0), Err(Refusal::Clock));
+        assert_eq!(r.check_scan_retirement(2, u64::MAX), Err(Refusal::Clock));
+        assert_eq!(
+            (r.phase, r.revision, r.generation, r.attempts, r.last_now),
+            original
+        );
+        // No physical scan occurred: the original join candidate is unchanged.
+        assert_eq!(r.preview_attempt(1001).unwrap().unwrap().generation(), 2);
+    }
+    #[test]
     fn retired_scan_advances_shared_generation_without_refunding_join_attempts() {
         let mut r = Recovery::new();
         r.configuration(1, 0).unwrap();
