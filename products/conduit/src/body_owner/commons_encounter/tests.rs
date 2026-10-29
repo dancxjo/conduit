@@ -74,6 +74,7 @@ fn persist(owner: &mut Owner) -> std::path::PathBuf {
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: None,
     };
     super::super::super::super::write_json_atomic(&root.join("installation.json"), &installation)

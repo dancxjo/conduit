@@ -94,6 +94,9 @@ pub(super) fn install_configured_with_todo(
         }
         selected_todo::Change::Remove => None,
     };
+    let retained_configuration = existing
+        .as_ref()
+        .and_then(|value| value.selected_host_configuration.clone());
     let installation = Installation {
         schema: INSTALL_SCHEMA.into(),
         host_id,
@@ -105,6 +108,7 @@ pub(super) fn install_configured_with_todo(
         selected_speech: retained_selection,
         selected_model: retained_model,
         selected_todo_checkpoint: retained_todo,
+        selected_host_configuration: retained_configuration,
     };
     write_json_atomic(&install_path, &installation)?;
     write_service_definition(state_dir, &installation)?;
