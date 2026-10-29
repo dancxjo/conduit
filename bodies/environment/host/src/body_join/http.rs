@@ -40,9 +40,7 @@ fn http_content(
     Err(last.unwrap_or_else(|| "join peer has no bounded IPv4 route".into()))
 }
 
-/// One already-resolved socket exchange under the caller's absolute deadline.
-/// No DNS, route fallback, sleep or retry may extend this operation's budget.
-/// A resolved address is transport selection only; callers verify response scope.
+/// Request facts owned by the caller; no transport or execution authority.
 pub(crate) struct Request<'a> {
     pub(crate) peer: &'a str,
     pub(crate) method: &'a str,
@@ -50,6 +48,8 @@ pub(crate) struct Request<'a> {
     pub(crate) body: &'a [u8],
     pub(crate) content_type: &'a str,
 }
+/// One already-resolved exchange under the caller's absolute deadline.
+/// No DNS or fallback extends it; callers still verify signed response scope.
 pub(crate) fn http_resolved_until(
     request: Request<'_>,
     address: std::net::SocketAddr,

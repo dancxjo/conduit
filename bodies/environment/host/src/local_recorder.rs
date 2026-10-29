@@ -164,14 +164,17 @@ pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Re
     if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
         return Err("recorder peer must be HOST:PORT".into());
     }
-    run_loop(collector, vec![peer], directory, once, None)
+    run_loop(collector, vec![peer], directory, once, None, None)
 }
 
+#[path = "local_recorder/network.rs"]
+pub mod network;
 pub fn run_joined_continuing(
     binding: &Path,
     continuity: &Path,
     peer: &str,
     directory: &Path,
+    network: Option<network::Options<'_>>,
 ) -> Result<()> {
     let peers = continuing_peers(peer)?;
     let collector = admitted_collector(binding)?;
@@ -185,6 +188,9 @@ pub fn run_joined_continuing(
         directory,
         false,
         Some((binding, continuity)),
+        network
+            .map(|options| network::Network::open(binding, continuity, options))
+            .transpose()?,
     )
 }
 /// Explicit transport alternatives never change the authenticated collector.

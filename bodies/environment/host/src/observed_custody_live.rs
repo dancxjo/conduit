@@ -80,6 +80,9 @@ impl Continuing {
             disabled: false,
         }
     }
+    pub(crate) fn due(&self) -> Option<Instant> {
+        (!self.disabled).then_some(self.next)
+    }
     pub(crate) fn tick(&mut self, binding: &Path, continuity: &Path, peer: &str, history: &Path) {
         if self.disabled || Instant::now() < self.next {
             return;
