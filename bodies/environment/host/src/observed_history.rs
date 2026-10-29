@@ -15,7 +15,7 @@ use std::{
 };
 #[allow(dead_code)] // The shared native profile also supplies per-record/server APIs.
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_wire.rs"]
-mod wire;
+pub(crate) mod wire;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Batch {

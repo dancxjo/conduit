@@ -14,6 +14,12 @@ mod native_body_join {
 mod display_check;
 mod display_evidence;
 mod execution;
+#[cfg(test)]
+mod history_relay;
+#[cfg(test)]
+mod history_relay_kernel;
+#[cfg(test)]
+mod history_relay_plan;
 mod local_recorder;
 mod mask;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_display_evidence.rs"]
