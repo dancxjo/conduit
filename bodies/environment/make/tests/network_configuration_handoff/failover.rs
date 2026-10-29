@@ -88,3 +88,72 @@ fn acknowledged_supersession_after_unused_return_does_not_refund_finite_attempts
     );
     assert_eq!(policy.choose(owner.profiles(), 4, Some(b)), Ok(b));
 }
+
+#[test]
+fn all_private_profile_quotas_remain_exhausted_after_late_recovery_cooldowns() {
+    let (mut owner, a, b) = owner();
+    let mut policy = production::Fallback::new();
+    let mut recovery = recovery::Recovery::new();
+    recovery.configuration(owner.store_revision(), 0).unwrap();
+    let mut now = 0;
+    let mut wire = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    // These are actual private-owner selections, not fabricated policy keys or
+    // fresh policy instances. Each profile spends its entire three-attempt quota.
+    for (index, key) in [a, a, a, b, b, b].into_iter().enumerate() {
+        assert_eq!(policy.choose(owner.profiles(), now, Some(key)), Ok(key));
+        let candidate = recovery.preview_attempt(now).unwrap().unwrap();
+        let action = recovery.begin_attempt(candidate, now).unwrap();
+        let generation = recovery.generation();
+        assert_eq!(
+            action,
+            recovery::Action::PrepareAttempt {
+                revision: 2,
+                generation,
+            }
+        );
+        assert_eq!(generation, index as u64 + 1);
+        let frozen = owner.freeze(key).unwrap();
+        policy.frozen(frozen, generation).unwrap();
+        assert!(policy.validates(frozen, generation));
+        policy
+            .taken(owner.take_selected(&mut wire).unwrap())
+            .unwrap();
+        assert!(owner.selection().is_none());
+        assert_eq!(
+            recovery.failed(generation).unwrap(),
+            recovery::Action::RestoreAccessPoint { generation }
+        );
+        // Until exact retired-Play correlation arrives, neither a foreign
+        // generation nor revision can free the consumed reservation.
+        assert!(policy
+            .settled(generation + 1, 2, Some((false, now)), now)
+            .is_err());
+        assert!(policy
+            .settled(generation, 3, Some((false, now)), now)
+            .is_err());
+        policy
+            .settled(generation, 2, Some((false, now)), now)
+            .unwrap();
+        assert!(policy
+            .settled(generation, 2, Some((false, now)), now)
+            .is_err());
+        recovery.restored(generation, now, true).unwrap();
+        now += 1_000_000;
+    }
+    assert_eq!(owner.store_revision(), 2);
+    assert_eq!(owner.accepted_updates(), 2);
+    // Recovery eligibility after cooldown is not profile quota renewal. Native
+    // preparation must refuse here, before begin_attempt or any selected call.
+    for late in [now, u64::MAX / 2, u64::MAX - 15_000] {
+        assert!(recovery.preview_attempt(late).unwrap().is_some());
+        for preferred in [None, Some(a), Some(b)] {
+            assert_eq!(
+                policy.choose(owner.profiles(), late, preferred),
+                Err("credential-policy-exhausted")
+            );
+        }
+        assert_eq!(recovery.generation(), 6);
+        assert_eq!(recovery.revision(), 2);
+        assert!(owner.selection().is_none());
+    }
+}
