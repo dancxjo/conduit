@@ -184,6 +184,12 @@ pub(super) fn build_face(
         cargo_release_artifact(Some(TARGET), "conduit-linux-face-display"),
         &output.join("conduit-linux-face-display"),
     )?;
+    for asset in ["conduit-face-display.service", "README.md"] {
+        copy(
+            &Path::new("targets/linux-face-display").join(asset),
+            &output.join(asset),
+        )?;
+    }
     fs::write(
         output.join("linux-face-build.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
