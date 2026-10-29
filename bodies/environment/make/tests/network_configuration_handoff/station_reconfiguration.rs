@@ -4,7 +4,7 @@ use super::*;
 use recovery::{Action, Recovery, Refusal};
 
 #[test]
-fn station_retirement_keeps_acknowledged_input_and_old_profile_until_returned() {
+fn ap_input_acknowledged_during_join_keeps_custody_until_returned() {
     for cleanup_succeeds in [false, true] {
         let mut owner = known::Owner::empty(3);
         let old = owner
@@ -14,7 +14,6 @@ fn station_retirement_keeps_acknowledged_input_and_old_profile_until_returned() 
         let mut policy = Recovery::new();
         policy.configuration(1, 0).unwrap();
         policy.poll(0, true, false).unwrap();
-        policy.attached(1).unwrap();
         let mut mailbox = NetworkSetupMailbox::new(2);
         let token = mailbox
             .submit(
@@ -32,6 +31,13 @@ fn station_retirement_keeps_acknowledged_input_and_old_profile_until_returned() 
         assert_eq!(policy.poll(1, true, true), Ok(Action::None));
         mailbox.acknowledge(token).unwrap();
         assert!(mailbox.has_acknowledged());
+        // AP serving remains selected until its asynchronous withdrawal is
+        // acknowledged. A later AP exchange may finish during this interval;
+        // this fixture does not claim a credential route on the station.
+        assert!(policy.is_joining());
+        assert_eq!(policy.configuration_retirement(1), Err(Refusal::Busy));
+        assert!(mailbox.acknowledged_submission() == Ok(token));
+        policy.attached(1).unwrap();
         assert_eq!(
             policy.configuration_retirement(1),
             Ok(Action::RestoreAccessPoint { generation: 1 })
