@@ -45,7 +45,7 @@ impl<'a> Candidates<'a> {
     pub(super) fn new(bits: &'a [u32; 44], consumed: usize, maximum: usize, first: usize) -> Self {
         Self {
             bits,
-            at: (consumed + V4_HISTORY - first) % V4_HISTORY,
+            at: ((consumed % V4_HISTORY) + V4_HISTORY - first) % V4_HISTORY,
             remaining: maximum.saturating_sub(first - 1),
             distance: first,
         }
@@ -92,13 +92,22 @@ mod tests {
         for at in 0..V4_HISTORY {
             index.observe(at, (at % 4) as u8);
         }
-        for consumed in [1408, 1409, 1439, 1440, 2815, 2816] {
+        for consumed in [
+            1408,
+            1409,
+            1439,
+            1440,
+            2815,
+            2816,
+            usize::MAX - 1,
+            usize::MAX,
+        ] {
             for byte in 0..4 {
                 let actual: Vec<_> =
                     Candidates::new(index.bucket(byte), consumed, V4_HISTORY, 1).collect();
                 let expected: Vec<_> = (1..=V4_HISTORY)
                     .filter_map(|d| {
-                        let at = (consumed + V4_HISTORY - d) % V4_HISTORY;
+                        let at = ((consumed % V4_HISTORY) + V4_HISTORY - d) % V4_HISTORY;
                         (at % 4 == usize::from(byte)).then_some((d, at))
                     })
                     .collect();
