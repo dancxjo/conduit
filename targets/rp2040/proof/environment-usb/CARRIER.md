@@ -72,7 +72,7 @@ All three perform local continuous diagnostics independently of USB and report `
 
 When several devices are attached, select the actual physical USB path and verify its build/configuration. These firmware variants currently share a USB product/serial descriptor, so the shared `/dev/serial/by-id` alias can move between devices. Never open the same CDC stream from two clients. Display ACKs are electrical observations; working pixels require physical visual confirmation.
 
-White additionally exposes the bounded read-only `GET /environment` route on
+All Wi-Fi profiles expose the same bounded read-only `GET /environment` route on
 TCP port 8080 after network configuration. Its response carries the firmware and
 Host-configuration identities, real counters, sample-Boot milliseconds, quantities
 and explicit `body_member:false`. It creates no Body membership, signed history,
@@ -84,6 +84,8 @@ other than GET refuse. Credentials and admission operations are not exposed ther
 Physical evidence on White established successful joins to Troys and `Hot Togo `
 (the latter includes a trailing space), direct Wi-Fi status reads on Hot Togo,
 and continued sampling/display acknowledgment progression with no USB client.
+The shared endpoint and sample-Boot timestamps are compiled for Green and Yellow
+as well; each profile reports only quantities its actual sensor provides.
 A protected RTL8188CUS bench AP rejected association and remains unqualified.
 Network credentials are still volatile; these observations do not establish
 automatic reconnect, power-cycle recovery or native Body membership.

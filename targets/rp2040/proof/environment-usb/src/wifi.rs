@@ -228,7 +228,6 @@ pub async fn run(
     spawner.spawn(network(runner).unwrap());
     update(true, Some(stack), None);
     spawner.spawn(monitor(stack).unwrap());
-    #[cfg(environment_bosch_tm1637)]
     spawner.spawn(crate::environment_http::run(stack).unwrap());
     let mut retained: Option<JoinRequest> = None;
     let mut reconnect = reconnect::Reconnect::default();

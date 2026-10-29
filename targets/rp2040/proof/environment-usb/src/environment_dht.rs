@@ -79,6 +79,7 @@ impl ConfiguredDisplay {
 struct Snapshot {
     attempts: u64,
     samples: u64,
+    sampled_at_ms: u64,
     frames: u64,
     acks: u64,
     reading: Option<(Quantity, Quantity)>,
@@ -95,6 +96,7 @@ static STATE: critical_section::Mutex<RefCell<Snapshot>> =
     critical_section::Mutex::new(RefCell::new(Snapshot {
         attempts: 0,
         samples: 0,
+        sampled_at_ms: 0,
         frames: 0,
         acks: 0,
         reading: None,
@@ -122,6 +124,7 @@ pub fn status() -> Result<heapless::String<1536>, ()> {
         s.maximum_clock_rise_us, s.clock_release_timeouts
     )
     .map_err(|_| ())?;
+    write!(&mut out, ",\"sampled_at_boot_ms\":{}", s.sampled_at_ms).map_err(|_| ())?;
     if let Some((packet, byte)) = s.nack {
         write!(&mut out, ",\"nack_packet\":{packet},\"nack_byte\":{byte}").map_err(|_| ())?;
     }
@@ -169,6 +172,7 @@ pub async fn run(
             update(|s| {
                 s.error = reading.as_ref().err().copied().unwrap_or("ok");
                 s.reading = reading.ok();
+                s.sampled_at_ms = Instant::now().as_millis();
                 if s.reading.is_some() {
                     s.samples = s.samples.saturating_add(1)
                 }

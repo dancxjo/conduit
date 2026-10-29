@@ -18,7 +18,7 @@ mod environment;
 #[cfg(environment_dht11_tm1637)]
 #[path = "environment_dht.rs"]
 mod environment;
-#[cfg(environment_bosch_tm1637)]
+#[cfg(feature = "wifi")]
 mod environment_http;
 mod environment_show;
 mod heap;
