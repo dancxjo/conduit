@@ -416,6 +416,18 @@ fn flat_scan_binding_uses_borrowed_contract_and_returns_actual_possession_on_ref
         .unwrap()
         .revoke(roles.scan, conduit_kernel::HostCallId(0))
         .unwrap();
-    assert!(NetworkScanHostCall::retire_retained(&mut selected).is_ok());
+    let (retired, memory) = allocation_probe::observe(|| {
+        NetworkScanHostCall::retire_with_evidence_retained(&mut selected).unwrap()
+    });
+    let (_provider, evidence) = retired;
+    assert!(selected.is_none());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert!(evidence.completed_output().is_none());
+    assert!(evidence.completed_observations().is_none());
+    assert_eq!(
+        evidence.inspection().lifecycle,
+        c::CapabilityLifecycle::Revoked
+    );
+    assert_eq!(evidence.inspection().completed_operations, 0);
     assert!(selected.is_none());
 }

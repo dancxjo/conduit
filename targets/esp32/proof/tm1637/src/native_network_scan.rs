@@ -25,6 +25,7 @@ impl NativeNetwork {
             || self.services.is_some()
             || self.configuration.is_some()
             || self.retirement.is_some()
+            || self.generation == 0
             || self.generation == u64::MAX
             || self.sdk.bytes() != crate::sdk_memory::SDK_BYTES
             || host.as_str().is_empty()

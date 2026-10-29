@@ -301,6 +301,7 @@ fn selected_scan_preserves_unknown_truncation_and_requires_actual_cleanup() {
     .is_err());
     assert_eq!(state.effects.get(), 0);
     let bytes = run(owner.invoke(node, HostCallId(0), RequestId(0), &[])).unwrap();
+    let original_bytes = bytes.to_vec();
     let mut records = [ScanObservation::EMPTY; 16];
     let completion = ScanCompletion::decode(bytes, &mut records).unwrap();
     assert!(completion.truncated());
@@ -321,7 +322,21 @@ fn selected_scan_preserves_unknown_truncation_and_requires_actual_cleanup() {
     assert!(slot.as_ref().unwrap().cleanup_required());
     state.cleanup_failed.set(false);
     run(slot.as_mut().unwrap().cleanup()).unwrap();
-    assert!(NetworkScanHostCall::retire_retained(&mut slot).is_ok());
+    let (provider, evidence) =
+        NetworkScanHostCall::retire_with_evidence_retained(&mut slot).unwrap();
+    assert!(Rc::ptr_eq(&provider.0, &state));
+    assert_eq!(evidence.completed_output().unwrap(), original_bytes);
+    assert_eq!(evidence.request(), request());
+    assert_eq!(
+        evidence.inspection().lifecycle,
+        CapabilityLifecycle::Revoked
+    );
+    assert_eq!(evidence.inspection().completed_operations, 1);
+    assert_eq!(evidence.inspection().in_flight_operations, 0);
+    let retained = evidence.completed_observations().unwrap();
+    assert_eq!(retained[0].ssid(), b"actual-observed");
+    assert_eq!(retained[0].security, ObservedNetworkSecurity::Unknown);
+    assert_eq!(state.effects.get(), 1);
     assert!(slot.is_none());
 }
 #[test]

@@ -254,6 +254,33 @@ pub struct NetworkScanHostCall<P> {
     output: [u8; MAXIMUM_SCAN_OUTPUT_BYTES as usize],
     length: usize,
 }
+/// Original, finite evidence moved out of a retired selected invocation. This
+/// retains the revoked Core possession and captured bytes, not a newly minted
+/// receipt or permission to renew a policy round. It has no public constructor.
+#[must_use = "retain scan evidence until its required recording has committed"]
+pub struct RetiredScanEvidence {
+    operation: BoundBaseOperation,
+    request: NetworkScanRequest,
+    records: [ScanObservation; 16],
+    output: [u8; MAXIMUM_SCAN_OUTPUT_BYTES as usize],
+    length: usize,
+}
+impl RetiredScanEvidence {
+    pub fn inspection(&self) -> &CapabilityInspection {
+        self.operation.inspection()
+    }
+    /// Original absolute invocation context; retirement does not refresh it.
+    pub fn request(&self) -> NetworkScanRequest {
+        self.request
+    }
+    pub fn completed_output(&self) -> Option<&[u8]> {
+        (self.length > 0).then_some(&self.output[..self.length])
+    }
+    pub fn completed_observations(&self) -> Option<&[ScanObservation]> {
+        self.completed_output()?;
+        self.records.get(..usize::from(self.output[20]))
+    }
+}
 impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
     pub async fn invoke(
         &mut self,
@@ -360,10 +387,38 @@ impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
             && i.in_flight_operations == 0
     }
     pub fn retire_retained(slot: &mut Option<Self>) -> Result<P, ScanCallRefusal> {
+        // Compatibility entrance for callers whose evidence custody is already
+        // settled. Recovery callers retain the original evidence below instead.
+        Self::retire_with_evidence_retained(slot).map(|(provider, _)| provider)
+    }
+    /// Return actual restored-provider custody and the original evidence in one
+    /// move. No allocation, encoding, identity clone or synthesized completion
+    /// occurs; every refusal preserves the entire original selected owner.
+    pub fn retire_with_evidence_retained(
+        slot: &mut Option<Self>,
+    ) -> Result<(P, RetiredScanEvidence), ScanCallRefusal> {
         if !slot.as_ref().is_some_and(Self::retirement_ready) {
             return Err(ScanCallRefusal::Retirement);
         }
-        Ok(slot.take().expect("validated owner").provider)
+        let Self {
+            operation,
+            provider,
+            request,
+            records,
+            output,
+            length,
+            ..
+        } = slot.take().expect("validated owner");
+        Ok((
+            provider,
+            RetiredScanEvidence {
+                operation,
+                request,
+                records,
+                output,
+                length,
+            },
+        ))
     }
     fn binding(&self, node: NodeId, call: HostCallId) -> Result<(), ScanCallRefusal> {
         if node == self.node && call == HostCallId(0) {
