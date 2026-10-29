@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 
 mod builder;
 mod microphone_initialization;
+mod playback_initialization;
 pub use builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
@@ -90,6 +91,10 @@ fn package_catalog() -> PackageCatalogContribution {
         .collect();
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION.into(),
+                playback_initialization::contract(),
+            ),
             (
                 conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION.into(),
                 alsa_microphone_initialization_contract(),
@@ -189,6 +194,7 @@ impl HostMakePackage for HostedMakePackage {
                 ),
             ],
             offers: vec![
+                playback_initialization::offer(),
                 microphone_initialization::offer(),
                 microphone_initialization::converted_offer(),
                 offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),

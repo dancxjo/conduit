@@ -109,16 +109,29 @@ impl crate::StdHost {
             return Err("selected playback offer or resource already exists".into());
         }
         let mut advertisement = self.advertisement.clone();
-        advertisement.capabilities.push(offer);
-        advertisement.resources.push(conduit_core::resource_offer(
-            pool.as_str(),
-            conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
-            1,
-        ));
+        let mut registry = self.base_registry.clone();
+        if let Some(entry) = playback.checked_base_entry() {
+            let base = entry.base_id.clone();
+            registry
+                .register(entry)
+                .map_err(|e| format!("selected playback Base registration: {e:?}"))?;
+            registry
+                .project_base_ready_into(&base, &mut advertisement)
+                .map_err(|e| format!("selected playback Base advertisement: {e:?}"))?;
+        } else {
+            // Preserve existing unchecked/legacy selections without inventing provenance.
+            advertisement.capabilities.push(offer);
+            advertisement.resources.push(conduit_core::resource_offer(
+                pool.as_str(),
+                conduit_std_offers::AUDIO_PLAYBACK_RESOURCE_CLASS,
+                1,
+            ));
+        }
         advertisement.resources.sort();
         crate::normalize_capability_offers(&mut advertisement.capabilities)?;
         let resources = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
         self.advertisement = advertisement;
+        self.base_registry = registry;
         self.kernel_resources = resources;
         self.playback = Some(playback);
         Ok(())

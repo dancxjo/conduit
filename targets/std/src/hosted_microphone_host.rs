@@ -12,6 +12,9 @@ impl crate::StdHost {
     }
 
     pub fn attach_microphone(&mut self, adapter: AlsaMicrophoneAdapter) -> Result<(), String> {
+        if !self.kernel_resources.is_idle() {
+            return Err("microphone cannot replace active Host reservations".into());
+        }
         if self.microphone.is_some() {
             return Err("std Host already has an initialized microphone".into());
         }
@@ -28,10 +31,11 @@ impl crate::StdHost {
         );
         let capability = adapter.offer();
         let observation = adapter.observation();
+        let base_id = conduit_core::HostBaseId::from(observation.base_identity.clone());
         let mut registry = self.base_registry.clone();
         registry
             .register(conduit_core::BaseProviderEntry {
-                base_id: conduit_core::HostBaseId::from(observation.base_identity.clone()),
+                base_id: base_id.clone(),
                 provider_instance_id: conduit_core::BaseInstanceId::from(format!(
                     "std/alsa/{}/card-{}/device-{}/{}/{}",
                     observation.base_identity,
@@ -52,7 +56,7 @@ impl crate::StdHost {
             })
             .map_err(|error| format!("std microphone Base registration: {error:?}"))?;
         registry
-            .project_ready_into(&mut advertisement)
+            .project_base_ready_into(&base_id, &mut advertisement)
             .map_err(|error| format!("std microphone Base advertisement: {error:?}"))?;
         advertisement.offer_generation = conduit_core::OfferGeneration(next_generation);
         advertisement.resources.sort();
@@ -63,6 +67,7 @@ impl crate::StdHost {
         });
         let kernel_resources =
             crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        self.advance_retained_spoken_offer_generation(advertisement.offer_generation)?;
         self.advertisement = advertisement;
         self.microphone = Some(adapter);
         self.base_registry = registry;
