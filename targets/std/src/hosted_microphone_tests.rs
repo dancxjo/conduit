@@ -433,3 +433,6 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
     fs::remove_dir_all(microphone_root).unwrap();
     fs::remove_dir_all(whisper_root).unwrap();
 }
+
+#[path = "hosted_microphone_tests/remote.rs"]
+mod remote;

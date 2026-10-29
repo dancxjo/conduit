@@ -19,6 +19,7 @@ pub struct AdmittedRemoteFragment {
     runtime: InstalledRemoteFragment,
     reservation: Option<KernelResourceReservation>,
     identity: ActivePlayIdentity,
+    offer_generation: conduit_core::OfferGeneration,
     body_time: Option<(BodyTimeRequirement, BodyHostTimeAdmission)>,
     clock_quality: Option<BodyTimeQuality>,
     last_clock_sample: Option<conduit_core::MonotonicInstant>,
@@ -191,6 +192,30 @@ impl StdHost {
             .poll_body_conversation_context(self.body_conversation_context.as_ref())
     }
 
+    /// Complete only the existing microphone operation using this Host's selected adapter.
+    pub fn complete_remote_microphone_host_call(
+        &mut self,
+        fragment: &mut AdmittedRemoteFragment,
+        request: HostCallRequest,
+        cancelled: impl FnMut() -> bool,
+    ) -> Result<bool, String> {
+        let advertisement = self.advertisement();
+        if fragment.identity.host_id != advertisement.host_id
+            || fragment.identity.boot_id != advertisement.boot_id
+            || fragment.offer_generation != advertisement.offer_generation
+        {
+            return Err(
+                "remote microphone fragment belongs to another Host, Boot, or offer generation"
+                    .into(),
+            );
+        }
+        fragment.runtime.complete_microphone_provider_host_call(
+            request,
+            self.microphone.as_mut(),
+            cancelled,
+        )
+    }
+
     pub fn complete_remote_voice_host_call<F>(
         &mut self,
         fragment: &mut AdmittedRemoteFragment,
@@ -251,6 +276,7 @@ impl StdHost {
             runtime,
             reservation: Some(reservation),
             identity: play.identity().clone(),
+            offer_generation: advertisement.offer_generation,
             body_time: None,
             clock_quality: None,
             last_clock_sample: None,
