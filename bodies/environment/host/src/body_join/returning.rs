@@ -135,6 +135,9 @@ fn verify_receipt(
     Ok(())
 }
 
+#[path = "return_attempt.rs"]
+mod attempt;
+
 pub(super) fn run(binding_path: &Path, continuity: &Path, state: &Path, peer: &str) -> Result<()> {
     use std::os::unix::fs::DirBuilderExt;
     let old_binding = crate::local_recorder::validated_binding(binding_path)?;
@@ -173,72 +176,13 @@ pub(super) fn run(binding_path: &Path, continuity: &Path, state: &Path, peer: &s
     if ad.boot_id == old.boot_id || ad != advertisement(old, ad.boot_id.clone()) {
         return Err("retained return advertisement differs".into());
     }
-    let challenge_path = state.join("return-challenge.json");
-    let challenge: Challenge = if challenge_path.exists() {
-        load(&challenge_path)?
-    } else {
-        let request = serde_json::json!({"schema":"conduit.environment/observer-return-challenge-request@1", "body_id":old.body_id, "part_id":old.part_id,"host_advertisement":ad});
-        let challenge: Challenge = serde_json::from_slice(&exchange(peer, &request)?)?;
-        challenge.verify(&bootstrap, old, &ad)?;
-        save(&challenge_path, &challenge)?;
-        challenge
-    };
-    challenge.verify(&bootstrap, old, &ad)?;
-    let query = query(&bootstrap, &ad, challenge.challenge.nonce);
-    let output = state.join("recorder-binding.json");
-    if output.exists() {
-        let binding = crate::local_recorder::validated_binding(&output)?;
-        if binding.root() != &bootstrap.root_key
-            || binding.invitation() != &bootstrap.invitation.claim
-            || binding.credential().host_id != ad.host_id
-            || binding.credential().boot_id != ad.boot_id
-            || binding.credential().part_id != old.part_id
-        {
-            return Err("retained returned binding differs".into());
-        }
-        return Ok(());
-    }
-    let finish = serde_json::json!({"schema":"conduit.environment/observer-return-request@1", "body_id":old.body_id,"part_id":old.part_id,"admission_id":challenge.challenge.admission_id,"host_advertisement":ad,"nonce":hex(&challenge.challenge.nonce),"signature":hex(&ed25519_dalek::SigningKey::from_bytes(&bootstrap.invitation.secret).sign(&challenge.challenge.signing_transcript()).to_bytes())});
-    let finish_path = state.join("return-submission-private.json");
-    if finish_path.exists() {
-        if load::<serde_json::Value>(&finish_path)? != finish {
-            return Err("retained return proof differs".into());
-        }
-    } else {
-        save(&finish_path, &finish)?;
-    }
-    // If the finish was committed but its reply/mailbox was lost, a signed
-    // read-only recovery request retrieves the exact new-Boot membership.
-    let receipt: recovery::Receipt = match exchange(peer, &finish) {
-        Ok(bytes) => serde_json::from_slice(&bytes)?,
-        Err(finish_error) => match exchange(peer, &serde_json::to_value(&query)?) {
-            Ok(bytes) => serde_json::from_slice(&bytes)?,
-            Err(_) => return Err(finish_error),
-        },
-    };
-    verify_receipt(&receipt, &bootstrap, old, &challenge, &query)?;
-    let retained_continuity = state.join("continuity-private.json");
-    if retained_continuity.exists() {
-        if serde_json::to_vec(&load::<Bootstrap>(&retained_continuity)?)?
-            != serde_json::to_vec(&bootstrap)?
-        {
-            return Err("retained return continuity differs".into());
-        }
-    } else {
-        save(&retained_continuity, &bootstrap)?;
-    }
-    save(
-        &output,
-        &serde_json::json!({"schema":"conduit.environment/joined-recorder@2", "invitation":bootstrap.invitation.claim,"root_key":bootstrap.root_key,"local_host":ad.host_id,"local_boot":ad.boot_id,"recovery_request":query,"receipt":receipt}),
-    )?;
-    crate::local_recorder::validated_binding(&output)?;
-    Ok(())
+    attempt::run(&bootstrap, old, &ad, state, peer)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn fixture() -> (
+    pub(super) fn fixture() -> (
         Bootstrap,
         MembershipCredential,
         HostAdvertisement,
