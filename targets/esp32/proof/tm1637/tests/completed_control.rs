@@ -84,7 +84,7 @@ fn live_kernel_refusal_retains_identical_box_and_original_signs() {
         .collect::<Vec<_>>();
     // Descriptive successful phase/receipt cannot replace the actual gate.
     play.phase = "attached";
-    play.receipt_len = 1;
+    play.receipt_observed = true;
     let (retired, memory) = allocation_probe::observe(|| play.retire_completed_kernel());
     assert!(!retired);
     assert!(play.completed.is_none());
@@ -150,4 +150,77 @@ fn failed_join_preserves_original_cancellation_and_full_retirement_path() {
         .events()
         .any(|event| matches!(event.kind, k::KernelEventKind::RunCancelled)));
     assert_eq!(state.calls.get(), [1, 1, 1]);
+}
+
+#[test]
+fn attachment_sign_refuses_different_bytes_than_the_actual_completed_join() {
+    let (mut play, state, _) = fixture();
+    // Drive the actual first two calls, but deliberately corrupt the Cord's
+    // Join result after the selected owner has retained its original output.
+    // This remains a fully bounded, structurally valid attachment value.
+    for ordinal in 0..2 {
+        let kernel = &mut play.prepared.as_mut().unwrap().kernel;
+        let request = loop {
+            if let Some(request) = kernel.next_host_request() {
+                break request;
+            }
+            kernel.step().unwrap();
+        };
+        let input = kernel.host_value(request.input.value).unwrap();
+        let mut buffer = [0; 167];
+        let length = if ordinal == 0 {
+            play.source
+                .as_mut()
+                .unwrap()
+                .invoke(
+                    request.node,
+                    request.call,
+                    request.request,
+                    input,
+                    &mut buffer,
+                )
+                .unwrap()
+        } else {
+            let bytes = immediate(play.join.as_mut().unwrap().invoke(
+                request.node,
+                request.call,
+                request.request,
+                input,
+            ))
+            .unwrap();
+            let info = conduit_net::decode_network_attachment(bytes).unwrap();
+            conduit_net::encode_network_attachment(
+                conduit_net::NetworkAttachmentInfo {
+                    attachment_id: "fixture/wrong-cord-value",
+                    host_id: info.host_id,
+                    boot_id: info.boot_id,
+                    resource_pool_id: info.resource_pool_id,
+                    generation: info.generation,
+                },
+                &mut buffer,
+            )
+            .unwrap()
+        };
+        let value = kernel.store_host_value(&buffer[..length]).unwrap();
+        kernel
+            .complete_host_call(
+                request.node,
+                request.request,
+                k::HostCallOutcome {
+                    disposition: k::HostCallDisposition::Completed,
+                    output: Some(k::BoundedValueRef::new(value, 167).unwrap()),
+                    failure: None,
+                },
+            )
+            .unwrap();
+    }
+    assert!(play.join.as_ref().unwrap().completed_output().is_some());
+    let (_, memory) = allocation_probe::observe(|| immediate(play.run()));
+    assert_eq!(memory.allocations + memory.reallocations, 0);
+    assert!(!play.receipt_received());
+    assert!(play.completed.is_none());
+    assert_eq!(play.failure.unwrap().code, k::FailureCode::HostCallDenied);
+    assert_eq!(play.status(), "access-point-restored");
+    assert_eq!(state.calls.get(), [1, 1, 1]);
+    assert!(play.take_retired().is_ok());
 }

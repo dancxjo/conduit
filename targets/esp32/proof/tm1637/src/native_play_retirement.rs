@@ -81,10 +81,7 @@ impl NativePlay {
         let join_role = self.execution_join_role()?;
         let source = self.source.as_mut().ok_or("network-retirement-source")?;
         let join = self.join.as_mut().ok_or("network-retirement-provider")?;
-        self.receipt.fill(0);
-        self.receipt_len = 0;
-        self.expected.fill(0);
-        self.expected_len = 0;
+        self.receipt_observed = false;
         // An already-retired completed scheduler cannot be cancelled again.
         // Its original Signs stay owned while actual native cleanup proceeds.
         if let Some(prepared) = self.prepared.as_mut() {

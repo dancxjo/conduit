@@ -303,6 +303,20 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
         result?;
         Ok(self.output.as_ref().unwrap().bytes())
     }
+    /// Historical bytes from this exact owner's successfully completed Join.
+    /// This borrows the original validated record without copying or dispatch.
+    /// It proves neither current station availability nor permission to invoke,
+    /// replace, retire or erase anything. Revocation/cleanup may retain history.
+    pub fn completed_output(&self) -> Option<&[u8]> {
+        let inspection = self.inspection();
+        if !self.invoked
+            || inspection.completed_operations != 1
+            || inspection.in_flight_operations != 0
+        {
+            return None;
+        }
+        self.output.as_ref().map(AttachmentRecord::bytes)
+    }
     /// Safety cleanup, never a new join or a claim of restored attachment.
     /// Failure/cancellation leaves the obligation set; Root must supervise it.
     pub async fn cleanup(&mut self) -> Result<(), StationFailure> {

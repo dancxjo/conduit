@@ -12,10 +12,7 @@ pub struct NativePlay {
     pub(super) source: Option<n::NetworkCredentialsHostCall<Source>>,
     pub(super) join: Option<n::NetworkJoinHostCall<Provider>>,
     pub(super) active: Option<c::ActivePlayIdentity>,
-    pub(super) expected: [u8; 167],
-    pub(super) expected_len: usize,
-    pub(super) receipt: [u8; 167],
-    pub(super) receipt_len: usize,
+    pub(super) receipt_observed: bool,
     pub(super) failure: Option<k::Failure>,
     pub(super) native_failure: Option<conduit_net::StationAttemptFailure>,
     pub(super) station_outcome: Option<(Result<(), conduit_net::StationAttemptFailure>, u64)>,
@@ -36,10 +33,7 @@ impl NativePlay {
             source: None,
             join: None,
             active: None,
-            expected: [0; 167],
-            expected_len: 0,
-            receipt: [0; 167],
-            receipt_len: 0,
+            receipt_observed: false,
             failure: None,
             native_failure: None,
             station_outcome: None,
@@ -68,7 +62,7 @@ impl NativePlay {
         self.active.as_ref()
     }
     pub fn receipt_received(&self) -> bool {
-        self.receipt_len > 0
+        self.receipt_observed
     }
     /// Current native interface and acknowledged socket-task observation.
     /// The historical receipt alone cannot keep a lost attachment available.
@@ -194,8 +188,6 @@ impl NativePlay {
                         Ok(bytes) => {
                             self.station_outcome =
                                 Some((Ok(()), embassy_time::Instant::now().as_millis()));
-                            self.expected[..bytes.len()].copy_from_slice(bytes);
-                            self.expected_len = bytes.len();
                             match kernel.store_host_value(bytes) {
                                 Ok(value) => {
                                     output = Some(
@@ -224,13 +216,15 @@ impl NativePlay {
                 } else if request.node == roles.attachment_sign
                     && request.call == k::HostCallId(0)
                     && request.request == k::RequestId(0)
-                    && self.receipt_len == 0
-                    && self.expected_len > 0
-                    && input == &self.expected[..self.expected_len]
+                    && !self.receipt_observed
+                    && self
+                        .join
+                        .as_ref()
+                        .and_then(n::NetworkJoinHostCall::completed_output)
+                        .is_some_and(|expected| !expected.is_empty() && input == expected)
                 {
                     self.dispatches[2] += 1;
-                    self.receipt[..input.len()].copy_from_slice(input);
-                    self.receipt_len = input.len();
+                    self.receipt_observed = true;
                 } else {
                     failure = Some(fail(k::FailureCode::HostCallDenied, 7));
                 }
@@ -259,7 +253,7 @@ impl NativePlay {
             }
             self.steps += 1;
             match kernel.step() {
-                Ok(SchedulerStatus::Drained) if self.receipt_len > 0 => {
+                Ok(SchedulerStatus::Drained) if self.receipt_observed => {
                     self.phase = "attached";
                     // A receipt does not itself prove retirement. The actual
                     // scheduler gate may refuse, retaining its identical Box.

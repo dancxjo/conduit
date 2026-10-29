@@ -20,7 +20,7 @@ impl NativePlay {
     pub(super) fn retire_completed_kernel(&mut self) -> bool {
         if self.completed.is_some()
             || self.phase != "attached"
-            || self.receipt_len == 0
+            || !self.receipt_observed
             || self.failure.is_some()
         {
             return false;
