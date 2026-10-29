@@ -4,6 +4,8 @@
 mod credentials;
 mod host_call;
 mod inspection;
+#[cfg(feature = "bounded-scan")]
+mod scan;
 use conduit_net::{
     AccessPointSwitchOperations, DeadlineExpired, OperationDeadline, StationFailure,
     StationOperations,
@@ -18,6 +20,11 @@ use esp_radio::wifi::{
 pub use host_call::{Esp32JoinPreparationRefusal, Esp32NetworkJoinProvider};
 use inspection::observed_wait;
 pub use inspection::{StationProgress, StationSubstage};
+#[cfg(feature = "bounded-scan")]
+pub use scan::{
+    Esp32NetworkScanProvider, Esp32ScanInspection, Esp32ScanPreparationRefusal,
+    RestoredAccessPointServices,
+};
 
 /// SDK observation only. Disconnection preserves the exact typed reason while
 /// deliberately excluding the SDK's SSID, BSSID and credential-bearing state.
@@ -98,7 +105,9 @@ pub struct Esp32ApStationSwitch<'a, 'd, S> {
 }
 impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
     /// # Safety
-    /// Root must retain the actual distinct AP/station interface runners and
+    /// Root must supply an initially quiescent controller, without an unfinished
+    /// scan/connect operation or unretired SDK scan results. Root must retain the
+    /// actual distinct AP/station interface runners and
     /// exclusive controller, admit the SDK's finite memory/work, and select this
     /// operation through the generic Host Call boundary. Services must describe
     /// these same AP resources. Root must revoke any old attachment before mode
