@@ -70,25 +70,23 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
     rows.sort_by_key(|row| !row.quantity);
     (!rows.is_empty()).then_some(rows)
 }
-/// A property Look replaces the native snapshot only when no semantic content
-/// would be omitted. Unsupported properties and empty Info subjects retain it.
-pub fn covers_entire_face(face: &Face) -> bool {
+/// Native primary pages render subject headings, authored text and actions;
+/// technical properties live only in Details (not this read-only page cycle).
+/// Keep native primary pages whenever they add content beyond the Info headings
+/// already named by the property Look. This is not a full Face/Details projection.
+pub fn has_no_additional_native_primary_content(face: &Face) -> bool {
     !face.subjects.is_empty()
-        && !face.properties.is_empty()
         && face.subjects.iter().all(|subject| {
             subject.role == FaceRole::Info
-                && face
-                    .properties
-                    .iter()
-                    .any(|p| p.subject == subject.identity)
-        })
-        && face.properties.iter().all(|p| {
-            matches!(
-                p.value,
-                FacePropertyValue::TypedValue { .. }
-                    | FacePropertyValue::Text(_)
-                    | FacePropertyValue::Flag(_)
-            )
+                && face.properties.iter().any(|p| {
+                    p.subject == subject.identity
+                        && matches!(
+                            p.value,
+                            FacePropertyValue::TypedValue { .. }
+                                | FacePropertyValue::Text(_)
+                                | FacePropertyValue::Flag(_)
+                        )
+                })
         })
         && face.text.is_empty()
         && face.relationships.is_empty()

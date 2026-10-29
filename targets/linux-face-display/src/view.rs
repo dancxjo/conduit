@@ -271,12 +271,13 @@ fn frame(
         })
         .collect();
     let property_pages = property.as_ref().map_or(0, |(_, _, pages)| *pages);
-    let native_pages =
-        if property_pages > 0 && crate::property_mask::covers_entire_face(&property_face) {
-            0
-        } else {
-            scene.pages()
-        };
+    let native_pages = if property_pages > 0
+        && crate::property_mask::has_no_additional_native_primary_content(&property_face)
+    {
+        0
+    } else {
+        scene.pages()
+    };
     let pages = charts.len() + native_pages + property_pages;
     let page = page_tick % pages;
     if page < charts.len() {
@@ -340,10 +341,35 @@ mod tests {
         };
         let mixed = make(vec![property, unsupported]);
         let (_, _, pages, _) = frame(mixed, 1024, 600, 0, None).unwrap();
+        assert_eq!(pages, 1, "Count metadata adds no native primary content");
+    }
+    #[test]
+    #[ignore = "requires explicitly selected private actual current Face"]
+    fn actual_info_face_with_metadata_has_no_empty_page_in_any_cycle() {
+        let path =
+            std::env::var_os("CONDUIT_PRIVATE_CURRENT_FACE_TEST").expect("private actual Face");
+        let document: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let face: Face = serde_json::from_value(document["face"].clone()).unwrap();
+        face.validate().unwrap();
         assert!(
-            pages >= 2,
-            "unsupported properties must retain native pages"
+            face.properties
+                .iter()
+                .any(|p| matches!(p.value, conduit_face::FacePropertyValue::Count(_)))
         );
+        for tick in 0..8 {
+            let (scene, page, pages, _) = frame(
+                face.clone(),
+                1024,
+                600,
+                tick,
+                Some(conduit_core::Unit::Fahrenheit),
+            )
+            .unwrap();
+            assert_eq!((page, pages), (0, 1));
+            assert!(scene.commands().iter().any(|c| c.payload().contains("°F")));
+            assert!(scene.commands().iter().any(|c| c.payload().contains('%')));
+        }
     }
     #[test]
     fn sensor_pages_do_not_hide_transcript_from_the_same_face() {
