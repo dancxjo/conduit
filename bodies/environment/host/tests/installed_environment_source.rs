@@ -105,6 +105,7 @@ fn definition(host: &HostAdvertisement) -> NativeSourceDefinition {
             }],
         },
         grant,
+        envelope_id: "std/native-source/exact@1".into(),
         resource_generation: ResourceGenerationId("test/source-session-generation-1".into()),
         configuration: vec![],
         input_bytes: 1,
@@ -496,5 +497,5 @@ fn the_same_installed_source_contract_preserves_dht_unsupported_pressure() {
     );
 }
 
-#[path="installed_environment_source/worker_tests.rs"]
+#[path = "installed_environment_source/worker_tests.rs"]
 mod worker_tests;

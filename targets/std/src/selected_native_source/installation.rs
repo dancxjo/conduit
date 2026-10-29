@@ -40,6 +40,9 @@ impl crate::StdHost {
         registry
             .project_base_ready_into(&definition.base.base_id, &mut advertisement)
             .map_err(|e| format!("native Source advertisement: {e:?}"))?;
+        advertisement
+            .resources
+            .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
         let ledger = KernelResourceLedger::new(&advertisement)?;
         Ok((registry, advertisement, ledger))
     }

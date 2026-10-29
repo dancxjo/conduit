@@ -20,6 +20,7 @@ pub struct NativeSourceDefinition {
     pub base: BaseProviderEntry,
     pub grant: AuthorityGrant,
     pub resource_generation: ResourceGenerationId,
+    pub envelope_id: CapabilityEnvelopeId,
     pub configuration: Vec<ConfigurationEntry>,
     pub input_bytes: u32,
     pub output_bytes: u32,
@@ -104,6 +105,7 @@ fn validate_definition(
         || d.base.capabilities.len() != 1
         || d.base.resources.len() != if worker_bytes.is_some() { 2 } else { 1 }
         || d.base.provider_generation == 0
+        || d.envelope_id.as_str().is_empty()
         || d.resource_generation.0.is_empty()
         || d.input_bytes == 0
         || d.output_bytes == 0
@@ -145,7 +147,6 @@ fn validate_definition(
         || offer.inputs != d.kind.inputs
         || offer.outputs != d.kind.outputs
         || offer.semantic_contract != d.kind.semantic_contract()
-        || offer.implementation.implementation_id.as_str() != d.base.implementation_id.as_str()
         || offer.host_calls.len() != 1
         || offer.resource_requirements.len() != 1
         || offer.authority_requirements.len() != 1
@@ -243,7 +244,7 @@ impl InitializedNativeSource {
                 "native Source Plan does not possess the independently installed grant".into(),
             );
         }
-        let envelope: CapabilityEnvelopeId = "std/native-source/exact@1".into();
+        let envelope = d.envelope_id.clone();
         let scope = BaseCapabilityScope {
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),

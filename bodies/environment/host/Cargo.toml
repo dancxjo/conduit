@@ -8,6 +8,7 @@ publish = false
 
 [features]
 default = []
+history-source = ["dep:conduit-std-host", "conduit-environment-runtime/history-exchange"]
 carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source"]
 
 [dependencies]
