@@ -268,7 +268,7 @@ fn verify_receipt(
     let mut bytes = [0; 416];
     for (out, pair) in bytes
         .iter_mut()
-        .zip(receipt.accepted.as_bytes().chunks_exact(2))
+        .zip(receipt.accepted.as_bytes().as_chunks::<2>().0)
     {
         let digit = |byte| match byte {
             b'0'..=b'9' => Some(byte - b'0'),
