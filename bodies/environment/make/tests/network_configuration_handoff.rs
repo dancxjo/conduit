@@ -128,3 +128,6 @@ fn stale_submission_cannot_retire_a_different_acknowledged_input() {
     assert_eq!(owner.accepted_updates(), 1);
     assert!(mailbox.acknowledged_submission() == Ok(new_token));
 }
+
+#[path = "network_configuration_handoff/failover.rs"]
+mod failover;

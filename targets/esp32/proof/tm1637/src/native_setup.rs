@@ -9,6 +9,8 @@ mod diagnostics;
 mod floor_reserve;
 #[path = "native_setup_input.rs"]
 mod input;
+#[path = "native_setup_retirement.rs"]
+mod retirement;
 #[cfg(feature = "network-workspace-check")]
 #[path = "native_setup_workspace_check.rs"]
 mod workspace_check;
@@ -99,11 +101,10 @@ impl NativeRoot {
         if !self.network.recovery.attempt_due(now) {
             return b"waiting";
         }
-        // The previous selected read consumed its snapshot. Re-freeze SAME
-        // chosen credentials only after real owner/evidence return, before
-        // reserving a retry. New queued AP input cannot alter retained SDK config.
-        if crate::native_credentials::prepare_retry(&mut self.credentials).is_err() {
-            return &diagnostics::NETWORK_RETRY_SOURCE_REFUSED;
+        // Actual old owners/evidence returned before changing a saved profile.
+        // This does not consume a later AP input or change recovery revision.
+        if let Err(reason) = self.stage_saved_network_retry() {
+            return reason.as_bytes();
         }
         let candidate = match self.network.recovery.preview_attempt(now) {
             Ok(Some(candidate)) => candidate,
@@ -538,48 +539,6 @@ impl NativeRoot {
                     );
                 }
             }
-        }
-    }
-    fn finish_network_retirement(&mut self) -> Result<(), &'static str> {
-        #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
-        {
-            if !self.network.can_reclaim_restored() {
-                return Err("network-reclaim-preflight");
-            }
-            let retired = self
-                .network
-                .retirement
-                .as_mut()
-                .ok_or("network-retirement-unavailable")?;
-            if !retired.owners_recoverable() {
-                return Err("network-retirement-generation-exhausted");
-            }
-            retired.commit_evidence()?;
-            self.issuer
-                .finish_network_play(retired)
-                .map_err(|_| "network-retirement-issuer")?;
-            let (provider, source) = retired
-                .take_owners()
-                .expect("durably committed actual owners");
-            self.network
-                .reclaim_restored(provider)
-                .unwrap_or_else(|_| unreachable!("checked restored AP owner"));
-            self.credentials = Some(
-                crate::native_credentials::reprepare(source, &self.host, &self.boot)
-                    .unwrap_or_else(|_| unreachable!("checked returned private source")),
-            );
-            // Mandatory evidence is now readback-committed in append-only flash.
-            self.network.retirement = None;
-            let generation = self.network.recovery.generation();
-            self.network
-                .recovery
-                .restored(generation, embassy_time::Instant::now().as_millis(), true)
-                .map_err(|_| "network-recovery-transition")?;
-            Ok(())
-        }
-        #[cfg(not(any(feature = "local-evidence-store", feature = "network-credential-store")))]
-        {
-            Err("network-recovery-durable-custody-required")
         }
     }
     pub fn control_binding(&self) -> Option<&c::ActivePlayIdentity> {

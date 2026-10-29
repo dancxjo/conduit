@@ -21,3 +21,6 @@ mod tests;
 
 #[cfg(test)]
 mod private_wire_tests;
+
+#[cfg(test)]
+mod saved_tests;

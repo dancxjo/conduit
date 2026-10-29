@@ -48,4 +48,13 @@ impl NativeRoot {
         }
         Ok(())
     }
+    pub(super) fn stage_saved_network_retry(&mut self) -> Result<(), &'static str> {
+        self.network
+            .return_unselected_ready()
+            .map_err(|_| "configuration-owner-pending")?;
+        let configuration = crate::native_credentials::prepare_retry(&mut self.credentials)?;
+        self.network
+            .stage_unselected_configuration(configuration)
+            .map_err(|_| "configuration-stage")
+    }
 }

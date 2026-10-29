@@ -1,4 +1,8 @@
 //! Actual private input custody retained by Root before projecting availability.
+#[path = "native_credential_configuration.rs"]
+mod configuration;
+#[path = "native_credential_failover.rs"]
+mod failover;
 #[path = "native_credential_journal.rs"]
 pub mod journal;
 #[path = "native_known_credentials.rs"]
@@ -28,6 +32,7 @@ pub struct RootCredentialSource {
 struct PrivateProfiles {
     profiles: known::Owner,
     chosen: Option<conduit_net::KnownProfileKey>,
+    fallback: failover::Fallback,
     // A cached/retry selection never consumes a later AP submission.
     frozen_origin: Option<Submission>,
     // Preserve exact acknowledged correlation through unused-snapshot retirement.
@@ -38,6 +43,7 @@ impl PrivateProfiles {
         Self {
             profiles,
             chosen: None,
+            fallback: failover::Fallback::new(),
             frozen_origin: None,
             committed_pending: None,
         }
@@ -68,6 +74,9 @@ impl CredentialSource for RootCredentialSource {
         let selected = owner
             .selection()
             .ok_or(CredentialSourceRefusal::Unavailable)?;
+        if !owner.fallback.validates(selected, self.generation) {
+            return Err(CredentialSourceRefusal::Invalid);
+        }
         if output.len() < selected.wire_bytes {
             return Err(CredentialSourceRefusal::OutputCapacity);
         }
@@ -118,12 +127,20 @@ impl CredentialSource for RootCredentialSource {
                 .expect("preflighted selected private transfer");
             owner.frozen_origin = None;
             owner.committed_pending = None;
+            owner
+                .fallback
+                .taken(transferred)
+                .map_err(|_| CredentialSourceRefusal::Invalid)?;
             Ok(transferred.wire_bytes)
         } else {
             // A new AP request belongs to the NEXT preparation. Do not lock,
             // consume or refuse it while delivering this cached/retry selection.
             let transferred = owner
                 .take_selected(output)
+                .map_err(|_| CredentialSourceRefusal::Invalid)?;
+            owner
+                .fallback
+                .taken(transferred)
                 .map_err(|_| CredentialSourceRefusal::Invalid)?;
             Ok(transferred.wire_bytes)
         }
@@ -136,9 +153,9 @@ pub fn prepare(
     ReadyCredentialBase<RootCredentialSource>,
     NetworkSetupWriter<'static>,
 ) {
-    // Two explicit page revisions plus one retained Boot configuration admit
-    // at most nine finite attempts within the service owner's 32 commands.
-    // Counters never rewind; journal capacity independently refuses exhaustion.
+    // Mailbox revisions, saved-profile policy, mandatory journal capacity and
+    // the service owner's 32 commands impose independent finite bounds.
+    // No profile choice renews a grant, command budget or recovery generation.
     let (writer, reader) = INPUT.init(NetworkSetupChannel::new(2)).split();
     let identity = identity(host, boot, 1);
     // SAFETY: Root initializes one actual fixed-capacity volatile mailbox and
@@ -281,164 +298,6 @@ impl RootCredentialSource {
             Ok(())
         }
     }
-    fn prepare_retry(&mut self) -> Result<(), &'static str> {
-        let owner = self.owner.as_mut().ok_or("credential-owner-unavailable")?;
-        if owner.selection().is_some() {
-            return Ok(());
-        }
-        let key = owner.chosen.ok_or("credential-selection")?;
-        if owner
-            .profiles()
-            .info(key)
-            .map_err(|_| "credential-profile-key")?
-            .security
-            != conduit_net::KnownSecurity::Wpa2Personal
-        {
-            return Err("credential-auth-unsupported");
-        }
-        // Preserve the SDK's SAME chosen profile. New acknowledged AP input is
-        // handled separately after actual cold owner return, never here.
-        let origin = if let Some((token, pending_key)) = owner
-            .committed_pending
-            .filter(|(_, pending_key)| *pending_key == key)
-        {
-            let _ = pending_key;
-            let mailbox = self
-                .reader
-                .try_lock()
-                .map_err(|_| "credential-mailbox-busy")?;
-            (mailbox.acknowledged_submission().ok() == Some(token)).then_some(token)
-        } else {
-            None
-        };
-        owner.freeze(key).map_err(|_| "credential-selection")?;
-        owner.frozen_origin = origin;
-        Ok(())
-    }
-    fn prepare_configuration(
-        &mut self,
-    ) -> Result<esp_radio::wifi::sta::StationConfig, &'static str> {
-        self.ensure_owner()?;
-        let owner = self.owner.as_deref_mut().expect("loaded private owner");
-        let mailbox = self
-            .reader
-            .try_lock()
-            .map_err(|_| "credential-mailbox-busy")?;
-        // Caller has returned the actual unselected join owner first. Hold the
-        // exact acknowledged token while retiring only its superseded snapshot.
-        selection::retire_superseded(
-            &mut owner.profiles,
-            &mut owner.frozen_origin,
-            mailbox.acknowledged_submission().ok(),
-        )?;
-        if owner.selection().is_none() {
-            let (key, origin) = match mailbox.acknowledged_submission() {
-                Ok(submission) => {
-                    let key = if let Some((_, key)) = owner
-                        .committed_pending
-                        .filter(|(token, _)| *token == submission)
-                    {
-                        key
-                    } else {
-                        let key = mailbox
-                            .prepare_acknowledged(|request| {
-                                let input = conduit_net::PrivateNetworkInput::new(
-                                    request.ssid,
-                                    request.credential,
-                                    conduit_net::KnownSecurity::Wpa2Personal,
-                                    0,
-                                )
-                                .map_err(|_| "credential-configuration")?;
-                                #[cfg(not(any(
-                                    feature = "local-evidence-store",
-                                    feature = "network-credential-store"
-                                )))]
-                                let volatile_revision = owner
-                                    .store_revision()
-                                    .checked_add(1)
-                                    .ok_or("credential-configuration-exhausted")?;
-                                owner
-                                    .upsert_after_acknowledgement(input, |wire| {
-                                        #[cfg(any(
-                                            feature = "local-evidence-store",
-                                            feature = "network-credential-store"
-                                        ))]
-                                        {
-                                            durable()
-                                                .ok_or(())?
-                                                .lock(|journal| journal.borrow_mut().commit(wire))
-                                                .map_err(|_| ())
-                                        }
-                                        #[cfg(not(any(
-                                            feature = "local-evidence-store",
-                                            feature = "network-credential-store"
-                                        )))]
-                                        {
-                                            // Finite within-Boot private acceptance only.
-                                            // This feature does not persist or advertise
-                                            // a committed flash configuration; public
-                                            // committed_revision remains zero.
-                                            let _ = wire;
-                                            Ok(volatile_revision)
-                                        }
-                                    })
-                                    .map_err(|_| "credential-journal-commit")
-                            })
-                            .map_err(|_| "credential-not-acknowledged")??;
-                        owner.committed_pending = Some((submission, key));
-                        key
-                    };
-                    (key, Some(submission))
-                }
-                Err(NetworkSetupRefusal::NoSubmission) => {
-                    // Until actual scan/policy integration, preserve the last
-                    // chosen supported profile within this Boot; first Boot
-                    // deterministically selects the first supported WPA2 entry.
-                    // This is NOT a best-network/RSSI or Body-peer decision.
-                    let key = owner
-                        .chosen
-                        .filter(|key| {
-                            owner.profiles().info(*key).is_ok_and(|p| {
-                                p.security == conduit_net::KnownSecurity::Wpa2Personal
-                            })
-                        })
-                        .or_else(|| {
-                            owner
-                                .profiles()
-                                .entries()
-                                .find(|p| p.security == conduit_net::KnownSecurity::Wpa2Personal)
-                                .map(|p| p.key)
-                        })
-                        .ok_or("credential-unavailable")?;
-                    (key, None)
-                }
-                Err(_) => return Err("credential-not-acknowledged"),
-            };
-            if owner
-                .profiles()
-                .info(key)
-                .map_err(|_| "credential-profile-key")?
-                .security
-                != conduit_net::KnownSecurity::Wpa2Personal
-            {
-                return Err("credential-auth-unsupported");
-            }
-            owner.freeze(key).map_err(|_| "credential-selection")?;
-            owner.chosen = Some(key);
-            owner.frozen_origin = origin;
-        }
-        if owner.selection().ok_or("credential-selection")?.security
-            != conduit_net::KnownSecurity::Wpa2Personal
-        {
-            return Err("credential-auth-unsupported");
-        }
-        // SDK refusal deliberately retains the frozen snapshot for explicit
-        // returned-owner retirement/retry, never silently clears private custody.
-        owner
-            .with_selected_request(conduit_esp32_network_switch::prepare_station_configuration)
-            .map_err(|_| "credential-selection")?
-            .map_err(|_| "credential-configuration")
-    }
 }
 pub fn committed_revision() -> u64 {
     #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
@@ -468,12 +327,12 @@ pub fn prepare_configuration(
 ) -> Result<esp_radio::wifi::sta::StationConfig, &'static str> {
     with_unbound_source(slot, RootCredentialSource::prepare_configuration)
 }
-/// Re-freeze only the retained chosen input for the existing staged SDK config.
-/// Called before reserving a Waiting retry, never merges a newly queued AP input.
+/// Prepare only the retained saved set after actual unselected owner return.
+/// A later AP submission is neither locked nor consumed here.
 pub fn prepare_retry(
     slot: &mut Option<ReadyCredentialBase<RootCredentialSource>>,
-) -> Result<(), &'static str> {
-    with_unbound_source(slot, RootCredentialSource::prepare_retry)
+) -> Result<esp_radio::wifi::sta::StationConfig, &'static str> {
+    with_unbound_source(slot, RootCredentialSource::prepare_saved_retry)
 }
 fn with_unbound_source<T>(
     slot: &mut Option<ReadyCredentialBase<RootCredentialSource>>,
@@ -489,4 +348,18 @@ fn with_unbound_source<T>(
             .expect("same unbound credential identity"),
     );
     result
+}
+
+impl RootCredentialSource {
+    pub(crate) fn record_retired_outcome(
+        &mut self,
+        revision: u64,
+        outcome: Option<(bool, u64)>,
+        now: u64,
+    ) -> Result<(), &'static str> {
+        let owner = self.owner.as_mut().ok_or("credential-owner-unavailable")?;
+        owner
+            .fallback
+            .settled(self.generation, revision, outcome, now)
+    }
 }
