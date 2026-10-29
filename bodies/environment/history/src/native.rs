@@ -150,7 +150,7 @@ impl ChartGeometry<'_> {
         for humidity in [false, true] {
             let mut run = alloc::vec::Vec::with_capacity(super::graph::MAX_GRAPH_SAMPLES);
             let mut previous_sequence = None;
-            for sample in &self.samples {
+            for sample in self.samples {
                 let value = if humidity {
                     sample.humidity_milli_percent
                 } else {

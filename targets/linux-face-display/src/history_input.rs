@@ -42,7 +42,7 @@ fn hex(text: &str, maximum: usize) -> Result<Vec<u8>, String> {
 /// Exact bounded bytes own one immutable prepared scene. Unit preference is
 /// fixed for this preparation; changing it requires a new HistoryInput.
 pub struct HistoryInput {
-    accepted: Option<(Vec<u8>, conduit_face::GraphicsScene)>,
+    accepted: Option<(Vec<u8>, conduit_face::GraphicsScene, String)>,
     preferred: Option<conduit_core::Unit>,
 }
 impl HistoryInput {
@@ -53,7 +53,10 @@ impl HistoryInput {
         }
     }
     pub fn scene(&self) -> Option<&conduit_face::GraphicsScene> {
-        self.accepted.as_ref().map(|(_, scene)| scene)
+        self.accepted.as_ref().map(|(_, scene, _)| scene)
+    }
+    pub fn label(&self) -> Option<&str> {
+        self.accepted.as_ref().map(|(_, _, label)| label.as_str())
     }
     pub fn refresh(&mut self, path: &Path) -> Result<bool, String> {
         self.accept(read_bytes(path)?)
@@ -62,13 +65,25 @@ impl HistoryInput {
         if self
             .accepted
             .as_ref()
-            .is_some_and(|(original, _)| original == &bytes)
+            .is_some_and(|(original, _, _)| original == &bytes)
         {
             return Ok(false);
         }
         let document: Document = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
+        let host: String = document.producer_host.chars().take(24).collect();
+        let boot: String = document
+            .producer_boot
+            .strip_prefix("boot/")
+            .unwrap_or(&document.producer_boot)
+            .chars()
+            .take(12)
+            .collect();
+        let mut label = format!("RETAINED HISTORY / {host} / Boot {boot}");
+        while label.len() > 112 {
+            label.pop();
+        }
         let prepared = validate(document, self.preferred)?;
-        self.accepted = Some((bytes, prepared));
+        self.accepted = Some((bytes, prepared, label));
         Ok(true)
     }
 }
@@ -204,6 +219,8 @@ mod tests {
         let bytes = serde_json::to_vec(&document()).unwrap();
         let mut input = HistoryInput::new(Some(conduit_core::Unit::Fahrenheit));
         assert!(input.accept(bytes.clone()).unwrap());
+        assert!(input.label().unwrap().contains("host/actual"));
+        assert!(input.label().unwrap().contains("actual"));
         let original = input.scene().unwrap().encode();
         let identity = input.scene().unwrap() as *const _;
         assert!(!input.accept(bytes).unwrap());
@@ -214,6 +231,14 @@ mod tests {
         next.samples_outside_view = 22;
         assert!(input.accept(serde_json::to_vec(&next).unwrap()).unwrap());
         assert_ne!(input.scene().unwrap().encode(), original);
+        let mut another_source = document();
+        another_source.producer_host = "host/second".into();
+        assert!(
+            input
+                .accept(serde_json::to_vec(&another_source).unwrap())
+                .unwrap()
+        );
+        assert!(input.label().unwrap().contains("host/second"));
     }
 }
 
@@ -233,7 +258,7 @@ mod private_preview {
         let mut pixels = vec![0; usize::from(width) * usize::from(height)];
         crate::view::render_graphics(history.scene().unwrap(), width, height, &mut pixels).unwrap();
         crate::view::render_notice(
-            "RETAINED HISTORY / VERIFIED INPUT / LIVE FEED AVAILABILITY IS SEPARATE",
+            &format!("{} / READ ONLY", history.label().unwrap()),
             width,
             height,
             &mut pixels,

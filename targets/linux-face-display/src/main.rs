@@ -88,7 +88,8 @@ fn run() -> Result<(), String> {
             }
             history_status = status;
         }
-        let rendered = if tick.is_multiple_of(2) {
+        let history_page = tick.is_multiple_of(2) && history.scene().is_some();
+        let rendered = if history_page {
             if let Some(history) = history.scene() {
                 view::render_graphics(history, width, height, &mut pixels)
             } else {
@@ -99,18 +100,21 @@ fn run() -> Result<(), String> {
         };
         match rendered {
             Ok(_) => {
-                if let Some(notice) = historical_notice.as_deref() {
+                if history_page {
+                    let status = if !history_status.is_empty() {
+                        "INPUT UNAVAILABLE"
+                    } else if historical_notice.is_some() {
+                        "LIVE FEED STALE"
+                    } else {
+                        "BOOT-ELAPSED TIME"
+                    };
+                    let notice = format!(
+                        "{} / {status}",
+                        history.label().unwrap_or("RETAINED HISTORY")
+                    );
+                    view::render_notice(&notice, width, height, &mut pixels)?;
+                } else if let Some(notice) = historical_notice.as_deref() {
                     view::render_notice(notice, width, height, &mut pixels)?;
-                } else if !history_status.is_empty()
-                    && tick.is_multiple_of(2)
-                    && history.scene().is_some()
-                {
-                    view::render_notice(
-                        "RETAINED HISTORY / INPUT UNAVAILABLE / LAST ACCEPTED ARTIFACT",
-                        width,
-                        height,
-                        &mut pixels,
-                    )?;
                 }
                 fb.present(&pixels)?;
             }
