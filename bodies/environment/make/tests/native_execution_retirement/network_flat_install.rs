@@ -574,9 +574,13 @@ fn phased_constructor_counts_complete_retained_proofs_and_both_phase_peaks() {
         backed.retained_bytes() - cold.retained_bytes(),
         n::PreparedNetworkKernelStorage::allocation_bytes()
     );
+    assert!(
+        backed.retained_bytes() < before_finish.retained_bytes(),
+        "large backing precedes the small issuance/reservation allocations"
+    );
     assert_eq!(before_finish.allocations, finished.allocations);
     assert_eq!(before_finish.reallocations, finished.reallocations);
-    println!("phased constructor CPU{} backing={} cold_peak={} complete_proofs={} backed={} issued_peak={} total_peak={} retained={} op_proof_inline={} root_proof_inline={}",
+    println!("phased constructor CPU{} backing={} cold_peak={} pre_backing_retained={} backed={} issued_peak={} total_peak={} retained={} op_proof_inline={} root_proof_inline={}",
         usize::BITS, n::PreparedNetworkKernelStorage::allocation_bytes(), cold.peak_bytes, cold.retained_bytes(),
         backed.retained_bytes(), before_finish.peak_bytes, total.peak_bytes, total.retained_bytes(),
         core::mem::size_of::<conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation>(),
@@ -811,3 +815,6 @@ fn compact_network_reservation_retains_full_selected_plan_and_root_binding() {
     }
     assert!(issuer.network_reservation_matches_fixture(active));
 }
+
+#[path = "network_backing_placement.rs"]
+mod backing_placement;

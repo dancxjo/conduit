@@ -132,6 +132,14 @@ impl NativePlay {
             // Both native contracts, borrowed Source/Plan projections, grants
             // and lowering tables have retired. Only exact compact proofs and
             // numeric parts overlap final backing and actual issuance.
+            // Admit the largest fixed allocations while the retired metadata's
+            // contiguous holes remain available, before many small owner copies.
+            #[cfg(test)]
+            record_phased(0, None);
+            refusal_stage = 114;
+            let storage = Self::reserve_linked_backing()?;
+            #[cfg(test)]
+            record_phased(1, Some(storage.as_ptr() as usize));
             refusal_stage = 110;
             let memory = selected.prepare_claim_storage()?;
             let mut operation = Operation::Credentials;
@@ -147,12 +155,6 @@ impl NativePlay {
             })?;
             refusal_stage = 113;
             prepared_active = Some(root.prepare_reservation()?);
-            #[cfg(test)]
-            record_phased(0, None);
-            refusal_stage = 114;
-            let storage = Self::reserve_linked_backing()?;
-            #[cfg(test)]
-            record_phased(1, Some(storage.as_ptr() as usize));
             refusal_stage = 115;
             admit()?;
             self.attempted = true;
@@ -272,7 +274,10 @@ impl NativePlay {
         } else {
             None
         };
-        n::PreparedNetworkKernelStorage::try_new().map_err(|_| ())
+        n::PreparedNetworkKernelStorage::try_new_observing_failure(
+            diagnostics::trace_storage_failure,
+        )
+        .map_err(|_| ())
     }
     pub(crate) fn install_linked_reserved_held(
         &mut self,
