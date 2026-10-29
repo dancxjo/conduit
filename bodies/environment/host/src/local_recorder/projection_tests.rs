@@ -164,7 +164,15 @@ fn signed_partial_collection_projects_updates_and_restart_without_rewriting_unch
     assert_ne!(first, second);
     let value: serde_json::Value = serde_json::from_slice(&second).unwrap();
     assert_eq!(value["verified_through_sequence"], 2);
-    let records = crate::observed_history::hex(value["records_hex"].as_str().unwrap()).unwrap();
+    let records: Vec<_> = value["records_hex"]
+        .as_str()
+        .unwrap()
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect();
     assert_eq!(u64::from_le_bytes(records[8..16].try_into().unwrap()), 731);
     let inode = fs::metadata(&f.output).unwrap().ino();
     f.collect(2, 2);

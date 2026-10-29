@@ -212,7 +212,7 @@ fn joined_recorder_process_helper() {
     let list = format!("{refused_peer},{foreign_peer},{peer}");
     let peers = continuing_peers(&list).unwrap();
     let collector = admitted_collector(Path::new(&binding)).unwrap();
-    run_loop(collector, peers, Path::new(&history), true, None, None).unwrap();
+    run_loop(collector, peers, Path::new(&history), true, None, None, None).unwrap();
     foreign_server.join().unwrap();
 }
 
