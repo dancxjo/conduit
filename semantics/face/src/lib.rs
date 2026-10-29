@@ -258,7 +258,9 @@ pub use temporal_wording::*;
 pub use visual_expression::*;
 
 mod typed_value;
-pub use typed_value::{display_typed_value, spoken_typed_value, MAX_FACE_VALUE_BYTES};
+pub use typed_value::{
+    display_typed_value, display_typed_value_in_unit, spoken_typed_value, MAX_FACE_VALUE_BYTES,
+};
 
 #[cfg(feature = "plot-catalog")]
 mod configured_mask;
