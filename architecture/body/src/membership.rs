@@ -1,5 +1,10 @@
 use alloc::vec::Vec;
 mod parts;
+mod validation;
+#[cfg(test)]
+mod validation_legacy;
+#[cfg(test)]
+mod validation_tests;
 use conduit_core::{BootId, HostId, OfferGeneration, SignId};
 pub use parts::MembershipParts;
 use serde::{Deserialize, Serialize};
@@ -269,61 +274,9 @@ impl BodyMembership {
         Ok(change_id)
     }
 
+    /// Validate ordered membership without constructing a second owner/replay.
     pub fn validate(&self) -> Result<(), MembershipRefusal> {
-        validate_ids(&[self.body_id.as_str()])?;
-        if let Some(sign_id) = &self.fulfilled_sign_id {
-            validate_ids(&[sign_id.as_str()])?;
-        }
-        if self.parts.len() > MAX_BODY_PARTS || self.events.len() > MAX_MEMBERSHIP_EVENTS {
-            return Err(MembershipRefusal::MalformedState);
-        }
-        let base_revision = self
-            .checkpoint
-            .as_ref()
-            .map_or(0, |checkpoint| checkpoint.revision.0);
-        if self.events.len() as u64 != self.revision.0.saturating_sub(base_revision)
-            || base_revision > self.revision.0
-        {
-            return Err(MembershipRefusal::MalformedState);
-        }
-        for (index, event) in self.events.iter().enumerate() {
-            if event.body_id != self.body_id
-                || event.revision != BodyMembershipRevision(base_revision + index as u64 + 1)
-                || event.change_id != self.change_id(&event.part_id, &event.sign_id, event.revision)
-            {
-                return Err(MembershipRefusal::MalformedState);
-            }
-            validate_ids(&[
-                event.part_id.as_str(),
-                event.sign_id.as_str(),
-                event.change_id.as_str(),
-            ])?;
-            if self.events[..index]
-                .iter()
-                .any(|prior| prior.change_id == event.change_id)
-            {
-                return Err(MembershipRefusal::DuplicateChange);
-            }
-            if self.events[..index]
-                .iter()
-                .any(|prior| prior.sign_id == event.sign_id)
-            {
-                return Err(MembershipRefusal::DuplicateSign);
-            }
-        }
-        let base_parts = self
-            .checkpoint
-            .as_ref()
-            .map_or_else(MembershipParts::default, |checkpoint| {
-                checkpoint.parts.clone()
-            });
-        validate_parts(&base_parts)?;
-        let replayed = replay_events(&self.body_id, base_parts, &self.events)?;
-        if replayed != self.parts {
-            return Err(MembershipRefusal::MalformedState);
-        }
-        validate_parts(&self.parts)?;
-        Ok(())
+        validation::validate(self)
     }
 
     /// Reuse identical immutable current/checkpoint storage only after canonical
@@ -439,97 +392,6 @@ impl BodyMembership {
     }
 }
 
-fn replay_events(
-    body_id: &BodyId,
-    mut parts: MembershipParts,
-    events: &[MembershipEvent],
-) -> Result<MembershipParts, MembershipRefusal> {
-    for event in events {
-        match &event.kind {
-            MembershipEventKind::Admitted { proof_id } => {
-                validate_ids(&[proof_id.as_str()])?;
-                if parts.iter().any(|part| part.part_id == event.part_id)
-                    || parts.len() == MAX_BODY_PARTS
-                {
-                    return Err(MembershipRefusal::MalformedState);
-                }
-                parts.push(PartMembership {
-                    part_id: event.part_id.clone(),
-                    state: MembershipState::Admitted,
-                    current: None,
-                });
-            }
-            MembershipEventKind::HostAttached { observation } => {
-                validate_observation(observation)?;
-                let part = replay_part_mut(&mut parts, &event.part_id)?;
-                if part.state != MembershipState::Admitted
-                    || part.current.as_ref().is_some_and(|current| {
-                        observation.sequence <= current.sequence
-                            || (observation.host_id == current.host_id
-                                && observation.boot_id == current.boot_id
-                                && observation.offer_generation <= current.offer_generation)
-                    })
-                {
-                    return Err(MembershipRefusal::MalformedState);
-                }
-                part.current = Some(observation.clone());
-            }
-            MembershipEventKind::HostDetached { prior_boot_id } => {
-                validate_ids(&[prior_boot_id.as_str()])?;
-                let part = replay_part_mut(&mut parts, &event.part_id)?;
-                if part.state != MembershipState::Admitted
-                    || part.current.as_ref().map(|current| &current.boot_id) != Some(prior_boot_id)
-                {
-                    return Err(MembershipRefusal::MalformedState);
-                }
-                part.current = None;
-            }
-            MembershipEventKind::Revoked => {
-                let part = replay_part_mut(&mut parts, &event.part_id)?;
-                if part.state != MembershipState::Admitted {
-                    return Err(MembershipRefusal::MalformedState);
-                }
-                part.state = MembershipState::Revoked;
-                part.current = None;
-            }
-        }
-        if &event.body_id != body_id {
-            return Err(MembershipRefusal::MalformedState);
-        }
-    }
-    Ok(parts)
-}
-
-fn validate_parts(parts: &[PartMembership]) -> Result<(), MembershipRefusal> {
-    if parts.len() > MAX_BODY_PARTS {
-        return Err(MembershipRefusal::MalformedState);
-    }
-    for (index, part) in parts.iter().enumerate() {
-        validate_ids(&[part.part_id.as_str()])?;
-        if parts[..index]
-            .iter()
-            .any(|prior| prior.part_id == part.part_id)
-            || (part.state == MembershipState::Revoked && part.current.is_some())
-        {
-            return Err(MembershipRefusal::MalformedState);
-        }
-        if let Some(observation) = &part.current {
-            validate_observation(observation)?;
-        }
-    }
-    Ok(())
-}
-
-fn replay_part_mut<'a>(
-    parts: &'a mut [PartMembership],
-    part_id: &PartId,
-) -> Result<&'a mut PartMembership, MembershipRefusal> {
-    parts
-        .iter_mut()
-        .find(|part| &part.part_id == part_id)
-        .ok_or(MembershipRefusal::MalformedState)
-}
-
 fn validate_observation(
     observation: &AuthenticatedHostObservation,
 ) -> Result<(), MembershipRefusal> {
@@ -565,13 +427,17 @@ mod storage_tests {
         membership.checkpoint_events().unwrap();
         let wire = serde_json::to_vec(&membership).unwrap();
         let mut decoded: BodyMembership = serde_json::from_slice(&wire).unwrap();
-        assert!(!decoded
-            .parts
-            .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts));
+        assert!(
+            !decoded
+                .parts
+                .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts)
+        );
         decoded.share_validated_checkpoint_parts().unwrap();
-        assert!(decoded
-            .parts
-            .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts));
+        assert!(
+            decoded
+                .parts
+                .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts)
+        );
         assert_eq!(serde_json::to_vec(&decoded).unwrap(), wire);
         let mut invalid = decoded.clone();
         invalid.parts[0].state = MembershipState::Revoked;
