@@ -228,6 +228,7 @@ loongarch64-a4 = []
 loongarch64-product = []
 
 [dependencies]
+conduit-i2c-transaction = { path = "../../mechanisms/io/i2c-transaction", features = ["operation-factory"] }
 conduit-commons-plot = { path = "../../plots/commons" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-home-model = { path = "../../semantics/home" }

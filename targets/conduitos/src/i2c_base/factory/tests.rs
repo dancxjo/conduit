@@ -1,5 +1,9 @@
 //! Checked register topology is planned against actual retained native offers.
 use super::*;
+use crate::i2c_base::{
+    contract::{I2C_CALL, I2C_MAXIMUM_BYTES, I2cContract},
+    installation::{I2C_AUTHORITY, I2C_IMPLEMENTATION},
+};
 use crate::{
     expression_host_call,
     i2c_base::{
@@ -9,6 +13,8 @@ use crate::{
     },
 };
 use alloc::{collections::BTreeMap, vec};
+use conduit_composite::KernelOperationFactory;
+use conduit_core::*;
 use conduit_planner::{
     PlanningOptions, default_expanded_placements, plan_expanded_authoring_with_connection_limits,
 };
