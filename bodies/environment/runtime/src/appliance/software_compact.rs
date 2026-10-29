@@ -30,7 +30,7 @@ pub struct CompactOutputSoftware<'a> {
         not(feature = "local-planning"),
         allow(dead_code, reason = "decoder is used only for local metadata planning")
     )]
-    decoder: Option<LinkedOfferDecoder>,
+    decoder: LinkedOfferDecoder,
 }
 impl<'a> CompactOutputSoftware<'a> {
     /// Initialize checked computations sequentially and discard their decoded
@@ -47,6 +47,19 @@ impl<'a> CompactOutputSoftware<'a> {
         >,
         host: c::HostId,
         boot: c::BootId,
+    ) -> Result<Self, SoftwareRefusal> {
+        unsafe { Self::prepare_with_decoder(source, material, host, boot, decode_json_offer) }
+    }
+    // Select the complete metadata decoder before construction. In particular,
+    // the linked constructor never references the rich JSON decoder.
+    unsafe fn prepare_with_decoder(
+        source: c::PlotIdentity,
+        material: impl IntoIterator<
+            Item = Result<(conduit_plot::CheckedGear, &'a str, &'a [u8]), SoftwareRefusal>,
+        >,
+        host: c::HostId,
+        boot: c::BootId,
+        decoder: LinkedOfferDecoder,
     ) -> Result<Self, SoftwareRefusal> {
         let mut operations = Vec::with_capacity(3);
         for entry in material {
@@ -100,7 +113,7 @@ impl<'a> CompactOutputSoftware<'a> {
             source,
             generation: None,
             operations,
-            decoder: None,
+            decoder,
         })
     }
     /// Initialize from linked Make material with exact borrowed metadata.
@@ -117,16 +130,11 @@ impl<'a> CompactOutputSoftware<'a> {
         boot: c::BootId,
         decoder: fn(&[u8]) -> Result<c::CapabilityOffer, ()>,
     ) -> Result<Self, SoftwareRefusal> {
-        let mut owner = unsafe { Self::prepare_make(source, material, host, boot) }?;
-        owner.decoder = Some(decoder);
-        Ok(owner)
+        unsafe { Self::prepare_with_decoder(source, material, host, boot, decoder) }
     }
     #[cfg(feature = "local-planning")]
     fn decode_offer(&self, wire: &[u8]) -> Result<c::CapabilityOffer, SoftwareRefusal> {
-        match self.decoder {
-            Some(decode) => decode(wire).map_err(|_| SoftwareRefusal::Selection),
-            None => serde_json::from_slice(wire).map_err(|_| SoftwareRefusal::Selection),
-        }
+        (self.decoder)(wire).map_err(|_| SoftwareRefusal::Selection)
     }
     pub fn is_ready(&self) -> bool {
         self.operations.iter().all(|op| op.prepared.is_some())
@@ -295,5 +303,17 @@ impl CompactOutputOffers<'_, '_> {
             .iter()
             .filter(|op| op.prepared.is_some())
             .map(|op| op.offer)
+    }
+}
+
+fn decode_json_offer(wire: &[u8]) -> Result<c::CapabilityOffer, ()> {
+    #[cfg(feature = "local-planning")]
+    {
+        serde_json::from_slice(wire).map_err(|_| ())
+    }
+    #[cfg(not(feature = "local-planning"))]
+    {
+        let _ = wire;
+        Err(())
     }
 }

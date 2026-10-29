@@ -98,6 +98,19 @@ opt-level = 1
     generated.push_str("\n#[allow(dead_code)] mod display {\n");
     display_material.write_rust(&mut generated).unwrap();
     generated.push_str("\n}\n");
+    // Exercise the ordinary JSON constructor against the very same trusted
+    // Make material, not just serde_json in the test's comparison path.
+    let mut json_display = String::new();
+    display_material.write_rust(&mut json_display).unwrap();
+    let linked =
+        "CompactOutputSoftware::prepare_linked_make(source,gears,host,boot,decode_current_offer)";
+    assert!(json_display.contains(linked));
+    generated.push_str("\n#[allow(dead_code)] mod display_json {\n");
+    generated.push_str(&json_display.replace(
+        linked,
+        "CompactOutputSoftware::prepare_make(source,gears,host,boot)",
+    ));
+    generated.push_str("\n}\n");
 
     generated.push_str(&format!(
         "\n#[path = {:?}] mod allocation_probe;\n",
@@ -218,6 +231,9 @@ fn main() {
     let (raw, raw_memory) = allocation_probe::observe(|| ready.iter().map(|wire| serde_json::from_slice::<c::CapabilityOffer>(wire).unwrap()).collect::<Vec<_>>());
     let (linked_offers, linked_memory) = allocation_probe::observe(|| ready.decoded().map(Result::unwrap).collect::<Vec<_>>());
     assert_eq!(raw, linked_offers);
+    let mut json_output = display_json::prepare_compact(display_host.host_id.clone(), display_host.boot_id.clone()).unwrap();
+    let json_ready = json_output.current_offers(&display_host.host_id, &display_host.boot_id, display_host.offer_generation).unwrap();
+    assert_eq!(json_ready.decoded().map(Result::unwrap).collect::<Vec<_>>(), raw);
     assert!(linked_memory.retained_bytes() + 10_000 < raw_memory.retained_bytes());
     assert!(display::decode_current_offer(b"{}").is_err());
     // SAFETY: the same checked Make producer emitted both complete encodings.

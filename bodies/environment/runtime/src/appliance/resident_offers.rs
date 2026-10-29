@@ -10,6 +10,10 @@ pub struct ResidentSoftwareOffer<'a> {
         allow(dead_code, reason = "linked decoder is used only by local planning")
     )]
     decode: Option<fn() -> Result<c::CapabilityOffer, ()>>,
+    // Linked firmware borrows these descriptors from immutable Make material.
+    // Dispatch must not retain a JSON fallback in the linked-only path.
+    #[cfg(feature = "local-planning")]
+    driver: fn(&ResidentSoftwareOffer<'_>) -> Result<c::CapabilityOffer, NativePreparationRefusal>,
 }
 impl<'a> ResidentSoftwareOffer<'a> {
     /// Retain compiler-produced metadata, never incoming assignment descriptors.
@@ -23,6 +27,8 @@ impl<'a> ResidentSoftwareOffer<'a> {
             node,
             json,
             decode: None,
+            #[cfg(feature = "local-planning")]
+            driver: decode_json,
         }
     }
     /// Link a Make-generated decoder whose exact complete result equals `json`.
@@ -39,16 +45,29 @@ impl<'a> ResidentSoftwareOffer<'a> {
             node,
             json,
             decode: Some(decode),
+            #[cfg(feature = "local-planning")]
+            driver: decode_linked,
         }
     }
     #[cfg(feature = "local-planning")]
     pub(super) fn decode(&self) -> Result<c::CapabilityOffer, NativePreparationRefusal> {
-        match self.decode {
-            Some(decode) => decode().map_err(|_| NativePreparationRefusal::Configuration),
-            None => serde_json::from_slice(self.json)
-                .map_err(|_| NativePreparationRefusal::Configuration),
-        }
+        (self.driver)(self)
     }
+}
+#[cfg(feature = "local-planning")]
+fn decode_json(
+    offer: &ResidentSoftwareOffer<'_>,
+) -> Result<c::CapabilityOffer, NativePreparationRefusal> {
+    serde_json::from_slice(offer.json).map_err(|_| NativePreparationRefusal::Configuration)
+}
+#[cfg(feature = "local-planning")]
+fn decode_linked(
+    offer: &ResidentSoftwareOffer<'_>,
+) -> Result<c::CapabilityOffer, NativePreparationRefusal> {
+    offer
+        .decode
+        .ok_or(NativePreparationRefusal::Configuration)?()
+    .map_err(|_| NativePreparationRefusal::Configuration)
 }
 /// The borrow prevents transferring the corresponding owner while publishing.
 /// Outer Host/Boot/offer-generation provenance remains Root's responsibility.
