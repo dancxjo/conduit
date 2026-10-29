@@ -10,7 +10,7 @@ impl HostedValueStore {
         }
     }
     pub(super) fn available_native_words(&self) -> (u16, u32) {
-        if self.native_words.is_empty() {
+        if self.native_words.is_empty() || self.compact_canonical.is_some() {
             return (0, 0);
         }
         let items = self

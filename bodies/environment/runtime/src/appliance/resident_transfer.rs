@@ -11,6 +11,12 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         slot: &mut Option<Box<Self>>,
         selected: &mut Option<Box<ValidatedAssignedAppliance>>,
     ) -> Result<Box<PreparedAssignedAppliance<V>>, NativePreparationRefusal> {
+        if slot
+            .as_ref()
+            .is_some_and(|software| software.values.compact_canonical_layout().is_some())
+        {
+            return Err(NativePreparationRefusal::Configuration);
+        }
         slot.as_ref()
             .ok_or(NativePreparationRefusal::Initialization)?
             .check_assignment(

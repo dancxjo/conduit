@@ -193,6 +193,7 @@ pub fn assemble_local(
 /// carries no native possession or Body start, and no borrowed Plan metadata.
 #[cfg(feature = "target-mask-memory-check")]
 pub struct LocalKernelParts {
+    compact_observation_edge: Option<VerifiedCompactObservationEdge>,
     nodes: [k::scheduler::NodeSpec<PORTS>; NODES],
     cords: [k::scheduler::CordSpec; CORDS],
     routes: k::FixedRoutes<NODES, CORDS>,
@@ -220,6 +221,7 @@ impl LocalKernelParts {
     pub fn from_checked(prepared: PreparedDirectLocalAppliance<'_, k::HostedValueStore>) -> Self {
         let tables = prepared.tables.into_parts();
         Self {
+            compact_observation_edge: prepared.compact_observation_edge,
             sign_items: tables.sign_items,
             sign_bytes: tables.sign_bytes,
             nodes: tables.nodes,
@@ -288,7 +290,7 @@ pub fn assemble_local_direct_with_backing_retained(
         .expect("exclusively preflighted local evidence");
     // SAFETY: the allocation is non-null, aligned, uniquely owned and uninitialized.
     let selectors = Box::write(unsafe { Box::from_raw(pointer) }, prepared.selectors);
-    let kernel = Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
+    let mut kernel = Kernel::new_boxed_with_storage_and_active_counts_and_host_calls(
         backing.take(),
         NODES,
         CORDS,
@@ -301,6 +303,13 @@ pub fn assemble_local_direct_with_backing_retained(
         signs,
     )
     .unwrap_or_else(|_| unreachable!("immutable topology preflight and exact preclaimed backing"));
+    if let Some(edge) = prepared.compact_observation_edge {
+        // SAFETY: these exact immutable checked tables, actual initialized
+        // drivers and affine values were moved from the witness's preparation.
+        unsafe { edge.bind(&mut kernel) }.unwrap_or_else(|_| {
+            unreachable!("checked compact Source edge and unchanged physical storage")
+        });
+    }
     Ok(PreparedKernel {
         kernel,
         selectors,

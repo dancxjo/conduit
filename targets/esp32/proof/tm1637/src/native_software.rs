@@ -11,6 +11,9 @@ pub type Software = PreparedResidentSoftware<conduit_kernel::HostedValueStore>;
 #[cold]
 #[inline(never)]
 pub fn prepare() -> Result<Box<Software>, ()> {
+    #[cfg(feature = "target-mask-memory-check")]
+    let values = conduit_environment_runtime::appliance::prepare_compact_value_storage().map_err(|_| ())?;
+    #[cfg(not(feature = "target-mask-memory-check"))]
     let values = conduit_environment_runtime::appliance::prepare_value_storage().map_err(|_| ())?;
     prepare_with_returned_values(values).map_err(|_| ())
 }

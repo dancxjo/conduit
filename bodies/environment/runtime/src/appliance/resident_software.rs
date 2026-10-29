@@ -14,7 +14,9 @@ mod transfer;
 #[cfg(feature = "local-planning")]
 pub(crate) use local::VerifiedObservationPublication;
 #[cfg(feature = "local-planning")]
-pub use local::{PreparedDirectLocalAppliance, PreparedLocalAppliance};
+pub use local::{
+    PreparedDirectLocalAppliance, PreparedLocalAppliance, VerifiedCompactObservationEdge,
+};
 
 #[derive(PartialEq, Eq)]
 pub(super) struct Construction {

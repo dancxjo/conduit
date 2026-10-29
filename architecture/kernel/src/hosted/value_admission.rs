@@ -22,6 +22,7 @@ impl HostedValueStore {
             && self.slots.iter().enumerate().any(|(index, slot)| {
                 slot.references == 0 && slot.generation == u32::MAX && !self.is_owned_compact(index)
             });
+        let compact_start = self.canonical_slot_limit();
         let owned = &self.owned_compact_slots;
         #[cfg(test)]
         let probes = &mut self.slot_probes;
@@ -59,7 +60,8 @@ impl HostedValueStore {
                     }
                 })
                 .filter(|(_index, slot)| {
-                    let free_fit = slot.references == 0
+                    let free_fit = *_index < compact_start
+                        && slot.references == 0
                         && slot.bytes.capacity() >= length
                         && owned.get(*_index).is_none_or(Option::is_none);
                     retired_fit |= free_fit && slot.generation == u32::MAX;

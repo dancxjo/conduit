@@ -421,6 +421,9 @@ pub enum StorageError {
     RepresentationMismatch,
 }
 
+mod compact_canonical_value;
+pub use compact_canonical_value::{CompactCanonicalLayout, CompactCanonicalLayoutDefinition};
+
 pub trait ValueStorage {
     fn item_capacity(&self) -> u16;
     fn byte_capacity(&self) -> u32;
@@ -440,6 +443,34 @@ pub trait ValueStorage {
         _encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
     ) -> Result<ValueRef, StorageError> {
         Err(StorageError::RepresentationMismatch)
+    }
+    /// Explicit selected lossless representation. Layout declarations do not
+    /// establish semantic eligibility; trusted composition binds the exact edge.
+    #[cfg(feature = "alloc")]
+    fn compact_canonical_layout(&self) -> Option<CompactCanonicalLayout> {
+        None
+    }
+    #[cfg(feature = "alloc")]
+    fn compact_canonical_available(&self, _layout: CompactCanonicalLayout) -> (u16, u32) {
+        (0, 0)
+    }
+    #[cfg(feature = "alloc")]
+    fn store_compact_canonical(
+        &mut self,
+        _layout: CompactCanonicalLayout,
+        _bytes: &[u8],
+        _logical_bytes: u32,
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    #[cfg(feature = "alloc")]
+    fn compact_canonical(
+        &self,
+        value: ValueRef,
+        _layout: CompactCanonicalLayout,
+    ) -> Result<Option<&[u8]>, StorageError> {
+        self.reference_count(value)?;
+        Ok(None)
     }
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError>;
     /// Reconstruct a live store-local identity with its canonical logical length.

@@ -39,6 +39,7 @@ where
                 || self.region_successors.contains(&Some(*node))
                 || self.native_input_ports[n].is_some()
                 || self.native_output_ports[n].is_some()
+                || self.has_compact_canonical_node(n)
                 || self.has_compact_f32_node(n)
                 || self.terminal_transductions[n].iter().any(Option::is_some)
                 || self.host_bindings.as_ref().is_some_and(|table| {

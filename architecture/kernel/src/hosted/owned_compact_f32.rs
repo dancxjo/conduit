@@ -52,7 +52,11 @@ impl HostedValueStore {
         requests: &[(CompactF32Layout, u16)],
         canonical_reservations: &[u32],
     ) -> Result<Vec<Vec<u16>>, StorageError> {
-        if requests.is_empty() || requests.len() > 32 || canonical_reservations.contains(&0) {
+        if self.compact_canonical.is_some()
+            || requests.is_empty()
+            || requests.len() > 32
+            || canonical_reservations.contains(&0)
+        {
             return Err(StorageError::InvalidBudget);
         }
         let count = requests

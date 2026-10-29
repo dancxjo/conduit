@@ -107,6 +107,24 @@ impl<const P: usize> StepBack<P> for CaptureBack {
             Self::Observation(back) => back.step(io, input),
         }
     }
+    fn compact_canonical_output(&self) -> Option<(PortId, conduit_kernel::CompactCanonicalLayout)> {
+        match self {
+            Self::Observation(back) => {
+                <observation::ObservationBack as StepBack<P>>::compact_canonical_output(back)
+            }
+            _ => None,
+        }
+    }
+    fn prepared_compact_canonical_output(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::Observation(back) => {
+                <observation::ObservationBack as StepBack<P>>::prepared_compact_canonical_output(
+                    back, port,
+                )
+            }
+            _ => None,
+        }
+    }
     fn encodes_prepared_output(&self, port: PortId) -> bool {
         match self {
             Self::Observation(back) => {

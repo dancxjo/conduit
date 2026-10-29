@@ -76,3 +76,41 @@ mod tests {
         }
     }
 }
+
+/// Physical specialization only; local Source/Plan admission must subsequently
+/// verify and bind the exact representation-aware producer/publication edge.
+#[cfg(feature = "local-planning")]
+pub fn prepare_compact_value_storage() -> Result<HostedValueStore, StorageError> {
+    HostedValueStore::new_with_shared_compact_canonical_slots(
+        &[CAPACITIES[2]; 9],
+        crate::publication::source_reading::compact_layout(),
+        PAYLOAD_BYTES,
+    )
+}
+#[cfg(feature = "local-planning")]
+pub fn compact_value_storage_bytes() -> Result<usize, StorageError> {
+    HostedValueStore::shared_compact_canonical_storage_bytes(&[CAPACITIES[2]; 9])
+}
+
+#[cfg(feature = "local-planning")]
+mod checked_extents {
+    include!(concat!(env!("OUT_DIR"), "/sampling-value-extents.rs"));
+}
+/// The former large slots may now carry only the verified Result representation.
+/// Every other routed Type must fit all nine unchanged small canonical buffers.
+/// This checks Source facts, not lengths observed in a fixture or live sample.
+#[cfg(feature = "local-planning")]
+pub(super) fn permits_compact_route(kind: &str, reading: bool) -> bool {
+    if reading {
+        return kind == crate::publication::source_reading::compact_result_kind();
+    }
+    let maximum = match kind {
+        conduit_time::TICK_VALUE_KIND => Some(conduit_time::TICK_ENCODED_LEN),
+        conduit_core::EMPTY_INFO_ID => Some(0),
+        kind => checked_extents::VALUE_EXTENTS
+            .iter()
+            .find(|(name, _)| *name == kind)
+            .map(|(_, bytes)| *bytes),
+    };
+    maximum.is_some_and(|bytes| bytes <= CAPACITIES[2])
+}

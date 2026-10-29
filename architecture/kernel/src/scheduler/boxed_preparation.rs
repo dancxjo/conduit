@@ -157,6 +157,8 @@ where
                 native_input_ports: [None; NODES],
                 native_output_ports: [None; NODES],
                 compact_f32_bindings: None,
+                #[cfg(feature = "alloc")]
+                compact_canonical_binding: None,
                 last_host_request: [None; NODES],
                 cancelled: false,
                 debug_control: DebugControlState::new(),

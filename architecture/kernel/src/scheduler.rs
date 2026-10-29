@@ -27,6 +27,7 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+mod compact_canonical;
 #[cfg(feature = "alloc")]
 mod compact_f32;
 mod cord_prefix;
@@ -379,6 +380,15 @@ pub trait StepBack<const PORTS: usize> {
     }
     /// Exact compact layouts implemented by this prepared Back. These are
     /// physical declarations, not proofs of semantic purity or authority.
+    fn compact_canonical_input(&self, _port: PortId) -> Option<crate::CompactCanonicalLayout> {
+        None
+    }
+    fn compact_canonical_output(&self) -> Option<(PortId, crate::CompactCanonicalLayout)> {
+        None
+    }
+    fn prepared_compact_canonical_output(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
     #[cfg(feature = "alloc")]
     fn compact_f32_input(&self, _port: PortId) -> Option<CompactF32Layout> {
         None
@@ -448,6 +458,8 @@ pub struct StepInputBytes<'a, const PORTS: usize> {
     native_u64: Option<&'a [Option<u64>; PORTS]>,
     #[cfg(feature = "alloc")]
     compact_f32: Option<&'a [Option<&'a [u8]>; PORTS]>,
+    #[cfg(feature = "alloc")]
+    compact_canonical: Option<&'a [Option<&'a [u8]>; PORTS]>,
     host_output: Option<&'a [u8]>,
 }
 
@@ -474,6 +486,8 @@ impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical: None,
             host_output,
         }
     }
@@ -487,6 +501,8 @@ impl StepInputBytes<'static, 1> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical: None,
             host_output: None,
         }
     }
@@ -507,6 +523,8 @@ pub struct StepIo<const PORTS: usize> {
     native_output_port: Option<PortId>,
     #[cfg(feature = "alloc")]
     compact_f32_output: Option<(PortId, CompactF32Layout)>,
+    #[cfg(feature = "alloc")]
+    compact_canonical_output: Option<PortId>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -847,6 +865,8 @@ impl StepIo<1> {
             native_output_port: None,
             #[cfg(feature = "alloc")]
             compact_f32_output: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical_output: None,
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -1057,6 +1077,8 @@ pub struct FixedScheduler<
     native_output_ports: [Option<PortId>; NODES],
     #[cfg(feature = "alloc")]
     compact_f32_bindings: Option<alloc::boxed::Box<CompactF32Bindings<NODES, PORTS>>>,
+    #[cfg(feature = "alloc")]
+    compact_canonical_binding: Option<compact_canonical::Binding>,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1178,6 +1200,8 @@ where
             native_output_ports: [None; NODES],
             #[cfg(feature = "alloc")]
             compact_f32_bindings: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical_binding: None,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1417,7 +1441,10 @@ where
         E: DebugObserverControl,
     {
         #[cfg(feature = "alloc")]
-        if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
+        if self.native_output_ports.iter().any(Option::is_some)
+            || self.has_compact_f32_outputs()
+            || self.compact_canonical_binding.is_some()
+        {
             return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
         }
         self.signs.attach_debug_observer(history)
@@ -1444,7 +1471,10 @@ where
             return Err(DebugControlRefusal::UnknownSubject);
         }
         #[cfg(feature = "alloc")]
-        if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
+        if self.native_output_ports.iter().any(Option::is_some)
+            || self.has_compact_f32_outputs()
+            || self.compact_canonical_binding.is_some()
+        {
             return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
         }
         self.debug_control.arm(breakpoint, node)
@@ -1960,6 +1990,8 @@ where
     }
 
     fn context(&self, node: usize) -> Result<StepIo<PORTS>, SchedulerError> {
+        #[cfg(feature = "alloc")]
+        self.check_compact_canonical_binding()?;
         let mut inputs = [None; PORTS];
         let mut input_closed = [false; PORTS];
         let mut input_abnormal = [None; PORTS];
@@ -2090,6 +2122,10 @@ where
             native_output_port: self.native_output_ports[node],
             #[cfg(feature = "alloc")]
             compact_f32_output: self.compact_f32_output_binding(node),
+            #[cfg(feature = "alloc")]
+            compact_canonical_output: self
+                .compact_canonical_output_binding(node)
+                .map(|(port, _)| port),
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -2830,12 +2866,16 @@ where
                 KernelEventKind::ValueConsumed,
             )?;
             #[cfg(feature = "alloc")]
-            let observed = native_region::observed_bytes(
-                &self.values,
-                value,
-                self.native_input_ports[node] == Some(PortId(as_u16(port)?))
-                    || self.has_compact_f32_input(node, port),
-            )?;
+            let observed = if self.compact_canonical_input_binding(node, port).is_some() {
+                None
+            } else {
+                native_region::observed_bytes(
+                    &self.values,
+                    value,
+                    self.native_input_ports[node] == Some(PortId(as_u16(port)?))
+                        || self.has_compact_f32_input(node, port),
+                )?
+            };
             #[cfg(not(feature = "alloc"))]
             let observed = Some(self.values.get(value)?);
             self.signs.observe_debug(DebugRuntimeEvent {
@@ -3039,14 +3079,21 @@ where
                     KernelEventKind::ValueRouted,
                 )?;
                 #[cfg(feature = "alloc")]
-                let observed = native_region::observed_bytes(
-                    &self.values,
-                    value,
-                    self.native_output_ports[node] == Some(PortId(as_u16(port)?))
-                        || self
-                            .compact_f32_output_binding(node)
-                            .is_some_and(|(p, _)| usize::from(p.0) == port),
-                )?;
+                let observed = if self
+                    .compact_canonical_output_binding(node)
+                    .is_some_and(|(p, _)| usize::from(p.0) == port)
+                {
+                    None
+                } else {
+                    native_region::observed_bytes(
+                        &self.values,
+                        value,
+                        self.native_output_ports[node] == Some(PortId(as_u16(port)?))
+                            || self
+                                .compact_f32_output_binding(node)
+                                .is_some_and(|(p, _)| usize::from(p.0) == port),
+                    )?
+                };
                 #[cfg(not(feature = "alloc"))]
                 let observed = Some(self.values.get(value)?);
                 self.signs.observe_debug(DebugRuntimeEvent {
@@ -3177,6 +3224,19 @@ where
                     && self.values.compact_f32(value)?.is_some());
             #[cfg(not(feature = "alloc"))]
             let native = false;
+            #[cfg(feature = "alloc")]
+            let native = native
+                || if let Some((_, layout)) = self
+                    .compact_canonical_output_binding(node)
+                    .filter(|(p, _)| usize::from(p.0) == port)
+                {
+                    self.values
+                        .compact_canonical(value, layout)?
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                    true
+                } else {
+                    false
+                };
             if !native {
                 self.values.get(value)?;
             }

@@ -103,7 +103,23 @@ pub fn emit(checked: &conduit_plot::CheckedSyntaxDocument, out: &Path) {
     std::fs::write(out.join("sampling-branch-extents.rs"), format!(
         "const _: () = assert!({unavailable_maximum} <= CAPACITIES[2]);\nconst _: () = assert!({} > 1024 && {} <= CAPACITIES[0]);\nconst _: () = assert!({} > 1024 && {} <= CAPACITIES[1]);\n",
         observation.len(), observation.len(), result.len(), result.len())).unwrap();
-    let mut source = String::new();
+    let mut layout = b"conduit/compact-canonical-reading@1".to_vec();
+    layout.extend_from_slice(&result_type.canonical_bytes().unwrap());
+    for name in ["device/dht11-temperature", "device/dht11-humidity"] {
+        let form = checked.type_forms.iter().find(|f| f.name == name).unwrap();
+        layout.extend_from_slice(&(form.compatibility_id.len() as u32).to_le_bytes());
+        layout.extend_from_slice(form.compatibility_id.as_bytes());
+    }
+    let layout_identity = c::assigned_plan_payload_digest(&layout);
+    let mut source = format!(
+        "#[allow(dead_code)] pub const COMPACT_LAYOUT_ID: [u8; 32] = {layout_identity:?};\n"
+    );
+    writeln!(
+        source,
+        "#[allow(dead_code)] pub const COMPACT_RESULT_KIND: &str = {:?};",
+        result_type.profile().unwrap().value_kind().as_str()
+    )
+    .unwrap();
     for (name, bytes, ty, is_result) in [
         (
             "OBSERVATION",

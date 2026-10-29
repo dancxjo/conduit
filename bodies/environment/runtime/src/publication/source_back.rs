@@ -165,6 +165,12 @@ impl SourcePublicationBack {
     }
 }
 impl<const P: usize> StepBack<P> for SourcePublicationBack {
+    fn compact_canonical_input(
+        &self,
+        port: PortId,
+    ) -> Option<conduit_kernel::CompactCanonicalLayout> {
+        (port == PortId(0) && self.compact.is_some()).then(super::source_reading::compact_layout)
+    }
     fn step(&mut self, io: &mut StepIo<P>, input: &StepInputBytes<'_, P>) -> StepOutcome {
         self.discard_staged();
         if self.cancelled {
@@ -187,34 +193,50 @@ impl<const P: usize> StepBack<P> for SourcePublicationBack {
         if self.events >= self.maximum_events {
             return fail(FailureCode::InvalidInput, 2);
         }
-        let Some(bytes) = input.input(PortId(0)) else {
-            return fail(FailureCode::InvalidInput, 3);
+        let canonical = input.input(PortId(0));
+        let packed = if let Some(bytes) = input.compact_canonical(PortId(0)) {
+            if self.compact.is_none() {
+                return fail(FailureCode::InvalidInput, 3);
+            }
+            let value = match super::source_reading::PackedReading::from_compact(bytes) {
+                Ok(value) if value.canonical_length() == reference.byte_len as usize => value,
+                _ => return fail(FailureCode::InvalidInput, 4),
+            };
+            Some(value)
+        } else {
+            let Some(bytes) = canonical else {
+                return fail(FailureCode::InvalidInput, 3);
+            };
+            if bytes.len() != reference.byte_len as usize || self.validator.validate(bytes).is_err()
+            {
+                return fail(FailureCode::InvalidInput, 4);
+            }
+            if self.compact.is_some() {
+                match super::source_reading::PackedReading::parse(bytes) {
+                    Ok(value) => Some(value),
+                    Err(_) => return fail(FailureCode::InvalidInput, 6),
+                }
+            } else {
+                None
+            }
         };
-        if bytes.len() != reference.byte_len as usize || self.validator.validate(bytes).is_err() {
-            return fail(FailureCode::InvalidInput, 4);
-        }
         if io.consume_fuel(1).is_err() {
             return fail(FailureCode::InvalidLifecycle, 2);
         }
-        let packed = if self.compact.is_some() {
-            match super::source_reading::PackedReading::parse(bytes) {
-                Ok(value) => Some(value),
-                Err(_) => return fail(FailureCode::InvalidInput, 6),
-            }
-        } else {
-            None
-        };
         if !self.order.reserve() {
             return fail(FailureCode::InvalidInput, 5);
         }
         // Full canonical validation above checked the independently linked
         // Type and complete extent before removing only its immutable prefix.
-        let node = &bytes[self.channel.linked_type_bytes().len()..];
+        let node = canonical.map(|bytes| &bytes[self.channel.linked_type_bytes().len()..]);
         match &mut self.compact {
             Some(compact) => compact.pending = packed,
-            None => self.pending[..node.len()].copy_from_slice(node),
+            None => {
+                let node = node.expect("generic publication requires canonical input");
+                self.pending[..node.len()].copy_from_slice(node);
+            }
         }
-        self.length = node.len();
+        self.length = reference.byte_len as usize - self.channel.linked_type_bytes().len();
         if io.consume(PortId(0)).is_err() {
             self.order.release();
             return fail(FailureCode::InvalidLifecycle, 3);

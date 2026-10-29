@@ -108,7 +108,7 @@ impl PreparedObservationEmitter {
         }
         Ok(Self {
             input,
-            failure: alloc::vec::Vec::with_capacity(maximum_node),
+            failure: alloc::vec::Vec::with_capacity(maximum_node + 1),
             staged: None,
         })
     }
@@ -129,6 +129,10 @@ impl PreparedObservationEmitter {
             // not infer units or bypass the checked coordinate domain.
             forms::DeviceDht11TemperatureForm::decode(&temperature.to_le_bytes())?;
             forms::DeviceDht11HumidityForm::decode(&humidity.to_le_bytes())?;
+            self.failure.clear();
+            self.failure.push(0);
+            self.failure.extend_from_slice(&temperature.to_le_bytes());
+            self.failure.extend_from_slice(&humidity.to_le_bytes());
             self.staged = Some(StagedObservation::Quantities(temperature, humidity));
             Ok(material::RESULT.len())
         } else {
@@ -139,10 +143,11 @@ impl PreparedObservationEmitter {
                 return Err(R::WrongType.into());
             }
             let bytes = failure.value_node();
-            if bytes.len() > self.failure.capacity() {
+            if bytes.len() + 1 > self.failure.capacity() {
                 return Err(R::CanonicalEncodingTooLarge.into());
             }
             self.failure.clear();
+            self.failure.push(1);
             self.failure.extend_from_slice(bytes);
             self.staged = Some(StagedObservation::Unavailable);
             Ok(material::UNAVAILABLE_PREFIX.len() + bytes.len())
@@ -166,18 +171,21 @@ impl PreparedObservationEmitter {
                 material::RESULT.len()
             }
             StagedObservation::Unavailable => {
-                let length = material::UNAVAILABLE_PREFIX.len() + self.failure.len();
+                let length = material::UNAVAILABLE_PREFIX.len() + self.failure.len() - 1;
                 let out = output
                     .get_mut(..length)
                     .ok_or(R::CanonicalEncodingTooLarge)?;
                 let (prefix, node) = out.split_at_mut(material::UNAVAILABLE_PREFIX.len());
                 prefix.copy_from_slice(material::UNAVAILABLE_PREFIX);
-                node.copy_from_slice(&self.failure);
+                node.copy_from_slice(&self.failure[1..]);
                 length
             }
         };
         validate(&output[..length])?;
         Ok(length)
+    }
+    pub(crate) fn compact_output(&self) -> Option<&[u8]> {
+        self.staged.map(|_| self.failure.as_slice())
     }
     pub fn clear(&mut self) {
         self.staged = None;

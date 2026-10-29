@@ -236,3 +236,6 @@ fn generic_state_cannot_be_silently_converted_or_normalized() {
     assert_eq!(compact.sequence(), 0);
     assert!(compact.with_snapshot(|_| ()).is_none());
 }
+
+#[path = "compact_boundary_tests.rs"]
+mod boundary;

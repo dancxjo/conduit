@@ -6,7 +6,7 @@ use conduit_core::{
     validate_canonical_structured_value as validate, Quantity, StructuredInfoRefusal as R,
 };
 #[derive(Clone, Copy)]
-pub(super) enum PackedReading {
+pub(crate) enum PackedReading {
     Observation([u8; 4]),
     Failure {
         length: usize,
@@ -18,7 +18,76 @@ pub(super) struct CompactReading {
     pub current: Option<PackedReading>,
     pub pending: Option<PackedReading>,
 }
+pub(crate) const COMPACT_READING_BYTES: usize = 1 + material::FAILURE_NODE_MAXIMUM;
+// SAFETY: generated identity binds the exact canonical Result Type, both
+// authored Forms and this codec version. The opaque local specialization
+// separately checks the actual Source/Plan and initialized endpoint owners.
+static COMPACT_READING_LAYOUT: conduit_kernel::CompactCanonicalLayoutDefinition = match unsafe {
+    conduit_kernel::CompactCanonicalLayoutDefinition::from_trusted_make(
+        material::COMPACT_LAYOUT_ID,
+        COMPACT_READING_BYTES as u16,
+        material::RESULT_MAXIMUM as u32,
+    )
+} {
+    Ok(layout) => layout,
+    Err(_) => panic!("checked linked compact reading bounds"),
+};
+pub(crate) fn compact_layout() -> conduit_kernel::CompactCanonicalLayout {
+    COMPACT_READING_LAYOUT.layout()
+}
+
+#[cfg(feature = "local-planning")]
+pub(crate) fn compact_result_kind() -> &'static str {
+    material::COMPACT_RESULT_KIND
+}
 impl PackedReading {
+    pub(crate) fn from_compact(bytes: &[u8]) -> Result<Self, R> {
+        let Some((&tag, payload)) = bytes.split_first() else {
+            return Err(R::MalformedCanonicalEncoding);
+        };
+        match tag {
+            0 => {
+                let packed: [u8; 4] = payload
+                    .try_into()
+                    .map_err(|_| R::MalformedCanonicalEncoding)?;
+                let (t, h) =
+                    Forms::unpack_quantities(&packed).map_err(|_| R::MalformedCanonicalEncoding)?;
+                if Forms::pack_quantities(t, h).map_err(|_| R::MalformedCanonicalEncoding)?
+                    != packed
+                {
+                    return Err(R::MalformedCanonicalEncoding);
+                }
+                Ok(Self::Observation(packed))
+            }
+            1 => {
+                if payload.len() > material::FAILURE_NODE_MAXIMUM {
+                    return Err(R::CanonicalEncodingTooLarge);
+                }
+                // Validate the full failure Type domain using only its small
+                // immutable schema plus bounded node, not a full Result scratch.
+                let mut canonical =
+                    [0; material::FAILURE_TYPE.len() + material::FAILURE_NODE_MAXIMUM];
+                let (schema, node) = canonical.split_at_mut(material::FAILURE_TYPE.len());
+                schema.copy_from_slice(material::FAILURE_TYPE);
+                node[..payload.len()].copy_from_slice(payload);
+                validate(&canonical[..material::FAILURE_TYPE.len() + payload.len()])?;
+                let mut bytes = [0; material::FAILURE_NODE_MAXIMUM];
+                bytes[..payload.len()].copy_from_slice(payload);
+                Ok(Self::Failure {
+                    length: payload.len(),
+                    bytes,
+                })
+            }
+            _ => Err(R::MalformedCanonicalEncoding),
+        }
+    }
+    pub(crate) fn canonical_length(&self) -> usize {
+        match self {
+            Self::Observation(_) => material::RESULT.len(),
+            Self::Failure { length, .. } => material::UNAVAILABLE_PREFIX.len() + length,
+        }
+    }
+
     pub fn parse(bytes: &[u8]) -> Result<Self, R> {
         let value = validate(bytes)?;
         let packed = if let Some(observation) = value.variant_payload("observation")? {
