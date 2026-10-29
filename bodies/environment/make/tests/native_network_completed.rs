@@ -63,6 +63,11 @@ mod services {
 )]
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_play.rs"]
 mod native_play;
+#[allow(dead_code, reason = "shared native scan has explicit recovery entrances")]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_scan.rs"]
+mod native_scan;
+#[path = "native_network_completed/scan.rs"]
+mod scan;
 struct CpuClock;
 embassy_time_driver::time_driver_impl!(static CLOCK: CpuClock = CpuClock);
 impl embassy_time_driver::Driver for CpuClock {

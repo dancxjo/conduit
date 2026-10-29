@@ -79,7 +79,7 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         BoundBaseOperation::check(table, handle, claim).map_err(ScanCallRefusal::Capability)?;
         Ok(node)
     }
-    fn check_native_ref(
+    pub(super) fn check_native_ref(
         &self,
         gear: PlannedGearRef<'_>,
         limits: &CapabilityLimits,

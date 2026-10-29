@@ -7,14 +7,14 @@ type Brand<'a> = PhantomData<fn(&'a mut ()) -> &'a mut ()>;
 pub type ScanPreparation<P, R, E> =
     Result<(NetworkScanHostCall<P>, R), (ReadyNetworkScanBase<P>, E)>;
 pub struct ReadyScanView<'a, P> {
-    ready: &'a ReadyNetworkScanBase<P>,
-    brand: Brand<'a>,
+    pub(super) ready: &'a ReadyNetworkScanBase<P>,
+    pub(super) brand: Brand<'a>,
 }
 #[must_use = "retain the actual issued operation on a later preparation refusal"]
 pub struct PreparedScanBinding<'a> {
-    operation: BoundBaseOperation,
-    node: NodeId,
-    brand: Brand<'a>,
+    pub(super) operation: BoundBaseOperation,
+    pub(super) node: NodeId,
+    pub(super) brand: Brand<'a>,
 }
 impl PreparedScanBinding<'_> {
     /// Exact actual possession for a caller's terminal-refusal custody. This

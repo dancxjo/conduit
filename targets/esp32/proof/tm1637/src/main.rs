@@ -100,6 +100,8 @@ mod native_kernel_storage;
 mod native_mask_wire;
 #[cfg(feature = "native-root")]
 mod native_network;
+#[cfg(feature = "network-scan")]
+mod native_scan;
 #[cfg(feature = "native-root")]
 mod native_box_backing;
 #[cfg(feature = "native-root")]
