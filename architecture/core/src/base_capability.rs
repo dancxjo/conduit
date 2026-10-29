@@ -354,7 +354,7 @@ impl BaseCapabilityTable {
         if claim.work_units > entry.inspection.scope.maximum_work_units {
             return Err(BaseCapabilityRefusal::WorkEnvelope);
         }
-        begin_entry(entry)
+        bound::begin_entry(entry)
     }
 
     pub fn complete(
@@ -597,23 +597,3 @@ fn write_hex_digest(result: &mut alloc::string::String, bytes: &[u8; 32]) {
     }
 }
 
-fn begin_entry(entry: &mut CapabilityEntry) -> Result<BaseOperationLease, BaseCapabilityRefusal> {
-    if entry.inspection.in_flight_operations == entry.inspection.scope.maximum_in_flight {
-        return Err(BaseCapabilityRefusal::InFlightFull);
-    }
-    if entry.inspection.completed_operations as u64 + entry.inspection.in_flight_operations as u64
-        >= entry.inspection.scope.maximum_operations as u64
-    {
-        entry.inspection.lifecycle = CapabilityLifecycle::Exhausted;
-        return Err(BaseCapabilityRefusal::Exhausted);
-    }
-    let operation_sequence = entry.next_operation_sequence;
-    entry.next_operation_sequence = entry.next_operation_sequence.saturating_add(1);
-    entry.active_sequences.push(operation_sequence);
-    entry.inspection.in_flight_operations += 1;
-    Ok(BaseOperationLease {
-        bearer: entry.bearer,
-        operation_sequence,
-        revocation_generation: entry.revocation_generation,
-    })
-}

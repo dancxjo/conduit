@@ -6,6 +6,25 @@ use super::*;
 /// It has no public constructor from IDs, Clone, serialization, or mutable
 /// table/handle escape. The actual 256-bit bearer still selects its exact scope
 /// on every authorization. A caller's operation/node binding remains separate.
+/// Inspection cannot mint possession:
+/// ```compile_fail
+/// use conduit_core::{BoundBaseOperation, CapabilityInspection};
+/// fn forge(view: CapabilityInspection) -> BoundBaseOperation { view.into() }
+/// ```
+/// Exclusive ownership cannot be duplicated:
+/// ```compile_fail
+/// use conduit_core::BoundBaseOperation;
+/// fn duplicate(op: BoundBaseOperation) -> (BoundBaseOperation, BoundBaseOperation) {
+///     (op, op)
+/// }
+/// ```
+/// Borrowed inspection cannot outlive its owner:
+/// ```compile_fail
+/// use conduit_core::{BoundBaseOperation, CapabilityInspection};
+/// fn escape(op: &BoundBaseOperation) -> &'static CapabilityInspection {
+///     op.inspection()
+/// }
+/// ```
 pub struct BoundBaseOperation {
     table: BaseCapabilityTable,
     handle: BaseCapabilityHandle,
@@ -122,4 +141,27 @@ impl BoundBaseOperation {
             .expect("private bound bearer stays with its table")
             .inspection
     }
+}
+
+pub(super) fn begin_entry(
+    entry: &mut CapabilityEntry,
+) -> Result<BaseOperationLease, BaseCapabilityRefusal> {
+    if entry.inspection.in_flight_operations == entry.inspection.scope.maximum_in_flight {
+        return Err(BaseCapabilityRefusal::InFlightFull);
+    }
+    if entry.inspection.completed_operations as u64 + entry.inspection.in_flight_operations as u64
+        >= entry.inspection.scope.maximum_operations as u64
+    {
+        entry.inspection.lifecycle = CapabilityLifecycle::Exhausted;
+        return Err(BaseCapabilityRefusal::Exhausted);
+    }
+    let operation_sequence = entry.next_operation_sequence;
+    entry.next_operation_sequence = entry.next_operation_sequence.saturating_add(1);
+    entry.active_sequences.push(operation_sequence);
+    entry.inspection.in_flight_operations += 1;
+    Ok(BaseOperationLease {
+        bearer: entry.bearer,
+        operation_sequence,
+        revocation_generation: entry.revocation_generation,
+    })
 }

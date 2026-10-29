@@ -141,3 +141,22 @@ fn binding_releases_only_duplicate_claim_strings_without_an_allocation() {
     let lease = operation.authorize().unwrap();
     operation.complete(lease, 16).unwrap();
 }
+
+#[test]
+fn revoked_bound_owner_rejects_late_leases_without_reviving_retired_work() {
+    let mut actual = ready();
+    let pending = actual.authorize().unwrap();
+    actual.revoke().unwrap();
+    let retired = actual.inspection().clone();
+    assert_eq!(
+        actual.complete(pending, 16),
+        Err(BaseCapabilityRefusal::StaleCompletion)
+    );
+    assert_eq!(actual.authorize(), Err(BaseCapabilityRefusal::Revoked));
+    assert_eq!(actual.inspection(), &retired);
+    let mut replacement = ready();
+    assert_eq!(replacement.inspection().completed_operations, 0);
+    let next = replacement.authorize().unwrap();
+    replacement.complete(next, 16).unwrap();
+    assert_eq!(actual.inspection(), &retired);
+}
