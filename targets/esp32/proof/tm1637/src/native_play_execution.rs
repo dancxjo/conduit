@@ -8,6 +8,7 @@ pub struct NativePlay {
     pub(super) attempted: bool,
     pub(super) phase: &'static str,
     pub(super) prepared: Option<alloc::boxed::Box<PreparedNetworkKernel>>,
+    pub(super) completed: Option<completed::CompletedControl>,
     pub(super) source: Option<n::NetworkCredentialsHostCall<Source>>,
     pub(super) join: Option<n::NetworkJoinHostCall<Provider>>,
     pub(super) active: Option<c::ActivePlayIdentity>,
@@ -31,6 +32,7 @@ impl NativePlay {
             attempted: false,
             phase: "uninstalled",
             prepared: None,
+            completed: None,
             source: None,
             join: None,
             active: None,
@@ -54,6 +56,7 @@ impl NativePlay {
         !self.attempted
             && self.active.is_none()
             && self.prepared.is_none()
+            && self.completed.is_none()
             && self.source.is_none()
             && self.join.is_none()
     }
@@ -95,7 +98,7 @@ impl NativePlay {
         self.attempted
     }
     pub fn installed(&self) -> bool {
-        self.prepared.is_some() && self.source.is_some() && self.join.is_some()
+        self.execution_is_installed() && self.source.is_some() && self.join.is_some()
     }
     pub fn status(&self) -> &'static str {
         self.phase
@@ -258,6 +261,9 @@ impl NativePlay {
             match kernel.step() {
                 Ok(SchedulerStatus::Drained) if self.receipt_len > 0 => {
                     self.phase = "attached";
+                    // A receipt does not itself prove retirement. The actual
+                    // scheduler gate may refuse, retaining its identical Box.
+                    self.retire_completed_kernel();
                     return;
                 }
                 Ok(SchedulerStatus::Drained) => {
