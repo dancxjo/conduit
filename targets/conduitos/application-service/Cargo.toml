@@ -25,3 +25,6 @@ lto = "fat"
 opt-level = 3
 [profile.release.package.serde_json]
 opt-level = 3
+
+[profile.release.package.sha2]
+opt-level = 3
