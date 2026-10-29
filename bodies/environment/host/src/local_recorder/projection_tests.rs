@@ -101,13 +101,21 @@ impl Fixture {
         }
     }
     fn collect(&self, after: u32, end: u32) {
+        assert!(!self.collect_attempt(after, end, true));
+    }
+    fn collect_attempt(&self, after: u32, end: u32, interrupted: bool) -> bool {
         let mut responses = vec![(wire::DIRECTORY_CURSOR, Some(self.listing()))];
         if end > after {
             responses.push((after, Some(self.batch(self.scope, after, end))));
         }
         responses.push((end, Some(self.batch(self.scope, end, end))));
         // A later original epoch fails after the target prefix became durable.
-        responses.push((wire::epoch_cursor(1, 0).unwrap(), None));
+        let mut other = self.scope;
+        other[32..64].fill(5);
+        responses.push((
+            wire::epoch_cursor(1, 0).unwrap(),
+            (!interrupted).then(|| self.batch(other, 0, 0)),
+        ));
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let worker = std::thread::spawn(move || {
@@ -134,15 +142,15 @@ impl Fixture {
                 }
             }
         });
-        assert!(run_joined(
+        let result = run_joined(
             &self.binding,
             &address.to_string(),
             &self.history,
             true,
-            Some(self.projection())
-        )
-        .is_err());
+            Some(self.projection()),
+        );
         worker.join().unwrap();
+        result.is_ok()
     }
 }
 impl Drop for Fixture {
@@ -229,4 +237,22 @@ fn absent_or_ambiguous_pinned_play_and_unsafe_output_preserve_previous_series() 
     std::os::unix::fs::symlink(&saved, &f.output).unwrap();
     assert!(f.projection().refresh(&f.binding, &f.history).is_err());
     assert_eq!(fs::read(&saved).unwrap(), previous);
+}
+
+#[test]
+fn projection_refusal_cannot_turn_successful_signed_collection_into_failure() {
+    let f = Fixture::new();
+    let saved = f.root.join("unrelated-private-output.json");
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&saved)
+        .unwrap();
+    file.write_all(b"previous graph").unwrap();
+    std::os::unix::fs::symlink(&saved, &f.output).unwrap();
+    assert!(f.collect_attempt(0, 1, false));
+    assert_eq!(fs::read(&saved).unwrap(), b"previous graph");
+    let epoch = f.history.join(format!("epoch-{}", hex(&f.scope)));
+    assert!(epoch.join("observed-history-0000-0001.json").is_file());
 }
