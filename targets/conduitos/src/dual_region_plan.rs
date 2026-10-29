@@ -200,6 +200,7 @@ fn advertisement(
         bind_native_capability(capability, fixed_capability, build_id, index);
     }
     let mut advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
         boot_id: BootId::from(hex_identity(&identities.boot)),

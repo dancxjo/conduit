@@ -11,6 +11,7 @@ pub(in crate::protocol_boot) fn prepare_usb(
     validate_input_values(&entry, &request.inputs)?;
     let session = crate::protocol_boot::body::admit(entry.resident(), &host, &boot)?;
     let advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: host,
         boot_id: boot,

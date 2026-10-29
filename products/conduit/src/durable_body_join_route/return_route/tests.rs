@@ -53,6 +53,7 @@ fn receipt() -> PortableAdmissionReceipt {
             issued_at_millis: 1,
         },
         host_advertisement: conduit_core::HostAdvertisement {
+            declared_name: None,
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: request.host_id,
             boot_id: request.boot_id,

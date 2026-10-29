@@ -59,6 +59,7 @@ fn initialized_offer_retains_independent_base_and_resource_without_issuing_posse
     }
     .unwrap();
     let mut advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "host/test".into(),
         boot_id: "boot/test".into(),

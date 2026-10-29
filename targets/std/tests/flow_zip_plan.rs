@@ -184,6 +184,7 @@ fn plan_seals_both_exact_inputs_pair_output_and_terminal_profiles() {
     let expanded =
         conduit_plot::expand_canonical_plot(&checked, "zip-two-flows", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/flow-zip-proof"),
         boot_id: "boot/flow-zip-proof".into(),
@@ -297,6 +298,7 @@ fn plan_seals_combine_latest_state_and_all_close_terminal_profiles() {
     let expanded =
         conduit_plot::expand_canonical_plot(&checked, "combine-two-flows", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/combine-latest-proof"),
         boot_id: "boot/combine-latest-proof".into(),
@@ -421,6 +423,7 @@ fn plan_seals_keyed_join_types_capacity_policy_and_terminal_profiles() {
     let expanded =
         conduit_plot::expand_canonical_plot(&checked, "join-keyed-flows", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/keyed-join-proof"),
         boot_id: "boot/keyed-join-proof".into(),

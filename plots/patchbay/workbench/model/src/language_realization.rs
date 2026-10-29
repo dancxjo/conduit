@@ -56,6 +56,7 @@ mod tests {
         let graph = crate::PatchbayGraph::from_expanded(&plot).unwrap();
         let subject = graph.subject_ref(&graph.gears[0].identity).unwrap();
         let host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("details/host"),
             boot_id: BootId::from("details/boot"),

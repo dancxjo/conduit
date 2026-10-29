@@ -310,6 +310,7 @@ fn prepare_profile(
         })
         .collect();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/environment".into(),
         boot_id: boot.clone(),

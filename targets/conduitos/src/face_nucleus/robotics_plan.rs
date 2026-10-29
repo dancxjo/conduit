@@ -87,6 +87,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
             .map(|(kind, value_kind)| discard_offer(kind, value_kind)),
     );
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

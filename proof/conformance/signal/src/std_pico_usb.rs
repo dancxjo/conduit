@@ -38,6 +38,7 @@ pub struct ExactStdPicoUsbPlan {
 
 pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(STD_PICO_USB_SOURCE_HOST_ID),
         boot_id: conduit_core::BootId::from(STD_PICO_USB_SOURCE_BOOT_ID),
@@ -77,6 +78,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
 
 pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(STD_PICO_USB_SINK_HOST_ID),
         boot_id: conduit_core::BootId::from(STD_PICO_USB_SINK_BOOT_ID),

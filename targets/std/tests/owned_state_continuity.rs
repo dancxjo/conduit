@@ -25,6 +25,7 @@ fn planned() -> (Plan, Vec<u8>) {
     )
     .unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "state-host".into(),
         boot_id: "state-boot".into(),

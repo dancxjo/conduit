@@ -28,6 +28,7 @@ impl Execution {
                 .unwrap();
         let input_schema = entry.input_schema(&port_id("frame")).unwrap();
         let mut host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: "fixture/hid-reports".into(),
             boot_id: "fixture/hid-boot".into(),

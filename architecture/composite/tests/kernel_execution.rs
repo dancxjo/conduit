@@ -58,6 +58,7 @@ fn catalog() -> ProfileCatalog {
 
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

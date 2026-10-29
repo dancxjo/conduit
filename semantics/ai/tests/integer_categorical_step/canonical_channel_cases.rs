@@ -51,6 +51,7 @@ fn canonical_definition(
         selected_front.value_contract(&FrontValueLocation::Output(port_id("scores"))),
     );
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "categorical-test".into(),
         boot_id: "categorical-test-boot".into(),

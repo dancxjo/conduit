@@ -36,6 +36,7 @@ pub(super) fn refresh_evidence(state: &mut AbiState) {
         .session
         .current_device_association(vec![CapabilityId::from(SERIAL_ACQUISITION_CAPABILITY)]);
     let mut current_advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: state.host_id.clone(),
         boot_id: state.boot_id.clone(),

@@ -189,6 +189,7 @@ pub fn frame_resource_plan(
         })
         .collect::<Vec<_>>();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,

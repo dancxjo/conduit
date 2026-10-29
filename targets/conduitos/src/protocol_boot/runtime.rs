@@ -46,6 +46,7 @@ pub(super) fn prepare(
     validate_input_values(&entry, &request.inputs)?;
     let session = super::body::admit(entry.resident(), &host, &boot)?;
     let advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: host,
         boot_id: boot,

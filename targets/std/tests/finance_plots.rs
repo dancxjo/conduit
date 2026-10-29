@@ -161,6 +161,7 @@ fn deterministic_fixture_keeps_quote_age_transaction_variants_and_types_visible(
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/finance-proof"),
         boot_id: BootId::from("boot/finance-proof"),

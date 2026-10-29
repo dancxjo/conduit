@@ -74,6 +74,7 @@ pub(crate) fn conduitos_advertisement() -> Result<HostAdvertisement, CatalogErro
     ]);
     portable_offers.extend(conduitos::functional_offers::morse_composition_offers());
     let mut advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: HostId::from("catalog-conduitos-reference"),
         boot_id: BootId::from("catalog-static-not-a-boot"),

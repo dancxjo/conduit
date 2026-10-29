@@ -208,6 +208,7 @@ fn plan(
     backend: &HostedHnswVectorIndex<ProjectResource>,
 ) -> conduit_core::Plan {
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(HOST),
         boot_id: BootId::from(BOOT),

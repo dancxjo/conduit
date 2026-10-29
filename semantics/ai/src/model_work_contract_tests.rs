@@ -141,6 +141,7 @@ fn ordinary_plot_checks_expands_and_plans_from_portable_contract() {
     let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     let expanded = conduit_plot::expand_canonical_plot(&checked, "learning", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("test/host"),
         boot_id: BootId::from("test/boot"),

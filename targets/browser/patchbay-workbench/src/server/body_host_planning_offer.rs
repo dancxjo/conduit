@@ -216,6 +216,7 @@ pub(super) fn planning_plots(
 
 fn advertisement(evidence: &HostOfferProjection) -> Result<HostAdvertisement, ServerError> {
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: evidence.protocol_version,
         host_id: evidence.host_id.clone(),
         boot_id: evidence.boot_id.clone(),

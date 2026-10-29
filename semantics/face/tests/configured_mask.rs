@@ -100,6 +100,7 @@ fn fixture(
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, root_name, &profiles).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/configured-test"),
         boot_id: BootId::from("boot/configured-test"),

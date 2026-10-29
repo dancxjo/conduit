@@ -212,6 +212,7 @@ fn prepare_entry_plan_profile_reuse(
         }
     }
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "subframe-proof".into(),
         boot_id: "subframe-boot".into(),

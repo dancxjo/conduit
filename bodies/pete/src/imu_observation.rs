@@ -164,6 +164,7 @@ pub fn live_mpu6050_advertisement(
     ];
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: evidence.host_id.clone(),
         boot_id: evidence.boot_id.clone(),

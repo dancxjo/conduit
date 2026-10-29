@@ -71,6 +71,7 @@ fn fixture_with(
         expand_canonical_plot_for_authoring_with_backs(&checked, root_name, &profiles, &backs)
             .unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/configured-test"),
         boot_id: BootId::from("boot/configured-test"),

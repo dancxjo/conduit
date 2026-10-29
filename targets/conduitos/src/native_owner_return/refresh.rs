@@ -259,6 +259,7 @@ mod tests {
         )
         .unwrap();
         let advertisement = conduit_core::HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: "host/native-refresh".into(),
             boot_id: "boot/native-refresh".into(),

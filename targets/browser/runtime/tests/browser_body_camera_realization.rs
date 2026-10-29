@@ -25,6 +25,7 @@ const SOURCE: &str = include_str!("../../../../plots/camera-summary/main.conduit
 
 fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

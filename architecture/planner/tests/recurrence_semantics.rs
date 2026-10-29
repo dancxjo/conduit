@@ -94,6 +94,7 @@ fn advertisement(
     startup_parameters: Vec<conduit_core::FrontStartupParameter>,
 ) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/time-test"),
         boot_id: BootId::from("boot/time-test"),

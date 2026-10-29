@@ -30,6 +30,7 @@ pub(super) fn ready(state: Rc<State>) -> ReadyWriteBase<Provider> {
 fn advertisement() -> HostAdvertisement {
     let identity = identity();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: identity.host_id,
         boot_id: identity.boot_id,

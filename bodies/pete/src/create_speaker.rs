@@ -189,6 +189,7 @@ pub fn live_speaker_advertisement(
     ];
     requirements.sort_by(|left, right| left.class_id.cmp(&right.class_id));
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: observation.host_id.clone(),
         boot_id: observation.boot_id.clone(),

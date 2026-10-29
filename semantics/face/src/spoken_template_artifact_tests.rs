@@ -25,6 +25,7 @@ fn producer(name: &str) -> PreparedSpokenTemplate {
     };
     let program = PortableExpressionProgram::from_canonical_hex(program).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "fixture/spoken-template".into(),
         boot_id: "fixture/spoken-template/boot".into(),

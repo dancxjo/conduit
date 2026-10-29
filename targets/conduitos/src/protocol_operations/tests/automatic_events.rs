@@ -177,6 +177,7 @@ pub(super) fn prepare_with_body_edit<
         );
     }
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/automatic".into(),
         boot_id: "fixture/automatic-boot".into(),

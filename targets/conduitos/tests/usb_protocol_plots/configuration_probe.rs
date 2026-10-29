@@ -159,6 +159,7 @@ fn every_configuration_expression_has_an_exact_native_offer() {
     let bytes = serde_json::to_vec(&package).unwrap();
     let entry = PreparedProtocolEntry::prepare(&bytes, "usb-configuration-probe").unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/configuration".into(),
         boot_id: "fixture/boot".into(),
@@ -204,6 +205,7 @@ fn repeated_expression_planning_admits_sixteen_and_refuses_seventeen() {
     )
     .unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/configuration".into(),
         boot_id: "fixture/boot".into(),

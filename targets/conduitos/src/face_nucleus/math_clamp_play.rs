@@ -209,6 +209,7 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
 
 fn advertisement(host: &str, boot: &str, input: Scalar) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

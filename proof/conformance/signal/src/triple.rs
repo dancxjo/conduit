@@ -113,6 +113,7 @@ fn capability(capability_id: &str, implementation_id: &str, is_pulse: bool) -> C
 
 pub fn source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(SOURCE_HOST_ID),
         boot_id: conduit_core::BootId::from(SOURCE_BOOT_ID),
@@ -134,6 +135,7 @@ pub fn source_advertisement() -> HostAdvertisement {
 
 pub fn browser_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(BROWSER_HOST_ID),
         boot_id: conduit_core::BootId::from(BROWSER_BOOT_ID),
@@ -155,6 +157,7 @@ pub fn browser_advertisement() -> HostAdvertisement {
 
 pub fn pico_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(PICO_HOST_ID),
         boot_id: conduit_core::BootId::from(PICO_IMAGE_BOOT_ID),

@@ -120,6 +120,7 @@ fn validate_sequence(sequence: &StateSelectSequence) -> Result<(), StateSelectEr
 
 fn advertisement(host: &str, boot: &str, sequence: StateSelectSequence) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

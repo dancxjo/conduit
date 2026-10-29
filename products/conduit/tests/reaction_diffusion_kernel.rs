@@ -157,6 +157,7 @@ fn assert_canonical_example_checks_and_plans() {
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, "field-step", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/reaction-diffusion-kernel"),
         boot_id: BootId::from("boot/reaction-diffusion-kernel"),

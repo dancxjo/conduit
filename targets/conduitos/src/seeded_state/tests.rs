@@ -54,6 +54,7 @@ fn planned_source(
         }
     }
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("fixture/native"),
         boot_id: BootId::from("fixture/boot"),

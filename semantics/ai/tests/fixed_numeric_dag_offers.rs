@@ -61,6 +61,7 @@ fn fixture_with_tail(
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, "test", &profiles).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "test".into(),
         boot_id: "test-boot".into(),

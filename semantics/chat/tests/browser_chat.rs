@@ -87,6 +87,7 @@ fn application_plan_needs_no_human_input_back_because_the_mask_owns_it() {
     let mut capabilities = vec![socket.capability];
     capabilities.extend(chat.capabilities);
     let host = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: conduit_core::HostId::from("browser/output-only"),
         boot_id: conduit_core::BootId::from("browser/output-only-boot"),

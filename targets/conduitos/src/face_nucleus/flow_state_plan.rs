@@ -85,6 +85,7 @@ pub fn prepare_flow_state(
 
 fn advertisement(host: &str, boot: &str, value: Scalar) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

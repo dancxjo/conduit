@@ -99,6 +99,7 @@ impl PreparedPrinters {
                 continue;
             }
             hosts.push(HostAdvertisement {
+                declared_name: None,
                 protocol_version: PROTOCOL_VERSION, host_id,
                 boot_id: format!("fixture/{name}/boot").into(), offer_generation: OfferGeneration(1),
                 profile: "fixture/typed-print-model@1".into(), bases: vec![],

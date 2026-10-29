@@ -144,6 +144,7 @@ pub fn live_create_observation_advertisement(
         return Err(CreateObservationOfferRefusal::StaleEvidence);
     }
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: evidence.host_id.clone(),
         boot_id: evidence.boot_id.clone(),

@@ -27,6 +27,7 @@ use conduit_wire::{SessionBinding, WireError};
 
 fn advertisement(id: &str, generation: u64, capacity: u32) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(id),
         boot_id: BootId::from(format!("{id}/boot/1")),

@@ -104,6 +104,7 @@ mod fore_delivery;
 pub use fore_delivery::{
     ExternalForeBytes, ExternalForeDelivery, ExternalForeIdentity, ExternalForeOutputAdapter,
 };
+mod declared_host_name;
 pub mod direct_spoken_mask;
 pub mod direct_spoken_mask_runtime;
 pub mod direct_spoken_template_mask;

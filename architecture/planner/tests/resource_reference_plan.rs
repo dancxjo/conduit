@@ -120,6 +120,7 @@ fn exact_resource_reference_kind_survives_checked_plot_and_plan_without_locator_
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "content_pipeline", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/content"),
         boot_id: BootId::from("boot/content/1"),

@@ -99,6 +99,7 @@ fn plan() -> Plan {
     offers.push(fixed_value_pair_offer("numeric/pair40x164").unwrap());
     let plot=conduit_plot::parse_with_startup("plot window-proof {\n vector: numeric-test/vector\n history: numeric-test/history\n window: numeric/pair40x164\n sink: numeric-test/sink\n vector.value >> window.left\n history.value >> window.right\n window.result >> sink.value\n}\n",&startup,&profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("numeric-test"),
         boot_id: BootId::from("numeric-test-boot"),

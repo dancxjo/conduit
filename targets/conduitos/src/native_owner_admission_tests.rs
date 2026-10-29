@@ -35,6 +35,7 @@ impl BinaryWebSocketIo for ScriptedLine {
 
 fn admitted_exchange() -> (RoutedAdmissionRequest, PortableAdmissionReceipt) {
     let advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "host/native".into(),
         boot_id: "boot/native".into(),

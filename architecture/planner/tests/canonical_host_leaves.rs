@@ -168,6 +168,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
 fn host() -> HostAdvertisement {
     let (_, profile) = catalogs();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-host"),
         boot_id: BootId::from("std-boot"),

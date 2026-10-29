@@ -234,3 +234,24 @@ fn checked_speaker_refuses_retained_physical_speech_overlap_without_provider_eff
     let no_speaker = Selection::from_source(SOURCE, "std/x86_64/computer").unwrap();
     no_speaker.validate_speech_overlap(Some(&artifact)).unwrap();
 }
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[test]
+fn checked_declaration_name_reaches_fresh_installed_offer_without_identity_change() {
+    let source = SOURCE.replace("host linux-computer", "host Yellow");
+    let selection = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    let mut host = conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
+        host_id: "host/retained".into(),
+        boot_id: "boot/current".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+    });
+    let before = host.advertisement().clone();
+    selection.attach_to_fresh_host(&mut host).unwrap();
+    let after = host.advertisement();
+    assert_eq!(after.display_name(), "Yellow");
+    assert_eq!(after.host_id, before.host_id);
+    assert_eq!(after.boot_id, before.boot_id);
+    assert_eq!(after.capabilities, before.capabilities);
+    assert_eq!(after.resources, before.resources);
+    assert_eq!(after.offer_generation.0, before.offer_generation.0 + 1);
+}

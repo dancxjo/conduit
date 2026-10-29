@@ -112,6 +112,7 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
     let mut output = renderer_inputs().remove(0);
     output.direction = PortDirection::Output;
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,
@@ -154,6 +155,7 @@ fn websocket_line(
 ) -> LineOffer {
     let source = source_host(source_host_id, source_boot_id);
     let sink = HostAdvertisement {
+        declared_name: None,
         host_id: sink_host_id,
         boot_id: sink_boot_id,
         ..source.clone()

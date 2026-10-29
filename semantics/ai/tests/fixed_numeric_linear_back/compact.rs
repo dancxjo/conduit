@@ -172,6 +172,7 @@ fn plan() -> Plan {
     let source="plot compact-matrix {\n input: numeric-test/input\n weights: numeric-test/weights\n input_activation: numeric/tanh192\n linear: numeric/linear192x4\n activation: numeric/tanh4\n sink: numeric-test/sink\n input.value >> input_activation.value\n input_activation.result >> linear.value\n weights.value >> linear.weights\n linear.result >> activation.value\n activation.result >> sink.value\n}\n";
     let plot = conduit_plot::parse_with_startup(source, &startup, &profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "numeric-test".into(),
         boot_id: "numeric-test-boot".into(),
