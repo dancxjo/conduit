@@ -5,6 +5,8 @@ use crate::{
     KindSemanticLaw, PortDescriptor, PortId, ResourceRequirement,
 };
 use alloc::{collections::BTreeSet, vec::Vec};
+#[path = "kind_port_symbols.rs"]
+mod port_symbols;
 
 /// Portable semantic truth from which a host may offer one realization.
 ///
@@ -110,13 +112,7 @@ impl crate::KindDefinitionRef<'_> {
         }) {
             return Err(KindValidationError::EmptyAbnormalTerminalKind);
         }
-        let mut port_symbols = BTreeSet::new();
-        if self
-            .inputs
-            .iter()
-            .chain(self.outputs.iter())
-            .any(|port| !port_symbols.insert(port.port_id))
-        {
+        if port_symbols::has_duplicate(self.inputs, self.outputs) {
             return Err(KindValidationError::DuplicatePortSymbol);
         }
         let mut keys = BTreeSet::new();
