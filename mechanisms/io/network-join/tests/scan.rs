@@ -166,6 +166,9 @@ fn prepare_owner_mode(
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 3);
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
+    if substitution == 6 {
+        scope.subject_kind = "authority/foreign".into();
+    }
     let (table, handle, claim) = possession::possession(scope.clone());
     let node = lowered.nodes[0].node;
     let mut retained = Some(ready);
@@ -345,7 +348,7 @@ fn cancellation_and_deadline_never_return_a_still_owned_provider() {
 }
 #[test]
 fn late_completion_and_foreign_lowering_do_not_publish_or_transfer() {
-    for substitution in 1..=5 {
+    for substitution in [1, 2, 3, 4, 5, 6] {
         assert!(prepare_owner(Rc::new(State::default()), substitution).is_err());
     }
     let state = Rc::new(State::default());
@@ -430,7 +433,7 @@ fn canonical_compact_assignment_preserves_selected_scope_and_owner_refusals() {
     assert!(NetworkScanHostCall::retire_retained(&mut slot).is_ok());
     // These are consistent sealed assignments with foreign native pins, not only
     // corrupt bytes. The retained provider must survive every pre-transfer refusal.
-    for substitution in 1..=4 {
+    for substitution in [1, 2, 3, 4, 6] {
         assert!(prepare_owner_mode(Rc::new(State::default()), substitution, true).is_err());
     }
 }
