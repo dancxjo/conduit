@@ -109,6 +109,16 @@ pub struct AdmissionReceipt {
     pub credential: MembershipCredential,
 }
 
+/// Read-only storage accounting without admission contents or authority.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AdmissionStorageUsage {
+    pub pending_admissions: crate::VecStorageUsage,
+    pub invitations: crate::VecStorageUsage,
+    pub continuity_keys: crate::VecStorageUsage,
+    pub pending_returns: crate::VecStorageUsage,
+    pub receipts: crate::VecStorageUsage,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AdmissionManager {
     pub body_id: BodyId,
@@ -167,6 +177,18 @@ impl From<MembershipRefusal> for AdmissionRefusal {
 }
 
 impl AdmissionManager {
+    /// Inspect retained inline collection storage without allocating or mutating
+    /// pending work. Nested allocations are deliberately not traversed.
+    pub fn storage_usage(&self) -> AdmissionStorageUsage {
+        AdmissionStorageUsage {
+            pending_admissions: crate::VecStorageUsage::inspect(&self.pending),
+            invitations: crate::VecStorageUsage::inspect(&self.invitations),
+            continuity_keys: crate::VecStorageUsage::inspect(&self.continuity_keys),
+            pending_returns: crate::VecStorageUsage::inspect(&self.pending_returns),
+            receipts: crate::VecStorageUsage::inspect(&self.receipts),
+        }
+    }
+
     pub fn new(body_id: BodyId) -> Result<Self, AdmissionRefusal> {
         validate_ids(&[body_id.as_str()])?;
         Ok(Self {
