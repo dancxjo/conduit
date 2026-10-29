@@ -149,8 +149,11 @@ impl RegisterRefusal {
                     Base::UnknownLease => 114,
                     Base::StaleCompletion => 115,
                     Base::ResultEnvelope => 116,
+                    Base::Capacity => 117,
                 };
-                let code = if matches!(reason, Base::Exhausted | Base::WorkEnvelope) {
+                let code = if matches!(reason, Base::Capacity) {
+                    FailureCode::StorageExhausted
+                } else if matches!(reason, Base::Exhausted | Base::WorkEnvelope) {
                     FailureCode::WorkBudgetExhausted
                 } else {
                     FailureCode::HostCallDenied
