@@ -489,6 +489,7 @@ fn phased_storage_refusal_returns_original_owners_before_admission_or_root_mutat
                 }
             )
             .is_err());
+        assert_eq!(flat::phased_refusal(), Some((114, false, false)));
         assert!(!admitted.get() && !play.attempted);
         assert!(play.active.is_none() && play.flat_refusal.is_empty());
         assert!(source.is_some() && join.is_some());
@@ -525,6 +526,7 @@ fn phased_admission_refusal_releases_storage_without_consuming_root_or_owners() 
             || Err(())
         )
         .is_err());
+    assert_eq!(flat::phased_refusal(), Some((115, false, false)));
     assert!(!play.attempted && play.active.is_none() && play.flat_refusal.is_empty());
     assert!(source.is_some() && join.is_some());
     play.install_linked_phased_held(
@@ -666,6 +668,7 @@ fn phased_join_binding_refusal_defers_active_copy_and_retains_both_bearers() {
             .is_err());
         play
     });
+    assert_eq!(flat::phased_refusal(), Some((124, true, true)));
     assert!(play.attempted && source.is_some() && join.is_some());
     let active = play.active.as_ref().unwrap();
     let flat::IssuedCustody::FirstLease(first, second) = &play.flat_refusal else {
@@ -708,6 +711,7 @@ fn phased_join_binding_refusal_defers_active_copy_and_retains_both_bearers() {
         )
     });
     assert!(result.is_err());
+    assert_eq!(flat::phased_refusal(), Some((100, true, true)));
     assert_eq!((retry.allocations, retry.reallocations), (0, 0));
     assert!(matches!(
         play.flat_refusal,
@@ -738,6 +742,7 @@ fn issuance_storage_refusal_is_reversible_and_committed_installation_allocates_n
             }
         )
         .is_err());
+    assert_eq!(flat::phased_refusal(), Some((111, false, false)));
     assert!(!admitted.get() && !play.attempted);
     assert!(play.active.is_none() && play.flat_refusal.is_empty());
     assert!(source.is_some() && join.is_some());
