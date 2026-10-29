@@ -294,12 +294,12 @@ pub(crate) fn visit_fore(
                                     // abnormal terminal through distinct Fores.
                                     // The exact same internal Port must supply
                                     // the separately declared terminal output.
-                                    plot.output_bindings.iter().any(|terminal| {
+                                    output_bindings.iter().any(|terminal| {
                                         terminal.gear_id == binding.gear_id
                                             && terminal.gear_port_id == binding.gear_port_id
                                             && terminal.track
                                                 == conduit_core::ConnectionTrack::AbnormalTerminal
-                                            && plot.front.outputs().iter().any(|output| {
+                                            && front.outputs().iter().any(|output| {
                                                 output.port_id == terminal.front_port_id
                                                     && &output.value_kind == kind
                                                     && output.temporal
