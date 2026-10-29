@@ -30,6 +30,7 @@ pub(crate) struct HistoryKernel<P> {
     output: (k::RemoteEndpointId, k::CordId),
     input_sequence: u64,
     pending: Option<k::scheduler::RemoteValueOffer>,
+    retired: bool,
 }
 impl<P: HistoryProvider> HistoryKernel<P> {
     pub(crate) fn prepare(
@@ -95,6 +96,7 @@ impl<P: HistoryProvider> HistoryKernel<P> {
             output: endpoint(RemoteCordDirection::Egress)?,
             input_sequence: 0,
             pending: None,
+            retired: false,
         })
     }
     pub(crate) fn dispatch(&mut self, input: &[u8]) -> Result<Vec<u8>> {
@@ -147,7 +149,33 @@ impl<P: HistoryProvider> HistoryKernel<P> {
         }
         Err("history provider exceeded admitted dispatch steps".into())
     }
+    pub(crate) fn finish(&mut self) -> Result<()> {
+        if self.pending.is_some() {
+            return Err("history cannot finish with undelivered output".into());
+        }
+        checked(self.kernel.close_remote_input(self.input.0, self.input.1))?;
+        for _ in 0..64 {
+            if matches!(
+                checked(self.kernel.step())?,
+                k::scheduler::SchedulerStatus::Drained
+            ) {
+                if !checked(
+                    self.kernel
+                        .remote_egress_terminal(self.output.0, self.output.1),
+                )? {
+                    return Err("history kernel response Cord has not terminated".into());
+                }
+                checked(self.owner.revoke(k::NodeId(0), k::HostCallId(0)))?;
+                self.retired = true;
+                return Ok(());
+            }
+        }
+        Err("history kernel exceeded finite completion steps".into())
+    }
     pub(crate) fn cancel(&mut self) -> Result<()> {
+        if self.retired {
+            return Ok(());
+        }
         checked(self.kernel.cancel())?;
         checked(self.owner.revoke(k::NodeId(0), k::HostCallId(0)))?;
         while let Some(request) = self.kernel.next_host_cancellation() {
@@ -161,6 +189,7 @@ impl<P: HistoryProvider> HistoryKernel<P> {
                 },
             ))?;
         }
+        self.retired = true;
         Ok(())
     }
     pub(crate) fn delivered(&mut self) -> Result<()> {

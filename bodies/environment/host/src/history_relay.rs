@@ -6,10 +6,17 @@ use conduit_environment_runtime::history_exchange::HistoryReadContract;
 use conduit_protected_line::{ProtectedCarrier, ProtectedFrameCarrier};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
-    SessionMessage, SessionRole,
+    SessionMessage, SessionRole, SessionTerminalDisposition,
 };
 
 const FRAME_BYTES: usize = 4096;
+
+mod closure;
+
+pub(crate) enum ServeOutcome {
+    Transferred,
+    InputClosed,
+}
 
 pub(crate) struct HistoryRelay<C> {
     line: ProtectedCarrier<C>,
@@ -170,11 +177,19 @@ impl<C: ProtectedFrameCarrier> HistoryRelay<C> {
     pub(crate) fn serve_one(
         &mut self,
         dispatch: impl FnOnce(&[u8]) -> Result<Vec<u8>>,
-    ) -> Result<()> {
+    ) -> Result<ServeOutcome> {
         if self.collector {
             return Err("collector cannot dispatch history provider".into());
         }
-        let (request_sequence, request) = receive_offered(&mut self.line, &mut self.request)?;
+        let (request_sequence, request) = match receive(&mut self.line, &mut self.request)? {
+            OwnedMessage::InputClosed(sequence) if sequence == self.request.next_sequence() => {
+                return Ok(ServeOutcome::InputClosed)
+            }
+            OwnedMessage::Offered(sequence, payload, length) => {
+                (sequence, payload[..length].to_vec())
+            }
+            _ => return Err("history peer omitted request or typed input close".into()),
+        };
         send(
             &mut self.line,
             &mut self.request,
@@ -197,10 +212,8 @@ impl<C: ProtectedFrameCarrier> HistoryRelay<C> {
             SessionMessage::Delivered {
                 sequence: request_sequence,
             },
-        )
-    }
-    pub(crate) fn close(&mut self) -> Result<()> {
-        checked(self.line.close())
+        )?;
+        Ok(ServeOutcome::Transferred)
     }
 }
 fn binding(plan: &Plan, id: &ConnectionId) -> Result<SessionBinding> {
@@ -265,6 +278,11 @@ fn receive<C: ProtectedFrameCarrier>(
         }
         SessionMessage::Accepted { sequence } => OwnedMessage::Accepted(sequence),
         SessionMessage::Delivered { sequence } => OwnedMessage::Delivered(sequence),
+        SessionMessage::InputClosed { final_sequence } => OwnedMessage::InputClosed(final_sequence),
+        SessionMessage::Terminal {
+            disposition,
+            final_sequence,
+        } => OwnedMessage::Terminal(disposition, final_sequence),
         _ => return Err("unexpected history Cord lifecycle message".into()),
     })
 }
@@ -276,6 +294,8 @@ enum OwnedMessage {
     Offered(u64, [u8; 2304], usize),
     Accepted(u64),
     Delivered(u64),
+    InputClosed(u64),
+    Terminal(SessionTerminalDisposition, u64),
 }
 fn handshake<C: ProtectedFrameCarrier>(
     line: &mut ProtectedCarrier<C>,

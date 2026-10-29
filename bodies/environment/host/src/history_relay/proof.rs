@@ -341,24 +341,25 @@ fn run_role(directory: &Path, role: &str) -> Result<()> {
         ))?;
         let (back, owner) = execution.into_parts();
         let mut kernel = HistoryKernel::prepare(&lowered, back, owner)?;
-        let mut completed = 0;
-        for _ in 0..240 {
+        // At most 240 admitted reads plus one typed close control exchange.
+        for _ in 0..=240 {
             match relay.serve_one(|request| kernel.dispatch(request)) {
-                Ok(()) => {
-                    kernel.delivered()?;
-                    completed += 1;
+                Ok(ServeOutcome::Transferred) => kernel.delivered()?,
+                Ok(ServeOutcome::InputClosed) => {
+                    kernel.finish()?;
+                    relay.finish_source()?;
+                    println!("history-relay-source-completed typed-cords=2");
+                    return Ok(());
                 }
                 Err(error) => {
                     println!("history-relay-source-ended {error}");
-                    if completed < 2 {
-                        kernel.cancel()?;
-                        return Err(error);
-                    }
-                    break;
+                    kernel.cancel()?;
+                    return Err(error);
                 }
             }
         }
         kernel.cancel()?;
+        return Err("history session exhausted before typed closure".into());
     }
     Ok(())
 }

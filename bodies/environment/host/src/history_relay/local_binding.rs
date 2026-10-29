@@ -44,8 +44,8 @@ pub(super) fn sessions(
     let policy = ProtectedSessionPolicy {
         traffic: SessionLimits {
             maximum_payload_bytes: 4096,
-            maximum_frames_per_direction: 8,
-            maximum_bytes_per_direction: 8192,
+            maximum_frames_per_direction: 32,
+            maximum_bytes_per_direction: 128 * 1024,
         },
         maximum_simultaneous_sessions: 1,
         maximum_pending_frames_per_session: 1,
