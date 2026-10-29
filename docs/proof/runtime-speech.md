@@ -101,3 +101,27 @@ The `cargo xtask prove one-body-spoken-chapter` producer likewise requires
 selection. Its retained English Face proof supplies an explicit English semantic
 request; the selected voice name does not determine that request. Coverage is
 rechecked against the exact current provider before the spoken Mask is planned.
+
+## Bounded incremental model-text proof
+
+Test an already-local Ollama model's streaming text separately from speech and
+structured Face presentation:
+
+```console
+cargo xtask make host prove-local-model --model gemma3:1b \
+  --admitted-memory-mib 2048 --stream --json
+```
+
+This selects only `llm/generate-stream`, supplies a fixed synthetic prompt through
+an exact external input Fore, and delivers ordered chunks through the ordinary
+kernel's closing output Flow. The proof admits one queued item per boundary and
+at most 256 generated text bytes. It retains the model content identity, exact
+Plan/Play and terminal Sign identities, bounded text/digest, chunk count, first
+and last delivery timings, and unchanged admitted kernel value capacity.
+Provider discovery/initialization time is reported separately from Plan/Play.
+
+The model must already be installed; the command does not download one.
+`--stream` cannot be combined with the Orifina presenter/documentary selection.
+This proves local incremental execution, not body membership, protected
+cross-host delivery, shared-Face composition, model quality or a latency
+guarantee. Speech synthesis and physical playback remain separate operations.

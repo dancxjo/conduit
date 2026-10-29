@@ -71,10 +71,9 @@ impl<const PORTS: usize> StepBack<PORTS> for LocalModelBack {
                     io.consume_host_completion()
                         .expect("observed local-model stream completion");
                     self.pending = None;
-                    if let Some(value) = self.input.take() {
-                        io.discard(value)
-                            .expect("finished local-model stream input");
-                    }
+                    // The final Host Call still owns the retained request.
+                    // Clearing Back retention lets completion release it once.
+                    self.input = None;
                     self.stream_complete = true;
                     return StepOutcome::Complete;
                 }
