@@ -238,3 +238,7 @@ impl Face {
             })
     }
 }
+
+#[cfg(test)]
+#[path = "identity_cost_tests.rs"]
+mod cost_tests;

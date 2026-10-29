@@ -170,6 +170,19 @@ fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republicat
         "publication_cpu phase=show-validation elapsed_us={}",
         clock.elapsed().as_micros()
     );
+    // Opt-in retained fixture, never the exact CI publication or a current Body grant.
+    if let Some(directory) = std::env::var_os("CONDUIT_PUBLICATION_DIAGNOSTIC_DIR") {
+        use sha2::Digest;
+        let directory = std::path::PathBuf::from(directory);
+        let bytes = serde_json::to_vec(&face).unwrap();
+        std::fs::write(directory.join("face.json"), &bytes).unwrap();
+        std::fs::write(directory.join("publication.bin"), &encoded).unwrap();
+        std::eprintln!(
+            "publication_cpu retained_face_sha256={:x} retained_wire_sha256={:x}",
+            sha2::Sha256::digest(&bytes),
+            sha2::Sha256::digest(&encoded)
+        );
+    }
     let mut workspace = data::Workspace::new().unwrap();
     let clock = std::time::Instant::now();
     let decoded = workspace.decode_command(&encoded).unwrap();

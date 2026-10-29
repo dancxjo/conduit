@@ -160,12 +160,40 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
             | Command::PrepareGraphProjection { .. }
             | Command::PatchbayPublish { .. }
     ) {
+        let before = ALLOCATIONS.load(Ordering::Relaxed);
+        let clock = std::time::Instant::now();
         assert_eq!(
             state.execute(Request::Preflight, transfer),
             Ok(Response::Ready)
         );
+        if matches!(command, Command::PatchbayPublish { .. }) {
+            report(
+                "publication private preflight ns=",
+                clock.elapsed().as_nanos() as usize,
+            );
+            report(
+                "publication private preflight allocations=",
+                ALLOCATIONS.load(Ordering::Relaxed) - before,
+            );
+        }
     }
+    let before = ALLOCATIONS.load(Ordering::Relaxed);
+    let clock = std::time::Instant::now();
     let mut response = state.execute(Request::Commit, transfer).unwrap();
+    if matches!(command, Command::PatchbayPublish { .. }) {
+        report(
+            "publication private commit ns=",
+            clock.elapsed().as_nanos() as usize,
+        );
+        report(
+            "publication private commit allocations=",
+            ALLOCATIONS.load(Ordering::Relaxed) - before,
+        );
+        report(
+            "publication private commit live=",
+            LIVE.load(Ordering::Relaxed),
+        );
+    }
     if matches!(command, Command::Graph { .. }) {
         assert_eq!(response, Response::Ready);
         for phase in [
