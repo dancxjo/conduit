@@ -28,6 +28,8 @@ pub mod display_packets;
 #[cfg(feature = "display-session")]
 pub mod display_session;
 pub mod environmental_reading;
+#[cfg(feature = "history-exchange")]
+pub mod history_exchange;
 #[cfg(feature = "mask-kernel")]
 pub mod mask_kernel;
 #[cfg(feature = "mask-renderer")]

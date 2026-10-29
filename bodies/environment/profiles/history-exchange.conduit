@@ -1,0 +1,15 @@
+# Finite evidence retrieval. No transport, Host choice, commitment or retirement.
+# Cursor packs the retained epoch slot and sequence using the existing protocol.
+type HistoryReadRequest = {
+    cursor: U32
+}
+type SignedHistoryBatch = Bytes <= 2048B
+
+plot history-read (
+    >> request: HistoryReadRequest...|
+    result: SignedHistoryBatch...| >>
+) {
+    evidence: environment/history/read
+    request >> evidence.request
+    evidence.result >> result
+}

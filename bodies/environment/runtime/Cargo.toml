@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [features]
+history-exchange = ["dep:conduit-plan-lowering"]
 evidence-journal = []
 body-image = ["dep:conduit-body"]
 display-output = ["construction", "dep:conduit-tm1637-wire", "dep:conduit-plan-lowering"]
