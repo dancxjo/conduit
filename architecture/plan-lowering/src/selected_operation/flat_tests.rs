@@ -133,3 +133,61 @@ fn preallocated_issuance_is_allocation_free_and_checks_active_and_storage() {
         Err(SelectedCallRefusal::WrongBinding)
     ));
 }
+
+#[test]
+fn reusable_claim_reserves_maxima_refills_and_keeps_refusal_custody() {
+    let (first, active) = prepared();
+    let (mut second, _) = prepared();
+    second.expected.implementation_id = "implementation/a-much-longer-second-operation".into();
+    for n in 0..11 {
+        LEFT.with(|v| v.set(Some(n)));
+        let result = PreparedFlatClaimBacking::try_new(&[&first, &second]);
+        LEFT.with(|v| v.set(None));
+        assert!(matches!(result, Err(SelectedCallRefusal::Possession)));
+    }
+    let memory = PreparedFlatClaimBacking::try_new(&[&first, &second]).unwrap();
+    let core1 = BaseCapabilityIssuanceBacking::try_new(2).unwrap();
+    let core2 = BaseCapabilityIssuanceBacking::try_new(2).unwrap();
+    let policy = authority();
+    let t1 = table();
+    let t2 = table();
+    COUNT.with(|n| n.set(0));
+    let storage = first
+        .prepare_issuance_reusing(memory, core1, 32, 1)
+        .unwrap_or_else(|_| panic!("admitted"));
+    let issued = first
+        .issue_prepared(t1, (&policy).into(), &active, storage)
+        .unwrap();
+    let (_, _, memory) = issued
+        .bind_recycling()
+        .unwrap_or_else(|_| panic!("exact issued"));
+    let storage = second
+        .prepare_issuance_reusing(memory, core2, 999, 1)
+        .unwrap_or_else(|_| panic!("admitted"));
+    let issued = second
+        .issue_prepared(t2, (&policy).into(), &active, storage)
+        .unwrap();
+    let (issued, reason) = issued.bind_recycling().err().unwrap();
+    assert_eq!(reason, SelectedCallRefusal::Possession);
+    assert_eq!(issued.claim.parameter_bytes, 999);
+    assert_eq!(issued.table.inspections().count(), 1);
+    assert_eq!(COUNT.with(Cell::get), 0);
+}
+#[test]
+fn insufficient_reusable_claim_capacity_returns_memory_unchanged() {
+    let (short, _) = prepared();
+    let (mut long, _) = prepared();
+    long.expected.host_id = "a-longer-host-identity-than-prepared".into();
+    let memory = PreparedFlatClaimBacking::try_new(&[&short]).unwrap();
+    let capacity = memory.claim.host_id.0.capacity();
+    let backing = BaseCapabilityIssuanceBacking::try_new(2).unwrap();
+    COUNT.with(|n| n.set(0));
+    let (memory, _, reason) = long
+        .prepare_issuance_reusing(memory, backing, 32, 1)
+        .err()
+        .unwrap();
+    assert_eq!(reason, SelectedCallRefusal::Possession);
+    assert_eq!(memory.claim.host_id.0.capacity(), capacity);
+    assert!(memory.claim.host_id.as_str().is_empty());
+    assert_eq!(COUNT.with(Cell::get), 0);
+}

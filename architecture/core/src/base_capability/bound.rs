@@ -55,15 +55,36 @@ impl BoundBaseOperation {
             BaseCapabilityRefusal,
         ),
     > {
+        Self::bind_recycling(table, handle, claim).map(|(bound, _)| bound)
+    }
+    /// Retain descriptive claim storage after the same full possession checks.
+    /// The returned claim conveys no authority and may be reused as memory.
+    #[allow(clippy::result_large_err)]
+    pub fn bind_recycling(
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+    ) -> Result<
+        (Self, BaseOperationClaim),
+        (
+            BaseCapabilityTable,
+            BaseCapabilityHandle,
+            BaseOperationClaim,
+            BaseCapabilityRefusal,
+        ),
+    > {
         if let Err(error) = Self::check(&table, &handle, &claim) {
             return Err((table, handle, claim, error));
         }
-        Ok(Self {
-            table,
-            handle,
-            parameter_bytes: claim.parameter_bytes,
-            work_units: claim.work_units,
-        })
+        Ok((
+            Self {
+                table,
+                handle,
+                parameter_bytes: claim.parameter_bytes,
+                work_units: claim.work_units,
+            },
+            claim,
+        ))
     }
     pub fn authorize(&mut self) -> Result<BaseOperationLease, BaseCapabilityRefusal> {
         let entry = self.table.entry_mut(&self.handle)?;
