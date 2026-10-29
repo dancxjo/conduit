@@ -120,3 +120,41 @@ fn preflight_with_committed_receipt(require_clean: bool, committed: bool) {
     });
     std::fs::write(proof_path, serde_json::to_vec_pretty(&proof).unwrap()).unwrap();
 }
+
+#[test]
+#[ignore = "requires immutable actual 32768-byte physical network snapshot"]
+fn private_current_network_journal_opens_without_programming() {
+    use conduit_network_join_call::recovery_evidence as journal;
+    struct Immutable<'a>(&'a [u8]);
+    impl journal::Storage for Immutable<'_> {
+        fn capacity(&self) -> u32 {
+            self.0.len().try_into().unwrap()
+        }
+        fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), journal::Refusal> {
+            let at = at as usize;
+            out.copy_from_slice(
+                self.0
+                    .get(at..at + out.len())
+                    .ok_or(journal::Refusal::Geometry)?,
+            );
+            Ok(())
+        }
+        fn program(&mut self, _: u32, _: &[u8]) -> Result<(), journal::Refusal> {
+            panic!("read-only actual snapshot must never program");
+        }
+    }
+    let bytes = std::fs::read(std::env::var("CONDUIT_PRIVATE_NETWORK_SNAPSHOT").unwrap()).unwrap();
+    assert_eq!(bytes.len(), journal::CAPACITY as usize);
+    assert!(
+        bytes.iter().any(|b| *b != 255),
+        "require actual nonblank evidence"
+    );
+    let mut scratch = [0; journal::MAXIMUM_BYTES];
+    let opened = journal::Journal::open(Immutable(&bytes), &mut scratch)
+        .map_err(|(_, refusal)| refusal)
+        .unwrap();
+    assert!(opened.committed_count() > 0);
+    opened
+        .freeze()
+        .inspect_storage(|storage| assert_eq!(storage.0, bytes.as_slice()));
+}
