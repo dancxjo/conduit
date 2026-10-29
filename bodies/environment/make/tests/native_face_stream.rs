@@ -128,47 +128,99 @@ fn leaf_metadata_and_escaped_text_keep_exact_canonical_bytes() {
 }
 
 #[test]
-fn abandoned_response_releases_storage_at_expiry_without_more_http_input() {
-    use conduit_environment_http::face_export::Request;
+fn abandoned_pending_expires_without_publication_or_http_input() {
+    use conduit_environment_http::face_export::{Reply, Request};
     let request = Request::Snapshot { nonce: [1; 32] };
+    let mut state = export_state::State::new();
+    assert!(matches!(state.request(request, 100), Reply::Pending));
+    state.expire(5100);
+    assert!(state.begin(5100).is_none());
+}
+
+#[test]
+fn completion_retains_only_original_admission_lifetime() {
+    use conduit_environment_http::face_export::{Reply, Request};
+    let first = Request::Snapshot { nonce: [1; 32] };
+    let second = Request::Snapshot { nonce: [2; 32] };
     let (_, memory) = allocation_probe::observe(|| {
-        let mut state = export_state::State {
-            pending: Some(request),
-            completed: Some((request, 5000, Ok(vec![0; 1408]))),
-        };
-        state.expire(4999);
-        assert!(state.completed.is_some());
-        state.expire(5000);
-        assert!(state.completed.is_none());
-        assert_eq!(state.pending, Some(request));
-        state.expire(u64::MAX);
-        assert!(state.completed.is_none());
+        let mut state = export_state::State::new();
+        assert!(matches!(state.request(first, 100), Reply::Pending));
+        let work = state.begin(4000).unwrap();
+        state.complete(work, 4001, Ok(vec![42; 1408]));
+        assert!(matches!(state.request(second, 5099), Reply::Unavailable));
+        state.expire(5100);
+        assert!(matches!(state.request(second, 5100), Reply::Pending));
     });
     assert!(memory.peak_bytes >= 1408);
     assert_eq!(memory.retained_bytes(), 0);
 }
 
 #[test]
-fn competing_reader_cannot_discard_completed_response() {
+fn in_flight_owner_blocks_alien_and_expired_work_cannot_publish() {
     use conduit_environment_http::face_export::{Reply, Request};
     let first = Request::Snapshot { nonce: [1; 32] };
     let second = Request::Snapshot { nonce: [2; 32] };
-    let mut state = export_state::State {
-        pending: None,
-        completed: None,
-    };
+    let mut state = export_state::State::new();
     assert!(matches!(state.request(first, 0), Reply::Pending));
-    assert!(matches!(state.request(second, 1), Reply::Unavailable));
-    state.pending = None;
-    state.completed = Some((first, 5000, Ok(vec![42; 16])));
-    for now in [2, 100, 4999] {
-        assert!(matches!(state.request(second, now), Reply::Unavailable));
-        assert!(state.completed.is_some());
-    }
-    assert!(matches!(state.request(first, 4999), Reply::Offer(bytes) if bytes == vec![42; 16]));
-    assert!(matches!(state.request(second, 4999), Reply::Pending));
-    state.pending = None;
-    state.completed = Some((second, 5000, Ok(vec![7])));
-    assert!(matches!(state.request(first, 5000), Reply::Pending));
-    assert!(state.completed.is_none());
+    let work = state.begin(10).unwrap();
+    assert!(matches!(state.request(first, 20), Reply::Pending));
+    assert!(matches!(state.request(second, 20), Reply::Unavailable));
+    state.expire(5000);
+    assert!(!work.is_current(5000));
+    assert!(matches!(state.request(second, 5000), Reply::Unavailable));
+    assert!(state.begin(5000).is_none());
+    state.complete(work, 5000, Ok(vec![99]));
+    assert!(matches!(state.request(second, 5000), Reply::Pending));
+    let next = state.begin(5001).unwrap();
+    assert!(matches!(state.request(first, 5002), Reply::Unavailable));
+    state.complete(next, 5003, Ok(vec![7]));
+    assert!(matches!(state.request(second, 5004), Reply::Offer(bytes) if bytes == vec![7]));
+}
+
+#[test]
+fn exact_retry_collects_once_without_extending_deadline() {
+    use conduit_environment_http::face_export::{Reply, Request};
+    let request = Request::Snapshot { nonce: [3; 32] };
+    let mut state = export_state::State::new();
+    assert!(matches!(state.request(request, 0), Reply::Pending));
+    assert!(matches!(state.request(request, 4900), Reply::Pending));
+    let work = state.begin(4901).unwrap();
+    assert!(work.is_current(4999));
+    assert!(!work.is_current(5000));
+    state.complete(work, 4998, Ok(vec![1, 2]));
+    assert!(matches!(state.request(request, 4999), Reply::Offer(bytes) if bytes == vec![1, 2]));
+    assert!(state.begin(4999).is_none());
+}
+
+#[test]
+fn expired_actual_work_does_not_invoke_signing_callback() {
+    use conduit_environment_http::face_export::{Reply, Request};
+    let request = Request::Chunk {
+        digest: [4; 32],
+        revision_le: 9u64.to_le_bytes(),
+        bytes: 512,
+        offset: 0,
+    };
+    let mut state = export_state::State::new();
+    assert!(matches!(state.request(request, 0), Reply::Pending));
+    let work = state.begin(1).unwrap();
+    assert_eq!(work.request(), request);
+    let calls = core::cell::Cell::new(0);
+    assert_eq!(
+        work.while_current(4999, || {
+            calls.set(calls.get() + 1);
+            Ok(7)
+        }),
+        Ok(7)
+    );
+    assert_eq!(
+        work.while_current(5000, || {
+            calls.set(calls.get() + 1);
+            Ok(8)
+        }),
+        Err("face-export-expired")
+    );
+    assert_eq!(calls.get(), 1);
+    state.complete(work, 5001, Ok(vec![7]));
+    assert!(state.begin(5001).is_none());
 }

@@ -10,10 +10,8 @@ use sha2::{Digest, Sha256};
 mod state;
 use state::State;
 #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
-static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
-    pending: None,
-    completed: None,
-}));
+static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> =
+    Mutex::new(RefCell::new(State::new()));
 fn request(request: Request) -> Reply {
     STATE.lock(|state| {
         state
@@ -71,17 +69,22 @@ impl super::NativeRoot {
         if !conduit_environment_http::face_export::available() {
             let _ = conduit_environment_http::face_export::install_provider(request);
         }
-        let pending = STATE.lock(|state| state.borrow_mut().pending.take());
+        let pending = STATE.lock(|state| state.borrow_mut().begin(now));
         let Some(pending) = pending else {
             return;
         };
-        let result = self.face_export_response(pending, now);
+        let result = self.face_export_response(&pending, now);
         STATE.lock(|state| {
-            state.borrow_mut().completed = Some((pending, now.saturating_add(5000), result))
+            state
+                .borrow_mut()
+                .complete(pending, embassy_time::Instant::now().as_millis(), result)
         });
     }
     #[inline(never)]
-    fn face_export_response(&self, request: Request, now: u64) -> Result<Vec<u8>, &'static str> {
+    fn face_export_response(&self, work: &state::Work, now: u64) -> Result<Vec<u8>, &'static str> {
+        if !work.is_current(embassy_time::Instant::now().as_millis()) {
+            return Err("face-export-expired");
+        }
         let mut output = Vec::new();
         output
             .try_reserve_exact(1408)
@@ -91,7 +94,7 @@ impl super::NativeRoot {
             .as_ref()
             .ok_or("face-export-no-producer")?
             .lease();
-        match request {
+        match work.request() {
             Request::Snapshot { nonce } => {
                 let (_, boot, body, root) = self.body_join_scope()?;
                 let (snapshot, until) = reader.with_current(now, |face, status| {
@@ -143,7 +146,10 @@ impl super::NativeRoot {
                 payload[140..148].copy_from_slice(&now.to_le_bytes());
                 payload[148..156].copy_from_slice(&until.to_le_bytes());
                 let draft = Draft { root, payload };
-                let signature = self.admission.sign_face_export(&draft)?;
+                let signature = work
+                    .while_current(embassy_time::Instant::now().as_millis(), || {
+                        self.admission.sign_face_export(&draft)
+                    })?;
                 let mut signed = [0; 220];
                 signed[..156].copy_from_slice(&draft.payload);
                 signed[156..].copy_from_slice(&signature);
