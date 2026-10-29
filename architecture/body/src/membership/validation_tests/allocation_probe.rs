@@ -20,7 +20,7 @@ impl Observation {
         self.live_bytes
     }
 }
-thread_local! {
+std::thread_local! {
     static REFUSE_ALL: Cell<bool> = const { Cell::new(false) };
     static REFUSE_BYTES: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
