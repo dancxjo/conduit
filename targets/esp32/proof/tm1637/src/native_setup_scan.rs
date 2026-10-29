@@ -112,8 +112,14 @@ impl NativeRoot {
         }
     }
     pub(super) async fn advance_recovery_scan(&mut self) {
-        if let Some(Job::Running(scan)) = self.scan.as_mut() {
-            let _ = scan.drive().await;
+        let released = matches!(self.scan, Some(Job::Running(_)));
+        if let Some(Job::Running(scan) | Job::Held(scan)) = self.scan.as_mut() {
+            if released {
+                let _ = scan.drive().await;
+            }
+            // A selected installation whose release floor/scope check refused
+            // must retire, rather than strand the AP or later dispatch without
+            // the original workspace permit. Held cancellation never scans.
             if scan.restore_for_retirement().await.is_err() {
                 return;
             }

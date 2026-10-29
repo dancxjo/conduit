@@ -148,7 +148,11 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
     let image = image();
     let f = facts().unwrap();
     let pins = (f.source_document_id, f.checked_plot_id, f.expanded_plot_id);
-    for pending in [false, true] {
+    // Failed invocation, interrupted invocation, and admitted-but-unreleased
+    // cancellation all keep their original evidence and Root reservation.
+    for mode in 0..3 {
+        let pending = mode == 1;
+        let held = mode == 2;
         let state = Rc::new(State::default());
         state.now.set(1);
         state.pending.set(pending);
@@ -157,8 +161,12 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
         let mut scan = NativeScan::new(ready(state.clone()));
         scan.install_held(&image, pins, c::OfferGeneration(1), &mut root, || Ok(()))
             .unwrap();
-        scan.release().unwrap();
-        if pending {
+        if !held {
+            scan.release().unwrap();
+        }
+        if held {
+            assert!(embassy_futures::block_on(scan.drive()).is_err());
+        } else if pending {
             let mut future = core::pin::pin!(scan.drive());
             assert!(future
                 .as_mut()
@@ -167,7 +175,7 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
         } else {
             assert!(embassy_futures::block_on(scan.drive()).is_err());
         }
-        assert_eq!(state.scans.get(), 1);
+        assert_eq!(state.scans.get(), if held { 0 } else { 1 });
         assert!(scan.take_retired().is_err());
         embassy_futures::block_on(scan.restore_for_retirement()).unwrap();
         let mut retired = scan.take_retired().unwrap();
@@ -180,7 +188,7 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
             c::CapabilityLifecycle::Revoked
         );
         assert_eq!(retired.evidence().inspection().in_flight_operations, 0);
-        assert_eq!(state.cleanups.get(), 1);
+        assert_eq!(state.cleanups.get(), if held { 0 } else { 1 });
         assert!(retired.signs.events().count() > 0);
         assert_eq!(
             retired.evidence().inspection().scope.active_play_id,
