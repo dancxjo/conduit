@@ -1,7 +1,7 @@
 //! Fixed-capacity DHCP and HTTP service over the existing AP network base.
 use conduit_environment_http::{
-    exchange::{NetworkSetupRoute, ReadingProvider},
-    network_setup::{NetworkSetupLimits, NetworkSetupMailbox, NetworkSetupWriter},
+    exchange::{CompletedExchange, NetworkSetupMode, ReadingProvider, SelectedNetworkSetup},
+    network_setup::{NetworkSetupLimits, NetworkSetupWriter},
 };
 use conduit_rp2040_network_realization::{answer_appliance_dhcp, DhcpLeasePool};
 use core::{
@@ -164,32 +164,16 @@ async fn http(
         result.map_err(|_| ())?;
         {
             let deadline = Instant::now() + Duration::from_secs(5);
-            // Custody outlives the cancellable exchange AND the bounded close.
-            // Root's try_lock cannot consume a just-flushed submission while
-            // its accepted HTTP connection is still finishing. On exchange
-            // timeout PendingNetworkResponse still cancels unflushed input.
-            let mut custody = match setup.as_ref() {
-                Some(writer) => with_timeout(
-                    deadline.saturating_duration_since(Instant::now()),
-                    writer.lock(),
-                )
-                .await
-                .ok(),
-                None => None,
-            };
-            if setup.is_none() || custody.is_some() {
-                let _ = with_timeout(
-                    deadline.saturating_duration_since(Instant::now()),
-                    exchange(
-                        &mut socket,
-                        custody.as_deref_mut(),
-                        connect,
-                        reading,
-                        response,
-                    ),
-                )
-                .await;
-            }
+            // Only credential submissions acquire mutation custody. The returned
+            // completion retains it across the bounded close; ordinary reads
+            // retain the selected policy without queueing behind this mailbox.
+            let custody = with_timeout(
+                deadline.saturating_duration_since(Instant::now()),
+                exchange(&mut socket, setup.as_ref(), connect, reading, response),
+            )
+            .await
+            .ok()
+            .and_then(Result::ok);
             socket.close();
             let _ = with_timeout(Duration::from_secs(1), socket.flush()).await;
             // Finish retirement even when graceful close times out before
@@ -199,28 +183,29 @@ async fn http(
         }
     }
 }
-async fn exchange(
+async fn exchange<'a>(
     socket: &mut TcpSocket<'_>,
-    mailbox: Option<&mut NetworkSetupMailbox>,
+    setup: Option<&'a NetworkSetupWriter<'_>>,
     connect: bool,
     reading: Option<ReadingProvider>,
     response: &mut heapless::String<2048>,
-) -> Result<(), ()> {
-    let route = if let Some(mailbox) = mailbox {
-        let route = if connect && reading.is_some() {
-            NetworkSetupRoute::new
+) -> Result<CompletedExchange<'a>, ()> {
+    let selection = if let Some(writer) = setup {
+        let mode = if connect && reading.is_some() {
+            NetworkSetupMode::Ready
         } else if connect {
-            NetworkSetupRoute::bootstrap_control
+            NetworkSetupMode::BootstrapControl
         } else {
-            NetworkSetupRoute::preparation_only
+            NetworkSetupMode::PreparationOnly
         };
         Some(
-            route(
-                mailbox,
+            SelectedNetworkSetup::new(
+                writer,
                 NetworkSetupLimits {
                     minimum_credential_bytes: 8,
                     maximum_credential_bytes: 63,
                 },
+                mode,
             )
             .map_err(|_| ())?,
         )
@@ -234,15 +219,14 @@ async fn exchange(
             Some(conduit_environment_http::response(now, json))
         }
     });
-    conduit_environment_http::exchange::exchange_buffered_with_history(
+    conduit_environment_http::exchange::exchange_selected_setup(
         socket,
         || Instant::now().as_millis(),
-        route,
+        selection,
         response,
         |now, json| selected(now, json, None),
         |after| selected(Instant::now().as_millis(), true, Some(after)),
     )
     .await
-    .map(|_| ())
     .map_err(|_| ())
 }

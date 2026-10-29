@@ -913,3 +913,162 @@ fn network_ack_is_exact_binary_framing_and_uninstalled_authority_refuses() {
         Err(NetworkHttpRefusal::UnsupportedRoute)
     ));
 }
+
+#[test]
+fn selected_read_requests_do_not_acquire_credential_custody_or_bypass_bootstrap() {
+    for mode in [
+        NetworkSetupMode::Ready,
+        NetworkSetupMode::BootstrapControl,
+        NetworkSetupMode::PreparationOnly,
+    ] {
+        let mut channel = NetworkSetupChannel::new(1);
+        let (writer, reader) = channel.split();
+        let Poll::Ready(held) = poll(writer.lock()) else {
+            panic!("fresh channel")
+        };
+        let mut socket = Socket::new(b"GET /reading HTTP/1.1\r\n\r\n");
+        let mut response = heapless::String::new();
+        let selection = SelectedNetworkSetup::new(&writer, limits(), mode).unwrap();
+        let (completion, allocations) = allocation_probe::observe(|| {
+            poll(exchange_selected_setup(
+                &mut socket,
+                || 0,
+                Some(selection),
+                &mut response,
+                |_, _| {
+                    assert!(
+                        matches!(mode, NetworkSetupMode::Ready),
+                        "bootstrap invoked a reading provider"
+                    );
+                    Some(
+                        heapless::String::try_from("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n")
+                            .unwrap(),
+                    )
+                },
+                |_| panic!("not a history request"),
+            ))
+        });
+        let Poll::Ready(Ok(completion)) = completion else {
+            panic!("read waited for unrelated credential custody")
+        };
+        assert_eq!(allocations.allocations, 0);
+        assert_eq!(allocations.reallocations, 0);
+        assert_eq!(
+            completion.outcome(),
+            &if matches!(mode, NetworkSetupMode::Ready) {
+                ExchangeOutcome::Reading
+            } else {
+                ExchangeOutcome::ReadingUnavailable
+            }
+        );
+        assert_eq!(
+            reader.has_acknowledged(),
+            Err(NetworkSetupReadRefusal::Busy)
+        );
+        drop(completion);
+        drop(held);
+        assert_eq!(reader.has_acknowledged(), Ok(false));
+    }
+}
+
+#[test]
+fn selected_history_read_does_not_wait_for_credential_custody() {
+    let mut channel = NetworkSetupChannel::new(1);
+    let (writer, reader) = channel.split();
+    let held = writer.try_lock().unwrap();
+    let mut socket = Socket::new(b"GET /history?after=7 HTTP/1.1\r\n\r\n");
+    let mut response = heapless::String::new();
+    let mut requested = None;
+    let Poll::Ready(Ok(completion)) = poll(exchange_selected_setup(
+        &mut socket,
+        || 0,
+        Some(SelectedNetworkSetup::new(&writer, limits(), NetworkSetupMode::Ready).unwrap()),
+        &mut response,
+        |_, _| panic!("history must not invoke the current-reading provider"),
+        |after| {
+            requested = Some(after);
+            Some(
+                heapless::String::try_from("HTTP/1.1 200 OK\r\nContent-Length: 0\r\n\r\n").unwrap(),
+            )
+        },
+    )) else {
+        panic!("history waited for unrelated credential custody")
+    };
+    assert_eq!(requested, Some(7));
+    assert_eq!(completion.outcome(), &ExchangeOutcome::History);
+    assert_eq!(
+        reader.has_acknowledged(),
+        Err(NetworkSetupReadRefusal::Busy)
+    );
+    drop(completion);
+    drop(held);
+    assert_eq!(reader.has_acknowledged(), Ok(false));
+}
+
+#[test]
+fn selected_submission_completion_retains_custody_through_outer_close() {
+    let request = post();
+    let mut channel = NetworkSetupChannel::new(1);
+    let (writer, mut reader) = channel.split();
+    let mut socket = Socket::new(request.as_bytes());
+    let mut response = heapless::String::new();
+    let selection = SelectedNetworkSetup::new(&writer, limits(), NetworkSetupMode::Ready).unwrap();
+    let Poll::Ready(Ok(completion)) = poll(exchange_selected_setup(
+        &mut socket,
+        || 0,
+        Some(selection),
+        &mut response,
+        |_, _| None,
+        |_| None,
+    )) else {
+        panic!("submission failed")
+    };
+    assert_eq!(
+        completion.outcome(),
+        &ExchangeOutcome::SubmissionAcknowledged
+    );
+    assert_eq!(
+        reader.has_acknowledged(),
+        Err(NetworkSetupReadRefusal::Busy)
+    );
+    socket.pending_flush = true;
+    assert!(poll(socket.flush()).is_pending());
+    assert_eq!(
+        reader.take_acknowledged(&mut [0; 167]),
+        Err(NetworkSetupReadRefusal::Busy)
+    );
+    drop(completion);
+    assert_eq!(reader.has_acknowledged(), Ok(true));
+    assert!(reader.take_acknowledged(&mut [0; 167]).is_ok());
+}
+
+#[test]
+fn selected_submission_cancellation_erases_unflushed_input() {
+    for failure in [0, 1, 2] {
+        let request = post();
+        let mut channel = NetworkSetupChannel::new(1);
+        let (writer, reader) = channel.split();
+        let mut socket = Socket::new(request.as_bytes());
+        socket.pending_flush = failure == 0;
+        socket.flush_failure = failure == 1;
+        socket.write_failure = failure == 2;
+        let mut response = heapless::String::new();
+        let selection =
+            SelectedNetworkSetup::new(&writer, limits(), NetworkSetupMode::Ready).unwrap();
+        let outcome = poll(exchange_selected_setup(
+            &mut socket,
+            || 0,
+            Some(selection),
+            &mut response,
+            |_, _| None,
+            |_| None,
+        ));
+        assert!(!matches!(outcome, Poll::Ready(Ok(_))));
+        drop(outcome);
+        assert_eq!(reader.has_acknowledged(), Ok(false));
+        assert_eq!(
+            writer.try_lock().unwrap().prepare_acknowledged(|_| ()),
+            Err(NetworkSetupRefusal::NoSubmission)
+        );
+    }
+}

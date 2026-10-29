@@ -8,7 +8,7 @@ use zeroize::Zeroizing;
 pub type ReadingProvider = fn(u64, bool, Option<u32>) -> Option<heapless::String<2048>>;
 
 pub struct NetworkSetupRoute<'a> {
-    mailbox: &'a mut NetworkSetupMailbox,
+    mailbox: Option<&'a mut NetworkSetupMailbox>,
     limits: NetworkSetupLimits,
     preparation_only: bool,
     reading_available: bool,
@@ -24,7 +24,7 @@ impl<'a> NetworkSetupRoute<'a> {
     ) -> Result<Self, NetworkSetupRefusal> {
         limits.validate()?;
         Ok(Self {
-            mailbox,
+            mailbox: Some(mailbox),
             limits,
             preparation_only: false,
             reading_available: true,
@@ -53,6 +53,93 @@ impl<'a> NetworkSetupRoute<'a> {
         Ok(route)
     }
 }
+/// Root-selected route policy, independent of mutable credential custody.
+#[derive(Clone, Copy)]
+pub enum NetworkSetupMode {
+    Ready,
+    BootstrapControl,
+    PreparationOnly,
+}
+pub struct SelectedNetworkSetup<'a, 'channel> {
+    writer: &'a NetworkSetupWriter<'channel>,
+    limits: NetworkSetupLimits,
+    mode: NetworkSetupMode,
+}
+impl<'a, 'channel> SelectedNetworkSetup<'a, 'channel> {
+    pub fn new(
+        writer: &'a NetworkSetupWriter<'channel>,
+        limits: NetworkSetupLimits,
+        mode: NetworkSetupMode,
+    ) -> Result<Self, NetworkSetupRefusal> {
+        limits.validate()?;
+        Ok(Self {
+            writer,
+            limits,
+            mode,
+        })
+    }
+}
+/// Retain this completion through the connection's bounded close. Only a parsed
+/// credential submission acquires its guard; ordinary reads cannot block on it.
+/// Dropping an unfinished exchange still cancels unflushed private input.
+#[must_use = "retain credential custody until the connection's bounded close completes"]
+pub struct CompletedExchange<'a> {
+    outcome: ExchangeOutcome,
+    _custody: Option<
+        embassy_sync::mutex::MutexGuard<
+            'a,
+            embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex,
+            NetworkSetupMailbox,
+        >,
+    >,
+}
+impl CompletedExchange<'_> {
+    pub fn outcome(&self) -> &ExchangeOutcome {
+        &self.outcome
+    }
+}
+/// Parse one bounded request before acquiring mutation custody. Keep the exact
+/// selected bootstrap/read policy even when no credential lock is needed.
+/// Root must bound this entire future and retain its completion until close.
+pub async fn exchange_selected_setup<'a, T: Read + Write>(
+    io: &mut T,
+    now: impl Fn() -> u64,
+    selection: Option<SelectedNetworkSetup<'a, '_>>,
+    response: &mut heapless::String<2048>,
+    reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+    history: impl FnMut(u32) -> Option<heapless::String<2048>>,
+) -> Result<CompletedExchange<'a>, ExchangeRefusal> {
+    let limits = selection
+        .as_ref()
+        .map(|s| s.limits)
+        .unwrap_or(NetworkSetupLimits {
+            minimum_credential_bytes: 8,
+            maximum_credential_bytes: 64,
+        });
+    let parsed = read_request(io, limits).await?;
+    let mut custody = if matches!(&parsed, Some(NetworkHttpRequest::Join(_))) {
+        match selection.as_ref() {
+            Some(s) => Some(s.writer.lock().await),
+            None => None,
+        }
+    } else {
+        None
+    };
+    let outcome = {
+        let route = selection.map(|s| NetworkSetupRoute {
+            mailbox: custody.as_deref_mut(),
+            limits: s.limits,
+            preparation_only: matches!(s.mode, NetworkSetupMode::PreparationOnly),
+            reading_available: matches!(s.mode, NetworkSetupMode::Ready),
+        });
+        respond_prepared(io, now, parsed, route, response, reading, history).await?
+    };
+    Ok(CompletedExchange {
+        outcome,
+        _custody: custody,
+    })
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExchangeRefusal {
     Transport,
@@ -128,6 +215,14 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
             minimum_credential_bytes: 8,
             maximum_credential_bytes: 64,
         });
+    let parsed = read_request(io, limits).await?;
+    respond_prepared(io, now, parsed, route, response, &mut reading, &mut history).await
+}
+
+async fn read_request<T: Read>(
+    io: &mut T,
+    limits: NetworkSetupLimits,
+) -> Result<Option<NetworkHttpRequest>, ExchangeRefusal> {
     let mut request = NetworkRequestBuffer::for_http();
     let mut input = Zeroizing::new([0; 128]);
     let parsed = loop {
@@ -148,6 +243,18 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
             Err(error) => return Err(ExchangeRefusal::Framing(error)),
         }
     };
+    Ok(parsed)
+}
+
+async fn respond_prepared<T: Read + Write>(
+    io: &mut T,
+    now: impl Fn() -> u64,
+    parsed: Option<NetworkHttpRequest>,
+    route: Option<NetworkSetupRoute<'_>>,
+    response: &mut heapless::String<2048>,
+    mut reading: impl FnMut(u64, bool) -> Option<heapless::String<2048>>,
+    mut history: impl FnMut(u32) -> Option<heapless::String<2048>>,
+) -> Result<ExchangeOutcome, ExchangeRefusal> {
     match (parsed, route) {
         (Some(NetworkHttpRequest::Reading { .. }), Some(route)) if !route.reading_available => {
             write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
@@ -165,7 +272,9 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
         (Some(NetworkHttpRequest::FaceExport(request)), route) => {
             let reply = if route.as_ref().is_none_or(|route| route.reading_available) {
                 crate::face_export::dispatch(request)
-            } else { crate::face_export::Reply::Unavailable };
+            } else {
+                crate::face_export::Reply::Unavailable
+            };
             if !crate::face_export::render(reply, response) {
                 return Err(ExchangeRefusal::Submission(NetworkSetupRefusal::TooLarge));
             }
@@ -271,8 +380,13 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
             Ok(ExchangeOutcome::NetworkPage)
         }
         (Some(NetworkHttpRequest::Join(input)), Some(route)) => {
-            let pending = PendingNetworkResponse::prepare(route.mailbox, input)
-                .map_err(ExchangeRefusal::Submission)?;
+            let pending = PendingNetworkResponse::prepare(
+                route.mailbox.ok_or(ExchangeRefusal::Submission(
+                    NetworkSetupRefusal::NoSubmission,
+                ))?,
+                input,
+            )
+            .map_err(ExchangeRefusal::Submission)?;
             render_ack_into(route.preparation_only, &pending, response)?;
             write(io, response.as_bytes()).await?;
             pending
