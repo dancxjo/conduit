@@ -218,7 +218,7 @@ fn preclaimed_box_keeps_its_address_and_requires_ordinary_execution() {
         FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32).unwrap(),
     )
     .unwrap();
-    assert_eq!(alloc::boxed::Box::as_ptr(&scheduler), address);
+    assert_eq!(core::ptr::from_ref(scheduler.as_ref()), address);
     assert_eq!(scheduler.drivers[0].calls, 0);
     assert_eq!(scheduler.completed_count(), 0);
     assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
