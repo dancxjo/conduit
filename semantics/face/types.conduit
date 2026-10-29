@@ -240,6 +240,7 @@ type GraphicsCommandKind =
     | text
     | icon
     | orthogonal_path
+    | polyline
 
 form face/graphics-command-kind = GraphicsCommandKind as u8 from 1
 

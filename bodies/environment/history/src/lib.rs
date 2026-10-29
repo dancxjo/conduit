@@ -4,11 +4,13 @@
 extern crate alloc;
 mod contribution;
 pub use contribution::{
-    HistoryFaceRefusal, HistoryFaceWindow, PreparedHistoryFace, HISTORY_SUBJECT,
+    HISTORY_SUBJECT, HistoryFaceRefusal, HistoryFaceWindow, PreparedHistoryFace,
 };
 
 mod browser;
 mod graph;
+mod retained;
+pub use retained::RetainedEvidenceGraph;
 mod native;
 pub use graph::{GraphRefusal, GraphSample, HistoryGraph, MAX_GRAPH_SAMPLES};
 

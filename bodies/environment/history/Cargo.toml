@@ -10,7 +10,7 @@ publish = false
 conduit-core = { path = "../../../architecture/core" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-environment-face = { path = "../face" }
-conduit-environment-runtime = { path = "../runtime" }
+conduit-environment-runtime = { path = "../runtime", features = ["face-projection"] }
 
 [dev-dependencies]
 serde_json = "1"
