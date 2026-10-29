@@ -1,12 +1,10 @@
 //! Numeric kernel protocol fixture, not an initialized Host, Body or radio.
 use conduit_kernel::{
     self as k,
-    scheduler::{
-        CordCapacity, CordSpec, FixedScheduler, NodeSpec, SchedulerError, SchedulerStatus,
-    },
+    scheduler::{CordCapacity, CordSpec, NodeSpec, SchedulerError, SchedulerStatus},
     ValueStorage,
 };
-use conduit_network_join_call::NetworkControlBack;
+use conduit_network_join_call::{NetworkControlBack, NetworkControlKernel};
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[global_allocator]
@@ -23,8 +21,25 @@ fn missing_or_cancelled_credentials_do_not_reach_the_join_call() {
         execute(None, mode);
     }
 }
+#[test]
+fn both_full_167_byte_results_fit_the_production_three_slot_kernel() {
+    execute(None, 3);
+    println!(
+        "production kernel bytes={} storage bytes={} saving={}",
+        core::mem::size_of::<conduit_network_join_call::PreparedNetworkKernel>(),
+        conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes(),
+        core::mem::size_of::<k::FixedValueStore<8, 167>>()
+            - core::mem::size_of::<k::FixedValueStore<3, 167>>()
+    );
+}
+#[test]
+fn cancellation_at_each_pending_call_retires_without_allocating() {
+    for node in 0..3 {
+        execute(Some(node), 4);
+    }
+}
 fn execute(failed_node: Option<u16>, source_mode: u8) {
-    let mut values = k::FixedValueStore::<8, 167>::new(8 * 167).unwrap();
+    let mut values = k::FixedValueStore::<3, 167>::new(3 * 167).unwrap();
     let empty = values.store(&[]).unwrap();
     let mut routes = k::FixedRoutes::<3, 2>::new(1);
     for id in 0..2 {
@@ -76,7 +91,7 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
             },
         )
     });
-    let mut kernel = FixedScheduler::<_, _, _, 3, 2, 1, 2, 3, 2, 3, 3>::new_with_host_calls(
+    let mut kernel = NetworkControlKernel::new_with_host_calls(
         nodes,
         cords,
         routes,
@@ -87,11 +102,12 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
             NetworkControlBack::attachment_sign(),
         ],
         values,
-        k::FixedSignLog::<64>::new((64 * core::mem::size_of::<k::KernelEvent>()) as u32).unwrap(),
+        k::HostedSignLog::try_new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
+            .unwrap(),
     )
     .unwrap();
     let mut join = [0; 167];
-    let join_len = conduit_net::encode_network_join_request(
+    let mut join_len = conduit_net::encode_network_join_request(
         conduit_net::NetworkJoinRequest {
             ssid: b"fixture-net",
             credential: b"fixture-password",
@@ -100,7 +116,7 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
     )
     .unwrap();
     let mut attachment = [0; 167];
-    let attachment_len = conduit_net::encode_network_attachment(
+    let mut attachment_len = conduit_net::encode_network_attachment(
         conduit_net::NetworkAttachmentInfo {
             attachment_id: "attachment/result",
             host_id: "host/current",
@@ -111,6 +127,12 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
         &mut attachment,
     )
     .unwrap();
+    if source_mode == 3 {
+        join.fill(0x5a);
+        attachment.fill(0xa5);
+        join_len = join.len();
+        attachment_len = attachment.len();
+    }
     let failure = k::Failure {
         code: k::FailureCode::HostCallDenied,
         detail: 42,
@@ -134,9 +156,15 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
                     2 => assert_eq!(input, &attachment[..attachment_len]),
                     _ => panic!("foreign node"),
                 }
+                if source_mode == 4 && failed_node == Some(request.node.0) {
+                    kernel.cancel().unwrap();
+                    assert!(kernel.can_retire());
+                    finished = true;
+                    break;
+                }
                 let output = if failed_node == Some(request.node.0)
                     || node == 2
-                    || (node == 0 && source_mode != 0)
+                    || (node == 0 && matches!(source_mode, 1 | 2))
                 {
                     None
                 } else {
@@ -173,12 +201,12 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
             }
             match kernel.step() {
                 Ok(SchedulerStatus::Drained) => {
-                    assert!(failed_node.is_none() && source_mode == 0);
+                    assert!(failed_node.is_none() && matches!(source_mode, 0 | 3));
                     finished = true;
                     break;
                 }
                 Err(SchedulerError::BackFailed(error)) => {
-                    if source_mode == 0 {
+                    if matches!(source_mode, 0 | 3) {
                         assert!(failed_node.is_some());
                         assert_eq!(error, failure);
                     } else {
@@ -201,7 +229,10 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
     });
     assert!(finished);
     assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
-    let failed_node = if source_mode == 0 {
+    if source_mode == 4 {
+        return;
+    }
+    let failed_node = if matches!(source_mode, 0 | 3) {
         failed_node
     } else {
         Some(0)
