@@ -115,6 +115,32 @@ Blue's recurring display wire failure remains unresolved. No supply or wiring
 change was made. Direct 5 V conversion is not qualified; module pull-ups and
 signal-level compatibility require physical inspection.
 
-Yellow still needs preserved firmware/state, saved-network recovery, finite
-durable observations and ordinary Host admission/assigned-Plot execution.
+## Yellow flash preservation and actual restart
+
+The second private operations handoff contains 17 manifest entries, including
+its READ-FIRST instructions. Every size/SHA-256 matched; files were retained
+privately and synchronized. The provisioned human-owner control key is not a
+Host identity or MCU Root key. No forebrain observer identity was cloned.
+Transfer completion was reported for removal of the temporary SFTP key.
+
+Official Raspberry Pi picotool v2.3.1 and all runtime libraries were checked on
+victus before hardware access. Yellow acknowledged its exact 64-hex-digit build
+through the existing BOOTSEL challenge/request mechanism. It re-enumerated as
+the sole RP2 Boot device, USB bus 1/address 8, VID/PID `2e8a:0003`.
+`picotool save -a -v` with that exact selection saved and verified all 2,097,152
+flash bytes. Backup SHA-256:
+`1da326fe90844748f816d8f5161f2ad407c7be460a9ff6d1f2ba5a66fef07972`.
+The backup was synchronized before an explicitly selected application reboot.
+No load, erase, force flag or Blue-port access occurred during this procedure.
+
+After actual restart Yellow reported the same build/configuration and resumed
+diagnostic sensing/display. The first host-requested join to its original saved
+network refused with `radio-join-refused`. An explicit join to the other
+preserved protected profile succeeded, with attachment generation 3 and no
+radio error. New-Boot counters reached two samples and 26 acknowledged Frames.
+These observations prove retained firmware and host-assisted network return;
+they do not establish autonomous configuration persistence or reconnect.
+
+Yellow still needs autonomous saved-network recovery, finite durable
+observations and ordinary Host admission/assigned-Plot execution.
 Transport attachment and diagnostic counters do not establish those contracts.
