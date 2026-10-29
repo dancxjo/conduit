@@ -28,6 +28,9 @@ pub use edit_codec::*;
 #[path = "text_state/semantic_editor.rs"]
 mod semantic_editor;
 pub use semantic_editor::*;
+#[path = "text_state/document_step.rs"]
+mod document_step;
+pub use document_step::*;
 
 /// Pre-admitted retained text storage shared by every compatible Host.
 pub struct BoundedTextState {
@@ -36,6 +39,25 @@ pub struct BoundedTextState {
 }
 
 impl BoundedTextState {
+    /// Prepare the same revisioned editor from a verified committed snapshot.
+    /// This constructor grants no authority and proves no storage durability.
+    pub fn from_document(
+        maximum_bytes: usize,
+        document: TextDocument<'_>,
+    ) -> Result<Self, TextEditRefusal> {
+        if maximum_bytes == 0 || maximum_bytes > MAXIMUM_EDITED_TEXT_BYTES as usize {
+            return Err(TextEditRefusal::CapacityExhausted);
+        }
+        let mut text = vec![0; maximum_bytes];
+        let state = retained::RetainedText::from_snapshot(
+            maximum_bytes,
+            &mut text,
+            document.revision,
+            document.text,
+        )?;
+        Ok(Self { state, text })
+    }
+
     pub fn new(mode: TextStateMode, maximum_bytes: usize) -> Result<Self, TextStateRefusal> {
         let state = retained::RetainedText::new(mode, maximum_bytes)?;
         Ok(Self {
@@ -158,6 +180,7 @@ pub fn install_text_state_catalogs(
 ) -> Result<(), alloc::string::String> {
     use conduit_plot::{KindSignature, StartupParameterSignature};
     semantic_editor::install(startup, profile)?;
+    document_step::install(startup, profile)?;
     for contract in [
         text_edit_semantic_contract(),
         text_submit_lines_semantic_contract(),

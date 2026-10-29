@@ -122,3 +122,39 @@ fn reference_encoding_remains_portable_and_lifetime_and_coherence_are_separate_c
         Err(ResourceContentRefusal::ReferenceMismatch)
     );
 }
+
+#[test]
+fn byte_only_references_keep_exact_identity_version_and_byte_bounds_without_invented_items() {
+    let c = contract();
+    let mut reference = BoundedResourceRef {
+        identity: c.identity,
+        content_profile: c.content_profile.clone(),
+        access_class: ResourceClassId::from("byte-content"),
+        extent: ResourceExtent {
+            bytes: u64::from(c.maximum_bytes),
+            items: None,
+        },
+        lifetime: ResourceLifetime {
+            version: c.version,
+            expires_at: None,
+        },
+    };
+    assert_eq!(c.accepts_reference(&reference), Ok(()));
+    reference.extent.bytes += 1;
+    assert_eq!(
+        c.accepts_reference(&reference),
+        Err(ResourceContentRefusal::ReferenceMismatch)
+    );
+    reference.extent.bytes -= 1;
+    reference.extent.items = Some(u64::from(c.maximum_items) + 1);
+    assert_eq!(
+        c.accepts_reference(&reference),
+        Err(ResourceContentRefusal::ReferenceMismatch)
+    );
+    reference.extent.items = None;
+    reference.lifetime.version = ResourceVersionIdentity::from_digest([9; 32]);
+    assert_eq!(
+        c.accepts_reference(&reference),
+        Err(ResourceContentRefusal::ReferenceMismatch)
+    );
+}

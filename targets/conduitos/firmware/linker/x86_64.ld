@@ -30,6 +30,8 @@ SECTIONS
 
     .data ALIGN(CONSTANT(MAXPAGESIZE)) : {
         *(.data .data.*)
+        /* Initialized pointer tables must precede the zero-fill tail. */
+        *(.got .got.*)
     } :data
 
     .requests ALIGN(CONSTANT(MAXPAGESIZE)) : {

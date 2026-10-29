@@ -1,8 +1,11 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
+mod finite_cbor;
 #[path = "codec/graph_encoding/mod.rs"]
 mod graph_encoding;
 mod graph_reply;
+mod preparation;
+mod publication;
 use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
 use alloc::{boxed::Box, vec::Vec};
@@ -89,7 +92,7 @@ pub fn decode_reply(bytes: &[u8]) -> Result<Reply, Refusal> {
         None => transport_codec::decode(decoded_json(bytes, &mut [])?),
     }
 }
-/// One admitted reusable JSON workspace, reserved before retained controllers.
+/// One admitted reusable decoded workspace, reserved before retained controllers.
 /// Graph methods preserve canonical JSON/custody bytes. Private service methods
 /// use versioned exact-sequence framing in the same admitted storage.
 pub struct Workspace {
@@ -109,7 +112,16 @@ impl Workspace {
         decode_in(bytes, &mut self.json)
     }
     pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
-        transport_codec::decode(decoded_json(bytes, &mut self.json)?)
+        let decoded = decoded_json(bytes, &mut self.json)?;
+        if publication::matches(decoded) {
+            publication::preflight(decoded)?;
+            publication::decode_preflighted(decoded)
+        } else if preparation::matches(decoded) {
+            preparation::preflight(decoded)?;
+            preparation::decode_preflighted(decoded)
+        } else {
+            transport_codec::decode(decoded)
+        }
     }
     /// For large target, projection and publication commands, do decompression and framing
     /// preflight in their own protected entry. State freezes incoming bytes
@@ -117,7 +129,13 @@ impl Workspace {
     pub(crate) fn preflight_command(&mut self, bytes: &[u8]) -> Result<usize, Refusal> {
         let length = {
             let decoded = decoded_json(bytes, &mut self.json)?;
-            transport_codec::preflight(decoded)?;
+            if publication::matches(decoded) {
+                publication::preflight(decoded)?;
+            } else if preparation::matches(decoded) {
+                preparation::preflight(decoded)?;
+            } else {
+                transport_codec::preflight(decoded)?;
+            }
             decoded.len()
         };
         if !bytes.starts_with(MAGIC) {
@@ -126,7 +144,14 @@ impl Workspace {
         Ok(length)
     }
     pub(crate) fn decode_preflighted_command(&self, length: usize) -> Result<Command, Refusal> {
-        transport_codec::decode_validated(self.json.get(..length).ok_or(Refusal::Bounds)?)
+        let bytes = self.json.get(..length).ok_or(Refusal::Bounds)?;
+        if publication::matches(bytes) {
+            publication::decode_preflighted(bytes)
+        } else if preparation::matches(bytes) {
+            preparation::decode_preflighted(bytes)
+        } else {
+            transport_codec::decode_validated(bytes)
+        }
     }
     /// While a full graph is retained, reject every other command tag before
     /// decoding any second payload into the same fixed grant.
@@ -205,7 +230,16 @@ pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, Refusal> {
 }
 /// Encode one private Application command with exact sequence framing.
 pub fn encode_command(command: &Command) -> Result<Vec<u8>, Refusal> {
-    encode_with(command, transport_codec::encode_to_slice)
+    if matches!(command, Command::PatchbayPublish { .. }) {
+        encode_with(command, publication::encode)
+    } else if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
+        encode_with(command, preparation::encode)
+    } else {
+        encode_with(command, transport_codec::encode_to_slice)
+    }
 }
 fn encode_with<T: Serialize>(
     value: &T,

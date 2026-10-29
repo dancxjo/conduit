@@ -60,7 +60,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
     /// USB uses the ordinary protocol kernel and the same Body biography.
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub fn prepare_usb(
         artifact: PreparedProtocolArtifact,
@@ -77,7 +77,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_endpoint_only(
         artifact: PreparedProtocolArtifact,
@@ -94,7 +94,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_protocol(
         artifact: PreparedProtocolArtifact,
@@ -111,7 +111,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_isochronous(
         artifact: PreparedProtocolArtifact,
@@ -128,7 +128,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_usb_duplex(
         artifact: PreparedProtocolArtifact,
@@ -160,7 +160,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_storage_usb_duplex(
         artifact: PreparedProtocolArtifact,
@@ -177,7 +177,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
 
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     pub(crate) fn prepare_storage_usb_duplex_two_pairs(
         artifact: PreparedProtocolArtifact,
@@ -229,7 +229,7 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> PreparedProtocolBodyPlay<P, C
             let mut kernel = prepare_kernel(artifact).map_err(ProtocolBodyRefusal::Call)?;
             #[cfg(any(
                 target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+                all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             kernel
                 .bind_storage_body(storage_preparation.clone())

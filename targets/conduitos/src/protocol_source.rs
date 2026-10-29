@@ -415,17 +415,17 @@ pub use package_compilation::{ProtocolSpecializationRequest, ProtocolValueRefere
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod native_usb_preparation;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub use native_usb_preparation::prepare_native_usb_protocol;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_storage;
 
@@ -433,7 +433,7 @@ pub(crate) use native_usb_preparation::prepare_native_usb_protocol_with_sign_sto
 pub(crate) use native_usb_preparation::NativeEthernetPreparation;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) use native_usb_preparation::{
     NativeStoragePreparation, prepare_native_usb_duplex, prepare_native_usb_endpoint_protocol,
@@ -474,11 +474,11 @@ fn install_literal(
 
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 mod native_usb_isochronous_preparation;
 #[cfg(any(
     target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
 ))]
 pub(crate) use native_usb_isochronous_preparation::prepare_native_usb_isochronous_protocol;

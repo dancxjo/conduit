@@ -14,6 +14,25 @@ sha2 = { version = "0.10", default-features = false, features = ["force-soft"] }
 conduitos-creche-core = {path="../creche-core"}
 [profile.release]
 panic = "abort"
-opt-level = "s"
+opt-level = "z"
 codegen-units = 1
 lto = "fat"
+
+# Keep the complete service inside its admitted image window while compiling
+# canonical identity and Face validation for bounded execution time.
+[profile.release.package.conduit-core]
+opt-level = 3
+[profile.release.package.conduit-face]
+opt-level = 3
+
+# The private named-map decoder is a measured guest transaction hotspot. Keep
+# its bounded parser optimized without expanding the complete reducer profile.
+[profile.release.package.ciborium-ll]
+opt-level = 3
+[profile.release.package.ciborium-io]
+opt-level = 3
+
+# Canonical Plan/fragment validation hashes complete identities inside the same
+# finite Commit. Optimize software hashing without requiring CPU SHA features.
+[profile.release.package.sha2]
+opt-level = 3

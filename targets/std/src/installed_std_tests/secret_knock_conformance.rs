@@ -303,6 +303,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             advertisement: &advertisement,
             playback: None,
             midi_input: None,
@@ -324,6 +326,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     .expect("Secret Knock executes as one production-kernel Play");
     let unrelated_report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             advertisement: &advertisement,
             playback: None,
             midi_input: None,

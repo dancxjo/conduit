@@ -40,6 +40,13 @@ bench = false
 required-features = ["aarch64-product"]
 
 [[bin]]
+name = "conduitos-aarch64-jetson-nano"
+path = "src/bin/aarch64_jetson_nano.rs"
+test = false
+bench = false
+required-features = ["aarch64-jetson-nano"]
+
+[[bin]]
 name = "conduitos-aarch64-orange-pi-5"
 path = "src/bin/aarch64_orange_pi_5.rs"
 test = false
@@ -199,7 +206,9 @@ aarch64-a0 = []
 aarch64-a2 = []
 aarch64-a3 = []
 aarch64-product = []
-aarch64-orange-pi-5 = []
+aarch64-board = []
+aarch64-orange-pi-5 = ["aarch64-board"]
+aarch64-jetson-nano = ["aarch64-board"]
 armv6-rpi-b-plus-a0 = []
 armv6-rpi-b-plus-a2 = []
 armv6-rpi-b-plus-a3 = []

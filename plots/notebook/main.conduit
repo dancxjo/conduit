@@ -1,0 +1,12 @@
+# The Body supplies its current document and adopts only a successful candidate.
+# The same revisioned editing law serves the resident editor and this transition.
+plot notebook/transition (
+    >> document: text/document@1 <= 264B
+    >> edit: text/edit@1 <= 272B
+    current: text/document@1 <= 264B >>
+) {
+    step: text/apply-edit
+    document >> step.document
+    edit >> step.edit
+    step.current >> current
+}

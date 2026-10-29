@@ -390,7 +390,7 @@ mod tests {
     }
 }
 
-fn edit_failure(refusal: conduit_semantic_catalog::TextEditRefusal) -> Failure {
+pub(super) fn edit_failure(refusal: conduit_semantic_catalog::TextEditRefusal) -> Failure {
     use conduit_semantic_catalog::TextEditRefusal::*;
     let (code, detail) = match refusal {
         StaleRevision => (FailureCode::InvalidInput, 2),

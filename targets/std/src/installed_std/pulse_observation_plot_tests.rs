@@ -86,6 +86,8 @@ fn reusable_pulse_plot_plans_and_executes_outside_choir() {
     let mut output = Vec::with_capacity(16384);
     let report = crate::installed_std::run_fragment(
         crate::installed_std::InstalledRunHost {
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             advertisement: &advertisement,
             playback: None,
             midi_input: None,

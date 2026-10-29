@@ -1,4 +1,4 @@
-//! Exact Face actions that control the installed owner clock.
+//! Exact Face actions for owner lifecycle, clock and notebook navigation.
 use super::*;
 
 impl DurableHostRuntime {
@@ -81,6 +81,7 @@ impl DurableHostRuntime {
             }
             if interaction.action_id.starts_with("todo.")
                 || interaction.action_id.starts_with("thermostat.")
+                || interaction.action_id.starts_with("notebook.")
             {
                 None
             } else {
@@ -88,6 +89,10 @@ impl DurableHostRuntime {
             }
         };
         let Some(action) = action else {
+            #[cfg(target_os = "linux")]
+            if interaction.action_id.starts_with("notebook.") {
+                return self.submit_owned_notebook_action(show, interaction);
+            }
             return if interaction.action_id.starts_with("thermostat.") {
                 self.submit_owned_thermostat_action(show, interaction)
             } else {
@@ -95,6 +100,12 @@ impl DurableHostRuntime {
             };
         };
         match action {
+            crate::durable_host::owner::ClockAction::NotebookNavigation => {
+                let HostSource::Body { owner, .. } = &mut self.host else {
+                    unreachable!("navigation was checked on its current owner");
+                };
+                owner.navigate_notebook(show, interaction)
+            }
             crate::durable_host::owner::ClockAction::ChangeInterval => {
                 let HostSource::Body {
                     owner,

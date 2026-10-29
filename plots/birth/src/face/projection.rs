@@ -9,7 +9,7 @@ type Events = Vec<(String, ApplicationEventKind)>;
 pub(super) fn project(
     draft: &BirthDraft,
     basis: BirthProjectionBasis<'_>,
-) -> Result<(Face, Events), BirthFaceRefusal> {
+) -> Result<(CheckedFace, Events), BirthFaceRefusal> {
     if basis.encounter_id().is_empty() || basis.encounter_id().len() > 128 {
         return Err(BirthFaceRefusal::InvalidProjection);
     }
@@ -106,7 +106,7 @@ pub(super) fn project(
             value: FacePropertyValue::Identity(basis.boot_id().as_str().into()),
         },
     ]);
-    let face = Face::new_with_semantics(
+    let face = CheckedFace::new_with_semantics(
         u64::from(draft.revision()),
         conduit_face::FaceBasis {
             body_id: None,
@@ -303,6 +303,22 @@ impl Projection {
                     name: label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
+                if *multiplicity == ChoiceMultiplicity::Independent {
+                    // Describe this exact visible typed ChoiceGroup. A query
+                    // does not make its visible count the full draft inventory.
+                    self.properties.extend([
+                        FaceProperty {
+                            subject: subject.clone(),
+                            name: "choice-multiplicity".into(),
+                            value: FacePropertyValue::Text("independent".into()),
+                        },
+                        FaceProperty {
+                            subject: subject.clone(),
+                            name: "item-count".into(),
+                            value: FacePropertyValue::Count(options.len() as u64),
+                        },
+                    ]);
+                }
                 for (index, option) in options.iter().enumerate() {
                     let id = format!("{subject}/{index}");
                     self.subjects.push(FaceSubject {
@@ -334,6 +350,11 @@ impl Projection {
                     // either Boolean. It is semantic action association, not
                     // an instruction to any Mask to draw a particular control.
                     if *multiplicity == ChoiceMultiplicity::Independent {
+                        self.properties.push(FaceProperty {
+                            subject: id.clone(),
+                            name: "order".into(),
+                            value: FacePropertyValue::Count(index as u64),
+                        });
                         self.properties.push(FaceProperty {
                             subject: id.clone(),
                             name: "boolean-change-action".into(),

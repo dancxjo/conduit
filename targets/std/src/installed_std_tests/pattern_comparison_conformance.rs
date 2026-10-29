@@ -106,6 +106,8 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             advertisement: &advertisement,
             playback: None,
             midi_input: None,

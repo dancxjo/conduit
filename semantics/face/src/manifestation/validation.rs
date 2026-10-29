@@ -52,14 +52,13 @@ impl Manifestation {
             || self.host_id != placement.host_id
             || self.boot_id != placement.boot_id
             || self.offer_generation != placement.offer_generation
-            || self.active_play_id
-                != bind_active_play(
-                    &plan.plan_id,
-                    &placement.host_id,
-                    &placement.boot_id,
-                    self.play_sequence,
-                )
-                .active_play_id
+            || !active_play_matches(
+                self.active_play_id.as_str(),
+                plan.plan_id.as_str(),
+                placement.host_id.as_str(),
+                placement.boot_id.as_str(),
+                self.play_sequence,
+            )
             || self.manifestation_id
                 != bind_manifestation(
                     &face.identity,
@@ -83,3 +82,20 @@ impl Manifestation {
         Ok(())
     }
 }
+
+// The existing public digest avoids constructing and discarding an owned
+// ActivePlayIdentity (including clones of Plan/Host/Boot) during validation.
+fn active_play_matches(identity: &str, plan: &str, host: &str, boot: &str, sequence: u64) -> bool {
+    let digest = conduit_core::active_play_digest(plan, host, boot, sequence);
+    let identity = identity.as_bytes();
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    identity.len() == 64
+        && digest.iter().enumerate().all(|(index, byte)| {
+            identity[index * 2] == DIGITS[(byte >> 4) as usize]
+                && identity[index * 2 + 1] == DIGITS[(byte & 15) as usize]
+        })
+}
+
+#[cfg(test)]
+#[path = "validation_tests.rs"]
+mod tests;

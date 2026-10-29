@@ -2,14 +2,34 @@
 
 **One continuing computer, made from the computers you have.**
 
-Conduit is an experimental programming system for portable, typed flows of work.
-A program describes what should happen. Hosts offer the machinery they can
-actually supply. Planning joins the two in an exact, finite realization.
+A computer can be more enduring than the machine doing its work.
 
-A **body** is the logical computer that can continue while its hosts, devices,
-and connections change. It may run on one machine or span several. This is the
-architectural direction; each target and lifecycle promise has its own
-[implementation and proof boundary](STATUS.md).
+A laptop shuts down. A browser tab closes. A sensor board loses power or is
+replaced. Yet "is this still the same computer?" need not be answered by asking
+whether one process or device is still running.
+
+**Conduit is an experimental programming and execution system for composing a
+continuing computer.** That logical computer is a **body**. It may inhabit one
+**host** or several, each offering only the implementations and resources it
+actually has. Body identity is separate from host and boot identity.
+
+You write a **plot** describing what work means and how its parts relate.
+Conduit checks the program, plans an exact and finite realization against
+present offers, resources, and authority, then executes the admitted **play**.
+Portable meaning need not carry operating-system, device, or transport choices
+just because today's implementation does.
+
+Continuity is a possibility, not perpetual execution or a requirement to grow.
+A body may lull; a plot may complete; a purpose may become ready for
+fulfillment. An authorized Fulfill action can also conclude a body while
+retaining its history. Those are different facts. None alone implies
+automatic restart, preservation of every in-flight value, or erasure of the
+body's evidence. Durable identity also depends on
+surviving continuity evidence; it cannot be recovered merely by wishing it so.
+
+Conduit is working software and an unfinished project. Try a checked program
+below, explore the browser or ConduitOS, and consult [current status](STATUS.md)
+for the exact implementation and proof boundaries.
 
 ## Try it
 
@@ -92,6 +112,9 @@ a short signpost to the [main website](https://dancxjo.github.io/conduit/).
 - Reachability, membership, trust, and authority remain separate
 - A cord is a semantic connection; a line is its exact concrete carriage
 - Quiescence, completion, cancellation, pressure, and failure remain distinguishable
+
+Continuity, purpose fulfillment, semantic completion, and lifecycle retirement
+are different facts; a Body is not obliged to invent more work to persist.
 
 These are design obligations, not a claim that every target supports every
 feature. Source checks, deterministic tests, browser runs, emulator runs,

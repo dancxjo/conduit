@@ -63,7 +63,7 @@ pub mod flow_zip;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 pub mod front_door;
 pub mod functional_offers;
@@ -99,7 +99,7 @@ pub mod machine_membrane;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5",
+    feature = "aarch64-board",
     feature = "hosted-tools"
 ))]
 pub mod make;
@@ -133,7 +133,7 @@ pub mod offer;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 pub mod offer_make;
 #[cfg(any(target_arch = "x86_64", feature = "hosted-tools"))]
@@ -192,6 +192,7 @@ mod service_trap_reader_tests;
 #[cfg(test)]
 #[path = "ordinary_domain_proof/service_memory/trap_envelope/wire.rs"]
 mod service_trap_wire_tests;
+pub mod spi_base;
 // Exercise the Root loan boundary on hosted CPUs without installing a service.
 #[cfg(test)]
 #[path = "protected_runtime/ledger.rs"]
@@ -261,7 +262,7 @@ pub mod face_nucleus;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 pub mod linear_presenter;
 #[cfg(any(
@@ -271,7 +272,7 @@ pub mod linear_presenter;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 mod mask_control;
 #[cfg(any(
@@ -281,7 +282,7 @@ mod mask_control;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 mod native_mask_play;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -293,7 +294,7 @@ pub mod native_participant;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 mod native_surface_possession;
 #[cfg(any(
@@ -303,7 +304,7 @@ mod native_surface_possession;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 mod native_surface_provider;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
@@ -322,7 +323,7 @@ pub mod product_bases;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 mod product_bindings;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
@@ -334,7 +335,7 @@ pub mod product_front_door;
     feature = "aarch64-product",
     feature = "riscv64-product",
     feature = "loongarch64-product",
-    feature = "aarch64-orange-pi-5"
+    feature = "aarch64-board"
 ))]
 pub mod product_journey;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]

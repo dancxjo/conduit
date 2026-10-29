@@ -70,14 +70,16 @@ pub enum BirthFaceRefusal {
 
 impl BirthDraft {
     pub fn face(&self, basis: &BirthFaceBasis) -> Result<Face, BirthFaceRefusal> {
-        projection::project(self, BirthProjectionBasis::Planned(basis)).map(|(face, _)| face)
+        projection::project(self, BirthProjectionBasis::Planned(basis))
+            .map(|(face, _)| face.into_face())
     }
 
     pub fn host_owned_face(
         &self,
         basis: &HostOwnedBirthFaceBasis,
     ) -> Result<Face, BirthFaceRefusal> {
-        projection::project(self, BirthProjectionBasis::HostOwned(basis)).map(|(face, _)| face)
+        projection::project(self, BirthProjectionBasis::HostOwned(basis))
+            .map(|(face, _)| face.into_face())
     }
 
     /// Validate against the current draft, never against a caller-supplied Face.
@@ -107,8 +109,7 @@ impl BirthDraft {
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
         let (face, events) = projection::project(self, basis)?;
-        input
-            .validate_against(&face, show)
+        face.validate_interaction(input, show)
             .map_err(BirthFaceRefusal::Interaction)?;
         let event = events
             .iter()

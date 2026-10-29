@@ -2,6 +2,16 @@ name: Measure tool acquisition
 on:
   workflow_dispatch:
     inputs:
+      validate-hosted-product:
+        description: Run the real private Linux compiler-cache product recipe on Ubuntu instead of acquisition pairs
+        type: boolean
+        default: false
+        required: false
+      require-accepted-hosted-seed:
+        description: Require accepted compiler-seed transfer, real Rust cache hits and fresh hosted product/Hello proof
+        type: boolean
+        default: false
+        required: false
       targets:
         description: 'all, or comma-separated pipeline target IDs (also preflight,unit)'
         type: string
@@ -17,6 +27,7 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
 jobs:
   select:
+    if: ${{ !inputs.validate-hosted-product && !inputs.require-accepted-hosted-seed }}
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -44,3 +55,119 @@ jobs:
       target: ${{ matrix.id }}
       runner: ${{ matrix.runner }}
       source_sha: ${{ github.sha }}
+
+  hosted-product:
+    if: inputs.validate-hosted-product || inputs.require-accepted-hosted-seed
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Acquire actual hosted tools
+        run: node tools/ci/pipeline/cli.mjs setup hosted-linux
+      - name: Prepare private source-bound compiler inputs
+        id: hosted-cache
+        run: |
+          cargo fetch --locked
+          private_root="$(mktemp -d "$RUNNER_TEMP/conduit-hosted.XXXXXX")"
+          node tools/ci/pipeline/cli.mjs compiler-cache-engine "$private_root/engine"
+          node tools/ci/pipeline/cli.mjs compiler-cache-hosted-prepare \
+            "$private_root/engine/sccache" "$(rustc --print sysroot)" \
+            "$private_root/snapshot" "$private_root/snapshot.json" \
+            "$private_root/compiler-cache" "$private_root/task" "$private_root/config.json"
+      - name: Restore compiler data from an accepted Integration producer
+        if: inputs.require-accepted-hosted-seed
+        id: hosted-cache-seed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CACHE_CONFIG: ${{ steps.hosted-cache.outputs.hosted-cache-config }}
+        run: |
+          started=$(date +%s%3N)
+          retain_transfer_time() {
+            printf '{"scope":"accepted-seed-discovery-download-verification-config","durationMs":%s}\n' \
+              "$(($(date +%s%3N) - started))" \
+              > "$RUNNER_TEMP/conduit-hosted-transfer-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          }
+          trap retain_transfer_time EXIT
+          node tools/ci/pipeline/cli.mjs compiler-cache-hosted-restore "$CACHE_CONFIG" \
+            "$RUNNER_TEMP/conduit-hosted-acquisition-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            "$RUNNER_TEMP/conduit-hosted-restored-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+      - name: Require accepted compiler seed before building
+        if: inputs.require-accepted-hosted-seed
+        env:
+          RESTORED: ${{ steps.hosted-cache-seed.outputs.hosted-cache-restored }}
+        run: test "$RESTORED" = true
+      - name: Build and prove exact current-source hosted product
+        env:
+          CONDUIT_HOSTED_CACHE_CONFIG: ${{ steps.hosted-cache-seed.outputs.hosted-cache-config || steps.hosted-cache.outputs.hosted-cache-config }}
+        run: node tools/ci/pipeline/cli.mjs target hosted-linux "$SOURCE_SHA"
+      - name: Qualify real accepted-seed compiler reuse
+        if: inputs.require-accepted-hosted-seed
+        env:
+          ACQUISITION_DIRECTORY: ${{ runner.temp }}/conduit-hosted-acquisition-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync, writeFileSync } from 'node:fs';
+          import path from 'node:path';
+          const product = 'target/pipeline/hosted-linux';
+          const read = file => JSON.parse(readFileSync(file, 'utf8'));
+          const acquired = read(path.join(process.env.ACQUISITION_DIRECTORY, 'acquisition.json'));
+          const build = read(path.join(product, 'cargo-cache-receipt.json'));
+          const hello = read(path.join(product, 'hello-proof.json'));
+          const snapshot = read(path.join(product, 'compiler-snapshot.json'));
+          const hits = report => {
+            assert.ok(report?.stats?.cache_hits?.counts && typeof report.stats.cache_hits.counts === 'object');
+            const count = report.stats.cache_hits.counts.Rust ?? 0;
+            assert.ok(Number.isSafeInteger(count) && count >= 0);
+            return count;
+          };
+          const rustHitDelta = hits(build.after) - hits(build.before);
+          assert.ok(rustHitDelta > 0, 'Accepted transfer produced no real Rust cache hits');
+          assert.equal(acquired.namespace, build.namespace);
+          assert.equal(hello.namespace, build.namespace);
+          assert.equal(snapshot.namespace, build.namespace);
+          assert.equal(snapshot.source, process.env.SOURCE_SHA);
+          assert.equal(hello.snapshotSha256, build.snapshotSha256);
+          assert.equal(hello.binarySha256, snapshot.binarySha256);
+          assert.equal(hello.binaryUnchanged, true);
+          writeFileSync(path.join(product, 'accepted-seed-qualification.json'), JSON.stringify({
+            schema: 'conduit.hosted-accepted-seed-qualification/v1', source: snapshot.source,
+            namespace: build.namespace, artifactId: acquired.artifactId,
+            archiveDigest: acquired.digest, archiveBytes: acquired.bytes, rustHitDelta,
+            binarySha256: hello.binarySha256, helloReportSha256: hello.reportSha256,
+            scope: 'Accepted compiler transfer and actual reuse plus fresh current-source product/Hello; no Integration acceptance or net speedup claimed',
+          }, null, 2) + '\n', { flag: 'wx' });
+          NODE
+      - name: Retain current-source product and preparation evidence
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ubuntu-hosted-product-qualification
+          path: |
+            target/pipeline/hosted-linux/
+            target/acquisition/hosted-linux.json
+            ${{ runner.temp }}/conduit-hosted-acquisition-*/acquisition.json
+            ${{ runner.temp }}/conduit-hosted-transfer-*.json
+            ${{ runner.temp }}/conduit-hosted.*/snapshot.acquisition.json
+            ${{ runner.temp }}/conduit-hosted.*/task/cargo-cache-receipt.json
+            ${{ runner.temp }}/conduit-hosted.*/task/hello-proof.json
+            ${{ runner.temp }}/conduit-hosted.*/task/failure.json
+            ${{ runner.temp }}/conduit-hosted.*/task/resource-usage.txt
+            ${{ runner.temp }}/conduit-hosted.*/task/resolved-metadata.json
+            ${{ runner.temp }}/conduit-hosted.*/task/selected-recipe.json
+          if-no-files-found: error
+          retention-days: 14

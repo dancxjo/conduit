@@ -28,7 +28,7 @@ test('code-changing PR events run exact proof without restarting on visibility c
   assert.match(job(candidate, 'proof'), /exhaustive: false/);
   assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.sha \}\}/);
   assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
-  assert.match(job(candidate, 'candidate'), /needs: proof/);
+  assert.match(job(candidate, 'candidate'), /needs: \[proof, cheap\]/);
   assert.match(job(candidate, 'candidate'), /test "\$RESULT" = success/);
   assert.match(job(ci, 'preflight'), /name: candidate\/quick/);
   assert.match(ci, /exhaustive:\n        type: boolean\n        default: true/);
@@ -68,7 +68,7 @@ test('required candidate accepts healthy drafts and rejects unsuccessful proof',
   const script = job(candidate, 'candidate').split('        run: |\n')[1].replace(/^          /gm, '');
   function passes(draft, result) {
     return spawnSync('bash', ['-e', '-c', script], {
-      env: { ...process.env, DRAFT: draft, RESULT: result },
+      env: { ...process.env, DRAFT: draft, RESULT: result, CHEAP: 'skipped', TIER: '' },
     }).status === 0;
   }
   assert.equal(passes('false', 'success'), true);
@@ -83,6 +83,42 @@ test('PR scopes use the actual merge-preview parent, including admission', () =>
   assert.match(job(ci, 'preflight'), /git merge-base --is-ancestor "\$BASE" "\$proof_base"/);
   assert.match(job(ci, 'preflight'), /BASE: \$\{\{ steps\.base\.outputs\.sha \}\}/);
   assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
+});
+
+test('Integration earns its distinct protected context only with successful exhaustive proof', () => {
+  const gate = job(integration, 'train-accepted');
+  assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
+  assert.match(gate, /needs: \[train-source, adoption, proof\]/);
+  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  for (const guard of ['success', 'skipped', 'failure', 'cancelled', '']) {
+    for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+      const observed = spawnSync('bash', ['-e', '-c', script], {
+        env: { ...process.env, GUARD: guard, RESULT: result, ADOPTION: 'skipped', ADOPTED: '' },
+      }).status === 0;
+      assert.equal(observed, ['success', 'skipped'].includes(guard) && result === 'success',
+        `guard=${guard} proof=${result}`);
+    }
+  }
+});
+
+test('accepted train proof replaces dev rebuild only after successful adoption', () => {
+  const gate = job(integration, 'train-accepted');
+  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  for (const adoption of ['success', 'failure', 'cancelled', 'skipped', '']) {
+    for (const adopted of ['true', 'false', '', 'unknown']) {
+      for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
+        const observed = spawnSync('bash', ['-e', '-c', script], {
+          env: { ...process.env, GUARD: 'skipped', ADOPTION: adoption, ADOPTED: adopted, RESULT: result },
+        }).status === 0;
+        const reused = adoption === 'success' && adopted === 'true' && result === 'skipped';
+        const rebuilt = result === 'success' && adopted !== 'true' &&
+          (adoption === 'skipped' || (adoption === 'success' && adopted === 'false'));
+        assert.equal(observed, reused || rebuilt, `${adoption}/${adopted}/${result}`);
+      }
+    }
+  }
+  assert.match(job(integration, 'proof'), /needs\.adoption\.outputs\.adopted == 'false'/);
+  assert.match(job(integration, 'adoption'), /train-adoption "\$RUN_ID"/);
 });
 
 

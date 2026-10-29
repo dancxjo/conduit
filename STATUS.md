@@ -12,47 +12,24 @@ preserves older proof receipts and limitations.
 **[Follow the ConduitOS journey](https://dancxjo.github.io/conduit/journeys/current/conduitos/x86_64/)**
 for the ordered actions, captured screens, and exact emulator evidence.
 
-Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
-provides ordinary execution-region isolation on five reviewed native emulator
-profiles. Local x86_64 proofs exercise checked text Source and
-the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
-face. The keyboard domain binds the actual Body Plan and Play; Stop
-revokes it. Eighteen hostile entries, malformed capability requests and
-retained Compose state are checked. Keymap and Unicode uppercase share one
-protected entry; the graphical specimen uses five entries and one Base gate.
-The normal IA-32 BIOS product's text region also completes in CPL3, with its
-actual Plan/Play, one serial Base gate and completion revocation checked by
-the supported product receipt. Its independent emulator proof also checks
-memory and privilege denials, bounded loop preemption, exact capability and
-lifecycle refusals, floating-state restoration and one retained Source timer
-wake during preemption. The supported AArch64 emulator proof now executes
-the normal text region at EL0 and checks nineteen independent boundary entries,
-capability/lifecycle refusals, Source timer coexistence and restoration of all
-vector registers plus FPCR/FPSR before Root resumes or handles an interrupt.
-The supported RISC-V64 emulator proof runs the same normal text region in
-U-mode, verifies twenty-two independent boundary cases and the shared
-capability/lifecycle checks, restores all floating registers and FCSR before
-Root Rust code executes, and preserves one Source wake during budget preemption.
-The LoongArch64 text region now executes at PLV3 in a locally corrected
-diagnostic emulator, with twenty-three boundary cases, shared capability and
-lifecycle refusals, complete scalar floating/condition-state restoration and
-Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
-counter-disable control and receives `protected-execution-unsupported`.
-ARMv6's native diagnostic verifies the same refusal for an explicit protected
-text request before preparation; its separate A3 execution remains cooperative.
-Normal text-and-timer proof collectors on all five protected targets require
-the same checked Source and sealed semantic Plan shape; x86_64 uses the
-headless `prove` entrance separately from its graphical product journey. The IA-32 boundary lane retains
-two independent normal BIOS boots separately from its instrumented checks.
-The standing timer product now owns its production fixed scheduler and Count
-state inside a private domain, with separate capability-gated Timer and Count
-face operations. Local x86_64, IA-32, AArch64, RISC-V64 and LoongArch64
-proofs passed the physical 120 ms product, terminal replay refusal and complete
-zeroization. Each used eleven domain entries, four Base gates and 313 runtime
-bytes copied. Broader ordinary implementation coverage remains unfinished.
-These are freestanding-emulator boundary proofs; DMA/driver isolation remain
-false. Exact release and native acceptance are tracked in the owning issue.
-See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-protected-execution-5113).
+## Read this status in order
+
+The [capability table](#what-exists) is the short answer to "what works?";
+[missing work](#what-is-missing) names the unsatisfied boundaries. Detailed
+target-specific proof text belongs below those summaries.
+
+A present source feature, a checked contract, an emulator run, physical
+execution and accepted published product are **not** interchangeable. This
+status records reviewed checkpoints; it is not a claim that every proof has
+been rerun against today's head. For exact development, accepted-release and
+Pages identities use [current product truth](https://dancxjo.github.io/conduit/current-product.html).
+
+Body continuity means retaining identity across changing machinery when exact
+continuity evidence survives. It does not guarantee survival of each Play or
+volatile value. Optional
+[Body-purpose fulfillment](docs/architecture/body-purpose-and-fulfillment.md)
+derives readiness without granting lifecycle authority. Draft branches and
+open PRs are not implied capabilities of `dev`.
 
 ## What exists
 
@@ -60,7 +37,7 @@ See the [exact per-target boundary](docs/architecture/conduitos-protection-domai
 |---|---|---|
 | **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive Plots through Fores/Backs, exact typed ports, open-ended numeric semantic ranges, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Every actual value and implementation resource envelope is finitely admitted even when a Type's semantic domain is open; a catalog entry does not promise an implementation on every Host. See [plots](plots/README.md). |
 | **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and Host Calls, plan-owned per-Step fuel, fair cooperative yielding, resource and authority admission, immutable plans, pressure, and correlated signs. Exact abnormal-terminal kinds, separate terminal-transduction profiles, containing-Plot propagation, typed semantic cancellation requests, and cancellation-driven deadlines remain checked and planned through execution. Shared code serves hosted, browser, and embedded paths. Confined Wasm instruction fuel forcibly returns control even from a non-cooperative infinite loop. | A cancellation request is not proof of cancellation, and successful fallback does not manufacture semantic abnormal truth. Native in-process, browser, ConduitOS, and firmware Backs remain cooperative unless their exact Host profile names and proves a hard containment mechanism. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
-| **body lifecycle** | Zero/one/many initial plots, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-plot execution and workload changes have hosted and browser evidence. Live plots treat structural drain as quiescence; a canonical trailing full stop makes that drain semantic completion. | This is implemented, not merely the old #2062 proposal. Durable keep realization across Wake, Boot, and Body loss remains part of the open persistence vertical rather than an implicit lifecycle promise. |
+| **body lifecycle** | Zero/one/many initial plots, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-plot execution and workload changes have hosted and browser evidence. Live plots treat structural drain as quiescence; a canonical trailing full stop makes that drain semantic completion. The Body contract also provides an explicit terminal `Fulfilled` state from `Lulled`, with Sign and settlement evidence. | This is implemented, not merely the old #2062 proposal. [Purpose readiness](docs/architecture/body-purpose-and-fulfillment.md) does not authorize Fulfillment; exact operator and cleanup proof remains Host-specific. Durable keep realization across Wake, Boot, and Body loss remains part of the open persistence vertical rather than an implicit lifecycle promise. |
 | **Face and Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Plots contribute Face truth; ordinary Plots serving the Mask role realize exact Face revisions as Shows through deterministic-linear, browser, and native graphical routes. Bounded hosted terminal and mechanical spoken Mask implementations also consume that Face. The [one-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/) retains one live local run spanning a Linux owner, browser, and QEMU guest, with five Masks, user-driven screen-free Birth and operation, selected direct and model-assisted speaker Plays, and host/provider loss and recovery. Authored Body source admits an unordered `wear …, …` eligibility set and optional ordered `want … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The retained run proves automated nonvisual interaction and selected device playback, not attended human listening, physical ConduitOS output, arbitrary workload migration, or automatic failover. Browser permission, device availability, tab lifetime, and supported profile still apply. |
 | **Patchbay** | A resident native projection shows the active plots on the present body with exact plan/play identities and Mask topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
 | **Crèche and make** | Birth a body with reviewed plots, prepare target-native artifacts, inspect membership, and retain body evidence into Patchbay. Make packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a part, and executing work. Consult each [target](targets/README.md). |
@@ -399,6 +376,50 @@ ConduitOS Host Calls for `math/map-quantity` and
 `structured-info/wrap-quantity`, alongside the missing storage base for
 `file/copy`. Run the report for the current profile instead of relying on a
 frozen catalog count.
+
+## Detailed native protection-domain evidence
+
+Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/5113)
+provides ordinary execution-region isolation on five reviewed native emulator
+profiles. Local x86_64 proofs exercise checked text Source and
+the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
+face. The keyboard domain binds the actual Body Plan and Play; Stop
+revokes it. Eighteen hostile entries, malformed capability requests and
+retained Compose state are checked. Keymap and Unicode uppercase share one
+protected entry; the graphical specimen uses five entries and one Base gate.
+The normal IA-32 BIOS product's text region also completes in CPL3, with its
+actual Plan/Play, one serial Base gate and completion revocation checked by
+the supported product receipt. Its independent emulator proof also checks
+memory and privilege denials, bounded loop preemption, exact capability and
+lifecycle refusals, floating-state restoration and one retained Source timer
+wake during preemption. The supported AArch64 emulator proof now executes
+the normal text region at EL0 and checks nineteen independent boundary entries,
+capability/lifecycle refusals, Source timer coexistence and restoration of all
+vector registers plus FPCR/FPSR before Root resumes or handles an interrupt.
+The supported RISC-V64 emulator proof runs the same normal text region in
+U-mode, verifies twenty-two independent boundary cases and the shared
+capability/lifecycle checks, restores all floating registers and FCSR before
+Root Rust code executes, and preserves one Source wake during budget preemption.
+The LoongArch64 text region now executes at PLV3 in a locally corrected
+diagnostic emulator, with twenty-three boundary cases, shared capability and
+lifecycle refusals, complete scalar floating/condition-state restoration and
+Source timer coexistence checked. Stock QEMU 10.2.1 lacks the required writable
+counter-disable control and receives `protected-execution-unsupported`.
+ARMv6's native diagnostic verifies the same refusal for an explicit protected
+text request before preparation; its separate A3 execution remains cooperative.
+Normal text-and-timer proof collectors on all five protected targets require
+the same checked Source and sealed semantic Plan shape; x86_64 uses the
+headless `prove` entrance separately from its graphical product journey. The IA-32 boundary lane retains
+two independent normal BIOS boots separately from its instrumented checks.
+The standing timer product now owns its production fixed scheduler and Count
+state inside a private domain, with separate capability-gated Timer and Count
+face operations. Local x86_64, IA-32, AArch64, RISC-V64 and LoongArch64
+proofs passed the physical 120 ms product, terminal replay refusal and complete
+zeroization. Each used eleven domain entries, four Base gates and 313 runtime
+bytes copied. Broader ordinary implementation coverage remains unfinished.
+These are freestanding-emulator boundary proofs; DMA/driver isolation remain
+false. Exact release and native acceptance are tracked in the owning issue.
+See the [exact per-target boundary](docs/architecture/conduitos-protection-domains.md#ordinary-protected-execution-5113).
 
 ## What is missing
 

@@ -6,6 +6,18 @@ use clap::{Args, Subcommand};
 
 #[derive(Subcommand, Debug)]
 pub enum ProveCommand {
+    /// Prove notebook contracts and installed Linux recovery, optionally a packaged browser Mask.
+    Notebook {
+        /// Existing verified Handbook package for actual pinned-Chromium acceptance.
+        #[arg(long, requires = "output")]
+        handbook: Option<std::path::PathBuf>,
+        /// New evidence directory for the optional browser proof.
+        #[arg(long, requires = "handbook")]
+        output: Option<std::path::PathBuf>,
+        /// Existing canonical ConduitOS build for correlated live QMP acceptance.
+        #[arg(long, requires = "handbook")]
+        native_build: Option<std::path::PathBuf>,
+    },
     /// Retain release evaluator and production shared-pool selection baselines.
     RuntimePerformance {
         #[arg(trailing_var_arg = true, allow_hyphen_values = true)]

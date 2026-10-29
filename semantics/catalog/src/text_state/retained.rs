@@ -45,6 +45,38 @@ pub struct RetainedText {
 }
 
 impl RetainedText {
+    /// Prepare an editor from an independently verified committed document.
+    /// This validates representation and capacity, not storage authority or
+    /// commitment. The caller must establish those before selecting recovery.
+    /// Recovery preserves the revision rather than fabricating an edit.
+    pub fn from_snapshot(
+        maximum: usize,
+        storage: &mut [u8],
+        revision: u64,
+        text: &[u8],
+    ) -> Result<Self, TextEditRefusal> {
+        if maximum == 0 || maximum > MAXIMUM_EDITED_TEXT_BYTES as usize {
+            return Err(TextEditRefusal::CapacityExhausted);
+        }
+        if text.len() > maximum {
+            return Err(TextEditRefusal::CapacityExhausted);
+        }
+        core::str::from_utf8(text).map_err(|_| TextEditRefusal::InvalidUtf8)?;
+        let storage = storage
+            .get_mut(..maximum)
+            .ok_or(TextEditRefusal::InvalidStorage)?;
+        // All refusals precede mutation, including a caller's short buffer.
+        storage.fill(0);
+        storage[..text.len()].copy_from_slice(text);
+        Ok(Self {
+            mode: TextStateMode::Edit,
+            maximum,
+            length: text.len(),
+            pending_clear: false,
+            revision,
+        })
+    }
+
     pub fn new(mode: TextStateMode, maximum: usize) -> Result<Self, TextStateRefusal> {
         if maximum == 0 || maximum > MAXIMUM_EDITED_TEXT_BYTES as usize {
             return Err(TextStateRefusal::InvalidCapacity);
@@ -199,6 +231,32 @@ impl RetainedText {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn recovery_validates_before_touching_caller_storage() {
+        for (maximum, revision, text, expected) in [
+            (0, 1, b"ok".as_slice(), TextEditRefusal::CapacityExhausted),
+            (257, 1, b"ok".as_slice(), TextEditRefusal::CapacityExhausted),
+            (
+                4,
+                1,
+                b"large".as_slice(),
+                TextEditRefusal::CapacityExhausted,
+            ),
+            (4, 1, &[0xff], TextEditRefusal::InvalidUtf8),
+            (9, 1, b"ok".as_slice(), TextEditRefusal::InvalidStorage),
+        ] {
+            let mut storage = [0x55; 8];
+            let result = RetainedText::from_snapshot(maximum, &mut storage, revision, text);
+            assert_eq!(result.err(), Some(expected));
+            assert_eq!(storage, [0x55; 8]);
+        }
+        let mut storage = [0x55; 8];
+        let state = RetainedText::from_snapshot(8, &mut storage, u64::MAX, b"ok").unwrap();
+        assert_eq!(state.revision(), u64::MAX);
+        assert_eq!(state.current(&storage).unwrap(), b"ok");
+        assert_eq!(&storage[2..], &[0; 6]);
+    }
+
     use super::*;
 
     #[test]

@@ -38,6 +38,15 @@ test('native ownership and isolation require native proof, including either rena
 test('unknown, deleted-package and empty changes retain all workspace tests', () => {
   for (const paths of [[], ['Cargo.lock'], ['deleted/package/src/lib.rs'], ['site/index.html']]) assert.deepEqual(plan(paths).packages, [...names].sort());
 });
+test('shared Face and Birth changes retain embedded Creche native proof', () => {
+  for (const name of ['semantics/face/src/construction.rs', 'semantics/face/src/interaction.rs', 'plots/birth/src/face.rs', 'plots/birth/src/face/projection.rs', 'semantics/face/Cargo.toml', 'plots/birth/Cargo.lock']) {
+    assert.equal(nativeRisk([name]), true, name);
+  }
+  assert.equal(nativeRisk(['semantics/face/src/deleted.rs', 'products/new.rs']), true);
+  for (const name of ['semantics/face/README.md', 'plots/birth/README.md', 'semantics/calendar/src/lib.rs']) {
+    assert.equal(nativeRisk([name]), false, name);
+  }
+});
 test('recognized documentation needs preflight alone; runtime needs smoke', () => {
   assert.deepEqual(plan(['docs/contributing/ci.md']).packages, []);
   assert.equal(plan(['architecture/kernel/src/lib.rs']).smoke, true);
@@ -322,4 +331,29 @@ test('shared xtask sources compile both tooling entrances during narrow admissio
     ]);
   }
   assert.deepEqual(admissionPlan(['tools/xtask/README.md'], model, '/repo').packages, []);
+});
+
+test('exact standalone workflow wrapper and archive parsers are proved in preflight without xtask dependency rebuilds', () => {
+  const paths = ['tools/xtask/tests/ci_workflow_contract.rs', 'tools/ci/pipeline/train-restore.py', 'tools/ci/pipeline/hosted-cache-seed.py'];
+  const commands = [];
+  runAdmission(paths, metadata, '/repo', (...args) => commands.push(args));
+  assert.deepEqual(commands, []);
+  assert.deepEqual(plan(paths).packages, []);
+  assert.equal(plan(paths).broad, false);
+});
+
+test('other Rust and Python paths retain conservative package or workspace admission', () => {
+  const ownerMetadata = { workspace_members: ['xtask', 'conduit-xtask-dispatch'], packages: [
+    { id: 'xtask', name: 'xtask', manifest_path: '/repo/tools/xtask/Cargo.toml' },
+    { id: 'conduit-xtask-dispatch', name: 'conduit-xtask-dispatch', manifest_path: '/repo/tools/xtask-dispatch/Cargo.toml' },
+  ] };
+  for (const name of ['tools/xtask/tests/another_contract.rs', 'tools/ci/pipeline/another_parser.py', 'tools/ci/pipeline/hosted-cache-seed-unreviewed.py']) {
+    const selected = admissionPlan([name], ownerMetadata, '/repo');
+    assert.deepEqual(selected.packages, ['conduit-xtask-dispatch', 'xtask']);
+    const calls = []; runAdmission([name], ownerMetadata, '/repo', (...args) => calls.push(args));
+    assert.ok(calls.some(([program, args]) => program === 'cargo' && args[0] === 'test'));
+  }
+  for (const name of ['unknown/new.rs', 'unknown/new.py']) {
+    assert.equal(plan([name]).broad, true); assert.deepEqual(plan([name]).packages, [...names].sort());
+  }
 });

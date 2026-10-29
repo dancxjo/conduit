@@ -3,11 +3,13 @@ use super::refuse;
 use crate::{
     arch,
     protected_region::{DomainBackend, DomainFault, DomainRefusal, DomainReturn},
-    service_memory::{MemoryRange, ServiceImage, ServiceMemoryLayout},
+    service_memory::{MemoryRange, ServiceImage, ServiceMemoryLayout, ServiceProfile},
 };
 #[allow(dead_code)]
 #[path = "../../domain/frame.rs"]
 mod frame;
+use crate::sign_format::FixedText;
+use core::fmt::Write;
 use frame::TextFrame;
 
 pub(super) mod clock_boundary;
@@ -80,10 +82,144 @@ fn sentinel(address: u64) -> u32 {
     unsafe { (address as *const u32).read_volatile() }
 }
 
+/// Exercise the production Application cap/receipt interface with the existing
+/// proof image. No clock permission, new guest backend or continuation is added.
+fn application_receipts() -> FixedText {
+    let image = ServiceImage::for_profile(IMAGE, ServiceProfile::Application)
+        .unwrap_or_else(|_| refuse("application-rtc-image"));
+    let (first, before, fault) = {
+        let mut domain = installed(&image);
+        for cap in [0, 65] {
+            if !matches!(
+                domain.enter_application_remaining(cap),
+                Err(DomainRefusal::InvalidLifecycle)
+            ) || domain.cost().entries != 0
+            {
+                refuse("application-rtc-invalid-cap");
+            }
+        }
+        // No Source interest is armed. Unexpected Source delivery is a failed
+        // negative control, never accepted as budget consumption or retried.
+        request(&mut domain, 0, 0, &[]);
+        exchange(&mut domain).command = 2; // Existing immediate terminal gate.
+        exchange(&mut domain).status = 0;
+        let first = domain
+            .enter_application_remaining(1)
+            .unwrap_or_else(|_| refuse("application-rtc-yield-entry"));
+        let before = (
+            first.instance(),
+            first.sequence(),
+            first.admitted_rtc(),
+            first.consumed_rtc(),
+            first.source_interrupts(),
+            first.result(),
+        );
+        if first.instance() != domain.instance()
+            || first.sequence() != 1
+            || first.admitted_rtc() != 1
+            || first.consumed_rtc() != 0
+            || first.source_interrupts() != 0
+            || first.result() != DomainReturn::Yielded
+            || exchange(&mut domain).status != 0
+        {
+            // A cap1 yield can fail under adverse timing: preserve failure,
+            // never retry it, increase the cap or substitute a different path.
+            refuse("application-rtc-yield-receipt");
+        }
+        request(&mut domain, 6, 0, &[]); // Existing non-yielding hostile probe.
+        let fault = domain
+            .enter_application_remaining(1)
+            .unwrap_or_else(|_| refuse("application-rtc-fault-entry"));
+        if fault.instance() != first.instance()
+            || fault.sequence() != 2
+            || fault.admitted_rtc() != 1
+            || fault.consumed_rtc() != 1
+            || fault.source_interrupts() != 0
+            || fault.result() != DomainReturn::Fault(DomainFault::WorkExhausted)
+            || domain.enter_application_remaining(1).is_ok()
+            || domain.exchange().is_ok()
+            || domain.output().is_ok()
+            || domain.transfer_window().is_ok()
+            || before
+                != (
+                    first.instance(),
+                    first.sequence(),
+                    first.admitted_rtc(),
+                    first.consumed_rtc(),
+                    first.source_interrupts(),
+                    first.result(),
+                )
+        {
+            refuse("application-rtc-fault-or-mutable-receipt");
+        }
+        (first, before, fault)
+    };
+    // Reuse the existing Source TimerBase coexistence fixture with an actual
+    // Application service. Source IRQs are observed separately, never RTC fuel.
+    use crate::machine::{KernelInterest, TimerBase};
+    use conduit_kernel::{BoundedValueRef, NodeId, RequestId, ValueRef};
+    let interest = KernelInterest {
+        node: NodeId(0),
+        request: RequestId(72),
+        input: BoundedValueRef::new(
+            ValueRef {
+                slot: 0,
+                generation: 1,
+                byte_len: 4,
+            },
+            4,
+        )
+        .unwrap_or_else(|_| refuse("application-rtc-source-interest")),
+    };
+    let mut domain = installed(&image);
+    request(&mut domain, 6, 0, &[]);
+    let mut timer = arch::Timer::new();
+    timer
+        .arm(interest)
+        .unwrap_or_else(|_| refuse("application-rtc-source-arm"));
+    let source = domain
+        .enter_application_remaining(64)
+        .unwrap_or_else(|_| refuse("application-rtc-source-entry"));
+    if source.instance() != domain.instance()
+        || source.instance() <= first.instance()
+        || source.sequence() != 1
+        || source.admitted_rtc() != 64
+        || source.consumed_rtc() != 64
+        || source.source_interrupts() != 1
+        || source.result() != DomainReturn::Fault(DomainFault::WorkExhausted)
+        || timer.take_wake() != Ok(Some(interest))
+        || timer.take_wake() != Ok(None)
+        || timer.wake_count() != 1
+        || domain.enter_application_remaining(1).is_ok()
+        || domain.exchange().is_ok()
+        || domain.output().is_ok()
+        || domain.transfer_window().is_ok()
+        || before
+            != (
+                first.instance(),
+                first.sequence(),
+                first.admitted_rtc(),
+                first.consumed_rtc(),
+                first.source_interrupts(),
+                first.result(),
+            )
+    {
+        refuse("application-rtc-source-or-mutable-receipt");
+    }
+    let mut text = FixedText::new();
+    write!(text, "{{\"schema\":\"conduit.conduitos/application-rtc-receipt-fixture@1\",\"yield\":{{\"instance\":{},\"sequence\":{},\"admitted_rtc\":{},\"consumed_rtc\":{},\"source_interrupts\":{},\"result\":\"yielded\"}},\"fault\":{{\"instance\":{},\"sequence\":{},\"admitted_rtc\":{},\"consumed_rtc\":{},\"source_interrupts\":{},\"result\":\"work-exhausted\"}},\"source\":{{\"instance\":{},\"sequence\":{},\"admitted_rtc\":{},\"consumed_rtc\":{},\"source_interrupts\":{},\"result\":\"work-exhausted\"}},\"prior_immutable\":true,\"invalid_caps_refused_without_entry\":true,\"source_wake_once\":true,\"faults_terminal\":true}}",
+        first.instance(),first.sequence(),first.admitted_rtc(),first.consumed_rtc(),first.source_interrupts(),
+        fault.instance(),fault.sequence(),fault.admitted_rtc(),fault.consumed_rtc(),fault.source_interrupts(),
+        source.instance(),source.sequence(),source.admitted_rtc(),source.consumed_rtc(),source.source_interrupts())
+        .unwrap_or_else(|_| refuse("application-rtc-sign-bound"));
+    text
+}
+
 pub(super) fn run() {
     trap_envelope::run();
     clock_boundary::run();
     irq_envelope::run();
+    let application = application_receipts();
     let image = ServiceImage::compositor(IMAGE).unwrap_or_else(|_| refuse("service-image"));
     let layout = image.layout();
     let root_sentinel = VALUE;
@@ -98,6 +234,13 @@ pub(super) fn run() {
     {
         let mut service = installed(&image);
         first_instance = service.instance();
+        if !matches!(
+            service.enter_application_remaining(1),
+            Err(DomainRefusal::InvalidLifecycle)
+        ) || service.cost().entries != 0
+        {
+            refuse("application-rtc-foreign-profile");
+        }
         if arch::ServiceDomain::install(&image).is_ok() {
             refuse("service-slot-cap");
         }
@@ -275,5 +418,7 @@ pub(super) fn run() {
     if &output[..count] != b"SIBLING-SENTINEL" || attempts != 26 {
         refuse("service-proof-count-or-sibling");
     }
-    arch::early_write(b"CONDUIT_SERVICE_MEMORY_PROOF {\"schema\":\"conduit.conduitos/service-memory-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"hostile_entries\":26,\"retained_bytes\":8388608,\"scratch_bytes\":8388608,\"restart_boundary_samples_zero\":true,\"production_compositor\":false,\"driver_isolation\":false,\"dma_isolation\":false}\n");
+    arch::early_write(b"CONDUIT_SERVICE_MEMORY_PROOF {\"schema\":\"conduit.conduitos/service-memory-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"hostile_entries\":26,\"retained_bytes\":8388608,\"scratch_bytes\":8388608,\"restart_boundary_samples_zero\":true,\"production_compositor\":false,\"driver_isolation\":false,\"dma_isolation\":false,\"foreign_application_profile_refused_without_entry\":true,\"application_rtc\":");
+    arch::early_write(application.as_bytes());
+    arch::early_write(b"}\n");
 }

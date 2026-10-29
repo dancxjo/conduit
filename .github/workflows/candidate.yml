@@ -10,19 +10,69 @@ concurrency:
   cancel-in-progress: true
 jobs:
   proof:
+    permissions:
+      contents: read
+      actions: read
+    # Repository configuration is deliberately unset until independent machine
+    # writer and full combined-proof gates have been verified live.
+    if: vars.CONDUIT_PR_ADMISSION_TIER != 'cheap-input-v1'
     uses: ./.github/workflows/ci.yml
     with:
       exhaustive: false
       # Prove the exact merge preview, including current dev CI tooling.
       sha: ${{ github.sha }}
       base: ${{ github.event.pull_request.base.sha }}
+  cheap:
+    name: cheap-input/v1
+    if: vars.CONDUIT_PR_ADMISSION_TIER == 'cheap-input-v1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@1.98.1
+        with:
+          components: rustfmt,clippy
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Resolve exact merge preview base
+        id: base
+        env:
+          SHA: ${{ github.sha }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          test "$(git show -s --format=%P "$SHA" | wc -w)" -eq 2
+          proof_base=$(git rev-parse "$SHA^1")
+          git merge-base --is-ancestor "$BASE" "$proof_base"
+          printf 'sha=%s\n' "$proof_base" >> "$GITHUB_OUTPUT"
+      - name: Install pinned CI validation tools
+        run: node tools/ci/pipeline/cli.mjs setup-ci
+      - name: Run actual formatting, repository, CI and refusal corpus
+        env:
+          BASE: ${{ steps.base.outputs.sha }}
+          CONDUIT_CHECKOUT_SHA: ${{ github.sha }}
+        # Includes actual Rust workflow wrapper execution and standalone lock
+        # checks. Only duplicate package/unit/product admission is deferred.
+        run: node tools/ci/pipeline/cli.mjs preflight "$BASE"
   candidate:
     if: ${{ always() && !cancelled() }}
-    needs: proof
+    needs: [proof, cheap]
     runs-on: ubuntu-24.04
     steps:
       - name: Require successful candidate proof
         env:
           RESULT: ${{ needs.proof.result }}
+          CHEAP: ${{ needs.cheap.result }}
+          TIER: ${{ vars.CONDUIT_PR_ADMISSION_TIER }}
         run: |
-          test "$RESULT" = success
+          if test "$TIER" = cheap-input-v1; then
+            test "$CHEAP" = success
+            test "$RESULT" = skipped
+          else
+            test "$RESULT" = success
+            test "$CHEAP" = skipped
+          fi

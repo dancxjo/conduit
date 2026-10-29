@@ -1,0 +1,37 @@
+[package]
+name = "conduit-notebook-conformance"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# Run the public std boundary checks without building unrelated std server bins.
+[[test]]
+name = "document"
+path = "../../../targets/std/tests/notebook_document.rs"
+
+[[test]]
+name = "text-file"
+path = "../../../targets/std/tests/text_file.rs"
+
+[[test]]
+name = "text-file-play"
+path = "../../../targets/std/tests/text_file_play.rs"
+
+[dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel" }
+conduit-body = { path = "../../../architecture/body" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-data = { path = "../../../semantics/data" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog" }
+conduit-std-host = { path = "../../../targets/std" }
+conduit-std-offers = { path = "../../../targets/std/offers" }
+tempfile = "3"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
+
+[[test]]
+name = "transition"
+path = "../../../targets/std/tests/notebook_transition.rs"

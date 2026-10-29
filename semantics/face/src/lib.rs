@@ -199,6 +199,7 @@ pub use body_face::*;
 pub use calendar_time::*;
 pub use committed_state_basis::*;
 pub use composition::*;
+pub use construction::CheckedFace;
 pub use contract::*;
 pub use face::*;
 pub use face_fragment::*;
@@ -307,3 +308,5 @@ pub use parsec_input_instruction_producer::*;
 
 mod prepared_face_value;
 pub use prepared_face_value::{PreparedFaceValue, ValidatedFace};
+mod collection_facts;
+pub use collection_facts::CollectionFactsRefusal;

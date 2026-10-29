@@ -434,6 +434,8 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
+            #[cfg(target_os = "linux")]
+            cli::BodyCommand::Notebook { state_dir, command } => durable_host_control::notebook::run(&state_dir, command),
             cli::BodyCommand::SpeechOptions { json } => {
                 screen_free_birth::speech_options(json, &mut io::stdout().lock())
             }

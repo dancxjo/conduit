@@ -46,6 +46,7 @@ mod ia32_product_boot;
 mod ia32_vga_receipt;
 mod image;
 mod isolation_proof;
+mod jetson_nano;
 mod journey_input;
 mod journey_proof;
 mod journey_records;
@@ -492,6 +493,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),
         ConduitosCommand::OrangePi5Image => orange_pi_5_image::execute(opts),
+        ConduitosCommand::JetsonNanoImage(args) => jetson_nano::execute(args, opts),
         ConduitosCommand::Flash(flash) => {
             require_make_target(flash.arch, flash.board)?;
             match flash.arch {

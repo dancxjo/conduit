@@ -9,6 +9,8 @@ mod environment_esp32;
 mod environment_face_publication;
 #[path = "environment_host_owned.rs"]
 mod environment_host_owned;
+#[path = "environment_history.rs"]
+mod environment_history;
 #[path = "environment_output.rs"]
 mod environment_output;
 #[path = "environment_source.rs"]
@@ -47,6 +49,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     }
     if arguments == ["source"] {
         return environment_source::prove(&root);
+    }
+    if let Some(result) = environment_history::dispatch(&root, arguments) {
+        return result;
     }
     if arguments == ["recording"] {
         return execute(

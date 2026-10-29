@@ -58,8 +58,10 @@ Workspace formatting and whitespace checks pass. Unrelated broker entry
 points remain compiled through function references rather than new lint
 suppressions or fabricated enactment.
 
-[Retained logs](evidence/native-root-return-admission-20261022/) preserve the
-final six-test result, freestanding result and earlier harness failure. The
+The checkpoint describes logs retained under
+`evidence/native-root-return-admission-20261022/` for the final six-test
+result, freestanding result and earlier harness failure. That directory is not
+present in this Git checkout. The
 [real product packets](native-controls-final-proof-20261022.md) retain their
 original clean Source `3217e783b`. These later changes affect only test selection,
 explicit equivalent module paths and this proof; they do not relabel captured

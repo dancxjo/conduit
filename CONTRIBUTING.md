@@ -48,6 +48,26 @@ Check open PRs for overlap before substantial work. An issue's acceptance
 criteria define that slice; a small documentation fix does not need a new
 architecture proposal.
 
+## Improve the documentation
+
+Start with the [documentation index](docs/README.md) and its
+[ownership and proof rules](docs/documentation-policy.md). A helpful
+documentation patch usually chooses one role:
+
+- introduce the purpose and a runnable example without demanding the reader
+  learn every Conduit noun;
+- correct a present capability, syntax, command, or link against its current
+  source/tests;
+- clarify an architectural invariant while explicitly separating it from
+  implemented or physically verified behavior;
+- link an old audit to its present owner without rewriting the historical
+  receipt or failed observation.
+
+Keep draft-branch work distinct from `dev`, and `dev` distinct from released
+and published products. Source/compile, deterministic, browser, emulator,
+physical, human, and accepted-release evidence prove different things.
+A docs-only change does not retroactively establish a new proof class.
+
 ## Keep ownership and handoffs small
 
 Choose one independently verifiable child issue and check current `dev`, open

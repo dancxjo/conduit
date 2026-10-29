@@ -36,6 +36,7 @@ depends on semantic, application, target, or proof packages.
 | `planned_connection_ref.rs` | universal architecture | Complete immutable descriptive Cord, startup and expected evidence records for the shared canonical encoder. |
 | `planned_gear_ref.rs` | universal architecture | Complete immutable descriptive placement, resource and authority binding records; descriptions grant no possession. |
 | `plan_fingerprint.rs` and children | universal architecture | Canonical fragment and plan commitment encoding; incremental fragment hashing preserves immutable realization identity. |
+| `fore_ports.rs` | universal architecture | Exact external Fore verification, separately accounted typed terminal exports, and admitted Line binding checks. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
 | `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |

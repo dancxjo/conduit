@@ -1,0 +1,160 @@
+// Read live train evidence through the repository's existing gh credentials.
+// Assembly changes only a new local worktree/branch. No remote mutation occurs.
+import { spawnSync } from 'node:child_process';
+import { lstat, readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { captureTrain, selectTrainInputs, verifyTrainManifest, verifyTrainProducts } from './train.mjs';
+import { readTrainSelections } from './train-observation.mjs';
+import { candidateAdmission } from './train-input-admission.mjs';
+import { assertSourceCheckout } from './source.mjs';
+
+const fail = message => { throw new Error(message); };
+const repositoryPattern = /^[\w.-]+\/[\w.-]+$/;
+const number = value => {
+  if (!/^[1-9][0-9]*$/.test(String(value)) || !Number.isSafeInteger(Number(value))) fail('Invalid numeric identity');
+  return Number(value);
+};
+
+export function createTrainCommands({ command = spawnSync, directory = process.cwd(), artifactCommand, observeCheapPolicy, sourceEnvironment } = {}) {
+  sourceEnvironment = sourceEnvironment === undefined ? undefined : { ...sourceEnvironment };
+  const invoke = (program, args) => {
+    if (program === 'git') args = ['-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', ...args];
+    let result;
+    try { result = command(program, args, { cwd: directory, encoding: 'utf8', maxBuffer: 2 * 1024 * 1024,
+      ...(sourceEnvironment === undefined || program !== 'git' ? {} : { env: sourceEnvironment }),
+      timeout: 60000, killSignal: 'SIGKILL' }); }
+    catch (error) { if (sourceEnvironment !== undefined) fail('Train child operation failed'); throw error; }
+    if (result.error || result.status !== 0) {
+      if (sourceEnvironment !== undefined) fail('Train child operation failed');
+      fail(`${program} failed: ${result.error?.message ?? result.stderr ?? result.status}`);
+    }
+    return result.stdout.trim();
+  };
+  const api = endpoint => JSON.parse(invoke('gh', ['api', endpoint]));
+  const basePath = repository => {
+    if (typeof repository !== 'string' || repository.length > 512 || !repositoryPattern.test(repository)) fail('Invalid repository');
+    return `repos/${repository}`;
+  };
+  const selection = (repository, numbers) => readTrainSelections(repository, numbers, api).map(snapshot => {
+    const cheap = candidateAdmission(snapshot.candidateRun, snapshot.candidateJobs).tier === 'cheap-input-v1';
+    if (cheap && typeof observeCheapPolicy !== 'function') fail('Fresh external cheap policy observer required');
+    return { ...snapshot, ...(cheap ? { cheapPolicy: () => observeCheapPolicy({ repository }) } : {}) };
+  });
+  const loadManifest = async filename => {
+    const stat = await lstat(filename);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 65536) fail('Invalid train manifest file');
+    const manifest = JSON.parse(await readFile(filename, 'utf8'));
+    verifyTrainManifest(manifest);
+    return manifest;
+  };
+  return {
+    async restore(filename, runId, acquisition, output) {
+      const manifest = await this.prepareDispatch(filename);
+      const base = basePath(manifest.repository);
+      const observation = {
+        development: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs.map(input => input.number)),
+        run: api(`${base}/actions/runs/${number(runId)}`),
+      };
+      const { restoreTrainArtifacts } = await import('./train-restore.mjs');
+      const restored = await restoreTrainArtifacts({ manifest, observation, acquisition,
+        directory: output, metadata: api, sourceEnvironment });
+      await this.prepareDispatch(filename);
+      return restored;
+    },
+    async acquire(filename, runId, output) {
+      // Admission and Git reconstruction precede any download. Acquired archives
+      // authenticate run-owned bytes, not complete producer build provenance.
+      const manifest = await this.prepareDispatch(filename);
+      const base = basePath(manifest.repository);
+      const observation = {
+        development: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs.map(input => input.number)),
+        run: api(`${base}/actions/runs/${number(runId)}`),
+      };
+      const { acquireTrainArtifacts } = await import('./train-artifacts.mjs');
+      const receipt = await acquireTrainArtifacts({ manifest, observation, directory: output,
+        ...(artifactCommand ? { command: artifactCommand } : {}) });
+      await this.prepareDispatch(filename);
+      return receipt;
+    },
+    async prepareDispatch(filename) {
+      const manifest = await loadManifest(filename);
+      assertSourceCheckout(manifest.source, directory, sourceEnvironment);
+      const base = basePath(manifest.repository);
+      const captured = captureTrain({ sourceEnvironment, repository: manifest.repository, source: manifest.source,
+        base: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs.map(input => input.number)), directory });
+      if (captured.digest !== manifest.digest) fail('Train source or live selection changed before dispatch');
+      return captured;
+    },
+    async assemble(repository, numbers, worktree, output) {
+      const base = api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha;
+      const selected = selectTrainInputs({ repository, base, selections: selection(repository, numbers) });
+      if (!path.isAbsolute(worktree) || !path.isAbsolute(output)) fail('Absolute train worktree/output paths required');
+      const relative = path.relative(worktree, output);
+      if (!relative || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))) {
+        fail('Train manifest must be outside its source worktree');
+      }
+      // Fail before branch/worktree creation if the destination is occupied.
+      for (const destination of [worktree, output]) {
+        try { await lstat(destination); fail('Train destination already exists'); }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+      }
+      invoke('git', ['fetch', '--no-tags', 'origin', base, ...selected.inputs.map(input => input.head)]);
+      if (api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha !== base) fail('Development changed before assembly');
+      invoke('git', ['worktree', 'add', '-b', selected.branch, '--', worktree, base]);
+      try {
+        for (const input of selected.inputs) {
+          invoke('git', ['-C', worktree, '-c', 'user.name=Conduit train',
+            '-c', 'user.email=train@example.invalid', 'merge', '--no-ff', input.head,
+            '-m', `Train PR #${input.number}`]);
+        }
+        const source = invoke('git', ['-C', worktree, 'rev-parse', 'HEAD']);
+        assertSourceCheckout(source, worktree, sourceEnvironment);
+        const refreshed = selection(repository, numbers);
+        const manifest = captureTrain({ sourceEnvironment, repository, base, source, directory: worktree, selections: refreshed });
+        if (manifest.branch !== selected.branch || api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha !== base) {
+          fail('Train inputs changed during assembly');
+        }
+        const encoded = `${JSON.stringify(manifest, null, 2)}\n`;
+        if (Buffer.byteLength(encoded) > 65536) fail('Train manifest exceeds bound');
+        await writeFile(output, encoded, { flag: 'wx', mode: 0o600 });
+        return manifest;
+      } catch (error) {
+        throw new Error(`Train assembly stopped; retained ${selected.branch} at ${worktree}: ${error.message}`);
+      }
+    },
+    async capture(repository, source, numbers, output) {
+      basePath(repository);
+      assertSourceCheckout(source, directory, sourceEnvironment);
+      const base = api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha;
+      const manifest = captureTrain({ sourceEnvironment, repository, base, source,
+        selections: selection(repository, numbers), directory });
+      // Refuse stale snapshots before publication; final landing must refresh
+      // them again because an observation is not a compare-and-swap operation.
+      if (api(`${basePath(repository)}/git/ref/heads/dev`).object?.sha !== base) fail('Development changed during capture');
+      const encoded = `${JSON.stringify(manifest, null, 2)}\n`;
+      if (Buffer.byteLength(encoded) > 65536) fail('Train manifest exceeds bound');
+      await writeFile(output, encoded, { flag: 'wx', mode: 0o600 });
+      return manifest;
+    },
+    async verify(filename, runId, products) {
+      const manifest = await loadManifest(filename);
+      const base = basePath(manifest.repository);
+      // Reproduce tree identity locally; a rewritten JSON digest is not proof
+      // that a claimed tree belongs to the workflow's actual source commit.
+      if (!/^[a-f0-9]{40}$/.test(manifest.source ?? '') ||
+          invoke('git', ['rev-parse', '--verify', `${manifest.source}^{tree}`]) !== manifest.tree) fail('Train source tree mismatch');
+      const observation = {
+        development: api(`${base}/git/ref/heads/dev`).object?.sha,
+        selections: selection(manifest.repository, manifest.inputs?.map(p => p.number)),
+        run: api(`${base}/actions/runs/${number(runId)}`),
+      };
+      const captured = captureTrain({ sourceEnvironment, repository: manifest.repository, source: manifest.source,
+        base: observation.development, selections: observation.selections, directory });
+      if (captured.digest !== manifest.digest) fail('Train selection or reconstructed tree changed');
+      return verifyTrainProducts(manifest, observation, products);
+    },
+  };
+}

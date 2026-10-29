@@ -4,6 +4,7 @@
 mod draft;
 mod errors;
 mod home;
+mod input_cost;
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainCost, DomainRefusal, DomainReturn},
@@ -127,7 +128,30 @@ impl CrecheService {
         let exchange = domain.exchange().map_err(TransportError::Backend)?;
         exchange.fill(0);
         wire::encode_request(envelope, request, exchange).map_err(|_| TransportError::Protocol)?;
-        if domain.enter(1).map_err(TransportError::Backend)? != DomainReturn::Yielded {
+        let before = domain.cost();
+        let returned = domain.enter(1).map_err(TransportError::Backend)?;
+        if returned != DomainReturn::Yielded {
+            // Preserve the actual terminal observation before the caller tears
+            // down this instance; payload bytes and grants remain unchanged.
+            use core::fmt::Write;
+            let request = match request {
+                Request::Begin { .. } => "begin",
+                Request::Write { .. } => "write",
+                Request::Commit => "commit",
+                Request::AllowIdle => "allow-idle",
+                Request::HomeInit => "home-init",
+                Request::HomeReset { .. } => "home-reset",
+                Request::HomeRefusal { .. } => "home-refusal",
+                Request::NativeKey { .. } => "native-key",
+                Request::Apply { .. } => "apply",
+                Request::Snapshot { .. } => "snapshot",
+                Request::Selection { .. } => "selection",
+                Request::Read { .. } => "read",
+            };
+            let mut line = crate::sign_format::FixedText::new();
+            if writeln!(line, "CONDUIT_CRECHE_ENTRY_REFUSAL instance={} sequence={} request={request} result={returned:?} before={before:?} after={:?}", self.instance, envelope.request, domain.cost()).is_ok() {
+                crate::arch::early_write(line.as_bytes());
+            }
             return Err(TransportError::Terminated);
         }
         let exchange = domain.exchange().map_err(TransportError::Backend)?;
@@ -164,6 +188,8 @@ impl CrecheService {
         if total == 0 || total > wire::MAX_BLOB_BYTES {
             return Err(TransportError::Bounds);
         }
+        let mut phases =
+            (kind == InputKind::FaceInteraction).then(|| input_cost::InputCost::new(self.cost()));
         self.request(Request::Begin { kind, total })?;
         let mut offset = 0;
         for chunk in bytes.chunks(wire::TRANSFER_BYTES as usize) {
@@ -178,14 +204,23 @@ impl CrecheService {
                 .get_mut(..chunk.len())
                 .ok_or(TransportError::Protocol)?
                 .copy_from_slice(chunk);
+            let before = self.cost();
             self.request(Request::Write {
                 offset,
                 window_offset: 0,
                 bytes: chunk.len() as u32,
             })?;
+            if let Some(phases) = phases.as_mut() {
+                phases.write(before, self.cost());
+            }
             offset += chunk.len() as u32;
         }
-        self.request(Request::Commit)
+        let before = self.cost();
+        let response = self.request(Request::Commit)?;
+        if let Some(phases) = phases {
+            phases.finish(total, before, self.cost());
+        }
+        Ok(response)
     }
 
     fn blob(

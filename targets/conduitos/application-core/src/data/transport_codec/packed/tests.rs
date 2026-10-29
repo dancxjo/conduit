@@ -26,6 +26,54 @@ fn all_byte_extrema_padding_and_exact_reservation_round_trip() {
     }
 }
 #[test]
+fn independent_quartets_keep_padding_and_cached_triplet_boundaries() {
+    for (payload, expected) in [
+        ("", &[][..]),
+        ("AA==", &[0][..]),
+        ("/w==", &[255][..]),
+        ("AP8=", &[0, 255][..]),
+        ("////", &[255, 255, 255][..]),
+        ("AAH+", &[0, 1, 254][..]),
+        ("gAD/", &[128, 0, 255][..]),
+        ("AAECAwQ=", &[0, 1, 2, 3, 4][..]),
+    ] {
+        let input = format!(r#"[2,"CAPSEQ2",{{"canonical_value":"~b64:{payload}"}}]"#);
+        let decoded: Blob = decode(input.as_bytes()).unwrap();
+        assert_eq!(decoded.canonical_value, expected);
+        assert_eq!(decoded.canonical_value.capacity(), expected.len());
+    }
+}
+
+#[test]
+fn prefetched_bytes_do_not_count_as_consumed_by_a_short_visitor() {
+    struct OneByte;
+    impl<'de> Deserialize<'de> for OneByte {
+        fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+            struct Visitor;
+            impl<'de> serde::de::Visitor<'de> for Visitor {
+                type Value = OneByte;
+                fn expecting(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                    f.write_str("a byte sequence")
+                }
+                fn visit_seq<A: serde::de::SeqAccess<'de>>(
+                    self,
+                    mut sequence: A,
+                ) -> Result<Self::Value, A::Error> {
+                    assert_eq!(sequence.next_element::<u8>()?, Some(0));
+                    Ok(OneByte)
+                }
+            }
+            d.deserialize_seq(Visitor)
+        }
+    }
+    #[derive(Deserialize)]
+    #[allow(dead_code)] // Negative-only destination must never finish successfully.
+    struct Short {
+        canonical_value: OneByte,
+    }
+    assert!(decode::<Short>(br#"[2,"CAPSEQ2",{"canonical_value":"~b64:AAEC"}]"#).is_err());
+}
+#[test]
 #[allow(dead_code)] // Negative-only destination types must never successfully decode.
 fn packed_permission_is_field_scoped_and_u8_only() {
     #[derive(Deserialize)]

@@ -1,0 +1,13 @@
+{
+  "schema": "conduit.train-machine-writer/v1",
+  "enabled": false,
+  "repository": "dancxjo/conduit",
+  "repositoryId": null,
+  "appId": null,
+  "appSlug": null,
+  "installationId": null,
+  "rulesetId": null,
+  "observerLogin": "dancxjo",
+  "observerId": null,
+  "rulesetName": "conduit-dev-machine-writer"
+}

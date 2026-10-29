@@ -422,3 +422,7 @@ mod submission_tests;
 #[cfg(test)]
 #[path = "native_face_mask/inputless_tests.rs"]
 mod inputless_tests;
+
+#[cfg(test)]
+#[path = "native_face_mask/collection_creche_tests.rs"]
+mod collection_creche_tests;

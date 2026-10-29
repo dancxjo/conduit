@@ -45,6 +45,7 @@ members = [
 
 	# Reusable lower mechanisms and implementations.
 	"mechanisms/io/i2c-transaction",
+	"mechanisms/io/resource-snapshot",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
@@ -102,6 +103,7 @@ members = [
 	"targets/rp2040/make",
 	"targets/rp2040/network-realization",
 	"targets/std",
+	"targets/std/resource-snapshot",
 	"targets/std/make",
 	"targets/std/offers",
 
@@ -112,6 +114,7 @@ members = [
 	"proof/conformance/patchbay-workbench",
 	"proof/conformance/pete-workload",
 	"proof/conformance/signal",
+	"proof/conformance/notebook",
 	"proof/performance/runtime",
 	"proof/fixtures/rp2040-pio-audio-extension",
 

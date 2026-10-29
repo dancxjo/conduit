@@ -36,6 +36,10 @@ pub mod numerical_fore;
 mod numerical_host;
 pub mod relay_client;
 pub mod remote_emergency;
+#[cfg(target_os = "linux")]
+pub mod scoped_namespace;
+#[cfg(target_os = "linux")]
+pub mod text_file;
 pub mod text_lab_live;
 pub mod text_lab_split;
 #[cfg(feature = "local-model-proof")]
@@ -586,6 +590,8 @@ pub struct StdHost {
     kernel_resources: kernel_preparation::KernelResourceLedger,
     numerical_preparation: numerical_host::preparation_cache::NumericalPreparationCache,
     todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
+    #[cfg(target_os = "linux")]
+    selected_text_file: Option<text_file::SelectedTextFileResidence>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -928,6 +934,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1000,6 +1008,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1048,6 +1058,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1095,6 +1107,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1142,6 +1156,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1189,6 +1205,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1221,6 +1239,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1277,6 +1297,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1328,6 +1350,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1368,6 +1392,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1421,6 +1447,8 @@ impl StdHost {
             kernel_resources,
             numerical_preparation: Default::default(),
             todo_checkpoint_root: None,
+            #[cfg(target_os = "linux")]
+            selected_text_file: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]

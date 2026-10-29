@@ -21,6 +21,28 @@ A body is the thing that is allowed to remain “the same computer” while host
 
 That is why the nouns below are intentionally not synonyms.
 
+## Continuity is not compulsory endless work
+
+A Body can continue through host or boot changes **when sufficient durable
+continuity evidence survives**. This is not a promise that every in-flight
+operation, volatile value, or missing resource survives too.
+
+A Body's purpose, when declared, may consist of finite obligations that can be
+fulfilled. Fulfillment readiness is derived from evidence about those
+obligations, not from the Body becoming progressively more capable. Some Bodies
+have no fulfillment condition. Readiness does not itself authorize retirement,
+destruction, a new purpose, or a lifecycle transition.
+
+Similarly, an authored Plot reaching semantic completion is not the same event
+as fulfillment of an entire Body's purpose. Birth, wake, lull, plan replacement, Plot completion, and the explicit
+terminal **Fulfilled** transition deserve their own distinct meaning and
+evidence. The current lifecycle implements Fulfilled as an authorized
+conclusion from Lulled, not an automatic consequence of a ready purpose and
+not deletion of the Body's historical record.
+
+See [Body purpose and fulfillment](https://github.com/dancxjo/conduit/blob/dev/docs/architecture/body-purpose-and-fulfillment.md)
+for the implemented readiness rules and their limits.
+
 ## A body can outlive a host
 
 Imagine a house body with a browser, a Linux machine, and a microcontroller.

@@ -197,6 +197,7 @@ fn project_view(
                         .arguments
                         .iter()
                         .map(|argument| ArgumentView {
+                            current_value: current_text_value(face, action),
                             name: argument.name.clone(),
                             value_name: argument.value_name.clone(),
                             value_kind: argument.contract.value_kind.as_str().into(),
@@ -337,5 +338,101 @@ mod choice_projection_tests {
             value: FacePropertyValue::Text("multiple".into()),
         });
         assert_eq!(unmodeled_properties(&fragment.properties, group), 2);
+    }
+}
+
+// Only an exact typed Source value/action association supplies initial input.
+// Human-readable Face text is never interpreted as editable state.
+fn current_text_value(face: &Face, action: &conduit_face::FaceAction) -> Option<String> {
+    let [argument] = action.arguments.as_slice() else {
+        return None;
+    };
+    if argument.contract.value_kind.as_str() != conduit_face::UTF8_TEXT_VALUE_KIND
+        || !face.subjects.iter().any(|subject| {
+            subject.identity == action.target && subject.role == conduit_face::FaceRole::TextEntry
+        })
+    {
+        return None;
+    }
+    let unique = |name: &str| {
+        let mut properties = face
+            .properties
+            .iter()
+            .filter(|p| p.subject == action.target && p.name == name);
+        let value = &properties.next()?.value;
+        properties.next().is_none().then_some(value)
+    };
+    let FacePropertyValue::Identity(binding) = unique("value-change-action")? else {
+        return None;
+    };
+    if binding != &action.identity {
+        return None;
+    }
+    let FacePropertyValue::TypedValue { contract, bytes } = unique("current-value")? else {
+        return None;
+    };
+    if contract != &argument.contract || contract.validate(bytes).is_err() {
+        return None;
+    }
+    String::from_utf8(bytes.clone()).ok()
+}
+
+#[cfg(test)]
+mod current_value_tests {
+    use super::*;
+
+    #[test]
+    fn editable_text_requires_unique_exact_typed_source_association() {
+        let mut face: Face = serde_json::from_str(include_str!(
+            "../../../../../proof/conformance/face-waist/domain-derived/open-domain-face.json"
+        ))
+        .unwrap();
+        let action = conduit_face::FaceAction {
+            identity: "edit".into(),
+            intent: "edit@1".into(),
+            target: "document".into(),
+            name: "Edit".into(),
+            arguments: vec![conduit_face::FaceActionArgument::text(
+                "text".into(),
+                "Text".into(),
+                0,
+                256,
+            )
+            .unwrap()],
+            disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
+        };
+        face.subjects.push(FaceSubject {
+            identity: "document".into(),
+            role: conduit_face::FaceRole::TextEntry,
+            name: "Document".into(),
+        });
+        let value = FaceProperty {
+            subject: "document".into(),
+            name: "current-value".into(),
+            value: FacePropertyValue::TypedValue {
+                contract: action.arguments[0].contract.clone(),
+                bytes: b"I was here.".to_vec(),
+            },
+        };
+        face.properties.push(value.clone());
+        assert_eq!(current_text_value(&face, &action), None);
+        face.properties.push(FaceProperty {
+            subject: "document".into(),
+            name: "value-change-action".into(),
+            value: FacePropertyValue::Identity("edit".into()),
+        });
+        assert_eq!(
+            current_text_value(&face, &action).as_deref(),
+            Some("I was here.")
+        );
+        let mut foreign = action.clone();
+        foreign.identity = "other-edit".into();
+        assert_eq!(current_text_value(&face, &foreign), None);
+        let mut different = action.clone();
+        different.arguments[0].contract.maximum_bytes = 128;
+        assert_eq!(current_text_value(&face, &different), None);
+        face.properties.push(value);
+        assert_eq!(current_text_value(&face, &action), None);
     }
 }

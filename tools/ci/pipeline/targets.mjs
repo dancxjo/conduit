@@ -34,15 +34,21 @@ export async function runTarget(id, directory) {
   mkdirSync(directory, { recursive: true });
   if (readdirSync(directory).length) throw new Error(`Target output must be empty: ${directory}`);
   if (selected.family === 'browser') await browser(directory);
-  else if (selected.family === 'hosted') hosted(id, directory);
+  else if (selected.family === 'hosted') await hosted(id, directory);
   else if (selected.family === 'conduitos') conduitos(id, directory);
   else embedded(id, directory);
 }
 
-function hosted(id, directory) {
+async function hosted(id, directory) {
   const platform = id.slice('hosted-'.length);
   const expected = { linux: 'linux', windows: 'win32', macos: 'darwin' }[platform];
   if (process.platform !== expected) throw new Error(`${id} requires its native runner`);
+  if (platform === 'linux') {
+    const { loadHostedProductCacheConfig } = await import('./hosted-cache-command.mjs');
+    const { cachedHostedLinux } = await import('./targets/hosted-cached.mjs');
+    const configuration = await loadHostedProductCacheConfig(process.env.CONDUIT_HOSTED_CACHE_CONFIG);
+    return cachedHostedLinux({ ...configuration, directory });
+  }
   // The old Linux release command also cross-builds Raspberry Pi. Keep this
   // native executable lane independent of every embedded compiler.
   cargo('build', '--locked', '--release', '-p', 'conduit', '--bin', 'conduit');

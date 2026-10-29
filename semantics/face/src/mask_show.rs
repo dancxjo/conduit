@@ -1,6 +1,6 @@
 //! One exact Show of one Face through one planned ordinary Mask Plot.
 
-use alloc::{format, string::String};
+use alloc::string::String;
 use conduit_core::{ActivePlayIdentity, PlanId, PlotIdentity, SignId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -57,6 +57,10 @@ pub enum MaskShowError {
 pub(crate) struct ValidatedFace<'a>(&'a Face);
 
 impl<'a> ValidatedFace<'a> {
+    pub(crate) fn from_constructed(face: &'a crate::CheckedFace) -> Self {
+        Self(face.as_face())
+    }
+
     pub(crate) fn new(face: &'a Face) -> Result<Self, crate::FaceError> {
         face.validate()?;
         Ok(Self(face))
@@ -129,10 +133,35 @@ impl MaskShow {
 
     pub fn validate(&self, face: &Face) -> Result<(), MaskShowError> {
         let checked = ValidatedFace::new(face).map_err(|_| MaskShowError::StaleFace)?;
-        let (face_plot, face_plan_id) = validated_basis(&checked);
+        self.validate_validated(&checked)
+    }
+
+    /// Reuse validation only through an immutable, borrow-bound private proof.
+    /// Public callers always enter through `validate` above.
+    pub(crate) fn validate_validated(
+        &self,
+        checked: &ValidatedFace<'_>,
+    ) -> Result<(), MaskShowError> {
+        let face = checked.face();
+        // Compare borrowed provenance; the constructor alone needs owned IDs.
+        let face_plot = match (
+            face.basis.source_document_id.as_ref(),
+            face.basis.checked_plot_id.as_ref(),
+            face.basis.expanded_plot_id.as_ref(),
+        ) {
+            (Some(source), Some(checked), Some(expanded)) => Some((source, checked, expanded)),
+            _ => None,
+        };
+        let shown_plot = self.face_plot.as_ref().map(|plot| {
+            (
+                &plot.source_document_id,
+                &plot.checked_plot_id,
+                &plot.expanded_plot_id,
+            )
+        });
         if self.mask_plot != self.planned_mask.mask.plot_identity
-            || self.face_plot != face_plot
-            || self.face_plan_id != face_plan_id
+            || shown_plot != face_plot
+            || self.face_plan_id.as_ref() != face.basis.plan_id.as_ref()
             || self.face_id != face.identity
             || self.face_revision != face.revision
             || self.show.placement_id != self.planned_mask.show_placement().placement_id
@@ -140,7 +169,7 @@ impl MaskShow {
             return Err(MaskShowError::StalePlan);
         }
         self.show
-            .validate_against_validated_mask_plot(&checked, &self.planned_mask.plan)
+            .validate_against_validated_mask_plot(checked, &self.planned_mask.plan)
             .map_err(MaskShowError::InvalidManifestation)?;
         if self.show_id != bind_show(&self.planned_mask, face, &self.show) {
             return Err(MaskShowError::StaleShowIdentity);
@@ -208,27 +237,67 @@ pub(crate) fn bind_show_identity(
     face: &Face,
     show: &Show,
 ) -> MaskShowId {
-    let canonical = format!(
-        "conduit.face/mask-plot-show@1\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-        mask.checked_plot_id.as_str(),
-        mask.expanded_plot_id.as_str(),
-        face.basis
-            .checked_plot_id
-            .as_ref()
-            .map_or("<none>", |id| id.as_str()),
-        face.basis
-            .plan_id
-            .as_ref()
-            .map_or("<none>", |id| id.as_str()),
-        face.identity.as_str(),
+    let bytes = show_digest(
+        [
+            mask.checked_plot_id.as_str(),
+            mask.expanded_plot_id.as_str(),
+            face.basis
+                .checked_plot_id
+                .as_ref()
+                .map_or("<none>", |id| id.as_str()),
+            face.basis
+                .plan_id
+                .as_ref()
+                .map_or("<none>", |id| id.as_str()),
+            face.identity.as_str(),
+            plan.as_str(),
+            show.manifestation_id.as_str(),
+        ],
         face.revision,
-        plan.as_str(),
-        show.manifestation_id.as_str(),
     );
-    let digest = Sha256::digest(canonical.as_bytes());
-    let mut identity = String::from("show/");
-    for byte in digest {
-        identity.push_str(&format!("{byte:02x}"));
+    show_identity(bytes)
+}
+
+fn show_identity(bytes: [u8; 32]) -> MaskShowId {
+    let mut identity = String::with_capacity(69);
+    identity.push_str("show/");
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    for byte in bytes {
+        identity.push(DIGITS[(byte >> 4) as usize] as char);
+        identity.push(DIGITS[(byte & 15) as usize] as char);
     }
     MaskShowId(identity)
 }
+
+/// Preserve the original newline-delimited UTF-8, including optional sentinels
+/// and the revision's unsigned decimal spelling. This is not a new wire schema.
+fn show_digest(fields: [&str; 7], revision: u64) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(b"conduit.face/mask-plot-show@1\n");
+    for field in &fields[..5] {
+        digest.update(field.as_bytes());
+        digest.update(b"\n");
+    }
+    let mut decimal = [0u8; 20];
+    let mut cursor = decimal.len();
+    let mut remaining = revision;
+    loop {
+        cursor -= 1;
+        decimal[cursor] = b'0' + (remaining % 10) as u8;
+        remaining /= 10;
+        if remaining == 0 {
+            break;
+        }
+    }
+    digest.update(&decimal[cursor..]);
+    digest.update(b"\n");
+    for field in &fields[5..] {
+        digest.update(field.as_bytes());
+        digest.update(b"\n");
+    }
+    digest.finalize().into()
+}
+
+#[cfg(test)]
+#[path = "mask_show/tests.rs"]
+mod tests;

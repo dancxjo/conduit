@@ -1,4 +1,5 @@
 import { recordOperation } from '../acquisition/metrics.mjs';
+import { recordProductCommand } from '../producer-custody.mjs';
 import { acquireApt } from '../acquisition/apt.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -17,11 +18,15 @@ export function command(program, args, options = {}) {
   console.log(`> ${program} ${args.join(' ')}`);
   const started = performance.now();
   const historyBefore = checkoutIsShallow(options.cwd);
+  const environment = options.env ?? { ...process.env, RUSTUP_TOOLCHAIN: toolchain() };
   const result = spawnSync(program, args, {
     stdio: 'inherit', timeout: 45 * 60_000,
-    env: { ...process.env, RUSTUP_TOOLCHAIN: toolchain() }, ...options,
+    env: environment, ...options,
   });
-  recordOperation({ kind: 'command', program, args, durationMs: performance.now() - started, outcome: result.error || result.status !== 0 ? 'failed' : 'success' });
+  const observation = { program, args, durationMs: performance.now() - started,
+    outcome: result.error || result.status !== 0 ? 'failed' : 'success' };
+  recordOperation({ kind: 'command', ...observation });
+  recordProductCommand({ ...observation, environment, cwd: options.cwd ?? process.cwd() });
   if (historyBefore === 'false' && checkoutIsShallow(options.cwd) === 'true') {
     throw new Error(`Pipeline command made the full source checkout shallow: ${program} ${args.join(' ')}`);
   }

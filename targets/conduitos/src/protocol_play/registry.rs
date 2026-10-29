@@ -31,7 +31,7 @@ pub(super) fn install_physical(
         }
         #[cfg(any(
             target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         PhysicalMode::UsbControl
         | PhysicalMode::UsbProtocol
@@ -68,7 +68,7 @@ pub(super) fn install_physical(
         .map_err(|_| ProtocolCallRefusal::InvalidPlan)?;
     #[cfg(any(
         target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+        all(target_arch = "aarch64", not(feature = "aarch64-board"))
     ))]
     if matches!(mode, PhysicalMode::StorageUsbDuplex) {
         use crate::storage_base::transaction_factory::*;

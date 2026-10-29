@@ -110,7 +110,7 @@ impl ResourceContentRequirement {
             || reference
                 .extent
                 .items
-                .is_none_or(|items| items > u64::from(self.maximum_items))
+                .is_some_and(|items| items > u64::from(self.maximum_items))
         {
             return Err(ResourceContentRefusal::ReferenceMismatch);
         }

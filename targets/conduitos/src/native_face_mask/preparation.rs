@@ -10,6 +10,7 @@ enum Selection<'a> {
         conduit_face::ComponentVisualSelection,
         conduit_face::VisualTypography,
         bool,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile,
     ),
 }
 
@@ -59,16 +60,6 @@ impl NativeFaceMask {
         surface_id: &str,
         provider: &NativeSurfaceProvider,
     ) -> Result<Self, NativeFaceMaskError> {
-        if display_base_id != provider.entry.base_id
-            || provider.entry.provider_generation == 0
-            || provider.entry.lifecycle != conduit_core::BaseLifecycle::Ready
-            || !provider.entry.resources.iter().any(|resource| {
-                resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS
-                    && resource.capacity_units > 0
-            })
-        {
-            return Err(NativeFaceMaskError::Plan);
-        }
         Self::prepare_selected(
             host_id,
             boot_id,
@@ -178,7 +169,13 @@ impl NativeFaceMask {
             display_base_id,
             surface_id,
             provider,
-            Selection::Creche(recipe, selection, typography, false),
+            Selection::Creche(
+                recipe,
+                selection,
+                typography,
+                false,
+                conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
+            ),
         )
     }
 
@@ -203,7 +200,47 @@ impl NativeFaceMask {
             display_base_id,
             surface_id,
             provider,
-            Selection::Creche(recipe, selection, typography, true),
+            Selection::Creche(
+                recipe,
+                selection,
+                typography,
+                true,
+                conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
+            ),
+        )
+    }
+
+    /// Explicit local Collection deployment, selected before any Face arrives.
+    /// Typography and recipe change meaning/appearance, never storage admission.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_collection_creche(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+        recipe: conduit_face::CrecheComponentRecipe,
+        selection: conduit_face::ComponentVisualSelection,
+        typography: conduit_face::VisualTypography,
+        navy: bool,
+    ) -> Result<Self, NativeFaceMaskError> {
+        Self::prepare_selected(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            Selection::Creche(
+                recipe,
+                selection,
+                typography,
+                navy,
+                conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection,
+            ),
         )
     }
 
@@ -218,9 +255,28 @@ impl NativeFaceMask {
         provider: &NativeSurfaceProvider,
         selection: Selection<'_>,
     ) -> Result<Self, NativeFaceMaskError> {
+        let collection = matches!(
+            &selection,
+            Selection::OrdinaryCollection
+                | Selection::Creche(
+                    ..,
+                    conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection
+                )
+        );
+        if collection
+            && (display_base_id != provider.entry.base_id
+                || provider.entry.provider_generation == 0
+                || provider.entry.lifecycle != conduit_core::BaseLifecycle::Ready
+                || !provider.entry.resources.iter().any(|resource| {
+                    resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS
+                        && resource.capacity_units > 0
+                }))
+        {
+            return Err(NativeFaceMaskError::Plan);
+        }
         let local_creche_preferences = matches!(&selection, Selection::Creche(..));
         let producer = producer::Producer::prepare(
-            matches!(&selection, Selection::OrdinaryCollection),
+            collection,
             host_id.clone(),
             boot_id.clone(),
             offer_generation,
@@ -264,22 +320,31 @@ impl NativeFaceMask {
                     planned_mask: route.planned_mask.clone(),
                 }
             }
-            Selection::Creche(recipe, selection, typography, navy) => {
-                let offer = crate::product_bases::native_mask_host_advertisement(
+            Selection::Creche(recipe, selection, typography, navy, profile) => {
+                let offer = conduit_conduitos_mask_offer::native_layout_host_advertisement(
                     &host_id,
                     &boot_id,
                     offer_generation.0,
-                    provider,
+                    &provider.entry,
+                    profile,
                 );
-                let prepare = if navy {
-                    conduit_conduitos_mask_offer::prepare_navy_creche_stage_from_offer
+                if profile == conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection {
+                    let (stage, configuration) = conduit_conduitos_mask_offer::prepare_collection_creche_visual_stage_from_offer(
+                        &offer, selection, recipe, typography, navy,
+                    ).map_err(|_| NativeFaceMaskError::Plan)?;
+                    component_configuration = Some(configuration);
+                    stage
                 } else {
-                    conduit_conduitos_mask_offer::prepare_typographic_creche_stage_from_offer
-                };
-                let (stage, configuration) = prepare(&offer, recipe, selection, typography)
-                    .map_err(|_| NativeFaceMaskError::Plan)?;
-                component_configuration = Some(configuration);
-                stage
+                    let prepare = if navy {
+                        conduit_conduitos_mask_offer::prepare_navy_creche_stage_from_offer
+                    } else {
+                        conduit_conduitos_mask_offer::prepare_typographic_creche_stage_from_offer
+                    };
+                    let (stage, configuration) = prepare(&offer, recipe, selection, typography)
+                        .map_err(|_| NativeFaceMaskError::Plan)?;
+                    component_configuration = Some(configuration);
+                    stage
+                }
             }
             Selection::OrdinaryCollection => {
                 let offer = conduit_conduitos_mask_offer::collection_native_host_advertisement(

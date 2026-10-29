@@ -63,18 +63,24 @@ pub(crate) fn render_hosts(
             .collect::<Vec<_>>();
         capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
         for capability in capabilities {
-            super::topology::push_line(lines, format!(
-                "    OFFER {} kind={} contract={} implementation={} support={:?} availability={:?} freshness={:?}",
-                capability.capability_id.as_str(), capability.kind_id.as_str(),
-                capability.kind_contract_revision.as_str(), capability.implementation_id.as_str(),
-                capability.support, capability.availability, capability.freshness
-            ))?;
-            if let Some(device) = current_device_for_capability(
+            let device = current_device_for_capability(
                 report,
                 &host.host_id,
                 &host.boot_id,
                 &capability.capability_id,
-            ) {
+            );
+            let device_summary = if device.is_none() {
+                " DEVICE not identified"
+            } else {
+                ""
+            };
+            super::topology::push_line(lines, format!(
+                "    OFFER {} kind={} contract={} implementation={} support={:?} availability={:?} freshness={:?}{}",
+                capability.capability_id.as_str(), capability.kind_id.as_str(),
+                capability.kind_contract_revision.as_str(), capability.implementation_id.as_str(),
+                capability.support, capability.availability, capability.freshness, device_summary
+            ))?;
+            if let Some(device) = device {
                 super::topology::push_line(
                     lines,
                     format!(
@@ -85,8 +91,6 @@ pub(crate) fn render_hosts(
                         device.resources
                     ),
                 )?;
-            } else {
-                super::topology::push_line(lines, "      DEVICE not identified".into())?;
             }
         }
         let mut planners = host.planner_capabilities.iter().collect::<Vec<_>>();
