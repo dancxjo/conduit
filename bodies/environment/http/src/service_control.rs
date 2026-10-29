@@ -117,6 +117,27 @@ pub struct ServiceControl<'a> {
     maximum: u32,
 }
 impl<'a> ServiceControl<'a> {
+    /// Actual task acknowledgment of this handle's latest command only. An old
+    /// Ready observation cannot prove readiness after a canceled newer request.
+    /// This read issues no command and confers no resource or operation grant.
+    pub fn acknowledged_state(&self) -> Option<ServiceState> {
+        critical_section::with(|cs| {
+            self.mailbox
+                .state
+                .borrow(cs)
+                .borrow()
+                .observed
+                .filter(|ack| ack.generation == self.generation)
+                .map(|ack| ack.state)
+        })
+    }
+
+    /// Unspent commands in this existing lifetime claim; observation never
+    /// replenishes the allowance or permits a second control handle.
+    pub fn remaining_commands(&self) -> u32 {
+        self.maximum - self.generation
+    }
+
     /// Cancellation retains task ownership. A later call supersedes the pending
     /// desired mode and waits for its own acknowledgement. An old acknowledgement
     /// cannot satisfy a new request. Root supplies any required absolute deadline.
@@ -148,3 +169,7 @@ impl<'a> ServiceControl<'a> {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "service_control_tests.rs"]
+mod tests;
