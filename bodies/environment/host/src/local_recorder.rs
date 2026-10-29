@@ -130,11 +130,26 @@ pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
 }
 /// Only a private binding saved by successful invitation admission may enter
 /// this command. A producer response cannot replace its pinned Root key.
-pub fn run_joined(binding: &Path, peer: &str, directory: &Path, once: bool) -> Result<()> {
+pub fn run_joined(
+    binding: &Path,
+    peer: &str,
+    directory: &Path,
+    once: bool,
+    projection: Option<crate::observed_history::retained::Projection<'_>>,
+) -> Result<()> {
     let collector = admitted_collector(binding)?;
     crate::observed_history::create_durable_directory(directory)?;
     private_metadata(directory, true)?;
-    run(collector, peer, directory, once)
+    validate_peer(peer)?;
+    run_loop(
+        collector,
+        vec![peer],
+        directory,
+        once,
+        None,
+        None,
+        projection.map(|projection| (binding, projection)),
+    )
 }
 #[derive(Default)]
 struct Backoff {
@@ -170,7 +185,7 @@ pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Re
     if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
         return Err("recorder peer must be HOST:PORT".into());
     }
-    run_loop(collector, vec![peer], directory, once, None, None)
+    run_loop(collector, vec![peer], directory, once, None, None, None)
 }
 
 #[path = "local_recorder/network.rs"]
@@ -181,6 +196,7 @@ pub fn run_joined_continuing(
     peer: &str,
     directory: &Path,
     network: Option<network::Options<'_>>,
+    projection: Option<crate::observed_history::retained::Projection<'_>>,
 ) -> Result<()> {
     let peers = continuing_peers(peer)?;
     let collector = admitted_collector(binding)?;
@@ -197,6 +213,7 @@ pub fn run_joined_continuing(
         network
             .map(|options| network::Network::open(binding, continuity, options))
             .transpose()?,
+        projection.map(|projection| (binding, projection)),
     )
 }
 /// Explicit transport alternatives never change the authenticated collector.
@@ -251,6 +268,8 @@ use foreground::run_loop;
 mod tests {
     use super::*;
     include!("local_recorder/restart.rs");
+    #[path = "../local_recorder/projection_tests.rs"]
+    mod projection_tests;
     include!("local_recorder/recovery.rs");
     #[test]
     fn explicit_routes_are_finite_and_validated_without_resolving() {

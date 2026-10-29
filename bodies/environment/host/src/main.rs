@@ -50,7 +50,10 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
-    if args.get(1).is_some_and(|a| a == "--inspect-retained-history") {
+    if args
+        .get(1)
+        .is_some_and(|a| a == "--inspect-retained-history")
+    {
         if args.len() != 6 {
             return Err("expected --inspect-retained-history PRIVATE_BINDING EPOCH_DIRECTORY PRODUCER_BOOT PRIVATE_SERIES_FILE".into());
         }
@@ -61,16 +64,37 @@ fn main() -> Result<()> {
             std::path::Path::new(&args[5]),
         );
     }
-    if args.get(1).is_some_and(|a| a == "--publish-face" || a == "--publish-face-once") {
-        if args.len()!=5 { return Err("expected --publish-face PRIVATE_BINDING HOST:PORT PRIVATE_FACE_FILE".into()); }
-        return face_export_client::run(std::path::Path::new(&args[2]),&args[3],std::path::Path::new(&args[4]),args[1]=="--publish-face-once");
+    if args
+        .get(1)
+        .is_some_and(|a| a == "--publish-face" || a == "--publish-face-once")
+    {
+        if args.len() != 5 {
+            return Err(
+                "expected --publish-face PRIVATE_BINDING HOST:PORT PRIVATE_FACE_FILE".into(),
+            );
+        }
+        return face_export_client::run(
+            std::path::Path::new(&args[2]),
+            &args[3],
+            std::path::Path::new(&args[4]),
+            args[1] == "--publish-face-once",
+        );
     }
-    if args.get(1).is_some_and(|a| a == "--retain-network-snapshot") {
+    if args
+        .get(1)
+        .is_some_and(|a| a == "--retain-network-snapshot")
+    {
         if args.len() != 6 {
-            return Err("expected --retain-network-snapshot BINDING PEER PRIVATE_RUN PRODUCER_BOOT".into());
+            return Err(
+                "expected --retain-network-snapshot BINDING PEER PRIVATE_RUN PRODUCER_BOOT".into(),
+            );
         }
         return network_custody_client::resume::run(
-            std::path::Path::new(&args[2]), &args[3], std::path::Path::new(&args[4]), &args[5]);
+            std::path::Path::new(&args[2]),
+            &args[3],
+            std::path::Path::new(&args[4]),
+            &args[5],
+        );
     }
     if args.get(1).is_some_and(|a| a == "--ack-network-snapshot") {
         if args.len() != 9 {
@@ -175,6 +199,29 @@ fn main() -> Result<()> {
             )
         };
     }
+    let projection_args = if matches!(
+        args.get(1).map(String::as_str),
+        Some("--record-joined" | "--record-joined-continuing")
+    ) {
+        if let Some(index) = args.iter().position(|arg| arg == "--retained-projection") {
+            if index < 2 || index + 2 >= args.len() {
+                return Err("expected --retained-projection PRODUCER_BOOT PRIVATE_OUTPUT".into());
+            }
+            let values: Vec<_> = args.drain(index..index + 3).collect();
+            Some((values[1].clone(), values[2].clone()))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let projection =
+        projection_args
+            .as_ref()
+            .map(|(boot, output)| observed_history::retained::Projection {
+                producer_boot: boot,
+                output: std::path::Path::new(output),
+            });
     if args
         .get(1)
         .is_some_and(|argument| argument == "--record-joined-continuing")
@@ -191,6 +238,7 @@ fn main() -> Result<()> {
                 producer_boot: &args[6],
                 private_run: std::path::Path::new(&args[7]),
             }),
+            projection,
         );
     }
     if args
@@ -211,6 +259,7 @@ fn main() -> Result<()> {
             &args[4],
             std::path::Path::new(&args[3]),
             once,
+            projection,
         );
     }
     let resume = args
