@@ -116,6 +116,47 @@ fn admitted_lease_work_and_rotation_allocate_nothing_under_pressure() {
     }
 }
 
+#[test]
+fn allocation_refusal_preserves_issuer_and_original_issuance_identity() {
+    let args = (
+        HostId::from("host"),
+        BootId::from("boot"),
+        BaseInstanceId::from("base"),
+    );
+    FAIL_AFTER.with(|n| n.set(Some(0)));
+    let result = BaseCapabilityTable::new(args.0, args.1, args.2, 1, [7; 32], 1);
+    FAIL_AFTER.with(|n| n.set(None));
+    assert_eq!(result.err(), Some(BaseCapabilityRefusal::Capacity));
+    for failure in [0, 1] {
+        let mut actual = table(7);
+        let mut expected_table = table(7);
+        let expected = expected_table.issue(request()).unwrap();
+        let input = request();
+        FAIL_AFTER.with(|n| n.set(Some(failure)));
+        let result = actual.issue(input);
+        FAIL_AFTER.with(|n| n.set(None));
+        assert_eq!(result.err(), Some(BaseCapabilityRefusal::Capacity));
+        assert_eq!(actual.inspections().count(), 0);
+        assert!(actual.issue(request()).unwrap() == expected);
+        assert_eq!(
+            actual.inspections().collect::<Vec<_>>(),
+            expected_table.inspections().collect::<Vec<_>>()
+        );
+    }
+}
+#[test]
+fn invalid_issuance_is_checked_before_allocating_and_does_not_consume_identity() {
+    let mut actual = table(7);
+    let mut input = request();
+    input.scope.maximum_in_flight = 0;
+    FAIL_AFTER.with(|n| n.set(Some(0)));
+    let result = actual.issue(input);
+    FAIL_AFTER.with(|n| n.set(None));
+    assert_eq!(result.err(), Some(BaseCapabilityRefusal::InvalidBound));
+    let expected = table(7).issue(request()).unwrap();
+    assert!(actual.issue(request()).unwrap() == expected);
+}
+
 pub(super) fn without_allocations(f: impl FnOnce()) {
     ALLOCATIONS.with(|count| count.set(0));
     TRACKING.with(|tracking| tracking.set(true));
