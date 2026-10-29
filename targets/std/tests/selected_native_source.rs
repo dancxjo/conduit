@@ -62,7 +62,7 @@ fn source_kind() -> Kind {
 }
 fn definition(host: &HostAdvertisement) -> NativeSourceDefinition {
     let kind = source_kind();
-    let offer = CapabilityOffer {
+    let offer = conduit_core::capability_offer_from_parts! {
         startup_parameters: vec![],
         shorthand: None,
         capability_id: "test/source-source".into(),
@@ -76,8 +76,6 @@ fn definition(host: &HostAdvertisement) -> NativeSourceDefinition {
             implementation_id: "test/source-source".into(),
             artifact_id: "test/source-source-cpu-v1".into(),
         },
-        state_retention: None,
-        realization_properties: vec![],
         host_calls: vec![HostCallRequirement {
             contract_id: CALL.into(),
             target_kind: Some(kind.kind_id.clone()),
