@@ -30,7 +30,8 @@ pub(super) struct PendingWorkspace {
 // Historical pre-staging target evidence was 7,564 retained bytes / 44,776us,
 // with an 8KiB contiguous allocation afterward; it does not qualify this path.
 // Keep the existing 8KiB construction envelope + 16KiB release floor = 24KiB.
-// The staged constructor's CPU64 peak is 8,086 bytes. Initial Ready preparation,
+// The revised staged constructor's CPU64 peak is 8,131 bytes. This is fixture
+// evidence, not a target-wide scope bound. Initial Ready preparation,
 // credential staging, target allocator overhead and stack still require actual
 // target qualification. The rich planner has no corresponding bounded profile.
 // Post-install capacity and actual affine custody checks remain mandatory.
@@ -109,6 +110,12 @@ impl NativeRoot {
         }
         if self.play.attempted() {
             return self.play.status().as_bytes();
+        }
+        // Mandatory evidence must have capacity before private input is staged,
+        // provider ownership moves, or a recovery attempt can be consumed.
+        #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
+        if let Err(reason) = crate::native_play::journal::admission_status() {
+            return reason.as_bytes();
         }
         if self.native_workspace_held() && !window.is_some_and(|window| window.held()) {
             return b"awaiting-native-retirement";
@@ -352,6 +359,14 @@ impl NativeRoot {
             || self.network.retirement.is_some()
         {
             self.pending_network_workspace = None;
+            return;
+        }
+        // Refuse before requesting or claiming construction workspace. Keep
+        // acknowledged input and independently installed local Play untouched.
+        #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
+        if let Err(reason) = crate::native_play::journal::admission_status() {
+            self.pending_network_workspace = None;
+            self.trace_network_workspace("eligibility", reason);
             return;
         }
         let now = embassy_time::Instant::now().as_millis();
