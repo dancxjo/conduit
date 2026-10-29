@@ -11,6 +11,8 @@ pub struct RetiredNetworkControl {
     pub(super) provider_generation: u64,
     pub(super) configuration_revision: u64,
     committed: bool,
+    station_outcome: Option<(Result<(), conduit_net::StationAttemptFailure>, u64)>,
+    profile_settled: bool,
 }
 impl RetiredNetworkControl {
     pub fn owners_recoverable(&self) -> bool {
@@ -34,6 +36,25 @@ impl RetiredNetworkControl {
         if !self.committed {
             journal::append(self)?;
             self.committed = true;
+        }
+        Ok(())
+    }
+    /// Only actual committed, returned native custody can settle its selection.
+    pub fn settle_profile_outcome(&mut self, now: u64) -> Result<(), &'static str> {
+        if !self.committed {
+            return Err("network-profile-evidence-pending");
+        }
+        if !self.profile_settled {
+            self.source
+                .as_mut()
+                .ok_or("network-profile-source")?
+                .record_retired_outcome(
+                    self.configuration_revision,
+                    self.station_outcome
+                        .map(|(outcome, at)| (outcome.is_ok(), at)),
+                    now,
+                )?;
+            self.profile_settled = true;
         }
         Ok(())
     }
@@ -114,6 +135,7 @@ impl NativePlay {
             .scope
             .base_provider_generation;
         let configuration_revision = self.configuration_revision;
+        let station_outcome = self.station_outcome;
         let provider = n::NetworkJoinHostCall::retire_retained(&mut self.join)
             .map_err(|_| "network-retirement-provider")?;
         let source = n::NetworkCredentialsHostCall::retire_retained(&mut self.source)
@@ -134,6 +156,8 @@ impl NativePlay {
             provider_generation,
             configuration_revision,
             committed: false,
+            station_outcome,
+            profile_settled: false,
         })
     }
 }

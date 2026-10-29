@@ -43,6 +43,7 @@ pub struct NativePlay {
     receipt_len: usize,
     failure: Option<k::Failure>,
     native_failure: Option<conduit_net::StationAttemptFailure>,
+    station_outcome: Option<(Result<(), conduit_net::StationAttemptFailure>, u64)>,
     cleanup_failure: Option<conduit_net::StationFailure>,
     configuration_revision: u64,
 }
@@ -65,6 +66,7 @@ impl NativePlay {
             receipt_len: 0,
             failure: None,
             native_failure: None,
+            station_outcome: None,
             cleanup_failure: None,
             configuration_revision: 0,
         }
@@ -352,6 +354,8 @@ impl NativePlay {
                         .await
                     {
                         Ok(bytes) => {
+                            self.station_outcome =
+                                Some((Ok(()), embassy_time::Instant::now().as_millis()));
                             self.expected[..bytes.len()].copy_from_slice(bytes);
                             self.expected_len = bytes.len();
                             match kernel.store_host_value(bytes) {
@@ -365,6 +369,8 @@ impl NativePlay {
                             }
                         }
                         Err(n::JoinCallRefusal::Provider(error)) => {
+                            self.station_outcome =
+                                Some((Err(error), embassy_time::Instant::now().as_millis()));
                             self.native_failure = Some(error);
                             failure = Some(fail(
                                 if error.reason == conduit_net::StationFailure::Pressure {
