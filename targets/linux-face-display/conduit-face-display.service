@@ -1,0 +1,16 @@
+[Unit]
+Description=Conduit environmental Face on HDMI
+After=conduit-host.service
+
+[Service]
+Type=simple
+ExecStart=%h/.local/lib/conduit-face-display/conduit-linux-face-display %h/.local/state/conduit-environment/current-face.json /dev/fb0
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+UMask=0077
+StandardOutput=append:%h/.local/state/conduit-face-display/display.log
+StandardError=append:%h/.local/state/conduit-face-display/display.log
+
+[Install]
+WantedBy=default.target
