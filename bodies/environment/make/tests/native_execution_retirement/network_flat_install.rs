@@ -823,3 +823,6 @@ fn compact_network_reservation_retains_full_selected_plan_and_root_binding() {
 
 #[path = "network_backing_placement.rs"]
 mod backing_placement;
+
+#[path = "network_prebacked_phased.rs"]
+mod prebacked_phased;

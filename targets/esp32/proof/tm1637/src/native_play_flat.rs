@@ -5,6 +5,8 @@ use super::*;
 mod backing;
 #[path = "native_play_flat_diagnostics.rs"]
 mod diagnostics;
+#[path = "native_play_phased_entry.rs"]
+mod phased_entry;
 use backing::reserve_kernel_backing;
 #[cfg(test)]
 use backing::REFUSE_NEXT_LOG;
@@ -56,7 +58,7 @@ impl NativePlay {
     /// Separate immutable checked preparation from admitted execution. Only
     /// unique uninitialized backing overlaps temporary descriptions; the kernel
     /// materializes later. Before `admit`, no attempt/sequence/bearer changes.
-    pub(crate) fn install_linked_phased_held(
+    fn install_linked_phased_mode(
         &mut self,
         image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
         expected: &c::PlotIdentity,
@@ -64,6 +66,7 @@ impl NativePlay {
         source: &mut Option<ReadyCredentialBase<Source>>,
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
+        storage: Option<n::PreparedNetworkKernelStorage>,
         admit: impl FnOnce() -> Result<(), ()>,
     ) -> Result<(), ()> {
         if self.attempted || !self.flat_refusal.is_empty() || source.is_none() || join.is_none() {
@@ -78,7 +81,7 @@ impl NativePlay {
         // Reserve both actual execution allocations before temporary descriptions
         // fragment their holes. Their full overlap with cold preparation counts
         // against the SAME admitted workspace; neither backing conveys authority.
-        let storage = match Self::reserve_linked_backing() {
+        let storage = match storage.map_or_else(Self::reserve_linked_backing, Ok) {
             Ok(backing) => backing,
             Err(()) => {
                 trace_phased_refusal(114, &self.flat_refusal, false, false);

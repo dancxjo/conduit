@@ -124,25 +124,38 @@ impl NativeRoot {
         #[cfg(feature = "flat-network-appliance")]
         let result = {
             let image = crate::native_source::load();
-            let result = if window.is_some() && backing.is_none() {
+            let result = if window.is_some() {
                 let (ready, recovery) = self.network.ready_and_recovery();
-                self.play.install_linked_phased_held(
-                    &image,
-                    &self.network_source,
-                    c::OfferGeneration(self.offer_generation),
-                    &mut self.credentials,
-                    ready,
-                    &mut self.issuer,
-                    || {
-                        if !window.is_some_and(|window| window.held()) {
-                            return Err(());
-                        }
-                        recovery
-                            .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
-                            .map(|_| ())
-                            .map_err(|_| ())
-                    },
-                )
+                let admit = || {
+                    if !window.is_some_and(|window| window.held()) {
+                        return Err(());
+                    }
+                    recovery
+                        .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
+                        .map(|_| ())
+                        .map_err(|_| ())
+                };
+                match backing {
+                    Some(storage) => self.play.install_linked_phased_held_with_storage(
+                        &image,
+                        &self.network_source,
+                        c::OfferGeneration(self.offer_generation),
+                        &mut self.credentials,
+                        ready,
+                        &mut self.issuer,
+                        storage,
+                        admit,
+                    ),
+                    None => self.play.install_linked_phased_held(
+                        &image,
+                        &self.network_source,
+                        c::OfferGeneration(self.offer_generation),
+                        &mut self.credentials,
+                        ready,
+                        &mut self.issuer,
+                        admit,
+                    ),
+                }
             } else {
                 if self
                     .network
@@ -330,8 +343,8 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "permit-revoked");
             return;
         }
-        // Preparation and execution backing occupy separate phases within the
-        // unchanged 8KiB envelope, above the physically protected 16KiB floor.
+        // Checked preparation and actual execution backing share the unchanged
+        // 8KiB envelope above the physically protected 16KiB floor.
         if memory.size.saturating_sub(memory.current_usage) < minimum {
             self.trace_network_workspace("capacity", "aggregate-construction-refused");
             return;
@@ -340,12 +353,29 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "current-body-refused");
             return;
         }
-        // Final backing is admitted only after temporary checked descriptions
-        // retire. No recovery attempt or Root issuance precedes that allocation.
+        // Protect both actual execution allocations before the floor blocks can
+        // fragment their holes. The unique storage conveys no execution authority.
+        #[cfg(feature = "flat-network-appliance")]
+        let backing = match crate::native_play::NativePlay::reserve_linked_backing() {
+            Ok(storage) => Some(storage),
+            Err(()) => {
+                self.trace_network_workspace("reserve", "execution-backing-refused");
+                return;
+            }
+        };
+        #[cfg(not(feature = "flat-network-appliance"))]
         let backing = None;
+        // Initial admission already charged the unchanged complete minimum.
+        // Only its now-owned exact backing is subtracted to avoid double count.
+        let Some(remaining_minimum) = minimum.checked_sub(backing.as_ref().map_or(0, |_| {
+            conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes()
+        })) else {
+            self.trace_network_workspace("reserve", "execution-backing-exceeds-workspace");
+            return;
+        };
         #[cfg(feature = "flat-network-appliance")]
         self.trace_network_phase("preparation-ready", baseline_used);
-        if esp_alloc::HEAP.free() < minimum
+        if esp_alloc::HEAP.free() < remaining_minimum
             || !permit.held()
             || !self.network_workspace_scope_current()
         {
