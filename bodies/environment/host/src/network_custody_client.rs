@@ -241,3 +241,6 @@ pub(crate) mod live;
 
 #[path = "network_custody_client/resume.rs"]
 pub(crate) mod resume;
+
+#[path = "network_custody_client/ack.rs"]
+pub(crate) mod ack;

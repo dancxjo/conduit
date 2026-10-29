@@ -23,7 +23,7 @@ pub(super) fn unhex<const N: usize>(text: &str) -> Result<[u8; N]> {
     }
     Ok(out)
 }
-fn input(path: &Path, bound: usize) -> Result<Vec<u8>> {
+pub(super) fn input(path: &Path, bound: usize) -> Result<Vec<u8>> {
     private(path, false)?;
     let mut out = Vec::new();
     OpenOptions::new()
@@ -120,21 +120,7 @@ pub(super) fn exchange(
         }
         match post(ack) {
             Ok((200, response)) => {
-                let receipt = token.verify_committed_receipt(credential, ack, &response)?;
-                let id = digest(receipt.bytes())
-                    .iter()
-                    .map(|b| format!("{b:02x}"))
-                    .collect::<String>();
-                let json = token.directory.join(format!("receipt-{id}.json"));
-                let cursor = token.directory.join(format!("receipt-{id}.bin"));
-                immutable(&json, &response)?;
-                immutable(&cursor, receipt.bytes())?;
-                File::open(&token.directory)?.sync_all()?;
-                let reopened = reopen(&json, response.len())?;
-                let checked = token.verify_committed_receipt(credential, ack, &reopened)?;
-                if reopen(&cursor, 480)?.as_slice() != checked.bytes() {
-                    return Err("network receipt durable cursor differs".into());
-                }
+                token.retain_committed_receipt(credential, ack, &response)?;
                 return Ok(());
             }
             Ok((202 | 503, _)) => last = Some("network custody still pending".into()),
