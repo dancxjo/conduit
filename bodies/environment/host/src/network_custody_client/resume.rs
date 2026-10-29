@@ -43,8 +43,10 @@ fn durable(path: &Path, bytes: &[u8]) -> Result<()> {
     }
     Ok(())
 }
-/// GET is the only transport capability accepted here. No membership signing,
-/// ACK, retirement, or erase operation is reachable through this entrance.
+#[path = "export.rs"]
+mod export;
+pub(crate) use export::{Export, Progress};
+/// Attended driver of the same one-request engine used by incremental callers.
 pub(super) fn retain_readonly(
     run: &Path,
     body: &BodyId,
@@ -53,147 +55,18 @@ pub(super) fn retain_readonly(
     mut get: impl FnMut(&str) -> Result<(u16, Vec<u8>)>,
     mut pause: impl FnMut(),
 ) -> Result<VerifiedDurableSnapshot> {
-    if [body.as_str(), boot.as_str()]
-        .iter()
-        .any(|id| id.is_empty() || id.len() > 128 || id.chars().any(char::is_control))
-    {
-        return Err("network export identity extent".into());
-    }
-    private(run, true)?;
-    let lock_path = run.join("export.lock");
-    let lock = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(false)
-        .mode(0o600)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
-        .open(&lock_path)?;
-    private(&lock_path, false)?;
-    // SAFETY: a retained owned file descriptor; lock is released on File drop.
-    if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
-        return Err("network export already running".into());
-    }
-    let scope_bytes = serde_json::to_vec(
-        &serde_json::json!({"body":body,"root":root,"boot":boot,"maximum_leases":LEASES}),
-    )?;
-    durable(&run.join("scope.json"), &scope_bytes)?;
-    let offer_path = run.join("offer.bin");
-    let mut bound = if offer_path.try_exists()? {
-        let bytes = reopen(&offer_path, OFFER)?;
-        let offer: [u8; OFFER] = bytes.try_into().unwrap();
-        let scope = scope(body, root, boot, &offer);
-        let id = verify_offer(&scope, &offer)?;
-        let completed = run.join(format!("network-{}", hex(&id)));
-        if completed.try_exists()? {
-            private(&completed, true)?;
-        }
-        if completed.join("snapshot.bin").try_exists()? {
-            // Existing completion must pass the same whole-file/signature gate.
-            let data = reopen(&completed.join("snapshot.bin"), CAPACITY)?;
-            return VerifiedDurableSnapshot::retain(run, &offer, &data, &scope);
-        }
-        Some(offer)
-    } else {
-        None
-    };
-    let mut started = 0;
-    for lease in 0..LEASES {
-        let path = run.join(format!("lease-{lease}.bin"));
-        if path.try_exists()? {
-            reopen(&path, 0)?;
-            if started != lease {
-                return Err("network lease sequence differs".into());
-            }
-            started += 1;
+    let mut export = Export::open(run, body, root, boot)?;
+    loop {
+        let now = Instant::now();
+        let deadline = export
+            .lease_deadline()
+            .filter(|deadline| *deadline > now)
+            .unwrap_or(now + Duration::from_secs(150));
+        match export.advance(deadline, |path, _| get(path))? {
+            Progress::Complete(token) => return Ok(token),
+            Progress::Pending => pause(),
         }
     }
-    if bound.is_some() && started == 0 {
-        return Err("network export retained offer has no spent lease".into());
-    }
-    for lease in started..LEASES {
-        // Persist and reopen the finite spend BEFORE any request. Restart cannot
-        // replay a partially spent lease or obtain an unbounded retry allowance.
-        durable(&run.join(format!("lease-{lease}.bin")), &[])?;
-        let deadline = Instant::now() + Duration::from_secs(150);
-        let Some(raw) = read(&mut get, &mut pause, "/network/custody/offer", deadline)? else {
-            continue;
-        };
-        let envelope: live::Offered = serde_json::from_slice(&raw)?;
-        if envelope.profile != "network-retirement-offer@1" {
-            return Err("network offer profile".into());
-        }
-        let offer = live::unhex::<OFFER>(&envelope.offer)?;
-        let scope = scope(body, root, boot, &offer);
-        let id = verify_offer(&scope, &offer)?;
-        if live::unhex::<32>(&envelope.snapshot)? != id {
-            return Err("network offer id differs".into());
-        }
-        if bound.as_ref().is_some_and(|old| old != &offer) {
-            return Err("network snapshot changed; partials retained unverified".into());
-        }
-        durable(&offer_path, &offer)?;
-        bound = Some(offer);
-        let chunks = run.join(format!("unverified-{}", hex(&id)));
-        directory(&chunks)?;
-        let mut snapshot = Vec::with_capacity(CAPACITY);
-        let mut expired = false;
-        for offset in (0..CAPACITY).step_by(CHUNK) {
-            let path = chunks.join(format!("{offset:05}.bin"));
-            if !path.try_exists()? {
-                let route = format!(
-                    "/network/custody/chunk?snapshot={}&offset={offset}",
-                    hex(&id)
-                );
-                let Some(raw) = read(&mut get, &mut pause, &route, deadline)? else {
-                    expired = true;
-                    break;
-                };
-                let chunk: Chunk = serde_json::from_slice(&raw)?;
-                if chunk.profile != "network-retirement-chunk@1"
-                    || live::unhex::<32>(&chunk.snapshot)? != id
-                    || chunk.offset != offset
-                {
-                    return Err("network chunk scope differs".into());
-                }
-                durable(&path, &live::unhex::<CHUNK>(&chunk.bytes)?)?;
-            }
-            snapshot.extend_from_slice(&reopen(&path, CHUNK)?);
-        }
-        if expired {
-            continue;
-        }
-        // Only this existing full digest + durable reopen constructor mints the
-        // opaque token. Retained partials cannot enter the ACK signer.
-        return VerifiedDurableSnapshot::retain(run, &offer, &snapshot, &scope);
-    }
-    Err("network export lease bound exhausted; partials remain unverified".into())
-}
-fn read(
-    get: &mut impl FnMut(&str) -> Result<(u16, Vec<u8>)>,
-    pause: &mut impl FnMut(),
-    path: &str,
-    deadline: Instant,
-) -> Result<Option<Vec<u8>>> {
-    for _ in 0..376 {
-        if Instant::now() >= deadline {
-            return Ok(None);
-        }
-        let response = get(path);
-        if Instant::now() >= deadline {
-            return Ok(None);
-        }
-        if response.as_ref().is_ok_and(|(_, bytes)| bytes.len() > 2048) {
-            return Err("network export response extent".into());
-        }
-        match response {
-            Ok((200, bytes)) => return Ok(Some(bytes)),
-            Ok((409, _)) => return Ok(None),
-            Ok((202 | 503, _)) | Err(_) => pause(),
-            Ok((status, _)) => return Err(format!("network export HTTP status {status}").into()),
-        }
-    }
-    Ok(None)
 }
 pub(crate) fn run(binding: &Path, peer: &str, run: &Path, producer_boot: &str) -> Result<()> {
     let binding = crate::local_recorder::validated_binding(binding)?;
