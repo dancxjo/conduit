@@ -48,3 +48,25 @@ fn outcome_requires_exact_service_and_route_identity() {
         Ok(OutcomeStatus::Pressure)
     ));
 }
+
+#[test]
+fn explicit_slot_close_is_distinct_from_loss_or_foreign_control() {
+    let closed = br#"{"schema":"conduit.relay/outcome@1","implementation_id":"conduit.relay/opaque-two-endpoint@1","route_id":"route/one","status":"closed"}"#;
+    let lost = br#"{"schema":"conduit.relay/outcome@1","implementation_id":"conduit.relay/opaque-two-endpoint@1","route_id":"route/one","status":"lost"}"#;
+    assert_eq!(
+        super::control_failure(closed, "route/one"),
+        CarrierFailure::Closed
+    );
+    assert_eq!(
+        super::control_failure(lost, "route/one"),
+        CarrierFailure::Lost
+    );
+    assert_eq!(
+        super::control_failure(closed, "route/foreign"),
+        CarrierFailure::Lost
+    );
+    assert_eq!(
+        super::control_failure(b"EOF", "route/one"),
+        CarrierFailure::Lost
+    );
+}
