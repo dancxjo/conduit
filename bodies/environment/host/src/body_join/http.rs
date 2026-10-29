@@ -232,6 +232,23 @@ fn read_response(socket: &mut std::net::TcpStream, deadline: Instant) -> Result<
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn accept_bounded(listener: &std::net::TcpListener) -> std::net::TcpStream {
+        listener.set_nonblocking(true).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            match listener.accept() {
+                Ok((socket, _)) => {
+                    socket.set_nonblocking(false).unwrap();
+                    return socket;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                    assert!(Instant::now() < deadline, "test accept deadline");
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+                Err(error) => panic!("test accept failed: {error}"),
+            }
+        }
+    }
     fn read_request(socket: &mut std::net::TcpStream) {
         let mut bytes = Vec::new();
         while !bytes.ends_with(b"\r\n\r\n") {
@@ -282,7 +299,7 @@ mod tests {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let server = std::thread::spawn(move || {
-            let (mut socket, _) = listener.accept().unwrap();
+            let mut socket = accept_bounded(&listener);
             socket
                 .set_read_timeout(Some(Duration::from_secs(2)))
                 .unwrap();
@@ -308,7 +325,7 @@ mod tests {
         let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
         let address = listener.local_addr().unwrap();
         let server = std::thread::spawn(move || {
-            let (mut socket, _) = listener.accept().unwrap();
+            let mut socket = accept_bounded(&listener);
             socket
                 .set_read_timeout(Some(Duration::from_secs(2)))
                 .unwrap();
