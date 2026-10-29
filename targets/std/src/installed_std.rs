@@ -30,7 +30,7 @@ mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
-mod factory;
+pub(crate) mod factory;
 mod final_normalized_pattern_back;
 mod flow_first_back;
 mod flow_gate_back;
@@ -58,6 +58,8 @@ pub(crate) use near_back::{
     IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
 };
 mod committed_fore;
+mod native_source_dispatch;
+pub(crate) use native_source_dispatch::supports_with_native;
 mod fore_outputs;
 pub use committed_fore::{CommittedForeScope, CommittedForeValue};
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
@@ -297,6 +299,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         #[cfg(target_os = "linux")]
         selected_text_file,
         advertisement,
+        native_source,
         playback,
         midi_input,
         midi_output,
@@ -310,8 +313,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
-    if !supports(fragment)
-        || active_nodes == 0
+    if !supports_with_native(
+        fragment,
+        native_source.as_ref().map(|(_, source)| &**source),
+    ) || active_nodes == 0
         || active_nodes > MAX_NODES
         || active_cords == 0
         || active_cords > MAX_CORDS
@@ -358,7 +363,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let budget = preparation::back_budget(placement)?;
+        let budget = if let Some(source) = native_source
+            .as_ref()
+            .map(|(_, source)| &**source)
+            .filter(|source| source.matches(placement))
+        {
+            source.budget()
+        } else {
+            preparation::back_budget(placement)?
+        };
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;
@@ -416,13 +429,22 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     if spoken_mask_session.is_some() && direct_spoken_mask_session.is_some() {
         return Err("one Play cannot prepare two spoken Mask semantic sessions".into());
     }
-    let drivers = preparation::prepare_operations(
+    let mut native_call = match native_source {
+        Some((registry, source)) => {
+            source.prepare(registry, advertisement, fragment, &lowered, &active_play)?
+        }
+        None => None,
+    };
+    let drivers = preparation::prepare_operations_with_native(
         fragment,
         &lowered,
         &mut values,
         &active_play,
         retained,
         durable_state.as_ref().map(|state| state.body),
+        native_call
+            .as_ref()
+            .map(|source| (source.node, source.input_bytes())),
     )?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
@@ -884,7 +906,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let cancelled_operation = host_calls
                 .get(cancellation.node, cancellation.call)
                 .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
-            if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
+            if native_call
+                .as_ref()
+                .is_some_and(|source| source.node == cancellation.node)
+            {
+                // Immediate native reads cannot leave asynchronous work in flight.
+            } else if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
                 let session = playback_sessions
                     .get_mut(usize::from(cancellation.node.0))
                     .and_then(Option::as_mut)
@@ -964,6 +991,24 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let Some(request) = scheduler.next_host_request() else {
                 break;
             };
+            if let Some(source) = native_call
+                .as_mut()
+                .filter(|source| source.node == request.node)
+            {
+                let maximum_output_bytes = host_calls
+                    .get(request.node, request.call)
+                    .ok_or("native Source request has no lowered contract identity")?
+                    .binding
+                    .maximum_output_bytes;
+                native_source_dispatch::complete(
+                    source,
+                    request,
+                    &mut scheduler,
+                    &mut host_calls,
+                    maximum_output_bytes,
+                )?;
+                continue;
+            }
             let input = scheduler
                 .host_value(request.input.value)
                 .map_err(|error| format!("read std host input: {error:?}"))?;

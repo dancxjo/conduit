@@ -1,3 +1,4 @@
+mod selected_native_source;
 use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
     PlanFragment, PlanId,
@@ -5,6 +6,7 @@ use conduit_core::{
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
 use conduit_plot::CheckedPlot;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
+pub use selected_native_source::{ImmediateNativeSource, NativeSourceDefinition};
 use std::fs;
 use std::io::Write;
 use std::thread;
@@ -582,6 +584,7 @@ pub struct StdHost {
     speech_recognition: Option<hosted_speech_recognition::WhisperSpeechAdapter>,
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
+    native_source: Option<selected_native_source::InitializedNativeSource>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     model_work: Option<Box<dyn hosted_model_work::HostedModelWorkAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
@@ -926,6 +929,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1000,6 +1004,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry,
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1050,6 +1055,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1099,6 +1105,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: Some(adapter),
             model_work: None,
             calendar: None,
@@ -1148,6 +1155,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: Some(adapter),
             calendar: None,
@@ -1197,6 +1205,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: Some(adapter),
@@ -1231,6 +1240,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1289,6 +1299,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1342,6 +1353,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1384,6 +1396,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1439,6 +1452,7 @@ impl StdHost {
             speech_recognition: None,
             microphone: None,
             base_registry: empty_base_registry(),
+            native_source: None,
             vector_search: None,
             model_work: None,
             calendar: None,

@@ -323,7 +323,8 @@ impl StdHost {
         } = inputs;
         write_operator_report(output, self.advertisement(), &fragment.plan_id, &fragment)?;
 
-        let installed_standard = installed_std::supports(&fragment);
+        let installed_standard =
+            installed_std::supports_with_native(&fragment, self.native_source.as_ref());
         if !installed_standard && !is_installed_kernel_signal_profile(&fragment) {
             return Err("fragment does not match the installed std kernel profile".to_string());
         }
@@ -350,6 +351,10 @@ impl StdHost {
             if installed_standard {
                 installed_std::run_fragment_retaining(
                     installed_std::InstalledRunHost {
+                        native_source: self
+                            .native_source
+                            .as_mut()
+                            .map(|source| (&self.base_registry, source)),
                         #[cfg(target_os = "linux")]
                         selected_text_file: self.selected_text_file.as_ref(),
                         advertisement: &advertisement,
