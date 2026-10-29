@@ -320,3 +320,6 @@ pub fn execute_fixture_join(
 
 mod station_attempt;
 pub use station_attempt::*;
+
+mod network_scan;
+pub use network_scan::*;
