@@ -234,10 +234,18 @@ impl AlsaAplaySession {
     }
 
     fn open(&mut self) -> Result<(), PlaybackFailure> {
+        if let Err(failure) = self.selection.verify_executable_identity() {
+            self.lifecycle = PlaybackLifecycle::ProviderLost;
+            return Err(failure);
+        }
         let current = discover_alsa_playback().map_err(|_| PlaybackFailure::ProviderLost)?;
         if !current.contains(&self.selection.observation) {
             self.lifecycle = PlaybackLifecycle::ProviderLost;
             return Err(PlaybackFailure::StaleObservation);
+        }
+        if let Err(failure) = self.selection.verify_executable_identity() {
+            self.lifecycle = PlaybackLifecycle::ProviderLost;
+            return Err(failure);
         }
         let target = self.selection.alsa_target();
         let mut child = Command::new("/usr/bin/aplay")
@@ -391,6 +399,19 @@ mod tests {
         );
         assert_eq!(session.metrics.discontinuities, 1);
         assert_eq!(session.lifecycle(), PlaybackLifecycle::ResolvedAvailable);
+    }
+
+    #[test]
+    fn changed_checked_executable_refuses_before_metadata_or_pcm_open() {
+        let selected = selection().with_executable_sha256("0".repeat(64)).unwrap();
+        let mut session = AlsaAplaySession::resolved(selected);
+        assert_eq!(
+            session.write_frame(&frame(0, false)),
+            Err(PlaybackFailure::ProviderLost)
+        );
+        assert!(session.child.is_none());
+        assert_eq!(session.lifecycle(), PlaybackLifecycle::ProviderLost);
+        assert_eq!(session.metrics.frames_committed, 0);
     }
 
     #[test]

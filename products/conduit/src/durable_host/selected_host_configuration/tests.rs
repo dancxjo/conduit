@@ -217,3 +217,20 @@ mod microphone_fixture {
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 }
+
+#[test]
+fn checked_speaker_refuses_retained_physical_speech_overlap_without_provider_effects() {
+    let source=SOURCE.replace("  limits =",r#"  base = {kind: "audio/speaker", implementation: "std/kernel-audio-play-alsa-hw@1", initialization: {executable_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", card_id: "Headphones", device: 0, base_identity: "bcm2835-audio"}}
+  limits ="#);
+    let selection = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    selection.validate().unwrap();
+    selection.validate_speech_overlap(None).unwrap();
+    let speech = super::super::selected_speech::fixture_retained_selection();
+    assert!(selection.validate_speech_overlap(Some(&speech)).is_err());
+    let mut artifact = serde_json::to_value(speech).unwrap();
+    artifact["artifact_only"] = serde_json::json!(true);
+    let artifact = serde_json::from_value(artifact).unwrap();
+    selection.validate_speech_overlap(Some(&artifact)).unwrap();
+    let no_speaker = Selection::from_source(SOURCE, "std/x86_64/computer").unwrap();
+    no_speaker.validate_speech_overlap(Some(&artifact)).unwrap();
+}
