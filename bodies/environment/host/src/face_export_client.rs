@@ -119,18 +119,24 @@ fn get(peer: &str, path: &str, started: u64) -> Result<Vec<u8>> {
     get_until(
         || crate::body_join::http(peer, "GET", path, &[]),
         boot_ms,
-        || std::thread::sleep(Duration::from_millis(50)),
+        || std::thread::sleep(Duration::from_millis(RETRY_PAUSE_MS)),
         started,
     )
 }
+const FETCH_BUDGET_MS: u64 = 5000;
+const RETRY_PAUSE_MS: u64 = 50;
+// The attempt bound must allow the entire admitted time budget. A shorter
+// count abandoned live requests before their deadline and left their finite
+// response slot occupied while the next request used a different nonce.
+const MAXIMUM_ATTEMPTS: u64 = FETCH_BUDGET_MS / RETRY_PAUSE_MS + 1;
 fn get_until(
     mut request: impl FnMut() -> Result<(u16, Vec<u8>)>,
     mut now: impl FnMut() -> Result<u64>,
     mut pause: impl FnMut(),
     started: u64,
 ) -> Result<Vec<u8>> {
-    for _ in 0..24 {
-        if now()?.saturating_sub(started) >= 5000 {
+    for _ in 0..MAXIMUM_ATTEMPTS {
+        if now()?.saturating_sub(started) >= FETCH_BUDGET_MS {
             return Err("Face export absolute deadline".into());
         }
         match request() {

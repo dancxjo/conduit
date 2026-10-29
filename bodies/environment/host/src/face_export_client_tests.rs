@@ -181,6 +181,61 @@ fn transient_transport_and_busy_replies_share_the_original_absolute_deadline() {
 }
 
 #[test]
+fn pending_export_can_use_its_full_budget_without_abandoning_its_nonce() {
+    use std::cell::Cell;
+    let elapsed = Cell::new(0);
+    let attempts = Cell::new(0);
+    let bytes = get_until(
+        || {
+            attempts.set(attempts.get() + 1);
+            Ok(if elapsed.get() < 3000 {
+                (202, vec![])
+            } else {
+                (200, vec![9])
+            })
+        },
+        || Ok(100 + elapsed.get()),
+        || elapsed.set(elapsed.get() + RETRY_PAUSE_MS),
+        100,
+    )
+    .unwrap();
+    assert_eq!(bytes, vec![9]);
+    assert_eq!(attempts.get(), 61);
+
+    elapsed.set(0);
+    attempts.set(0);
+    let error = get_until(
+        || {
+            attempts.set(attempts.get() + 1);
+            Ok((503, vec![]))
+        },
+        || Ok(100 + elapsed.get()),
+        || elapsed.set(elapsed.get() + RETRY_PAUSE_MS),
+        100,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("absolute deadline"));
+    assert_eq!(elapsed.get(), FETCH_BUDGET_MS);
+    assert_eq!(attempts.get(), FETCH_BUDGET_MS / RETRY_PAUSE_MS);
+
+    // A stalled clock still cannot turn this bounded reader into an unbounded
+    // request loop.
+    attempts.set(0);
+    let error = get_until(
+        || {
+            attempts.set(attempts.get() + 1);
+            Ok((202, vec![]))
+        },
+        || Ok(100),
+        || {},
+        100,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("polling bound"));
+    assert_eq!(attempts.get(), MAXIMUM_ATTEMPTS);
+}
+
+#[test]
 fn refresh_cadence_includes_transfer_time_without_extending_the_lease() {
     assert_eq!(
         super::refresh_delay(100, 100),
