@@ -460,3 +460,257 @@ fn early_sign_storage_refusal_releases_kernel_before_any_owner_moves() {
         0
     );
 }
+
+#[test]
+fn phased_storage_refusal_returns_original_owners_before_admission_or_root_mutation() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    for refuse_signs in [false, true] {
+        let admitted = core::cell::Cell::new(false);
+        if refuse_signs {
+            flat::refuse_next_log();
+        } else {
+            flat::refuse_next_backing();
+        }
+        assert!(play
+            .install_linked_phased_held(
+                &image,
+                &pins,
+                c::OfferGeneration(u64::MAX),
+                &mut source,
+                &mut join,
+                &mut issuer,
+                || {
+                    admitted.set(true);
+                    Ok(())
+                }
+            )
+            .is_err());
+        assert!(!admitted.get() && !play.attempted);
+        assert!(play.active.is_none() && play.flat_refusal.is_empty());
+        assert!(source.is_some() && join.is_some());
+        assert!(play.prepared.is_none() && play.source.is_none() && play.join.is_none());
+        assert_eq!(play.phase, "uninstalled");
+    }
+    play.install_linked_phased_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+        || Ok(()),
+    )
+    .unwrap();
+    assert_eq!(play.active.as_ref().unwrap().play_sequence, 1);
+}
+#[test]
+fn phased_admission_refusal_releases_storage_without_consuming_root_or_owners() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    assert!(play
+        .install_linked_phased_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            || Err(())
+        )
+        .is_err());
+    assert!(!play.attempted && play.active.is_none() && play.flat_refusal.is_empty());
+    assert!(source.is_some() && join.is_some());
+    play.install_linked_phased_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+        || Ok(()),
+    )
+    .unwrap();
+    assert_eq!(play.active.as_ref().unwrap().play_sequence, 1);
+}
+#[test]
+fn phased_constructor_counts_complete_retained_proofs_and_both_phase_peaks() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let (play, total) = allocation_probe::observe(|| {
+        let mut play = NativePlay::new();
+        play.install_linked_phased_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            || Ok(()),
+        )
+        .unwrap();
+        play
+    });
+    let phases = flat::phase_measurements();
+    let cold = phases[0].observation.unwrap();
+    let backed = phases[1].observation.unwrap();
+    let before_finish = phases[2].observation.unwrap();
+    let finished = phases[3].observation.unwrap();
+    assert_eq!(
+        phases[1].backing.unwrap(),
+        play.prepared.as_ref().unwrap().as_ref() as *const _ as usize
+    );
+    assert_eq!(
+        backed.retained_bytes() - cold.retained_bytes(),
+        n::PreparedNetworkKernelStorage::allocation_bytes()
+    );
+    assert_eq!(before_finish.allocations, finished.allocations);
+    assert_eq!(before_finish.reallocations, finished.reallocations);
+    println!("phased constructor CPU{} backing={} cold_peak={} complete_proofs={} backed={} issued_peak={} total_peak={} retained={} op_proof_inline={} root_proof_inline={}",
+        usize::BITS, n::PreparedNetworkKernelStorage::allocation_bytes(), cold.peak_bytes, cold.retained_bytes(),
+        backed.retained_bytes(), before_finish.peak_bytes, total.peak_bytes, total.retained_bytes(),
+        core::mem::size_of::<conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation>(),
+        core::mem::size_of::<crate::native_authority::LinkedNetworkPreparation<'_>>());
+    for (label, index) in [
+        ("reserved", 4),
+        ("credentials-bound", 5),
+        ("credentials-issued", 6),
+        ("join-issued", 7),
+    ] {
+        let snapshot = phases[index].observation.unwrap();
+        println!(
+            "phase {label}: peak={} retained={}",
+            snapshot.peak_bytes,
+            snapshot.retained_bytes()
+        );
+    }
+    // The bound is intentionally the existing envelope; exceeding it is a
+    // failed capacity proof, never permission to increase the grant or floor.
+    assert!(cold.peak_bytes <= 8192);
+    assert!(total.peak_bytes <= 8192);
+}
+
+#[test]
+fn phased_preparation_refuses_changed_source_root_and_owner_boot_before_admission() {
+    let image = source_image();
+    for mutation in 0..3 {
+        let mut pins = image.identity().unwrap();
+        let mut issuer = if mutation == 1 {
+            RootIssuer::fixture("esp32/b0a732286178".into(), "boot/substituted-root".into())
+        } else {
+            issuer()
+        };
+        if mutation == 0 {
+            pins.checked_plot_id = "sha256:substituted-source".into();
+        }
+        let (mut source, mut join) = if mutation == 2 {
+            let mut stale = identity("wifi-station");
+            stale.boot = "boot/stale-owner".into();
+            // SAFETY: an independently initialized transcript owner on a stale
+            // Boot, never a physical readiness or Root membership claim.
+            let stale = unsafe { ReadyNetworkJoinBase::new(stale, u64::MAX, Inert).unwrap() };
+            let (source, _) = ready();
+            (source, Some(stale))
+        } else {
+            ready()
+        };
+        let mut play = NativePlay::new();
+        let admitted = core::cell::Cell::new(false);
+        assert!(play
+            .install_linked_phased_held(
+                &image,
+                &pins,
+                c::OfferGeneration(u64::MAX),
+                &mut source,
+                &mut join,
+                &mut issuer,
+                || {
+                    admitted.set(true);
+                    Ok(())
+                }
+            )
+            .is_err());
+        assert!(!admitted.get() && !play.attempted);
+        assert!(play.active.is_none() && play.flat_refusal.is_empty());
+        assert!(source.is_some() && join.is_some());
+    }
+}
+
+#[test]
+fn phased_join_binding_refusal_defers_active_copy_and_retains_both_bearers() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    RootIssuer::refuse_next_prepared_join_binding_fixture();
+    let (mut play, memory) = allocation_probe::observe(|| {
+        let mut play = NativePlay::new();
+        assert!(play
+            .install_linked_phased_held(
+                &image,
+                &pins,
+                c::OfferGeneration(u64::MAX),
+                &mut source,
+                &mut join,
+                &mut issuer,
+                || Ok(())
+            )
+            .is_err());
+        play
+    });
+    assert!(play.attempted && source.is_some() && join.is_some());
+    let active = play.active.as_ref().unwrap();
+    let flat::IssuedCustody::FirstLease(first, second) = &play.flat_refusal else {
+        panic!("actual post-issuance Join refusal must retain both bearers");
+    };
+    assert_eq!(
+        first.inspection().scope.active_play_id,
+        active.active_play_id
+    );
+    assert_eq!(second.claim.active_play_id, active.active_play_id);
+    assert_eq!(
+        second
+            .table
+            .inspections()
+            .next()
+            .unwrap()
+            .scope
+            .active_play_id,
+        active.active_play_id
+    );
+    assert_eq!(active.play_sequence, 1);
+    let snapshots = flat::phase_measurements();
+    assert!(snapshots[8].observation.is_some());
+    println!(
+        "phased Join refusal CPU{} peak={} retained_after_active_copy={}",
+        usize::BITS,
+        memory.peak_bytes,
+        snapshots[8].observation.unwrap().retained_bytes()
+    );
+    assert!(memory.peak_bytes <= 8192);
+    let (result, retry) = allocation_probe::observe(|| {
+        play.install_linked_phased_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            || Ok(()),
+        )
+    });
+    assert!(result.is_err());
+    assert_eq!((retry.allocations, retry.reallocations), (0, 0));
+    assert!(matches!(
+        play.flat_refusal,
+        flat::IssuedCustody::FirstLease(_, _)
+    ));
+}

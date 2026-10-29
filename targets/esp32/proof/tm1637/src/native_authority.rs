@@ -17,6 +17,7 @@ mod mask_lease;
 mod network_verified;
 #[cfg(feature = "mask-root")]
 pub use mask_lease::{MaskLeaseIssuer, MaskScopeGuard};
+pub use network_verified::LinkedNetworkPreparation;
 #[path = "native_pulse_authority.rs"]
 mod pulse;
 #[path = "native_verified_bindings.rs"]
@@ -307,58 +308,15 @@ impl RootIssuer {
         ),
         (),
     > {
-        let grant = self.grant(native, operation)?;
-        let (_, _, call, subject, cap, input, output, index) = operation.facts();
-        if self.issued[index]
+        if plan != active.plan_id.as_str()
             || host != self.host.as_str()
             || boot != self.boot.as_str()
-            || plan != active.plan_id.as_str()
-            || self.reserved_play.as_deref() != Some(active)
-            || *active
-                != c::bind_active_play(
-                    &active.plan_id,
-                    &self.host,
-                    &self.boot,
-                    active.play_sequence,
-                )
         {
             return Err(());
         }
-        let mut hash = Sha256::new();
-        hash.update(self.key);
-        hash.update(native.instance.as_str().as_bytes());
-        let key: [u8; 32] = hash.finalize().into();
-        let mut table = c::BaseCapabilityTable::new(
-            self.host.clone(),
-            self.boot.clone(),
-            native.instance.clone(),
-            native.provider_generation,
-            key,
-            1,
-        )
-        .map_err(|_| ())?;
-        let scope = c::BaseCapabilityScope {
-            host_id: self.host.clone(),
-            boot_id: self.boot.clone(),
-            base_instance_id: native.instance.clone(),
-            base_provider_generation: native.provider_generation,
-            plan_id: active.plan_id.clone(),
-            active_play_id: active.active_play_id.clone(),
-            authority_grant_id: grant.grant_id.clone(),
-            authority_contract_id: grant.contract_id.clone(),
-            capability_id: cap.into(),
-            implementation_id: native.implementation.clone(),
-            operation_contract_id: call.into(),
-            subject_kind: subject.into(),
-            resource_pool_id: native.resource.clone(),
-            resource_generation_id: native.resource_generation.clone(),
-            envelope_id: native.envelope.clone(),
-            maximum_parameter_bytes: input,
-            maximum_result_bytes: output,
-            maximum_work_units: 1,
-            maximum_in_flight: 1,
-            maximum_operations: 1,
-        };
+        let scope = self.network_scope_for(native, operation, active)?;
+        let (mut table, authority, input, index) =
+            self.network_issuer_for(native, operation, &scope, active)?;
         let claim = c::BaseOperationClaim {
             host_id: scope.host_id.clone(),
             boot_id: scope.boot_id.clone(),
@@ -375,13 +333,37 @@ impl RootIssuer {
             parameter_bytes: input,
             work_units: 1,
         };
-        let authority = c::BaseCapabilityAuthority {
-            grant,
+        let handle = table.issue_borrowed(scope, authority).map_err(|_| ())?;
+        self.issued[index] = true;
+        Ok((table, handle, claim))
+    }
+    pub(crate) fn reserved_network_active(&self) -> Option<&c::ActivePlayIdentity> {
+        self.reserved_play.as_deref()
+    }
+    /// Descriptive only; neither this scope nor matching IDs issue possession.
+    fn network_scope_for(
+        &self,
+        native: &NetworkNativeIdentity,
+        operation: Operation,
+        active: &c::ActivePlayIdentity,
+    ) -> Result<c::BaseCapabilityScope, ()> {
+        let grant = self.grant_ref(native, operation)?;
+        let (_, _, call, subject, cap, input, output, _) = operation.facts();
+        let scope = c::BaseCapabilityScope {
+            host_id: self.host.clone(),
+            boot_id: self.boot.clone(),
             base_instance_id: native.instance.clone(),
             base_provider_generation: native.provider_generation,
+            plan_id: active.plan_id.clone(),
+            active_play_id: active.active_play_id.clone(),
+            authority_grant_id: grant.grant_id.into(),
+            authority_contract_id: grant.contract_id.into(),
+            capability_id: cap.into(),
+            implementation_id: native.implementation.clone(),
+            operation_contract_id: call.into(),
+            subject_kind: subject.into(),
             resource_pool_id: native.resource.clone(),
             resource_generation_id: native.resource_generation.clone(),
-            operation_contract_id: call.into(),
             envelope_id: native.envelope.clone(),
             maximum_parameter_bytes: input,
             maximum_result_bytes: output,
@@ -389,11 +371,87 @@ impl RootIssuer {
             maximum_in_flight: 1,
             maximum_operations: 1,
         };
-        let handle = table
-            .issue(c::CapabilityIssueRequest { scope, authority })
-            .map_err(|_| ())?;
-        self.issued[index] = true;
-        Ok((table, handle, claim))
+        Ok(scope)
+    }
+    /// One actual Root policy/key/table entrance for retained and staged paths.
+    /// The scope is checked against independently retained Root/native facts;
+    /// descriptive scope data can never choose its own authority or envelope.
+    fn network_issuer_for<'native>(
+        &self,
+        native: &'native NetworkNativeIdentity,
+        operation: Operation,
+        scope: &c::BaseCapabilityScope,
+        active: &c::ActivePlayIdentity,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityAuthorityRef<'native>,
+            u32,
+            usize,
+        ),
+        (),
+    > {
+        let expected = self.grant_ref(native, operation)?;
+        let (_, _, call, subject, cap, input, output, index) = operation.facts();
+        if self.issued[index]
+            || self.reserved_play.as_deref() != Some(active)
+            || !active.is_bound_to(
+                &active.plan_id,
+                &self.host,
+                &self.boot,
+                active.play_sequence,
+            )
+            || scope.host_id != self.host
+            || scope.boot_id != self.boot
+            || scope.base_instance_id != native.instance
+            || scope.base_provider_generation != native.provider_generation
+            || scope.plan_id != active.plan_id
+            || scope.active_play_id != active.active_play_id
+            || scope.authority_grant_id.as_str() != expected.grant_id
+            || scope.authority_contract_id.as_str() != expected.contract_id
+            || scope.capability_id.as_str() != cap
+            || scope.implementation_id != native.implementation
+            || scope.operation_contract_id.as_str() != call
+            || scope.subject_kind.as_str() != subject
+            || scope.resource_pool_id != native.resource
+            || scope.resource_generation_id != native.resource_generation
+            || scope.envelope_id != native.envelope
+            || scope.maximum_parameter_bytes != input
+            || scope.maximum_result_bytes != output
+            || scope.maximum_work_units != 1
+            || scope.maximum_in_flight != 1
+            || scope.maximum_operations != 1
+        {
+            return Err(());
+        }
+        let mut hash = Sha256::new();
+        hash.update(self.key);
+        hash.update(native.instance.as_str().as_bytes());
+        let key: [u8; 32] = hash.finalize().into();
+        let table = c::BaseCapabilityTable::new(
+            self.host.clone(),
+            self.boot.clone(),
+            native.instance.clone(),
+            native.provider_generation,
+            key,
+            1,
+        )
+        .map_err(|_| ())?;
+        let authority = c::BaseCapabilityAuthorityRef {
+            grant: expected,
+            base_instance_id: native.instance.as_str(),
+            base_provider_generation: native.provider_generation,
+            resource_pool_id: native.resource.as_str(),
+            resource_generation_id: native.resource_generation.0.as_str(),
+            operation_contract_id: call,
+            envelope_id: native.envelope.as_str(),
+            maximum_parameter_bytes: input,
+            maximum_result_bytes: output,
+            maximum_work_units: 1,
+            maximum_in_flight: 1,
+            maximum_operations: 1,
+        };
+        Ok((table, authority, input, index))
     }
 }
 

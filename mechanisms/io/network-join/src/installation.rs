@@ -166,7 +166,7 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             .project_ready_into(advertisement)
             .map_err(|_| E::Advertisement)
     }
-    fn claim_matches(&self, claim: &BaseOperationClaim) -> bool {
+    pub(crate) fn claim_matches(&self, claim: &BaseOperationClaim) -> bool {
         let i = &self.identity;
         claim.host_id == i.host
             && claim.boot_id == i.boot
@@ -240,10 +240,41 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
         gear: conduit_core::PlannedGearRef<'_>,
         limits: &CapabilityLimits,
     ) -> Result<(), JoinCallRefusal> {
+        if !self.claim_matches(claim) {
+            return Err(JoinCallRefusal::WrongBinding);
+        }
+        self.check_selected_native_gear_ref(gear, limits)
+    }
+    /// Exact native identity check before possession exists. Descriptive scope
+    /// validation grants nothing; final binding still checks current possession.
+    pub(crate) fn check_prepared_native_ref(
+        &self,
+        scope: &conduit_core::BaseCapabilityScope,
+        gear: conduit_core::PlannedGearRef<'_>,
+        limits: &CapabilityLimits,
+    ) -> Result<(), JoinCallRefusal> {
+        let i = &self.identity;
+        if scope.host_id != i.host
+            || scope.boot_id != i.boot
+            || scope.base_instance_id != i.instance
+            || scope.base_provider_generation != i.provider_generation
+            || scope.resource_pool_id != i.resource
+            || scope.resource_generation_id != i.resource_generation
+            || scope.envelope_id != i.envelope
+            || scope.implementation_id != i.implementation
+        {
+            return Err(JoinCallRefusal::WrongBinding);
+        }
+        self.check_selected_native_gear_ref(gear, limits)
+    }
+    fn check_selected_native_gear_ref(
+        &self,
+        gear: conduit_core::PlannedGearRef<'_>,
+        limits: &CapabilityLimits,
+    ) -> Result<(), JoinCallRefusal> {
         let base = gear.base.ok_or(JoinCallRefusal::WrongBinding)?;
         let i = &self.identity;
-        if !self.claim_matches(claim)
-            || gear.artifact_id != i.artifact.as_str()
+        if gear.artifact_id != i.artifact.as_str()
             || gear.implementation_id != i.implementation.as_str()
             || gear.execution_profile_id != NETWORK_JOIN_EXECUTION_PROFILE
             || gear.capability_id != JOIN_CAPABILITY

@@ -137,6 +137,75 @@ pub(super) fn checked_gear_ref<'a>(
     gear: conduit_core::PlannedGearRef<'a>,
     configuration_matches: impl FnOnce(conduit_core::PlannedGearRef<'a>) -> bool,
 ) -> Result<conduit_core::PlannedGearRef<'a>, SelectedCallRefusal> {
+    checked_gear_native_ref(
+        NativeScopeRef::claim(claim),
+        definition,
+        subject,
+        gear,
+        configuration_matches,
+    )?;
+    checked_gear_grant_ref(matching_scope(table, claim)?, definition, gear)
+}
+
+/// Descriptive half of binding. This checks an exact independently supplied
+/// expected scope against immutable verified placement data; it grants nothing.
+pub(super) fn checked_gear_scope_ref<'a>(
+    scope: &conduit_core::BaseCapabilityScope,
+    definition: &SelectedOperationContractRef<'_>,
+    subject: &str,
+    gear: conduit_core::PlannedGearRef<'a>,
+    configuration_matches: impl FnOnce(conduit_core::PlannedGearRef<'a>) -> bool,
+) -> Result<conduit_core::PlannedGearRef<'a>, SelectedCallRefusal> {
+    checked_gear_native_ref(
+        NativeScopeRef::scope(scope),
+        definition,
+        subject,
+        gear,
+        configuration_matches,
+    )?;
+    checked_gear_grant_ref(scope, definition, gear)
+}
+
+struct NativeScopeRef<'a> {
+    host: &'a str,
+    boot: &'a str,
+    implementation: &'a str,
+    instance: &'a str,
+    generation: u64,
+    subject: &'a str,
+    call: &'a str,
+}
+impl<'a> NativeScopeRef<'a> {
+    fn claim(scope: &'a BaseOperationClaim) -> Self {
+        Self {
+            host: scope.host_id.as_str(),
+            boot: scope.boot_id.as_str(),
+            implementation: scope.implementation_id.as_str(),
+            instance: scope.base_instance_id.as_str(),
+            generation: scope.base_provider_generation,
+            subject: scope.subject_kind.as_str(),
+            call: scope.operation_contract_id.as_str(),
+        }
+    }
+    fn scope(scope: &'a conduit_core::BaseCapabilityScope) -> Self {
+        Self {
+            host: scope.host_id.as_str(),
+            boot: scope.boot_id.as_str(),
+            implementation: scope.implementation_id.as_str(),
+            instance: scope.base_instance_id.as_str(),
+            generation: scope.base_provider_generation,
+            subject: scope.subject_kind.as_str(),
+            call: scope.operation_contract_id.as_str(),
+        }
+    }
+}
+fn checked_gear_native_ref<'a>(
+    scope: NativeScopeRef<'_>,
+    definition: &SelectedOperationContractRef<'_>,
+    subject: &str,
+    gear: conduit_core::PlannedGearRef<'a>,
+    configuration_matches: impl FnOnce(conduit_core::PlannedGearRef<'a>) -> bool,
+) -> Result<(), SelectedCallRefusal> {
     let expected = definition.kind;
     let base = gear.base.ok_or(SelectedCallRefusal::WrongBinding)?;
     if gear.kind_id != expected.kind_id
@@ -145,17 +214,23 @@ pub(super) fn checked_gear_ref<'a>(
         || !gear.outputs.iter().eq(expected.outputs.iter())
         || gear.semantic_contract != definition.semantic_contract
         || !configuration_matches(gear)
-        || gear.host_id != claim.host_id.as_str()
-        || gear.boot_id != claim.boot_id.as_str()
-        || gear.implementation_id != claim.implementation_id.as_str()
-        || base.provider_instance_id != claim.base_instance_id.as_str()
-        || base.provider_generation != claim.base_provider_generation
-        || claim.subject_kind.as_str() != subject
-        || claim.operation_contract_id.as_str() != definition.call
+        || gear.host_id != scope.host
+        || gear.boot_id != scope.boot
+        || gear.implementation_id != scope.implementation
+        || base.provider_instance_id != scope.instance
+        || base.provider_generation != scope.generation
+        || scope.subject != subject
+        || scope.call != definition.call
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }
-    let scope = matching_scope(table, claim)?;
+    Ok(())
+}
+fn checked_gear_grant_ref<'a>(
+    scope: &conduit_core::BaseCapabilityScope,
+    definition: &SelectedOperationContractRef<'_>,
+    gear: conduit_core::PlannedGearRef<'a>,
+) -> Result<conduit_core::PlannedGearRef<'a>, SelectedCallRefusal> {
     if gear.capability_id != scope.capability_id.as_str()
         || !gear.authority.iter().any(|authority| {
             authority.grant_id == scope.authority_grant_id.as_str()
@@ -186,7 +261,7 @@ pub(super) fn checked_gear_ref<'a>(
         .next()
         .ok_or(SelectedCallRefusal::WrongBinding)?;
     if required.contract_id != definition.call
-        || required.target_kind != Some(subject)
+        || required.target_kind != Some(scope.subject_kind.as_str())
         || required.maximum_in_flight != 1
         || required.maximum_input_bytes != definition.input_bytes
         || required.maximum_output_bytes != definition.output_bytes

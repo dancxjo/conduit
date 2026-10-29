@@ -142,12 +142,12 @@ fn check_plan_scope_ref(
         || active.host_id != claim.host_id
         || active.boot_id != claim.boot_id
         || active.active_play_id != claim.active_play_id
-        || conduit_core::bind_active_play(
+        || !active.is_bound_to(
             &claim.plan_id,
             &claim.host_id,
             &claim.boot_id,
             active.play_sequence,
-        ) != *active
+        )
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }
@@ -188,4 +188,7 @@ pub(crate) fn matching_scope<'a>(
 }
 
 mod flat;
-pub use flat::{bind_selected_flat_direct_operation_for_subject, SelectedFlatDirectOperationPlan};
+pub use flat::{
+    bind_selected_flat_direct_operation_for_subject, IssuedFlatDirectOperation,
+    PreparedFlatDirectOperation, SelectedFlatDirectOperationPlan,
+};

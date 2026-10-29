@@ -232,6 +232,14 @@ impl NativeNetwork {
     pub fn ready_slot(&mut self) -> &mut Option<ReadyNetworkJoinBase<Provider>> {
         &mut self.ready
     }
+    pub(crate) fn ready_and_recovery(
+        &mut self,
+    ) -> (
+        &mut Option<ReadyNetworkJoinBase<Provider>>,
+        &mut recovery::Recovery,
+    ) {
+        (&mut self.ready, &mut self.recovery)
+    }
     pub fn mark_selected(&mut self) {
         if self.ready.is_none() {
             self.selected = true;
