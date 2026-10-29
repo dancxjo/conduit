@@ -19,10 +19,19 @@ impl<'a> HistoryGraph<'a> {
         &self,
         unit: conduit_core::Unit,
     ) -> Result<NativeHistoryShow<'a>, GraphicsError> {
+        self.native_show_in_unit_at_size(unit, 640, 360)
+    }
+    /// Prepare finite geometry and typography bounds at native pixel dimensions.
+    pub fn native_show_in_unit_at_size(
+        &self,
+        unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
+    ) -> Result<NativeHistoryShow<'a>, GraphicsError> {
         Ok(NativeHistoryShow {
             content_id: self.content_id,
             revision: self.revision,
-            scene: self.native_scene_in_unit(unit)?,
+            scene: self.native_scene_in_unit_at_size(unit, width, height)?,
         })
     }
     pub fn native_scene(&self) -> Result<GraphicsScene, GraphicsError> {
@@ -32,25 +41,37 @@ impl<'a> HistoryGraph<'a> {
         &self,
         unit: conduit_core::Unit,
     ) -> Result<GraphicsScene, GraphicsError> {
+        self.native_scene_in_unit_at_size(unit, 640, 360)
+    }
+    /// Refuses viewports smaller than 640×360 or outside signed coordinate bounds.
+    pub fn native_scene_in_unit_at_size(
+        &self,
+        unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
+    ) -> Result<GraphicsScene, GraphicsError> {
         ChartGeometry {
             samples: &self.samples,
         }
-        .native_scene(self.omitted, "RECORDED HISTORY", unit)
+        .native_scene_at_size(self.omitted, "RECORDED HISTORY", unit, width, height)
     }
 }
 impl ChartGeometry<'_> {
-    pub(crate) fn native_scene(
+    pub(crate) fn native_scene_at_size(
         &self,
         omitted: u64,
         provenance: &str,
         temperature_unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
     ) -> Result<GraphicsScene, GraphicsError> {
+        let layout = NativeChartLayout::new(width, height)?;
         let mut scene = GraphicsScene::empty();
         let clip = LayoutRect {
             x: 0,
             y: 0,
-            width: 640,
-            height: 360,
+            width,
+            height,
         };
         // Paper and ink both come from the admitted Look. An empty compositor
         // buffer alone cannot establish the selected background color.
@@ -62,12 +83,7 @@ impl ChartGeometry<'_> {
         )?)?;
         if self.samples.is_empty() {
             scene.push(GraphicsCommand::text(
-                LayoutRect {
-                    x: 16,
-                    y: 16,
-                    width: 610,
-                    height: 20,
-                },
+                layout.rect(16, 16, 610, 20),
                 clip,
                 Paint::Foreground,
                 "No recovered samples in this view",
@@ -118,17 +134,15 @@ impl ChartGeometry<'_> {
                 ),
             ),
         ] {
-            scene.push(GraphicsCommand::text(
-                LayoutRect {
-                    x: 16,
-                    y,
-                    width: 610,
-                    height: 20,
-                },
-                clip,
-                Paint::Foreground,
-                &label,
-            )?)?;
+            scene.push(
+                GraphicsCommand::text(
+                    layout.rect(16, y, 610, 20),
+                    clip,
+                    Paint::Foreground,
+                    &label,
+                )?
+                .with_text_role(layout.label_role())?,
+            )?;
         }
         let failures = self.samples.iter().filter(|s| s.failure).count();
         let gaps = self
@@ -140,17 +154,15 @@ impl ChartGeometry<'_> {
             "{} · Earlier {}; unavailable {}; gaps {}",
             provenance, omitted, failures, gaps
         );
-        scene.push(GraphicsCommand::text(
-            LayoutRect {
-                x: 16,
-                y: 334,
-                width: 610,
-                height: 20,
-            },
-            clip,
-            Paint::Foreground,
-            &label,
-        )?)?;
+        scene.push(
+            GraphicsCommand::text(
+                layout.rect(16, 334, 610, 20),
+                clip,
+                Paint::Foreground,
+                &label,
+            )?
+            .with_text_role(layout.label_role())?,
+        )?;
         for humidity in [false, true] {
             let mut run = alloc::vec::Vec::with_capacity(super::graph::MAX_GRAPH_SAMPLES);
             let mut previous_sequence = None;
@@ -170,8 +182,8 @@ impl ChartGeometry<'_> {
                 }
                 if let Some(value) = value {
                     let point = conduit_face::GraphicsPoint::new(
-                        self.x(sample) as i16,
-                        self.y(value, humidity) as i16,
+                        layout.x(self.x(sample) as i16),
+                        layout.y(self.y(value, humidity) as i16),
                     )
                     .map_err(|_| GraphicsError::InvalidGeometry)?;
                     // Equal coordinates carry no additional visible segment.
@@ -221,4 +233,43 @@ fn elapsed_label(milliseconds: u64) -> alloc::string::String {
         (seconds / 60) % 60,
         seconds % 60
     )
+}
+
+/// Checked target geometry; coordinates are transformed before rasterization.
+struct NativeChartLayout {
+    width: u16,
+    height: u16,
+}
+impl NativeChartLayout {
+    fn new(width: u16, height: u16) -> Result<Self, GraphicsError> {
+        if width < 640 || height < 360 || width > i16::MAX as u16 || height > i16::MAX as u16 {
+            return Err(GraphicsError::InvalidGeometry);
+        }
+        Ok(Self { width, height })
+    }
+    fn x(&self, x: i16) -> i16 {
+        (i32::from(x) * i32::from(self.width) / 640) as i16
+    }
+    fn y(&self, y: i16) -> i16 {
+        (i32::from(y) * i32::from(self.height) / 360) as i16
+    }
+    fn rect(&self, x: i16, y: i16, width: u16, height: u16) -> LayoutRect {
+        LayoutRect {
+            x: self.x(x),
+            y: self.y(y),
+            width: (u32::from(width) * u32::from(self.width) / 640) as u16,
+            height: if height == 20 && self.height >= 560 && self.width >= 1000 {
+                40
+            } else {
+                (u32::from(height) * u32::from(self.height) / 360) as u16
+            },
+        }
+    }
+    fn label_role(&self) -> conduit_face::GraphicsTextRole {
+        if self.height >= 560 && self.width >= 1000 {
+            conduit_face::GraphicsTextRole::Title
+        } else {
+            conduit_face::GraphicsTextRole::Body
+        }
+    }
 }

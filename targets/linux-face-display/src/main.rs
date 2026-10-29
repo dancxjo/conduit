@@ -40,7 +40,11 @@ fn run() -> Result<(), String> {
     let mut previous = String::new();
     let mut retained = input::RetainedView::default();
     let mut recovered_history = false;
-    let mut history = history_input::HistoryInput::new(preferred);
+    let mut history = history_input::HistoryInput::new_at_size(
+        preferred,
+        width,
+        height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
+    );
     let mut history_status = String::new();
     loop {
         let now = input::now_ms()?;

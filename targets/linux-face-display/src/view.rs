@@ -76,7 +76,12 @@ pub fn render(
     if pixels.len() != usize::from(width) * usize::from(height) {
         return Err("raster extent mismatch".into());
     }
-    let (frame, page, pages, scale) = frame(face, width, height, page_tick, preferred)?;
+    let (frame, page, pages, scale, chart_viewport) =
+        frame(face, width, height, page_tick, preferred)?;
+    if chart_viewport {
+        render_graphics(&frame, width, height, pixels)?;
+        return Ok((page, pages));
+    }
     let mut target = Pixels {
         format: DisplayFormat {
             width: width.into(),
@@ -126,8 +131,8 @@ pub fn render_graphics(
     .map(|_| ())
     .map_err(|e| format!("history raster: {e:?}"))
 }
-/// Scale the existing 640x360 logical chart into the admitted framebuffer,
-/// reserving a separate Host status strip above it. No geometry is rewritten.
+/// Render already prepared native-resolution chart pixels one-to-one, reserving
+/// a separate Host status strip. No glyph or line pixel is stretched.
 struct ChartViewport<'a> {
     width: usize,
     height: usize,
@@ -136,9 +141,9 @@ struct ChartViewport<'a> {
 impl PixelTarget for ChartViewport<'_> {
     fn format(&self) -> DisplayFormat {
         DisplayFormat {
-            width: 640,
-            height: 360,
-            pitch: 640 * 4,
+            width: self.width as u32,
+            height: (self.height - STATUS_STRIP_HEIGHT) as u32,
+            pitch: self.width as u32 * 4,
             bits_per_pixel: 32,
             red_shift: 16,
             green_shift: 8,
@@ -146,29 +151,20 @@ impl PixelTarget for ChartViewport<'_> {
         }
     }
     fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        if x >= 640 || y >= 360 {
+        if x as usize >= self.width || y as usize >= self.height - STATUS_STRIP_HEIGHT {
             return Err(DisplayError::InvalidExtent);
         }
-        let x = x as usize;
-        let y = y as usize;
-        let drawable = self.height - STATUS_STRIP_HEIGHT;
-        for py in
-            STATUS_STRIP_HEIGHT + y * drawable / 360..STATUS_STRIP_HEIGHT + (y + 1) * drawable / 360
-        {
-            for px in x * self.width / 640..(x + 1) * self.width / 640 {
-                self.pixels[py * self.width + px] = pixel;
-            }
-        }
+        self.pixels[(y as usize + STATUS_STRIP_HEIGHT) * self.width + x as usize] = pixel;
         Ok(())
     }
 }
 impl RetainedPixelTarget for ChartViewport<'_> {
     fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
-        if x >= 640 || y >= 360 {
+        if x as usize >= self.width || y as usize >= self.height - STATUS_STRIP_HEIGHT {
             return Err(DisplayError::InvalidExtent);
         }
-        let px = x as usize * self.width / 640;
-        let py = STATUS_STRIP_HEIGHT + y as usize * (self.height - STATUS_STRIP_HEIGHT) / 360;
+        let px = x as usize;
+        let py = STATUS_STRIP_HEIGHT + y as usize;
         self.pixels
             .get(py * self.width + px)
             .copied()
@@ -254,7 +250,7 @@ fn frame(
     height: u16,
     page_tick: usize,
     preferred: Option<conduit_core::Unit>,
-) -> Result<(conduit_face::GraphicsScene, usize, usize, u16), String> {
+) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
     let property_face = face.clone();
     let property = crate::property_mask::frame(&property_face, width, height, 0, preferred);
     let mut scene = NativeFaceScene::prepare_with_input(face, width, height, false)
@@ -282,16 +278,20 @@ fn frame(
     let page = page_tick % pages;
     if page < charts.len() {
         let show = charts[page]
-            .native_show_in_unit(preferred.unwrap_or(conduit_core::Unit::Celsius))
+            .native_show_in_unit_at_size(
+                preferred.unwrap_or(conduit_core::Unit::Celsius),
+                width,
+                height.saturating_sub(STATUS_STRIP_HEIGHT as u16),
+            )
             .map_err(|e| format!("history graph refused: {e:?}"))?;
-        return Ok((show.scene, page, pages, 100));
+        return Ok((show.scene, page, pages, 100, true));
     }
     let content_page = page - charts.len();
     if content_page < property_pages {
         let (graphics, _, _) =
             crate::property_mask::frame(&property_face, width, height, content_page, preferred)
                 .ok_or("property page refused")?;
-        return Ok((graphics, page, pages, 100));
+        return Ok((graphics, page, pages, 100, false));
     }
     for _ in 0..content_page - property_pages {
         scene.turn_page(true);
@@ -299,7 +299,7 @@ fn frame(
     let frame = scene
         .frame()
         .map_err(|e| format!("Face frame refused: {e:?}"))?;
-    Ok((frame.scene, page, pages, scene.text_scale_percent()))
+    Ok((frame.scene, page, pages, scene.text_scale_percent(), false))
 }
 
 #[cfg(test)]
@@ -330,7 +330,7 @@ mod tests {
         };
         let face = make(vec![property.clone()]);
         for tick in 0..6 {
-            let (scene, page, pages, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
+            let (scene, page, pages, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
             assert_eq!((page, pages), (0, 1));
             assert!(scene.commands().iter().any(|c| c.payload() == "Real value"));
         }
@@ -340,7 +340,7 @@ mod tests {
             value: conduit_face::FacePropertyValue::Count(12),
         };
         let mixed = make(vec![property, unsupported]);
-        let (_, _, pages, _) = frame(mixed, 1024, 600, 0, None).unwrap();
+        let (_, _, pages, _, _) = frame(mixed, 1024, 600, 0, None).unwrap();
         assert_eq!(pages, 1, "Count metadata adds no native primary content");
     }
     #[test]
@@ -358,7 +358,7 @@ mod tests {
                 .any(|p| matches!(p.value, conduit_face::FacePropertyValue::Count(_)))
         );
         for tick in 0..8 {
-            let (scene, page, pages, _) = frame(
+            let (scene, page, pages, _, _) = frame(
                 face.clone(),
                 1024,
                 600,
@@ -395,12 +395,12 @@ mod tests {
         )
         .unwrap();
         let original = face.clone();
-        let (_, _, pages, _) = frame(face.clone(), 1024, 600, 0, None).unwrap();
+        let (_, _, pages, _, _) = frame(face.clone(), 1024, 600, 0, None).unwrap();
         assert!(pages >= 2);
         let mut sensor = false;
         let mut transcript = false;
         for tick in 0..pages {
-            let (scene, page, count, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
+            let (scene, page, count, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
             assert_eq!((page, count), (tick, pages));
             sensor |= scene
                 .commands()
@@ -416,5 +416,27 @@ mod tests {
             "both contributions must remain perceptible"
         );
         assert_eq!(face, original);
+    }
+}
+
+#[cfg(test)]
+mod native_chart_pixel_tests {
+    use super::*;
+    #[test]
+    fn chart_pixel_is_written_once_without_stretching_and_preserves_status_strip() {
+        let mut pixels = vec![0; 1024 * 600];
+        let mut target = ChartViewport {
+            width: 1024,
+            height: 600,
+            pixels: &mut pixels,
+        };
+        assert_eq!(target.format().width, 1024);
+        assert_eq!(target.format().height, 564);
+        target.write_pixel(511, 100, 0xabcdef).unwrap();
+        assert_eq!(target.read_pixel(511, 100).unwrap(), 0xabcdef);
+        assert!(target.write_pixel(1024, 100, 1).is_err());
+        assert_eq!(pixels.iter().filter(|p| **p != 0).count(), 1);
+        assert_eq!(pixels[(100 + 36) * 1024 + 511], 0xabcdef);
+        assert!(pixels[..36 * 1024].iter().all(|p| *p == 0));
     }
 }

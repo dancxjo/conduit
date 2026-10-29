@@ -67,3 +67,43 @@ fn finite_extent_and_actual_order_refuse() {
     let records: Vec<_> = (1..=17).flat_map(|s| record(s, s, true)).collect();
     assert!(RetainedEvidenceGraph::prepare(&records, 17, 0).is_err());
 }
+
+#[test]
+fn native_resolution_prepares_geometry_and_glyph_roles_before_rasterization() {
+    let graph = RetainedEvidenceGraph::prepare(
+        &[record(1, 1000, true), record(2, 2000, true)].concat(),
+        2,
+        0,
+    )
+    .unwrap();
+    let baseline = graph.native_scene_in_unit(Unit::Fahrenheit).unwrap();
+    let native = graph
+        .native_scene_in_unit_at_size(Unit::Fahrenheit, 1024, 564)
+        .unwrap();
+    assert_eq!(native.commands().len(), baseline.commands().len());
+    assert_eq!(native.commands()[0].bounds.width, 1024);
+    assert_eq!(native.commands()[0].bounds.height, 564);
+    for (old, new) in baseline.commands().iter().zip(native.commands()) {
+        assert_eq!(old.payload(), new.payload());
+        assert!(i32::from(new.bounds.y) + i32::from(new.bounds.height) <= 564);
+        if !new.payload().is_empty() {
+            assert_eq!(new.text_role(), conduit_face::GraphicsTextRole::Title);
+        }
+        if let (Some(old), Some(new)) = (old.polyline_geometry(), new.polyline_geometry()) {
+            for (a, b) in old.points().iter().zip(new.points()) {
+                assert_eq!(i32::from(*b.x()), i32::from(*a.x()) * 1024 / 640);
+                assert_eq!(i32::from(*b.y()), i32::from(*a.y()) * 564 / 360);
+            }
+        }
+    }
+    assert!(
+        graph
+            .native_scene_in_unit_at_size(Unit::Fahrenheit, 0, 564)
+            .is_err()
+    );
+    assert!(
+        graph
+            .native_scene_in_unit_at_size(Unit::Fahrenheit, u16::MAX, 564)
+            .is_err()
+    );
+}
