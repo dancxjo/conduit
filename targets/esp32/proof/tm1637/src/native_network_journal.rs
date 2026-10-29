@@ -69,7 +69,12 @@ pub fn initialize(region: NetworkRegion) -> Result<(), &'static str> {
     })
 }
 #[allow(unexpected_cfgs)] // Native profile is absent from CPU archive proof.
-pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str> {
+fn with_archive<T>(
+    append: impl FnOnce(
+        &mut wire::Journal<NetworkRegion>,
+        &mut [u8; wire::MAXIMUM_BYTES],
+    ) -> Result<T, &'static str>,
+) -> Result<T, &'static str> {
     #[cfg(all(feature = "body-persistence", target_os = "none"))]
     crate::native_restart::network_recovery::ensure_append_allowed()?;
     STATE.lock(|current| {
@@ -101,6 +106,11 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
         let Some(State::Ready(archive)) = current.as_mut() else {
             unreachable!()
         };
+        append(&mut archive.journal, &mut work)
+    })
+}
+pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str> {
+    with_archive(|journal, work| {
         let signs = retired.evidence();
         wire::encode(
             wire::Scope {
@@ -114,10 +124,10 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
             },
             signs.events(),
             signs,
-            &mut work,
+            work,
         )
         .map_err(|_| "network-evidence-encoding")?;
-        match archive.journal.append(&work) {
+        match journal.append(work) {
             Ok(_) => (),
             Err(error) => {
                 return Err(if error == wire::Refusal::Capacity {
@@ -130,6 +140,45 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
         Ok(())
     })
 }
+#[cfg(feature = "network-scan")]
+pub(crate) fn append_scan(
+    original: conduit_network_join_call::scan::RetiredScanEvidence,
+    active: &conduit_core::ActivePlayIdentity,
+    seen: bool,
+    signs: &conduit_kernel::HostedSignLog,
+) -> Result<
+    conduit_network_join_call::scan::CommittedScanEvidence,
+    (
+        conduit_network_join_call::scan::RetiredScanEvidence,
+        &'static str,
+    ),
+> {
+    let mut retained = Some(original);
+    let result = with_archive(|journal, work| {
+        match retained
+            .take()
+            .expect("original evidence")
+            .commit(active, seen, signs, journal, work)
+        {
+            Ok(committed) => Ok(committed),
+            Err((original, error)) => {
+                retained = Some(original);
+                Err(if error == wire::Refusal::Capacity {
+                    capacity_refusal()
+                } else {
+                    "network-scan-evidence-commit"
+                })
+            }
+        }
+    });
+    result.map_err(|error| {
+        (
+            retained.expect("refusal preserves original evidence"),
+            error,
+        )
+    })
+}
+
 impl wire::Storage for NetworkRegion {
     fn capacity(&self) -> u32 {
         conduit_environment_runtime::display_evidence_journal::Storage::capacity(self)

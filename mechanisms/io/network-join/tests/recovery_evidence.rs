@@ -1,5 +1,7 @@
 use conduit_kernel::{self as k, SignSink};
 use conduit_network_join_call::recovery_evidence::*;
+#[path = "recovery_evidence/scan.rs"]
+mod scan;
 #[derive(Clone)]
 struct Flash {
     bytes: Vec<u8>,

@@ -13,6 +13,9 @@ pub use preparation::{PreparedScanBinding, ReadyScanView, ScanPreparation};
 #[path = "selection.rs"]
 mod selection;
 pub use selection::PreparedScanSelection;
+#[path = "retirement.rs"]
+mod retirement;
+pub use retirement::CommittedScanEvidence;
 /// Exact issued custody returned unchanged when borrowed selection refuses.
 pub type ScanBindingFailure = (
     ScanCallRefusal,

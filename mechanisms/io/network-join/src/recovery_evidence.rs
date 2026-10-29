@@ -9,6 +9,20 @@ pub const MAXIMUM_BYTES: usize = DATA + 8;
 pub const SLOT_BYTES: u32 = 4096;
 pub const CAPACITY: u32 = 32768;
 const COMMIT: &[u8; 4] = b"nce1";
+/// Full scan output and this many events fit the unchanged record extent.
+/// Shorter outputs may retain more events; excess always refuses, never truncates.
+pub const MAXIMUM_FULL_SCAN_EVENTS: usize =
+    (DATA - HEADER - conduit_net::MAXIMUM_SCAN_OUTPUT_BYTES as usize) / EVENT;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RecordKind {
+    Join,
+    Scan,
+}
+pub struct ScanRecord<'a> {
+    pub request: conduit_net::NetworkScanRequest,
+    pub evidence_seen: bool,
+    pub output: &'a [u8],
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Refusal {
     Geometry,
@@ -105,12 +119,52 @@ pub fn encode(
     query: &impl SignQuery,
     out: &mut [u8; MAXIMUM_BYTES],
 ) -> Result<(), Refusal> {
+    encode_record(scope, events, query, None, out)
+}
+pub fn encode_scan(
+    scope: Scope<'_>,
+    events: impl Iterator<Item = k::KernelEvent>,
+    query: &impl SignQuery,
+    scan: ScanRecord<'_>,
+    out: &mut [u8; MAXIMUM_BYTES],
+) -> Result<(), Refusal> {
+    validate_scan(scope, &scan)?;
+    encode_record(scope, events, query, Some(scan), out)
+}
+fn validate_scan(scope: Scope<'_>, scan: &ScanRecord<'_>) -> Result<(), Refusal> {
+    scan.request.validate().map_err(|_| Refusal::Scope)?;
+    if scope.configuration_revision != 0
+        || scan.request.generation != scope.provider_generation
+        || scan.output.len() > conduit_net::MAXIMUM_SCAN_OUTPUT_BYTES as usize
+        || (scan.evidence_seen && scan.output.is_empty())
+    {
+        return Err(Refusal::Scope);
+    }
+    if !scan.output.is_empty() {
+        let completion = conduit_net::ScanCompletionView::parse(scan.output)
+            .map_err(|_| Refusal::Corrupt)?
+            .completion();
+        if completion.generation != scan.request.generation
+            || completion.completed_ms >= scan.request.scan_deadline_ms
+        {
+            return Err(Refusal::Scope);
+        }
+    }
+    Ok(())
+}
+fn encode_record(
+    scope: Scope<'_>,
+    events: impl Iterator<Item = k::KernelEvent>,
+    query: &impl SignQuery,
+    scan: Option<ScanRecord<'_>>,
+    out: &mut [u8; MAXIMUM_BYTES],
+) -> Result<(), Refusal> {
     if query.retention_gap().is_some() {
         return Err(Refusal::Gap);
     }
     if scope.provider_generation == 0
         || scope.play_sequence == 0
-        || scope.configuration_revision == 0
+        || (scan.is_none() && scope.configuration_revision == 0)
     {
         return Err(Refusal::Scope);
     }
@@ -125,7 +179,7 @@ pub fn encode(
         }
     }
     out.fill(0);
-    out[..4].copy_from_slice(b"NCE1");
+    out[..4].copy_from_slice(if scan.is_some() { b"NCS1" } else { b"NCE1" });
     out[4..6].copy_from_slice(&1u16.to_le_bytes());
     out[8..16].copy_from_slice(&scope.provider_generation.to_le_bytes());
     out[16..24].copy_from_slice(&scope.play_sequence.to_le_bytes());
@@ -176,6 +230,18 @@ pub fn encode(
         count += 1;
     }
     out[6..8].copy_from_slice(&(count as u16).to_le_bytes());
+    if let Some(scan) = scan {
+        let at = HEADER + count * EVENT;
+        let end = at
+            .checked_add(scan.output.len())
+            .filter(|end| *end <= DATA)
+            .ok_or(Refusal::Capacity)?;
+        out[28..30].copy_from_slice(&(scan.output.len() as u16).to_le_bytes());
+        out[30] = u8::from(scan.evidence_seen);
+        out[240..248].copy_from_slice(&scan.request.scan_deadline_ms.to_le_bytes());
+        out[248..256].copy_from_slice(&scan.request.cleanup_deadline_ms.to_le_bytes());
+        out[at..end].copy_from_slice(scan.output);
+    }
     let checksum = crc(&out[..DATA]);
     out[DATA..DATA + 4].copy_from_slice(&checksum.to_le_bytes());
     out[DATA + 4..].copy_from_slice(COMMIT);
@@ -185,6 +251,7 @@ pub struct Page<'a> {
     bytes: &'a [u8; MAXIMUM_BYTES],
     scope: Scope<'a>,
     count: usize,
+    kind: RecordKind,
 }
 fn text(bytes: &[u8], length: usize) -> Result<&str, Refusal> {
     if length == 0 || length > bytes.len() || bytes[length..].iter().any(|b| *b != 0) {
@@ -194,19 +261,32 @@ fn text(bytes: &[u8], length: usize) -> Result<&str, Refusal> {
 }
 impl<'a> Page<'a> {
     pub fn parse(bytes: &'a [u8; MAXIMUM_BYTES]) -> Result<Self, Refusal> {
-        if &bytes[..4] != b"NCE1"
+        let record_kind = match &bytes[..4] {
+            b"NCE1" => RecordKind::Join,
+            b"NCS1" => RecordKind::Scan,
+            _ => return Err(Refusal::Corrupt),
+        };
+        if bytes[31] != 0
             || bytes[4..6] != 1u16.to_le_bytes()
             || &bytes[DATA + 4..] != COMMIT
             || crc(&bytes[..DATA]) != u32::from_le_bytes(bytes[DATA..DATA + 4].try_into().unwrap())
-            || bytes[28..32]
-                .iter()
-                .chain(&bytes[240..256])
-                .any(|b| *b != 0)
+            || (record_kind == RecordKind::Join
+                && bytes[28..32]
+                    .iter()
+                    .chain(&bytes[240..256])
+                    .any(|b| *b != 0))
+            || (record_kind == RecordKind::Scan && bytes[30] > 1)
         {
             return Err(Refusal::Corrupt);
         }
         let count = u16::from_le_bytes(bytes[6..8].try_into().unwrap()) as usize;
-        if count > MAXIMUM_EVENTS || bytes[HEADER + count * EVENT..DATA].iter().any(|b| *b != 0) {
+        let payload = if record_kind == RecordKind::Scan {
+            usize::from(u16::from_le_bytes(bytes[28..30].try_into().unwrap()))
+        } else {
+            0
+        };
+        let end = HEADER + count * EVENT + payload;
+        if count > MAXIMUM_EVENTS || end > DATA || bytes[end..DATA].iter().any(|b| *b != 0) {
             return Err(Refusal::Corrupt);
         }
         let scope = Scope {
@@ -220,7 +300,7 @@ impl<'a> Page<'a> {
         };
         if scope.provider_generation == 0
             || scope.play_sequence == 0
-            || scope.configuration_revision == 0
+            || (record_kind == RecordKind::Join && scope.configuration_revision == 0)
         {
             return Err(Refusal::Scope);
         }
@@ -228,7 +308,11 @@ impl<'a> Page<'a> {
             bytes,
             scope,
             count,
+            kind: record_kind,
         };
+        if let Some(scan) = page.scan() {
+            validate_scan(scope, &scan)?;
+        }
         for index in 0..count {
             page.event(index)?;
         }
@@ -236,6 +320,25 @@ impl<'a> Page<'a> {
     }
     pub fn scope(&self) -> Scope<'a> {
         self.scope
+    }
+    pub fn kind(&self) -> RecordKind {
+        self.kind
+    }
+    pub fn scan(&self) -> Option<ScanRecord<'a>> {
+        if self.kind != RecordKind::Scan {
+            return None;
+        }
+        let at = HEADER + self.count * EVENT;
+        let length = usize::from(u16::from_le_bytes(self.bytes[28..30].try_into().unwrap()));
+        Some(ScanRecord {
+            request: conduit_net::NetworkScanRequest {
+                generation: self.scope.provider_generation,
+                scan_deadline_ms: u64::from_le_bytes(self.bytes[240..248].try_into().unwrap()),
+                cleanup_deadline_ms: u64::from_le_bytes(self.bytes[248..256].try_into().unwrap()),
+            },
+            evidence_seen: self.bytes[30] == 1,
+            output: &self.bytes[at..at + length],
+        })
     }
     pub fn events(&self) -> impl Iterator<Item = k::KernelEvent> + '_ {
         (0..self.count).map(|index| self.event(index).expect("validated canonical event"))

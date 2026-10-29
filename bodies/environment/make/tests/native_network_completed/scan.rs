@@ -3,11 +3,36 @@
 use crate::{allocation_probe, native_authority::RootIssuer, native_scan::NativeScan};
 use conduit_core as c;
 use conduit_net::*;
+use conduit_network_join_call::recovery_evidence as wire;
 use conduit_network_join_call::{installation::NetworkNativeIdentity, scan::*};
 use conduit_plot::{
     CheckedConnectionRef, CheckedGearRef, LinkedPlanningFactsRef, PlanningOriginRef,
 };
 use std::{cell::Cell, rc::Rc, sync::OnceLock};
+struct Flash {
+    bytes: Vec<u8>,
+    budget: Rc<Cell<usize>>,
+}
+impl wire::Storage for Flash {
+    fn capacity(&self) -> u32 {
+        wire::CAPACITY
+    }
+    fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), wire::Refusal> {
+        out.copy_from_slice(&self.bytes[at as usize..at as usize + out.len()]);
+        Ok(())
+    }
+    fn program(&mut self, at: u32, input: &[u8]) -> Result<(), wire::Refusal> {
+        for (i, byte) in input.iter().enumerate() {
+            let budget = self.budget.get();
+            if budget == 0 {
+                return Err(wire::Refusal::Media);
+            }
+            self.budget.set(budget - 1);
+            self.bytes[at as usize + i] &= byte;
+        }
+        Ok(())
+    }
+}
 
 static MATERIAL: OnceLock<(Vec<u8>, LinkedPlanningFactsRef<'static>)> = OnceLock::new();
 fn facts() -> Result<LinkedPlanningFactsRef<'static>, conduit_plot::flat_image::ImageRefusal> {
@@ -148,17 +173,17 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
         let retired = scan.take_retired().unwrap();
         assert!(Rc::ptr_eq(&retired.provider.0, &state));
         assert!(!retired.evidence_seen);
-        assert!(retired.evidence.completed_output().is_none());
-        assert!(retired.evidence.completed_observations().is_none());
+        assert!(retired.evidence().completed_output().is_none());
+        assert!(retired.evidence().completed_observations().is_none());
         assert_eq!(
-            retired.evidence.inspection().lifecycle,
+            retired.evidence().inspection().lifecycle,
             c::CapabilityLifecycle::Revoked
         );
-        assert_eq!(retired.evidence.inspection().in_flight_operations, 0);
+        assert_eq!(retired.evidence().inspection().in_flight_operations, 0);
         assert_eq!(state.cleanups.get(), 1);
         assert!(retired.signs.events().count() > 0);
         assert_eq!(
-            retired.evidence.inspection().scope.active_play_id,
+            retired.evidence().inspection().scope.active_play_id,
             retired.active.active_play_id
         );
     }
@@ -238,22 +263,25 @@ fn actual_root_scan_admission_dispatch_and_retirement_preserve_original_custody(
     assert!(scan.take_retired().is_err());
     state.cleanup_fail.set(false);
     embassy_futures::block_on(scan.restore_for_retirement()).unwrap();
-    let (retired, memory) = allocation_probe::observe(|| scan.take_retired().unwrap());
+    let (mut retired, memory) = allocation_probe::observe(|| scan.take_retired().unwrap());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert!(retired.evidence_seen);
     assert!(Rc::ptr_eq(&retired.provider.0, &state));
-    assert_eq!(retired.evidence.completed_output().unwrap().len(), 728);
-    assert_eq!(retired.evidence.completed_observations().unwrap().len(), 16);
+    assert_eq!(retired.evidence().completed_output().unwrap().len(), 728);
     assert_eq!(
-        retired.evidence.completed_observations().unwrap()[0].security,
+        retired.evidence().completed_observations().unwrap().len(),
+        16
+    );
+    assert_eq!(
+        retired.evidence().completed_observations().unwrap()[0].security,
         ObservedNetworkSecurity::Unknown
     );
     assert_eq!(
-        retired.evidence.inspection().scope.active_play_id,
+        retired.evidence().inspection().scope.active_play_id,
         retired.active.active_play_id
     );
     assert_eq!(
-        retired.evidence.inspection().lifecycle,
+        retired.evidence().inspection().lifecycle,
         c::CapabilityLifecycle::Revoked
     );
     assert!(retired.signs.events().count() > 0);
@@ -266,4 +294,44 @@ fn actual_root_scan_admission_dispatch_and_retirement_preserve_original_custody(
             "spent Root slot must refuse before admission"
         ))
         .is_err());
+    let original = retired.evidence().completed_output().unwrap().to_vec();
+    let budget = Rc::new(Cell::new(0));
+    let flash = Flash {
+        bytes: vec![255; wire::CAPACITY as usize],
+        budget: budget.clone(),
+    };
+    let mut work = [0; wire::MAXIMUM_BYTES];
+    let mut journal =
+        wire::Journal::open(flash, &mut work).unwrap_or_else(|_| panic!("blank fixture journal"));
+    assert!(retired.committed().is_none());
+    assert!(retired
+        .commit_to_fixture_journal(&mut journal, &mut work)
+        .is_err());
+    assert!(retired.committed().is_none());
+    assert_eq!(retired.evidence().completed_output().unwrap(), original);
+    budget.set(usize::MAX);
+    let (result, memory) =
+        allocation_probe::observe(|| retired.commit_to_fixture_journal(&mut journal, &mut work));
+    result.unwrap();
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let committed = retired.committed().unwrap();
+    assert!(committed.evidence_seen());
+    journal
+        .read_slot(committed.receipt().slot(), &mut work)
+        .unwrap();
+    let page = wire::Page::parse(&work).unwrap();
+    assert_eq!(page.kind(), wire::RecordKind::Scan);
+    assert_eq!(page.scan().unwrap().output, original);
+    assert_eq!(
+        page.events().collect::<Vec<_>>(),
+        retired.signs.events().collect::<Vec<_>>()
+    );
+    let mut foreign = retired.active.clone();
+    foreign.boot_id = "foreign/boot".into();
+    assert!(root.finish_scan_play(&foreign, committed).is_err());
+    root.finish_scan_play(&retired.active, committed).unwrap();
+    assert!(root.finish_scan_play(&retired.active, committed).is_err());
+    assert!(next
+        .install_held(&image, pins, c::OfferGeneration(2), &mut root, || Ok(()))
+        .is_ok());
 }

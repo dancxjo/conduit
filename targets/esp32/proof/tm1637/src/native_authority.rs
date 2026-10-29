@@ -499,6 +499,45 @@ impl RootIssuer {
 }
 
 impl RootIssuer {
+    /// Release only this exact scan reservation after its original revoked
+    /// possession and evidence have received actual commit-last readback.
+    /// Returning a radio, receiving a transport ACK or a timer is insufficient.
+    pub fn finish_scan_play(
+        &mut self,
+        active: &c::ActivePlayIdentity,
+        committed: &conduit_network_join_call::scan::CommittedScanEvidence,
+    ) -> Result<(), ()> {
+        let inspection = committed.evidence().inspection();
+        let scope = &inspection.scope;
+        if self.issued != [false, true]
+            || !self.network_play_matches(active)
+            || active.host_id != self.host
+            || active.boot_id != self.boot
+            || scope.host_id != self.host
+            || scope.boot_id != self.boot
+            || scope.plan_id != active.plan_id
+            || scope.active_play_id != active.active_play_id
+            || inspection.lifecycle != c::CapabilityLifecycle::Revoked
+            || inspection.in_flight_operations != 0
+            || scope.authority_contract_id.as_str() != conduit_net::NETWORK_SCAN_AUTHORITY
+            || scope.operation_contract_id.as_str() != conduit_net::NETWORK_SCAN_HOST_CALL
+            || scope.subject_kind.as_str() != conduit_net::NETWORK_SCAN_SUBJECT
+            || scope.maximum_operations != 1
+            || scope.maximum_in_flight != 1
+            || scope.maximum_work_units != 1
+            || scope.maximum_parameter_bytes != conduit_net::MAXIMUM_SCAN_INPUT_BYTES
+            || scope.maximum_result_bytes != conduit_net::MAXIMUM_SCAN_OUTPUT_BYTES
+        {
+            return Err(());
+        }
+        self.issued = [false, false];
+        if self.reserved_network_play.is_some() {
+            self.reserved_network_play = None;
+        } else {
+            self.reserved_play = None;
+        }
+        Ok(())
+    }
     fn network_play_matches(&self, active: &c::ActivePlayIdentity) -> bool {
         match self.reserved_network_play.as_deref() {
             Some(reservation) => active.is_bound_to(

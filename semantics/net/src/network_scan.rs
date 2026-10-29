@@ -1,5 +1,8 @@
 //! Finite scan representation, never radio truth, possession or round renewal.
 use crate::ObservedNetworkSecurity;
+#[path = "network_scan_view.rs"]
+mod view;
+pub use view::ScanCompletionView;
 pub const NETWORK_SCAN_OPERATION: &str = "network/scan";
 pub const NETWORK_SCAN_HOST_CALL: &str = "conduit.host/network-scan@1";
 pub const NETWORK_SCAN_AUTHORITY: &str = "conduit.authority/network-scan@1";
@@ -161,44 +164,19 @@ impl ScanCompletion {
         Ok(len)
     }
     pub fn decode(bytes: &[u8], out: &mut [ScanObservation; 16]) -> Result<Self, ScanFailure> {
-        if bytes.len() < 24 || &bytes[..4] != b"CNR1" {
-            return Err(ScanFailure::Malformed);
-        }
-        let v = Self {
-            generation: u64::from_le_bytes(bytes[4..12].try_into().unwrap()),
-            completed_ms: u64::from_le_bytes(bytes[12..20].try_into().unwrap()),
-            count: bytes[20],
-            total: u16::from_le_bytes(bytes[21..23].try_into().unwrap()),
-        };
-        if v.count > 16
-            || bytes.len() != 24 + 44 * v.count as usize
-            || bytes[23] != u8::from(v.truncated())
-        {
-            return Err(ScanFailure::Malformed);
-        }
-        // Validate everything before publishing any caller-owned extent.
-        let mut staged = [ScanObservation::EMPTY; 16];
-        for (slot, b) in staged.iter_mut().zip(bytes[24..].chunks_exact(44)) {
-            if b[0] > 32 || b[1 + b[0] as usize..33].iter().any(|b| *b != 0) {
-                return Err(ScanFailure::Malformed);
-            }
-            let security = match b[35] {
-                0 => ObservedNetworkSecurity::Unknown,
-                1 => ObservedNetworkSecurity::Unsupported,
-                2 => ObservedNetworkSecurity::Known(crate::KnownSecurity::Wpa2Personal),
-                3 => ObservedNetworkSecurity::Known(crate::KnownSecurity::Wpa3Personal),
-                _ => return Err(ScanFailure::Malformed),
-            };
+        // Validate the immutable complete extent first. Publishing then cannot
+        // fail: no second 16-record array or partial caller mutation is needed.
+        let checked = ScanCompletionView::parse(bytes)?;
+        for (slot, record) in out.iter_mut().zip(checked.observations()) {
             *slot = ScanObservation::new(
-                &b[1..1 + b[0] as usize],
-                security,
-                i16::from_le_bytes(b[33..35].try_into().unwrap()),
-                u64::from_le_bytes(b[36..44].try_into().unwrap()),
-            )?;
+                record.ssid,
+                record.security,
+                record.rssi_dbm,
+                record.observed_ms,
+            )
+            .expect("same fully validated immutable scan bytes");
         }
-        v.validate(&staged[..v.count as usize])?;
-        out[..v.count as usize].copy_from_slice(&staged[..v.count as usize]);
-        Ok(v)
+        Ok(checked.completion())
     }
 }
 

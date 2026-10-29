@@ -30,10 +30,73 @@ pub(crate) struct NativeScan<P> {
 #[must_use = "retain original scan observations and Signs until commitment"]
 pub(crate) struct RetiredNativeScan<P> {
     pub provider: P,
-    pub evidence: RetiredScanEvidence,
+    evidence: Option<Evidence>,
     pub signs: k::HostedSignLog,
     pub active: c::ActivePlayIdentity,
     pub evidence_seen: bool,
+}
+enum Evidence {
+    Retained(RetiredScanEvidence),
+    Committed(CommittedScanEvidence),
+}
+impl<P> RetiredNativeScan<P> {
+    pub(crate) fn evidence(&self) -> &RetiredScanEvidence {
+        match self.evidence.as_ref().expect("retained evidence") {
+            Evidence::Retained(evidence) => evidence,
+            Evidence::Committed(committed) => committed.evidence(),
+        }
+    }
+    pub(crate) fn committed(&self) -> Option<&CommittedScanEvidence> {
+        match self.evidence.as_ref().expect("retained evidence") {
+            Evidence::Committed(committed) => Some(committed),
+            Evidence::Retained(_) => None,
+        }
+    }
+    fn commit_with(
+        &mut self,
+        append: impl FnOnce(
+            RetiredScanEvidence,
+            &c::ActivePlayIdentity,
+            bool,
+            &k::HostedSignLog,
+        )
+            -> Result<CommittedScanEvidence, (RetiredScanEvidence, &'static str)>,
+    ) -> Result<(), &'static str> {
+        if self.committed().is_some() {
+            return Ok(());
+        }
+        let Some(Evidence::Retained(evidence)) = self.evidence.take() else {
+            unreachable!()
+        };
+        match append(evidence, &self.active, self.evidence_seen, &self.signs) {
+            Ok(committed) => {
+                self.evidence = Some(Evidence::Committed(committed));
+                Ok(())
+            }
+            Err((evidence, error)) => {
+                self.evidence = Some(Evidence::Retained(evidence));
+                Err(error)
+            }
+        }
+    }
+    #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
+    pub(crate) fn commit_evidence(&mut self) -> Result<(), &'static str> {
+        self.commit_with(crate::native_play::journal::append_scan)
+    }
+    #[cfg(test)]
+    pub(crate) fn commit_to_fixture_journal<
+        S: conduit_network_join_call::recovery_evidence::Storage,
+    >(
+        &mut self,
+        journal: &mut conduit_network_join_call::recovery_evidence::Journal<S>,
+        work: &mut [u8; conduit_network_join_call::recovery_evidence::MAXIMUM_BYTES],
+    ) -> Result<(), &'static str> {
+        self.commit_with(|evidence, active, seen, signs| {
+            evidence
+                .commit(active, seen, signs, journal, work)
+                .map_err(|(evidence, _)| (evidence, "fixture-scan-commit-refused"))
+        })
+    }
 }
 impl<P: NetworkScanProvider> NativeScan<P> {
     pub(crate) fn new(ready: ReadyNetworkScanBase<P>) -> Self {
@@ -313,7 +376,7 @@ impl<P: NetworkScanProvider> NativeScan<P> {
         };
         Ok(RetiredNativeScan {
             provider,
-            evidence,
+            evidence: Some(Evidence::Retained(evidence)),
             signs,
             active: self.active.take().expect("checked active"),
             evidence_seen: self.evidence_seen,
