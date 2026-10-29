@@ -721,3 +721,6 @@ fn epoch_collection_reconnects(change_boot: bool) {
     assert_eq!(restored(old_scope), (1, 90_000));
     std::fs::remove_dir_all(path).unwrap();
 }
+
+#[path = "tests/transport.rs"]
+mod transport;

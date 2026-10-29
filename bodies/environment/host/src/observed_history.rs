@@ -261,13 +261,25 @@ impl Collector {
         self.collect_slot(address, directory, 0)
     }
     fn collect_slot(&mut self, address: SocketAddr, directory: &Path, slot: u8) -> Result<()> {
+        self.collect_from(directory, slot, |cursor| fetch(address, cursor))
+    }
+    /// Collect bounded signed batches from an already admitted transport. The
+    /// source receives the exact encoded epoch cursor; transport delivery is
+    /// never durable custody. Scope, signature and ordering checks stay here,
+    /// and only synced files advance the retained cursor.
+    pub fn collect_from(
+        &mut self,
+        directory: &Path,
+        slot: u8,
+        mut source: impl FnMut(u32) -> Result<Vec<u8>>,
+    ) -> Result<()> {
         if self.after == 0 {
             self.restore(directory)?;
         }
         // At most 240 batches cover the admitted 960-publication lifetime.
         for _ in 0..240 {
             let cursor = wire::epoch_cursor(slot, self.after).ok_or("history epoch cursor")?;
-            let bytes = fetch(address, cursor)?;
+            let bytes = source(cursor)?;
             let (after, observed_ms) = self.validate(&bytes)?;
             if after == self.after {
                 return Ok(());
