@@ -256,7 +256,7 @@ fn compact_request(request: &conduit_body::PortableSpawnAdmissionRequest) -> Res
     value["signature"] = serde_json::json!(hex(&request.signature));
     Ok(serde_json::to_vec(&value)?)
 }
-mod http;
+pub(crate) mod http;
 pub(crate) use http::{http, http_binary};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

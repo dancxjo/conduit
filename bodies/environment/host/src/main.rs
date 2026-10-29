@@ -168,14 +168,18 @@ fn main() -> Result<()> {
         .get(1)
         .is_some_and(|argument| argument == "--record-joined-continuing")
     {
-        if args.len() != 6 {
-            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT[,HOST:PORT...] (at most four explicit peers)".into());
+        if !matches!(args.len(), 6 | 8) {
+            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT[,HOST:PORT...] (at most four explicit peers) [PRODUCER_BOOT PRIVATE_NETWORK_RUN]".into());
         }
         return local_recorder::run_joined_continuing(
             std::path::Path::new(&args[2]),
             std::path::Path::new(&args[3]),
             &args[5],
             std::path::Path::new(&args[4]),
+            (args.len() == 8).then(|| local_recorder::network::Options {
+                producer_boot: &args[6],
+                private_run: std::path::Path::new(&args[7]),
+            }),
         );
     }
     if args
