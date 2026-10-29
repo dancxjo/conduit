@@ -107,11 +107,6 @@ fn run(scenario: usize, compact: bool) -> Vec<Snapshot> {
         &metadata.preparation_metadata().fragments[0].fragment_id,
     )
     .unwrap();
-    if compact {
-        for cord in tables.cords() {
-            eprintln!("compact fixture cord: {cord:?}");
-        }
-    }
     let prepared = PreparedResidentSoftware::bind_local_direct_retained(
         &mut software,
         tables,

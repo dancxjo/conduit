@@ -189,7 +189,7 @@ where
             || cord.sink_local() != Some(sink)
             || cord.track != AssignedConnectionTrack::Payload
             || cord.pressure_policy != AssignedPressurePolicy::PreserveOrder
-            || cord.maximum_value_bytes != layout.logical_bytes()
+            || cord.maximum_value_bytes < layout.logical_bytes()
             || cord.byte_capacity < layout.logical_bytes()
             || self.node_specs[usize::from(sink.0 .0)].input_cords[usize::from(sink.1 .0)]
                 .and_then(|id| self.cord_specs.get(usize::from(id.0)))

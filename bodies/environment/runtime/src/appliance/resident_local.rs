@@ -394,7 +394,7 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                 cord.source == k::CordEndpoint::local(k::NodeId(producer as u16), k::PortId(0))
             });
             let supported = outgoing.next().is_some_and(|cord| {
-                cord.maximum_value_bytes == compact_layout.logical_bytes()
+                cord.maximum_value_bytes >= compact_layout.logical_bytes()
                     && cord.item_capacity == 1
                     && cord.byte_capacity >= compact_layout.logical_bytes()
                     && cord.pressure_policy == k::scheduler::AssignedPressurePolicy::PreserveOrder

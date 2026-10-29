@@ -306,7 +306,9 @@ pub fn assemble_local_direct_with_backing_retained(
     if let Some(edge) = prepared.compact_observation_edge {
         // SAFETY: these exact immutable checked tables, actual initialized
         // drivers and affine values were moved from the witness's preparation.
-        unsafe { edge.bind(&mut kernel) }.unwrap_or_else(|_| unreachable!("checked compact Source edge and unchanged physical storage"));
+        unsafe { edge.bind(&mut kernel) }.unwrap_or_else(|_| {
+            unreachable!("checked compact Source edge and unchanged physical storage")
+        });
     }
     Ok(PreparedKernel {
         kernel,
