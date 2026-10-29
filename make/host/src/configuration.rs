@@ -47,6 +47,8 @@ pub struct ConfigurationBase {
     pub implementation: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub implementations: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub initialization: Option<crate::BaseInitialization>,
 }
 
 impl ConfigurationBase {
@@ -68,6 +70,10 @@ pub enum ConfigurationDiagnostic {
         found: u32,
     },
     InvalidName,
+    Initialization {
+        kind: String,
+        detail: String,
+    },
     UnknownTarget {
         target: String,
     },
@@ -214,6 +220,7 @@ pub fn check_host_configuration(
         "{}/{}/{}",
         descriptor.family, descriptor.architecture, descriptor.machine
     );
+    crate::initialization::check_unique(&configuration.bases).map_err(|item| vec![item])?;
     let mut selected = BTreeMap::<String, String>::new();
     let mut declarations = BTreeMap::<String, Vec<String>>::new();
     for base in &configuration.bases {
@@ -297,6 +304,12 @@ pub fn check_host_configuration(
         let Some(implementation) = resolved else {
             continue;
         };
+        crate::initialization::check(base, &implementation, catalog).map_err(|detail| {
+            vec![ConfigurationDiagnostic::Initialization {
+                kind: base.kind.clone(),
+                detail,
+            }]
+        })?;
         if selected
             .insert(base.kind.clone(), implementation.clone())
             .is_some_and(|old| old != implementation)

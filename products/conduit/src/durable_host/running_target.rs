@@ -2,6 +2,8 @@
 use std::{fs::File, io::Read, path::Path};
 
 const B_PLUS: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
+const PI3_AARCH64: &str = "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3";
+const PI5_AARCH64: &str = "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb";
 const DEVICE_TREE: &str = "/sys/firmware/devicetree/base";
 
 pub(super) fn running_target_id() -> Result<&'static str, String> {
@@ -37,6 +39,16 @@ fn select_target(
         ("linux", "x86_64") => Ok("std/x86_64/computer"),
         ("windows", "x86_64") => Ok("std/x86_64/windows-computer"),
         ("macos", "aarch64") => Ok("std/aarch64/macos-computer"),
+        ("linux", "aarch64") => {
+            let (compatible, revision) = observe()?;
+            if pi3_plus(&compatible, &revision) {
+                Ok(PI3_AARCH64)
+            } else if pi5_8gb(&compatible, &revision) {
+                Ok(PI5_AARCH64)
+            } else {
+                Err("kernel board facts do not match an installed exact 64-bit Raspberry Pi profile".into())
+            }
+        }
         ("linux", "arm") => {
             let (compatible, revision) = observe()?;
             if !b_plus(&compatible, &revision) {
@@ -73,10 +85,106 @@ fn b_plus(compatible: &[u8], revision: &[u8]) -> bool {
     matches!(revision, 0x0010 | 0x0013 | 0x900032)
 }
 
+fn pi3_plus(compatible: &[u8], revision: &[u8]) -> bool {
+    if compatible.last() != Some(&0) || revision.len() != 4 {
+        return false;
+    }
+    let entries: Vec<_> = compatible[..compatible.len() - 1]
+        .split(|byte| *byte == 0)
+        .collect();
+    !entries.iter().any(|entry| entry.is_empty())
+        && entries.contains(&b"raspberrypi,3-model-b-plus".as_slice())
+        && entries.contains(&b"brcm,bcm2837".as_slice())
+        && u32::from_be_bytes(revision.try_into().expect("length checked")) & 0x00ff_ffff
+            == 0xa020d3
+}
+
+fn pi5_8gb(compatible: &[u8], revision: &[u8]) -> bool {
+    if compatible.last() != Some(&0) || revision.len() != 4 {
+        return false;
+    }
+    let entries: Vec<_> = compatible[..compatible.len() - 1]
+        .split(|byte| *byte == 0)
+        .collect();
+    !entries.iter().any(|entry| entry.is_empty())
+        && entries.contains(&b"raspberrypi,5-model-b".as_slice())
+        && entries.contains(&b"brcm,bcm2712".as_slice())
+        && u32::from_be_bytes(revision.try_into().expect("length checked")) & 0x00ff_ffff
+            == 0xd04171
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     const COMPATIBLE: &[u8] = b"raspberrypi,model-b-plus\0brcm,bcm2835\0";
+
+    #[test]
+    fn aarch64_profiles_require_exact_board_and_revision() {
+        for (compatible, revision, expected) in [
+            (
+                b"raspberrypi,3-model-b-plus\0brcm,bcm2837\0".as_slice(),
+                0xa020d3u32,
+                PI3_AARCH64,
+            ),
+            (
+                b"raspberrypi,5-model-b\0brcm,bcm2712\0".as_slice(),
+                0xd04171u32,
+                PI5_AARCH64,
+            ),
+        ] {
+            for warranty in [0, 0x02000000] {
+                assert_eq!(
+                    select_target("linux", "aarch64", || Ok((
+                        compatible.to_vec(),
+                        (revision | warranty).to_be_bytes().to_vec()
+                    )))
+                    .unwrap(),
+                    expected
+                );
+            }
+            assert!(select_target("linux", "aarch64", || Ok((
+                compatible.to_vec(),
+                0u32.to_be_bytes().to_vec()
+            )))
+            .is_err());
+        }
+        for compatible in [
+            b"raspberrypi,5-model-b\0brcm,bcm2712\0".as_slice(),
+            b"raspberrypi,3-model-b-plus\0brcm,bcm2837\0".as_slice(),
+        ] {
+            for revision in [vec![], vec![0], vec![0, 0, 0], vec![0, 0, 0, 0, 0]] {
+                assert!(
+                    select_target("linux", "aarch64", || Ok((compatible.to_vec(), revision)))
+                        .is_err()
+                );
+            }
+        }
+        assert!(select_target("linux", "aarch64", || Err("missing device tree".into())).is_err());
+        assert!(!pi5_8gb(
+            b"raspberrypi,5-model-b\0brcm,bcm2712",
+            &0xd04171u32.to_be_bytes()
+        ));
+        assert!(!pi5_8gb(
+            b"raspberrypi,5-model-b\0brcm,bcm2837\0",
+            &0xd04171u32.to_be_bytes()
+        ));
+        assert!(!pi5_8gb(
+            b"raspberrypi,5-model-b\0brcm,bcm2712\0",
+            &0xc04170u32.to_be_bytes()
+        ));
+    }
+
+    #[test]
+    fn aarch64_profiles_check_against_current_workspace_catalog() {
+        for (source, expected) in [
+            (include_str!("../../../../targets/std/profiles/raspberry-pi-3-model-b-plus-rev-1.3-aarch64-linux.host.conduit"), PI3_AARCH64),
+            (include_str!("../../../../targets/std/profiles/raspberry-pi-5-model-b-rev-1.1-8gb-aarch64-linux.host.conduit"), PI5_AARCH64),
+        ] {
+            let configuration = conduit_host_make::parse_host_configuration_conduit(source).unwrap();
+            let checked = conduit_host_make::check_host_configuration(configuration, &conduit_workspace_make::catalog(), &conduit_workspace_make::package_set()).unwrap();
+            assert_eq!(checked.profile().target.key(), expected);
+        }
+    }
 
     #[test]
     fn running_target_accepts_exact_b_plus_kernel_facts() {
@@ -122,6 +230,10 @@ mod tests {
                 expected
             );
         }
-        assert!(select_target("linux", "aarch64", || panic!("unsupported platform")).is_err());
+        assert!(select_target("linux", "aarch64", || Ok((
+            COMPATIBLE.to_vec(),
+            0x10u32.to_be_bytes().to_vec()
+        )))
+        .is_err());
     }
 }

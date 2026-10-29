@@ -5,6 +5,8 @@ use conduit_host_make::{
 
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const B_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
+pub const PI3_AARCH64_TARGET: &str = "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3";
+pub const PI5_AARCH64_TARGET: &str = "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb";
 pub const ZERO_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-v1";
 pub const ZERO_W_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-w-v1.1";
 pub const ZERO_WH_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-wh-v1.1";
@@ -109,14 +111,34 @@ fn b_plus_linux_target() -> TargetDescriptor {
     target
 }
 
+fn aarch64_linux_target(label: &str, machine: &str) -> TargetDescriptor {
+    let mut target = b_plus_linux_target();
+    target.label = label.into();
+    target.machine = machine.into();
+    target.board = Some(machine.into());
+    target.architecture = "aarch64".into();
+    target.os = Some("linux".into());
+    target.toolchain_identity =
+        "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu".into();
+    target
+}
+
 impl HostMakePackage for RaspberryPiMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduit-host-raspberry-pi@1".into(),
-            package_revision: 3,
+            package_revision: 4,
             catalog: Default::default(),
             targets: vec![
                 b_plus_linux_target(),
+                aarch64_linux_target(
+                    "Raspberry Pi 3 Model B+ rev 1.3 · Linux 64-bit",
+                    "raspberry-pi-3-model-b-plus-rev-1.3",
+                ),
+                aarch64_linux_target(
+                    "Raspberry Pi 5 Model B rev 1.1 (8 GB) · Linux 64-bit",
+                    "raspberry-pi-5-model-b-rev-1.1-8gb",
+                ),
                 raspberry_pi_os_target(
                     "Raspberry Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
                     "raspberry-pi-4-model-b-rev-1.5-4gb",
@@ -160,6 +182,8 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     implementation_revision: 1,
                     target_patterns: vec![
                         B_PLUS_LINUX_TARGET.into(),
+                        PI3_AARCH64_TARGET.into(),
+                        PI5_AARCH64_TARGET.into(),
                         RASPBERRY_PI_OS_TARGET.into(),
                         ZERO_2_W_TARGET.into(),
                         ZERO_2_WH_TARGET.into(),
@@ -175,6 +199,23 @@ impl HostMakePackage for RaspberryPiMakePackage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn aarch64_profiles_preserve_exact_board_and_finite_bounds() {
+        for (machine, source, key) in [
+            ("raspberry-pi-3-model-b-plus-rev-1.3", include_str!("../../../std/profiles/raspberry-pi-3-model-b-plus-rev-1.3-aarch64-linux.host.conduit"), PI3_AARCH64_TARGET),
+            ("raspberry-pi-5-model-b-rev-1.1-8gb", include_str!("../../../std/profiles/raspberry-pi-5-model-b-rev-1.1-8gb-aarch64-linux.host.conduit"), PI5_AARCH64_TARGET),
+        ] {
+            let target = aarch64_linux_target("Linux", machine);
+            let profile = conduit_host_make::parse_host_configuration_conduit(source).unwrap();
+            assert_eq!(target.key(), key);
+            assert_eq!(profile.target.architecture, target.architecture);
+            assert_eq!(profile.target.machine, target.machine);
+            assert_eq!(profile.target.board, target.board);
+            assert_eq!(profile.target.os, target.os);
+            assert_eq!(profile.limits, target.maxima);
+        }
+    }
 
     #[test]
     fn b_plus_linux_is_a_distinct_exact_host_and_preserves_native_target() {

@@ -52,6 +52,7 @@ fn orange_pi_5_target() -> TargetDescriptor {
 
 fn catalog() -> PackageCatalogContribution {
     PackageCatalogContribution {
+        initialization_contracts: Default::default(),
         implementations: BTreeMap::from([(
             "presenter/linear-serial@1".into(),
             ImplementationMetadata {

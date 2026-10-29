@@ -53,6 +53,7 @@ fn fixture() -> (
         joined_body_state: None,
         selected_speech: None,
         selected_model: None,
+        selected_host_configuration: None,
         selected_todo_checkpoint: Some(
             super::super::super::super::selected_todo::Selection::select(
                 &checkpoint_root,

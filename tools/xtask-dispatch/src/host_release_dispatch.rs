@@ -21,6 +21,7 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
                 platform = Some(match values.next().map(String::as_str) {
                     Some("browser") => host_release::ReleasePlatform::Browser,
                     Some("linux") => host_release::ReleasePlatform::Linux,
+                    Some("linux-aarch64") => host_release::ReleasePlatform::LinuxAarch64,
                     Some("linux-armv6") => host_release::ReleasePlatform::LinuxArmv6,
                     Some("windows") => host_release::ReleasePlatform::Windows,
                     Some("macos") => host_release::ReleasePlatform::Macos,
@@ -79,6 +80,16 @@ fn command_identity(program: &str, arguments: &[&str]) -> Result<String, String>
 #[test]
 fn armv6_release_platform_is_accepted_before_required_output_validation() {
     let options = ["--platform".to_owned(), "linux-armv6".to_owned()];
+    assert_eq!(
+        run_host_release(&options).unwrap_err(),
+        "host release requires --output"
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn aarch64_release_platform_is_accepted_before_required_output_validation() {
+    let options = ["--platform".to_owned(), "linux-aarch64".to_owned()];
     assert_eq!(
         run_host_release(&options).unwrap_err(),
         "host release requires --output"
