@@ -230,7 +230,7 @@ fn short_capture_fails_closed() {
 fn cancellation_kills_and_reaps_the_provider() {
     let _process = microphone_process();
     let script = format!(
-        "#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\nwhile :; do :; done\n",
+        "#!/bin/sh\nif [ \"$2\" = -l ]; then printf '{}'; exit 0; fi\ntouch \"$0.started\"\nwhile :; do :; done\n",
         listing().replace('\n', "\\n")
     );
     let (root, executable) = fixture(&script, "cancel");
@@ -245,7 +245,10 @@ fn cancellation_kills_and_reaps_the_provider() {
             },
         )
         .unwrap();
-    assert_eq!(adapter.capture(|| true), Err(MicrophoneFailure::Cancelled));
+    assert_eq!(
+        adapter.capture(|| root.join("arecord.started").exists()),
+        Err(MicrophoneFailure::Cancelled)
+    );
     assert!(adapter.take_receipt().is_none());
     fs::remove_dir_all(root).unwrap();
 }
@@ -469,3 +472,6 @@ fn canonical_arecord_symlink_explicitly_selects_capture_for_discovery_and_audio(
 
 #[path = "hosted_microphone_tests/format_conversion.rs"]
 mod format_conversion;
+
+#[path = "hosted_microphone_tests/provider_drift.rs"]
+mod provider_drift;
