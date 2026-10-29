@@ -266,10 +266,32 @@ impl<'a, 'd, S: RestoredAccessPointServices> Esp32NetworkScanProvider<'a, 'd, S>
             total: report.total,
         })
     }
+    #[inline(never)]
+    fn reclaim_quiescent_controller(&mut self) -> Result<(), ScanFailure> {
+        if !matches!(self.radio, Some(Radio::Scan(_))) {
+            return Ok(());
+        }
+        let Some(Radio::Scan(scan)) = self.radio.take() else {
+            unreachable!()
+        };
+        match scan.try_into_controller() {
+            Ok(controller) => {
+                self.radio = Some(Radio::Controller(controller));
+                Ok(())
+            }
+            Err(scan) => {
+                self.radio = Some(Radio::Scan(scan));
+                Err(ScanFailure::Unavailable)
+            }
+        }
+    }
     async fn restore_once(&mut self) -> Result<(), ScanFailure> {
         if matches!(self.phase, Phase::Prepared | Phase::Restored) {
             return Ok(());
         }
+        // finish_mapped may already have reconciled terminal/list custody. Its
+        // actual owner-return gate is stronger than waiting for a second event.
+        let _ = self.reclaim_quiescent_controller();
         if let Some(Radio::Scan(scan)) = self.radio.as_mut() {
             if let Err(error) = scan.request_stop() {
                 return Err(self.sdk_failure(error));
@@ -285,16 +307,7 @@ impl<'a, 'd, S: RestoredAccessPointServices> Esp32NetworkScanProvider<'a, 'd, S>
             if let Err(error) = scan.cleanup().await {
                 return Err(self.sdk_failure(error));
             }
-            let Some(Radio::Scan(scan)) = self.radio.take() else {
-                unreachable!()
-            };
-            self.radio = Some(match scan.try_into_controller() {
-                Ok(controller) => Radio::Controller(controller),
-                Err(scan) => {
-                    self.radio = Some(Radio::Scan(scan));
-                    return Err(ScanFailure::Unavailable);
-                }
-            });
+            self.reclaim_quiescent_controller()?;
         }
         if !matches!(
             self.phase,

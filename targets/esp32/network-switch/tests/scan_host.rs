@@ -246,3 +246,92 @@ fn expired_first_invocation_stays_spent_and_cannot_repin_a_fresh_deadline() {
         Err(_) => panic!("unused actual restored owner"),
     }
 }
+
+#[test]
+fn cancelled_ap_link_wait_does_not_repeat_sdk_configuration() {
+    reset();
+    let mut provider = prepared();
+    let mut output = [ScanObservation::EMPTY; 16];
+    {
+        let mut scan = core::pin::pin!(provider.scan(request(), &mut output));
+        assert!(poll(scan.as_mut()).is_pending());
+    }
+    SDK.with_borrow_mut(|s| {
+        s.terminal = Some(wifi::bounded_scan::Completion {
+            status: 1,
+            number: 0,
+            scan_id: 7,
+        });
+        s.ap_link = false;
+    });
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(20_000));
+        assert!(poll(cleanup.as_mut()).is_pending());
+    }
+    SDK.with_borrow(|s| {
+        assert_eq!(s.ap_configurations, 1);
+        assert_eq!(s.commands, 1);
+    });
+    SDK.with_borrow_mut(|s| s.ap_link = true);
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(20_000));
+        assert!(matches!(poll(cleanup.as_mut()), Poll::Ready(Ok(()))));
+    }
+    SDK.with_borrow(|s| {
+        assert_eq!(s.ap_configurations, 1);
+        assert_eq!(s.commands, 2);
+    });
+    match provider.try_into_restored() {
+        Ok(radio) => drop(radio),
+        Err(_) => panic!("real restored AP owner"),
+    }
+}
+
+#[test]
+fn failed_service_ack_and_stale_ready_do_not_return_or_spend_a_third_command() {
+    reset();
+    let mut provider = prepared();
+    let mut output = [ScanObservation::EMPTY; 16];
+    {
+        let mut scan = core::pin::pin!(provider.scan(request(), &mut output));
+        assert!(poll(scan.as_mut()).is_pending());
+    }
+    SDK.with_borrow_mut(|s| {
+        s.terminal = Some(wifi::bounded_scan::Completion {
+            status: 1,
+            number: 0,
+            scan_id: 9,
+        });
+        s.restore_failed = true;
+    });
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(20_000));
+        assert!(matches!(
+            poll(cleanup.as_mut()),
+            Poll::Ready(Err(ScanFailure::Unavailable))
+        ));
+    }
+    SDK.with_borrow_mut(|s| s.ready_generation = Some(0));
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(20_000));
+        assert!(poll(cleanup.as_mut()).is_pending());
+    }
+    SDK.with_borrow(|s| assert_eq!(s.commands, 2));
+    SDK.with_borrow_mut(|s| s.now = 20_000);
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(20_000));
+        assert!(matches!(
+            poll(cleanup.as_mut()),
+            Poll::Ready(Err(ScanFailure::Deadline))
+        ));
+    }
+    let provider = match provider.try_into_restored() {
+        Err(owner) => owner,
+        Ok(_) => panic!("failed current ACK is not restored"),
+    };
+    drop(provider);
+    SDK.with_borrow(|s| {
+        assert_eq!(s.commands, 2);
+        assert_eq!(s.controller_drops, 0);
+    });
+}

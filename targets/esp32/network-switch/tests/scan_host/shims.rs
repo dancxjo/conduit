@@ -11,6 +11,7 @@ pub struct Sdk {
     pub station_address: Option<StaticConfigV4>,
     pub ready_generation: Option<u32>,
     pub restore_ack: bool,
+    pub restore_failed: bool,
     pub commands: u32,
     pub controller_drops: u32,
     pub configurations: u32,
@@ -247,6 +248,9 @@ impl AccessPointServices for Services {
         SDK.with_borrow_mut(|s| s.commands += 1);
         poll_fn(|_| {
             SDK.with_borrow_mut(|s| {
+                if s.restore_failed {
+                    return Poll::Ready(Err(StationFailure::ProviderUnavailable));
+                }
                 if s.restore_ack {
                     s.ready_generation = Some(generation);
                     Poll::Ready(Ok(()))
