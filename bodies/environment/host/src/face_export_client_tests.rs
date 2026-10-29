@@ -114,3 +114,68 @@ fn atomic_local_envelope_preserves_full_face_and_cannot_extend_expired_lease() {
     assert_eq!(std::fs::read_dir(&directory).unwrap().count(), 1);
     std::fs::remove_dir_all(directory).unwrap();
 }
+
+#[test]
+fn transient_transport_and_busy_replies_share_the_original_absolute_deadline() {
+    use std::cell::Cell;
+    use std::io::{Error, ErrorKind};
+    let attempts = Cell::new(0);
+    let elapsed = Cell::new(0);
+    let result = get_until(
+        || {
+            attempts.set(attempts.get() + 1);
+            match attempts.get() {
+                1 => Err(Error::from(ErrorKind::ConnectionRefused).into()),
+                2 => Ok((503, vec![])),
+                3 => Ok((202, vec![])),
+                _ => Ok((200, vec![7])),
+            }
+        },
+        || Ok(100 + elapsed.get()),
+        || elapsed.set(elapsed.get() + 50),
+        100,
+    )
+    .unwrap();
+    assert_eq!(result, vec![7]);
+    assert_eq!(attempts.get(), 4);
+    attempts.set(0);
+    let result = get_until(
+        || {
+            attempts.set(attempts.get() + 1);
+            Ok((202, vec![]))
+        },
+        || {
+            let n = elapsed.get();
+            elapsed.set(n + 2500);
+            Ok(100 + n)
+        },
+        || {},
+        100,
+    );
+    assert!(result
+        .unwrap_err()
+        .to_string()
+        .contains("absolute deadline"));
+    assert_eq!(attempts.get(), 2);
+    for status in [400, 403, 409] {
+        attempts.set(0);
+        assert!(get_until(
+            || {
+                attempts.set(attempts.get() + 1);
+                Ok((status, vec![]))
+            },
+            || Ok(100),
+            || panic!("permanent refusal retried"),
+            100
+        )
+        .is_err());
+        assert_eq!(attempts.get(), 1);
+    }
+    assert!(get_until(
+        || Err(Error::from(ErrorKind::InvalidData).into()),
+        || Ok(100),
+        || panic!("malformed reply retried"),
+        100
+    )
+    .is_err());
+}

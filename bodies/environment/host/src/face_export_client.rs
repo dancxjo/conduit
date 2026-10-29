@@ -116,19 +116,49 @@ fn boot_ms() -> Result<u64> {
         .ok_or_else(|| "Face feed clock".into())
 }
 fn get(peer: &str, path: &str, started: u64) -> Result<Vec<u8>> {
+    get_until(
+        || crate::body_join::http(peer, "GET", path, &[]),
+        boot_ms,
+        || std::thread::sleep(Duration::from_millis(50)),
+        started,
+    )
+}
+fn get_until(
+    mut request: impl FnMut() -> Result<(u16, Vec<u8>)>,
+    mut now: impl FnMut() -> Result<u64>,
+    mut pause: impl FnMut(),
+    started: u64,
+) -> Result<Vec<u8>> {
     for _ in 0..24 {
-        if boot_ms()?.saturating_sub(started) >= 5000 {
+        if now()?.saturating_sub(started) >= 5000 {
             return Err("Face export absolute deadline".into());
         }
-        let (status, bytes) = crate::body_join::http(peer, "GET", path, &[])?;
-        match status {
-            200 if bytes.len() <= 1408 => return Ok(bytes),
-            202 => std::thread::sleep(Duration::from_millis(50)),
-            _ => return Err(format!("Face export HTTP {status}").into()),
+        match request() {
+            Ok((200, bytes)) if bytes.len() <= 1408 => return Ok(bytes),
+            Ok((202 | 503, _)) => pause(),
+            Ok((status, _)) => return Err(format!("Face export HTTP {status}").into()),
+            Err(error) if retryable_transport(error.as_ref()) => pause(),
+            Err(error) => return Err(error),
         }
     }
     Err("Face export polling bound".into())
 }
+fn retryable_transport(error: &(dyn std::error::Error + 'static)) -> bool {
+    use std::io::ErrorKind;
+    error.downcast_ref::<std::io::Error>().is_some_and(|error| {
+        matches!(
+            error.kind(),
+            ErrorKind::ConnectionRefused
+                | ErrorKind::ConnectionReset
+                | ErrorKind::ConnectionAborted
+                | ErrorKind::TimedOut
+                | ErrorKind::WouldBlock
+                | ErrorKind::Interrupted
+                | ErrorKind::UnexpectedEof
+        )
+    })
+}
+
 fn fetch(
     root: &[u8; 32],
     body: &conduit_body::BodyId,
