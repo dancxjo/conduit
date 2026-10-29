@@ -94,6 +94,7 @@ fn scalar_source_can_use_coalesce_latest_as_a_continuous_std_plot() {
     let mut output = Vec::with_capacity(16_384);
     let report = super::run_fragment(
         super::InstalledRunHost {
+            native_source: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,
