@@ -126,7 +126,7 @@ async fn dhcp(stack: Stack<'static>, ready: &impl Fn(ServiceReady)) -> Result<()
                     Duration::from_secs(2),
                     socket.send_to(
                         &response[..answer.len],
-                        IpEndpoint::new(Ipv4Address::BROADCAST.into(), 68),
+                        IpEndpoint::new(Ipv4Address::from(answer.destination).into(), 68),
                     ),
                 )
                 .await;
