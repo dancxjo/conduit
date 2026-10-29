@@ -19,6 +19,21 @@ pub(crate) fn validate(contract: &CheckedValueContract, bytes: &[u8]) -> Result<
 pub fn display_typed_value(contract: &CheckedValueContract, bytes: &[u8]) -> String {
     wording(contract, bytes, false)
 }
+/// Format a validated quantity in a Mask's preferred unit without changing its
+/// canonical value or Face. Non-quantity, incompatible, invalid and inexact
+/// conversions return `None`; callers may retain the ordinary formatting.
+pub fn display_typed_value_in_unit(
+    contract: &CheckedValueContract,
+    bytes: &[u8],
+    target: Unit,
+) -> Option<String> {
+    validate(contract, bytes).ok()?;
+    if !quantity_kind(primitive_info_kind(contract.value_kind.as_str())) {
+        return None;
+    }
+    let quantity = Quantity::decode(bytes).ok()?.convert(target).ok()?;
+    Some(quantity_wording(quantity, false))
+}
 pub fn spoken_typed_value(contract: &CheckedValueContract, bytes: &[u8]) -> String {
     wording(contract, bytes, true)
 }
@@ -31,7 +46,18 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
         let unit = Unit::decode(bytes).expect("validated canonical unit");
         return unit.canonical_symbol();
     }
-    if matches!(
+    if quantity_kind(primitive) {
+        let quantity = Quantity::decode(bytes).expect("validated canonical quantity");
+        return quantity_wording(quantity, spoken);
+    }
+    format!(
+        "{}: {} canonical bytes",
+        contract.value_kind.as_str(),
+        bytes.len()
+    )
+}
+fn quantity_kind(primitive: Option<PrimitiveInfoKind>) -> bool {
+    matches!(
         primitive,
         Some(
             PrimitiveInfoKind::Quantity
@@ -44,23 +70,18 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
                 | PrimitiveInfoKind::Ratio
                 | PrimitiveInfoKind::PixelCount
         )
-    ) {
-        let quantity = Quantity::decode(bytes).expect("validated canonical quantity");
-        let number = decimal(quantity);
-        let unit = match (quantity.unit(), spoken) {
-            (Unit::Celsius, false) => "°C".into(),
-            (Unit::Celsius, true) => "degrees Celsius".into(),
-            (Unit::Fahrenheit, false) => "°F".into(),
-            (Unit::Fahrenheit, true) => "degrees Fahrenheit".into(),
-            (unit, _) => unit.canonical_symbol(),
-        };
-        return format!("{number} {unit}");
-    }
-    format!(
-        "{}: {} canonical bytes",
-        contract.value_kind.as_str(),
-        bytes.len()
     )
+}
+fn quantity_wording(quantity: Quantity, spoken: bool) -> String {
+    let number = decimal(quantity);
+    let unit = match (quantity.unit(), spoken) {
+        (Unit::Celsius, false) => "°C".into(),
+        (Unit::Celsius, true) => "degrees Celsius".into(),
+        (Unit::Fahrenheit, false) => "°F".into(),
+        (Unit::Fahrenheit, true) => "degrees Fahrenheit".into(),
+        (unit, _) => unit.canonical_symbol(),
+    };
+    format!("{number} {unit}")
 }
 fn decimal(quantity: Quantity) -> String {
     let coefficient = quantity.coefficient();
