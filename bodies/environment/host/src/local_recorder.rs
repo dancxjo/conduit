@@ -44,6 +44,12 @@ fn private_metadata(path: &Path, directory: bool) -> Result<()> {
 }
 pub(crate) struct ValidatedBinding(Binding);
 impl ValidatedBinding {
+    pub(crate) fn producer_host(&self) -> &conduit_core::HostId {
+        match &self.0.receipt {
+            Receipt::Admission(r) => &r.producer_host,
+            Receipt::Current(r) => &r.producer_host,
+        }
+    }
     pub(crate) fn root(&self) -> &[u8; 32] {
         &self.0.root_key
     }
