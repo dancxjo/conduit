@@ -52,6 +52,12 @@ pub struct PlanFingerprintInputRef<'a> {
 pub fn compute_plan_fingerprint_ref(input: PlanFingerprintInputRef<'_>) -> PlanId {
     PlanId::from(crate::hex_digest(&digest(input)))
 }
+/// Same canonical identity with explicit output-storage refusal.
+pub fn try_compute_plan_fingerprint_ref(
+    input: PlanFingerprintInputRef<'_>,
+) -> Result<PlanId, alloc::collections::TryReserveError> {
+    crate::try_hex_digest(&digest(input)).map(PlanId::from)
+}
 pub(crate) fn digest(input: PlanFingerprintInputRef<'_>) -> [u8; 32] {
     let mut canonical = CanonicalHash::new();
     push_string(&mut canonical, input.source_document_id);

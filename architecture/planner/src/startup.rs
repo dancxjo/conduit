@@ -171,14 +171,14 @@ pub(crate) fn starts_from_admitted_host_input_ref(p: conduit_core::PlannedGearRe
 pub(crate) fn plain_startup_order_ref<'a>(
     placements: conduit_core::PlannedGearRefs<'a>,
     connections: &[conduit_core::PlannedConnectionRef<'a>],
-) -> Result<Option<alloc::vec::Vec<&'a str>>, crate::PlannerError> {
-    let mut remaining = placements
-        .iter()
-        .map(|p| p.placement_id)
-        .collect::<alloc::vec::Vec<_>>();
-    remaining.sort();
+) -> Result<Option<alloc::vec::Vec<&'a str>>, alloc::collections::TryReserveError> {
+    let mut remaining = alloc::vec::Vec::new();
+    remaining.try_reserve_exact(placements.len())?;
+    remaining.extend(placements.iter().map(|p| p.placement_id));
+    remaining.sort_unstable();
     remaining.dedup();
-    let mut result = alloc::vec::Vec::with_capacity(remaining.len());
+    let mut result = alloc::vec::Vec::new();
+    result.try_reserve_exact(remaining.len())?;
     while !remaining.is_empty() {
         let next = remaining.iter().position(|id| {
             candidate_ready_ref(
@@ -199,18 +199,24 @@ pub(crate) fn plain_startup_order_ref<'a>(
 #[cfg(feature = "indexed-source")]
 pub(crate) fn plain_startup_dependencies_ref<'a>(
     connections: &[conduit_core::PlannedConnectionRef<'a>],
-) -> alloc::vec::Vec<conduit_core::StartupDependencyRef<'a>> {
-    let mut dependencies = connections
-        .iter()
-        .filter(|c| dependency_required_ref(**c, false))
-        .map(|c| conduit_core::StartupDependencyRef {
-            prerequisite_placement_id: c.sink_placement_id,
-            dependent_placement_id: c.source_placement_id,
-        })
-        .collect::<alloc::vec::Vec<_>>();
-    dependencies.sort_by_key(|d| (d.prerequisite_placement_id, d.dependent_placement_id));
+) -> Result<
+    alloc::vec::Vec<conduit_core::StartupDependencyRef<'a>>,
+    alloc::collections::TryReserveError,
+> {
+    let mut dependencies = alloc::vec::Vec::new();
+    dependencies.try_reserve_exact(connections.len())?;
+    dependencies.extend(
+        connections
+            .iter()
+            .filter(|c| dependency_required_ref(**c, false))
+            .map(|c| conduit_core::StartupDependencyRef {
+                prerequisite_placement_id: c.sink_placement_id,
+                dependent_placement_id: c.source_placement_id,
+            }),
+    );
+    dependencies.sort_unstable_by_key(|d| (d.prerequisite_placement_id, d.dependent_placement_id));
     dependencies.dedup_by_key(|d| (d.prerequisite_placement_id, d.dependent_placement_id));
-    dependencies
+    Ok(dependencies)
 }
 
 fn dependency_required_ref(

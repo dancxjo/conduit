@@ -6,8 +6,8 @@
 mod execution_regions;
 pub(crate) mod root;
 pub use root::{
-    compute_plan_fingerprint_ref, FragmentCommitmentRef, FragmentCommitmentRefs,
-    PlanFingerprintInputRef,
+    compute_plan_fingerprint_ref, try_compute_plan_fingerprint_ref, FragmentCommitmentRef,
+    FragmentCommitmentRefs, PlanFingerprintInputRef,
 };
 mod semantic_contract;
 use semantic_contract::push_semantic_contract;
@@ -40,8 +40,8 @@ fn push_optional_string(
 mod fragment;
 pub use fragment::{
     compute_fragment_id, FragmentFingerprintBuilder, FragmentFingerprintHeader,
-    FragmentFingerprintHeaderRef, FragmentFingerprintRefusal, FragmentFingerprintTail,
-    FragmentFingerprintTailRef,
+    FragmentFingerprintHeaderRef, FragmentFingerprintPreparationRefusal,
+    FragmentFingerprintRefusal, FragmentFingerprintTail, FragmentFingerprintTailRef,
 };
 
 pub(crate) fn push_configuration_value(

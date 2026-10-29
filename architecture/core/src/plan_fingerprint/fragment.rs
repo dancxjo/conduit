@@ -15,6 +15,13 @@ pub enum FragmentFingerprintRefusal {
     IncompletePlacements,
 }
 
+/// Canonical validation is distinct from descriptive output allocation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FragmentFingerprintPreparationRefusal {
+    Fingerprint(FragmentFingerprintRefusal),
+    Capacity,
+}
+
 /// Canonical encoding only: no selection, sorting, semantic admission or effect
 /// authority. Supply records in the exact canonical order selected by planning.
 /// Header/placement input is borrowed only for each call, so an admitted
@@ -93,6 +100,18 @@ impl FragmentFingerprintBuilder {
         Ok(FragmentId::from(crate::hex_digest(
             &self.finish_ref_digest(tail)?,
         )))
+    }
+    /// Preserve complete canonical validation before requesting output storage.
+    pub fn try_finish_ref(
+        self,
+        tail: FragmentFingerprintTailRef<'_>,
+    ) -> Result<FragmentId, FragmentFingerprintPreparationRefusal> {
+        let digest = self
+            .finish_ref_digest(tail)
+            .map_err(FragmentFingerprintPreparationRefusal::Fingerprint)?;
+        crate::try_hex_digest(&digest)
+            .map(FragmentId::from)
+            .map_err(|_| FragmentFingerprintPreparationRefusal::Capacity)
     }
     pub(crate) fn finish_ref_digest(
         self,

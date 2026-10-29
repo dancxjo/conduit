@@ -11,3 +11,17 @@ pub(crate) fn hex_digest(digest: &[u8]) -> String {
     // UTF-8 check while avoiding sixty-four String::push calls per digest.
     String::from_utf8(encoded).expect("hex digits are ASCII")
 }
+
+/// Fallible descriptive hex output; the digest itself carries no authority.
+pub(crate) fn try_hex_digest(
+    digest: &[u8; 32],
+) -> Result<String, alloc::collections::TryReserveError> {
+    const DIGITS: &[u8; 16] = b"0123456789abcdef";
+    let mut encoded = String::new();
+    encoded.try_reserve_exact(64)?;
+    for byte in digest {
+        encoded.push(DIGITS[(byte >> 4) as usize] as char);
+        encoded.push(DIGITS[(byte & 15) as usize] as char);
+    }
+    Ok(encoded)
+}
