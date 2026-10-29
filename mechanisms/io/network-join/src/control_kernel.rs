@@ -8,9 +8,13 @@ use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 // This exact three-gear control uses only ordinal zero. Renew this finite
 // profile if its Fore grows; do not reserve the general 16-port envelope.
 pub const CONTROL_PORTS: usize = 1;
+#[path = "control_value_profile.rs"]
+mod value_profile;
+const CONTROL_VALUE_SLOTS: usize = 3;
+const CONTROL_VALUE_BYTES: usize = 167;
 pub type NetworkControlKernel = FixedScheduler<
     NetworkControlBack,
-    k::FixedValueStore<8, 167>,
+    k::FixedValueStore<CONTROL_VALUE_SLOTS, CONTROL_VALUE_BYTES>,
     k::HostedSignLog,
     3,
     2,
@@ -246,8 +250,8 @@ fn checked_parts(
     {
         return Err(E::Shape);
     }
-    if lowered.cord_value_slots > 8
-        || lowered.cord_value_bytes > 8 * 167
+    if lowered.cord_value_slots != 2
+        || lowered.cord_value_bytes > 2 * CONTROL_VALUE_BYTES as u32
         || lowered.sign_items > 128
         || lowered.sign_bytes > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
     {
@@ -299,7 +303,7 @@ fn checked_parts(
             .map_err(|_| E::Tables)?;
     }
     bindings.seal().map_err(|_| E::Tables)?;
-    Ok(PreparedNetworkKernelParts {
+    let parts = PreparedNetworkKernelParts {
         nodes: core::array::from_fn(|i| k::scheduler::NodeSpec {
             input_cords: [lowered.node_specs[i].input_cords[0]],
             maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel,
@@ -308,7 +312,9 @@ fn checked_parts(
         routes,
         bindings,
         roles,
-    })
+    };
+    value_profile::check(&parts)?;
+    Ok(parts)
 }
 pub type NetworkControlDirectTables<'a> =
     conduit_plan_lowering::local_tables::DirectLocalKernelTables<'a, 3, 2, 1, 3, 2, 3>;
@@ -341,13 +347,15 @@ impl PreparedNetworkKernelParts {
     ) -> Result<Self, ControlKernelRefusal> {
         let roles = Self::check_direct(&tables)?;
         let parts = tables.into_parts();
-        Ok(Self {
+        let parts = Self {
             nodes: parts.nodes,
             cords: parts.cords,
             routes: parts.routes,
             bindings: parts.calls,
             roles,
-        })
+        };
+        value_profile::check(&parts)?;
+        Ok(parts)
     }
     pub fn roles(&self) -> NetworkControlRoles {
         self.roles
@@ -371,7 +379,10 @@ impl PreparedNetworkKernelParts {
             bindings,
             roles,
         } = self;
-        let mut values = k::FixedValueStore::<8, 167>::new(8 * 167).map_err(|_| E::Storage)?;
+        let mut values = k::FixedValueStore::<CONTROL_VALUE_SLOTS, CONTROL_VALUE_BYTES>::new(
+            (CONTROL_VALUE_SLOTS * CONTROL_VALUE_BYTES) as u32,
+        )
+        .map_err(|_| E::Storage)?;
         let empty = values.store(&[]).map_err(|_| E::Storage)?;
         let drivers = core::array::from_fn(|i| {
             if i == usize::from(roles.credentials.0) {
@@ -413,13 +424,15 @@ impl PreparedNetworkKernelParts {
     ) -> Result<Self, ControlKernelRefusal> {
         let roles = Self::check_flat_direct(&tables)?;
         let parts = tables.into_parts();
-        Ok(Self {
+        let parts = Self {
             nodes: parts.nodes,
             cords: parts.cords,
             routes: parts.routes,
             bindings: parts.calls,
             roles,
-        })
+        };
+        value_profile::check(&parts)?;
+        Ok(parts)
     }
 }
 
@@ -439,8 +452,8 @@ fn check_direct_profile(
     {
         return Err(E::Shape);
     }
-    if slots > 8
-        || bytes > 8 * 167
+    if slots != 2
+        || bytes > 2 * CONTROL_VALUE_BYTES as u32
         || sign_items > 128
         || sign_bytes > (128 * core::mem::size_of::<k::KernelEvent>()) as u32
     {

@@ -12,7 +12,7 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn prepared() -> Box<PreparedNetworkKernel> {
-    let mut values = k::FixedValueStore::<8, 167>::new(8 * 167).unwrap();
+    let mut values = k::FixedValueStore::<3, 167>::new(3 * 167).unwrap();
     let empty = values.store(&[]).unwrap();
     let mut routes = k::FixedRoutes::<3, 2>::new(1);
     for id in 0..2 {
