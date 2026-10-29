@@ -9,6 +9,9 @@ use std::time::{Duration, Instant};
 #[path = "hosted_microphone/provider_discovery.rs"]
 mod provider_discovery;
 use provider_discovery::capture_command;
+#[path = "hosted_microphone/provider_identity.rs"]
+mod provider_identity;
+use provider_identity::{digest_file, exact_file};
 
 pub const SAMPLE_RATE_HZ: u32 = 16_000;
 pub const CHANNELS: u8 = 1;
@@ -156,6 +159,22 @@ impl AlsaMicrophoneAdapter {
         mut cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, MicrophoneFailure> {
         self.last_receipt = None;
+        if cancelled() {
+            return Err(MicrophoneFailure::Cancelled);
+        }
+        let started = Instant::now();
+        let current = exact_file(&self.discovery.executable)?;
+        if current != self.discovery.executable
+            || digest_file(&current)? != self.discovery.executable_sha256
+        {
+            return Err(MicrophoneFailure::SelectionDrift);
+        }
+        if cancelled() {
+            return Err(MicrophoneFailure::Cancelled);
+        }
+        if started.elapsed() >= self.limits.timeout {
+            return Err(MicrophoneFailure::Timeout);
+        }
         let mut child = self.spawn()?;
         let stdout = child.stdout.take().ok_or(MicrophoneFailure::SpawnFailed)?;
         let stderr = child.stderr.take().ok_or(MicrophoneFailure::SpawnFailed)?;
@@ -163,7 +182,6 @@ impl AlsaMicrophoneAdapter {
         let audio = std::thread::spawn(move || bounded_read(stdout, maximum_audio_bytes));
         let diagnostics =
             std::thread::spawn(move || bounded_read(stderr, MAXIMUM_DIAGNOSTIC_BYTES));
-        let started = Instant::now();
         let status = loop {
             if cancelled() {
                 stop(&mut child);
@@ -335,55 +353,6 @@ fn bounded_read(mut reader: impl Read, maximum: usize) -> Result<BoundedRead, Mi
         overflowed |= count > remaining;
     }
     Ok(BoundedRead { bytes, overflowed })
-}
-
-fn exact_file(path: &Path) -> Result<PathBuf, MicrophoneFailure> {
-    let path = path
-        .canonicalize()
-        .map_err(|_| MicrophoneFailure::MissingProvider)?;
-    let metadata = path
-        .metadata()
-        .map_err(|_| MicrophoneFailure::MissingProvider)?;
-    if !metadata.is_file() || metadata.len() == 0 || metadata.len() > MAXIMUM_EXECUTABLE_BYTES {
-        return Err(MicrophoneFailure::InvalidProvider);
-    }
-    if !is_executable(&path)? {
-        return Err(MicrophoneFailure::InvalidProvider);
-    }
-    Ok(path)
-}
-
-#[cfg(unix)]
-fn is_executable(path: &Path) -> Result<bool, MicrophoneFailure> {
-    use std::os::unix::fs::PermissionsExt;
-    Ok(path
-        .metadata()
-        .map_err(|_| MicrophoneFailure::InvalidProvider)?
-        .permissions()
-        .mode()
-        & 0o111
-        != 0)
-}
-
-#[cfg(not(unix))]
-fn is_executable(_path: &Path) -> Result<bool, MicrophoneFailure> {
-    Ok(false)
-}
-
-fn digest_file(path: &Path) -> Result<String, MicrophoneFailure> {
-    let mut file = std::fs::File::open(path).map_err(|_| MicrophoneFailure::InvalidProvider)?;
-    let mut digest = Sha256::new();
-    let mut buffer = [0_u8; 8_192];
-    loop {
-        let count = file
-            .read(&mut buffer)
-            .map_err(|_| MicrophoneFailure::InvalidProvider)?;
-        if count == 0 {
-            break;
-        }
-        digest.update(&buffer[..count]);
-    }
-    Ok(format!("{:x}", digest.finalize()))
 }
 
 fn validate_limits(limits: MicrophoneLimits) -> Result<(), MicrophoneFailure> {
