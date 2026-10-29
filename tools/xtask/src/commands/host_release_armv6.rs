@@ -85,6 +85,23 @@ pub(super) fn build(
             ),
             ("linux-armv6-build.json", "application/json"),
         ],
+    )?;
+    seal(
+        output,
+        "raspios-pi-3-model-b-plus-rev-1.3-32.json",
+        "std/armv6/raspberry-pi-3-model-b-plus-rev-1.3",
+        "conduit-host-raspberry-pi@1",
+        "native-bundle",
+        "conduit-host-raspberry-pi/build-raspios-native@1",
+        "conduit-host-raspberry-pi/install-raspios-package@1",
+        source_identity,
+        &[
+            (
+                "conduit-linux-armv6",
+                "application/vnd.conduit.host+executable",
+            ),
+            ("linux-armv6-build.json", "application/json"),
+        ],
     )
 }
 

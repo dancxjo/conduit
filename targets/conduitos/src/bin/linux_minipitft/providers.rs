@@ -212,7 +212,10 @@ pub struct Attachment {
 pub fn admit() -> Result<Attachment, &'static str> {
     let model = std::fs::read_to_string("/proc/device-tree/model")
         .map_err(|_| "board-model-unavailable")?;
-    if model.trim_end_matches('\0') != "Raspberry Pi Model B Plus Rev 1.2" {
+    if !matches!(
+        model.trim_end_matches('\0'),
+        "Raspberry Pi Model B Plus Rev 1.2" | "Raspberry Pi 3 Model B Plus Rev 1.3"
+    ) {
         return Err("board-model-unsupported");
     }
     let lockpath = std::env::var("XDG_RUNTIME_DIR").map_err(|_| "runtime-dir-unavailable")?

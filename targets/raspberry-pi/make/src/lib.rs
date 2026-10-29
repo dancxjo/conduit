@@ -5,6 +5,7 @@ use conduit_host_make::{
 
 pub const B_PLUS_TARGET: &str = "conduitos/armv6/raspberry-pi-model-b-plus-v1.2";
 pub const B_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
+pub const PI3_PLUS_LINUX_TARGET: &str = "std/armv6/raspberry-pi-3-model-b-plus-rev-1.3";
 pub const ZERO_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-v1";
 pub const ZERO_W_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-w-v1.1";
 pub const ZERO_WH_TARGET: &str = "conduitos/armv6/raspberry-pi-zero-wh-v1.1";
@@ -109,14 +110,25 @@ fn b_plus_linux_target() -> TargetDescriptor {
     target
 }
 
+fn pi3_plus_linux_target() -> TargetDescriptor {
+    // The ARM1176-compatible executable runs on this ARMv8 board in 32-bit OS mode.
+    // Its exact board identity stays distinct from the original B+.
+    let mut target = b_plus_linux_target();
+    target.label = "Raspberry Pi 3 Model B+ rev 1.3 · Raspberry Pi OS 32-bit".into();
+    target.machine = "raspberry-pi-3-model-b-plus-rev-1.3".into();
+    target.board = Some(target.machine.clone());
+    target
+}
+
 impl HostMakePackage for RaspberryPiMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "conduit-host-raspberry-pi@1".into(),
-            package_revision: 3,
+            package_revision: 4,
             catalog: Default::default(),
             targets: vec![
                 b_plus_linux_target(),
+                pi3_plus_linux_target(),
                 raspberry_pi_os_target(
                     "Raspberry Pi 4 Model B rev 1.5 (4 GB) · Raspberry Pi OS Bookworm 64-bit",
                     "raspberry-pi-4-model-b-rev-1.5-4gb",
@@ -160,6 +172,7 @@ impl HostMakePackage for RaspberryPiMakePackage {
                     implementation_revision: 1,
                     target_patterns: vec![
                         B_PLUS_LINUX_TARGET.into(),
+                        PI3_PLUS_LINUX_TARGET.into(),
                         RASPBERRY_PI_OS_TARGET.into(),
                         ZERO_2_W_TARGET.into(),
                         ZERO_2_WH_TARGET.into(),
@@ -175,6 +188,21 @@ impl HostMakePackage for RaspberryPiMakePackage {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn pi3_plus_linux_keeps_exact_board_and_compatible_32bit_abi() {
+        let target = pi3_plus_linux_target();
+        assert_eq!(target.key(), PI3_PLUS_LINUX_TARGET);
+        let profile = conduit_host_make::parse_host_configuration_conduit(include_str!(
+            "../../../std/profiles/raspberry-pi-3-model-b-plus-rev-1.3-linux.host.conduit"
+        ))
+        .unwrap();
+        assert_eq!(profile.target.machine, target.machine);
+        assert_eq!(profile.target.architecture, target.architecture);
+        assert_eq!(profile.target.board, target.board);
+        assert_eq!(profile.target.os, target.os);
+        assert_eq!(profile.limits, target.maxima);
+    }
 
     #[test]
     fn b_plus_linux_is_a_distinct_exact_host_and_preserves_native_target() {

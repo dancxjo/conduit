@@ -2,6 +2,7 @@
 use std::{fs::File, io::Read, path::Path};
 
 const B_PLUS: &str = "std/armv6/raspberry-pi-model-b-plus-v1.2";
+const PI3_PLUS: &str = "std/armv6/raspberry-pi-3-model-b-plus-rev-1.3";
 const DEVICE_TREE: &str = "/sys/firmware/devicetree/base";
 
 pub(super) fn running_target_id() -> Result<&'static str, String> {
@@ -39,12 +40,13 @@ fn select_target(
         ("macos", "aarch64") => Ok("std/aarch64/macos-computer"),
         ("linux", "arm") => {
             let (compatible, revision) = observe()?;
-            if !b_plus(&compatible, &revision) {
-                return Err(
-                    "kernel board facts do not match reviewed Raspberry Pi Model B+ v1.2".into(),
-                );
+            if b_plus(&compatible, &revision) {
+                Ok(B_PLUS)
+            } else if pi3_plus(&compatible, &revision) {
+                Ok(PI3_PLUS)
+            } else {
+                Err("kernel board facts do not match an installed exact 32-bit Raspberry Pi profile".into())
             }
-            Ok(B_PLUS)
         }
         _ => Err(format!(
             "no reviewed durable host profile is installed for {os}/{architecture}"
@@ -73,10 +75,48 @@ fn b_plus(compatible: &[u8], revision: &[u8]) -> bool {
     matches!(revision, 0x0010 | 0x0013 | 0x900032)
 }
 
+fn pi3_plus(compatible: &[u8], revision: &[u8]) -> bool {
+    if compatible.last() != Some(&0) || revision.len() != 4 {
+        return false;
+    }
+    let entries: Vec<_> = compatible[..compatible.len() - 1]
+        .split(|byte| *byte == 0)
+        .collect();
+    !entries.iter().any(|entry| entry.is_empty())
+        && entries.contains(&b"raspberrypi,3-model-b-plus".as_slice())
+        && entries.contains(&b"brcm,bcm2837".as_slice())
+        && u32::from_be_bytes(revision.try_into().expect("length checked")) & 0x00ff_ffff
+            == 0xa020d3
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     const COMPATIBLE: &[u8] = b"raspberrypi,model-b-plus\0brcm,bcm2835\0";
+
+    #[test]
+    fn pi3_plus_32bit_profile_requires_exact_kernel_board_facts() {
+        let compatible = b"raspberrypi,3-model-b-plus\0brcm,bcm2837\0";
+        for revision in [0xa020d3u32, 0x02a020d3] {
+            assert_eq!(
+                select_target("linux", "arm", || Ok((
+                    compatible.to_vec(),
+                    revision.to_be_bytes().to_vec()
+                )))
+                .unwrap(),
+                PI3_PLUS
+            );
+        }
+        for revision in [0x10u32, 0xa02082, 0xa220a0, 0] {
+            assert!(!pi3_plus(compatible, &revision.to_be_bytes()));
+        }
+        assert!(!pi3_plus(COMPATIBLE, &0xa020d3u32.to_be_bytes()));
+        assert!(!pi3_plus(
+            b"raspberrypi,3-model-b-plus\0brcm,bcm2837",
+            &0xa020d3u32.to_be_bytes()
+        ));
+        assert!(!pi3_plus(compatible, &[0xa0, 0x20, 0xd3]));
+    }
 
     #[test]
     fn running_target_accepts_exact_b_plus_kernel_facts() {
