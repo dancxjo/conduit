@@ -45,6 +45,7 @@ members = [
 
 	# Reusable lower mechanisms and implementations.
 	"mechanisms/io/resource-snapshot",
+	"mechanisms/io/i2c-transaction",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",

@@ -1,5 +1,12 @@
 use super::*;
 use crate::i2c_base::{I2cDisposition, I2cTransaction};
+use crate::i2c_base::{
+    I2cProvider,
+    contract::{I2C_CALL, I2cContract},
+    owner::I2cAttachment,
+};
+use alloc::vec;
+use conduit_core::*;
 struct Provider;
 impl I2cProvider for Provider {
     fn transact(&mut self, _: &I2cTransaction<'_>, _: &mut [u8]) -> Result<usize, I2cDisposition> {
