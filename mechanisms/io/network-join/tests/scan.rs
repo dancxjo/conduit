@@ -97,7 +97,7 @@ fn prepare_owner_mode(
     let mut scope = possession::scope(NETWORK_SCAN_SUBJECT);
     scope.authority_contract_id = NETWORK_SCAN_AUTHORITY.into();
     scope.operation_contract_id = NETWORK_SCAN_HOST_CALL.into();
-    scope.maximum_parameter_bytes = MAXIMUM_SCAN_INPUT_BYTES;
+    scope.maximum_parameter_bytes = SCAN_OPERATION_PARAMETER_BYTES;
     scope.maximum_result_bytes = MAXIMUM_SCAN_OUTPUT_BYTES;
     scope.capability_id = SCAN_CAPABILITY.into();
     let identity = NetworkNativeIdentity {
