@@ -3,6 +3,7 @@
 //! No offer, credential policy, retry, attachment or Body lifecycle is minted.
 mod credentials;
 mod host_call;
+mod inspection;
 use conduit_net::{
     AccessPointSwitchOperations, DeadlineExpired, OperationDeadline, StationFailure,
     StationOperations,
@@ -15,6 +16,43 @@ use esp_radio::wifi::{
     ap::AccessPointConfig, sta::StationConfig, Config, WifiController, WifiError,
 };
 pub use host_call::{Esp32JoinPreparationRefusal, Esp32NetworkJoinProvider};
+use inspection::observed_wait;
+pub use inspection::{StationProgress, StationSubstage};
+
+/// SDK observation only. Disconnection preserves the exact typed reason while
+/// deliberately excluding the SDK's SSID, BSSID and credential-bearing state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StationSdkFailure {
+    Disconnected(esp_radio::wifi::DisconnectReason),
+    Unsupported,
+    InvalidArguments,
+    Failed,
+    OutOfMemory,
+    InvalidSsid,
+    InvalidPassword,
+    NotConnected,
+    Other,
+}
+impl From<WifiError> for StationSdkFailure {
+    fn from(error: WifiError) -> Self {
+        match error {
+            WifiError::Disconnected(info) => Self::Disconnected(info.reason),
+            WifiError::Unsupported => Self::Unsupported,
+            WifiError::InvalidArguments => Self::InvalidArguments,
+            WifiError::Failed => Self::Failed,
+            WifiError::OutOfMemory => Self::OutOfMemory,
+            WifiError::InvalidSsid => Self::InvalidSsid,
+            WifiError::InvalidPassword => Self::InvalidPassword,
+            WifiError::NotConnected => Self::NotConnected,
+            _ => Self::Other,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct StationInspection {
+    pub progress: StationProgress,
+    pub sdk_error: Option<StationSdkFailure>,
+}
 
 /// Services remain owned by Root. Withdrawal must retire existing AP requests;
 /// restoration returns only after the actual DHCP/HTTP services are ready.
@@ -56,6 +94,7 @@ pub struct Esp32ApStationSwitch<'a, 'd, S> {
     station_config: Config,
     services: S,
     cleanup_required: bool,
+    inspection: StationInspection,
 }
 impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
     /// # Safety
@@ -81,7 +120,27 @@ impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
             station_config: Config::Station(configs.1),
             services,
             cleanup_required: false,
+            inspection: StationInspection {
+                progress: StationProgress::new(),
+                sdk_error: None,
+            },
         }
+    }
+    pub fn inspection(&self) -> StationInspection {
+        self.inspection
+    }
+    fn begin_inspection(&mut self) {
+        self.inspection = StationInspection {
+            progress: StationProgress::new(),
+            sdk_error: None,
+        };
+    }
+    fn capture_inspection(&mut self) {
+        self.inspection.progress.capture(
+            Instant::now().as_millis(),
+            self.station_stack.is_link_up(),
+            self.station_stack.config_v4().is_some(),
+        );
     }
     /// Cancellation leaves this true. Only completed restoration clears it;
     /// synchronous radio fallback is not an AP-service readiness claim.
@@ -109,30 +168,67 @@ impl<S: AccessPointServices> StationOperations for Esp32ApStationSwitch<'_, '_, 
             fallback: &self.ap_config,
             armed: true,
         };
-        let result = guard.controller.connect_async().await;
+        let result = observed_wait(
+            &mut self.inspection.progress,
+            StationSubstage::Associating,
+            Instant::now().as_millis(),
+            guard.controller.connect_async(),
+        )
+        .await;
+        if let Err(error) = result {
+            self.inspection.sdk_error = Some(error.into());
+        }
         if result.is_ok() {
             guard.armed = false;
         }
         result.map(|_| ()).map_err(station_failure)
     }
     async fn configure_address(&mut self) -> Result<(), StationFailure> {
-        self.station_stack.wait_config_up().await;
+        observed_wait(
+            &mut self.inspection.progress,
+            StationSubstage::WaitingAddress,
+            Instant::now().as_millis(),
+            self.station_stack.wait_config_up(),
+        )
+        .await;
         if !self.station_stack.is_link_up() || self.station_stack.config_v4().is_none() {
             return Err(StationFailure::ProviderUnavailable);
         }
-        self.services.station().await
+        let result = observed_wait(
+            &mut self.inspection.progress,
+            StationSubstage::StartingServices,
+            Instant::now().as_millis(),
+            self.services.station(),
+        )
+        .await;
+        if result.is_ok() {
+            self.inspection.progress.services_ready = true;
+            self.inspection
+                .progress
+                .enter(StationSubstage::Ready, Instant::now().as_millis());
+        }
+        result
     }
 }
 impl<S: AccessPointServices> AccessPointSwitchOperations for Esp32ApStationSwitch<'_, '_, S> {
     async fn withdraw_access_point(&mut self) -> Result<(), StationFailure> {
         self.cleanup_required = true;
-        self.services.withdraw().await?;
+        observed_wait(
+            &mut self.inspection.progress,
+            StationSubstage::Withdrawing,
+            Instant::now().as_millis(),
+            self.services.withdraw(),
+        )
+        .await?;
         self.ap_stack.set_config_v4(ConfigV4::None);
         // Invalidate any previous station address before the new association.
         self.station_stack.set_config_v4(ConfigV4::None);
         self.controller
             .set_config(&self.station_config)
-            .map_err(station_failure)?;
+            .map_err(|error| {
+                self.inspection.sdk_error = Some(error.into());
+                station_failure(error)
+            })?;
         self.station_stack
             .set_config_v4(ConfigV4::Dhcp(Default::default()));
         Ok(())
