@@ -3,6 +3,8 @@
 pub mod journal;
 #[path = "native_known_credentials.rs"]
 mod known;
+#[path = "native_credential_selection.rs"]
+mod selection;
 use alloc::boxed::Box;
 use conduit_core as c;
 use conduit_environment_http::network_setup::{
@@ -294,8 +296,8 @@ impl RootCredentialSource {
         {
             return Err("credential-auth-unsupported");
         }
-        // Preserve the SDK's SAME chosen profile. New AP input belongs to a
-        // later AP-only configuration, never silently changes a Waiting retry.
+        // Preserve the SDK's SAME chosen profile. New acknowledged AP input is
+        // handled separately after actual cold owner return, never here.
         let origin = if let Some((token, pending_key)) = owner
             .committed_pending
             .filter(|(_, pending_key)| *pending_key == key)
@@ -317,12 +319,19 @@ impl RootCredentialSource {
         &mut self,
     ) -> Result<esp_radio::wifi::sta::StationConfig, &'static str> {
         self.ensure_owner()?;
-        let owner = self.owner.as_mut().expect("loaded private owner");
+        let owner = self.owner.as_deref_mut().expect("loaded private owner");
+        let mailbox = self
+            .reader
+            .try_lock()
+            .map_err(|_| "credential-mailbox-busy")?;
+        // Caller has returned the actual unselected join owner first. Hold the
+        // exact acknowledged token while retiring only its superseded snapshot.
+        selection::retire_superseded(
+            &mut owner.profiles,
+            &mut owner.frozen_origin,
+            mailbox.acknowledged_submission().ok(),
+        )?;
         if owner.selection().is_none() {
-            let mailbox = self
-                .reader
-                .try_lock()
-                .map_err(|_| "credential-mailbox-busy")?;
             let (key, origin) = match mailbox.acknowledged_submission() {
                 Ok(submission) => {
                     let key = if let Some((_, key)) = owner

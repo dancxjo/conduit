@@ -67,7 +67,7 @@ impl Recovery {
         if revision == 0 || revision <= self.revision {
             return Err(Refusal::StaleConfiguration);
         }
-        if !self.access_point_only() {
+        if !self.accepts_configuration() {
             return Err(Refusal::Busy);
         }
         self.clock(now)?;
@@ -192,6 +192,14 @@ impl Recovery {
     pub fn awaiting_attempt(&self) -> bool {
         matches!(self.phase, Phase::Waiting { .. } | Phase::Cooldown { .. })
     }
+    /// Configuration intent may supersede an unspent retry only after callers
+    /// prove actual returned native custody; this predicate grants no owner.
+    pub fn accepts_configuration(&self) -> bool {
+        matches!(
+            self.phase,
+            Phase::AccessPoint | Phase::Waiting { .. } | Phase::Cooldown { .. }
+        )
+    }
     pub fn access_point_only(&self) -> bool {
         matches!(self.phase, Phase::AccessPoint | Phase::Cooldown { .. })
     }
@@ -225,6 +233,33 @@ impl Recovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn new_configuration_supersedes_unspent_waiting_without_spending_attempt() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        r.poll(0, true, false).unwrap();
+        assert_eq!(r.configuration(2, 1), Err(Refusal::Busy));
+        r.failed(1).unwrap();
+        assert_eq!(r.configuration(2, 2), Err(Refusal::Busy));
+        r.restored(1, 3, true).unwrap();
+        assert!(!r.access_point_only());
+        assert!(r.accepts_configuration());
+        let stale = r.preview_attempt(1003).unwrap().unwrap();
+        // Repeated constructor refusals never begin this old candidate.
+        assert_eq!(r.generation(), 1);
+        r.configuration(2, 1003).unwrap();
+        assert_eq!(r.revision(), 2);
+        assert_eq!(r.generation(), 1);
+        assert_eq!(r.begin_attempt(stale, 1003), Err(Refusal::StaleAttempt));
+        let current = r.preview_attempt(1003).unwrap().unwrap();
+        assert_eq!(
+            r.begin_attempt(current, 1003),
+            Ok(Action::PrepareAttempt {
+                revision: 2,
+                generation: 2
+            })
+        );
+    }
     #[test]
     fn workspace_acknowledged_cleanup_and_fresh_generations_bound_retries() {
         let mut r = Recovery::new();

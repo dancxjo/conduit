@@ -69,6 +69,19 @@ impl NativePlay {
             configuration_revision: 0,
         }
     }
+    /// No issued bearer, selected call or active execution is retained here.
+    pub fn permits_unselected_configuration(&self) -> bool {
+        #[cfg(feature = "flat-network-appliance")]
+        if !self.flat_refusal.is_empty() {
+            return false;
+        }
+        !self.attempted
+            && self.active.is_none()
+            && self.prepared.is_none()
+            && self.source.is_none()
+            && self.join.is_none()
+    }
+
     pub fn progress(&self) -> (u16, [u8; 3]) {
         (self.steps, self.dispatches)
     }

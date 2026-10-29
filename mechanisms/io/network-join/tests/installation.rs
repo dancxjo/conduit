@@ -113,3 +113,24 @@ fn stale_boot_and_invalid_native_generations_never_project_availability() {
         ));
     }
 }
+
+#[test]
+fn cold_ready_return_preserves_actual_owner_identity_and_generation() {
+    let ready = ready();
+    let original = ready.native_identity().clone();
+    let mut stale = advertisement();
+    stale.boot_id = "boot/refused-preparation".into();
+    assert_eq!(
+        ready.append_to_advertisement(&mut stale),
+        Err(NetworkInstallationRefusal::WrongBoot)
+    );
+    // Refused preparation never invokes or consumes the retained provider.
+    let (identity, generation, provider) = ready.into_unbound_parts();
+    assert_eq!(identity, original);
+    assert_eq!(generation, 9);
+    // SAFETY: the same inert actual provider and unchanged initialized metadata.
+    let returned = unsafe { ReadyNetworkJoinBase::new(identity, generation, provider) }.unwrap();
+    assert_eq!(returned.native_identity(), &original);
+    let (_, generation, _) = returned.into_unbound_parts();
+    assert_eq!(generation, 9);
+}

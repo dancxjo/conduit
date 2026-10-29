@@ -81,6 +81,12 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             provider,
         })
     }
+    /// Return this actual unselected ready owner without issuing possession.
+    /// A selected Host Call consumes Ready, so it cannot use this entrance.
+    pub fn into_unbound_parts(self) -> (NetworkNativeIdentity, u64, P) {
+        (self.identity, self.attachment_generation, self.provider)
+    }
+
     /// Descriptive native identity retained with this owner; not authority or
     /// evidence of possession, and never reconstructed from a received Plan.
     pub fn native_identity(&self) -> &NetworkNativeIdentity {
