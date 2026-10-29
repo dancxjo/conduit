@@ -5,11 +5,43 @@ use super::*;
 use conduit_std_host::worker_text_result::WorkerTextResult;
 
 impl DurableHostRuntime {
+    // Cancellation names the actual active Play, never a caller-provided result.
+    // Bound the local marker read to that identity plus one byte so an oversized
+    // marker cannot grow storage or prefix-match a different identity.
+    fn observe_worker_text_cancellation(&mut self) -> Result<(), String> {
+        let Some(admitted) = self.remote_fragment.as_ref() else {
+            return Ok(());
+        };
+        let Some(path) = self.cancellation_signal.as_deref() else {
+            return Ok(());
+        };
+        let expected = admitted.identity().active_play_id.as_str().as_bytes();
+        let file = match fs::File::open(path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(format!("worker-text-cancellation-unavailable:{error}")),
+        };
+        let mut marker = Vec::with_capacity(expected.len() + 1);
+        file.take((expected.len() + 1) as u64)
+            .read_to_end(&mut marker)
+            .map_err(|error| format!("worker-text-cancellation-unavailable:{error}"))?;
+        if marker != expected {
+            return Ok(());
+        }
+        self.remote_fragment
+            .as_mut()
+            .expect("retained above")
+            .cancel()?;
+        self.release_remote()?;
+        Err("worker-text-cancelled".into())
+    }
+
     pub(super) fn inspect_worker_text(
-        &self,
+        &mut self,
         identity: &ActivePlayIdentity,
         generation: u64,
     ) -> Result<Option<WorkerTextResult>, String> {
+        self.observe_worker_text_cancellation()?;
         let admitted = self.remote_fragment.as_ref().ok_or("remote-play-absent")?;
         if admitted.identity() != identity
             || self.host.advertisement().offer_generation.0 != generation
@@ -26,6 +58,7 @@ impl DurableHostRuntime {
         expected: &WorkerTextResult,
         output: &mut impl Write,
     ) -> Result<DurableRemoteExchange, String> {
+        self.observe_worker_text_cancellation()?;
         let request = self
             .pending_worker_text
             .ok_or("worker-text-request-absent")?;
