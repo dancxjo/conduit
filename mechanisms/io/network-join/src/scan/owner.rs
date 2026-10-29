@@ -296,6 +296,12 @@ impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
         (self.length > 0 && i.completed_operations == 1 && i.in_flight_operations == 0)
             .then_some(&self.output[..self.length])
     }
+    /// Borrow only the original validated observations of this owner's exact
+    /// successful dispatch. Historical evidence, never current radio authority.
+    pub fn completed_observations(&self) -> Option<&[ScanObservation]> {
+        self.completed_output()?;
+        self.records.get(..usize::from(self.output[20]))
+    }
     pub async fn cleanup(&mut self) -> Result<(), ScanCallRefusal> {
         if self.cleanup_required {
             if self.provider.now_ms() >= self.request.cleanup_deadline_ms {

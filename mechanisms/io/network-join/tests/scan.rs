@@ -303,6 +303,10 @@ fn selected_scan_preserves_unknown_truncation_and_requires_actual_cleanup() {
     assert!(completion.truncated());
     assert_eq!(completion.total, 17);
     assert_eq!(records[0].security, ObservedNetworkSecurity::Unknown);
+    assert_eq!(
+        owner.completed_observations().unwrap()[0].ssid(),
+        b"actual-observed"
+    );
     assert_eq!(state.effects.get(), 1);
     assert!(run(owner.invoke(
         node,
@@ -339,6 +343,7 @@ fn cancellation_and_deadline_never_return_a_still_owned_provider() {
     assert!(owner.cleanup_required());
     assert_eq!(owner.inspection().lifecycle, CapabilityLifecycle::Revoked);
     assert!(owner.completed_output().is_none());
+    assert!(owner.completed_observations().is_none());
     state.now.set(200);
     assert_eq!(run(owner.cleanup()), Err(ScanCallRefusal::Deadline));
     let mut slot = Some(owner);
@@ -362,6 +367,7 @@ fn late_completion_and_foreign_lowering_do_not_publish_or_transfer() {
     ))
     .is_err());
     assert!(owner.completed_output().is_none());
+    assert!(owner.completed_observations().is_none());
     assert!(owner.cleanup_required());
 }
 
