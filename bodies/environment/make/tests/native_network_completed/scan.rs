@@ -215,11 +215,11 @@ fn actual_root_scan_admission_dispatch_and_retirement_preserve_original_custody(
         .is_err());
     assert_eq!(state.scans.get(), 0);
     // Same original owner and Root remain available after failed admission.
-    let ready = scan
+    let returned_ready = scan
         .take_unselected_ready()
         .unwrap_or_else(|_| panic!("unissued actual owner"));
     assert!(scan.take_unselected_ready().is_err());
-    let mut scan = NativeScan::new(ready);
+    let mut scan = NativeScan::new(returned_ready);
     assert!(scan
         .install_held(&image, pins, c::OfferGeneration(1), &mut root, || Ok(()))
         .is_ok());
