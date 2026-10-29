@@ -86,17 +86,66 @@ impl NativeNetwork {
             || self.adapter.is_some()
             || self.ready.is_some()
     }
-    pub fn stage(&mut self, configuration: esp_radio::wifi::sta::StationConfig) -> Result<(), ()> {
-        if self.configuration.is_some() || self.is_ready() || self.selected {
+    /// Return only actual cold Ready ownership, before any selected invocation.
+    /// Refusal restores the complete original identity/provider/generation.
+    pub fn return_unselected_ready(&mut self) -> Result<(), ()> {
+        if self.selected || self.retirement.is_some() {
+            return Err(());
+        }
+        let Some(ready) = self.ready.take() else {
+            return if (self.adapter.is_some()
+                && self.radio.is_none()
+                && self.services.is_none()
+                && self.configuration.is_none())
+                || (self.adapter.is_none() && self.radio.is_some() && self.services.is_some())
+            {
+                Ok(())
+            } else {
+                Err(())
+            };
+        };
+        if self.adapter.is_some()
+            || self.radio.is_some()
+            || self.services.is_some()
+            || self.configuration.is_some()
+        {
+            self.ready = Some(ready);
+            return Err(());
+        }
+        let (identity, generation, provider) = ready.into_unbound_parts();
+        match provider.into_restored_radio() {
+            Ok(adapter) => {
+                self.adapter = Some(adapter);
+                Ok(())
+            }
+            Err(provider) => {
+                // SAFETY: same validated identity and actual untouched provider.
+                self.ready = Some(
+                    unsafe { ReadyNetworkJoinBase::new(identity, generation, provider) }
+                        .unwrap_or_else(|_| unreachable!("unchanged ready identity")),
+                );
+                Err(())
+            }
+        }
+    }
+    /// Replace cold configuration only after the actual Ready owner returned.
+    /// No selected/inflight provider or controller method is touched.
+    pub fn stage_unselected_configuration(
+        &mut self,
+        configuration: esp_radio::wifi::sta::StationConfig,
+    ) -> Result<(), ()> {
+        if self.selected || self.ready.is_some() || self.retirement.is_some() {
             return Err(());
         }
         if let Some(adapter) = &mut self.adapter {
             adapter
                 .stage_station_configuration(configuration)
                 .map_err(|_| ())
-        } else {
+        } else if self.radio.is_some() && self.services.is_some() {
             self.configuration = Some(configuration);
             Ok(())
+        } else {
+            Err(())
         }
     }
     pub fn has_reclaimed_access_point(&self) -> bool {

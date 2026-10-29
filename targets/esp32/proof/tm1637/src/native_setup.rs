@@ -7,6 +7,8 @@ mod diagnostics;
 #[cfg(feature = "local-appliance")]
 #[path = "native_network_workspace_reserve.rs"]
 mod floor_reserve;
+#[path = "native_setup_input.rs"]
+mod input;
 #[cfg(feature = "network-workspace-check")]
 #[path = "native_setup_workspace_check.rs"]
 mod workspace_check;
@@ -78,7 +80,7 @@ impl NativeRoot {
         if self.network.retirement.is_some() {
             return b"retirement-evidence-pending";
         }
-        if self.play.attempted() {
+        if !self.play.permits_unselected_configuration() {
             return self.play.status().as_bytes();
         }
         // Mandatory evidence must have capacity before private input is staged,
@@ -91,38 +93,8 @@ impl NativeRoot {
             return b"awaiting-native-retirement";
         }
         let now = embassy_time::Instant::now().as_millis();
-        if self.network.recovery.access_point_only() {
-            let acknowledged = self
-                .credential_writer
-                .try_lock()
-                .is_ok_and(|mailbox| mailbox.has_acknowledged());
-            // New acknowledged AP input wins over an expired cooldown.
-            if acknowledged
-                || crate::native_credentials::committed_revision()
-                    > self.network.recovery.revision()
-            {
-                let configuration =
-                    match crate::native_credentials::prepare_configuration(&mut self.credentials) {
-                        Ok(configuration) => configuration,
-                        Err("credential-unavailable" | "credential-not-acknowledged") => {
-                            return b"waiting";
-                        }
-                        Err(_) => return b"refused",
-                    };
-                let revision = match crate::native_credentials::committed_revision() {
-                    0 => match self.network.recovery.revision().checked_add(1) {
-                        Some(revision) => revision,
-                        None => return b"configuration-exhausted",
-                    },
-                    revision => revision,
-                };
-                if self.network.stage(configuration).is_err() {
-                    return b"refused";
-                }
-                if self.network.recovery.configuration(revision, now).is_err() {
-                    return b"configuration-refused";
-                }
-            }
+        if let Err(reason) = self.accept_acknowledged_network_configuration(now) {
+            return reason;
         }
         if !self.network.recovery.attempt_due(now) {
             return b"waiting";
@@ -271,7 +243,7 @@ impl NativeRoot {
             return;
         };
         if !self.native_workspace_held()
-            || self.play.attempted()
+            || !self.play.permits_unselected_configuration()
             || self.network.retirement.is_some()
         {
             self.pending_network_workspace = None;
@@ -287,7 +259,7 @@ impl NativeRoot {
         }
         let now = embassy_time::Instant::now().as_millis();
         let eligible = self.network.recovery.attempt_due(now)
-            || (self.network.recovery.access_point_only()
+            || (self.network.recovery.accepts_configuration()
                 && (self
                     .credential_writer
                     .try_lock()
