@@ -18,11 +18,14 @@ struct Parameters {
     capture_milliseconds: u32,
     timeout_milliseconds: u64,
 }
-fn parameters(initialization: &BaseInitialization) -> Result<Parameters, String> {
+fn parameters(
+    initialization: &BaseInitialization,
+    implementation: &str,
+) -> Result<Parameters, String> {
     let catalog = conduit_workspace_make::catalog();
     let contract = catalog
         .initialization_contracts
-        .get(conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION)
+        .get(implementation)
         .ok_or("installed microphone initialization contract unavailable")?;
     initialization.checked_values(contract)?;
     let parameters: Parameters =
@@ -41,13 +44,17 @@ fn parameters(initialization: &BaseInitialization) -> Result<Parameters, String>
     }
     Ok(parameters)
 }
-pub(super) fn validate(initialization: &BaseInitialization) -> Result<(), String> {
-    parameters(initialization).map(|_| ())
+pub(super) fn validate(
+    initialization: &BaseInitialization,
+    implementation: &str,
+) -> Result<(), String> {
+    parameters(initialization, implementation).map(|_| ())
 }
 pub(super) fn initialize(
     initialization: &BaseInitialization,
+    implementation: &str,
 ) -> Result<AlsaMicrophoneAdapter, String> {
-    let parameters = parameters(initialization)?;
+    let parameters = parameters(initialization, implementation)?;
     // Reject a changed executable before metadata discovery can start a process.
     let observed = digest(&bounded_read(&parameters.executable, 8 * 1024 * 1024)?);
     if observed.strip_prefix("sha256:") != Some(parameters.executable_sha256.as_str()) {
@@ -71,13 +78,23 @@ pub(super) fn initialize(
     let [selected] = matches.as_slice() else {
         return Err("selected microphone endpoint identity is missing or ambiguous".into());
     };
+    let format = match implementation {
+        conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION => {
+            conduit_std_host::hosted_microphone::AlsaMicrophoneFormat::ExactHardware
+        }
+        conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION => {
+            conduit_std_host::hosted_microphone::AlsaMicrophoneFormat::AlsaPlug
+        }
+        _ => return Err("unsupported microphone implementation".into()),
+    };
     discovery
-        .initialize(
+        .initialize_with_format(
             selected,
             MicrophoneLimits {
                 capture_milliseconds: parameters.capture_milliseconds,
                 timeout: Duration::from_millis(parameters.timeout_milliseconds),
             },
+            format,
         )
         .map_err(|e| e.to_string())
 }

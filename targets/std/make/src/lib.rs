@@ -89,10 +89,16 @@ fn package_catalog() -> PackageCatalogContribution {
         })
         .collect();
     PackageCatalogContribution {
-        initialization_contracts: BTreeMap::from([(
-            conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION.into(),
-            alsa_microphone_initialization_contract(),
-        )]),
+        initialization_contracts: BTreeMap::from([
+            (
+                conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION.into(),
+                alsa_microphone_initialization_contract(),
+            ),
+            (
+                conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION.into(),
+                alsa_microphone_initialization_contract(),
+            ),
+        ]),
         implementations,
         dependencies: BTreeMap::from([
             (
@@ -160,7 +166,7 @@ impl HostMakePackage for HostedMakePackage {
     fn contribution(&self) -> MakeContribution {
         MakeContribution::Anchor(MakeAnchor {
             package_id: "hosted-native@1".into(),
-            package_revision: 2,
+            package_revision: 3,
             catalog: package_catalog(),
             targets: vec![
                 target(
@@ -184,6 +190,7 @@ impl HostMakePackage for HostedMakePackage {
             ],
             offers: vec![
                 microphone_initialization::offer(),
+                microphone_initialization::converted_offer(),
                 offer("clock/monotonic", "hosted/monotonic-clock@1", "base-clock"),
                 offer("serial/text", "hosted/serial@1", "base-serial"),
                 offer(
