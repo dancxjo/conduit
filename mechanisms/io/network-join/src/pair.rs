@@ -495,24 +495,9 @@ impl<'owner, 'description, P: NetworkJoinProvider, S: CredentialSource>
             .join
             .check_prepared_native_ref(&join, join_gear, self.join_contract.kind().limits)
             .map_err(NetworkPairRefusal::Join)?;
-        for (gear, class, refusal) in [
-            (
-                credential_gear,
-                CREDENTIAL_RESOURCE_CLASS,
-                NetworkPairRefusal::Credentials(CredentialCallRefusal::WrongRequest),
-            ),
-            (
-                join_gear,
-                conduit_net::WIFI_STATION_RESOURCE_CLASS,
-                NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding),
-            ),
-        ] {
-            let mut resources = gear.resources.iter();
-            let resource = resources.next().ok_or(refusal)?;
-            if resources.next().is_some() || resource.class_id != class || resource.units != 1 {
-                return Err(NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding));
-            }
-        }
+        // This descriptive refusal runs before any capability is issued.
+        check_flat_resource(credential_gear.resources, true)?;
+        check_flat_resource(join_gear.resources, false)?;
         let credentials = PreparedFlatDirectOperation::prepare(
             credentials,
             SelectedOperationContractRef {
@@ -687,5 +672,82 @@ fn issued_lease(
         table,
         handle,
         claim,
+    }
+}
+
+fn check_flat_resource(
+    resources: conduit_core::ResourceBindingRefs<'_>,
+    credential: bool,
+) -> Result<(), NetworkPairRefusal> {
+    let class = if credential {
+        CREDENTIAL_RESOURCE_CLASS
+    } else {
+        conduit_net::WIFI_STATION_RESOURCE_CLASS
+    };
+    let refusal = || {
+        if credential {
+            NetworkPairRefusal::Credentials(CredentialCallRefusal::WrongRequest)
+        } else {
+            NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding)
+        }
+    };
+    let mut resources = resources.iter();
+    let resource = resources.next().ok_or_else(refusal)?;
+    if resources.next().is_some() || resource.class_id != class || resource.units != 1 {
+        return Err(refusal());
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod resource_refusal_tests {
+    use super::*;
+    use conduit_core::{ResourceBindingRef, ResourceBindingRefs};
+    #[test]
+    fn selected_resource_refusal_identifies_the_actual_owner_before_issuance() {
+        for credential in [true, false] {
+            let class = if credential {
+                CREDENTIAL_RESOURCE_CLASS
+            } else {
+                conduit_net::WIFI_STATION_RESOURCE_CLASS
+            };
+            let resource = ResourceBindingRef {
+                pool_id: "actual-pool",
+                class_id: class,
+                units: 1,
+                protected: None,
+                compute: None,
+                content: None,
+            };
+            assert_eq!(
+                check_flat_resource(ResourceBindingRefs::Borrowed(&[resource]), credential),
+                Ok(())
+            );
+            for resources in [
+                &[][..],
+                &[resource, resource][..],
+                &[ResourceBindingRef {
+                    class_id: "wrong-class",
+                    ..resource
+                }][..],
+                &[ResourceBindingRef {
+                    units: 0,
+                    ..resource
+                }][..],
+                &[ResourceBindingRef {
+                    units: 2,
+                    ..resource
+                }][..],
+            ] {
+                let expected = if credential {
+                    NetworkPairRefusal::Credentials(CredentialCallRefusal::WrongRequest)
+                } else {
+                    NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding)
+                };
+                assert_eq!(
+                    check_flat_resource(ResourceBindingRefs::Borrowed(resources), credential),
+                    Err(expected)
+                );
+            }
+        }
     }
 }
