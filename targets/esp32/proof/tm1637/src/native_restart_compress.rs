@@ -85,10 +85,13 @@ impl<F: FnMut(&[u8]) -> Result<(), ()>> Output for F {
         self(bytes)
     }
 }
-pub struct Encoder<W> {
+#[path = "native_restart_match_workspace.rs"]
+mod workspace;
+pub use workspace::{MatchIndex, MatchWorkspace};
+pub struct Encoder<W, I: MatchWorkspace = ()> {
     write: W,
     history: [u8; WINDOW],
-    index: matcher::Index,
+    index: I,
     cache_len: u8,
     cache_next: u8,
     hex_run: u8,
@@ -105,7 +108,7 @@ pub struct Encoder<W> {
     begun: bool,
     terminal: bool,
 }
-impl<W> Drop for Encoder<W> {
+impl<W, I: MatchWorkspace> Drop for Encoder<W, I> {
     fn drop(&mut self) {
         wipe(&mut self.history);
         wipe(&mut self.look);
@@ -115,10 +118,26 @@ impl<W> Drop for Encoder<W> {
 }
 impl<W: Output> Encoder<W> {
     pub fn new(write: W, max_plain: usize, max_encoded: usize) -> Self {
+        Self::with_workspace(write, max_plain, max_encoded, ())
+    }
+}
+impl<'a, W: Output> Encoder<W, &'a mut MatchIndex> {
+    pub fn with_index(
+        write: W,
+        max_plain: usize,
+        max_encoded: usize,
+        index: &'a mut MatchIndex,
+    ) -> Self {
+        index.clear();
+        Self::with_workspace(write, max_plain, max_encoded, index)
+    }
+}
+impl<W: Output, I: MatchWorkspace> Encoder<W, I> {
+    fn with_workspace(write: W, max_plain: usize, max_encoded: usize, index: I) -> Self {
         Self {
             write,
             history: [0; WINDOW],
-            index: matcher::Index::new(),
+            index,
             cache_len: 0,
             cache_next: 0,
             hex_run: 0,
@@ -223,7 +242,7 @@ impl<W: Output> Encoder<W> {
     }
     fn consume(&mut self) -> Result<(), Error> {
         let (best, best_distance, near, near_distance) = matcher::longest(
-            &self.index,
+            self.index.index(),
             &self.history,
             &self.look,
             self.look_len,
@@ -239,7 +258,7 @@ impl<W: Output> Encoder<W> {
         }
         if (3..=16).contains(&ordinary_used) && self.look_len > ordinary_used + 2 {
             let lazy = matcher::lazy(
-                &self.index,
+                self.index.index(),
                 &self.history,
                 &self.look,
                 self.look_len,
