@@ -147,11 +147,43 @@ fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republicat
         face: face.clone(),
         show: show.clone(),
     };
+    let clock = std::time::Instant::now();
     let encoded = data::encode_command(&publish).unwrap();
+    std::eprintln!(
+        "publication_cpu phase=encode elapsed_us={} wire_bytes={}",
+        clock.elapsed().as_micros(),
+        encoded.len()
+    );
+    let clock = std::time::Instant::now();
+    face.validate().unwrap();
+    std::eprintln!(
+        "publication_cpu phase=face-validation elapsed_us={} subjects={} relationships={} properties={} actions={}",
+        clock.elapsed().as_micros(),
+        face.subjects.len(),
+        face.relationships.len(),
+        face.properties.len(),
+        face.actions.len()
+    );
+    let clock = std::time::Instant::now();
+    show.validate(&face).unwrap();
+    std::eprintln!(
+        "publication_cpu phase=show-validation elapsed_us={}",
+        clock.elapsed().as_micros()
+    );
     let mut workspace = data::Workspace::new().unwrap();
+    let clock = std::time::Instant::now();
     let decoded = workspace.decode_command(&encoded).unwrap();
+    std::eprintln!(
+        "publication_cpu phase=decode elapsed_us={}",
+        clock.elapsed().as_micros()
+    );
+    let clock = std::time::Instant::now();
     assert!(matches!(models.execute(decoded).unwrap(),
         Reply::PatchbayPublished { revision, .. } if revision == before_revision));
+    std::eprintln!(
+        "publication_cpu phase=publish elapsed_us={}",
+        clock.elapsed().as_micros()
+    );
     // Traverse the actual native Mask interaction validation before the typed
     // owner call; the actor is never fed a legacy ApplicationEvent conversion.
     let delivered = mask.submit(input).unwrap();
