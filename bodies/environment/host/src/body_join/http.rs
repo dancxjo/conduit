@@ -38,39 +38,7 @@ fn http_content(
             }
             s.write_all(request_header.as_bytes())?;
             s.write_all(body)?;
-            let mut bytes = Vec::new();
-
-            let mut block = [0; 1024];
-            loop {
-                s.set_read_timeout(Some(
-                    deadline
-                        .checked_duration_since(Instant::now())
-                        .ok_or("join HTTP deadline")?,
-                ))?;
-                let n = s.read(&mut block)?;
-                if n == 0 {
-                    break;
-                }
-                if bytes.len() + n > 16384 {
-                    return Err("join HTTP extent".into());
-                }
-                bytes.extend_from_slice(&block[..n]);
-            }
-            if bytes.len() > 16384 {
-                return Err("join HTTP extent".into());
-            }
-            let at = bytes
-                .windows(4)
-                .position(|w| w == b"\r\n\r\n")
-                .ok_or("join HTTP framing")?;
-            let header = std::str::from_utf8(&bytes[..at])?;
-            let status = header
-                .lines()
-                .next()
-                .and_then(|v| v.split_whitespace().nth(1))
-                .ok_or("join HTTP status")?
-                .parse()?;
-            Ok((status, bytes[at + 4..].to_vec()))
+            read_response(&mut s, deadline)
         })();
         match response {
             Ok(r) => return Ok(r),
@@ -78,4 +46,199 @@ fn http_content(
         }
     }
     Err(last.unwrap_or_else(|| "join peer has no bounded IPv4 route".into()))
+}
+
+const MAXIMUM_RESPONSE_BYTES: usize = 16384;
+struct ResponseHead {
+    status: u16,
+    body_at: usize,
+    content_length: Option<usize>,
+}
+impl ResponseHead {
+    fn complete(&self, received: usize, eof: bool) -> Result<bool> {
+        match self.content_length {
+            Some(length) => {
+                let expected = self.body_at + length; // Checked during parsing.
+                if received > expected {
+                    return Err("join HTTP trailing bytes".into());
+                }
+                if received == expected {
+                    return Ok(true);
+                }
+                if eof {
+                    return Err("join HTTP truncated body".into());
+                }
+                Ok(false)
+            }
+            None => Ok(eof),
+        }
+    }
+}
+fn response_head(bytes: &[u8]) -> Result<Option<ResponseHead>> {
+    let Some(at) = bytes.windows(4).position(|w| w == b"\r\n\r\n") else {
+        return Ok(None);
+    };
+    let header = std::str::from_utf8(&bytes[..at])?;
+    let mut lines = header.split("\r\n");
+    let status_line = lines.next().ok_or("join HTTP status")?;
+    let (version, rest) = status_line.split_once(' ').ok_or("join HTTP status")?;
+    if !matches!(version, "HTTP/1.0" | "HTTP/1.1")
+        || rest.len() < 3
+        || !rest.as_bytes()[..3].iter().all(u8::is_ascii_digit)
+        || (rest.len() > 3 && rest.as_bytes()[3] != b' ')
+        || status_line.bytes().any(|b| b < 32 || b == 127)
+    {
+        return Err("join HTTP status".into());
+    }
+    let status = rest[..3].parse::<u16>()?;
+    if !(200..=599).contains(&status) {
+        return Err("join HTTP unsupported status".into());
+    }
+    let mut content_length = None;
+    for line in lines {
+        let (name, value) = line.split_once(':').ok_or("join HTTP header")?;
+        if name.is_empty()
+            || !name
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || b"!#$%&'*+-.^_`|~".contains(&b))
+            || value.bytes().any(|b| (b < 32 && b != b'\t') || b == 127)
+        {
+            return Err("join HTTP header".into());
+        }
+        if name.eq_ignore_ascii_case("transfer-encoding") {
+            return Err("join HTTP unsupported transfer encoding".into());
+        }
+        if name.eq_ignore_ascii_case("content-length") {
+            let value = value.trim_matches([' ', '\t']);
+            if content_length.is_some()
+                || value.is_empty()
+                || !value.bytes().all(|b| b.is_ascii_digit())
+            {
+                return Err("join HTTP content length".into());
+            }
+            content_length = Some(value.parse::<usize>()?);
+        }
+    }
+    let body_at = at + 4;
+    if body_at > MAXIMUM_RESPONSE_BYTES
+        || content_length.is_some_and(|length| {
+            body_at
+                .checked_add(length)
+                .is_none_or(|end| end > MAXIMUM_RESPONSE_BYTES)
+        })
+    {
+        return Err("join HTTP extent".into());
+    }
+    Ok(Some(ResponseHead {
+        status,
+        body_at,
+        content_length,
+    }))
+}
+fn read_response(socket: &mut std::net::TcpStream, deadline: Instant) -> Result<(u16, Vec<u8>)> {
+    let mut bytes = Vec::new();
+    let mut head = None;
+    let mut block = [0; 1024];
+    loop {
+        socket.set_read_timeout(Some(
+            deadline
+                .checked_duration_since(Instant::now())
+                .ok_or("join HTTP deadline")?,
+        ))?;
+        let n = socket.read(&mut block)?;
+        if Instant::now() >= deadline {
+            return Err("join HTTP deadline".into());
+        }
+        if bytes.len() + n > MAXIMUM_RESPONSE_BYTES {
+            return Err("join HTTP extent".into());
+        }
+        bytes.extend_from_slice(&block[..n]);
+        if head.is_none() {
+            head = response_head(&bytes)?;
+        }
+        if let Some(head) = head.as_ref() {
+            if head.complete(bytes.len(), n == 0)? {
+                // Content-Length delimits this response. Reject any already-read
+                // surplus; close the one-use socket without waiting for EOF.
+                return Ok((head.status, bytes.split_off(head.body_at)));
+            }
+        } else if n == 0 {
+            return Err("join HTTP framing".into());
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn response_framing_refuses_ambiguous_headers_and_extent() {
+        for headers in [
+            "Content-Length: ",
+            "Content-Length: +1",
+            "Content-Length: -1",
+            "Content-Length: 1, 1",
+            "Content-Length: 9999999999999999999999999999",
+            "Content-Length: 1\r\nContent-Length: 1",
+            "Content-Length: 1\r\ncOnTeNt-LeNgTh: 2",
+            "Transfer-Encoding: chunked",
+            "Transfer-Encoding: identity",
+            "Content-Length: 1\r\nTransfer-Encoding: chunked",
+            "Content-Length : 1",
+            " Content-Length: 1",
+            "Content-Length: 1\nIgnored: 2",
+            "Content-Length: 1\rIgnored: 2",
+            "Content-Length: 16384",
+        ] {
+            let bytes = format!("HTTP/1.1 200 OK\r\n{headers}\r\n\r\n");
+            assert!(response_head(bytes.as_bytes()).is_err(), "{headers:?}");
+        }
+        for status in [
+            "HTTP/2 200 OK",
+            "HTTP/1.1 2000 OK",
+            "HTTP/1.1 100 Continue",
+            "HTTP/1.1 600 Invalid",
+        ] {
+            assert!(
+                response_head(format!("{status}\r\nContent-Length: 0\r\n\r\n").as_bytes()).is_err()
+            );
+        }
+    }
+    #[test]
+    fn exact_length_requires_all_body_bytes_and_refuses_observed_surplus() {
+        let prefix = b"HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\n";
+        let head = response_head(prefix).unwrap().unwrap();
+        assert!(!head.complete(prefix.len() + 2, false).unwrap());
+        assert!(head.complete(prefix.len() + 2, true).is_err());
+        assert!(head.complete(prefix.len() + 3, false).unwrap());
+        assert!(head.complete(prefix.len() + 4, false).is_err());
+        let empty = response_head(b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n")
+            .unwrap()
+            .unwrap();
+        assert!(empty.complete(empty.body_at, false).unwrap());
+        let old = response_head(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n")
+            .unwrap()
+            .unwrap();
+        assert!(!old.complete(old.body_at + 3, false).unwrap());
+        assert!(old.complete(old.body_at + 3, true).unwrap());
+    }
+    #[test]
+    fn body_extent_includes_headers_at_exact_bound() {
+        let mut length = MAXIMUM_RESPONSE_BYTES;
+        let header = loop {
+            let header = format!("HTTP/1.1 200 OK\r\nContent-Length: {length}\r\n\r\n");
+            let available = MAXIMUM_RESPONSE_BYTES - header.len();
+            if available == length {
+                break header;
+            }
+            length = available;
+        };
+        for end in 0..header.len() {
+            assert!(response_head(&header.as_bytes()[..end]).unwrap().is_none());
+        }
+        let head = response_head(header.as_bytes()).unwrap().unwrap();
+        assert!(head.complete(MAXIMUM_RESPONSE_BYTES, false).unwrap());
+        let oversized = format!("HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n", length + 1);
+        assert!(response_head(oversized.as_bytes()).is_err());
+    }
 }

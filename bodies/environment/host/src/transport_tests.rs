@@ -122,3 +122,77 @@ fn private_usb_reply_filter_enforces_total_discard_budget() {
         .contains("document bound"));
     peer.join().unwrap();
 }
+
+fn receive_http_request(socket: &mut std::net::TcpStream) {
+    socket
+        .set_read_timeout(Some(std::time::Duration::from_secs(2)))
+        .unwrap();
+    let mut byte = [0];
+    let mut header = Vec::new();
+    while !header.ends_with(b"\r\n\r\n") {
+        socket.read_exact(&mut byte).unwrap();
+        header.push(byte[0]);
+        assert!(header.len() <= 1024);
+    }
+}
+
+#[test]
+fn declared_http_response_completes_before_peer_closes() {
+    for (status, body) in [(202, vec![]), (200, vec![0, 255, 13, 10])] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let expected = body.clone();
+        let (complete, returned) = std::sync::mpsc::channel();
+        let peer = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            receive_http_request(&mut socket);
+            let mut response = format!(
+                "HTTP/1.1 {status} OK\r\ncOnTeNt-LeNgTh: {}\r\nConnection: close\r\n\r\n",
+                body.len()
+            )
+            .into_bytes();
+            response.extend_from_slice(&body);
+            for fragment in response.chunks(7) {
+                socket.write_all(fragment).unwrap();
+            }
+            // Causal proof, not a latency threshold: this socket remains open
+            // until the complete response has actually returned to its caller.
+            returned
+                .recv_timeout(std::time::Duration::from_secs(2))
+                .expect("HTTP client waited for EOF despite a complete declared response");
+        });
+        let response =
+            crate::body_join::http(&address.to_string(), "GET", "/complete", &[]).unwrap();
+        assert_eq!(response, (status, expected));
+        complete.send(()).unwrap();
+        peer.join().unwrap();
+    }
+}
+
+#[test]
+fn http_truncation_refuses_and_legacy_close_delimited_body_remains_supported() {
+    for declared in [false, true] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let peer = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            receive_http_request(&mut socket);
+            if declared {
+                socket
+                    .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 4\r\n\r\nab")
+                    .unwrap();
+            } else {
+                socket
+                    .write_all(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nab")
+                    .unwrap();
+            }
+        });
+        let response = crate::body_join::http(&address.to_string(), "GET", "/truncated", &[]);
+        if declared {
+            assert!(response.unwrap_err().to_string().contains("truncated body"));
+        } else {
+            assert_eq!(response.unwrap(), (200, b"ab".to_vec()));
+        }
+        peer.join().unwrap();
+    }
+}
