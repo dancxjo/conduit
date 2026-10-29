@@ -131,6 +131,7 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         {
             return Err(ScanCallRefusal::WrongBinding);
         }
+        drop(entries);
         let node = bind_selected_operation_for_subject(
             &table,
             &claim,
