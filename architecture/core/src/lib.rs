@@ -1300,17 +1300,8 @@ fn hash_bytes(bytes: &[u8]) -> String {
     hex_digest(&digest)
 }
 
-fn hex_digest(digest: &[u8]) -> String {
-    const DIGITS: &[u8; 16] = b"0123456789abcdef";
-    let mut encoded = alloc::vec![0; digest.len() * 2];
-    for (byte, pair) in digest.iter().zip(encoded.as_chunks_mut::<2>().0) {
-        pair[0] = DIGITS[(byte >> 4) as usize];
-        pair[1] = DIGITS[(byte & 15) as usize];
-    }
-    // Every initialized byte comes from the ASCII table above. Keep the safe
-    // UTF-8 check while avoiding sixty-four String::push calls per digest.
-    String::from_utf8(encoded).expect("hex digits are ASCII")
-}
+mod digest_hex;
+use digest_hex::hex_digest;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlacementLifecycleState {
