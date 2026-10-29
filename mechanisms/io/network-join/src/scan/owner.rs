@@ -139,8 +139,8 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
             selected,
         )
         .map_err(ScanCallRefusal::Binding)?;
-        let operation =
-            BoundBaseOperation::bind(table, handle, claim).map_err(ScanCallRefusal::Capability)?;
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, error)| ScanCallRefusal::Capability(error))?;
         let r = slot.take().expect("validated owner");
         Ok(NetworkScanHostCall {
             operation,
