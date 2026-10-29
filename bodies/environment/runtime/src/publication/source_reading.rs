@@ -36,6 +36,7 @@ pub(crate) fn compact_layout() -> conduit_kernel::CompactCanonicalLayout {
     COMPACT_READING_LAYOUT.layout()
 }
 
+#[cfg(feature = "local-planning")]
 pub(crate) fn compact_result_kind() -> &'static str {
     material::COMPACT_RESULT_KIND
 }

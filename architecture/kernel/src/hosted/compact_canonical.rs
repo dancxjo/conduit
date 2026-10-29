@@ -12,7 +12,7 @@ pub(super) struct Storage {
 }
 impl HostedValueStore {
     /// Exact retained physical backing; excludes the store object, allocator
-    /// overhead and the temporary slot-capacity vector used by construction.
+    /// overhead. Construction streams the slot-capacity profile without copying it.
     pub fn compact_canonical_storage_bytes(
         canonical: &[u32],
         compact_items: u16,
