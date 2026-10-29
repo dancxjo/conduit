@@ -22,7 +22,6 @@ const FREE_FLOOR: usize = 2 * 8192 + snapshot::export::REPLY_BYTES;
 enum Phase {
     Verifying {
         verifier: Option<snapshot::Verifier>,
-        work: [u8; 512],
     },
     Ready(Export),
     Writing(ack::Writing),
@@ -131,7 +130,6 @@ impl NativeRoot {
                         Session {
                             phase: Phase::Verifying {
                                 verifier: Some(verifier),
-                                work: [0; 512],
                             },
                             deadline: now.saturating_add(LEASE_MS),
                         },
@@ -158,11 +156,8 @@ impl NativeRoot {
                 return;
             }
         };
-        if let Phase::Verifying { verifier, work } = &mut owned.phase {
-            let result = verifier
-                .as_mut()
-                .expect("owned snapshot verifier")
-                .step(work);
+        if let Phase::Verifying { verifier } = &mut owned.phase {
+            let result = verify_snapshot_turn(verifier.as_mut().expect("owned snapshot verifier"));
             if result != Ok(false) {
                 let verified = verifier.take().expect("owned snapshot verifier").finish();
                 let result = result
@@ -178,5 +173,30 @@ impl NativeRoot {
         SLOT.lock(|cell| {
             cell.borrow_mut().session = Some(owned);
         });
+    }
+}
+
+// The hash and actual frozen owner persist; the read scratch does not. Keep
+// this bounded synchronous turn outlined so no512-byte array becomes a
+// permanent ancestor-frame or retained Ready-session allocation.
+#[inline(never)]
+fn verify_snapshot_turn(verifier: &mut snapshot::Verifier) -> Result<bool, &'static str> {
+    let mut work = [0; 512];
+    verifier.step(&mut work)
+}
+#[cfg(test)]
+mod workspace_tests {
+    use super::*;
+    #[test]
+    fn verification_scratch_does_not_extend_the_retained_ready_owner() {
+        assert!(
+            core::mem::size_of::<Session>()
+                <= core::mem::size_of::<Export>() + 2 * core::mem::size_of::<u64>()
+        );
+        println!(
+            "network_session_bytes={} export_bytes={} per_turn_scratch_bytes=512",
+            core::mem::size_of::<Session>(),
+            core::mem::size_of::<Export>()
+        );
     }
 }
