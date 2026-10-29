@@ -161,6 +161,104 @@ impl PreparedFlatDirectOperation {
         })
     }
 
+    /// Fill admitted descriptive claim storage without allocating. Refusal
+    /// returns both memory owners unchanged and never issues a capability.
+    #[allow(clippy::result_large_err)]
+    pub fn prepare_issuance_reusing(
+        &self,
+        mut claim: PreparedFlatClaimBacking,
+        backing: conduit_core::BaseCapabilityIssuanceBacking,
+        parameter_bytes: u32,
+        work_units: u64,
+    ) -> Result<
+        PreparedFlatDirectIssuance,
+        (
+            PreparedFlatClaimBacking,
+            conduit_core::BaseCapabilityIssuanceBacking,
+            SelectedCallRefusal,
+        ),
+    > {
+        let scope = &self.expected;
+        if claim.claim.host_id.0.capacity() < scope.host_id.as_str().len()
+            || claim.claim.boot_id.0.capacity() < scope.boot_id.as_str().len()
+            || claim.claim.base_instance_id.0.capacity() < scope.base_instance_id.as_str().len()
+            || claim.claim.plan_id.0.capacity() < scope.plan_id.as_str().len()
+            || claim.claim.active_play_id.0.capacity() < scope.active_play_id.as_str().len()
+            || claim.claim.implementation_id.0.capacity() < scope.implementation_id.as_str().len()
+            || claim.claim.operation_contract_id.0.capacity()
+                < scope.operation_contract_id.as_str().len()
+            || claim.claim.subject_kind.0.capacity() < scope.subject_kind.as_str().len()
+            || claim.claim.resource_pool_id.0.capacity() < scope.resource_pool_id.as_str().len()
+            || claim.claim.resource_generation_id.0.capacity()
+                < scope.resource_generation_id.0.len()
+            || claim.claim.envelope_id.0.capacity() < scope.envelope_id.as_str().len()
+        {
+            return Err((claim, backing, SelectedCallRefusal::Possession));
+        }
+        claim.claim.host_id.0.clear();
+        claim.claim.host_id.0.push_str(scope.host_id.as_str());
+        claim.claim.boot_id.0.clear();
+        claim.claim.boot_id.0.push_str(scope.boot_id.as_str());
+        claim.claim.base_instance_id.0.clear();
+        claim
+            .claim
+            .base_instance_id
+            .0
+            .push_str(scope.base_instance_id.as_str());
+        claim.claim.plan_id.0.clear();
+        claim.claim.plan_id.0.push_str(scope.plan_id.as_str());
+        claim.claim.active_play_id.0.clear();
+        claim
+            .claim
+            .active_play_id
+            .0
+            .push_str(scope.active_play_id.as_str());
+        claim.claim.implementation_id.0.clear();
+        claim
+            .claim
+            .implementation_id
+            .0
+            .push_str(scope.implementation_id.as_str());
+        claim.claim.operation_contract_id.0.clear();
+        claim
+            .claim
+            .operation_contract_id
+            .0
+            .push_str(scope.operation_contract_id.as_str());
+        claim.claim.subject_kind.0.clear();
+        claim
+            .claim
+            .subject_kind
+            .0
+            .push_str(scope.subject_kind.as_str());
+        claim.claim.resource_pool_id.0.clear();
+        claim
+            .claim
+            .resource_pool_id
+            .0
+            .push_str(scope.resource_pool_id.as_str());
+        claim.claim.resource_generation_id.0.clear();
+        claim
+            .claim
+            .resource_generation_id
+            .0
+            .push_str(scope.resource_generation_id.0.as_str());
+        claim.claim.envelope_id.0.clear();
+        claim
+            .claim
+            .envelope_id
+            .0
+            .push_str(scope.envelope_id.as_str());
+        claim.claim.base_provider_generation = scope.base_provider_generation;
+        claim.claim.parameter_bytes = parameter_bytes;
+        claim.claim.work_units = work_units;
+        Ok(PreparedFlatDirectIssuance {
+            claim: claim.claim,
+            backing,
+            node: self.node,
+        })
+    }
+
     pub fn issue_prepared(
         self,
         mut table: BaseCapabilityTable,
@@ -258,6 +356,19 @@ impl IssuedFlatDirectOperation {
     pub fn bind(
         self,
     ) -> Result<(conduit_core::BoundBaseOperation, NodeId), (Self, SelectedCallRefusal)> {
+        self.bind_recycling().map(|(bound, node, _)| (bound, node))
+    }
+    #[allow(clippy::result_large_err)]
+    pub fn bind_recycling(
+        self,
+    ) -> Result<
+        (
+            conduit_core::BoundBaseOperation,
+            NodeId,
+            PreparedFlatClaimBacking,
+        ),
+        (Self, SelectedCallRefusal),
+    > {
         let check = || {
             // Complete canonical Active correspondence was checked before
             // Core issued this immutable, inseparable scope/node possession.
@@ -268,9 +379,10 @@ impl IssuedFlatDirectOperation {
         if let Err(error) = check() {
             return Err((self, error));
         }
-        let operation = conduit_core::BoundBaseOperation::bind(self.table, self.handle, self.claim)
-            .unwrap_or_else(|_| unreachable!("exact preflighted actual possession"));
-        Ok((operation, self.node))
+        let (operation, claim) =
+            conduit_core::BoundBaseOperation::bind_recycling(self.table, self.handle, self.claim)
+                .unwrap_or_else(|_| unreachable!("exact preflighted actual possession"));
+        Ok((operation, self.node, PreparedFlatClaimBacking { claim }))
     }
 }
 
@@ -292,3 +404,130 @@ fn try_copy(value: &str) -> Result<alloc::string::String, SelectedCallRefusal> {
 #[cfg(test)]
 #[path = "flat_tests.rs"]
 mod tests;
+
+/// Reusable owned descriptive claim memory. Never capability possession.
+pub struct PreparedFlatClaimBacking {
+    claim: BaseOperationClaim,
+}
+impl PreparedFlatClaimBacking {
+    pub fn try_new(
+        operations: &[&PreparedFlatDirectOperation],
+    ) -> Result<Self, SelectedCallRefusal> {
+        if operations.is_empty() {
+            return Err(SelectedCallRefusal::WrongBinding);
+        }
+        let host_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.host_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let boot_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.boot_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let base_instance_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.base_instance_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let plan_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.plan_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let active_play_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.active_play_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let implementation_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.implementation_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let operation_contract_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.operation_contract_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let subject_kind = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.subject_kind.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let resource_pool_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.resource_pool_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let resource_generation_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.resource_generation_id.0.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        let envelope_id = reserve_claim(
+            operations
+                .iter()
+                .map(|op| op.expected.envelope_id.as_str())
+                .map(str::len)
+                .max()
+                .unwrap(),
+        )?;
+        Ok(Self {
+            claim: BaseOperationClaim {
+                host_id: host_id.into(),
+                boot_id: boot_id.into(),
+                base_instance_id: base_instance_id.into(),
+                plan_id: plan_id.into(),
+                active_play_id: active_play_id.into(),
+                implementation_id: implementation_id.into(),
+                operation_contract_id: operation_contract_id.into(),
+                subject_kind: subject_kind.into(),
+                resource_pool_id: resource_pool_id.into(),
+                resource_generation_id: conduit_core::ResourceGenerationId(resource_generation_id),
+                envelope_id: envelope_id.into(),
+                base_provider_generation: 0,
+                parameter_bytes: 0,
+                work_units: 0,
+            },
+        })
+    }
+}
+fn reserve_claim(bytes: usize) -> Result<alloc::string::String, SelectedCallRefusal> {
+    let mut result = alloc::string::String::new();
+    result
+        .try_reserve_exact(bytes)
+        .map_err(|_| SelectedCallRefusal::Possession)?;
+    Ok(result)
+}
