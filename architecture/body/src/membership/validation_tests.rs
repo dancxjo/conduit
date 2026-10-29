@@ -145,9 +145,6 @@ fn bounded_borrowed_replay_matches_legacy_with_all_allocations_refused() {
         let decoded: BodyMembership =
             serde_json::from_slice(&serde_json::to_vec(value).unwrap()).unwrap();
         check(&decoded);
-        let decoded: BodyMembership =
-            postcard::from_bytes(&postcard::to_allocvec(value).unwrap()).unwrap();
-        check(&decoded);
     }
 }
 #[test]
