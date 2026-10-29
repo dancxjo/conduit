@@ -127,7 +127,7 @@ mod microphone_fixture {
         let (manifest, state) = super::super::super::tests::fixture();
         install(&manifest, &state).unwrap();
         let executable = state.join("fixture-arecord");
-        fs::write(&executable, "#!/bin/sh\nif [ \"$1\" = \"-l\" ]; then\necho observed >> \"$0.observed\"\nprintf 'card 999: ConduitFixture [Fixture], device 0: Capture [Capture]\\n'\nelse\necho capture-started > \"$0.capture\"\necho capture-must-not-start >&2\nexit 97\nfi\n").unwrap();
+        fs::write(&executable, "#!/bin/sh\nif [ \"$1\" = \"--capture\" ]; then shift; fi\nif [ \"$1\" = \"-l\" ]; then\necho observed >> \"$0.observed\"\nprintf 'card 999: ConduitFixture [Fixture], device 0: Capture [Capture]\\n'\nelse\necho capture-started > \"$0.capture\"\necho capture-must-not-start >&2\nexit 97\nfi\n").unwrap();
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
         let discovery = AlsaMicrophoneDiscovery::inspect(&executable).unwrap();
         fs::remove_file(state.join("fixture-arecord.observed")).unwrap();
