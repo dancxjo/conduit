@@ -130,7 +130,7 @@ pub(crate) fn admitted_collector(path: &Path) -> Result<Collector> {
 }
 /// Only a private binding saved by successful invitation admission may enter
 /// this command. A producer response cannot replace its pinned Root key.
-pub fn run_joined(
+pub(crate) fn run_joined(
     binding: &Path,
     peer: &str,
     directory: &Path,
@@ -192,7 +192,7 @@ pub fn run(collector: Collector, peer: &str, directory: &Path, once: bool) -> Re
 
 #[path = "local_recorder/network.rs"]
 pub mod network;
-pub fn run_joined_continuing(
+pub(crate) fn run_joined_continuing(
     binding: &Path,
     continuity: &Path,
     peer: &str,
