@@ -14,7 +14,7 @@ impl HostedPlaybackSelection {
             return Err("playback executable requires an exact lowercase SHA-256".into());
         }
         let mut bytes = [0u8; 32];
-        for (index, pair) in digest.as_bytes().chunks_exact(2).enumerate() {
+        for (index, pair) in digest.as_bytes().as_chunks::<2>().0.iter().enumerate() {
             let nibble = |b: u8| {
                 if b.is_ascii_digit() {
                     b - b'0'
@@ -74,6 +74,35 @@ fn verify_file(path: &std::path::Path, expected: &[u8; 32]) -> Result<(), Playba
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn checked_digest_requires_exact_lowercase_hex_and_retains_binary_identity() {
+        let selection = HostedPlaybackSelection::from_observation(
+            crate::hosted_audio::AlsaPlaybackObservation {
+                card_index: 0,
+                card_id: "Fixture".into(),
+                card_name: "Fixture".into(),
+                device: 0,
+                device_name: "Fixture".into(),
+                base_identity: "fixture/speaker".into(),
+            },
+            "boot/digest-fixture".into(),
+            conduit_core::OfferGeneration(1),
+        );
+        let bound = selection
+            .clone()
+            .with_executable_sha256("ab".repeat(32))
+            .unwrap();
+        assert_eq!(bound.executable_sha256, Some([0xab; 32]));
+        for invalid in [
+            String::new(),
+            "a".repeat(63),
+            "A".repeat(64),
+            "g".repeat(64),
+        ] {
+            assert!(selection.clone().with_executable_sha256(invalid).is_err());
+        }
+    }
+
     #[test]
     fn executable_drift_and_missing_provider_refuse_without_executing() {
         let path =
