@@ -41,3 +41,6 @@ fn canonical_identity_storage_refusal_precedes_plan_consumer_and_admission() {
     .unwrap();
     assert_eq!(play.active.as_ref().unwrap().play_sequence, 1);
 }
+
+#[path = "network_planner_failures.rs"]
+mod allocation_failures;

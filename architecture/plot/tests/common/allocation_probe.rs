@@ -23,6 +23,7 @@ impl Observation {
     }
 }
 thread_local! {
+    static REFUSE_ALLOCATION_INDEX: Cell<Option<usize>> = const { Cell::new(None) };
     static REFUSE_ALLOCATION_SIZE: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, deallocated_bytes: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
@@ -30,6 +31,9 @@ thread_local! {
 pub struct Allocator;
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if refuse_indexed_allocation() {
+            return core::ptr::null_mut();
+        }
         if REFUSE_ALLOCATION_SIZE
             .try_with(|size| {
                 if size.get() == Some(layout.size()) {
@@ -50,6 +54,9 @@ unsafe impl GlobalAlloc for Allocator {
         pointer
     }
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        if refuse_indexed_allocation() {
+            return core::ptr::null_mut();
+        }
         let pointer = unsafe { System.alloc_zeroed(layout) };
         if !pointer.is_null() {
             update(layout.size(), 0, false);
@@ -63,6 +70,9 @@ unsafe impl GlobalAlloc for Allocator {
         }
     }
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        if refuse_indexed_allocation() {
+            return core::ptr::null_mut();
+        }
         let next = unsafe { System.realloc(pointer, layout, size) };
         if !next.is_null() {
             update(size, layout.size(), true);
@@ -128,4 +138,35 @@ pub fn refuse_next_allocation_size(bytes: usize) -> AllocationRefusal {
 #[allow(dead_code)]
 pub fn current_observation() -> Option<Observation> {
     TRACKING.with(|tracking| tracking.get().then(|| OBSERVATION.with(Cell::get)))
+}
+
+// One zero-based allocation/reallocation attempt, including alloc_zeroed.
+// Refusal clears itself; this models a single failure, not persistent outage.
+fn refuse_indexed_allocation() -> bool {
+    REFUSE_ALLOCATION_INDEX
+        .try_with(|index| match index.get() {
+            Some(0) => {
+                index.set(None);
+                true
+            }
+            Some(next) => {
+                index.set(Some(next - 1));
+                false
+            }
+            None => false,
+        })
+        .unwrap_or(false)
+}
+#[allow(dead_code)]
+pub struct IndexedAllocationRefusal;
+impl Drop for IndexedAllocationRefusal {
+    fn drop(&mut self) {
+        REFUSE_ALLOCATION_INDEX.with(|index| index.set(None));
+    }
+}
+/// Isolate failure injection to this thread and this explicitly guarded call.
+#[allow(dead_code)]
+pub fn refuse_nth_allocation(index: usize) -> IndexedAllocationRefusal {
+    REFUSE_ALLOCATION_INDEX.with(|slot| assert!(slot.replace(Some(index)).is_none()));
+    IndexedAllocationRefusal
 }

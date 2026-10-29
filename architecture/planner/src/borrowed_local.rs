@@ -61,12 +61,13 @@ pub fn with_linked_local_plan<R>(
     }
     validate_host_resources_ref(host)?;
     validate_authority_grants_ref(grants)?;
-    let mut usage = vec![0u32; host.resources.len()];
-    let mut counts: Vec<(&str, u16)> = Vec::new();
-    let mut resources: Vec<Vec<c::ResourceBindingRef<'_>>> = Vec::with_capacity(facts.gears.len());
-    let mut authority: Vec<Vec<c::AuthorityBindingRef<'_>>> = Vec::with_capacity(facts.gears.len());
-    let mut selected_bases = Vec::with_capacity(facts.gears.len());
-    let mut ids = Vec::with_capacity(facts.gears.len());
+    let mut usage = workspace_vec(host.resources.len())?;
+    usage.resize(host.resources.len(), 0u32);
+    let mut counts: Vec<(&str, u16)> = workspace_vec(facts.gears.len())?;
+    let mut resources: Vec<Vec<c::ResourceBindingRef<'_>>> = workspace_vec(facts.gears.len())?;
+    let mut authority: Vec<Vec<c::AuthorityBindingRef<'_>>> = workspace_vec(facts.gears.len())?;
+    let mut selected_bases = workspace_vec(facts.gears.len())?;
+    let mut ids = workspace_vec(facts.gears.len())?;
     for (gear, choice) in facts.gears.iter().zip(&choices) {
         let offer = host
             .capabilities
@@ -85,7 +86,7 @@ pub fn with_linked_local_plan<R>(
         };
         *count += 1;
         validate_instance_count_ref(offer, *count)?;
-        let mut bound = Vec::with_capacity(offer.resource_requirements.len());
+        let mut bound = workspace_vec(offer.resource_requirements.len())?;
         for requirement in offer.resource_requirements.iter() {
             let index = resource_binding::pool_selection::resolve_resource_pool_index(
                 host,
@@ -111,7 +112,9 @@ pub fn with_linked_local_plan<R>(
                 content: None,
             });
         }
-        bound.sort_by(|a, b| {
+        // Every remaining resource field is None here; comparator ties are
+        // byte-identical records, so unstable sorting needs no heap scratch.
+        bound.sort_unstable_by(|a, b| {
             a.pool_id
                 .cmp(b.pool_id)
                 .then(a.class_id.cmp(b.class_id))
@@ -119,7 +122,7 @@ pub fn with_linked_local_plan<R>(
         });
         selected_bases.push(selected_base_provider_index_ref(host, offer)?);
         resources.push(bound);
-        let mut bound = Vec::with_capacity(offer.authority_requirements.len());
+        let mut bound = workspace_vec(offer.authority_requirements.len())?;
         for requirement in offer.authority_requirements.iter() {
             let index = resolve_authority_grant_index(host, offer, requirement, grants)?;
             bound.push(
@@ -132,7 +135,9 @@ pub fn with_linked_local_plan<R>(
                     .into(),
             );
         }
-        bound.sort_by(|a, b| compare_authority_bindings_ref(*a, *b));
+        // The comparator covers all seven authority fields. Equal rows are
+        // identical; stable-sort scratch cannot affect canonical ordering.
+        bound.sort_unstable_by(|a, b| compare_authority_bindings_ref(*a, *b));
         authority.push(bound);
         ids.push(
             crate::streamed_identity::placement(
@@ -179,7 +184,7 @@ pub fn with_linked_local_plan<R>(
     let connection_ids =
         crate::streamed_identity::connections(facts.checked_plot_id, facts.connections)
             .map_err(|_| E::WorkspaceCapacity)?;
-    let mut connections = Vec::with_capacity(facts.connections.len());
+    let mut connections = workspace_vec(facts.connections.len())?;
     for (i, connection) in facts.connections.iter().enumerate() {
         let source_index = facts
             .gears
@@ -227,37 +232,56 @@ pub fn with_linked_local_plan<R>(
             byte_capacity,
         });
     }
-    let startup_order = startup::plain_startup_order_ref(records, &connections)?
+    let startup_order = startup::plain_startup_order_ref(records, &connections)
+        .map_err(|_| E::WorkspaceCapacity)?
         .ok_or_else(|| PlannerError::CyclicStartupDependencies(facts.name.into()))?;
-    let dependencies = startup::plain_startup_dependencies_ref(&connections);
-    let terminals = records
-        .iter()
-        .map(|p| c::ExpectedTerminalRef::PlacementCompleted(p.placement_id))
-        .chain(
-            connections
-                .iter()
-                .map(|v| c::ExpectedTerminalRef::ConnectionCompleted(v.connection_id)),
-        )
-        .chain(core::iter::once(c::ExpectedTerminalRef::PlanCompleted))
-        .collect::<Vec<_>>();
-    let signs = core::iter::once(c::ExpectedSignRef::PlanFragmentReceived)
-        .chain(
-            records
-                .iter()
-                .map(|p| c::ExpectedSignRef::PlacementPrepared(p.placement_id)),
-        )
-        .chain(
-            records
-                .iter()
-                .map(|p| c::ExpectedSignRef::PlacementTerminal(p.placement_id)),
-        )
-        .chain(
-            connections
-                .iter()
-                .map(|p| c::ExpectedSignRef::ConnectionTerminal(p.connection_id)),
-        )
-        .chain(core::iter::once(c::ExpectedSignRef::PlanTerminal))
-        .collect::<Vec<_>>();
+    let dependencies =
+        startup::plain_startup_dependencies_ref(&connections).map_err(|_| E::WorkspaceCapacity)?;
+    let mut terminals = workspace_vec(
+        records
+            .len()
+            .checked_add(connections.len())
+            .and_then(|v| v.checked_add(1))
+            .ok_or(E::WorkspaceCapacity)?,
+    )?;
+    terminals.extend(
+        records
+            .iter()
+            .map(|p| c::ExpectedTerminalRef::PlacementCompleted(p.placement_id))
+            .chain(
+                connections
+                    .iter()
+                    .map(|v| c::ExpectedTerminalRef::ConnectionCompleted(v.connection_id)),
+            )
+            .chain(core::iter::once(c::ExpectedTerminalRef::PlanCompleted)),
+    );
+    let mut signs = workspace_vec(
+        records
+            .len()
+            .checked_mul(2)
+            .and_then(|v| v.checked_add(connections.len()))
+            .and_then(|v| v.checked_add(2))
+            .ok_or(E::WorkspaceCapacity)?,
+    )?;
+    signs.extend(
+        core::iter::once(c::ExpectedSignRef::PlanFragmentReceived)
+            .chain(
+                records
+                    .iter()
+                    .map(|p| c::ExpectedSignRef::PlacementPrepared(p.placement_id)),
+            )
+            .chain(
+                records
+                    .iter()
+                    .map(|p| c::ExpectedSignRef::PlacementTerminal(p.placement_id)),
+            )
+            .chain(
+                connections
+                    .iter()
+                    .map(|p| c::ExpectedSignRef::ConnectionTerminal(p.connection_id)),
+            )
+            .chain(core::iter::once(c::ExpectedSignRef::PlanTerminal)),
+    );
     let sign_budget =
         c::mandatory_sign_storage_requirement_ref(c::ExpectedSignRefs::Borrowed(&signs))
             .ok_or_else(|| PlannerError::SignBudgetOverflow(host.host_id.into()))?;
@@ -294,8 +318,11 @@ pub fn with_linked_local_plan<R>(
             .map_err(|_| E::UnsupportedProfile)?;
     }
     let fragment = fingerprint
-        .finish_ref(tail)
-        .map_err(|_| E::UnsupportedProfile)?;
+        .try_finish_ref(tail)
+        .map_err(|reason| match reason {
+            c::FragmentFingerprintPreparationRefusal::Capacity => E::WorkspaceCapacity,
+            c::FragmentFingerprintPreparationRefusal::Fingerprint(_) => E::UnsupportedProfile,
+        })?;
     let commitments = c::FragmentCommitmentRefs::Single(c::FragmentCommitmentRef {
         host_id: host.host_id,
         fragment_id: fragment.as_str(),
@@ -309,7 +336,7 @@ pub fn with_linked_local_plan<R>(
         commitments,
         activation_preparations: &[],
     };
-    let plan = c::compute_plan_fingerprint_ref(root);
+    let plan = c::try_compute_plan_fingerprint_ref(root).map_err(|_| E::WorkspaceCapacity)?;
     let verified = c::FlatPlanRef {
         plan_id: plan.as_str(),
         root,
@@ -327,6 +354,14 @@ pub fn with_linked_local_plan<R>(
         source: image,
         verified,
     }))
+}
+
+fn workspace_vec<T>(capacity: usize) -> Result<Vec<T>, BorrowedLocalPlanningRefusal> {
+    let mut storage = Vec::new();
+    storage
+        .try_reserve_exact(capacity)
+        .map_err(|_| BorrowedLocalPlanningRefusal::WorkspaceCapacity)?;
+    Ok(storage)
 }
 
 fn plain_linked_profile(
@@ -354,8 +389,8 @@ fn plain_linked_profile(
 fn plain_default_choices(
     facts: LinkedPlanningFactsRef<'_>,
     host: c::HostAdvertisementRef<'_>,
-) -> Result<Vec<usize>, PlannerError> {
-    let mut choices = Vec::with_capacity(facts.gears.len());
+) -> Result<Vec<usize>, BorrowedLocalPlanningRefusal> {
+    let mut choices = workspace_vec(facts.gears.len())?;
     for gear in facts.gears {
         let mut best: Option<(usize, c::CapabilityOfferRef<'_>)> = None;
         for (index, offer) in host.capabilities.iter().enumerate() {

@@ -96,12 +96,12 @@ use plan_fingerprint::compute_plan_id;
 pub use plan_fingerprint::compute_plan_id as compute_plan_fingerprint;
 pub use plan_fingerprint::{
     compute_checked_front_fingerprint, compute_fragment_id, FragmentFingerprintBuilder,
-    FragmentFingerprintHeader, FragmentFingerprintHeaderRef, FragmentFingerprintRefusal,
-    FragmentFingerprintTail, FragmentFingerprintTailRef,
+    FragmentFingerprintHeader, FragmentFingerprintHeaderRef, FragmentFingerprintPreparationRefusal,
+    FragmentFingerprintRefusal, FragmentFingerprintTail, FragmentFingerprintTailRef,
 };
 pub use plan_fingerprint::{
-    compute_plan_fingerprint_ref, FragmentCommitmentRef, FragmentCommitmentRefs,
-    PlanFingerprintInputRef,
+    compute_plan_fingerprint_ref, try_compute_plan_fingerprint_ref, FragmentCommitmentRef,
+    FragmentCommitmentRefs, PlanFingerprintInputRef,
 };
 mod structured_info;
 mod temporal;
@@ -1301,7 +1301,7 @@ fn hash_bytes(bytes: &[u8]) -> String {
 }
 
 mod digest_hex;
-use digest_hex::hex_digest;
+use digest_hex::{hex_digest, try_hex_digest};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlacementLifecycleState {

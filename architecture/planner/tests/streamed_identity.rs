@@ -86,3 +86,30 @@ fn output_and_collection_allocation_refusal_retire_partial_ids_and_retry_exactly
     let _refusal = allocation_probe::refuse_next_allocation_size(64);
     assert!(actual::placement("plot", "gear", "host", "capability").is_err());
 }
+
+#[path = "../src/contract/line_mechanism.rs"]
+mod line_mechanism;
+#[test]
+fn line_mechanism_permissions_borrow_ids_without_allocating_comparison_strings() {
+    let local = [conduit_core::BaseImplementationId::from(
+        conduit_core::LOCAL_BASE_IMPLEMENTATION_ID,
+    )];
+    let remote = [conduit_core::BaseImplementationId::from("remote/line")];
+    for (allowed, expected) in [
+        (local.as_slice(), true),
+        (remote.as_slice(), false),
+        (&[], false),
+    ] {
+        let (actual, memory) = allocation_probe::observe(|| {
+            let _refusal = allocation_probe::refuse_next_allocation_size(20);
+            let policy = line_mechanism::LineMechanismPolicy::new(allowed);
+            (
+                policy.permits_local(),
+                policy.permits_remote(&remote[0]),
+                policy.permits_remote(&local[0]),
+            )
+        });
+        assert_eq!(actual, (expected, !allowed.is_empty() && !expected, false));
+        assert_eq!(memory.allocations + memory.reallocations, 0);
+    }
+}
