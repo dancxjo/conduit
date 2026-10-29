@@ -66,13 +66,19 @@ fn run(scenario: usize, compact: bool) -> Vec<Snapshot> {
         )
     }
     .unwrap();
-    let values = if compact {
-        appliance::prepare_compact_value_storage()
-    } else {
-        appliance::prepare_value_storage()
-    }
-    .unwrap();
+    let (values, construction) = allocation_probe::observe(|| {
+        if compact {
+            appliance::prepare_compact_value_storage()
+        } else {
+            appliance::prepare_value_storage()
+        }
+        .unwrap()
+    });
     let storage = values.reserved_storage_bytes();
+    assert_eq!(construction.retained_bytes(), storage);
+    assert_eq!(construction.peak_bytes, storage);
+    assert_eq!(construction.reallocations, 0);
+    eprintln!("store compact={compact} peak={} retained={} allocations={} layout_handle={} layout_definition={} store_inline={}", construction.peak_bytes, construction.retained_bytes(), construction.allocations, core::mem::size_of::<k::CompactCanonicalLayout>(), core::mem::size_of::<k::CompactCanonicalLayoutDefinition>(), core::mem::size_of::<k::HostedValueStore>());
     assert_eq!(values.item_capacity(), 9);
     assert_eq!(values.byte_capacity(), 9329);
     if compact {
@@ -150,6 +156,10 @@ fn run(scenario: usize, compact: bool) -> Vec<Snapshot> {
         k::HostedSignLog::new(sign_items, sign_bytes).unwrap(),
     )
     .unwrap();
+    eprintln!(
+        "sampler_kernel_inline={}",
+        core::mem::size_of_val(kernel.as_ref())
+    );
     if let Some(edge) = edge {
         // SAFETY: exact checked tables, actual initialized drivers and affine
         // values were moved together from this witness's returned preparation.
