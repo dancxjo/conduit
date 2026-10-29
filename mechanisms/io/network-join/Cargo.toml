@@ -13,3 +13,6 @@ conduit-net = { path = "../../../semantics/net" }
 opt-level = 1
 [profile.test.build-override]
 opt-level = 1
+
+[dev-dependencies]
+conduit-embedded-build = { path = "../../../make/embedded-build" }

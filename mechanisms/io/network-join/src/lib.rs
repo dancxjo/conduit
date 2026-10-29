@@ -27,3 +27,5 @@ pub use owner::{AssignedJoinSelection, JoinCallRefusal, NetworkJoinHostCall};
 
 mod pair;
 pub use pair::*;
+
+pub mod scan;

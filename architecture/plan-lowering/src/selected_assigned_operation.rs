@@ -301,7 +301,7 @@ fn bind_assigned_profile(
         || b.grant != id(scope.authority_grant_id.as_str())
         || b.authority != id(native.authority)
         || b.call != id(definition.call)
-        || b.subject != id(definition.kind.kind_id.as_str())
+        || b.subject != id(admission.subject.as_str())
         || b.host != view.host
         || b.boot != view.boot
         || b.authority_capability != b.capability
