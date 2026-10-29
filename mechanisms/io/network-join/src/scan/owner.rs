@@ -244,7 +244,8 @@ impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
         if request != self.request {
             return Err(ScanCallRefusal::WrongBinding);
         }
-        if self.provider.now_ms() >= request.scan_deadline_ms {
+        let started = self.provider.now_ms();
+        if started >= request.scan_deadline_ms {
             return Err(ScanCallRefusal::Deadline);
         }
         let lease = self
@@ -256,20 +257,25 @@ impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
         self.length = 0;
         let lease = crate::lease::Pending::new(&mut self.operation, lease);
         let completion = self.provider.scan(request, &mut self.records).await;
+        let finished = self.provider.now_ms();
         let result = match completion {
+            Ok(_) if finished >= request.scan_deadline_ms => Err(ScanCallRefusal::Deadline),
             Ok(c)
                 if c.generation == request.generation
-                    && c.completed_ms <= self.provider.now_ms()
-                    && self.provider.now_ms() < request.scan_deadline_ms
-                    && c.completed_ms < request.scan_deadline_ms =>
+                    && c.completed_ms >= started
+                    && c.completed_ms <= finished
+                    && finished >= started =>
             {
-                c.encode(
-                    self.records
-                        .get(..c.count as usize)
-                        .ok_or(ScanCallRefusal::Representation(ScanFailure::Malformed))?,
-                    &mut self.output,
-                )
-                .map_err(ScanCallRefusal::Representation)
+                self.records
+                    .get(..c.count as usize)
+                    .ok_or(ScanCallRefusal::Representation(ScanFailure::Malformed))
+                    .and_then(|records| {
+                        if records.iter().any(|r| r.observed_ms < started) {
+                            return Err(ScanCallRefusal::Representation(ScanFailure::Malformed));
+                        }
+                        c.encode(records, &mut self.output)
+                            .map_err(ScanCallRefusal::Representation)
+                    })
             }
             Ok(_) => Err(ScanCallRefusal::WrongBinding),
             Err(e) => Err(ScanCallRefusal::Provider(e)),

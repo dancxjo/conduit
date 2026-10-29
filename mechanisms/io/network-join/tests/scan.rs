@@ -298,3 +298,53 @@ fn late_completion_and_foreign_lowering_do_not_publish_or_transfer() {
     assert!(owner.completed_output().is_none());
     assert!(owner.cleanup_required());
 }
+
+#[test]
+fn selected_dispatch_cleanup_and_wire_validation_need_no_heap() {
+    let state = Rc::new(State::default());
+    let (mut owner, node) = ready(state);
+    let request = request().encode().unwrap();
+    let ((), usage) = allocation_probe::observe(|| {
+        let bytes = run(owner.invoke(node, HostCallId(0), RequestId(0), &request)).unwrap();
+        let mut output = [ScanObservation::EMPTY; 16];
+        let completion = ScanCompletion::decode(bytes, &mut output).unwrap();
+        assert_eq!(completion.count, 1);
+        run(owner.cleanup()).unwrap();
+        owner.revoke(node, HostCallId(0)).unwrap();
+    });
+    assert_eq!(usage.allocations, 0);
+    println!(
+        "scan owner bytes={} observation={} output={}",
+        core::mem::size_of_val(&owner),
+        core::mem::size_of::<ScanObservation>(),
+        MAXIMUM_SCAN_OUTPUT_BYTES
+    );
+}
+#[test]
+fn malformed_result_never_partially_replaces_caller_observations() {
+    let original =
+        ScanObservation::new(b"retained", ObservedNetworkSecurity::Unsupported, -80, 5).unwrap();
+    let valid = ScanObservation::new(b"actual", ObservedNetworkSecurity::Unknown, -42, 9).unwrap();
+    let completion = ScanCompletion {
+        generation: 1,
+        completed_ms: 10,
+        count: 1,
+        total: 1,
+    };
+    let mut bytes = [0; MAXIMUM_SCAN_OUTPUT_BYTES as usize];
+    let length = completion.encode(&[valid], &mut bytes).unwrap();
+    let mut output = [original; 16];
+    bytes[24 + 35] = 255;
+    assert_eq!(
+        ScanCompletion::decode(&bytes[..length], &mut output),
+        Err(ScanFailure::Malformed)
+    );
+    assert_eq!(output, [original; 16]);
+    assert!(NetworkScanRequest {
+        generation: 1,
+        scan_deadline_ms: 10,
+        cleanup_deadline_ms: 10
+    }
+    .encode()
+    .is_err());
+}
