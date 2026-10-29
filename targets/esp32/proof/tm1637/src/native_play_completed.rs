@@ -80,3 +80,7 @@ impl NativePlay {
 #[cfg(test)]
 #[path = "../tests/completed_control.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../tests/network_retirement_storage.rs"]
+mod retirement_storage_tests;
