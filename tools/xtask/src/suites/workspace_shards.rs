@@ -45,6 +45,7 @@ package_test_shard!(
         "conduit-human",
         "conduit-core",
         "conduit-create-oi",
+        "conduit-i2c-transaction",
         "conduit-mpu6050",
         "conduit-ssd1306",
         "conduit-embedded-build",

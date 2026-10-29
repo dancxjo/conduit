@@ -33,7 +33,7 @@ pub(super) fn selected() -> (
     ActivePlayIdentity,
     PlacementId,
 ) {
-    crate::machine_membrane::selection_fixture::selected(
+    crate::test_support::selected(
         &scope(),
         I2cContract::prepare().unwrap().kind(),
         I2C_CALL,
