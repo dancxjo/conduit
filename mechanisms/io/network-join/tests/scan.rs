@@ -96,15 +96,15 @@ fn prepare_owner(
     let identity = NetworkNativeIdentity {
         host: scope.host_id.clone(),
         boot: scope.boot_id.clone(),
-        base: "base/join".into(),
+        base: "base/scan".into(),
         instance: scope.base_instance_id.clone(),
         provider_generation: scope.base_provider_generation,
         resource: scope.resource_pool_id.clone(),
         resource_generation: scope.resource_generation_id.clone(),
         envelope: scope.envelope_id.clone(),
-        artifact: "artifact/join/fixture".into(),
+        artifact: "artifact/scan/fixture".into(),
         implementation: scope.implementation_id.clone(),
-        base_implementation: "base/join/fixture@1".into(),
+        base_implementation: "base/scan/fixture@1".into(),
     };
     // SAFETY: CPU-only inert provider; this establishes no physical availability.
     let ready = match unsafe { ReadyNetworkScanBase::new(identity, request(), Provider(state)) } {
@@ -123,6 +123,7 @@ fn prepare_owner(
         "radio",
         "scan",
     );
+    fragment.placements[0].host_calls[0].maximum_output_bytes = MAXIMUM_SCAN_OUTPUT_BYTES;
     fragment.placements[0].host_calls[0].target_kind = Some(NETWORK_SCAN_SUBJECT.into());
     fragment.placements[0].resources[0].class_id = WIFI_STATION_RESOURCE_CLASS.into();
     fragment.placements[0].execution_profile_id = NETWORK_SCAN_EXECUTION_PROFILE.into();
