@@ -151,7 +151,7 @@ fn receipt(
     MicrophoneWhisperProofReceipt {
         plan_id,
         play_id: recognition.active_play_id.as_str().to_string(),
-        microphone_implementation_id: conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION.into(),
+        microphone_implementation_id: microphone.implementation_id,
         microphone_executable_sha256: microphone.executable_sha256,
         microphone_base_identity: microphone.base_identity,
         microphone_card_id: microphone.card_id,
