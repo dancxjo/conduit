@@ -51,6 +51,12 @@ impl NativePlay {
         admit: impl FnOnce() -> Result<(), ()>,
     ) -> Result<(), ()> {
         if self.attempted || !self.flat_refusal.is_empty() || source.is_none() || join.is_none() {
+            trace_phased_refusal(
+                100,
+                &self.flat_refusal,
+                self.active.is_some(),
+                self.attempted,
+            );
             return Err(());
         }
         let pair = ReadyNetworkPair::new(source.take().ok_or(())?, join.take().ok_or(())?);
@@ -62,10 +68,12 @@ impl NativePlay {
         let custody = &mut self.flat_refusal;
         let mut reserved = false;
         let mut prepared_active = None;
+        let mut refusal_stage = 101;
         let result = pair.prepare(|owners| {
             let (selected, parts, mut root) = {
                 let credential_grant =
                     issuer.grant_ref(owners.credential_identity(), Operation::Credentials)?;
+                refusal_stage = 102;
                 let join_grant = issuer.grant_ref(owners.join_identity(), Operation::Join)?;
                 let grants = [credential_grant, join_grant];
                 let bases = [c::BaseImplementationId::from(
@@ -87,8 +95,10 @@ impl NativePlay {
                     capabilities: c::CapabilityOfferRefs::Borrowed(&[]),
                     planner_capabilities: &[],
                 };
+                refusal_stage = 103;
                 owners
                     .with_advertisement(header, &attachment, |owners, host| {
+                        refusal_stage = 104;
                         conduit_planner::borrowed_local::with_linked_local_plan(
                             image,
                             host,
@@ -96,7 +106,10 @@ impl NativePlay {
                             c::AuthorityGrantRefs::Borrowed(&grants),
                             1,
                             conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
-                            |scope| prepare_linked_selection(owners, scope, issuer, pins),
+                            |scope| {
+                                refusal_stage = 105;
+                                prepare_linked_selection(owners, scope, issuer, pins)
+                            },
                         )
                         .map_err(|_| ())
                     })
@@ -105,29 +118,40 @@ impl NativePlay {
             // Both native contracts, borrowed Source/Plan projections, grants
             // and lowering tables have retired. Only exact compact proofs and
             // numeric parts overlap final backing and actual issuance.
+            refusal_stage = 110;
             let memory = selected.prepare_claim_storage()?;
             let mut operation = Operation::Credentials;
             selected.prepare_issuance_storage(|native, prepared| {
+                refusal_stage = if matches!(operation, Operation::Credentials) {
+                    111
+                } else {
+                    112
+                };
                 root.prepare_issuance_storage(native, operation, prepared)?;
                 operation = Operation::Join;
                 Ok(())
             })?;
+            refusal_stage = 113;
             prepared_active = Some(root.prepare_reservation()?);
             #[cfg(test)]
             record_phased(0, None);
+            refusal_stage = 114;
             let storage = Self::reserve_linked_backing()?;
             #[cfg(test)]
             record_phased(1, Some(storage.as_ptr() as usize));
+            refusal_stage = 115;
             admit()?;
             self.attempted = true;
             self.configuration_revision = crate::native_credentials::committed_revision();
             self.phase = "installation-refused";
+            refusal_stage = 120;
             root.reserve()?;
             reserved = true;
             #[cfg(test)]
             record_phased(4, None);
             let first =
                 match selected.issue_credentials_reusing(memory, |native, prepared, memory| {
+                    refusal_stage = 121;
                     let issued = root.issue_prepared(
                         native,
                         Operation::Credentials,
@@ -137,6 +161,9 @@ impl NativePlay {
                     );
                     #[cfg(test)]
                     record_phased(6, None);
+                    if issued.is_ok() {
+                        refusal_stage = 122;
+                    }
                     issued
                 }) {
                     Ok(first) => first,
@@ -150,6 +177,7 @@ impl NativePlay {
             #[cfg(test)]
             record_phased(5, None);
             let checked = match first.issue_join_reusing(|native, prepared, memory| {
+                refusal_stage = 123;
                 let issued = root.issue_prepared(
                     native,
                     Operation::Join,
@@ -159,6 +187,9 @@ impl NativePlay {
                 );
                 #[cfg(test)]
                 record_phased(7, None);
+                if issued.is_ok() {
+                    refusal_stage = 124;
+                }
                 issued
             }) {
                 Ok(checked) => checked,
@@ -172,6 +203,7 @@ impl NativePlay {
             };
             #[cfg(test)]
             record_phased(2, None);
+            refusal_stage = 125;
             let prepared = match finish_reserved_kernel(parts, storage) {
                 Ok(prepared) => prepared,
                 Err(()) => {
@@ -201,6 +233,7 @@ impl NativePlay {
                 Ok(())
             }
             Err((pair, ())) => {
+                trace_phased_refusal(refusal_stage, &self.flat_refusal, reserved, self.attempted);
                 let (credentials, provider) = pair.into_ready();
                 *source = Some(credentials);
                 *join = Some(provider);
@@ -670,6 +703,39 @@ mod backing_tests {
             Some(core::alloc::Layout::new::<PreparedNetworkKernel>())
         );
     }
+}
+
+// Phased stages: 100 entry; 101/102 grants; 103 advertisement; 104 planner;
+// 105 selection; 110 claim memory; 111/112 issuer memory; 113 reservation memory;
+// 114 kernel/Sign backing; 115 admission callback; 120 actual Root reservation;
+// 121/122 credential issue/check; 123/124 Join issue/check; 125 materialization.
+// Scalar diagnostics only; no payload, authority or retained execution state.
+#[inline(never)]
+#[cold]
+fn trace_phased_refusal(stage: u16, custody: &IssuedCustody, reserved: bool, admitted: bool) {
+    #[cfg(test)]
+    PHASE_REFUSAL.with(|last| last.set(Some((stage, reserved, admitted))));
+    #[cfg(target_os = "none")]
+    {
+        let custody = match custody {
+            IssuedCustody::Empty => 0,
+            IssuedCustody::Lease(_) => 1,
+            IssuedCustody::First(_) => 2,
+            IssuedCustody::FirstLease(_, _) => 3,
+            IssuedCustody::Both(_, _) => 4,
+        };
+        esp_println::println!("{{\"event\":\"network-phased-install-refused\",\"stage\":{},\"admitted\":{},\"issued_custody\":{},\"active_reserved\":{}}}", stage, admitted, custody, reserved);
+    }
+    #[cfg(not(target_os = "none"))]
+    let _ = (stage, custody, reserved, admitted);
+}
+#[cfg(test)]
+std::thread_local! {
+    static PHASE_REFUSAL: std::cell::Cell<Option<(u16, bool, bool)>> = const { std::cell::Cell::new(None) };
+}
+#[cfg(test)]
+pub(super) fn phased_refusal() -> Option<(u16, bool, bool)> {
+    PHASE_REFUSAL.with(|last| last.take())
 }
 
 // One line per actual failed installation, no retained metadata. Stage codes:
