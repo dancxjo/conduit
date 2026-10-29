@@ -47,3 +47,13 @@ with the installed local Host ID, save it as
 `~/.config/systemd/user/conduit-minipitft.service`, and enable it through
 `systemctl --user enable --now conduit-minipitft.service`. The normal Host
 installation must already have enabled user lingering for startup without SSH.
+
+## First Linux B+ observation
+
+On 28 October 2026, `beeplus.local` completed all 225 checked frame chunks and
+reported successful SPI/GPIO returns. The attending user observed a backlit but
+blank square 1.3-inch panel. An independent short reference color-bar probe was
+also blank in mode 0 at 4 MHz and mode 3 at 500 kHz. The Pi reported no
+undervoltage. This is **not visible-display acceptance**; electrical seating,
+panel response and the Linux attachment path still need investigation. The
+software conformance suite passed all eight steps (84 test executions).
