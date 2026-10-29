@@ -280,12 +280,16 @@ fn publish(path: &Path, face: &conduit_face::Face, deadline: u64) -> Result<()> 
     }
     result
 }
+fn refresh_delay(started: u64, finished: u64) -> Duration {
+    Duration::from_millis(1000u64.saturating_sub(finished.saturating_sub(started)))
+}
 pub(crate) fn run(binding: &Path, peer: &str, output: &Path, once: bool) -> Result<()> {
     let binding = crate::local_recorder::validated_binding(binding)?;
     let parent = output.parent().ok_or("Face feed parent")?;
     crate::observed_history::create_durable_directory(parent)?;
     private(parent, true)?;
     loop {
+        let started = boot_ms()?;
         let result = fetch(binding.root(), &binding.credential().body_id, peer)
             .and_then(|(face, remaining)| publish(output, &face, remaining));
         if once {
@@ -294,7 +298,7 @@ pub(crate) fn run(binding: &Path, peer: &str, output: &Path, once: bool) -> Resu
         if let Err(error) = result {
             eprintln!("Face feed unavailable: {error}");
         }
-        std::thread::sleep(Duration::from_secs(1));
+        std::thread::sleep(refresh_delay(started, boot_ms()?));
     }
 }
 #[cfg(test)]

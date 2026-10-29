@@ -179,3 +179,17 @@ fn transient_transport_and_busy_replies_share_the_original_absolute_deadline() {
     )
     .is_err());
 }
+
+#[test]
+fn refresh_cadence_includes_transfer_time_without_extending_the_lease() {
+    assert_eq!(
+        super::refresh_delay(100, 100),
+        std::time::Duration::from_millis(1000)
+    );
+    assert_eq!(
+        super::refresh_delay(100, 850),
+        std::time::Duration::from_millis(250)
+    );
+    assert_eq!(super::refresh_delay(100, 2100), std::time::Duration::ZERO);
+    assert_eq!(super::refresh_delay(100, 5100), std::time::Duration::ZERO);
+}
