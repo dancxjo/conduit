@@ -102,6 +102,7 @@ unstable_module!(
 pub mod scan;
 
 /// Fixed-output scanning with retained cancellation custody.
+#[cfg(feature = "unstable")]
 pub mod bounded_scan;
 pub mod sta;
 
