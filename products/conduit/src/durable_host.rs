@@ -44,6 +44,8 @@ use installation_configured::install_configured_with_todo;
 #[path = "durable_host/runtime_marker.rs"]
 mod runtime_marker;
 pub(crate) use runtime_marker::refresh_offer_generation;
+#[path = "durable_host/selected_host_configuration.rs"]
+mod selected_host_configuration;
 #[path = "durable_host/selected_model.rs"]
 mod selected_model;
 #[path = "durable_host/selected_speech.rs"]
@@ -92,6 +94,8 @@ struct Installation {
     selected_model: Option<selected_model::Selection>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     selected_todo_checkpoint: Option<selected_todo::Selection>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    selected_host_configuration: Option<selected_host_configuration::Selection>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -114,6 +118,11 @@ struct RuntimeStatus {
 
 pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
     match command {
+        HostServiceCommand::Configure {
+            configuration,
+            clear,
+            state_dir,
+        } => selected_host_configuration::configure(&state_dir, configuration.as_deref(), clear),
         HostServiceCommand::Install {
             manifest,
             state_dir,

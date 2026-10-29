@@ -84,6 +84,29 @@ base, authorable finite `need` templates, and complete finite host limits.
 Resource capacity and bases remain explicit in the source. It contains no plot,
 application pin meaning, current presence, or authority truth.
 
+For Linux microphone equipment, `audio/microphone` can explicitly select
+`std/alsa-microphone-clip@1` for direct ALSA hardware or
+`std/alsa-plug-microphone-clip@1` for ALSA channel/rate conversion. Both produce
+bounded mono signed-16-bit little-endian PCM at 16 kHz. They have distinct
+implementation, execution-profile, artifact and capability identities; neither
+silently falls back to the other. Both reserve the same physical endpoint pool
+and require the existing capture authority.
+
+Each requires an `initialization` object with `executable`,
+`executable_sha256`, `card_id`, `device`, `base_identity`,
+`capture_milliseconds` and `timeout_milliseconds`. These package-owned fields
+are checked without capture. Installed startup verifies provider and endpoint
+identity before advertising the selected implementation; it does not record
+audio. An admitted capture can still refuse unsupported hardware, provider
+loss or an inexact negotiated sample rate. Changing the implementation changes
+the checked construction identity and takes effect through a fresh Boot.
+Existing direct selections retain their explicit direct behavior.
+
+The bounded repository proof entrance is
+`cargo xtask make host prove-microphone-whisper`; its optional `--alsa-plug`
+explicitly selects conversion. That repository proof does not admit an installed
+Host to a body or establish shared-face execution.
+
 host construction uses the same lossless tokenizer, declaration syntax,
 structured values, source spans, and diagnostic model as ordinary plot source.
 `host` selects the document role; it does not introduce another language or an

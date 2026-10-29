@@ -1,3 +1,5 @@
+mod host_service;
+pub(crate) use host_service::HostServiceCommand;
 #[cfg(target_os = "linux")]
 mod notebook;
 #[cfg(target_os = "linux")]
@@ -280,49 +282,6 @@ pub(crate) enum RendezvousCarrier {
     Serial,
     /// Outbound end-to-end protected Line through a user-operated relay.
     Relay,
-}
-
-#[derive(Debug, Subcommand)]
-// This one-shot command keeps its reviewed speech and model selections explicit
-// for Clap's flattened arguments; the enum is not retained in a running Play.
-#[allow(clippy::large_enum_variant)]
-pub(crate) enum HostServiceCommand {
-    /// Verify and install one reviewed release bundle without replacing durable identity.
-    Install {
-        manifest: PathBuf,
-        #[arg(long)]
-        state_dir: PathBuf,
-        /// Install without activating the service, for foreground Body ownership.
-        #[arg(long)]
-        no_start: bool,
-        #[command(flatten)]
-        speech: InstalledSpeechOptions,
-        #[command(flatten)]
-        model: InstalledModelOptions,
-        #[command(flatten)]
-        todo_checkpoint: InstalledTodoCheckpointOptions,
-    },
-    /// Run the durable host in the foreground for a platform service manager.
-    Run {
-        #[arg(long)]
-        state_dir: PathBuf,
-    },
-    /// Print the retained host identity and current runtime status.
-    Status {
-        #[arg(long)]
-        state_dir: PathBuf,
-        /// Emit bounded machine-readable Host, Boot, and release identity truth.
-        #[arg(long)]
-        json: bool,
-    },
-    /// Make this durable host retain one exact validated Body biography.
-    #[command(hide = true)]
-    OwnBody {
-        /// Exported `conduit.body/biography-evidence@2` document.
-        evidence: PathBuf,
-        #[arg(long)]
-        state_dir: PathBuf,
-    },
 }
 
 /// One explicitly selected durable Todo checkpoint residence for this Host.
