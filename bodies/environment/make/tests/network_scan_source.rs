@@ -1,4 +1,8 @@
 //! Checked authored scan meaning; this test does not initialize a radio.
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[test]
 fn scan_source_checks_with_a_connected_typed_evidence_sink() {
     let plot = conduit_environment_make::compile_network_scan().unwrap();
@@ -149,47 +153,52 @@ fn actual_checked_scan_kernel_delivers_one_bounded_result_and_retires_original_s
     .encode(&observations, &mut wire)
     .unwrap();
     assert_eq!(len, wire.len());
-    let mut calls = [0u8; 2];
-    let mut drained = false;
-    for _ in 0..32 {
-        let status = prepared.kernel.step().unwrap();
-        while let Some(request) = prepared.kernel.next_host_request() {
-            let output = if request.node == prepared.roles.scan {
-                calls[0] += 1;
-                assert!(prepared
+    let ((calls, drained), allocation) = allocation_probe::observe(|| {
+        let mut calls = [0u8; 2];
+        let mut drained = false;
+        for _ in 0..32 {
+            let status = prepared.kernel.step().unwrap();
+            while let Some(request) = prepared.kernel.next_host_request() {
+                let output = if request.node == prepared.roles.scan {
+                    calls[0] += 1;
+                    assert!(prepared
+                        .kernel
+                        .host_value(request.input.value)
+                        .unwrap()
+                        .is_empty());
+                    let value = prepared.kernel.store_host_value(&wire).unwrap();
+                    Some(k::BoundedValueRef::new(value, MAXIMUM_SCAN_OUTPUT_BYTES).unwrap())
+                } else {
+                    assert_eq!(request.node, prepared.roles.evidence);
+                    calls[1] += 1;
+                    assert_eq!(
+                        prepared.kernel.host_value(request.input.value).unwrap(),
+                        wire
+                    );
+                    None
+                };
+                prepared
                     .kernel
-                    .host_value(request.input.value)
-                    .unwrap()
-                    .is_empty());
-                let value = prepared.kernel.store_host_value(&wire).unwrap();
-                Some(k::BoundedValueRef::new(value, MAXIMUM_SCAN_OUTPUT_BYTES).unwrap())
-            } else {
-                assert_eq!(request.node, prepared.roles.evidence);
-                calls[1] += 1;
-                assert_eq!(
-                    prepared.kernel.host_value(request.input.value).unwrap(),
-                    wire
-                );
-                None
-            };
-            prepared
-                .kernel
-                .complete_host_call(
-                    request.node,
-                    request.request,
-                    k::HostCallOutcome {
-                        disposition: k::HostCallDisposition::Completed,
-                        output,
-                        failure: None,
-                    },
-                )
-                .unwrap();
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        k::HostCallOutcome {
+                            disposition: k::HostCallDisposition::Completed,
+                            output,
+                            failure: None,
+                        },
+                    )
+                    .unwrap();
+            }
+            if status == SchedulerStatus::Drained {
+                drained = true;
+                break;
+            }
         }
-        if status == SchedulerStatus::Drained {
-            drained = true;
-            break;
-        }
-    }
+        (calls, drained)
+    });
+    assert_eq!(allocation.allocations, 0);
+    assert_eq!(allocation.reallocations, 0);
     assert!(drained);
     assert_eq!(calls, [1, 1]);
     assert_eq!(prepared.kernel.pending_host_call_count(), 0);
@@ -207,4 +216,20 @@ fn scan_kernel_refuses_unverified_plan_identity_before_storage() {
         PreparedScanKernelParts::prepare(&plan.fragments[0]),
         Err(ScanKernelRefusal::Identity)
     ));
+}
+
+#[test]
+fn scan_storage_refuses_each_allocation_without_retaining_partial_backing() {
+    use conduit_network_join_call::scan::*;
+    for index in 0..2 {
+        let (refused, memory) = allocation_probe::observe(|| {
+            let _refusal = allocation_probe::refuse_nth_allocation(index);
+            matches!(
+                PreparedScanKernelStorage::try_new(),
+                Err(ScanKernelRefusal::Storage)
+            )
+        });
+        assert!(refused, "allocation {index} must refuse");
+        assert_eq!(memory.retained_bytes(), 0);
+    }
 }
