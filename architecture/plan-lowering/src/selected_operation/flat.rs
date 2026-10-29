@@ -118,29 +118,78 @@ impl PreparedFlatDirectOperation {
     /// substituted while the caller performs its initialized-owner checks.
     pub fn issue(
         self,
-        mut table: BaseCapabilityTable,
+        table: BaseCapabilityTable,
         authority: conduit_core::BaseCapabilityAuthorityRef<'_>,
         active: &ActivePlayIdentity,
         parameter_bytes: u32,
         work_units: u64,
     ) -> Result<IssuedFlatDirectOperation, SelectedCallRefusal> {
-        let scope = self.expected;
+        let storage = self.prepare_issuance(parameter_bytes, work_units)?;
+        self.issue_prepared(table, authority, active, storage)
+    }
+
+    pub fn prepare_issuance(
+        &self,
+        parameter_bytes: u32,
+        work_units: u64,
+    ) -> Result<PreparedFlatDirectIssuance, SelectedCallRefusal> {
+        let scope = &self.expected;
         let claim = BaseOperationClaim {
-            host_id: scope.host_id.clone(),
-            boot_id: scope.boot_id.clone(),
-            base_instance_id: scope.base_instance_id.clone(),
+            host_id: try_copy(scope.host_id.as_str())?.into(),
+            boot_id: try_copy(scope.boot_id.as_str())?.into(),
+            base_instance_id: try_copy(scope.base_instance_id.as_str())?.into(),
             base_provider_generation: scope.base_provider_generation,
-            plan_id: scope.plan_id.clone(),
-            active_play_id: scope.active_play_id.clone(),
-            implementation_id: scope.implementation_id.clone(),
-            operation_contract_id: scope.operation_contract_id.clone(),
-            subject_kind: scope.subject_kind.clone(),
-            resource_pool_id: scope.resource_pool_id.clone(),
-            resource_generation_id: scope.resource_generation_id.clone(),
-            envelope_id: scope.envelope_id.clone(),
+            plan_id: try_copy(scope.plan_id.as_str())?.into(),
+            active_play_id: try_copy(scope.active_play_id.as_str())?.into(),
+            implementation_id: try_copy(scope.implementation_id.as_str())?.into(),
+            operation_contract_id: try_copy(scope.operation_contract_id.as_str())?.into(),
+            subject_kind: try_copy(scope.subject_kind.as_str())?.into(),
+            resource_pool_id: try_copy(scope.resource_pool_id.as_str())?.into(),
+            resource_generation_id: conduit_core::ResourceGenerationId(try_copy(
+                &scope.resource_generation_id.0,
+            )?),
+            envelope_id: try_copy(scope.envelope_id.as_str())?.into(),
             parameter_bytes,
             work_units,
         };
+        let backing = conduit_core::BaseCapabilityIssuanceBacking::try_new(scope.maximum_in_flight)
+            .map_err(|_| SelectedCallRefusal::Possession)?;
+        Ok(PreparedFlatDirectIssuance {
+            claim,
+            backing,
+            node: self.node,
+        })
+    }
+
+    pub fn issue_prepared(
+        self,
+        mut table: BaseCapabilityTable,
+        authority: conduit_core::BaseCapabilityAuthorityRef<'_>,
+        active: &ActivePlayIdentity,
+        storage: PreparedFlatDirectIssuance,
+    ) -> Result<IssuedFlatDirectOperation, SelectedCallRefusal> {
+        let scope = self.expected;
+        let PreparedFlatDirectIssuance {
+            claim,
+            backing,
+            node,
+        } = storage;
+        if node != self.node
+            || claim.host_id != scope.host_id
+            || claim.boot_id != scope.boot_id
+            || claim.base_instance_id != scope.base_instance_id
+            || claim.base_provider_generation != scope.base_provider_generation
+            || claim.plan_id != scope.plan_id
+            || claim.active_play_id != scope.active_play_id
+            || claim.implementation_id != scope.implementation_id
+            || claim.operation_contract_id != scope.operation_contract_id
+            || claim.subject_kind != scope.subject_kind
+            || claim.resource_pool_id != scope.resource_pool_id
+            || claim.resource_generation_id != scope.resource_generation_id
+            || claim.envelope_id != scope.envelope_id
+        {
+            return Err(SelectedCallRefusal::WrongBinding);
+        }
         check_plan_scope_ref(
             &claim,
             scope.plan_id.as_str(),
@@ -149,7 +198,7 @@ impl PreparedFlatDirectOperation {
             active,
         )?;
         let handle = table
-            .issue_borrowed(scope, authority)
+            .issue_borrowed_with_backing(scope, authority, backing)
             .map_err(|_| SelectedCallRefusal::Possession)?;
         Ok(IssuedFlatDirectOperation {
             table,
@@ -224,3 +273,22 @@ impl IssuedFlatDirectOperation {
         Ok((operation, self.node))
     }
 }
+
+/// Fallibly admitted claim and issuance memory; never capability possession.
+pub struct PreparedFlatDirectIssuance {
+    claim: BaseOperationClaim,
+    backing: conduit_core::BaseCapabilityIssuanceBacking,
+    node: NodeId,
+}
+fn try_copy(value: &str) -> Result<alloc::string::String, SelectedCallRefusal> {
+    let mut result = alloc::string::String::new();
+    result
+        .try_reserve_exact(value.len())
+        .map_err(|_| SelectedCallRefusal::Possession)?;
+    result.push_str(value);
+    Ok(result)
+}
+
+#[cfg(test)]
+#[path = "flat_tests.rs"]
+mod tests;

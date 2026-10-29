@@ -190,5 +190,5 @@ pub(crate) fn matching_scope<'a>(
 mod flat;
 pub use flat::{
     bind_selected_flat_direct_operation_for_subject, IssuedFlatDirectOperation,
-    PreparedFlatDirectOperation, SelectedFlatDirectOperationPlan,
+    PreparedFlatDirectIssuance, PreparedFlatDirectOperation, SelectedFlatDirectOperationPlan,
 };
