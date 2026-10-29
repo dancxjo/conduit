@@ -62,9 +62,11 @@ pub struct RemoteValueTransfer {
 
 mod host_work;
 mod microphone;
+mod worker_text;
 pub use host_work::{RemoteHostWork, RemoteHostWorkRef};
 
 pub struct InstalledRemoteFragment {
+    worker_text_basis: crate::worker_text_result::WorkerTextBasis,
     scheduler: Box<InstalledScheduler>,
     body_time_required: bool,
     lowered: LoweredPlanFragment,
@@ -237,6 +239,7 @@ impl InstalledRemoteFragment {
             body_chat_prompt_hosts,
             vision_tracker,
             vision_request_sequence: 0,
+            worker_text_basis: crate::worker_text_result::WorkerTextBasis::new(fragment, play),
             vision_active_play_id,
             vision_run_id,
             vision_clock_basis,

@@ -1934,6 +1934,22 @@ where
         Ok(())
     }
 
+    /// Inspect exact dispatched request custody without completing it or
+    /// borrowing its payload. Cancelled/completed requests are not deliverable.
+    pub fn host_call_is_pending(&self, request: HostCallRequest) -> bool {
+        if self.cancelled || usize::from(request.node.0) >= self.active_nodes {
+            return false;
+        }
+        self.indexed_host_slot(usize::from(request.node.0))
+            .and_then(|slot| self.pending_host_calls[slot].as_ref())
+            .is_some_and(|pending| {
+                pending.request == request
+                    && pending.dispatched
+                    && !pending.cancellation_requested
+                    && pending.completion.is_none()
+            })
+    }
+
     pub fn pending_host_call_count(&self) -> usize {
         self.pending_host_count
     }
