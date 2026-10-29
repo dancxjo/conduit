@@ -35,6 +35,7 @@ pub use verified_bindings::VerifiedNativeInput;
 pub enum Operation {
     Credentials,
     Join,
+    Scan,
 }
 impl Operation {
     fn facts(
@@ -69,6 +70,18 @@ impl Operation {
                 conduit_network_join_call::installation::JOIN_CAPABILITY,
                 MAXIMUM_JOIN_INPUT_BYTES,
                 MAXIMUM_JOIN_OUTPUT_BYTES,
+                1,
+            ),
+            // Scan and join share the same exclusive Wi-Fi issuance slot.
+            // Different exact contracts/subjects remain independently checked.
+            Self::Scan => (
+                "grant/esp32/network-scan/1",
+                NETWORK_SCAN_AUTHORITY,
+                NETWORK_SCAN_HOST_CALL,
+                NETWORK_SCAN_SUBJECT,
+                conduit_network_join_call::scan::SCAN_CAPABILITY,
+                MAXIMUM_SCAN_INPUT_BYTES,
+                MAXIMUM_SCAN_OUTPUT_BYTES,
                 1,
             ),
         }

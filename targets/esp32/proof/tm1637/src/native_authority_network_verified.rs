@@ -114,6 +114,23 @@ pub struct LinkedNetworkPreparation<'root> {
     reserved: bool,
     storage: [Option<NetworkIssuanceStorage>; 2],
     reservation: Option<alloc::boxed::Box<NetworkPlayReservation>>,
+    purpose: PreparationPurpose,
+}
+#[derive(Clone, Copy)]
+enum PreparationPurpose {
+    Join,
+    Scan,
+}
+impl PreparationPurpose {
+    fn allows(self, operation: Operation) -> bool {
+        matches!(
+            (self, operation),
+            (Self::Join, Operation::Credentials | Operation::Join) | (Self::Scan, Operation::Scan)
+        )
+    }
+    fn needs(self, index: usize) -> bool {
+        matches!(self, Self::Join) || index == 1
+    }
 }
 struct NetworkIssuanceStorage {
     table: c::BaseCapabilityTable,
@@ -142,7 +159,23 @@ impl RootIssuer {
             reserved: false,
             storage: [None, None],
             reservation: None,
+            purpose: PreparationPurpose::Join,
         })
+    }
+    /// Scan preparation shares the exclusive Wi-Fi slot, while retaining its
+    /// own exact Source/contract and complete two-node kernel shape. Neither
+    /// preparation reserves a sequence nor issues a bearer until commit.
+    pub fn prepare_linked_scan<'root>(
+        &'root mut self,
+        scope: &conduit_planner::borrowed_local::SourcePlannedLocalScope<'_>,
+        expected: (&str, &str, &str),
+    ) -> Result<LinkedNetworkPreparation<'root>, ()> {
+        use conduit_network_join_call::scan::{PreparedScanKernelParts, ScanFlatDirectTables};
+        let tables = ScanFlatDirectTables::prepare(scope.verified()).map_err(|_| ())?;
+        PreparedScanKernelParts::check_flat_direct(&tables).map_err(|_| ())?;
+        let mut prepared = self.prepare_linked_network(scope, expected)?;
+        prepared.purpose = PreparationPurpose::Scan;
+        Ok(prepared)
     }
 }
 impl LinkedNetworkPreparation<'_> {
@@ -153,6 +186,9 @@ impl LinkedNetworkPreparation<'_> {
         native: &NetworkNativeIdentity,
         operation: Operation,
     ) -> Result<c::BaseCapabilityScope, ()> {
+        if !self.purpose.allows(operation) {
+            return Err(());
+        }
         self.issuer
             .network_scope_for(native, operation, self.active.as_ref().ok_or(())?)
     }
@@ -166,7 +202,7 @@ impl LinkedNetworkPreparation<'_> {
         _prepared: &conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
     ) -> Result<(), ()> {
         let (_, _, _, _, _, input, _, index) = operation.facts();
-        if self.reserved || self.storage[index].is_some() {
+        if self.reserved || !self.purpose.allows(operation) || self.storage[index].is_some() {
             return Err(());
         }
         #[cfg(test)]
@@ -215,7 +251,13 @@ impl LinkedNetworkPreparation<'_> {
         self.active.take().ok_or(())
     }
     pub fn reserve(&mut self) -> Result<(), ()> {
-        if self.reserved || self.storage.iter().any(Option::is_none) {
+        if self.reserved
+            || self
+                .storage
+                .iter()
+                .enumerate()
+                .any(|(index, storage)| self.purpose.needs(index) != storage.is_some())
+        {
             return Err(());
         }
         let expected = self.reservation.as_deref().ok_or(())?;
@@ -236,7 +278,7 @@ impl LinkedNetworkPreparation<'_> {
         active: &c::ActivePlayIdentity,
         memory: conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking,
     ) -> Result<conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation, ()> {
-        if !self.reserved {
+        if !self.reserved || !self.purpose.allows(operation) {
             return Err(());
         }
         let (authority, _input, index) =
@@ -268,5 +310,68 @@ impl RootIssuer {
     /// native Join call must refuse while retaining both actual bearers.
     pub(crate) fn refuse_next_prepared_join_binding_fixture() {
         REFUSE_NEXT_JOIN_BINDING.with(|flag| flag.set(true));
+    }
+}
+
+#[cfg(test)]
+mod scan_policy_tests {
+    use super::*;
+    #[test]
+    fn scan_spends_the_existing_radio_slot_and_cannot_then_issue_join() {
+        let mut root = RootIssuer::fixture("cpu/host".into(), "cpu/boot".into());
+        let native = NetworkNativeIdentity {
+            host: "cpu/host".into(),
+            boot: "cpu/boot".into(),
+            base: "cpu/base".into(),
+            instance: "cpu/instance".into(),
+            provider_generation: 1,
+            resource: "cpu/radio".into(),
+            resource_generation: c::ResourceGenerationId("cpu/radio/1".into()),
+            envelope: "cpu/envelope".into(),
+            artifact: "cpu/artifact".into(),
+            implementation: "cpu/scan@1".into(),
+            base_implementation: "cpu/base@1".into(),
+        };
+        // Root-policy fixture only: this reserves an inert scope, not an
+        // admitted Source, physical owner or permission to execute a radio.
+        let active = root.reserve_plan(&"cpu/inert-plan".into()).unwrap();
+        let issue = |root: &mut RootIssuer, op| {
+            root.issue_network_scope(
+                &native,
+                op,
+                "cpu/inert-plan",
+                "cpu/host",
+                "cpu/boot",
+                &active,
+            )
+        };
+        let (table, _, claim) = issue(&mut root, Operation::Scan).unwrap();
+        assert_eq!(root.issued, [false, true]);
+        let scope = &table.inspections().next().unwrap().scope;
+        assert_eq!(
+            scope.operation_contract_id.as_str(),
+            conduit_net::NETWORK_SCAN_HOST_CALL
+        );
+        assert_eq!(
+            scope.subject_kind.as_str(),
+            conduit_net::NETWORK_SCAN_SUBJECT
+        );
+        assert_eq!(
+            scope.maximum_result_bytes,
+            conduit_net::MAXIMUM_SCAN_OUTPUT_BYTES
+        );
+        assert_eq!((scope.maximum_operations, scope.maximum_in_flight), (1, 1));
+        assert_eq!(claim.parameter_bytes, conduit_net::MAXIMUM_SCAN_INPUT_BYTES);
+        assert!(issue(&mut root, Operation::Scan).is_err());
+        assert!(issue(&mut root, Operation::Join).is_err());
+    }
+    #[test]
+    fn prepared_scan_and_join_allowances_do_not_substitute_operations() {
+        assert!(PreparationPurpose::Scan.allows(Operation::Scan));
+        assert!(!PreparationPurpose::Scan.allows(Operation::Join));
+        assert!(!PreparationPurpose::Scan.allows(Operation::Credentials));
+        assert!(!PreparationPurpose::Join.allows(Operation::Scan));
+        assert!(PreparationPurpose::Join.allows(Operation::Join));
+        assert!(PreparationPurpose::Join.allows(Operation::Credentials));
     }
 }
