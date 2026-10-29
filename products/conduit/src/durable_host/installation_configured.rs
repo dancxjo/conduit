@@ -97,6 +97,9 @@ pub(super) fn install_configured_with_todo(
     let retained_configuration = existing
         .as_ref()
         .and_then(|value| value.selected_host_configuration.clone());
+    if let Some(configuration) = &retained_configuration {
+        configuration.validate_speech_overlap(retained_selection.as_ref())?;
+    }
     let installation = Installation {
         schema: INSTALL_SCHEMA.into(),
         host_id,
