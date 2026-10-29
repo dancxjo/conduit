@@ -27,6 +27,7 @@ pub(crate) enum ReleasePlatform {
     Linux,
     LinuxArmv6,
     LinuxArmv6Minipitft,
+    LinuxArmv6Face,
     Windows,
     Macos,
 }
@@ -71,6 +72,9 @@ pub(crate) fn run(
         ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
         ReleasePlatform::LinuxArmv6Minipitft => {
             return armv6::build_minipitft(output, source_identity);
+        }
+        ReleasePlatform::LinuxArmv6Face => {
+            return armv6::build_face(output, source_identity);
         }
         ReleasePlatform::Windows => build_windows(output, source_identity)?,
         ReleasePlatform::Macos => build_macos(output, source_identity)?,

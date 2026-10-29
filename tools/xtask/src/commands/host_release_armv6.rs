@@ -154,6 +154,48 @@ pub(super) fn build_minipitft(
     Ok(())
 }
 
+/// Build the read-only Linux adapter using the existing native Face raster.
+pub(super) fn build_face(
+    output: &Path,
+    source_identity: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let command = build_command();
+    let mut adapter = Command::new(command.get_program());
+    adapter.args([
+        &format!("+{TOOLCHAIN}"),
+        "build",
+        "--locked",
+        "--release",
+        "--manifest-path",
+        "targets/linux-face-display/Cargo.toml",
+        "--target",
+        TARGET,
+    ]);
+    for (key, value) in command.get_envs() {
+        if let Some(value) = value {
+            adapter.env(key, value);
+        } else {
+            adapter.env_remove(key);
+        }
+    }
+    require_success(&mut adapter, "compile ARM1176 Linux Face display")?;
+    fs::create_dir_all(output)?;
+    copy(
+        cargo_release_artifact(Some(TARGET), "conduit-linux-face-display"),
+        &output.join("conduit-linux-face-display"),
+    )?;
+    fs::write(
+        output.join("linux-face-build.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "source_identity": source_identity, "target": TARGET, "cpu": "arm1176jzf-s",
+            "toolchain_image": IMAGE, "read_only": true,
+            "input_schema": "conduit.local-face/leased@1",
+            "body_admission_granted": false,
+        }))?,
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
