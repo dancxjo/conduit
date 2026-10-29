@@ -411,3 +411,14 @@ fn fanout_refuses_instead_of_letting_an_unchecked_consumer_receive_compact_bytes
     assert_eq!(play.decisions(), 0);
     assert_eq!(play.values().used_items(), 0);
 }
+
+#[test]
+fn omitted_binding_cannot_begin_a_partial_play() {
+    let mut play = prepare(Some(layout(1)), 2, signs());
+    let before = play.signs().len();
+    assert_eq!(play.step(), Err(SchedulerError::InvalidPlan));
+    assert_eq!(play.decisions(), 0);
+    assert_eq!(play.logical_invocations(), 0);
+    assert_eq!(play.signs().len(), before);
+    assert_eq!(play.values().used_items(), 0);
+}

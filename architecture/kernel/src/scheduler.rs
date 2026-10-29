@@ -1990,6 +1990,8 @@ where
     }
 
     fn context(&self, node: usize) -> Result<StepIo<PORTS>, SchedulerError> {
+        #[cfg(feature = "alloc")]
+        self.check_compact_canonical_binding()?;
         let mut inputs = [None; PORTS];
         let mut input_closed = [false; PORTS];
         let mut input_abnormal = [None; PORTS];

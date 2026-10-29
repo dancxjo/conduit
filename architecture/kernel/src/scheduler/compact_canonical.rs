@@ -92,6 +92,20 @@ where
     S: ValueStorage,
     E: SignSink,
 {
+    pub(super) fn check_compact_canonical_binding(&self) -> Result<(), SchedulerError> {
+        if self
+            .values
+            .compact_canonical_layout()
+            .is_some_and(|layout| {
+                self.compact_canonical_binding
+                    .as_ref()
+                    .is_none_or(|binding| binding.layout != layout)
+            })
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        Ok(())
+    }
     pub(super) fn compact_canonical_input_binding(
         &self,
         node: usize,

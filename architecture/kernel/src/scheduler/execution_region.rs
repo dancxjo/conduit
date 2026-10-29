@@ -101,6 +101,8 @@ where
         if self.cancelled {
             return Ok(SchedulerStatus::Cancelled);
         }
+        #[cfg(feature = "alloc")]
+        self.check_compact_canonical_binding()?;
         if self.debug_control.suspension().is_some() {
             return Err(SchedulerError::DebugSuspended);
         }
