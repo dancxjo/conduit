@@ -3,6 +3,8 @@ mod build_body;
 #[cfg(feature = "mask-root")]
 mod build_mask;
 mod build_owner_key;
+#[cfg(feature = "network-scan")]
+mod build_scan;
 #[path = "../../../../bodies/environment/make/src/network_source.rs"]
 mod network_source;
 fn main() {
@@ -33,6 +35,8 @@ fn main() {
             out.join("native-root.map").display()
         );
         build_owner_key::emit(&out);
+        #[cfg(feature = "network-scan")]
+        build_scan::emit(&out);
         #[cfg(feature = "mask-root")]
         build_mask::emit(&out);
         std::fs::write(out.join("network-identity.rs"), format!(

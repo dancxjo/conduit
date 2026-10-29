@@ -128,6 +128,8 @@ mod native_software;
 mod native_software_offer;
 #[cfg(feature = "native-root")]
 mod native_source;
+#[cfg(feature = "network-scan")]
+mod native_scan_source;
 #[cfg(feature = "native-root")]
 mod native_task;
 #[cfg(feature = "native-root")]
