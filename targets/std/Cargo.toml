@@ -19,6 +19,7 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+conduit-device-carrier-protocol = { path = "../../mechanisms/io/device-carrier-protocol" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-burn-model = { path = "../../mechanisms/implementations/burn-model", optional = true }
 conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog", "hosted-catalog-cache"] }

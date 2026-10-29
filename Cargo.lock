@@ -2617,6 +2617,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
+ "conduit-device-carrier-protocol",
  "conduit-emergency-keyword-spotter",
  "conduit-face",
  "conduit-finance",
