@@ -27,12 +27,13 @@ pub(super) struct PendingWorkspace {
     request: crate::native_display::task::WorkspaceRequest<'static>,
     deadline_ms: u64,
 }
-// The fixed linked appliance was measured under actual retired Mask custody:
-// 7,564 retained bytes / 44,776us, with an 8KiB contiguous allocation still
-// available afterward. Round construction plus the existing 16KiB post-install
-// reserve up to 24KiB. This admits only that pinned construction path; the rich
-// planner has no corresponding target bound. The post-install check below and
-// actual affine ownership checks remain mandatory before releasing the kernel.
+// Historical pre-staging target evidence was 7,564 retained bytes / 44,776us,
+// with an 8KiB contiguous allocation afterward; it does not qualify this path.
+// Keep the existing 8KiB construction envelope + 16KiB release floor = 24KiB.
+// The staged constructor's CPU64 peak is 8,086 bytes. Initial Ready preparation,
+// credential staging, target allocator overhead and stack still require actual
+// target qualification. The rich planner has no corresponding bounded profile.
+// Post-install capacity and actual affine custody checks remain mandatory.
 #[cfg(feature = "local-appliance")]
 fn independent_workspace_minimum() -> Option<usize> {
     #[cfg(feature = "flat-network-appliance")]
@@ -173,32 +174,52 @@ impl NativeRoot {
         #[cfg(feature = "flat-network-appliance")]
         let result = {
             let image = crate::native_source::load();
-            if self
-                .network
-                .recovery
-                .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
-                .is_err()
-            {
-                return &NETWORK_RECOVERY_REFUSED;
-            }
-            let result = match backing {
-                Some(backing) => self.play.install_linked_reserved_held(
+            let result = if window.is_some() && backing.is_none() {
+                let (ready, recovery) = self.network.ready_and_recovery();
+                self.play.install_linked_phased_held(
                     &image,
                     &self.network_source,
                     c::OfferGeneration(self.offer_generation),
                     &mut self.credentials,
-                    self.network.ready_slot(),
+                    ready,
                     &mut self.issuer,
-                    backing,
-                ),
-                None => self.play.install_linked_held(
-                    &image,
-                    &self.network_source,
-                    c::OfferGeneration(self.offer_generation),
-                    &mut self.credentials,
-                    self.network.ready_slot(),
-                    &mut self.issuer,
-                ),
+                    || {
+                        if !window.is_some_and(|window| window.held()) {
+                            return Err(());
+                        }
+                        recovery
+                            .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
+                            .map_err(|_| ())
+                    },
+                )
+            } else {
+                if self
+                    .network
+                    .recovery
+                    .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
+                    .is_err()
+                {
+                    return &NETWORK_RECOVERY_REFUSED;
+                }
+                match backing {
+                    Some(backing) => self.play.install_linked_reserved_held(
+                        &image,
+                        &self.network_source,
+                        c::OfferGeneration(self.offer_generation),
+                        &mut self.credentials,
+                        self.network.ready_slot(),
+                        &mut self.issuer,
+                        backing,
+                    ),
+                    None => self.play.install_linked_held(
+                        &image,
+                        &self.network_source,
+                        c::OfferGeneration(self.offer_generation),
+                        &mut self.credentials,
+                        self.network.ready_slot(),
+                        &mut self.issuer,
+                    ),
+                }
             };
             if result.is_ok() && window.is_none() && release {
                 self.play.release_held()
@@ -405,15 +426,9 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "permit-revoked");
             return;
         }
-        #[cfg(feature = "flat-network-appliance")]
-        let backing_bytes =
-            conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes();
-        #[cfg(not(feature = "flat-network-appliance"))]
-        let backing_bytes = 0;
-        let Some(required) = minimum.checked_add(backing_bytes) else {
-            return;
-        };
-        if memory.size.saturating_sub(memory.current_usage) < required {
+        // Preparation and execution backing occupy separate phases within the
+        // unchanged 8KiB envelope, above the physically protected 16KiB floor.
+        if memory.size.saturating_sub(memory.current_usage) < minimum {
             self.trace_network_workspace("capacity", "aggregate-construction-refused");
             return;
         }
@@ -421,20 +436,11 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "current-body-refused");
             return;
         }
-        // Charge all persistent execution storage (kernel and empty Sign log)
-        // plus the unchanged 8KiB preparation envelope and 16KiB release floor.
-        #[cfg(feature = "flat-network-appliance")]
-        let backing = match crate::native_play::NativePlay::reserve_linked_backing() {
-            Ok(backing) => Some(backing),
-            Err(()) => {
-                self.trace_network_workspace("reserve", "kernel-backing-refused");
-                return;
-            }
-        };
-        #[cfg(not(feature = "flat-network-appliance"))]
+        // Final backing is admitted only after temporary checked descriptions
+        // retire. No recovery attempt or Root issuance precedes that allocation.
         let backing = None;
         #[cfg(feature = "flat-network-appliance")]
-        self.trace_network_phase("backing-reserved", baseline_used);
+        self.trace_network_phase("preparation-ready", baseline_used);
         if esp_alloc::HEAP.free() < minimum
             || !permit.held()
             || !self.network_workspace_scope_current()
@@ -444,8 +450,8 @@ impl NativeRoot {
         }
         // The constructor makes multiple allocations. Its unchanged aggregate
         // envelope is not a request for one contiguous 24KiB block. Protect the
-        // actual 16KiB release floor across small regions. The same reserved
-        // final backing initializes after temporary planner descriptions retire.
+        // actual 16KiB release floor across small regions while both bounded
+        // preparation and execution-storage admission run above it.
         let reserve = match floor_reserve::reserve(|bytes| {
             if bytes != floor_reserve::BLOCK_BYTES {
                 return Err(());

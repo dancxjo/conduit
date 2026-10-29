@@ -23,12 +23,16 @@ pub struct NetworkOperationLease {
 pub struct ReadyNetworkPair<P, S> {
     credentials: ReadyCredentialBase<S>,
     join: ReadyNetworkJoinBase<P>,
-    credential_contract: conduit_net::CheckedNetworkContract,
-    join_contract: conduit_net::CheckedNetworkContract,
 }
 pub struct ReadyNetworkPairView<'a, P, S> {
     pair: &'a ReadyNetworkPair<P, S>,
     brand: Brand<'a>,
+}
+/// Temporary checked native definitions are scoped independently of affine owners.
+pub struct ReadyNetworkPairContractView<'owner, 'description, P, S> {
+    owners: ReadyNetworkPairView<'owner, P, S>,
+    credential_contract: &'description conduit_net::CheckedNetworkContract,
+    join_contract: &'description conduit_net::CheckedNetworkContract,
 }
 pub struct PreparedNetworkPairBindings<'a> {
     credentials: conduit_core::BoundBaseOperation,
@@ -55,26 +59,7 @@ impl<'a> PreparedNetworkPairBindings<'a> {
 }
 impl<P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPair<P, S> {
     pub fn new(credentials: ReadyCredentialBase<S>, join: ReadyNetworkJoinBase<P>) -> Self {
-        let c = credentials.native_identity();
-        let j = join.native_identity();
-        let credential_contract = conduit_net::PreparedCanonicalNetworkOffer::credentials(
-            credential_installation::CREDENTIAL_CAPABILITY,
-            c.implementation.as_str(),
-            c.artifact.as_str(),
-        )
-        .into_contract();
-        let join_contract = conduit_net::PreparedCanonicalNetworkOffer::join(
-            installation::JOIN_CAPABILITY,
-            j.implementation.as_str(),
-            j.artifact.as_str(),
-        )
-        .into_contract();
-        Self {
-            credentials,
-            join,
-            credential_contract,
-            join_contract,
-        }
+        Self { credentials, join }
     }
     /// The callback cannot export the private owner brand or substitute a binding
     /// checked against a different pair. No provider is moved before success.
@@ -130,7 +115,10 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
         self,
         header: conduit_core::HostAdvertisementRef<'_>,
         attachment: &conduit_net::PreparedCanonicalNetworkOffer<'_>,
-        use_advertisement: impl FnOnce(Self, conduit_core::HostAdvertisementRef<'_>) -> R,
+        use_advertisement: impl for<'description> FnOnce(
+            ReadyNetworkPairContractView<'a, 'description, P, S>,
+            conduit_core::HostAdvertisementRef<'description>,
+        ) -> R,
     ) -> Result<R, installation::NetworkInstallationRefusal> {
         use conduit_core::*;
         use installation::NetworkInstallationRefusal as E;
@@ -153,6 +141,18 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
         {
             return Err(E::Advertisement);
         }
+        let credential_contract = conduit_net::PreparedCanonicalNetworkOffer::credentials(
+            credential_installation::CREDENTIAL_CAPABILITY,
+            c.implementation.as_str(),
+            c.artifact.as_str(),
+        )
+        .into_contract();
+        let join_contract = conduit_net::PreparedCanonicalNetworkOffer::join(
+            installation::JOIN_CAPABILITY,
+            j.implementation.as_str(),
+            j.artifact.as_str(),
+        )
+        .into_contract();
         let credential_requirement = [ResourceRequirementRef {
             class_id: CREDENTIAL_RESOURCE_CLASS,
             units: 1,
@@ -160,14 +160,14 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
             compute: None,
             content: None,
         }];
-        let mut credential = self.pair.credential_contract.offer(
+        let mut credential = credential_contract.offer(
             credential_installation::CREDENTIAL_CAPABILITY,
             c.implementation.as_str(),
             c.artifact.as_str(),
         );
         credential.resource_requirements =
             ResourceRequirementRefs::Borrowed(&credential_requirement);
-        let join = self.pair.join_contract.offer(
+        let join = join_contract.offer(
             installation::JOIN_CAPABILITY,
             j.implementation.as_str(),
             j.artifact.as_str(),
@@ -231,7 +231,11 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
         let mut resources = [credential_resources[0], join_resources[0]];
         resources.sort_by(|a, b| a.pool_id.cmp(b.pool_id));
         Ok(use_advertisement(
-            self,
+            ReadyNetworkPairContractView {
+                owners: self,
+                credential_contract: &credential_contract,
+                join_contract: &join_contract,
+            },
             HostAdvertisementRef {
                 bases: BaseProviderAdvertisementRefs::Borrowed(&bases),
                 resources: ResourceOfferRefs::Borrowed(&resources),
@@ -280,12 +284,24 @@ fn compact_lease(lease: NetworkOperationLease) -> conduit_core::BoundBaseOperati
 }
 /// Exact credential selection retained while Root issues the second operation.
 /// The first table remains affine; no permit or request counter is reset.
-pub struct PreparedCredentialSelection<'a, P, S> {
-    owners: ReadyNetworkPairView<'a, P, S>,
+impl<'a, 'description, P: NetworkJoinProvider, S: CredentialSource>
+    ReadyNetworkPairContractView<'a, 'description, P, S>
+{
+    pub fn credential_identity(&self) -> &'a installation::NetworkNativeIdentity {
+        self.owners.credential_identity()
+    }
+    pub fn join_identity(&self) -> &'a installation::NetworkNativeIdentity {
+        self.owners.join_identity()
+    }
+}
+pub struct PreparedCredentialSelection<'a, 'description, P, S> {
+    owners: ReadyNetworkPairContractView<'a, 'description, P, S>,
     operation: conduit_core::BoundBaseOperation,
     node: conduit_kernel::NodeId,
 }
-impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P, S> {
+impl<'a, 'description, P: NetworkJoinProvider, S: CredentialSource>
+    ReadyNetworkPairContractView<'a, 'description, P, S>
+{
     #[allow(
         clippy::result_large_err,
         reason = "Refusal returns unique owners and issued evidence without another allocation."
@@ -296,8 +312,10 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
         tables: &FlatDirectLocalKernelTables<'_, 3, 2, 1, 3, 2, 3>,
         active: &ActivePlayIdentity,
         placement: &str,
-    ) -> Result<PreparedCredentialSelection<'a, P, S>, (NetworkOperationLease, NetworkPairRefusal)>
-    {
+    ) -> Result<
+        PreparedCredentialSelection<'a, 'description, P, S>,
+        (NetworkOperationLease, NetworkPairRefusal),
+    > {
         let check = || {
             let gear = tables
                 .preparation_scope()
@@ -308,18 +326,19 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
                 .ok_or(NetworkPairRefusal::Credentials(
                     CredentialCallRefusal::WrongRequest,
                 ))?;
-            self.pair
+            self.owners
+                .pair
                 .credentials
                 .check_selected_native_ref(
                     &lease.claim,
                     gear,
-                    self.pair.credential_contract.kind().limits,
+                    self.credential_contract.kind().limits,
                 )
                 .map_err(NetworkPairRefusal::Credentials)?;
             let node = NetworkCredentialsHostCall::<S>::validate_flat_direct(
                 &lease.table,
                 &lease.claim,
-                &self.pair.credential_contract,
+                self.credential_contract,
                 SelectedFlatDirectOperationPlan {
                     tables,
                     active,
@@ -343,7 +362,9 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
         }
     }
 }
-impl<'a, P: NetworkJoinProvider, S: CredentialSource> PreparedCredentialSelection<'a, P, S> {
+impl<'a, 'description, P: NetworkJoinProvider, S: CredentialSource>
+    PreparedCredentialSelection<'a, 'description, P, S>
+{
     pub fn join_identity(&self) -> &'a installation::NetworkNativeIdentity {
         self.owners.join_identity()
     }
@@ -378,19 +399,20 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> PreparedCredentialSelectio
                 .find(|g| g.placement_id == placement)
                 .ok_or(NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding))?;
             self.owners
+                .owners
                 .pair
                 .join
                 .check_selected_native_ref(
                     &lease.claim,
                     gear,
-                    self.owners.pair.join_contract.kind().limits,
+                    self.owners.join_contract.kind().limits,
                 )
                 .map_err(NetworkPairRefusal::Join)?;
             let node = NetworkJoinHostCall::<P>::validate_flat_direct(
                 &lease.table,
                 &lease.claim,
-                self.owners.pair.join.attachment_generation(),
-                &self.owners.pair.join_contract,
+                self.owners.owners.pair.join.attachment_generation(),
+                self.owners.join_contract,
                 SelectedFlatDirectOperationPlan {
                     tables,
                     active,
@@ -408,9 +430,262 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> PreparedCredentialSelectio
                 join: compact_lease(lease),
                 credential_node: self.node,
                 join_node: node,
-                brand: self.owners.brand,
+                brand: self.owners.owners.brand,
             }),
             Err(error) => Err((self, lease, error)),
         }
+    }
+}
+
+/// Checked immutable selection bound to this exact initialized owner pair.
+/// It carries no capability and borrows no temporary native Kind or Plan.
+pub struct PreparedNetworkPairSelection<'owner, P, S> {
+    owners: ReadyNetworkPairView<'owner, P, S>,
+    credentials: conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+    join: conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+}
+pub struct PreparedNetworkFirstSelection<'owner, P, S> {
+    owners: ReadyNetworkPairView<'owner, P, S>,
+    join: conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+    credentials: conduit_core::BoundBaseOperation,
+    node: conduit_kernel::NodeId,
+}
+impl<'owner, 'description, P: NetworkJoinProvider, S: CredentialSource>
+    ReadyNetworkPairContractView<'owner, 'description, P, S>
+{
+    pub fn prepare_flat_selection(
+        self,
+        credentials: conduit_core::BaseCapabilityScope,
+        join: conduit_core::BaseCapabilityScope,
+        tables: &FlatDirectLocalKernelTables<'_, 3, 2, 1, 3, 2, 3>,
+        credential_placement: &str,
+        join_placement: &str,
+    ) -> Result<PreparedNetworkPairSelection<'owner, P, S>, NetworkPairRefusal> {
+        use conduit_net::{
+            MAXIMUM_JOIN_INPUT_BYTES, MAXIMUM_JOIN_OUTPUT_BYTES, NETWORK_CONFIG_SUBJECT,
+            NETWORK_CREDENTIALS_HOST_CALL, NETWORK_CREDENTIALS_SUBJECT, NETWORK_JOIN_HOST_CALL,
+        };
+        use conduit_plan_lowering::selected_operation::{
+            PreparedFlatDirectOperation, SelectedOperationContractRef,
+        };
+        let view = tables.preparation_scope().view();
+        let credential_gear = view
+            .placements
+            .iter()
+            .find(|g| g.placement_id == credential_placement)
+            .ok_or(NetworkPairRefusal::Credentials(
+                CredentialCallRefusal::WrongRequest,
+            ))?;
+        let join_gear = view
+            .placements
+            .iter()
+            .find(|g| g.placement_id == join_placement)
+            .ok_or(NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding))?;
+        self.owners
+            .pair
+            .credentials
+            .check_prepared_native_ref(
+                &credentials,
+                credential_gear,
+                self.credential_contract.kind().limits,
+            )
+            .map_err(NetworkPairRefusal::Credentials)?;
+        self.owners
+            .pair
+            .join
+            .check_prepared_native_ref(&join, join_gear, self.join_contract.kind().limits)
+            .map_err(NetworkPairRefusal::Join)?;
+        for (gear, class, refusal) in [
+            (
+                credential_gear,
+                CREDENTIAL_RESOURCE_CLASS,
+                NetworkPairRefusal::Credentials(CredentialCallRefusal::WrongRequest),
+            ),
+            (
+                join_gear,
+                conduit_net::WIFI_STATION_RESOURCE_CLASS,
+                NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding),
+            ),
+        ] {
+            let mut resources = gear.resources.iter();
+            let resource = resources.next().ok_or(refusal)?;
+            if resources.next().is_some() || resource.class_id != class || resource.units != 1 {
+                return Err(NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding));
+            }
+        }
+        let credentials = PreparedFlatDirectOperation::prepare(
+            credentials,
+            SelectedOperationContractRef {
+                kind: self.credential_contract.kind(),
+                semantic_contract: self.credential_contract.semantic_contract(),
+                call: NETWORK_CREDENTIALS_HOST_CALL,
+                input_bytes: 1,
+                output_bytes: MAXIMUM_JOIN_INPUT_BYTES,
+                resource_bytes: MAXIMUM_JOIN_INPUT_BYTES.into(),
+            },
+            NETWORK_CREDENTIALS_SUBJECT,
+            &[],
+            tables,
+            credential_placement,
+        )
+        .map_err(|e| NetworkPairRefusal::Credentials(CredentialCallRefusal::Binding(e)))?;
+        let join = PreparedFlatDirectOperation::prepare(
+            join,
+            SelectedOperationContractRef {
+                kind: self.join_contract.kind(),
+                semantic_contract: self.join_contract.semantic_contract(),
+                call: NETWORK_JOIN_HOST_CALL,
+                input_bytes: MAXIMUM_JOIN_INPUT_BYTES,
+                output_bytes: MAXIMUM_JOIN_OUTPUT_BYTES,
+                resource_bytes: 1,
+            },
+            NETWORK_CONFIG_SUBJECT,
+            &[],
+            tables,
+            join_placement,
+        )
+        .map_err(|e| NetworkPairRefusal::Join(JoinCallRefusal::Binding(e)))?;
+        Ok(PreparedNetworkPairSelection {
+            owners: self.owners,
+            credentials,
+            join,
+        })
+    }
+}
+impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
+    PreparedNetworkPairSelection<'owner, P, S>
+{
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns affine actual possession without another allocation."
+    )]
+    pub fn issue_credentials(
+        self,
+        issue: impl FnOnce(
+            &installation::NetworkNativeIdentity,
+            conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+        ) -> Result<
+            conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+            (),
+        >,
+    ) -> Result<
+        PreparedNetworkFirstSelection<'owner, P, S>,
+        (Option<NetworkOperationLease>, NetworkPairRefusal),
+    > {
+        let issued = issue(self.owners.credential_identity(), self.credentials).map_err(|_| {
+            (
+                None,
+                NetworkPairRefusal::Credentials(CredentialCallRefusal::WrongRequest),
+            )
+        })?;
+        let (table, claim) = issued.possession();
+        let check = || {
+            if !self.owners.pair.credentials.claim_matches(claim) {
+                return Err(NetworkPairRefusal::Credentials(
+                    CredentialCallRefusal::WrongRequest,
+                ));
+            }
+            NetworkCredentialsHostCall::<S>::check_possession(table, claim)
+                .map_err(NetworkPairRefusal::Credentials)
+        };
+        if let Err(error) = check() {
+            return Err((Some(issued_lease(issued)), error));
+        }
+        let (credentials, node) = match issued.bind() {
+            Ok(bound) => bound,
+            Err((issued, error)) => {
+                return Err((
+                    Some(issued_lease(issued)),
+                    NetworkPairRefusal::Credentials(CredentialCallRefusal::Binding(error)),
+                ))
+            }
+        };
+        Ok(PreparedNetworkFirstSelection {
+            owners: self.owners,
+            join: self.join,
+            credentials,
+            node,
+        })
+    }
+}
+impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
+    PreparedNetworkFirstSelection<'owner, P, S>
+{
+    pub fn into_operation(self) -> conduit_core::BoundBaseOperation {
+        self.credentials
+    }
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns every affine actual possession without another allocation."
+    )]
+    pub fn issue_join(
+        self,
+        issue: impl FnOnce(
+            &installation::NetworkNativeIdentity,
+            conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+        ) -> Result<
+            conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+            (),
+        >,
+    ) -> Result<
+        PreparedNetworkPairBindings<'owner>,
+        (
+            conduit_core::BoundBaseOperation,
+            Option<NetworkOperationLease>,
+            NetworkPairRefusal,
+        ),
+    > {
+        let issued = match issue(self.owners.join_identity(), self.join) {
+            Ok(issued) => issued,
+            Err(()) => {
+                return Err((
+                    self.credentials,
+                    None,
+                    NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding),
+                ))
+            }
+        };
+        let (table, claim) = issued.possession();
+        let check = || {
+            if !self.owners.pair.join.claim_matches(claim) {
+                return Err(NetworkPairRefusal::Join(JoinCallRefusal::WrongBinding));
+            }
+            NetworkJoinHostCall::<P>::check_possession(
+                table,
+                claim,
+                self.owners.pair.join.attachment_generation(),
+            )
+            .map_err(NetworkPairRefusal::Join)
+        };
+        if let Err(error) = check() {
+            return Err((self.credentials, Some(issued_lease(issued)), error));
+        }
+        let (join, node) = match issued.bind() {
+            Ok(bound) => bound,
+            Err((issued, error)) => {
+                return Err((
+                    self.credentials,
+                    Some(issued_lease(issued)),
+                    NetworkPairRefusal::Join(JoinCallRefusal::Binding(error)),
+                ))
+            }
+        };
+        Ok(PreparedNetworkPairBindings {
+            credentials: self.credentials,
+            join,
+            credential_node: self.node,
+            join_node: node,
+            brand: self.owners.brand,
+        })
+    }
+}
+fn issued_lease(
+    issued: conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+) -> NetworkOperationLease {
+    let (table, handle, claim) = issued.into_possession();
+    NetworkOperationLease {
+        table,
+        handle,
+        claim,
     }
 }

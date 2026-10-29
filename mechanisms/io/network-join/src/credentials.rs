@@ -214,7 +214,7 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             invoked: false,
         }
     }
-    fn check_possession(
+    pub(crate) fn check_possession(
         table: &BaseCapabilityTable,
         claim: &BaseOperationClaim,
     ) -> Result<(), CredentialCallRefusal> {

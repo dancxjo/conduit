@@ -56,3 +56,171 @@ pub fn bind_selected_flat_direct_operation_for_subject<
         .node_for_placement(gear.placement_id)
         .ok_or(SelectedCallRefusal::WrongBinding)
 }
+
+/// Immutable, checked selected-operation data. This is not a capability and
+/// cannot execute: binding still requires actual current Root-issued possession.
+/// The owning expected scope permits temporary Source/Plan descriptions and
+/// native Kind contracts to retire before execution storage is allocated.
+pub struct PreparedFlatDirectOperation {
+    expected: conduit_core::BaseCapabilityScope,
+    node: NodeId,
+}
+impl PreparedFlatDirectOperation {
+    pub fn prepare<
+        const N: usize,
+        const C: usize,
+        const P: usize,
+        const R: usize,
+        const T: usize,
+        const H: usize,
+    >(
+        expected: conduit_core::BaseCapabilityScope,
+        definition: SelectedOperationContractRef<'_>,
+        subject: &str,
+        configuration: &[conduit_core::ConfigurationEntry],
+        tables: &FlatDirectLocalKernelTables<'_, N, C, P, R, T, H>,
+        placement_id: &str,
+    ) -> Result<Self, SelectedCallRefusal> {
+        let view = tables.preparation_scope().view();
+        if expected.plan_id.as_str() != view.fragment_plan_id
+            || expected.host_id.as_str() != view.header.host_id
+            || expected.boot_id.as_str() != view.header.boot_id
+        {
+            return Err(SelectedCallRefusal::WrongBinding);
+        }
+        let mut matches = view
+            .placements
+            .iter()
+            .filter(|g| g.placement_id == placement_id);
+        let gear = matches.next().ok_or(SelectedCallRefusal::WrongBinding)?;
+        if matches.next().is_some() {
+            return Err(SelectedCallRefusal::WrongBinding);
+        }
+        let gear =
+            binding::checked_gear_scope_ref(&expected, &definition, subject, gear, |gear| {
+                gear.configuration == configuration
+            })?;
+        if definition.kind.inputs.len() > 1 || definition.kind.outputs.len() > 1 {
+            return Err(SelectedCallRefusal::WrongBinding);
+        }
+        let node = tables
+            .node_for_placement(gear.placement_id)
+            .ok_or(SelectedCallRefusal::WrongBinding)?;
+        Ok(Self { expected, node })
+    }
+    /// Read-only descriptive policy input, never executable possession.
+    pub fn expected_scope(&self) -> &conduit_core::BaseCapabilityScope {
+        &self.expected
+    }
+
+    /// Move the exact checked scope directly into ordinary Core issuance. The
+    /// numeric witness and actual issued possession cannot be separated or
+    /// substituted while the caller performs its initialized-owner checks.
+    pub fn issue(
+        self,
+        mut table: BaseCapabilityTable,
+        authority: conduit_core::BaseCapabilityAuthorityRef<'_>,
+        active: &ActivePlayIdentity,
+        parameter_bytes: u32,
+        work_units: u64,
+    ) -> Result<IssuedFlatDirectOperation, SelectedCallRefusal> {
+        let scope = self.expected;
+        let claim = BaseOperationClaim {
+            host_id: scope.host_id.clone(),
+            boot_id: scope.boot_id.clone(),
+            base_instance_id: scope.base_instance_id.clone(),
+            base_provider_generation: scope.base_provider_generation,
+            plan_id: scope.plan_id.clone(),
+            active_play_id: scope.active_play_id.clone(),
+            implementation_id: scope.implementation_id.clone(),
+            operation_contract_id: scope.operation_contract_id.clone(),
+            subject_kind: scope.subject_kind.clone(),
+            resource_pool_id: scope.resource_pool_id.clone(),
+            resource_generation_id: scope.resource_generation_id.clone(),
+            envelope_id: scope.envelope_id.clone(),
+            parameter_bytes,
+            work_units,
+        };
+        check_plan_scope_ref(
+            &claim,
+            scope.plan_id.as_str(),
+            scope.host_id.as_str(),
+            scope.boot_id.as_str(),
+            active,
+        )?;
+        let handle = table
+            .issue_borrowed(scope, authority)
+            .map_err(|_| SelectedCallRefusal::Possession)?;
+        Ok(IssuedFlatDirectOperation {
+            table,
+            handle,
+            claim,
+            node: self.node,
+        })
+    }
+    /// Refuse substituted Root, owner, generation, envelope, grant or Play
+    /// scopes. A matching description alone cannot satisfy current possession.
+    pub fn bind(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        active: &ActivePlayIdentity,
+    ) -> Result<NodeId, SelectedCallRefusal> {
+        check_plan_scope_ref(
+            claim,
+            self.expected.plan_id.as_str(),
+            self.expected.host_id.as_str(),
+            self.expected.boot_id.as_str(),
+            active,
+        )?;
+        if matching_scope(table, claim)? != &self.expected {
+            return Err(SelectedCallRefusal::WrongBinding);
+        }
+        Ok(self.node)
+    }
+}
+
+/// Actual possession inseparably coupled to the exact prepared numeric binding.
+/// No public constructor, mutable scope access, Clone, or wire representation.
+pub struct IssuedFlatDirectOperation {
+    table: BaseCapabilityTable,
+    handle: conduit_core::BaseCapabilityHandle,
+    claim: BaseOperationClaim,
+    node: NodeId,
+}
+impl IssuedFlatDirectOperation {
+    pub fn possession(&self) -> (&BaseCapabilityTable, &BaseOperationClaim) {
+        (&self.table, &self.claim)
+    }
+    /// Return every bearer for caller-owned terminal refusal custody.
+    pub fn into_possession(
+        self,
+    ) -> (
+        BaseCapabilityTable,
+        conduit_core::BaseCapabilityHandle,
+        BaseOperationClaim,
+    ) {
+        (self.table, self.handle, self.claim)
+    }
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal must return the same affine actual possession without allocating."
+    )]
+    pub fn bind(
+        self,
+    ) -> Result<(conduit_core::BoundBaseOperation, NodeId), (Self, SelectedCallRefusal)> {
+        let check = || {
+            // Complete canonical Active correspondence was checked before
+            // Core issued this immutable, inseparable scope/node possession.
+            matching_scope(&self.table, &self.claim)?;
+            conduit_core::BoundBaseOperation::check(&self.table, &self.handle, &self.claim)
+                .map_err(|_| SelectedCallRefusal::Possession)
+        };
+        if let Err(error) = check() {
+            return Err((self, error));
+        }
+        let operation = conduit_core::BoundBaseOperation::bind(self.table, self.handle, self.claim)
+            .unwrap_or_else(|_| unreachable!("exact preflighted actual possession"));
+        Ok((operation, self.node))
+    }
+}

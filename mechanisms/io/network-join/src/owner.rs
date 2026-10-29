@@ -235,7 +235,7 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
             output: None,
         }
     }
-    fn check_possession(
+    pub(crate) fn check_possession(
         table: &BaseCapabilityTable,
         claim: &BaseOperationClaim,
         generation: u64,
