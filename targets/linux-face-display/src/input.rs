@@ -35,7 +35,8 @@ fn validate_view(p: Publication, boot: &str, now: u64, historical: bool) -> Resu
     if p.schema != "conduit.local-face/leased@1" || p.boot_id != boot {
         return Err("Waiting for this boot's environmental Face".into());
     }
-    if (!historical && p.valid_until_boot_ms <= now)
+    if p.valid_until_boot_ms == 0
+        || (!historical && p.valid_until_boot_ms <= now)
         || p.valid_until_boot_ms > now.saturating_add(30_000)
     {
         return Err("Environmental Face producer unavailable".into());
@@ -161,6 +162,9 @@ mod historical_startup_tests {
         assert!(validate_view(publication(), "same-linux-boot", 100, false).is_err());
         assert!(validate_view(publication(), "same-linux-boot", 100, true).is_ok());
         assert!(validate_view(publication(), "foreign-linux-boot", 100, true).is_err());
+        let mut unissued = publication();
+        unissued.valid_until_boot_ms = 0;
+        assert!(validate_view(unissued, "same-linux-boot", 100, true).is_err());
         let mut future = publication();
         future.valid_until_boot_ms = 100_000;
         assert!(validate_view(future, "same-linux-boot", 100, true).is_err());

@@ -269,7 +269,7 @@ fn frame(
     let page = page_tick % pages;
     if page < charts.len() {
         let show = charts[page]
-            .native_show()
+            .native_show_in_unit(preferred.unwrap_or(conduit_core::Unit::Celsius))
             .map_err(|e| format!("history graph refused: {e:?}"))?;
         return Ok((show.scene, page, pages, 100));
     }

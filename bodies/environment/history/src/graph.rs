@@ -412,8 +412,8 @@ pub(crate) fn quantity_milli(q: Quantity, target: Unit) -> Result<i64, GraphRefu
         }
         coefficient.checked_div(divisor)
     };
-    Ok(i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
-        .map_err(|_| GraphRefusal::InvalidProperty)?)
+    i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
+        .map_err(|_| GraphRefusal::InvalidProperty)
 }
 
 pub(crate) fn milli_label(value: i64) -> alloc::string::String {

@@ -13,21 +13,29 @@ pub struct NativeHistoryShow<'a> {
 }
 impl<'a> HistoryGraph<'a> {
     pub fn native_show(&self) -> Result<NativeHistoryShow<'a>, GraphicsError> {
+        self.native_show_in_unit(conduit_core::Unit::Celsius)
+    }
+    pub fn native_show_in_unit(
+        &self,
+        unit: conduit_core::Unit,
+    ) -> Result<NativeHistoryShow<'a>, GraphicsError> {
         Ok(NativeHistoryShow {
             content_id: self.content_id,
             revision: self.revision,
-            scene: self.native_scene()?,
+            scene: self.native_scene_in_unit(unit)?,
         })
     }
     pub fn native_scene(&self) -> Result<GraphicsScene, GraphicsError> {
+        self.native_scene_in_unit(conduit_core::Unit::Celsius)
+    }
+    pub fn native_scene_in_unit(
+        &self,
+        unit: conduit_core::Unit,
+    ) -> Result<GraphicsScene, GraphicsError> {
         ChartGeometry {
             samples: &self.samples,
         }
-        .native_scene(
-            self.omitted,
-            "RECORDED HISTORY",
-            conduit_core::Unit::Celsius,
-        )
+        .native_scene(self.omitted, "RECORDED HISTORY", unit)
     }
 }
 impl ChartGeometry<'_> {

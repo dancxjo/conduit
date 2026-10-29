@@ -44,11 +44,11 @@ fn run() -> Result<(), String> {
     let mut history_status = String::new();
     loop {
         let now = input::now_ms()?;
-        if retained.last(now).is_none() {
-            if let Ok(face) = input::read_last_known(&input_path, boot.trim()) {
-                retained.accept(face, now);
-                recovered_history = true;
-            }
+        if retained.last(now).is_none()
+            && let Ok(face) = input::read_last_known(&input_path, boot.trim())
+        {
+            retained.accept(face, now);
+            recovered_history = true;
         }
         let mut historical_notice = None;
         let (face, status) = match input::read(&input_path, boot.trim()) {
@@ -83,12 +83,10 @@ fn run() -> Result<(), String> {
                     "Retained history input unavailable; last accepted history retained: {error}"
                 ),
             };
-            if status != history_status {
-                if !status.is_empty() {
-                    eprintln!("{status}");
-                }
-                history_status = status;
+            if status != history_status && !status.is_empty() {
+                eprintln!("{status}");
             }
+            history_status = status;
         }
         let rendered = if tick.is_multiple_of(2) {
             if let Some(history) = history.scene() {

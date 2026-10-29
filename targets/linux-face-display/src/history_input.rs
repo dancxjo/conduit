@@ -216,3 +216,39 @@ mod tests {
         assert_ne!(input.scene().unwrap().encode(), original);
     }
 }
+
+#[cfg(test)]
+mod private_preview {
+    #[test]
+    #[ignore = "requires explicitly selected private verified historical evidence"]
+    fn render_actual_retained_history_without_framebuffer_or_services() {
+        use std::io::Write;
+        let input =
+            std::env::var_os("CONDUIT_PRIVATE_HISTORY_PREVIEW").expect("private history input");
+        let output = std::env::var_os("CONDUIT_PRIVATE_HISTORY_PREVIEW_PPM")
+            .expect("private preview output");
+        let mut history = super::HistoryInput::new(Some(conduit_core::Unit::Fahrenheit));
+        assert!(history.refresh(std::path::Path::new(&input)).unwrap());
+        let (width, height) = (1024u16, 600u16);
+        let mut pixels = vec![0; usize::from(width) * usize::from(height)];
+        crate::view::render_graphics(history.scene().unwrap(), width, height, &mut pixels).unwrap();
+        crate::view::render_notice(
+            "RETAINED HISTORY / VERIFIED INPUT / LIVE FEED AVAILABILITY IS SEPARATE",
+            width,
+            height,
+            &mut pixels,
+        )
+        .unwrap();
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(output)
+            .unwrap();
+        write!(file, "P6\n{width} {height}\n255\n").unwrap();
+        for pixel in pixels {
+            file.write_all(&[(pixel >> 16) as u8, (pixel >> 8) as u8, pixel as u8])
+                .unwrap();
+        }
+        file.sync_all().unwrap();
+    }
+}
