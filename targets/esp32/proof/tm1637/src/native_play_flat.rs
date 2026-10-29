@@ -61,6 +61,7 @@ impl NativePlay {
         );
         let custody = &mut self.flat_refusal;
         let mut reserved = false;
+        let mut prepared_active = None;
         let result = pair.prepare(|owners| {
             let (selected, parts, mut root) = {
                 let credential_grant =
@@ -104,6 +105,13 @@ impl NativePlay {
             // Both native contracts, borrowed Source/Plan projections, grants
             // and lowering tables have retired. Only exact compact proofs and
             // numeric parts overlap final backing and actual issuance.
+            let mut operation = Operation::Credentials;
+            selected.prepare_issuance_storage(|native, prepared| {
+                root.prepare_issuance_storage(native, operation, prepared)?;
+                operation = Operation::Join;
+                Ok(())
+            })?;
+            prepared_active = Some(root.prepare_reservation()?);
             #[cfg(test)]
             record_phased(0, None);
             let storage = Self::reserve_linked_backing()?;
@@ -166,7 +174,7 @@ impl NativePlay {
         // duplicated claims and refused execution storage have retired before
         // copying the actual reservation into retained success/refusal custody.
         if reserved {
-            self.active = issuer.reserved_network_active().cloned();
+            self.active = prepared_active.take();
         }
         #[cfg(test)]
         record_phased(8, None);

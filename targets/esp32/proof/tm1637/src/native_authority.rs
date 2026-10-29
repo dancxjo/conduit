@@ -350,21 +350,25 @@ impl RootIssuer {
         let grant = self.grant_ref(native, operation)?;
         let (_, _, call, subject, cap, input, output, _) = operation.facts();
         let scope = c::BaseCapabilityScope {
-            host_id: self.host.clone(),
-            boot_id: self.boot.clone(),
-            base_instance_id: native.instance.clone(),
+            host_id: c::HostId(try_network_text(self.host.as_str())?),
+            boot_id: c::BootId(try_network_text(self.boot.as_str())?),
+            base_instance_id: c::BaseInstanceId(try_network_text(native.instance.as_str())?),
             base_provider_generation: native.provider_generation,
-            plan_id: active.plan_id.clone(),
-            active_play_id: active.active_play_id.clone(),
-            authority_grant_id: grant.grant_id.into(),
-            authority_contract_id: grant.contract_id.into(),
-            capability_id: cap.into(),
-            implementation_id: native.implementation.clone(),
-            operation_contract_id: call.into(),
-            subject_kind: subject.into(),
-            resource_pool_id: native.resource.clone(),
-            resource_generation_id: native.resource_generation.clone(),
-            envelope_id: native.envelope.clone(),
+            plan_id: c::PlanId(try_network_text(active.plan_id.as_str())?),
+            active_play_id: c::ActivePlayId(try_network_text(active.active_play_id.as_str())?),
+            authority_grant_id: c::AuthorityGrantId(try_network_text(grant.grant_id)?),
+            authority_contract_id: c::AuthorityContractId(try_network_text(grant.contract_id)?),
+            capability_id: c::CapabilityId(try_network_text(cap)?),
+            implementation_id: c::ImplementationId(try_network_text(
+                native.implementation.as_str(),
+            )?),
+            operation_contract_id: c::HostCallContractId(try_network_text(call)?),
+            subject_kind: c::KindId(try_network_text(subject)?),
+            resource_pool_id: c::ResourcePoolId(try_network_text(native.resource.as_str())?),
+            resource_generation_id: c::ResourceGenerationId(try_network_text(
+                native.resource_generation.0.as_str(),
+            )?),
+            envelope_id: c::CapabilityEnvelopeId(try_network_text(native.envelope.as_str())?),
             maximum_parameter_bytes: input,
             maximum_result_bytes: output,
             maximum_work_units: 1,
@@ -391,6 +395,36 @@ impl RootIssuer {
         ),
         (),
     > {
+        let (authority, input, index) =
+            self.network_policy_for(native, operation, scope, active)?;
+        Ok((self.network_table(native)?, authority, input, index))
+    }
+    // Storage preparation grants no possession and consumes no Root sequence.
+    // Every actual issuance rechecks independent Root/native policy below.
+    fn network_table(&self, native: &NetworkNativeIdentity) -> Result<c::BaseCapabilityTable, ()> {
+        self.grant_ref(native, Operation::Join)?;
+        let mut hash = Sha256::new();
+        hash.update(self.key);
+        hash.update(native.instance.as_str().as_bytes());
+        let key: [u8; 32] = hash.finalize().into();
+        let table = c::BaseCapabilityTable::new(
+            c::HostId(try_network_text(self.host.as_str())?),
+            c::BootId(try_network_text(self.boot.as_str())?),
+            c::BaseInstanceId(try_network_text(native.instance.as_str())?),
+            native.provider_generation,
+            key,
+            1,
+        )
+        .map_err(|_| ())?;
+        Ok(table)
+    }
+    fn network_policy_for<'native>(
+        &self,
+        native: &'native NetworkNativeIdentity,
+        operation: Operation,
+        scope: &c::BaseCapabilityScope,
+        active: &c::ActivePlayIdentity,
+    ) -> Result<(c::BaseCapabilityAuthorityRef<'native>, u32, usize), ()> {
         let expected = self.grant_ref(native, operation)?;
         let (_, _, call, subject, cap, input, output, index) = operation.facts();
         if self.issued[index]
@@ -424,19 +458,6 @@ impl RootIssuer {
         {
             return Err(());
         }
-        let mut hash = Sha256::new();
-        hash.update(self.key);
-        hash.update(native.instance.as_str().as_bytes());
-        let key: [u8; 32] = hash.finalize().into();
-        let table = c::BaseCapabilityTable::new(
-            self.host.clone(),
-            self.boot.clone(),
-            native.instance.clone(),
-            native.provider_generation,
-            key,
-            1,
-        )
-        .map_err(|_| ())?;
         let authority = c::BaseCapabilityAuthorityRef {
             grant: expected,
             base_instance_id: native.instance.as_str(),
@@ -451,7 +472,7 @@ impl RootIssuer {
             maximum_in_flight: 1,
             maximum_operations: 1,
         };
-        Ok((table, authority, input, index))
+        Ok((authority, input, index))
     }
 }
 
@@ -476,4 +497,34 @@ impl RootIssuer {
         self.reserved_play = None;
         Ok(())
     }
+}
+
+fn try_network_text(value: &str) -> Result<alloc::string::String, ()> {
+    let mut text = alloc::string::String::new();
+    text.try_reserve_exact(value.len()).map_err(|_| ())?;
+    text.push_str(value);
+    Ok(text)
+}
+
+fn try_network_active(
+    plan: &str,
+    host: &c::HostId,
+    boot: &c::BootId,
+    sequence: u64,
+) -> Result<c::ActivePlayIdentity, ()> {
+    let digest = c::active_play_digest(plan, host.as_str(), boot.as_str(), sequence);
+    let mut id = alloc::string::String::new();
+    id.try_reserve_exact(64).map_err(|_| ())?;
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for byte in digest {
+        id.push(HEX[(byte >> 4) as usize] as char);
+        id.push(HEX[(byte & 15) as usize] as char);
+    }
+    Ok(c::ActivePlayIdentity {
+        active_play_id: c::ActivePlayId(id),
+        plan_id: c::PlanId(try_network_text(plan)?),
+        host_id: c::HostId(try_network_text(host.as_str())?),
+        boot_id: c::BootId(try_network_text(boot.as_str())?),
+        play_sequence: sequence,
+    })
 }

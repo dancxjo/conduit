@@ -714,3 +714,51 @@ fn phased_join_binding_refusal_defers_active_copy_and_retains_both_bearers() {
         flat::IssuedCustody::FirstLease(_, _)
     ));
 }
+
+#[test]
+fn issuance_storage_refusal_is_reversible_and_committed_installation_allocates_nothing() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    let admitted = core::cell::Cell::new(false);
+    RootIssuer::refuse_next_issuance_storage_fixture();
+    assert!(play
+        .install_linked_phased_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            || {
+                admitted.set(true);
+                Ok(())
+            }
+        )
+        .is_err());
+    assert!(!admitted.get() && !play.attempted);
+    assert!(play.active.is_none() && play.flat_refusal.is_empty());
+    assert!(source.is_some() && join.is_some());
+    assert_eq!(issuer.next_play_sequence(), Some(1));
+    let mut before = None;
+    let (_, total) = allocation_probe::observe(|| {
+        play.install_linked_phased_held(
+            &image,
+            &pins,
+            c::OfferGeneration(u64::MAX),
+            &mut source,
+            &mut join,
+            &mut issuer,
+            || {
+                before = allocation_probe::current_observation();
+                Ok(())
+            },
+        )
+        .unwrap();
+    });
+    let before = before.unwrap();
+    assert_eq!((before.allocations, before.reallocations), (total.allocations, total.reallocations), "actual Root reservation/issuance/binding/materialization after admission must allocate nothing");
+    assert_eq!(play.active.as_ref().unwrap().play_sequence, 1);
+}

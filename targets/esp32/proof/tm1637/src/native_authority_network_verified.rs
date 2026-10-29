@@ -112,6 +112,12 @@ pub struct LinkedNetworkPreparation<'root> {
     issuer: &'root mut RootIssuer,
     active: Option<c::ActivePlayIdentity>,
     reserved: bool,
+    storage: [Option<NetworkIssuanceStorage>; 2],
+    reservation: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
+}
+struct NetworkIssuanceStorage {
+    table: c::BaseCapabilityTable,
+    operation: conduit_plan_lowering::selected_operation::PreparedFlatDirectIssuance,
 }
 impl RootIssuer {
     pub fn prepare_linked_network<'root>(
@@ -125,11 +131,13 @@ impl RootIssuer {
             return Err(());
         }
         let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;
-        let active = c::bind_active_play(&view.plan_id.into(), &self.host, &self.boot, sequence);
+        let active = try_network_active(view.plan_id, &self.host, &self.boot, sequence)?;
         Ok(LinkedNetworkPreparation {
             issuer: self,
             active: Some(active),
             reserved: false,
+            storage: [None, None],
+            reservation: None,
         })
     }
 }
@@ -145,19 +153,85 @@ impl LinkedNetworkPreparation<'_> {
             .network_scope_for(native, operation, self.active.as_ref().ok_or(())?)
     }
 
-    pub fn reserve(&mut self) -> Result<(), ()> {
-        if self.reserved {
+    /// Acquire all issuance allocations while installation is still reversible.
+    /// Scope descriptions remain untrusted until ordinary issuance rechecks them.
+    pub fn prepare_issuance_storage(
+        &mut self,
+        native: &NetworkNativeIdentity,
+        operation: Operation,
+        prepared: &conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+    ) -> Result<(), ()> {
+        let (_, _, _, _, _, input, _, index) = operation.facts();
+        if self.reserved || self.storage[index].is_some() {
             return Err(());
         }
-        // Exclusive borrowing has prevented any intervening Root mutation.
+        #[cfg(test)]
+        let _failure = if REFUSE_NEXT_ISSUANCE_STORAGE.with(|flag| flag.replace(false)) {
+            Some(crate::allocation_probe::refuse_next_allocation_size(64))
+        } else {
+            None
+        };
+        let table = self.issuer.network_table(native)?;
+        #[cfg(test)]
+        let input = if matches!(operation, Operation::Join)
+            && REFUSE_NEXT_JOIN_BINDING.with(|flag| flag.replace(false))
+        {
+            input - 1
+        } else {
+            input
+        };
+        let storage = prepared.prepare_issuance(input, 1).map_err(|_| ())?;
+        self.storage[index] = Some(NetworkIssuanceStorage {
+            table,
+            operation: storage,
+        });
+        Ok(())
+    }
+
+    pub fn prepare_reservation(&mut self) -> Result<c::ActivePlayIdentity, ()> {
+        if self.reserved || self.reservation.is_some() {
+            return Err(());
+        }
         let expected = self.active.as_ref().ok_or(())?;
-        let active = self.issuer.reserve_plan(&expected.plan_id)?;
-        if &active != expected {
+        let returned = c::ActivePlayIdentity {
+            active_play_id: c::ActivePlayId(try_network_text(expected.active_play_id.as_str())?),
+            plan_id: c::PlanId(try_network_text(expected.plan_id.as_str())?),
+            host_id: c::HostId(try_network_text(expected.host_id.as_str())?),
+            boot_id: c::BootId(try_network_text(expected.boot_id.as_str())?),
+            play_sequence: expected.play_sequence,
+        };
+        let layout = core::alloc::Layout::new::<c::ActivePlayIdentity>();
+        // SAFETY: exact nonzero layout, checked before taking the candidate;
+        // the resulting Box uniquely owns the initialized Active identity.
+        let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<c::ActivePlayIdentity>();
+        if raw.is_null() {
             return Err(());
         }
-        // Actual Root reservation now owns this identity; the caller copy is
-        // deferred until construction and its temporary claims have retired.
-        self.active = None;
+        let active = self.active.take().ok_or(())?;
+        unsafe {
+            raw.write(active);
+            self.reservation = Some(alloc::boxed::Box::from_raw(raw));
+        }
+        Ok(returned)
+    }
+    pub fn reserve(&mut self) -> Result<(), ()> {
+        if self.reserved || self.storage.iter().any(Option::is_none) {
+            return Err(());
+        }
+        let expected = self.reservation.as_deref().ok_or(())?;
+        if self.issuer.last_play_sequence.checked_add(1) != Some(expected.play_sequence)
+            || !expected.is_bound_to(
+                &expected.plan_id,
+                &self.issuer.host,
+                &self.issuer.boot,
+                expected.play_sequence,
+            )
+        {
+            return Err(());
+        }
+        // Exclusive Root borrowing makes this commit allocation-free and affine.
+        self.issuer.last_play_sequence = expected.play_sequence;
+        self.issuer.reserved_play = self.reservation.take();
         self.reserved = true;
         Ok(())
     }
@@ -171,19 +245,12 @@ impl LinkedNetworkPreparation<'_> {
             return Err(());
         }
         let active = self.issuer.reserved_play.as_deref().ok_or(())?;
-        let (table, authority, input, index) =
+        let (authority, _input, index) =
             self.issuer
-                .network_issuer_for(native, operation, prepared.expected_scope(), active)?;
-        #[cfg(test)]
-        let input = if matches!(operation, Operation::Join)
-            && REFUSE_NEXT_JOIN_BINDING.with(|flag| flag.replace(false))
-        {
-            input - 1
-        } else {
-            input
-        };
+                .network_policy_for(native, operation, prepared.expected_scope(), active)?;
+        let storage = self.storage[index].take().ok_or(())?;
         let issued = prepared
-            .issue(table, authority, active, input, 1)
+            .issue_prepared(storage.table, authority, active, storage.operation)
             .map_err(|_| ())?;
         self.issuer.issued[index] = true;
         Ok(issued)
@@ -192,10 +259,14 @@ impl LinkedNetworkPreparation<'_> {
 
 #[cfg(test)]
 std::thread_local! {
+    static REFUSE_NEXT_ISSUANCE_STORAGE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
     static REFUSE_NEXT_JOIN_BINDING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 #[cfg(test)]
 impl RootIssuer {
+    pub(crate) fn refuse_next_issuance_storage_fixture() {
+        REFUSE_NEXT_ISSUANCE_STORAGE.with(|flag| flag.set(true));
+    }
     /// Real issued possession with an allowed narrower claim, which the exact
     /// native Join call must refuse while retaining both actual bearers.
     pub(crate) fn refuse_next_prepared_join_binding_fixture() {

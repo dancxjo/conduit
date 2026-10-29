@@ -540,6 +540,20 @@ impl<'owner, 'description, P: NetworkJoinProvider, S: CredentialSource>
 impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
     PreparedNetworkPairSelection<'owner, P, S>
 {
+    /// Read-only checked expectations over the actual initialized owners.
+    /// Preparation grants no capability and polls neither provider.
+    pub fn prepare_issuance_storage<T>(
+        &self,
+        mut prepare: impl FnMut(
+            &installation::NetworkNativeIdentity,
+            &conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+        ) -> Result<T, ()>,
+    ) -> Result<[T; 2], ()> {
+        Ok([
+            prepare(self.owners.credential_identity(), &self.credentials)?,
+            prepare(self.owners.join_identity(), &self.join)?,
+        ])
+    }
     #[allow(
         clippy::result_large_err,
         reason = "Refusal returns affine actual possession without another allocation."
