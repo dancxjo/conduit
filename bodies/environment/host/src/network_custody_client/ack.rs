@@ -16,6 +16,9 @@ pub(crate) enum Start {
     /// retained, but this entrance cannot resume or renew its transaction window.
     Interrupted,
 }
+// One exact 480-byte signed cursor is a finite inline proof. Boxing only the
+// successful result would add a lifecycle allocation without bounding more work.
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Progress {
     Pending,
     Complete(CommittedNetworkCustody),
