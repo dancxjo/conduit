@@ -427,6 +427,7 @@ impl ProtectedFrameCarrier for RelayWebSocketCarrier<'_, '_> {
         if !self.outer[..length].starts_with(b"CNDR") {
             return match decode_outcome(&self.outer[..length], self.route_id) {
                 Ok(OutcomeStatus::Pressure) => Err(CarrierFailure::Pressure),
+                Ok(OutcomeStatus::Closed) => Err(CarrierFailure::Closed),
                 _ => Err(CarrierFailure::Lost),
             };
         }
