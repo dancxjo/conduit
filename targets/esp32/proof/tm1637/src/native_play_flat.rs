@@ -1,7 +1,15 @@
 //! Ordinary linked Source planning and affine actual-owner selection. No Step
 //! is polled here; successful construction remains held for Root admission.
 use super::*;
+#[path = "native_play_flat_diagnostics.rs"]
+mod diagnostics;
+#[cfg(test)]
+pub(super) use diagnostics::phased_refusal;
+use diagnostics::{trace_flat_refusal, trace_phased_refusal};
+#[path = "native_play_flat_selection.rs"]
+mod selection;
 use n::{NetworkOperationLease, ReadyNetworkPair};
+use selection::prepare_linked_selection;
 
 /// Issuance is irreversible at this waist. A terminal refusal retains every
 /// actual bearer beside the original Ready slots until explicit owner recovery.
@@ -476,75 +484,6 @@ fn finish_reserved_kernel(
     result
 }
 
-// Keep the concrete affine issuance/checking waist out of the generic planner
-// callback. Its owner brand is preserved; no Source/Plan borrow escapes.
-#[inline(never)]
-fn prepare_linked_selection<'owner, 'root>(
-    owners: n::ReadyNetworkPairContractView<'owner, '_, Provider, Source>,
-    scope: &conduit_planner::borrowed_local::SourcePlannedLocalScope<'_>,
-    issuer: &'root mut RootIssuer,
-    pins: (&str, &str, &str),
-    stage: &mut u16,
-) -> Result<
-    (
-        n::PreparedNetworkPairSelection<'owner, Provider, Source>,
-        n::PreparedNetworkKernelParts,
-        crate::native_authority::LinkedNetworkPreparation<'root>,
-    ),
-    (),
-> {
-    *stage = 1051;
-    let tables = n::NetworkControlFlatDirectTables::prepare(scope.verified()).map_err(|_| ())?;
-    *stage = 1052;
-    let roles = n::PreparedNetworkKernelParts::check_flat_direct(&tables).map_err(|_| ())?;
-    let view = scope.verified().view();
-    // The pair checks Credentials and Join only. Keep this
-    // independent actual attachment implementation preflight.
-    *stage = 1053;
-    let sign = view
-        .placements
-        .iter()
-        .nth(usize::from(roles.attachment_sign.0))
-        .ok_or(())?;
-    if sign.capability_id != CAP
-        || sign.implementation_id != IMPLEMENTATION
-        || sign.artifact_id != ARTIFACT
-        || sign.execution_profile_id != conduit_net::NETWORK_ATTACHMENT_LOCAL_PROFILE
-        || sign.host_calls.len() != 1
-        || sign.host_calls.iter().next().ok_or(())?.contract_id
-            != conduit_net::NETWORK_ATTACHMENT_SIGN_HOST_CALL
-    {
-        return Err(());
-    }
-    *stage = 1054;
-    let credential = view
-        .placements
-        .iter()
-        .nth(usize::from(roles.credentials.0))
-        .ok_or(())?
-        .placement_id;
-    let join = view
-        .placements
-        .iter()
-        .nth(usize::from(roles.join.0))
-        .ok_or(())?
-        .placement_id;
-    *stage = 1055;
-    let root = issuer.prepare_linked_network(scope, pins)?;
-    *stage = 1056;
-    let credential_scope =
-        root.expected_scope(owners.credential_identity(), Operation::Credentials)?;
-    *stage = 1057;
-    let join_scope = root.expected_scope(owners.join_identity(), Operation::Join)?;
-    *stage = 1058;
-    let selected = owners
-        .prepare_flat_selection(credential_scope, join_scope, &tables, credential, join)
-        .map_err(|_| ())?;
-    *stage = 1059;
-    let parts = n::PreparedNetworkKernelParts::from_flat_direct(tables).map_err(|_| ())?;
-    Ok((selected, parts, root))
-}
-
 fn check_linked_scope<'owner>(
     owners: n::ReadyNetworkPairContractView<'owner, '_, Provider, Source>,
     scope: &conduit_planner::borrowed_local::SourcePlannedLocalScope<'_>,
@@ -719,64 +658,6 @@ mod backing_tests {
             Some(core::alloc::Layout::new::<PreparedNetworkKernel>())
         );
     }
-}
-
-// Phased stages: 100 entry; 101/102 grants; 103 advertisement; 104 planner;
-// 105 selection entry; 1051 tables; 1052 roles; 1053 attachment; 1054 placements;
-// 1055 Root preparation; 1056/1057 expected credential/Join scopes;
-// 1058 pair selection; 1059 numeric parts; 110 claim memory; 111/112 issuer memory; 113 reservation memory;
-// 114 kernel/Sign backing; 115 admission callback; 120 actual Root reservation;
-// 121/122 credential issue/check; 123/124 Join issue/check; 125 materialization.
-// Scalar diagnostics only; no payload, authority or retained execution state.
-#[inline(never)]
-#[cold]
-fn trace_phased_refusal(stage: u16, custody: &IssuedCustody, reserved: bool, admitted: bool) {
-    #[cfg(test)]
-    PHASE_REFUSAL.with(|last| last.set(Some((stage, reserved, admitted))));
-    #[cfg(target_os = "none")]
-    {
-        let custody = match custody {
-            IssuedCustody::Empty => 0,
-            IssuedCustody::Lease(_) => 1,
-            IssuedCustody::First(_) => 2,
-            IssuedCustody::FirstLease(_, _) => 3,
-            IssuedCustody::Both(_, _) => 4,
-        };
-        esp_println::println!("{{\"event\":\"network-phased-install-refused\",\"stage\":{},\"admitted\":{},\"issued_custody\":{},\"active_reserved\":{}}}", stage, admitted, custody, reserved);
-    }
-    #[cfg(not(target_os = "none"))]
-    let _ = (stage, custody, reserved, admitted);
-}
-#[cfg(test)]
-std::thread_local! {
-    static PHASE_REFUSAL: std::cell::Cell<Option<(u16, bool, bool)>> = const { std::cell::Cell::new(None) };
-}
-#[cfg(test)]
-pub(super) fn phased_refusal() -> Option<(u16, bool, bool)> {
-    PHASE_REFUSAL.with(|last| last.take())
-}
-
-// One line per actual failed installation, no retained metadata. Stage codes:
-// 1/2 grants; 3 advertisement; 4 planner; 5 selected output; 6 backing;
-// 7 materialization; 10 tables; 11 kernel profile; 12 attachment;
-// 13/14 placement; 15 Root reserve; 16 credential issue; 17 credential check;
-// 18 join issue; 19 join check; 20 prepared kernel parts.
-#[inline(never)]
-#[cold]
-fn trace_flat_refusal(stage: u16, custody: &IssuedCustody, active: bool) {
-    #[cfg(target_os = "none")]
-    {
-        let custody = match custody {
-            IssuedCustody::Empty => 0,
-            IssuedCustody::Lease(_) => 1,
-            IssuedCustody::First(_) => 2,
-            IssuedCustody::FirstLease(_, _) => 3,
-            IssuedCustody::Both(_, _) => 4,
-        };
-        esp_println::println!("{{\"event\":\"network-flat-install-refused\",\"stage\":{},\"issued_custody\":{},\"active_reserved\":{}}}", stage, custody, active);
-    }
-    #[cfg(not(target_os = "none"))]
-    let _ = (stage, custody, active);
 }
 
 #[cfg(test)]
