@@ -1,9 +1,9 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 mod coverage;
 mod font;
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 mod icons;
 mod raw;
 mod rounded;
@@ -11,9 +11,9 @@ mod text_layout;
 mod tokens;
 pub use raw::RawDisplay;
 pub use tokens::*;
-#[cfg(any(test, feature = "native-compositor-core"))]
+#[cfg(any(test, feature = "native-face-raster"))]
 pub mod profile;
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 pub mod typography;
 pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> {
     text_layout::text_height(value, width)
@@ -253,9 +253,9 @@ fn render_command_with_color(
             fill(target, bounds, color, receipt)
         }
         GraphicsCommandKind::Rect => stroke(target, bounds, color, receipt),
-        #[cfg(feature = "native-compositor-core")]
+        #[cfg(feature = "native-face-raster")]
         GraphicsCommandKind::Icon => icons::draw(target, command, bounds, color, receipt),
-        #[cfg(not(feature = "native-compositor-core"))]
+        #[cfg(not(feature = "native-face-raster"))]
         GraphicsCommandKind::Icon => text(
             target,
             command.bounds,
