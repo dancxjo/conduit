@@ -2,6 +2,8 @@
 //! This filters candidates only; the matcher still checks complete bytes and
 //! preserves nearest-first ties. All ring positions use 32-bit bitmap words.
 use super::V4_HISTORY;
+// Production ownership is solely inside Encoder. Its existing Drop and reset
+// clear this derived private state; no separate aggregate Drop is necessary.
 pub(in super::super) struct Index {
     bits: [[u32; 44]; 4],
 }
@@ -28,11 +30,6 @@ impl Index {
                 unsafe { core::ptr::write_volatile(word, 0) };
             }
         }
-    }
-}
-impl Drop for Index {
-    fn drop(&mut self) {
-        self.clear();
     }
 }
 pub(super) struct Candidates<'a> {
