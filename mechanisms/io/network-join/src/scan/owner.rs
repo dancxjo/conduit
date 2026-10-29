@@ -9,7 +9,7 @@ pub const SCAN_CAPABILITY: &str = "conduit/network-scan@1";
 pub const SCAN_BASE_KIND: &str = "machine/wifi-scan";
 /// Core requires one nonzero accounting unit even for a zero-input Host Call,
 /// as for the existing credential source. This is not an authored input byte.
-pub const SCAN_OPERATION_PARAMETER_BYTES: u32 = 1;
+pub const SCAN_OPERATION_PARAMETER_BYTES: u32 = MAXIMUM_SCAN_INPUT_BYTES;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ScanCallRefusal {
     Unavailable,

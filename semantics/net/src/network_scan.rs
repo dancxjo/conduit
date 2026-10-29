@@ -5,7 +5,9 @@ pub const NETWORK_SCAN_HOST_CALL: &str = "conduit.host/network-scan@1";
 pub const NETWORK_SCAN_AUTHORITY: &str = "conduit.authority/network-scan@1";
 pub const NETWORK_SCAN_SUBJECT: &str = "authority/network-scanner";
 pub const MAXIMUM_SCAN_OBSERVATIONS: usize = 16;
-pub const MAXIMUM_SCAN_INPUT_BYTES: u32 = 0;
+/// Finite Host Call accounting/capacity bound, matching credential sources.
+/// The authored Kind has no input ports and actual invocation accepts zero bytes.
+pub const MAXIMUM_SCAN_INPUT_BYTES: u32 = 1;
 /// Optional private provider-context representation, never an authored input port.
 pub const SCAN_PROVIDER_CONTEXT_BYTES: usize = 28;
 pub const MAXIMUM_SCAN_OUTPUT_BYTES: u32 = 728;
