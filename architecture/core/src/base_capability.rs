@@ -596,4 +596,3 @@ fn write_hex_digest(result: &mut alloc::string::String, bytes: &[u8; 32]) {
         result.push(char::from(HEX[usize::from(byte & 15)]));
     }
 }
-
