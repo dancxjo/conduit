@@ -9,7 +9,7 @@ pub enum Action {
 pub enum Reply {
     Queued(u32),
     Receipt(Vec<u8>),
-    Refused(u32),
+    Refused(u32, &'static str),
     Unknown,
     Unavailable,
 }
@@ -43,8 +43,9 @@ pub fn render(reply: Reply, response: &mut heapless::String<2048>) -> bool {
         Reply::Queued(ticket) => {
             return write!(response,"HTTP/1.1 202 Accepted\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{{\"schema\":\"conduit.environment/body-join-queued@1\",\"ticket\":{ticket}}}").is_ok();
         }
-        Reply::Refused(ticket) => {
-            return write!(response,"HTTP/1.1 403 Forbidden\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{{\"schema\":\"conduit.environment/body-join-refused@1\",\"ticket\":{ticket}}}").is_ok();
+        Reply::Refused(ticket, reason) => {
+            let reason = bounded_refusal(reason);
+            return write!(response,"HTTP/1.1 403 Forbidden\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{{\"schema\":\"conduit.environment/body-join-refused@1\",\"ticket\":{ticket},\"reason\":\"{reason}\"}}").is_ok();
         }
         Reply::Receipt(bytes) => {
             let Ok(body) = core::str::from_utf8(&bytes) else {
@@ -64,4 +65,50 @@ pub fn page(response: &mut heapless::String<2048>) -> bool {
 pub fn preflight(response: &mut heapless::String<2048>) -> bool {
     response.clear();
     response.push_str("HTTP/1.1 204 No Content\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, POST, OPTIONS\r\nAccess-Control-Allow-Headers: Content-Type\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").is_ok()
+}
+
+/// Static Root codes only; arbitrary text cannot enter JSON or grow the frame.
+fn bounded_refusal(reason: &'static str) -> &'static str {
+    if !reason.is_empty()
+        && reason.len() <= 64
+        && reason
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+    {
+        reason
+    } else {
+        "body-join-refused"
+    }
+}
+
+#[cfg(test)]
+mod refusal_tests {
+    use super::*;
+    #[test]
+    fn refusal_keeps_ticket_and_bounded_root_reason() {
+        let mut response = heapless::String::new();
+        assert!(render(
+            Reply::Refused(17, "body-return-observer-profile"),
+            &mut response
+        ));
+        assert!(response.starts_with("HTTP/1.1 403 Forbidden\r\n"));
+        let (_, body) = response.split_once("\r\n\r\n").unwrap();
+        let body: serde_json::Value = serde_json::from_str(body).unwrap();
+        assert_eq!(body["ticket"], 17);
+        assert_eq!(body["reason"], "body-return-observer-profile");
+    }
+    #[test]
+    fn arbitrary_text_cannot_escape_refusal_code() {
+        for reason in [
+            "untrusted\"text",
+            "",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        ] {
+            let mut response = heapless::String::new();
+            assert!(render(Reply::Refused(1, reason), &mut response));
+            let (_, body) = response.split_once("\r\n\r\n").unwrap();
+            let body: serde_json::Value = serde_json::from_str(body).unwrap();
+            assert_eq!(body["reason"], "body-join-refused");
+        }
+    }
 }

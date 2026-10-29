@@ -25,7 +25,8 @@ struct State {
     pending: Option<Pending>,
     inflight: Option<(u32, [u8; 32])>,
     completed: Option<Completed>,
-    refused: Option<u32>,
+    // One fixed static code reference; no diagnostic payload allocation.
+    refused: Option<(u32, &'static str)>,
 }
 // Awake CPU-only mailbox metadata; all transport payloads remain heap-owned.
 #[allow(unexpected_cfgs)] // Native profile is absent from the CPU proof crate.
@@ -43,7 +44,7 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCel
 pub(crate) enum ResultReply {
     Pending(u32),
     Complete(Vec<u8>),
-    Refused(u32),
+    Refused(u32, &'static str),
     Unknown,
     Unavailable,
 }
@@ -116,8 +117,8 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
         {
             return ResultReply::Pending(ticket);
         }
-        if state.refused == Some(ticket) {
-            ResultReply::Refused(ticket)
+        if let Some((refused, reason)) = state.refused.filter(|(refused, _)| *refused == ticket) {
+            ResultReply::Refused(refused, reason)
         } else {
             ResultReply::Unknown
         }
@@ -199,7 +200,7 @@ impl crate::native_root::NativeRoot {
                         deadline,
                     })
                 }
-                Err(_) => state.refused = Some(ticket),
+                Err(reason) => state.refused = Some((ticket, reason)),
             }
         });
     }
@@ -214,7 +215,7 @@ fn response(
         Action::Result(ticket) => match result(ticket) {
             ResultReply::Pending(ticket) => Reply::Queued(ticket),
             ResultReply::Complete(bytes) => Reply::Receipt(bytes),
-            ResultReply::Refused(ticket) => Reply::Refused(ticket),
+            ResultReply::Refused(ticket, reason) => Reply::Refused(ticket, reason),
             ResultReply::Unknown => Reply::Unknown,
             ResultReply::Unavailable => Reply::Unavailable,
         },
