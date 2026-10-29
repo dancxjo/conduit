@@ -75,14 +75,25 @@ pub(super) fn ensure_sign_sequence_capacity(
 /// Plan an eviction without mutating history; append may still refuse later.
 pub(super) fn prepare_transient_eviction(
     entries: &[Option<KernelEvent>],
+    gap: Option<SignRetentionGap>,
+    exhausted: SignError,
+) -> Result<(usize, Option<SignRetentionGap>), SignError> {
+    prepare_transient_eviction_iter(entries.iter().copied(), gap, exhausted)
+}
+pub(super) fn prepare_transient_eviction_iter(
+    entries: impl IntoIterator<Item = Option<KernelEvent>>,
     mut gap: Option<SignRetentionGap>,
     exhausted: SignError,
 ) -> Result<(usize, Option<SignRetentionGap>), SignError> {
-    let index = entries
-        .iter()
-        .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
+    let (index, event) = entries
+        .into_iter()
+        .enumerate()
+        .find_map(|(index, event)| {
+            event
+                .filter(|event| transient_sign(event.kind))
+                .map(|event| (index, event))
+        })
         .ok_or(exhausted)?;
-    let event = entries[index].ok_or(exhausted)?;
     extend_sign_gap(&mut gap, event.sequence)?;
     Ok((index, gap))
 }
