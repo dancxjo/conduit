@@ -28,6 +28,7 @@ impl<'owner, P: NetworkScanProvider> ReadyScanView<'owner, P> {
             || expected.implementation_id != i.implementation
             || expected.maximum_operations != 1
             || expected.maximum_in_flight != 1
+            || expected.maximum_work_units != 1
             || expected.maximum_parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
             || expected.maximum_result_bytes != MAXIMUM_SCAN_OUTPUT_BYTES
             || expected.authority_contract_id.as_str() != NETWORK_SCAN_AUTHORITY

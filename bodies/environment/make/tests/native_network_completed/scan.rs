@@ -73,6 +73,8 @@ struct State {
     scans: Cell<usize>,
     cleanups: Cell<usize>,
     cleanup_fail: Cell<bool>,
+    scan_fail: Cell<bool>,
+    pending: Cell<bool>,
 }
 struct CpuScan(Rc<State>);
 impl NetworkScanProvider for CpuScan {
@@ -85,6 +87,12 @@ impl NetworkScanProvider for CpuScan {
         output: &mut [ScanObservation; 16],
     ) -> Result<ScanCompletion, ScanFailure> {
         self.0.scans.set(self.0.scans.get() + 1);
+        if self.0.pending.get() {
+            core::future::pending::<()>().await;
+        }
+        if self.0.scan_fail.get() {
+            return Err(ScanFailure::Rejected);
+        }
         self.0.now.set(2);
         for r in output {
             *r = ScanObservation::new(b"cpu-observed", ObservedNetworkSecurity::Unknown, -51, 2)?;
@@ -103,6 +111,56 @@ impl NetworkScanProvider for CpuScan {
         } else {
             Ok(())
         }
+    }
+}
+
+#[test]
+fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observations() {
+    use core::{
+        future::Future,
+        task::{Context, Waker},
+    };
+    let image = image();
+    let f = facts().unwrap();
+    let pins = (f.source_document_id, f.checked_plot_id, f.expanded_plot_id);
+    for pending in [false, true] {
+        let state = Rc::new(State::default());
+        state.now.set(1);
+        state.pending.set(pending);
+        state.scan_fail.set(!pending);
+        let mut root = RootIssuer::fixture("cpu/scan-host".into(), "cpu/scan-boot".into());
+        let mut scan = NativeScan::new(ready(state.clone()));
+        scan.install_held(&image, pins, c::OfferGeneration(1), &mut root, || Ok(()))
+            .unwrap();
+        scan.release().unwrap();
+        if pending {
+            let mut future = core::pin::pin!(scan.drive());
+            assert!(future
+                .as_mut()
+                .poll(&mut Context::from_waker(Waker::noop()))
+                .is_pending());
+        } else {
+            assert!(embassy_futures::block_on(scan.drive()).is_err());
+        }
+        assert_eq!(state.scans.get(), 1);
+        assert!(scan.take_retired().is_err());
+        embassy_futures::block_on(scan.restore_for_retirement()).unwrap();
+        let retired = scan.take_retired().unwrap();
+        assert!(Rc::ptr_eq(&retired.provider.0, &state));
+        assert!(!retired.evidence_seen);
+        assert!(retired.evidence.completed_output().is_none());
+        assert!(retired.evidence.completed_observations().is_none());
+        assert_eq!(
+            retired.evidence.inspection().lifecycle,
+            c::CapabilityLifecycle::Revoked
+        );
+        assert_eq!(retired.evidence.inspection().in_flight_operations, 0);
+        assert_eq!(state.cleanups.get(), 1);
+        assert!(retired.signs.events().count() > 0);
+        assert_eq!(
+            retired.evidence.inspection().scope.active_play_id,
+            retired.active.active_play_id
+        );
     }
 }
 fn ready(state: Rc<State>) -> ReadyNetworkScanBase<CpuScan> {
