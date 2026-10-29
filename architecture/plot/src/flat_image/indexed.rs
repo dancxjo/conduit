@@ -4,6 +4,9 @@ use super::{Image, ImageRefusal as E, Origin};
 use crate::{CheckedGear, ExpandedCanonicalPlot, ExpandedGearProvenance, PlotCompletionPolicy};
 use alloc::vec::Vec;
 
+#[path = "indexed_decoders.rs"]
+mod decoders;
+
 const MAGIC: &[u8; 8] = b"CNDGIDX1";
 const PREFIX: usize = 16;
 pub const MAXIMUM_GEARS: usize = 32;
@@ -21,6 +24,8 @@ const MAXIMUM_GEAR_BYTES: usize = 32 * 1024;
 /// decode or retain its neighbours. No mutable graph is cached in this view.
 pub struct IndexedSourceImage<'a> {
     bytes: &'a [u8],
+    gear_driver: fn(&IndexedSourceImage<'_>, usize) -> Result<CheckedGear, E>,
+    configuration_driver: fn(&IndexedSourceImage<'_>, usize) -> Result<IndexedGearConfiguration, E>,
     gear_decoder: Option<fn(usize) -> Result<CheckedGear, E>>,
     configuration_decoder: Option<fn(usize) -> Result<IndexedGearConfiguration, E>>,
     planning_facts: Option<fn() -> Result<crate::LinkedPlanningFactsRef<'static>, E>>,
@@ -51,7 +56,7 @@ struct PlanningMetadataWire {
     expanded_plot_id: conduit_core::ExpandedPlotId,
     name: alloc::string::String,
     semantic_completion: bool,
-    gears: Vec<CheckedGear>,
+    gears: decoders::EmptyGears,
     connections: Vec<crate::CheckedConnection>,
     provenance: Vec<PlanningOrigin>,
 }
@@ -198,64 +203,6 @@ pub fn encode(source: &ExpandedCanonicalPlot) -> Result<Vec<u8>, E> {
     Ok(bytes)
 }
 impl<'a> IndexedSourceImage<'a> {
-    /// Authenticate the complete immutable bytes and their checked Make origin
-    /// independently before calling. Bounds/index validation is not Source
-    /// checking. Never use this as an ingress for network/user-supplied graphs.
-    /// # Safety
-    /// Same trusted installed-image contract as `flat_image::decode_trusted`.
-    pub unsafe fn from_make_image(bytes: &'a [u8]) -> Result<Self, E> {
-        if bytes.len() > MAXIMUM_BYTES {
-            return Err(E::Oversized);
-        }
-        if bytes.get(..8) != Some(MAGIC) || bytes.get(10..12) != Some(&[0, 0]) {
-            return Err(E::Representation);
-        }
-        let count = usize::from(u16::from_le_bytes(
-            bytes
-                .get(8..10)
-                .ok_or(E::Representation)?
-                .try_into()
-                .unwrap(),
-        ));
-        if count == 0 || count > MAXIMUM_GEARS {
-            return Err(E::UnsupportedGraph);
-        }
-        let metadata_start = PREFIX + (count + 1) * 4;
-        let length = word(bytes, 12)?;
-        if length > MAXIMUM_METADATA_BYTES {
-            return Err(E::Oversized);
-        }
-        let payload_start = metadata_start
-            .checked_add(length)
-            .filter(|n| *n <= bytes.len())
-            .ok_or(E::Representation)?;
-        let mut previous = word(bytes, PREFIX)?;
-        if previous != 0 {
-            return Err(E::Representation);
-        }
-        for i in 1..=count {
-            let end = word(bytes, PREFIX + i * 4)?;
-            if end <= previous
-                || end - previous > MAXIMUM_GEAR_BYTES
-                || end > bytes.len() - payload_start
-            {
-                return Err(E::Representation);
-            }
-            previous = end;
-        }
-        if previous != bytes.len() - payload_start {
-            return Err(E::Representation);
-        }
-        Ok(Self {
-            bytes,
-            planning_facts: None,
-            gear_decoder: None,
-            configuration_decoder: None,
-            count,
-            metadata_start,
-            payload_start,
-        })
-    }
     /// Use exact linked reconstruction rather than copying immutable default
     /// programs from JSON. The index and identity remain in this Make image.
     /// # Safety
@@ -267,6 +214,7 @@ impl<'a> IndexedSourceImage<'a> {
         decode: fn(usize) -> Result<CheckedGear, E>,
     ) -> Self {
         self.gear_decoder = Some(decode);
+        self.gear_driver = decoders::linked_gear;
         self
     }
     /// Install the exact configuration projection emitted by the same Make.
@@ -278,6 +226,7 @@ impl<'a> IndexedSourceImage<'a> {
         decode: fn(usize) -> Result<IndexedGearConfiguration, E>,
     ) -> Self {
         self.configuration_decoder = Some(decode);
+        self.configuration_driver = decoders::linked_configuration;
         self
     }
     /// Install complete immutable planning facts emitted by the same Make.
@@ -295,23 +244,6 @@ impl<'a> IndexedSourceImage<'a> {
     /// This description does not verify a Plan or authorize effects.
     pub fn linked_planning_facts(&self) -> Result<crate::LinkedPlanningFactsRef<'static>, E> {
         self.planning_facts.ok_or(E::UnsupportedGraph)?()
-    }
-    /// Decode only configuration, skipping unrelated port/semantic contracts.
-    pub fn gear_configuration(&self, index: usize) -> Result<IndexedGearConfiguration, E> {
-        if index >= self.count {
-            return Err(E::Representation);
-        }
-        if let Some(decode) = self.configuration_decoder {
-            return decode(index);
-        }
-        let start = word(self.bytes, PREFIX + index * 4)?;
-        let end = word(self.bytes, PREFIX + (index + 1) * 4)?;
-        let mut value: IndexedGearConfiguration = serde_json::from_slice(
-            &self.bytes[self.payload_start + start..self.payload_start + end],
-        )
-        .map_err(|_| E::Representation)?;
-        value.configuration.shrink_to_fit();
-        Ok(value)
     }
     /// Read a Gear's exact identity from the independently retained image,
     /// skipping configuration and contracts. This is meaning, not readiness or
@@ -338,18 +270,6 @@ impl<'a> IndexedSourceImage<'a> {
     }
     pub fn gear_count(&self) -> usize {
         self.count
-    }
-    pub fn gear(&self, index: usize) -> Result<CheckedGear, E> {
-        if index >= self.count {
-            return Err(E::Representation);
-        }
-        if let Some(decode) = self.gear_decoder {
-            return decode(index);
-        }
-        let start = word(self.bytes, PREFIX + index * 4)?;
-        let end = word(self.bytes, PREFIX + (index + 1) * 4)?;
-        serde_json::from_slice(&self.bytes[self.payload_start + start..self.payload_start + end])
-            .map_err(|_| E::Representation)
     }
     /// Read only the checked identity for installation/workset matching. Serde
     /// skips the remaining metadata without materializing its graph records.

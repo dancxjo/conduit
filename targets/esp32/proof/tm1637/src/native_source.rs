@@ -14,15 +14,19 @@ pub fn load() -> conduit_plot::flat_image::indexed::IndexedSourceImage<'static> 
     // trusted Make firmware. The build producer ran the shared ordinary checker
     // and expander; no AP/UART bytes or caller-supplied identity enter this path.
     unsafe {
-        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(image).map(|view| {
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image_with_decoders(
+            image,
+            material::decode_planning_gear,
+            material::decode_planning_configuration,
+        )
+        .map(|view| {
             #[cfg(feature = "flat-network-appliance")]
             {
                 view.with_make_planning_facts(material::linked_planning_facts)
             }
             #[cfg(not(feature = "flat-network-appliance"))]
             {
-                view.with_make_gear_decoder(material::decode_planning_gear)
-                    .with_make_configuration_decoder(material::decode_planning_configuration)
+                view
             }
         })
     }

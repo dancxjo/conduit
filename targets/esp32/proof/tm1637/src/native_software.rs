@@ -98,11 +98,11 @@ pub fn planning_source(
     // from this trusted Make build, which checked the complete expansion. No
     // network/UART input or claimed Source identity enters this installation.
     unsafe {
-        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes).map(|image| {
-            image
-                .with_make_gear_decoder(material::decode_planning_gear)
-                .with_make_configuration_decoder(material::decode_planning_configuration)
-        })
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image_with_decoders(
+            bytes,
+            material::decode_planning_gear,
+            material::decode_planning_configuration,
+        )
     }
     .map_err(|_| "body-source-image-representation")
 }

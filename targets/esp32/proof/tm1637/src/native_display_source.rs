@@ -9,11 +9,11 @@ pub fn planning_source(
     // SAFETY: same-recipe bytes and expected digest are linked trusted Make
     // output. No network input or claimed Source identity enters this boundary.
     unsafe {
-        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes).map(|image| {
-            image
-                .with_make_gear_decoder(software::decode_planning_gear)
-                .with_make_configuration_decoder(software::decode_planning_configuration)
-        })
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image_with_decoders(
+            bytes,
+            software::decode_planning_gear,
+            software::decode_planning_configuration,
+        )
     }
     .map_err(|_| "display-source-image-representation")
 }

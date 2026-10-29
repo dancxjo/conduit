@@ -94,10 +94,11 @@ fn image() -> Result<conduit_plot::flat_image::indexed::IndexedSourceImage<'stat
     // SAFETY: complete graph, callbacks, role and Fore are linked by the same
     // checked Make; expected digest is independent of any received identity.
     unsafe {
-        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(bytes).map(|view| {
-            view.with_make_gear_decoder(material::decode_planning_gear)
-                .with_make_configuration_decoder(material::decode_planning_configuration)
-        })
+        conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image_with_decoders(
+            bytes,
+            material::decode_planning_gear,
+            material::decode_planning_configuration,
+        )
     }
     .map_err(|_| "local-mask-source")
 }

@@ -137,3 +137,92 @@ fn cord_visit_preserves_complete_records_without_retaining_provenance_or_vectors
     let (_, projected) = allocation_probe::observe(|| image.planning_metadata().unwrap());
     assert!(memory.peak_bytes <= projected.peak_bytes);
 }
+
+fn linked_gear(index: usize) -> Result<CheckedGear, ImageRefusal> {
+    source()
+        .gears
+        .get(index)
+        .cloned()
+        .ok_or(ImageRefusal::Representation)
+}
+fn linked_configuration(index: usize) -> Result<IndexedGearConfiguration, ImageRefusal> {
+    let gear = linked_gear(index)?;
+    Ok(IndexedGearConfiguration {
+        gear_id: gear.gear_id,
+        configuration: gear.configuration,
+    })
+}
+fn linked_view(bytes: &[u8]) -> Result<IndexedSourceImage<'_>, ImageRefusal> {
+    // SAFETY: these callbacks reconstruct the exact same fixture Source encoded
+    // by this test. This is representation proof, not authentication of ingress.
+    unsafe {
+        IndexedSourceImage::from_make_image_with_decoders(bytes, linked_gear, linked_configuration)
+    }
+}
+#[test]
+fn linked_make_constructor_preserves_complete_gears_configuration_and_bounds() {
+    let bytes = encode(&source()).unwrap();
+    let ordinary = view(&bytes).unwrap();
+    let (linked, memory) = allocation_probe::observe(|| linked_view(&bytes).unwrap());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(ordinary.identity().unwrap(), linked.identity().unwrap());
+    assert_eq!(ordinary.gear_count(), linked.gear_count());
+    for index in 0..ordinary.gear_count() {
+        assert_eq!(ordinary.gear(index).unwrap(), linked.gear(index).unwrap());
+        let expected = ordinary.gear_configuration(index).unwrap();
+        let actual = linked.gear_configuration(index).unwrap();
+        assert_eq!(expected.gear_id, actual.gear_id);
+        assert_eq!(expected.configuration, actual.configuration);
+    }
+    assert!(linked.gear(ordinary.gear_count()).is_err());
+    assert!(linked.gear(usize::MAX).is_err());
+    assert!(linked.gear_configuration(ordinary.gear_count()).is_err());
+    assert!(linked.gear_configuration(usize::MAX).is_err());
+    for end in 0..bytes.len() {
+        assert!(linked_view(&bytes[..end]).is_err(), "cut {end}");
+    }
+}
+#[test]
+fn linked_driver_does_not_decode_payload_as_json() {
+    let mut bytes = encode(&source()).unwrap();
+    let metadata_length = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
+    let payload = 16 + (source().gears.len() + 1) * 4 + metadata_length;
+    bytes[payload] = b'?';
+    assert!(view(&bytes).unwrap().gear(0).is_err());
+    // Explicitly damaged local fixture bytes exercise driver selection only;
+    // these bytes are not authenticated and confer no Source/admission trust.
+    assert_eq!(
+        linked_view(&bytes).unwrap().gear(0).unwrap(),
+        linked_gear(0).unwrap()
+    );
+}
+fn with_metadata_gears(bytes: &[u8], gears: &str) -> Vec<u8> {
+    let count = usize::from(u16::from_le_bytes(bytes[8..10].try_into().unwrap()));
+    let start = 16 + (count + 1) * 4;
+    let length = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
+    let metadata = core::str::from_utf8(&bytes[start..start + length]).unwrap();
+    let replacement = metadata.replacen("\"gears\":[]", &format!("\"gears\":{gears}"), 1);
+    assert_ne!(replacement, metadata);
+    let mut altered = bytes[..start].to_vec();
+    altered[12..16].copy_from_slice(&(replacement.len() as u32).to_le_bytes());
+    altered.extend_from_slice(replacement.as_bytes());
+    altered.extend_from_slice(&bytes[start + length..]);
+    altered
+}
+#[test]
+fn planning_metadata_refuses_first_gear_without_decoding_nested_contracts() {
+    let source = source();
+    let bytes = encode(&source).unwrap();
+    let nested = format!("[{{\"kind_id\":\"{}\"}}]", "x".repeat(12_000));
+    let altered = with_metadata_gears(&bytes, &nested);
+    let image = view(&altered).unwrap();
+    let (result, memory) = allocation_probe::observe(|| image.planning_metadata());
+    assert!(result.is_err());
+    assert!(memory.peak_bytes < 1024, "{memory:?}");
+    let complete = serde_json::to_string(&source.gears[..1]).unwrap();
+    for nonempty in [&complete[..], "[null]", "[1]", "{}", "null"] {
+        let altered = with_metadata_gears(&bytes, nonempty);
+        assert!(view(&altered).unwrap().planning_metadata().is_err());
+    }
+    assert!(view(&bytes).unwrap().planning_metadata().is_ok());
+}
