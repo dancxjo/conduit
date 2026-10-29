@@ -350,6 +350,8 @@ impl StdHost {
             if installed_standard {
                 installed_std::run_fragment_retaining(
                     installed_std::InstalledRunHost {
+                        #[cfg(target_os = "linux")]
+                        selected_text_file: self.selected_text_file.as_ref(),
                         advertisement: &advertisement,
                         playback: self.playback.as_ref(),
                         midi_input: self.midi_input.as_ref(),

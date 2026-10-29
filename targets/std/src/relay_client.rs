@@ -192,11 +192,7 @@ impl ProtectedFrameCarrier for HostedRelayCarrier {
             .receive_binary(&mut self.outer)
             .map_err(map_carrier_error)?;
         if !self.outer[..length].starts_with(b"CNDR") {
-            return match decode_outcome(&self.outer[..length], &self.route_id) {
-                Ok(OutcomeStatus::Pressure) => Err(CarrierFailure::Pressure),
-                Ok(OutcomeStatus::Closed | OutcomeStatus::Lost) => Err(CarrierFailure::Lost),
-                _ => Err(CarrierFailure::Lost),
-            };
+            return Err(control_failure(&self.outer[..length], &self.route_id));
         }
         let envelope =
             decode_relay_envelope(&self.outer[..length], self.maximum_protected_frame_bytes)
@@ -229,6 +225,15 @@ impl ProtectedFrameCarrier for HostedRelayCarrier {
         // was closed before either outer transport can be mistaken for loss.
         let _outer_close = self.line.close();
         Ok(())
+    }
+}
+
+fn control_failure(bytes: &[u8], route: &str) -> CarrierFailure {
+    match decode_outcome(bytes, route) {
+        Ok(OutcomeStatus::Pressure) => CarrierFailure::Pressure,
+        Ok(OutcomeStatus::Closed) => CarrierFailure::Closed,
+        // Malformed, foreign, unexpected or lost control is never a normal close.
+        _ => CarrierFailure::Lost,
     }
 }
 

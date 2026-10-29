@@ -254,6 +254,12 @@ entry = "durable-note"
 deterministic = { package = "conduit-std-host", test = "durable_notebook", case = "canonical_durable_notebook_checks_and_seals_distinct_retention_publication_and_load_truth" }
 browser_safe_not_applicable = "the reviewed browser Host does not offer Body-durable keep or immutable data-generation residence"
 [[plots]]
+slug = "notebook"
+title = "Wandering Notebook"
+entry = "notebook/transition"
+deterministic = { package = "conduit-notebook-conformance", test = "transition", case = "provided_revision_advances_and_stale_action_preserves_the_same_body_document", plan_play_evidence = true }
+browser_safe_not_applicable = "the notebook requires a continuing Body owner and explicitly selected editing and storage access; browser and persistent product acceptance remain open under #6192"
+[[plots]]
 slug = "little-seismograph"
 title = "Little Seismograph"
 entry = "little-seismograph-display"

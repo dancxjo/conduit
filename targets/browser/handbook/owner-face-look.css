@@ -78,3 +78,10 @@ input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visi
 :host([data-component-look]) button,:host([data-component-look]) input,:host([data-component-look]) select{padding:var(--look-space-control-block) var(--look-space-control-inline);border-radius:var(--look-radius-control)}
 :host([data-component-look]) button:focus-visible,:host([data-component-look]) input:focus-visible,:host([data-component-look]) select:focus-visible,:host([data-component-look]) summary:focus-visible{outline-width:var(--look-focus-width)}
 @media(forced-colors:active){:host([data-component-look]){--face-paper:Canvas;--face-card:Canvas;--face-ink:CanvasText;--face-muted:CanvasText;--face-line:CanvasText;--face-control:ButtonText;--face-accent:LinkText;--face-focus:Highlight}}
+
+textarea{width:100%;min-width:0;min-height:44px;box-sizing:border-box;font:inherit;border:1px solid var(--face-control,#b5c5b8);border-radius:10px;padding:10px;background:var(--face-card);color:var(--face-ink);resize:vertical}
+textarea:disabled{opacity:.52;cursor:not-allowed}
+textarea:focus-visible{outline:3px solid var(--face-focus,#247c85);outline-offset:3px}
+:host([data-component-look]) textarea{font-size:calc(max(1rem,var(--look-type-body)) * var(--face-text-scale,1));padding:var(--look-space-control-block) var(--look-space-control-inline);border-radius:var(--look-radius-control)}
+:host([data-component-look]) textarea:focus-visible{outline-width:var(--look-focus-width)}
+@media(forced-colors:active){textarea{background:Canvas;color:CanvasText;border-color:CanvasText}textarea:focus-visible{outline-color:Highlight}}

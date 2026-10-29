@@ -131,7 +131,7 @@ pub enum Command {
         basis: conduit_face::FaceContributionBasis,
         actions_admitted: bool,
     },
-    // Coordinated private wire cut: publication is decoded only from CAPP1.
+    // Coordinated private wire cut: publication is decoded only from CAPP2.
     // Other Command serialization/discriminants and public Face/Show JSON stay.
     #[serde(skip_deserializing)]
     PatchbayPublish {
@@ -145,6 +145,7 @@ pub enum Command {
         slot: u8,
         input: Vec<u8>,
     },
+    #[serde(skip_deserializing)]
     PrepareGraphProjection {
         graph: PatchbayGraph,
         scope: crate::graph_facts::Scope,
@@ -157,6 +158,8 @@ pub enum Command {
     PrepareInit {
         manifest: InitManifest,
     },
+    // Complete graph preparation is decoded only from CAPG1.
+    #[serde(skip_deserializing)]
     PrepareTarget {
         slot: u8,
         target: u8,

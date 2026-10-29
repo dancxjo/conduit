@@ -1,16 +1,15 @@
 //! Private publication transfer; the complete ordinary Plan stays typed.
-//! Carry one ordinary full Plan directly, avoiding a compressed JSON document
-//! nested inside another compressed JSON command. Public JSON is unchanged.
+//! Carry complete ordinary models through bounded CBOR, as the native Crèche
+//! already does. Public JSON and canonical admission remain unchanged.
 mod show;
-use super::{Command, Refusal};
+use super::{Command, Refusal, finite_cbor};
 use conduit_body::BodyId;
 use conduit_face::{Face, FaceContributionBasis};
 use serde::{Deserialize, Serialize};
 
-const MAGIC: &[u8] = b"CAPP\x01";
-// Preserve the old public Mask carrier's expanded Plan bound. Its separate
-// 64KiB inner zlib/hex carrier is replaced by the existing outer CAPZ grant.
-const MAX_PLAN_JSON_BYTES: usize = 256 * 1024;
+const MAGIC: &[u8] = b"CAPP\x02";
+// Existing finite expanded Plan-value ceiling, measured in this private carrier.
+const MAX_PLAN_CBOR_BYTES: usize = 256 * 1024;
 
 #[derive(Serialize)]
 struct Borrowed<'a> {
@@ -48,32 +47,30 @@ pub(super) fn encode(command: &Command, output: &mut [u8]) -> Result<usize, Refu
         .get_mut(..MAGIC.len())
         .ok_or(Refusal::Capacity)?
         .copy_from_slice(MAGIC);
-    let capacity = output.len();
-    let length = super::transport_codec::encode_plain(
-        &Borrowed {
-            slot: *slot,
-            body,
-            basis,
-            face,
-            show: show::ShowRef::from(show),
-        },
-        &mut output[MAGIC.len()..],
-    )?;
-    debug_assert!(length <= capacity - MAGIC.len());
-    let length = MAGIC.len() + length;
+    let length = MAGIC.len()
+        + finite_cbor::encode(
+            &Borrowed {
+                slot: *slot,
+                body,
+                basis,
+                face,
+                show: show::ShowRef::from(show),
+            },
+            &mut output[MAGIC.len()..],
+        )?;
     preflight(&output[..length])?;
     Ok(length)
 }
 pub(super) fn preflight(bytes: &[u8]) -> Result<(), Refusal> {
-    super::transport_codec::preflight_publication(
+    finite_cbor::validate(
         bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?,
-        MAX_PLAN_JSON_BYTES,
+        MAX_PLAN_CBOR_BYTES,
     )
 }
 /// Only the immutable bytes already checked by Workspace may reach this path.
 pub(super) fn decode_preflighted(bytes: &[u8]) -> Result<Command, Refusal> {
-    let value: Owned = serde_json::from_slice(bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?)
-        .map_err(|_| Refusal::Malformed)?;
+    let value: Owned =
+        finite_cbor::decode_preflighted(bytes.strip_prefix(MAGIC).ok_or(Refusal::Malformed)?)?;
     Ok(Command::PatchbayPublish {
         slot: value.slot,
         body: value.body,

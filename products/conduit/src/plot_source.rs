@@ -222,6 +222,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_face::install_mask_plot_value_aliases(&mut startup)?;
     conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profiles)?;
+    conduit_data::install_data_text_catalogs(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
@@ -275,6 +277,33 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn notebook_sources_use_the_installed_authoring_catalog() {
+        for (text, expected) in [
+            (
+                include_str!("../../../plots/notebook/document.conduit"),
+                "notebook/document",
+            ),
+            (
+                include_str!("../../../plots/notebook/main.conduit"),
+                "notebook/transition",
+            ),
+            (
+                include_str!("../../../plots/notebook/publish.conduit"),
+                "notebook/publish",
+            ),
+            (
+                include_str!("../../../plots/notebook/load.conduit"),
+                "notebook/load",
+            ),
+        ] {
+            let source = parse(text).unwrap();
+            let plot = source.expand_entry_for_authoring().unwrap();
+            assert_eq!(plot.expanded.name, expected);
+            assert!(plot.expanded.activations.is_empty());
+        }
+    }
 
     #[test]
     fn dsp_names_in_comments_and_text_do_not_prepare_the_component_catalog() {

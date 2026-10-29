@@ -83,6 +83,10 @@ impl DefinitionName {
     pub fn as_str(&self) -> &str {
         core::str::from_utf8(&self.bytes[..self.length as usize]).expect("checked definition name")
     }
+    pub(crate) fn write_encoding(&self, write: &mut impl FnMut(&[u8])) {
+        write(&[self.length]);
+        write(&self.bytes);
+    }
     pub(crate) fn encode_into(self, output: &mut [u8]) {
         output[0] = self.length;
         output[1..].copy_from_slice(&self.bytes);

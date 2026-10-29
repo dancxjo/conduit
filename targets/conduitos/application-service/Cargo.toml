@@ -17,3 +17,11 @@ panic = "abort"
 opt-level = "z"
 codegen-units = 1
 lto = "fat"
+
+# Preparation decodes a complete retained target under one immutable RTC grant.
+# Keep the service size profile while optimizing its compression and JSON parsers;
+# the build still validates the executable against the unchanged image window.
+[profile.release.package.miniz_oxide]
+opt-level = 3
+[profile.release.package.serde_json]
+opt-level = 3

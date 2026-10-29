@@ -411,7 +411,9 @@ fn protected_attempt_outcome(error: ProtectedLineError) -> RendezvousAttemptOutc
         ProtectedLineError::Pressure
         | ProtectedLineError::FrameTooLarge
         | ProtectedLineError::OutputTooSmall => RendezvousAttemptOutcome::PressureRefused,
-        ProtectedLineError::OuterCarrierLost => RendezvousAttemptOutcome::TransportLost,
+        ProtectedLineError::OuterCarrierLost | ProtectedLineError::Closed => {
+            RendezvousAttemptOutcome::TransportLost
+        }
         _ => RendezvousAttemptOutcome::EndToEndAuthenticationRefused,
     }
 }

@@ -13,6 +13,7 @@ use std::{
 };
 
 pub(super) enum OwnedRunWorker {
+    Notebook(Box<crate::durable_host::owner::NotebookWaitingWorker>),
     General(crate::durable_host::owner::RunWorker),
     Todo(Box<crate::durable_host::owner::TodoWaitingWorker>),
     Thermostat(Box<crate::durable_host::owner::ThermostatWorker>),
@@ -25,6 +26,7 @@ impl OwnedRunWorker {
         root: &Path,
     ) -> Result<bool, String> {
         match self {
+            Self::Notebook(worker) => worker.progress(owner, root).map(|result| result.is_some()),
             Self::General(worker) => worker.progress(owner, root),
             Self::Thermostat(worker) => worker.progress(owner, root),
             Self::Todo(worker) => {
@@ -36,6 +38,7 @@ impl OwnedRunWorker {
 
     fn request_lull(&self) -> Result<(), String> {
         match self {
+            Self::Notebook(worker) => worker.request_lull(),
             Self::General(worker) => worker.request_lull(),
             Self::Thermostat(worker) => worker.request_lull(),
             Self::Todo(worker) => worker.request_lull(),
@@ -244,7 +247,11 @@ impl DurableHostRuntime {
                 owner.start_next_todo_action(root, &next, maximum_millis)?,
             )),
             (None, None, None) => {
-                if owner.is_thermostat() {
+                if owner.has_open_notebook() {
+                    OwnedRunWorker::Notebook(Box::new(
+                        owner.start_notebook_waiting(root, maximum_millis)?,
+                    ))
+                } else if owner.is_thermostat() {
                     OwnedRunWorker::Thermostat(Box::new(
                         owner.start_thermostat_run(root, maximum_millis)?,
                     ))

@@ -15,15 +15,19 @@ use super::{CONTROL_DEADLINE, TODO_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
     let deadline = match &request {
+        #[cfg(target_os = "linux")]
+        Request::Notebook { .. } => TODO_ACTION_DEADLINE,
         Request::BodyInteraction { interaction, .. }
         | Request::BodyBrowserInteraction { interaction, .. }
         | Request::BodyNativeGuestInteraction { interaction, .. }
-            if interaction.action_id.starts_with("todo.") =>
+            if interaction.action_id.starts_with("todo.")
+                || interaction.action_id.starts_with("notebook.") =>
         {
             TODO_ACTION_DEADLINE
         }
         Request::BodyAttachedTerminalInteraction { interaction, .. }
-            if interaction.action_id.starts_with("todo.") =>
+            if interaction.action_id.starts_with("todo.")
+                || interaction.action_id.starts_with("notebook.") =>
         {
             TODO_ACTION_DEADLINE
         }
@@ -94,6 +98,8 @@ fn remaining(deadline: Instant) -> Result<Duration, String> {
 
 fn clear_token(request: &mut Request) {
     match request {
+        #[cfg(target_os = "linux")]
+        Request::Notebook { token, .. } => token.fill(0),
         Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }

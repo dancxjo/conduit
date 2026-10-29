@@ -1,3 +1,7 @@
+#[cfg(target_os = "linux")]
+mod notebook;
+#[cfg(target_os = "linux")]
+pub(crate) use notebook::NotebookCommand;
 mod model;
 pub(crate) use model::InstalledModelOptions;
 mod spoken_mask;
@@ -337,6 +341,14 @@ pub(crate) struct InstalledTodoCheckpointOptions {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Write, save and reopen the installed owner's bounded text notebook.
+    #[cfg(target_os = "linux")]
+    Notebook {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[command(subcommand)]
+        command: NotebookCommand,
+    },
     /// List current selectable local speakers and verified speech providers.
     SpeechOptions {
         /// Emit a bounded machine-readable observation; opens no speaker.

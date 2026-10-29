@@ -330,3 +330,31 @@ fn oversized_report_is_rejected_before_retained_history() {
     );
     assert_eq!(topology.retained_reports(), 0);
 }
+
+#[test]
+fn standard_reference_report_fits_unchanged_topology_limits() {
+    let advertisement = crate::host_adapter::test_host_adapter()
+        .advertisement(
+            HostId::from("bounded-reference-host"),
+            BootId::from("bounded-reference-boot"),
+            conduit_core::OfferGeneration(1),
+            crate::PatchbayHostProfile::Reference,
+        )
+        .unwrap();
+    let model = crate::PatchbayModel::from_advertisement(advertisement);
+    let snapshot = model.startup_snapshot();
+    let report = build_report(&snapshot).unwrap();
+    let bytes = conduit_observatory::render_text_report(&report).len();
+    let lines = topology_line_upper_bound(&report);
+    assert!(
+        bytes <= MAX_RETAINED_REPORT_BYTES,
+        "report bytes={bytes}, lines={lines}"
+    );
+    assert!(
+        lines <= MAX_TOPOLOGY_LINES,
+        "report bytes={bytes}, lines={lines}"
+    );
+    let mut topology = PatchbayTopology::new(1).unwrap();
+    topology.ingest(&snapshot).unwrap();
+    assert!(topology.document(None).unwrap().lines().len() <= MAX_TOPOLOGY_LINES);
+}

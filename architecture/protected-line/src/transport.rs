@@ -43,6 +43,8 @@ pub enum CarrierFailure {
     Pressure,
     TimedOut,
     Cancelled,
+    /// Explicit carrier protocol close; never inferred from EOF or loss.
+    Closed,
     Lost,
 }
 
@@ -54,6 +56,7 @@ impl CarrierFailure {
             Self::TimedOut if handshake => ProtectedLineError::HandshakeTimedOut,
             Self::TimedOut => ProtectedLineError::SessionTimedOut,
             Self::Cancelled => ProtectedLineError::Cancelled,
+            Self::Closed => ProtectedLineError::Closed,
             Self::Lost => ProtectedLineError::OuterCarrierLost,
         }
     }
@@ -240,7 +243,9 @@ impl<C: ProtectedFrameCarrier> ProtectedCarrier<C> {
     }
 
     fn retire_carrier_failure(&mut self, failure: CarrierFailure, error: ProtectedLineError) {
-        if failure == CarrierFailure::Cancelled {
+        if failure == CarrierFailure::Closed {
+            self.session.close();
+        } else if failure == CarrierFailure::Cancelled {
             self.session.cancel();
         } else {
             self.session.fail(error);

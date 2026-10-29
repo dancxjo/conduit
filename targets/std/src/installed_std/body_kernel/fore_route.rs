@@ -117,7 +117,9 @@ impl<'a> BodyForeRoute<'a> {
             .iter()
             .filter(|port| port.direction == PortDirection::Output)
         {
-            let count = usize::from(port.item_capacity.max(inputs.input_items()));
+            let count = usize::from(port.item_capacity.max(inputs.input_items()))
+                .checked_add(live.map_or(0, BodyLiveForeQueue::initial_document_outputs))
+                .ok_or("Body Fore initial document delivery capacity overflow")?;
             delivery_capacity = delivery_capacity
                 .checked_add(count)
                 .ok_or("Body Fore delivery capacity overflow")?;
@@ -185,7 +187,16 @@ impl<'a> BodyForeRoute<'a> {
     }
 
     pub(super) fn sign_items(&self) -> Result<u16, String> {
-        external_fore_feeder::remote_sign_items(&self.ports, self.inputs.input_items())
+        let maximum_deliveries = self
+            .output_slots
+            .iter()
+            .map(|slot| slot.available.len())
+            .max()
+            .unwrap_or(0);
+        let maximum_items = u16::try_from(maximum_deliveries)
+            .map_err(|_| "Body Fore delivery Sign capacity overflow")?
+            .max(self.inputs.input_items());
+        external_fore_feeder::remote_sign_items(&self.ports, maximum_items)
     }
 
     pub(super) fn has_ports(&self) -> bool {

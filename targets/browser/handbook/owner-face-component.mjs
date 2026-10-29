@@ -49,7 +49,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     if (focused) this.#pendingFocus = focused;
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
-    for (const control of this.#surface.querySelectorAll('button, input, select')) {
+    for (const control of this.#surface.querySelectorAll('button, input, select, textarea')) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }
   }
@@ -208,8 +208,11 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           }
           input.required = true;
         } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text') {
-          input = document.createElement('input');
-          input.type = 'text'; input.maxLength = argument.maximum_bytes;
+          input = document.createElement(typeof argument.current_value === 'string' ? 'textarea' : 'input');
+          if (input.tagName === 'TEXTAREA') input.rows = 4;
+          else input.type = 'text';
+          input.maxLength = argument.maximum_bytes;
+          if (typeof argument.current_value === 'string' && !argumentValidity(argument.current_value, argument.maximum_bytes, argument.minimum_bytes ?? 0)) input.value = argument.current_value;
           input.required = (argument.minimum_bytes ?? 0) > 0;
           input.addEventListener('input', () => input.setCustomValidity(
             argumentValidity(input.value, argument.maximum_bytes, argument.minimum_bytes ?? 0)));

@@ -82,3 +82,83 @@ exact canonical/linear equality, smaller-profile refusal without pixels, stale
 storage evidence, codec overflow/malformed input, old private wire refusal, and
 the exact private allocator grant. Candidate, combined Integration, and stable
 publication remain separate source-bound gates.
+
+## Retained preparation work
+
+The full post-merge journey at `5e44847d8790ba4ed0344bd1554c2ea7019335e8`
+exposed an Application preparation refusal in
+[Integration 40601259099](https://github.com/dancxjo/conduit/actions/runs/40601259099).
+The 16,413-byte compressed target represented 219,430 decoded bytes. Preflight
+consumed thirteen of its sixty-four RTC ticks; Commit exhausted the remaining
+fifty-one. This is an entry-work refusal, not collection payload capacity.
+
+The Application service keeps its size-oriented release profile but compiles
+`miniz_oxide` and `serde_json` with speed optimization. These parsers consume
+complete retained targets during the same finite preparation operation.
+Preflight skips ordinary string bytes in eight-byte words, returning to the
+scalar validator at the first quote, escape or control byte. UTF-8 validation,
+surrogate checks, sequence-count authentication and complete-input validation
+remain mandatory. Differential tests compare every byte at each word offset
+with the independent JSON parser, including Unicode and escape boundaries. The
+build validates the resulting executable against the unchanged 2 MiB image
+window. Wire, decoded-byte, private-heap and RTC grants do not grow. The
+sixty-four-tick allowance remains shared across Preflight, Commit and reads;
+a failed entry is still quarantined rather than resumed or retried.
+
+The full normal journey regression entrance is:
+
+```sh
+cargo xtask make conduitos journey-proof
+```
+
+CI independently builds the normal product and verifies its retained image
+with `cargo xtask make host verify <OUTPUT> --journey --locked`. Actual
+Application entry-cost records must establish successful complete preparation
+within the existing operation allowance. A passing Crèche controls proof alone
+does not establish the later Body/Patchbay wake preparation.
+
+## Complete Application publication
+
+The subsequent native journey also exposed an Application publication work
+refusal in [Candidate 40631795991](https://github.com/dancxjo/conduit/actions/runs/40631795991).
+Its complete Face/Show publication exhausted Commit after JSON preflight. The
+private `CAPP2` carrier now uses finite CBOR for the ordinary typed models,
+following the native Crèche's binary interaction precedent. Public Face/Show
+JSON and canonical identity remain unchanged. Older private publication
+versions refuse; the Root and its embedded Application image are built together.
+
+Allocation-free preflight checks the complete definite frame, counts, UTF-8,
+container depth and the exact 256 KiB private Plan-value subspan. The finite
+borrowed decoder then invokes the ordinary Serde models and their checked
+constructors without an intermediate value tree or scratch strings. Canonical
+Face/Show, complete Plan, owner, contribution and consumed-Show admission still
+run before publication. Wire, workspace, private heap, executable window and
+shared RTC grants do not grow. The Plan ceiling measures its private CBOR value;
+it is not a new public JSON limit or a claim that every bounded specimen fits.
+
+Focused proofs retain public JSON and complete typed Plan equality, constructor
+and canonical-tamper refusal, old-version refusal, duplicate/truncated/trailing
+input refusal, exact Plan-byte boundaries through outer compression and
+allocation-free hostile-count/depth rejection. Independent CBOR comparisons
+cover mutated frames, integer extremes, nested enum forms and all binary16 bit
+patterns. The normal retained-image journey remains the runtime entrance above;
+Candidate and stable acceptance remain separate gates.
+
+## Retained graph preparation
+
+[Candidate 40646531247](https://github.com/dancxjo/conduit/actions/runs/40646531247)
+refused earlier, while committing the fourth retained target after successful
+preflight. The retained CI Application image locates its exhausted instruction
+inside counted JSON decoding of `Vec<PatchbayCord>`. Complete target and graph
+projection preparation now use the private finite `CAPG1` carrier, sharing the
+publication decoder. Other commands and public graph custody JSON keep their
+existing representation. Legacy graph-preparation commands refuse.
+
+Both private binary carriers compact the closed schema's reserved
+`canonical_value` u8 sequences into CBOR byte strings. This uses forward
+in-place compaction of the serializer's bounded slice, without an intermediate
+tree or extra allocation. The ordinary typed decoder still invokes every
+checked constructor. Tests cover real retained targets, independent CBOR
+round trips, all byte values, count-width boundaries and malformed input.
+No wire, workspace, heap, image or RTC allowance grows. A successful local
+journey and required Candidate remain separate acceptance gates.

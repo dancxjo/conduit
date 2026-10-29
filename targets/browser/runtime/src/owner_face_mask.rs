@@ -136,6 +136,8 @@ struct ArgumentView {
     maximum_bytes: u32,
     minimum_bytes: u32,
     choices: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    current_value: Option<String>,
 }
 
 #[derive(Serialize)]

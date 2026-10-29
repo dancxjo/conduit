@@ -11,6 +11,7 @@ pub(super) fn validate(bytes: &[u8]) -> Result<(), Refusal> {
 pub(super) fn validate_plain(bytes: &[u8]) -> Result<(), Refusal> {
     validate_mode(bytes, false, None)
 }
+#[cfg(test)]
 pub(super) fn validate_publication(bytes: &[u8], maximum_plan: usize) -> Result<(), Refusal> {
     validate_mode(bytes, false, Some(maximum_plan))
 }
@@ -209,6 +210,25 @@ impl Scan<'_> {
     fn string(&mut self) -> Result<(), Refusal> {
         self.take(b'"')?;
         loop {
+            // Identity strings dominate complete retained targets. Skip ordinary
+            // bytes a word at a time; quotes, escapes and controls still enter
+            // the scalar validator below. UTF-8 was checked before this scan.
+            while let Some(bytes) = self.bytes.get(self.at..).and_then(|s| s.first_chunk::<8>()) {
+                let word = u64::from_le_bytes(*bytes);
+                let zero_bytes = |value: u64| {
+                    value.wrapping_sub(0x0101_0101_0101_0101) & !value & 0x8080_8080_8080_8080
+                };
+                let special = zero_bytes(word ^ 0x2222_2222_2222_2222)
+                    | zero_bytes(word ^ 0x5c5c_5c5c_5c5c_5c5c)
+                    | zero_bytes(word & 0xe0e0_e0e0_e0e0_e0e0);
+                if special != 0 {
+                    // Borrow may mark later bytes too, but the first marked
+                    // byte is exact in this explicitly little-endian word.
+                    self.at += (special.trailing_zeros() / 8) as usize;
+                    break;
+                }
+                self.at += 8;
+            }
             let byte = *self.bytes.get(self.at).ok_or(Refusal::Malformed)?;
             self.at += 1;
             match byte {
@@ -290,6 +310,33 @@ impl Scan<'_> {
 mod plain_tests {
     use super::*;
     use alloc::vec;
+    #[test]
+    fn string_word_boundaries_match_json_validation() {
+        // Every byte at every word offset, including controls, quotes,
+        // backslashes and invalid UTF-8, is checked against the JSON parser.
+        for padding in 0..16 {
+            for byte in 0..=255u8 {
+                let mut bytes = vec![b'"'];
+                bytes.extend(core::iter::repeat_n(b'a', padding));
+                bytes.push(byte);
+                bytes.extend_from_slice(b"ordinary-tail\"");
+                assert_eq!(
+                    validate_plain(&bytes).is_ok(),
+                    serde_json::from_slice::<alloc::string::String>(&bytes).is_ok(),
+                    "padding={padding} byte={byte}"
+                );
+            }
+            for text in [
+                "identity/0123456789abcdef",
+                "Éthiopie/中文/🌍",
+                "quote\" slash\\\n\t\0",
+            ] {
+                let text = alloc::format!("{}{}{}", "a".repeat(padding), text, "z".repeat(32));
+                let bytes = serde_json::to_vec(&text).unwrap();
+                assert_eq!(validate_plain(&bytes), Ok(()));
+            }
+        }
+    }
     #[test]
     fn ordinary_arrays_do_not_change_counted_array_validation() {
         for bytes in [
