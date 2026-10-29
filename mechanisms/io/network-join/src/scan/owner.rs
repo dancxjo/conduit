@@ -68,18 +68,8 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
     pub fn native_identity(&self) -> &NetworkNativeIdentity {
         &self.identity
     }
-    /// Validation leaves the actual ready owner in its original slot on every
-    /// refusal. Issued bearer arguments are consumed, never silently reissued.
-    pub fn bind_selected_retained(
-        slot: &mut Option<Self>,
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
-        contract: &PreparedScanContract,
-        selected: SelectedOperationPlan<'_>,
-    ) -> Result<NetworkScanHostCall<P>, ScanCallRefusal> {
-        let ready = slot.as_ref().ok_or(ScanCallRefusal::Unavailable)?;
-        let i = &ready.identity;
+    fn check_claim(&self, claim: &BaseOperationClaim) -> Result<(), ScanCallRefusal> {
+        let i = &self.identity;
         if claim.host_id != i.host
             || claim.boot_id != i.boot
             || claim.base_instance_id != i.instance
@@ -91,6 +81,103 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         {
             return Err(ScanCallRefusal::WrongBinding);
         }
+        Ok(())
+    }
+    fn check_possession(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+    ) -> Result<(), ScanCallRefusal> {
+        let mut entries = table.inspections();
+        let e = entries.next().ok_or(ScanCallRefusal::WrongBinding)?;
+        if entries.next().is_some()
+            || e.scope.maximum_operations != 1
+            || e.scope.maximum_in_flight != 1
+            || e.scope.maximum_parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
+            || e.scope.maximum_result_bytes != MAXIMUM_SCAN_OUTPUT_BYTES
+            || e.scope.authority_contract_id.as_str() != NETWORK_SCAN_AUTHORITY
+            || claim.parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
+            || claim.work_units != 1
+        {
+            return Err(ScanCallRefusal::WrongBinding);
+        }
+        Ok(())
+    }
+    fn transfer(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        node: NodeId,
+    ) -> Result<NetworkScanHostCall<P>, ScanCallRefusal> {
+        let operation = BoundBaseOperation::bind(table, handle, claim)
+            .map_err(|(_, _, _, error)| ScanCallRefusal::Capability(error))?;
+        let r = slot.take().expect("validated owner");
+        Ok(NetworkScanHostCall {
+            operation,
+            provider: r.provider,
+            request: r.request,
+            node,
+            invoked: false,
+            cleanup_required: false,
+            records: [ScanObservation::EMPTY; 16],
+            output: [0; MAXIMUM_SCAN_OUTPUT_BYTES as usize],
+            length: 0,
+        })
+    }
+    /// Compact assigned facts are checked by the same canonical binder. All
+    /// implementation/authority pins originate in the actual retained owner.
+    pub fn bind_assigned_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedScanContract,
+        selected: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<
+            '_,
+        >,
+    ) -> Result<NetworkScanHostCall<P>, ScanCallRefusal> {
+        use conduit_plan_lowering::selected_assigned_operation::{
+            bind_selected_assigned_operation_for_subject, AssignedNativeIdentity,
+        };
+        let ready = slot.as_ref().ok_or(ScanCallRefusal::Unavailable)?;
+        ready.check_claim(&claim)?;
+        Self::check_possession(&table, &claim)?;
+        let i = &ready.identity;
+        let native = AssignedNativeIdentity {
+            capability: SCAN_CAPABILITY,
+            execution_profile: NETWORK_SCAN_EXECUTION_PROFILE,
+            artifact: i.artifact.as_str(),
+            base: i.base.as_str(),
+            base_implementation: i.base_implementation.as_str(),
+            mechanism: SCAN_BASE_KIND,
+            authority: NETWORK_SCAN_AUTHORITY,
+            resource_class: WIFI_STATION_RESOURCE_CLASS,
+        };
+        let node = bind_selected_assigned_operation_for_subject(
+            &table,
+            &claim,
+            contract.definition(),
+            &contract.subject,
+            native,
+            selected,
+        )
+        .map_err(ScanCallRefusal::Binding)?;
+        Self::transfer(slot, table, handle, claim, node)
+    }
+    /// Validation leaves the actual ready owner in its original slot on every
+    /// refusal. Issued bearer arguments are consumed, never silently reissued.
+    pub fn bind_selected_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedScanContract,
+        selected: SelectedOperationPlan<'_>,
+    ) -> Result<NetworkScanHostCall<P>, ScanCallRefusal> {
+        let ready = slot.as_ref().ok_or(ScanCallRefusal::Unavailable)?;
+        ready.check_claim(&claim)?;
+        Self::check_possession(&table, &claim)?;
+        let i = &ready.identity;
         let gear = selected
             .fragment
             .placements
@@ -118,20 +205,6 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         if resource.class_id.as_str() != WIFI_STATION_RESOURCE_CLASS || resource.units != 1 {
             return Err(ScanCallRefusal::WrongBinding);
         }
-        let mut entries = table.inspections();
-        let e = entries.next().ok_or(ScanCallRefusal::WrongBinding)?;
-        if entries.next().is_some()
-            || e.scope.maximum_operations != 1
-            || e.scope.maximum_in_flight != 1
-            || e.scope.maximum_parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
-            || e.scope.maximum_result_bytes != MAXIMUM_SCAN_OUTPUT_BYTES
-            || e.scope.authority_contract_id.as_str() != NETWORK_SCAN_AUTHORITY
-            || claim.parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
-            || claim.work_units != 1
-        {
-            return Err(ScanCallRefusal::WrongBinding);
-        }
-        drop(entries);
         let node = bind_selected_operation_for_subject(
             &table,
             &claim,
@@ -140,20 +213,7 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
             selected,
         )
         .map_err(ScanCallRefusal::Binding)?;
-        let operation = BoundBaseOperation::bind(table, handle, claim)
-            .map_err(|(_, _, _, error)| ScanCallRefusal::Capability(error))?;
-        let r = slot.take().expect("validated owner");
-        Ok(NetworkScanHostCall {
-            operation,
-            provider: r.provider,
-            request: r.request,
-            node,
-            invoked: false,
-            cleanup_required: false,
-            records: [ScanObservation::EMPTY; 16],
-            output: [0; MAXIMUM_SCAN_OUTPUT_BYTES as usize],
-            length: 0,
-        })
+        Self::transfer(slot, table, handle, claim, node)
     }
 }
 /// One selected scan, with retained fixed output and mandatory cleanup custody.

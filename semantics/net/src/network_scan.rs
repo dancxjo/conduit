@@ -197,7 +197,7 @@ impl ScanCompletion {
 }
 
 pub const NETWORK_SCAN_EXECUTION_PROFILE: &str = "conduit.network/scan-base@1";
-pub fn network_scan_contract() -> conduit_core::Kind {
+pub fn network_scan_contract_ref() -> conduit_core::KindDefinitionRef<'static> {
     use conduit_core::*;
     const INPUT: &[PortDescriptorRef<'static>] = &[PortDescriptorRef {
         port_id: "request",
@@ -229,7 +229,9 @@ pub fn network_scan_contract() -> conduit_core::Kind {
         semantic_laws: &[],
         limits: &LIMITS,
     }
-    .materialize()
+}
+pub fn network_scan_contract() -> conduit_core::Kind {
+    network_scan_contract_ref().materialize()
 }
 pub fn network_scan_offer(
     capability: conduit_core::CapabilityId,
