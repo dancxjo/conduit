@@ -134,7 +134,7 @@ pub fn frame(
         screen,
         LayoutRect {
             x: 24,
-            y: 16,
+            y: 16 + crate::view::STATUS_STRIP_HEIGHT as i16,
             width: width.checked_sub(48)?,
             height: 40,
         },
@@ -143,7 +143,7 @@ pub fn frame(
         GraphicsPaintRole::Accent,
     )?;
     for (i, row) in rows.iter().skip(page * count).take(count).enumerate() {
-        let y = 72 + i as i16 * 84;
+        let y = 72 + crate::view::STATUS_STRIP_HEIGHT as i16 + i as i16 * 84;
         text(
             &mut scene,
             screen,
@@ -278,5 +278,47 @@ mod tests {
                 .any(|c| c.payload() == "unavailable")
         );
         assert!(scene.commands().iter().any(|c| c.payload() == "false"));
+    }
+}
+
+#[cfg(test)]
+mod status_layout_tests {
+    use super::*;
+    #[test]
+    fn all_property_pages_reserve_notice_strip_without_moving_footer_or_losing_rows() {
+        let mut face = crate::view::unavailable("Awaiting source");
+        face.subjects[0].role = FaceRole::Info;
+        for i in 0..12 {
+            face.properties.push(conduit_face::FaceProperty {
+                subject: face.subjects[0].identity.clone(),
+                name: format!("reading-{i}"),
+                value: FacePropertyValue::Text(format!("value-{i}")),
+            });
+        }
+        let mut values = Vec::new();
+        for page in 0..3 {
+            let (scene, actual, pages) = frame(&face, 1024, 600, page, None).unwrap();
+            assert_eq!((actual, pages), (page, 3));
+            assert!(scene.commands().len() <= 13);
+            for command in scene.commands() {
+                if command.payload().is_empty() {
+                    continue;
+                }
+                assert!(command.bounds.y >= crate::view::STATUS_STRIP_HEIGHT as i16);
+                if command.payload().starts_with("Face revision") {
+                    assert_eq!(command.bounds.y, 560);
+                    assert_eq!(command.bounds.height, 32);
+                } else {
+                    assert!(i32::from(command.bounds.y) + i32::from(command.bounds.height) <= 560);
+                }
+                if command.payload().starts_with("value-") {
+                    values.push(command.payload().to_owned());
+                }
+            }
+        }
+        assert_eq!(
+            values,
+            (0..12).map(|i| format!("value-{i}")).collect::<Vec<_>>()
+        );
     }
 }

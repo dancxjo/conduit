@@ -1,4 +1,5 @@
 //! Existing Conduit Face scene and typography, without environmental reconstruction.
+pub(crate) const STATUS_STRIP_HEIGHT: usize = 36;
 use conduit_face::{Face, FaceBasis, FaceRole, FaceSubject, FaceText};
 use conduitos::{
     display::{DisplayError, DisplayFormat, PixelTarget, RetainedPixelTarget, typography},
@@ -104,7 +105,10 @@ pub fn render_graphics(
     height: u16,
     pixels: &mut [u32],
 ) -> Result<(), String> {
-    if pixels.len() != usize::from(width) * usize::from(height) || height <= 36 || width == 0 {
+    if pixels.len() != usize::from(width) * usize::from(height)
+        || usize::from(height) <= STATUS_STRIP_HEIGHT
+        || width == 0
+    {
         return Err("raster extent mismatch".into());
     }
     pixels.fill(0);
@@ -147,8 +151,10 @@ impl PixelTarget for ChartViewport<'_> {
         }
         let x = x as usize;
         let y = y as usize;
-        let drawable = self.height - 36;
-        for py in 36 + y * drawable / 360..36 + (y + 1) * drawable / 360 {
+        let drawable = self.height - STATUS_STRIP_HEIGHT;
+        for py in
+            STATUS_STRIP_HEIGHT + y * drawable / 360..STATUS_STRIP_HEIGHT + (y + 1) * drawable / 360
+        {
             for px in x * self.width / 640..(x + 1) * self.width / 640 {
                 self.pixels[py * self.width + px] = pixel;
             }
@@ -162,7 +168,7 @@ impl RetainedPixelTarget for ChartViewport<'_> {
             return Err(DisplayError::InvalidExtent);
         }
         let px = x as usize * self.width / 640;
-        let py = 36 + y as usize * (self.height - 36) / 360;
+        let py = STATUS_STRIP_HEIGHT + y as usize * (self.height - STATUS_STRIP_HEIGHT) / 360;
         self.pixels
             .get(py * self.width + px)
             .copied()
