@@ -1,6 +1,9 @@
-//! CPU proof of the exact native serializer; no transport/admission is implied.
+//! CPU proof of the exact native serializer and bounded response retirement.
+extern crate alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_face_export_state.rs"]
+mod export_state;
 #[path = "support/mask.rs"]
 mod fixture;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_restart_json.rs"]
@@ -122,4 +125,25 @@ fn leaf_metadata_and_escaped_text_keep_exact_canonical_bytes() {
         actual.extend_from_slice(&bytes[..n]);
     }
     assert_eq!(actual, expected);
+}
+
+#[test]
+fn abandoned_response_releases_storage_at_expiry_without_more_http_input() {
+    use conduit_environment_http::face_export::Request;
+    let request = Request::Snapshot { nonce: [1; 32] };
+    let (_, memory) = allocation_probe::observe(|| {
+        let mut state = export_state::State {
+            pending: Some(request),
+            completed: Some((request, 5000, Ok(vec![0; 1408]))),
+        };
+        state.expire(4999);
+        assert!(state.completed.is_some());
+        state.expire(5000);
+        assert!(state.completed.is_none());
+        assert_eq!(state.pending, Some(request));
+        state.expire(u64::MAX);
+        assert!(state.completed.is_none());
+    });
+    assert!(memory.peak_bytes >= 1408);
+    assert_eq!(memory.retained_bytes(), 0);
 }

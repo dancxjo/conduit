@@ -6,10 +6,9 @@ use conduit_environment_http::face_export::{Reply, Request};
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
-struct State {
-    pending: Option<Request>,
-    completed: Option<(Request, u64, Result<Vec<u8>, &'static str>)>,
-}
+#[path = "native_face_export_state.rs"]
+mod state;
+use state::State;
 #[cfg_attr(feature = "local-appliance", esp_hal::ram(unstable(rtc_slow)))]
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     pending: None,
@@ -19,13 +18,7 @@ fn request(request: Request) -> Reply {
     STATE.lock(|state| {
         let mut state = state.borrow_mut();
         let now = embassy_time::Instant::now().as_millis();
-        if state
-            .completed
-            .as_ref()
-            .is_some_and(|(_, until, _)| now >= *until)
-        {
-            state.completed = None;
-        }
+        state.expire(now);
         if state
             .completed
             .as_ref()
@@ -97,6 +90,9 @@ fn string<T: serde::Serialize>(out: &mut Vec<u8>, value: &T) -> Result<(), &'sta
 impl super::NativeRoot {
     #[inline(never)]
     pub(crate) fn advance_face_export(&mut self, now: u64) {
+        // Retirement cannot depend on the reader returning or on admission
+        // remaining available. Release expired response storage every Root turn.
+        STATE.lock(|state| state.borrow_mut().expire(now));
         if !crate::native_restart::publication_ready() || self.body_join_scope().is_err() {
             return;
         }
