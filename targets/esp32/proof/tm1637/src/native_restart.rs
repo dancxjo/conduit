@@ -424,6 +424,18 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
                 None => return Err("restart-missing-admissions"),
             };
             admissions.retire_unfinished_challenges();
+            // Decoding may geometrically over-reserve retained records. Compact
+            // their backing before publishing this Boot's provider baseline;
+            // no receipt/key/order or admission limit is retired by this step.
+            if admissions.try_compact_storage().is_err() {
+                // Spare-capacity reclamation is optional. A valid restored
+                // manager remains authoritative and local work may still fit;
+                // later actual workset admission retains its unchanged bounds.
+                #[cfg(all(target_os = "none", feature = "local-appliance"))]
+                esp_println::println!(
+                    "{{\"event\":\"restart-admission-storage\",\"status\":\"capacity-refused\"}}"
+                );
+            }
             (
                 retained.evidence,
                 Vec::new(),
