@@ -139,7 +139,15 @@ fn bounded_borrowed_replay_matches_legacy_with_all_allocations_refused() {
         (MAX_BODY_PARTS, MAX_MEMBERSHIP_EVENTS)
     );
     let (_, legacy) = allocation_probe::observe(|| validation_legacy::validate(full).unwrap());
-    std::eprintln!("membership CPU{} events={} parts={} legacy_allocations={} legacy_peak={} borrowed_heap=0 borrowed_rows={}",usize::BITS,full.events.len(),full.parts.len(),legacy.allocations,legacy.peak_bytes,validation::replay_scratch_bytes());
+    std::eprintln!(
+        "membership CPU{} events={} parts={} legacy_allocations={} legacy_peak={} borrowed_heap=0 borrowed_rows={}",
+        usize::BITS,
+        full.events.len(),
+        full.parts.len(),
+        legacy.allocations,
+        legacy.peak_bytes,
+        validation::replay_scratch_bytes()
+    );
     assert!(legacy.allocations > 0);
     for value in states.iter().step_by(7) {
         let decoded: BodyMembership =
