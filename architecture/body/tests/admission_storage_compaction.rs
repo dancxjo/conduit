@@ -34,7 +34,11 @@ fn rows(manager: &AdmissionManager) -> [conduit_body::VecStorageUsage; 5] {
 fn actual_record_compaction_preserves_wire_order_attempts_and_nested_identity_backing() {
     let mut manager = manager();
     let before = serde_json::to_vec(&manager).unwrap();
-    let old = rows(&manager);
+    let (old, accounting) = allocation_probe::observe(|| rows(&manager));
+    assert_eq!(
+        accounting.allocations + accounting.reallocations + accounting.deallocations,
+        0
+    );
     assert!(old.iter().all(|r| r.capacity > r.len));
     let pointer = manager.receipts[0]
         .credential
