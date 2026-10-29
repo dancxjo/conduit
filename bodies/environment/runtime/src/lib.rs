@@ -225,3 +225,11 @@ impl PreparedCaptureSelector {
 }
 
 pub mod recording;
+
+pub mod environmental_publication;
+
+#[cfg(feature = "face-projection")]
+pub mod environmental_publication_face;
+
+#[cfg(any(feature = "local-planning", feature = "environmental-source"))]
+pub mod environmental_source;

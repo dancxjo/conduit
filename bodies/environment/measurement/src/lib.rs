@@ -123,3 +123,5 @@ impl EnvironmentalReading {
         self.atmospheric_pressure
     }
 }
+
+pub mod source_observation;
