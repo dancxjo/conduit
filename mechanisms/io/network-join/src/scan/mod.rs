@@ -1,5 +1,7 @@
 //! Selected finite scan ownership; no ambient radio access or policy renewal.
+mod kernel;
 mod kernel_back;
+pub use kernel::*;
 mod owner;
 use conduit_core::{Kind, KindId};
 use conduit_net::*;
