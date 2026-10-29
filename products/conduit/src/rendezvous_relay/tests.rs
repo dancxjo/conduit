@@ -222,10 +222,7 @@ fn remote_execution_session_frames_cross_two_outbound_protected_relay_clients() 
         assert_eq!(response.message, SessionMessage::Accepted { sequence: 0 });
         response_seen_tx.send(()).unwrap();
         close_started_rx.recv().unwrap();
-        assert!(matches!(
-            line.receive(),
-            Err(ProtectedLineError::OuterCarrierLost)
-        ));
+        assert!(matches!(line.receive(), Err(ProtectedLineError::Closed)));
     });
     let mut second_carrier = HostedRelayCarrier::connect(RelayClientDescriptor {
         address,

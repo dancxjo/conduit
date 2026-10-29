@@ -526,3 +526,37 @@ fn deterministic_profile_vector() {
     );
     assert_eq!(b.open(&protected[..length], &mut [0; 64]).unwrap(), 6);
 }
+
+#[test]
+fn explicit_carrier_close_retires_normally_while_loss_remains_failure() {
+    struct TerminalCarrier(CarrierFailure);
+    impl ProtectedFrameCarrier for TerminalCarrier {
+        fn send_frame(&mut self, _: &[u8]) -> Result<(), CarrierFailure> {
+            Err(self.0)
+        }
+        fn receive_frame(&mut self, _: &mut [u8], _: u32) -> Result<usize, CarrierFailure> {
+            Err(self.0)
+        }
+        fn close(&mut self) -> Result<(), CarrierFailure> {
+            Ok(())
+        }
+    }
+    for (failure, error, disposition) in [
+        (
+            CarrierFailure::Closed,
+            ProtectedLineError::Closed,
+            SessionDisposition::Closed,
+        ),
+        (
+            CarrierFailure::Lost,
+            ProtectedLineError::OuterCarrierLost,
+            SessionDisposition::Failed(ProtectedLineError::OuterCarrierLost),
+        ),
+    ] {
+        let (session, _) = sessions();
+        let mut line = ProtectedCarrier::new(TerminalCarrier(failure), session, policy()).unwrap();
+        assert_eq!(line.receive().unwrap_err(), error);
+        assert_eq!(line.session().evidence().disposition, disposition);
+        assert!(line.send(b"late").is_err());
+    }
+}
