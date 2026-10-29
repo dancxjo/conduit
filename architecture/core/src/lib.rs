@@ -355,6 +355,42 @@ pub struct ActivePlayIdentity {
     pub play_sequence: u64,
 }
 
+impl ActivePlayIdentity {
+    /// Verify the complete canonical binding against independently selected
+    /// scope, without constructing another owned identity. This checks identity
+    /// correspondence only; it does not establish a reservation or authority.
+    pub fn is_bound_to(
+        &self,
+        plan_id: &PlanId,
+        host_id: &HostId,
+        boot_id: &BootId,
+        play_sequence: u64,
+    ) -> bool {
+        if &self.plan_id != plan_id
+            || &self.host_id != host_id
+            || &self.boot_id != boot_id
+            || self.play_sequence != play_sequence
+        {
+            return false;
+        }
+        let encoded = self.active_play_id.as_str().as_bytes();
+        if encoded.len() != 64 {
+            return false;
+        }
+        let digest = active_play_digest(
+            plan_id.as_str(),
+            host_id.as_str(),
+            boot_id.as_str(),
+            play_sequence,
+        );
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        digest.iter().enumerate().all(|(index, byte)| {
+            encoded[index * 2] == HEX[usize::from(byte >> 4)]
+                && encoded[index * 2 + 1] == HEX[usize::from(byte & 15)]
+        })
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SignIdentity {
     pub sign_id: SignId,
