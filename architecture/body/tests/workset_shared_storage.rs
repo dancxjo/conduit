@@ -1,7 +1,7 @@
 //! Immutable storage only: sharing conveys no verification or execution grant.
 use conduit_body::{
     Body, BodyBiographyEvidence, BodyBiographyRecordKind, BodyLifecycleEvent, BodyMembership,
-    BodyPlan, BodyPlanSeal, BodyPlotPlan, BodyWorkset, BodyWorksetError, ResidentPlot,
+    BodyPlan, BodyPlotPlan, BodyWorkset, BodyWorksetError, ResidentPlot,
 };
 use conduit_core::{seal_plan, ExpandedPlotId, PlotIdentity};
 use serde::Serialize;
@@ -23,6 +23,8 @@ struct HistoricalWire<'a> {
 
 #[test]
 fn exact_workset_clones_share_without_allocating_and_retire_with_last_owner() {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<BodyWorkset>();
     const COPIES: usize = 8;
     let original = workset();
     let mut shared = Vec::with_capacity(COPIES);
@@ -44,13 +46,13 @@ fn exact_workset_clones_share_without_allocating_and_retire_with_last_owner() {
             historical.push(old.clone());
         }
     });
-    assert!(legacy.retained_bytes() >= 1024);
+    // Every measured clone remains live; no payload is freed in this scope.
+    assert_eq!(legacy.deallocations, 0);
+    assert!(legacy.requested_bytes >= 1024);
     assert_eq!(legacy.allocations, COPIES * 5);
     println!(
         "workset copies={COPIES} old_retained={} new_retained={} allocation_delta={}",
-        legacy.retained_bytes(),
-        measured.retained_bytes(),
-        legacy.allocations
+        legacy.requested_bytes, measured.requested_bytes, legacy.allocations
     );
     let ((), dropped) = allocation_probe::observe(|| drop(original));
     assert_eq!(
@@ -62,13 +64,13 @@ fn exact_workset_clones_share_without_allocating_and_retire_with_last_owner() {
     drop(shared);
     let ((), released) = allocation_probe::observe(|| drop(last));
     assert!(
-        released.deallocated_bytes >= 256,
-        "last owner releases canonical ID bytes"
+        released.deallocations >= 5,
+        "last owner releases canonical ID storage"
     );
 }
 
 #[test]
-fn successful_cow_preserves_body_wakes_and_sealed_worksets() {
+fn successful_cow_preserves_body_wakes_and_checked_plan_worksets() {
     let source = workset();
     let body = Body::born_with_plots(source.clone(), 1, "born".into()).unwrap();
     let (_, wake) = body.wake(1, "wake".into()).unwrap();
@@ -88,11 +90,16 @@ fn successful_cow_preserves_body_wakes_and_sealed_worksets() {
         })
         .collect();
     let plan = BodyPlan::seal(&wake, plans).unwrap();
-    let seal = BodyPlanSeal::capture(&plan).unwrap();
+    let retained_plan = plan;
     let mut next = source.clone();
     next.add(plot('c')).unwrap();
     next.remove(&plot('a')).unwrap();
-    for previous in [&source, &body.workset, &wake.workset, seal.workset()] {
+    for previous in [
+        &source,
+        &body.workset,
+        &wake.workset,
+        &retained_plan.workset,
+    ] {
         assert_eq!(previous.len(), 2);
         assert!(previous.contains(&plot('a')));
         assert!(!previous.contains(&plot('c')));
@@ -159,7 +166,7 @@ fn empty_and_refused_empty_mutations_allocate_nothing() {
 }
 
 #[test]
-fn actual_birth_history_wake_and_seal_share_but_decode_is_not_an_interner() {
+fn actual_birth_history_wake_and_plan_share_but_decode_is_not_an_interner() {
     for decoded in [false, true] {
         let body = Body::born_with_plots(workset(), 1, "born".into()).unwrap();
         let membership = BodyMembership::new(body.body_id.clone()).unwrap();
@@ -188,8 +195,7 @@ fn actual_birth_history_wake_and_seal_share_but_decode_is_not_an_interner() {
             })
             .collect();
         let plan = BodyPlan::seal(&wake, plans).unwrap();
-        let seal = BodyPlanSeal::capture(&plan).unwrap();
-        drop(plan);
+        let retained_plan = plan;
         let born = match &evidence.body.events[0] {
             BodyLifecycleEvent::Born {
                 initial_workset, ..
@@ -207,7 +213,7 @@ fn actual_birth_history_wake_and_seal_share_but_decode_is_not_an_interner() {
             born,
             recorded,
             &wake.workset,
-            seal.workset(),
+            &retained_plan.workset,
         ];
         let mut copies = Vec::with_capacity(retained.len());
         let (_, avoided) = allocation_probe::observe(|| {
@@ -221,10 +227,11 @@ fn actual_birth_history_wake_and_seal_share_but_decode_is_not_an_interner() {
             }
         });
         assert_eq!(copies.len(), if decoded { 2 } else { 4 });
+        assert_eq!(avoided.deallocations, 0);
         if !decoded {
-            assert!(avoided.retained_bytes() > 1024);
+            assert!(avoided.requested_bytes > 1024);
         }
         println!("actual workset owners={} decoded={decoded} avoided_deep_copies={} avoided_owned_heap={}",
-            retained.len(), copies.len(), avoided.retained_bytes());
+            retained.len(), copies.len(), avoided.requested_bytes);
     }
 }

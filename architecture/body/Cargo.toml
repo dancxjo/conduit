@@ -18,5 +18,11 @@ minicbor = { version = "2.3", default-features = false }
 miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"], optional = true }
 serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
 
+# Immutable snapshot clones share their backing on every portable Host.
+portable-atomic-util = { version = "0.2.8", default-features = false, features = ["alloc"] }
+
+[target.'cfg(not(target_has_atomic = "ptr"))'.dependencies]
+portable-atomic = { version = "1", default-features = false, features = ["critical-section"] }
+
 [dev-dependencies]
 serde_json = "1"
