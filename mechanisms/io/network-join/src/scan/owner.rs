@@ -7,6 +7,9 @@ use conduit_plan_lowering::selected_operation::{
 };
 #[path = "flat_binding.rs"]
 mod flat_binding;
+#[path = "preparation.rs"]
+mod preparation;
+pub use preparation::{PreparedScanBinding, ReadyScanView, ScanPreparation};
 /// Exact issued custody returned unchanged when borrowed selection refuses.
 pub type ScanBindingFailure = (
     ScanCallRefusal,

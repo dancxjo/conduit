@@ -20,47 +20,11 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         claim: BaseOperationClaim,
         selected: SelectedFlatDirectOperationPlan<'_, 2, 1, 1, 2, 1, 2>,
     ) -> Result<NetworkScanHostCall<P>, ScanBindingFailure> {
-        let checked = || {
-            let ready = slot.as_ref().ok_or(ScanCallRefusal::Unavailable)?;
-            ready.check_claim(&claim)?;
-            Self::check_possession(&table, &claim)?;
-            let view = selected.tables.preparation_scope().view();
-            let mut gears = view
-                .placements
-                .iter()
-                .filter(|g| g.placement_id == selected.placement_id);
-            let gear = gears.next().ok_or(ScanCallRefusal::WrongBinding)?;
-            if gears.next().is_some() {
-                return Err(ScanCallRefusal::WrongBinding);
-            }
-            let canonical = PreparedCanonicalNetworkOffer::scan(
-                SCAN_CAPABILITY,
-                ready.identity.implementation.as_str(),
-                ready.identity.artifact.as_str(),
-            )
-            .into_contract();
-            ready.check_native_ref(gear, canonical.kind().limits)?;
-            let node = bind_selected_flat_direct_operation_for_subject(
-                &table,
-                &claim,
-                SelectedOperationContractRef {
-                    kind: canonical.kind(),
-                    semantic_contract: canonical.semantic_contract(),
-                    call: NETWORK_SCAN_HOST_CALL,
-                    input_bytes: MAXIMUM_SCAN_INPUT_BYTES,
-                    output_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
-                    resource_bytes: 1,
-                },
-                NETWORK_SCAN_SUBJECT,
-                &[],
-                selected,
-            )
-            .map_err(ScanCallRefusal::Binding)?;
-            BoundBaseOperation::check(&table, &handle, &claim)
-                .map_err(ScanCallRefusal::Capability)?;
-            Ok(node)
-        };
-        let node = match checked() {
+        let checked = slot
+            .as_ref()
+            .ok_or(ScanCallRefusal::Unavailable)
+            .and_then(|ready| ready.check_flat_binding(&table, &handle, &claim, selected));
+        let node = match checked {
             Ok(node) => node,
             Err(e) => return Err((e, table, handle, claim)),
         };
@@ -70,6 +34,50 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
             .take()
             .expect("same checked Ready slot")
             .into_checked_call(operation, node))
+    }
+    pub(super) fn check_flat_binding(
+        &self,
+        table: &BaseCapabilityTable,
+        handle: &BaseCapabilityHandle,
+        claim: &BaseOperationClaim,
+        selected: SelectedFlatDirectOperationPlan<'_, 2, 1, 1, 2, 1, 2>,
+    ) -> Result<NodeId, ScanCallRefusal> {
+        self.check_claim(claim)?;
+        Self::check_possession(table, claim)?;
+        let view = selected.tables.preparation_scope().view();
+        let mut gears = view
+            .placements
+            .iter()
+            .filter(|g| g.placement_id == selected.placement_id);
+        let gear = gears.next().ok_or(ScanCallRefusal::WrongBinding)?;
+        if gears.next().is_some() {
+            return Err(ScanCallRefusal::WrongBinding);
+        }
+        let canonical = PreparedCanonicalNetworkOffer::scan(
+            SCAN_CAPABILITY,
+            self.identity.implementation.as_str(),
+            self.identity.artifact.as_str(),
+        )
+        .into_contract();
+        self.check_native_ref(gear, canonical.kind().limits)?;
+        let node = bind_selected_flat_direct_operation_for_subject(
+            table,
+            claim,
+            SelectedOperationContractRef {
+                kind: canonical.kind(),
+                semantic_contract: canonical.semantic_contract(),
+                call: NETWORK_SCAN_HOST_CALL,
+                input_bytes: MAXIMUM_SCAN_INPUT_BYTES,
+                output_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
+                resource_bytes: 1,
+            },
+            NETWORK_SCAN_SUBJECT,
+            &[],
+            selected,
+        )
+        .map_err(ScanCallRefusal::Binding)?;
+        BoundBaseOperation::check(table, handle, claim).map_err(ScanCallRefusal::Capability)?;
+        Ok(node)
     }
     fn check_native_ref(
         &self,

@@ -5,6 +5,8 @@ mod allocation_probe;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[path = "../../../../architecture/plan-lowering/tests/common/native_possession.rs"]
 mod possession;
+#[path = "network_scan_source/preparation.rs"]
+mod preparation;
 #[test]
 fn scan_source_checks_with_a_connected_typed_evidence_sink() {
     let plot = conduit_environment_make::compile_network_scan().unwrap();

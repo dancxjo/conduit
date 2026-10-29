@@ -245,7 +245,7 @@ impl<'a, P: NetworkJoinProvider, S: CredentialSource> ReadyNetworkPairView<'a, P
         ))
     }
 }
-fn base_advertisement<'a>(
+pub(crate) fn base_advertisement<'a>(
     i: &'a installation::NetworkNativeIdentity,
     family: &'a str,
     capabilities: &'a [&'a str],
@@ -265,7 +265,7 @@ fn base_advertisement<'a>(
     }
 }
 
-fn resource_advertisement<'a>(
+pub(crate) fn resource_advertisement<'a>(
     i: &'a installation::NetworkNativeIdentity,
     class_id: &'a str,
 ) -> conduit_core::ResourceOfferRef<'a> {
