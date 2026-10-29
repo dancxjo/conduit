@@ -38,9 +38,8 @@ fn offer_id(root: &[u8; 32], offer: &[u8; OFFER]) -> [u8; 32] {
     h.update(&offer[..176]);
     h.finalize().into()
 }
-fn verify(scope: &Scope, offer: &[u8; OFFER], snapshot: &[u8]) -> Result<[u8; 32]> {
-    if snapshot.len() != CAPACITY
-        || offer[..32] != digest(scope.body.as_str().as_bytes())
+fn verify_offer(scope: &Scope, offer: &[u8; OFFER]) -> Result<[u8; 32]> {
+    if offer[..32] != digest(scope.body.as_str().as_bytes())
         || offer[32..64] != scope.region
         || offer[64..72] != scope.epoch.to_le_bytes()
         || scope.epoch == u64::MAX
@@ -48,7 +47,6 @@ fn verify(scope: &Scope, offer: &[u8; OFFER], snapshot: &[u8]) -> Result<[u8; 32
         || offer[104..108] != (CAPACITY as u32).to_le_bytes()
         || !(1..=8).contains(&offer[108])
         || offer[109..112] != [0; 3]
-        || offer[112..144] != digest(snapshot)
         || offer[144..176] != scope.predecessor
     {
         return Err("network custody snapshot scope/extent differs".into());
@@ -60,6 +58,13 @@ fn verify(scope: &Scope, offer: &[u8; OFFER], snapshot: &[u8]) -> Result<[u8; 32
             &Signature::from_bytes(offer[176..].try_into().unwrap()),
         )
         .map_err(|_| "network custody Root signature")?;
+    Ok(id)
+}
+fn verify(scope: &Scope, offer: &[u8; OFFER], snapshot: &[u8]) -> Result<[u8; 32]> {
+    let id = verify_offer(scope, offer)?;
+    if snapshot.len() != CAPACITY || offer[112..144] != digest(snapshot) {
+        return Err("network custody snapshot extent/digest differs".into());
+    }
     Ok(id)
 }
 fn private(path: &Path, directory: bool) -> Result<()> {
@@ -233,3 +238,6 @@ mod receipt;
 
 #[path = "network_custody_client/live.rs"]
 pub(crate) mod live;
+
+#[path = "network_custody_client/resume.rs"]
+pub(crate) mod resume;

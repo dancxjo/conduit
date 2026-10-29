@@ -3,12 +3,12 @@
 use super::*;
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Offered {
-    profile: String,
-    snapshot: String,
-    offer: String,
+pub(super) struct Offered {
+    pub(super) profile: String,
+    pub(super) snapshot: String,
+    pub(super) offer: String,
 }
-fn unhex<const N: usize>(text: &str) -> Result<[u8; N]> {
+pub(super) fn unhex<const N: usize>(text: &str) -> Result<[u8; N]> {
     if text.len() != N * 2 {
         return Err("network offer hex extent".into());
     }

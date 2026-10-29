@@ -1,18 +1,18 @@
 use super::*;
 use ed25519_dalek::Signer;
-struct Fixture {
-    directory: PathBuf,
-    scope: Scope,
-    offer: [u8; 240],
-    snapshot: Vec<u8>,
-    credential: MembershipCredential,
+pub(super) struct Fixture {
+    pub(super) directory: PathBuf,
+    pub(super) scope: Scope,
+    pub(super) offer: [u8; 240],
+    pub(super) snapshot: Vec<u8>,
+    pub(super) credential: MembershipCredential,
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.directory);
     }
 }
-fn fixture() -> Fixture {
+pub(super) fn fixture() -> Fixture {
     static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
     let directory = std::env::temp_dir().join(format!(
         "conduit-network-custody-{}-{}",
