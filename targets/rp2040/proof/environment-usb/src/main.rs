@@ -10,11 +10,16 @@ use embassy_usb::{
 };
 use panic_halt as _;
 use static_cell::StaticCell;
-#[cfg(not(environment_dht11_tm1637))]
+#[cfg(not(any(environment_dht11_tm1637, environment_bosch_tm1637)))]
+mod environment;
+#[cfg(environment_bosch_tm1637)]
+#[path = "environment_bme_tm1637.rs"]
 mod environment;
 #[cfg(environment_dht11_tm1637)]
 #[path = "environment_dht.rs"]
 mod environment;
+#[cfg(environment_bosch_tm1637)]
+mod environment_http;
 mod environment_show;
 mod heap;
 #[cfg(feature = "wifi")]

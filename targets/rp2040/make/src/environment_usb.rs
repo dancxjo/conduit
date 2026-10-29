@@ -2,6 +2,8 @@
 use conduit_host_make::{
     CheckedHostConfiguration, ConfigurationBus, ConfigurationDevice, ConfigurationScalar,
 };
+mod mixed;
+
 pub fn environment_usb_rust(checked: &CheckedHostConfiguration) -> Result<String, String> {
     let c = checked.configuration();
     if c.target.architecture != "thumbv6m"
@@ -13,7 +15,11 @@ pub fn environment_usb_rust(checked: &CheckedHostConfiguration) -> Result<String
         .iter()
         .any(|d| matches!(d, ConfigurationDevice::Gpio { .. }))
     {
-        return gpio_environment(checked);
+        return if c.buses.is_empty() {
+            gpio_environment(checked)
+        } else {
+            mixed::rust(checked)
+        };
     }
     let [ConfigurationBus::I2c {
         id,

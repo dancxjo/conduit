@@ -62,9 +62,26 @@ hardware and signed Root evidence.
 
 The same carrier supports distinct checked Host configurations:
 
+- `pico-w-bme280-tm1637.host.conduit`: BME280 on I²C1 (GP6 SDA/GP7 SCL) and TM1637 on separate GPIO (GP3 CLK/GP4 DIO), White. Build with `--features wifi,bosch-tm1637`; bindings and electrical timing come from the checked Host configuration.
 - `pico-w-environment-usb.host.conduit`: Bosch environmental sensor and HT16K33 on I²C (Green).
 - `pico-w-dht11-tm1637.host.conduit`: authored DHT11 capture/decoder and GPIO TM1637 (Yellow). Build with `--features wifi,dht11-tm1637`; the checked profile selects GP3 data, GP7 CLK, GP6 DIO,50µs electrical half-period and weak pull-ups. Pressure is unavailable on this sensor and is omitted.
 
-Both perform local continuous diagnostics independently of USB and report `body_member:false`. Neither diagnostic is an installed same-Body sampling/Mask Play, and current Wi-Fi credentials are session RAM rather than restart-persistent configuration. The host explicitly establishes the carrier session after a power cycle.
+All three perform local continuous diagnostics independently of USB and report `body_member:false`. Neither diagnostic is an installed same-Body sampling/Mask Play, and current Wi-Fi credentials are session RAM rather than restart-persistent configuration. The host explicitly establishes the carrier session after a power cycle.
 
 When several devices are attached, select the actual physical USB path and verify its build/configuration. These firmware variants currently share a USB product/serial descriptor, so the shared `/dev/serial/by-id` alias can move between devices. Never open the same CDC stream from two clients. Display ACKs are electrical observations; working pixels require physical visual confirmation.
+
+White additionally exposes the bounded read-only `GET /environment` route on
+TCP port 8080 after network configuration. Its response carries the firmware and
+Host-configuration identities, real counters, sample-Boot milliseconds, quantities
+and explicit `body_member:false`. It creates no Body membership, signed history,
+Plan or Play. There is one configured TCP session; its closing handshake is bounded
+to 500 ms, and concurrent/closing-session connections can refuse. Incomplete
+requests expire after three seconds; headers are limited to 512 bytes and methods
+other than GET refuse. Credentials and admission operations are not exposed there.
+
+Physical evidence on White established successful joins to Troys and `Hot Togo `
+(the latter includes a trailing space), direct Wi-Fi status reads on Hot Togo,
+and continued sampling/display acknowledgment progression with no USB client.
+A protected RTL8188CUS bench AP rejected association and remains unqualified.
+Network credentials are still volatile; these observations do not establish
+automatic reconnect, power-cycle recovery or native Body membership.

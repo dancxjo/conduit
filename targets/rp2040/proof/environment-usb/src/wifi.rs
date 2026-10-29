@@ -185,6 +185,8 @@ pub async fn run(
     spawner.spawn(network(runner).unwrap());
     update(true, Some(stack), None);
     spawner.spawn(monitor(stack).unwrap());
+    #[cfg(environment_bosch_tm1637)]
+    spawner.spawn(crate::environment_http::run(stack).unwrap());
     loop {
         let request = match with_timeout(Duration::from_millis(250), REQUEST.wait()).await {
             Ok(r) => r,
@@ -239,13 +241,10 @@ async fn join(
     // default selects WPA3, so it must not override that explicit policy.
     let mut options = cyw43::JoinOptions::new(credential.as_bytes());
     options.auth = cyw43::JoinAuth::Wpa2;
-    with_timeout(
-        Duration::from_secs(25),
-        control.join(ssid, options),
-    )
-    .await
-    .map_err(|_| "radio-join-timeout")?
-    .map_err(|_| "radio-join-refused")?;
+    with_timeout(Duration::from_secs(25), control.join(ssid, options))
+        .await
+        .map_err(|_| "radio-join-timeout")?
+        .map_err(|_| "radio-join-refused")?;
     with_timeout(Duration::from_secs(15), stack.wait_config_up())
         .await
         .map_err(|_| "radio-dhcp-timeout")?;

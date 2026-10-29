@@ -7,6 +7,7 @@ publish = false
 [features]
 default = []
 dht11-tm1637 = ["pio-capture", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-pulse-capture", "dep:conduit-rp2040-pulse-capture", "dep:conduit-rp2040-tm1637", "dep:conduit-tm1637-wire"]
+bosch-tm1637 = ["dep:conduit-rp2040-tm1637", "dep:conduit-tm1637-wire"]
 pio-capture = []
 # Compatibility cfg selects the existing finite CYW43 network initializer.
 wifi = ["appliance-hil-client", "dep:cyw43", "dep:cyw43-pio", "dep:embassy-net", "dep:aligned", "dep:embassy-sync", "dep:conduit-net"]

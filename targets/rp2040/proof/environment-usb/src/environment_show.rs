@@ -81,7 +81,7 @@ pub fn render_common(
 /// This is not a general fourteen-segment renderer; it consumes logical Show
 /// segment Forms, independently of the TM1637 physical register mapping.
 /// This adapter performs no quantity formatting, rounding or page selection.
-#[cfg(not(environment_dht11_tm1637))]
+#[cfg(not(any(environment_dht11_tm1637, environment_bosch_tm1637)))]
 pub fn frame(reading: Reading, revision: u64, elapsed: u64) -> Result<[u8; 16], ()> {
     let digits = render(reading, revision, elapsed)?;
     let mut glyphs = [conduit_ht16k33::Glyph::from_char(' ').map_err(|_| ())?; 4];

@@ -40,6 +40,16 @@ fn main() {
     let generated =
         conduit_host_rp2040::environment_usb_rust(&checked).expect("RP2040 physical bindings");
     println!("cargo:rustc-check-cfg=cfg(environment_dht11_tm1637)");
+    println!("cargo:rustc-check-cfg=cfg(environment_bosch_tm1637)");
+    let mixed = generated.contains("ENVIRONMENT_PROFILE:&str=\"bosch-tm1637\"");
+    assert_eq!(
+        mixed,
+        env::var_os("CARGO_FEATURE_BOSCH_TM1637").is_some(),
+        "checked BME/TM Host requires exact bosch-tm1637 feature"
+    );
+    if mixed {
+        println!("cargo:rustc-cfg=environment_bosch_tm1637");
+    }
     let dht = generated.contains("ENVIRONMENT_PROFILE:&str=\"dht11-tm1637\"");
     assert_eq!(
         dht,
@@ -119,6 +129,12 @@ fn main() {
                 )
                 .join(name),
             );
+        }
+    }
+    if mixed {
+        for directory in ["../../tm1637", "../../../../mechanisms/io/tm1637"] {
+            collect(&Path::new(directory).join("src"), &mut files);
+            files.push(Path::new(directory).join("Cargo.toml"));
         }
     }
     if dht {
