@@ -201,6 +201,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
     let mut timer = RecordingTimer { waits: Vec::new() };
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            native_source: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,
