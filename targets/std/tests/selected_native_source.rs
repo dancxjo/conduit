@@ -338,8 +338,7 @@ fn installation_refusal_returns_the_owner_without_replacing_live_continuity() {
             }),
         )
     };
-    let (_, mut returned, _) =
-        result.expect_err("one retained Source slot cannot be overwritten");
+    let (_, mut returned, _) = result.expect_err("one retained Source slot cannot be overwritten");
     let mut buffer = [0; 128];
     assert_eq!(returned.read(&[], &mut buffer).unwrap(), VALUE.len());
     assert_eq!(calls.load(Ordering::Relaxed), 1);
