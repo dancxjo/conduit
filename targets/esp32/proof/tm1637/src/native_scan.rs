@@ -147,6 +147,28 @@ impl<P: NetworkScanProvider> NativeScan<P> {
             return Err(());
         }
         let storage = PreparedScanKernelStorage::try_new().map_err(|_| ())?;
+        self.install_held_with_storage(image, pins, generation, issuer, storage, admit)
+    }
+    /// Consume the exact execution backing reserved before the independent
+    /// workspace floor. This does not add another allocation or relax admission;
+    /// cold refusal drops only the supplied unused backing and retains the owner.
+    pub(crate) fn install_held_with_storage(
+        &mut self,
+        image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
+        pins: (&str, &str, &str),
+        generation: c::OfferGeneration,
+        issuer: &mut RootIssuer,
+        storage: PreparedScanKernelStorage,
+        admit: impl FnOnce() -> Result<(), ()>,
+    ) -> Result<(), ()> {
+        if self.active.is_some()
+            || self.kernel.is_some()
+            || self.refused_issued.is_some()
+            || self.refused_bound.is_some()
+            || !matches!(self.owner, Some(Ownership::Ready(_)))
+        {
+            return Err(());
+        }
         let mut local = alloc::string::String::new();
         local
             .try_reserve_exact(c::LOCAL_BASE_IMPLEMENTATION_ID.len())
