@@ -8,6 +8,8 @@ use crate::{
     Face, FaceContentId, ManifestationFailure, ManifestationLifecycle, MaskJsonRefusal,
     MaskShowError, MaskShowId, PlannedMaskPlot, PreparedMaskShowJson, Show,
 };
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc;
 use alloc::{boxed::Box, string::String};
 use conduit_core::{ActivePlayIdentity, PlanId, PlotIdentity, SignId};
 pub struct PreparedMaskShowContext {
@@ -187,7 +189,7 @@ impl PreparedMaskShowContext {
             .map_err(MaskShowError::InvalidManifestation)?;
         let show_id = bind_show_identity(&self.mask, self.plan_id(), face, &show);
         Ok(PreparedMaskOccurrence {
-            context: self,
+            context: OccurrenceContext::Borrowed(self),
             show_id,
             face_plot,
             face_plan_id,
@@ -197,11 +199,25 @@ impl PreparedMaskShowContext {
         })
     }
 }
+enum OccurrenceContext<'a> {
+    Borrowed(&'a PreparedMaskShowContext),
+    #[cfg(target_has_atomic = "ptr")]
+    Retained(Arc<PreparedMaskShowContext>),
+}
+impl OccurrenceContext<'_> {
+    fn get(&self) -> &PreparedMaskShowContext {
+        match self {
+            Self::Borrowed(context) => context,
+            #[cfg(target_has_atomic = "ptr")]
+            Self::Retained(context) => context,
+        }
+    }
+}
 /// Exact immutable basis with controlled manifestation transitions. It borrows
-/// only its prepared context, never the Face or the complete rich Plan model.
-/// The context borrow prevents pairing this occurrence with another cached Plan.
+/// or retains only its original immutable context, never the Face or rich Plan.
+/// Context identity prevents pairing an occurrence with another cached Plan.
 pub struct PreparedMaskOccurrence<'a> {
-    context: &'a PreparedMaskShowContext,
+    context: OccurrenceContext<'a>,
     show_id: MaskShowId,
     face_plot: Option<PlotIdentity>,
     face_plan_id: Option<PlanId>,
@@ -210,6 +226,46 @@ pub struct PreparedMaskOccurrence<'a> {
     show: Show,
 }
 impl<'a> PreparedMaskOccurrence<'a> {
+    /// Consume this exact occurrence into retained immutable preparation.
+    /// Matching semantic IDs alone cannot substitute another allocation. Refusal
+    /// returns both actual owners unchanged; no Face or Show is reconstructed.
+    /// Available on pointer-atomic targets; all targets keep borrowed contexts.
+    /// ```compile_fail
+    /// fn duplicate(occurrence: conduit_face::PreparedMaskOccurrence<'_>,
+    ///     context: std::sync::Arc<conduit_face::PreparedMaskShowContext>) {
+    ///     let _retained = occurrence.retain_context(context);
+    ///     let _ = occurrence.show(); // the original occurrence was moved
+    /// }
+    /// ```
+    #[cfg(target_has_atomic = "ptr")]
+    #[allow(clippy::result_large_err)]
+    pub fn retain_context(
+        self,
+        context: Arc<PreparedMaskShowContext>,
+    ) -> Result<PreparedMaskOccurrence<'static>, (Self, Arc<PreparedMaskShowContext>)> {
+        if !core::ptr::eq(self.context.get(), Arc::as_ref(&context)) {
+            return Err((self, context));
+        }
+        let Self {
+            context: _,
+            show_id,
+            face_plot,
+            face_plan_id,
+            face_id,
+            face_revision,
+            show,
+        } = self;
+        Ok(PreparedMaskOccurrence {
+            context: OccurrenceContext::Retained(context),
+            show_id,
+            face_plot,
+            face_plan_id,
+            face_id,
+            face_revision,
+            show,
+        })
+    }
+
     pub fn show(&self) -> &Show {
         &self.show
     }
@@ -263,13 +319,13 @@ impl<'a> PreparedMaskOccurrence<'a> {
         crate::mask_show_encoding::encode(
             MaskShowPrefix {
                 show_id: &self.show_id,
-                mask_plot: &self.context.mask,
+                mask_plot: &self.context.get().mask,
                 face_plot: &self.face_plot,
                 face_plan_id: &self.face_plan_id,
                 face_id: &self.face_id,
                 face_revision: self.face_revision,
             },
-            &self.context.plan,
+            &self.context.get().plan,
             &self.show,
             output,
             serialize,
@@ -277,12 +333,12 @@ impl<'a> PreparedMaskOccurrence<'a> {
     }
     /// Snapshot-only representation. The caller still owns current Face/custody
     /// admission before an effect; historical serialization remains possible.
-    pub fn json(&self, maximum_bytes: usize) -> Result<PreparedMaskShowJson<'a>, MaskJsonRefusal> {
+    pub fn json(&self, maximum_bytes: usize) -> Result<PreparedMaskShowJson<'_>, MaskJsonRefusal> {
         crate::mask_show_json::bind_wire_parts(
-            &self.context.plan,
+            &self.context.get().plan,
             MaskShowPrefix {
                 show_id: &self.show_id,
-                mask_plot: &self.context.mask,
+                mask_plot: &self.context.get().mask,
                 face_plot: &self.face_plot,
                 face_plan_id: &self.face_plan_id,
                 face_id: &self.face_id,

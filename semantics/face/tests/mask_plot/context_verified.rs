@@ -369,3 +369,67 @@ fn disjoint_borrowed_scratch_preserves_wire_and_slot_canaries_with_lower_heap_pe
         borrowed.plan_wire().len()
     );
 }
+
+#[test]
+#[cfg(target_has_atomic = "ptr")]
+fn retained_occurrence_requires_the_exact_context_and_outlives_borrowed_inputs() {
+    use std::sync::Arc;
+    let planned_mask = planned(24);
+    let face = face(&planned_mask);
+    let context = Arc::new(PreparedMaskShowContext::prepare(&planned_mask, 64 * 1024).unwrap());
+    let same_identity =
+        Arc::new(PreparedMaskShowContext::prepare(&planned_mask, 64 * 1024).unwrap());
+    assert_eq!(context.plan_id(), same_identity.plan_id());
+    let different = planned(25);
+    let foreign = Arc::new(PreparedMaskShowContext::prepare(&different, 64 * 1024).unwrap());
+    let presenter = planned_mask.show_placement();
+    let active = bind_active_play(
+        &planned_mask.plan.plan_id,
+        &presenter.host_id,
+        &presenter.boot_id,
+        1,
+    );
+    let mut occurrence = context
+        .prepared_show(
+            &face,
+            active,
+            "mask/plot".into(),
+            "target/display".into(),
+            "sign/prepared".into(),
+        )
+        .unwrap();
+    occurrence
+        .transition(ManifestationLifecycle::Available, "sign/available".into())
+        .unwrap();
+    let encode = |value: &conduit_face::PreparedMaskOccurrence<'_>| {
+        let prepared = value.json(128 * 1024).unwrap();
+        let mut bytes = vec![0; prepared.encoded_bytes()];
+        prepared.encode(&mut bytes).unwrap();
+        bytes
+    };
+    let expected = encode(&occurrence);
+    for wrong in [same_identity, foreign] {
+        let pointer = Arc::as_ptr(&wrong);
+        occurrence = match occurrence.retain_context(wrong) {
+            Err((returned, context)) => {
+                assert_eq!(Arc::as_ptr(&context), pointer);
+                assert_eq!(encode(&returned), expected);
+                returned
+            }
+            Ok(_) => panic!("foreign context accepted"),
+        };
+    }
+    let (retained, memory) =
+        allocation_probe::observe(|| occurrence.retain_context(Arc::clone(&context)));
+    let mut retained = retained.unwrap_or_else(|_| panic!("exact context refused"));
+    assert_eq!(memory.allocations, 0);
+    assert_eq!(memory.reallocations, 0);
+    drop(face);
+    drop(planned_mask);
+    drop(context);
+    assert_eq!(encode(&retained), expected);
+    retained
+        .transition(ManifestationLifecycle::Closed, "sign/closed".into())
+        .unwrap();
+    assert_eq!(retained.show().lifecycle, ManifestationLifecycle::Closed);
+}

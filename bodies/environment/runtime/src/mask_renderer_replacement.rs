@@ -9,6 +9,71 @@ pub struct PresentedOccurrence<'a> {
     request: RequestId,
 }
 
+#[cfg(target_has_atomic = "ptr")]
+impl<'a> PreparedPresentation<'a> {
+    /// Pin exactly the immutable context already borrowed by this preparation.
+    #[allow(clippy::result_large_err)]
+    pub fn retain_context(
+        self,
+        context: alloc::sync::Arc<f::PreparedMaskShowContext>,
+    ) -> Result<PreparedPresentation<'static>, (Self, alloc::sync::Arc<f::PreparedMaskShowContext>)>
+    {
+        let Self {
+            occurrence,
+            face,
+            packets,
+            request,
+        } = self;
+        match occurrence.retain_context(context) {
+            Ok(occurrence) => Ok(PreparedPresentation {
+                occurrence,
+                face,
+                packets,
+                request,
+            }),
+            Err((occurrence, context)) => Err((
+                Self {
+                    occurrence,
+                    face,
+                    packets,
+                    request,
+                },
+                context,
+            )),
+        }
+    }
+}
+
+#[cfg(target_has_atomic = "ptr")]
+impl<'a> PresentedOccurrence<'a> {
+    /// Retain the original immutable prepared context without copying the Show.
+    /// Exact pointer mismatch returns both affine inputs unchanged.
+    #[allow(clippy::result_large_err)]
+    pub fn retain_context(
+        self,
+        context: alloc::sync::Arc<f::PreparedMaskShowContext>,
+    ) -> Result<PresentedOccurrence<'static>, (Self, alloc::sync::Arc<f::PreparedMaskShowContext>)>
+    {
+        let Self {
+            occurrence,
+            request,
+        } = self;
+        match occurrence.retain_context(context) {
+            Ok(occurrence) => Ok(PresentedOccurrence {
+                occurrence,
+                request,
+            }),
+            Err((occurrence, context)) => Err((
+                Self {
+                    occurrence,
+                    request,
+                },
+                context,
+            )),
+        }
+    }
+}
+
 type Lease = (
     c::ActivePlayIdentity,
     c::BaseCapabilityTable,
