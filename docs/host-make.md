@@ -108,8 +108,10 @@ Linux speaker initialization can select `audio/speaker` with
 owns the fixed `/usr/bin/aplay` provider path and the existing 48 kHz stereo
 signed-16-bit direct-hardware profile. Checking source opens no PCM stream.
 Startup verifies the executable and exact observed endpoint before attaching
-one playback resource; playback rechecks the retained executable digest before
-opening a stream. Initialization grants no playback authority.
+one playback resource and non-authorizing Ready Base-provider provenance through
+the existing Core registry. Playback rechecks the retained executable digest
+before opening a stream. Metadata discovery has a five-second deadline and
+finite output limits. Initialization grants no playback authority.
 
 Existing retained speech settings are preserved. A checked speaker and retained
 physical speech playback are explicitly contradictory selections and refuse;

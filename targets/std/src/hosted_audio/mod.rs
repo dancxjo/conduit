@@ -5,6 +5,7 @@
 //! Plan can carry the playback operation.
 
 mod alsa_aplay;
+mod base_registration;
 mod discovery;
 mod executable_identity;
 #[cfg(test)]
