@@ -13,6 +13,9 @@ extern crate alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[cfg(feature = "local-appliance")]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_box_backing.rs"]
+mod native_box_backing;
+#[cfg(feature = "local-appliance")]
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_offer_order.rs"]
 mod native_offer_order;
 #[global_allocator]

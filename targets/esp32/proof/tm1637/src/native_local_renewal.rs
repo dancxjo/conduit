@@ -452,17 +452,7 @@ fn linked_wait(
 /// Reserve cold control storage before consuming any actual input owner.
 /// Allocation refusal is separate from semantic/native admission refusal.
 pub(super) fn reserve_box<T>() -> Result<Box<core::mem::MaybeUninit<T>>, &'static str> {
-    let layout = core::alloc::Layout::new::<T>();
-    if layout.size() == 0 {
-        return Ok(Box::<T>::new_uninit());
-    }
-    // SAFETY: exact nonzero layout, never read before Box::write initializes it.
-    let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<core::mem::MaybeUninit<T>>();
-    if raw.is_null() {
-        return Err("renewal-cold-capacity");
-    }
-    // SAFETY: exact-layout unique allocator result; Box owns its deallocation.
-    Ok(unsafe { Box::from_raw(raw) })
+    crate::native_box_backing::reserve_box().map_err(|_| "renewal-cold-capacity")
 }
 /// Move a cold transaction out while preserving its exact Box allocation for
 /// every retry/refusal. No reference to the old initialized value survives.

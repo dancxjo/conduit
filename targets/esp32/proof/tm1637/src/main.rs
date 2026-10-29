@@ -101,6 +101,8 @@ mod native_mask_wire;
 #[cfg(feature = "native-root")]
 mod native_network;
 #[cfg(feature = "native-root")]
+mod native_box_backing;
+#[cfg(feature = "native-root")]
 mod native_network_identity;
 #[cfg(feature = "native-root")]
 mod native_offer_order;
