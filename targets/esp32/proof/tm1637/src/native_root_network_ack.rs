@@ -129,6 +129,20 @@ fn complete(
         .map_err(|_| ());
     with_queue(|queue| queue.complete(key, result)).expect("Root-owned ACK queue");
 }
+// Capture at the actual policy gate: the queued ACK and HTTP preparation may
+// own backing that is already gone by the later appliance progress report.
+#[inline(never)]
+fn require_ack_workspace(stage: &'static str, required: usize) -> Result<(), &'static str> {
+    let available = esp_alloc::HEAP.free();
+    if available < required {
+        esp_println::println!(
+            "{{\"event\":\"network-custody-workspace-refused\",\"stage\":\"{}\",\"required_bytes\":{},\"free_bytes\":{}}}",
+            stage, required, available
+        );
+        return Err("network-ack-workspace");
+    }
+    Ok(())
+}
 impl NativeRoot {
     pub(crate) fn network_write_inflight(&self) -> bool {
         SLOT.lock(|cell| {
@@ -180,9 +194,10 @@ impl NativeRoot {
             if !matches!(owned.phase, Phase::Ready(_)) {
                 return Err("network-ack-export-not-ready");
             }
-            if esp_alloc::HEAP.free() < core::mem::size_of::<PendingJob>() + 2 * 480 + FREE_FLOOR {
-                return Err("network-ack-workspace");
-            }
+            require_ack_workspace(
+                "before-preparation",
+                core::mem::size_of::<PendingJob>() + 2 * 480 + FREE_FLOOR,
+            )?;
             let Phase::Ready(export) = core::mem::replace(&mut owned.phase, Phase::Failed) else {
                 unreachable!()
             };
@@ -206,9 +221,9 @@ impl NativeRoot {
             match started {
                 Start::Committed(receipt) => Ok(Some(receipt)),
                 Start::Writing(job) => {
-                    if esp_alloc::HEAP.free() < FREE_FLOOR {
+                    if let Err(reason) = require_ack_workspace("after-preparation", FREE_FLOOR) {
                         drop(job);
-                        return Err("network-ack-workspace");
+                        return Err(reason);
                     }
                     owned.phase = Phase::Writing(Writing {
                         owner: Some(job),
