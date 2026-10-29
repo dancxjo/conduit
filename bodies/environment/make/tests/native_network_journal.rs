@@ -137,6 +137,10 @@ fn retired(n: u64) -> RetiredNetworkControl {
 }
 #[test]
 fn transient_scratch_refusal_exact_retry_and_all_boots() {
+    assert_eq!(
+        journal::admission_status(),
+        Err("network-evidence-unavailable")
+    );
     let flash = Arc::new(Mutex::new(Flash {
         bytes: vec![255; wire::CAPACITY as usize],
         writes: 0,
@@ -148,6 +152,24 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert_eq!(opened, Ok(()));
     assert_eq!(allocation.requested_bytes, wire::MAXIMUM_BYTES);
     assert_eq!(allocation.retained_bytes(), 0);
+    let (status, allocation) = allocation_probe::observe(journal::admission_status);
+    assert_eq!(status, Ok(()));
+    assert_eq!(allocation.requested_bytes, 0);
+    assert_eq!(flash.lock().unwrap().writes, 0);
+    {
+        let inspection = journal::inspect().unwrap();
+        assert_eq!(
+            journal::admission_status(),
+            Err("network-evidence-inspecting")
+        );
+        assert!(
+            !journal::exhausted(),
+            "unused slots do not replace inspection custody"
+        );
+        drop(inspection);
+        assert_eq!(journal::admission_status(), Ok(()));
+        assert_eq!(flash.lock().unwrap().writes, 0);
+    }
     let first = retired(1);
     FREE.store(8192 + wire::MAXIMUM_BYTES - 1, Ordering::Relaxed);
     assert_eq!(journal::append(&first), Err("network-evidence-workspace"));
@@ -175,6 +197,10 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
         if n == 8 {
             assert_eq!(result, Err("network-evidence-commit"));
             assert!(journal::exhausted());
+            assert_eq!(
+                journal::admission_status(),
+                Err(journal::capacity_refusal())
+            );
             let writes = flash.lock().unwrap().writes;
             assert_eq!(journal::append(&record), Ok(()));
             assert_eq!(flash.lock().unwrap().writes, writes);
@@ -209,6 +235,10 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     let expected = flash.lock().unwrap().bytes.clone();
     let mut inspection = journal::inspect().unwrap();
     assert_eq!(inspection.committed_count(), 8);
+    assert_eq!(
+        journal::admission_status(),
+        Err("network-evidence-inspecting")
+    );
     assert!(journal::exhausted());
     assert!(journal::inspect().is_err());
     assert_eq!(
@@ -226,6 +256,11 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert!(inspection.read_chunk(0, &mut [0; 16]).is_err());
     let (_, allocation) = allocation_probe::observe(|| drop(inspection));
     assert_eq!(allocation.requested_bytes, 0);
+    assert_eq!(
+        journal::admission_status(),
+        Err(journal::capacity_refusal())
+    );
+    assert_eq!(flash.lock().unwrap().writes, writes);
     FREE.store(8191, Ordering::Relaxed);
     assert_eq!(
         journal::append(&retired(8)),
@@ -503,4 +538,19 @@ fn transient_scratch_refusal_exact_retry_and_all_boots() {
     assert!(f.bytes[wire::SLOT_BYTES as usize..]
         .iter()
         .all(|b| *b == 255));
+    let final_bytes = f.bytes.clone();
+    let final_writes = f.writes;
+    drop(f);
+    drop(journal::inspect().unwrap());
+    flash.lock().unwrap().fail_read = true;
+    assert_eq!(
+        journal::append(&retired(10)),
+        Err("network-evidence-retained-refusal")
+    );
+    assert_eq!(
+        journal::admission_status(),
+        Err("network-evidence-unavailable")
+    );
+    assert_eq!(flash.lock().unwrap().writes, final_writes);
+    assert_eq!(flash.lock().unwrap().bytes, final_bytes);
 }

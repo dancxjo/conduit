@@ -153,6 +153,21 @@ pub fn exhausted() -> bool {
         _ => false,
     })
 }
+/// Preflight mandatory retirement evidence before starting another attempt.
+/// This is a capacity observation, never permission to erase or overwrite.
+/// Root performs preparation synchronously; an inspecting owner must return
+/// before admission, even when its cached snapshot has unused slots.
+pub fn admission_status() -> Result<(), &'static str> {
+    STATE.lock(|current| match current.borrow().as_ref() {
+        Some(State::Ready(archive)) if archive.journal.remaining_slots() == 0 => {
+            Err(capacity_refusal())
+        }
+        Some(State::Frozen(frozen)) if frozen.remaining_slots() == 0 => Err(capacity_refusal()),
+        Some(State::Ready(_) | State::Frozen(_) | State::Reclaimed(_)) => Ok(()),
+        Some(State::Inspecting { .. }) => Err("network-evidence-inspecting"),
+        Some(State::Retained { .. }) | None => Err("network-evidence-unavailable"),
+    })
+}
 pub fn capacity_refusal() -> &'static str {
     // SAFETY: the immutable literal above is valid ASCII.
     unsafe { core::str::from_utf8_unchecked(&CAPACITY_REFUSAL) }
@@ -230,6 +245,7 @@ pub(crate) fn exercise_reclaimed_refresh(
     STATE.lock(|state| *state.borrow_mut() = Some(State::Reclaimed(frozen)));
     drop(owner);
     assert!(!exhausted());
+    assert_eq!(admission_status(), Ok(()));
     // The cached eight-record metadata cannot advertise the erased image.
     assert!(inspect().is_err());
     append(record).unwrap();
