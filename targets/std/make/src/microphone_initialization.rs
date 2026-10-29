@@ -9,7 +9,7 @@ pub const ALSA_MICROPHONE_BASE_KIND: &str = "audio/microphone";
 pub fn alsa_microphone_initialization_contract() -> BaseInitializationContract {
     let text = |key: &str, maximum| KindConfigurationField {
         key: key.into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text("".into()),
         rule: KindConfigurationRule::DataLabel { maximum },
     };
     let count = |key: &str, minimum, maximum| KindConfigurationField {
