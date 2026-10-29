@@ -5,6 +5,9 @@ ConduitOS's existing `NativeFaceScene` and typography raster. It does not read
 sensors, reconstruct an environmental Face from numbers, select a Body source,
 or grant membership. The same Face identity, revision, and producing basis are
 retained; viewport, pagination, and pixel encoding belong to this realization.
+A property-focused Look brings Info-subject typed values and status forward;
+quantity decoding, precision, and units reuse Face formatting. This creates no
+replacement Face. Larger unsupported layouts fall back to the ordinary scene.
 Actions are unavailable. It is not yet an installed Host-selected display Back
 or a hardware Show acknowledgement.
 

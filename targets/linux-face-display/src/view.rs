@@ -74,6 +74,29 @@ pub fn render(
     if pixels.len() != usize::from(width) * usize::from(height) {
         return Err("raster extent mismatch".into());
     }
+    if let Some((scene, page, pages)) = crate::property_mask::frame(&face, width, height, page_tick)
+    {
+        let mut target = Pixels {
+            format: DisplayFormat {
+                width: width.into(),
+                height: height.into(),
+                pitch: u32::from(width) * 4,
+                bits_per_pixel: 32,
+                red_shift: 16,
+                green_shift: 8,
+                blue_shift: 0,
+            },
+            values: pixels,
+        };
+        typography::render_scene_scaled(
+            &mut target,
+            &scene,
+            |_, command| command.text_role().into(),
+            100,
+        )
+        .map_err(|e| format!("Face property raster refused: {e:?}"))?;
+        return Ok((page, pages));
+    }
     let mut scene = NativeFaceScene::prepare_with_input(face, width, height, false)
         .map_err(|e| format!("Face scene refused: {e:?}"))?;
     scene

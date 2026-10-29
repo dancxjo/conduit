@@ -1,6 +1,7 @@
 //! Read-only Linux framebuffer realization of an exact caller-supplied Face.
 mod framebuffer;
 mod input;
+mod property_mask;
 mod view;
 use std::{
     path::PathBuf,
