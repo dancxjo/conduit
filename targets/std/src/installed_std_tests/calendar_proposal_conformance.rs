@@ -88,6 +88,7 @@ fn checked_calendar_request_prepares_then_emits_three_inert_candidates() {
     let mut sign_sequence = 0;
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            native_source: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,
@@ -179,6 +180,7 @@ fn stale_missing_and_over_profile_calendar_requests_refuse_before_play() {
         let mut sign_sequence = 0;
         let result = installed_std::run_fragment(
             installed_std::InstalledRunHost {
+                native_source: None,
                 #[cfg(target_os = "linux")]
                 selected_text_file: None,
                 advertisement: &advertisement,

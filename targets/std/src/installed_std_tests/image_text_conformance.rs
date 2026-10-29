@@ -111,6 +111,7 @@ fn authored_image_text_runs_through_planner_and_production_kernel() {
     let mut timer = RecordingTimer { waits: vec![] };
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
+            native_source: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,

@@ -33,3 +33,43 @@ upgrade; selected Source/grant/registry negative tests; retained provider and
 Pending interruption tests; exact environmental typed committed Face. Physical
 Green acquisition requires separate Root review. None of these fixture proofs
 claims installed Body admission or durable recorder commitment.
+
+## First installed native entrance: immediate CPU proof
+
+`NativeSourceDefinition` retains an independently selected Kind, executable
+artifact, one ready Base entry, current grant, checked configuration and finite
+request/result/resource bounds. `StdHost::install_immediate_native_source` is an
+unsafe native initialization boundary: the operator must establish the actual
+owner/definition correspondence and independent authorization. The callback and
+received Plan cannot mint a grant. Installation clones/prepares registry,
+advertisement and ledger transactionally while idle, then transfers the affine
+owner into a single retained slot. Refusal returns both owner and definition.
+Replacing that slot is refused until a real retirement path is supplied.
+
+The ordinary installed runner resolves support and storage budgeting against
+this retained definition, reserves through its actual resource ledger, binds the
+actual next ActivePlay, checks the current registry/provider generation and
+exact grant, and issues one scoped capability from independent retained truth.
+The shared selected-operation checker verifies exact Kind, numeric lowering,
+Host Call, configuration and limits. One BoundBaseOperation performs the sole
+authorize/complete lifecycle. An ordinary HostCallBack sends the result through
+the kernel Cord; only the existing post-commit Fore entrance can mint the opaque
+committed witness. The provider remains in the Host across child Plays.
+
+This first provider interface permits only immediate bounded CPU work: no IO,
+sleep, allocation, unwinding, pending worker or retained request borrows. Each
+prepared Play has one request/result slot and one operation. It is a proof of
+the real installed Source/authority/Cord/commit route, not admission for a USB
+sensor. A physical source still requires separately declared native worker stack,
+request/result/time backing, nonblocking polling, observed quiescence and
+cancellation/retirement. The existing retained SourceContinuity rules still
+apply on that owned physical session. A diagnostic response cannot establish
+MCU membership, Boot, acquisition freshness or recording authority.
+
+The environmental fixture uses the actual authored Source catalog, bare Empty
+input, canonical compact observation, current independent grant and exact
+initialized provider. The committed bytes retain producing Host/Boot/Play and
+Host-observed time alongside source counter and explicitly unauthenticated
+source-reported milliseconds. No per-reading unit/schema metadata or invented
+MCU Boot is added. A committed Fore witness by itself is not yet an installed
+Body or a durable environmental recorder.

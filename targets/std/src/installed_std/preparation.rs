@@ -9,8 +9,28 @@ pub(super) fn prepare_operations(
     lowered: &LoweredPlanFragment,
     values: &mut HostedValueStore,
     play: &conduit_core::ActivePlayIdentity,
+    retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
+    durable_body: Option<&conduit_body::BodyId>,
+) -> Result<[InstalledBack; MAX_NODES], String> {
+    prepare_operations_with_native(
+        fragment,
+        lowered,
+        values,
+        play,
+        retained,
+        durable_body,
+        None,
+    )
+}
+
+pub(super) fn prepare_operations_with_native(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    values: &mut HostedValueStore,
+    play: &conduit_core::ActivePlayIdentity,
     mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
     durable_body: Option<&conduit_body::BodyId>,
+    native_source: Option<(conduit_kernel::NodeId, u32)>,
 ) -> Result<[InstalledBack; MAX_NODES], String> {
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
@@ -47,7 +67,11 @@ pub(super) fn prepare_operations(
     // placement identity inside this exact partition, never by the global ID.
     let mut operations: Vec<_> = (0..MAX_NODES).map(|_| InstalledBack::inactive()).collect();
     for node in &lowered.nodes {
-        if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
+        if let Some((_, input_bytes)) = native_source.filter(|(id, _)| *id == node.node) {
+            operations[usize::from(node.node.0)] = InstalledBack::SelectedNativeSource(
+                conduit_kernel::scheduler::HostCallBack::new(input_bytes),
+            );
+        } else if let Some(state) = lowered.states.iter().find(|state| state.node == node.node) {
             if state.contract.retained.is_some() {
                 continue;
             }

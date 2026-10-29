@@ -30,7 +30,7 @@ mod external_fore_feeder;
 mod external_websocket;
 mod external_websocket_host;
 mod facade;
-mod factory;
+pub(crate) mod factory;
 mod final_normalized_pattern_back;
 mod flow_first_back;
 mod flow_gate_back;
@@ -296,6 +296,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         #[cfg(target_os = "linux")]
         selected_text_file,
         advertisement,
+        native_source,
         playback,
         midi_input,
         midi_output,
@@ -309,8 +310,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let lowered = preparation::lower_fragment_with_continuity(fragment, retained.is_some())?;
     let active_nodes = lowered.nodes.len();
     let active_cords = lowered.cords.len();
-    if !supports(fragment)
-        || active_nodes == 0
+    if !supports_with_native(
+        fragment,
+        native_source.as_ref().map(|(_, source)| &**source),
+    ) || active_nodes == 0
         || active_nodes > MAX_NODES
         || active_cords == 0
         || active_cords > MAX_CORDS
@@ -357,7 +360,15 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut maximum_value_bytes = TICK_ENCODED_LEN;
     let mut sign_items = 32_u16;
     for placement in &fragment.placements {
-        let budget = preparation::back_budget(placement)?;
+        let budget = if let Some(source) = native_source
+            .as_ref()
+            .map(|(_, source)| &**source)
+            .filter(|source| source.matches(placement))
+        {
+            source.budget()
+        } else {
+            preparation::back_budget(placement)?
+        };
         value_items = value_items
             .checked_add(budget.value_items)
             .ok_or_else(|| "installed value item budget overflow".to_string())?;
@@ -415,13 +426,22 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     if spoken_mask_session.is_some() && direct_spoken_mask_session.is_some() {
         return Err("one Play cannot prepare two spoken Mask semantic sessions".into());
     }
-    let drivers = preparation::prepare_operations(
+    let mut native_call = match native_source {
+        Some((registry, source)) => {
+            source.prepare(registry, advertisement, fragment, &lowered, &active_play)?
+        }
+        None => None,
+    };
+    let drivers = preparation::prepare_operations_with_native(
         fragment,
         &lowered,
         &mut values,
         &active_play,
         retained,
         durable_state.as_ref().map(|state| state.body),
+        native_call
+            .as_ref()
+            .map(|source| (source.node, source.input_bytes())),
     )?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
@@ -883,7 +903,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             let cancelled_operation = host_calls
                 .get(cancellation.node, cancellation.call)
                 .ok_or_else(|| "cancelled host request has no lowered identity".to_string())?;
-            if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
+            if native_call
+                .as_ref()
+                .is_some_and(|source| source.node == cancellation.node)
+            {
+                // Immediate native reads cannot leave asynchronous work in flight.
+            } else if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
                 let session = playback_sessions
                     .get_mut(usize::from(cancellation.node.0))
                     .and_then(Option::as_mut)
@@ -970,6 +995,37 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .get(request.node, request.call)
                 .ok_or_else(|| "host request has no lowered contract identity".to_string())?;
             let contract = &lowered_operation.contract_id;
+            if let Some(source) = native_call
+                .as_mut()
+                .filter(|source| source.node == request.node)
+            {
+                let encoded = source.read(request, input)?;
+                let value = scheduler
+                    .store_host_value(encoded)
+                    .map_err(|error| format!("store selected native Source value: {error:?}"))?;
+                host_calls.record(request)?;
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(
+                                    value,
+                                    lowered_operation.binding.maximum_output_bytes,
+                                )
+                                .map_err(|error| {
+                                    format!("bound selected native Source value: {error:?}")
+                                })?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|error| format!("complete selected native Source: {error:?}"))?;
+                continue;
+            }
+
             if matches!(
                 contract.as_str(),
                 conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
@@ -3708,4 +3764,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         })
         .count();
     retained_run::finish(report, scheduler, graceful_state_count)
+}
+
+pub(crate) fn supports_with_native(
+    fragment: &PlanFragment,
+    source: Option<&crate::selected_native_source::InitializedNativeSource>,
+) -> bool {
+    !fragment.placements.is_empty()
+        && fragment.placements.iter().all(|gear| {
+            source.is_some_and(|source| source.matches(gear))
+                || catalog::factory(&gear.implementation_id).is_some()
+                || gear.implementation_id.as_str()
+                    == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+                || gear.implementation_id.as_str()
+                    == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+        })
 }
