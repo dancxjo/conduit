@@ -14,6 +14,8 @@ use crate::{
 mod continuity;
 mod documents;
 mod invitation;
+mod storage;
+pub use storage::AdmissionStorageCompactionRefusal;
 
 use continuity::{ContinuityKeyRecord, PendingReturn};
 pub use continuity::{
