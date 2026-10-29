@@ -140,7 +140,9 @@ pub fn run_joined(
     let collector = admitted_collector(binding)?;
     crate::observed_history::create_durable_directory(directory)?;
     private_metadata(directory, true)?;
-    validate_peer(peer)?;
+    if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
+        return Err("recorder peer must be HOST:PORT".into());
+    }
     run_loop(
         collector,
         vec![peer],
@@ -268,8 +270,6 @@ use foreground::run_loop;
 mod tests {
     use super::*;
     include!("local_recorder/restart.rs");
-    #[path = "../local_recorder/projection_tests.rs"]
-    mod projection_tests;
     include!("local_recorder/recovery.rs");
     #[test]
     fn explicit_routes_are_finite_and_validated_without_resolving() {
@@ -423,3 +423,7 @@ mod tests {
         std::fs::remove_dir_all(directory).unwrap();
     }
 }
+
+#[cfg(test)]
+#[path = "local_recorder/projection_tests.rs"]
+mod projection_tests;

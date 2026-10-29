@@ -1,4 +1,5 @@
 //! Actual admitted binding, signed localhost collector and fsynced projection.
+use super::tests::canonical_admission;
 use super::*;
 use crate::observed_history::{retained::Projection, wire};
 use ed25519_dalek::{Signer, SigningKey};
