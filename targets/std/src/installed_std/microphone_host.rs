@@ -4,6 +4,7 @@ use conduit_kernel::{Failure, FailureCode, HostCallDisposition, HostCallOutcome}
 
 pub(super) fn execute(
     input: &[u8],
+    implementation_id: &str,
     adapter: Option<&mut AlsaMicrophoneAdapter>,
     cancelled: impl FnMut() -> bool,
 ) -> Result<Result<Vec<u8>, MicrophoneFailure>, String> {
@@ -12,6 +13,9 @@ pub(super) fn execute(
     }
     let adapter =
         adapter.ok_or_else(|| "microphone clip request has no initialized adapter".to_string())?;
+    if adapter.implementation_id() != implementation_id {
+        return Err("microphone implementation differs from the exact planned Back".into());
+    }
     Ok(adapter.capture_clip(cancelled))
 }
 

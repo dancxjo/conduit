@@ -13,6 +13,12 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     prepare,
 };
 
+pub(super) static CONVERTED_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION,
+    budget,
+    prepare,
+};
+
 pub(super) struct MicrophoneClipBack {
     pending: bool,
     emitted: bool,
@@ -73,12 +79,20 @@ const fn step_fail(code: FailureCode, detail: u16) -> StepOutcome {
 
 impl MicrophoneClipBack {}
 
-fn offer() -> CapabilityOffer {
-    conduit_std_offers::microphone_clip_offer()
+fn offer(implementation: &str) -> Result<CapabilityOffer, String> {
+    match implementation {
+        conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION => {
+            Ok(conduit_std_offers::microphone_clip_offer())
+        }
+        conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION => {
+            Ok(conduit_std_offers::converted_microphone_clip_offer())
+        }
+        _ => Err("unknown microphone implementation".into()),
+    }
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = offer();
+    let offer = offer(placement.implementation_id.as_str())?;
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
