@@ -415,8 +415,14 @@ impl<S> Drop for Esp32NetworkScanProvider<'_, '_, S> {
         if !matches!(self.phase, Phase::Prepared | Phase::Restored) {
             // Abandoned custody must not invoke an unproved SDK deinit. Active
             // OwnedScan has the same quarantine rule in its own Drop.
-            if let Some(Radio::Controller(controller)) = self.radio.take() {
-                core::mem::forget(controller);
+            match self.radio.take() {
+                Some(Radio::Controller(controller)) => core::mem::forget(controller),
+                Some(Radio::Scan(scan)) => match scan.try_into_controller() {
+                    // SDK quiescence alone is not AP/service restoration.
+                    Ok(controller) => core::mem::forget(controller),
+                    Err(scan) => drop(scan), // OwnedScan quarantines active SDK custody.
+                },
+                None => (),
             }
         }
     }

@@ -335,3 +335,27 @@ fn failed_service_ack_and_stale_ready_do_not_return_or_spend_a_third_command() {
         assert_eq!(s.controller_drops, 0);
     });
 }
+
+#[test]
+fn dropping_completed_scan_before_ap_restoration_keeps_radio_quarantined() {
+    reset();
+    let mut provider = prepared();
+    let mut output = [ScanObservation::EMPTY; 16];
+    SDK.with_borrow_mut(|s| {
+        s.terminal = Some(wifi::bounded_scan::Completion {
+            status: 0,
+            number: 30,
+            scan_id: 1,
+        })
+    });
+    {
+        let mut scan = core::pin::pin!(provider.scan(request(), &mut output));
+        assert!(matches!(poll(scan.as_mut()), Poll::Ready(Ok(_))));
+    }
+    drop(provider);
+    SDK.with_borrow(|s| {
+        assert_eq!(s.controller_drops, 0);
+        assert_eq!(s.commands, 1);
+        assert_eq!(s.ap_configurations, 0);
+    });
+}
