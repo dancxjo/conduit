@@ -50,6 +50,25 @@ pub struct PreparedNetworkKernel {
     pub kernel: NetworkControlKernel,
     pub roles: NetworkControlRoles,
 }
+impl PreparedNetworkKernel {
+    /// Retain original mandatory Signs after complete scheduler retirement.
+    /// Active work returns the identical Box. This retires no native provider,
+    /// commits no evidence and grants no replacement execution or erase rights.
+    #[inline(never)]
+    pub fn try_retire_signs(
+        self: alloc::boxed::Box<Self>,
+    ) -> Result<k::HostedSignLog, alloc::boxed::Box<Self>> {
+        if !self.kernel.can_retire() {
+            return Err(self);
+        }
+        let Self { kernel, .. } = *self;
+        let retired = kernel
+            .try_retire()
+            .unwrap_or_else(|_| unreachable!("exclusive terminal scheduler preflight"));
+        let k::scheduler::RetiredExecution { signs, .. } = retired;
+        Ok(signs)
+    }
+}
 /// Finite execution backing only. This does not contain Source, Plan, grants,
 /// initialized providers or permission to dispatch. Private fields guarantee
 /// the exact empty 128-entry Sign log and unique uninitialized kernel backing.

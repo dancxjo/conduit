@@ -95,6 +95,11 @@ struct RetiredNetworkControl {
     provider_generation: u64,
     configuration_revision: u64,
 }
+impl RetiredNetworkControl {
+    fn evidence(&self) -> &conduit_kernel::FixedSignLog<128> {
+        self.evidence.kernel.signs()
+    }
+}
 #[allow(dead_code)]
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_network_journal.rs"]
 pub(crate) mod journal;

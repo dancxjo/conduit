@@ -101,7 +101,7 @@ pub(super) fn append(retired: &RetiredNetworkControl) -> Result<(), &'static str
         let Some(State::Ready(archive)) = current.as_mut() else {
             unreachable!()
         };
-        let signs = retired.evidence.kernel.signs();
+        let signs = retired.evidence();
         wire::encode(
             wire::Scope {
                 host: retired.active.host_id.as_str(),

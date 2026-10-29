@@ -8,6 +8,8 @@ mod install_gate;
 #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
 #[path = "native_network_journal.rs"]
 pub mod journal;
+#[path = "native_play_retirement.rs"]
+mod retirement;
 #[path = "native_play_verified.rs"]
 mod verified;
 use crate::native_authority::{Operation, RootIssuer};
@@ -18,6 +20,7 @@ use conduit_network_join_call::{
     PreparedNetworkKernel,
 };
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
+pub use retirement::RetiredNetworkControl;
 type Source = crate::native_credentials::RootCredentialSource;
 type Provider = crate::native_network::Provider;
 const CAP: &str = "conduit/esp32/network-attachment-receipt@1";
@@ -86,9 +89,9 @@ impl NativePlay {
                 == Some(conduit_environment_http::service_control::ServiceState::StationReady)
     }
     pub fn station_address(&self) -> Option<[u8; 4]> {
-        self.join.as_ref().and_then(|join| {
-            join.observe_provider(|provider| provider.station_address())
-        })
+        self.join
+            .as_ref()
+            .and_then(|join| join.observe_provider(|provider| provider.station_address()))
     }
     pub fn attempted(&self) -> bool {
         self.attempted
@@ -440,135 +443,5 @@ const fn fail(code: k::FailureCode, detail: u16) -> k::Failure {
     k::Failure {
         code,
         detail: 2100 + detail,
-    }
-}
-
-/// Opaque returned native custody and original mandatory control evidence.
-/// A claimed Play ID cannot construct this retirement proof.
-#[must_use]
-pub struct RetiredNetworkControl {
-    active: c::ActivePlayIdentity,
-    provider: Option<Provider>,
-    source: Option<Source>,
-    evidence: alloc::boxed::Box<PreparedNetworkKernel>,
-    provider_generation: u64,
-    configuration_revision: u64,
-    committed: bool,
-}
-impl RetiredNetworkControl {
-    pub fn owners_recoverable(&self) -> bool {
-        self.provider.is_some()
-            && self
-                .source
-                .as_ref()
-                .is_some_and(|source| source.generation() < u64::MAX)
-    }
-    pub fn matches_active(&self, active: &c::ActivePlayIdentity) -> bool {
-        &self.active == active
-    }
-    pub fn active(&self) -> &c::ActivePlayIdentity {
-        &self.active
-    }
-    pub fn evidence_is_committed(&self) -> bool {
-        self.committed
-    }
-    #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]
-    pub fn commit_evidence(&mut self) -> Result<(), &'static str> {
-        if !self.committed {
-            journal::append(self)?;
-            self.committed = true;
-        }
-        Ok(())
-    }
-    pub fn evidence(&self) -> &k::HostedSignLog {
-        self.evidence.kernel.signs()
-    }
-    /// One actual transfer. Caller keeps this object's mandatory evidence until
-    /// its admitted persistence/export consumer has accepted it.
-    pub fn take_owners(&mut self) -> Option<(Provider, Source)> {
-        if !self.committed || self.provider.is_none() || self.source.is_none() {
-            return None;
-        }
-        Some((
-            self.provider.take().expect("checked provider"),
-            self.source.take().expect("checked source"),
-        ))
-    }
-}
-impl NativePlay {
-    /// Explicitly revoke the old selected scope, quiesce its kernel, and restore
-    /// AP services through the provider's original absolute cleanup deadline.
-    /// Failure keeps all actual owners and cleanup obligation in this Play.
-    pub async fn restore_for_retirement(&mut self) -> Result<(), &'static str> {
-        let prepared = self.prepared.as_mut().ok_or("network-retirement-kernel")?;
-        let source = self.source.as_mut().ok_or("network-retirement-source")?;
-        let join = self.join.as_mut().ok_or("network-retirement-provider")?;
-        self.receipt.fill(0);
-        self.receipt_len = 0;
-        self.expected.fill(0);
-        self.expected_len = 0;
-        prepared
-            .kernel
-            .cancel()
-            .map_err(|_| "network-retirement-cancel")?;
-        source
-            .revoke()
-            .map_err(|_| "network-retirement-source-revoke")?;
-        join.revoke(prepared.roles.join, k::HostCallId(0))
-            .map_err(|_| "network-retirement-join-revoke")?;
-        self.phase = "restoring-access-point";
-        match join.cleanup().await {
-            Ok(()) => {
-                self.phase = "access-point-restored";
-                Ok(())
-            }
-            Err(error) => {
-                self.cleanup_failure = Some(error);
-                self.phase = "cleanup-failed";
-                Err("network-retirement-cleanup")
-            }
-        }
-    }
-    /// All preflights precede any custody transfer. Fresh Play storage exists
-    /// only after both spent owners have returned and evidence has a new owner.
-    pub fn take_retired(&mut self) -> Result<RetiredNetworkControl, &'static str> {
-        if self.phase != "access-point-restored"
-            || self.active.is_none()
-            || self.prepared.is_none()
-            || !self
-                .source
-                .as_ref()
-                .is_some_and(|owner| owner.retirement_ready())
-            || !self
-                .join
-                .as_ref()
-                .is_some_and(|owner| owner.retirement_ready())
-        {
-            return Err("network-not-retirable");
-        }
-        let provider_generation = self
-            .join
-            .as_ref()
-            .expect("preflighted provider")
-            .inspection()
-            .scope
-            .base_provider_generation;
-        let configuration_revision = self.configuration_revision;
-        let provider = n::NetworkJoinHostCall::retire_retained(&mut self.join)
-            .map_err(|_| "network-retirement-provider")?;
-        let source = n::NetworkCredentialsHostCall::retire_retained(&mut self.source)
-            .expect("preflighted source retirement");
-        let evidence = self.prepared.take().expect("preflighted kernel");
-        let active = self.active.take().expect("preflighted scope");
-        *self = Self::new();
-        Ok(RetiredNetworkControl {
-            active,
-            provider: Some(provider),
-            source: Some(source),
-            evidence,
-            provider_generation,
-            configuration_revision,
-            committed: false,
-        })
     }
 }
