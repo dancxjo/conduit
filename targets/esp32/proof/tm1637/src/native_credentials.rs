@@ -181,21 +181,13 @@ pub fn prepare(
 }
 
 fn identity(host: &c::HostId, boot: &c::BootId, generation: u64) -> NetworkNativeIdentity {
-    NetworkNativeIdentity {
-        host: host.clone(),
-        boot: boot.clone(),
-        base: "base/esp32/private-network-input".into(),
-        instance: "instance/esp32/private-network-input".into(),
-        provider_generation: generation,
-        resource: "pool/esp32/private-network-input".into(),
-        resource_generation: c::ResourceGenerationId(alloc::format!(
-            "generation/private-network-input/{generation}"
-        )),
-        envelope: "envelope/esp32/private-network-input".into(),
-        artifact: "native/esp32-private-network-input-root@1".into(),
-        implementation: "esp32/private-network-input@1".into(),
-        base_implementation: "esp32/private-network-input-base@1".into(),
-    }
+    crate::native_network_identity::prepare(
+        crate::native_network_identity::Role::Credentials,
+        host,
+        boot,
+        generation,
+    )
+    .expect("initial Root credential identity backing")
 }
 
 /// Reissue readiness only for the actual returned private source, advancing its
@@ -211,6 +203,15 @@ pub fn reprepare(
     if host.as_str().is_empty() || boot.as_str().is_empty() {
         return Err(source);
     }
+    let identity = match crate::native_network_identity::prepare(
+        crate::native_network_identity::Role::Credentials,
+        host,
+        boot,
+        generation,
+    ) {
+        Ok(identity) => identity,
+        Err(()) => return Err(source),
+    };
     // This entrance is called only after actual provider/source return and
     // mandatory evidence/issuer retirement in finish_network_retirement.
     if let Some(owner) = source.owner.as_mut() {
@@ -226,10 +227,7 @@ pub fn reprepare(
     source.generation = generation;
     // SAFETY: source is the actual non-Clone reader returned after capability
     // revocation. Root retains its backing and separately admits fresh selection.
-    Ok(
-        unsafe { ReadyCredentialBase::new(identity(host, boot, generation), source) }
-            .expect("checked current identity"),
-    )
+    Ok(unsafe { ReadyCredentialBase::new(identity, source) }.expect("checked current identity"))
 }
 
 #[cfg(any(feature = "local-evidence-store", feature = "network-credential-store"))]

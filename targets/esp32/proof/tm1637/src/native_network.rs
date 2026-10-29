@@ -4,7 +4,7 @@
 pub(crate) mod recovery;
 use conduit_core as c;
 use conduit_esp32_network_switch::{Esp32ApStationSwitch, Esp32NetworkJoinProvider};
-use conduit_network_join_call::installation::{NetworkNativeIdentity, ReadyNetworkJoinBase};
+use conduit_network_join_call::installation::ReadyNetworkJoinBase;
 use embassy_time::Duration;
 
 type Adapter = Esp32ApStationSwitch<'static, 'static, crate::services::Owner>;
@@ -171,22 +171,14 @@ impl NativeNetwork {
             return Err(());
         }
         // Identity allocation precedes transferring any initialized owner.
-        let identity = NetworkNativeIdentity {
-            host: host.clone(),
-            boot: boot.clone(),
-            base: "base/esp32/wifi-station".into(),
-            instance: "instance/esp32/wifi-station".into(),
-            provider_generation: self.generation,
-            resource: RESOURCE.into(),
-            resource_generation: c::ResourceGenerationId(alloc::format!(
-                "generation/wifi-station/{}",
-                self.generation
-            )),
-            envelope: "envelope/esp32/wifi-station".into(),
-            artifact: "native/esp32-wifi-station-root@1".into(),
-            implementation: "esp32/wifi-station@1".into(),
-            base_implementation: "esp32/wifi-station-base@1".into(),
-        };
+        let identity = crate::native_network_identity::prepare(
+            crate::native_network_identity::Role::Station,
+            host,
+            boot,
+            self.generation,
+        )?;
+        let attachment =
+            crate::native_network_identity::GenerationText::attachment(self.generation)?;
         if self.adapter.is_none() {
             if self.radio.is_none() || self.services.is_none() || self.configuration.is_none() {
                 return Err(());
@@ -212,14 +204,13 @@ impl NativeNetwork {
         // reserves one attachment generation in this observed Boot and admits
         // the fixed native storage and separate attempt/cleanup durations.
         // The SDK configuration validator requires failure_retry_cnt == 0.
-        let attachment = alloc::format!("attachment/esp32/wifi-station/{}", self.generation);
         let provider = unsafe {
             Esp32NetworkJoinProvider::prepare(
                 &mut self.adapter,
                 Duration::from_secs(ATTEMPT_SECONDS),
                 Duration::from_secs(CLEANUP_SECONDS),
                 conduit_net::NetworkAttachmentInfo {
-                    attachment_id: &attachment,
+                    attachment_id: attachment.as_str(),
                     host_id: host.as_str(),
                     boot_id: boot.as_str(),
                     resource_pool_id: RESOURCE,
