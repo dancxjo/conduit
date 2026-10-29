@@ -3,6 +3,9 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_body_root.rs"]
 mod body;
+#[cfg(all(feature = "local-appliance", feature = "body-persistence", feature = "native-face-root"))]
+#[path = "native_face_export.rs"]
+pub(crate) mod face_export;
 #[cfg(feature = "display-physical-check")]
 #[path = "native_display_check.rs"]
 mod display_check;

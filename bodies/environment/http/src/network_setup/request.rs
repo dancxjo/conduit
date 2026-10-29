@@ -9,6 +9,7 @@ const REQUEST_BYTES: usize = 1024;
 const HEADER_BYTES: usize = REQUEST_BYTES;
 
 pub enum NetworkHttpRequest {
+    FaceExport(crate::face_export::Request),
     Page,
     NetworkSnapshot(crate::network_custody::Request),
     NetworkAck(alloc::vec::Vec<u8>),
@@ -147,6 +148,9 @@ fn parse(
     } else {
         None
     };
+    let face_export = if readings {
+        crate::face_export::parse(line).map_err(|_| E::Malformed)?
+    } else { None };
     let network_snapshot = if readings {
         crate::network_custody::parse(line).map_err(|_| E::Malformed)?
     } else {
@@ -220,6 +224,7 @@ fn parse(
         "POST /network HTTP/1.1" | "POST /network HTTP/1.0" => false,
         _ if body_join_post || observed_ack.is_some() || network_ack => false,
         _ if reading.is_some()
+            || face_export.is_some()
             || observed_offer.is_some()
             || network_snapshot.is_some()
             || history.is_some()
@@ -284,6 +289,9 @@ fn parse(
         return Err(E::Malformed);
     }
     if page {
+        if let Some(request) = face_export {
+            return Ok(Some(NetworkHttpRequest::FaceExport(request)));
+        }
         if let Some(request) = network_snapshot {
             return Ok(Some(NetworkHttpRequest::NetworkSnapshot(request)));
         }

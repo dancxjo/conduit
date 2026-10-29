@@ -81,13 +81,13 @@ impl Export {
         Reply::Offer(out)
     }
 }
-fn hex(out: &mut Vec<u8>, bytes: &[u8]) {
+pub(crate) fn hex(out: &mut Vec<u8>, bytes: &[u8]) {
     for b in bytes {
         out.push(b"0123456789abcdef"[(b >> 4) as usize]);
         out.push(b"0123456789abcdef"[(b & 15) as usize]);
     }
 }
-fn decimal(out: &mut Vec<u8>, mut value: u32) {
+pub(crate) fn decimal(out: &mut Vec<u8>, mut value: u32) {
     let mut bytes = [0; 10];
     let mut at = bytes.len();
     loop {

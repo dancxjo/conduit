@@ -62,6 +62,7 @@ pub enum ExchangeRefusal {
 }
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExchangeOutcome {
+    FaceExport,
     Reading,
     ReadingUnavailable,
     History,
@@ -160,6 +161,16 @@ pub async fn exchange_buffered_with_history<T: Read + Write>(
                 write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
                 Ok(ExchangeOutcome::ReadingUnavailable)
             }
+        }
+        (Some(NetworkHttpRequest::FaceExport(request)), route) => {
+            let reply = if route.as_ref().is_none_or(|route| route.reading_available) {
+                crate::face_export::dispatch(request)
+            } else { crate::face_export::Reply::Unavailable };
+            if !crate::face_export::render(reply, response) {
+                return Err(ExchangeRefusal::Submission(NetworkSetupRefusal::TooLarge));
+            }
+            write(io, response.as_bytes()).await?;
+            Ok(ExchangeOutcome::FaceExport)
         }
         (Some(NetworkHttpRequest::NetworkSnapshot(request)), route) => {
             let reply = if route.as_ref().is_none_or(|route| route.reading_available) {

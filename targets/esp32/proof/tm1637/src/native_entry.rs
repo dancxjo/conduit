@@ -188,6 +188,8 @@ async fn main(spawner: Spawner) {
                         #[cfg(feature = "body-persistence")]
                         {
                             root.advance_join(embassy_time::Instant::now().as_millis());
+                            #[cfg(feature = "native-face-root")]
+                            root.advance_face_export(embassy_time::Instant::now().as_millis());
                             root.advance_observed_offer();
                             let _ = await_outlined(
                                 invitation_bootstrap.poll(&mut root, &mut invitation_uart),

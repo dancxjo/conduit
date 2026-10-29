@@ -9,6 +9,7 @@ use critical_section::Mutex;
 mod mask;
 pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
 pub mod body_join;
+pub mod face_export;
 pub mod exchange;
 pub mod network_setup;
 pub mod observed_custody;

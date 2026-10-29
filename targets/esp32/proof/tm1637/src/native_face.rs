@@ -13,6 +13,13 @@ use static_cell::StaticCell;
 mod http;
 #[path = "native_face_reunion.rs"]
 mod reunion;
+#[cfg(feature = "body-persistence")]
+use crate::native_restart::payload::json;
+#[cfg(not(feature = "body-persistence"))]
+#[path = "native_restart_json.rs"]
+mod json;
+#[path = "native_face_stream.rs"]
+pub mod stream;
 pub use reunion::{Replacing, Returned, Returning};
 /// No replacement Play or history outbox is admitted by returning Face custody.
 #[allow(clippy::type_complexity)]
@@ -348,6 +355,30 @@ impl Reader {
     }
 }
 impl ReadLease {
+    /// Serialize only while this exact producer generation remains borrowed.
+    /// The caller still admits transport work and authenticates remote export.
+    pub fn export_snapshot(&self, now: u64) -> Result<stream::Snapshot, &'static str> {
+        self.with_current(now, |face, status| {
+            if !status.publisher_retained || status.refusal.is_some() {
+                return Err("face-export-unavailable");
+            }
+            stream::snapshot(face).map_err(|_| "face-export-refused")
+        })?
+    }
+    pub fn export_chunk(
+        &self,
+        now: u64,
+        expected: stream::Snapshot,
+        offset: u32,
+        output: &mut [u8; stream::CHUNK_BYTES],
+    ) -> Result<usize, &'static str> {
+        self.with_current(now, |face, status| {
+            if !status.publisher_retained || status.refusal.is_some() {
+                return Err("face-export-unavailable");
+            }
+            stream::chunk(face, expected, offset, output).map_err(|_| "face-export-refused")
+        })?
+    }
     /// Synchronous local access only; Root still admits the consuming Mask and
     /// its exact route/work. The borrowed Face cannot escape this callback.
     pub fn with_current<R>(
