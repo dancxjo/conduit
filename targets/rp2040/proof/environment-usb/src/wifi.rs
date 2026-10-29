@@ -1,10 +1,13 @@
 //! Volatile physical carrier only: no Body, Line, admission or execution grant.
-use core::{cell::RefCell, fmt::Write};
+use core::{
+    cell::{Cell, RefCell},
+    fmt::Write,
+};
 use embassy_executor::Spawner;
 use embassy_net::{Stack, StackResources};
 use embassy_rp::{peripherals::*, Peri};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
-use embassy_time::{with_timeout, Duration};
+use embassy_time::{with_timeout, Duration, Instant};
 use static_cell::StaticCell;
 #[path = "wifi_mdns.rs"]
 mod mdns;
@@ -17,6 +20,8 @@ mod radio;
 #[cfg(environment_dht11_tm1637)]
 #[path = "radio_environment.rs"]
 mod radio;
+#[path = "wifi_reconnect.rs"]
+mod reconnect;
 #[cfg(environment_dht11_tm1637)]
 pub(crate) use radio::RadioIrqs as CaptureDmaIrqs;
 #[path = "wifi_transport.rs"]
@@ -27,6 +32,8 @@ const MAX: usize = conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize;
 struct JoinRequest {
     bytes: [u8; MAX],
     length: usize,
+    token: u64,
+    deadline: Instant,
 }
 impl Drop for JoinRequest {
     fn drop(&mut self) {
@@ -35,7 +42,11 @@ impl Drop for JoinRequest {
 }
 enum Request {
     Join(JoinRequest),
-    Peer([u8; 4]),
+    Peer {
+        address: [u8; 4],
+        token: u64,
+        deadline: Instant,
+    },
     Http(transport::Transfer),
     Mdns(mdns::Observation),
 }
@@ -58,9 +69,13 @@ pub async fn select_peer(bytes: &[u8]) -> Result<(), &'static str> {
     }
 
     let address = bytes.try_into().map_err(|_| "peer-address-length")?;
-    RESULT.reset();
-    REQUEST.signal(Request::Peer(address));
-    with_timeout(Duration::from_secs(8), RESULT.wait())
+    let token = next_request()?;
+    REQUEST.signal(Request::Peer {
+        address,
+        token,
+        deadline: Instant::now() + Duration::from_secs(8),
+    });
+    with_timeout(Duration::from_secs(8), response(token))
         .await
         .map_err(|_| "peer-selection-timeout")?
 }
@@ -71,7 +86,28 @@ pub async fn mdns(cdc: &mut crate::Cdc, id: u32, bytes: &[u8]) -> Result<(), &'s
     mdns::receive(cdc, id, bytes).await
 }
 static REQUEST: Signal<CriticalSectionRawMutex, Request> = Signal::new();
-static RESULT: Signal<CriticalSectionRawMutex, Result<(), &'static str>> = Signal::new();
+static RESULT: Signal<CriticalSectionRawMutex, (u64, Result<(), &'static str>)> = Signal::new();
+static NEXT_REQUEST: critical_section::Mutex<Cell<u64>> =
+    critical_section::Mutex::new(Cell::new(0));
+fn next_request() -> Result<u64, &'static str> {
+    critical_section::with(|cs| {
+        let next = NEXT_REQUEST
+            .borrow(cs)
+            .get()
+            .checked_add(1)
+            .ok_or("radio-request-generation-exhausted")?;
+        NEXT_REQUEST.borrow(cs).set(next);
+        Ok(next)
+    })
+}
+async fn response(token: u64) -> Result<(), &'static str> {
+    loop {
+        let (received, result) = RESULT.wait().await;
+        if received == token {
+            return result;
+        }
+    }
+}
 #[derive(Clone, Copy)]
 struct Status {
     ready: bool,
@@ -130,11 +166,13 @@ pub async fn configure(encoded: &[u8]) -> Result<(), &'static str> {
     let mut request = JoinRequest {
         bytes: [0; MAX],
         length: encoded.len(),
+        token: next_request()?,
+        deadline: Instant::now() + Duration::from_secs(50),
     };
     request.bytes[..encoded.len()].copy_from_slice(encoded);
-    RESULT.reset();
+    let token = request.token;
     REQUEST.signal(Request::Join(request));
-    with_timeout(Duration::from_secs(50), RESULT.wait())
+    with_timeout(Duration::from_secs(50), response(token))
         .await
         .map_err(|_| "radio-request-timeout")?
 }
@@ -170,7 +208,12 @@ pub async fn run(
             match request {
                 Request::Http(transfer) => transport::unavailable(transfer).await,
                 Request::Mdns(request) => mdns::unavailable(request),
-                _ => RESULT.signal(Err("radio-initialization-failed")),
+                Request::Join(request) => {
+                    RESULT.signal((request.token, Err("radio-initialization-failed")))
+                }
+                Request::Peer { token, .. } => {
+                    RESULT.signal((token, Err("radio-initialization-failed")))
+                }
             }
         }
     };
@@ -187,33 +230,67 @@ pub async fn run(
     spawner.spawn(monitor(stack).unwrap());
     #[cfg(environment_bosch_tm1637)]
     spawner.spawn(crate::environment_http::run(stack).unwrap());
+    let mut retained: Option<JoinRequest> = None;
+    let mut reconnect = reconnect::Reconnect::default();
     loop {
+        if let Some(request) = retained.as_ref() {
+            let usable = transport::current(stack).is_some();
+            if reconnect.poll(
+                embassy_time::Instant::now().as_millis(),
+                usable,
+                stack.is_link_up(),
+            ) {
+                let result = match with_attachment(|a| a.invalidate()) {
+                    Ok(()) => join(&mut control, stack, &request.bytes[..request.length]).await,
+                    Err(e) => Err(e),
+                };
+                reconnect.completed(embassy_time::Instant::now().as_millis(), result.is_ok());
+                update(true, Some(stack), result.err());
+            }
+        }
         let request = match with_timeout(Duration::from_millis(250), REQUEST.wait()).await {
             Ok(r) => r,
             Err(_) => {
-                let old = critical_section::with(|cs| STATUS.borrow(cs).borrow().error);
-                update(true, Some(stack), old);
                 continue;
             }
         };
         match request {
             Request::Join(request) => {
+                // Never begin a credential change that cannot finish within its caller's budget.
+                if !reconnect::can_start(Instant::now().as_millis(), request.deadline.as_millis()) {
+                    RESULT.signal((request.token, Err("radio-request-expired")));
+                    continue;
+                }
+                let token = request.token;
+                // Stop using and wipe superseded credentials before another join.
+                drop(retained.take());
                 let retired = with_attachment(|a| a.invalidate());
                 let result = match retired {
                     Ok(()) => join(&mut control, stack, &request.bytes[..request.length]).await,
                     Err(e) => Err(e),
                 };
-                drop(request);
+                reconnect = reconnect::Reconnect::default();
+                reconnect.completed(embassy_time::Instant::now().as_millis(), result.is_ok());
+                // Replacement drops and wipes the previous fixed-capacity request.
+                retained = Some(request);
                 let _ = with_attachment(|a| a.observe(transport::current(stack)));
                 update(true, Some(stack), result.as_ref().err().copied());
-                RESULT.signal(result);
+                RESULT.signal((token, result));
             }
-            Request::Peer(address) => {
+            Request::Peer {
+                address,
+                token,
+                deadline,
+            } => {
+                if Instant::now() >= deadline {
+                    RESULT.signal((token, Err("peer-selection-timeout")));
+                    continue;
+                }
                 let result = with_attachment(|a| {
                     a.observe(transport::current(stack))?;
                     a.select(address)
                 });
-                RESULT.signal(result);
+                RESULT.signal((token, result));
             }
             Request::Mdns(request) => mdns::serve(stack, request).await,
             Request::Http(transfer) => {
@@ -256,7 +333,12 @@ async fn monitor(stack: Stack<'static>) -> ! {
     loop {
         let observed = with_attachment(|a| a.observe(transport::current(stack)));
         let old = critical_section::with(|cs| STATUS.borrow(cs).borrow().error);
-        update(observed.is_ok(), Some(stack), observed.err().or(old));
+        let error = if transport::current(stack).is_some() && reconnect::network_error(old) {
+            observed.err()
+        } else {
+            observed.err().or(old)
+        };
+        update(observed.is_ok(), Some(stack), error);
         embassy_time::Timer::after_millis(50).await;
     }
 }

@@ -40,8 +40,10 @@ HTTP forwarding preserves complete peer response bytes, waits for the matching
 DATA/DONE extent, enforces the existing 8 KiB request / 64 KiB response limits,
 and suppresses HTTP request/path logging. An interrupted or refused request
 returns a transport error and is **never replayed**. Only a later distinct HTTP
-request may reopen USB, reread the private profile, join and select again. All
-retained credential bytearrays are wiped whenever that session closes. Stop the
+request may reopen USB, reread the private profile, join and select again. The Python client
+wipes its retained credential bytearrays whenever that USB session closes. Firmware
+retains the selected credential in volatile RAM across USB disconnection for
+automatic carrier reconnect; replacement wipes it, and power loss discards it. Stop the
 process before using another tool on the same CDC device.
 
 The Python `observe_mdns()` API supports optional firmware command 10 only after
@@ -85,3 +87,24 @@ and continued sampling/display acknowledgment progression with no USB client.
 A protected RTL8188CUS bench AP rejected association and remains unqualified.
 Network credentials are still volatile; these observations do not establish
 automatic reconnect, power-cycle recovery or native Body membership.
+
+The shared carrier retains one fixed-capacity (167-byte encoded maximum) selected
+join request in volatile RAM and retries that same WPA2 network after link/address
+loss. Failed attempts wait 5, 10, 20, 40 and then 60 seconds between attempts;
+there is no scan, network ranking, NAT traversal or authority change. A station
+still associated without an address gets a 60-second DHCP grace period, and late
+DHCP completion cancels the pending retry and clears the carrier error. Each retry
+invalidates the previous attachment before joining; a superseding explicit request
+wipes the old retained credentials. The existing per-attempt leave/join/DHCP limits
+remain 5/25/15 seconds. Local sensor/display tasks remain independent. Timing tests
+and firmware compilation establish this implementation; physical outage/rejoin
+acceptance and restart-persistent credentials remain unproved.
+
+USB join/peer replies carry correlated, exhaustion-checked request tokens. A queued
+join starts only when its remaining caller deadline can cover all 45 seconds of
+existing join phases; otherwise it refuses before changing credentials. An expired
+peer selection also refuses before changing the attachment. A timed-out caller
+cannot accept a later operation's reply. Reconnect does not cancel an in-flight
+CYW43 operation; an explicit request arriving during one can therefore refuse and
+must be submitted again. Successful address recovery clears only network-phase
+errors, preserving attachment-capacity failures.
