@@ -5,7 +5,7 @@ fn contract() -> BaseInitializationContract {
         fields: vec![
             KindConfigurationField {
                 key: "endpoint".into(),
-                default_value: ConfigurationValue::Text(String::new()),
+                default_value: ConfigurationValue::Text("".into()),
                 rule: KindConfigurationRule::DataLabel { maximum: 64 },
             },
             KindConfigurationField {
