@@ -73,3 +73,35 @@ Host-observed time alongside source counter and explicitly unauthenticated
 source-reported milliseconds. No per-reading unit/schema metadata or invented
 MCU Boot is added. A committed Fore witness by itself is not yet an installed
 Body or a durable environmental recorder.
+
+## Retained one-slot native IO worker: CPU qualification
+
+`install_native_source_worker` stages the actual registry, advertisement and
+resource ledger, then reserves independently configured Base memory before
+allocating buffers or spawning. An affine reservation remains with the Base
+between child Plays. Children reserve only their existing Source session. The
+Linux native profile charges fixed input/result backing, an explicit control
+allowance and a stack-mapping ceiling; startup observes actual pthread stack and
+guard sizes and refuses an exceeded ceiling. This is not whole-process RAM
+accounting or a claim that requested stack size equals the OS mapping.
+
+One retained thread accepts one correlated request. Installed execution polls
+without blocking other Backs. Cancellation suppresses publication immediately,
+but completion and resource retirement wait for the actual native return. A
+late value is discarded. A provider that ignores cancellation holds cleanup and
+backing rather than acquiring a fictitious quiescence result. Base retirement
+joins the thread before releasing memory and returning the owner. Startup
+refusal returns the original owner; replacement remains refused while live.
+
+Adding the first Body-context capability between child Plays stages a new
+offer/ledger generation with identical Base and resource offers. The existing
+affine backing token and its reservation transfer together; the worker is not
+stopped, released or reinitialized. Any active child reservation refuses that
+refresh. Updating an already installed context does not change the offer.
+
+The owning environmental fixture proves timed kernel Back progress during a
+pending CPU provider, reuse across two child Plays, late-result suppression,
+stubborn-provider custody and insufficient independently offered memory. These
+tests use no USB. Physical acquisition, its retained continuity guard, ordinary
+environmental publication/Face installation and actual Body admission remain
+separate acceptance steps.

@@ -495,3 +495,6 @@ fn the_same_installed_source_contract_preserves_dht_unsupported_pressure() {
         ReadingField::Unsupported
     );
 }
+
+#[path="installed_environment_source/worker_tests.rs"]
+mod worker_tests;

@@ -851,11 +851,45 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let play_start_probe = crate::allocation_probe::begin();
     let mut accepted_stop = None;
     let terminal_disposition = loop {
+        if let Some(source) = native_call.as_mut() {
+            if control.stop_requested() {
+                source.cancel();
+            }
+            if let Some((request, encoded)) = source.poll()? {
+                let binding = host_calls
+                    .get(request.node, request.call)
+                    .ok_or("pending native Source lost its lowered contract")?;
+                let value = scheduler
+                    .store_host_value(encoded)
+                    .map_err(|e| format!("store pending native Source: {e:?}"))?;
+                let maximum = binding.binding.maximum_output_bytes;
+                host_calls.record(request)?;
+                scheduler
+                    .complete_host_call(
+                        request.node,
+                        request.request,
+                        HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
+                            output: Some(
+                                BoundedValueRef::new(value, maximum)
+                                    .map_err(|e| format!("bound pending native Source: {e:?}"))?,
+                            ),
+                            failure: None,
+                        },
+                    )
+                    .map_err(|e| format!("complete pending native Source: {e:?}"))?;
+            }
+        }
         for planned in lowered
             .fore_ports
             .iter()
             .filter(|port| port.direction == conduit_core::PortDirection::Output)
         {
+            // A cancelled kernel no longer offers egress. Native cleanup may
+            // span several polling turns while its actual IO owner quiesces.
+            if accepted_stop.is_some() {
+                break;
+            }
             while let Some((offer, committed)) = committed_fore.offer(&mut scheduler, planned)? {
                 let borrowed = committed.bytes();
                 let (delivery, adapter_delivery) =
@@ -889,6 +923,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
                 installed_model_work.cancel_all();
+                if let Some(source) = native_call.as_mut() {
+                    source.cancel();
+                }
                 scheduler
                     .cancel()
                     .map_err(|error| format!("cancel installed kernel: {error:?}"))?;
@@ -907,7 +944,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .as_ref()
                 .is_some_and(|source| source.node == cancellation.node)
             {
-                // Immediate native reads cannot leave asynchronous work in flight.
+                native_call
+                    .as_mut()
+                    .expect("matched native source")
+                    .cancel();
             } else if cancelled_operation.contract_id.as_str() == audio_play_back::HOST_CALL {
                 let session = playback_sessions
                     .get_mut(usize::from(cancellation.node.0))
@@ -984,6 +1024,14 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         installed_model_work.poll(&mut scheduler, &mut model_work_output, || {
             control.stop_requested()
         })?;
+        if accepted_stop.is_some()
+            && native_call
+                .as_ref()
+                .is_some_and(|source| source.is_pending())
+        {
+            std::thread::park_timeout(Duration::from_millis(1));
+            continue;
+        }
         while !control.stop_requested() {
             let Some(request) = scheduler.next_host_request() else {
                 break;
@@ -999,7 +1047,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .as_mut()
                 .filter(|source| source.node == request.node)
             {
-                let encoded = source.read(request, input)?;
+                let Some(encoded) = source.read(request, input)? else {
+                    continue;
+                };
                 let value = scheduler
                     .store_host_value(encoded)
                     .map_err(|error| format!("store selected native Source value: {error:?}"))?;
@@ -3482,7 +3532,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if completed_midi_input {
                     continue;
                 }
-                let completed_deadline = if installed_model_work.is_pending() {
+                let completed_deadline = if installed_model_work.is_pending()
+                    || native_call
+                        .as_ref()
+                        .is_some_and(|source| source.is_pending())
+                {
                     deadlines.complete_ready(&mut scheduler, timer)?
                 } else {
                     deadlines.complete_next(&mut scheduler, timer)?
@@ -3493,6 +3547,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if !deadlines.is_empty()
                     || pending_midi_input
                     || installed_model_work.is_pending()
+                    || native_call
+                        .as_ref()
+                        .is_some_and(|source| source.is_pending())
                     || keyboard_host.is_pending()
                     || body_conversation_context_host.is_pending()
                 {
