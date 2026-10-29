@@ -1617,6 +1617,7 @@ dependencies = [
  "conduit-time",
  "conduit-todo-face",
  "conduit-todo-plot",
+ "conduit-tongues",
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-make",
