@@ -47,6 +47,23 @@ impl<P: NetworkScanProvider> NativeScan<P> {
             evidence_seen: false,
         }
     }
+    /// Recover the same cold owner only before an irreversible Root reservation
+    /// or issued possession. A failed description/admission cannot strand the
+    /// restored AP; a selected/partially issued operation cannot use this exit.
+    pub(crate) fn take_unselected_ready(&mut self) -> Result<ReadyNetworkScanBase<P>, ()> {
+        if self.active.is_some()
+            || self.kernel.is_some()
+            || self.refused_issued.is_some()
+            || self.refused_bound.is_some()
+            || !matches!(self.owner, Some(Ownership::Ready(_)))
+        {
+            return Err(());
+        }
+        let Some(Ownership::Ready(ready)) = self.owner.take() else {
+            unreachable!()
+        };
+        Ok(ready)
+    }
     /// All backing exists before the admission callback can spend an attempt.
     /// Descriptions retire before issuance. Every terminal refusal retains the
     /// actual Ready owner and any irreversible Root-issued bearer in this slot.
