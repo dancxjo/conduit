@@ -26,6 +26,7 @@ pub(crate) enum ReleasePlatform {
     Browser,
     Linux,
     LinuxArmv6,
+    LinuxArmv6Minipitft,
     Windows,
     Macos,
 }
@@ -68,12 +69,19 @@ pub(crate) fn run(
         ReleasePlatform::Browser => build_browser(output, source_identity)?,
         ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
         ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
+        ReleasePlatform::LinuxArmv6Minipitft => {
+            return armv6::build_minipitft(output, source_identity);
+        }
         ReleasePlatform::Windows => build_windows(output, source_identity)?,
         ReleasePlatform::Macos => build_macos(output, source_identity)?,
     }
 
     if opts.json {
-        println!("{{\"schema\":\"conduit.release/host-bundle-set@1\",\"output\":{:?},\"source_identity\":{:?}}}", output.display().to_string(), source_identity);
+        println!(
+            "{{\"schema\":\"conduit.release/host-bundle-set@1\",\"output\":{:?},\"source_identity\":{:?}}}",
+            output.display().to_string(),
+            source_identity
+        );
     } else if !opts.quiet {
         println!(
             "SEALED existing-computer Host releases in {}",

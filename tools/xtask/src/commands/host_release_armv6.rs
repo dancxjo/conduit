@@ -88,6 +88,55 @@ pub(super) fn build(
     )
 }
 
+/// Cross-compile the checked display diagnostic; this is not a sealed Host release.
+pub(super) fn build_minipitft(
+    output: &Path,
+    source_identity: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let command = build_command();
+    // Replace only the product selection; retain the exact ARM1176 toolchain.
+    let args = [
+        format!("+{TOOLCHAIN}"),
+        "build".into(),
+        "--locked".into(),
+        "--release".into(),
+        "-p".into(),
+        "conduitos".into(),
+        "--bin".into(),
+        "conduit-minipitft-linux".into(),
+        "--features".into(),
+        "linux-minipitft".into(),
+        "--target".into(),
+        TARGET.into(),
+    ];
+    let mut diagnostic = Command::new(command.get_program());
+    diagnostic.args(args);
+    for (key, value) in command.get_envs() {
+        if let Some(value) = value {
+            diagnostic.env(key, value);
+        } else {
+            diagnostic.env_remove(key);
+        }
+    }
+    require_success(
+        &mut diagnostic,
+        "compile ARM1176 Linux Mini PiTFT diagnostic",
+    )?;
+    fs::create_dir_all(output)?;
+    copy(
+        cargo_release_artifact(Some(TARGET), "conduit-minipitft-linux"),
+        &output.join("conduit-minipitft-linux"),
+    )?;
+    fs::write(
+        output.join("minipitft-build.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "source_identity": source_identity, "target": TARGET, "cpu": "arm1176jzf-s",
+            "toolchain_image": IMAGE, "diagnostic_only": true, "show_acknowledgement": false
+        }))?,
+    )?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

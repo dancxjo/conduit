@@ -1,0 +1,10 @@
+[Unit]
+Description=Conduit checked Mini PiTFT Linux diagnostic
+
+[Service]
+Type=simple
+ExecStart=%h/.local/lib/conduit-minipitft/conduit-minipitft-linux @HOST_ID@
+TimeoutStopSec=240
+
+[Install]
+WantedBy=default.target

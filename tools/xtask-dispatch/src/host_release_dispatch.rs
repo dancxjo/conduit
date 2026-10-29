@@ -21,6 +21,9 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
                 platform = Some(match values.next().map(String::as_str) {
                     Some("browser") => host_release::ReleasePlatform::Browser,
                     Some("linux") => host_release::ReleasePlatform::Linux,
+                    Some("linux-armv6-minipitft") => {
+                        host_release::ReleasePlatform::LinuxArmv6Minipitft
+                    }
                     Some("linux-armv6") => host_release::ReleasePlatform::LinuxArmv6,
                     Some("windows") => host_release::ReleasePlatform::Windows,
                     Some("macos") => host_release::ReleasePlatform::Macos,

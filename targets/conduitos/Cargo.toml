@@ -180,6 +180,7 @@ bench = false
 required-features = ["loongarch64-a4"]
 
 [features]
+linux-minipitft = ["native-face-raster"]
 default = []
 # Compile pure ConduitOS description and planning surfaces for hosted repository
 # tooling without enabling any target's runtime or physical device support.
@@ -322,3 +323,10 @@ required-features = ["native-compositor"]
 name = "canonical_root_returns"
 path = "tests/canonical_root_returns.rs"
 required-features = ["native-compositor"]
+
+[[bin]]
+name = "conduit-minipitft-linux"
+path = "src/bin/linux_minipitft/main.rs"
+test = false
+bench = false
+required-features = ["linux-minipitft"]
