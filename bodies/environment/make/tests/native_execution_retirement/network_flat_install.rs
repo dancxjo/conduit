@@ -829,3 +829,6 @@ mod prebacked_phased;
 
 #[path = "network_planner_capacity.rs"]
 mod planner_capacity;
+
+#[path = "network_play_failures.rs"]
+mod installer_capacity;
