@@ -108,7 +108,13 @@ impl NativePlay {
                             conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
                             |scope| {
                                 refusal_stage = 105;
-                                prepare_linked_selection(owners, scope, issuer, pins)
+                                prepare_linked_selection(
+                                    owners,
+                                    scope,
+                                    issuer,
+                                    pins,
+                                    &mut refusal_stage,
+                                )
                             },
                         )
                         .map_err(|_| ())
@@ -478,6 +484,7 @@ fn prepare_linked_selection<'owner, 'root>(
     scope: &conduit_planner::borrowed_local::SourcePlannedLocalScope<'_>,
     issuer: &'root mut RootIssuer,
     pins: (&str, &str, &str),
+    stage: &mut u16,
 ) -> Result<
     (
         n::PreparedNetworkPairSelection<'owner, Provider, Source>,
@@ -486,11 +493,14 @@ fn prepare_linked_selection<'owner, 'root>(
     ),
     (),
 > {
+    *stage = 1051;
     let tables = n::NetworkControlFlatDirectTables::prepare(scope.verified()).map_err(|_| ())?;
+    *stage = 1052;
     let roles = n::PreparedNetworkKernelParts::check_flat_direct(&tables).map_err(|_| ())?;
     let view = scope.verified().view();
     // The pair checks Credentials and Join only. Keep this
     // independent actual attachment implementation preflight.
+    *stage = 1053;
     let sign = view
         .placements
         .iter()
@@ -506,6 +516,7 @@ fn prepare_linked_selection<'owner, 'root>(
     {
         return Err(());
     }
+    *stage = 1054;
     let credential = view
         .placements
         .iter()
@@ -518,13 +529,18 @@ fn prepare_linked_selection<'owner, 'root>(
         .nth(usize::from(roles.join.0))
         .ok_or(())?
         .placement_id;
+    *stage = 1055;
     let root = issuer.prepare_linked_network(scope, pins)?;
+    *stage = 1056;
     let credential_scope =
         root.expected_scope(owners.credential_identity(), Operation::Credentials)?;
+    *stage = 1057;
     let join_scope = root.expected_scope(owners.join_identity(), Operation::Join)?;
+    *stage = 1058;
     let selected = owners
         .prepare_flat_selection(credential_scope, join_scope, &tables, credential, join)
         .map_err(|_| ())?;
+    *stage = 1059;
     let parts = n::PreparedNetworkKernelParts::from_flat_direct(tables).map_err(|_| ())?;
     Ok((selected, parts, root))
 }
@@ -706,7 +722,9 @@ mod backing_tests {
 }
 
 // Phased stages: 100 entry; 101/102 grants; 103 advertisement; 104 planner;
-// 105 selection; 110 claim memory; 111/112 issuer memory; 113 reservation memory;
+// 105 selection entry; 1051 tables; 1052 roles; 1053 attachment; 1054 placements;
+// 1055 Root preparation; 1056/1057 expected credential/Join scopes;
+// 1058 pair selection; 1059 numeric parts; 110 claim memory; 111/112 issuer memory; 113 reservation memory;
 // 114 kernel/Sign backing; 115 admission callback; 120 actual Root reservation;
 // 121/122 credential issue/check; 123/124 Join issue/check; 125 materialization.
 // Scalar diagnostics only; no payload, authority or retained execution state.

@@ -640,6 +640,10 @@ fn phased_preparation_refuses_changed_source_root_and_owner_boot_before_admissio
                 }
             )
             .is_err());
+        assert_eq!(
+            flat::phased_refusal(),
+            Some(([1055, 101, 102][mutation], false, false))
+        );
         assert!(!admitted.get() && !play.attempted);
         assert!(play.active.is_none() && play.flat_refusal.is_empty());
         assert!(source.is_some() && join.is_some());
