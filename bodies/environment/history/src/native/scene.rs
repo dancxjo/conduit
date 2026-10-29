@@ -148,7 +148,11 @@ impl ChartGeometry<'_> {
                 y - 10,
                 (layout.left - 28) as u16,
                 24,
-                &decimal(value),
+                &if (temperature.max - temperature.min) / 2 >= 1000 && value % 1000 == 0 {
+                    format!("{}", value / 1000)
+                } else {
+                    decimal(value)
+                },
                 Role::Label,
                 Paint::Muted,
             )?;

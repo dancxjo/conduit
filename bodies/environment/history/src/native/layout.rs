@@ -50,18 +50,33 @@ impl NiceScale {
         } else {
             (i128::from(min), i128::from(max))
         };
-        let desired = ((max - min) + 1) / 2;
+        // Labels show tenths, so the step must never imply finer precision.
+        let desired = (((max - min) + 1) / 2).max(100);
         let mut power = 1i128;
         while power * 10 < desired {
             power *= 10;
         }
-        let step = [1, 2, 5, 10]
+        let mut step = [1, 2, 5, 10]
             .into_iter()
             .map(|n| n * power)
             .find(|s| *s >= desired)
             .ok_or(GraphicsError::InvalidGeometry)?;
-        let lower = min.div_euclid(step) * step;
-        let upper = -(-max).div_euclid(step) * step;
+        let (lower, upper) = loop {
+            let lower = min.div_euclid(step) * step;
+            let upper = lower + 2 * step;
+            if upper >= max {
+                break (lower, upper);
+            }
+            let mut next_power = 1i128;
+            while next_power * 10 <= step {
+                next_power *= 10;
+            }
+            step = [1, 2, 5, 10]
+                .into_iter()
+                .map(|n| n * next_power)
+                .find(|s| *s > step)
+                .ok_or(GraphicsError::InvalidGeometry)?;
+        };
         Ok(Self {
             min: i64::try_from(lower).map_err(|_| GraphicsError::InvalidGeometry)?,
             max: i64::try_from(upper).map_err(|_| GraphicsError::InvalidGeometry)?,
@@ -104,6 +119,13 @@ mod tests {
         assert_eq!(
             (scale.min, scale.midpoint(), scale.max),
             (64000, 64500, 65000)
+        );
+        let flat = NiceScale::from_values(64760, 64760).unwrap();
+        assert_eq!((flat.min, flat.midpoint(), flat.max), (64000, 65000, 66000));
+        let near_zero = NiceScale::from_values(-1, 1).unwrap();
+        assert_eq!(
+            (near_zero.min, near_zero.midpoint(), near_zero.max),
+            (-100, 0, 100)
         );
         assert_eq!(decimal(-1), "0.0");
         assert_eq!(decimal(-40550), "-40.6");

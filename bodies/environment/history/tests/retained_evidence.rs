@@ -125,6 +125,13 @@ fn nice_fahrenheit_axes_and_worst_fragmentation_stay_within_48_commands() {
             "missing {tick}"
         );
     }
+    let flat = RetainedEvidenceGraph::prepare(&make(1, 182), 1, 0).unwrap();
+    let flat_scene = flat
+        .native_scene_in_unit_at_size(Unit::Fahrenheit, 1024, 564)
+        .unwrap();
+    for tick in ["64", "65", "66"] {
+        assert!(flat_scene.commands().iter().any(|c| c.payload() == tick));
+    }
     for value in [0, -403, 645] {
         let graph = RetainedEvidenceGraph::prepare(&make(1, value), 1, 0).unwrap();
         let scene = graph
