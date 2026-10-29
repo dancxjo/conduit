@@ -75,42 +75,6 @@ impl crate::StdHost {
         Ok(())
     }
 
-    pub fn attach_whisper_clip_recognizer(
-        &mut self,
-        adapter: crate::hosted_speech_recognition::WhisperSpeechAdapter,
-    ) -> Result<(), String> {
-        if self.speech_recognition.is_some() {
-            return Err("std Host already has an initialized speech recognizer".into());
-        }
-        if adapter.limits().maximum_audio_bytes < conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
-            || adapter.limits().maximum_text_bytes
-                < conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16
-        {
-            return Err(
-                "initialized Whisper adapter does not satisfy its offered clip profile".into(),
-            );
-        }
-        let mut advertisement = self.advertisement.clone();
-        advertisement.resources.push(conduit_core::resource_offer(
-            "std/whisper-process",
-            conduit_std_offers::WHISPER_PROCESS_RESOURCE_CLASS,
-            1,
-        ));
-        advertisement.capabilities.push(adapter.clip_offer());
-        advertisement.resources.sort();
-        advertisement.capabilities.sort_by(|left, right| {
-            left.capability_id
-                .as_str()
-                .cmp(right.capability_id.as_str())
-        });
-        let kernel_resources =
-            crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-        self.advertisement = advertisement;
-        self.speech_recognition = Some(adapter);
-        self.kernel_resources = kernel_resources;
-        Ok(())
-    }
-
     pub fn microphone_authority_grant(
         &self,
         grant_id: &str,

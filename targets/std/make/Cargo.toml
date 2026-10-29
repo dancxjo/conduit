@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 conduit-host-make = { path = "../../../make/host" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
-conduit-std-offers = { path = "../offers" }
+conduit-std-offers = { path = "../offers", features = ["speech"] }
 sha2 = "0.10"
