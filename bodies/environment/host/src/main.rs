@@ -54,6 +54,13 @@ fn main() -> Result<()> {
         if args.len()!=5 { return Err("expected --publish-face PRIVATE_BINDING HOST:PORT PRIVATE_FACE_FILE".into()); }
         return face_export_client::run(std::path::Path::new(&args[2]),&args[3],std::path::Path::new(&args[4]),args[1]=="--publish-face-once");
     }
+    if args.get(1).is_some_and(|a| a == "--retain-network-snapshot") {
+        if args.len() != 6 {
+            return Err("expected --retain-network-snapshot BINDING PEER PRIVATE_RUN PRODUCER_BOOT".into());
+        }
+        return network_custody_client::resume::run(
+            std::path::Path::new(&args[2]), &args[3], std::path::Path::new(&args[4]), &args[5]);
+    }
     if args.get(1).is_some_and(|a| a == "--ack-network-snapshot") {
         if args.len() != 9 {
             return Err("expected --ack-network-snapshot BINDING CONTINUITY_PRIVATE PEER PRIVATE_STORE OFFER_JSON SNAPSHOT_BIN PRODUCER_BOOT".into());
