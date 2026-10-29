@@ -64,10 +64,25 @@ impl RetainedEvidenceGraph {
         self.native_scene_in_unit(Unit::Celsius)
     }
     pub fn native_scene_in_unit(&self, unit: Unit) -> Result<GraphicsScene, GraphicsError> {
+        self.native_scene_in_unit_at_size(unit, 640, 360)
+    }
+    /// Prepare at the actual content viewport size; no pixel scaling is required.
+    pub fn native_scene_in_unit_at_size(
+        &self,
+        unit: Unit,
+        width: u16,
+        height: u16,
+    ) -> Result<GraphicsScene, GraphicsError> {
         ChartGeometry {
             samples: &self.samples,
         }
-        .native_scene(u64::from(self.outside), "RETAINED HISTORY", unit)
+        .native_scene_at_size(
+            u64::from(self.outside),
+            "RETAINED HISTORY",
+            unit,
+            width,
+            height,
+        )
     }
     pub fn samples(&self) -> &[GraphSample] {
         &self.samples

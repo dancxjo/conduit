@@ -44,12 +44,18 @@ fn hex(text: &str, maximum: usize) -> Result<Vec<u8>, String> {
 pub struct HistoryInput {
     accepted: Option<(Vec<u8>, conduit_face::GraphicsScene, String)>,
     preferred: Option<conduit_core::Unit>,
+    size: (u16, u16),
 }
 impl HistoryInput {
+    #[cfg(test)]
     pub fn new(preferred: Option<conduit_core::Unit>) -> Self {
+        Self::new_at_size(preferred, 640, 360)
+    }
+    pub fn new_at_size(preferred: Option<conduit_core::Unit>, width: u16, height: u16) -> Self {
         Self {
             accepted: None,
             preferred,
+            size: (width, height),
         }
     }
     pub fn scene(&self) -> Option<&conduit_face::GraphicsScene> {
@@ -82,7 +88,7 @@ impl HistoryInput {
         while label.len() > 112 {
             label.pop();
         }
-        let prepared = validate(document, self.preferred)?;
+        let prepared = validate_at_size(document, self.preferred, self.size)?;
         self.accepted = Some((bytes, prepared, label));
         Ok(true)
     }
@@ -110,9 +116,17 @@ fn read_bytes(path: &Path) -> Result<Vec<u8>, String> {
     }
     Ok(bytes)
 }
+#[cfg(test)]
 fn validate(
     document: Document,
     preferred: Option<conduit_core::Unit>,
+) -> Result<conduit_face::GraphicsScene, String> {
+    validate_at_size(document, preferred, (640, 360))
+}
+fn validate_at_size(
+    document: Document,
+    preferred: Option<conduit_core::Unit>,
+    size: (u16, u16),
 ) -> Result<conduit_face::GraphicsScene, String> {
     if document.schema != "conduit.environment/retained-observation-series@1"
         || document.custody != "retained-signed-evidence"
@@ -156,7 +170,11 @@ fn validate(
     )
     .map_err(|e| format!("history records: {e:?}"))?;
     graph
-        .native_scene_in_unit(preferred.unwrap_or(conduit_core::Unit::Celsius))
+        .native_scene_in_unit_at_size(
+            preferred.unwrap_or(conduit_core::Unit::Celsius),
+            size.0,
+            size.1,
+        )
         .map_err(|e| format!("history scene: {e:?}"))
 }
 
@@ -252,7 +270,8 @@ mod private_preview {
             std::env::var_os("CONDUIT_PRIVATE_HISTORY_PREVIEW").expect("private history input");
         let output = std::env::var_os("CONDUIT_PRIVATE_HISTORY_PREVIEW_PPM")
             .expect("private preview output");
-        let mut history = super::HistoryInput::new(Some(conduit_core::Unit::Fahrenheit));
+        let mut history =
+            super::HistoryInput::new_at_size(Some(conduit_core::Unit::Fahrenheit), 1024, 564);
         assert!(history.refresh(std::path::Path::new(&input)).unwrap());
         let (width, height) = (1024u16, 600u16);
         let mut pixels = vec![0; usize::from(width) * usize::from(height)];
