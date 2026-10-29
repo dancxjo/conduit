@@ -71,10 +71,9 @@ impl<const PORTS: usize> StepBack<PORTS> for LocalModelBack {
                     io.consume_host_completion()
                         .expect("observed local-model stream completion");
                     self.pending = None;
-                    if let Some(value) = self.input.take() {
-                        io.discard(value)
-                            .expect("finished local-model stream input");
-                    }
+                    // The final Host Call still owns the retained request.
+                    // Clearing Back retention lets completion release it once.
+                    self.input = None;
                     self.stream_complete = true;
                     return StepOutcome::Complete;
                 }
@@ -273,7 +272,7 @@ mod tests {
     }
 
     #[test]
-    fn streaming_operation_pulls_one_chunk_only_after_prior_delivery() {
+    fn streaming_operation_retains_request_until_final_completion() {
         let mut operation = LocalModelBack {
             maximum_input_bytes: 64,
             pending: None,
@@ -339,6 +338,12 @@ mod tests {
             StepOutcome::Complete
         );
         assert!(io.test_host_completion_consumed());
-        assert!(io.test_discards().contains(&Some(input)));
+        // Completion owns this request; an explicit discard would release it twice.
+        assert!(!io.test_discards().contains(&Some(input)));
+        assert!(!StepBack::<1>::retains_host_call_input(
+            &operation,
+            RequestId(1),
+            input
+        ));
     }
 }
