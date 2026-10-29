@@ -133,6 +133,7 @@ fn incremental_pending_bridge_custody_cancellation_and_actual_adoption() {
     );
     assert!(with_store(|_| Ok(())).is_err());
     let mut access = Access { fail: false };
+    let validations = payload::network::wire::validation_passes();
     loop {
         if job.needs_chunk() {
             job.prepare_chunk(&owner).unwrap();
@@ -142,6 +143,11 @@ fn incremental_pending_bridge_custody_cancellation_and_actual_adoption() {
         }
     }
     let committed = job.finish(&owner).unwrap();
+    assert_eq!(
+        payload::network::wire::validation_passes(),
+        validations,
+        "all chunk and finish recipes reuse authenticated transition signatures"
+    );
     assert_eq!(committed.generation(), 2);
     drop(job);
     let store = remove();
@@ -191,4 +197,110 @@ fn incremental_pending_bridge_custody_cancellation_and_actual_adoption() {
         assert_eq!(store.journal.generation(), Some(1));
         assert!(store.custody.as_ref().unwrap().network.is_none());
     }
+}
+
+#[test]
+#[ignore = "owns Boot-global STORE; run this exact test alone in a fresh process"]
+fn authenticated_transition_replay_rejects_changed_inputs_without_crypto_or_effects() {
+    let (owner, boot, root, cursor) = setup();
+    let before = payload::network::wire::validation_passes();
+    let job =
+        CheckpointJob::initialize(take_store().unwrap(), &owner, &boot, &root, cursor).unwrap();
+    assert!(
+        payload::network::wire::validation_passes() > before,
+        "raw preparation authenticates before minting a reusable witness"
+    );
+    let store = job.lease.0.as_ref().unwrap();
+    let previous = store.custody.as_ref().unwrap();
+    let cursor = job.cursor.as_ref().unwrap();
+    let validations = payload::network::wire::validation_passes();
+    let plain = payload::rewrite::PreparedRewrite::prepare_framed_network(
+        previous.proof.as_ref().unwrap(),
+        &previous.source,
+        owner.evidence(),
+        &[],
+        store.admissions.as_ref().unwrap(),
+        &previous.summary,
+        previous.span,
+        previous.prefix.as_ref(),
+        previous.local_count,
+        &root,
+        &previous.layouts,
+        previous.network.as_ref(),
+    )
+    .unwrap();
+    assert!(
+        plain.authenticated_network_transition().is_err(),
+        "ordinary source/receipt proof cannot mint transition authentication"
+    );
+    drop(plain);
+    let replay = |root: &[u8; 32], next: &payload::network::Cursor| {
+        prepare_cached_candidate(
+            &job.transition,
+            previous,
+            &owner,
+            store.admissions.as_ref(),
+            root,
+            next,
+        )
+        .map(|_| ())
+    };
+    for _ in 0..3 {
+        assert!(replay(&root, cursor).is_ok());
+    }
+    assert!(replay(&[99; 32], cursor).is_err());
+    for at in 0..480 {
+        let mut changed = *cursor.bytes();
+        changed[at] ^= 1;
+        let changed = payload::network::Cursor::decode(changed).unwrap();
+        assert!(replay(&root, &changed).is_err(), "cursor byte {at}");
+    }
+    let mut other = Checkpoint::open(crate::native_evidence_region::test_empty()).unwrap();
+    other
+        .save(&store.binding, &[7; 32], b"different authenticated source")
+        .unwrap();
+    let (_, other_source) = other
+        .load_streamed_with_snapshot(&store.binding, &mut [0; 32], |reader| {
+            let mut bytes = [0; 128];
+            while reader.read(&mut bytes)? != 0 {}
+            Ok(())
+        })
+        .unwrap()
+        .unwrap();
+    let changed = |source: &crate::native_body_checkpoint::SourceSnapshot,
+                   current: Option<&payload::network::Cursor>| {
+        payload::rewrite::PreparedRewrite::prepare_authenticated_network_transition(
+            &job.transition,
+            previous.proof.as_ref().unwrap(),
+            source,
+            owner.evidence(),
+            store.admissions.as_ref().unwrap(),
+            &previous.summary,
+            previous.span,
+            previous.prefix.as_ref(),
+            previous.local_count,
+            &root,
+            &previous.layouts,
+            current,
+            cursor,
+        )
+        .map(|_| ())
+    };
+    assert!(changed(&other_source, previous.network.as_ref()).is_err());
+    assert!(
+        changed(&previous.source, Some(cursor)).is_err(),
+        "changed current receipt cannot reuse a transition witness"
+    );
+    assert_eq!(payload::network::wire::validation_passes(), validations);
+    assert!(!job.effects);
+    println!(
+        "AuthenticatedNetworkTransition={} CheckpointJob={}",
+        core::mem::size_of::<payload::rewrite::AuthenticatedNetworkTransition>(),
+        core::mem::size_of::<CheckpointJob>()
+    );
+    assert!(core::mem::size_of::<payload::rewrite::AuthenticatedNetworkTransition>() <= 128);
+    drop(job);
+    let store = remove();
+    assert!(store.ready && !store.failed);
+    assert_eq!(store.journal.generation(), Some(1));
 }

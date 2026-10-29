@@ -36,6 +36,8 @@ impl Cursor {
         ))
     }
     pub(crate) fn validate(&self, body: &BodyId, root: &VerifyingKey) -> Result<(), &'static str> {
+        #[cfg(test)]
+        VALIDATION_PASSES.with(|n| n.set(n.get() + 1));
         let bytes = &self.0;
         if &bytes[..8] != b"NCURSOR1"
             || !matches!(bytes[8], 1 | 2)
@@ -206,4 +208,13 @@ mod tests {
             .validate(&body, &SigningKey::from_bytes(&[73; 32]).verifying_key())
             .is_err());
     }
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static VALIDATION_PASSES: core::cell::Cell<usize> = const { core::cell::Cell::new(0) };
+}
+#[cfg(test)]
+pub(crate) fn validation_passes() -> usize {
+    VALIDATION_PASSES.with(|n| n.get())
 }

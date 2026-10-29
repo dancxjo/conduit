@@ -122,6 +122,7 @@ impl AuthenticatedReceipts {
 /// the manager, evidence, pending segments or receipts can coexist with this.
 pub(crate) struct PreparedRewrite<'a> {
     emitted: Cell<Option<(usize, [u8; 32])>>,
+    transition_checked: bool,
     framed: bool,
     reuse: Option<frames::Range>,
     emitted_frames: Cell<Option<frames::Range>>,
@@ -195,6 +196,7 @@ impl<'a> PreparedRewrite<'a> {
         .map_err(|_| "restart-rewrite-state")?;
         Ok(Self {
             emitted: Cell::new(None),
+            transition_checked: false,
             framed: false,
             reuse: None,
             emitted_frames: Cell::new(None),
@@ -330,6 +332,7 @@ impl<'a> PreparedRewrite<'a> {
         }
         result.output_fingerprint = fingerprint(prefix, layouts, Some(next))?;
         result.network = Some(next);
+        result.transition_checked = true;
         Ok(result)
     }
     pub(crate) fn emit<E>(
@@ -441,3 +444,4 @@ mod frame_tests;
 
 #[path = "native_restart_rewrite_network.rs"]
 mod network_transition;
+pub(crate) use network_transition::AuthenticatedNetworkTransition;

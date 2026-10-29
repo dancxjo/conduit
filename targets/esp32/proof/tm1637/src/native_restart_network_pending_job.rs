@@ -20,6 +20,7 @@ struct CheckpointJob {
     lease: StoreLease,
     cursor: Option<payload::network::Cursor>,
     writer: Option<IncrementalRewrite>,
+    transition: payload::rewrite::AuthenticatedNetworkTransition,
     summary: payload::archive::Summary,
     span: payload::archive::Span,
     root: [u8; 32],
@@ -133,6 +134,33 @@ fn prepare_candidate<'a>(
         )
     }
 }
+fn prepare_cached_candidate<'a>(
+    transition: &payload::rewrite::AuthenticatedNetworkTransition,
+    previous: &'a ArchiveCustody,
+    owner: &'a SealedBodyLifecycleSession,
+    admissions: Option<&'a AdmissionManager>,
+    root: &[u8; 32],
+    cursor: &'a payload::network::Cursor,
+) -> Result<payload::rewrite::PreparedRewrite<'a>, &'static str> {
+    payload::rewrite::PreparedRewrite::prepare_authenticated_network_transition(
+        transition,
+        previous
+            .proof
+            .as_ref()
+            .ok_or("network-pending-source-proof")?,
+        &previous.source,
+        owner.evidence(),
+        admissions.ok_or("network-pending-admissions")?,
+        &previous.summary,
+        previous.span,
+        previous.prefix.as_ref(),
+        previous.local_count,
+        root,
+        &previous.layouts,
+        previous.network.as_ref(),
+        cursor,
+    )
+}
 impl CheckpointJob {
     fn initialize(
         mut lease: StoreLease,
@@ -142,8 +170,9 @@ impl CheckpointJob {
         cursor: payload::network::Cursor,
     ) -> Result<Self, &'static str> {
         let store = lease.0.as_mut().ok_or("restart-not-ready")?;
-        let key = live_key(store, owner, root)?;
-        cursor.validate(&owner.evidence().body_id, &key.verifying_key())?;
+        // Retain persisted signer-scope validation; the raw transition
+        // preparation below authenticates this exact cursor before effects.
+        live_key(store, owner, root)?;
         if cursor.bytes()[8] != 1
             || cursor.bytes()[96..128] != Sha256::digest(boot.as_str().as_bytes())[..]
         {
@@ -152,6 +181,7 @@ impl CheckpointJob {
         let previous = store.custody.as_ref().ok_or("network-pending-source")?;
         let prepared =
             prepare_candidate(previous, owner, store.admissions.as_ref(), root, &cursor)?;
+        let transition = prepared.authenticated_network_transition()?;
         let mut metadata = None;
         let writer = IncrementalRewrite::prepare(
             &mut store.journal,
@@ -175,6 +205,7 @@ impl CheckpointJob {
             lease,
             cursor: Some(cursor),
             writer: Some(writer),
+            transition,
             summary,
             span,
             root: *root,
@@ -200,8 +231,8 @@ impl CheckpointJob {
         if cursor.bytes()[8] != 2 {
             return Err("network-live-clean-phase");
         }
-        let key = live_key(store, owner, &self.root)?;
-        cursor.validate(&owner.evidence().body_id, &key.verifying_key())?;
+        // Raw Clean preparation below validates both exact cursor signatures.
+        live_key(store, owner, &self.root)?;
         let previous = store.custody.as_ref().ok_or("network-recovery-source")?;
         let prepared = prepare_candidate(
             previous,
@@ -210,6 +241,7 @@ impl CheckpointJob {
             &self.root,
             &cursor,
         )?;
+        let transition = prepared.authenticated_network_transition()?;
         let mut metadata = None;
         let writer = IncrementalRewrite::prepare(
             &mut store.journal,
@@ -229,6 +261,7 @@ impl CheckpointJob {
         drop(prepared);
         let (summary, span) = metadata.ok_or("network-pending-metadata")?;
         self.writer = Some(writer);
+        self.transition = transition;
         self.cursor = Some(cursor);
         self.summary = summary;
         self.span = span;
@@ -264,7 +297,8 @@ impl CheckpointJob {
             }
             let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
             let previous = store.custody.as_ref().ok_or("network-pending-source")?;
-            let prepared = prepare_candidate(
+            let prepared = prepare_cached_candidate(
+                &self.transition,
                 previous,
                 owner,
                 store.admissions.as_ref(),
@@ -323,7 +357,8 @@ impl CheckpointJob {
         let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
         let previous = store.custody.as_ref().ok_or("network-pending-source")?;
         let cursor = self.cursor.as_ref().ok_or("network-pending-phase")?;
-        let prepared = prepare_candidate(
+        let prepared = prepare_cached_candidate(
+            &self.transition,
             previous,
             owner,
             store.admissions.as_ref(),

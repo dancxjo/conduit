@@ -35,6 +35,7 @@ impl recovery::Storage for Network {
     }
 }
 fn drive(job: &mut CheckpointJob, owner: &SealedBodyLifecycleSession) {
+    let validations = payload::network::wire::validation_passes();
     let mut access = Access { fail: false };
     while !job.is_complete() {
         if job.needs_chunk() {
@@ -42,6 +43,11 @@ fn drive(job: &mut CheckpointJob, owner: &SealedBodyLifecycleSession) {
         }
         job.advance(&mut access).unwrap();
     }
+    assert_eq!(
+        payload::network::wire::validation_passes(),
+        validations,
+        "Pending and Clean chunk recipes reuse actual signature checks"
+    );
 }
 #[test]
 #[ignore = "owns Boot-global STORE; run this exact test alone in a fresh process"]
