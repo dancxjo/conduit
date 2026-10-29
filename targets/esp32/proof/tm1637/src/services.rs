@@ -174,6 +174,16 @@ pub fn control(observations: bool) -> Owner {
     }
 }
 
+#[cfg(feature = "network-scan")]
+impl conduit_esp32_network_switch::RestoredAccessPointServices for Owner {
+    fn access_point_ready(&self) -> bool {
+        self.control.acknowledged_state() == Some(ServiceState::Ready)
+    }
+    fn remaining_service_commands(&self) -> u32 {
+        self.control.remaining_commands()
+    }
+}
+
 #[cfg(feature = "network-mdns")]
 pub const MDNS_BACKING_BYTES: usize = mdns::BACKING_BYTES;
 #[cfg(feature = "network-mdns")]
