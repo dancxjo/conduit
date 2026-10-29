@@ -179,13 +179,16 @@ fn old_encoder_matches_sink_failure_and_capacity_refusals() {
     }
 }
 #[test]
-fn optimized_encoder_has_unchanged_inline_workspace_and_zero_allocations() {
+fn indexed_encoder_has_exact_bounded_workspace_and_zero_allocations() {
     fn sink(_: &[u8]) -> Result<(), ()> {
         Ok(())
     }
     let mut e = codec::Encoder::new(sink as fn(&[u8]) -> Result<(), ()>, 4096, 8192);
     let old = reference::Encoder::new(sink as fn(&[u8]) -> Result<(), ()>, 4096, 8192);
-    assert_eq!(core::mem::size_of_val(&e), core::mem::size_of_val(&old));
+    assert_eq!(
+        core::mem::size_of_val(&e),
+        core::mem::size_of_val(&old) + 704
+    );
     let bytes = [b'a'; 2049];
     ALLOCS.with(|n| n.set(0));
     TRACK.with(|n| n.set(true));
@@ -256,4 +259,29 @@ fn private_complete_frame_whole_encoder_exact_bytes_and_timing() {
         assert!(private_stream(&frame, false, width) == old);
     }
     println!("private_codec plain={} encoded={} reference_stream_us={} optimized_stream_us={} byte_equal=true",new.1,new.0.len(),old_us,new_us);
+}
+
+#[test]
+fn indexed_encoder_reset_preserves_exact_bytes_after_wrapped_private_history() {
+    for bytes in [random(8193, 256), random(8193, 7), vec![b'a'; 8193]] {
+        let expected = encode(&bytes, &[7], true, 10000, 20000, None).0;
+        let mut actual = Vec::new();
+        let mut encoder = codec::Encoder::new(
+            |b: &[u8]| {
+                actual.extend_from_slice(b);
+                Ok(())
+            },
+            10000,
+            20000,
+        );
+        for width in [1, 65, 1408] {
+            for chunk in bytes.chunks(width) {
+                encoder.write(chunk).unwrap();
+            }
+            encoder.finish().unwrap();
+            encoder.reset_frame();
+        }
+        drop(encoder);
+        assert_eq!(actual, expected.repeat(3));
+    }
 }

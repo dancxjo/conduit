@@ -1,12 +1,9 @@
-//! Exhaustive ascending-distance V4 matching without division per candidate.
+//! Exact ascending-distance V4 matching through a bounded byte-class index.
 use super::{MATCH, NEAR_WINDOW, V4_HISTORY, WINDOW};
-fn previous(at: usize) -> usize {
-    if at == 0 {
-        V4_HISTORY - 1
-    } else {
-        at - 1
-    }
-}
+#[path = "native_restart_match_index.rs"]
+mod index;
+use index::Candidates;
+pub(super) use index::Index;
 fn length(
     history: &[u8; WINDOW],
     look: &[u8; MATCH],
@@ -46,15 +43,16 @@ fn length(
     length
 }
 pub(super) fn longest(
+    index: &Index,
     history: &[u8; WINDOW],
     look: &[u8; MATCH],
     look_len: usize,
     consumed: usize,
 ) -> (usize, usize, usize, usize) {
     let (mut best, mut best_distance, mut near, mut near_distance) = (0, 0, 0, 0);
-    let mut at = consumed % V4_HISTORY;
-    for distance in 1..=consumed.min(V4_HISTORY) {
-        at = previous(at);
+    for (distance, at) in
+        Candidates::new(index.bucket(look[0]), consumed, consumed.min(V4_HISTORY), 1)
+    {
         let length = length(history, look, look_len, 0, distance, at);
         if distance <= NEAR_WINDOW && length > near {
             near = length;
@@ -71,6 +69,7 @@ pub(super) fn longest(
     (best, best_distance, near, near_distance)
 }
 pub(super) fn lazy(
+    index: &Index,
     history: &[u8; WINDOW],
     look: &[u8; MATCH],
     look_len: usize,
@@ -78,9 +77,17 @@ pub(super) fn lazy(
     ordinary_used: usize,
     ordinary_cost: usize,
 ) -> bool {
-    let mut at = (consumed + 1) % V4_HISTORY;
-    for distance in 1..=(consumed + 1).min(V4_HISTORY) {
-        at = previous(at);
+    // Distance one is the virtual byte that lazy evaluation has not stored.
+    let first = length(history, look, look_len, 1, 1, 0);
+    if first >= 3 && (first + 1) * ordinary_cost > ordinary_used * 3 {
+        return true;
+    }
+    for (distance, at) in Candidates::new(
+        index.bucket(look[1]),
+        consumed + 1,
+        (consumed + 1).min(V4_HISTORY),
+        2,
+    ) {
         let length = length(history, look, look_len, 1, distance, at);
         let cost = if distance <= NEAR_WINDOW { 2 } else { 4 };
         if length >= 3 && (length + 1) * ordinary_cost > ordinary_used * (cost + 1) {
