@@ -116,6 +116,12 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
         self.foreground.as_ref()
     }
 
+    /// Inspect retained inline archive slots without traversing their contents
+    /// or changing archive acknowledgment custody.
+    pub fn pending_archive_storage_usage(&self) -> crate::VecStorageUsage {
+        crate::VecStorageUsage::inspect(&self.pending_archives)
+    }
+
     pub fn pending_archives(&self) -> &[BodyBiographyArchiveSegment] {
         &self.pending_archives
     }
