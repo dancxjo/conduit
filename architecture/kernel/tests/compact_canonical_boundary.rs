@@ -276,3 +276,138 @@ fn real_constructor_refusal_at_every_allocation_drops_all_fresh_backing() {
         assert_eq!(failed.retained_bytes(), 0, "index={index}");
     }
 }
+
+struct CanonicalDebug;
+impl SignSink for CanonicalDebug {
+    fn item_capacity(&self) -> u16 {
+        64
+    }
+    fn byte_capacity(&self) -> u32 {
+        4096
+    }
+    fn len(&self) -> u16 {
+        0
+    }
+    fn used_bytes(&self) -> u32 {
+        0
+    }
+    fn record(
+        &mut self,
+        _: NodeId,
+        _: Option<PortId>,
+        _: Option<RequestId>,
+        _: KernelEventKind,
+    ) -> Result<KernelEvent, SignError> {
+        Err(SignError::InvalidBudget)
+    }
+    fn record_remote(
+        &mut self,
+        _: NodeId,
+        _: PortId,
+        _: KernelEventKind,
+        _: RemoteLifecycleIdentity,
+    ) -> Result<KernelEvent, SignError> {
+        Err(SignError::InvalidBudget)
+    }
+    fn ensure_remote_capacity(&self, _: u16) -> Result<(), SignError> {
+        Ok(())
+    }
+    // The default observer requires canonical bytes and must fence binding.
+}
+#[test]
+fn canonical_debug_observer_refuses_compact_binding_before_play() {
+    let mut play = prepare(Some(layout(1)), 2, CanonicalDebug);
+    assert_eq!(
+        unsafe { bind(&mut play, layout(1)) },
+        Err(SchedulerError::InvalidPlan)
+    );
+    assert_eq!(play.decisions(), 0);
+    assert_eq!(play.values().used_items(), 0);
+}
+#[test]
+fn fanout_refuses_instead_of_letting_an_unchecked_consumer_receive_compact_bytes() {
+    let mut routes = FixedRoutes::<3, 2>::new(1);
+    routes
+        .install(
+            NodeId(0),
+            PortId(0),
+            RouteRange { start: 0, len: 2 },
+            &[
+                RouteTarget {
+                    cord: CordId(0),
+                    sink: CordEndpoint::local(NodeId(1), PortId(0)),
+                },
+                RouteTarget {
+                    cord: CordId(1),
+                    sink: CordEndpoint::local(NodeId(2), PortId(0)),
+                },
+            ],
+        )
+        .unwrap();
+    routes.seal().unwrap();
+    let mut play =
+        FixedScheduler::<Driver, HostedValueStore, FixedSignLog<64>, 3, 2, 1, 2, 3, 2>::new(
+            [
+                NodeSpec {
+                    input_cords: [None],
+                    maximum_step_fuel: 8,
+                },
+                NodeSpec {
+                    input_cords: [Some(CordId(0))],
+                    maximum_step_fuel: 8,
+                },
+                NodeSpec {
+                    input_cords: [Some(CordId(1))],
+                    maximum_step_fuel: 8,
+                },
+            ],
+            core::array::from_fn(|i| {
+                CordSpec::local(
+                    CordId(i as u16),
+                    (NodeId(0), PortId(0)),
+                    (NodeId(i as u16 + 1), PortId(0)),
+                    CordCapacity {
+                        slot_start: i as u16,
+                        item_capacity: 1,
+                        byte_capacity: 100,
+                        pressure_policy: Default::default(),
+                    },
+                )
+            }),
+            routes,
+            [
+                Driver::Source {
+                    next: 0,
+                    staged: false,
+                    bytes: [0],
+                },
+                Driver::Sink {
+                    layout: Some(layout(1)),
+                    current: [0; 2],
+                    count: 0,
+                    pending: None,
+                },
+                Driver::Sink {
+                    layout: Some(layout(1)),
+                    current: [0; 2],
+                    count: 0,
+                    pending: None,
+                },
+            ],
+            HostedValueStore::new_with_compact_canonical_slots(&[4; 7], 3, layout(1), 328).unwrap(),
+            signs(),
+        )
+        .unwrap();
+    assert_eq!(
+        unsafe {
+            play.bind_compact_canonical_edge_from_trusted_make(
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                layout(1),
+            )
+        },
+        Err(SchedulerError::InvalidPlan)
+    );
+    assert_eq!(play.decisions(), 0);
+    assert_eq!(play.values().used_items(), 0);
+}
