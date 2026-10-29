@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, CheckedValueContract, Quantity, Unit, QUANTITY_ENCODED_LEN, RATIO_INFO_ID,
-    TEMPERATURE_INFO_ID,
+    CheckedValueContract, QUANTITY_ENCODED_LEN, Quantity, RATIO_INFO_ID, TEMPERATURE_INFO_ID, Unit,
+    kind_id,
 };
 use conduit_environment_history::{GraphRefusal, HistoryGraph};
 use conduit_face::{
@@ -119,7 +119,23 @@ fn same_face_both_masks_use_actual_boot_time_and_bound_samples() {
     assert_eq!(native.content_id, graph.content_id());
     assert_eq!(native.revision, graph.revision());
     assert!(graph.browser_html().contains("cx=\"88\""));
-    assert_eq!(graph.native_scene().unwrap().commands().len(), 11);
+    let scene = graph.native_scene().unwrap();
+    assert_eq!(scene.commands().len(), 7); // background + labels + two exact series
+    let lines: Vec<_> = scene
+        .commands()
+        .iter()
+        .filter_map(|c| c.polyline_geometry())
+        .collect();
+    assert_eq!(lines.len(), 2);
+    for line in lines {
+        assert_eq!(
+            line.points()
+                .iter()
+                .map(|point| *point.x())
+                .collect::<Vec<_>>(),
+            vec![32, 88, 592]
+        );
+    }
     let face = face(&(0..64).collect::<Vec<_>>());
     let graph = HistoryGraph::prepare(&face, "body/history").unwrap();
     assert_eq!(graph.samples().len(), 16);

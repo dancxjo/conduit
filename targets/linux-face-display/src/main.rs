@@ -61,12 +61,11 @@ fn run() -> Result<(), String> {
             Err(reason) => {
                 if let Some((face, age)) = retained.last(now) {
                     historical_notice = Some(if recovered_history {
-                        "LIVE FEED STALE / RECOVERED SAME-BOOT VIEW / SAMPLE AGE NOT REBASED".into()
+                        "LAST KNOWN READING · LIVE UPDATES DELAYED".into()
                     } else {
                         format!(
-                            "LIVE FEED STALE / LAST VALID VIEW {}s AGO - {}",
-                            age / 1000,
-                            reason
+                            "LAST UPDATE RECEIVED {}s AGO · LIVE UPDATES DELAYED",
+                            age / 1000
                         )
                     });
                     (face.clone(), reason)
@@ -102,11 +101,11 @@ fn run() -> Result<(), String> {
             Ok(_) => {
                 if history_page {
                     let status = if !history_status.is_empty() {
-                        "INPUT UNAVAILABLE"
+                        "HISTORY UPDATES DELAYED"
                     } else if historical_notice.is_some() {
-                        "LIVE FEED STALE"
+                        "LIVE UPDATES DELAYED"
                     } else {
-                        "BOOT-ELAPSED TIME"
+                        "DEVICE ELAPSED TIME"
                     };
                     let notice = format!(
                         "{} / {status}",

@@ -67,11 +67,7 @@ impl RetainedEvidenceGraph {
         ChartGeometry {
             samples: &self.samples,
         }
-        .native_scene(
-            u64::from(self.outside),
-            "RETAINED HISTORY / SIGNED EVIDENCE",
-            unit,
-        )
+        .native_scene(u64::from(self.outside), "RETAINED HISTORY", unit)
     }
     pub fn samples(&self) -> &[GraphSample] {
         &self.samples

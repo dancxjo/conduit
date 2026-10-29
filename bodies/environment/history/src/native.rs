@@ -111,7 +111,11 @@ impl ChartGeometry<'_> {
             (156, "Humidity %: top 100; bottom 0".into()),
             (
                 306,
-                format!("Boot ms: left {first}; right {last}; lines join adjacent samples"),
+                format!(
+                    "Device elapsed: {} to {}",
+                    elapsed_label(first),
+                    elapsed_label(last)
+                ),
             ),
         ] {
             scene.push(GraphicsCommand::text(
@@ -133,7 +137,7 @@ impl ChartGeometry<'_> {
             .filter(|s| s.gap_before.is_some())
             .count();
         let label = format!(
-            "{}; outside {}; failures {}; gaps {}",
+            "{} · Earlier {}; unavailable {}; gaps {}",
             provenance, omitted, failures, gaps
         );
         scene.push(GraphicsCommand::text(
@@ -207,4 +211,14 @@ impl ChartGeometry<'_> {
             )?),
         }
     }
+}
+
+fn elapsed_label(milliseconds: u64) -> alloc::string::String {
+    let seconds = milliseconds / 1000;
+    format!(
+        "{:02}:{:02}:{:02}",
+        seconds / 3600,
+        (seconds / 60) % 60,
+        seconds % 60
+    )
 }

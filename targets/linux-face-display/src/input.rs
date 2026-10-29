@@ -94,7 +94,13 @@ pub struct RetainedView {
 }
 impl RetainedView {
     pub fn accept(&mut self, face: Face, now: u64) {
-        self.accepted = Some((face, now));
+        if self
+            .accepted
+            .as_ref()
+            .is_none_or(|(previous, _)| previous != &face)
+        {
+            self.accepted = Some((face, now));
+        }
     }
     pub fn last(&self, now: u64) -> Option<(&Face, u64)> {
         self.accepted
@@ -139,6 +145,7 @@ mod retained_tests {
         assert!(retained.last(100).is_none());
         let face = crate::view::unavailable("actual accepted fixture");
         retained.accept(face.clone(), 100);
+        retained.accept(face.clone(), 200); // rereading identical input cannot renew age
         assert!(retained.last(99).is_none());
         let (last, age) = retained.last(6000).unwrap();
         assert_eq!(last, &face);

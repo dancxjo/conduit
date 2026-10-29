@@ -78,7 +78,7 @@ impl HistoryInput {
             .chars()
             .take(12)
             .collect();
-        let mut label = format!("RETAINED HISTORY / {host} / Boot {boot}");
+        let mut label = format!("RETAINED HISTORY · {host} · {boot}");
         while label.len() > 112 {
             label.pop();
         }
