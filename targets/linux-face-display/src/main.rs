@@ -36,17 +36,37 @@ fn run() -> Result<(), String> {
     eprintln!("Temperature display unit preference: {preferred:?}");
     let start = Instant::now();
     let mut previous = String::new();
+    let mut retained = input::RetainedView::default();
     loop {
+        let now = input::now_ms()?;
+        let mut historical_notice = None;
         let (face, status) = match input::read(&input_path, boot.trim()) {
             Ok(face) => {
                 let status = format!("Face {} revision {}", face.identity.as_str(), face.revision);
+                retained.accept(face.clone(), now);
                 (face, status)
             }
-            Err(reason) => (view::unavailable(&reason), reason),
+            Err(reason) => {
+                if let Some((face, age)) = retained.last(now) {
+                    historical_notice = Some(format!(
+                        "STALE / LAST RECEIVED {}s AGO - {}",
+                        age / 1000,
+                        reason
+                    ));
+                    (face.clone(), reason)
+                } else {
+                    (view::unavailable(&reason), reason)
+                }
+            }
         };
         let tick = (start.elapsed().as_secs() / 8) as usize;
         match view::render(face, width, height, tick, &mut pixels, preferred) {
-            Ok(_) => fb.present(&pixels)?,
+            Ok(_) => {
+                if let Some(notice) = historical_notice.as_deref() {
+                    view::render_notice(notice, width, height, &mut pixels)?;
+                }
+                fb.present(&pixels)?;
+            }
             Err(reason) => {
                 view::render(
                     view::unavailable(&reason),

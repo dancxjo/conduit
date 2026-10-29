@@ -98,6 +98,77 @@ pub fn render(
     Ok((page, pages))
 }
 
+/// Host presentation status is separate from the unchanged producer Face.
+pub fn render_notice(
+    text: &str,
+    width: u16,
+    height: u16,
+    pixels: &mut [u32],
+) -> Result<(), String> {
+    use conduit_face::{
+        GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
+    };
+    let clip = LayoutRect {
+        x: 0,
+        y: 0,
+        width,
+        height,
+    };
+    let mut scene = GraphicsScene::empty();
+    scene
+        .push(
+            GraphicsCommand::rect(
+                LayoutRect {
+                    x: 0,
+                    y: 0,
+                    width,
+                    height: 30,
+                },
+                clip,
+                GraphicsPaintRole::Background,
+                GraphicsShapeStyle::Fill,
+            )
+            .map_err(|e| format!("notice: {e:?}"))?,
+        )
+        .map_err(|e| format!("notice: {e:?}"))?;
+    let bounded: String = text.chars().take(90).collect();
+    scene
+        .push(
+            GraphicsCommand::text(
+                LayoutRect {
+                    x: 8,
+                    y: 4,
+                    width: width.saturating_sub(16),
+                    height: 24,
+                },
+                clip,
+                GraphicsPaintRole::Foreground,
+                &bounded,
+            )
+            .map_err(|e| format!("notice: {e:?}"))?,
+        )
+        .map_err(|e| format!("notice: {e:?}"))?;
+    let mut target = Pixels {
+        format: DisplayFormat {
+            width: width.into(),
+            height: height.into(),
+            pitch: u32::from(width) * 4,
+            bits_per_pixel: 32,
+            red_shift: 16,
+            green_shift: 8,
+            blue_shift: 0,
+        },
+        values: pixels,
+    };
+    typography::render_scene_scaled(
+        &mut target,
+        &scene,
+        |_, command| command.text_role().into(),
+        100,
+    )
+    .map_err(|e| format!("notice raster: {e:?}"))
+}
+
 fn frame(
     face: Face,
     width: u16,
@@ -112,17 +183,32 @@ fn frame(
     scene
         .set_local_notice("Read only; pages advance automatically")
         .map_err(|e| format!("Face notice refused: {e:?}"))?;
+    let charts: Vec<_> = property_face
+        .subjects
+        .iter()
+        .filter_map(|subject| {
+            conduit_environment_history::HistoryGraph::prepare(&property_face, &subject.identity)
+                .ok()
+        })
+        .collect();
     let native_pages = scene.pages();
     let property_pages = property.as_ref().map_or(0, |(_, _, pages)| *pages);
-    let pages = native_pages + property_pages;
+    let pages = charts.len() + native_pages + property_pages;
     let page = page_tick % pages;
-    if page < property_pages {
+    if page < charts.len() {
+        let show = charts[page]
+            .native_show()
+            .map_err(|e| format!("history graph refused: {e:?}"))?;
+        return Ok((show.scene, page, pages, 100));
+    }
+    let content_page = page - charts.len();
+    if content_page < property_pages {
         let (graphics, _, _) =
-            crate::property_mask::frame(&property_face, width, height, page, preferred)
+            crate::property_mask::frame(&property_face, width, height, content_page, preferred)
                 .ok_or("property page refused")?;
         return Ok((graphics, page, pages, 100));
     }
-    for _ in 0..page - property_pages {
+    for _ in 0..content_page - property_pages {
         scene.turn_page(true);
     }
     let frame = scene

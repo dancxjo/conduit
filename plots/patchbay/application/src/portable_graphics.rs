@@ -22,6 +22,7 @@ pub struct NativeGraphicsObligation<'a> {
     pub text_role: conduit_face::GraphicsTextRole,
     pub resolved_content: &'a str,
     pub path: Option<conduit_face::GraphicsPath>,
+    pub polyline: Option<conduit_face::GraphicsPolyline>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +59,7 @@ impl NativeGraphicsMask {
                 text_role: command.text_role(),
                 resolved_content: content,
                 path: command.path_geometry(),
+                polyline: command.polyline_geometry(),
             });
         }
         Ok(output)

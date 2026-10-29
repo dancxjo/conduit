@@ -68,6 +68,22 @@ pub fn read(path: &Path, boot: &str) -> Result<Face, String> {
     validate(p, boot, now_ms()?)
 }
 
+/// One actually accepted same-Boot view. Retention grants no current lease or actions.
+#[derive(Default)]
+pub struct RetainedView {
+    accepted: Option<(Face, u64)>,
+}
+impl RetainedView {
+    pub fn accept(&mut self, face: Face, now: u64) {
+        self.accepted = Some((face, now));
+    }
+    pub fn last(&self, now: u64) -> Option<(&Face, u64)> {
+        self.accepted
+            .as_ref()
+            .and_then(|(face, at)| now.checked_sub(*at).map(|age| (face, age)))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,5 +108,21 @@ mod tests {
         let mut p = publication();
         p.valid_until_boot_ms = 40000;
         assert!(validate(p, "this-boot", 100).is_err());
+    }
+}
+
+#[cfg(test)]
+mod retained_tests {
+    use super::*;
+    #[test]
+    fn retention_has_no_startup_value_and_preserves_exact_accepted_identity() {
+        let mut retained = RetainedView::default();
+        assert!(retained.last(100).is_none());
+        let face = crate::view::unavailable("actual accepted fixture");
+        retained.accept(face.clone(), 100);
+        assert!(retained.last(99).is_none());
+        let (last, age) = retained.last(6000).unwrap();
+        assert_eq!(last, &face);
+        assert_eq!(age, 5900);
     }
 }
