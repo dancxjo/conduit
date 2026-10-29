@@ -3,12 +3,12 @@
 use super::back::InstalledBack;
 use conduit_core::PlannedGear;
 
-pub(super) struct BackBudget {
-    pub(super) value_items: u16,
-    pub(super) value_bytes: u32,
-    pub(super) host_requests: usize,
-    pub(super) sign_items: u16,
-    pub(super) maximum_value_bytes: u32,
+pub(crate) struct BackBudget {
+    pub(crate) value_items: u16,
+    pub(crate) value_bytes: u32,
+    pub(crate) host_requests: usize,
+    pub(crate) sign_items: u16,
+    pub(crate) maximum_value_bytes: u32,
 }
 
 pub(super) struct BackFactory {

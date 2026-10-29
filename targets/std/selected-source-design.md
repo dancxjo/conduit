@@ -22,3 +22,27 @@ Owning checks exercise actual installed Source-to-Cord execution, pre-commit
 cancellation, recurring Flow and legacy dispatch, plus same-Host child-Play
 identity separation. Compile-fail contracts reject delivery-to-evidence upgrades,
 affine duplication and retaining a witness beyond its actual lifetime.
+
+## Independently initialized immediate native Source
+
+`NativeSourceDefinition` retains an independently selected Kind, executable,
+ready Base entry, current grant, checked configuration and finite call/resource
+bounds. Unsafe installation establishes actual native owner correspondence;
+neither a received Plan nor an observer receipt supplies authorization. Registry,
+advertisement and resource-ledger changes are staged transactionally while idle.
+Refusal returns the original affine owner and definition, and replacing a live
+owner is refused. The owner persists across child Plays.
+
+Ordinary installed planning support and storage admission use this independently
+retained definition. Preparation checks current registry/provider generation,
+Host/Boot/offer, exact Base/resource/grant and configured operation contract before
+issuing one scoped capability. One BoundBaseOperation is the sole authorizer and
+completion owner. The ordinary HostCallBack feeds the result through the actual
+kernel Cord; only the committed-Fore path can mint commit evidence.
+
+This provider interface admits immediate bounded CPU work only: no IO, sleep,
+allocation, unwinding, asynchronous work or retained borrows during read. Native
+correspondence and runtime containment are distinct. A physical source needs a
+separately admitted worker and observed cancellation/quiescence; this change
+supplies neither. Its generic CPU fixture proves installed authority-to-commit,
+not Body membership, sensor acquisition, NAT delivery or durable recording.

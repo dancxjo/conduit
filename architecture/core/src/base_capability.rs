@@ -135,6 +135,7 @@ pub struct CapabilityInspection {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BaseCapabilityRefusal {
     InvalidIssuer,
+    Capacity,
     TableFull,
     EmptyIdentity,
     InvalidBound,
@@ -190,6 +191,10 @@ impl BaseCapabilityTable {
         {
             return Err(BaseCapabilityRefusal::InvalidIssuer);
         }
+        let mut entries = Vec::new();
+        entries
+            .try_reserve_exact(usize::from(maximum_capabilities))
+            .map_err(|_| BaseCapabilityRefusal::Capacity)?;
         Ok(Self {
             host_id,
             boot_id,
@@ -198,7 +203,7 @@ impl BaseCapabilityTable {
             issuer_key,
             maximum_capabilities,
             next_issuance: 1,
-            entries: Vec::with_capacity(maximum_capabilities as usize),
+            entries,
         })
     }
 
@@ -211,13 +216,16 @@ impl BaseCapabilityTable {
         }
         validate_issue_request(self, &request)?;
         let issuance = self.next_issuance;
-        self.next_issuance = self.next_issuance.saturating_add(1);
+        let mut active_sequences = Vec::new();
+        active_sequences
+            .try_reserve_exact(usize::from(request.scope.maximum_in_flight))
+            .map_err(|_| BaseCapabilityRefusal::Capacity)?;
         let bearer = bearer_digest(&self.issuer_key, issuance, &request.scope);
         let possession_id =
-            CapabilityPossessionId::from(hex_digest(&inspection_digest(issuance, &request.scope)));
+            CapabilityPossessionId::from(hex_digest(&inspection_digest(issuance, &request.scope))?);
         self.entries.push(CapabilityEntry {
             bearer,
-            active_sequences: Vec::with_capacity(usize::from(request.scope.maximum_in_flight)),
+            active_sequences,
             inspection: CapabilityInspection {
                 possession_id,
                 scope: request.scope,
@@ -228,6 +236,7 @@ impl BaseCapabilityTable {
             revocation_generation: 1,
             next_operation_sequence: 1,
         });
+        self.next_issuance = self.next_issuance.saturating_add(1);
         Ok(BaseCapabilityHandle { bearer })
     }
 
@@ -485,11 +494,15 @@ fn bearer_matches(left: &[u8; 32], right: &[u8; 32]) -> bool {
         == 0
 }
 
-fn hex_digest(bytes: &[u8; 32]) -> alloc::string::String {
-    use alloc::format;
-    let mut result = alloc::string::String::with_capacity(64);
-    for byte in bytes {
-        result.push_str(&format!("{byte:02x}"));
-    }
+fn hex_digest(bytes: &[u8; 32]) -> Result<alloc::string::String, BaseCapabilityRefusal> {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut result = alloc::string::String::new();
     result
+        .try_reserve_exact(64)
+        .map_err(|_| BaseCapabilityRefusal::Capacity)?;
+    for byte in bytes {
+        result.push(char::from(HEX[usize::from(byte >> 4)]));
+        result.push(char::from(HEX[usize::from(byte & 15)]));
+    }
+    Ok(result)
 }
