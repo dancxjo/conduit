@@ -200,3 +200,49 @@ fn no_deadline_extension_and_missing_terminal_never_restore_or_return_owner() {
     drop(provider);
     SDK.with_borrow(|s| assert_eq!(s.controller_drops, 0));
 }
+
+#[test]
+fn expired_first_invocation_stays_spent_and_cannot_repin_a_fresh_deadline() {
+    reset();
+    let mut provider = prepared();
+    let mut output = [ScanObservation::EMPTY; 16];
+    SDK.with_borrow_mut(|s| s.now = 15_000);
+    {
+        let mut scan = core::pin::pin!(provider.scan(request(), &mut output));
+        assert!(matches!(
+            poll(scan.as_mut()),
+            Poll::Ready(Err(ScanFailure::Deadline))
+        ));
+    }
+    let fresh = NetworkScanRequest {
+        generation: 8,
+        scan_deadline_ms: 30_000,
+        cleanup_deadline_ms: 35_000,
+    };
+    {
+        let mut scan = core::pin::pin!(provider.scan(fresh, &mut output));
+        assert!(matches!(
+            poll(scan.as_mut()),
+            Poll::Ready(Err(ScanFailure::Rejected))
+        ));
+    }
+    SDK.with_borrow(|s| {
+        assert_eq!(s.commands, 0);
+        assert_eq!(s.scan_starts, 0);
+    });
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(35_000));
+        assert!(matches!(
+            poll(cleanup.as_mut()),
+            Poll::Ready(Err(ScanFailure::Deadline))
+        ));
+    }
+    {
+        let mut cleanup = core::pin::pin!(provider.cleanup(20_000));
+        assert!(matches!(poll(cleanup.as_mut()), Poll::Ready(Ok(()))));
+    }
+    match provider.try_into_restored() {
+        Ok(radio) => drop(radio),
+        Err(_) => panic!("unused actual restored owner"),
+    }
+}

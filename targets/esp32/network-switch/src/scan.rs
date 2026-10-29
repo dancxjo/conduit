@@ -194,19 +194,6 @@ impl<'a, 'd, S: RestoredAccessPointServices> Esp32NetworkScanProvider<'a, 'd, S>
         request: NetworkScanRequest,
         output: &mut [ScanObservation; 16],
     ) -> Result<ScanCompletion, ScanFailure> {
-        if self.invoked {
-            return Err(ScanFailure::Rejected);
-        }
-        self.invoked = true;
-        request.validate()?;
-        if !prepare::budgets(
-            Instant::now().as_millis(),
-            request.scan_deadline_ms,
-            request.cleanup_deadline_ms,
-        ) {
-            return Err(ScanFailure::Deadline);
-        }
-        self.request = Some(request);
         self.phase = Phase::Withdrawing;
         self.context
             .as_mut()
@@ -366,6 +353,19 @@ impl<S: RestoredAccessPointServices> NetworkScanProvider for Esp32NetworkScanPro
         request: NetworkScanRequest,
         output: &mut [ScanObservation; 16],
     ) -> Result<ScanCompletion, ScanFailure> {
+        if self.invoked {
+            return Err(ScanFailure::Rejected);
+        }
+        self.invoked = true;
+        request.validate()?;
+        self.request = Some(request);
+        if !prepare::budgets(
+            Instant::now().as_millis(),
+            request.scan_deadline_ms,
+            request.cleanup_deadline_ms,
+        ) {
+            return Err(ScanFailure::Deadline);
+        }
         let deadline = Instant::from_millis(request.scan_deadline_ms);
         with_deadline(
             deadline,
