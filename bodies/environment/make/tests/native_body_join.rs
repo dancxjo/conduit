@@ -497,3 +497,6 @@ fn usb_bootstrap_requires_pinned_owner_fresh_root_scope_and_consumable_nonce() {
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_body_join_cache.rs"]
+mod native_body_join_cache;

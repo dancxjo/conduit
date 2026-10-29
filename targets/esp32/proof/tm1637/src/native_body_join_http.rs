@@ -39,6 +39,16 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCel
     completed: None,
     refused: None,
 }));
+/// Scalar retained receipt allocation telemetry; never receipt contents.
+pub(crate) fn completed_storage_usage() -> Option<[usize; 2]> {
+    STATE.lock(|state| {
+        state
+            .borrow()
+            .completed
+            .as_ref()
+            .map(|done| [done.bytes.len(), done.bytes.capacity()])
+    })
+}
 /// Public signed material only. Existing responses remain available while the
 /// next request is checked; an invalid proof cannot evict a successful receipt.
 pub(crate) enum ResultReply {
@@ -186,6 +196,9 @@ impl crate::native_root::NativeRoot {
             }
             .map_err(|_| "body-join-response-capacity")?;
             bytes.truncate(length);
+            // The authoritative mutation already succeeded. Compaction may
+            // retire construction slack, but pressure retains the exact receipt.
+            let bytes = cache::compact(bytes);
             Ok::<_, &'static str>((bytes, deadline))
         })();
         STATE.lock(|state| {
