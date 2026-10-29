@@ -2,7 +2,7 @@
 //! are moved without altering their wire contents or nested identity storage.
 use conduit_body::{AdmissionManager, AdmissionStorageCompactionRefusal};
 use serde_json::json;
-#[path = "../../plot/tests/common/allocation_probe.rs"]
+#[path = "common/admission_allocation_probe.rs"]
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
@@ -34,7 +34,11 @@ fn rows(manager: &AdmissionManager) -> [conduit_body::VecStorageUsage; 5] {
 fn actual_record_compaction_preserves_wire_order_attempts_and_nested_identity_backing() {
     let mut manager = manager();
     let before = serde_json::to_vec(&manager).unwrap();
-    let old = rows(&manager);
+    let (old, accounting) = allocation_probe::observe(|| rows(&manager));
+    assert_eq!(
+        accounting.allocations + accounting.reallocations + accounting.deallocations,
+        0
+    );
     assert!(old.iter().all(|r| r.capacity > r.len));
     let pointer = manager.receipts[0]
         .credential
@@ -62,7 +66,10 @@ fn actual_record_compaction_preserves_wire_order_attempts_and_nested_identity_ba
         .map(|(a, b)| (a.capacity - b.capacity) * a.element_bytes)
         .sum();
     assert!(reclaimed > 0);
-    println!("inline storage before={old:?} after={after:?} reclaimed_bytes={reclaimed} replacement_peak_bytes={}", observed.peak_bytes);
+    println!(
+        "inline storage before={old:?} after={after:?} reclaimed_bytes={reclaimed} replacement_peak_bytes={}",
+        observed.peak_bytes
+    );
     assert_eq!(
         observed.deallocated_bytes - observed.requested_bytes,
         reclaimed
@@ -112,6 +119,12 @@ fn empty_collections_release_only_spare_backing_without_allocating() {
         (0, 0, 0)
     );
     let mut empty = AdmissionManager::new(manager.body_id.clone()).unwrap();
+    empty.receipts.reserve_exact(3);
+    let (result, memory) = allocation_probe::observe(|| empty.try_compact_storage());
+    assert_eq!(result, Ok(()));
+    assert_eq!(empty.receipts.capacity(), 0);
+    assert_eq!(memory.allocations + memory.reallocations, 0);
+    assert_eq!(memory.deallocations, 1);
     let (result, memory) = allocation_probe::observe(|| empty.try_compact_storage());
     assert_eq!(result, Ok(()));
     assert_eq!(
