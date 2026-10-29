@@ -5,6 +5,15 @@ use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_plan_lowering::selected_operation::{
     bind_selected_operation_for_subject, SelectedCallRefusal, SelectedOperationPlan,
 };
+#[path = "flat_binding.rs"]
+mod flat_binding;
+/// Exact issued custody returned unchanged when borrowed selection refuses.
+pub type ScanBindingFailure = (
+    ScanCallRefusal,
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+);
 pub const SCAN_CAPABILITY: &str = "conduit/network-scan@1";
 pub const SCAN_BASE_KIND: &str = "machine/wifi-scan";
 /// Core requires one nonzero accounting unit even for a zero-input Host Call,
@@ -119,17 +128,24 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         let operation = BoundBaseOperation::bind(table, handle, claim)
             .map_err(|(_, _, _, error)| ScanCallRefusal::Capability(error))?;
         let r = slot.take().expect("validated owner");
-        Ok(NetworkScanHostCall {
+        Ok(r.into_checked_call(operation, node))
+    }
+    fn into_checked_call(
+        self,
+        operation: BoundBaseOperation,
+        node: NodeId,
+    ) -> NetworkScanHostCall<P> {
+        NetworkScanHostCall {
             operation,
-            provider: r.provider,
-            request: r.request,
+            provider: self.provider,
+            request: self.request,
             node,
             invoked: false,
             cleanup_required: false,
             records: [ScanObservation::EMPTY; 16],
             output: [0; MAXIMUM_SCAN_OUTPUT_BYTES as usize],
             length: 0,
-        })
+        }
     }
     /// Compact assigned facts are checked by the same canonical binder. All
     /// implementation/authority pins originate in the actual retained owner.

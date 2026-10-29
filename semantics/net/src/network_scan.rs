@@ -237,35 +237,10 @@ pub fn network_scan_offer(
     implementation: conduit_core::ImplementationId,
     artifact: conduit_core::ArtifactId,
 ) -> conduit_core::CapabilityOffer {
-    use alloc::vec;
-    use conduit_core::*;
-    BackOfferBuilder::new(
-        network_scan_contract(),
-        Back {
-            capability_id: capability,
-            implementation_id: implementation,
-            artifact_id: artifact,
-            execution_profile_id: NETWORK_SCAN_EXECUTION_PROFILE.into(),
-            host_calls: vec![HostCallRequirement {
-                contract_id: NETWORK_SCAN_HOST_CALL.into(),
-                target_kind: Some(NETWORK_SCAN_SUBJECT.into()),
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_SCAN_INPUT_BYTES,
-                maximum_output_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
-            }],
-            resource_requirements: vec![ResourceRequirement {
-                class_id: crate::WIFI_STATION_RESOURCE_CLASS.into(),
-                units: 1,
-                protected_role: None,
-                compute: None,
-                content: None,
-            }],
-            authority_requirements: vec![AuthorityRequirement {
-                contract_id: NETWORK_SCAN_AUTHORITY.into(),
-                host_call_contract_id: NETWORK_SCAN_HOST_CALL.into(),
-                subject_kind: NETWORK_SCAN_SUBJECT.into(),
-            }],
-        },
+    crate::borrowed_contracts::materialize(
+        crate::borrowed_contracts::Shape::Scan,
+        capability,
+        implementation,
+        artifact,
     )
-    .build()
 }

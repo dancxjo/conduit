@@ -3,6 +3,8 @@
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+#[path = "../../../../architecture/plan-lowering/tests/common/native_possession.rs"]
+mod possession;
 #[test]
 fn scan_source_checks_with_a_connected_typed_evidence_sink() {
     let plot = conduit_environment_make::compile_network_scan().unwrap();
@@ -39,6 +41,12 @@ impl conduit_network_join_call::scan::NetworkScanProvider for Inert {
     }
 }
 fn scan_plan() -> conduit_core::Plan {
+    scan_fixture().0
+}
+fn scan_fixture() -> (
+    conduit_core::Plan,
+    conduit_network_join_call::scan::ReadyNetworkScanBase<Inert>,
+) {
     use conduit_core as c;
     use conduit_net::*;
     use conduit_network_join_call::{installation::NetworkNativeIdentity, scan::*};
@@ -97,7 +105,7 @@ fn scan_plan() -> conduit_core::Plan {
     let source = conduit_environment_make::compile_network_scan().unwrap();
     let hosts = [host];
     let placements = conduit_planner::default_expanded_placements(&source, &hosts).unwrap();
-    conduit_planner::plan_expanded_canonical_with_options(
+    let plan = conduit_planner::plan_expanded_canonical_with_options(
         &source,
         &hosts,
         &placements,
@@ -112,7 +120,8 @@ fn scan_plan() -> conduit_core::Plan {
             line_offers: &[],
         },
     )
-    .unwrap()
+    .unwrap();
+    (plan, ready)
 }
 
 #[test]
@@ -256,4 +265,155 @@ fn scan_storage_refuses_each_allocation_without_retaining_partial_backing() {
         assert!(refused, "allocation {index} must refuse");
         assert_eq!(memory.retained_bytes(), 0);
     }
+}
+
+fn issued_scope(
+    ready: &conduit_network_join_call::scan::ReadyNetworkScanBase<Inert>,
+    active: &conduit_core::ActivePlayIdentity,
+) -> conduit_core::BaseCapabilityScope {
+    use conduit_net::*;
+    let i = ready.native_identity();
+    let mut scope = possession::scope(NETWORK_SCAN_SUBJECT);
+    scope.host_id = i.host.clone();
+    scope.boot_id = i.boot.clone();
+    scope.base_instance_id = i.instance.clone();
+    scope.base_provider_generation = i.provider_generation;
+    scope.plan_id = active.plan_id.clone();
+    scope.active_play_id = active.active_play_id.clone();
+    scope.authority_grant_id = "cpu/grant".into();
+    scope.authority_contract_id = NETWORK_SCAN_AUTHORITY.into();
+    scope.capability_id = conduit_network_join_call::scan::SCAN_CAPABILITY.into();
+    scope.implementation_id = i.implementation.clone();
+    scope.operation_contract_id = NETWORK_SCAN_HOST_CALL.into();
+    scope.resource_pool_id = i.resource.clone();
+    scope.resource_generation_id = i.resource_generation.clone();
+    scope.envelope_id = i.envelope.clone();
+    scope.maximum_parameter_bytes = MAXIMUM_SCAN_INPUT_BYTES;
+    scope.maximum_result_bytes = MAXIMUM_SCAN_OUTPUT_BYTES;
+    scope
+}
+
+#[test]
+fn flat_scan_binding_uses_borrowed_contract_and_returns_actual_possession_on_refusal() {
+    use conduit_core as c;
+    use conduit_net::*;
+    use conduit_network_join_call::scan::*;
+    use conduit_plan_lowering::selected_operation::SelectedFlatDirectOperationPlan;
+    for substitution in 0..7 {
+        let (mut plan, ready) = scan_fixture();
+        if [1, 5, 6].contains(&substitution) {
+            let scan = plan.fragments[0]
+                .placements
+                .iter_mut()
+                .find(|g| g.kind_id.as_str() == NETWORK_SCAN_OPERATION)
+                .unwrap();
+            match substitution {
+                1 => scan.artifact_id = "foreign/artifact".into(),
+                5 => scan.execution_profile_id = "foreign/profile".into(),
+                _ => scan.base.as_mut().unwrap().mechanism_family = "foreign/family".into(),
+            }
+            plan = c::seal_plan_with_completion(
+                c::PlotIdentity {
+                    source_document_id: plan.source_document_id.clone(),
+                    checked_plot_id: plan.checked_plot_id.clone(),
+                    expanded_plot_id: plan.expanded_plot_id.clone(),
+                },
+                plan.completion_policy,
+                plan.fragments,
+            );
+        }
+        let active = c::bind_active_play(
+            &plan.plan_id,
+            &ready.native_identity().host,
+            &ready.native_identity().boot,
+            1,
+        );
+        let mut scope = issued_scope(&ready, &active);
+        match substitution {
+            2 => scope.boot_id = "foreign/boot".into(),
+            3 => scope.subject_kind = "authority/foreign".into(),
+            4 => {
+                scope.resource_generation_id = c::ResourceGenerationId("foreign/generation".into())
+            }
+            _ => (),
+        }
+        let foreign = c::bind_active_play(&plan.plan_id, &active.host_id, &active.boot_id, 2);
+        let (table, handle, claim) = possession::possession(scope);
+        let verified = c::FlatPlanRef::from_plan(&plan).unwrap().verify().unwrap();
+        let tables = ScanFlatDirectTables::prepare(&verified).unwrap();
+        let placement = plan.fragments[0]
+            .placements
+            .iter()
+            .find(|g| g.kind_id.as_str() == NETWORK_SCAN_OPERATION)
+            .unwrap()
+            .placement_id
+            .as_str();
+        let mut slot = Some(ready);
+        let original = slot.as_ref().unwrap() as *const _;
+        let (result, memory) = allocation_probe::observe(|| {
+            ReadyNetworkScanBase::bind_flat_direct_retained(
+                &mut slot,
+                table,
+                handle,
+                claim,
+                SelectedFlatDirectOperationPlan {
+                    tables: &tables,
+                    active: if substitution == 0 { &foreign } else { &active },
+                    placement_id: placement,
+                },
+            )
+        });
+        assert_eq!(memory.allocations, 0);
+        assert_eq!(memory.reallocations, 0);
+        let (_, table, handle, claim) = result.err().expect("foreign scope must refuse");
+        assert_eq!(slot.as_ref().unwrap() as *const _, original);
+        // Even a foreign-but-valid CPU fixture bearer remains exactly usable
+        // in its own original scope; rejection did not discard/spend it.
+        c::BoundBaseOperation::check(&table, &handle, &claim).unwrap();
+        assert_eq!(table.inspections().next().unwrap().completed_operations, 0);
+    }
+    let (plan, ready) = scan_fixture();
+    let active = c::bind_active_play(
+        &plan.plan_id,
+        &ready.native_identity().host,
+        &ready.native_identity().boot,
+        1,
+    );
+    let (table, handle, claim) = possession::possession(issued_scope(&ready, &active));
+    let verified = c::FlatPlanRef::from_plan(&plan).unwrap().verify().unwrap();
+    let tables = ScanFlatDirectTables::prepare(&verified).unwrap();
+    let roles = PreparedScanKernelParts::check_flat_direct(&tables).unwrap();
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|g| g.kind_id.as_str() == NETWORK_SCAN_OPERATION)
+        .unwrap()
+        .placement_id
+        .as_str();
+    let mut slot = Some(ready);
+    let (result, memory) = allocation_probe::observe(|| {
+        ReadyNetworkScanBase::bind_flat_direct_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            SelectedFlatDirectOperationPlan {
+                tables: &tables,
+                active: &active,
+                placement_id: placement,
+            },
+        )
+    });
+    let owner = result.unwrap_or_else(|_| panic!("valid borrowed binding"));
+    assert!(slot.is_none());
+    assert_eq!(memory.allocations, 0);
+    assert_eq!(memory.reallocations, 0);
+    let mut selected = Some(owner);
+    selected
+        .as_mut()
+        .unwrap()
+        .revoke(roles.scan, conduit_kernel::HostCallId(0))
+        .unwrap();
+    assert!(NetworkScanHostCall::retire_retained(&mut selected).is_ok());
+    assert!(selected.is_none());
 }

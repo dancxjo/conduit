@@ -44,23 +44,10 @@ pub fn network_scan_sign_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
-    BackOfferBuilder::new(
-        network_scan_sign_contract(),
-        Back {
-            capability_id,
-            implementation_id,
-            artifact_id,
-            execution_profile_id: NETWORK_SCAN_SIGN_EXECUTION_PROFILE.into(),
-            host_calls: alloc::vec![HostCallRequirement {
-                contract_id: NETWORK_SCAN_SIGN_HOST_CALL.into(),
-                target_kind: None,
-                maximum_in_flight: 1,
-                maximum_input_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
-                maximum_output_bytes: 0,
-            }],
-            resource_requirements: alloc::vec![],
-            authority_requirements: alloc::vec![],
-        },
+    crate::borrowed_contracts::materialize(
+        crate::borrowed_contracts::Shape::ScanSign,
+        capability_id,
+        implementation_id,
+        artifact_id,
     )
-    .build()
 }

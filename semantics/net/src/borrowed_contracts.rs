@@ -129,12 +129,36 @@ static CREDENTIAL_AUTHORITY: [conduit_core::AuthorityRequirementRef<'static>; 1]
         host_call_contract_id: NETWORK_CREDENTIALS_HOST_CALL,
         subject_kind: NETWORK_CREDENTIALS_SUBJECT,
     }];
+static SCAN_CALLS: [conduit_core::HostCallRequirementRef<'static>; 1] =
+    [conduit_core::HostCallRequirementRef {
+        contract_id: NETWORK_SCAN_HOST_CALL,
+        target_kind: Some(NETWORK_SCAN_SUBJECT),
+        maximum_in_flight: 1,
+        maximum_input_bytes: MAXIMUM_SCAN_INPUT_BYTES,
+        maximum_output_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
+    }];
+static SCAN_SIGN_CALLS: [conduit_core::HostCallRequirementRef<'static>; 1] =
+    [conduit_core::HostCallRequirementRef {
+        contract_id: NETWORK_SCAN_SIGN_HOST_CALL,
+        target_kind: None,
+        maximum_in_flight: 1,
+        maximum_input_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
+        maximum_output_bytes: 0,
+    }];
+static SCAN_AUTHORITY: [conduit_core::AuthorityRequirementRef<'static>; 1] =
+    [conduit_core::AuthorityRequirementRef {
+        contract_id: NETWORK_SCAN_AUTHORITY,
+        host_call_contract_id: NETWORK_SCAN_HOST_CALL,
+        subject_kind: NETWORK_SCAN_SUBJECT,
+    }];
 #[derive(Clone, Copy)]
 pub(super) enum Shape {
     Join,
     Credentials,
     AttachmentLocal,
     AttachmentUsb,
+    Scan,
+    ScanSign,
 }
 impl Shape {
     fn kind(self) -> KindDefinitionRef<'static> {
@@ -142,6 +166,8 @@ impl Shape {
             Self::Join => network_join_contract_ref(),
             Self::Credentials => network_credentials_contract_ref(),
             Self::AttachmentLocal | Self::AttachmentUsb => network_attachment_sign_contract_ref(),
+            Self::Scan => network_scan_contract_ref(),
+            Self::ScanSign => network_scan_sign_contract_ref(),
         }
     }
     fn profile(self) -> &'static str {
@@ -150,18 +176,22 @@ impl Shape {
             Self::Credentials => "conduit.network/credentials-hosted@1",
             Self::AttachmentLocal => NETWORK_ATTACHMENT_LOCAL_PROFILE,
             Self::AttachmentUsb => "conduit.network/attachment-sign-usb@1",
+            Self::Scan => NETWORK_SCAN_EXECUTION_PROFILE,
+            Self::ScanSign => NETWORK_SCAN_SIGN_EXECUTION_PROFILE,
         }
     }
     fn calls(self) -> &'static [conduit_core::HostCallRequirementRef<'static>] {
         match self {
             Self::Join => &JOIN_CALLS,
             Self::Credentials => &CREDENTIAL_CALLS,
+            Self::Scan => &SCAN_CALLS,
+            Self::ScanSign => &SCAN_SIGN_CALLS,
             _ => &SIGN_CALLS,
         }
     }
     fn resources(self) -> &'static [conduit_core::ResourceRequirementRef<'static>] {
         match self {
-            Self::Join => &JOIN_RESOURCES,
+            Self::Join | Self::Scan => &JOIN_RESOURCES,
             _ => &[],
         }
     }
@@ -169,6 +199,7 @@ impl Shape {
         match self {
             Self::Join => &JOIN_AUTHORITY,
             Self::Credentials => &CREDENTIAL_AUTHORITY,
+            Self::Scan => &SCAN_AUTHORITY,
             _ => &[],
         }
     }
@@ -183,6 +214,12 @@ pub struct PreparedCanonicalNetworkOffer<'a> {
     artifact: &'a str,
 }
 impl<'a> PreparedCanonicalNetworkOffer<'a> {
+    pub fn scan(capability: &'a str, implementation: &'a str, artifact: &'a str) -> Self {
+        Self::prepare(Shape::Scan, capability, implementation, artifact)
+    }
+    pub fn scan_sign(capability: &'a str, implementation: &'a str, artifact: &'a str) -> Self {
+        Self::prepare(Shape::ScanSign, capability, implementation, artifact)
+    }
     pub fn join(capability: &'a str, implementation: &'a str, artifact: &'a str) -> Self {
         Self::prepare(Shape::Join, capability, implementation, artifact)
     }
