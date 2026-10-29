@@ -105,6 +105,7 @@ impl NativePlay {
             // Both native contracts, borrowed Source/Plan projections, grants
             // and lowering tables have retired. Only exact compact proofs and
             // numeric parts overlap final backing and actual issuance.
+            let memory = selected.prepare_claim_storage()?;
             let mut operation = Operation::Credentials;
             selected.prepare_issuance_storage(|native, prepared| {
                 root.prepare_issuance_storage(native, operation, prepared)?;
@@ -125,24 +126,37 @@ impl NativePlay {
             reserved = true;
             #[cfg(test)]
             record_phased(4, None);
-            let first = match selected.issue_credentials(|native, prepared| {
-                let issued = root.issue_prepared(native, Operation::Credentials, prepared);
-                #[cfg(test)]
-                record_phased(6, None);
-                issued
-            }) {
-                Ok(first) => first,
-                Err((lease, _)) => {
-                    if let Some(lease) = lease {
-                        *custody = IssuedCustody::Lease(lease);
+            let first =
+                match selected.issue_credentials_reusing(memory, |native, prepared, memory| {
+                    let issued = root.issue_prepared(
+                        native,
+                        Operation::Credentials,
+                        prepared,
+                        prepared_active.as_ref().ok_or(())?,
+                        memory,
+                    );
+                    #[cfg(test)]
+                    record_phased(6, None);
+                    issued
+                }) {
+                    Ok(first) => first,
+                    Err((lease, _)) => {
+                        if let Some(lease) = lease {
+                            *custody = IssuedCustody::Lease(lease);
+                        }
+                        return Err(());
                     }
-                    return Err(());
-                }
-            };
+                };
             #[cfg(test)]
             record_phased(5, None);
-            let checked = match first.issue_join(|native, prepared| {
-                let issued = root.issue_prepared(native, Operation::Join, prepared);
+            let checked = match first.issue_join_reusing(|native, prepared, memory| {
+                let issued = root.issue_prepared(
+                    native,
+                    Operation::Join,
+                    prepared,
+                    prepared_active.as_ref().ok_or(())?,
+                    memory,
+                );
                 #[cfg(test)]
                 record_phased(7, None);
                 issued

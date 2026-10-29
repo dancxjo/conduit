@@ -17,6 +17,7 @@ impl RootIssuer {
             wait_generation: 0,
             last_play_sequence: 0,
             reserved_play: None,
+            reserved_network_play: None,
             native_issued_play: None,
         }
     }
@@ -26,5 +27,14 @@ impl RootIssuer {
     /// Test a refusal after the first actual selected operation was issued.
     pub(crate) fn refuse_join_fixture(&mut self) {
         self.issued[1] = true;
+    }
+}
+
+impl RootIssuer {
+    pub(crate) fn network_reservation_matches_fixture(
+        &self,
+        active: &c::ActivePlayIdentity,
+    ) -> bool {
+        self.network_play_matches(active)
     }
 }

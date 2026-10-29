@@ -74,6 +74,13 @@ impl Operation {
         }
     }
 }
+// The selected Plan and global Root sequence are the only new reservation
+// facts. Host/Boot already belong to this Root; the complete Active identity
+// stays with NativePlay and is canonically rechecked at every issuance.
+struct NetworkPlayReservation {
+    plan: c::PlanId,
+    sequence: u64,
+}
 pub struct RootIssuer {
     host: c::HostId,
     boot: c::BootId,
@@ -91,6 +98,7 @@ pub struct RootIssuer {
     // Prepared control identities live in admitted Root heap headroom, keeping
     // the permanent executor task frame small. No allocation occurs in Play.
     reserved_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
+    reserved_network_play: Option<alloc::boxed::Box<NetworkPlayReservation>>,
     native_issued_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
 }
 impl RootIssuer {
@@ -119,6 +127,7 @@ impl RootIssuer {
             wait_generation: 0,
             last_play_sequence: 0,
             reserved_play: None,
+            reserved_network_play: None,
             native_issued_play: None,
         })
     }
@@ -428,7 +437,7 @@ impl RootIssuer {
         let expected = self.grant_ref(native, operation)?;
         let (_, _, call, subject, cap, input, output, index) = operation.facts();
         if self.issued[index]
-            || self.reserved_play.as_deref() != Some(active)
+            || !self.network_play_matches(active)
             || !active.is_bound_to(
                 &active.plan_id,
                 &self.host,
@@ -477,6 +486,17 @@ impl RootIssuer {
 }
 
 impl RootIssuer {
+    fn network_play_matches(&self, active: &c::ActivePlayIdentity) -> bool {
+        match self.reserved_network_play.as_deref() {
+            Some(reservation) => active.is_bound_to(
+                &reservation.plan,
+                &self.host,
+                &self.boot,
+                reservation.sequence,
+            ),
+            None => self.reserved_play.as_deref() == Some(active),
+        }
+    }
     /// Finish only the exact returned network owners. No other native worker's
     /// scope, sequence, generation or issued state changes at this boundary.
     pub fn finish_network_play(
@@ -486,7 +506,7 @@ impl RootIssuer {
         let active = retired.active();
         if !retired.evidence_is_committed()
             || self.issued != [true, true]
-            || self.reserved_play.as_deref() != Some(active)
+            || !self.network_play_matches(active)
             || active.host_id != self.host
             || active.boot_id != self.boot
             || !retired.matches_active(active)
@@ -494,7 +514,11 @@ impl RootIssuer {
             return Err(());
         }
         self.issued = [false, false];
-        self.reserved_play = None;
+        if self.reserved_network_play.is_some() {
+            self.reserved_network_play = None;
+        } else {
+            self.reserved_play = None;
+        }
         Ok(())
     }
 }

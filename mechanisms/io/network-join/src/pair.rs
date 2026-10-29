@@ -449,6 +449,7 @@ pub struct PreparedNetworkFirstSelection<'owner, P, S> {
     join: conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
     credentials: conduit_core::BoundBaseOperation,
     node: conduit_kernel::NodeId,
+    claim_backing: Option<conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking>,
 }
 impl<'owner, 'description, P: NetworkJoinProvider, S: CredentialSource>
     ReadyNetworkPairContractView<'owner, 'description, P, S>
@@ -540,6 +541,15 @@ impl<'owner, 'description, P: NetworkJoinProvider, S: CredentialSource>
 impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
     PreparedNetworkPairSelection<'owner, P, S>
 {
+    pub fn prepare_claim_storage(
+        &self,
+    ) -> Result<conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking, ()> {
+        conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking::try_new(&[
+            &self.credentials,
+            &self.join,
+        ])
+        .map_err(|_| ())
+    }
     /// Read-only checked expectations over the actual initialized owners.
     /// Preparation grants no capability and polls neither provider.
     pub fn prepare_issuance_storage<T>(
@@ -558,8 +568,49 @@ impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
         clippy::result_large_err,
         reason = "Refusal returns affine actual possession without another allocation."
     )]
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns affine actual possession without allocating"
+    )]
     pub fn issue_credentials(
         self,
+        issue: impl FnOnce(
+            &installation::NetworkNativeIdentity,
+            conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+        ) -> Result<
+            conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+            (),
+        >,
+    ) -> Result<
+        PreparedNetworkFirstSelection<'owner, P, S>,
+        (Option<NetworkOperationLease>, NetworkPairRefusal),
+    > {
+        self.issue_credentials_mode(false, issue)
+    }
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns affine actual possession without allocating"
+    )]
+    pub fn issue_credentials_reusing(
+        self,
+        memory: conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking,
+        issue: impl FnOnce(
+            &installation::NetworkNativeIdentity,
+            conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+            conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking,
+        ) -> Result<
+            conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+            (),
+        >,
+    ) -> Result<
+        PreparedNetworkFirstSelection<'owner, P, S>,
+        (Option<NetworkOperationLease>, NetworkPairRefusal),
+    > {
+        self.issue_credentials_mode(true, |native, prepared| issue(native, prepared, memory))
+    }
+    fn issue_credentials_mode(
+        self,
+        recycle: bool,
         issue: impl FnOnce(
             &installation::NetworkNativeIdentity,
             conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
@@ -590,7 +641,7 @@ impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
         if let Err(error) = check() {
             return Err((Some(issued_lease(issued)), error));
         }
-        let (credentials, node) = match issued.bind() {
+        let (credentials, node, memory) = match issued.bind_recycling() {
             Ok(bound) => bound,
             Err((issued, error)) => {
                 return Err((
@@ -604,6 +655,7 @@ impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
             join: self.join,
             credentials,
             node,
+            claim_backing: if recycle { Some(memory) } else { None },
         })
     }
 }
@@ -616,6 +668,10 @@ impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
     #[allow(
         clippy::result_large_err,
         reason = "Refusal returns every affine actual possession without another allocation."
+    )]
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns affine actual possession without allocating"
     )]
     pub fn issue_join(
         self,
@@ -634,7 +690,51 @@ impl<'owner, P: NetworkJoinProvider, S: CredentialSource>
             NetworkPairRefusal,
         ),
     > {
-        let issued = match issue(self.owners.join_identity(), self.join) {
+        self.issue_join_mode(|native, prepared, _memory| issue(native, prepared))
+    }
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns affine actual possession without allocating"
+    )]
+    pub fn issue_join_reusing(
+        self,
+        issue: impl FnOnce(
+            &installation::NetworkNativeIdentity,
+            conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+            conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking,
+        ) -> Result<
+            conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+            (),
+        >,
+    ) -> Result<
+        PreparedNetworkPairBindings<'owner>,
+        (
+            conduit_core::BoundBaseOperation,
+            Option<NetworkOperationLease>,
+            NetworkPairRefusal,
+        ),
+    > {
+        self.issue_join_mode(|native, prepared, memory| issue(native, prepared, memory.ok_or(())?))
+    }
+    fn issue_join_mode(
+        self,
+        issue: impl FnOnce(
+            &installation::NetworkNativeIdentity,
+            conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+            Option<conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking>,
+        ) -> Result<
+            conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation,
+            (),
+        >,
+    ) -> Result<
+        PreparedNetworkPairBindings<'owner>,
+        (
+            conduit_core::BoundBaseOperation,
+            Option<NetworkOperationLease>,
+            NetworkPairRefusal,
+        ),
+    > {
+        let issued = match issue(self.owners.join_identity(), self.join, self.claim_backing) {
             Ok(issued) => issued,
             Err(()) => {
                 return Err((

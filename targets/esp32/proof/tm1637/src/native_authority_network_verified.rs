@@ -113,11 +113,12 @@ pub struct LinkedNetworkPreparation<'root> {
     active: Option<c::ActivePlayIdentity>,
     reserved: bool,
     storage: [Option<NetworkIssuanceStorage>; 2],
-    reservation: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
+    reservation: Option<alloc::boxed::Box<NetworkPlayReservation>>,
 }
 struct NetworkIssuanceStorage {
     table: c::BaseCapabilityTable,
-    operation: conduit_plan_lowering::selected_operation::PreparedFlatDirectIssuance,
+    backing: c::BaseCapabilityIssuanceBacking,
+    parameter_bytes: u32,
 }
 impl RootIssuer {
     pub fn prepare_linked_network<'root>(
@@ -127,7 +128,10 @@ impl RootIssuer {
     ) -> Result<LinkedNetworkPreparation<'root>, ()> {
         self.check_linked_scope(scope, expected)?;
         let view = scope.verified().view();
-        if view.plan_id != view.fragment_plan_id || self.issued.iter().any(|issued| *issued) {
+        if view.plan_id != view.fragment_plan_id
+            || self.issued.iter().any(|issued| *issued)
+            || self.reserved_network_play.is_some()
+        {
             return Err(());
         }
         let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;
@@ -159,7 +163,7 @@ impl LinkedNetworkPreparation<'_> {
         &mut self,
         native: &NetworkNativeIdentity,
         operation: Operation,
-        prepared: &conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+        _prepared: &conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
     ) -> Result<(), ()> {
         let (_, _, _, _, _, input, _, index) = operation.facts();
         if self.reserved || self.storage[index].is_some() {
@@ -180,10 +184,11 @@ impl LinkedNetworkPreparation<'_> {
         } else {
             input
         };
-        let storage = prepared.prepare_issuance(input, 1).map_err(|_| ())?;
+        let backing = c::BaseCapabilityIssuanceBacking::try_new(1).map_err(|_| ())?;
         self.storage[index] = Some(NetworkIssuanceStorage {
             table,
-            operation: storage,
+            backing,
+            parameter_bytes: input,
         });
         Ok(())
     }
@@ -193,45 +198,33 @@ impl LinkedNetworkPreparation<'_> {
             return Err(());
         }
         let expected = self.active.as_ref().ok_or(())?;
-        let returned = c::ActivePlayIdentity {
-            active_play_id: c::ActivePlayId(try_network_text(expected.active_play_id.as_str())?),
-            plan_id: c::PlanId(try_network_text(expected.plan_id.as_str())?),
-            host_id: c::HostId(try_network_text(expected.host_id.as_str())?),
-            boot_id: c::BootId(try_network_text(expected.boot_id.as_str())?),
-            play_sequence: expected.play_sequence,
+        let reservation = NetworkPlayReservation {
+            plan: c::PlanId(try_network_text(expected.plan_id.as_str())?),
+            sequence: expected.play_sequence,
         };
-        let layout = core::alloc::Layout::new::<c::ActivePlayIdentity>();
-        // SAFETY: exact nonzero layout, checked before taking the candidate;
-        // the resulting Box uniquely owns the initialized Active identity.
-        let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<c::ActivePlayIdentity>();
+        let layout = core::alloc::Layout::new::<NetworkPlayReservation>();
+        // SAFETY: exact nonzero layout, uniquely owned, written once before Box.
+        let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<NetworkPlayReservation>();
         if raw.is_null() {
             return Err(());
         }
-        let active = self.active.take().ok_or(())?;
         unsafe {
-            raw.write(active);
+            raw.write(reservation);
             self.reservation = Some(alloc::boxed::Box::from_raw(raw));
         }
-        Ok(returned)
+        self.active.take().ok_or(())
     }
     pub fn reserve(&mut self) -> Result<(), ()> {
         if self.reserved || self.storage.iter().any(Option::is_none) {
             return Err(());
         }
         let expected = self.reservation.as_deref().ok_or(())?;
-        if self.issuer.last_play_sequence.checked_add(1) != Some(expected.play_sequence)
-            || !expected.is_bound_to(
-                &expected.plan_id,
-                &self.issuer.host,
-                &self.issuer.boot,
-                expected.play_sequence,
-            )
-        {
+        if self.issuer.last_play_sequence.checked_add(1) != Some(expected.sequence) {
             return Err(());
         }
         // Exclusive Root borrowing makes this commit allocation-free and affine.
-        self.issuer.last_play_sequence = expected.play_sequence;
-        self.issuer.reserved_play = self.reservation.take();
+        self.issuer.last_play_sequence = expected.sequence;
+        self.issuer.reserved_network_play = self.reservation.take();
         self.reserved = true;
         Ok(())
     }
@@ -240,17 +233,21 @@ impl LinkedNetworkPreparation<'_> {
         native: &NetworkNativeIdentity,
         operation: Operation,
         prepared: conduit_plan_lowering::selected_operation::PreparedFlatDirectOperation,
+        active: &c::ActivePlayIdentity,
+        memory: conduit_plan_lowering::selected_operation::PreparedFlatClaimBacking,
     ) -> Result<conduit_plan_lowering::selected_operation::IssuedFlatDirectOperation, ()> {
         if !self.reserved {
             return Err(());
         }
-        let active = self.issuer.reserved_play.as_deref().ok_or(())?;
         let (authority, _input, index) =
             self.issuer
                 .network_policy_for(native, operation, prepared.expected_scope(), active)?;
         let storage = self.storage[index].take().ok_or(())?;
+        let operation = prepared
+            .prepare_issuance_reusing(memory, storage.backing, storage.parameter_bytes, 1)
+            .map_err(|_| ())?;
         let issued = prepared
-            .issue_prepared(storage.table, authority, active, storage.operation)
+            .issue_prepared(storage.table, authority, active, operation)
             .map_err(|_| ())?;
         self.issuer.issued[index] = true;
         Ok(issued)

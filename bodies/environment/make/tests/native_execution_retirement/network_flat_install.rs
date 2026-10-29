@@ -762,3 +762,43 @@ fn issuance_storage_refusal_is_reversible_and_committed_installation_allocates_n
     assert_eq!((before.allocations, before.reallocations), (total.allocations, total.reallocations), "actual Root reservation/issuance/binding/materialization after admission must allocate nothing");
     assert_eq!(play.active.as_ref().unwrap().play_sequence, 1);
 }
+
+#[test]
+fn compact_network_reservation_retains_full_selected_plan_and_root_binding() {
+    let image = source_image();
+    let pins = image.identity().unwrap();
+    let mut issuer = issuer();
+    let (mut source, mut join) = ready();
+    let mut play = NativePlay::new();
+    play.install_linked_phased_held(
+        &image,
+        &pins,
+        c::OfferGeneration(u64::MAX),
+        &mut source,
+        &mut join,
+        &mut issuer,
+        || Ok(()),
+    )
+    .unwrap();
+    let active = play.active.as_ref().unwrap();
+    assert!(issuer.network_reservation_matches_fixture(active));
+    let other_plan = c::PlanId::from("plan/independently-valid-but-unselected");
+    let other = c::bind_active_play(
+        &other_plan,
+        &active.host_id,
+        &active.boot_id,
+        active.play_sequence,
+    );
+    assert!(!issuer.network_reservation_matches_fixture(&other));
+    for field in 0..4 {
+        let mut changed = active.clone();
+        match field {
+            0 => changed.host_id = "host/substituted".into(),
+            1 => changed.boot_id = "boot/substituted".into(),
+            2 => changed.play_sequence += 1,
+            _ => changed.active_play_id = "active/substituted".into(),
+        }
+        assert!(!issuer.network_reservation_matches_fixture(&changed));
+    }
+    assert!(issuer.network_reservation_matches_fixture(active));
+}
