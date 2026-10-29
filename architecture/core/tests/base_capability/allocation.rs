@@ -6,6 +6,7 @@ use std::cell::Cell;
 thread_local! {
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
+    static RELEASED: Cell<usize> = const { Cell::new(0) };
 }
 
 struct CountedAllocator;
@@ -32,6 +33,9 @@ unsafe impl GlobalAlloc for CountedAllocator {
         unsafe { System.realloc(pointer, layout, size) }
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        if TRACKING.try_with(Cell::get).unwrap_or(false) {
+            let _ = RELEASED.try_with(|count| count.set(count.get() + layout.size()));
+        }
         unsafe { System.dealloc(pointer, layout) }
     }
 }
@@ -70,4 +74,22 @@ fn admitted_lease_work_and_rotation_allocate_nothing_under_pressure() {
         TRACKING.with(|tracking| tracking.set(false));
         assert_eq!(ALLOCATIONS.with(Cell::get), 0);
     }
+}
+
+pub(super) fn without_allocations(f: impl FnOnce()) {
+    ALLOCATIONS.with(|count| count.set(0));
+    TRACKING.with(|tracking| tracking.set(true));
+    f();
+    TRACKING.with(|tracking| tracking.set(false));
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+}
+
+pub(super) fn released_bytes<T>(f: impl FnOnce() -> T) -> (T, usize) {
+    ALLOCATIONS.with(|count| count.set(0));
+    RELEASED.with(|count| count.set(0));
+    TRACKING.with(|tracking| tracking.set(true));
+    let result = f();
+    TRACKING.with(|tracking| tracking.set(false));
+    assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+    (result, RELEASED.with(Cell::get))
 }
