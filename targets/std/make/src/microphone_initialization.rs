@@ -45,6 +45,12 @@ pub(super) fn offer() -> ImplementationOffer {
     }
 }
 
+pub(super) fn converted_offer() -> ImplementationOffer {
+    let mut offer = offer();
+    offer.implementation_id = conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION.into();
+    offer
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,6 +111,26 @@ mod source_tests {
         assert_ne!(
             conduit_host_make::canonical_profile_json(first.profile()).unwrap(),
             conduit_host_make::canonical_profile_json(changed.profile()).unwrap()
+        );
+    }
+    #[test]
+    fn converted_implementation_is_explicit_and_changes_checked_identity() {
+        let direct = checked(&source()).unwrap();
+        let converted = checked(&source().replace(
+            conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
+            conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION,
+        ))
+        .unwrap();
+        assert_ne!(direct.configuration_id(), converted.configuration_id());
+        assert!(converted
+            .resolved_bases()
+            .iter()
+            .any(|(_, implementation)| implementation
+                == conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION));
+        let canonical = canonical_host_configuration_conduit(direct.configuration()).unwrap();
+        assert_eq!(
+            direct.configuration_id(),
+            checked(&canonical).unwrap().configuration_id()
         );
     }
     #[test]

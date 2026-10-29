@@ -63,8 +63,11 @@ impl Selection {
                     .find(|(kind, _)| kind == &base.kind)
                     .map(|(_, implementation)| implementation.as_str())
             }) {
-                Some(conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION) => {
-                    let adapter = microphone::initialize(initialization)?;
+                Some(
+                    implementation @ (conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+                    | conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION),
+                ) => {
+                    let adapter = microphone::initialize(initialization, implementation)?;
                     host.attach_microphone(adapter)?;
                 }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
@@ -93,9 +96,10 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 .find(|(kind, _)| kind == &base.kind)
                 .map(|(_, implementation)| implementation.as_str());
             match implementation {
-                Some(conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION) => {
-                    microphone::validate(initialization)?
-                }
+                Some(
+                    implementation @ (conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
+                    | conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION),
+                ) => microphone::validate(initialization, implementation)?,
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }

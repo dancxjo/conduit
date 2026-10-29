@@ -183,6 +183,23 @@ mod microphone_fixture {
         let mut duplicate_host = StdHost::default();
         duplicate.attach_to_fresh_host(&mut duplicate_host).unwrap();
         assert_eq!(duplicate_host.advertisement().offer_generation.0, 2);
+        let converted = Selection::from_source(
+            &selected.source.replace(
+                conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
+                conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION,
+            ),
+            "std/x86_64/computer",
+        )
+        .unwrap();
+        assert_ne!(selected.configuration_id, converted.configuration_id);
+        let mut converted_host = StdHost::default();
+        converted.attach_to_fresh_host(&mut converted_host).unwrap();
+        assert!(converted_host.advertisement().capabilities.iter().any(|v| v
+            .implementation
+            .implementation_id
+            .as_str()
+            == conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION));
+        assert!(!state.join("fixture-arecord.capture").exists());
         let changed_endpoint = selection(&executable, "wrong-endpoint");
         assert!(changed_endpoint
             .attach_to_fresh_host(&mut StdHost::default())
