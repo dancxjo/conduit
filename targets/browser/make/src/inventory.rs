@@ -362,6 +362,7 @@ pub fn default_configuration_bases() -> Vec<ConfigurationBase> {
             kind: descriptor.base_kind.into(),
             implementation: Some(descriptor.implementation_id.into()),
             implementations: Vec::new(),
+            initialization: None,
         }
     })
     .collect()

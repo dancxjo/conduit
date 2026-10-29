@@ -30,6 +30,7 @@ pub struct PresenterMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PackageCatalogContribution {
+    pub initialization_contracts: BTreeMap<String, crate::BaseInitializationContract>,
     pub implementations: BTreeMap<String, ImplementationMetadata>,
     pub presenters: BTreeMap<String, PresenterMetadata>,
     pub dependencies: BTreeMap<PrerequisiteNode, Vec<PrerequisiteNode>>,
@@ -200,43 +201,8 @@ pub struct ResolvedImplementationOffer {
     pub offer: ImplementationOffer,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PackageCompositionDiagnostic {
-    DuplicatePackageIdentity {
-        package_id: String,
-    },
-    DuplicateTargetAnchor {
-        target: String,
-        packages: Vec<String>,
-    },
-    DuplicateImplementationIdentity {
-        implementation_id: String,
-        packages: Vec<String>,
-    },
-    DuplicateMakeDescriptorBinding {
-        binding: String,
-        targets: Vec<String>,
-    },
-    ExtensionHasNoCompatibleAnchor {
-        package_id: String,
-    },
-    OfferOutsidePackageTargets {
-        package_id: String,
-        implementation_id: String,
-    },
-    UnknownTarget {
-        target: String,
-    },
-    UnsupportedOutput {
-        package_id: String,
-        output: SporeOutputKind,
-    },
-    UnsupportedImplementation {
-        target: String,
-        base_kind: String,
-        implementation_id: String,
-    },
-}
+mod diagnostic;
+pub use diagnostic::PackageCompositionDiagnostic;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MakePackageSet {
@@ -260,6 +226,9 @@ impl MakePackageSet {
                 .then(left.package_revision().cmp(&right.package_revision()))
         });
         let mut diagnostics = Vec::new();
+        for contribution in &contributions {
+            diagnostics.extend(crate::initialization::validate_contribution(contribution));
+        }
 
         for pair in contributions.windows(2) {
             if pair[0].package_id() == pair[1].package_id() {
