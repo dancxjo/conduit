@@ -1,9 +1,15 @@
 //! Exact fixed storage for the three-gear network control Play. This prepares
 //! the production kernel; it neither issues authority nor dispatches Host Calls.
 use crate::NetworkControlBack;
+#[path = "control_kernel_storage.rs"]
+mod storage;
 use conduit_core::PlanFragment;
 use conduit_kernel::{self as k, scheduler::FixedScheduler, ValueStorage};
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+pub use storage::{
+    NetworkKernelAllocationFailure, NetworkKernelAllocationPhase, PreparedNetworkKernelBacking,
+    PreparedNetworkKernelStorage,
+};
 
 // This exact three-gear control uses only ordinal zero. Renew this finite
 // profile if its Fore grows; do not reserve the general 16-port envelope.
@@ -71,82 +77,6 @@ impl PreparedNetworkKernel {
             .unwrap_or_else(|_| unreachable!("exclusive terminal scheduler preflight"));
         let k::scheduler::RetiredExecution { signs, .. } = retired;
         Ok(signs)
-    }
-}
-/// Finite execution backing only. This does not contain Source, Plan, grants,
-/// initialized providers or permission to dispatch. Private fields guarantee
-/// the exact empty 128-entry Sign log and unique uninitialized kernel backing.
-pub struct PreparedNetworkKernelStorage {
-    backing: alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>,
-    signs: k::HostedSignLog,
-}
-/// Allocation observations only; never admitted capacity or authority.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum NetworkKernelAllocationPhase {
-    Kernel,
-    Signs,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct NetworkKernelAllocationFailure {
-    pub phase: NetworkKernelAllocationPhase,
-    pub requested_bytes: usize,
-    pub alignment: usize,
-}
-impl PreparedNetworkKernelStorage {
-    pub const fn allocation_bytes() -> usize {
-        core::mem::size_of::<PreparedNetworkKernel>() + CONTROL_SIGN_BACKING_BYTES
-    }
-    pub fn try_new() -> Result<Self, ControlKernelRefusal> {
-        Self::try_new_observing_failure(|_| ())
-    }
-    /// The observer runs only on allocation refusal, before existing backing
-    /// unwinds. It cannot replace storage, change bounds or authorize execution.
-    pub fn try_new_observing_failure(
-        observe: impl FnOnce(NetworkKernelAllocationFailure),
-    ) -> Result<Self, ControlKernelRefusal> {
-        let layout = core::alloc::Layout::new::<PreparedNetworkKernel>();
-        // SAFETY: exact unique nonzero backing, initialized only by Box::write.
-        let raw = unsafe { alloc::alloc::alloc(layout) }
-            .cast::<core::mem::MaybeUninit<PreparedNetworkKernel>>();
-        if raw.is_null() {
-            observe(NetworkKernelAllocationFailure {
-                phase: NetworkKernelAllocationPhase::Kernel,
-                requested_bytes: layout.size(),
-                alignment: layout.align(),
-            });
-            return Err(ControlKernelRefusal::Storage);
-        }
-        let backing = unsafe { alloc::boxed::Box::from_raw(raw) };
-        let signs = match k::HostedSignLog::try_new(
-            128,
-            (128 * core::mem::size_of::<k::KernelEvent>()) as u32,
-        ) {
-            Ok(signs) => signs,
-            Err(k::HostedSignPreparationError::Allocation) => {
-                observe(NetworkKernelAllocationFailure {
-                    phase: NetworkKernelAllocationPhase::Signs,
-                    requested_bytes: CONTROL_SIGN_BACKING_BYTES,
-                    alignment: k::HostedSignLog::canonical_local_storage_alignment(),
-                });
-                return Err(ControlKernelRefusal::Storage);
-            }
-            Err(k::HostedSignPreparationError::Budget(_)) => {
-                return Err(ControlKernelRefusal::Storage)
-            }
-        };
-        Ok(Self { backing, signs })
-    }
-    /// Observes allocation identity only; it cannot borrow an initialized kernel.
-    pub fn as_ptr(&self) -> *const PreparedNetworkKernel {
-        self.backing.as_ptr()
-    }
-    #[inline(never)]
-    pub fn finish(
-        self,
-        parts: PreparedNetworkKernelParts,
-    ) -> Result<alloc::boxed::Box<PreparedNetworkKernel>, ControlKernelRefusal> {
-        let kernel = parts.finish_with_signs(self.signs)?;
-        Ok(alloc::boxed::Box::write(self.backing, kernel))
     }
 }
 /// Opaque result of actual canonical fragment verification and lowering.

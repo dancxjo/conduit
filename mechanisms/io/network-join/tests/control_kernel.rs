@@ -244,3 +244,34 @@ fn execute(failed_node: Option<u16>, source_mode: u8) {
         );
     }
 }
+
+#[test]
+fn split_kernel_backing_survives_late_sign_refusal_without_reallocation() {
+    use conduit_network_join_call::{
+        NetworkKernelAllocationPhase as Phase, PreparedNetworkKernelBacking as Backing,
+        CONTROL_SIGN_BACKING_BYTES,
+    };
+    let backing = Backing::try_new().unwrap_or_else(|_| panic!("cold kernel backing"));
+    let address = backing.as_ptr();
+    let mut failure = None;
+    let refusal = allocation_probe::refuse_next_allocation_size(CONTROL_SIGN_BACKING_BYTES);
+    let backing = match backing.with_signs_observing_failure(|actual| failure = Some(actual)) {
+        Ok(_) => panic!("mandatory Sign allocation must refuse"),
+        Err((actual, _)) => actual,
+    };
+    drop(refusal);
+    assert_eq!(backing.as_ptr(), address);
+    let failure = failure.expect("actual Sign refusal observed");
+    assert_eq!(failure.phase, Phase::Signs);
+    assert_eq!(failure.requested_bytes, CONTROL_SIGN_BACKING_BYTES);
+    let (storage, memory) = allocation_probe::observe(|| {
+        match backing.with_signs_observing_failure(|_| panic!("retry")) {
+            Ok(storage) => storage,
+            Err(_) => panic!("returned backing retries the SAME allocation"),
+        }
+    });
+    assert_eq!(storage.as_ptr(), address);
+    assert_eq!(memory.allocations, 1);
+    assert_eq!(memory.reallocations, 0);
+    assert_eq!(memory.requested_bytes, CONTROL_SIGN_BACKING_BYTES);
+}

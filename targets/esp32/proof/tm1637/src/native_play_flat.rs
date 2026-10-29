@@ -1,8 +1,15 @@
 //! Ordinary linked Source planning and affine actual-owner selection. No Step
 //! is polled here; successful construction remains held for Root admission.
 use super::*;
+#[path = "native_play_flat_backing.rs"]
+mod backing;
 #[path = "native_play_flat_diagnostics.rs"]
 mod diagnostics;
+use backing::reserve_kernel_backing;
+#[cfg(test)]
+use backing::REFUSE_NEXT_LOG;
+#[cfg(test)]
+pub(super) use backing::{refuse_next_backing, refuse_next_log};
 #[cfg(test)]
 pub(super) use diagnostics::phased_refusal;
 use diagnostics::{trace_flat_refusal, trace_phased_refusal};
@@ -46,8 +53,9 @@ impl NativePlay {
     ) -> Result<(), ()> {
         self.install_linked_mode(image, expected, generation, source, join, issuer, None)
     }
-    /// Separate immutable checked preparation from admitted execution backing.
-    /// Before `admit` succeeds no attempt or Root sequence/bearer is changed.
+    /// Separate immutable checked preparation from admitted execution. Only
+    /// unique uninitialized backing overlaps temporary descriptions; the kernel
+    /// materializes later. Before `admit`, no attempt/sequence/bearer changes.
     pub(crate) fn install_linked_phased_held(
         &mut self,
         image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_>,
@@ -67,6 +75,18 @@ impl NativePlay {
             );
             return Err(());
         }
+        // Reserve only the largest block before temporary descriptions can
+        // fragment its hole. This overlaps cold preparation and counts against
+        // the SAME admitted workspace; Signs remain a separate later phase.
+        let backing = match Self::reserve_linked_kernel_backing() {
+            Ok(backing) => backing,
+            Err(()) => {
+                trace_phased_refusal(114, &self.flat_refusal, false, false);
+                return Err(());
+            }
+        };
+        #[cfg(test)]
+        record_phased(9, Some(backing.as_ptr() as usize));
         let pair = ReadyNetworkPair::new(source.take().ok_or(())?, join.take().ok_or(())?);
         let pins = (
             expected.source_document_id.as_str(),
@@ -132,12 +152,12 @@ impl NativePlay {
             // Both native contracts, borrowed Source/Plan projections, grants
             // and lowering tables have retired. Only exact compact proofs and
             // numeric parts overlap final backing and actual issuance.
-            // Admit the largest fixed allocations while the retired metadata's
-            // contiguous holes remain available, before many small owner copies.
+            // Descriptors have retired; attach the smaller mandatory Sign
+            // allocation to the exact kernel-only backing already protected.
             #[cfg(test)]
             record_phased(0, None);
             refusal_stage = 114;
-            let storage = Self::reserve_linked_backing()?;
+            let storage = Self::complete_linked_sign_backing(backing)?;
             #[cfg(test)]
             record_phased(1, Some(storage.as_ptr() as usize));
             refusal_stage = 110;
@@ -256,28 +276,6 @@ impl NativePlay {
                 Err(())
             }
         }
-    }
-    pub(crate) fn reserve_linked_backing() -> Result<n::PreparedNetworkKernelStorage, ()> {
-        #[cfg(test)]
-        let _refusal = if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {
-            Some(crate::allocation_probe::refuse_next_allocation_size(
-                core::mem::size_of::<PreparedNetworkKernel>(),
-            ))
-        } else {
-            None
-        };
-        #[cfg(test)]
-        let _log_refusal = if REFUSE_NEXT_LOG.with(|flag| flag.replace(false)) {
-            Some(crate::allocation_probe::refuse_next_allocation_size(
-                n::CONTROL_SIGN_BACKING_BYTES,
-            ))
-        } else {
-            None
-        };
-        n::PreparedNetworkKernelStorage::try_new_observing_failure(
-            diagnostics::trace_storage_failure,
-        )
-        .map_err(|_| ())
     }
     pub(crate) fn install_linked_reserved_held(
         &mut self,
@@ -609,63 +607,6 @@ fn check_linked_scope<'owner>(
 }
 
 #[cfg(test)]
-std::thread_local! {
-    static REFUSE_NEXT_BACKING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-    static REFUSE_NEXT_LOG: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
-}
-#[cfg(test)]
-pub(super) fn refuse_next_log() {
-    REFUSE_NEXT_LOG.with(|flag| flag.set(true));
-}
-#[cfg(test)]
-pub(super) fn refuse_next_backing() {
-    REFUSE_NEXT_BACKING.with(|flag| flag.set(true));
-}
-fn reserve_kernel_backing(
-) -> Result<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>, ()> {
-    reserve_kernel_backing_using(|layout| {
-        #[cfg(test)]
-        if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {
-            return core::ptr::null_mut();
-        }
-        // SAFETY: allocator receives the exact requested nonzero layout.
-        unsafe { alloc::alloc::alloc(layout) }
-    })
-}
-fn reserve_kernel_backing_using(
-    allocate: impl FnOnce(core::alloc::Layout) -> *mut u8,
-) -> Result<alloc::boxed::Box<core::mem::MaybeUninit<PreparedNetworkKernel>>, ()> {
-    let layout = core::alloc::Layout::new::<PreparedNetworkKernel>();
-    if layout.size() == 0 {
-        return Ok(alloc::boxed::Box::<PreparedNetworkKernel>::new_uninit());
-    }
-    // SAFETY: exact layout, unique ownership, initialized only by Box::write.
-    let raw = allocate(layout).cast::<core::mem::MaybeUninit<PreparedNetworkKernel>>();
-    if raw.is_null() {
-        return Err(());
-    }
-    Ok(unsafe { alloc::boxed::Box::from_raw(raw) })
-}
-
-#[cfg(test)]
-mod backing_tests {
-    use super::*;
-    #[test]
-    fn actual_kernel_layout_refusal_returns_without_initialized_owner() {
-        let mut requested = None;
-        let result = reserve_kernel_backing_using(|layout| {
-            requested = Some(layout);
-            core::ptr::null_mut()
-        });
-        assert!(result.is_err());
-        assert_eq!(
-            requested,
-            Some(core::alloc::Layout::new::<PreparedNetworkKernel>())
-        );
-    }
-}
-
-#[cfg(test)]
 #[derive(Clone, Copy, Default)]
 pub(super) struct PhaseMeasurement {
     pub(super) observation: Option<crate::allocation_probe::Observation>,
@@ -673,8 +614,8 @@ pub(super) struct PhaseMeasurement {
 }
 #[cfg(test)]
 std::thread_local! {
-    static PHASE_MEASUREMENTS: std::cell::Cell<[PhaseMeasurement; 9]> = const {
-        std::cell::Cell::new([PhaseMeasurement { observation: None, backing: None }; 9])
+    static PHASE_MEASUREMENTS: std::cell::Cell<[PhaseMeasurement; 10]> = const {
+        std::cell::Cell::new([PhaseMeasurement { observation: None, backing: None }; 10])
     };
 }
 #[cfg(test)]
@@ -689,6 +630,6 @@ fn record_phased(index: usize, backing: Option<usize>) {
     });
 }
 #[cfg(test)]
-pub(super) fn phase_measurements() -> [PhaseMeasurement; 9] {
-    PHASE_MEASUREMENTS.with(|measurements| measurements.replace([PhaseMeasurement::default(); 9]))
+pub(super) fn phase_measurements() -> [PhaseMeasurement; 10] {
+    PHASE_MEASUREMENTS.with(|measurements| measurements.replace([PhaseMeasurement::default(); 10]))
 }

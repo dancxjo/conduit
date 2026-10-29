@@ -572,8 +572,16 @@ fn phased_constructor_counts_complete_retained_proofs_and_both_phase_peaks() {
     );
     assert_eq!(
         backed.retained_bytes() - cold.retained_bytes(),
-        n::PreparedNetworkKernelStorage::allocation_bytes()
+        n::CONTROL_SIGN_BACKING_BYTES
     );
+    let early = phases[9]
+        .observation
+        .expect("kernel backing precedes descriptions");
+    assert_eq!(
+        early.retained_bytes(),
+        n::PreparedNetworkKernelBacking::allocation_bytes()
+    );
+    assert_eq!(phases[9].backing, phases[1].backing);
     assert!(
         backed.retained_bytes() < before_finish.retained_bytes(),
         "large backing precedes the small issuance/reservation allocations"
