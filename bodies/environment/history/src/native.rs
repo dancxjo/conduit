@@ -1,5 +1,5 @@
 //! Normal finite GraphicsScene adapter. The caller owns checked Mask/Show admission.
-use crate::graph::HistoryGraph;
+use crate::graph::{ChartGeometry, HistoryGraph};
 use alloc::format;
 use conduit_face::{
     GraphicsCommand, GraphicsError, GraphicsPaintRole as Paint, GraphicsScene, GraphicsShapeStyle,
@@ -20,6 +20,23 @@ impl<'a> HistoryGraph<'a> {
         })
     }
     pub fn native_scene(&self) -> Result<GraphicsScene, GraphicsError> {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .native_scene(
+            self.omitted,
+            "RECORDED HISTORY",
+            conduit_core::Unit::Celsius,
+        )
+    }
+}
+impl ChartGeometry<'_> {
+    pub(crate) fn native_scene(
+        &self,
+        omitted: u64,
+        provenance: &str,
+        temperature_unit: conduit_core::Unit,
+    ) -> Result<GraphicsScene, GraphicsError> {
         let mut scene = GraphicsScene::empty();
         let clip = LayoutRect {
             x: 0,
@@ -50,21 +67,43 @@ impl<'a> HistoryGraph<'a> {
             return Ok(scene);
         }
         let (min, max) = self.temperature_range();
+        if !matches!(
+            temperature_unit,
+            conduit_core::Unit::Celsius | conduit_core::Unit::Fahrenheit
+        ) {
+            return Err(GraphicsError::InvalidGeometry);
+        }
+        let display = |value: i64| {
+            let quantity = conduit_core::Quantity::from_decimal(
+                i128::from(value),
+                -3,
+                conduit_core::Unit::Celsius,
+            )
+            .map_err(|_| GraphicsError::InvalidGeometry)?;
+            super::graph::quantity_milli(quantity, temperature_unit)
+                .map_err(|_| GraphicsError::InvalidGeometry)
+        };
+        let unit_label = if temperature_unit == conduit_core::Unit::Fahrenheit {
+            "°F"
+        } else {
+            "°C"
+        };
         let first = self.samples.first().map_or(0, |s| s.boot_ms);
         let last = self.samples.last().map_or(0, |s| s.boot_ms);
         for (y, label) in [
             (
                 4,
                 format!(
-                    "Temperature °C: top {}; bottom {}",
-                    super::graph::milli_label(max),
-                    super::graph::milli_label(min)
+                    "Temperature {}: top {}; bottom {}",
+                    unit_label,
+                    super::graph::milli_label(display(max)?),
+                    super::graph::milli_label(display(min)?)
                 ),
             ),
             (156, "Humidity %: top 100; bottom 0".into()),
             (
                 306,
-                format!("Boot ms: left {first}; right {last}; observation dots"),
+                format!("Boot ms: left {first}; right {last}; lines join adjacent samples"),
             ),
         ] {
             scene.push(GraphicsCommand::text(
@@ -86,8 +125,8 @@ impl<'a> HistoryGraph<'a> {
             .filter(|s| s.gap_before.is_some())
             .count();
         let label = format!(
-            "Recovered; outside {}; unavailable {}; gaps {}",
-            self.omitted, failures, gaps
+            "{}; outside {}; failures {}; gaps {}",
+            provenance, omitted, failures, gaps
         );
         scene.push(GraphicsCommand::text(
             LayoutRect {

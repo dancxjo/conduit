@@ -98,6 +98,78 @@ pub fn render(
     Ok((page, pages))
 }
 
+pub fn render_graphics(
+    scene: &conduit_face::GraphicsScene,
+    width: u16,
+    height: u16,
+    pixels: &mut [u32],
+) -> Result<(), String> {
+    if pixels.len() != usize::from(width) * usize::from(height) || height <= 36 || width == 0 {
+        return Err("raster extent mismatch".into());
+    }
+    pixels.fill(0);
+    let mut target = ChartViewport {
+        width: usize::from(width),
+        height: usize::from(height),
+        pixels,
+    };
+    typography::render_scene_scaled(
+        &mut target,
+        scene,
+        |_, command| command.text_role().into(),
+        100,
+    )
+    .map(|_| ())
+    .map_err(|e| format!("history raster: {e:?}"))
+}
+/// Scale the existing 640x360 logical chart into the admitted framebuffer,
+/// reserving a separate Host status strip above it. No geometry is rewritten.
+struct ChartViewport<'a> {
+    width: usize,
+    height: usize,
+    pixels: &'a mut [u32],
+}
+impl PixelTarget for ChartViewport<'_> {
+    fn format(&self) -> DisplayFormat {
+        DisplayFormat {
+            width: 640,
+            height: 360,
+            pitch: 640 * 4,
+            bits_per_pixel: 32,
+            red_shift: 16,
+            green_shift: 8,
+            blue_shift: 0,
+        }
+    }
+    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
+        if x >= 640 || y >= 360 {
+            return Err(DisplayError::InvalidExtent);
+        }
+        let x = x as usize;
+        let y = y as usize;
+        let drawable = self.height - 36;
+        for py in 36 + y * drawable / 360..36 + (y + 1) * drawable / 360 {
+            for px in x * self.width / 640..(x + 1) * self.width / 640 {
+                self.pixels[py * self.width + px] = pixel;
+            }
+        }
+        Ok(())
+    }
+}
+impl RetainedPixelTarget for ChartViewport<'_> {
+    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
+        if x >= 640 || y >= 360 {
+            return Err(DisplayError::InvalidExtent);
+        }
+        let px = x as usize * self.width / 640;
+        let py = 36 + y as usize * (self.height - 36) / 360;
+        self.pixels
+            .get(py * self.width + px)
+            .copied()
+            .ok_or(DisplayError::BufferTooSmall)
+    }
+}
+
 /// Host presentation status is separate from the unchanged producer Face.
 pub fn render_notice(
     text: &str,

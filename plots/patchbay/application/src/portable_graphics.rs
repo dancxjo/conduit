@@ -133,3 +133,36 @@ mod tests {
         assert_eq!(normalized[1].unwrap().order, 1);
     }
 }
+
+#[cfg(test)]
+mod polyline_tests {
+    use super::*;
+    #[test]
+    fn diagonal_geometry_survives_portable_normalization_as_geometry() {
+        let line = conduit_face::GraphicsPolyline::new(&[
+            conduit_face::GraphicsPoint::new(1, 1).unwrap(),
+            conduit_face::GraphicsPoint::new(9, 7).unwrap(),
+        ])
+        .unwrap();
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(
+                conduit_face::GraphicsCommand::polyline(
+                    line,
+                    LayoutRect {
+                        x: 0,
+                        y: 0,
+                        width: 32,
+                        height: 32,
+                    },
+                    GraphicsPaintRole::Foreground,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let normalized = NativeGraphicsMask::normalize(&scene).unwrap()[0].unwrap();
+        assert_eq!(normalized.polyline, Some(line));
+        assert_eq!(normalized.path, None);
+        assert_eq!(normalized.resolved_content, "");
+    }
+}

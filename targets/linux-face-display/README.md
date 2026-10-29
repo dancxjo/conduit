@@ -48,3 +48,28 @@ requirements; displaying a Face is not evidence of either.
 Set `CONDUIT_DISPLAY_TEMPERATURE_UNIT=fahrenheit` or `celsius` to choose the local Mask temperature unit. Conversion uses the shared exact Quantity formatter; incompatible values retain their canonical wording. The input Face and its measurement units remain unchanged.
 
 Large property pages precede the ordinary native Face pages in one rotation. Mixed sensor and transcript content therefore remains perceptible; the property Look never replaces the complete Face view. This renderer does not admit workers, synthesize contributions, or renew a producer lease.
+
+The display retains its last successfully validated same-Boot Face when its live
+feed expires or becomes unavailable. A separate Host notice marks that view
+`STALE`; the original Face, source times and execution identity are unchanged,
+and actions remain disabled. A privately published, semantically valid same-Linux-Boot file may be recovered
+as explicitly historical at startup even if its live lease has expired. A
+foreign Boot, malformed document or unbounded future lease still refuses; this
+recovery does not rebase the original observation age.
+
+`CONDUIT_RETAINED_HISTORY_FILE` selects an optional private, current-owner 0600
+regular document (at most8192 bytes) using
+`conduit.environment/retained-observation-series@1`, custody
+`retained-signed-evidence`. The admitted recorder/exporter must verify original
+Root signatures and exact Body/Boot/Play scope before creating this projection.
+The renderer checks scope hashes, current observation Forms and at most16
+original21-byte records; it does not itself establish membership, verify the
+original batch signatures or claim selected recording State commitment.
+
+That document displays a separate `RETAINED HISTORY / SIGNED EVIDENCE` line
+chart, alternating with the ordinary full Face pages. Producer Boot milliseconds
+form its horizontal axis, never fabricated wall time. Failure samples and sequence
+gaps break lines. Temperature uses the selected Celsius/Fahrenheit display
+preference through canonical Quantity conversion. Historical evidence remains
+historical when the live Face transport lease expires; keeping it visible does
+not renew the live Play, its actions or its lease.

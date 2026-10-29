@@ -1,6 +1,6 @@
 //! Bounded immutable Mask projection. No measurement storage or clock is owned here.
 use alloc::vec::Vec;
-use conduit_core::{kind_id, Quantity, QuantityRole, Unit, RATIO_INFO_ID, TEMPERATURE_INFO_ID};
+use conduit_core::{Quantity, QuantityRole, RATIO_INFO_ID, TEMPERATURE_INFO_ID, Unit, kind_id};
 use conduit_face::{Face, FacePropertyValue as V, FaceRelationshipKind, FaceRole};
 
 pub const MAX_GRAPH_SAMPLES: usize = 16;
@@ -282,6 +282,29 @@ impl<'a> HistoryGraph<'a> {
         })
     }
     pub fn x(&self, sample: &GraphSample) -> u16 {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .x(sample)
+    }
+    pub fn temperature_range(&self) -> (i64, i64) {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .temperature_range()
+    }
+    pub fn y(&self, value: i64, humidity: bool) -> u16 {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .y(value, humidity)
+    }
+}
+pub(crate) struct ChartGeometry<'a> {
+    pub(crate) samples: &'a [GraphSample],
+}
+impl ChartGeometry<'_> {
+    pub fn x(&self, sample: &GraphSample) -> u16 {
         let first = self.samples.first().map_or(0, |s| s.boot_ms);
         let span = self.samples.last().map_or(0, |s| s.boot_ms - first);
         if span == 0 {
@@ -320,6 +343,7 @@ impl<'a> HistoryGraph<'a> {
         (if humidity { 292 } else { 140 }) - offset
     }
 }
+
 fn property<'a>(face: &'a Face, subject: &str, name: &str) -> Result<Option<&'a V>, GraphRefusal> {
     let mut matches = face
         .properties
@@ -366,6 +390,9 @@ fn quantity(
     if contract.value_kind != kind_id(expected) {
         return Err(GraphRefusal::InvalidProperty);
     }
+    quantity_milli(q, target).map(Some)
+}
+pub(crate) fn quantity_milli(q: Quantity, target: Unit) -> Result<i64, GraphRefusal> {
     let (coefficient, source_exponent) = q
         .convert_to_unit(target)
         .map_err(|_| GraphRefusal::InvalidProperty)?;
@@ -385,10 +412,8 @@ fn quantity(
         }
         coefficient.checked_div(divisor)
     };
-    Ok(Some(
-        i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
-            .map_err(|_| GraphRefusal::InvalidProperty)?,
-    ))
+    Ok(i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
+        .map_err(|_| GraphRefusal::InvalidProperty)?)
 }
 
 pub(crate) fn milli_label(value: i64) -> alloc::string::String {
