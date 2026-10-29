@@ -105,7 +105,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-computation",
  "conduit-core",
+ "conduit-environment-face",
  "conduit-environment-measurement",
+ "conduit-face",
  "conduit-kernel",
  "conduit-plot",
 ]

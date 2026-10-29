@@ -185,6 +185,8 @@ dependencies = [
  "ed25519-dalek",
  "minicbor",
  "miniz_oxide",
+ "portable-atomic",
+ "portable-atomic-util",
  "postcard",
  "serde",
  "serde_json",
@@ -206,6 +208,15 @@ dependencies = [
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-computation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
 ]
 
@@ -244,6 +255,45 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-measurement",
+ "conduit-face",
+]
+
+[[package]]
+name = "conduit-environment-history"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-face",
+ "conduit-environment-runtime",
+ "conduit-face",
+]
+
+[[package]]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-computation",
+ "conduit-core",
+ "conduit-environment-face",
+ "conduit-environment-measurement",
+ "conduit-face",
+ "conduit-kernel",
  "conduit-plot",
 ]
 
@@ -314,11 +364,14 @@ name = "conduit-linux-face-display"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-environment-history",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduitos",
  "libc",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -419,6 +472,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-audio",
+ "conduit-computation",
  "conduit-core",
  "conduit-data",
  "conduit-education",
@@ -624,6 +678,12 @@ checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "critical-section"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
 
 [[package]]
 name = "crunchy"
@@ -895,6 +955,25 @@ dependencies = [
  "cpufeatures",
  "opaque-debug",
  "universal-hash",
+]
+
+[[package]]
+name = "portable-atomic"
+version = "1.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05c8b63e8d9609db387f0324918f81d68fe27748f084ef092fb35954d0539a85"
+dependencies = [
+ "critical-section",
+]
+
+[[package]]
+name = "portable-atomic-util"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
+dependencies = [
+ "portable-atomic",
+ "serde",
 ]
 
 [[package]]

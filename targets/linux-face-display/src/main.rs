@@ -88,14 +88,15 @@ fn run() -> Result<(), String> {
             history_status = status;
         }
         let history_page = tick.is_multiple_of(2) && history.scene().is_some();
+        let face_tick = face_page_tick(tick, history.scene().is_some());
         let rendered = if history_page {
             if let Some(history) = history.scene() {
                 view::render_graphics(history, width, height, &mut pixels)
             } else {
-                view::render(face, width, height, tick, &mut pixels, preferred).map(|_| ())
+                view::render(face, width, height, face_tick, &mut pixels, preferred).map(|_| ())
             }
         } else {
-            view::render(face, width, height, tick, &mut pixels, preferred).map(|_| ())
+            view::render(face, width, height, face_tick, &mut pixels, preferred).map(|_| ())
         };
         match rendered {
             Ok(_) => {
@@ -137,6 +138,29 @@ fn run() -> Result<(), String> {
         std::thread::sleep(Duration::from_secs(1));
     }
 }
+fn face_page_tick(tick: usize, history_present: bool) -> usize {
+    if history_present { tick / 2 } else { tick }
+}
+#[cfg(test)]
+mod paging_tests {
+    #[test]
+    fn historical_interleaving_visits_every_face_page() {
+        for pages in [2, 3, 5] {
+            let shown: Vec<_> = (0..pages * 4)
+                .filter(|tick| tick % 2 == 1)
+                .map(|tick| super::face_page_tick(tick, true) % pages)
+                .collect();
+            assert_eq!(
+                shown,
+                (0..pages * 2).map(|page| page % pages).collect::<Vec<_>>()
+            );
+        }
+        for tick in 0..12 {
+            assert_eq!(super::face_page_tick(tick, false), tick);
+        }
+    }
+}
+
 fn main() {
     if let Err(error) = run() {
         eprintln!("Linux Face display stopped: {error}");

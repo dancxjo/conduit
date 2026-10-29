@@ -238,6 +238,7 @@ pub fn render_notice(
         |_, command| command.text_role().into(),
         100,
     )
+    .map(|_| ())
     .map_err(|e| format!("notice raster: {e:?}"))
 }
 
