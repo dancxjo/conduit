@@ -140,6 +140,9 @@ pub(crate) fn run_joined(
     let collector = admitted_collector(binding)?;
     crate::observed_history::create_durable_directory(directory)?;
     private_metadata(directory, true)?;
+    if projection.is_none() {
+        return run(collector, peer, directory, once);
+    }
     if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\n', '\r']) {
         return Err("recorder peer must be HOST:PORT".into());
     }
