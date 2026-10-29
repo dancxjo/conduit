@@ -2,6 +2,8 @@
 //! queued until native custody releases it or an independent workspace is admitted.
 //! Recovery always retires selected ownership and commits evidence before retry.
 use super::NativeRoot;
+#[path = "native_setup_diagnostics.rs"]
+mod diagnostics;
 #[cfg(feature = "local-appliance")]
 #[path = "native_network_workspace_reserve.rs"]
 mod floor_reserve;
@@ -45,38 +47,6 @@ fn independent_workspace_minimum() -> Option<usize> {
     {
         None
     }
-}
-// Exact immutable status payloads live in flash once. These diagnostics never
-// run in ROM flash callbacks or while the flash cache is disabled.
-#[used]
-#[link_section = ".rodata.native_network_status"]
-static NETWORK_RECOVERY_REFUSED: [u8; 16] = *b"recovery-refused";
-#[used]
-#[link_section = ".rodata.native_network_status"]
-static NETWORK_RETRY_SOURCE_REFUSED: [u8; 32] = *b"retry-source-preparation-refused";
-#[cfg(feature = "local-appliance")]
-#[used]
-#[link_section = ".rodata.native_network_status"]
-static NETWORK_NON_ASCII: [u8; 16] = *b"non-ascii-status";
-// Diagnostic suppression only: a collision may omit a line, never affect
-// admission, ownership or execution. No Root field or received authority.
-#[cfg(feature = "local-appliance")]
-static WORKSPACE_TRACE: core::sync::atomic::AtomicU32 = core::sync::atomic::AtomicU32::new(0);
-#[cfg(feature = "flat-network-appliance")]
-static WORKSPACE_PHASE_LINES: core::sync::atomic::AtomicU32 = core::sync::atomic::AtomicU32::new(0);
-#[cfg(feature = "local-appliance")]
-#[inline(never)]
-#[cold]
-fn changed_workspace_outcome(stage: &str, outcome: &str) -> bool {
-    let mut fingerprint = 2166136261u32;
-    for byte in stage
-        .bytes()
-        .chain(core::iter::once(0))
-        .chain(outcome.bytes())
-    {
-        fingerprint = (fingerprint ^ u32::from(byte)).wrapping_mul(16777619);
-    }
-    WORKSPACE_TRACE.swap(fingerprint, core::sync::atomic::Ordering::Relaxed) != fingerprint
 }
 impl NativeRoot {
     /// Preparation never consumes the selected source or changes radio mode.
@@ -161,12 +131,12 @@ impl NativeRoot {
         // chosen credentials only after real owner/evidence return, before
         // reserving a retry. New queued AP input cannot alter retained SDK config.
         if crate::native_credentials::prepare_retry(&mut self.credentials).is_err() {
-            return &NETWORK_RETRY_SOURCE_REFUSED;
+            return &diagnostics::NETWORK_RETRY_SOURCE_REFUSED;
         }
         let candidate = match self.network.recovery.preview_attempt(now) {
             Ok(Some(candidate)) => candidate,
             Ok(None) => return b"retry-backoff",
-            Err(_) => return &NETWORK_RECOVERY_REFUSED,
+            Err(_) => return &diagnostics::NETWORK_RECOVERY_REFUSED,
         };
         if candidate.generation() != self.network.generation() {
             return b"attachment-generation-refused";
@@ -207,7 +177,7 @@ impl NativeRoot {
                     .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
                     .is_err()
                 {
-                    return &NETWORK_RECOVERY_REFUSED;
+                    return &diagnostics::NETWORK_RECOVERY_REFUSED;
                 }
                 match backing {
                     Some(backing) => self.play.install_linked_reserved_held(
@@ -254,7 +224,7 @@ impl NativeRoot {
                 .is_err()
             {
                 self.network_preparation = Some(Ok(prepared));
-                return &NETWORK_RECOVERY_REFUSED;
+                return &diagnostics::NETWORK_RECOVERY_REFUSED;
             }
             let result = if window.is_some() || !release {
                 self.play.install_verified_owned_held(
@@ -292,61 +262,6 @@ impl NativeRoot {
         } else {
             b"installed-held"
         }
-    }
-    #[cfg(feature = "local-appliance")]
-    #[inline(never)]
-    #[cold]
-    fn trace_network_workspace(&mut self, stage: &'static str, outcome: &'static str) {
-        if !changed_workspace_outcome(stage, outcome) {
-            return;
-        }
-        let memory = esp_alloc::HEAP.stats();
-        let banks = core::array::from_fn::<_, 3, _>(|i| {
-            memory.region_stats[i].as_ref().map_or(0, |r| r.free)
-        });
-        esp_println::println!(
-            "{{\"event\":\"network-workspace-outcome\",\"stage\":\"{}\",\"outcome\":\"{}\",\"free_bytes\":{},\"bank_free\":[{},{},{}],\"scope_current\":{},\"credential_revision\":{},\"recovery_revision\":{}}}",
-            stage, outcome, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2],
-            self.network_workspace_scope_current(), crate::native_credentials::committed_revision(), self.network.recovery.revision()
-        );
-    }
-    #[cfg(feature = "local-appliance")]
-    #[inline(never)]
-    #[cold]
-    fn trace_network_preparation(&mut self, outcome: &'static [u8]) {
-        // Keep status bytes borrowed from flash through one shared conversion;
-        // specializing UTF-8 checks at each caller materializes RAM constants.
-        let outcome = core::str::from_utf8(outcome).unwrap_or_else(|_| {
-            // SAFETY: this private immutable payload is the ASCII literal above.
-            unsafe { core::str::from_utf8_unchecked(&NETWORK_NON_ASCII) }
-        });
-        self.trace_network_workspace("prepare", outcome);
-    }
-    #[cfg(feature = "flat-network-appliance")]
-    #[inline(never)]
-    #[cold]
-    fn trace_network_phase(&self, phase: &'static str, baseline_used: usize) {
-        // Diagnostic quota only. It cannot grant capacity or suppress checks.
-        let count = WORKSPACE_PHASE_LINES.load(core::sync::atomic::Ordering::Relaxed);
-        if count >= 12
-            || WORKSPACE_PHASE_LINES
-                .compare_exchange(
-                    count,
-                    count + 1,
-                    core::sync::atomic::Ordering::Relaxed,
-                    core::sync::atomic::Ordering::Relaxed,
-                )
-                .is_err()
-        {
-            return;
-        }
-        let memory = esp_alloc::HEAP.stats();
-        let banks = core::array::from_fn::<_, 3, _>(|i| {
-            memory.region_stats[i].as_ref().map_or(0, |r| r.free)
-        });
-        esp_println::println!("{{\"event\":\"network-workspace-phase\",\"phase\":\"{}\",\"backing_bytes\":{},\"baseline_used\":{},\"used\":{},\"peak\":{},\"free_bytes\":{},\"bank_free\":[{},{},{}]}}",
-            phase, conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes(), baseline_used,
-            memory.current_usage, memory.max_usage, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2]);
     }
     #[cfg(feature = "local-appliance")]
     fn advance_network_workspace(&mut self) {
@@ -603,6 +518,7 @@ impl NativeRoot {
                 | "cleanup-failed"
                 | "setup-denied"
                 | "installation-refused" => {
+                    self.trace_network_terminal_failure(generation);
                     action = self
                         .network
                         .recovery
