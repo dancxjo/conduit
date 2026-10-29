@@ -113,3 +113,88 @@ fn active_refusal_preserves_the_box_and_terminal_retirement_keeps_exact_signs() 
     assert_eq!(signs.events().collect::<Vec<_>>(), expected);
     assert_eq!(signs.allocation_capacity(), 128);
 }
+
+#[test]
+fn completed_execution_releases_scheduler_without_fabricating_cancellation() {
+    let mut owner = prepared();
+    let mut credentials = [0; 167];
+    let credentials_len = conduit_net::encode_network_join_request(
+        conduit_net::NetworkJoinRequest {
+            ssid: b"fixture-network",
+            credential: b"fixture-password",
+        },
+        &mut credentials,
+    )
+    .unwrap();
+    let mut attachment = [0; 167];
+    let attachment_len = conduit_net::encode_network_attachment(
+        conduit_net::NetworkAttachmentInfo {
+            attachment_id: "attachment/fixture",
+            host_id: "host/fixture",
+            boot_id: "boot/fixture",
+            resource_pool_id: "radio/fixture",
+            generation: 1,
+        },
+        &mut attachment,
+    )
+    .unwrap();
+    let mut calls = [0; 3];
+    for _ in 0..100 {
+        if let Some(request) = owner.kernel.next_host_request() {
+            let node = usize::from(request.node.0);
+            calls[node] += 1;
+            let output = match node {
+                0 | 1 => {
+                    let bytes = if node == 0 {
+                        &credentials[..credentials_len]
+                    } else {
+                        &attachment[..attachment_len]
+                    };
+                    Some(
+                        k::BoundedValueRef::new(owner.kernel.store_host_value(bytes).unwrap(), 167)
+                            .unwrap(),
+                    )
+                }
+                2 => {
+                    assert_eq!(
+                        owner.kernel.host_value(request.input.value).unwrap(),
+                        &attachment[..attachment_len]
+                    );
+                    None
+                }
+                _ => panic!("foreign node"),
+            };
+            owner
+                .kernel
+                .complete_host_call(
+                    request.node,
+                    request.request,
+                    k::HostCallOutcome {
+                        disposition: k::HostCallDisposition::Completed,
+                        output,
+                        failure: None,
+                    },
+                )
+                .unwrap();
+        }
+        if owner.kernel.step().unwrap() == k::scheduler::SchedulerStatus::Drained {
+            break;
+        }
+    }
+    assert_eq!(calls, [1, 1, 1]);
+    assert!(owner.kernel.can_retire());
+    let expected = owner.kernel.signs().events().collect::<Vec<_>>();
+    assert!(!expected.iter().any(|event| matches!(
+        event.kind,
+        k::KernelEventKind::CancellationRequested | k::KernelEventKind::RunCancelled
+    )));
+    let (signs, memory) = allocation_probe::observe(|| {
+        owner
+            .try_retire_signs()
+            .unwrap_or_else(|_| panic!("actual completion refused"))
+    });
+    assert_eq!(memory.allocations + memory.reallocations, 0);
+    assert!(memory.deallocated_bytes >= core::mem::size_of::<PreparedNetworkKernel>());
+    assert_eq!(signs.events().collect::<Vec<_>>(), expected);
+    assert_eq!(signs.allocation_capacity(), 128);
+}
