@@ -2,12 +2,17 @@
 /// Raw SDK observation: unknown authentication values remain unknown to callers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Record {
+    /// Original SSID bytes, with unused trailing storage zeroed.
     pub ssid: [u8; 32],
+    /// Initialized SSID extent; never greater than thirty-two.
     pub ssid_len: u8,
+    /// Signal strength reported by the SDK, in dBm.
     pub rssi: i8,
+    /// Raw SDK authentication code, including unrecognized future suites.
     pub authentication: u32,
 }
 impl Record {
+    /// Copy one SDK SSID up to its first NUL; refuse an extent over 32 bytes.
     pub fn from_sdk(ssid: &[u8], rssi: i8, authentication: u32) -> Option<Self> {
         let length = ssid
             .iter()
@@ -26,10 +31,14 @@ impl Record {
         Some(record)
     }
 }
+/// Exact SDK ScanDone fields, observed under exclusive sequential custody.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Completion {
+    /// SDK terminal status; zero denotes successful completion.
     pub status: u32,
+    /// Record count carried by the SDK terminal event.
     pub number: u8,
+    /// SDK event identifier, observed rather than guessed before scan start.
     pub scan_id: u8,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

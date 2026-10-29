@@ -16,22 +16,37 @@ pub use custody::{Completion, Record};
 /// SDK/list failures remain distinct from missing terminal evidence.
 #[derive(Debug)]
 pub enum Error {
+    /// The retained scan is not in the phase required by this operation.
     Busy,
+    /// Caller storage or the requested finite record bound is invalid.
     Capacity,
+    /// No persistent event subscriber was available before starting.
     Subscribers,
+    /// Unmodified SDK return code; it is not terminal scan evidence.
     Sdk(i32),
+    /// The SDK observation cannot fit the fixed representation.
     InvalidRecord,
-    MappingRefused { written: u8 },
+    /// Caller conversion refused after consuming an exact SDK prefix.
+    MappingRefused {
+        /// Number of caller slots initialized before refusal.
+        written: u8,
+    },
+    /// Ambiguous custody prevents successful result publication.
     Quarantined,
 }
 /// Exact terminal event and actual SDK list size; status zero alone means scan
 /// success. A stopped/failed scan must not be published as a successful scan.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Report {
+    /// Actual terminal event observed by the retained subscriber.
     pub completion: Completion,
+    /// SDK list count before consuming its bounded prefix.
     pub total: u16,
+    /// Whether this owner requested stop before collecting this report.
     pub stop_requested: bool,
+    /// Number of caller records initialized by this collection.
     pub copied: u8,
+    /// Whether the original SDK list contained more records than copied.
     pub truncated: bool,
 }
 /// Owns the controller across cancellation of every borrowing future. Dropping

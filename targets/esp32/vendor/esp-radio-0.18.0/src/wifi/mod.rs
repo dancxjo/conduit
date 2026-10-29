@@ -46,7 +46,7 @@
 //! - `ESP_RADIO_CONFIG_TX_QUEUE_SIZE`
 //! - `ESP_RADIO_CONFIG_MAX_BURST_SIZE`
 
-use alloc::{borrow::ToOwned, collections::vec_deque::VecDeque, str, vec::Vec};
+use alloc::{collections::vec_deque::VecDeque, str, vec::Vec};
 use core::{
     fmt::{Debug, Write},
     marker::PhantomData,
