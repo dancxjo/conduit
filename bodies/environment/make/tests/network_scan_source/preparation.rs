@@ -94,7 +94,7 @@ fn borrowed_scan_preparation_moves_provider_only_after_descriptions_retire() {
                     protocol_version: c::PROTOCOL_VERSION,
                     host_id: native.host.as_str(),
                     boot_id: native.boot.as_str(),
-                    offer_generation: 1,
+                    offer_generation: c::OfferGeneration(1),
                     profile: "cpu/scan",
                     bases: c::BaseProviderAdvertisementRefs::Borrowed(&[]),
                     resources: c::ResourceOfferRefs::Borrowed(&[]),
