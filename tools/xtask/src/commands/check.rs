@@ -18,6 +18,8 @@ mod dsp_shared_compositions;
 mod expression_baseline;
 #[path = "../suites/inverse_angle.rs"]
 mod inverse_angle;
+#[path = "../suites/minipitft.rs"]
+mod minipitft;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
 #[path = "../suites/model_native_backing.rs"]
@@ -141,6 +143,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
         CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),
+        CheckSuite::Minipitft => run_suite(minipitft::STEPS, &root, opts),
         CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
         CheckSuite::PhysicalValues => run_suite(physical_values::STEPS, &root, opts),

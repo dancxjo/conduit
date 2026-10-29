@@ -1,0 +1,9 @@
+with machine/digital/access/request as DigitalRequest
+with machine/digital/access/result as DigitalResult
+
+plot digital-access (
+    requests: DigitalRequest...| >> results: DigitalResult...|
+) {
+    contact: machine/digital/access
+    requests >> contact >> results
+}

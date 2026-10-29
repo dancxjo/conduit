@@ -5,6 +5,10 @@ use core::{
     sync::atomic::{AtomicBool, Ordering, compiler_fence},
 };
 
+pub mod boot_indicator;
+pub mod deadline;
+pub mod entropy;
+pub mod minipitft;
 mod providers;
 pub use providers::{Clock, Idle, Interrupts, Serial, Timer};
 

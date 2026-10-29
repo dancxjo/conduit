@@ -1,0 +1,65 @@
+# One ordinary kernel owns the complete finite protocol. Logical contact roles
+# are selected independently; neither requests nor Source select physical pins.
+# The chunk producer must wait for requested before returning that indexed chunk.
+# Input closure/cancellation before the full frame requires native safe revocation.
+plot st7789-autonomous (
+    >> chunks: St7789Chunk...|
+    requested: St7789ChunkAction...| >>
+    completed: U64...| >>
+    refused: U64...| >>
+) {
+    bank: st7789-command-bank()
+    singleton: flow/singleton
+    cell: state/seeded/flow/until
+    states: st7789-protocol-frame-value()
+    actions: st7789-protocol-action()
+    feedback: flow/zip/feedback
+    completions: flow/zip/finite
+    context-digital: st7789-contexts
+    context-spi: st7789-contexts
+    context-clock: st7789-contexts
+    contexts: st7789-contexts
+    result-digital: st7789-outcomes
+    result-spi: st7789-outcomes
+    result-clock: st7789-outcomes
+    results: st7789-outcomes
+    backlight: machine/digital/access
+    command-data: machine/digital/access
+    spi: machine/spi/exchange
+    clock: machine/clock/at
+
+    bank.bank >> st7789-bank-begin() >> singleton.value
+    singleton.flow >> st7789-protocol-initialize() >> st7789-protocol-frame() >> cell.seed
+    cell.current >> states
+    states >> feedback.left
+    states >> actions
+    actions >> select(St7789Action.backlight, unmatched=drop) >> st7789-digital-context() >> context-digital.left
+    actions >> select(St7789Action.command-data, unmatched=drop) >> st7789-digital-context() >> context-digital.right
+    context-digital.merged >> context-spi.left
+    actions >> select(St7789Action.spi, unmatched=drop) >> st7789-spi-context() >> context-spi.right
+    context-spi.merged >> context-clock.left
+    actions >> select(St7789Action.clock, unmatched=drop) >> st7789-clock-context() >> context-clock.right
+    context-clock.merged >> contexts.left
+    actions >> select(St7789Action.awaiting-chunk, unmatched=drop) >> st7789-chunk-context() >> contexts.right
+    contexts.merged >> completions.left
+
+    actions >> select(St7789Action.backlight, unmatched=drop) >> st7789-digital-request() >> backlight.request
+    actions >> select(St7789Action.command-data, unmatched=drop) >> st7789-digital-request() >> command-data.request
+    actions >> select(St7789Action.spi, unmatched=drop) >> st7789-spi-request() >> spi.request
+    actions >> select(St7789Action.clock, unmatched=drop) >> st7789-clock-request() >> clock.request
+    actions >> select(St7789Action.awaiting-chunk, unmatched=drop) >> requested
+    actions >> select(St7789Action.completed, unmatched=drop) >> st7789-terminal-value() >> completed
+    actions >> select(St7789Action.refused, unmatched=drop) >> st7789-terminal-value() >> refused
+
+    backlight.result >> st7789-backlight-outcome() >> result-digital.left
+    command-data.result >> st7789-command-data-outcome() >> result-digital.right
+    result-digital.merged >> result-spi.left
+    spi.result >> st7789-spi-outcome() >> result-spi.right
+    result-spi.merged >> result-clock.left
+    clock.result >> st7789-clock-outcome() >> result-clock.right
+    result-clock.merged >> results.left
+    chunks >> st7789-chunk-outcome() >> results.right
+    results.merged >> completions.right
+    completions.paired >> st7789-completion-event() >> feedback.right
+    feedback.paired >> st7789-state-event() >> st7789-protocol-transition() >> st7789-protocol-frame() >> cell.next
+}

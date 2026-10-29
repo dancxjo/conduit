@@ -116,6 +116,7 @@ impl PreparedProtocolSource {
         let i2c = crate::i2c_base::contract::I2cContract::prepare().map_err(Error::Contract)?;
         let (mut startup, mut profile) = i2c.catalogs();
         install_clock(&mut startup, &mut profile)?;
+        peripheral_catalog::install(&mut startup, &mut profile)?;
         install_literal(&mut startup, &mut profile)?;
         usb_catalog::install(&mut startup, &mut profile)?;
         storage_catalog::install(&mut startup, &mut profile)?;
@@ -376,6 +377,7 @@ mod schema_encoding {
 #[cfg(test)]
 mod tests;
 
+mod peripheral_catalog;
 mod storage_catalog;
 mod usb_catalog;
 mod usb_hid;
@@ -404,7 +406,12 @@ pub use body_play::{
     PreparedProtocolBodyPlay, ProtocolBodyPreparationRefusal, ProtocolBodyRefusal,
 };
 
+pub mod native_peripheral_preparation;
 mod native_preparation;
+pub use native_peripheral_preparation::{
+    NativeDigitalOwner, NativePeripheralOwners, NativePeripheralReason, NativePeripheralRefusal,
+    prepare_native_peripheral,
+};
 pub use native_preparation::{
     NativeProtocolOwners, NativeProtocolPreparationLimits, NativeProtocolPreparationReason,
     NativeProtocolPreparationRefusal, prepare_native_protocol,

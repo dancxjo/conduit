@@ -107,6 +107,8 @@ pub(super) enum ConduitosCommand {
     Build(TargetArgs),
     /// Package one bounded architecture proof appliance into its pinned boot image.
     Image(TargetArgs),
+    /// Build a B+ v1.2 SD image with Adafruit Mini PiTFT 1.3 inch and two buttons.
+    RpiMinipitftImage,
     /// Build canonical bootable media for one normal ConduitOS product Host.
     Live(LiveArgs),
     /// Boot the canonical live artifact without building a parallel demo image.

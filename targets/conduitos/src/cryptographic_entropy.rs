@@ -5,6 +5,7 @@
 //! caller-owned buffer without a weak fallback.
 
 pub const MAXIMUM_SECRET_BYTES: usize = 64;
+pub mod bcm2835;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EntropyProvider {

@@ -1,0 +1,14 @@
+# A logical digital contact. The selected Base owns the physical pin and direction.
+type DigitalRequest =
+    observe
+    | drive {
+        high: Boolean
+    }
+
+type DigitalResult =
+    completed {
+        high: Boolean
+    }
+    | unsupported
+    | provider-lost
+    | refused

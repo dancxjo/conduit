@@ -246,3 +246,9 @@ fn larger_finite_specializations_preserve_the_exact_declared_envelope() {
         assert_eq!(value.contract.maximum_bytes, maximum);
     }
 }
+
+mod peripheral;
+
+mod st7789;
+mod two_button;
+mod two_button_autonomous;

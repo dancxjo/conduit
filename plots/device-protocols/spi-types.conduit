@@ -1,0 +1,15 @@
+# Wire bytes carry protocol meaning. Exact selected Base possession owns SPI
+# mode, clock, chip select and physical routing; Source cannot select those facts.
+type SpiTransaction = {
+    output: Bytes <= 512B
+}
+
+type SpiResult =
+    completed {
+        input: Bytes <= 512B
+    }
+    | timed-out
+    | provider-lost
+    | unsupported
+    | stale-attachment
+    | refused

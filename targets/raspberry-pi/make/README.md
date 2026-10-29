@@ -7,6 +7,32 @@ The make package keeps two intentions distinct. Raspberry Pi OS Bookworm 64-bit 
 The browser may download either reviewed release and bind it into a body spore. It does not thereby gain package-manager credentials or raw block-device authority. Package installation and removable-media writing require separate explicit local helpers, while physical boot and UART evidence remain separate proof classes. Shared ConduitOS runtime code remains in `targets/conduitos`; Pi machine make does not pass through Limine or EFI.
 
 
+## Mini PiTFT display diagnostic (in development)
+
+The opt-in profile selects the original BCM2835 Model B+ v1.2 with the
+Adafruit 1.3-inch 240×240 Mini PiTFT and two buttons. Build its whole-card
+image and run its software conformance through the supported entrances:
+
+```sh
+cargo xtask check minipitft
+cargo xtask make conduitos rpi-minipitft-image --locked
+```
+
+The image and identity/digest record are written under
+`target/conduitos/armv6/rpi-b-plus-minipitft/`. The current diagnostic shows
+text and four corner markers, and explicitly reports “Buttons pending”.
+The checked button polling composition and native contact preparation do
+not yet provide normal Face interaction in this image. Software conformance
+uses scripted hardware; it does not establish physical boot or panel output.
+
+Transfer the image to the machine with the SD writer and write the whole
+`.img` to the selected removable card. The onboard ACT LED pulses once every
+two seconds after successful frame delivery. On a diagnostic refusal it
+repeats the last stage count: 1 arena, 2 checked Source, 3 native admission
+and planning, 4 CPU frame, 5 display protocol, 6 completion. Firmware failures
+before the diagnostic starts can have different LED behavior. Physical
+display and independent/both-button acceptance remain tracked in #6513.
+
 ## Raspberry Pi OS native release prerequisites
 
 The reviewed Raspberry Pi OS package is cross-compiled from a Linux development

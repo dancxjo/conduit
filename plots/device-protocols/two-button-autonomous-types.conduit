@@ -1,0 +1,38 @@
+type TwoButtonLoopState = {
+    buttons: TwoButtonState
+    phase: U64
+    a: DigitalResult
+    b: DigitalResult
+    clock: ClockResult
+    stale: Boolean
+}
+type TwoButtonLoopOutcome =
+    clock ClockResult
+    | a DigitalResult
+    | b DigitalResult
+    | commit TwoButtonState
+
+type TwoButtonLoopTransition = {
+    state: TwoButtonLoopState
+    outcome: TwoButtonLoopOutcome
+}
+type TwoButtonLoopStep = {
+    state: TwoButtonLoopState
+    outcome: TwoButtonLoopOutcome
+    handled: Boolean
+}
+type TwoButtonEnded = {
+    state: TwoButtonState
+    reason: U64
+}
+type TwoButtonLoopAction =
+    clock ClockRequest
+    | a DigitalRequest
+    | b DigitalRequest
+    | commit TwoButtonTransition
+    | ended TwoButtonEnded
+
+type TwoButtonLoopFrame = {
+    value: TwoButtonLoopState
+    terminal: Boolean
+}

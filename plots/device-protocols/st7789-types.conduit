@@ -1,0 +1,93 @@
+# Logical display protocol only; attachment selection and electrical safety are native facts.
+with machine/spi/exchange/request as SpiTransaction
+with machine/spi/exchange/result as SpiResult
+with machine/digital/access/request as DigitalRequest
+with machine/digital/access/result as DigitalResult
+with machine/clock/at/request as ClockRequest
+with machine/clock/at/result as ClockResult
+
+type St7789Begin = {
+    bank: Bytes <= 20B
+}
+type St7789Chunk = {
+    index: U64
+    wire: Bytes <= 512B
+}
+# Finite refusal codes preserve provider dispositions without embedding results.
+# 0 none;1 malformed;2 stale;3 unexpected;10 unsupported digital;11 lost digital;
+# 12 refused digital;13 wrong observed digital level;20 unavailable clock;21 lost clock;22 unsupported deadline;
+# 23 malformed clock;24 timeout clock;30 timeout SPI;31 lost SPI;
+# 32 unsupported SPI;33 stale attachment;34 refused SPI;
+# 40 wrong safe-off level;41 unsupported safe-off;42 lost safe-off;43 refused safe-off.
+
+type St7789State = {
+    bank: Bytes <= 20B
+    wire: Bytes <= 512B
+    phase: U64
+    step: U64
+    chunks: U64
+    ordinal: U64
+    clock: U64
+    deadline: U64
+    delay: U64
+    failure: U64
+}
+type St7789Outcome =
+    backlight DigitalResult
+    | command-data DigitalResult
+    | spi SpiResult
+    | clock ClockResult
+    | chunk St7789Chunk
+    | closed
+
+type St7789Event = {
+    ordinal: U64
+    outcome: St7789Outcome
+}
+type St7789Transition = {
+    state: St7789State
+    event: St7789Event
+}
+type St7789DigitalAction = {
+    ordinal: U64
+    request: DigitalRequest
+}
+type St7789SpiAction = {
+    ordinal: U64
+    request: SpiTransaction
+}
+type St7789ClockAction = {
+    ordinal: U64
+    request: ClockRequest
+}
+type St7789ChunkAction = {
+    ordinal: U64
+    index: U64
+}
+type St7789TerminalValue = {
+    value: U64
+}
+type St7789Action =
+    backlight St7789DigitalAction
+    | command-data St7789DigitalAction
+    | spi St7789SpiAction
+    | clock St7789ClockAction
+    | awaiting-chunk St7789ChunkAction
+    | completed St7789TerminalValue
+    | refused St7789TerminalValue
+
+type St7789Frame = {
+    value: St7789State
+    terminal: Boolean
+}
+
+type St7789Step = {
+    state: St7789State
+    event: St7789Event
+    handled: Boolean
+}
+
+# One serialized action context; raw results cannot choose its ordinal.
+type St7789Context = {
+    ordinal: U64
+}

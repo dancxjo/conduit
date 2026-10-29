@@ -357,7 +357,7 @@ fn dense_regions_and_multiple_typed_arguments_admit_complete_bounded_pages() {
 #[test]
 fn unsupported_bounds_and_unmeasurable_notice_refuse_before_replacing_frame() {
     let face = specimens().remove(0);
-    for (width, height) in [(319, 240), (320, 239), (16385, 800), (1280, 16385)] {
+    for (width, height) in [(239, 240), (320, 239), (16385, 800), (1280, 16385)] {
         assert!(matches!(
             NativeFaceScene::prepare(face.clone(), width, height),
             Err(FaceSceneError::InvalidExtent)

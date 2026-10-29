@@ -6,22 +6,37 @@ use crate::{
         I2cProvider,
         contract::{I2C_CALL, I2cContract},
         installation::{I2C_IMPLEMENTATION, ReadyI2cBase},
-        owner::{I2cCallSelection, I2cHostCall},
+        owner::I2cCallSelection,
     },
-    pure_protocol_owner::{PureProtocolOwner, PureProtocolPreparation},
+    pure_protocol_owner::PureProtocolPreparation,
     structured_selector_host_call,
 };
 use alloc::{boxed::Box, vec::Vec};
 use conduit_composite::{AdmittedKernelCompositeHostRequest, KernelCompositeHost};
 use conduit_core::*;
-use conduit_kernel::{HostCallId, NodeId};
+use conduit_kernel::HostCallId;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
+))]
+use conduit_kernel::NodeId;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 
 pub use crate::protocol_call_refusal::ProtocolCallRefusal;
 
+mod bindings;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-board"))
+))]
+use bindings::PendingUsbKind;
+use bindings::{Binding, Owner};
+
 mod dispatch;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 mod ethernet_preparation;
+mod pending;
+mod peripheral_preparation;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) use ethernet_preparation::EthernetFrameAdmission;
 #[cfg(any(
@@ -50,79 +65,6 @@ mod subordinate;
 ))]
 mod usb_preparation;
 
-enum Owner<P> {
-    Pure(PureProtocolOwner),
-    I2c(Box<I2cHostCall<P>>),
-    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
-    EthernetFrame(Box<crate::ethernet_frame::owned_installation::OwnedNativeEthernetFrameHost>),
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbControl(Box<crate::arch::NativeUsbControlCall>),
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbProtocolControl,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbProtocolEndpoint,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbDuplexControl,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbDuplexRead,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbDuplexWrite,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    StorageAuthorize,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    StorageSettle,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbIsochronousControl,
-    #[cfg(any(
-        target_arch = "x86_64",
-        all(target_arch = "aarch64", not(feature = "aarch64-board"))
-    ))]
-    UsbIsochronousOut,
-}
-#[cfg(any(
-    target_arch = "x86_64",
-    all(target_arch = "aarch64", not(feature = "aarch64-board"))
-))]
-#[derive(Clone, Copy)]
-enum PendingUsbKind {
-    ProtocolRead,
-    DuplexRead,
-    DuplexWrite,
-    IsochronousOut,
-}
-struct Binding<P> {
-    node: NodeId,
-    resources: Vec<ResourceBinding>,
-    authorities: Vec<AuthorityBinding>,
-    owner: Owner<P>,
-}
 /// Admitted native owners and exact dispatch bindings prepared before Play.
 pub struct PreparedProtocolCalls<P> {
     plan_id: PlanId,
@@ -283,7 +225,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-board"))
             )))]
             let storage_count = false;
-            if count != 1 && !storage_count {
+            let digital_count = *implementation
+                == crate::digital_base::installation::DIGITAL_IMPLEMENTATION
+                && (1..=64).contains(&count);
+            if count != 1 && !storage_count && !digital_count {
                 return Err(Refusal::Unsupported);
             }
         }
@@ -365,7 +310,12 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             authorities: i2c.authority.clone(),
             owner,
         });
-        Ok(Self {
+        Ok(Self::from_validated_bindings(plan, bindings))
+    }
+
+    fn from_validated_bindings(plan: &Plan, bindings: Vec<Binding<P>>) -> Self {
+        let fragment = &plan.fragments[0];
+        Self {
             plan_id: plan.plan_id.clone(),
             #[cfg(any(
                 target_arch = "x86_64",
@@ -413,7 +363,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 all(target_arch = "aarch64", not(feature = "aarch64-board"))
             ))]
             pending_duplex: [None, None],
-        })
+        }
     }
 
     /// Revoke actual bus ownership as well as cancelling kernel and computation state.
@@ -422,6 +372,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(Refusal::InvalidPlan);
         }
+        let peripheral_result = self.revoke_peripherals();
         #[cfg(any(
             target_arch = "x86_64",
             all(target_arch = "aarch64", not(feature = "aarch64-board"))
@@ -492,6 +443,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             all(target_arch = "aarch64", not(feature = "aarch64-board"))
         ))]
         self.retire_cancelled_storage(kernel)?;
+        peripheral_result?;
         Ok(())
     }
 }

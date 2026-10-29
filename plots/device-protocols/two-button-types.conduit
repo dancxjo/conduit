@@ -1,0 +1,28 @@
+# Logical active-low contacts; selection of physical contacts belongs to the Plan.
+with machine/digital/access/result as DigitalResult
+with machine/clock/at/result as ClockResult
+
+type TwoButtonState = {
+    candidate_a: Boolean
+    candidate_b: Boolean
+    stable_a: Boolean
+    stable_b: Boolean
+    since: U64
+    clock: U64
+    sequence: U64
+    a_pressed: Boolean
+    b_pressed: Boolean
+    a_released: Boolean
+    b_released: Boolean
+    failure: U64
+}
+type TwoButtonSample = {
+    a: DigitalResult
+    b: DigitalResult
+    clock: ClockResult
+    sequence: U64
+}
+type TwoButtonTransition = {
+    state: TwoButtonState
+    sample: TwoButtonSample
+}

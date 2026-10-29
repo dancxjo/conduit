@@ -16,6 +16,8 @@ mod armv6_rpi_board;
 mod armv6_rpi_flash;
 #[path = "../../../raspberry-pi/make/xtask/armv6_rpi_physical.rs"]
 mod armv6_rpi_physical;
+#[path = "../../../raspberry-pi/make/xtask/armv6_rpi_profile.rs"]
+mod armv6_rpi_profile;
 mod build;
 mod command;
 mod compositor_lifecycle_collection;
@@ -426,6 +428,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
                 build::execute_architecture_proof(target.arch, opts).map(|_| ())
             }
         }
+        ConduitosCommand::RpiMinipitftImage => armv6_rpi_profile::execute_minipitft(opts),
         ConduitosCommand::Image(target) => {
             target.arch.require_boot_backend()?;
             require_make_target(target.arch, target.board)?;

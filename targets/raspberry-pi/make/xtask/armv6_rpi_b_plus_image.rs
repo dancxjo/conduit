@@ -5,16 +5,19 @@ use std::{
     process::Command,
 };
 
-use serde::Serialize;
+#[path = "armv6_rpi_image_record.rs"]
+mod record;
+use record::{BootFileRecord, FirmwareAssetRecord, ImageArtifactRecord, ImageRecord};
 
 use crate::cli::GlobalOpts;
 
 use super::{
     armv6_rpi_b_plus_a0,
     armv6_rpi_board::Armv6RpiBoard,
+    armv6_rpi_profile::RpiImageProfile,
     profile::Paths,
     report::{git_head, sha256_file},
-    ConduitosArch, ConduitosError,
+    ConduitosError,
 };
 
 const FIRMWARE_COMMIT: &str = "06df1d1a5cc34cc32a4d748239dc1523711fae8b";
@@ -66,73 +69,27 @@ impl FirmwareAsset {
     }
 }
 
-#[derive(Serialize)]
-struct ImageRecord {
-    schema: &'static str,
-    proof_class: &'static str,
-    base_commit: String,
-    architecture: &'static str,
-    machine: &'static str,
-    board: &'static str,
-    boot_mechanism: &'static str,
-    firmware_repository: &'static str,
-    firmware_commit: &'static str,
-    firmware_assets: Vec<FirmwareAssetRecord>,
-    image_path: String,
-    image_sha256: String,
-    image_bytes: u64,
-    partition_scheme: &'static str,
-    partition_start_sector: u32,
-    partition_sectors: u32,
-    filesystem: &'static str,
-    volume_label: &'static str,
-    files: [&'static str; 6],
-    kernel_image_sha256: String,
-    boot_claimed: bool,
-    physical_proof_claimed: bool,
-    target_id: String,
-    make_package_id: &'static str,
-    make_package_revision: u32,
-    output: &'static str,
-    builder_adapter: &'static str,
-    deployment_adapter: &'static str,
-    source_identity: String,
-    image_id: String,
-    artifact: ImageArtifactRecord,
-    boot_files: Vec<BootFileRecord>,
-}
-
-#[derive(Serialize)]
-struct ImageArtifactRecord {
-    path: String,
-    format: &'static str,
-    bytes: u64,
-    sha256: String,
-}
-
-#[derive(Serialize)]
-struct BootFileRecord {
-    path: &'static str,
-    bytes: u64,
-    sha256: String,
-}
-
-#[derive(Serialize)]
-struct FirmwareAssetRecord {
-    name: &'static str,
-    sha256: &'static str,
-    bytes: u64,
-}
-
 pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    let paths = Paths::new(ConduitosArch::Armv6)?;
+    execute_profile(board, RpiImageProfile::Product, opts)
+}
+
+pub(super) fn execute_profile(
+    board: Armv6RpiBoard,
+    profile: RpiImageProfile,
+    opts: &GlobalOpts,
+) -> Result<(), ConduitosError> {
+    profile.validate(board)?;
+    let paths = profile.paths()?;
     if opts.dry_run {
-        armv6_rpi_b_plus_a0::execute(board, opts)?;
+        armv6_rpi_b_plus_a0::execute_profile(board, profile, opts)?;
         println!("fetch and verify Raspberry Pi firmware {FIRMWARE_COMMIT}");
-        println!("assemble {}", image_path(&paths, board).display());
+        println!(
+            "assemble {}",
+            profile_image_path(&paths, board, profile).display()
+        );
         return Ok(());
     }
-    armv6_rpi_b_plus_a0::execute(board, opts)?;
+    armv6_rpi_b_plus_a0::execute_profile(board, profile, opts)?;
     require_tool("mkfs.vfat", &paths.root)?;
     require_tool("mcopy", &paths.root)?;
     fs::create_dir_all(&paths.target)
@@ -140,7 +97,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     let vendor = prepare_firmware(&paths)?;
     let stage = paths
         .target
-        .join(format!("{}-boot-stage", board.artifact_slug()));
+        .join(format!("{}-boot-stage", profile.artifact_slug(board)));
     recreate_directory(&stage, "image-staging-failed")?;
     for asset in ASSETS {
         fs::copy(vendor.join(asset.name), stage.join(asset.name))
@@ -150,12 +107,12 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         .map_err(|error| refusal("image-staging-failed", error))?;
     fs::write(
         stage.join("config.txt"),
-        format!("{}{CONFIG_BODY}", board.config_heading()),
+        profile.boot_config(board.config_heading(), CONFIG_BODY),
     )
     .map_err(|error| refusal("image-staging-failed", error))?;
     set_fixed_timestamps(&stage)?;
 
-    let image = image_path(&paths, board);
+    let image = profile_image_path(&paths, board, profile);
     write_partitioned_image(&image)?;
     run(
         Command::new("mkfs.vfat")
@@ -213,6 +170,10 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         architecture: "armv6",
         machine: "BCM2835/ARM1176JZF-S",
         board: board.id(),
+        kernel_binary: profile.binary(),
+        fixed_core_clock_hz: (profile == RpiImageProfile::MiniPitft).then_some(250_000_000),
+        display_proof_claimed: false,
+        button_proof_claimed: false,
         boot_mechanism: "raspberry-pi-videocore-firmware-direct-kernel",
         firmware_repository: "https://github.com/raspberrypi/firmware",
         firmware_commit: FIRMWARE_COMMIT,
@@ -243,7 +204,10 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
         builder_adapter: "conduit-host-raspberry-pi/build-sd-image@1",
         deployment_adapter: "conduit-host-raspberry-pi/flash-removable-media@1",
         source_identity: format!("git:{base_commit}"),
-        image_id: format!("conduitos-image/{base_commit}/{}/v1", board.identity_slug()),
+        image_id: format!(
+            "conduitos-image/{base_commit}/{}/v1",
+            profile.identity_slug(board)
+        ),
         artifact: ImageArtifactRecord {
             path: image_name,
             format: "mbr-fat32-sd-image",
@@ -255,7 +219,7 @@ pub fn execute(board: Armv6RpiBoard, opts: &GlobalOpts) -> Result<(), ConduitosE
     fs::write(
         paths
             .target
-            .join(format!("{}-image.json", board.artifact_slug())),
+            .join(format!("{}-image.json", profile.artifact_slug(board))),
         serde_json::to_vec_pretty(&record)
             .map_err(|error| refusal("image-record-failed", error))?,
     )
@@ -405,9 +369,13 @@ const fn image_files() -> [&'static str; 6] {
 }
 
 pub(super) fn image_path(paths: &Paths, board: Armv6RpiBoard) -> PathBuf {
+    profile_image_path(paths, board, RpiImageProfile::Product)
+}
+
+fn profile_image_path(paths: &Paths, board: Armv6RpiBoard, profile: RpiImageProfile) -> PathBuf {
     paths
         .target
-        .join(format!("conduitos-{}.img", board.artifact_slug()))
+        .join(format!("conduitos-{}.img", profile.artifact_slug(board)))
 }
 
 fn mtools_image(image: &Path) -> Result<String, ConduitosError> {
@@ -472,5 +440,15 @@ mod tests {
         assert!(!CONFIG_BODY.contains("kernel_old=1"));
         assert!(!CONFIG_BODY.to_ascii_lowercase().contains("limine"));
         assert_ne!(Armv6RpiBoard::BPlusV1_2.id(), Armv6RpiBoard::ZeroV1.id());
+        let mini = RpiImageProfile::MiniPitft
+            .boot_config(Armv6RpiBoard::BPlusV1_2.config_heading(), CONFIG_BODY);
+        assert!(mini.contains("gpu_mem=32\n"));
+        assert!(!mini.contains("gpu_mem=16\n"));
+        assert_eq!(
+            mini.lines()
+                .filter(|line| line.starts_with("gpu_mem="))
+                .count(),
+            1
+        );
     }
 }

@@ -1,0 +1,26 @@
+# Only the expected phase can consume a completion. Wrong phase/time is passed
+# to the existing debounce transition as stale sequence (failure1), without
+# observing another contact. Kernel Host Call tokens own physical completion identity.
+plot two-button-loop-step-begin (
+    input: TwoButtonLoopTransition...| >> step: TwoButtonLoopStep...|
+) = ({ state: .state, outcome: .outcome, handled: .state.phase == 4 })
+plot two-button-loop-step-clock (
+    input: TwoButtonLoopStep...| >> step: TwoButtonLoopStep...|
+) = (.handled ? . : (.state.phase == 0 ? (.outcome is clock ? { state: { buttons: .state.buttons, phase: (.outcome.clock is completed ? (.outcome.clock.completed >= (.state.buttons.clock > 18446744073709551605 ? 18446744073709551615 : .state.buttons.clock + 10) ? 1 : 3) : 3), a: .state.a, b: .state.b, clock: .outcome.clock, stale: (.outcome.clock is completed ? .outcome.clock.completed < (.state.buttons.clock > 18446744073709551605 ? 18446744073709551615 : .state.buttons.clock + 10) : false) }, outcome: .outcome, handled: true } : { state: { buttons: .state.buttons, phase: 3, a: .state.a, b: .state.b, clock: .state.clock, stale: true }, outcome: .outcome, handled: true }) : .))
+plot two-button-loop-step-a (
+    input: TwoButtonLoopStep...| >> step: TwoButtonLoopStep...|
+) = (.handled ? . : (.state.phase == 1 ? (.outcome is a ? { state: { buttons: .state.buttons, phase: (.outcome.a is completed ? 2 : 3), a: .outcome.a, b: .state.b, clock: .state.clock, stale: .state.stale }, outcome: .outcome, handled: true } : { state: { buttons: .state.buttons, phase: 3, a: .state.a, b: .state.b, clock: .state.clock, stale: true }, outcome: .outcome, handled: true }) : .))
+plot two-button-loop-step-b (
+    input: TwoButtonLoopStep...| >> step: TwoButtonLoopStep...|
+) = (.handled ? . : (.state.phase == 2 ? (.outcome is b ? { state: { buttons: .state.buttons, phase: 3, a: .state.a, b: .outcome.b, clock: .state.clock, stale: .state.stale }, outcome: .outcome, handled: true } : { state: { buttons: .state.buttons, phase: 3, a: .state.a, b: .state.b, clock: .state.clock, stale: true }, outcome: .outcome, handled: true }) : .))
+plot two-button-loop-step-commit (
+    input: TwoButtonLoopStep...| >> step: TwoButtonLoopStep...|
+) = (.handled ? . : (.state.phase == 3 ? (.outcome is commit ? { state: { buttons: .outcome.commit, phase: (.outcome.commit.failure != 0 || .outcome.commit.sequence >= 1048576 ? 4 : 0), a: .state.a, b: .state.b, clock: .state.clock, stale: false }, outcome: .outcome, handled: true } : { state: { buttons: .state.buttons, phase: 3, a: .state.a, b: .state.b, clock: .state.clock, stale: true }, outcome: .outcome, handled: true }) : .))
+plot two-button-loop-step-finish (
+    input: TwoButtonLoopStep...| >> state: TwoButtonLoopState...|
+) = (.state)
+plot two-button-loop-transition (
+    transition: TwoButtonLoopTransition...| >> state: TwoButtonLoopState...|
+) {
+    transition >> two-button-loop-step-begin() >> two-button-loop-step-clock() >> two-button-loop-step-a() >> two-button-loop-step-b() >> two-button-loop-step-commit() >> two-button-loop-step-finish() >> state
+}

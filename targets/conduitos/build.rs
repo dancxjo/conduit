@@ -23,7 +23,7 @@ use image_validation as domain_image;
 #[allow(dead_code)]
 #[path = "src/service_memory.rs"]
 mod service_image_validation;
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 #[path = "build/typography.rs"]
 mod typography;
 
@@ -56,7 +56,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_MAKE_RECORD");
     generate_unifont_subset();
-    #[cfg(feature = "native-compositor-core")]
+    #[cfg(feature = "native-face-raster")]
     typography::generate();
     let output =
         PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR")).join("make_record.rs");
@@ -188,6 +188,13 @@ fn main() {
     {
         println!(
             "cargo:rustc-link-arg-bin=conduitos-armv6-rpi-b-plus-a3=-T{manifest}/proof/appliances/armv6-rpi-b-plus/linker/a3.ld"
+        );
+    }
+    if std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() == Ok("arm")
+        && std::env::var_os("CARGO_FEATURE_ARMV6_RPI_B_PLUS_MINIPITFT").is_some()
+    {
+        println!(
+            "cargo:rustc-link-arg-bin=conduitos-armv6-rpi-b-plus-minipitft=-T{manifest}/proof/appliances/armv6-rpi-b-plus/linker/a3.ld"
         );
     }
 }
