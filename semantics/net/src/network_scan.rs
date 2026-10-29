@@ -248,7 +248,7 @@ pub fn network_scan_offer(
             execution_profile_id: NETWORK_SCAN_EXECUTION_PROFILE.into(),
             host_calls: vec![HostCallRequirement {
                 contract_id: NETWORK_SCAN_HOST_CALL.into(),
-                target_kind: None,
+                target_kind: Some(NETWORK_SCAN_SUBJECT.into()),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAXIMUM_SCAN_INPUT_BYTES,
                 maximum_output_bytes: MAXIMUM_SCAN_OUTPUT_BYTES,
