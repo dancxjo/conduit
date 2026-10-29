@@ -14,7 +14,16 @@ impl InstalledRemoteFragment {
             return Ok(false);
         }
         let maximum_output_bytes = work.maximum_output_bytes;
-        let capture = microphone_host::execute(work.input, microphone, cancelled)?;
+        let placement = self
+            .placements
+            .get(usize::from(request.node.0))
+            .ok_or("remote microphone request has no exact placement")?;
+        let capture = microphone_host::execute(
+            work.input,
+            placement.implementation_id.as_str(),
+            microphone,
+            cancelled,
+        )?;
         let outcome = match capture {
             Ok(clip) => {
                 if clip.len() > maximum_output_bytes as usize {

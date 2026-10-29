@@ -201,6 +201,9 @@ pub(super) enum HostCommand {
         card_id: String,
         #[arg(long)]
         device: u16,
+        /// Explicitly select ALSA channel/rate conversion instead of direct hardware.
+        #[arg(long)]
+        alsa_plug: bool,
         #[arg(long, default_value_t = 3_000)]
         capture_milliseconds: u32,
         #[arg(long, default_value_t = 10)]

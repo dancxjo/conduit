@@ -1037,9 +1037,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .map_err(|error| format!("complete durable State operation: {error:?}"))?;
                 continue;
             } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
-                let capture = microphone_host::execute(input, microphone.as_deref_mut(), || {
-                    control.requested_stop().is_some()
-                })?;
+                let placement = fragment
+                    .placements
+                    .get(usize::from(request.node.0))
+                    .ok_or("microphone request has no exact placement")?;
+                let capture = microphone_host::execute(
+                    input,
+                    placement.implementation_id.as_str(),
+                    microphone.as_deref_mut(),
+                    || control.requested_stop().is_some(),
+                )?;
                 let (disposition, output, failure) = match capture {
                     Ok(clip) => {
                         let value = scheduler.store_host_value(&clip).map_err(|error| {

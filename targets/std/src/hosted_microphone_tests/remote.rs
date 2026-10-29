@@ -5,15 +5,24 @@ use conduit_kernel::scheduler::HostCallRequest;
 use std::collections::BTreeMap;
 
 fn prepared(script: &str, request: &str) -> (PathBuf, StdHost, AdmittedRemoteFragment) {
+    prepared_with_format(script, request, AlsaMicrophoneFormat::ExactHardware)
+}
+
+fn prepared_with_format(
+    script: &str,
+    request: &str,
+    format: AlsaMicrophoneFormat,
+) -> (PathBuf, StdHost, AdmittedRemoteFragment) {
     let (root, discovery) = parsed_fixture(script, "remote");
     let selected = discovery.observations[0].clone();
     let adapter = discovery
-        .initialize(
+        .initialize_with_format(
             &selected,
             MicrophoneLimits {
                 capture_milliseconds: 1,
                 timeout: Duration::from_secs(2),
             },
+            format,
         )
         .unwrap();
     let mut host = StdHost::new_with_microphone(
@@ -93,20 +102,27 @@ fn microphone_request(host: &mut StdHost, remote: &mut AdmittedRemoteFragment) -
 #[test]
 fn admitted_remote_microphone_uses_selected_provider_and_retains_bounded_capture() {
     let _process = microphone_process();
-    let (root, mut host, mut remote) = prepared(
-        "#!/bin/sh\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",
-        "capture",
-    );
-    let request = microphone_request(&mut host, &mut remote);
-    assert!(host
-        .complete_remote_microphone_host_call(&mut remote, request, || false)
-        .unwrap());
-    let receipt = host.microphone.as_mut().unwrap().take_receipt().unwrap();
-    assert_eq!(receipt.raw_pcm_bytes, 32);
-    assert_eq!(receipt.card_id, "DSP");
-    assert_eq!(receipt.device, 7);
-    host.release_remote_fragment(remote).unwrap();
-    fs::remove_dir_all(root).unwrap();
+    for format in [
+        AlsaMicrophoneFormat::ExactHardware,
+        AlsaMicrophoneFormat::AlsaPlug,
+    ] {
+        let (root, mut host, mut remote) = prepared_with_format(
+            "#!/bin/sh\ndd if=/dev/zero bs=32 count=1 2>/dev/null\n",
+            "capture",
+            format,
+        );
+        let request = microphone_request(&mut host, &mut remote);
+        assert!(host
+            .complete_remote_microphone_host_call(&mut remote, request, || false)
+            .unwrap());
+        let receipt = host.microphone.as_mut().unwrap().take_receipt().unwrap();
+        assert_eq!(receipt.raw_pcm_bytes, 32);
+        assert_eq!(receipt.card_id, "DSP");
+        assert_eq!(receipt.device, 7);
+        assert_eq!(receipt.implementation_id, format.implementation_id());
+        host.release_remote_fragment(remote).unwrap();
+        fs::remove_dir_all(root).unwrap();
+    }
 }
 
 #[test]
@@ -172,4 +188,29 @@ fn remote_microphone_rejects_foreign_host_boot_and_generation_before_capture() {
         host.release_remote_fragment(remote).unwrap();
         fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[test]
+fn changed_microphone_format_is_refused_before_provider_execution() {
+    let _process = microphone_process();
+    let (root, mut host, mut remote) = prepared("#!/bin/sh\nexit 97\n", "capture");
+    let (other_root, mut other, other_remote) = prepared_with_format(
+        "#!/bin/sh\nexit 98\n",
+        "capture",
+        AlsaMicrophoneFormat::AlsaPlug,
+    );
+    let request = microphone_request(&mut host, &mut remote);
+    let original = host.microphone.take();
+    host.microphone = other.microphone.take();
+    assert!(host
+        .complete_remote_microphone_host_call(&mut remote, request, || false)
+        .unwrap_err()
+        .contains("exact planned Back"));
+    assert!(host.microphone.as_mut().unwrap().take_receipt().is_none());
+    other.microphone = host.microphone.take();
+    host.microphone = original;
+    host.release_remote_fragment(remote).unwrap();
+    other.release_remote_fragment(other_remote).unwrap();
+    fs::remove_dir_all(root).unwrap();
+    fs::remove_dir_all(other_root).unwrap();
 }
