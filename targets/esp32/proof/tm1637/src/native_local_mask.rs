@@ -4,6 +4,13 @@
 use super::mask::material;
 use super::{c, memory_check::mark, NativeRoot};
 use alloc::collections::BTreeMap;
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    feature = "body-image-root"
+))]
+#[path = "native_memory_retention.rs"]
+mod memory_retention;
 #[cfg(feature = "local-appliance")]
 #[path = "native_local_renewal_prepare.rs"]
 mod renewal_prepare;
@@ -251,9 +258,11 @@ impl NativeRoot {
                 esp_println::println!("{}", text);
             }
         }
+        #[cfg(all(feature = "body-persistence", feature = "body-image-root"))]
+        memory_retention::report(self.body.as_deref());
     }
-    // Keep the normal appliance's progress report scalar. Detailed per-owner
-    // layouts, digests and evidence arrays remain in the opt-in trace image.
+    // Keep normal progress and retained-capacity observations scalar. Detailed
+    // per-owner layouts, digests and evidence stay in the opt-in trace image.
     #[cfg(all(feature = "local-appliance", not(feature = "target-memory-trace")))]
     #[inline(never)]
     pub fn report_local_progress(&self) {
@@ -325,6 +334,8 @@ impl NativeRoot {
                 esp_println::println!("{}", text);
             }
         }
+        #[cfg(all(feature = "body-persistence", feature = "body-image-root"))]
+        memory_retention::report(self.body.as_deref());
     }
     fn prepare_local_mask_plan(&mut self) -> Result<c::VerifiedPlanMetadata, &'static str> {
         let image = image()?;
