@@ -76,6 +76,31 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
             Self::SourcePublication(b) => b.step(io, input),
         }
     }
+    fn compact_canonical_input(
+        &self,
+        port: PortId,
+    ) -> Option<conduit_kernel::CompactCanonicalLayout> {
+        match self {
+            Self::SourcePublication(back) => {
+                <SourcePublicationBack as StepBack<P>>::compact_canonical_input(back, port)
+            }
+            _ => None,
+        }
+    }
+    fn compact_canonical_output(&self) -> Option<(PortId, conduit_kernel::CompactCanonicalLayout)> {
+        match self {
+            Self::Native(back) => <CaptureBack as StepBack<P>>::compact_canonical_output(back),
+            _ => None,
+        }
+    }
+    fn prepared_compact_canonical_output(&self, port: PortId) -> Option<&[u8]> {
+        match self {
+            Self::Native(back) => {
+                <CaptureBack as StepBack<P>>::prepared_compact_canonical_output(back, port)
+            }
+            _ => None,
+        }
+    }
     fn encodes_prepared_output(&self, port: PortId) -> bool {
         match self {
             Self::Native(back) => <CaptureBack as StepBack<P>>::encodes_prepared_output(back, port),
@@ -134,4 +159,6 @@ pub mod software;
 pub mod software_compact;
 
 mod value_storage;
+#[cfg(feature = "local-planning")]
+pub use value_storage::{compact_value_storage_bytes, prepare_compact_value_storage};
 pub use value_storage::{prepare_value_storage, value_storage_bytes};

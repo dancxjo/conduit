@@ -59,11 +59,27 @@ impl<const P: usize> StepBack<P> for ObservationBack {
             Err(ObservationRefusal::CoordinateOutOfRange) => return fail(6),
             Err(ObservationRefusal::Form(_)) => return fail(7),
         };
-        if io.send_prepared(PortId(0), output as u32).is_err() || io.consume(PortId(0)).is_err() {
+        let sent = if io.compact_canonical_output(PortId(0)) {
+            io.send_compact_canonical(PortId(0), output as u32)
+        } else {
+            io.send_prepared(PortId(0), output as u32)
+        };
+        if sent.is_err() || io.consume(PortId(0)).is_err() {
             return fail(8);
         }
         self.staged = true;
         StepOutcome::Progress
+    }
+    fn compact_canonical_output(&self) -> Option<(PortId, conduit_kernel::CompactCanonicalLayout)> {
+        Some((
+            PortId(0),
+            crate::publication::source_reading::compact_layout(),
+        ))
+    }
+    fn prepared_compact_canonical_output(&self, port: PortId) -> Option<&[u8]> {
+        (port == PortId(0) && self.staged)
+            .then(|| self.codec.compact_output())
+            .flatten()
     }
     fn encodes_prepared_output(&self, port: PortId) -> bool {
         port == PortId(0)

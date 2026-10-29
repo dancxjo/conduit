@@ -29,7 +29,52 @@ pub struct PreparedLocalAppliance<'a, V> {
     pub values: V,
     pub roles: ResidentRoles,
 }
+/// Opaque exact Source/Plan and actual endpoint specialization witness. This
+/// proves representation eligibility only; it creates no grant or authority.
+pub struct VerifiedCompactObservationEdge {
+    source: k::NodeId,
+    sink: k::NodeId,
+}
+impl VerifiedCompactObservationEdge {
+    /// Complete only over the exact initialized drivers/tables moved from this
+    /// checked preparation. Kernel independently verifies the physical boundary.
+    /// # Safety
+    /// Caller must transfer those SAME tables, drivers and values into `kernel`.
+    pub unsafe fn bind<
+        E: k::SignSink,
+        V: k::ValueStorage,
+        const Q: usize,
+        const R: usize,
+        const T: usize,
+        const H: usize,
+        const A: usize,
+    >(
+        self,
+        kernel: &mut k::scheduler::FixedScheduler<
+            ApplianceBack,
+            V,
+            E,
+            NODES,
+            CORDS,
+            PORTS,
+            Q,
+            R,
+            T,
+            H,
+            A,
+        >,
+    ) -> Result<(), k::scheduler::SchedulerError> {
+        unsafe {
+            kernel.bind_compact_canonical_edge_from_trusted_make(
+                (self.source, k::PortId(0)),
+                (self.sink, k::PortId(0)),
+                crate::publication::source_reading::compact_layout(),
+            )
+        }
+    }
+}
 pub struct PreparedDirectLocalAppliance<'a, V> {
+    pub compact_observation_edge: Option<VerifiedCompactObservationEdge>,
     pub tables: DirectLocalKernelTables<'a, NODES, CORDS, PORTS, NODES, CORDS, NODES>,
     pub drivers: [ApplianceBack; NODES],
     pub selectors: [Option<PreparedCaptureSelector>; NODES],
@@ -322,6 +367,32 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
             cord.source == k::CordEndpoint::local(k::NodeId(producer as u16), k::PortId(0))
                 && cord.track == k::scheduler::AssignedConnectionTrack::Payload
         }) && incoming.next().is_none();
+        let compact_layout = crate::publication::source_reading::compact_layout();
+        let compact_storage = software.values.compact_canonical_layout().is_some();
+        if compact_storage && software.values.compact_canonical_layout() != Some(compact_layout) {
+            return Err(NativePreparationRefusal::Configuration);
+        }
+        if compact_storage {
+            let mut outgoing = tables.cords().iter().filter(|cord| {
+                cord.source == k::CordEndpoint::local(k::NodeId(producer as u16), k::PortId(0))
+            });
+            let supported = outgoing.next().is_some_and(|cord| {
+                cord.maximum_value_bytes == compact_layout.logical_bytes()
+                    && cord.item_capacity == 1
+                    && cord.byte_capacity >= compact_layout.logical_bytes()
+                    && cord.pressure_policy == k::scheduler::AssignedPressurePolicy::PreserveOrder
+            }) && outgoing.next().is_none();
+            if !exact
+                || !supported
+                || software
+                    .values
+                    .compact_canonical_available(compact_layout)
+                    .0
+                    < 2
+            {
+                return Err(NativePreparationRefusal::Configuration);
+            }
+        }
         if exact {
             let (producer_slot, consumer_slot) = if producer < consumer {
                 let (before, after) = software.drivers.split_at_mut(consumer);
@@ -351,6 +422,10 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
             values,
         } = *slot.take().expect("preflighted local software");
         Ok(PreparedDirectLocalAppliance {
+            compact_observation_edge: compact_storage.then_some(VerifiedCompactObservationEdge {
+                source: k::NodeId(producer as u16),
+                sink: k::NodeId(consumer as u16),
+            }),
             tables,
             drivers: (*drivers).map(|d| d.expect("preflighted complete drivers")),
             selectors: *selectors,
@@ -367,6 +442,12 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         offers: &[ResidentSoftwareOffer<'_>],
         scope: (&c::HostId, &c::BootId, c::OfferGeneration),
     ) -> Result<PreparedLocalAppliance<'a, V>, NativePreparationRefusal> {
+        if slot
+            .as_ref()
+            .is_some_and(|software| software.values.compact_canonical_layout().is_some())
+        {
+            return Err(NativePreparationRefusal::Configuration);
+        }
         slot.as_ref()
             .ok_or(NativePreparationRefusal::Initialization)?
             .check_local(verified, image, offers, scope)?;

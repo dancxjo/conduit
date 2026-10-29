@@ -76,3 +76,23 @@ mod tests {
         }
     }
 }
+
+/// Physical specialization only; local Source/Plan admission must subsequently
+/// verify and bind the exact representation-aware producer/publication edge.
+#[cfg(feature = "local-planning")]
+pub fn prepare_compact_value_storage() -> Result<HostedValueStore, StorageError> {
+    HostedValueStore::new_with_compact_canonical_slots(
+        &CAPACITIES[2..],
+        2,
+        crate::publication::source_reading::compact_layout(),
+        PAYLOAD_BYTES,
+    )
+}
+#[cfg(feature = "local-planning")]
+pub fn compact_value_storage_bytes() -> Result<usize, StorageError> {
+    HostedValueStore::compact_canonical_storage_bytes(
+        &CAPACITIES[2..],
+        2,
+        crate::publication::source_reading::compact_layout(),
+    )
+}
