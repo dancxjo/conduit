@@ -59,6 +59,8 @@ mod advice;
 mod body_envelope;
 #[cfg(feature = "indexed-source")]
 pub mod borrowed_local;
+#[cfg(feature = "indexed-source")]
+mod streamed_identity;
 mod canonical;
 mod characteristic_policy;
 mod characteristic_sealing;
