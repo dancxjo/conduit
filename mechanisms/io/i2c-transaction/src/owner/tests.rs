@@ -1,5 +1,5 @@
 use super::*;
-use crate::i2c_base::tests::request;
+use crate::tests::request;
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape};
 mod fixture;
 
