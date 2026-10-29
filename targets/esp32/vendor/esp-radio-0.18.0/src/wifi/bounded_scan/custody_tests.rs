@@ -25,7 +25,7 @@ fn cancellation_and_stop_return_never_release_without_terminal_and_list_clear() 
     assert!(custody.begin());
 }
 #[test]
-fn lag_and_unknown_start_outcome_quarantine_even_if_a_later_event_arrives() {
+fn lag_and_unknown_start_outcome_poison_publication_but_real_terminal_can_reconcile() {
     for stop in [false, true] {
         let mut custody = Custody::quiescent();
         custody.begin();
@@ -39,9 +39,12 @@ fn lag_and_unknown_start_outcome_quarantine_even_if_a_later_event_arrives() {
             scan_id: 42,
         });
         assert!(custody.is_quarantined());
-        assert!(!custody.cleared());
         assert!(!custody.is_quiescent());
         assert!(!custody.begin());
+        assert!(custody.completion().is_some());
+        assert!(custody.cleared());
+        assert!(custody.is_quiescent());
+        assert!(custody.is_quarantined()); // disposition not rewritten by cleanup
     }
 }
 #[test]

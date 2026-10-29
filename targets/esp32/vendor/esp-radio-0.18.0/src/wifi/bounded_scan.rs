@@ -2,6 +2,7 @@
 //!
 //! This module grants no scan/radio authority. A selected Host operation must
 //! supply mode/service ownership, absolute deadlines, output and cleanup custody.
+#[path = "bounded_scan/custody.rs"]
 mod custody;
 use super::{
     WifiController,
@@ -94,13 +95,10 @@ impl<'d> OwnedScan<'d> {
         Ok(())
     }
     /// Wait without transferring the controller. A dropped wait retains state
-    /// and subscriber in self. Lag quarantines permanently instead of skipping
-    /// potentially missing terminal evidence as next_message_pure would do.
+    /// and subscriber in self. Lag poisons publication, but a later real terminal
+    /// event may still reconcile cleanup under this same exclusive invocation.
     pub async fn wait_terminal(&mut self) -> Result<Completion, Error> {
         loop {
-            if self.custody.is_quarantined() {
-                return Err(Error::Quarantined);
-            }
             if let Some(event) = self.custody.completion() {
                 return Ok(event);
             }
@@ -130,6 +128,9 @@ impl<'d> OwnedScan<'d> {
             return Err(Error::Capacity);
         }
         let completion = self.wait_terminal().await?;
+        if self.custody.is_quarantined() {
+            return Err(Error::Quarantined);
+        }
         let mut total = 0;
         unsafe {
             sdk(include::esp_wifi_scan_get_ap_num(&mut total))?;

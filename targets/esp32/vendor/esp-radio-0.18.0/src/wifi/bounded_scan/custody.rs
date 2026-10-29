@@ -37,18 +37,20 @@ enum Phase {
     Idle,
     Running,
     Terminal(Completion),
-    Quarantined,
+    Uncorrelated,
 }
 #[derive(Debug)]
 pub struct Custody {
     phase: Phase,
     stop_requested: bool,
+    poisoned: bool,
 }
 impl Custody {
     pub const fn quiescent() -> Self {
         Self {
             phase: Phase::Idle,
             stop_requested: false,
+            poisoned: false,
         }
     }
     pub fn stop_requested(&self) -> bool {
@@ -58,7 +60,7 @@ impl Custody {
         self.phase == Phase::Idle
     }
     pub fn is_quarantined(&self) -> bool {
-        self.phase == Phase::Quarantined
+        self.poisoned
     }
     pub fn begin(&mut self) -> bool {
         if !self.is_quiescent() {
@@ -66,10 +68,14 @@ impl Custody {
         }
         self.phase = Phase::Running;
         self.stop_requested = false;
+        self.poisoned = false;
         true
     }
     pub fn quarantine(&mut self) {
-        self.phase = Phase::Quarantined;
+        self.poisoned = true;
+        if self.phase == Phase::Idle {
+            self.phase = Phase::Uncorrelated;
+        }
     }
     /// True only once, and only while the accepted operation may still run.
     /// SDK stop return alone cannot change phase or prove termination.
@@ -83,8 +89,8 @@ impl Custody {
     pub fn observed(&mut self, completion: Completion) {
         match self.phase {
             Phase::Running => self.phase = Phase::Terminal(completion),
-            // Lag/missing or unexpected terminal evidence is never healed by
-            // assigning the next event to an invented SDK start identifier.
+            // An event without a retained invocation cannot establish a new
+            // correlation. Publication poison survives a real terminal event.
             _ => self.quarantine(),
         }
     }

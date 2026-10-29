@@ -24,9 +24,12 @@ scans. Stop return is not treated as terminal evidence. Start returns no scan
 identifier; exclusivity and explicit initial-quiescence trusted construction
 provide sequential correlation, while the actual terminal scan_id is retained.
 
-Lag permanently quarantines because the terminal event may have been lost.
-Dropping a nonquiescent OwnedScan deliberately forgets its controller guard;
-this retains radio quarantine rather than running an unproved SDK deinit.
+Lag or an ambiguous SDK start error poisons publication for that invocation.
+The persistent subscriber still reconciles a later actual terminal event;
+cleanup returns custody only after that event and successful SDK list clear.
+No terminal evidence means custody remains held. Dropping a nonquiescent
+OwnedScan deliberately forgets its controller guard; this retains radio
+quarantine rather than running an unproved SDK deinit.
 Callers must retain the owner through cleanup. This is a fail-closed fault path,
 not a normal recovery mechanism or evidence that a timed-out scan stopped.
 
@@ -41,3 +44,9 @@ qualify its target build, arena/frame budget and real cancellation before use.
 
 Portable custody/copy tests run directly with:
 `rustc --edition2024 --test src/wifi/bounded_scan/custody.rs -o /tmp/scan-tests`
+
+The SDK shim harness compiles the actual OwnedScan implementation against a
+controlled CPU SDK/event boundary. It covers cancellation, raw status/count/auth,
+stop and list-clear refusal, lag reconciliation and late completion after start
+error. It is not real header ABI, hardware, mode restoration or target fit proof:
+`rustc --edition2024 --test tests/bounded_scan_host.rs -o /tmp/scan-host-tests`
