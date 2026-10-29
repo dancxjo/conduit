@@ -86,6 +86,13 @@ fn prepare_owner(
     state: Rc<State>,
     substitution: u8,
 ) -> Result<(NetworkScanHostCall<Provider>, NodeId), ScanCallRefusal> {
+    prepare_owner_mode(state, substitution, false)
+}
+fn prepare_owner_mode(
+    state: Rc<State>,
+    substitution: u8,
+    assigned: bool,
+) -> Result<(NetworkScanHostCall<Provider>, NodeId), ScanCallRefusal> {
     let contract = PreparedScanContract::prepare();
     let mut scope = possession::scope(NETWORK_SCAN_SUBJECT);
     scope.authority_contract_id = NETWORK_SCAN_AUTHORITY.into();
@@ -162,19 +169,75 @@ fn prepare_owner(
     let (table, handle, claim) = possession::possession(scope.clone());
     let node = lowered.nodes[0].node;
     let mut retained = Some(ready);
-    let result = ReadyNetworkScanBase::bind_selected_retained(
-        &mut retained,
-        table,
-        handle,
-        claim,
-        &contract,
-        SelectedOperationPlan {
-            fragment: &fragment,
-            lowered: &lowered,
-            active: &active,
-            placement_id: &placement,
-        },
-    );
+    let result = if assigned {
+        use conduit_plan_lowering::selected_assigned_operation::{
+            AssignedOperationInput, SelectedAssignedOperationPlan,
+        };
+        let image = conduit_embedded_build::generate_embedded_plan(
+            &fragment,
+            &lowered,
+            conduit_embedded_build::EmbeddedImageBounds::HOST_TOOLING,
+        )
+        .unwrap();
+        let maxima = AssignedPlanMaxima {
+            encoded_bytes: 65535,
+            runtime_state_bytes: 32768,
+            counts: [32; ASSIGNED_PLAN_COUNT_KINDS],
+        };
+        let bytes = conduit_embedded_build::encode_assigned_native_plan(&image, maxima).unwrap();
+        let calls = lowered
+            .host_calls
+            .iter()
+            .map(|c| AssignedIdentity::from_text(c.contract_id.as_str()))
+            .collect::<Vec<_>>();
+        let resources = lowered
+            .resources
+            .iter()
+            .map(|r| r.binding.resource.0)
+            .collect::<Vec<_>>();
+        let computations =
+            conduit_embedded_build::assigned_computation_requirements(&image).unwrap();
+        ReadyNetworkScanBase::bind_assigned_retained(
+            &mut retained,
+            table,
+            handle,
+            claim,
+            &contract,
+            SelectedAssignedOperationPlan {
+                input: AssignedOperationInput::Contiguous(&bytes),
+                maxima,
+                requirements: AssignedPlanRequirements {
+                    host: AssignedIdentity::from_text(fragment.host_id.as_str()),
+                    boot: AssignedIdentity::from_text(fragment.boot_id.as_str()),
+                    host_calls: &calls,
+                    resources: &resources,
+                    remote_bindings: &[],
+                },
+                computations: AssignedComputationProfile {
+                    maximum_text_bytes: u16::MAX,
+                    maximum_total_text_bytes: u32::MAX,
+                    requirements: &computations,
+                },
+                fragment_id: &fragment.fragment_id,
+                active: &active,
+                node,
+            },
+        )
+    } else {
+        ReadyNetworkScanBase::bind_selected_retained(
+            &mut retained,
+            table,
+            handle,
+            claim,
+            &contract,
+            SelectedOperationPlan {
+                fragment: &fragment,
+                lowered: &lowered,
+                active: &active,
+                placement_id: &placement,
+            },
+        )
+    };
     match result {
         Ok(owner) => {
             assert!(retained.is_none());
@@ -347,4 +410,27 @@ fn malformed_result_never_partially_replaces_caller_observations() {
     }
     .encode()
     .is_err());
+}
+
+#[test]
+fn canonical_compact_assignment_preserves_selected_scope_and_owner_refusals() {
+    let state = Rc::new(State::default());
+    let (mut owner, node) = prepare_owner_mode(state.clone(), 0, true).unwrap();
+    run(owner.invoke(
+        node,
+        HostCallId(0),
+        RequestId(0),
+        &request().encode().unwrap(),
+    ))
+    .unwrap();
+    assert_eq!(state.effects.get(), 1);
+    run(owner.cleanup()).unwrap();
+    owner.revoke(node, HostCallId(0)).unwrap();
+    let mut slot = Some(owner);
+    assert!(NetworkScanHostCall::retire_retained(&mut slot).is_ok());
+    // These are consistent sealed assignments with foreign native pins, not only
+    // corrupt bytes. The retained provider must survive every pre-transfer refusal.
+    for substitution in 1..=4 {
+        assert!(prepare_owner_mode(Rc::new(State::default()), substitution, true).is_err());
+    }
 }

@@ -32,6 +32,10 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
     /// persistent event subscription. Its SDK storage, absolute deadlines and
     /// service transitions already have finite independent admission. No other
     /// join/scan may share this radio until real retirement returns it.
+    #[allow(
+        clippy::result_large_err,
+        reason = "Refusal returns the actual affine initialized provider and identity without allocation"
+    )]
     pub unsafe fn new(
         identity: NetworkNativeIdentity,
         request: NetworkScanRequest,

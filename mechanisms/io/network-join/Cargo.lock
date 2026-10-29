@@ -35,6 +35,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-embedded-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-kernel"
 version = "0.1.0"
 dependencies = [
@@ -55,6 +65,7 @@ name = "conduit-network-join-call"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-embedded-build",
  "conduit-kernel",
  "conduit-net",
  "conduit-plan-lowering",
