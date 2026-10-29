@@ -54,7 +54,97 @@ pub struct PreparedScanKernelParts {
     calls: k::FixedHostCallBindings<2>,
     roles: ScanKernelRoles,
 }
+/// Complete borrowed Core scope lowered without reconstructing an owned Plan.
+pub type ScanFlatDirectTables<'a> =
+    conduit_plan_lowering::local_tables::FlatDirectLocalKernelTables<'a, 2, 1, 1, 2, 1, 2>;
 impl PreparedScanKernelParts {
+    pub fn check_flat_direct(
+        tables: &ScanFlatDirectTables<'_>,
+    ) -> Result<ScanKernelRoles, ScanKernelRefusal> {
+        use ScanKernelRefusal as E;
+        let view = tables.preparation_scope().view();
+        let placements = view.placements;
+        if placements.len() != 2
+            || !view.header.execution_regions.is_empty()
+            || placements.iter().any(|g| {
+                !g.configuration.is_empty()
+                    || g.inputs.len() > 1
+                    || g.outputs.len() > 1
+                    || g.host_calls.len() != 1
+            })
+            || placements.iter().map(|g| g.resources.len()).sum::<usize>() != 1
+        {
+            return Err(E::Shape);
+        }
+        if tables.cord_value_slots() != 1
+            || tables.cord_value_bytes() > MAXIMUM_SCAN_OUTPUT_BYTES
+            || tables.sign_items() > SIGN_ITEMS
+            || tables.sign_bytes()
+                > u32::from(SIGN_ITEMS) * core::mem::size_of::<k::KernelEvent>() as u32
+        {
+            return Err(E::Storage);
+        }
+        let find = |kind: &str| {
+            let mut found = placements
+                .iter()
+                .enumerate()
+                .filter(|(_, g)| g.kind_id == kind);
+            let (node, _) = found.next().ok_or(E::Shape)?;
+            if found.next().is_some() {
+                return Err(E::Shape);
+            }
+            Ok(k::NodeId(node as u16))
+        };
+        let roles = ScanKernelRoles {
+            scan: find(NETWORK_SCAN_OPERATION)?,
+            evidence: find(NETWORK_SCAN_SIGN_OPERATION)?,
+        };
+        for (node, g) in placements.iter().enumerate() {
+            let scan = node == usize::from(roles.scan.0);
+            let call = g.host_calls.iter().next().ok_or(E::Shape)?;
+            if call.contract_id
+                != if scan {
+                    conduit_net::NETWORK_SCAN_HOST_CALL
+                } else {
+                    conduit_net::NETWORK_SCAN_SIGN_HOST_CALL
+                }
+                || g.resources.len() != usize::from(scan)
+                || g.inputs.len() != usize::from(!scan)
+                || g.outputs.len() != usize::from(scan)
+            {
+                return Err(E::Shape);
+            }
+        }
+        Ok(roles)
+    }
+    pub fn from_flat_direct(tables: ScanFlatDirectTables<'_>) -> Result<Self, ScanKernelRefusal> {
+        let roles = Self::check_flat_direct(&tables)?;
+        let raw = tables.into_parts();
+        let parts = Self {
+            nodes: raw.nodes,
+            cord: raw.cords[0],
+            routes: raw.routes,
+            calls: raw.calls,
+            roles,
+        };
+        parts.check_chain()?;
+        Ok(parts)
+    }
+    fn check_chain(&self) -> Result<(), ScanKernelRefusal> {
+        let c = self.cord;
+        if self.roles.scan == self.roles.evidence
+            || c.source_local() != Some((self.roles.scan, k::PortId(0)))
+            || c.sink_local() != Some((self.roles.evidence, k::PortId(0)))
+            || c.item_capacity != 1
+            || c.byte_capacity > MAXIMUM_SCAN_OUTPUT_BYTES
+            || c.maximum_value_bytes > MAXIMUM_SCAN_OUTPUT_BYTES
+            || self.nodes[usize::from(self.roles.scan.0)].input_cords != [None]
+            || self.nodes[usize::from(self.roles.evidence.0)].input_cords != [Some(c.cord)]
+        {
+            return Err(ScanKernelRefusal::Shape);
+        }
+        Ok(())
+    }
     pub fn prepare(fragment: &PlanFragment) -> Result<Self, ScanKernelRefusal> {
         if !conduit_core::verify_plan_fragment(fragment) {
             return Err(ScanKernelRefusal::Identity);

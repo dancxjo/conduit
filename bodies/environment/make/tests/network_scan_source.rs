@@ -117,12 +117,36 @@ fn scan_plan() -> conduit_core::Plan {
 
 #[test]
 fn actual_checked_scan_kernel_delivers_one_bounded_result_and_retires_original_signs() {
+    let plan = scan_plan();
+    assert_eq!(plan.fragments.len(), 1);
+    let parts =
+        conduit_network_join_call::scan::PreparedScanKernelParts::prepare(&plan.fragments[0])
+            .unwrap();
+    exercise_kernel(parts);
+}
+
+#[test]
+fn borrowed_verified_scan_tables_keep_the_same_execution_without_heap_preparation() {
+    use conduit_network_join_call::scan::*;
+    let plan = scan_plan();
+    let verified = conduit_core::FlatPlanRef::from_plan(&plan)
+        .unwrap()
+        .verify()
+        .unwrap();
+    let (parts, memory) = allocation_probe::observe(|| {
+        let tables = ScanFlatDirectTables::prepare(&verified).unwrap();
+        PreparedScanKernelParts::check_flat_direct(&tables).unwrap();
+        PreparedScanKernelParts::from_flat_direct(tables).unwrap()
+    });
+    assert_eq!(memory.allocations, 0);
+    assert_eq!(memory.reallocations, 0);
+    exercise_kernel(parts);
+}
+
+fn exercise_kernel(parts: conduit_network_join_call::scan::PreparedScanKernelParts) {
     use conduit_kernel::{self as k, scheduler::SchedulerStatus};
     use conduit_net::*;
     use conduit_network_join_call::scan::*;
-    let plan = scan_plan();
-    assert_eq!(plan.fragments.len(), 1);
-    let parts = PreparedScanKernelParts::prepare(&plan.fragments[0]).unwrap();
     let mut prepared = PreparedScanKernelStorage::try_new()
         .unwrap()
         .finish(parts)
