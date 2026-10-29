@@ -280,13 +280,19 @@ impl<'a> Page<'a> {
             return Err(Refusal::Corrupt);
         }
         let count = u16::from_le_bytes(bytes[6..8].try_into().unwrap()) as usize;
+        if count > MAXIMUM_EVENTS {
+            return Err(Refusal::Corrupt);
+        }
         let payload = if record_kind == RecordKind::Scan {
             usize::from(u16::from_le_bytes(bytes[28..30].try_into().unwrap()))
         } else {
             0
         };
+        if payload > conduit_net::MAXIMUM_SCAN_OUTPUT_BYTES as usize {
+            return Err(Refusal::Corrupt);
+        }
         let end = HEADER + count * EVENT + payload;
-        if count > MAXIMUM_EVENTS || end > DATA || bytes[end..DATA].iter().any(|b| *b != 0) {
+        if end > DATA || bytes[end..DATA].iter().any(|b| *b != 0) {
             return Err(Refusal::Corrupt);
         }
         let scope = Scope {

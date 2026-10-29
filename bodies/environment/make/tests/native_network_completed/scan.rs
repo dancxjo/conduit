@@ -170,7 +170,7 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
         assert_eq!(state.scans.get(), 1);
         assert!(scan.take_retired().is_err());
         embassy_futures::block_on(scan.restore_for_retirement()).unwrap();
-        let retired = scan.take_retired().unwrap();
+        let mut retired = scan.take_retired().unwrap();
         assert!(Rc::ptr_eq(&retired.provider.0, &state));
         assert!(!retired.evidence_seen);
         assert!(retired.evidence().completed_output().is_none());
@@ -186,6 +186,20 @@ fn actual_root_scan_failure_and_cancel_keep_cleanup_and_never_fabricate_observat
             retired.evidence().inspection().scope.active_play_id,
             retired.active.active_play_id
         );
+        let flash = Flash {
+            bytes: vec![255; wire::CAPACITY as usize],
+            budget: Rc::new(Cell::new(usize::MAX)),
+        };
+        let mut work = [0; wire::MAXIMUM_BYTES];
+        let mut journal = wire::Journal::open(flash, &mut work)
+            .unwrap_or_else(|_| panic!("blank cancellation journal"));
+        retired
+            .commit_to_fixture_journal(&mut journal, &mut work)
+            .unwrap();
+        let committed = retired.committed().unwrap();
+        assert!(!committed.evidence_seen());
+        assert!(committed.evidence().completed_output().is_none());
+        root.finish_scan_play(&retired.active, committed).unwrap();
     }
 }
 fn ready(state: Rc<State>) -> ReadyNetworkScanBase<CpuScan> {
