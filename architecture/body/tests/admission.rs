@@ -500,3 +500,6 @@ fn expired_reused_and_mismatched_spawn_proofs_refuse_distinctly() {
         Err(AdmissionRefusal::WeakSecret)
     );
 }
+
+#[path = "admission/compaction_behavior.rs"]
+mod compaction_behavior;
