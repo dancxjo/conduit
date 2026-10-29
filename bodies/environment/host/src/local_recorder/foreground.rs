@@ -11,6 +11,7 @@ pub(super) fn run_loop(
     once: bool,
     custody: Option<(&Path, &Path)>,
     mut network: Option<network::Network>,
+    projection: Option<(&Path, crate::observed_history::retained::Projection<'_>)>,
 ) -> Result<()> {
     let mut preferred = 0;
     let mut continuing = crate::observed_custody_live::Continuing::new();
@@ -28,7 +29,11 @@ pub(super) fn run_loop(
             .filter(|_| connected);
         let work = cadence::select(Instant::now(), collection_due, observed_due, network_due);
         if work == Work::Collect {
-            match collect_routes(&collector, &peers, preferred, directory) {
+            let collected = collect_routes(&collector, &peers, preferred, directory);
+            if let Some((binding, projection)) = &projection {
+                projection.after_attempt(binding, directory);
+            }
+            match collected {
                 Ok((route, epochs)) => {
                     if route != preferred {
                         eprintln!("recorder selected authenticated transport {}", peers[route]);

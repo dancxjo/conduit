@@ -175,12 +175,35 @@ fn main() -> Result<()> {
             )
         };
     }
+    let projection_args = if matches!(
+        args.get(1).map(String::as_str),
+        Some("--record-joined" | "--record-joined-continuing")
+    ) {
+        if let Some(index) = args.iter().position(|arg| arg == "--retained-projection") {
+            if index < 2 || index + 2 >= args.len() {
+                return Err("expected --retained-projection PRODUCER_BOOT PRIVATE_OUTPUT".into());
+            }
+            let values: Vec<_> = args.drain(index..index + 3).collect();
+            Some((values[1].clone(), values[2].clone()))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    let projection =
+        projection_args
+            .as_ref()
+            .map(|(boot, output)| observed_history::retained::Projection {
+                producer_boot: boot,
+                output: std::path::Path::new(output),
+            });
     if args
         .get(1)
         .is_some_and(|argument| argument == "--record-joined-continuing")
     {
         if !matches!(args.len(), 6 | 8) {
-            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT[,HOST:PORT...] (at most four explicit peers) [PRODUCER_BOOT PRIVATE_NETWORK_RUN]".into());
+            return Err("expected --record-joined-continuing PRIVATE_BINDING CONTINUITY_PRIVATE HISTORY_DIRECTORY HOST:PORT[,HOST:PORT...] (at most four explicit peers) [PRODUCER_BOOT PRIVATE_NETWORK_RUN] [--retained-projection PRODUCER_BOOT PRIVATE_OUTPUT]".into());
         }
         return local_recorder::run_joined_continuing(
             std::path::Path::new(&args[2]),
@@ -191,6 +214,7 @@ fn main() -> Result<()> {
                 producer_boot: &args[6],
                 private_run: std::path::Path::new(&args[7]),
             }),
+            projection,
         );
     }
     if args
@@ -203,7 +227,7 @@ fn main() -> Result<()> {
         }
         if args.len() != 5 {
             return Err(
-                "expected --record-joined PRIVATE_BINDING PRIVATE_STATE HOST:PORT [--once]".into(),
+                "expected --record-joined PRIVATE_BINDING PRIVATE_STATE HOST:PORT [--once] [--retained-projection PRODUCER_BOOT PRIVATE_OUTPUT]".into(),
             );
         }
         return local_recorder::run_joined(
@@ -211,6 +235,7 @@ fn main() -> Result<()> {
             &args[4],
             std::path::Path::new(&args[3]),
             once,
+            projection,
         );
     }
     let resume = args

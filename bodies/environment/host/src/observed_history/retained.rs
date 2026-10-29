@@ -142,6 +142,18 @@ pub(crate) fn run(binding: &Path, directory: &Path, boot: &str, output: &Path) -
     if output.exists() {
         private(output, false)?;
     }
+    // A verified but unchanged prefix must not churn an otherwise idle readout.
+    if output.exists() {
+        let file = OpenOptions::new()
+            .read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+            .open(output)?;
+        let mut previous = Vec::new();
+        file.take(4097).read_to_end(&mut previous)?;
+        if previous == bytes {
+            return Ok(());
+        }
+    }
     let temporary = output.with_file_name(format!(".retained-series-{}.tmp", std::process::id()));
     let mut file = OpenOptions::new()
         .write(true)
@@ -162,5 +174,8 @@ pub(crate) fn run(binding: &Path, directory: &Path, boot: &str, output: &Path) -
     result
 }
 
+#[path = "retained/automatic.rs"]
+mod automatic;
+pub(crate) use automatic::Projection;
 #[cfg(test)]
 mod tests;
