@@ -218,7 +218,8 @@ fn malformed_histories_keep_exact_legacy_refusal_and_first_error_order() {
         check(&changed);
     }
     let mut full = histories().remove(MAX_MEMBERSHIP_EVENTS);
-    full.parts.push(full.parts[0].clone());
+    let repeated = full.parts[0].clone();
+    full.parts.push(repeated);
     check(&full);
     let mut checkpoint = histories()
         .into_iter()
