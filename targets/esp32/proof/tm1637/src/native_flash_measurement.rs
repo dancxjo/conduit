@@ -108,6 +108,6 @@ pub(super) fn report_rom_profile() -> Option<ReviewedTiming> {
         chip.page_size,
         chip.status_mask,
     );
-    esp_println::println!("{{\"event\":\"native-flash-rom-profile\",\"rom_device_id\":{},\"rom_chip_size\":{},\"rom_block_size\":{},\"rom_sector_size\":{},\"rom_page_size\":{},\"rom_status_mask\":{},\"timing_qualified\":false}}",chip.device_id,chip.chip_size,chip.block_size,chip.sector_size,chip.page_size,chip.status_mask);
+    esp_println::println!("{{\"event\":\"native-flash-rom-profile\",\"rom_device_id\":{},\"rom_chip_size\":{},\"rom_block_size\":{},\"rom_sector_size\":{},\"rom_page_size\":{},\"rom_status_mask\":{},\"timing_qualified\":{}}}",chip.device_id,chip.chip_size,chip.block_size,chip.sector_size,chip.page_size,chip.status_mask,reviewed.is_some());
     reviewed
 }

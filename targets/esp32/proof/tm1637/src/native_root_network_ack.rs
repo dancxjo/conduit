@@ -187,13 +187,16 @@ impl NativeRoot {
                 unreachable!()
             };
             let (draft, signed, deadline) = export.into_parts();
-            let started = match network_pending_job::start(
+            let entered = embassy_time::Instant::now().as_micros();
+            let prepared = network_pending_job::start(
                 self.body.as_ref().ok_or("network-snapshot-body")?,
                 &self.boot,
                 &self.admission.verifying_key(),
                 draft,
                 &decoded,
-            ) {
+            );
+            trace_preparation("start", entered);
+            let started = match prepared {
                 Ok(started) => started,
                 Err((draft, reason)) => {
                     owned.phase = Phase::Ready(Export::new(draft, signed, deadline)?);
@@ -280,7 +283,10 @@ impl NativeRoot {
             return true;
         }
         if job.needs_chunk() {
-            if let Err(reason) = job.prepare_chunk(owner) {
+            let entered = embassy_time::Instant::now().as_micros();
+            let prepared = job.prepare_chunk(owner);
+            trace_preparation("chunk", entered);
+            if let Err(reason) = prepared {
                 drop(job);
                 complete(writing.key, Err(reason));
                 return true;
@@ -299,5 +305,19 @@ impl NativeRoot {
             Err((_, job)) => writing.owner = Some(job),
         }
         false
+    }
+}
+
+// Scalar timing only: no payload copy, storage grant, or changed deadline.
+fn trace_preparation(stage: &'static str, entered: u64) {
+    let elapsed = embassy_time::Instant::now()
+        .as_micros()
+        .saturating_sub(entered);
+    if elapsed >= 100_000 {
+        esp_println::println!(
+            "{{\"event\":\"network-custody-preparation\",\"stage\":\"{}\",\"elapsed_us\":{}}}",
+            stage,
+            elapsed
+        );
     }
 }
