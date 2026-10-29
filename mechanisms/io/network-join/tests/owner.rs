@@ -302,6 +302,7 @@ fn cancellation_revokes_unfinished_possession_and_retains_bounded_cleanup_obliga
             .is_pending());
     }
     assert_eq!(state.cancelled.get(), 1);
+    assert!(owner.completed_output().is_none());
     assert!(owner.cleanup_required());
     assert_eq!(owner.inspection().lifecycle, CapabilityLifecycle::Revoked);
     state.cleanup_failed.set(true);
@@ -342,6 +343,7 @@ fn foreign_attachment_and_provider_failure_never_publish_success() {
             ));
         }
         assert_eq!(owner.inspection().completed_operations, 1);
+        assert!(owner.completed_output().is_none());
         assert!(owner.cleanup_required());
         run(owner.cleanup()).unwrap();
         assert_eq!(state.cleanups.get(), 1);
@@ -462,3 +464,6 @@ fn provider_retirement_requires_revocation_and_acknowledged_cleanup() {
         Err(JoinCallRefusal::OwnerUnavailable)
     ));
 }
+
+#[path = "owner/completed_output.rs"]
+mod completed_output;
