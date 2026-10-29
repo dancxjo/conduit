@@ -25,7 +25,7 @@ pub struct CompactOutputSoftware<'a> {
     boot: c::BootId,
     source: c::PlotIdentity,
     generation: Option<c::OfferGeneration>,
-    operations: Vec<Operation<'a>>,
+    operations: Option<Vec<Operation<'a>>>,
     #[cfg_attr(
         not(feature = "local-planning"),
         allow(dead_code, reason = "decoder is used only for local metadata planning")
@@ -112,7 +112,7 @@ impl<'a> CompactOutputSoftware<'a> {
             boot,
             source,
             generation: None,
-            operations,
+            operations: Some(operations),
             decoder,
         })
     }
@@ -136,8 +136,34 @@ impl<'a> CompactOutputSoftware<'a> {
     fn decode_offer(&self, wire: &[u8]) -> Result<c::CapabilityOffer, SoftwareRefusal> {
         (self.decoder)(wire).map_err(|_| SoftwareRefusal::Selection)
     }
+    fn operations(&self) -> &[Operation<'a>] {
+        self.operations.as_deref().unwrap_or_default()
+    }
+    // Both callers preflight the complete one-to-one selection before moving
+    // anything. Execution takes the real initialized operations; construction
+    // fingerprints, offer borrows and Host-call checks have no later owner.
+    fn transfer_operations(
+        &mut self,
+        indices: [Option<usize>; 4],
+    ) -> [Option<PreparedSoftwareOperation>; 4] {
+        let operations = self
+            .operations
+            .take()
+            .expect("complete exclusive preflight");
+        let mut selected = core::array::from_fn(|_| None);
+        for (index, operation) in operations.into_iter().enumerate() {
+            let node = indices
+                .iter()
+                .position(|entry| *entry == Some(index))
+                .expect("preflighted one-to-one selection");
+            selected[node] = Some(operation.prepared.expect("preflighted initialized owner"));
+        }
+        selected
+    }
     pub fn is_ready(&self) -> bool {
-        self.operations.iter().all(|op| op.prepared.is_some())
+        self.operations.as_ref().is_some_and(|operations| {
+            operations.len() == 3 && operations.iter().all(|op| op.prepared.is_some())
+        })
     }
     pub fn current_offers(
         &mut self,
@@ -173,6 +199,9 @@ impl<'a> CompactOutputSoftware<'a> {
         {
             return Err(E::Selection);
         }
+        if self.operations.is_none() {
+            return Err(E::AlreadySelected);
+        }
         let mut indices = [None; 4];
         let mut seen = [false; 4];
         for record in records.iter().filter(|r| r.tag == c::ASSIGNED_NODE) {
@@ -190,14 +219,14 @@ impl<'a> CompactOutputSoftware<'a> {
                 continue;
             }
             let index = self
-                .operations
+                .operations()
                 .iter()
                 .position(|op| data[4..52] == op.node)
                 .ok_or(E::Selection)?;
             if indices.contains(&Some(index)) {
                 return Err(E::Selection);
             }
-            let op = &self.operations[index];
+            let op = &self.operations()[index];
             if op.prepared.is_none() {
                 return Err(E::AlreadySelected);
             }
@@ -246,14 +275,7 @@ impl<'a> CompactOutputSoftware<'a> {
         if seen.contains(&false) || indices.iter().flatten().count() != 3 {
             return Err(E::Selection);
         }
-        Ok(core::array::from_fn(|i| {
-            indices[i].map(|index| {
-                self.operations[index]
-                    .prepared
-                    .take()
-                    .expect("exclusive complete preflight")
-            })
-        }))
+        Ok(self.transfer_operations(indices))
     }
 }
 fn u16_at(bytes: &[u8], offset: usize) -> Result<u16, SoftwareRefusal> {
@@ -292,14 +314,14 @@ impl CompactOutputOffers<'_, '_> {
         &self,
     ) -> impl Iterator<Item = Result<c::CapabilityOffer, SoftwareRefusal>> + '_ {
         self.owner
-            .operations
+            .operations()
             .iter()
             .filter(|op| op.prepared.is_some())
             .map(|op| self.owner.decode_offer(op.offer))
     }
     pub fn iter(&self) -> impl Iterator<Item = &[u8]> {
         self.owner
-            .operations
+            .operations()
             .iter()
             .filter(|op| op.prepared.is_some())
             .map(|op| op.offer)

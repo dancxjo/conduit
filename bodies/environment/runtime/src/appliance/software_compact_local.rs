@@ -20,14 +20,7 @@ impl CompactOutputSoftware<'_> {
         scope: (&c::HostId, &c::BootId, c::OfferGeneration),
     ) -> Result<[Option<PreparedSoftwareOperation>; 4], SoftwareRefusal> {
         let indices = self.local_indices(verified, image, scope)?;
-        Ok(core::array::from_fn(|node| {
-            indices[node].map(|index| {
-                self.operations[index]
-                    .prepared
-                    .take()
-                    .expect("complete exclusive preflight")
-            })
-        }))
+        Ok(self.transfer_operations(indices))
     }
     fn local_indices(
         &self,
@@ -60,6 +53,9 @@ impl CompactOutputSoftware<'_> {
             || lowered.nodes.len() != 4
         {
             return Err(E::Selection);
+        }
+        if self.operations.is_none() {
+            return Err(E::AlreadySelected);
         }
         // Bind the selected routing to the checked Source rather than trusting
         // a caller's claimed Source ID on a different, self-consistent Plan.
@@ -125,7 +121,7 @@ impl CompactOutputSoftware<'_> {
                 return Err(E::Selection);
             };
             let found = self
-                .operations
+                .operations()
                 .iter()
                 .position(|op| {
                     op.node[..16] == c::AssignedIdentity::from_text(gear.kind_id.as_str()).0
@@ -135,7 +131,7 @@ impl CompactOutputSoftware<'_> {
                             == c::AssignedIdentity::from_text(gear.artifact_id.as_str()).0
                 })
                 .ok_or(E::Selection)?;
-            let op = &self.operations[found];
+            let op = &self.operations()[found];
             if op.key != c::AssignedIdentity::from_text(&configuration.key)
                 || op.configuration != text
             {

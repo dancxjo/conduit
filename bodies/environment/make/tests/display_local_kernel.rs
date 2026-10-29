@@ -173,6 +173,21 @@ fn local_output_refuses_before_transfer_then_executes_without_play_allocation() 
         )
         .unwrap();
         assert!(!software.is_ready());
+        assert!(software.check_local(&lowered, &image, scope).is_err());
+        let offers = software
+            .current_offers(&host.host_id, &host.boot_id, host.offer_generation)
+            .unwrap();
+        assert_eq!(offers.iter().count(), 0);
+        let scope_bytes = offers.host().as_str().len()
+            + offers.boot().as_str().len()
+            + offers.source().as_str().len()
+            + offers.checked().as_str().len()
+            + offers.expanded().as_str().len();
+        // After transfer, dropping the preparation owner frees only its scope
+        // strings; the operation table has already been retired. The execution
+        // below must remain complete without borrowing that construction owner.
+        let (_, retired) = allocation_probe::observe(|| drop(software));
+        assert!(retired.deallocated_bytes <= scope_bytes + 64, "{retired:?}");
         let mut encoder =
             conduit_environment_runtime::display_packets::PreparedDisplayFrame::prepare().unwrap();
         let frame = encoder
