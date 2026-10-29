@@ -26,6 +26,7 @@ pub(crate) enum ReleasePlatform {
     Browser,
     Linux,
     LinuxArmv6,
+    LinuxAarch64,
     Windows,
     Macos,
 }
@@ -67,6 +68,7 @@ pub(crate) fn run(
     match platform {
         ReleasePlatform::Browser => build_browser(output, source_identity)?,
         ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
+        ReleasePlatform::LinuxAarch64 => linux::build_aarch64(output, source_identity)?,
         ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
         ReleasePlatform::Windows => build_windows(output, source_identity)?,
         ReleasePlatform::Macos => build_macos(output, source_identity)?,
