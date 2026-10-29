@@ -144,3 +144,34 @@ they do not establish autonomous configuration persistence or reconnect.
 Yellow still needs autonomous saved-network recovery, finite durable
 observations and ordinary Host admission/assigned-Plot execution.
 Transport attachment and diagnostic counters do not establish those contracts.
+
+## Pi B+ observer admission
+
+At the user's explicit request, beeplus joined the extant Body through the
+matching ARMv6 environmental client, SHA-256
+`aa60b9f048914e19bec84b9943782d1ec6053007008f8627767e687ed5feb147`.
+The general installed-product Host identity/parser was not substituted for
+this environmental observer protocol. The Pi's machine ID differs from
+victus's and forebrain's; its actual observer identity is
+`linux/89e2b39a9ed742d9a9b5c69a5b6208bb`.
+
+Forebrain's spare Wi-Fi adapter associated with Blue's open AP. Explicit SSH
+forwards exposed Blue's HTTP endpoint only on the Pi's loopback port 18480;
+HTTP 200 was measured from the Pi before minting. This was an SSH-forwarded
+AP route, not direct LAN reachability or cross-NAT mDNS.
+
+The provisioned human-owner key authorized the existing trusted physical UART
+JOIN exchange, without modem-line changes, reset, reflash or journal erasure.
+The fresh five-minute invitation's Body/Root pins were verified and its file
+transferred privately. The initial HTTP submission encountered OS error 11
+after saving the signed request and continuity. Replaying that exact same
+retained state succeeded. The production client verified Blue's signed receipt;
+a fresh invocation reopened and verified the retained binding. Binding and
+continuity files were synchronized on the Pi's SD storage with private 0600
+files and 0700 directories. No observer identity was cloned.
+
+This establishes observer membership only. It admits no storage provider,
+selects no recorder, grants no display Back and proves no Pi reboot/return.
+Blue's station failure remains unchanged. The explicit forwards were left
+running for the Pi owner's follow-up; their lifetime is not autonomous network
+continuity. Invitation secrets and continuity remain outside this repository.
