@@ -200,6 +200,36 @@ impl Recovery {
     pub fn revision(&self) -> u64 {
         self.revision
     }
+    /// Root-only confirmation after the exact selected scan's mandatory
+    /// evidence committed and the actual AP owner returned. A scan spends the
+    /// next physical generation without inventing/refunding a join attempt.
+    /// `renewed` records the separate known-profile decision, never authorizes it.
+    pub fn scan_retired(
+        &mut self,
+        generation: u64,
+        now: u64,
+        renewed: bool,
+    ) -> Result<(), Refusal> {
+        if now < self.last_now {
+            return Err(Refusal::Clock);
+        }
+        let next = self.generation.checked_add(1).ok_or(Refusal::Exhausted)?;
+        if generation != next || generation == u64::MAX {
+            return Err(Refusal::StaleAttempt);
+        }
+        let at = now
+            .checked_add(if renewed { 1_000 } else { 30_000 })
+            .ok_or(Refusal::Clock)?;
+        let phase = match self.phase {
+            Phase::Waiting { at: old } => Phase::Waiting { at: old.max(at) },
+            Phase::Cooldown { at: old } => Phase::Cooldown { at: old.max(at) },
+            _ => return Err(Refusal::Busy),
+        };
+        self.clock(now)?;
+        self.generation = generation;
+        self.phase = phase;
+        Ok(())
+    }
     pub fn generation(&self) -> u64 {
         self.generation
     }
@@ -255,6 +285,61 @@ impl Recovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn retired_scan_advances_shared_generation_without_refunding_join_attempts() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        let candidate = r.preview_attempt(0).unwrap().unwrap();
+        r.begin_attempt(candidate, 0).unwrap();
+        r.failed(1).unwrap();
+        r.restored(1, 1, true).unwrap();
+        r.scan_retired(2, 1001, false).unwrap();
+        assert_eq!((r.generation, r.attempts, r.revision), (2, 1, 1));
+        assert!(r.preview_attempt(31_000).unwrap().is_none());
+        let candidate = r.preview_attempt(31_001).unwrap().unwrap();
+        assert_eq!(candidate.generation(), 3);
+        r.begin_attempt(candidate, 31_001).unwrap();
+        assert_eq!((r.generation, r.attempts), (3, 2));
+        let old = (r.phase, r.generation, r.attempts, r.last_now);
+        assert_eq!(r.scan_retired(4, 31_002, true), Err(Refusal::Busy));
+        assert_eq!((r.phase, r.generation, r.attempts, r.last_now), old);
+    }
+    #[test]
+    fn scan_cooldown_keeps_exhausted_burst_until_existing_attempt_boundary() {
+        let mut r = Recovery::new();
+        r.configuration(1, 0).unwrap();
+        for (generation, now) in [(1, 0), (2, 1000), (3, 6000)] {
+            let candidate = r.preview_attempt(now).unwrap().unwrap();
+            r.begin_attempt(candidate, now).unwrap();
+            r.failed(generation).unwrap();
+            r.restored(generation, now, true).unwrap();
+        }
+        assert_eq!(r.phase, Phase::Cooldown { at: 66_000 });
+        r.scan_retired(4, 66_000, true).unwrap();
+        assert_eq!((r.generation, r.attempts), (4, 3));
+        assert!(r.preview_attempt(66_999).unwrap().is_none());
+        let candidate = r.preview_attempt(67_000).unwrap().unwrap();
+        r.begin_attempt(candidate, 67_000).unwrap();
+        assert_eq!((r.generation, r.attempts), (5, 1));
+    }
+    #[test]
+    fn scan_retirement_refusals_preserve_policy_and_never_wrap() {
+        let mut r = Recovery::new();
+        r.configuration(1, 100).unwrap();
+        for (generation, now, expected) in [
+            (0, 100, Refusal::StaleAttempt),
+            (2, 100, Refusal::StaleAttempt),
+            (1, 99, Refusal::Clock),
+            (1, u64::MAX, Refusal::Clock),
+        ] {
+            let old = (r.phase, r.generation, r.attempts, r.last_now);
+            assert_eq!(r.scan_retired(generation, now, true), Err(expected));
+            assert_eq!((r.phase, r.generation, r.attempts, r.last_now), old);
+        }
+        r.generation = u64::MAX;
+        assert_eq!(r.scan_retired(1, 100, true), Err(Refusal::Exhausted));
+        assert_eq!(r.generation, u64::MAX);
+    }
     #[test]
     fn pending_retirement_storage_can_retry_without_new_attempt_or_acknowledgment() {
         let mut recovery = Recovery::new();

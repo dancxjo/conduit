@@ -13,12 +13,20 @@ impl KnownNetworkPolicy {
         backend: KnownBackendAuth,
     ) -> Result<KnownRecoveryRenewal, KnownNetworkRefusal> {
         self.clock(now)?;
-        if scans.len() > MAXIMUM_KNOWN_SCAN_RESULTS
-            || scans
-                .clone()
-                .any(|s| s.observed_ms > now || !(-127..=0).contains(&s.rssi_dbm))
-        {
+        if scans.len() > MAXIMUM_KNOWN_SCAN_RESULTS {
             return Err(KnownNetworkRefusal::Bounds);
+        }
+        for (index, scan) in scans
+            .clone()
+            .take(MAXIMUM_KNOWN_SCAN_RESULTS + 1)
+            .enumerate()
+        {
+            if index == MAXIMUM_KNOWN_SCAN_RESULTS
+                || scan.observed_ms > now
+                || !(-127..=0).contains(&scan.rssi_dbm)
+            {
+                return Err(KnownNetworkRefusal::Bounds);
+            }
         }
         if self.pending.is_some() {
             return Err(KnownNetworkRefusal::Outcome);
@@ -39,10 +47,13 @@ impl KnownNetworkPolicy {
             }
             let observed = scans
                 .clone()
+                .take(MAXIMUM_KNOWN_SCAN_RESULTS)
                 .filter(|scan| {
                     matches!(scan.security, ObservedNetworkSecurity::Known(security)
                     if profiles.matches(info.key, scan.ssid, security))
                         && scan.observed_ms >= state.cooldown_until
+                        && scan.observed_ms <= now
+                        && (-127..=0).contains(&scan.rssi_dbm)
                         && now - scan.observed_ms <= KNOWN_SCAN_FRESH_MS
                 })
                 .max_by_key(|scan| (scan.rssi_dbm, scan.observed_ms));
