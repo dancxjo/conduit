@@ -236,6 +236,12 @@ where
         let mut native_inputs = self.native_input_ports[node].map(|_| [None; PORTS]);
         #[cfg(feature = "alloc")]
         let mut compact_inputs = self.has_compact_f32_inputs(node).then_some([None; PORTS]);
+        #[cfg(feature = "alloc")]
+        let mut canonical_compact_inputs = self
+            .compact_canonical_binding
+            .as_ref()
+            .filter(|b| usize::from(b.sink.0 .0) == node)
+            .map(|_| [None; PORTS]);
         for (port, value) in io.inputs.iter().copied().enumerate() {
             if let Some(value) = value {
                 #[cfg(feature = "alloc")]
@@ -262,6 +268,17 @@ where
                         continue;
                     }
                 }
+                #[cfg(feature = "alloc")]
+                if let Some(layout) = self.compact_canonical_input_binding(node, port) {
+                    let bytes = self
+                        .values
+                        .compact_canonical(value, layout)?
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                    canonical_compact_inputs
+                        .as_mut()
+                        .ok_or(SchedulerError::InvalidPlan)?[port] = Some(bytes);
+                    continue;
+                }
                 current_input_bytes[port] = Some(self.values.get(value)?);
             }
         }
@@ -271,6 +288,8 @@ where
             native_u64: native_inputs.as_ref(),
             #[cfg(feature = "alloc")]
             compact_f32: compact_inputs.as_ref(),
+            #[cfg(feature = "alloc")]
+            compact_canonical: canonical_compact_inputs.as_ref(),
             host_output: io
                 .host_completion
                 .and_then(|(_, outcome)| outcome.output)

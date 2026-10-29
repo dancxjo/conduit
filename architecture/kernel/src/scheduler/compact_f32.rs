@@ -201,6 +201,7 @@ where
                 || nodes[..ordinal].contains(node)
                 || self.native_input_ports[n].is_some()
                 || self.native_output_ports[n].is_some()
+                || self.has_compact_canonical_node(n)
                 || self.has_compact_f32_node(n)
                 || self.region_successors[n].is_some()
                 || self.region_successors.contains(&Some(*node))

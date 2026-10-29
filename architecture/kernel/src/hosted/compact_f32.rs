@@ -23,6 +23,9 @@ impl HostedValueStore {
         }
     }
     pub(super) fn representation_matches(&self, value: ValueRef, slot: &HostedValueSlot) -> bool {
+        if self.is_canonical_compact_slot(usize::from(value.slot)) {
+            return self.compact_canonical_length(usize::from(value.slot)) == Some(value.byte_len);
+        }
         let word = self
             .native_words
             .get(usize::from(value.slot))
@@ -47,7 +50,10 @@ impl HostedValueStore {
         }
     }
     pub(super) fn available_compact_f32(&self, logical_bytes: u32) -> (u16, u32) {
-        if self.compact_f32_lengths.is_empty() || logical_bytes < 4 {
+        if self.compact_canonical.is_some()
+            || self.compact_f32_lengths.is_empty()
+            || logical_bytes < 4
+        {
             return (0, 0);
         }
         let Ok(logical_size) = usize::try_from(logical_bytes) else {

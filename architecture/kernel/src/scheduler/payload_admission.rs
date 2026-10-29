@@ -128,6 +128,32 @@ where
         if let Some((port, output)) = io.prepared_output {
             let declared_len = output.logical_bytes();
             #[cfg(feature = "alloc")]
+            if let PreparedStepValue::CompactCanonical(logical) = output {
+                let (bound_port, layout) = self
+                    .compact_canonical_output_binding(node)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                if bound_port != port {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.ensure_output_value_envelope(node, port, logical)?;
+                let bytes = self.drivers[node]
+                    .prepared_compact_canonical_output(port)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                let value = self
+                    .values
+                    .store_compact_canonical(layout, bytes, logical)?;
+                let slot = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if slot.is_some() {
+                    self.values.release(value)?;
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                *slot = Some(value);
+                return Ok(Some(GeneratedStepOutput::copied(value)));
+            }
+            #[cfg(feature = "alloc")]
             if let PreparedStepValue::NativeU64(value) = output {
                 if self.native_output_ports[node] != Some(port) {
                     return Err(SchedulerError::InvalidPlan);

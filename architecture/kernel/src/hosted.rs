@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use super::{EncodedValueRefusal, StorageError, ValueRef, ValueStorage};
+mod compact_canonical;
 mod compact_f32;
 mod encoded;
 mod native_values;
@@ -19,6 +20,7 @@ struct HostedValueSlot {
 pub struct HostedValueStore {
     slots: Vec<HostedValueSlot>,
     native_words: Vec<Option<u64>>,
+    compact_canonical: Option<alloc::boxed::Box<compact_canonical::Storage>>,
     compact_f32_lengths: Vec<Option<core::num::NonZeroU32>>,
     owned_compact_slots: Vec<Option<owned_compact_f32::OwnedSlot>>,
     owned_compact_identity: Option<alloc::boxed::Box<u8>>,
@@ -117,6 +119,7 @@ impl HostedValueStore {
         Ok(Self {
             slots,
             native_words: Vec::new(),
+            compact_canonical: None,
             compact_f32_lengths: Vec::new(),
             owned_compact_slots: Vec::new(),
             owned_compact_identity: None,
@@ -146,6 +149,7 @@ impl HostedValueStore {
             + self.compact_f32_lengths.capacity()
                 * core::mem::size_of::<Option<core::num::NonZeroU32>>()
             + self.owned_compact_backing_bytes()
+            + self.compact_canonical_backing_bytes()
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
@@ -158,7 +162,8 @@ impl HostedValueStore {
                 + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
                 + self.compact_f32_lengths.capacity()
                     * core::mem::size_of::<Option<core::num::NonZeroU32>>()
-                + self.owned_compact_backing_bytes(),
+                + self.owned_compact_backing_bytes()
+                + self.compact_canonical_backing_bytes(),
         )
     }
 
@@ -277,6 +282,27 @@ impl ValueStorage for HostedValueStore {
             .copied()
             .flatten())
     }
+    fn compact_canonical_layout(&self) -> Option<crate::CompactCanonicalLayout> {
+        self.compact_canonical.as_ref().map(|s| s.layout)
+    }
+    fn compact_canonical_available(&self, layout: crate::CompactCanonicalLayout) -> (u16, u32) {
+        self.available_compact_canonical(layout)
+    }
+    fn store_compact_canonical(
+        &mut self,
+        layout: crate::CompactCanonicalLayout,
+        bytes: &[u8],
+        logical_bytes: u32,
+    ) -> Result<ValueRef, StorageError> {
+        self.store_canonical_compact(layout, bytes, logical_bytes)
+    }
+    fn compact_canonical(
+        &self,
+        value: ValueRef,
+        layout: crate::CompactCanonicalLayout,
+    ) -> Result<Option<&[u8]>, StorageError> {
+        self.read_compact_canonical(value, layout)
+    }
     fn item_capacity(&self) -> u16 {
         u16::try_from(self.slots.len()).unwrap_or(u16::MAX)
     }
@@ -307,7 +333,8 @@ impl ValueStorage for HostedValueStore {
 
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
         let slot = self.slot(value)?;
-        if self.is_compact(value.slot)
+        if self.is_canonical_compact_slot(usize::from(value.slot))
+            || self.is_compact(value.slot)
             || slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX)
         {
             return Err(StorageError::RepresentationMismatch);
@@ -320,7 +347,9 @@ impl ValueStorage for HostedValueStore {
             .slots
             .get(usize::from(slot))
             .ok_or(StorageError::StaleReference)?;
-        let byte_len = if self
+        let byte_len = if let Some(length) = self.compact_canonical_length(usize::from(slot)) {
+            length
+        } else if self
             .native_words
             .get(usize::from(slot))
             .is_some_and(Option::is_some)
@@ -367,6 +396,7 @@ impl ValueStorage for HostedValueStore {
                 *word = None;
             }
             self.clear_compact_layout(value.slot);
+            self.clear_compact_canonical(value.slot);
             self.clear_owned_pending(usize::from(value.slot));
             self.used_items -= 1;
             self.used_bytes -= len;
@@ -386,6 +416,7 @@ impl ValueStorage for HostedValueStore {
             slot.bytes.clear();
         }
         self.native_words.fill(None);
+        self.clear_all_compact_canonical();
         self.compact_f32_lengths.fill(None);
         self.reset_owned_pending();
         self.used_items = 0;
