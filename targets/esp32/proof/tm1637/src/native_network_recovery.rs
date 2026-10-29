@@ -76,6 +76,23 @@ impl Recovery {
         self.phase = Phase::Waiting { at: now };
         Ok(())
     }
+    /// Acknowledged ingress may request retirement of a current station owner.
+    /// This queues only the existing cleanup action: the caller retains ingress,
+    /// the current revision and all native ownership until real restoration and
+    /// retirement finish. Joining cannot be superseded while custody is in flight.
+    pub fn configuration_retirement(&mut self, now: u64) -> Result<Action, Refusal> {
+        if now < self.last_now {
+            return Err(Refusal::Clock);
+        }
+        match self.phase {
+            Phase::Station => {
+                self.clock(now)?;
+                self.restore()
+            }
+            Phase::Joining { .. } | Phase::Faulted => Err(Refusal::Busy),
+            _ => Ok(Action::None),
+        }
+    }
     /// Workspace is an actual independent admission; native sampler custody
     /// cannot be bypassed by a timer, a credential or this policy value.
     pub fn poll(
@@ -518,3 +535,7 @@ mod tests {
         assert_eq!(r.attached(1), Err(Refusal::StaleAttempt));
     }
 }
+
+#[cfg(test)]
+#[path = "native_network_recovery/configuration_tests.rs"]
+mod configuration_tests;

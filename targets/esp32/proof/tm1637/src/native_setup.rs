@@ -533,6 +533,20 @@ impl NativeRoot {
                 _ => (),
             }
         }
+        if action == Action::None
+            && self
+                .credential_writer
+                .try_lock()
+                .is_ok_and(|mailbox| mailbox.has_acknowledged())
+        {
+            // A flushed response queues retirement, not configuration acceptance.
+            // The mailbox and revision remain intact until owners return below.
+            action = self
+                .network
+                .recovery
+                .configuration_retirement(embassy_time::Instant::now().as_millis())
+                .unwrap_or(Action::None);
+        }
         if action == Action::None {
             // Monitoring may request restoration, never spend an attempt.
             // Cold preparation supplies the actual admitted workspace.
