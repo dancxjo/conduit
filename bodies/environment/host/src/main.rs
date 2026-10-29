@@ -14,6 +14,7 @@ mod native_body_join {
 mod display_check;
 mod display_evidence;
 mod execution;
+mod face_export_client;
 #[cfg(test)]
 mod history_relay;
 #[cfg(test)]
@@ -49,6 +50,10 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|a| a == "--publish-face" || a == "--publish-face-once") {
+        if args.len()!=5 { return Err("expected --publish-face PRIVATE_BINDING HOST:PORT PRIVATE_FACE_FILE".into()); }
+        return face_export_client::run(std::path::Path::new(&args[2]),&args[3],std::path::Path::new(&args[4]),args[1]=="--publish-face-once");
+    }
     if args.get(1).is_some_and(|a| a == "--ack-network-snapshot") {
         if args.len() != 9 {
             return Err("expected --ack-network-snapshot BINDING CONTINUITY_PRIVATE PEER PRIVATE_STORE OFFER_JSON SNAPSHOT_BIN PRODUCER_BOOT".into());
