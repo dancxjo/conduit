@@ -95,6 +95,17 @@ impl NativeRoot {
     #[inline(never)]
     #[cold]
     pub(super) fn trace_network_terminal_failure(&self, generation: u64) {
+        if let Some(observation) = self.play.station_attempt_inspection() {
+            let progress = observation.progress;
+            let polls = crate::network::runner_polls();
+            esp_println::println!(
+                "{{\"event\":\"network-station-attempt-observed\",\"generation\":{},\"substage\":\"{:?}\",\"attempt_started_ms\":{},\"stage_started_ms\":{},\"observed_at_ms\":{},\"link_up\":{},\"address_up\":{},\"services_ready\":{},\"sdk_error\":\"{:?}\",\"runner_polls\":[{},{}]}}",
+                generation, progress.stage, progress.attempt_started_ms.unwrap_or(0),
+                progress.stage_started_ms, progress.observed_at_ms, progress.link_up,
+                progress.address_up, progress.services_ready, observation.sdk_error,
+                polls[0], polls[1]
+            );
+        }
         let (steps, dispatches) = self.play.progress();
         esp_println::println!(
             "{{\"event\":\"network-play-failed\",\"status\":\"{}\",\"failure_reason\":\"{}\",\"failure_phase\":\"{}\",\"generation\":{},\"steps\":{},\"dispatches\":[{},{},{}],\"receipt_received\":{}}}",

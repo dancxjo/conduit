@@ -89,6 +89,9 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
             invoked: false,
         })
     }
+    pub fn station_inspection(&self) -> crate::StationInspection {
+        self.radio.inspection()
+    }
     fn matches(&self, request: &NetworkJoinRequest<'_>) -> bool {
         let Config::Station(config) = &self.radio.station_config else {
             return false;
@@ -105,7 +108,9 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     /// a claim that application services or a Body peer have been verified.
     pub fn station_address(&self) -> Option<[u8; 4]> {
         self.radio.station_stack.is_link_up().then(|| ())?;
-        self.radio.station_stack.config_v4()
+        self.radio
+            .station_stack
+            .config_v4()
             .map(|config| config.address.address().octets())
     }
     /// Return restored AP ownership without rearming this spent attempt.
@@ -133,6 +138,9 @@ impl<S: AccessPointServices> NetworkJoinProvider for Esp32NetworkJoinProvider<'_
         }
         self.invoked = true;
         let radio = &mut self.radio;
+        // Fresh authorized invocation; returned radio ownership may carry an old
+        // frozen observation, which never belongs to the new attempt.
+        radio.begin_inspection();
         let deadline =
             Instant::now()
                 .checked_add(self.attempt_budget)
@@ -163,6 +171,8 @@ impl<S: AccessPointServices> NetworkJoinProvider for Esp32NetworkJoinProvider<'_
                 .map_err(|_| StationFailure::Deadline)?
             })
             .await;
+        // Snapshot before separately owned cleanup clears station state.
+        radio.capture_inspection();
         match result {
             Ok(Ok(())) => self.attachment.take().ok_or(StationAttemptFailure {
                 phase,
@@ -176,6 +186,9 @@ impl<S: AccessPointServices> NetworkJoinProvider for Esp32NetworkJoinProvider<'_
         }
     }
     async fn cleanup(&mut self) -> Result<(), StationFailure> {
+        // Also handles cancellation of the enclosing join future. Preserve the
+        // first terminal snapshot before restoration changes link/address state.
+        self.radio.capture_inspection();
         // The first cleanup may be much later than a successful join. Its one
         // Root-admitted budget starts now; cancellation/re-poll cannot reset it.
         let deadline = match self.cleanup_deadline {

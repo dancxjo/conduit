@@ -88,6 +88,15 @@ impl NativePlay {
             && crate::services::MAILBOX.observed_state()
                 == Some(conduit_environment_http::service_control::ServiceState::StationReady)
     }
+    // Actual SDK observation only; CPU transcript providers do not impersonate it.
+    #[cfg(target_arch = "xtensa")]
+    pub(crate) fn station_attempt_inspection(
+        &self,
+    ) -> Option<conduit_esp32_network_switch::StationInspection> {
+        self.join
+            .as_ref()
+            .map(|join| join.observe_provider(|provider| provider.station_inspection()))
+    }
     pub fn station_address(&self) -> Option<[u8; 4]> {
         self.join
             .as_ref()
