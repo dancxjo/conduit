@@ -1,6 +1,8 @@
 //! Exact local whisper.cpp discovery and bounded speech recognition.
 
 mod discovery;
+mod host;
+mod workspace;
 pub use crate::hosted_language::{
     language_request_literal, read_language_coverage, read_language_request, HostedLanguageRefusal,
 };
@@ -28,6 +30,16 @@ pub struct WhisperLimits {
 }
 
 impl WhisperLimits {
+    /// Full existing clip profile, with explicit provider process limits.
+    pub fn clip_recognition(threads: u8, timeout: Duration) -> Self {
+        Self {
+            maximum_audio_bytes: conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32,
+            maximum_text_bytes: conduit_tongues::MAXIMUM_RECOGNIZED_TEXT_BYTES as u16,
+            threads,
+            timeout,
+        }
+    }
+
     pub fn live_conversation(threads: u8, timeout: Duration) -> Self {
         let required = conduit_tongues::live_conversation_speech_requirements();
         Self {
@@ -115,7 +127,7 @@ impl WhisperDiscovery {
         let sequence = NEXT_WORKSPACE.fetch_add(1, Ordering::Relaxed);
         let workspace =
             std::env::temp_dir().join(format!("conduit-whisper-{}-{sequence}", std::process::id()));
-        std::fs::create_dir(&workspace).map_err(|_| WhisperFailure::InvalidProvider)?;
+        workspace::private_directory(&workspace)?;
         Ok(WhisperSpeechAdapter {
             discovery: self,
             limits,
@@ -200,6 +212,7 @@ impl WhisperSpeechAdapter {
         language: &conduit_language::LanguageRequest,
         cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
+        self.begin_operation()?;
         if encoded.len() > self.limits.maximum_audio_bytes as usize {
             return Err(WhisperFailure::AudioOverflow);
         }
@@ -228,6 +241,7 @@ impl WhisperSpeechAdapter {
         language: &conduit_language::LanguageRequest,
         cancelled: impl FnMut() -> bool,
     ) -> Result<Vec<u8>, WhisperFailure> {
+        self.begin_operation()?;
         if encoded.len() > self.limits.maximum_audio_bytes as usize {
             return Err(WhisperFailure::AudioOverflow);
         }
@@ -260,6 +274,18 @@ impl WhisperSpeechAdapter {
         )
     }
 
+    fn begin_operation(&mut self) -> Result<(), WhisperFailure> {
+        self.last_receipt = None;
+        if let Some(capture) = &self.evidence_text {
+            capture
+                .0
+                .lock()
+                .map_err(|_| WhisperFailure::ReadFailed)?
+                .clear();
+        }
+        Ok(())
+    }
+
     fn recognize_payload(
         &mut self,
         payload: &[u8],
@@ -274,8 +300,9 @@ impl WhisperSpeechAdapter {
         // This trusted installed-provider profile verifies finite source bytes;
         // it does not claim hostile-code confinement of the operating system.
         self.discovery.verify()?;
-        let wav = self.workspace.join("input.wav");
-        let output_base = self.workspace.join("result");
+        let files = workspace::CallFiles::create(&self.workspace)?;
+        let wav = files.input();
+        let output_base = files.output_base();
         write_wav(&wav, payload)?;
         let mut child = self.spawn(&wav, &output_base, language)?;
         let stderr = child.stderr.take();
@@ -311,7 +338,7 @@ impl WhisperSpeechAdapter {
         }
         let transcript_path = output_base.with_extension("txt");
         let transcript =
-            std::fs::read_to_string(transcript_path).map_err(|_| WhisperFailure::ReadFailed)?;
+            workspace::read_transcript(&transcript_path, self.limits.maximum_text_bytes)?;
         let transcript = transcript.trim();
         if transcript.len() > self.limits.maximum_text_bytes as usize {
             return Err(WhisperFailure::OutputOverflow);
@@ -438,3 +465,6 @@ fn stop(child: &mut Child) {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(all(test, unix))]
+mod reuse_tests;

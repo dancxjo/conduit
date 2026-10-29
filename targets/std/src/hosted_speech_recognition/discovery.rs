@@ -67,8 +67,8 @@ impl WhisperDiscovery {
             .map_err(|_| WhisperFailure::InvalidProvider)?
             .len();
         Ok(Self {
-            executable_sha256: digest_file(&executable)?,
-            model_sha256: digest_file(&model)?,
+            executable_sha256: digest_file(&executable, MAXIMUM_EXECUTABLE_BYTES)?,
+            model_sha256: digest_file(&model, MAXIMUM_MODEL_BYTES)?,
             model_bytes,
             executable,
             model,
@@ -107,8 +107,20 @@ fn is_executable(_path: &Path) -> Result<bool, WhisperFailure> {
     Ok(false)
 }
 
-fn digest_file(path: &Path) -> Result<String, WhisperFailure> {
-    let mut file = File::open(path).map_err(|_| WhisperFailure::InvalidProvider)?;
+fn digest_file(path: &Path, maximum: u64) -> Result<String, WhisperFailure> {
+    let file = File::open(path).map_err(|_| WhisperFailure::InvalidProvider)?;
+    let expected = file
+        .metadata()
+        .map_err(|_| WhisperFailure::InvalidProvider)?
+        .len();
+    if expected == 0 || expected > maximum {
+        return Err(WhisperFailure::InvalidProvider);
+    }
+    digest_reader(file, expected, maximum)
+}
+fn digest_reader(file: impl Read, expected: u64, maximum: u64) -> Result<String, WhisperFailure> {
+    let mut file = file.take(maximum + 1);
+    let mut total = 0u64;
     let mut digest = Sha256::new();
     let mut bytes = [0_u8; 64 * 1024];
     loop {
@@ -118,7 +130,31 @@ fn digest_file(path: &Path) -> Result<String, WhisperFailure> {
         if read == 0 {
             break;
         }
+        total += read as u64;
+        if total > maximum {
+            return Err(WhisperFailure::InvalidProvider);
+        }
         digest.update(&bytes[..read]);
     }
+    if total != expected {
+        return Err(WhisperFailure::ProviderChanged);
+    }
     Ok(format!("{:x}", digest.finalize()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn changing_or_unending_provider_reads_refuse_within_the_byte_budget() {
+        assert_eq!(
+            digest_reader(std::io::repeat(0), 4, 8),
+            Err(WhisperFailure::InvalidProvider)
+        );
+        assert_eq!(
+            digest_reader(&b"short"[..], 8, 8),
+            Err(WhisperFailure::ProviderChanged)
+        );
+        assert!(digest_reader(&b"exact"[..], 5, 8).is_ok());
+    }
 }

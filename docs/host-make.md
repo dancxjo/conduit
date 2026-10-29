@@ -119,6 +119,31 @@ remove one through its stopped equipment-change entrance before selecting the
 other. Artifact-only speech does not reserve the speaker and may coexist. This
 is checked initialization, not body admission or proof of physical sound.
 
+Linux recognition equipment can select `speech/recognizer` with
+`std/hosted-whisper-clip-speech@2`. Its required initialization fields are
+`executable`, `executable_sha256`, `model`, `model_sha256`, `model_bytes`,
+`language_coverage`, `language_coverage_sha256`, `threads` (1–32), and
+`timeout_milliseconds` (1–120000). Paths are absolute, digests are lowercase
+SHA-256, and the declared model size is at most 256 MiB. The Language declaration
+is an exact native `LanguageCoverage` value bound to that executable/model
+provider identity; a model filename does not imply Language coverage.
+
+Checking retains intent without opening provider files. Installed Boot checks
+those exact files and prepares the existing clip adapter without starting a
+recognition process or recording audio. Only a successful initialization
+publishes its existing recognition Back, one finite process slot and cooperative
+Ready Base provenance. Attachment refuses active reservations and advances the
+current offer generation while preserving other selected equipment. The timeout
+bounds the recognition process; file byte bounds and one process slot do not
+establish hard operating-system memory or whole-operation timing containment.
+This does not supply capture authority, live PCM acquisition, Body membership,
+or shared Face delivery. The explicit finite recognition Plot Back can adapt
+this clip provider to committed streaming events after its window closes.
+Recognition calls use a private disposable directory and bounded transcript
+reads. A prior unretired call directory refuses reuse; old text or receipts
+cannot become a new result. Temporary artifacts are distinct from explicitly
+authorized recording, and this is not a claim of secure storage erasure.
+
 The bounded repository proof entrance is
 `cargo xtask make host prove-microphone-whisper`; its optional `--alsa-plug`
 explicitly selects conversion. That repository proof does not admit an installed
