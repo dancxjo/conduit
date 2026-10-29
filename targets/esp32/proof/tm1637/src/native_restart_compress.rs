@@ -88,6 +88,7 @@ impl<F: FnMut(&[u8]) -> Result<(), ()>> Output for F {
 pub struct Encoder<W> {
     write: W,
     history: [u8; WINDOW],
+    index: matcher::Index,
     cache_len: u8,
     cache_next: u8,
     hex_run: u8,
@@ -116,6 +117,7 @@ impl<W: Output> Encoder<W> {
         Self {
             write,
             history: [0; WINDOW],
+            index: matcher::Index::new(),
             cache_len: 0,
             cache_next: 0,
             hex_run: 0,
@@ -140,6 +142,7 @@ impl<W: Output> Encoder<W> {
         wipe(&mut self.history);
         wipe(&mut self.look);
         wipe(&mut self.group);
+        self.index.clear();
         self.cache_len = 0;
         self.cache_next = 0;
         self.hex_run = 0;
@@ -218,8 +221,13 @@ impl<W: Output> Encoder<W> {
         Ok(())
     }
     fn consume(&mut self) -> Result<(), Error> {
-        let (best, best_distance, near, near_distance) =
-            matcher::longest(&self.history, &self.look, self.look_len, self.consumed);
+        let (best, best_distance, near, near_distance) = matcher::longest(
+            &self.index,
+            &self.history,
+            &self.look,
+            self.look_len,
+            self.consumed,
+        );
         let mut ordinary_used = if near >= 3 { near } else { 1 };
         let mut ordinary_cost = if near >= 3 { 2 } else { 1 };
         let mut ordinary_distance = near_distance;
@@ -230,6 +238,7 @@ impl<W: Output> Encoder<W> {
         }
         if (3..=16).contains(&ordinary_used) && self.look_len > ordinary_used + 2 {
             let lazy = matcher::lazy(
+                &self.index,
                 &self.history,
                 &self.look,
                 self.look_len,
@@ -373,7 +382,9 @@ impl<W: Output> Encoder<W> {
         };
         wipe(&mut packed);
         for byte in &self.look[..used] {
-            self.history[self.consumed % V4_HISTORY] = *byte;
+            let position = self.consumed % V4_HISTORY;
+            self.index.observe(position, *byte);
+            self.history[position] = *byte;
             self.consumed += 1;
             cache_observe(
                 &mut self.history,
