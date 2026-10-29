@@ -131,3 +131,6 @@ fn stale_submission_cannot_retire_a_different_acknowledged_input() {
 
 #[path = "network_configuration_handoff/failover.rs"]
 mod failover;
+
+#[path = "network_configuration_handoff/station_reconfiguration.rs"]
+mod station_reconfiguration;
