@@ -434,6 +434,9 @@ fn authorized_microphone_clip_runs_through_whisper_in_one_plan_play() {
     fs::remove_dir_all(whisper_root).unwrap();
 }
 
+#[path = "hosted_microphone_tests/remote.rs"]
+mod remote;
+
 #[test]
 fn canonical_arecord_symlink_explicitly_selects_capture_for_discovery_and_audio() {
     let _process = microphone_process();
@@ -463,3 +466,6 @@ fn canonical_arecord_symlink_explicitly_selects_capture_for_discovery_and_audio(
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "hosted_microphone_tests/format_conversion.rs"]
+mod format_conversion;
