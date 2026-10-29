@@ -19,33 +19,94 @@ fn http_content(
     }
     let mut last = None;
     let deadline = Instant::now() + Duration::from_secs(3);
+    // Resolution is synchronous and is not covered by the socket deadline.
+    // Foreground schedulers use the resolved entrance below instead.
     for address in peer.to_socket_addrs()?.filter(|a| a.is_ipv4()).take(8) {
-        let response = (|| -> Result<_> {
-            let mut s = std::net::TcpStream::connect_timeout(
-                &address,
-                deadline
-                    .checked_duration_since(Instant::now())
-                    .ok_or("join HTTP deadline")?,
-            )?;
-            let remaining = deadline
-                .checked_duration_since(Instant::now())
-                .ok_or("join HTTP deadline")?;
-            s.set_read_timeout(Some(remaining))?;
-            s.set_write_timeout(Some(remaining))?;
-            let request_header = format!("{method} {path} HTTP/1.1\r\nHost: {peer}\r\nConnection: close\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\n\r\n",body.len());
-            if request_header.len() + body.len() > 1024 {
-                return Err("join request exceeds native1024-byte frame".into());
-            }
-            s.write_all(request_header.as_bytes())?;
-            s.write_all(body)?;
-            read_response(&mut s, deadline)
-        })();
-        match response {
-            Ok(r) => return Ok(r),
-            Err(e) => last = Some(e),
+        match http_resolved_until(
+            Request {
+                peer,
+                method,
+                path,
+                body,
+                content_type,
+            },
+            address,
+            deadline,
+        ) {
+            Ok(response) => return Ok(response),
+            Err(error) => last = Some(error),
         }
     }
     Err(last.unwrap_or_else(|| "join peer has no bounded IPv4 route".into()))
+}
+
+/// One already-resolved socket exchange under the caller's absolute deadline.
+/// No DNS, route fallback, sleep or retry may extend this operation's budget.
+/// A resolved address is transport selection only; callers verify response scope.
+pub(crate) struct Request<'a> {
+    pub(crate) peer: &'a str,
+    pub(crate) method: &'a str,
+    pub(crate) path: &'a str,
+    pub(crate) body: &'a [u8],
+    pub(crate) content_type: &'a str,
+}
+pub(crate) fn http_resolved_until(
+    request: Request<'_>,
+    address: std::net::SocketAddr,
+    deadline: Instant,
+) -> Result<(u16, Vec<u8>)> {
+    let Request {
+        peer,
+        method,
+        path,
+        body,
+        content_type,
+    } = request;
+    if !address.is_ipv4()
+        || peer.is_empty()
+        || peer.len() > 255
+        || peer.contains(['/', '@', '\r', '\n'])
+        || !matches!(method, "GET" | "POST")
+        || !path.starts_with('/')
+        || path.bytes().any(|b| b <= 32 || b == 127)
+        || !matches!(
+            content_type,
+            "application/json" | "application/octet-stream"
+        )
+    {
+        return Err("join HTTP resolved request scope".into());
+    }
+    let header = format!("{method} {path} HTTP/1.1\r\nHost: {peer}\r\nConnection: close\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\n\r\n", body.len());
+    if body.len() > 1024 || header.len() + body.len() > 1024 {
+        return Err("join request exceeds native1024-byte frame".into());
+    }
+    let mut socket = std::net::TcpStream::connect_timeout(&address, remaining(deadline)?)?;
+    write_until(&mut socket, header.as_bytes(), deadline)?;
+    write_until(&mut socket, body, deadline)?;
+    read_response(&mut socket, deadline)
+}
+fn remaining(deadline: Instant) -> Result<Duration> {
+    deadline
+        .checked_duration_since(Instant::now())
+        .filter(|remaining| !remaining.is_zero())
+        .ok_or_else(|| "join HTTP deadline".into())
+}
+fn write_until(
+    socket: &mut std::net::TcpStream,
+    mut bytes: &[u8],
+    deadline: Instant,
+) -> Result<()> {
+    while !bytes.is_empty() {
+        socket.set_write_timeout(Some(remaining(deadline)?))?;
+        match socket.write(bytes) {
+            Ok(0) => return Err("join HTTP write closed".into()),
+            Ok(written) => bytes = &bytes[written..],
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error.into()),
+        }
+    }
+    remaining(deadline)?;
+    Ok(())
 }
 
 const MAXIMUM_RESPONSE_BYTES: usize = 16384;
@@ -171,6 +232,108 @@ fn read_response(socket: &mut std::net::TcpStream, deadline: Instant) -> Result<
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn read_request(socket: &mut std::net::TcpStream) {
+        let mut bytes = Vec::new();
+        while !bytes.ends_with(b"\r\n\r\n") {
+            let mut byte = [0];
+            assert_eq!(socket.read(&mut byte).unwrap(), 1);
+            bytes.push(byte[0]);
+            assert!(bytes.len() <= 1024);
+        }
+    }
+    fn get_request() -> Request<'static> {
+        Request {
+            peer: "localhost:80",
+            method: "GET",
+            path: "/history",
+            body: &[],
+            content_type: "application/json",
+        }
+    }
+    #[test]
+    fn expired_resolved_operation_never_connects_or_resolves() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        assert!(http_resolved_until(
+            get_request(),
+            listener.local_addr().unwrap(),
+            Instant::now()
+        )
+        .is_err());
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+        let mut invalid = get_request();
+        invalid.path = "/history\r\nInjected: yes";
+        assert!(http_resolved_until(
+            invalid,
+            listener.local_addr().unwrap(),
+            Instant::now() + Duration::from_secs(1)
+        )
+        .is_err());
+        assert_eq!(
+            listener.accept().unwrap_err().kind(),
+            std::io::ErrorKind::WouldBlock
+        );
+    }
+    #[test]
+    fn resolved_operation_finishes_at_content_length_without_waiting_for_eof() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            let mut buffer = [0; 1024];
+            read_request(&mut socket);
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 3\r\n\r\nabc")
+                .unwrap();
+            // Keep the response side open until the client closes it.
+            assert_eq!(socket.read(&mut buffer).unwrap(), 0);
+        });
+        let result = http_resolved_until(
+            get_request(),
+            address,
+            Instant::now() + Duration::from_secs(1),
+        )
+        .unwrap();
+        assert_eq!(result, (200, b"abc".to_vec()));
+        server.join().unwrap();
+    }
+    #[test]
+    fn slow_response_cannot_renew_the_callers_deadline_per_read() {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(Duration::from_secs(2)))
+                .unwrap();
+            read_request(&mut socket);
+            if socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\n")
+                .is_err()
+            {
+                return;
+            }
+            for _ in 0..100 {
+                std::thread::sleep(Duration::from_millis(20));
+                if socket.write_all(b"x").is_err() {
+                    break;
+                }
+            }
+        });
+        let started = Instant::now();
+        assert!(
+            http_resolved_until(get_request(), address, started + Duration::from_millis(80))
+                .is_err()
+        );
+        assert!(started.elapsed() < Duration::from_secs(1));
+        server.join().unwrap();
+    }
     #[test]
     fn response_framing_refuses_ambiguous_headers_and_extent() {
         for headers in [
