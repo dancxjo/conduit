@@ -1,6 +1,7 @@
+use crate::hosted_process::{run_process, ProcessError, ProcessRequest, ProcessTerminal};
 use std::fmt;
 use std::path::Path;
-use std::process::Command;
+use std::time::Duration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlsaPlaybackObservation {
@@ -17,6 +18,8 @@ pub enum PlaybackDiscoveryError {
     Command(std::io::Error),
     CommandFailed(String),
     InvalidUtf8,
+    TimedOut,
+    OutputBoundExceeded,
     Malformed(String),
 }
 
@@ -26,6 +29,10 @@ impl fmt::Display for PlaybackDiscoveryError {
             Self::Command(error) => write!(formatter, "run aplay discovery: {error}"),
             Self::CommandFailed(detail) => write!(formatter, "aplay discovery failed: {detail}"),
             Self::InvalidUtf8 => formatter.write_str("aplay discovery was not UTF-8"),
+            Self::TimedOut => formatter.write_str("aplay metadata discovery timed out"),
+            Self::OutputBoundExceeded => {
+                formatter.write_str("aplay metadata output bound exceeded")
+            }
             Self::Malformed(detail) => write!(formatter, "malformed aplay discovery: {detail}"),
         }
     }
@@ -36,18 +43,57 @@ impl std::error::Error for PlaybackDiscoveryError {}
 /// Enumerates playback resources without opening any PCM handle. `aplay -l`
 /// reads ALSA control metadata only; actual usability is rechecked at Start.
 pub fn discover_alsa_playback() -> Result<Vec<AlsaPlaybackObservation>, PlaybackDiscoveryError> {
-    let output = Command::new("/usr/bin/aplay")
-        .arg("-l")
-        .output()
-        .map_err(PlaybackDiscoveryError::Command)?;
-    if !output.status.success() {
-        return Err(PlaybackDiscoveryError::CommandFailed(
-            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-        ));
+    discover_at(
+        Path::new("/usr/bin/aplay"),
+        Path::new("/sys/class/sound"),
+        Duration::from_secs(5),
+    )
+}
+
+fn discover_at(
+    program: &Path,
+    sound_class: &Path,
+    timeout: Duration,
+) -> Result<Vec<AlsaPlaybackObservation>, PlaybackDiscoveryError> {
+    const MAXIMUM_LISTING_BYTES: usize = 64 * 1024;
+    const MAXIMUM_DIAGNOSTIC_BYTES: usize = 4096;
+    let report = run_process(
+        &ProcessRequest {
+            program,
+            arguments: &["--playback".into(), "-l".into()],
+            environment: &[("LC_ALL".into(), "C".into())],
+            stdin: &[],
+            maximum_stdout_bytes: MAXIMUM_LISTING_BYTES,
+            maximum_stderr_bytes: MAXIMUM_DIAGNOSTIC_BYTES,
+            timeout,
+            require_process_group: true,
+        },
+        || false,
+    )
+    .map_err(|error| match error {
+        ProcessError::Launch(error) => PlaybackDiscoveryError::Command(error),
+        other => {
+            PlaybackDiscoveryError::CommandFailed(format!("metadata process refused: {other:?}"))
+        }
+    })?;
+    if report.stdout.observed_bytes > MAXIMUM_LISTING_BYTES as u64
+        || report.stderr.observed_bytes > MAXIMUM_DIAGNOSTIC_BYTES as u64
+    {
+        return Err(PlaybackDiscoveryError::OutputBoundExceeded);
     }
-    let stdout =
-        std::str::from_utf8(&output.stdout).map_err(|_| PlaybackDiscoveryError::InvalidUtf8)?;
-    parse_aplay_list(stdout, Path::new("/sys/class/sound"))
+    match report.terminal {
+        ProcessTerminal::Exited(status) if status.success() => {}
+        ProcessTerminal::TimedOut => return Err(PlaybackDiscoveryError::TimedOut),
+        other => {
+            return Err(PlaybackDiscoveryError::CommandFailed(format!(
+                "{other:?}: {}",
+                String::from_utf8_lossy(&report.stderr.retained).trim()
+            )))
+        }
+    }
+    let stdout = std::str::from_utf8(&report.stdout.retained)
+        .map_err(|_| PlaybackDiscoveryError::InvalidUtf8)?;
+    parse_aplay_list(stdout, sound_class)
 }
 
 fn parse_aplay_list(
@@ -146,5 +192,47 @@ mod tests {
         )
         .unwrap();
         assert!(observations.is_empty());
+    }
+}
+
+#[cfg(all(test, unix))]
+mod process_tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+    #[test]
+    fn metadata_uses_explicit_mode_and_refuses_overflow_and_timeout() {
+        let root =
+            std::env::temp_dir().join(format!("conduit-aplay-metadata-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let program = root.join("provider");
+        let write = |script: &str| {
+            std::fs::write(&program, script).unwrap();
+            std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o700)).unwrap();
+        };
+        write("#!/bin/sh\n[ \"$1\" = --playback ] && [ \"$2\" = -l ] && [ \"$LC_ALL\" = C ] || exit 90\nprintf 'card 999: Fixture [Fixture], device 0: Output [Output]\\n'\n");
+        let observed =
+            discover_at(&program, Path::new("/nonexistent"), Duration::from_secs(2)).unwrap();
+        assert_eq!(observed.len(), 1);
+        assert_eq!(observed[0].card_id, "Fixture");
+        write("#!/bin/sh\nprintf '%070000d' 0\n");
+        assert!(matches!(
+            discover_at(&program, Path::new("/nonexistent"), Duration::from_secs(2)),
+            Err(PlaybackDiscoveryError::OutputBoundExceeded)
+        ));
+        write("#!/bin/sh\nprintf '%05000d' 0 >&2\n");
+        assert!(matches!(
+            discover_at(&program, Path::new("/nonexistent"), Duration::from_secs(2)),
+            Err(PlaybackDiscoveryError::OutputBoundExceeded)
+        ));
+        write("#!/bin/sh\nwhile :; do :; done\n");
+        assert!(matches!(
+            discover_at(
+                &program,
+                Path::new("/nonexistent"),
+                Duration::from_millis(50)
+            ),
+            Err(PlaybackDiscoveryError::TimedOut)
+        ));
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
