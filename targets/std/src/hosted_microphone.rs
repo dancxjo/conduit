@@ -6,6 +6,10 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+#[path = "hosted_microphone/provider_discovery.rs"]
+mod provider_discovery;
+use provider_discovery::{bounded_discovery, capture_command};
+
 pub const SAMPLE_RATE_HZ: u32 = 16_000;
 pub const CHANNELS: u8 = 1;
 pub const BYTES_PER_SAMPLE: u8 = 2;
@@ -276,7 +280,7 @@ impl AlsaMicrophoneAdapter {
             self.selection.card_id, self.selection.device
         );
         let samples = capture_frames(self.limits.capture_milliseconds).to_string();
-        Command::new(&self.discovery.executable)
+        capture_command(&self.discovery.executable)
             .args([
                 "--device",
                 &device,
@@ -320,55 +324,6 @@ fn bounded_read(mut reader: impl Read, maximum: usize) -> Result<BoundedRead, Mi
         overflowed |= count > remaining;
     }
     Ok(BoundedRead { bytes, overflowed })
-}
-
-fn bounded_discovery(executable: &Path) -> Result<Vec<u8>, MicrophoneFailure> {
-    let mut child = Command::new(executable)
-        .arg("-l")
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?;
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or(MicrophoneFailure::DiscoveryFailed)?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or(MicrophoneFailure::DiscoveryFailed)?;
-    let listing = std::thread::spawn(move || bounded_read(stdout, MAXIMUM_DISCOVERY_BYTES));
-    let diagnostics = std::thread::spawn(move || bounded_read(stderr, MAXIMUM_DIAGNOSTIC_BYTES));
-    let started = Instant::now();
-    let status = loop {
-        if started.elapsed() >= DISCOVERY_TIMEOUT {
-            stop(&mut child);
-            let _ = listing.join();
-            let _ = diagnostics.join();
-            return Err(MicrophoneFailure::DiscoveryFailed);
-        }
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) => std::thread::sleep(Duration::from_millis(2)),
-            Err(_) => {
-                stop(&mut child);
-                return Err(MicrophoneFailure::DiscoveryFailed);
-            }
-        }
-    };
-    let listing = listing
-        .join()
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?;
-    let diagnostics = diagnostics
-        .join()
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?
-        .map_err(|_| MicrophoneFailure::DiscoveryFailed)?;
-    if !status.success() || listing.overflowed || diagnostics.overflowed {
-        return Err(MicrophoneFailure::DiscoveryFailed);
-    }
-    Ok(listing.bytes)
 }
 
 fn exact_file(path: &Path) -> Result<PathBuf, MicrophoneFailure> {
