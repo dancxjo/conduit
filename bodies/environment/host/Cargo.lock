@@ -399,6 +399,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-device-carrier-protocol"
+version = "0.1.0"
+
+[[package]]
 name = "conduit-education"
 version = "0.1.0"
 dependencies = [
@@ -441,6 +445,7 @@ dependencies = [
  "conduit-environment-make",
  "conduit-environment-runtime",
  "conduit-face",
+ "conduit-host-make",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
@@ -876,6 +881,7 @@ dependencies = [
  "conduit-composite",
  "conduit-core",
  "conduit-data",
+ "conduit-device-carrier-protocol",
  "conduit-emergency-keyword-spotter",
  "conduit-face",
  "conduit-finance",

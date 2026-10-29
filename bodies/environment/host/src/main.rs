@@ -307,3 +307,6 @@ mod evidence_compact_tests;
 mod evidence_journal_tests;
 #[cfg(test)]
 mod observed_record_tests;
+
+#[cfg(all(feature = "carrier-source", target_os = "linux"))]
+mod device_carrier_source;

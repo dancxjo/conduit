@@ -6,7 +6,13 @@ publish = false
 
 [workspace]
 
+[features]
+default = []
+carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source"]
+
 [dependencies]
+conduit-std-host = { path = "../../../targets/std", optional = true }
+conduit-host-make = { path = "../../../make/host", optional = true }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-core = { path = "../../../architecture/core" }
 conduit-body = { path = "../../../architecture/body" }
@@ -24,9 +30,9 @@ sha2 = { version = "0.10", default-features = false }
 libc = "0.2"
 
 [dev-dependencies]
+conduit-std-host = { path = "../../../targets/std" }
 conduit-environment-runtime = { path = "../runtime", features = ["history-exchange"] }
 conduit-wire = { path = "../../../architecture/wire" }
 conduit-protected-line = { path = "../../../architecture/protected-line" }
-conduit-std-host = { path = "../../../targets/std" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
