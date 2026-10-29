@@ -72,7 +72,6 @@ mod tests {
 
 #[cfg(test)]
 mod source_tests {
-    use super::*;
     use conduit_host_make::{
         canonical_host_configuration_conduit, check_host_configuration,
         parse_host_configuration_conduit, MakeCatalog, MakePackageSet,
