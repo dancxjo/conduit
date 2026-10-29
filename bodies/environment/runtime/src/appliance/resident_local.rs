@@ -179,6 +179,23 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
                         })
                         .count();
                     mismatch |= matches != 1;
+                    if self.values.compact_canonical_layout().is_some() {
+                        let node_for_gear = |id: &c::GearId| {
+                            selected
+                                .placements
+                                .iter()
+                                .find(|gear| &gear.gear_id == id)
+                                .and_then(|gear| node_for(&gear.placement_id))
+                        };
+                        let reading = node_for_gear(&cord.source_gear_id)
+                            == Some(self.construction.roles.observation)
+                            && node_for_gear(&cord.sink_gear_id)
+                                == Some(self.construction.roles.publications[0]);
+                        mismatch |= !crate::appliance::value_storage::permits_compact_route(
+                            cord.value_kind.as_str(),
+                            reading,
+                        );
+                    }
                 })
                 .map_err(|_| E::Configuration)?;
             if mismatch || count != selected.connections.len() {

@@ -114,6 +114,12 @@ pub fn emit(checked: &conduit_plot::CheckedSyntaxDocument, out: &Path) {
     let mut source = format!(
         "#[allow(dead_code)] pub const COMPACT_LAYOUT_ID: [u8; 32] = {layout_identity:?};\n"
     );
+    writeln!(
+        source,
+        "#[allow(dead_code)] pub const COMPACT_RESULT_KIND: &str = {:?};",
+        result_type.profile().unwrap().value_kind().as_str()
+    )
+    .unwrap();
     for (name, bytes, ty, is_result) in [
         (
             "OBSERVATION",

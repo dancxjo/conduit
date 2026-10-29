@@ -1,6 +1,5 @@
 //! Actual checked Source/Plan and generic kernel with a finite pulse transcript.
 //! This is CPU execution/representation evidence, not MCU memory closure.
-use conduit_core as c;
 use conduit_environment_make::NativeSoftwareSourceRecipe;
 use conduit_environment_runtime::{
     appliance::{self, assigned::*, ApplianceBack},
@@ -19,6 +18,10 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 mod plan {
     pub const PREFIX: &str = "fixture/compact-sampler";
 }
+#[allow(
+    dead_code,
+    reason = "shared advertisement supports other owning suites"
+)]
 #[path = "../../runtime/tests/appliance_support/mod.rs"]
 mod appliance_support;
 #[allow(
@@ -75,8 +78,8 @@ fn run(scenario: usize, compact: bool) -> Vec<Snapshot> {
     if compact {
         let ordinary = appliance::value_storage_bytes().unwrap();
         assert_eq!(storage, appliance::compact_value_storage_bytes().unwrap());
-        assert!(ordinary - storage >= 4096);
-        eprintln!("sampler canonical_backing={ordinary} compact_backing={storage} saved={} physical_payload={} logical_quota=9329 slots=9",ordinary-storage,7*683+2*28);
+        assert!(ordinary - storage >= 3 * 1024);
+        eprintln!("sampler canonical_backing={ordinary} compact_backing={storage} saved={} physical_payload={} logical_quota=9329 slots=9",ordinary-storage,9*683);
     }
     let mut software = Some(Box::new(
         PreparedResidentSoftware::prepare_source(&recipe.spec(), &texts, values).unwrap(),
@@ -104,6 +107,11 @@ fn run(scenario: usize, compact: bool) -> Vec<Snapshot> {
         &metadata.preparation_metadata().fragments[0].fragment_id,
     )
     .unwrap();
+    if compact {
+        for cord in tables.cords() {
+            eprintln!("compact fixture cord: {cord:?}");
+        }
+    }
     let prepared = PreparedResidentSoftware::bind_local_direct_retained(
         &mut software,
         tables,

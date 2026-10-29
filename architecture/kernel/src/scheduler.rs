@@ -3226,17 +3226,17 @@ where
             let native = false;
             #[cfg(feature = "alloc")]
             let native = native
-                || self
+                || if let Some((_, layout)) = self
                     .compact_canonical_output_binding(node)
-                    .is_some_and(|(p, layout)| {
-                        usize::from(p.0) == port
-                            && self
-                                .values
-                                .compact_canonical(value, layout)
-                                .ok()
-                                .flatten()
-                                .is_some()
-                    });
+                    .filter(|(p, _)| usize::from(p.0) == port)
+                {
+                    self.values
+                        .compact_canonical(value, layout)?
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                    true
+                } else {
+                    false
+                };
             if !native {
                 self.values.get(value)?;
             }

@@ -422,7 +422,7 @@ pub enum StorageError {
 }
 
 mod compact_canonical_value;
-pub use compact_canonical_value::CompactCanonicalLayout;
+pub use compact_canonical_value::{CompactCanonicalLayout, CompactCanonicalLayoutDefinition};
 
 pub trait ValueStorage {
     fn item_capacity(&self) -> u16;

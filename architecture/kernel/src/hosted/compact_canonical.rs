@@ -1,4 +1,4 @@
-//! Dedicated compact slots retain unchanged canonical logical quotas.
+//! Explicit compact slots retain unchanged canonical logical quotas.
 use super::*;
 use crate::CompactCanonicalLayout;
 use alloc::boxed::Box;
@@ -7,6 +7,7 @@ use core::num::NonZeroU32;
 pub(super) struct Storage {
     pub(super) layout: CompactCanonicalLayout,
     start: usize,
+    canonical_limit: usize,
     lengths: Vec<Option<NonZeroU32>>,
 }
 impl HostedValueStore {
@@ -35,6 +36,26 @@ impl HostedValueStore {
             .ok_or(StorageError::InvalidBudget)?;
         Ok(bytes)
     }
+    /// Shared slots may hold ordinary canonical bytes or the selected compact
+    /// representation. This preserves small-value eligibility under interleaved
+    /// ownership; no class-specific live reservation can strand a free slot.
+    pub fn new_with_shared_compact_canonical_slots(
+        capacities: &[u32],
+        layout: CompactCanonicalLayout,
+        logical_byte_capacity: u32,
+    ) -> Result<Self, StorageError> {
+        Self::new_compact_profile(capacities, 0, layout, logical_byte_capacity, true)
+    }
+    pub fn shared_compact_canonical_storage_bytes(
+        capacities: &[u32],
+    ) -> Result<usize, StorageError> {
+        Self::canonical_storage_bytes(capacities.iter().copied())?
+            .checked_add(core::mem::size_of::<Storage>())
+            .and_then(|n| {
+                n.checked_add(capacities.len() * core::mem::size_of::<Option<NonZeroU32>>())
+            })
+            .ok_or(StorageError::InvalidBudget)
+    }
     /// Preparation only. These physical slots are never available to generic
     /// canonical writes. No consumer binding or execution authority is created.
     pub fn new_with_compact_canonical_slots(
@@ -43,27 +64,55 @@ impl HostedValueStore {
         layout: CompactCanonicalLayout,
         logical_byte_capacity: u32,
     ) -> Result<Self, StorageError> {
-        if compact_items == 0 {
+        Self::new_compact_profile(
+            canonical,
+            compact_items,
+            layout,
+            logical_byte_capacity,
+            false,
+        )
+    }
+    fn new_compact_profile(
+        canonical: &[u32],
+        compact_items: u16,
+        layout: CompactCanonicalLayout,
+        logical_byte_capacity: u32,
+        shared: bool,
+    ) -> Result<Self, StorageError> {
+        if compact_items == 0 && !shared {
             return Err(StorageError::InvalidBudget);
         }
         let count = canonical
             .len()
             .checked_add(usize::from(compact_items))
             .ok_or(StorageError::InvalidBudget)?;
-        if count > usize::from(u16::MAX) {
+        if count == 0 || count > usize::from(u16::MAX) {
             return Err(StorageError::InvalidBudget);
         }
         let canonical_bytes = canonical
             .iter()
             .try_fold(0u32, |n, b| n.checked_add(*b))
             .ok_or(StorageError::InvalidBudget)?;
-        let maximum = canonical_bytes
-            .checked_add(
-                u32::from(compact_items)
-                    .checked_mul(layout.logical_bytes())
-                    .ok_or(StorageError::InvalidBudget)?,
-            )
-            .ok_or(StorageError::InvalidBudget)?;
+        let maximum = if shared {
+            canonical
+                .iter()
+                .try_fold(0u32, |n, capacity| {
+                    n.checked_add(if *capacity >= u32::from(layout.physical_bytes()) {
+                        (*capacity).max(layout.logical_bytes())
+                    } else {
+                        *capacity
+                    })
+                })
+                .ok_or(StorageError::InvalidBudget)?
+        } else {
+            canonical_bytes
+                .checked_add(
+                    u32::from(compact_items)
+                        .checked_mul(layout.logical_bytes())
+                        .ok_or(StorageError::InvalidBudget)?,
+                )
+                .ok_or(StorageError::InvalidBudget)?
+        };
         if logical_byte_capacity == 0 || logical_byte_capacity > maximum {
             return Err(StorageError::InvalidBudget);
         }
@@ -90,14 +139,20 @@ impl HostedValueStore {
                 bytes,
             });
         }
+        let compact_count = if shared {
+            count
+        } else {
+            usize::from(compact_items)
+        };
         let mut lengths = Vec::new();
         lengths
-            .try_reserve_exact(usize::from(compact_items))
+            .try_reserve_exact(compact_count)
             .map_err(|_| StorageError::ByteCapacityExceeded)?;
-        lengths.resize(usize::from(compact_items), None);
+        lengths.resize(compact_count, None);
         let storage = Storage {
             layout,
-            start: canonical.len(),
+            start: if shared { 0 } else { canonical.len() },
+            canonical_limit: canonical.len(),
             lengths,
         };
         let memory = core::alloc::Layout::new::<Storage>();
@@ -127,15 +182,13 @@ impl HostedValueStore {
             slot_probes: 0,
         })
     }
-    pub(super) fn compact_canonical_start(&self) -> usize {
+    pub(super) fn canonical_slot_limit(&self) -> usize {
         self.compact_canonical
             .as_ref()
-            .map_or(self.slots.len(), |s| s.start)
+            .map_or(self.slots.len(), |s| s.canonical_limit)
     }
     pub(super) fn is_canonical_compact_slot(&self, slot: usize) -> bool {
-        self.compact_canonical
-            .as_ref()
-            .is_some_and(|s| slot >= s.start)
+        self.compact_canonical_length(slot).is_some()
     }
     pub(super) fn compact_canonical_length(&self, slot: usize) -> Option<u32> {
         let storage = self.compact_canonical.as_ref()?;
@@ -175,7 +228,11 @@ impl HostedValueStore {
         };
         let count = self.slots[s.start..]
             .iter()
-            .filter(|slot| slot.references == 0 && slot.generation != u32::MAX)
+            .filter(|slot| {
+                slot.references == 0
+                    && slot.generation != u32::MAX
+                    && slot.bytes.capacity() >= usize::from(layout.physical_bytes())
+            })
             .count();
         (count as u16, self.byte_capacity - self.used_bytes)
     }
@@ -204,13 +261,19 @@ impl HostedValueStore {
             .filter(|n| *n <= self.byte_capacity)
             .ok_or(StorageError::ByteCapacityExceeded)?;
         let start = s.start;
-        let retired = self.slots[start..]
-            .iter()
-            .any(|slot| slot.references == 0 && slot.generation == u32::MAX);
+        let retired = self.slots[start..].iter().any(|slot| {
+            slot.references == 0
+                && slot.generation == u32::MAX
+                && slot.bytes.capacity() >= usize::from(layout.physical_bytes())
+        });
         let (offset, slot) = self.slots[start..]
             .iter_mut()
             .enumerate()
-            .find(|(_, slot)| slot.references == 0 && slot.generation != u32::MAX)
+            .find(|(_, slot)| {
+                slot.references == 0
+                    && slot.generation != u32::MAX
+                    && slot.bytes.capacity() >= usize::from(layout.physical_bytes())
+            })
             .ok_or(if retired {
                 StorageError::GenerationExhausted
             } else {

@@ -11,9 +11,25 @@ mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn layout(tag: u8) -> CompactCanonicalLayout {
-    // SAFETY: fixture endpoints agree that one octet represents exactly 100
-    // canonical bytes. Product eligibility is independently proved elsewhere.
-    unsafe { CompactCanonicalLayout::from_trusted_make([tag; 32], 1, 100).unwrap() }
+    // SAFETY: fixture endpoints reconstruct one physical octet as exactly 100
+    // canonical bytes; product eligibility is proved by its own Source witness.
+    static FIRST: crate::CompactCanonicalLayoutDefinition = match unsafe {
+        crate::CompactCanonicalLayoutDefinition::from_trusted_make([1; 32], 1, 100)
+    } {
+        Ok(layout) => layout,
+        Err(_) => panic!("fixture layout"),
+    };
+    static SECOND: crate::CompactCanonicalLayoutDefinition = match unsafe {
+        crate::CompactCanonicalLayoutDefinition::from_trusted_make([2; 32], 1, 100)
+    } {
+        Ok(layout) => layout,
+        Err(_) => panic!("fixture layout"),
+    };
+    match tag {
+        1 => FIRST.layout(),
+        2 => SECOND.layout(),
+        _ => panic!("fixture layout"),
+    }
 }
 enum Driver {
     Source {
@@ -256,24 +272,31 @@ fn missing_mismatched_and_underbacked_consumers_refuse_before_play() {
 }
 #[test]
 fn real_constructor_refusal_at_every_allocation_drops_all_fresh_backing() {
-    let (baseline, allocation) = allocation_probe::observe(|| {
-        HostedValueStore::new_with_compact_canonical_slots(&[4; 7], 2, layout(1), 228).unwrap()
-    });
-    assert_eq!(
-        allocation.retained_bytes(),
-        baseline.reserved_storage_bytes()
-    );
-    drop(baseline);
-    for index in 0..allocation.allocations {
-        let (result, failed) = allocation_probe::observe(|| {
-            let _failure = allocation_probe::refuse_from_nth_allocation(index);
-            HostedValueStore::new_with_compact_canonical_slots(&[4; 7], 2, layout(1), 228)
-        });
-        assert!(
-            matches!(result, Err(StorageError::ByteCapacityExceeded)),
-            "index={index}"
+    for shared in [false, true] {
+        let construct = || {
+            if shared {
+                HostedValueStore::new_with_shared_compact_canonical_slots(&[4; 9], layout(1), 228)
+            } else {
+                HostedValueStore::new_with_compact_canonical_slots(&[4; 7], 2, layout(1), 228)
+            }
+        };
+        let (baseline, allocation) = allocation_probe::observe(|| construct().unwrap());
+        assert_eq!(
+            allocation.retained_bytes(),
+            baseline.reserved_storage_bytes()
         );
-        assert_eq!(failed.retained_bytes(), 0, "index={index}");
+        drop(baseline);
+        for index in 0..allocation.allocations {
+            let (result, failed) = allocation_probe::observe(|| {
+                let _failure = allocation_probe::refuse_from_nth_allocation(index);
+                construct()
+            });
+            assert!(
+                matches!(result, Err(StorageError::ByteCapacityExceeded)),
+                "shared={shared} index={index}"
+            );
+            assert_eq!(failed.retained_bytes(), 0, "shared={shared} index={index}");
+        }
     }
 }
 

@@ -1,7 +1,24 @@
 use super::*;
 fn make_layout(tag: u8) -> CompactCanonicalLayout {
-    // Fixture codec: one physical octet expands to exactly 100 canonical bytes.
-    unsafe { CompactCanonicalLayout::from_trusted_make([tag; 32], 1, 100).unwrap() }
+    // SAFETY: fixture endpoints reconstruct one physical octet as exactly 100
+    // canonical bytes; product eligibility is proved by its own Source witness.
+    static FIRST: crate::CompactCanonicalLayoutDefinition = match unsafe {
+        crate::CompactCanonicalLayoutDefinition::from_trusted_make([1; 32], 1, 100)
+    } {
+        Ok(layout) => layout,
+        Err(_) => panic!("fixture layout"),
+    };
+    static SECOND: crate::CompactCanonicalLayoutDefinition = match unsafe {
+        crate::CompactCanonicalLayoutDefinition::from_trusted_make([2; 32], 1, 100)
+    } {
+        Ok(layout) => layout,
+        Err(_) => panic!("fixture layout"),
+    };
+    match tag {
+        1 => FIRST.layout(),
+        2 => SECOND.layout(),
+        _ => panic!("fixture layout"),
+    }
 }
 #[test]
 fn dedicated_slots_keep_logical_quota_and_canonical_reads_fenced() {
@@ -89,4 +106,41 @@ fn physical_and_logical_pressure_preserve_live_values_and_generations() {
     let next = store.store_compact_canonical(layout, b"y", 100).unwrap();
     assert_eq!(next.slot, value.slot);
     assert_ne!(next.generation, value.generation);
+}
+
+#[test]
+fn shared_slots_preserve_all_small_value_eligibility_without_pinned_class_starvation() {
+    let layout = make_layout(1);
+    let mut store =
+        HostedValueStore::new_with_shared_compact_canonical_slots(&[4; 9], layout, 228).unwrap();
+    let mut ordinary = Vec::new();
+    for _ in 0..8 {
+        ordinary.push(store.store(b"data").unwrap());
+    }
+    let first = store.store_compact_canonical(layout, b"a", 100).unwrap();
+    assert_eq!(store.used_items(), 9);
+    // Free a small slot while another ordinary value still occupies a former
+    // large/compact slot. The next reading must use this free physical slot.
+    store.release(ordinary.remove(0)).unwrap();
+    let second = store.store_compact_canonical(layout, b"b", 100).unwrap();
+    assert_eq!((store.used_items(), store.used_bytes()), (9, 228));
+    assert_eq!(
+        store.compact_canonical(second, layout),
+        Ok(Some(b"b".as_slice()))
+    );
+    for value in ordinary {
+        assert_eq!(store.get(value), Ok(b"data".as_slice()));
+        store.release(value).unwrap();
+    }
+    store.release(first).unwrap();
+    store.release(second).unwrap();
+    // Retired compact occupancy never permanently changes a slot's eligibility.
+    for _ in 0..9 {
+        store.store(b"data").unwrap();
+    }
+    assert_eq!(store.used_items(), 9);
+    assert_eq!(
+        store.reserved_storage_bytes(),
+        HostedValueStore::shared_compact_canonical_storage_bytes(&[4; 9]).unwrap()
+    );
 }

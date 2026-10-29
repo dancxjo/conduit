@@ -22,7 +22,7 @@ impl HostedValueStore {
             && self.slots.iter().enumerate().any(|(index, slot)| {
                 slot.references == 0 && slot.generation == u32::MAX && !self.is_owned_compact(index)
             });
-        let compact_start = self.compact_canonical_start();
+        let compact_start = self.canonical_slot_limit();
         let owned = &self.owned_compact_slots;
         #[cfg(test)]
         let probes = &mut self.slot_probes;

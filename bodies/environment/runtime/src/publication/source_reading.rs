@@ -19,18 +19,25 @@ pub(super) struct CompactReading {
     pub pending: Option<PackedReading>,
 }
 pub(crate) const COMPACT_READING_BYTES: usize = 1 + material::FAILURE_NODE_MAXIMUM;
+// SAFETY: generated identity binds the exact canonical Result Type, both
+// authored Forms and this codec version. The opaque local specialization
+// separately checks the actual Source/Plan and initialized endpoint owners.
+static COMPACT_READING_LAYOUT: conduit_kernel::CompactCanonicalLayoutDefinition = match unsafe {
+    conduit_kernel::CompactCanonicalLayoutDefinition::from_trusted_make(
+        material::COMPACT_LAYOUT_ID,
+        COMPACT_READING_BYTES as u16,
+        material::RESULT_MAXIMUM as u32,
+    )
+} {
+    Ok(layout) => layout,
+    Err(_) => panic!("checked linked compact reading bounds"),
+};
 pub(crate) fn compact_layout() -> conduit_kernel::CompactCanonicalLayout {
-    // SAFETY: generated identity binds the exact canonical Result Type, both
-    // authored Forms and this codec version. The opaque local specialization
-    // separately checks the actual Source/Plan and initialized endpoint owners.
-    unsafe {
-        conduit_kernel::CompactCanonicalLayout::from_trusted_make(
-            material::COMPACT_LAYOUT_ID,
-            COMPACT_READING_BYTES as u16,
-            material::RESULT_MAXIMUM as u32,
-        )
-        .expect("checked linked compact reading bounds")
-    }
+    COMPACT_READING_LAYOUT.layout()
+}
+
+pub(crate) fn compact_result_kind() -> &'static str {
+    material::COMPACT_RESULT_KIND
 }
 impl PackedReading {
     pub(crate) fn from_compact(bytes: &[u8]) -> Result<Self, R> {
