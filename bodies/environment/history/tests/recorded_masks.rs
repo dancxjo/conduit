@@ -99,11 +99,11 @@ fn line_runs_stop_at_failures_and_sequence_gaps_within_fixed_scene_budget() {
         ]))
         .unwrap();
     let fragment = history.contribution(basis()).unwrap();
-    let face = Face::new(
+    let face = Face::new_with_semantics(
         5,
         FaceBasis {
-            body_id: Some("body/history".into()),
-            wake_id: Some("wake/history".into()),
+            body_id: None,
+            wake_id: None,
             source_document_id: Some("source/history".into()),
             checked_plot_id: Some(basis().checked_plot_id),
             expanded_plot_id: Some("expanded/history".into()),
