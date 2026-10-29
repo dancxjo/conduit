@@ -4,6 +4,7 @@ use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 
 thread_local! {
+    static FAIL_AFTER: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static ALLOCATIONS: Cell<usize> = const { Cell::new(0) };
     static RELEASED: Cell<usize> = const { Cell::new(0) };
@@ -21,14 +22,53 @@ fn record() {
 
 unsafe impl GlobalAlloc for CountedAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        if FAIL_AFTER
+            .try_with(|n| match n.get() {
+                Some(0) => true,
+                Some(left) => {
+                    n.set(Some(left - 1));
+                    false
+                }
+                None => false,
+            })
+            .unwrap_or(false)
+        {
+            return std::ptr::null_mut();
+        }
         record();
         unsafe { System.alloc(layout) }
     }
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        if FAIL_AFTER
+            .try_with(|n| match n.get() {
+                Some(0) => true,
+                Some(left) => {
+                    n.set(Some(left - 1));
+                    false
+                }
+                None => false,
+            })
+            .unwrap_or(false)
+        {
+            return std::ptr::null_mut();
+        }
         record();
         unsafe { System.alloc_zeroed(layout) }
     }
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
+        if FAIL_AFTER
+            .try_with(|n| match n.get() {
+                Some(0) => true,
+                Some(left) => {
+                    n.set(Some(left - 1));
+                    false
+                }
+                None => false,
+            })
+            .unwrap_or(false)
+        {
+            return std::ptr::null_mut();
+        }
         record();
         unsafe { System.realloc(pointer, layout, size) }
     }
@@ -92,4 +132,57 @@ pub(super) fn released_bytes<T>(f: impl FnOnce() -> T) -> (T, usize) {
     TRACKING.with(|tracking| tracking.set(false));
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
     (result, RELEASED.with(Cell::get))
+}
+
+#[test]
+fn fallible_constructor_and_each_issuance_allocation_leave_issuer_reusable() {
+    let args = (
+        HostId::from("host"),
+        BootId::from("boot"),
+        BaseInstanceId::from("base"),
+    );
+    FAIL_AFTER.with(|n| n.set(Some(0)));
+    let result = BaseCapabilityTable::new(args.0, args.1, args.2, 1, [7; 32], 1);
+    FAIL_AFTER.with(|n| n.set(None));
+    assert_eq!(result.err(), Some(BaseCapabilityRefusal::Capacity));
+    for failure in [0, 1] {
+        let mut actual = table(7);
+        let expected = table(7).issue(request()).unwrap();
+        let input = request();
+        FAIL_AFTER.with(|n| n.set(Some(failure)));
+        let result = actual.issue(input);
+        FAIL_AFTER.with(|n| n.set(None));
+        assert_eq!(result.err(), Some(BaseCapabilityRefusal::Capacity));
+        assert_eq!(actual.inspections().count(), 0);
+        assert!(actual.issue(request()).unwrap() == expected);
+    }
+}
+
+#[test]
+fn preallocated_issuance_is_equivalent_and_allocates_nothing() {
+    use conduit_core::BaseCapabilityIssuanceBacking;
+    let mut actual = table(7);
+    let policy = authority();
+    let input = scope();
+    let backing = BaseCapabilityIssuanceBacking::try_new(input.maximum_in_flight).unwrap();
+    let expected = table(7).issue(request()).unwrap();
+    let claim = claim();
+    without_allocations(|| {
+        let mut handle = actual
+            .issue_borrowed_with_backing(input, (&policy).into(), backing)
+            .unwrap();
+        assert!(handle == expected);
+        let lease = actual.authorize(&handle, &claim).unwrap();
+        actual.complete(&mut handle, lease, 16).unwrap();
+    });
+    assert_eq!(actual.inspections().count(), 1);
+    let mut other = table(7);
+    let backing = BaseCapabilityIssuanceBacking::try_new(0).unwrap();
+    assert_eq!(
+        other
+            .issue_borrowed_with_backing(scope(), (&policy).into(), backing)
+            .err(),
+        Some(BaseCapabilityRefusal::Capacity)
+    );
+    assert!(other.issue(request()).unwrap() == expected);
 }
