@@ -63,3 +63,23 @@ pub(super) fn trace_flat_refusal(stage: u16, custody: &IssuedCustody, active: bo
     #[cfg(not(target_os = "none"))]
     let _ = (stage, custody, active);
 }
+
+/// Actual failed allocation shape and aggregate bank observations only.
+#[inline(never)]
+#[cold]
+pub(super) fn trace_storage_failure(failure: super::n::NetworkKernelAllocationFailure) {
+    #[cfg(target_os = "none")]
+    {
+        let memory = esp_alloc::HEAP.stats();
+        let banks = core::array::from_fn::<_, 3, _>(|i| {
+            memory.region_stats[i].as_ref().map_or(0, |r| r.free)
+        });
+        let phase = match failure.phase {
+            super::n::NetworkKernelAllocationPhase::Kernel => "kernel",
+            super::n::NetworkKernelAllocationPhase::Signs => "signs",
+        };
+        esp_println::println!("{{\"event\":\"network-storage-allocation-refused\",\"phase\":\"{}\",\"requested_bytes\":{},\"alignment\":{},\"free_bytes\":{},\"bank_free\":[{},{},{}]}}", phase, failure.requested_bytes, failure.alignment, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2]);
+    }
+    #[cfg(not(target_os = "none"))]
+    let _ = failure;
+}
