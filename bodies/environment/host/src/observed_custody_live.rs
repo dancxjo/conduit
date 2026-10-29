@@ -119,10 +119,17 @@ impl Continuing {
             // Connection loss never changes the epoch or signs a new request.
             Err(_) => return Ok(()),
         };
-        if status == 202 || status == 503 {
+        if status == 202 {
+            // Root retains one asynchronous completion. Switching GET slots
+            // before consuming it can evict that completion indefinitely.
+            // Retry this exact GET, just as a possibly accepted POST must keep
+            // its exact signed bytes. Collection still runs before each tick.
+            return Ok(());
+        }
+        if status == 503 {
             if self.pending.is_none() {
-                // A stalled or unavailable slot must not hold every other
-                // closed epoch behind it. Revisit this same hint on the next
+                // An unavailable slot must not hold every other closed epoch
+                // behind it. Revisit this same hint on the next
                 // finite round; a slot is never identity or erase authority.
                 self.slot = (slot + 1) % 6;
             }
@@ -290,6 +297,9 @@ fn verify_receipt(
 }
 
 #[cfg(test)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_request_queue.rs"]
+mod producer_queue;
+#[cfg(test)]
 mod tests {
     use super::*;
     use ed25519_dalek::{Signer, SigningKey};
@@ -342,6 +352,124 @@ mod tests {
         server.join().unwrap();
     }
     #[test]
+    fn accepted_get_consumes_single_cache_completion_before_another_slot() {
+        use std::{
+            io::{Read, Write},
+            net::TcpListener,
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let peer = listener.local_addr().unwrap().to_string();
+        let server = std::thread::spawn(move || {
+            use super::producer_queue::{Queue, Request, Response};
+            let mut queue = Queue::<u8>::new();
+            let mut job = None;
+            let mut completed_deliveries = 0;
+            for attempt in 0..3 {
+                let (mut socket, _) = listener.accept().unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut request = Vec::new();
+                while !request.ends_with(b"\r\n\r\n") {
+                    let mut byte = [0];
+                    socket.read_exact(&mut byte).unwrap();
+                    request.push(byte[0]);
+                }
+                let request = String::from_utf8(request).unwrap();
+                let slot = request
+                    .split("slot=")
+                    .nth(1)
+                    .unwrap()
+                    .split(' ')
+                    .next()
+                    .unwrap()
+                    .parse()
+                    .unwrap();
+                // Use the production Root queue, including its single completed
+                // cache and different-request eviction, not a mirrored model.
+                let reply = match queue.submit(Request::offer(slot)) {
+                    Response::Pending => {
+                        b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n".as_slice()
+                    }
+                    Response::Busy => {
+                        b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n".as_slice()
+                    }
+                    Response::Completed(Ok(_)) => {
+                        completed_deliveries += 1;
+                        b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}".as_slice()
+                    }
+                    Response::Completed(Err(())) => unreachable!(),
+                };
+                socket.write_all(reply).unwrap();
+                if job.is_none() {
+                    job = queue.take();
+                }
+                if attempt == 1 {
+                    queue.complete(job.take().unwrap().key, Ok(1));
+                }
+            }
+            completed_deliveries
+        });
+        let mut continuing = Continuing::new();
+        let absent = Path::new("/nonexistent/private-key");
+        for _ in 0..2 {
+            continuing.advance(absent, absent, &peer, absent).unwrap();
+            assert_eq!(continuing.slot, 0);
+        }
+        // The completed response reaches ordinary binding/authentication
+        // validation; absent credentials cannot fabricate an accepted offer.
+        assert!(continuing.advance(absent, absent, &peer, absent).is_err());
+        assert_eq!(server.join().unwrap(), 1);
+        assert!(continuing.pending.is_none());
+        assert_eq!(continuing.accepted, [None; 6]);
+    }
+    #[test]
+    fn accepted_or_unavailable_post_retries_keep_exact_offer_slot_and_signed_bytes() {
+        use std::{
+            io::{Read, Write},
+            net::TcpListener,
+        };
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let peer = listener.local_addr().unwrap().to_string();
+        let server = std::thread::spawn(move || {
+            for status in [202, 503, 0, 202] {
+                let (mut socket, _) = listener.accept().unwrap();
+                socket
+                    .set_read_timeout(Some(Duration::from_secs(5)))
+                    .unwrap();
+                let mut header = Vec::new();
+                while !header.ends_with(b"\r\n\r\n") {
+                    let mut byte = [0];
+                    socket.read_exact(&mut byte).unwrap();
+                    header.push(byte[0]);
+                }
+                assert!(header.starts_with(b"POST /history/custody/ack?slot=4 "));
+                let mut body = [0; 9];
+                socket.read_exact(&mut body).unwrap();
+                assert_eq!(&body, b"exact-ack");
+                if status != 0 {
+                    write!(
+                        socket,
+                        "HTTP/1.1 {status} Pending\r\nContent-Length: 0\r\n\r\n"
+                    )
+                    .unwrap();
+                }
+            }
+        });
+        let mut continuing = Continuing::new();
+        continuing.slot = 4;
+        continuing.pending = Some((b"original-offer".to_vec(), b"exact-ack".to_vec()));
+        let absent = Path::new("/nonexistent/private-key");
+        for _ in 0..4 {
+            continuing.advance(absent, absent, &peer, absent).unwrap();
+            assert_eq!(continuing.slot, 4);
+            assert_eq!(continuing.pending.as_ref().unwrap().0, b"original-offer");
+            assert_eq!(continuing.pending.as_ref().unwrap().1, b"exact-ack");
+            assert_eq!(continuing.accepted, [None; 6]);
+        }
+        server.join().unwrap();
+    }
+    #[test]
     fn continuing_unavailable_offers_do_not_block_other_slots_or_require_signing_keys() {
         use std::{
             io::{Read, Write},
@@ -359,7 +487,7 @@ mod tests {
                     .starts_with(&format!("GET /history/custody/offer?slot={} ", attempt % 6)));
                 socket
                     .write_all(if attempt < 6 {
-                        b"HTTP/1.1 202 Accepted\r\nContent-Length: 0\r\n\r\n"
+                        b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\n\r\n"
                     } else {
                         b"HTTP/1.1 409 Conflict\r\nContent-Length: 0\r\n\r\n"
                     })
