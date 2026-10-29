@@ -7,7 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
-conduitos = { path = "../conduitos", features = ["native-compositor-core"] }
+conduitos = { path = "../conduitos", features = ["native-face-raster"] }
 conduit-face = { path = "../../semantics/face" }
 conduit-core = { path = "../../architecture/core" }
 libc = "0.2"
