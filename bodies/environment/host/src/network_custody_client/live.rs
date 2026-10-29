@@ -13,7 +13,7 @@ pub(super) fn unhex<const N: usize>(text: &str) -> Result<[u8; N]> {
         return Err("network offer hex extent".into());
     }
     let mut out = [0; N];
-    for (byte, pair) in out.iter_mut().zip(text.as_bytes().chunks_exact(2)) {
+    for (byte, pair) in out.iter_mut().zip(text.as_bytes().as_chunks::<2>().0) {
         let digit = |b| match b {
             b'0'..=b'9' => Ok(b - b'0'),
             b'a'..=b'f' => Ok(b - b'a' + 10),

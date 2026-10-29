@@ -30,7 +30,7 @@ fn hex(text: &str) -> Result<[u8; 480]> {
             _ => Err("network receipt hex".into()),
         }
     }
-    for (out, pair) in bytes.iter_mut().zip(text.as_bytes().chunks_exact(2)) {
+    for (out, pair) in bytes.iter_mut().zip(text.as_bytes().as_chunks::<2>().0) {
         *out = digit(pair[0])? * 16 + digit(pair[1])?;
     }
     Ok(bytes)
