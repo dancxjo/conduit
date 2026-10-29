@@ -189,6 +189,7 @@ impl NativeRoot {
                         }
                         recovery
                             .begin_attempt(candidate, embassy_time::Instant::now().as_millis())
+                            .map(|_| ())
                             .map_err(|_| ())
                     },
                 )
