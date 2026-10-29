@@ -175,3 +175,27 @@ selects no recorder, grants no display Back and proves no Pi reboot/return.
 Blue's station failure remains unchanged. The explicit forwards were left
 running for the Pi owner's follow-up; their lifetime is not autonomous network
 continuity. Invitation secrets and continuity remain outside this repository.
+
+### Actual Pi power-cycle return: refused
+
+The Pi owner subsequently reported an actual power-off/reseat/reboot. SSH
+returned with the same machine ID and OS Boot
+`e9ec8154-7f45-4470-9c08-723968206817`, distinct from the admitted Boot
+`ec49779f-0d8f-42ba-a462-46b1b2512781`. The original binding and continuity
+file hashes were unchanged. The explicit loopback SSH route was restored and
+again returned HTTP 200 from Blue before attempting the supported
+`--return-observer` entrance with the original files and a fresh private
+per-Boot directory.
+
+The return challenge request was queued, but its result was HTTP 403. The
+client retained only the new Boot's advertisement; it received no signed
+challenge and produced no returned binding or receipt. The installed Root's
+join pump discards its internal refusal reason, so the precise cause remains
+unobserved and was handed to forebrain's shared-code owner. The Pi's wall clock
+was reported behind UTC, but this does not establish a clock failure: no signed
+Root-clock challenge reached the client.
+
+The fresh return state was synchronized with 0700 directory/0600 file access.
+The original membership files remain unchanged. No replacement invitation,
+new Host identity, Blue reset, reflash or erasure was used. Initial admission
+is proved; actual reboot continuity is explicitly **not** accepted.
