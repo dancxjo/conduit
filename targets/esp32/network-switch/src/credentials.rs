@@ -1,7 +1,7 @@
 //! Root preparation of the SDK-owned representation of one private submission.
 //! This code neither touches a controller nor establishes radio authority.
 extern crate alloc;
-use alloc::string::ToString;
+use alloc::string::String;
 use conduit_net::NetworkJoinRequest;
 use esp_radio::wifi::{sta::StationConfig, AuthenticationMethod};
 
@@ -9,6 +9,7 @@ use esp_radio::wifi::{sta::StationConfig, AuthenticationMethod};
 pub enum StationConfigurationRefusal {
     Ssid,
     Credential,
+    Capacity,
 }
 
 /// Prepare the attended WPA2-personal profile before Play. The profile accepts
@@ -24,9 +25,14 @@ pub fn prepare_station_configuration(
     request: NetworkJoinRequest<'_>,
 ) -> Result<StationConfig, StationConfigurationRefusal> {
     let (ssid, password) = validate(request)?;
+    let mut owned_password = String::new();
+    owned_password
+        .try_reserve_exact(password.len())
+        .map_err(|_| StationConfigurationRefusal::Capacity)?;
+    owned_password.push_str(password);
     Ok(StationConfig::default()
         .with_ssid(ssid)
-        .with_password(password.to_string())
+        .with_password(owned_password)
         .with_auth_method(AuthenticationMethod::Wpa2Personal)
         .with_failure_retry_cnt(0))
 }
