@@ -76,8 +76,16 @@ All Wi-Fi profiles expose the same bounded read-only `GET /environment` route on
 TCP port 8080 after network configuration. Its response carries the firmware and
 Host-configuration identities, real counters, sample-Boot milliseconds, quantities
 and explicit `body_member:false`. It creates no Body membership, signed history,
-Plan or Play. There is one configured TCP session; its closing handshake is bounded
-to 500 ms, and concurrent/closing-session connections can refuse. Incomplete
+Plan or Play. There are two fixed diagnostic TCP sessions so an idle browser preconnection
+can coexist with its navigation. Each closing handshake is bounded to 500 ms;
+further concurrent connections can refuse. These sockets grant no Line authority,
+and the checked `line_sessions: 1` remains unchanged. Their four RX/TX buffers
+occupy 4096 bytes. Including each session's larger response phase (1536-byte
+maximum status plus 192-byte header) gives a 7552-byte peak buffer budget,
+checked against the existing 8192-byte buffered limit. Request accumulation
+ends before response construction. Four
+network socket slots cover DHCP, both diagnostic sessions and the serialized
+carrier HTTP/mDNS operation. Full static memory and stack bounds remain enforced. Incomplete
 requests expire after three seconds; headers are limited to 512 bytes and methods
 other than GET refuse. Credentials and admission operations are not exposed there.
 

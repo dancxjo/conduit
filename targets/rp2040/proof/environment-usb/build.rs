@@ -60,7 +60,14 @@ fn main() {
         println!("cargo:rustc-cfg=environment_dht11_tm1637");
     }
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
-    fs::write(out.join("host.rs"), &generated).unwrap();
+    fs::write(
+        out.join("host.rs"),
+        format!(
+            "{generated}\npub const DIAGNOSTIC_HTTP_BUFFER_LIMIT:u64={};\n",
+            checked.configuration().limits.buffered_bytes
+        ),
+    )
+    .unwrap();
     if dht {
         build_dht::emit(&out);
     }

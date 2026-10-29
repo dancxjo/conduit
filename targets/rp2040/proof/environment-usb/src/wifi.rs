@@ -176,7 +176,7 @@ pub async fn configure(encoded: &[u8]) -> Result<(), &'static str> {
         .await
         .map_err(|_| "radio-request-timeout")?
 }
-static RESOURCES: StaticCell<StackResources<3>> = StaticCell::new();
+static RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
 static FW: aligned::Aligned<aligned::A4, [u8; 231077]> = aligned::Aligned(*include_bytes!(
     "../../../firmware/assets/cyw43/embassy-6a823b96b3d270b6da1cc667f8acea749e588dab/43439A0.bin"
 ));
@@ -228,7 +228,9 @@ pub async fn run(
     spawner.spawn(network(runner).unwrap());
     update(true, Some(stack), None);
     spawner.spawn(monitor(stack).unwrap());
-    spawner.spawn(crate::environment_http::run(stack).unwrap());
+    for _ in 0..crate::environment_http::SESSIONS {
+        spawner.spawn(crate::environment_http::run(stack).unwrap());
+    }
     let mut retained: Option<JoinRequest> = None;
     let mut reconnect = reconnect::Reconnect::default();
     loop {
