@@ -120,7 +120,7 @@ fn same_face_both_masks_use_actual_boot_time_and_bound_samples() {
     assert_eq!(native.revision, graph.revision());
     assert!(graph.browser_html().contains("cx=\"88\""));
     let scene = graph.native_scene().unwrap();
-    assert_eq!(scene.commands().len(), 7); // background + labels + two exact series
+    assert_eq!(scene.commands().len(), 25); // bounded axes, eight grids and two series
     let lines: Vec<_> = scene
         .commands()
         .iter()
@@ -133,7 +133,7 @@ fn same_face_both_masks_use_actual_boot_time_and_bound_samples() {
                 .iter()
                 .map(|point| *point.x())
                 .collect::<Vec<_>>(),
-            vec![32, 88, 592]
+            vec![84, 136, 612]
         );
     }
     let face = face(&(0..64).collect::<Vec<_>>());

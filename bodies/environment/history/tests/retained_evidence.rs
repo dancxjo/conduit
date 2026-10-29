@@ -86,14 +86,10 @@ fn native_resolution_prepares_geometry_and_glyph_roles_before_rasterization() {
     for (old, new) in baseline.commands().iter().zip(native.commands()) {
         assert_eq!(old.payload(), new.payload());
         assert!(i32::from(new.bounds.y) + i32::from(new.bounds.height) <= 564);
-        if !new.payload().is_empty() {
-            assert_eq!(new.text_role(), conduit_face::GraphicsTextRole::Title);
-        }
-        if let (Some(old), Some(new)) = (old.polyline_geometry(), new.polyline_geometry()) {
-            for (a, b) in old.points().iter().zip(new.points()) {
-                assert_eq!(i32::from(*b.x()), i32::from(*a.x()) * 1024 / 640);
-                assert_eq!(i32::from(*b.y()), i32::from(*a.y()) * 564 / 360);
-            }
+        if let Some(line) = new.polyline_geometry() {
+            assert_eq!(*line.points().first().unwrap().x(), 100);
+            assert_eq!(*line.points().last().unwrap().x(), 996);
+            assert_eq!(new.paint, conduit_face::GraphicsPaintRole::Accent);
         }
     }
     assert!(
@@ -105,5 +101,57 @@ fn native_resolution_prepares_geometry_and_glyph_roles_before_rasterization() {
         graph
             .native_scene_in_unit_at_size(Unit::Fahrenheit, u16::MAX, 564)
             .is_err()
+    );
+}
+
+#[test]
+fn nice_fahrenheit_axes_and_worst_fragmentation_stay_within_48_commands() {
+    let make = |sequence, temp_tenths| {
+        let mut r = ObservedRecord::decode(&record(sequence, sequence * 1000, true)).unwrap();
+        r.quantities = Some((
+            Quantity::from_decimal(temp_tenths, -1, Unit::Celsius).unwrap(),
+            Quantity::new(50, Unit::Percent),
+        ));
+        r.encode().unwrap()
+    };
+    let graph =
+        RetainedEvidenceGraph::prepare(&[make(1, 178), make(2, 182)].concat(), 2, 0).unwrap();
+    let scene = graph
+        .native_scene_in_unit_at_size(Unit::Fahrenheit, 1024, 564)
+        .unwrap();
+    for tick in ["64.0", "64.5", "65.0", "0%", "25%", "50%", "75%", "100%"] {
+        assert!(
+            scene.commands().iter().any(|c| c.payload() == tick),
+            "missing {tick}"
+        );
+    }
+    for value in [0, -403, 645] {
+        let graph = RetainedEvidenceGraph::prepare(&make(1, value), 1, 0).unwrap();
+        let scene = graph
+            .native_scene_in_unit_at_size(Unit::Celsius, 1024, 564)
+            .unwrap();
+        assert!(scene.commands().len() <= 48);
+        for point in scene
+            .commands()
+            .iter()
+            .filter_map(|c| c.polyline_geometry())
+            .flat_map(|p| p.points())
+        {
+            assert!(*point.y() >= 0 && *point.y() < 564);
+        }
+    }
+    let bytes: Vec<_> = (0..16).flat_map(|i| make(i * 2 + 1, 178)).collect();
+    let graph = RetainedEvidenceGraph::prepare(&bytes, 31, 0).unwrap();
+    let scene = graph
+        .native_scene_in_unit_at_size(Unit::Fahrenheit, 1024, 564)
+        .unwrap();
+    assert_eq!(scene.commands().len(), 48);
+    assert_eq!(
+        scene
+            .commands()
+            .iter()
+            .filter(|c| c.paint == conduit_face::GraphicsPaintRole::Accent)
+            .count(),
+        32
     );
 }
