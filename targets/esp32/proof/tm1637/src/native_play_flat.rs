@@ -75,10 +75,10 @@ impl NativePlay {
             );
             return Err(());
         }
-        // Reserve only the largest block before temporary descriptions can
-        // fragment its hole. This overlaps cold preparation and counts against
-        // the SAME admitted workspace; Signs remain a separate later phase.
-        let backing = match Self::reserve_linked_kernel_backing() {
+        // Reserve both actual execution allocations before temporary descriptions
+        // fragment their holes. Their full overlap with cold preparation counts
+        // against the SAME admitted workspace; neither backing conveys authority.
+        let storage = match Self::reserve_linked_backing() {
             Ok(backing) => backing,
             Err(()) => {
                 trace_phased_refusal(114, &self.flat_refusal, false, false);
@@ -86,7 +86,7 @@ impl NativePlay {
             }
         };
         #[cfg(test)]
-        record_phased(9, Some(backing.as_ptr() as usize));
+        record_phased(9, Some(storage.as_ptr() as usize));
         let pair = ReadyNetworkPair::new(source.take().ok_or(())?, join.take().ok_or(())?);
         let pins = (
             expected.source_document_id.as_str(),
@@ -152,12 +152,10 @@ impl NativePlay {
             // Both native contracts, borrowed Source/Plan projections, grants
             // and lowering tables have retired. Only exact compact proofs and
             // numeric parts overlap final backing and actual issuance.
-            // Descriptors have retired; attach the smaller mandatory Sign
-            // allocation to the exact kernel-only backing already protected.
+            // Both original execution allocations have remained uniquely owned;
+            // no allocation is needed after descriptions retire.
             #[cfg(test)]
             record_phased(0, None);
-            refusal_stage = 114;
-            let storage = Self::complete_linked_sign_backing(backing)?;
             #[cfg(test)]
             record_phased(1, Some(storage.as_ptr() as usize));
             refusal_stage = 110;

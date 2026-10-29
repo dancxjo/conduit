@@ -23,36 +23,6 @@ impl NativePlay {
         )
         .map_err(|_| ())
     }
-
-    pub(crate) fn reserve_linked_kernel_backing() -> Result<n::PreparedNetworkKernelBacking, ()> {
-        #[cfg(test)]
-        let _refusal = if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {
-            Some(crate::allocation_probe::refuse_next_allocation_size(
-                n::PreparedNetworkKernelBacking::allocation_bytes(),
-            ))
-        } else {
-            None
-        };
-        n::PreparedNetworkKernelBacking::try_new_observing_failure(
-            diagnostics::trace_storage_failure,
-        )
-        .map_err(|_| ())
-    }
-    pub(crate) fn complete_linked_sign_backing(
-        backing: n::PreparedNetworkKernelBacking,
-    ) -> Result<n::PreparedNetworkKernelStorage, ()> {
-        #[cfg(test)]
-        let _refusal = if REFUSE_NEXT_LOG.with(|flag| flag.replace(false)) {
-            Some(crate::allocation_probe::refuse_next_allocation_size(
-                n::CONTROL_SIGN_BACKING_BYTES,
-            ))
-        } else {
-            None
-        };
-        backing
-            .with_signs_observing_failure(diagnostics::trace_storage_failure)
-            .map_err(|(backing, _)| drop(backing))
-    }
 }
 #[cfg(test)]
 std::thread_local! {
