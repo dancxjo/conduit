@@ -7,6 +7,9 @@ use conduit_plan_lowering::selected_operation::{
 };
 pub const SCAN_CAPABILITY: &str = "conduit/network-scan@1";
 pub const SCAN_BASE_KIND: &str = "machine/wifi-scan";
+/// Core requires one nonzero accounting unit even for a zero-input Host Call,
+/// as for the existing credential source. This is not an authored input byte.
+pub const SCAN_OPERATION_PARAMETER_BYTES: u32 = MAXIMUM_SCAN_INPUT_BYTES;
 #[derive(Debug, PartialEq, Eq)]
 pub enum ScanCallRefusal {
     Unavailable,
@@ -96,10 +99,10 @@ impl<P: NetworkScanProvider> ReadyNetworkScanBase<P> {
         if entries.next().is_some()
             || e.scope.maximum_operations != 1
             || e.scope.maximum_in_flight != 1
-            || e.scope.maximum_parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
+            || e.scope.maximum_parameter_bytes != SCAN_OPERATION_PARAMETER_BYTES
             || e.scope.maximum_result_bytes != MAXIMUM_SCAN_OUTPUT_BYTES
             || e.scope.authority_contract_id.as_str() != NETWORK_SCAN_AUTHORITY
-            || claim.parameter_bytes != MAXIMUM_SCAN_INPUT_BYTES
+            || claim.parameter_bytes != SCAN_OPERATION_PARAMETER_BYTES
             || claim.work_units != 1
         {
             return Err(ScanCallRefusal::WrongBinding);
@@ -244,10 +247,10 @@ impl<P: NetworkScanProvider> NetworkScanHostCall<P> {
         if id != RequestId(0) || self.invoked {
             return Err(ScanCallRefusal::StaleRequest);
         }
-        let request = NetworkScanRequest::decode(input).map_err(ScanCallRefusal::Representation)?;
-        if request != self.request {
-            return Err(ScanCallRefusal::WrongBinding);
+        if !input.is_empty() {
+            return Err(ScanCallRefusal::Representation(ScanFailure::Malformed));
         }
+        let request = self.request;
         let started = self.provider.now_ms();
         if started >= request.scan_deadline_ms {
             return Err(ScanCallRefusal::Deadline);
