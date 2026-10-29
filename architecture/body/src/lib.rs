@@ -17,6 +17,9 @@
 
 extern crate alloc;
 
+mod storage_usage;
+pub use storage_usage::VecStorageUsage;
+
 mod administration;
 #[cfg(feature = "authenticated-admission")]
 mod admission;
