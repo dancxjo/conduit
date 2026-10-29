@@ -81,6 +81,9 @@ impl AttachedEquipment {
 }
 
 impl Selection {
+    pub(super) fn uses_physical_speaker(&self) -> bool {
+        !self.artifact_only
+    }
     pub(super) fn validate(&self) -> Result<(), String> {
         self.validate_identity()?;
         self.coverage()?;

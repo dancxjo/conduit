@@ -102,6 +102,21 @@ loss or an inexact negotiated sample rate. Changing the implementation changes
 the checked construction identity and takes effect through a fresh Boot.
 Existing direct selections retain their explicit direct behavior.
 
+Linux speaker initialization can select `audio/speaker` with
+`std/kernel-audio-play-alsa-hw@1`. Its explicit `initialization` fields are
+`executable_sha256`, `card_id`, `device`, and `base_identity`. This implementation
+owns the fixed `/usr/bin/aplay` provider path and the existing 48 kHz stereo
+signed-16-bit direct-hardware profile. Checking source opens no PCM stream.
+Startup verifies the executable and exact observed endpoint before attaching
+one playback resource; playback rechecks the retained executable digest before
+opening a stream. Initialization grants no playback authority.
+
+Existing retained speech settings are preserved. A checked speaker and retained
+physical speech playback are explicitly contradictory selections and refuse;
+remove one through its stopped equipment-change entrance before selecting the
+other. Artifact-only speech does not reserve the speaker and may coexist. This
+is checked initialization, not body admission or proof of physical sound.
+
 The bounded repository proof entrance is
 `cargo xtask make host prove-microphone-whisper`; its optional `--alsa-plug`
 explicitly selects conversion. That repository proof does not admit an installed
