@@ -32,7 +32,41 @@ pub struct Preparation {
     pub producer: FaceScope,
     pub reader: ReadLease,
 }
+/// Cold and acknowledged current state are mutually exclusive. The separate
+/// predecessor survives until its actual terminal receipt has been accepted.
+pub(super) enum RetainedPresentation {
+    Prepared(r::PreparedPresentation<'static>),
+    Acknowledged(r::PreparedPresentation<'static>),
+    Presented(r::PresentedOccurrence<'static>),
+}
+impl RetainedPresentation {
+    pub(super) fn prepared(&self) -> Option<&r::PreparedPresentation<'static>> {
+        match self {
+            Self::Prepared(value) => Some(value),
+            _ => None,
+        }
+    }
+    pub(super) fn presented_mut(&mut self) -> Option<&mut r::PresentedOccurrence<'static>> {
+        match self {
+            Self::Presented(value) => Some(value),
+            _ => None,
+        }
+    }
+    pub(super) fn take_prepared(
+        slot: &mut Option<Self>,
+    ) -> Result<r::PreparedPresentation<'static>, &'static str> {
+        match slot.take() {
+            Some(Self::Acknowledged(value)) => Ok(value),
+            other => {
+                *slot = other;
+                Err("mask-presentation")
+            }
+        }
+    }
+}
 pub(super) struct Handoff {
+    pub(super) presentation: Option<RetainedPresentation>,
+    pub(super) previous: Option<r::PresentedOccurrence<'static>>,
     pub(super) previous_log: Option<Log>,
     pub(super) receipt: Option<r::ReplacedRenderer>,
     pub(super) successor: Option<r::ReplacementLease>,
@@ -76,9 +110,26 @@ impl NativeMaskSession {
     /// Terminal-worker memory release only. Physical renderer, kernel, issuer
     /// and pending evidence custody remain in their existing owners. A staged
     /// successor, predecessor log, receipt or refused lease pins this backing.
-    pub(super) fn release_empty_handoff(&mut self) {
+    pub(super) fn release_empty_handoff(&mut self, unacknowledged_nack: bool) {
+        // Cold preparation has not produced an acknowledged Show. It carries
+        // no electrical owner; the actual failed call remains in `self.call`.
+        // Acknowledged metadata and any predecessor/lease custody stay pinned.
+        if let Some(state) = self.handoff.as_mut() {
+            if unacknowledged_nack
+                && matches!(state.presentation, Some(RetainedPresentation::Prepared(_)))
+                && state.previous.is_none()
+                && state.previous_log.is_none()
+                && state.receipt.is_none()
+                && state.successor.is_none()
+                && state.refused.is_none()
+            {
+                state.presentation = None;
+            }
+        }
         if self.handoff.as_ref().is_some_and(|state| {
-            state.previous_log.is_none()
+            state.presentation.is_none()
+                && state.previous.is_none()
+                && state.previous_log.is_none()
                 && state.receipt.is_none()
                 && state.successor.is_none()
                 && state.refused.is_none()
@@ -277,7 +328,9 @@ impl NativeMaskSession {
         evidence: &Consumer,
     ) -> Result<terminal::Completion, &'static str> {
         if self.handoff.as_ref().is_some_and(|state| {
-            state.previous_log.is_some()
+            state.presentation.is_some()
+                || state.previous.is_some()
+                || state.previous_log.is_some()
                 || state.receipt.is_some()
                 || state.successor.is_some()
                 || state.refused.is_some()

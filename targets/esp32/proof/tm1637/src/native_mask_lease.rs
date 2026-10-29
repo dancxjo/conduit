@@ -1,6 +1,8 @@
 //! Root-created finite child leases within one admitted local Body Play.
 //! No received descriptor or public constructor can create this authority.
 use super::RootIssuer;
+#[path = "native_mask_window.rs"]
+mod window;
 use alloc::{boxed::Box, sync::Arc};
 use conduit_core as c;
 use conduit_environment_runtime::mask_renderer as r;
@@ -292,9 +294,7 @@ impl MaskLeaseIssuer {
             .checked_mul(3000)
             .and_then(|offset| origin.checked_add(offset))
             .ok_or("mask-child-clock")?;
-        if now_ms < due || now_ms.saturating_sub(due) >= 3000 {
-            return Err("mask-child-window");
-        }
+        window::check("next", now_ms, due)?;
         let lease = match self.first.take() {
             Some(first) => first,
             None => self.issue()?,
@@ -350,9 +350,7 @@ impl MaskLeaseIssuer {
             .checked_mul(3000)
             .and_then(|n| self.issuance_origin_ms?.checked_add(n))
             .ok_or("mask-child-clock")?;
-        if now_ms < due || now_ms - due >= 3000 {
-            return Err("mask-child-window");
-        }
+        window::check("stage-successor", now_ms, due)?;
         let lease = self.issue()?;
         self.staged = Some(lease.0.clone());
         self.issued_children += 1;
