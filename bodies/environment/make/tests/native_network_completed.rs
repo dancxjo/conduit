@@ -4,6 +4,16 @@
 extern crate alloc;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_box_backing.rs"]
+mod native_box_backing;
+#[allow(
+    dead_code,
+    reason = "actual recovery module exposes other Root eligibility entrances"
+)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_network_recovery.rs"]
+mod native_network_recovery;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_network_retirement_backing.rs"]
+mod native_network_retirement_backing;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[allow(

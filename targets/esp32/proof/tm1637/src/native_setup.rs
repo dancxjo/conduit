@@ -11,6 +11,8 @@ mod floor_reserve;
 mod input;
 #[path = "native_setup_retirement.rs"]
 mod retirement;
+#[path = "native_network_retirement_backing.rs"]
+mod retirement_backing;
 #[cfg(feature = "network-workspace-check")]
 #[path = "native_setup_workspace_check.rs"]
 mod workspace_check;
@@ -545,6 +547,14 @@ impl NativeRoot {
                 )
                 .unwrap_or(Action::None);
         }
+        // Recovery emits restoration once. After actual cleanup, storage pressure
+        // retries only custody transfer, without another cleanup or attempt.
+        if action == Action::None
+            && self.network.recovery.is_restoring()
+            && self.play.status() == "access-point-restored"
+        {
+            action = Action::RestoreAccessPoint { generation };
+        }
         if let Action::RestoreAccessPoint { generation } = action {
             if self.play.status() != "access-point-restored"
                 && self.play.restore_for_retirement().await.is_err()
@@ -556,10 +566,14 @@ impl NativeRoot {
                 );
                 return;
             }
-            match self.play.take_retired() {
+            match retirement_backing::retain_restored(&mut self.play) {
                 Ok(retired) => {
-                    self.network.retirement = Some(alloc::boxed::Box::new(retired));
+                    self.network.retirement = Some(retired);
                     let _ = self.finish_network_retirement();
+                }
+                Err("network-retirement-capacity") => {
+                    #[cfg(feature = "local-appliance")]
+                    self.trace_network_workspace("retirement", "network-retirement-capacity");
                 }
                 Err(_) => {
                     let _ = self.network.recovery.restored(

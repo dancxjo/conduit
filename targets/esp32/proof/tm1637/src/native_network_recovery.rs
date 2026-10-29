@@ -186,6 +186,11 @@ impl Recovery {
     pub fn generation(&self) -> u64 {
         self.generation
     }
+    /// Eligibility only: actual provider cleanup and retirement remain required.
+    /// Inspecting this phase neither acknowledges restoration nor spends work.
+    pub fn is_restoring(&self) -> bool {
+        self.phase == Phase::Restoring
+    }
     pub fn is_joining(&self) -> bool {
         matches!(self.phase, Phase::Joining { .. })
     }
@@ -233,6 +238,39 @@ impl Recovery {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn pending_retirement_storage_can_retry_without_new_attempt_or_acknowledgment() {
+        let mut recovery = Recovery::new();
+        recovery.configuration(1, 0).unwrap();
+        let candidate = recovery.preview_attempt(0).unwrap().unwrap();
+        recovery.begin_attempt(candidate, 0).unwrap();
+        assert!(!recovery.is_restoring());
+        assert_eq!(
+            recovery.failed(1),
+            Ok(Action::RestoreAccessPoint { generation: 1 })
+        );
+        let attempts = recovery.attempts;
+        for now in [1, 2, 15_000, 30_000] {
+            assert!(recovery.is_restoring());
+            assert_eq!(recovery.poll(now, true, false), Ok(Action::None));
+            assert!(recovery.preview_attempt(now).unwrap().is_none());
+            assert_eq!(recovery.attempts, attempts);
+            assert_eq!(recovery.generation(), 1);
+            assert_eq!(recovery.revision(), 1);
+        }
+        recovery.restored(1, 30_000, true).unwrap();
+        assert!(!recovery.is_restoring());
+        assert_eq!(recovery.attempts, attempts);
+        assert!(recovery.preview_attempt(30_000).unwrap().is_none());
+        assert_eq!(
+            recovery
+                .preview_attempt(31_000)
+                .unwrap()
+                .unwrap()
+                .generation(),
+            2
+        );
+    }
     #[test]
     fn new_configuration_supersedes_unspent_waiting_without_spending_attempt() {
         let mut r = Recovery::new();
