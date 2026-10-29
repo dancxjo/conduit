@@ -291,6 +291,20 @@ fn extreme_coordinate_retains_its_axis_and_partial_record_is_refused() {
     assert_eq!(graph.temperature_range(), (i64::MAX - 1000, i64::MAX));
     assert_eq!(graph.y(i64::MAX, false), 40);
     assert!(graph.native_scene().is_ok());
+    let value = input
+        .properties
+        .iter_mut()
+        .find(|p| p.name == "temperature")
+        .unwrap();
+    if let V::TypedValue { bytes, .. } = &mut value.value {
+        *bytes = Quantity::from_decimal(i128::from(i64::MIN), -3, Unit::Celsius)
+            .unwrap()
+            .encode()
+            .to_vec();
+    }
+    input.reseal_prepared().unwrap();
+    let graph = HistoryGraph::prepare(&input, "body/history").unwrap();
+    assert!(graph.native_scene().is_ok());
     input.properties.retain(|p| p.name != "relative-humidity");
     input.reseal_prepared().unwrap();
     assert!(matches!(

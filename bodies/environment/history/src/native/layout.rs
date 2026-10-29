@@ -31,17 +31,17 @@ impl ChartLayout {
                     / u128::from(last - first)) as i16
         }
     }
-    pub fn y(&self, value: i64, range: NiceScale, panel: usize) -> i16 {
-        let offset = (i128::from(value.clamp(range.min, range.max)) - i128::from(range.min))
+    pub fn y(&self, value: impl Into<i128>, range: NiceScale, panel: usize) -> i16 {
+        let offset = (value.into().clamp(range.min, range.max) - range.min)
             * i128::from(self.bottom[panel] - self.top[panel])
-            / (i128::from(range.max) - i128::from(range.min));
+            / (range.max - range.min);
         self.bottom[panel] - offset as i16
     }
 }
 #[derive(Clone, Copy)]
 pub(super) struct NiceScale {
-    pub min: i64,
-    pub max: i64,
+    pub min: i128,
+    pub max: i128,
 }
 impl NiceScale {
     pub fn from_values(min: i64, max: i64) -> Result<Self, GraphicsError> {
@@ -78,16 +78,17 @@ impl NiceScale {
                 .ok_or(GraphicsError::InvalidGeometry)?;
         };
         Ok(Self {
-            min: i64::try_from(lower).map_err(|_| GraphicsError::InvalidGeometry)?,
-            max: i64::try_from(upper).map_err(|_| GraphicsError::InvalidGeometry)?,
+            min: lower,
+            max: upper,
         })
     }
-    pub fn midpoint(self) -> i64 {
-        ((i128::from(self.min) + i128::from(self.max)) / 2) as i64
+    pub fn midpoint(self) -> i128 {
+        (self.min + self.max) / 2
     }
 }
-pub(super) fn decimal(value: i64) -> alloc::string::String {
-    let rounded = (i128::from(value).abs() + 50) / 100;
+pub(super) fn decimal(value: impl Into<i128>) -> alloc::string::String {
+    let value = value.into();
+    let rounded = (value.abs() + 50) / 100;
     alloc::format!(
         "{}{}.{:01}",
         if value < 0 && rounded != 0 { "-" } else { "" },
@@ -110,9 +111,13 @@ mod tests {
             (-40300, -40100),
             (-1, 1),
             (64500, 64500),
+            (i64::MAX, i64::MAX),
+            (i64::MIN, i64::MIN),
         ] {
             let scale = NiceScale::from_values(lo, hi).unwrap();
-            assert!(scale.min <= lo && scale.max >= hi && scale.min < scale.max);
+            assert!(
+                scale.min <= i128::from(lo) && scale.max >= i128::from(hi) && scale.min < scale.max
+            );
             assert!(scale.midpoint() >= scale.min && scale.midpoint() <= scale.max);
         }
         let scale = NiceScale::from_values(64040, 64760).unwrap();
