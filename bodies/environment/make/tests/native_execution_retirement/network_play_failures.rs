@@ -9,7 +9,7 @@ type Trial = (
     allocation_probe::Observation,
     Option<allocation_probe::Observation>,
 );
-fn trial(failure: Option<usize>) -> Trial {
+fn trial(failure: Option<(usize, bool)>) -> Trial {
     // Source facts, actual Ready owner descriptions and fixture Root policy are
     // deliberately established before this installer's allocation boundary.
     let image = source_image();
@@ -22,7 +22,13 @@ fn trial(failure: Option<usize>) -> Trial {
     let _ = flat::phased_refusal();
     let mut admitted = None;
     let (result, memory) = allocation_probe::observe(|| {
-        let _refusal = failure.map(allocation_probe::refuse_nth_allocation);
+        let _refusal = failure.map(|(index, persistent)| {
+            if persistent {
+                allocation_probe::refuse_from_nth_allocation(index)
+            } else {
+                allocation_probe::refuse_nth_allocation(index)
+            }
+        });
         play.install_linked_phased_held(
             &image,
             &pins,
@@ -53,23 +59,26 @@ fn each_actual_installer_allocation_refuses_before_admission_and_returns_ready_o
         "{}::installer_failure_child",
         module_path!().split_once("::").unwrap().1
     );
-    for index in 0..attempts {
-        let output = std::process::Command::new(std::env::current_exe().unwrap())
-            .args(["--exact", &name, "--ignored", "--nocapture"])
-            .env("CONDUIT_INSTALLER_FAILURE_INDEX", index.to_string())
-            .env("RUST_BACKTRACE", "0")
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success()
-                && String::from_utf8_lossy(&output.stdout)
-                    .contains("installer-allocation-refusal-verified"),
-            "allocation {index}/{attempts} failed: {} {}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
+    for mode in ["single", "persistent"] {
+        for index in 0..attempts {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args(["--exact", &name, "--ignored", "--nocapture"])
+                .env("CONDUIT_INSTALLER_FAILURE_INDEX", index.to_string())
+                .env("RUST_BACKTRACE", "0")
+                .env("CONDUIT_INSTALLER_FAILURE_MODE", mode)
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success()
+                    && String::from_utf8_lossy(&output.stdout)
+                        .contains("installer-allocation-refusal-verified"),
+                "{mode} allocation {index}/{attempts} failed: {} {}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
     }
-    println!("all {attempts} actual NativePlay installer allocation attempts refuse before admission; same Ready owners/issuer retry");
+    println!("all {attempts} actual NativePlay allocation attempts refuse in both single and persistent modes before admission; same Ready owners/issuer retry");
 }
 #[test]
 #[ignore = "finite parent launches one isolated child per actual installer allocation"]
@@ -78,7 +87,16 @@ fn installer_failure_child() {
         .unwrap()
         .parse()
         .unwrap();
-    let (mut play, mut issuer, mut source, mut join, result, memory, admitted) = trial(Some(index));
+    let persistent = match std::env::var("CONDUIT_INSTALLER_FAILURE_MODE")
+        .unwrap()
+        .as_str()
+    {
+        "single" => false,
+        "persistent" => true,
+        _ => panic!("unknown failure mode"),
+    };
+    let (mut play, mut issuer, mut source, mut join, result, memory, admitted) =
+        trial(Some((index, persistent)));
     assert!(result.is_err());
     assert!(admitted.is_none());
     assert!(!play.attempted && play.active.is_none() && play.flat_refusal.is_empty());

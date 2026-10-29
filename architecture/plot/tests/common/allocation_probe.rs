@@ -23,6 +23,7 @@ impl Observation {
     }
 }
 thread_local! {
+    static PERSISTENT_ALLOCATION_REFUSAL: Cell<bool> = const { Cell::new(false) };
     static REFUSE_ALLOCATION_INDEX: Cell<Option<usize>> = const { Cell::new(None) };
     static REFUSE_ALLOCATION_SIZE: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
@@ -140,13 +141,15 @@ pub fn current_observation() -> Option<Observation> {
     TRACKING.with(|tracking| tracking.get().then(|| OBSERVATION.with(Cell::get)))
 }
 
-// One zero-based allocation/reallocation attempt, including alloc_zeroed.
-// Refusal clears itself; this models a single failure, not persistent outage.
+// Count zero-based allocation/reallocation attempts, including alloc_zeroed.
+// Single refusal clears itself; persistent refusal stays until its guard drops.
 fn refuse_indexed_allocation() -> bool {
     REFUSE_ALLOCATION_INDEX
         .try_with(|index| match index.get() {
             Some(0) => {
-                index.set(None);
+                if !PERSISTENT_ALLOCATION_REFUSAL.with(Cell::get) {
+                    index.set(None);
+                }
                 true
             }
             Some(next) => {
@@ -162,11 +165,23 @@ pub struct IndexedAllocationRefusal;
 impl Drop for IndexedAllocationRefusal {
     fn drop(&mut self) {
         REFUSE_ALLOCATION_INDEX.with(|index| index.set(None));
+        PERSISTENT_ALLOCATION_REFUSAL.with(|mode| mode.set(false));
     }
 }
 /// Isolate failure injection to this thread and this explicitly guarded call.
 #[allow(dead_code)]
 pub fn refuse_nth_allocation(index: usize) -> IndexedAllocationRefusal {
+    PERSISTENT_ALLOCATION_REFUSAL.with(|mode| mode.set(false));
     REFUSE_ALLOCATION_INDEX.with(|slot| assert!(slot.replace(Some(index)).is_none()));
     IndexedAllocationRefusal
+}
+
+/// Refuse this zero-based attempt and every subsequent allocation/reallocation
+/// until the guard drops. Deallocation and diagnostic assertions stay possible
+/// after the operation has left the explicitly guarded boundary.
+#[allow(dead_code)]
+pub fn refuse_from_nth_allocation(index: usize) -> IndexedAllocationRefusal {
+    let guard = refuse_nth_allocation(index);
+    PERSISTENT_ALLOCATION_REFUSAL.with(|mode| mode.set(true));
+    guard
 }
