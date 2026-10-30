@@ -49,7 +49,7 @@ impl<const P: usize> StepIo<P> {
         #[cfg(not(feature = "alloc"))]
         {
             let _ = (port, logical_bytes);
-            return self.fail(SchedulerError::InvalidPlan);
+            self.fail(SchedulerError::InvalidPlan)
         }
         #[cfg(feature = "alloc")]
         {

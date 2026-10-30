@@ -6,5 +6,6 @@ publish = false
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
-conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot", features = ["host-call"] }
 libc = "=0.2.189"
+conduit-kernel = { path = "../../../architecture/kernel" }

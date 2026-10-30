@@ -278,7 +278,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
             .any(|operation| resource_effect::matches(operation.contract_id.as_str()))
         {
             snapshots[usize::from(node.node.0)] = Some(Box::new(
-                resource_effect::SnapshotState::prepare(placement)?,
+                resource_effect::SnapshotState::prepare(placement, node.node)?,
             ));
         }
         operations.push(

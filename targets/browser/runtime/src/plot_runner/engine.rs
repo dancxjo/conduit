@@ -246,7 +246,7 @@ fn drive_with_boundary<'a>(
                 .get(usize::from(request.call.0))
                 .ok_or_else(|| "browser request has no planned Host Call".to_string())?;
             if resource_effect::matches(operation.contract_id.as_str()) {
-                if let Some(pending) = resource_effect::begin(scheduler, placement, request)? {
+                if let Some(pending) = resource_effect::begin(scheduler, request)? {
                     return Ok(DriveStatus::Effect(pending));
                 }
                 continue;

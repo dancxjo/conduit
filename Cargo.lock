@@ -2198,6 +2198,7 @@ name = "conduit-linux-snapshot-store"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-resource-snapshot",
  "libc",
 ]
@@ -2478,6 +2479,9 @@ name = "conduit-resource-snapshot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
+ "conduit-web",
+ "serde",
 ]
 
 [[package]]

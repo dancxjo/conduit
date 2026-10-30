@@ -48,6 +48,10 @@ pub enum CheckSuite {
     NativeLawCustody,
     /// Prove exact portable ResourceRef equality, refusals and installed kernel execution.
     ResourceReferenceEquality,
+    /// Check shared typed snapshot requests and browser wire compatibility.
+    ResourceSnapshot,
+    /// Check correlated immutable snapshot operations against actual Linux files.
+    LinuxSnapshot,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,

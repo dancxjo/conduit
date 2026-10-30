@@ -18,6 +18,8 @@ mod dsp_shared_compositions;
 mod expression_baseline;
 #[path = "../suites/inverse_angle.rs"]
 mod inverse_angle;
+#[path = "../suites/linux_snapshot.rs"]
+mod linux_snapshot;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
 #[path = "../suites/model_native_backing.rs"]
@@ -44,6 +46,8 @@ mod prosody_commitment;
 mod record_pronunciation;
 #[path = "../suites/resource_reference_equality.rs"]
 mod resource_reference_equality;
+#[path = "../suites/resource_snapshot.rs"]
+mod resource_snapshot;
 #[path = "../suites/speech_ipa.rs"]
 mod speech_ipa;
 #[path = "../suites/todo.rs"]
@@ -118,6 +122,8 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::ResourceReferenceEquality => {
             run_suite(resource_reference_equality::STEPS, &root, opts)
         }
+        CheckSuite::ResourceSnapshot => run_suite(resource_snapshot::STEPS, &root, opts),
+        CheckSuite::LinuxSnapshot => run_suite(linux_snapshot::STEPS, &root, opts),
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
         CheckSuite::ExpressionBaseline => run_suite(expression_baseline::STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
