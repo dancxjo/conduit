@@ -33,15 +33,15 @@ impl PreparedRecordingInput {
             )?,
         })
     }
-    /// Root supplies the actual producer sample time in the selected Boot's
-    /// domain. A recorder receipt time must not be substituted for it. The caller
+    /// Root supplies producer time with the event meaning selected for this
+    /// chunk. A recorder receipt time must not be substituted for it. The caller
     /// also retains the authenticated producer context selected for the chunk;
     /// this projection cannot establish Host/Boot/Plan/Play from value bytes.
     pub fn append(
         &mut self,
         chunk: &mut PreparedRecordingChunk,
         snapshot: PublicationSnapshot<'_>,
-        sampled_at_boot_ms: u64,
+        at_boot_ms: u64,
     ) -> Result<ChunkAppend, RecordingRefusal> {
         self.validators[snapshot.channel.index()].validate(snapshot.canonical)?;
         let disposition = match snapshot.channel {
@@ -58,7 +58,7 @@ impl PreparedRecordingInput {
                     ])?;
                     return chunk.append(
                         snapshot.sequence,
-                        sampled_at_boot_ms,
+                        at_boot_ms,
                         RecordingDisposition::Available,
                         Some(self.observation.encoded()),
                     );
@@ -84,6 +84,6 @@ impl PreparedRecordingInput {
             Channel::ProviderFailure => RecordingDisposition::ProviderFailed,
             Channel::GeometryRefusal => RecordingDisposition::GeometryRefused,
         };
-        chunk.append(snapshot.sequence, sampled_at_boot_ms, disposition, None)
+        chunk.append(snapshot.sequence, at_boot_ms, disposition, None)
     }
 }

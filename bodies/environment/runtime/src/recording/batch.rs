@@ -43,6 +43,7 @@ impl PreparedRecordingBatch {
     ) -> Result<Self, RecordingBatchRefusal> {
         use RecordingBatchRefusal as E;
         let producer = || RecordingContext {
+            timestamp_basis: context.timestamp_basis,
             host: context.host,
             boot: context.boot,
             plan: context.plan,

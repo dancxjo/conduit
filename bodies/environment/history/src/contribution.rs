@@ -5,7 +5,7 @@ use conduit_environment_runtime::{
     observation::ObservationContract,
     recording::{
         PreparedRecordingHistory, RecordingContext, RecordingDisposition as D,
-        RecordingHistoryRefusal, RecoveredHistory, MAXIMUM_CHUNK_SAMPLES,
+        RecordingHistoryRefusal, RecordingTimestampBasis, RecoveredHistory, MAXIMUM_CHUNK_SAMPLES,
     },
 };
 use conduit_face::{
@@ -51,6 +51,7 @@ impl HistoryFaceWindow {
 pub struct PreparedHistoryFace {
     history: PreparedRecordingHistory,
     producer: [String; 4],
+    timestamp_basis: RecordingTimestampBasis,
 }
 impl PreparedHistoryFace {
     pub fn prepare(
@@ -64,11 +65,13 @@ impl PreparedHistoryFace {
             context.plan.as_str(),
             context.play.as_str(),
         ];
+        let timestamp_basis = context.timestamp_basis;
         let history = PreparedRecordingHistory::prepare(context, contract, maximum_chunks)
             .map_err(HistoryFaceRefusal::Recording)?;
         Ok(Self {
             history,
             producer: identifiers.map(String::from),
+            timestamp_basis,
         })
     }
     /// Caller independently authorizes and retrieves the selected immutable
@@ -138,7 +141,10 @@ impl PreparedHistoryFace {
         }
         for (name, value) in [
             ("schema", V::Text("environment/history@1".into())),
-            ("clock", V::Text("producer-boot-ms".into())),
+            (
+                "clock",
+                V::Text(self.timestamp_basis.clock_profile().into()),
+            ),
             ("preceding-history-known", V::Flag(false)),
             ("recovered-chunks", V::Count(u64::from(recovered.chunks))),
             ("recovered-samples", V::Count(u64::from(recovered.samples))),
@@ -197,7 +203,7 @@ impl PreparedHistoryFace {
             }
             for (name, value) in [
                 ("sequence", sample.sequence),
-                ("sampled-at-boot-ms", sample.sampled_at_boot_ms),
+                (sample.timestamp_basis.time_property(), sample.at_boot_ms),
             ] {
                 push(&mut fragment.properties, &subject, name, V::Count(value));
             }

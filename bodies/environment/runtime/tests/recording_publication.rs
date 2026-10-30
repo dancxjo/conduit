@@ -15,6 +15,8 @@ fn context() -> RecordingContext<'static> {
     static PLAN: LazyLock<c::PlanId> = LazyLock::new(|| "fixture/plan".into());
     static PLAY: LazyLock<c::ActivePlayId> = LazyLock::new(|| "fixture/play".into());
     RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &HOST,
         boot: &BOOT,
         plan: &PLAN,
@@ -38,6 +40,22 @@ fn prepared_generation(
     Vec<u8>,
     Vec<u8>,
 ) {
+    prepared_generation_with_basis(version, first, RecordingTimestampBasis::Acquisition)
+}
+fn prepared_generation_with_basis(
+    version: u8,
+    first: u64,
+    timestamp_basis: RecordingTimestampBasis,
+) -> (
+    RecordingSnapshotBack,
+    RecordingCommitObserver,
+    Vec<u8>,
+    Vec<u8>,
+) {
+    let context = || RecordingContext {
+        timestamp_basis,
+        ..context()
+    };
     let contract = ObservationContract::prepare().unwrap();
     let reference = c::BoundedResourceRef {
         identity: c::ResourceSemanticIdentity::from_digest([1; 32]),
@@ -212,8 +230,31 @@ fn actual_kernel_completion_is_required_before_the_recorded_range_becomes_visibl
 fn execute(result: ResultFixture) -> RecordingCommitObserver {
     execute_generation(result, 2, 12)
 }
+#[test]
+fn observation_time_has_the_same_actual_kernel_commit_and_refusal_laws() {
+    for result in [
+        ResultFixture::Published,
+        ResultFixture::Failed,
+        ResultFixture::Denied,
+        ResultFixture::Cancelled,
+        ResultFixture::WrongReference,
+        ResultFixture::MissingOutput,
+        ResultFixture::CorruptContent,
+    ] {
+        execute_generation_with_basis(result, 2, 12, RecordingTimestampBasis::ProducerObservation);
+    }
+}
 fn execute_generation(result: ResultFixture, version: u8, first: u64) -> RecordingCommitObserver {
-    let (back, observer, mut content, mut reference) = prepared_generation(version, first);
+    execute_generation_with_basis(result, version, first, RecordingTimestampBasis::Acquisition)
+}
+fn execute_generation_with_basis(
+    result: ResultFixture,
+    version: u8,
+    first: u64,
+    basis: RecordingTimestampBasis,
+) -> RecordingCommitObserver {
+    let (back, observer, mut content, mut reference) =
+        prepared_generation_with_basis(version, first, basis);
     let selected = c::BoundedResourceRef::decode(observer.encoded_reference()).unwrap();
     assert_eq!(
         PreparedRecordingCatalog::prepare_committed(

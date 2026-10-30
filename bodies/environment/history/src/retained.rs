@@ -1,5 +1,5 @@
 //! Read-only graph of externally verified retained evidence, never a Body contribution.
-use crate::graph::{ChartGeometry, GraphRefusal, GraphSample, MAX_GRAPH_SAMPLES, quantity_milli};
+use crate::graph::{quantity_milli, ChartGeometry, GraphRefusal, GraphSample, MAX_GRAPH_SAMPLES};
 use alloc::vec::Vec;
 use conduit_core::Unit;
 use conduit_environment_runtime::observed_record::{self, ObservedRecord};
@@ -24,7 +24,7 @@ impl RetainedEvidenceGraph {
         }
         let mut samples = Vec::with_capacity(MAX_GRAPH_SAMPLES);
         let mut previous: Option<(u64, u64)> = None;
-        for bytes in records.chunks_exact(observed_record::BYTES) {
+        for bytes in records.as_chunks::<{ observed_record::BYTES }>().0 {
             let record =
                 ObservedRecord::decode(bytes).map_err(|_| GraphRefusal::InvalidProperty)?;
             if record.sequence > u64::from(verified_through)

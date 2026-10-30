@@ -6,6 +6,21 @@ selects and admits the actual snapshot implementation, resource, placement,
 authority, queues and complete work/storage closure before starting a Play.
 Preparation and matching identity bytes do not create that authority.
 
+`RecordingContext` selects a `RecordingTimestampBasis` independently of incoming
+content. Acquisition retains the existing `producer-boot-ms` representation;
+producer-observation time uses `producer-observation-boot-ms`. These are event
+meanings in the original producer Boot clock, not UTC or recorder receipt time.
+Readers refuse a different basis without replacing visible history. The shared
+history Face and its browser/native graphs preserve the distinction through
+`sampled-at-boot-ms` or `observed-at-boot-ms`, and refuse conflicting properties.
+
+With `face-projection`, `append_observed` accepts the shared canonical
+`ObservedRecord` only into an observation-time chunk or snapshot. It preserves
+the exact 21-byte record, including failure, sequence and observation time,
+without allocating. It supplies no signature verification, original producer
+identity, storage grant or acknowledgement; the live recorder must establish
+those independently before this conversion.
+
 The returned `RecordingCommitObserver` belongs to this Back. It exposes the exact
 selected generation reference as identity data; its recorded sequence range stays
 absent until the actual Host Call completes with those exact bytes and the kernel
@@ -66,13 +81,16 @@ directory custody. An occupied generation or failed effect cannot produce a
 successful reference for downstream State.
 
 Run `cargo +stable xtask check recording-checkpoint`. The suite checks authored
-composition, bounded allocation-free reference expressions, actual file
-publication feeding installed durable State, refusal preserving the previous
-seed byte for byte, missing-directory refusal before file effects, and the
-existing fresh-process seed recovery. It also checks the optional and default
-Host builds. The checkpoint file tests use fixture JSON and fixture Host offers
-and grants: they do not validate a recording catalog's committed chunk domain,
-admit a live Body's disk capacity, or establish an overnight recorder service
+composition, bounded allocation-free reference expressions, committed catalog
+validation, actual chunk/catalog file publication feeding installed durable
+State, refusal preserving the previous seed byte for byte, and missing-directory
+refusal before file effects. A separately executed child receives storage paths
+only, discovers the catalog reference from State and recovers 15 chunks / 960
+observations through one ordered production kernel. Its exact recovered-reference
+receipt is required before the parent accepts success. Optional/default Host
+builds, explicit timestamp bases and the shared history Masks are also checked.
+Host offers, grants and producer identities remain CPU fixtures: this does not
+admit a live Body's disk capacity or establish an overnight recorder service
 (#6359 and #6360).
 
 `PreparedRecordingCatalogCheckpoint::prepare_after_publications` prepares this
@@ -86,22 +104,28 @@ checks content and Source only and does not establish prior publication.
 Catalog decoding validates the complete finite representation, reference profile
 and uniqueness before replacing its previous view, preserving the encoded entry
 order. It allocates no heap while reading; a malformed catalog preserves the
-previous view. Publication tests use the production kernel and recording Back
-with explicit CPU storage-completion fixtures. They establish the commit gate,
-not actual file publication of those preceding chunks or their producer's
-authenticated identity. Those facts still need the admitted recorder integration.
+previous view. Publication tests use the production kernel and recording Back,
+with both CPU completion fixtures and actual Linux file effects. The observer
+currently names the selected reference and committed sequence range; binding
+exact committed content remains #6465's separate obligation. Actual producer
+authentication and live resource/authority admission still need the recorder
+integration.
 
 ## Live producer provenance
 
 The signed observation journal binds Body, original producer Boot and Play
 digests. Those digests do not recover the original Host/Plan/Play identities.
-Root must retain and verify the matching canonical ActivePlay and original Plan
-evidence before constructing a recording context. A current-producer recovery
-receipt establishes current Boot identity; it does not supply a historical Plan
-or replace that context.
+Root must verify a candidate canonical ActivePlay tuple against the independently
+authenticated epoch commitment, with the original Body, Host, Boot and producer
+key pinned independently. A candidate delivery cannot replace those pins. Exact
+canonical correspondence establishes the original identity tuple, not admission
+or execution authority; it does not require reauthorizing the old Play or
+recovering its complete Plan. Retain the original signed evidence and matched
+tuple for restart. A current-producer recovery receipt establishes current Boot
+identity; it does not supply the historical tuple or replace that check.
 
 Journal `observed_at_boot_ms` is producer-observation time, as its descriptor
-states. It is neither acquisition time nor UTC. The current recording publication
-entrance requires an actual producer sample time; a journal adapter must preserve
-its observation-clock basis explicitly before using that entrance. Recorder
-receipt time and receiver wall time cannot supply the missing provenance.
+states. It is neither acquisition time nor UTC. A journal adapter selects
+`RecordingTimestampBasis::ProducerObservation` and uses `append_observed` after
+authenticating the original record and producer context. Recorder receipt time
+and receiver wall time cannot supply missing provenance or replace its clock.

@@ -1,12 +1,87 @@
 mod common;
 use common::*;
 use conduit_core::Quantity;
-use conduit_environment_face::{SUBJECT, SensorStatus, contribution};
-use conduit_environment_history::{HISTORY_SUBJECT, HistoryGraph};
-use conduit_face::{Face, FaceBasis, GraphicsCommandKind};
+use conduit_environment_face::{contribution, SensorStatus, SUBJECT};
+use conduit_environment_history::{HistoryGraph, PreparedHistoryFace, HISTORY_SUBJECT};
+use conduit_face::{Face, FaceBasis, GraphicsCommandKind, GraphicsPaintRole};
 use conduit_seven_segment_mask::{
-    MaskDisposition, PreparedEnvironmentFace, SevenSegmentLook, SevenSegmentSelection, render,
+    render, MaskDisposition, PreparedEnvironmentFace, SevenSegmentLook, SevenSegmentSelection,
 };
+#[test]
+fn observed_history_reaches_both_graph_masks_without_becoming_acquisition_time() {
+    use conduit_environment_runtime::{observation::ObservationContract, recording::*};
+    use conduit_face::{FaceFragment, FaceProperty, FacePropertyValue as V};
+    let context = || RecordingContext {
+        timestamp_basis: RecordingTimestampBasis::ProducerObservation,
+        ..common::context()
+    };
+    let contract = ObservationContract::prepare().unwrap();
+    let mut chunk = PreparedRecordingChunk::prepare(context(), &contract).unwrap();
+    chunk
+        .append(1, 100, RecordingDisposition::ProviderFailed, None)
+        .unwrap();
+    chunk
+        .append(2, 250, RecordingDisposition::Checksum, None)
+        .unwrap();
+    let mut history = PreparedHistoryFace::prepare(context(), &contract, 1).unwrap();
+    history.read_next(chunk.seal().unwrap()).unwrap();
+    let fragment = history.contribution(basis()).unwrap();
+    assert!(fragment
+        .properties
+        .iter()
+        .any(|p| p.name == "observed-at-boot-ms" && p.value == V::Count(250)));
+    assert!(!fragment
+        .properties
+        .iter()
+        .any(|p| p.name == "sampled-at-boot-ms"));
+    let face = |fragment: FaceFragment| {
+        Face::new_with_semantics(
+            1,
+            FaceBasis {
+                body_id: None,
+                wake_id: None,
+                source_document_id: Some("fixture/observed-source".into()),
+                checked_plot_id: Some(basis().checked_plot_id),
+                expanded_plot_id: Some("fixture/observed-expanded".into()),
+                plan_id: Some(basis().plan_id),
+                active_play_id: Some(basis().active_play_id),
+                sign_ids: vec![],
+            },
+            fragment.subjects,
+            fragment.relationships,
+            fragment.properties,
+            vec![],
+            vec![],
+            vec![],
+        )
+        .unwrap()
+    };
+    let original = face(fragment.clone());
+    let graph = HistoryGraph::prepare(&original, HISTORY_SUBJECT).unwrap();
+    assert_eq!(
+        graph.timestamp_basis(),
+        RecordingTimestampBasis::ProducerObservation
+    );
+    assert_eq!(graph.samples()[1].boot_ms(), 250);
+    assert!(!graph.browser_html().is_empty());
+    graph.native_show().unwrap();
+    // Conflicting event-time properties must not be silently preferred.
+    let mut ambiguous = fragment.clone();
+    ambiguous.properties.push(FaceProperty {
+        subject: format!("{HISTORY_SUBJECT}/sample/2"),
+        name: "sampled-at-boot-ms".into(),
+        value: V::Count(250),
+    });
+    assert!(HistoryGraph::prepare(&face(ambiguous), HISTORY_SUBJECT).is_err());
+    let mut relabeled = fragment;
+    relabeled
+        .properties
+        .iter_mut()
+        .find(|p| p.name == "clock")
+        .unwrap()
+        .value = V::Text("producer-boot-ms".into());
+    assert!(HistoryGraph::prepare(&face(relabeled), HISTORY_SUBJECT).is_err());
+}
 #[test]
 fn recording_and_current_reading_share_one_face_across_three_masks() {
     let mut history = prepared(2);
@@ -68,9 +143,20 @@ fn recording_and_current_reading_share_one_face_across_three_masks() {
             .scene
             .commands()
             .iter()
-            .filter(|c| c.kind == GraphicsCommandKind::Rect)
+            .filter(|c| c.kind == GraphicsCommandKind::Rect && c.paint == GraphicsPaintRole::Accent)
             .count(),
-        5 // Four observation dots and the Look-owned background.
+        4 // Four observation dots; chart gridlines have independent paint roles.
+    );
+    assert_eq!(
+        native
+            .scene
+            .commands()
+            .iter()
+            .filter(
+                |c| c.kind == GraphicsCommandKind::Rect && c.paint == GraphicsPaintRole::Background
+            )
+            .count(),
+        1 // The Look-owned background.
     );
     let current = PreparedEnvironmentFace::prepare(&face, SUBJECT).unwrap();
     let seven = render(

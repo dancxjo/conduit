@@ -240,6 +240,8 @@ fn checkpoint_from_publications_refuses_a_generation_without_kernel_commit() {
     let plan = "fixture/producer-plan".into();
     let play = "fixture/producer-play".into();
     let context = || RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &host,
         boot: &boot,
         plan: &plan,

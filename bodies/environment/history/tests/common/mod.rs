@@ -12,6 +12,8 @@ pub fn context() -> RecordingContext<'static> {
     static PLAY: std::sync::LazyLock<ActivePlayId> =
         std::sync::LazyLock::new(|| "play/sensor".into());
     RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &HOST,
         boot: &BOOT,
         plan: &PLAN,

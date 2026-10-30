@@ -269,14 +269,14 @@ impl<'a> PreparedFileRecordingPublication<'a> {
         active: &c::ActivePlayIdentity,
         input: &mut conduit_environment_runtime::recording::PreparedRecordingInput,
         snapshot: conduit_environment_runtime::publication::PublicationSnapshot<'_>,
-        sampled_at_boot_ms: u64,
+        at_boot_ms: u64,
     ) -> Result<conduit_environment_runtime::recording::ChunkAppend, FilePublicationRefusal> {
         self.current(active)?;
         if !self.accepting {
             return Err(FilePublicationRefusal::Shape);
         }
         self.encoder
-            .append_publication(input, snapshot, sampled_at_boot_ms)
+            .append_publication(input, snapshot, at_boot_ms)
             .map_err(FilePublicationRefusal::Content)
     }
     /// Admit exactly the retained, sealed chunk once through the checked Fore.

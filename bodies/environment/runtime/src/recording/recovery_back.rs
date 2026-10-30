@@ -71,6 +71,7 @@ impl RecordingRecoveryBack {
         maximum_chunks: u16,
     ) -> Result<Self, RecordingHistoryRefusal> {
         let duplicate = RecordingContext {
+            timestamp_basis: context.timestamp_basis,
             host: context.host,
             boot: context.boot,
             plan: context.plan,

@@ -139,7 +139,7 @@ pub fn descriptor(
             .semantic_digest()
             .map_err(|_| Refusal::Type)?,
     );
-    for (slot, id) in bytes[36..].chunks_exact_mut(129).zip([
+    for (slot, id) in bytes[36..].as_chunks_mut::<129>().0.iter_mut().zip([
         Quantities::TEMPERATURE_FORM_ID,
         Quantities::HUMIDITY_FORM_ID,
         RecordingDispositionForm::IDENTITY,

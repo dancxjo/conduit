@@ -1,5 +1,5 @@
-use super::layout::{ChartLayout, NiceScale, decimal, elapsed};
-use crate::graph::{ChartGeometry, GraphSample, MAX_GRAPH_SAMPLES, quantity_milli};
+use super::layout::{decimal, elapsed, ChartLayout, NiceScale};
+use crate::graph::{quantity_milli, ChartGeometry, GraphSample, MAX_GRAPH_SAMPLES};
 use alloc::{format, vec::Vec};
 use conduit_core::{Quantity, Unit};
 use conduit_face::{
@@ -15,28 +15,12 @@ fn converted(value: i64, unit: Unit) -> Result<i64, GraphicsError> {
 fn label(
     scene: &mut GraphicsScene,
     clip: LayoutRect,
-    x: i16,
-    y: i16,
-    width: u16,
-    height: u16,
+    bounds: LayoutRect,
     text: &str,
     role: Role,
     paint: Paint,
 ) -> Result<(), GraphicsError> {
-    scene.push(
-        GraphicsCommand::text(
-            LayoutRect {
-                x,
-                y,
-                width,
-                height,
-            },
-            clip,
-            paint,
-            text,
-        )?
-        .with_text_role(role)?,
-    )
+    scene.push(GraphicsCommand::text(bounds, clip, paint, text)?.with_text_role(role)?)
 }
 fn breaks(sample: &GraphSample, previous: Option<u64>, value: Option<i64>) -> bool {
     sample.gap_before.is_some()
@@ -73,10 +57,12 @@ impl ChartGeometry<'_> {
             label(
                 &mut scene,
                 clip,
-                24,
-                24,
-                width - 48,
-                40,
+                LayoutRect {
+                    x: 24,
+                    y: 24,
+                    width: width - 48,
+                    height: 40,
+                },
                 "No retained readings",
                 Role::Title,
                 Paint::Foreground,
@@ -129,10 +115,12 @@ impl ChartGeometry<'_> {
             label(
                 &mut scene,
                 clip,
-                layout.left,
-                layout.heading[panel],
-                (layout.right - layout.left) as u16,
-                40,
+                LayoutRect {
+                    x: layout.left,
+                    y: layout.heading[panel],
+                    width: (layout.right - layout.left) as u16,
+                    height: 40,
+                },
                 title,
                 Role::Title,
                 Paint::Foreground,
@@ -144,10 +132,12 @@ impl ChartGeometry<'_> {
             label(
                 &mut scene,
                 clip,
-                16,
-                y - 10,
-                (layout.left - 28) as u16,
-                24,
+                LayoutRect {
+                    x: 16,
+                    y: y - 10,
+                    width: (layout.left - 28) as u16,
+                    height: 24,
+                },
                 &if (temperature.max - temperature.min) / 2 >= 1000 && value % 1000 == 0 {
                     format!("{}", value / 1000)
                 } else {
@@ -163,10 +153,12 @@ impl ChartGeometry<'_> {
             label(
                 &mut scene,
                 clip,
-                16,
-                y - 10,
-                (layout.left - 28) as u16,
-                24,
+                LayoutRect {
+                    x: 16,
+                    y: y - 10,
+                    width: (layout.left - 28) as u16,
+                    height: 24,
+                },
                 &format!("{}%", value / 1000),
                 Role::Label,
                 Paint::Muted,
@@ -183,10 +175,12 @@ impl ChartGeometry<'_> {
             label(
                 &mut scene,
                 clip,
-                x,
-                height as i16 - 62,
-                120,
-                24,
+                LayoutRect {
+                    x,
+                    y: height as i16 - 62,
+                    width: 120,
+                    height: 24,
+                },
                 &elapsed(time),
                 Role::Label,
                 Paint::Muted,
@@ -205,10 +199,12 @@ impl ChartGeometry<'_> {
         label(
             &mut scene,
             clip,
-            16,
-            height as i16 - 26,
-            width - 32,
-            24,
+            LayoutRect {
+                x: 16,
+                y: height as i16 - 26,
+                width: width - 32,
+                height: 24,
+            },
             &footer,
             Role::Label,
             Paint::Muted,

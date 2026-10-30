@@ -1,6 +1,7 @@
 //! Bounded immutable Mask projection. No measurement storage or clock is owned here.
 use alloc::vec::Vec;
-use conduit_core::{Quantity, QuantityRole, RATIO_INFO_ID, TEMPERATURE_INFO_ID, Unit, kind_id};
+use conduit_core::{kind_id, Quantity, QuantityRole, Unit, RATIO_INFO_ID, TEMPERATURE_INFO_ID};
+use conduit_environment_runtime::recording::RecordingTimestampBasis;
 use conduit_face::{Face, FacePropertyValue as V, FaceRelationshipKind, FaceRole};
 
 pub const MAX_GRAPH_SAMPLES: usize = 16;
@@ -25,6 +26,7 @@ pub struct GraphSample {
 }
 /// Coordinates are shared by both realizations; producer time is never wall time.
 pub struct HistoryGraph<'a> {
+    timestamp_basis: RecordingTimestampBasis,
     pub(crate) content_id: &'a str,
     pub(crate) revision: u64,
     pub(crate) subject: &'a str,
@@ -57,6 +59,9 @@ impl GraphSample {
     }
 }
 impl<'a> HistoryGraph<'a> {
+    pub fn timestamp_basis(&self) -> RecordingTimestampBasis {
+        self.timestamp_basis
+    }
     pub fn content_id(&self) -> &str {
         self.content_id
     }
@@ -90,11 +95,22 @@ impl<'a> HistoryGraph<'a> {
             return Err(R::Missing);
         }
         let p = |s: &str, n: &str| property(face, s, n);
-        if p(subject, "schema")? != Some(&V::Text("environment/history@1".into()))
-            || p(subject, "clock")? != Some(&V::Text("producer-boot-ms".into()))
-        {
+        if p(subject, "schema")? != Some(&V::Text("environment/history@1".into())) {
             return Err(R::InvalidProperty);
         }
+        let timestamp_basis = match p(subject, "clock")? {
+            Some(V::Text(value))
+                if value == RecordingTimestampBasis::Acquisition.clock_profile() =>
+            {
+                RecordingTimestampBasis::Acquisition
+            }
+            Some(V::Text(value))
+                if value == RecordingTimestampBasis::ProducerObservation.clock_profile() =>
+            {
+                RecordingTimestampBasis::ProducerObservation
+            }
+            _ => return Err(R::InvalidProperty),
+        };
         let mut producer_context = [""; 4];
         for (slot, name) in producer_context.iter_mut().zip([
             "producer-host",
@@ -172,7 +188,18 @@ impl<'a> HistoryGraph<'a> {
             if sequence == 0 {
                 return Err(R::InvalidOrder);
             }
-            let boot_ms = count(face, s, "sampled-at-boot-ms")?;
+            let boot_ms = count(face, s, timestamp_basis.time_property())?;
+            let other = match timestamp_basis {
+                RecordingTimestampBasis::Acquisition => {
+                    RecordingTimestampBasis::ProducerObservation
+                }
+                RecordingTimestampBasis::ProducerObservation => {
+                    RecordingTimestampBasis::Acquisition
+                }
+            };
+            if p(s, other.time_property())?.is_some() {
+                return Err(R::InvalidProperty);
+            }
             let gap_before = match (
                 p(s, "missing-sequence-first")?,
                 p(s, "missing-sequence-last")?,
@@ -272,6 +299,7 @@ impl<'a> HistoryGraph<'a> {
             }
         }
         Ok(Self {
+            timestamp_basis,
             content_id: face.identity.as_str(),
             revision: face.revision,
             subject,

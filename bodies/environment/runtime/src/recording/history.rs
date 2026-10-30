@@ -84,7 +84,7 @@ impl PreparedRecordingHistory {
             .reader
             .sample(self.reader.len() - 1)
             .expect("validated nonempty chunk");
-        self.previous = Some((last.sequence, last.sampled_at_boot_ms));
+        self.previous = Some((last.sequence, last.at_boot_ms));
         self.recovered = recovered;
         self.recovered.first_sequence.get_or_insert(first);
         self.recovered.last_sequence = Some(last.sequence);

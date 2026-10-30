@@ -68,6 +68,7 @@ impl RecordingSnapshotBack {
     ) -> Result<(Self, RecordingCommitObserver), RecordingSnapshotRefusal> {
         let content_bytes = PreparedRecordingSnapshot::content_bytes(
             RecordingContext {
+                timestamp_basis: context.timestamp_basis,
                 host: context.host,
                 boot: context.boot,
                 plan: context.plan,
@@ -78,6 +79,7 @@ impl RecordingSnapshotBack {
         )?;
         let snapshot = PreparedRecordingSnapshot::prepare(
             RecordingContext {
+                timestamp_basis: context.timestamp_basis,
                 host: context.host,
                 boot: context.boot,
                 plan: context.plan,

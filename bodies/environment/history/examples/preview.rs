@@ -23,6 +23,8 @@ fn main() -> Result<(), String> {
     let plan: PlanId = "plan/synthetic-environment-preview".into();
     let play: ActivePlayId = "play/synthetic-environment-preview".into();
     let context = || RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &host,
         boot: &boot,
         plan: &plan,

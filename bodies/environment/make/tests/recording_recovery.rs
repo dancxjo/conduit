@@ -20,6 +20,8 @@ fn context() -> RecordingContext<'static> {
     static PLAN: LazyLock<c::PlanId> = LazyLock::new(|| "fixture/producer/plan".into());
     static PLAY: LazyLock<c::ActivePlayId> = LazyLock::new(|| "fixture/producer/play".into());
     RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &HOST,
         boot: &BOOT,
         plan: &PLAN,
