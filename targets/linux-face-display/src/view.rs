@@ -178,7 +178,7 @@ pub fn render_notice_with_palette(
         .map_err(|e| format!("notice raster: {e:?}"))
 }
 
-fn frame(
+pub(crate) fn frame(
     face: Face,
     width: u16,
     height: u16,
