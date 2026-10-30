@@ -70,6 +70,17 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
     rows.sort_by_key(|row| !row.quantity);
     (!rows.is_empty()).then_some(rows)
 }
+/// Only the Body identified by this Face's basis supplies its heading.
+fn body_heading(face: &Face) -> Option<&str> {
+    let identity = format!("body/{}", face.basis.body_id.as_ref()?.as_str());
+    let mut subjects = face
+        .subjects
+        .iter()
+        .filter(|subject| subject.role == FaceRole::Body && subject.identity == identity);
+    let subject = subjects.next()?;
+    (subjects.next().is_none() && !subject.name.trim().is_empty()).then_some(subject.name.as_str())
+}
+
 /// Native primary pages render subject headings, authored text and actions;
 /// technical properties live only in Details (not this read-only page cycle).
 /// Keep native primary pages whenever they add content beyond the Info headings
@@ -77,16 +88,23 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
 pub fn has_no_additional_native_primary_content(face: &Face) -> bool {
     !face.subjects.is_empty()
         && face.subjects.iter().all(|subject| {
-            subject.role == FaceRole::Info
-                && face.properties.iter().any(|p| {
-                    p.subject == subject.identity
-                        && matches!(
-                            p.value,
-                            FacePropertyValue::TypedValue { .. }
-                                | FacePropertyValue::Text(_)
-                                | FacePropertyValue::Flag(_)
-                        )
-                })
+            (subject.role == FaceRole::Body
+                && face
+                    .basis
+                    .body_id
+                    .as_ref()
+                    .is_some_and(|id| subject.identity == format!("body/{}", id.as_str()))
+                && body_heading(face) == Some(subject.name.as_str()))
+                || subject.role == FaceRole::Info
+                    && face.properties.iter().any(|p| {
+                        p.subject == subject.identity
+                            && matches!(
+                                p.value,
+                                FacePropertyValue::TypedValue { .. }
+                                    | FacePropertyValue::Text(_)
+                                    | FacePropertyValue::Flag(_)
+                            )
+                    })
         })
         && face.text.is_empty()
         && face.relationships.is_empty()
@@ -132,7 +150,20 @@ pub fn frame(
     preferred: Option<conduit_core::Unit>,
 ) -> Option<(GraphicsScene, usize, usize)> {
     let rows = rows(face, preferred)?;
-    let count = usize::from(height.checked_sub(144)? / 84);
+    let heading = body_heading(face).unwrap_or("Conduit");
+    let title_width = width.checked_sub(48)?;
+    let title_height = u16::try_from(
+        TextLayout::new_scaled(heading, GraphicsTextRole::Title.into(), title_width, 100)
+            .ok()?
+            .finish_height(),
+    )
+    .ok()?
+    .max(40);
+    let rows_start = u16::try_from(crate::view::STATUS_STRIP_HEIGHT)
+        .ok()?
+        .checked_add(32)?
+        .checked_add(title_height)?;
+    let count = usize::from(height.checked_sub(40)?.checked_sub(rows_start)? / 84);
     if count == 0 {
         return None;
     }
@@ -163,14 +194,14 @@ pub fn frame(
             x: 24,
             y: 16 + crate::view::STATUS_STRIP_HEIGHT as i16,
             width: width.checked_sub(48)?,
-            height: 40,
+            height: title_height,
         },
-        "Conduit",
+        heading,
         GraphicsTextRole::Title,
         GraphicsPaintRole::Accent,
     )?;
     for (i, row) in rows.iter().skip(page * count).take(count).enumerate() {
-        let y = 72 + crate::view::STATUS_STRIP_HEIGHT as i16 + i as i16 * 84;
+        let y = i16::try_from(rows_start).ok()? + i as i16 * 84;
         text(
             &mut scene,
             screen,
@@ -226,6 +257,44 @@ pub fn frame(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn body_heading_wraps_without_overlapping_readings_or_changing_face() {
+        let mut face = crate::view::unavailable("Awaiting source");
+        face.subjects[0].role = FaceRole::Info;
+        let id = "a".repeat(64);
+        face.basis.body_id = Some(serde_json::from_value(serde_json::json!(id)).unwrap());
+        face.subjects.push(conduit_face::FaceSubject {
+            identity: format!("body/{id}"),
+            role: FaceRole::Body,
+            name: "The greenhouse of Malo Lefèvre Laurent and friends".into(),
+        });
+        face.text.clear();
+        face.properties.push(conduit_face::FaceProperty {
+            subject: face.subjects[0].identity.clone(),
+            name: "sensor-status".into(),
+            value: FacePropertyValue::Text("ready".into()),
+        });
+        let original = face.clone();
+        let (scene, _, _) = frame(&face, 368, 600, 0, None).unwrap();
+        let title = scene
+            .commands()
+            .iter()
+            .find(|c| c.payload() == "The greenhouse of Malo Lefèvre Laurent and friends")
+            .unwrap();
+        assert!(title.bounds.height > 40);
+        let row = scene
+            .commands()
+            .iter()
+            .find(|c| c.payload() == "ready")
+            .unwrap();
+        assert!(row.bounds.y >= title.bounds.y + title.bounds.height as i16);
+        assert!(has_no_additional_native_primary_content(&face));
+        assert_eq!(face, original);
+        face.subjects[1].identity = "body/some-other-body".into();
+        assert_eq!(body_heading(&face), None);
+        assert!(!has_no_additional_native_primary_content(&face));
+    }
+
     #[test]
     fn preferred_temperature_unit_keeps_exact_face_and_other_values() {
         use conduit_core::{
