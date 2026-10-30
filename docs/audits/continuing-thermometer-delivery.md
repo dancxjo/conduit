@@ -104,6 +104,34 @@ network stack or admitted allocator. Evaluate a bounded external platform/carrie
 seam before replacing working firmware; do not import another OS to satisfy a
 transport example.
 
+### Initial Zenoh measurements and adoption gate
+
+Pinned 1.10.2 Linux loopback experiments delivered exact 2,048-byte binary
+payloads, preserving an intentional duplicate, and recovered delivery after a
+same-port router restart with a 22-second grace period. An earlier 12-second
+negative observation is retained; exact reconnection latency was not measured.
+The single-thread Pico C subscriber peaked at 16,383 requested heap bytes;
+selecting eight transport-I/O future slots instead of the default 64 preserved
+that trial and reduced the peak to 13,583 bytes. Both cleaned to zero. These are
+Linux allocator requests, excluding allocator overhead, OS memory and stacks.
+They establish neither physical MCU fit nor durable recording.
+
+ESP32 cross-compilation without an OS PAL succeeded. Garbage collection of the
+open/subscribe/publish/pump/close API closure retained 48,313 code bytes, or
+48,233 with eight I/O-future slots. This is an unresolved relocatable object,
+not total firmware flash: actual network, clock, allocator, libc and compiler
+runtime obligations still need integration. No fake I/O implementation or
+second OS was linked to make the measurement pass.
+
+Preparation remained blocked for more than three seconds when TCP connected
+but no Zenoh handshake arrived. Ordinary single-thread pump calls also reached
+approximately 108 ms. Therefore neither belongs directly on the local sampling
+and display executor. Qualify a finite isolated worker and its stack/backing,
+using existing platform facilities, before flashing. Current Green firmware
+continued sensing/displaying with no reported errors during these off-device
+tests; it has not received Zenoh and remains a carrier, not an admitted Body
+execution Host. The actual MCU/NAT/history acceptance gates above remain open.
+
 ## Historical source and proof boundaries, 28 October 2026
 
 [PR #6457](https://github.com/dancxjo/conduit/pull/6457) is still a draft at
