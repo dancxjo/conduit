@@ -37,6 +37,7 @@ fn plan(source: &str) -> conduit_core::Plan {
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "r3", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/r3"),
         boot_id: BootId::from("boot/r3/1"),

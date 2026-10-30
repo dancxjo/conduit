@@ -210,6 +210,7 @@ fn exact_body_coordination_plan_with_loss(
 
 fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(id),
         boot_id,

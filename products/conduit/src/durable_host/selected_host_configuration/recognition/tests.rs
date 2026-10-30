@@ -79,7 +79,8 @@ fn checked_recognizer_is_exact_and_initializes_without_spawning_or_capture() {
     });
     first.attach_to_fresh_host(&mut host).unwrap();
     let ad = host.advertisement();
-    assert_eq!(ad.offer_generation, conduit_core::OfferGeneration(2));
+    // Checked name and recognizer initialization each advance the offer.
+    assert_eq!(ad.offer_generation, conduit_core::OfferGeneration(3));
     assert_eq!(ad.bases.len(), 1);
     assert_eq!(ad.bases[0].lifecycle, conduit_core::BaseLifecycle::Ready);
     assert_eq!(ad.bases[0].capability_ids.len(), 1);

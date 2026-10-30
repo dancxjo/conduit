@@ -78,6 +78,7 @@ pub(super) fn expanded_with_maximum(maximum: u16) -> conduit_plot::ExpandedCanon
 
 pub(super) fn consumer_host(front: &conduit_core::CheckedFront) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/consumer"),
         boot_id: BootId::from("boot/consumer/1"),

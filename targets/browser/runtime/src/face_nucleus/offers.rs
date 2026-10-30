@@ -59,6 +59,7 @@ pub(super) fn advertisement() -> HostAdvertisement {
         MAX_LAYOUT_FRAME_BYTES as u32,
     ));
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser-face-host"),
         boot_id: conduit_core::BootId::from("browser-face-boot"),
@@ -77,6 +78,7 @@ pub(super) fn text_advertisement() -> HostAdvertisement {
         .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND)
         .expect("browser text face offer is installed");
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser-face-host"),
         boot_id: conduit_core::BootId::from("browser-face-boot"),

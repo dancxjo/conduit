@@ -488,6 +488,7 @@ fn confidence_and_pixel_storage_refuse_semantic_shortcuts() {
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/vision-proof"),
         boot_id: BootId::from("boot/vision-proof"),

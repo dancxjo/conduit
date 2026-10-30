@@ -10,6 +10,7 @@ use conduit_core::{
 
 fn host(name: &str, boot: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(name),
         boot_id: BootId::from(boot),

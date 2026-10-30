@@ -164,6 +164,7 @@ pub fn live_create_dock_advertisement(
     let mut capabilities = vec![toggle, dock];
     capabilities.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: observation.host_id.clone(),
         boot_id: observation.boot_id.clone(),

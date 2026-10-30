@@ -103,6 +103,7 @@ pub(super) fn host_and_grants(
     let offer =
         super::control_offer::offer(contract, "conduitos/usb-control-kernel-proof@1".into());
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: subject.host_id.into(),
         boot_id: subject.boot_id.into(),

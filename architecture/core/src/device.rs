@@ -241,6 +241,7 @@ mod tests {
 
     fn advertisement() -> HostAdvertisement {
         HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("host/current"),
             boot_id: BootId::from("boot/current"),

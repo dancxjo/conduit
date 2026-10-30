@@ -79,6 +79,7 @@ fn planned() -> (Plan, ProtocolOperations, CapabilityOffer) {
         }
     }
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("fixture/feedback"),
         boot_id: BootId::from("fixture/feedback-boot"),

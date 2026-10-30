@@ -105,6 +105,7 @@ fn offer_from_front(
 fn host(plot: &conduit_plot::ExpandedCanonicalPlot) -> HostAdvertisement {
     let observe = plot.gears.first().expect("expanded room has observers");
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser"),
         boot_id: BootId::from("browser-boot"),

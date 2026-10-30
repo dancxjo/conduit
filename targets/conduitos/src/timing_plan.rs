@@ -150,6 +150,7 @@ fn advertisement(
         .expect("ConduitOS owns tick face");
     bind_native_capability(&mut face, &fixed.capabilities[1], build_id, "face-tick");
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
         boot_id: BootId::from(hex_identity(&identities.boot)),

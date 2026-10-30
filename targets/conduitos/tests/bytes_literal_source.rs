@@ -42,6 +42,7 @@ fn source_roundtrip_retains_authored_hex_provenance_and_exact_pure_fore() {
 }
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "literal/host".into(),
         boot_id: "literal/boot".into(),

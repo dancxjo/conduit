@@ -36,6 +36,7 @@ pub(crate) fn plot() -> conduit_plot::CheckedPlot {
 
 pub(crate) fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-host-1"),
         boot_id: conduit_core::BootId::from("boot-1"),

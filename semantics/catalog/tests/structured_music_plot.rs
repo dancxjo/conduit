@@ -224,6 +224,7 @@ fn mapping_length_and_control_schema_refuse_before_expansion() {
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("instrument-host"),
         boot_id: BootId::from("instrument-boot"),

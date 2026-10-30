@@ -22,6 +22,7 @@ fn canonical_source_lowers_into_existing_profile_with_provenance() {
         &test_package_set(),
     )
     .unwrap();
+    assert_eq!(checked.profile().name, "linux");
     assert_eq!(checked.profile().target.key(), "std/x86_64/computer");
     assert_eq!(
         checked.profile().source_configuration_id.as_deref(),
@@ -234,4 +235,72 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         snapshots.windows(2).all(|pair| pair[0].0 < pair[1].0),
         "fixture snapshot order must be canonical"
     );
+}
+
+#[test]
+fn declared_name_survives_checked_image_and_runtime_binding() {
+    let packages = test_package_set();
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(&HOSTED.replace("host linux", "host Yellow")).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let (image, bytes) = test_build_host_image(
+        checked.into_profile(),
+        &catalog,
+        &BuildInputs {
+            source_identity: "host-name-test".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    assert_eq!(
+        image.payload.declared_name.as_ref().unwrap().as_str(),
+        "Yellow"
+    );
+    assert_eq!(image.manifest.declared_name, image.payload.declared_name);
+    let bound = crate::bind_runtime_offer(
+        &image.manifest,
+        &image,
+        &bytes,
+        &catalog,
+        crate::RuntimeOfferInputs {
+            host_id: "host/stable".into(),
+            boot_id: "boot/current".into(),
+            offer_generation: conduit_core::OfferGeneration(1),
+            offer_sign_id: "sign/offer".into(),
+            host_profile: "profile/current".into(),
+            candidate_bases: vec![],
+            candidate_capabilities: vec![],
+            planner_capabilities: vec![],
+            facts: Default::default(),
+        },
+    )
+    .unwrap();
+    assert_eq!(bound.advertisement().display_name(), "Yellow");
+    assert_eq!(bound.advertisement().host_id.as_str(), "host/stable");
+    let mut forged = image.clone();
+    forged.manifest.declared_name = Some(conduit_core::HostDeclaredName::new("Other").unwrap());
+    let forged_bytes = serde_json::to_vec(&forged).unwrap();
+    assert!(crate::verify_image_binding(&forged, &forged_bytes).is_err());
+}
+
+#[test]
+fn invalid_declared_names_refuse_during_configuration_check() {
+    let packages = test_package_set();
+    let catalog = MakeCatalog::canonical().with_packages(&packages);
+    for name in [
+        "".to_string(),
+        " ".to_string(),
+        "Yellow\n".to_string(),
+        "x".repeat(161),
+    ] {
+        let mut configuration = parse_host_configuration_conduit(HOSTED).unwrap();
+        configuration.name = name;
+        assert!(check_host_configuration(configuration, &catalog, &packages)
+            .unwrap_err()
+            .contains(&ConfigurationDiagnostic::InvalidName));
+    }
 }

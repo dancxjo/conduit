@@ -206,6 +206,7 @@ fn line_binding(
 
 fn host(host_id: &str, boot_id: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),

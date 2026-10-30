@@ -87,6 +87,7 @@ pub fn pico_appliance_advertisement(
 ) -> Result<HostAdvertisement, PicoApplianceAdvertisementError> {
     if composition == PicoApplianceComposition::Minimal {
         return Ok(HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from(host_id),
             boot_id: BootId::from(boot_id),
@@ -101,6 +102,7 @@ pub fn pico_appliance_advertisement(
 
     validate_hello_initialization(initialized)?;
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),

@@ -26,6 +26,7 @@ pub struct ExactR1ControlPlan {
 
 pub fn r1_control_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: conduit_core::HostId::from(crate::R1_STD_HOST_ID),
         boot_id: BootId::from(crate::R1_STD_BOOT_ID),

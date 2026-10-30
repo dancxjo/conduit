@@ -242,6 +242,7 @@ fn host(config: &MessagingConfig) -> HostAdvertisement {
         .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_MESSAGE_KIND)
         .expect("reviewed portable message offer");
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("github/{}/{}", config.owner, config.repository)),
         boot_id: BootId::from("github/messaging-live/current"),

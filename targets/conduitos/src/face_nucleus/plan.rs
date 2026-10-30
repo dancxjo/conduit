@@ -84,6 +84,7 @@ fn advertisement(host: &str, boot: &str) -> HostAdvertisement {
     let mut capabilities = super::face_nucleus_offers();
     capabilities.push(text_source_offer());
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

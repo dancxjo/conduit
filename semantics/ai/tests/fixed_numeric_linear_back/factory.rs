@@ -120,6 +120,7 @@ fn shape_plan(i: usize, o: usize) -> Plan {
     let source=format!("plot linear-preparation {{\n input: numeric-test/input\n weights: numeric-test/weights\n linear: numeric/linear{i}x{o}\n sink: numeric-test/sink\n input.value >> linear.value\n weights.value >> linear.weights\n linear.result >> sink.value\n}}\n");
     let plot = conduit_plot::parse_with_startup(&source, &startup, &profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "numeric-test".into(),
         boot_id: "numeric-test-boot".into(),

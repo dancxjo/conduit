@@ -98,6 +98,7 @@ fn reminder_delivery_is_bounded_and_requires_ordinary_planned_authority() {
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/reminder-proof"),
         boot_id: BootId::from("boot/reminder-proof"),

@@ -19,6 +19,7 @@ const SOURCE: &str = include_str!("../../../plots/webchat/main.conduit");
 fn browser() -> HostAdvertisement {
     let family = conduit_net::browser_external_websocket_family();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser-chat"),
         boot_id: BootId::from("browser-chat-boot"),

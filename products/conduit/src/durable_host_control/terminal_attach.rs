@@ -85,7 +85,7 @@ pub(super) fn serve(
                 protocol: PROTOCOL,
                 route_plan_id: seal.route_plan_id,
                 show: Box::new(show),
-                advertisement,
+                advertisement: Box::new(advertisement),
             },
         )?;
         Ok::<(), String>(())

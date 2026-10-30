@@ -144,6 +144,7 @@ fn synthetic_offer(definition: &Kind, host: &str) -> CapabilityOffer {
 
 fn proof_host(name: &str, definitions: &[&Kind]) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/live-{name}")),
         boot_id: BootId::from(format!("boot/live-{name}")),

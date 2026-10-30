@@ -158,6 +158,7 @@ fn real_browser_button_offer_feeds_the_same_portable_timing_plots() {
 
 fn timing_host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std/secret-knock-timing"),
         boot_id: BootId::from("std/secret-knock-timing-boot"),

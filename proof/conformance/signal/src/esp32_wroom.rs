@@ -31,6 +31,7 @@ pub const ESP32_WROOM_BUILD_FIXTURE_FACE_POOL_ID: &str = "fixture/build/esp32/wr
 /// inclusion and live facilities; this fixture must never be emitted as one.
 pub fn esp32_wroom_build_fixture_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(ESP32_WROOM_BUILD_FIXTURE_HOST_ID),
         boot_id: BootId::from(ESP32_WROOM_BUILD_FIXTURE_BOOT_ID),

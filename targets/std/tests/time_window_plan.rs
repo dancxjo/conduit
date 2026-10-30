@@ -127,6 +127,7 @@ fn plan_retains_the_exact_non_authored_window_specialization() {
         conduit_plot::expand_canonical_plot(&checked, "windowed-text", &profile).unwrap();
 
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/window-proof"),
         boot_id: "boot/window-proof".into(),

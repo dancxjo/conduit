@@ -197,6 +197,7 @@ pub fn run_not(prepared: &PreparedLogicNot) -> Result<LogicNotProof, LogicNotErr
 
 fn advertisement(host: &str, boot: &str, input: InfoBool) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

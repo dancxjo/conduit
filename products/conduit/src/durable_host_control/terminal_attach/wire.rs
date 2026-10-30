@@ -43,7 +43,7 @@ pub(super) enum AttachReply {
         protocol: u16,
         route_plan_id: PlanId,
         show: Box<MaskShow>,
-        advertisement: HostAdvertisement,
+        advertisement: Box<HostAdvertisement>,
     },
     Refused {
         protocol: u16,

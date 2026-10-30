@@ -54,6 +54,9 @@ pub enum Reproducibility {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BuildManifest {
+    /// Name from the checked Host declaration; not runtime identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declared_name: Option<conduit_core::HostDeclaredName>,
     pub schema: String,
     pub profile_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -92,6 +95,9 @@ pub struct BuildManifest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImagePayload {
+    /// Name from the checked Host declaration; not runtime identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declared_name: Option<conduit_core::HostDeclaredName>,
     pub schema: String,
     pub build_id: String,
     pub profile_id: String,
@@ -233,7 +239,14 @@ pub fn build_host_image(
         }]
     })?;
     let build_id = digest("build", &build_basis);
+    let declared_name =
+        conduit_core::HostDeclaredName::new(profile.name.clone()).map_err(|error| {
+            vec![BuildDiagnostic::Encoding {
+                detail: error.to_string(),
+            }]
+        })?;
     let payload = ImagePayload {
+        declared_name: Some(declared_name.clone()),
         schema: IMAGE_SCHEMA.into(),
         build_id: build_id.clone(),
         profile_id: validated.profile_id().as_str().into(),
@@ -267,6 +280,7 @@ pub fn build_host_image(
     })?;
     let image_id = digest("image", &payload_bytes);
     let manifest = BuildManifest {
+        declared_name: Some(declared_name),
         schema: BUILD_MANIFEST_SCHEMA.into(),
         profile_id: validated.profile_id().as_str().into(),
         source_configuration_id: profile.source_configuration_id.clone(),
@@ -319,7 +333,10 @@ pub fn verify_image_binding(image: &HostImage, bytes: &[u8]) -> Result<(), Build
         .map_err(|error| BuildDiagnostic::Encoding {
             detail: error.to_string(),
         })?;
-    if decoded.manifest.image_id != found || &decoded != image {
+    if decoded.manifest.image_id != found
+        || &decoded != image
+        || decoded.manifest.declared_name != decoded.payload.declared_name
+    {
         return Err(BuildDiagnostic::ArtifactBindingMismatch {
             expected: image.manifest.image_id.clone(),
             found,

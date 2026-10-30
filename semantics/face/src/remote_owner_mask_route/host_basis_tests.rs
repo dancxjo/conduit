@@ -4,6 +4,7 @@ use alloc::{string::ToString, vec};
 
 fn host(profile_bytes: usize) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/remote-mask-owner"),
         boot_id: BootId::from("boot/remote-mask-owner"),

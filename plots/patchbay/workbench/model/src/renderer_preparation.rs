@@ -114,6 +114,7 @@ pub(crate) fn renderer_host(
         max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
     };
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: identity.host_id.clone(),
         boot_id: identity.boot_id.clone(),

@@ -179,6 +179,7 @@ pub fn run_bool(
 
 fn advertisement(host: &str, boot: &str, value: InfoBool) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),

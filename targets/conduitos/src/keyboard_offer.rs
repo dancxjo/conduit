@@ -295,6 +295,7 @@ mod tests {
         let mut realization = realization();
         realization.mechanism = KeyboardMechanism::Ps2;
         let mut advertisement = conduit_core::HostAdvertisement {
+            declared_name: None,
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: conduit_core::HostId::from("host"),
             boot_id: conduit_core::BootId::from("boot"),

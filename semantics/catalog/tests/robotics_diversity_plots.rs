@@ -215,6 +215,7 @@ fn structured_robotics_schema_does_not_leak_robot_protocols() {
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/robotics-structured-proof"),
         boot_id: BootId::from("boot/robotics-structured-proof"),

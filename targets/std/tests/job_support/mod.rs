@@ -62,6 +62,7 @@ pub fn planned_job(request: &JobRequest) -> PlannedGear {
         residence_profile: kind_id("std/process-executable-residence@1"),
     });
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,

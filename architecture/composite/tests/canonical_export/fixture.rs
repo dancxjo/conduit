@@ -78,6 +78,7 @@ impl Fixture {
         let authoring =
             conduit_plot::expand_canonical_plot_for_authoring(&document, ENTRY, &catalog).unwrap();
         let hosts = [HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: "generic-child".into(),
             boot_id: "generic-child-boot".into(),

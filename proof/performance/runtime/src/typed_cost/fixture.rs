@@ -23,6 +23,7 @@ impl Fixture {
     pub fn new(count: usize) -> Result<Self, String> {
         Self::prepare(count, "single-production-pulse-offer", |index| {
             HostAdvertisement {
+                declared_name: None,
                 protocol_version: PROTOCOL_VERSION,
                 host_id: format!("cost-baseline/host-{index:02}").into(),
                 boot_id: format!("cost-baseline/boot-{index:02}").into(),

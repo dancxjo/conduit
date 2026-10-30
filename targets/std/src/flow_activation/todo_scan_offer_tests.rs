@@ -63,6 +63,7 @@ fn authored_with_maximum(
 
 fn host(scan: conduit_core::CapabilityOffer) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-todo-offer-proof"),
         boot_id: BootId::from("std-todo-offer-proof/boot"),

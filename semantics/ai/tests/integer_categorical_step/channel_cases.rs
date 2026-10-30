@@ -17,6 +17,7 @@ fn channel_definition(
         input.value_kind().as_str(), output.value_kind().as_str(), profile.kind_identity(true));
     let plot = conduit_plot::parse_with_startup(&source, &startup, &catalog).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "categorical-test".into(),
         boot_id: "categorical-test-boot".into(),

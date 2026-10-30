@@ -132,6 +132,7 @@ fn offers_keep_dns_and_connect_authority_distinct() {
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/application-network-proof"),
         boot_id: BootId::from("boot/application-network-proof"),

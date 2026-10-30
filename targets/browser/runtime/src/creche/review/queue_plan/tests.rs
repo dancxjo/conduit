@@ -89,6 +89,7 @@ fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
     );
     browser.capabilities.extend(selector_offers);
     let remote = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/orifinia-voice"),
         boot_id: BootId::from("boot/orifinia-voice"),

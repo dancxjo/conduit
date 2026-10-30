@@ -70,6 +70,7 @@ impl Fixture {
         };
         let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
         let host = [HostAdvertisement {
+            declared_name: None,
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: "fixture/parsec-map-host".into(),
             boot_id: "fixture/parsec-map-boot".into(),

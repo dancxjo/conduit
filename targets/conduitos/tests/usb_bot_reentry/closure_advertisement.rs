@@ -9,6 +9,7 @@ pub(super) fn host() -> (HostAdvertisement, Vec<AuthorityGrant>) {
     let read = EndpointReadContract::prepare().unwrap();
     let write = EndpointWriteContract::prepare().unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/bot-storage-host".into(),
         boot_id: "fixture/bot-storage-boot".into(),

@@ -80,6 +80,7 @@ pub(super) fn execute() -> Result<(Observation, conduit_core::PlanId), String> {
         },
     );
     let advertisement = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "browser-structured-face-host".into(),
         boot_id: "browser-structured-face-boot".into(),

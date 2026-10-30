@@ -408,6 +408,7 @@ fn host(selector_definitions: Vec<conduit_plot::KindProjection>) -> HostAdvertis
         )
     }));
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/navigation-proof"),
         boot_id: BootId::from("boot/navigation-proof"),

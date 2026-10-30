@@ -168,6 +168,7 @@ fn select(selector: &StructuredSelector, value: &StructuredInfoValue) -> Structu
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/generalized-input-proof"),
         boot_id: BootId::from("boot/generalized-input-proof"),

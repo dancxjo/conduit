@@ -126,6 +126,7 @@ fn offer(definition: &KindProjection) -> CapabilityOffer {
 
 fn host(definitions: &[KindProjection]) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-host"),
         boot_id: BootId::from("std-boot"),

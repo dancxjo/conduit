@@ -147,6 +147,7 @@ mod tests {
                 "boot_id": "boot/guest", "issued_at_millis": 42
             },
             "host_advertisement": HostAdvertisement {
+                declared_name: None,
                 protocol_version: PROTOCOL_VERSION,
                 host_id: host,
                 boot_id: boot,
