@@ -152,3 +152,6 @@ impl PreparedCaptureSelector {
 }
 
 pub mod recording;
+
+#[cfg(feature = "face-projection")]
+pub mod observed_record;

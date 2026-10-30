@@ -51,8 +51,16 @@ impl PreparedObservationQuantityForms {
             )
             .map_err(|_| R::MalformedCanonicalEncoding.into())
         };
-        let temperature = forms::DeviceDht11TemperatureForm::encode(quantity("temperature")?)?;
-        let humidity = forms::DeviceDht11HumidityForm::encode(quantity("humidity")?)?;
+        Self::pack_quantities(quantity("temperature")?, quantity("humidity")?)
+    }
+
+    /// Representation only; encoding quantities confers no producer provenance.
+    pub fn pack_quantities(
+        temperature: Quantity,
+        humidity: Quantity,
+    ) -> Result<[u8; 4], ObservationRefusal> {
+        let temperature = forms::DeviceDht11TemperatureForm::encode(temperature)?;
+        let humidity = forms::DeviceDht11HumidityForm::encode(humidity)?;
         Ok([temperature[0], temperature[1], humidity[0], humidity[1]])
     }
 
@@ -62,8 +70,7 @@ impl PreparedObservationQuantityForms {
         if packed.len() != Self::PACKED_BYTES {
             return Err(conduit_core::QuantityFormRefusal::WrongLength.into());
         }
-        let temperature = forms::DeviceDht11TemperatureForm::decode(&packed[..2])?;
-        let humidity = forms::DeviceDht11HumidityForm::decode(&packed[2..])?;
+        let (temperature, humidity) = Self::unpack_quantities(packed)?;
         self.temperature.leaf(&temperature.encode())?;
         self.humidity.leaf(&humidity.encode())?;
         self.observation.record(&[
@@ -71,5 +78,15 @@ impl PreparedObservationQuantityForms {
             validate(self.temperature.encoded())?,
         ])?;
         Ok(self.observation.encoded())
+    }
+
+    pub fn unpack_quantities(packed: &[u8]) -> Result<(Quantity, Quantity), ObservationRefusal> {
+        if packed.len() != Self::PACKED_BYTES {
+            return Err(conduit_core::QuantityFormRefusal::WrongLength.into());
+        }
+        Ok((
+            forms::DeviceDht11TemperatureForm::decode(&packed[..2])?,
+            forms::DeviceDht11HumidityForm::decode(&packed[2..])?,
+        ))
     }
 }
