@@ -5,6 +5,7 @@ mod coverage;
 mod font;
 #[cfg(feature = "native-compositor-core")]
 mod icons;
+mod polyline;
 mod raw;
 mod rounded;
 mod text_layout;
@@ -217,6 +218,7 @@ fn render_command_with_color(
         return Ok(());
     };
     match command.kind {
+        GraphicsCommandKind::Polyline => polyline::render(target, format, command, color, receipt),
         GraphicsCommandKind::OrthogonalPath => {
             let path = command.path_geometry().ok_or(DisplayError::InvalidExtent)?;
             for segment in path.points().windows(2) {
