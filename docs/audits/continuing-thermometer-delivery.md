@@ -5,7 +5,37 @@ MCU architecture or memory epic. The four requested outcomes remain unchanged:
 independent sampling and timed display; durable same-body history and recovery;
 Wi-Fi provisioning and fallback; and restart continuity with browser/Pi joining.
 
-## Source and proof boundaries, 28 October 2026
+## Current recorder checkpoint, 30 October 2026
+
+The current delivery branch is `integrate/thermometer-dev-sync-20261029`,
+containing accepted `dev` through `e049ecc`. Its recording changes preserve
+producer-observation time separately from acquisition time, bind the selected
+Back's publication observer to the exact committed content, and stage compact
+observations through the existing prepared Linux recorder. The supported
+`cargo xtask check recording-checkpoint` passes 83 distinct tests and scoped
+strict lint at `eb7d6be774`. This includes real file publication/reopening and
+separate-process installed-seed recovery, with explicit CPU fixtures for
+producer authentication, Host admission, placement and grants. It does not
+establish a live selected environmental recorder or acknowledgment eligibility.
+
+A read-only production verification on Forebrain accepted Blue's existing
+signed epoch through sequence 654. The continuing collector was still running
+in its original process after more than 21 hours. Retained signed evidence and
+a current/history projection remain distinct from committing those observations
+into the Body's selected recording.
+
+The next integration belongs to the existing joining/recording lane (#6461),
+using Root-owned workset renewal. `admit_plot` and complete verified proposals
+require the authoritative Lulled Body, current membership and real reservations;
+a joined observer binding and operator-selected disk directory cannot substitute
+for those facts. Candidate preparation may overlap the old sampler/Mask Play,
+but current lifecycle APIs do not authorize adding a Plot while that old
+body-wide Play remains current. Extend the existing retirement, checkpoint,
+proposal and worker-start transaction with the selected Linux recorder; retain
+the same Body and evidence. Do not create a second Body or infer execution
+authority from matching historical producer identities.
+
+## Historical source and proof boundaries, 28 October 2026
 
 [PR #6457](https://github.com/dancxjo/conduit/pull/6457) is still a draft at
 `04f6f3d46efcfd49f7fbc0b9486c4f1d96cd05fb` on
