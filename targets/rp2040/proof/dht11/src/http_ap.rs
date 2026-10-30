@@ -1,6 +1,6 @@
 //! Fixed-capacity DHCP and HTTP service over the existing AP network base.
 use conduit_rp2040_network_realization::{answer_appliance_dhcp, DhcpLeasePool};
-use embassy_futures::join::join;
+use embassy_futures::select::select;
 use embassy_net::{
     tcp::TcpSocket,
     udp::{PacketMetadata, UdpSocket},
@@ -8,8 +8,10 @@ use embassy_net::{
 };
 use embassy_time::{with_timeout, Duration, Instant};
 
-pub async fn serve(stack: Stack<'static>) {
-    join(dhcp(stack), join(http(stack), http(stack))).await;
+pub async fn serve(stack: Stack<'static>) -> Result<(), ()> {
+    // Any reader failure retires the entire service and its sibling sockets.
+    let _ = select(dhcp(stack), select(http(stack), http(stack))).await;
+    Err(())
 }
 async fn dhcp(stack: Stack<'static>) {
     let mut rx_meta = [PacketMetadata::EMPTY; 1];
@@ -36,7 +38,7 @@ async fn dhcp(stack: Stack<'static>) {
         }
     }
 }
-async fn http(stack: Stack<'static>) {
+async fn http(stack: Stack<'static>) -> Result<(), ()> {
     let mut rx = [0; 512];
     let mut tx = [0; 2048];
     let mut socket = TcpSocket::new(stack, &mut rx, &mut tx);
@@ -44,10 +46,27 @@ async fn http(stack: Stack<'static>) {
     loop {
         if socket.accept(80).await.is_ok() {
             let _ = with_timeout(Duration::from_secs(5), exchange(&mut socket)).await;
-            socket.close();
-            let _ = with_timeout(Duration::from_secs(1), socket.flush()).await;
         }
+        let close_deadline = Instant::now() + Duration::from_secs(1);
+        socket.close();
+        let _ = with_timeout(
+            close_deadline.saturating_duration_since(Instant::now()),
+            socket.flush(),
+        )
+        .await;
         socket.abort();
+        // abort queues a reset; flush it before accepting another connection.
+        // Both phases spend the same absolute close budget. A failure retires
+        // this service rather than reusing a socket with outstanding retirement.
+        let retired = with_timeout(
+            close_deadline.saturating_duration_since(Instant::now()),
+            socket.flush(),
+        )
+        .await
+        .is_ok_and(|result| result.is_ok());
+        if !retired {
+            return Err(());
+        }
     }
 }
 async fn exchange(socket: &mut TcpSocket<'_>) -> Result<(), ()> {
