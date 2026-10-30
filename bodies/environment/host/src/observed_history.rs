@@ -441,3 +441,6 @@ fn fetch(address: SocketAddr, after: u32) -> Result<Vec<u8>> {
 #[cfg(test)]
 mod tests;
 pub(crate) mod retained;
+
+#[cfg(feature = "retained-history-provider")]
+pub(crate) mod archive;

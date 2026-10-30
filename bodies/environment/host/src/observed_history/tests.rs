@@ -1,6 +1,6 @@
 use super::*;
 use ed25519_dalek::{Signer, SigningKey};
-fn signed(
+pub(super) fn signed(
     key: &SigningKey,
     scope: [u8; 96],
     forms: [u8; 32],
