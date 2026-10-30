@@ -13,6 +13,17 @@ mod returning;
 pub fn return_observer(binding: &Path, continuity: &Path, state: &Path, peer: &str) -> Result<()> {
     returning::run(binding, continuity, state, peer)
 }
+/// One caller-owned socket budget across the durable return/recovery attempt.
+/// Original immutable proofs remain available for the next bounded step.
+pub(crate) fn return_observer_until(
+    binding: &Path,
+    continuity: &Path,
+    state: &Path,
+    peer: &str,
+    deadline: Instant,
+) -> Result<()> {
+    returning::run_until(binding, continuity, state, peer, deadline)
+}
 use crate::{checked, Result};
 use ed25519_dalek::Signer;
 use recovery_client::recover;

@@ -68,9 +68,10 @@ pub(super) fn run(
     ad: &HostAdvertisement,
     state: &Path,
     peer: &str,
+    deadline: Instant,
 ) -> Result<()> {
     execute(bootstrap, old, ad, state, |request| {
-        super::exchange(peer, request)
+        super::return_exchange::exchange_until(peer, request, deadline)
     })
 }
 fn execute(

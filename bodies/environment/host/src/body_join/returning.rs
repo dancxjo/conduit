@@ -100,6 +100,7 @@ fn advertisement(old: &MembershipCredential, boot: conduit_core::BootId) -> Host
 }
 #[path = "return_exchange.rs"]
 mod return_exchange;
+#[cfg(test)]
 use return_exchange::exchange;
 
 fn query(bootstrap: &Bootstrap, ad: &HostAdvertisement, nonce: [u8; 32]) -> recovery::Request {
@@ -140,7 +141,25 @@ fn verify_receipt(
 mod attempt;
 
 pub(super) fn run(binding_path: &Path, continuity: &Path, state: &Path, peer: &str) -> Result<()> {
+    run_until(
+        binding_path,
+        continuity,
+        state,
+        peer,
+        Instant::now() + Duration::from_secs(60),
+    )
+}
+pub(super) fn run_until(
+    binding_path: &Path,
+    continuity: &Path,
+    state: &Path,
+    peer: &str,
+    deadline: Instant,
+) -> Result<()> {
     use std::os::unix::fs::DirBuilderExt;
+    if Instant::now() >= deadline {
+        return Err("observer return deadline expired before preparation".into());
+    }
     let old_binding = crate::local_recorder::validated_binding(binding_path)?;
     let bootstrap: Bootstrap = load(continuity)?;
     if old_binding.root() != &bootstrap.root_key
@@ -177,7 +196,7 @@ pub(super) fn run(binding_path: &Path, continuity: &Path, state: &Path, peer: &s
     if ad.boot_id == old.boot_id || ad != advertisement(old, ad.boot_id.clone()) {
         return Err("retained return advertisement differs".into());
     }
-    attempt::run(&bootstrap, old, &ad, state, peer)
+    attempt::run(&bootstrap, old, &ad, state, peer, deadline)
 }
 
 #[cfg(test)]
