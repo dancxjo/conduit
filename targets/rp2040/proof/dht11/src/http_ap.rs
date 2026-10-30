@@ -174,10 +174,15 @@ async fn http(
             .await
             .ok()
             .and_then(Result::ok);
-            let close_deadline = Instant::now() + Duration::from_secs(1);
+            let close_started = Instant::now();
+            let close_deadline = close_started + Duration::from_secs(1);
+            // Graceful flush can wait for a FIN acknowledgement. Reserve half
+            // of the existing close budget for abort retirement so a silent
+            // peer cannot consume the reset's entire scheduling interval.
+            let graceful_deadline = close_started + Duration::from_millis(500);
             socket.close();
             let _ = with_timeout(
-                close_deadline.saturating_duration_since(Instant::now()),
+                graceful_deadline.saturating_duration_since(Instant::now()),
                 socket.flush(),
             )
             .await;
