@@ -58,3 +58,22 @@ return. A Linux session using the actual Rust arena reproduced eight consecutive
 all eight refusals returned to zero. Successful repeated opens also cleaned to
 zero. This is a local upstream-patch evaluation, not an accepted upstream fix;
 the adapter does not silently fetch or patch a library during its build.
+
+`Callbacks` and `export_zenoh_pico_callbacks!` bind the C PAL in `c/platform.c` to
+that worker, arena and a target-supplied `CallbackPlatform`. The C declarations
+and finite socket types live in `include/`. The target owns context initialization
+and exclusive single-worker access. Never hold a critical section, interrupt
+mask or cross-core lock across a callback: worker waits need the network owner
+and sampler to keep running. Only individual bridge/snapshot accesses lock.
+Entropy failure parks/retires the isolated worker without substituting bytes;
+its backing cannot be reused before retirement. Wall time may be unavailable.
+Endpoint strings come from an actual generation-matched socket snapshot.
+
+The raw ABI still requires valid caller-owned extents and aligned u32 outputs;
+null, declared-size and slot checks cannot authenticate arbitrary C pointers.
+Provide disjoint local/remote output buffers. Tests instantiate and invoke the
+exported ABI using explicit fixture providers, not hardware entropy or clocks.
+Production must supply those resources and verify `CONDUIT_Z_ALLOC_ALIGNMENT`
+against its Rust arena. The C PAL deliberately fails to compile without that
+alignment definition. It is compiled separately with the pinned Zenoh headers;
+the Rust build neither downloads a library nor installs callbacks automatically.

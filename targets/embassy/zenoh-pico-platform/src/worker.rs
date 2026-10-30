@@ -35,7 +35,7 @@ impl<'a, A: BridgeAccess<RX, TX>, R: WorkerRuntime, const RX: usize, const TX: u
             close_timeout_ms,
         })
     }
-    fn generation(&self, generation: u32) -> Result<SocketGeneration, Refusal> {
+    pub(crate) fn generation(&self, generation: u32) -> Result<SocketGeneration, Refusal> {
         self.bridge.with(|b| {
             b.generation()
                 .filter(|g| g.get() == generation)

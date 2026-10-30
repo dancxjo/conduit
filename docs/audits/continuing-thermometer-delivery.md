@@ -150,6 +150,26 @@ upstream patch provenance before adoption; raising the grant or resetting the
 pool would conceal the lifetime bug. Local patch evidence is not upstream
 acceptance, full reconnect coverage or MCU recovery proof.
 
+ARMv6-M cross-compilation now also succeeds with the existing Clang and verified,
+user-extracted newlib headers/libraries; no system installation, GCC download,
+Pico SDK or OS was required. With the same generated feature profile as ESP32,
+the retained open/sub/put/pump/close relocatable closure plus the real C PAL and
+needed newlib-nano members contains 61,942 text bytes, 80 data bytes and 316 BSS
+bytes. Only Rust callback entrances and five ARM arithmetic helpers remain
+unresolved; the latter are present in the installed Rust compiler-builtins.
+No libc allocator or syscall symbols remain in this measured closure. These
+are partial-link measurements, not a firmware flash delta or full static RAM.
+
+The exported Rust C callback bindings pass extent/slot/generation, partial-byte,
+arena, missing-time and endpoint tests with fixture providers. Actual core1
+context, hardware clock/entropy, disjoint existing-heap partition and linked
+firmware remain required. Green's retained ELF has only 32,824 bytes below its
+checked static bound, so adding a 16 KiB stack and 16 KiB arena independently
+would leave no useful buffer margin. Reuse/partition already offered backing
+before allocator initialization, account for both heaps and stacks, and retain
+the existing sampler/display executor and stack guard. A worker fault does not
+authorize reclaiming its still-live arena or losing local Play.
+
 ### Protocol reuse without additional MCU stacks
 
 Keep one Conduit architecture across protocol realizations. Zenoh is the active
