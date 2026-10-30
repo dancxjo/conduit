@@ -50,6 +50,7 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
         }
         .map_err(|_| ())?;
     }
+    crate::flash_observation::append(&mut out).map_err(|_| ())?;
     out.push('}').map_err(|_| ())?;
     Ok(out)
 }
