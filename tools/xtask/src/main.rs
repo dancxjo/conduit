@@ -157,6 +157,20 @@ fn run_journey(args: cli::DemoArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std
 
 fn run_make(target: MakeTarget, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match target {
+        MakeTarget::LinuxFaceDisplay { mut arguments } => {
+            for (enabled, flag) in [
+                (opts.dry_run, "--dry-run"),
+                (opts.json, "--json"),
+                (opts.quiet, "--quiet"),
+                (opts.locked, "--locked"),
+            ] {
+                if enabled {
+                    arguments.push(flag.into());
+                }
+            }
+            commands::linux_face_display::run(&arguments)
+                .map_err(|error| std::io::Error::other(error).into())
+        }
         MakeTarget::Avr(args) => commands::avr::run(args, opts),
         MakeTarget::Browser => commands::browser::run(opts),
         MakeTarget::Body(args) => commands::body::run(args, opts),

@@ -11,10 +11,21 @@ replacement Face. Larger unsupported layouts fall back to the ordinary scene.
 Actions are unavailable. It is not yet an installed Host-selected display Back
 or a hardware Show acknowledgement.
 
-This package is a development adapter. Its supported `cargo xtask` release
-entrance and ARM artifact qualification are not yet integrated on this source
-base; the historical `linux-armv6-face` platform is absent here. Prepare and
-qualify deployment artifacts off the Pi before replacing an installed binary.
+This package is a development adapter. Build and qualify it off the Pi through
+`cargo xtask make linux-face-display --target linux-aarch64 --output NEW_DIRECTORY
+--source-identity FULL_GIT_SHA --linker ABSOLUTE_AARCH64_GCC_PATH
+--linker-sha256 SHA256` (one command). The source checkout must be clean and match
+the full commit identity. The explicit linker executable must match its digest
+and report `aarch64-linux-gnu`. Rust 1.98.1 and the locked dependency resolution
+are used with two build jobs. `CARGO_TARGET_DIR` may select an existing cache.
+`--dry-run --json` validates inputs without building or creating the output.
+
+A successful build creates the executable and `qualification.json` in a new
+output directory, recording source, compiler, target and exact executable SHA256.
+Qualification checks ELF64 little-endian AArch64 and the canonical Linux dynamic
+interpreter. It does not qualify the complete SDK/sysroot, target glibc compatibility,
+physical scanout, membership, a Host-selected Back or a release bundle. Those
+remain separate proofs. This command does not install or deploy anything.
 The checked Linux framebuffer must expose packed RGB565, 240–1920 by 240–1200,
 with valid memory, offsets, and row stride.
 
