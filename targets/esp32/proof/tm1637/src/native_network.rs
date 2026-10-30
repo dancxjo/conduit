@@ -32,6 +32,7 @@ pub struct NativeNetwork {
 #[derive(serde::Serialize)]
 pub struct Inspection {
     pub runner_polls: [u32; 2],
+    pub observed_services: Option<&'static str>,
     pub ap_link: Option<bool>,
     pub station_link: Option<bool>,
     pub ap_configured: Option<bool>,
@@ -44,6 +45,15 @@ impl NativeNetwork {
         let stacks = self.stacks();
         Inspection {
             runner_polls: crate::network::runner_polls(),
+            observed_services: crate::services::MAILBOX.observed_state().map(|state| {
+                use conduit_environment_http::service_control::ServiceState;
+                match state {
+                    ServiceState::Ready => "access-point-ready",
+                    ServiceState::StationReady => "station-ready",
+                    ServiceState::Stopped => "stopped",
+                    ServiceState::Failed => "failed",
+                }
+            }),
             ap_link: stacks.map(|(ap, _)| ap.is_link_up()),
             station_link: stacks.map(|(_, station)| station.is_link_up()),
             ap_configured: stacks.map(|(ap, _)| ap.is_config_up()),
@@ -79,6 +89,32 @@ impl NativeNetwork {
     pub fn retain_services(&mut self, services: crate::services::Owner) {
         assert!(self.services.is_none() && self.radio.is_some());
         self.services = Some(services);
+    }
+    /// Bootstrap readers have their own retained Root owner. Failure recovery
+    /// must not depend on admission of another station Play or journal entry.
+    /// This never changes radio mode, selects a provider, or renews a command
+    /// grant: restore spends the original service handle's finite allowance.
+    pub async fn restore_failed_preparation_service(&mut self) -> Result<(), &'static str> {
+        use conduit_esp32_network_switch::AccessPointServices;
+        if self.selected || self.adapter.is_some() || self.ready.is_some() {
+            return Ok(());
+        }
+        let Some(radio) = self.radio.as_ref() else {
+            return Ok(());
+        };
+        if !radio.stacks.0.is_link_up() || !radio.stacks.0.is_config_up() {
+            return Ok(());
+        }
+        let Some(services) = self.services.as_mut().filter(|services| services.failed()) else {
+            return Ok(());
+        };
+        if services.remaining_commands() == 0 {
+            return Err("preparation-services-capacity");
+        }
+        embassy_time::with_timeout(Duration::from_secs(5), services.restore())
+            .await
+            .map_err(|_| "preparation-services-deadline")?
+            .map_err(|_| "preparation-services-refused")
     }
     pub fn is_ready(&self) -> bool {
         self.ready.is_some()

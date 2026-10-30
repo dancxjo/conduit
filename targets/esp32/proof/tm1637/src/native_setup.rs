@@ -533,6 +533,12 @@ impl NativeRoot {
     }
     #[cfg(not(feature = "network-workspace-check"))]
     async fn advance_setup_enabled(&mut self) {
+        if let Err(reason) = self.network.restore_failed_preparation_service().await {
+            #[cfg(feature = "local-appliance")]
+            self.trace_network_workspace("preparation-services", reason);
+            #[cfg(not(feature = "local-appliance"))]
+            let _ = reason;
+        }
         #[cfg(all(feature = "network-scan", feature = "local-appliance"))]
         if self.scan.is_some() {
             self.advance_recovery_scan().await;

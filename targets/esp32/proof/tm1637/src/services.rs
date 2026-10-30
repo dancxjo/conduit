@@ -144,6 +144,15 @@ pub struct Owner {
     control: ServiceControl<'static>,
     observations: bool,
 }
+impl Owner {
+    /// Evidence for this retained handle's latest command, never an old Ready.
+    pub(crate) fn failed(&self) -> bool {
+        self.control.acknowledged_state() == Some(ServiceState::Failed)
+    }
+    pub(crate) fn remaining_commands(&self) -> u32 {
+        self.control.remaining_commands()
+    }
+}
 impl conduit_esp32_network_switch::AccessPointServices for Owner {
     async fn withdraw(&mut self) -> Result<(), conduit_net::StationFailure> {
         if self.observations {
