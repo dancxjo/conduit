@@ -56,3 +56,6 @@ conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
 conduit-environment-face = { path = "../../../../bodies/environment/face" }
 conduit-face = { path = "../../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+
+[build-dependencies]
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }

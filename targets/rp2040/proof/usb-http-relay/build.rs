@@ -14,7 +14,11 @@ fn main() {
         "src/test_ap.rs",
         "src/bench_mdns.rs",
         "../../firmware/pico-w-signal/src/radio.rs",
-        "../../firmware/pico-w-signal/memory.x",
+        "../../deployment/browser/flash-layout.mjs",
+        "../../flash-layout/Cargo.toml",
+        "../../flash-layout/build.rs",
+        "../../flash-layout/build/definition.rs",
+        "../../flash-layout/src/lib.rs",
     ] {
         println!("cargo:rerun-if-changed={path}");
         let bytes = std::fs::read(path).unwrap();
@@ -101,12 +105,12 @@ fn main() {
         .unwrap();
     assert_eq!(digest.len(), 64);
     println!("cargo:rustc-env=CONDUIT_RELAY_BUILD_ID={digest}");
-    println!("cargo:rerun-if-changed=../../firmware/pico-w-signal/memory.x");
+    println!("cargo:rerun-if-changed=../../deployment/browser/flash-layout.mjs");
     if std::env::var("TARGET").unwrap().starts_with("thumbv6m-") {
         let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
         std::fs::write(
             out.join("memory.x"),
-            include_bytes!("../../firmware/pico-w-signal/memory.x"),
+            conduit_rp2040_flash_layout::LINKER_MEMORY_X,
         )
         .unwrap();
         println!("cargo:rustc-link-search={}", out.display());

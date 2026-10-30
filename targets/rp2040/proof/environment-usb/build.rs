@@ -72,8 +72,11 @@ fn main() {
     if dht {
         build_dht::emit(&out);
     }
-    let memory = fs::read_to_string("../../firmware/pico-w-signal/memory.x").unwrap();
-    fs::write(out.join("memory.x"), memory).unwrap();
+    fs::write(
+        out.join("memory.x"),
+        conduit_rp2040_flash_layout::LINKER_MEMORY_X,
+    )
+    .unwrap();
     fs::write(out.join("bounds.x"),format!("ASSERT(__euninit - __sdata <= {}, \"Host static memory bound exceeded\");\nASSERT(_stack_start - __euninit >= 16384, \"USB Host stack below16KiB\");\n",checked.configuration().limits.static_memory_bytes)).unwrap();
     println!("cargo:rustc-link-search={}", out.display());
     println!("cargo:rustc-link-arg=-Tlink.x");
@@ -81,7 +84,9 @@ fn main() {
     println!("cargo:rustc-link-arg=--nmagic");
     let mut files = vec![
         profile,
-        PathBuf::from("../../firmware/pico-w-signal/memory.x"),
+        PathBuf::from("../../deployment/browser/flash-layout.mjs"),
+        PathBuf::from("../../flash-layout/Cargo.toml"),
+        PathBuf::from("../../flash-layout/build.rs"),
         PathBuf::from("../usb-http-relay/src/lib.rs"),
     ];
     if env::var_os("CARGO_FEATURE_ZENOH_EVALUATION").is_some() {
@@ -90,6 +95,8 @@ fn main() {
     files.push("build_zenoh.rs".into());
     for path in [
         "src",
+        "../../flash-layout/src",
+        "../../flash-layout/build",
         "../../make/src",
         "../../../../make/host/src",
         "../../../../mechanisms/io/ht16k33/src",

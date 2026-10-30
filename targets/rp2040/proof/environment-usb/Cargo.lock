@@ -309,6 +309,7 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
+ "conduit-rp2040-flash-layout",
  "conduit-semantic-catalog",
  "serde",
  "serde_json",
@@ -383,6 +384,7 @@ dependencies = [
  "conduit-net",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-rp2040-flash-layout",
  "conduit-rp2040-pulse-capture",
  "conduit-rp2040-tm1637",
  "conduit-seven-segment-mask",
@@ -460,6 +462,14 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-rp2040-flash-layout"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
