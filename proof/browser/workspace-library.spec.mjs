@@ -232,6 +232,9 @@ test("the reviewed shelf reveals conversation Plots without pretending this brow
 });
 
 test("window focus loss retires the pending Play and lets the same body wake again", async ({ page }) => {
+  // The retained Integration trace completed every assertion, but cold Body
+  // preparation plus two Wakes exhausted the default aggregate test budget.
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await birth(page);
   const before = await current(page);
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
