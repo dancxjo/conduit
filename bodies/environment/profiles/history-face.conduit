@@ -1,0 +1,17 @@
+# One semantic measurement channel. The selected producer supplies quantities
+# and their original clock basis; the window profile supplies finite retention
+# and an explicit value range. Neither this Plot nor its Mask chooses a Host.
+# The Body projects authenticated measuring-Host attribution onto its fragment.
+plot environmental-history-face (
+    >> profile: MeasurementWindowProfile
+    >> measurement: MeasurementSample...|
+) {
+    retain: data/measurement-count-window
+    project: data/bounded-measurement-plot
+    history: face/measurement-plot("Environmental history")
+
+    profile >> retain.profile
+    measurement >> retain.measurement
+    retain.window >> project.window
+    project.series >> history.series
+}
