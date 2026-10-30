@@ -19,8 +19,8 @@ async function fixture(t) {
     status: 'completed', name, conclusion,
   })) };
   const machine = machinePolicyFixture('example/conduit'); let observations = 0;
-  const protection = { required_status_checks: { strict: false, contexts: ['train-accepted'],
-    checks: [{ context: 'train-accepted', app_id: 15368 }] }, required_pull_request_reviews: null,
+  const protection = { required_status_checks: { strict: false, contexts: ['train-proof'],
+    checks: [{ context: 'train-proof', app_id: 15368 }] }, required_pull_request_reviews: null,
     enforce_admins: { enabled: true }, allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const observeCheapPolicy = () => {
     observations++;

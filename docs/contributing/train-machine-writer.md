@@ -1,20 +1,62 @@
 # Dedicated development train writer
 
-This follow-up is an inactive setup contract. No GitHub App has been registered,
-no real App/installation/ruleset identity is supplied, and no live policy has
-been installed by this change. The example configuration deliberately refuses
-activation. It does not enable global cheap PR admission.
+This contract separates source implementation from live deployment. The example
+configuration deliberately refuses activation; an operator must supply independently
+verified real identities and credentials. Registering an App or installing policy
+does not establish exact-source train acceptance or enable cheap PR admission.
+
+## Deployment checkpoint: 30 October 2026 UTC
+
+For `dancxjo/conduit` (repository 1315334389), the owner verified the private
+`conduit-integration` App 5536536 and selected-repository installation 176767085.
+The installation exposes only this repository, with the permission map below and
+no event subscriptions. Active repository ruleset 26183840 restricts updates to
+`refs/heads/dev` with only that App's audited always-bypass. Independent classic
+protection requires `train-accepted` from Actions App 15368 for administrators too,
+requires no pull request, and prohibits force pushes and deletion. The observer
+is the pinned personal owner `dancxjo` (5297450).
+
+The authenticated session validated both gates and scoped token custody. A real
+App update to an unchanged-tree successor without train proof was refused with
+HTTP 422 and `Required status check "train-accepted" is expected`; remote dev
+remained unchanged. REST's omitted update parameters were independently resolved
+to stored false through GraphQL after the compatibility correction in
+[#6598](https://github.com/dancxjo/conduit/pull/6598).
+
+The first exhaustive manual train subsequently passed all product lanes, but
+GitHub refused the exact-source App update because job checks from
+`workflow_dispatch` do not satisfy required branch checks. See GitHub's
+[eligible-event restriction](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks#checks-from-some-workflow-jobs-are-not-evaluated).
+No protected update occurred. This correction introduces the separate
+`train-proof` commit status, authored only by Actions after the successful
+exhaustive aggregate. Its description and target bind the successful run and
+attempt. The controller requires that exact current status, its Actions author,
+and the original successful `train-accepted` check before and after restoration.
+Only the aggregate job receives `statuses:write`; the writer App retains
+checks:read and has no status-writing permission. Operators must explicitly
+migrate the classic required context to `train-proof` from Actions App 15368;
+the old job-check gate is refused by the corrected controller.
+
+App identity reads use a bounded Python HTTPS GET transport with Bearer JWT
+authentication, fixed GitHub host, no redirects and generic credential-free
+errors. This avoids the installed gh transport's JWT rejection while leaving
+installation-token and owner-observer channels separate.
+
+These are source corrections pending live acceptance under
+[#6509](https://github.com/dancxjo/conduit/issues/6509). No successful landing,
+adoption or publication is claimed by these changes. Cheap admission remains
+unset, history migration remains unperformed, and credentials stay outside Git.
 
 The earlier train implementation requires exact-source exhaustive Integration
 proof and verifies its artifacts before a non-forced development update. Requiring
-`train-accepted` from Actions distinguishes that proof from ordinary Candidate
+`train-proof` from Actions distinguishes that proof from ordinary Candidate
 success, but does not make the writer machine-exclusive: another authorized
 writer can update the same checked commit outside the lander. This follow-up
 adds a separate writer restriction without bypassing proof protection.
 
 ## Two independent server gates
 
-Classic `dev` protection must require only `train-accepted` from Actions app
+Classic `dev` protection must require only `train-proof` from Actions app
 15368, enforce it for administrators, require no PR, prohibit force pushes and
 deletion, and contain no unrecognized requirement or classic push restriction.
 Its purpose is proof, not writer identity.
@@ -192,7 +234,7 @@ proof protection with operator authority, then read both back. Do not make PR
 checks cheaper until the enforced writer/proof contract has positive live proof.
 
 Required hosted acceptance includes: the wrong actor cannot update even a green
-commit; the configured App cannot update without `train-accepted`; unknown
+commit; the configured App cannot update without `train-proof`; unknown
 policy or stale identity refuses before mutation; the App lands only the exact
 restored source without force; actual dev push Integration adopts the original
 proof; publication authenticates the same products. Fixtures establish validator

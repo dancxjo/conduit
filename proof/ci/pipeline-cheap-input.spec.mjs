@@ -18,8 +18,8 @@ function cheap(selection) {
 }
 function policy(repository) {
   const f = machinePolicyFixture(repository);
-  const protection = { required_status_checks: { contexts: ['train-accepted'],
-    checks: [{ context: 'train-accepted', app_id: 15368 }], strict: false },
+  const protection = { required_status_checks: { contexts: ['train-proof'],
+    checks: [{ context: 'train-proof', app_id: 15368 }], strict: false },
     required_pull_request_reviews: null, enforce_admins: { enabled: true },
     allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const calls = [];
