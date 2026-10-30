@@ -1,4 +1,6 @@
-use alloc::{boxed::Box, string::String, vec::Vec};
+//! Canonical configuration values; immutable linked bytes and owned input share
+//! identical validation, equality and wire representation.
+use alloc::{borrow::Cow, boxed::Box, string::String, vec::Vec};
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
 use crate::{KindId, PortId, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
@@ -6,11 +8,22 @@ use crate::{KindId, PortId, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StructuredConfigurationValue {
     profile: KindId,
-    canonical_value: Vec<u8>,
+    canonical_value: Cow<'static, [u8]>,
 }
 
 impl StructuredConfigurationValue {
     pub fn new(profile: KindId, canonical_value: Vec<u8>) -> Option<Self> {
+        Self::from_storage(profile, Cow::Owned(canonical_value))
+    }
+
+    /// Retain complete immutable canonical bytes linked into this executable.
+    /// Validation is identical to owned input; linkage conveys no checked
+    /// Source provenance, capability custody or execution authority.
+    pub fn from_static(profile: KindId, canonical_value: &'static [u8]) -> Option<Self> {
+        Self::from_storage(profile, Cow::Borrowed(canonical_value))
+    }
+
+    fn from_storage(profile: KindId, canonical_value: Cow<'static, [u8]>) -> Option<Self> {
         if profile.as_str().is_empty()
             || canonical_value.is_empty()
             || canonical_value.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES

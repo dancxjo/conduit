@@ -14,7 +14,7 @@ pub(super) fn emit(value: &c::ConfigurationValue) -> Result<String, fmt::Error> 
             value.as_str()
         ),
         V::Structured(value) => format!(
-            "c::ConfigurationValue::Structured(c::StructuredConfigurationValue::new({:?}.into(), alloc::vec!{:?}).expect(\"Make-checked structured configuration\"))",
+            "c::ConfigurationValue::Structured(c::StructuredConfigurationValue::from_static({:?}.into(), &{:?}).expect(\"Make-checked structured configuration\"))",
             value.profile().as_str(), value.canonical_value()
         ),
         V::Quantity(value) => format!(
@@ -73,14 +73,16 @@ mod tests {
             .join(",\n");
         let expected = serde_json::to_vec(&values).unwrap();
         std::fs::write(directory.join("src/main.rs"), format!(
-            "extern crate alloc; use conduit_core as c; fn main() {{ let actual: alloc::vec::Vec<c::ConfigurationValue> = alloc::vec![{expressions}]; assert_eq!(serde_json::to_vec(&actual).unwrap(), {:?}); }}", expected
+            "extern crate alloc; use conduit_core as c; fn main() {{ let actual: alloc::vec::Vec<c::ConfigurationValue> = alloc::vec![{expressions}]; for value in &actual {{ if let c::ConfigurationValue::Structured(value) = value {{ assert_eq!(value.canonical_value().as_ptr(), value.clone().canonical_value().as_ptr()); }} }} assert_eq!(serde_json::to_vec(&actual).unwrap(), {:?}); }}", expected
         )).unwrap();
         let output = std::process::Command::new("cargo")
             .args(["+stable", "run", "--offline", "--quiet", "--manifest-path"])
             .arg(directory.join("Cargo.toml"))
             .env(
                 "CARGO_TARGET_DIR",
-                root.join("target/linked-value-conformance"),
+                std::env::var_os("CARGO_TARGET_DIR")
+                    .map(|path| std::path::PathBuf::from(path).join("linked-value-conformance"))
+                    .unwrap_or_else(|| root.join("target/linked-value-conformance")),
             )
             .env("CARGO_INCREMENTAL", "0")
             .output()
