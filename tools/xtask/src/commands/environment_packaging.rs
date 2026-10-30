@@ -124,6 +124,7 @@ fn validate_symbols(symbols: &str) -> Result<(), Box<dyn Error>> {
     if ![
         "conduit_planner::indexed_source::plan_with_connection_limits",
         "conduit_planner::indexed_source::compact::plan_compact_consuming_with_connection_limits",
+        "conduit_planner::indexed_source::compact::plan_compact_with_indexed_offers_and_connection_limits",
     ]
     .iter()
     .any(|planner| symbols.contains(planner))
@@ -187,10 +188,19 @@ mod tests {
         let planner = "conduit_planner::indexed_source::plan_with_connection_limits";
         validate_symbols(planner).unwrap();
         validate_symbols("conduit_planner::indexed_source::compact::plan_compact_consuming_with_connection_limits").unwrap();
+        let indexed = "conduit_planner::indexed_source::compact::plan_compact_with_indexed_offers_and_connection_limits";
+        validate_symbols(indexed).unwrap();
         assert!(validate_symbols("").is_err());
         assert!(
             validate_symbols(&format!("{planner}\nconduit_plot::parse_syntax_document")).is_err()
         );
+        for authoring in [
+            "conduit_plot::parse_syntax_document",
+            "conduit_plot::check_syntax_document",
+            "conduit_plot::canonical_expansion::",
+        ] {
+            assert!(validate_symbols(&format!("{indexed}\n{authoring}")).is_err());
+        }
     }
     #[test]
     fn maintenance_requires_custody_and_refuses_autonomous_execution() {
