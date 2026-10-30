@@ -77,6 +77,70 @@ pub(crate) fn default_planning_placements(
     Ok(PlacementChoices { by_gear })
 }
 
+#[cfg(feature = "indexed-source")]
+pub(crate) fn default_access_placements(
+    gears: &PlanningGears<'_>,
+    connections: &[CheckedConnection],
+    access: &crate::offer_access::OfferAccess<'_>,
+) -> Result<PlacementChoices, PlannerError> {
+    if quantity_selection::needed_access(gears, access)? {
+        return quantity_selection::select_access(gears, connections, access);
+    }
+    if access.len() == 0 {
+        return Err(PlannerError::UnknownHost("hosts is empty".to_string()));
+    }
+    let mut by_gear = BTreeMap::new();
+    let mut selected_counts = BTreeMap::new();
+    for gear in gears.iter() {
+        let gear = gear?;
+        let mut candidates = Vec::new();
+        for host in 0..access.len() {
+            for index in 0..access.count(host)? {
+                let offer = access.offer(host, index)?;
+                if gear.accepts_realization(&offer) {
+                    candidates.push(crate::offer_access::CandidateEvidence::capture(
+                        host,
+                        access.host(host),
+                        &gear.kind_id,
+                        offer,
+                    ));
+                }
+            }
+        }
+        let mut candidates =
+            crate::language_coverage::filter_candidate_evidence(&gear, candidates, |c| c.fields())?;
+        candidates.retain(|c| {
+            selected_counts
+                .get(&(access.host(c.host).host_id.clone(), c.capability_id.clone()))
+                .copied()
+                .unwrap_or(0)
+                < c.maximum_instances
+        });
+        candidates.sort_by(|a, b| {
+            (a.host, a.different_kind, &a.capability_id).cmp(&(
+                b.host,
+                b.different_kind,
+                &b.capability_id,
+            ))
+        });
+        let candidate = candidates
+            .first()
+            .ok_or_else(|| PlannerError::UnknownCapability(gear.kind_id.as_str().to_string()))?;
+        let host = access.host(candidate.host);
+        *selected_counts
+            .entry((host.host_id.clone(), candidate.capability_id.clone()))
+            .or_default() += 1;
+        by_gear.insert(
+            gear.gear_id.clone(),
+            PlacementChoice {
+                host_id: host.host_id.clone(),
+                capability_id: candidate.capability_id.clone(),
+            },
+        );
+    }
+    Ok(PlacementChoices { by_gear })
+}
+
 pub(crate) fn compare_default_candidates_ref(
     gear: conduit_plot::CheckedGearRef<'_>,
     left_host: usize,

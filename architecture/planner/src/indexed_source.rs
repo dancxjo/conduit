@@ -75,6 +75,29 @@ pub use authoring::IndexedAuthoringBoundary;
 mod compact;
 pub use compact::{
     plan_compact_authoring_consuming_with_connection_limits,
-    plan_compact_authoring_with_connection_limits, plan_compact_consuming_with_connection_limits,
-    plan_compact_with_connection_limits, CompactIndexedPlan,
+    plan_compact_authoring_with_connection_limits,
+    plan_compact_authoring_with_indexed_offers_and_connection_limits,
+    plan_compact_consuming_with_connection_limits, plan_compact_with_connection_limits,
+    plan_compact_with_indexed_offers_and_connection_limits, CompactIndexedPlan,
 };
+
+mod offers;
+pub use offers::{IndexedHostOffers, IndexedSoftwareOffers};
+
+/// Select against complete native facts and stable borrowed Make software.
+pub fn default_placements_with_indexed_offers(
+    image: &IndexedSourceImage<'_>,
+    hosts: &[IndexedHostOffers<'_>],
+) -> Result<PlacementChoices, PlannerError> {
+    let metadata = image.planning_metadata().map_err(|e| {
+        PlannerError::InvalidPlotIdentity(alloc::format!("indexed Source metadata: {e:?}"))
+    })?;
+    crate::functional_compatibility::default_access_placements(
+        &PlanningGears::indexed(image),
+        metadata.connections(),
+        &crate::offer_access::OfferAccess::Indexed(hosts),
+    )
+}
+
+#[cfg(test)]
+pub(crate) mod test_support;

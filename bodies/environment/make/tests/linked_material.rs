@@ -119,12 +119,27 @@ opt-level = 1
     generated.push_str(r#"
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+struct NoSoftware;
+// SAFETY: the immutable empty Make set has no decodable entries or effects.
+unsafe impl conduit_planner::indexed_source::IndexedSoftwareOffers for NoSoftware {
+    fn len(&self) -> usize { 0 }
+    fn decode(&self, _: usize) -> Result<c::CapabilityOffer, conduit_planner::PlannerError> {
+        Err(conduit_planner::PlannerError::UnknownCapability("empty software".into()))
+    }
+}
 fn plan<'a>(image: &'a conduit_plot::flat_image::indexed::IndexedSourceImage<'a>, host: &c::HostAdvertisement, grants: &[c::AuthorityGrant], consuming: bool) -> Result<conduit_planner::indexed_source::CompactIndexedPlan<'a>, conduit_planner::PlannerError> {
-    use std::collections::BTreeMap;
     // Count the same incoming advertisement ownership in both measurements.
-    let owned_host = host.clone();
+    plan_input(image, host.clone(), grants, consuming, None)
+}
+fn plan_input<'a>(image: &'a conduit_plot::flat_image::indexed::IndexedSourceImage<'a>, owned_host: c::HostAdvertisement, grants: &[c::AuthorityGrant], consuming: bool, software: Option<&dyn conduit_planner::indexed_source::IndexedSoftwareOffers>) -> Result<conduit_planner::indexed_source::CompactIndexedPlan<'a>, conduit_planner::PlannerError> {
+    use std::collections::BTreeMap;
     let hosts = std::slice::from_ref(&owned_host);
-    let placements = conduit_planner::indexed_source::default_placements(image, hosts)?;
+    let virtual_hosts = [conduit_planner::indexed_source::IndexedHostOffers { native: &owned_host, software: software.unwrap_or(&NoSoftware) }];
+    let placements = if software.is_some() {
+        conduit_planner::indexed_source::default_placements_with_indexed_offers(image, &virtual_hosts)?
+    } else {
+        conduit_planner::indexed_source::default_placements(image, hosts)?
+    };
     let metadata = image.metadata().unwrap();
     let queues: BTreeMap<_, _> = metadata.connections().iter().map(|cord| {
         let sink = (0..image.gear_count()).map(|i| image.gear(i).unwrap()).find(|gear| gear.gear_id == cord.sink_gear_id).unwrap();
@@ -138,7 +153,9 @@ fn plan<'a>(image: &'a conduit_plot::flat_image::indexed::IndexedSourceImage<'a>
         connection_bases: &empty, line_candidates: &lines, connection_item_capacity: 1, connection_byte_capacity: 1024,
         authority_grants: grants, protected_resource_grants: &[], line_offers: &[],
     };
-    if consuming {
+    if software.is_some() {
+        conduit_planner::indexed_source::plan_compact_with_indexed_offers_and_connection_limits(image, &virtual_hosts, &placements, &["conduit.base/local@1".into()], options, &queues)
+    } else if consuming {
         conduit_planner::indexed_source::plan_compact_consuming_with_connection_limits(image, vec![owned_host], &placements, &["conduit.base/local@1".into()], options, &queues)
     } else {
         conduit_planner::indexed_source::plan_compact_with_connection_limits(image, hosts, &placements, &["conduit.base/local@1".into()], options, &queues)
@@ -206,6 +223,20 @@ fn main() {
     assert!(largest_linked_peak <= 8 * 1024);
     let native: c::HostAdvertisement = serde_json::from_slice(include_bytes!("../native-host.json")).unwrap();
     let grants: Vec<c::AuthorityGrant> = serde_json::from_slice(include_bytes!("../grants.json")).unwrap();
+    // Both measurements include one native descriptor clone. The eager path
+    // also constructs the complete linked software catalogue inside its boundary;
+    // the indexed path borrows the actual initialized software owner instead.
+    let (indexed_plan, indexed_memory) = allocation_probe::observe(|| plan_input(&linked, native.clone(), &grants, false, Some(&ready)).unwrap());
+    let (eager_plan, eager_memory) = allocation_probe::observe(|| {
+        let mut host = native.clone();
+        host.capabilities.extend(ready.decoded().map(Result::unwrap));
+        plan_input(&linked, host, &grants, true, None).unwrap()
+    });
+    assert_eq!(indexed_plan.materialize().unwrap(), eager_plan.materialize().unwrap());
+    assert_eq!(plan_input(&linked, native.clone(), &[], false, Some(&ready)).err().unwrap(), plan(&linked, &{ let mut host = native.clone(); host.capabilities.extend(ready.decoded().map(Result::unwrap)); host }, &[], true).err().unwrap());
+    assert!(indexed_memory.peak_bytes < eager_memory.peak_bytes);
+    println!("actual_sampler_indexed_peak={} eager_catalogue_peak={} indexed_retained={} eager_retained={}", indexed_memory.peak_bytes, eager_memory.peak_bytes, indexed_memory.retained_bytes(), eager_memory.retained_bytes());
+    drop((indexed_plan, eager_plan));
     let mut rich_host = native.clone(); rich_host.capabilities.extend(rich);
     let mut linked_host = native; linked_host.capabilities.extend(compact);
     let (rich_plan, rich_plan_memory) = allocation_probe::observe(|| plan(&ordinary, &rich_host, &grants, false).unwrap());

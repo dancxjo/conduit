@@ -28,34 +28,63 @@ pub(crate) fn admit_minima(
             .iter()
             .find(|offer| offer.capability_id == choice.capability_id)
             .ok_or_else(|| unknown_capability(&choice.capability_id))?;
-        for requirement in &capability.resource_requirements {
-            if requirement.compute.is_none() {
-                continue;
-            }
-            let pool = crate::resource_binding::resolve_resource_pool(
-                host,
-                capability,
-                &requirement.class_id,
-            )?;
-            let minimum = remaining
-                .entry((host.host_id.clone(), pool.pool_id.clone()))
-                .or_insert(0);
-            *minimum = minimum.checked_add(requirement.units).ok_or_else(|| {
-                PlannerError::ResourceCapacityExceeded(pool.pool_id.as_str().to_string())
-            })?;
-            if *minimum > pool.capacity_units {
-                return Err(PlannerError::ResourceCapacityExceeded(format!(
-                    "pool '{}' compute minima require {} lanes above capacity {}",
-                    pool.pool_id.as_str(),
-                    *minimum,
-                    pool.capacity_units
-                )));
-            }
-        }
+        admit_offer_minima(host, capability, &mut remaining)?;
     }
+
     Ok(remaining)
 }
 
 fn unknown_capability(capability_id: &CapabilityId) -> PlannerError {
     PlannerError::UnknownCapability(capability_id.as_str().to_string())
+}
+
+#[cfg(feature = "indexed-source")]
+pub(crate) fn admit_access_minima(
+    gears: &crate::planning_input::PlanningGears<'_>,
+    access: &crate::offer_access::OfferAccess<'_>,
+    placements: &PlacementChoices,
+) -> Result<RemainingComputeMinimum, PlannerError> {
+    let mut remaining = BTreeMap::new();
+    for gear in gears.iter() {
+        let gear = gear?;
+        let choice = placements
+            .by_gear
+            .get(&gear.gear_id)
+            .ok_or_else(|| PlannerError::MissingPlacement(gear.gear_id.as_str().into()))?;
+        let host = access.host_index(&choice.host_id, true)?;
+        let capability = access.find(host, &choice.capability_id)?;
+        admit_offer_minima(access.host(host), &capability, &mut remaining)?;
+    }
+    Ok(remaining)
+}
+fn admit_offer_minima(
+    host: &HostAdvertisement,
+    capability: &conduit_core::CapabilityOffer,
+    remaining: &mut RemainingComputeMinimum,
+) -> Result<(), PlannerError> {
+    for requirement in &capability.resource_requirements {
+        if requirement.compute.is_none() {
+            continue;
+        }
+        let pool = crate::resource_binding::resolve_resource_pool(
+            host,
+            capability,
+            &requirement.class_id,
+        )?;
+        let minimum = remaining
+            .entry((host.host_id.clone(), pool.pool_id.clone()))
+            .or_insert(0);
+        *minimum = minimum.checked_add(requirement.units).ok_or_else(|| {
+            PlannerError::ResourceCapacityExceeded(pool.pool_id.as_str().to_string())
+        })?;
+        if *minimum > pool.capacity_units {
+            return Err(PlannerError::ResourceCapacityExceeded(format!(
+                "pool '{}' compute minima require {} lanes above capacity {}",
+                pool.pool_id.as_str(),
+                *minimum,
+                pool.capacity_units
+            )));
+        }
+    }
+    Ok(())
 }

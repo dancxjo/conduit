@@ -185,3 +185,17 @@ fn indexed_selection_keeps_quantity_backtracking_and_refusals() {
         super::super::default_placements_unvalidated(&expanded.gears, &expanded.connections, &[]),
     );
 }
+
+#[cfg(feature = "indexed-source")]
+#[test]
+fn indexed_make_offers_preserve_quantity_backtracking_and_wire_refusal() {
+    for producer in [false, true] {
+        for consumer in [false, true] {
+            let (mut gears, connections, hosts) = fixture(producer, consumer);
+            for _ in 0..2 {
+                crate::indexed_source::test_support::selection_parity(&gears, &connections, &hosts);
+                gears.reverse();
+            }
+        }
+    }
+}

@@ -349,3 +349,19 @@ fn selected_coverage_is_retained_and_cannot_change_under_the_same_plan_identity(
     .unwrap();
     assert_ne!(original.plan_id, next.plan_id);
 }
+
+#[cfg(feature = "indexed-source")]
+#[test]
+fn indexed_make_offers_preserve_language_selection_and_refusal_evidence() {
+    for names in [&[][..], &["en"][..], &["fr"][..], &["en", "fr"][..]] {
+        let (plot, mut host) = fixture(request("en", None, false));
+        if !names.is_empty() {
+            declare(&mut host, names, vec![], false);
+        }
+        crate::indexed_source::test_support::selection_parity(
+            &plot.gears,
+            &plot.connections,
+            &[host],
+        );
+    }
+}

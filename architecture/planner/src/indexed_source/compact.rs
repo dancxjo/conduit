@@ -215,6 +215,48 @@ pub fn plan_compact_authoring_consuming_with_connection_limits<'a>(
         Some((boundary, boundary_limits)),
     )
 }
+/// Ordinary compact preparation without retaining an eager software catalogue.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_compact_with_indexed_offers_and_connection_limits<'a>(
+    image: &'a IndexedSourceImage<'a>,
+    hosts: &[super::IndexedHostOffers<'_>],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<CompactIndexedPlan<'a>, PlannerError> {
+    plan_compact_inputs(
+        image,
+        crate::validated_planning::PlanningHosts::Indexed(hosts),
+        placements,
+        bases,
+        options,
+        connection_limits,
+        None,
+    )
+}
+/// The same indexed software entrance with the existing checked Fore boundary.
+#[allow(clippy::too_many_arguments)]
+pub fn plan_compact_authoring_with_indexed_offers_and_connection_limits<'a>(
+    image: &'a IndexedSourceImage<'a>,
+    boundary: &super::IndexedAuthoringBoundary,
+    hosts: &[super::IndexedHostOffers<'_>],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+    boundary_limits: &BTreeMap<crate::ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<CompactIndexedPlan<'a>, PlannerError> {
+    plan_compact_inputs(
+        image,
+        crate::validated_planning::PlanningHosts::Indexed(hosts),
+        placements,
+        bases,
+        options,
+        connection_limits,
+        Some((boundary, boundary_limits)),
+    )
+}
 #[allow(clippy::too_many_arguments)]
 fn plan_compact_inputs<'a>(
     image: &'a IndexedSourceImage<'a>,

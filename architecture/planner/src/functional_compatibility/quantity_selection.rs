@@ -12,24 +12,65 @@ pub(super) fn needed(
     gears: &PlanningGears<'_>,
     hosts: &[HostAdvertisement],
 ) -> Result<bool, PlannerError> {
+    needed_access(gears, &crate::offer_access::OfferAccess::Ordinary(hosts))
+}
+pub(super) fn select(
+    gears: &PlanningGears<'_>,
+    connections: &[CheckedConnection],
+    hosts: &[HostAdvertisement],
+) -> Result<PlacementChoices, PlannerError> {
+    select_access(
+        gears,
+        connections,
+        &crate::offer_access::OfferAccess::Ordinary(hosts),
+    )
+}
+#[cfg(test)]
+fn rows(
+    gears: &PlanningGears<'_>,
+    hosts: &[HostAdvertisement],
+) -> Result<SelectionRows, PlannerError> {
+    rows_access(gears, &crate::offer_access::OfferAccess::Ordinary(hosts))
+}
+pub(super) fn needed_access(
+    gears: &PlanningGears<'_>,
+    access: &crate::offer_access::OfferAccess<'_>,
+) -> Result<bool, PlannerError> {
     let profile = QuantityWireContract::property_kind();
-    let relevant = |offer: &CapabilityOffer| {
-        offer
-            .realization_properties
-            .iter()
-            .any(|p| p.profile() == &profile)
-    };
-    if !hosts.iter().flat_map(|h| &h.capabilities).any(relevant) {
+    let mut any = false;
+    for host in 0..access.len() {
+        for index in 0..access.count(host)? {
+            let offer = access.offer(host, index)?;
+            if offer
+                .realization_properties
+                .iter()
+                .any(|p| p.profile() == &profile)
+            {
+                any = true;
+                break;
+            }
+        }
+        if any {
+            break;
+        }
+    }
+    if !any {
         return Ok(false);
     }
     for gear in gears.iter() {
         let gear = gear?;
-        if hosts
-            .iter()
-            .flat_map(|h| &h.capabilities)
-            .any(|offer| relevant(offer) && gear.accepts_realization(offer))
-        {
-            return Ok(true);
+        for host in 0..access.len() {
+            for index in 0..access.count(host)? {
+                let offer = access.offer(host, index)?;
+                if offer
+                    .realization_properties
+                    .iter()
+                    .any(|p| p.profile() == &profile)
+                    && gear.accepts_realization(&offer)
+                {
+                    return Ok(true);
+                }
+            }
         }
     }
     Ok(false)
@@ -40,14 +81,15 @@ struct SelectionGear {
     kind_id: conduit_core::KindId,
 }
 
-struct Candidate<'a> {
-    host: &'a HostAdvertisement,
-    offer: &'a CapabilityOffer,
+struct Candidate {
+    host_id: conduit_core::HostId,
+    capability_id: conduit_core::CapabilityId,
+    maximum_instances: u16,
     wire: QuantityWireContract,
 }
-struct SelectionRows<'a> {
+struct SelectionRows {
     gears: Vec<SelectionGear>,
-    candidates: Vec<Vec<Candidate<'a>>>,
+    candidates: Vec<Vec<Candidate>>,
 }
 struct Edge<'a> {
     source: usize,
@@ -83,43 +125,56 @@ fn contract(offer: &CapabilityOffer) -> Result<QuantityWireContract, PlannerErro
     }
     Ok(wire)
 }
-fn rows<'a>(
+fn rows_access(
     gears: &PlanningGears<'_>,
-    hosts: &'a [HostAdvertisement],
-) -> Result<SelectionRows<'a>, PlannerError> {
-    let mut rows = Vec::with_capacity(gears.len());
-    let mut identities = Vec::with_capacity(gears.len());
-    let mut count = 0usize;
+    access: &crate::offer_access::OfferAccess<'_>,
+) -> Result<SelectionRows, PlannerError> {
+    let mut identities = Vec::new();
+    let mut rows = Vec::new();
+    let mut total = 0;
     for gear in gears.iter() {
         let gear = gear?;
         let mut candidates = Vec::new();
-        for (host_index, host) in hosts.iter().enumerate() {
-            for offer in &host.capabilities {
-                if gear.accepts_realization(offer) {
-                    count += 1;
-                    if count > MAXIMUM_CANDIDATES {
+        for host in 0..access.len() {
+            for index in 0..access.count(host)? {
+                let offer = access.offer(host, index)?;
+                if gear.accepts_realization(&offer) {
+                    total += 1;
+                    if total > MAXIMUM_CANDIDATES {
                         return Err(limit("candidates"));
                     }
-                    candidates.push((host_index, host, offer));
+                    let wire = contract(&offer);
+                    candidates.push((
+                        crate::offer_access::CandidateEvidence::capture(
+                            host,
+                            access.host(host),
+                            &gear.kind_id,
+                            offer,
+                        ),
+                        wire,
+                    ));
                 }
             }
         }
         let mut candidates =
-            crate::language_coverage::filter_candidates(&gear, candidates, |c| (c.1, c.2))?;
-        candidates.sort_by_key(|(host_index, _, offer)| {
-            (
-                *host_index,
-                offer.kind_id != gear.kind_id,
-                offer.capability_id.clone(),
-            )
+            crate::language_coverage::filter_candidate_evidence(&gear, candidates, |c| {
+                c.0.fields()
+            })?;
+        candidates.sort_by(|a, b| {
+            (a.0.host, a.0.different_kind, &a.0.capability_id).cmp(&(
+                b.0.host,
+                b.0.different_kind,
+                &b.0.capability_id,
+            ))
         });
         let row = candidates
             .into_iter()
-            .map(|(_, host, offer)| {
+            .map(|(c, wire)| {
                 Ok(Candidate {
-                    host,
-                    offer,
-                    wire: contract(offer)?,
+                    host_id: access.host(c.host).host_id.clone(),
+                    capability_id: c.capability_id,
+                    maximum_instances: c.maximum_instances,
+                    wire: wire?,
                 })
             })
             .collect::<Result<Vec<_>, PlannerError>>()?;
@@ -139,6 +194,7 @@ fn rows<'a>(
         candidates: rows,
     })
 }
+
 fn edges<'a>(
     gears: &[SelectionGear],
     connections: &'a [CheckedConnection],
@@ -172,10 +228,10 @@ fn mismatch(edge: &Edge<'_>) -> PlannerError {
     )))
 }
 
-pub(super) fn select(
+pub(super) fn select_access(
     gears: &PlanningGears<'_>,
     connections: &[CheckedConnection],
-    hosts: &[HostAdvertisement],
+    access: &crate::offer_access::OfferAccess<'_>,
 ) -> Result<PlacementChoices, PlannerError> {
     if gears.len() > MAXIMUM_GEARS {
         return Err(limit("gears"));
@@ -186,7 +242,7 @@ pub(super) fn select(
     let SelectionRows {
         gears: identities,
         candidates: rows,
-    } = rows(gears, hosts)?;
+    } = rows_access(gears, access)?;
     let edges = edges(&identities, connections)?;
     search(&identities, &rows, &edges, MAXIMUM_ATTEMPTS)
 }
@@ -195,7 +251,7 @@ pub(super) fn select(
 // are skipped. Search exhaustion refuses instead of installing a weaker codec.
 fn search(
     gears: &[SelectionGear],
-    rows: &[Vec<Candidate<'_>>],
+    rows: &[Vec<Candidate>],
     edges: &[Edge<'_>],
     maximum_attempts: usize,
 ) -> Result<PlacementChoices, PlannerError> {
@@ -214,8 +270,8 @@ fn search(
                     (
                         gear.gear_id.clone(),
                         PlacementChoice {
-                            host_id: candidate.host.host_id.clone(),
-                            capability_id: candidate.offer.capability_id.clone(),
+                            host_id: candidate.host_id.clone(),
+                            capability_id: candidate.capability_id.clone(),
                         },
                     )
                 })
@@ -247,12 +303,12 @@ fn search(
             .filter(|(row, selection)| {
                 selection.is_some_and(|choice| {
                     let other = &rows[*row][choice];
-                    other.host.host_id == candidate.host.host_id
-                        && other.offer.capability_id == candidate.offer.capability_id
+                    other.host_id == candidate.host_id
+                        && other.capability_id == candidate.capability_id
                 })
             })
             .count();
-        if instances >= usize::from(candidate.offer.limits.max_active_instances) {
+        if instances >= usize::from(candidate.maximum_instances) {
             continue;
         }
         selected[depth] = Some(index);

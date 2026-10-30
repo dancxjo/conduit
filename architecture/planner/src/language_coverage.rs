@@ -105,10 +105,9 @@ pub(crate) fn requirements(
 
 fn checks(
     requests: &[LanguageCoverageRequirement],
-    offer: &CapabilityOffer,
+    properties: &[conduit_core::StructuredConfigurationValue],
 ) -> Vec<LanguageCoverageCheck> {
-    let property = offer
-        .realization_properties
+    let property = properties
         .iter()
         .find(|p| *p.profile() == language_coverage_profile());
     let coverage = property.and_then(|p| LanguageCoverage::decode(p.canonical_value()).ok());
@@ -136,7 +135,7 @@ pub(crate) fn candidate_checks(
             offer.capability_id.clone(),
         ));
     }
-    Ok(checks(&requirements(gear)?, offer))
+    Ok(checks(&requirements(gear)?, &offer.realization_properties))
 }
 
 fn evidence(
@@ -144,12 +143,25 @@ fn evidence(
     offer: &CapabilityOffer,
     checks: Vec<LanguageCoverageCheck>,
 ) -> LanguageCoverageCandidateEvidence {
+    evidence_fields(
+        host,
+        &offer.capability_id,
+        &offer.implementation.artifact_id,
+        checks,
+    )
+}
+fn evidence_fields(
+    host: &HostAdvertisement,
+    capability_id: &CapabilityId,
+    artifact_id: &ArtifactId,
+    checks: Vec<LanguageCoverageCheck>,
+) -> LanguageCoverageCandidateEvidence {
     LanguageCoverageCandidateEvidence {
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
         offer_generation: host.offer_generation,
-        capability_id: offer.capability_id.clone(),
-        artifact_id: offer.implementation.artifact_id.clone(),
+        capability_id: capability_id.clone(),
+        artifact_id: artifact_id.clone(),
         checks,
     }
 }
@@ -162,8 +174,21 @@ pub(crate) fn filter_candidates<T, F>(
 where
     F: for<'a> Fn(&'a T) -> (&'a HostAdvertisement, &'a CapabilityOffer),
 {
-    let candidates = crate::exact_realization::filter_candidates(gear, candidates, &fields)?;
-    let candidates = crate::numerical_realization::filter_candidates(gear, candidates, &fields)?;
+    filter_candidate_evidence(gear, candidates, |candidate| fields(candidate).into())
+}
+
+pub(crate) fn filter_candidate_evidence<T, F>(
+    gear: &CheckedGear,
+    candidates: Vec<T>,
+    fields: F,
+) -> Result<Vec<T>, PlannerError>
+where
+    F: for<'a> Fn(&'a T) -> crate::offer_access::RealizationCandidateRef<'a>,
+{
+    let candidates =
+        crate::exact_realization::filter_candidate_evidence(gear, candidates, &fields)?;
+    let candidates =
+        crate::numerical_realization::filter_candidate_evidence(gear, candidates, &fields)?;
     let requests = requirements(gear)?;
     if requests.is_empty() {
         return Ok(candidates);
@@ -176,17 +201,23 @@ where
     let mut eligible = Vec::new();
     let mut rejected = Vec::new();
     for candidate in candidates {
-        let (host, offer) = fields(&candidate);
-        if !conduit_core::valid_realization_properties(&offer.realization_properties) {
+        let offer = fields(&candidate);
+        let host = offer.host;
+        if !conduit_core::valid_realization_properties(offer.realization_properties) {
             return Err(PlannerError::InvalidRealizationProperties(
                 offer.capability_id.clone(),
             ));
         }
-        let checks = checks(&requests, offer);
+        let checks = checks(&requests, offer.realization_properties);
         if checks.iter().all(|c| c.result.is_ok()) {
             eligible.push(candidate);
         } else {
-            rejected.push(evidence(host, offer, checks));
+            rejected.push(evidence_fields(
+                host,
+                offer.capability_id,
+                offer.artifact_id,
+                checks,
+            ));
         }
     }
     if eligible.is_empty() {
@@ -239,7 +270,11 @@ pub fn inspect_language_coverage(
                     offer.capability_id.clone(),
                 ));
             }
-            records.push(evidence(host, offer, checks(&requests, offer)));
+            records.push(evidence(
+                host,
+                offer,
+                checks(&requests, &offer.realization_properties),
+            ));
         }
     }
     Ok(records)

@@ -99,6 +99,27 @@ impl<'a, V> ReadyResidentOffers<'a, V> {
         self.offers.iter().map(|offer| offer.json)
     }
 }
+// SAFETY: construction checked the complete ordered software set and retains
+// its initialized owner for this borrow. ResidentSoftwareOffer's unsafe Make
+// constructors require every decoder result to equal its immutable complete
+// JSON, including defaults and laws. Neither representation can change while
+// borrowed. This adapter lends descriptions; it creates no native readiness,
+// authority, reservation or execution permission.
+#[cfg(feature = "local-planning")]
+unsafe impl<V> conduit_planner::indexed_source::IndexedSoftwareOffers
+    for ReadyResidentOffers<'_, V>
+{
+    fn len(&self) -> usize {
+        self.offers.len()
+    }
+    fn decode(&self, index: usize) -> Result<c::CapabilityOffer, conduit_planner::PlannerError> {
+        self.decode_at(index).map_err(|_| {
+            conduit_planner::PlannerError::InvalidPlotIdentity(
+                "Make software offer reconstruction".into(),
+            )
+        })
+    }
+}
 impl<V: ValueStorage> PreparedResidentSoftware<V> {
     /// Preflight all metadata before lending any bytes. Static descriptors alone
     /// cannot call this method; the complete software set must be initialized.

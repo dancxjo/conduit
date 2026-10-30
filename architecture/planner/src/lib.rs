@@ -59,8 +59,6 @@ mod advice;
 mod body_envelope;
 #[cfg(feature = "indexed-source")]
 pub mod borrowed_local;
-#[cfg(feature = "indexed-source")]
-mod streamed_identity;
 mod canonical;
 mod characteristic_policy;
 mod characteristic_sealing;
@@ -93,6 +91,7 @@ mod incremental;
 mod locality;
 mod numerical_realization;
 mod observations;
+mod offer_access;
 mod performance_policy;
 mod policy;
 mod policy_composition;
@@ -114,6 +113,8 @@ mod retry;
 mod selected_plan_sealing;
 mod startup;
 pub mod state_delay;
+#[cfg(feature = "indexed-source")]
+mod streamed_identity;
 pub mod wcet;
 #[cfg(test)]
 use startup::startup_order;
@@ -704,54 +705,8 @@ fn validate_host_resources(host: &HostAdvertisement) -> Result<(), PlannerError>
     validate_host_resources_ref(host.into())
 }
 
-fn validate_host_resources_ref(
-    host: conduit_core::HostAdvertisementRef<'_>,
-) -> Result<(), PlannerError> {
-    if host.resources.iter().any(|resource| {
-        resource.pool_id.is_empty()
-            || resource.class_id.is_empty()
-            || resource.capacity_units == 0
-            || resource
-                .compute
-                .is_some_and(|compute| !compute.is_valid_for_capacity(resource.capacity_units))
-    }) || host
-        .resources
-        .iter()
-        .zip(host.resources.iter().skip(1))
-        .any(|(left, right)| left.pool_id >= right.pool_id)
-    {
-        return Err(PlannerError::InvalidResourceContract(format!(
-            "host '{}' pools must have non-empty identities, positive capacity, and unique pool-id ordering",
-            host.host_id
-        )));
-    }
-    for base in host.bases.iter() {
-        if base.lifecycle != conduit_core::BaseLifecycle::Ready
-            || base.base_id.is_empty()
-            || base.provider_instance_id.is_empty()
-            || base.provider_generation == 0
-            || base.implementation_id.is_empty()
-            || base.mechanism_family.is_empty()
-            || base.capability_ids.is_empty() && base.resource_pool_ids.is_empty()
-            || base.capability_ids.iter().any(|id| {
-                !host
-                    .capabilities
-                    .iter()
-                    .any(|offer| offer.capability_id == id)
-            })
-            || base
-                .resource_pool_ids
-                .iter()
-                .any(|id| !host.resources.iter().any(|offer| offer.pool_id == id))
-        {
-            return Err(PlannerError::InvalidResourceContract(format!(
-                "host '{}' has invalid current Base provenance",
-                host.host_id
-            )));
-        }
-    }
-    Ok(())
-}
+use host_validation::{validate_host_resources_ref, validate_host_resources_with_capabilities};
+mod host_validation;
 
 fn selected_base_provider(
     host: &HostAdvertisement,

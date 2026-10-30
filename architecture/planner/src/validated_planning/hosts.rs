@@ -8,6 +8,8 @@ pub(crate) enum PlanningHosts<'a> {
         allow(dead_code, reason = "retiring input is used by indexed preparation")
     )]
     Owned(Vec<HostAdvertisement>),
+    #[cfg(feature = "indexed-source")]
+    Indexed(&'a [crate::indexed_source::IndexedHostOffers<'a>]),
 }
 pub(super) struct OfferDescription {
     pub inputs: Vec<conduit_core::PortDescriptor>,
@@ -22,6 +24,20 @@ pub(super) struct OfferDescription {
     pub execution_profile_id: conduit_core::ExecutionProfileId,
 }
 impl OfferDescription {
+    pub(super) fn owned(offer: conduit_core::CapabilityOffer) -> Self {
+        Self {
+            inputs: offer.inputs,
+            outputs: offer.outputs,
+            semantic_contract: offer.semantic_contract,
+            host_calls: offer.host_calls,
+            realization_properties: offer.realization_properties,
+            kind_id: offer.kind_id,
+            kind_contract_revision: offer.kind_contract_revision,
+            implementation_id: offer.implementation.implementation_id,
+            artifact_id: offer.implementation.artifact_id,
+            execution_profile_id: offer.implementation.execution_profile_id,
+        }
+    }
     fn cloned(offer: &conduit_core::CapabilityOffer) -> Self {
         Self {
             inputs: offer.inputs.clone(),
@@ -37,16 +53,108 @@ impl OfferDescription {
         }
     }
 }
-impl core::ops::Deref for PlanningHosts<'_> {
-    type Target = [HostAdvertisement];
-    fn deref(&self) -> &Self::Target {
+impl<'a> PlanningHosts<'a> {
+    pub(super) fn access(&self) -> crate::offer_access::OfferAccess<'_> {
         match self {
-            Self::Borrowed(h) => h,
-            Self::Owned(h) => h,
+            Self::Borrowed(h) => crate::offer_access::OfferAccess::Ordinary(h),
+            Self::Owned(h) => crate::offer_access::OfferAccess::Ordinary(h),
+            #[cfg(feature = "indexed-source")]
+            Self::Indexed(h) => crate::offer_access::OfferAccess::Indexed(h),
         }
     }
-}
-impl PlanningHosts<'_> {
+    pub(super) fn iter(&self) -> impl DoubleEndedIterator<Item = &HostAdvertisement> + use<'_, 'a> {
+        let len = match self {
+            Self::Borrowed(h) => h.len(),
+            Self::Owned(h) => h.len(),
+            #[cfg(feature = "indexed-source")]
+            Self::Indexed(h) => h.len(),
+        };
+        (0..len).map(move |index| match self {
+            Self::Borrowed(h) => &h[index],
+            Self::Owned(h) => &h[index],
+            #[cfg(feature = "indexed-source")]
+            Self::Indexed(h) => h[index].native,
+        })
+    }
+    pub(super) fn capability(
+        &self,
+        host: &HostId,
+        id: &CapabilityId,
+    ) -> Result<alloc::borrow::Cow<'_, conduit_core::CapabilityOffer>, PlannerError> {
+        let access = self.access();
+        let index = access.host_index(host, true)?;
+        access.find(index, id)
+    }
+    pub(super) fn validate_placements(
+        &self,
+        gears: &crate::planning_input::PlanningGears<'_>,
+        placements: &PlacementChoices,
+    ) -> Result<(), PlannerError> {
+        match self {
+            Self::Borrowed(h) => {
+                crate::language_coverage::validate_placements(gears, h, placements)
+            }
+            Self::Owned(h) => crate::language_coverage::validate_placements(gears, h, placements),
+            #[cfg(feature = "indexed-source")]
+            Self::Indexed(_) => self.validate_indexed_placements(gears, placements),
+        }
+    }
+    #[cfg(feature = "indexed-source")]
+    fn validate_indexed_placements(
+        &self,
+        gears: &crate::planning_input::PlanningGears<'_>,
+        placements: &PlacementChoices,
+    ) -> Result<(), PlannerError> {
+        let access = self.access();
+        for host in 0..access.len() {
+            for index in 0..access.count(host)? {
+                let offer = access.offer(host, index)?;
+                if !conduit_core::valid_realization_properties(&offer.realization_properties) {
+                    return Err(PlannerError::InvalidRealizationProperties(
+                        offer.capability_id.clone(),
+                    ));
+                }
+            }
+        }
+        for gear in gears.iter() {
+            let gear = gear?;
+            let choice = placements
+                .by_gear
+                .get(&gear.gear_id)
+                .ok_or_else(|| PlannerError::MissingPlacement(gear.gear_id.as_str().into()))?;
+            let host = access.host_index(&choice.host_id, false)?;
+            let offer = access.find(host, &choice.capability_id)?;
+            crate::validate_operation_capability(&gear, &offer)?;
+            crate::language_coverage::validate_selected(&gear, access.host(host), &offer)?;
+        }
+        Ok(())
+    }
+    pub(super) fn validate_resources(&self) -> Result<(), PlannerError> {
+        let indexed = match self {
+            #[cfg(feature = "indexed-source")]
+            Self::Indexed(_) => true,
+            _ => false,
+        };
+        if !indexed {
+            for host in self.iter() {
+                crate::validate_host_resources(host)?;
+            }
+            return Ok(());
+        }
+        let access = self.access();
+        for index in 0..access.len() {
+            crate::validate_host_resources_with_capabilities(access.host(index).into(), |id| {
+                for offer_index in 0..access.count(index)? {
+                    if access.offer(index, offer_index)?.capability_id.as_str() == id {
+                        return Ok(true);
+                    }
+                }
+                Ok(false)
+            })?;
+        }
+        Ok(())
+    }
+
     pub(super) fn retiring(&self) -> bool {
         matches!(self, Self::Owned(_))
     }

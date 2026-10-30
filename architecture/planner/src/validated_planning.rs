@@ -1,6 +1,7 @@
 //! Assemble one Plan from already validated plot identities and native offers.
 use super::*;
 use crate::planning_input::PlanningInput;
+mod authority;
 mod connections;
 mod hosts;
 pub(crate) use hosts::PlanningHosts;
@@ -139,18 +140,23 @@ pub(crate) fn plan_fragments_with_host_inputs(
         .map(|host| (host.host_id.clone(), host))
         .collect::<BTreeMap<_, _>>();
 
-    crate::language_coverage::validate_placements(&plot.gears, &hosts, placements)?;
-    for host in hosts.iter() {
-        validate_host_resources(host)?;
-    }
+    hosts.validate_placements(&plot.gears, placements)?;
+    hosts.validate_resources()?;
     validate_authority_grants(authority_grants)?;
     validate_protected_resource_grants(protected_resource_grants)?;
     validate_line_offers(line_offers)?;
 
     let mut placement_count = BTreeMap::<(HostId, CapabilityId), u16>::new();
     let mut resource_usage = BTreeMap::<(HostId, ResourcePoolId), u32>::new();
-    let mut remaining_compute_minimum =
-        compute_admission::admit_minima(&plot.gears, &host_index, placements)?;
+    let mut remaining_compute_minimum = match &hosts {
+        PlanningHosts::Borrowed(_) | PlanningHosts::Owned(_) => {
+            compute_admission::admit_minima(&plot.gears, &host_index, placements)?
+        }
+        #[cfg(feature = "indexed-source")]
+        PlanningHosts::Indexed(_) => {
+            compute_admission::admit_access_minima(&plot.gears, &hosts.access(), placements)?
+        }
+    };
     // Global host/language/grant/minimum checks above still inspect the complete
     // snapshot. Ordinary placement and Cord checks below only use selected offers.
     drop(host_index);
@@ -201,13 +207,8 @@ pub(crate) fn plan_fragments_with_host_inputs(
             .rev()
             .find(|host| host.host_id == choice.host_id)
             .ok_or_else(|| PlannerError::UnknownHost(choice.host_id.as_str().to_string()))?;
-        let capability = host
-            .capabilities
-            .iter()
-            .find(|offer| offer.capability_id == choice.capability_id)
-            .ok_or_else(|| {
-                PlannerError::UnknownCapability(choice.capability_id.as_str().to_string())
-            })?;
+        let selected_offer = hosts.capability(&choice.host_id, &choice.capability_id)?;
+        let capability = selected_offer.as_ref();
         validate_operation_capability(&gear, capability)?;
         validate_keep_retention(&gear, capability)?;
 
@@ -231,26 +232,7 @@ pub(crate) fn plan_fragments_with_host_inputs(
         )?;
         let base = selected_base_provider(host, capability, &resource_bindings)?;
 
-        let mut authority_bindings = Vec::with_capacity(capability.authority_requirements.len());
-        for requirement in &capability.authority_requirements {
-            let grant_index = resolve_authority_grant_index(
-                host.into(),
-                capability.into(),
-                requirement.into(),
-                conduit_core::AuthorityGrantRefs::Owned(authority_grants),
-            )?;
-            let grant = &authority_grants[grant_index];
-            authority_bindings.push(AuthorityBinding {
-                grant_id: grant.grant_id.clone(),
-                contract_id: grant.contract_id.clone(),
-                host_call_contract_id: grant.host_call_contract_id.clone(),
-                subject_kind: grant.subject_kind.clone(),
-                host_id: grant.host_id.clone(),
-                boot_id: grant.boot_id.clone(),
-                capability_id: grant.capability_id.clone(),
-            });
-        }
-        authority_bindings.sort_by(|a, b| compare_authority_bindings_ref(a.into(), b.into()));
+        let authority_bindings = authority::bind(host, capability, authority_grants)?;
 
         let placement_id = placement_identity_ref(
             plot.checked_plot_id.as_str(),
@@ -275,7 +257,15 @@ pub(crate) fn plan_fragments_with_host_inputs(
                         choice.host_id == scope.0 && choice.capability_id == capability_id
                     })
                     .count();
-        let description = hosts.description(&scope.0, &capability_id, last_use);
+        let decoded = match selected_offer {
+            alloc::borrow::Cow::Owned(offer) => Some(offer),
+            alloc::borrow::Cow::Borrowed(_) => None,
+        };
+        let description = if let Some(offer) = decoded {
+            hosts::OfferDescription::owned(offer)
+        } else {
+            hosts.description(&scope.0, &capability_id, last_use)
+        };
         let mut planned = conduit_core::planned_gear_from_parts! {
             realization_properties: description.realization_properties,
             placement_id,
