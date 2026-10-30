@@ -136,3 +136,26 @@ cannot accept a later operation's reply. Reconnect does not cancel an in-flight
 CYW43 operation; an explicit request arriving during one can therefore refuse and
 must be submitted again. Successful address recovery clears only network-phase
 errors, preserving attachment-capacity failures.
+
+### Optional Pico W credential retention
+
+The `credential-store` feature retains the existing canonical JOIN wire in the
+shared two-sector credential journal. The single serialized USB JOIN caller gets
+success only after verified journal completion; identical credentials avoid
+another erase. This acknowledgment concerns network configuration, not durable
+observation recording. Boot restoration uses ordinary Wi-Fi joining.
+
+The local I/O task owns flash and the unstarted CORE1 token. Writes require an
+affine flash-window permit during its existing absolute sampling wait, adequate
+microsecond slack, and the supported 125 MHz Pico W/W25Q16JV profile. The pinned
+DMA clients use non-chaining PIO transfers and no control-register writer; other
+channels start reset. Interrupts stay masked through preflight and commit.
+Changing that hardware/software profile requires renewed qualification. The
+750 ms envelope derives from chip maxima plus setup/readback allowance, rather
+than the observed transaction duration. Refusal or overrun disables subsequent
+writes while local measurements continue. Corrupt journals are not auto-erased.
+
+Physical evidence and limitations are recorded in
+`bodies/environment/evidence/2026-10-30-pico-credential-continuity/`.
+This optional carrier feature does not establish Body membership, admitted Body
+storage, or a selected durable observation recorder.

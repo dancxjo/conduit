@@ -132,6 +132,8 @@ pub fn status() -> Result<heapless::String<1536>, ()> {
         write!(&mut out,",\"temperature\":{{\"coefficient\":{},\"exponent\":{}}},\"humidity\":{{\"coefficient\":{},\"exponent\":{}}}",t.coefficient(),t.exponent(),h.coefficient(),h.exponent()).map_err(|_|())?;
     }
     crate::flash_observation::append(&mut out).map_err(|_| ())?;
+    #[cfg(feature = "credential-store")]
+    crate::credential_store::append(&mut out).map_err(|_| ())?;
     out.push('}').map_err(|_| ())?;
     Ok(out)
 }
@@ -161,6 +163,8 @@ pub async fn run(
     decoder.check_adapter();
     let mut sampled = None;
     let mut prepared = None;
+    #[cfg(feature = "credential-store")]
+    let mut credentials = crate::credential_store::take_owner();
     loop {
         if sampled.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
@@ -223,6 +227,11 @@ pub async fn run(
                 s.acks = s.acks.saturating_add(1)
             }
         });
+        #[cfg(feature = "credential-store")]
+        if let Some(owner) = credentials.as_mut() {
+            owner.wait().await;
+            continue;
+        }
         Timer::after_secs(2).await;
     }
 }

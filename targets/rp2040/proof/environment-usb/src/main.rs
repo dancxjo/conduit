@@ -10,6 +10,8 @@ use embassy_usb::{
 };
 use panic_halt as _;
 use static_cell::StaticCell;
+#[cfg(feature = "credential-store")]
+mod credential_store;
 #[cfg(not(any(environment_dht11_tm1637, environment_bosch_tm1637)))]
 mod environment;
 #[cfg(environment_bosch_tm1637)]
@@ -22,6 +24,8 @@ mod environment;
 mod environment_http;
 mod environment_show;
 mod flash_observation;
+#[cfg(all(feature = "credential-store", feature = "zenoh-evaluation"))]
+compile_error!("credential-store requires exclusive unstarted CORE1; zenoh-evaluation owns CORE1");
 mod heap;
 mod usb_identity;
 #[cfg(feature = "wifi")]
@@ -105,11 +109,14 @@ async fn main(spawner: Spawner) {
         // This does not qualify write timing or create a writable region.
         flash_observation::record(flash.blocking_jedec_id().ok());
         let mut unique = [0; 8];
-        flash
+        let serial = flash
             .blocking_unique_id(&mut unique)
             .ok()
             .and_then(|_| usb_identity::serial(unique))
-            .and_then(|bytes| core::str::from_utf8(USB_SERIAL.init(bytes)).ok())
+            .and_then(|bytes| core::str::from_utf8(USB_SERIAL.init(bytes)).ok());
+        #[cfg(feature = "credential-store")]
+        credential_store::initialize(flash, p.CORE1);
+        serial
     };
     config::start_environment!(spawner, p);
     #[cfg(feature = "zenoh-evaluation")]
