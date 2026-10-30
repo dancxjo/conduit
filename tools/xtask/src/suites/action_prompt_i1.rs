@@ -37,4 +37,10 @@ pub const STEPS: &[Step] = &[
         "cargo",
         &["test", "--locked", "-p", "conduit-std-host", "--lib", "parsec_terminal_owner", "--", "--test-threads=1"],
     ),
+    Step::new(
+        "action-prompt-i1.poll-reachability",
+        "Check keyboard-only fallback poll reachability cannot be granted by an unadmitted stamp",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "keyboard_input_host::tests", "--", "--test-threads=1"],
+    ),
 ];

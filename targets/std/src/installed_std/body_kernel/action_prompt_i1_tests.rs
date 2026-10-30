@@ -58,6 +58,16 @@ fn action_prompt_i1_current_keyboard_fallback_retains_start_and_refuses_stale_ep
     assert_eq!(observed.face(), &original);
     assert_eq!(map.current_state().unwrap(), before);
     let epoch = observed.input_view_epoch();
+    assert!(
+        !keys.ready_to_poll(),
+        "an unstamped view cannot bypass the fanout wait"
+    );
+    let view = owner.prompt_input_view(&map, host, &keys).unwrap();
+    keys.set_input_view_epoch(view);
+    assert!(
+        keys.ready_to_poll(),
+        "the current source-authorized Enter fallback is reachable"
+    );
     let bytes = KeyEvent::new(0x28, KeyTransition::Pressed, KeyModifiers::NONE)
         .unwrap()
         .encode();

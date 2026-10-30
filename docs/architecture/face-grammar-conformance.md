@@ -846,6 +846,9 @@ Body and offered Start action; no Mask rewrites the mapping. Gameplay keeps its
 existing explicit remap requirement. No available scope yields no instruction.
 The caller derives availability only from exact current accepted input requests,
 then independently validates the source-selected origin, action and Show.
+The flushed source-selected Enter view also permits polling the admitted keyboard
+request while Fire has no current admission. A caller-supplied epoch alone cannot
+bypass the ordinary paired-input wait or create a Fire completion.
 
 The finite conformance fixture also runs a raster carrier through the existing
 Mask kernel, with distinct renderer/effect offers, resources, Plan and Show.

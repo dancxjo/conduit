@@ -129,6 +129,23 @@ fn action_prompt_i1_visual_and_linear_current_start_return_same_typed_action() {
             linear_show.planned_mask.plan.plan_id
         );
         assert_eq!(visual.frame_digest(), raster.digest);
+        let terminal_witness = owner
+            .qualify_instruction(&map, host, &keys)
+            .unwrap()
+            .unwrap();
+        let visual_play = conduit_core::bind_active_play(
+            &visual.planned_mask().plan.plan_id,
+            &host.host_id,
+            &host.boot_id,
+            shown.show.play_sequence,
+        );
+        assert!(
+            terminal_witness
+                .require_source_scope(&plan, &play, visual.planned_mask(), &visual_play, host)
+                .is_err(),
+            "even opaque current terminal custody cannot grant another Mask an instruction"
+        );
+        assert_eq!(raster.frames, 1);
         let initial_digest = raster.digest;
         let witness = owner
             .qualify_visual_instruction(&map, host, &keys, &visual)

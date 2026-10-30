@@ -86,18 +86,32 @@ impl ParsecTerminalOwner {
         Ok(true)
     }
 
+    #[cfg(test)]
     pub(in crate::installed_std::body_kernel) fn prompt_input_view_epoch(
         &mut self,
         map: &ParsecAcknowledgedMap,
         host: &HostAdvertisement,
         keys: &KeyboardInputHost<'_>,
     ) -> Result<Option<u64>, String> {
+        Ok(self
+            .prompt_input_view(map, host, keys)?
+            .map(|(epoch, _)| epoch))
+    }
+
+    pub(in crate::installed_std::body_kernel) fn prompt_input_view(
+        &mut self,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+    ) -> Result<Option<(u64, InputRealization)>, String> {
         let current = self.current_prompt(map, host, keys)?;
         Ok(self
             .prompt
             .as_ref()
             .zip(current.as_ref())
-            .and_then(|(shown, current)| (shown == current).then_some(shown.epoch)))
+            .and_then(|(shown, current)| {
+                (shown == current).then_some((shown.epoch, shown.realization))
+            }))
     }
 
     pub(in crate::installed_std::body_kernel) fn authorize_prompted_event(
