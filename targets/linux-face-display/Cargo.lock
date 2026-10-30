@@ -349,6 +349,9 @@ dependencies = [
  "conduit-environment-history",
  "conduit-environment-runtime",
  "conduit-face",
+ "conduit-seven-segment-mask",
+ "conduit-todo-face",
+ "conduit-todo-plot",
  "conduitos",
  "libc",
  "serde",
@@ -473,6 +476,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-synth"
 version = "0.1.0"
 dependencies = [
@@ -497,6 +509,24 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-todo-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
+ "conduit-todo-plot",
+]
+
+[[package]]
+name = "conduit-todo-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-web",
 ]
 
 [[package]]
