@@ -19,6 +19,8 @@ mod identity_sidecar;
 use identity_sidecar::{render_network_identity_sidecar, render_signal_identity_sidecar};
 #[path = "build/firmware_mode.rs"]
 mod firmware_mode;
+#[path = "build/flash_layout.rs"]
+mod flash_layout;
 use firmware_mode::firmware_mode;
 #[path = "build/r1_control_images.rs"]
 mod r1_control_images;
@@ -206,16 +208,7 @@ fn render_lenia_binding_constants(
 }
 
 fn emit_linker_contract(out: &Path) {
-    // Only emit the RP2040-specific linker flags for thumbv6m
-    if env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default() == "arm"
-        && env::var("TARGET").unwrap_or_default() == "thumbv6m-none-eabi"
-    {
-        let memory_x = include_str!("memory.x");
-        fs::write(out.join("memory.x"), memory_x).unwrap();
-        println!("cargo:rustc-link-search={}", out.display());
-        println!("cargo:rustc-link-arg=-Tlink.x");
-    }
-    println!("cargo:rerun-if-changed=memory.x");
+    flash_layout::emit(out);
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=../../../../proof/fixtures/plots/signal-demo.conduit");
     println!(
@@ -263,23 +256,25 @@ fn appliance_build_id() -> String {
         conduit_rp2040_network_realization::PICO_APPLIANCE_ARTIFACT
     };
     format!(
-        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}",
+        "conduit-pico-w-signal:{}:{}:{}:{}:{}:{}:layout-{}",
         git_revision(),
         git_tree_state(),
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
         firmware_mode(),
         artifact,
+        flash_layout::identity(),
     )
 }
 
 fn pete_capstone_build_id() -> String {
     format!(
-        "conduit-pico-w-pete-capstone:{}:{}:{}:{}:physical-play@1",
+        "conduit-pico-w-pete-capstone:{}:{}:{}:{}:physical-play@1:layout-{}",
         git_revision(),
         git_tree_state(),
         env::var("TARGET").unwrap_or_else(|_| "unknown-target".to_owned()),
         env::var("PROFILE").unwrap_or_else(|_| "unknown-profile".to_owned()),
+        flash_layout::identity(),
     )
 }
 

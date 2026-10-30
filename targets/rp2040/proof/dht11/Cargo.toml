@@ -55,6 +55,7 @@ static_cell = "2"
 portable-atomic = { version = "1", features = ["critical-section"] }
 
 [build-dependencies]
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 conduit-environment-make = { path = "../../../../bodies/environment/make", optional = true }
 conduit-time = { path = "../../../../semantics/time" }
 conduit-environment-runtime = { path = "../../../../bodies/environment/runtime" }

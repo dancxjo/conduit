@@ -96,7 +96,7 @@ async fn main(spawner: Spawner) {
     // performs no flash write and creates no Host/Boot or membership identity.
     let serial = {
         let mut flash =
-            embassy_rp::flash::Flash::<_, _, { 2 * 1024 * 1024 }>::new_blocking(p.FLASH);
+            embassy_rp::flash::Flash::<_, _, { conduit_rp2040_flash_layout::FLASH_BYTES as usize }>::new_blocking(p.FLASH);
         let mut unique = [0; 8];
         flash
             .blocking_unique_id(&mut unique)
