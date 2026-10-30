@@ -1,4 +1,6 @@
 //! Actual admitted binding, signed localhost collector and fsynced projection.
+#[path = "current_projection_tests.rs"]
+mod current_projection_tests;
 use super::tests::canonical_admission;
 use super::*;
 use crate::observed_history::{retained::Projection, wire};

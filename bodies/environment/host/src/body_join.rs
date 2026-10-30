@@ -2,6 +2,8 @@
 use crate::local_recorder::joined;
 #[path = "body_join/recovery.rs"]
 mod recovery_client;
+#[path = "body_join/current_producer.rs"]
+pub(crate) mod current_producer;
 #[path = "body_join/returning.rs"]
 mod returning;
 /// Explicit fresh-Boot return; initial join remains idempotent admission recovery.

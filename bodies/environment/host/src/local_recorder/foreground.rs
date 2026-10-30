@@ -31,7 +31,17 @@ pub(super) fn run_loop(
         if work == Work::Collect {
             let collected = collect_routes(&collector, &peers, preferred, directory);
             if let Some((binding, projection)) = &projection {
-                projection.after_attempt(binding, directory);
+                // Failed collection never authorizes a different current view.
+                if let Ok((route, _)) = &collected {
+                    projection.after_attempt(
+                        binding,
+                        directory,
+                        custody.map(|(_, path)| path),
+                        peers[*route],
+                    );
+                } else if projection.producer_boot != "current" {
+                    projection.after_attempt(binding, directory, None, peers[preferred]);
+                }
             }
             match collected {
                 Ok((route, epochs)) => {

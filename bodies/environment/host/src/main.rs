@@ -198,6 +198,13 @@ fn main() -> Result<()> {
                 producer_boot: boot,
                 output: std::path::Path::new(output),
             });
+    if projection_args
+        .as_ref()
+        .is_some_and(|(boot, _)| boot == "current")
+        && args.get(1).map(String::as_str) != Some("--record-joined-continuing")
+    {
+        return Err("current retained projection requires --record-joined-continuing and its private continuity input".into());
+    }
     if args
         .get(1)
         .is_some_and(|argument| argument == "--record-joined-continuing")

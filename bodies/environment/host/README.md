@@ -36,3 +36,17 @@ conduit-environment-host --browser-join-proxy DEVICE_HOST:80 8787
 Open the helper locally. Its **Join this Body** and **Reconnect this browser** actions verify Root signatures through WebCrypto. The helper contains the continuity secret; do not publish it. The loopback proxy holds no invitation secret.
 
 These commands admit observation-only Hosts. They do not create an execution offer, Plan, Play, or browser Mask. Joining, recording signed evidence, and installing the Body's durable recorder are separate acceptance boundaries.
+
+## Following producer restarts in retained inspection
+
+The continuing joined collector accepts `--retained-projection current PRIVATE_OUTPUT`
+in place of an explicit `boot/...` pin. After successful collection, it uses its
+existing private continuity input to sign a fresh nonce-bound membership recovery
+query. The existing producer recovery receipt must match the pinned Root, producer
+Host and exact observer credential. A three-second socket budget and sixteen-poll
+limit bound this read-only probe; synchronous DNS remains outside that budget.
+Only a complete signed history prefix for the verified Boot can replace the view.
+An outage, replayed nonce, mismatched identity, absent prefix or ambiguous Play
+retains the previous view. Original per-Boot files and membership bindings remain
+unchanged. This selection does not grant recording custody, refresh Face leases,
+establish shared clock synchronization or commit observations to a selected recorder.

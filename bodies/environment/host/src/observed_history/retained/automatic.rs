@@ -1,4 +1,4 @@
-//! Automatic read-only projection follows one independently pinned producer Boot.
+//! Read-only projection follows an explicit Boot or fresh membership-recovery evidence.
 use super::*;
 
 pub(crate) struct Projection<'a> {
@@ -50,8 +50,28 @@ impl Projection<'_> {
         // prefix exactly once. A name alone never authorizes its contents.
         run(binding, &epoch, self.producer_boot, self.output)
     }
-    pub(crate) fn after_attempt(&self, binding: &Path, directory: &Path) {
-        if let Err(error) = self.refresh(binding, directory) {
+    pub(crate) fn after_attempt(
+        &self,
+        binding: &Path,
+        directory: &Path,
+        continuity: Option<&Path>,
+        peer: &str,
+    ) {
+        let result = if self.producer_boot == "current" {
+            (|| {
+                let continuity = continuity
+                    .ok_or("current projection requires continuing membership custody")?;
+                let boot = crate::body_join::current_producer::probe(binding, continuity, peer)?;
+                Projection {
+                    producer_boot: &boot,
+                    output: self.output,
+                }
+                .refresh(binding, directory)
+            })()
+        } else {
+            self.refresh(binding, directory)
+        };
+        if let Err(error) = result {
             eprintln!("retained projection unchanged: {error}");
         }
     }
