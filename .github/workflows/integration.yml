@@ -119,6 +119,9 @@ jobs:
       base: all
       train-manifest-digest: ${{ needs.train-source.outputs.digest }}
   train-accepted:
+    permissions:
+      contents: read
+      statuses: write
     # The protected branch's required context must be earned by this exact
     # exhaustive source proof, including a refused or cancelled train guard.
     if: ${{ always() }}
@@ -145,3 +148,15 @@ jobs:
             esac
             test "$RESULT" = success
           fi
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Report independently authored protected proof status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/ci/pipeline/train-proof-status.mjs

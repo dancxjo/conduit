@@ -35,7 +35,7 @@ JWT channels retain their narrow, separate permissions.
 Every cheap selection refresh invokes that callback;
 it must use `observeCheapTrainPolicy` outside PR execution to observe the actual
 repository variable, dedicated App installation and exact update ruleset, plus
-classic administrator-enforced `train-accepted` protection with force updates
+classic administrator-enforced `train-proof` protection with force updates
 and deletion disabled. The returned grant is opaque, single-use, bounded to
 60 seconds, repository-specific and never serialized into the train manifest.
 A saved JSON observation or a forged callback result cannot authorize selection.
