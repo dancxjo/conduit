@@ -270,5 +270,36 @@
       "max_us": 0
     }
   },
-  "final_source_difference": "DMA qualification documentation only; earlier cold-power evidence retains its original build identity."
+  "final_source_difference": "DMA qualification documentation only; earlier cold-power evidence retains its original build identity.",
+  "final_source_continuing_without_join": {
+    "role": "conduit.environment-wifi-carrier@1",
+    "build": "c630489bef31ac660e8c03ce4b3530573340c48462acb2e1a2d1b2f299701def",
+    "configuration": "sha256:7609e0873dbc5481aa45d2a446e0eac32472eb450407a664bb20a00bb2124721",
+    "sensor_address": 118,
+    "display_address": 112,
+    "samples": 4,
+    "attempts": 4,
+    "frames": 49,
+    "acks": 49,
+    "heap_peak": 4524,
+    "sensor_error": false,
+    "display_error": false,
+    "body_member": false,
+    "chip_id": 96,
+    "sampled_at_boot_ms": 91099,
+    "temperature_centi_celsius": 2363,
+    "pressure_centi_pascal": 10103257,
+    "humidity_percent_q10": 47330,
+    "flash_jedec_id": 15679509,
+    "configured_flash_bytes": 2097152,
+    "flash_write_timing_qualified": false,
+    "credentials": {
+      "ready": true,
+      "restored": true,
+      "revision": 1,
+      "commits": 0,
+      "deferred": 0,
+      "max_us": 0
+    }
+  }
 }

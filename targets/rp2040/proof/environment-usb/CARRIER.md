@@ -76,7 +76,11 @@ the prepared reading, and the existing 30-second lifetime remains enforced.
 This execution/preparation split reuses the common Mask rather than introducing
 an MCU-specific formatter.
 
-All three perform local continuous diagnostics independently of USB and report `body_member:false`. Neither diagnostic is an installed same-Body sampling/Mask Play, and current Wi-Fi credentials are session RAM rather than restart-persistent configuration. The host explicitly establishes the carrier session after a power cycle.
+All three perform local continuous diagnostics independently of USB and report
+`body_member:false`. None is an installed same-Body sampling/Mask Play. Default
+Wi-Fi builds retain credentials only in session RAM; the optional
+`credential-store` feature below restores the selected network after restart.
+Restoring Wi-Fi does not restore a Body carrier session or grant membership.
 
 When several devices are attached, select the actual physical USB path and verify
 its build/configuration. New images use the flash device's eight-byte physical
@@ -113,8 +117,9 @@ and continued sampling/display acknowledgment progression with no USB client.
 The shared endpoint and sample-Boot timestamps are compiled for Green and Yellow
 as well; each profile reports only quantities its actual sensor provides.
 A protected RTL8188CUS bench AP rejected association and remains unqualified.
-Network credentials are still volatile; these observations do not establish
-automatic reconnect, power-cycle recovery or native Body membership.
+Those earlier White observations used volatile network credentials; they do not
+establish automatic reconnect, power-cycle recovery or native Body membership.
+Green's later optional credential-store power-cycle evidence is recorded below.
 
 The shared carrier retains one fixed-capacity (167-byte encoded maximum) selected
 join request in volatile RAM and retries that same WPA2 network after link/address
@@ -125,8 +130,9 @@ DHCP completion cancels the pending retry and clears the carrier error. Each ret
 invalidates the previous attachment before joining; a superseding explicit request
 wipes the old retained credentials. The existing per-attempt leave/join/DHCP limits
 remain 5/25/15 seconds. Local sensor/display tasks remain independent. Timing tests
-and firmware compilation establish this implementation; physical outage/rejoin
-acceptance and restart-persistent credentials remain unproved.
+and firmware compilation establish this implementation. Physical link-outage
+recovery remains unproved by those checks; the later Green credential-store
+evidence separately covers restart and operator-assisted power-cycle recovery.
 
 USB join/peer replies carry correlated, exhaustion-checked request tokens. A queued
 join starts only when its remaining caller deadline can cover all 45 seconds of
