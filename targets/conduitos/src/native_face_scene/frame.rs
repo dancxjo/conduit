@@ -31,7 +31,13 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
-        let heading = if chrome.compact {
+        let heading = if self.read_only_overview {
+            if self.showing_details {
+                "DETAILS"
+            } else {
+                "CURRENT VIEW"
+            }
+        } else if chrome.compact {
             if self.showing_diagram {
                 "GRAPH"
             } else if self.showing_details {
