@@ -123,6 +123,47 @@ fn expired_signed_challenge_reconciles_without_overwriting_old_proof_or_boot() {
     std::fs::remove_dir_all(state).unwrap();
 }
 #[test]
+fn completed_return_rejects_another_valid_signed_recovery_without_rewriting() {
+    for other_root_boot in [false, true] {
+        let state = directory("completed-return-exact-challenge");
+        let (bootstrap, old, ad, challenge) = fixture();
+        interrupted(&state, &bootstrap, &old, &ad, &challenge);
+        execute(&bootstrap, &old, &ad, &state, |_| {
+            Ok(receipt(&bootstrap, &old, &ad, &challenge))
+        })
+        .unwrap();
+        let path = state.join("recorder-binding.json");
+        let mut document: serde_json::Value = load(&path).unwrap();
+        let mut alternate: recovery::Receipt =
+            serde_json::from_value(document["receipt"].clone()).unwrap();
+        let nonce = if other_root_boot {
+            challenge.challenge.nonce
+        } else {
+            [42; 32]
+        };
+        if other_root_boot {
+            alternate.producer_boot = "boot/another-root".into();
+        }
+        alternate.request_nonce = nonce;
+        alternate.signature = ed25519_dalek::SigningKey::from_bytes(&[31; 32])
+            .sign(&alternate.transcript())
+            .to_bytes()
+            .to_vec();
+        document["recovery_request"] = serde_json::to_value(query(&bootstrap, &ad, nonce)).unwrap();
+        document["receipt"] = serde_json::to_value(alternate).unwrap();
+        let bytes = serde_json::to_vec(&document).unwrap();
+        std::fs::write(&path, &bytes).unwrap();
+        // Independently valid under the pinned Root, but not this return.
+        crate::local_recorder::validated_binding(&path).unwrap();
+        assert!(execute(&bootstrap, &old, &ad, &state, |_| {
+            panic!("mismatched completion must not create network effects")
+        })
+        .is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        std::fs::remove_dir_all(state).unwrap();
+    }
+}
+#[test]
 fn committed_lost_reply_is_recovered_before_requesting_a_replacement() {
     let state = directory("committed-return-round");
     let (bootstrap, old, ad, first) = fixture();

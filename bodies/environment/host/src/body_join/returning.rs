@@ -128,7 +128,7 @@ fn verify_receipt(
     checked(receipt.verify(&bootstrap.root_key, request))?;
     if receipt.credential.part_id != old.part_id
         || receipt.producer_host != bootstrap.producer_host
-        || receipt.producer_boot.as_str().is_empty()
+        || receipt.producer_boot != challenge.producer_boot
         || receipt.credential.issued_at_millis < challenge.challenge.issued_at_millis
         || receipt.credential.issued_at_millis > challenge.challenge.expires_at_millis
     {

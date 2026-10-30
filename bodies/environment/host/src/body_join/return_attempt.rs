@@ -84,9 +84,9 @@ fn execute(
     let retained = latest(state, bootstrap, old, ad)?;
     let output = state.join("recorder-binding.json");
     if output.exists() {
-        if retained.is_none() {
-            return Err("returned binding lacks retained challenge".into());
-        }
+        let (_, challenge) = retained
+            .as_ref()
+            .ok_or("returned binding lacks retained challenge")?;
         let binding = crate::local_recorder::validated_binding(&output)?;
         if binding.root() != &bootstrap.root_key
             || binding.invitation() != &bootstrap.invitation.claim
@@ -96,6 +96,21 @@ fn execute(
         {
             return Err("retained returned binding differs".into());
         }
+        // A valid same-Body credential alone is insufficient: reopening must
+        // still prove this exact retained return, including its Root Boot and
+        // challenge nonce. No new exchange or signature repairs a mismatch.
+        let document: serde_json::Value = load(&output)?;
+        let receipt: recovery::Receipt = serde_json::from_value(document["receipt"].clone())?;
+        if &receipt.credential != binding.credential() {
+            return Err("retained returned receipt changed during validation".into());
+        }
+        verify_receipt(
+            &receipt,
+            bootstrap,
+            old,
+            challenge,
+            &query(bootstrap, ad, challenge.challenge.nonce),
+        )?;
         return Ok(());
     }
     let (round, challenge) = if let Some((round, prior)) = retained {
