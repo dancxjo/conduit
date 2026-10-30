@@ -43,8 +43,8 @@ async function setup(t) {
   const publicationArtifact = artifact(500, 'publication-receipt-3', receiptZip, publisher);
   const release = { id: 300, tag_name: `release-${f.source}`, draft: false, prerelease: false,
     published_at: '2026-10-26T12:00:00Z', assets: [{ id: 400, name: 'manifest.json', size: releaseBytes.length, digest: sha(releaseBytes) }] };
-  const protection = { required_status_checks: { contexts: ['train-accepted'], strict: false,
-    checks: [{ context: 'train-accepted', app_id: 15368 }] }, required_pull_request_reviews: null,
+  const protection = { required_status_checks: { contexts: ['train-proof'], strict: false,
+    checks: [{ context: 'train-proof', app_id: 15368 }] }, required_pull_request_reviews: null,
     enforce_admins: { enabled: true }, allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const state = { releaseFailure: null, binaryFailure: false, oversizedBinary: false, malformedMetadata: false,
     revokeFailure: false, minted: 0, revoked: 0, python: 0, acquisitions: [], metadata: 0 };

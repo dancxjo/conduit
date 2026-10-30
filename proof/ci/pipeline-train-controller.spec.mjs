@@ -12,8 +12,8 @@ import { withTrainAppSession } from '../../tools/ci/pipeline/train-app-session.m
 import { TARGETS } from '../../tools/ci/pipeline/targets.mjs';
 
 const TOKEN = 'fixture-installation-token', JWT = 'fixture-app-jwt';
-const protection = { required_status_checks: { contexts: ['train-accepted'], strict: false,
-  checks: [{ context: 'train-accepted', app_id: 15368 }] }, required_pull_request_reviews: null,
+const protection = { required_status_checks: { contexts: ['train-proof'], strict: false,
+  checks: [{ context: 'train-proof', app_id: 15368 }] }, required_pull_request_reviews: null,
   enforce_admins: { enabled: true }, allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
 
 async function fixture(t) {

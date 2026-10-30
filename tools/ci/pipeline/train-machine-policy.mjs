@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { constants } from 'node:fs';
 import { open, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const fail = reason => { throw new Error(`Machine writer policy: ${reason}`); };
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -117,7 +118,7 @@ export async function readMachineWriterConfiguration(filename, directory = proce
   } finally { await fd.close(); }
 }
 
-function readOnlyCredentialApi(environmentReference, allowed, label, { command = spawnSync, directory = process.cwd(), env = process.env } = {}, argumentsFor = endpoint => ['api', endpoint]) {
+function readOnlyCredentialApi(environmentReference, allowed, label, { command = spawnSync, directory = process.cwd(), env = process.env, program = 'gh' } = {}, argumentsFor = endpoint => ['api', endpoint]) {
   if (!/^[A-Z][A-Z0-9_]{0,127}$/.test(environmentReference ?? '')
       || ['GH_TOKEN', 'GITHUB_TOKEN', 'HOME', 'PATH'].includes(environmentReference)
       || typeof env[environmentReference] !== 'string' || !env[environmentReference]) fail(`named external ${label} environment reference required`);
@@ -128,7 +129,7 @@ function readOnlyCredentialApi(environmentReference, allowed, label, { command =
     delete childEnvironment.GITHUB_TOKEN;
     let result;
     try {
-      result = command('gh', argumentsFor(endpoint), { cwd: directory, encoding: 'utf8', timeout: 60000,
+      result = command(program, argumentsFor(endpoint), { cwd: directory, encoding: 'utf8', timeout: 60000,
         maxBuffer: 2 * 1024 ** 2, env: childEnvironment });
     } catch { fail(`${label} observation failed`); }
     if (result.error || result.status !== 0) fail(`${label} observation failed`);
@@ -139,7 +140,8 @@ function readOnlyCredentialApi(environmentReference, allowed, label, { command =
 
 export function createAppIdentityApi(environmentReference, options) {
   return readOnlyCredentialApi(environmentReference,
-    endpoint => endpoint === 'app' || /^app\/installations\/[1-9][0-9]*$/.test(endpoint), 'App identity', options);
+    endpoint => endpoint === 'app' || /^app\/installations\/[1-9][0-9]*$/.test(endpoint), 'App identity', { ...options, program: 'python3' },
+    endpoint => [fileURLToPath(new URL('./train-app-identity.py', import.meta.url)), endpoint]);
 }
 
 export function createPolicyObserverApi(environmentReference, config, options) {

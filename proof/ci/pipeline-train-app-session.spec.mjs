@@ -20,7 +20,7 @@ async function fixture(t) {
   const sourceDirectory = path.join(root, 'source'); await mkdir(sourceDirectory);
   const privateKeyFile = path.join(root, 'key.pem'); await writeFile(privateKeyFile, pem, { mode: 0o600 });
   const f = machinePolicyFixture();
-  const protection = { required_status_checks: { contexts: ['train-accepted'], checks: [{ context: 'train-accepted', app_id: 15368 }], strict: false },
+  const protection = { required_status_checks: { contexts: ['train-proof'], checks: [{ context: 'train-proof', app_id: 15368 }], strict: false },
     required_pull_request_reviews: null, enforce_admins: { enabled: true }, allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const state = { now: START, calls: [], ownerCalls: 0, callbacks: 0, revocations: 0,
     tokenRequests: 0, callbackFailure: false, revokeFailure: false, scopeDelay: false,
