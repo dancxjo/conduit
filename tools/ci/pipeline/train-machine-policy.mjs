@@ -117,7 +117,7 @@ export async function readMachineWriterConfiguration(filename, directory = proce
   } finally { await fd.close(); }
 }
 
-function readOnlyCredentialApi(environmentReference, allowed, label, { command = spawnSync, directory = process.cwd(), env = process.env } = {}) {
+function readOnlyCredentialApi(environmentReference, allowed, label, { command = spawnSync, directory = process.cwd(), env = process.env } = {}, argumentsFor = endpoint => ['api', endpoint]) {
   if (!/^[A-Z][A-Z0-9_]{0,127}$/.test(environmentReference ?? '')
       || ['GH_TOKEN', 'GITHUB_TOKEN', 'HOME', 'PATH'].includes(environmentReference)
       || typeof env[environmentReference] !== 'string' || !env[environmentReference]) fail(`named external ${label} environment reference required`);
@@ -128,7 +128,7 @@ function readOnlyCredentialApi(environmentReference, allowed, label, { command =
     delete childEnvironment.GITHUB_TOKEN;
     let result;
     try {
-      result = command('gh', ['api', endpoint], { cwd: directory, encoding: 'utf8', timeout: 60000,
+      result = command('gh', argumentsFor(endpoint), { cwd: directory, encoding: 'utf8', timeout: 60000,
         maxBuffer: 2 * 1024 ** 2, env: childEnvironment });
     } catch { fail(`${label} observation failed`); }
     if (result.error || result.status !== 0) fail(`${label} observation failed`);
@@ -147,7 +147,47 @@ export function createPolicyObserverApi(environmentReference, config, options) {
   const endpoints = new Set(['user', `repos/${config.repository}/branches/dev/protection`,
     `repos/${config.repository}/rulesets/${config.rulesetId}`, `repos/${config.repository}/rules/branches/dev?per_page=100`,
     `repos/${config.repository}/actions/variables/CONDUIT_PR_ADMISSION_TIER`]);
-  return readOnlyCredentialApi(environmentReference, endpoint => endpoints.has(endpoint), 'trusted policy observer', options);
+  const read = readOnlyCredentialApi(environmentReference, endpoint => endpoints.has(endpoint), 'trusted policy observer', options);
+  // REST currently omits update parameters even after explicit true/false writes.
+  // Never interpret omission as false: independently read the stored boolean.
+  const observeUpdate = () => {
+    const ruleset = read(`repos/${config.repository}/rulesets/${config.rulesetId}`);
+    if (ruleset.id !== config.rulesetId || ruleset.source !== config.repository
+        || ruleset.source_type !== 'Repository' || !/^[A-Za-z0-9_=-]{1,256}$/.test(ruleset.node_id ?? '')) {
+      fail('ruleset identity required for independent parameter observation');
+    }
+    const query = `query { node(id: ${JSON.stringify(ruleset.node_id)}) { ... on RepositoryRuleset {
+      databaseId source { ... on Repository { databaseId nameWithOwner } }
+      rules(first: 2) { pageInfo { hasNextPage } nodes { type parameters {
+        ... on UpdateParameters { updateAllowsFetchAndMerge }
+      } } }
+    } } }`;
+    const graph = readOnlyCredentialApi(environmentReference, endpoint => endpoint === 'stored-update-rule',
+      'trusted policy observer', options, () => ['api', 'graphql', '-f', `query=${query}`])('stored-update-rule');
+    const node = graph?.data?.node;
+    if (graph.errors || node?.databaseId !== config.rulesetId
+        || node.source?.databaseId !== config.repositoryId || node.source?.nameWithOwner !== config.repository
+        || node.rules?.pageInfo?.hasNextPage !== false || node.rules?.nodes?.length !== 1
+        || node.rules.nodes[0].type !== 'UPDATE'
+        || node.rules.nodes[0].parameters?.updateAllowsFetchAndMerge !== false) {
+      fail('independent stored update rule does not prohibit upstream fetch and merge');
+    }
+    return { update_allows_fetch_and_merge: false };
+  };
+  return endpoint => {
+    const value = read(endpoint);
+    if (endpoint === `repos/${config.repository}/rulesets/${config.rulesetId}`
+        && value.rules?.length === 1 && value.rules[0].type === 'update'
+        && !Object.hasOwn(value.rules[0], 'parameters')) {
+      return { ...value, rules: [{ ...value.rules[0], parameters: observeUpdate() }] };
+    }
+    if (endpoint === `repos/${config.repository}/rules/branches/dev?per_page=100`
+        && Array.isArray(value) && value.length === 1 && value[0].type === 'update'
+        && value[0].ruleset_id === config.rulesetId && !Object.hasOwn(value[0], 'parameters')) {
+      return [{ ...value[0], parameters: observeUpdate() }];
+    }
+    return value;
+  };
 }
 
 export function createTrainCredentialApis({ machineWriter, appJwtEnvironmentReference, policyObserverEnvironmentReference,

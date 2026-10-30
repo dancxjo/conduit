@@ -95,9 +95,10 @@ The trusted controller supplies three independent existing credentials:
 - A different named environment variable containing the trusted policy observer
   credential. Its `GET /user` response must match the pinned personal repository
   owner login and numeric ID. It must have visibility of the complete ruleset
-  bypass list. Its client can only GET that identity, the exact configured
+  bypass list. Its client can only read that identity, the exact configured
   ruleset, dev protection, dev branch rules and the exact
-  `CONDUIT_PR_ADMISSION_TIER` repository variable. It cannot mutate policy or
+  `CONDUIT_PR_ADMISSION_TIER` repository variable, plus the fixed GraphQL
+  stored-update-parameter query described below. It cannot mutate policy or
   refs, enumerate other variables or substitute for the installation token.
 
 [App identity endpoints](https://docs.github.com/en/rest/apps/apps#get-the-authenticated-app)
@@ -168,14 +169,20 @@ register the App, or switch to another credential automatically.
 
 Compatibility remains intentionally fail-closed. GitHub's
 [official OpenAPI schema](https://github.com/github/rest-api-description/blob/main/descriptions/api.github.com/api.github.com.json)
-makes an update rule's `parameters` object optional, with
-`update_allows_fetch_and_merge` required if that object exists. This validator
-currently requires an explicit false value in both rule observations; a valid
-API response omitting parameters will refuse and needs a separately reviewed
-compatibility decision based on actual policy readback. The App response schema
-also does not require `slug`, although documented registered-App examples include
-it; this contract requires the reviewed slug rather than inferring identity.
-Fixture success does not establish those live response shapes.
+makes an update rule's `parameters` object optional. Live REST readback omitted
+that object after both explicit false and true writes; omission is not evidence
+that upstream fetch-and-merge is disabled. When either owner-observed REST rule
+omits parameters, the trusted observer uses a fixed read-only GraphQL query for
+the ruleset's exact node. It requires the pinned repository and ruleset database
+identities, exactly one untruncated UPDATE rule, and an explicit stored
+`updateAllowsFetchAndMerge: false` before supplying the missing parameters to
+the unchanged strict validator. GraphQL errors, missing values, true, foreign
+identities and extra rules refuse. This adds no GraphQL mutation authority or
+caller-supplied query. Explicit REST parameters retain their existing validation.
+The App response schema also does not require `slug`, although documented
+registered-App examples include it; this contract requires the reviewed slug
+rather than inferring identity. Fixture success does not establish live policy
+or successful train operation.
 
 Bootstrap the trusted code through the old ordinary PR route while its existing
 checks remain intact. Capture old protection/rules and an explicit reviewed
