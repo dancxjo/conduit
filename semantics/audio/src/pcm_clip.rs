@@ -64,52 +64,137 @@ pub fn encode_pcm_clip(frames: &[&[u8]]) -> Result<Vec<u8>, PcmClipError> {
     Ok(encoded)
 }
 
-pub fn decode_pcm_clip(encoded: &[u8]) -> Result<PcmClip<'_>, PcmClipError> {
-    if encoded.len() > MAXIMUM_PCM_CLIP_BYTES {
-        return Err(PcmClipError::BoundExceeded);
-    }
-    if encoded.len() < HEADER_BYTES || encoded.get(..8) != Some(MAGIC) {
-        return Err(PcmClipError::MalformedFrame);
-    }
-    let block_count = u16::from_le_bytes([encoded[8], encoded[9]]) as usize;
-    if block_count == 0 {
-        return Err(PcmClipError::Empty);
-    }
-    if block_count > MAXIMUM_PCM_CLIP_BLOCKS {
-        return Err(PcmClipError::TooManyBlocks);
-    }
-    let declared_frames = u32::from_le_bytes(encoded[10..14].try_into().unwrap());
-    let mut offset = HEADER_BYTES;
-    let mut raw = Vec::with_capacity(block_count);
-    for _ in 0..block_count {
-        let length_end = offset.checked_add(4).ok_or(PcmClipError::BoundExceeded)?;
-        let length = encoded
-            .get(offset..length_end)
-            .and_then(|bytes| bytes.try_into().ok())
-            .map(u32::from_le_bytes)
-            .ok_or(PcmClipError::MalformedFrame)? as usize;
-        if length < PCM_FRAME_HEADER_ENCODED_LEN {
+/// An immutable, fully validated clip borrowed from admitted input storage.
+/// Construction checks the complete envelope and frame sequence before exposing
+/// any block. Construction and iteration neither allocate nor copy PCM bytes.
+#[derive(Debug, Clone, Copy)]
+pub struct PcmClipView<'a> {
+    encoded: &'a [u8],
+    profile: PcmClipProfile,
+    frame_count: u32,
+    block_count: usize,
+}
+impl<'a> PcmClipView<'a> {
+    pub fn decode(encoded: &'a [u8]) -> Result<Self, PcmClipError> {
+        if encoded.len() > MAXIMUM_PCM_CLIP_BYTES {
+            return Err(PcmClipError::BoundExceeded);
+        }
+        if encoded.len() < HEADER_BYTES || encoded.get(..8) != Some(MAGIC) {
             return Err(PcmClipError::MalformedFrame);
         }
-        offset = length_end;
-        let frame_end = offset
-            .checked_add(length)
-            .ok_or(PcmClipError::BoundExceeded)?;
-        raw.push(
+        let block_count = u16::from_le_bytes([encoded[8], encoded[9]]) as usize;
+        if block_count == 0 {
+            return Err(PcmClipError::Empty);
+        }
+        if block_count > MAXIMUM_PCM_CLIP_BLOCKS {
+            return Err(PcmClipError::TooManyBlocks);
+        }
+        let declared_frames = u32::from_le_bytes(encoded[10..14].try_into().unwrap());
+        let mut offset = HEADER_BYTES;
+        for _ in 0..block_count {
+            let length_end = offset.checked_add(4).ok_or(PcmClipError::BoundExceeded)?;
+            let length = encoded
+                .get(offset..length_end)
+                .and_then(|bytes| bytes.try_into().ok())
+                .map(u32::from_le_bytes)
+                .ok_or(PcmClipError::MalformedFrame)? as usize;
+            if length < PCM_FRAME_HEADER_ENCODED_LEN {
+                return Err(PcmClipError::MalformedFrame);
+            }
+            offset = length_end;
+            let frame_end = offset
+                .checked_add(length)
+                .ok_or(PcmClipError::BoundExceeded)?;
             encoded
                 .get(offset..frame_end)
-                .ok_or(PcmClipError::MalformedFrame)?,
-        );
-        offset = frame_end;
+                .ok_or(PcmClipError::MalformedFrame)?;
+            offset = frame_end;
+        }
+        if offset != encoded.len() {
+            return Err(PcmClipError::TrailingBytes);
+        }
+
+        let (profile, frame_count) = validate_sequence(PcmClipEncodedFrames {
+            encoded,
+            offset: HEADER_BYTES,
+            remaining: block_count,
+        })?;
+        if frame_count != declared_frames {
+            return Err(PcmClipError::DeclaredExtentMismatch);
+        }
+        Ok(Self {
+            encoded,
+            profile,
+            frame_count,
+            block_count,
+        })
     }
-    if offset != encoded.len() {
-        return Err(PcmClipError::TrailingBytes);
+    pub fn profile(&self) -> PcmClipProfile {
+        self.profile
     }
-    let clip = validate_frames(&raw)?;
-    if clip.frame_count != declared_frames {
-        return Err(PcmClipError::DeclaredExtentMismatch);
+    pub fn frame_count(&self) -> u32 {
+        self.frame_count
     }
-    Ok(clip)
+    pub fn block_count(&self) -> usize {
+        self.block_count
+    }
+    /// Returns each original encoded frame, retaining its clock and offset.
+    pub fn encoded_frames(&self) -> PcmClipEncodedFrames<'a> {
+        PcmClipEncodedFrames {
+            encoded: self.encoded,
+            offset: HEADER_BYTES,
+            remaining: self.block_count,
+        }
+    }
+    pub fn frames(&self) -> impl ExactSizeIterator<Item = PcmClipFrame<'a>> + 'a {
+        self.encoded_frames().map(|encoded| {
+            let (header, payload) = PcmFrameHeader::decode_frame(encoded)
+                .expect("immutable fully validated PCM clip frame");
+            PcmClipFrame { header, payload }
+        })
+    }
+}
+
+/// A cursor over original bytes; only a fully validated clip can create it.
+#[derive(Debug, Clone)]
+pub struct PcmClipEncodedFrames<'a> {
+    encoded: &'a [u8],
+    offset: usize,
+    remaining: usize,
+}
+impl<'a> Iterator for PcmClipEncodedFrames<'a> {
+    type Item = &'a [u8];
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining == 0 {
+            return None;
+        }
+        let length_end = self.offset + 4;
+        let length = u32::from_le_bytes(
+            self.encoded[self.offset..length_end]
+                .try_into()
+                .expect("validated frame length"),
+        ) as usize;
+        let end = length_end + length;
+        let frame = &self.encoded[length_end..end];
+        self.offset = end;
+        self.remaining -= 1;
+        Some(frame)
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.remaining, Some(self.remaining))
+    }
+}
+impl ExactSizeIterator for PcmClipEncodedFrames<'_> {}
+impl core::iter::FusedIterator for PcmClipEncodedFrames<'_> {}
+
+/// Allocating convenience decoder for preparation and ordinary hosted callers.
+pub fn decode_pcm_clip(encoded: &[u8]) -> Result<PcmClip<'_>, PcmClipError> {
+    let view = PcmClipView::decode(encoded)?;
+    Ok(PcmClip {
+        profile: view.profile(),
+        frame_count: view.frame_count(),
+        blocks: view.frames().collect(),
+    })
 }
 
 fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError> {
@@ -119,12 +204,30 @@ fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError>
     if frames.len() > MAXIMUM_PCM_CLIP_BLOCKS {
         return Err(PcmClipError::TooManyBlocks);
     }
-    let mut blocks = Vec::with_capacity(frames.len());
+    let (profile, frame_count) = validate_sequence(frames.iter().copied())?;
+    let blocks = frames
+        .iter()
+        .map(|encoded| {
+            let (header, payload) =
+                PcmFrameHeader::decode_frame(encoded).expect("validated PCM frame sequence");
+            PcmClipFrame { header, payload }
+        })
+        .collect();
+    Ok(PcmClip {
+        profile,
+        frame_count,
+        blocks,
+    })
+}
+
+fn validate_sequence<'a>(
+    frames: impl IntoIterator<Item = &'a [u8]>,
+) -> Result<(PcmClipProfile, u32), PcmClipError> {
     let mut profile: Option<PcmClipProfile> = None;
     let mut expected_start = None;
     let mut total_frames = 0_u32;
     for encoded in frames {
-        let (header, payload) =
+        let (header, _) =
             PcmFrameHeader::decode_frame(encoded).map_err(|_| PcmClipError::MalformedFrame)?;
         if header.discontinuity() {
             return Err(PcmClipError::Discontinuity);
@@ -164,13 +267,8 @@ fn validate_frames<'a>(frames: &[&'a [u8]]) -> Result<PcmClip<'a>, PcmClipError>
         if total_frames > MAXIMUM_PCM_CLIP_FRAMES {
             return Err(PcmClipError::BoundExceeded);
         }
-        blocks.push(PcmClipFrame { header, payload });
     }
-    Ok(PcmClip {
-        profile: profile.unwrap(),
-        frame_count: total_frames,
-        blocks,
-    })
+    Ok((profile.ok_or(PcmClipError::Empty)?, total_frames))
 }
 
 #[cfg(test)]
