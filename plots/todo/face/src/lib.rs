@@ -174,6 +174,39 @@ pub fn todo_fragment(
                 FaceDisclosureLevel::Primary
             },
         });
+        // Explicit reversible Boolean meaning lets every Mask choose its own
+        // control. This association grants no interaction route or availability.
+        let change = format!("todo.set-complete.{}", item.id);
+        fragment.properties.extend([
+            FaceProperty {
+                subject: identity.clone(),
+                name: "selected".into(),
+                value: FacePropertyValue::Flag(item.complete),
+            },
+            FaceProperty {
+                subject: identity.clone(),
+                name: "boolean-change-action".into(),
+                value: FacePropertyValue::Identity(change.clone()),
+            },
+        ]);
+        fragment.actions.push(FaceAction {
+            identity: change,
+            intent: "todo/set-complete@1".into(),
+            target: identity.clone(),
+            name: "Completed".into(),
+            arguments: vec![FaceActionArgument {
+                name: "value".into(),
+                value_name: "Completed".into(),
+                contract: conduit_core::CheckedValueContract::new(
+                    conduit_core::kind_id("value/bool"),
+                    1,
+                    vec![],
+                )
+                .map_err(|_| TodoFaceError::InvalidActionContract)?,
+            }],
+            disclosure: FaceDisclosureLevel::Primary,
+            availability: availability.clone(),
+        });
         fragment.actions.push(FaceAction {
             identity: format!(
                 "todo.{}.{id}",

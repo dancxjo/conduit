@@ -115,6 +115,7 @@ fn actual_preferences_preview_preserves_face() {
                     history.scene(),
                     0,
                     crate::columns::Presentation {
+                        details: false,
                         unit: Some(conduit_core::Unit::Fahrenheit),
                         look: Some(&look),
                     },

@@ -128,6 +128,8 @@ impl SplitLayout {
 pub struct PresentationPreferences {
     pub theme: Theme,
     #[serde(default)]
+    pub details: bool,
+    #[serde(default)]
     pub split: SplitLayout,
     pub temperature: TemperatureUnit,
     pub history_window: HistoryWindow,
@@ -136,6 +138,7 @@ pub struct PresentationPreferences {
 pub enum PresentationAction {
     MoveDivider(u16),
     NextTheme,
+    ToggleDetails,
     ToggleTemperatureUnit,
     ZoomIn,
     ZoomOut,
@@ -148,6 +151,7 @@ impl PresentationPreferences {
             PresentationAction::MoveDivider(position) => {
                 self.split = SplitLayout::from_divider(position)
             }
+            PresentationAction::ToggleDetails => self.details = !self.details,
             PresentationAction::NextTheme => self.theme = self.theme.next(),
             PresentationAction::ToggleTemperatureUnit => {
                 self.temperature = match self.temperature {
@@ -165,6 +169,17 @@ impl PresentationPreferences {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn details_is_local_and_old_saved_preferences_remain_valid() {
+        let old = r#"{"theme":"Navy","temperature":"Celsius","history_window":"Retained"}"#;
+        let mut preferences: PresentationPreferences = serde_json::from_str(old).unwrap();
+        assert!(!preferences.details);
+        let original = preferences;
+        assert!(preferences.apply(PresentationAction::ToggleDetails));
+        assert!(preferences.details);
+        assert!(preferences.apply(PresentationAction::ToggleDetails));
+        assert_eq!(preferences, original);
+    }
     #[test]
     fn zoom_is_bounded_and_reversible_and_does_not_change_other_preferences() {
         let mut p = PresentationPreferences::default();

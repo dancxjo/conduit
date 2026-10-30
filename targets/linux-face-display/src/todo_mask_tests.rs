@@ -60,7 +60,15 @@ fn canonical_todo_projection_uses_generic_mask_at_zero_one_three_and_twenty_rema
                     split: SplitLayout::CollapsedRight,
                     ..Default::default()
                 };
-                crate::mask_controls::chrome(1024, 600, &mut pixels, preferences, &look).unwrap();
+                crate::mask_controls::chrome_in_context(
+                    1024,
+                    600,
+                    &mut pixels,
+                    preferences,
+                    &look,
+                    crate::mask_controls::Context::for_face(&face, false),
+                )
+                .unwrap();
                 crate::display_clock::render(1024, 600, 0, &mut pixels).unwrap();
                 if let Some(output) = &output {
                     let mut ppm = b"P6\n1024 600\n255\n".to_vec();
@@ -78,6 +86,17 @@ fn canonical_todo_projection_uses_generic_mask_at_zero_one_three_and_twenty_rema
                     .unwrap();
                 }
             }
+        }
+        assert!(!shown.contains("todo-return-route-unavailable"));
+        assert!(!shown.contains("OWNER FACE"));
+        assert!(!shown.contains("[ ]"));
+        if remaining <= 3 {
+            assert_eq!(
+                crate::view::frame(face.clone(), 1024, 512, 0, None)
+                    .unwrap()
+                    .2,
+                1
+            );
         }
         for name in names {
             assert!(
@@ -154,4 +173,56 @@ fn exact_environmental_face_is_consumed_by_hdmi_and_thermometer_masks() {
         face.identity.as_str(),
         face.revision
     );
+}
+
+#[test]
+fn details_retains_completed_items_and_exact_unavailable_reasons() {
+    let face = fixture::face(1, 3, false);
+    let mut text = String::new();
+    let pages = crate::view::frame_with_details(face.clone(), 1024, 512, 0, None, true)
+        .unwrap()
+        .2;
+    for page in 0..pages {
+        let (scene, ..) =
+            crate::view::frame_with_details(face.clone(), 1024, 512, page, None, true).unwrap();
+        for command in scene.commands() {
+            text.push_str(command.payload());
+            text.push('\n');
+        }
+    }
+    assert!(text.contains("Task 2"));
+    assert!(text.contains("Task 3"));
+    assert!(text.contains("todo-return-route-unavailable"));
+    assert!(text.contains("complete"));
+}
+#[test]
+fn todo_boolean_contract_exposes_no_return_route_in_observer() {
+    let face = fixture::face(1, 3, false);
+    let original = face.clone();
+    let mut scene =
+        conduitos::native_face_scene::NativeFaceScene::prepare_with_input(face, 1024, 512, false)
+            .unwrap();
+    scene.use_read_only_overview().unwrap();
+    assert!(scene.focus_next(true).is_none());
+    assert_eq!(scene.face(), &original);
+}
+
+#[test]
+fn admitted_todo_uses_existing_native_boolean_control_contract() {
+    let face = fixture::face(1, 3, true);
+    let scene =
+        conduitos::native_face_scene::NativeFaceScene::prepare(face.clone(), 1024, 512).unwrap();
+    let frame = scene.frame().unwrap();
+    let hit = frame
+        .hits
+        .iter()
+        .find(|hit| hit.action.identity == "todo.set-complete.task-1")
+        .expect("typed completion control");
+    assert_eq!(
+        hit.action.arguments[0].contract.value_kind.as_str(),
+        "value/bool"
+    );
+    assert_eq!(hit.action.arguments[0].contract.maximum_bytes, 1);
+    assert_eq!(frame.face_id, &face.identity);
+    assert_eq!(frame.revision, face.revision);
 }

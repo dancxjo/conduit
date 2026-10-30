@@ -54,6 +54,20 @@ The resource envelope must separately bind Body/list, selected generation,
 provider, authority and acknowledged read/write evidence. These pure bytes and
 digests alone do not establish durable publication.
 
+## Face interaction capabilities
+
+Todo exposes completion as an explicitly associated reversible Boolean choice:
+`selected` names the current value and `boolean-change-action` identifies
+`todo.set-complete.<item-id>`. Its `value` argument uses the checked one-byte
+`value/bool` contract. The semantic owner resolves it to the existing typed
+`SetComplete` command after validating the exact current Face and Show.
+Existing complete/reopen commands remain usable by the spoken task route.
+A Mask does not commit completion or infer authority from drawing a checkbox.
+The observer display presents status text and keeps disabled actions and exact
+refusal reasons in Details; an admitted interactive Mask may use its existing
+Boolean-choice control. This does not admit a new action return route.
+The existing 20-item and 72-byte item-text bounds remain unchanged.
+
 ## Earlier generic JSON composition
 
 

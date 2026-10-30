@@ -117,6 +117,32 @@ fn every_todo_action_routes_to_one_typed_command_without_changing_state() {
             TodoCommand::Add { text: "Tea".into() },
         ),
         (
+            "todo.set-complete.task-1",
+            "todo/item/task-1",
+            vec![FaceInteractionArgument {
+                name: "value".into(),
+                value_kind: "value/bool".into(),
+                value: vec![1],
+            }],
+            TodoCommand::SetComplete {
+                id: "task-1".into(),
+                complete: true,
+            },
+        ),
+        (
+            "todo.set-complete.task-2",
+            "todo/item/task-2",
+            vec![FaceInteractionArgument {
+                name: "value".into(),
+                value_kind: "value/bool".into(),
+                value: vec![0],
+            }],
+            TodoCommand::SetComplete {
+                id: "task-2".into(),
+                complete: false,
+            },
+        ),
+        (
             "todo.complete.task-1",
             "todo/item/task-1",
             vec![],

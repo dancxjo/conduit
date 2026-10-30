@@ -33,6 +33,11 @@ pub fn unavailable(reason: &str) -> Face {
     .expect("bounded static host status")
 }
 
+pub struct Presentation<'a> {
+    pub unit: Option<conduit_core::Unit>,
+    pub look: Option<&'a conduit_face::LookInfo>,
+    pub details: bool,
+}
 pub fn render_with_palette(
     face: Face,
     width: u16,
@@ -42,11 +47,37 @@ pub fn render_with_palette(
     preferred: Option<conduit_core::Unit>,
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<(usize, usize), String> {
+    render_with_details(
+        face,
+        width,
+        height,
+        page_tick,
+        pixels,
+        Presentation {
+            unit: preferred,
+            look,
+            details: false,
+        },
+    )
+}
+pub fn render_with_details(
+    face: Face,
+    width: u16,
+    height: u16,
+    page_tick: usize,
+    pixels: &mut [u32],
+    presentation: Presentation<'_>,
+) -> Result<(usize, usize), String> {
+    let Presentation {
+        unit: preferred,
+        look,
+        details,
+    } = presentation;
     if pixels.len() != usize::from(width) * usize::from(height) {
         return Err("raster extent mismatch".into());
     }
     let (frame, page, pages, scale, chart_viewport) =
-        frame(face, width, height, page_tick, preferred)?;
+        frame_with_details(face, width, height, page_tick, preferred, details)?;
     if chart_viewport {
         render_graphics_with_palette(&frame, width, height, pixels, look)?;
         return Ok((page, pages));
@@ -178,6 +209,7 @@ pub fn render_notice_with_palette(
         .map_err(|e| format!("notice raster: {e:?}"))
 }
 
+#[cfg(test)]
 pub(crate) fn frame(
     face: Face,
     width: u16,
@@ -185,13 +217,51 @@ pub(crate) fn frame(
     page_tick: usize,
     preferred: Option<conduit_core::Unit>,
 ) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
+    frame_with_details(face, width, height, page_tick, preferred, false)
+}
+pub(crate) fn frame_with_details(
+    face: Face,
+    width: u16,
+    height: u16,
+    page_tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    details: bool,
+) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
     let property_face = face.clone();
     let property = crate::property_mask::frame(&property_face, width, height, 0, preferred);
     let mut scene = NativeFaceScene::prepare_with_input(face, width, height, false)
         .map_err(|e| format!("Face scene refused: {e:?}"))?;
     scene
-        .set_local_notice("Read only; pages advance automatically")
+        .use_read_only_overview()
+        .map_err(|e| format!("overview: {e:?}"))?;
+    scene.show_details(details);
+    let unsupported = property_face
+        .subjects
+        .iter()
+        .flat_map(|subject| subject.name.chars())
+        .any(|character| {
+            conduitos::display::typography::glyph(
+                conduitos::display::typography::TextRole::Body,
+                character,
+            )
+            .unsupported
+        });
+    scene
+        .set_local_notice(if unsupported {
+            "Font missing characters; original text retained"
+        } else {
+            "Read only; Details for actions and facts"
+        })
         .map_err(|e| format!("Face notice refused: {e:?}"))?;
+    if details {
+        let pages = scene.pages();
+        let page = page_tick % pages;
+        for _ in 0..page {
+            scene.turn_page(true);
+        }
+        let frame = scene.frame().map_err(|e| format!("Details: {e:?}"))?;
+        return Ok((frame.scene, page, pages, scene.text_scale_percent(), false));
+    }
     let charts: Vec<_> = property_face
         .subjects
         .iter()

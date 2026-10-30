@@ -123,12 +123,23 @@ fn command_for_action(
             text: text.to_string(),
         });
     }
-    if argument.is_some() {
-        return Err(TodoFaceError::InvalidActionContract);
-    }
     for item in &state.items {
         if target != format_item_target(&item.id) {
             continue;
+        }
+        if action == format_action("set-complete", &item.id) {
+            let complete = match argument {
+                Some([0]) => false,
+                Some([1]) => true,
+                _ => return Err(TodoFaceError::InvalidActionContract),
+            };
+            return Ok(TodoCommand::SetComplete {
+                id: item.id.clone(),
+                complete,
+            });
+        }
+        if argument.is_some() {
+            return Err(TodoFaceError::InvalidActionContract);
         }
         let command = if !item.complete && action == format_action("complete", &item.id) {
             TodoCommand::SetComplete {

@@ -127,6 +127,7 @@ pub struct NativeFaceScene {
     local_input_available: bool,
     local_creche_preferences: bool,
     local_notice: Option<String>,
+    read_only_overview: bool,
 }
 
 impl NativeFaceScene {
@@ -168,7 +169,21 @@ impl NativeFaceScene {
             local_input_available: true,
             local_creche_preferences: false,
             local_notice: None,
+            read_only_overview: false,
         })
+    }
+
+    /// A compact observer view retains exact inspection content in Details.
+    /// This cannot enable input or manufacture an action return route.
+    pub fn use_read_only_overview(&mut self) -> Result<(), FaceSceneError> {
+        if self.interaction_admitted {
+            return Err(FaceSceneError::InvalidFace);
+        }
+        let (primary, _) = document::prepare_mode(&self.face, false, true)?;
+        self.primary = layout::admit(primary, self.screen)?;
+        self.page = 0;
+        self.read_only_overview = true;
+        Ok(())
     }
 
     /// The selected renderer must use this same scale for rasterization.
