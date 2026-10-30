@@ -187,3 +187,53 @@ fn boxed_preparation_initializes_completion_count() {
     assert_eq!(scheduler.completed_count(), 1);
     assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
 }
+
+#[cfg(feature = "alloc")]
+#[test]
+fn boxed_initialization_drops_affine_driver_once_on_success_and_refusal() {
+    use std::{cell::Cell, rc::Rc};
+    struct AffineDriver(Rc<Cell<u32>>);
+    impl Drop for AffineDriver {
+        fn drop(&mut self) {
+            self.0.set(self.0.get() + 1);
+        }
+    }
+    impl StepBack<1> for AffineDriver {
+        fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
+            StepOutcome::Complete
+        }
+    }
+    type Scheduler =
+        FixedScheduler<AffineDriver, ObservedValues<4>, FixedSignLog<16>, 1, 0, 1, 1, 1, 0, 0, 1>;
+    for invalid in [false, true] {
+        let drops = Rc::new(Cell::new(0));
+        let mut routes = FixedRoutes::<1, 0>::new(1);
+        routes.seal().unwrap();
+        let mut bindings = FixedHostCallBindings::<0>::new(1);
+        bindings.seal().unwrap();
+        let result = Scheduler::new_boxed_with_active_counts_and_host_calls(
+            if invalid { 2 } else { 1 },
+            0,
+            [NodeSpec {
+                input_cords: [None],
+                maximum_step_fuel: 8,
+            }],
+            [],
+            routes,
+            bindings,
+            [AffineDriver(drops.clone())],
+            ObservedValues::<4>::new(),
+            FixedSignLog::<16>::new(16 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                .unwrap(),
+        );
+        if invalid {
+            assert_eq!(result.err(), Some(SchedulerError::InvalidActiveCapacity));
+            assert_eq!(drops.get(), 1);
+        } else {
+            let scheduler = result.unwrap();
+            assert_eq!(drops.get(), 0);
+            drop(scheduler);
+            assert_eq!(drops.get(), 1);
+        }
+    }
+}
