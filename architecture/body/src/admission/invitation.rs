@@ -4,8 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     admission_transcript, verify_signature, AdmissionManager, AdmissionRefusal, AdmissionSigns,
-    MembershipCredential, ADMISSION_SIGNATURE_BYTES, MAX_ADMISSION_ATTEMPTS,
-    MAX_ADMISSION_RECEIPTS, MAX_SPAWN_INVITATIONS, MAX_SPAWN_INVITATION_TTL_MILLIS,
+    MembershipCredential, SpawnAdmissionHostScope, ADMISSION_SIGNATURE_BYTES,
+    MAX_ADMISSION_ATTEMPTS, MAX_ADMISSION_RECEIPTS, MAX_SPAWN_INVITATIONS,
+    MAX_SPAWN_INVITATION_TTL_MILLIS,
 };
 use crate::identity::bind_identity;
 use crate::{AdmissionId, BodyId, BodyMembership, SpawnInvitationId};
@@ -189,6 +190,27 @@ impl AdmissionManager {
         now_millis: u64,
         signs: AdmissionSigns,
     ) -> Result<MembershipCredential, AdmissionRefusal> {
+        self.complete_spawn_for_host(
+            membership,
+            SpawnAdmissionHostScope::from(advertisement),
+            proof,
+            now_millis,
+            signs,
+        )
+    }
+
+    /// Authenticate and attach invitation membership from borrowed identity.
+    /// This shares the complete full-advertisement algorithm, including refusal
+    /// ordering and attempt/replay accounting. It creates no current equipment
+    /// offer, Plan, Play, reservation or execution grant.
+    pub fn complete_spawn_for_host(
+        &mut self,
+        membership: &mut BodyMembership,
+        host: SpawnAdmissionHostScope<'_>,
+        proof: &SpawnAdmissionProof,
+        now_millis: u64,
+        signs: AdmissionSigns,
+    ) -> Result<MembershipCredential, AdmissionRefusal> {
         let index = self
             .invitations
             .iter()
@@ -204,10 +226,10 @@ impl AdmissionManager {
         if proof.body_id != self.body_id {
             return Err(AdmissionRefusal::WrongBody);
         }
-        if proof.host_id != advertisement.host_id {
+        if &proof.host_id != host.host_id {
             return Err(AdmissionRefusal::WrongHost);
         }
-        if proof.boot_id != advertisement.boot_id {
+        if &proof.boot_id != host.boot_id {
             return Err(AdmissionRefusal::StaleBoot);
         }
         if proof.nonce != invitation.nonce {
@@ -220,9 +242,9 @@ impl AdmissionManager {
             "spawn-invitation-v1",
             &self.body_id,
             invitation.invitation_id.as_str(),
-            advertisement.host_id.as_str(),
-            advertisement.boot_id.as_str(),
-            advertisement.offer_generation,
+            host.host_id.as_str(),
+            host.boot_id.as_str(),
+            host.offer_generation,
             &invitation.nonce,
             invitation.expires_at_millis,
         );
@@ -246,15 +268,15 @@ impl AdmissionManager {
             &[
                 self.body_id.as_str(),
                 invitation.invitation_id.as_str(),
-                advertisement.host_id.as_str(),
-                advertisement.boot_id.as_str(),
+                host.host_id.as_str(),
+                host.boot_id.as_str(),
             ],
             now_millis,
         ));
         let mut next_membership = membership.clone();
-        let credential = self.attach(
+        let credential = self.attach_for_host(
             &mut next_membership,
-            advertisement,
+            host,
             now_millis,
             &admission_id,
             &signs,

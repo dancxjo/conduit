@@ -35,6 +35,33 @@ proposal and worker-start transaction with the selected Linux recorder; retain
 the same Body and evidence. Do not create a second Body or infer execution
 authority from matching historical producer identities.
 
+## Admission preparation and next worker handoff
+
+At `8f87c068f2`, routed admission encoding borrows complete advertisements
+rather than cloning their decoded definitions. A sound canonical-byte lower
+bound also refuses provably oversized structured payloads before allocating
+expanded JSON. Wire fields, compression, decoding and all limits are unchanged.
+CPU measurements against retained complete Motherbrain/Threebee advertisements
+show 496-byte peak allocations for this refusal path, compared with roughly
+1.54 MB for a clone-plus-JSON baseline. These are refusal measurements, not
+successful worker admission or physical Root workspace measurements.
+
+Invitation membership completion now accepts a borrowed Host/Boot/generation
+scope through the same admission and authoritative lifecycle transaction. The
+existing complete-advertisement entrances delegate to that implementation.
+Signature transcripts, attempt/replay accounting, archive staging and atomic
+publication retain their existing checks. This does not install current offers,
+reserve resources, create a Plan/Play or remove the native observer guard.
+
+The next wire integration must be an explicit membership-only document and
+receipt, without constructing an empty advertisement for a real worker. Full
+initialized equipment must subsequently be resolved losslessly under an
+explicit bounded profile before planning. Unknown or mismatched immutable
+definitions require complete bounded transfer or refusal. Current Host/Boot,
+offer generation, initialized resources and realization provenance remain
+actual runtime facts. Membership by itself cannot unblock protected Lines,
+worker execution, selected recording or final shared Face delivery.
+
 ## Historical source and proof boundaries, 28 October 2026
 
 [PR #6457](https://github.com/dancxjo/conduit/pull/6457) is still a draft at

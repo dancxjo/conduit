@@ -1,8 +1,8 @@
 use super::{sign, BodyLifecycleSessionError};
 #[cfg(feature = "authenticated-admission")]
 use crate::{
-    AdmissionManager, AdmissionSigns, MembershipCredential, SpawnAdmissionProof,
-    SpawnInvitationClaim, SpawnInvitationSecret,
+    AdmissionManager, AdmissionSigns, MembershipCredential, SpawnAdmissionHostScope,
+    SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationSecret,
 };
 use crate::{BodyBiographyError, MembershipState};
 #[cfg(feature = "authenticated-admission")]
@@ -44,6 +44,29 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
         authority_host: &HostId,
         authority_boot: &BootId,
     ) -> Result<MembershipCredential, BodyLifecycleSessionError> {
+        self.admit_invited_host_scope(
+            admissions,
+            SpawnAdmissionHostScope::from(advertisement),
+            proof,
+            now_millis,
+            authority_host,
+            authority_boot,
+        )
+    }
+
+    /// Authenticate membership without retaining or constructing equipment
+    /// metadata. The same authority, biography, archive and atomic publication
+    /// transaction applies. Offers and execution require separate admission.
+    #[cfg(feature = "authenticated-admission")]
+    pub fn admit_invited_host_scope(
+        &mut self,
+        admissions: &mut AdmissionManager,
+        host: SpawnAdmissionHostScope<'_>,
+        proof: &SpawnAdmissionProof,
+        now_millis: u64,
+        authority_host: &HostId,
+        authority_boot: &BootId,
+    ) -> Result<MembershipCredential, BodyLifecycleSessionError> {
         self.require_host(authority_host, authority_boot)?;
         // Ordinary admission stages only membership and records. If history
         // capacity requires archival, retain the existing private-copy fallback
@@ -75,7 +98,7 @@ impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
         let mut next_admissions = admissions.clone();
         let prior_events = membership.events.len();
         let credential = next_admissions
-            .complete_spawn(&mut membership, advertisement, proof, now_millis, signs)
+            .complete_spawn_for_host(&mut membership, host, proof, now_millis, signs)
             .map_err(BodyLifecycleSessionError::Admission)?;
         let events = membership.events[prior_events..]
             .iter()

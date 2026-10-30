@@ -431,6 +431,15 @@ fn stale_prepared_proposal_cannot_publish_after_membership_or_wake_changes() {
 
 #[test]
 fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archives() {
+    invitation_at_compaction_boundary(false);
+}
+
+#[test]
+fn identity_only_invitation_at_compaction_boundary_preserves_play_and_archives() {
+    invitation_at_compaction_boundary(true);
+}
+
+fn invitation_at_compaction_boundary(identity_only: bool) {
     use conduit_body::{AdmissionManager, SpawnAdmissionProof, SpawnInvitationSecret};
     let (session, mut partition, host, boot) = fixture();
     let mut evidence = session.evidence().clone();
@@ -531,16 +540,32 @@ fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archi
             warm_advertisement.offer_generation,
         )),
     };
-    session
-        .admit_invited_host(
-            &mut manager,
-            &warm_advertisement,
-            &warm_proof,
-            2,
-            &host,
-            &boot,
-        )
-        .unwrap();
+    let complete = |session: &mut BodyLifecycleSession,
+                    manager: &mut AdmissionManager,
+                    advertisement: &conduit_core::HostAdvertisement,
+                    proof: &SpawnAdmissionProof,
+                    now| {
+        if identity_only {
+            session.admit_invited_host_scope(
+                manager,
+                conduit_body::SpawnAdmissionHostScope::from(advertisement),
+                proof,
+                now,
+                &host,
+                &boot,
+            )
+        } else {
+            session.admit_invited_host(manager, advertisement, proof, now, &host, &boot)
+        }
+    };
+    complete(
+        &mut session,
+        &mut manager,
+        &warm_advertisement,
+        &warm_proof,
+        2,
+    )
+    .unwrap();
     assert_eq!(
         session.evidence().records.len(),
         conduit_body::MAX_BODY_BIOGRAPHY_RECORDS
@@ -595,17 +620,13 @@ fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archi
             3 => wrong.boot_id = "boot/foreign".into(),
             _ => now = 101,
         }
-        assert!(session
-            .admit_invited_host(&mut manager, &advertisement, &wrong, now, &host, &boot)
-            .is_err());
+        assert!(complete(&mut session, &mut manager, &advertisement, &wrong, now).is_err());
         assert_eq!(session.evidence(), &before);
         assert_eq!(session.pending_archives(), archives);
         assert_eq!(session.realization(), Some(&realization));
         assert_eq!(manager, admissions);
     }
-    session
-        .admit_invited_host(&mut manager, &advertisement, &proof, 11, &host, &boot)
-        .unwrap();
+    complete(&mut session, &mut manager, &advertisement, &proof, 11).unwrap();
     assert_eq!(session.pending_archives().len(), archives.len() + 1);
     assert_eq!(session.realization(), Some(&realization));
     assert_eq!(

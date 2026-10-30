@@ -1,16 +1,17 @@
 use alloc::vec::Vec;
-use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, SignId};
+use conduit_core::{BootId, HostId, OfferGeneration, SignId};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::identity::{bind_identity, validate_ids};
 use crate::{
-    AdmissionId, AuthenticatedHostObservation, BodyId, BodyLifecycleError, BodyMembership,
-    CandidateId, CandidateInventory, CandidateRefusal, CandidateState, MembershipCredentialId,
-    MembershipProofId, MembershipRefusal, PartId,
+    AdmissionId, BodyId, BodyLifecycleError, BodyMembership, CandidateId, CandidateInventory,
+    CandidateRefusal, CandidateState, MembershipCredentialId, MembershipRefusal, PartId,
 };
 
+mod attachment;
+pub use attachment::SpawnAdmissionHostScope;
 mod continuity;
 mod documents;
 mod invitation;
@@ -326,9 +327,9 @@ impl AdmissionManager {
             .advertisement
             .clone();
         let mut next_membership = membership.clone();
-        let credential = self.attach(
+        let credential = self.attach_for_host(
             &mut next_membership,
-            &advertisement,
+            SpawnAdmissionHostScope::from(&advertisement),
             now_millis,
             &pending.challenge.admission_id,
             &signs,
@@ -412,69 +413,6 @@ impl AdmissionManager {
             return Err(AdmissionRefusal::StaleOfferGeneration);
         }
         Ok(())
-    }
-
-    fn attach(
-        &self,
-        membership: &mut BodyMembership,
-        advertisement: &HostAdvertisement,
-        now_millis: u64,
-        admission_id: &AdmissionId,
-        signs: &AdmissionSigns,
-    ) -> Result<MembershipCredential, AdmissionRefusal> {
-        if membership.body_id != self.body_id {
-            return Err(AdmissionRefusal::WrongBody);
-        }
-        if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
-            return Err(AdmissionRefusal::ReceiptCapacityExhausted);
-        }
-        let part_id = PartId::bind(
-            &self.body_id,
-            admission_id.as_str(),
-            self.receipts.len() as u64,
-        )?;
-        let credential_id = MembershipCredentialId::bound(bind_identity(
-            "membership-credential",
-            &[
-                self.body_id.as_str(),
-                part_id.as_str(),
-                advertisement.host_id.as_str(),
-                advertisement.boot_id.as_str(),
-                admission_id.as_str(),
-            ],
-            now_millis,
-        ));
-        let proof_id = MembershipProofId::bind(credential_id.as_str())?;
-        let mut next = membership.clone();
-        next.admit(
-            &self.body_id,
-            next.revision,
-            part_id.clone(),
-            proof_id.clone(),
-            signs.part_admitted.clone(),
-        )?;
-        next.observe_present(
-            &self.body_id,
-            next.revision,
-            &part_id,
-            AuthenticatedHostObservation {
-                host_id: advertisement.host_id.clone(),
-                boot_id: advertisement.boot_id.clone(),
-                offer_generation: advertisement.offer_generation,
-                proof_id,
-                sequence: 0,
-            },
-            signs.host_attached.clone(),
-        )?;
-        *membership = next;
-        Ok(MembershipCredential {
-            credential_id,
-            body_id: self.body_id.clone(),
-            part_id,
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            issued_at_millis: now_millis,
-        })
     }
 
     fn retain_receipt(
