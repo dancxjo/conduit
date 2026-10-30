@@ -837,6 +837,23 @@ it does not establish reconstruction of the instruction by other Masks.
 
 ### Parsec instruction carrier counterexample
 
+The #5636 I1 diagnostic has a separate supported entrance:
+`cargo xtask check action-prompt-i1`. A passing check reproduces missing
+acceptance behavior: the initial checked map selects Fire, the keyboard request
+is current, and the selected Fire realization has no current request. No
+alternate prompt, instruction witness or input epoch is produced. Even an
+Enter event with a fabricated current Show epoch refuses before queue admission;
+the source state and Face remain unchanged. An explicit checked remap and its
+source ACK then enable `Input: Enter to Begin.` on a replacement Show, retaining
+the same `game/start` action and Body. Cancellation revokes that witness.
+
+This is a mechanism counterexample with synthetic request acceptance and source
+ACKs, not physical controller loss or completed I1 acceptance. The missing
+reachable source-authorized alternate route is #6608. Independent visual/linear
+instruction custody and effect/typed-return correlation are #6609; captured
+terminal records cannot grant either medium a current binding. #5636 and
+parent #5369 remain open for those requirements.
+
 The explicit actual-artifact diagnostic
 `actual_parsec_instruction_is_lost_at_face_only_mask_boundary` passes against
 the post-flush exchange above. It validates captured Face/Show/Body/Host/binding

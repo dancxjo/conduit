@@ -380,3 +380,7 @@ impl ParsecTerminalOwner {
 #[cfg(test)]
 #[path = "parsec_terminal_prompt_tests.rs"]
 pub(super) mod tests;
+
+#[cfg(test)]
+#[path = "action_prompt_i1_tests.rs"]
+mod action_prompt_i1_tests;
