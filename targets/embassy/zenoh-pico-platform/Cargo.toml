@@ -1,0 +1,18 @@
+[package]
+name = "conduit-zenoh-pico-embassy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[workspace]
+
+[dependencies]
+conduit-zenoh-pico-platform = { path = "../../../mechanisms/io/zenoh-pico-platform" }
+critical-section = "1.2"
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", default-features = false, features = ["proto-ipv4", "medium-ethernet", "tcp"] }
+
+[dev-dependencies]
+critical-section = { version = "1.2", features = ["std"] }
+embassy-net-driver = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["std", "generic-queue-8"] }

@@ -132,6 +132,39 @@ continued sensing/displaying with no reported errors during these off-device
 tests; it has not received Zenoh and remains a carrier, not an admitted Body
 execution Host. The actual MCU/NAT/history acceptance gates above remain open.
 
+### Protocol reuse without additional MCU stacks
+
+Keep one Conduit architecture across protocol realizations. Zenoh is the active
+Line-base experiment. MQTT, CoAP, Matter and radio mesh support are not additional
+requirements for this firmware or dependencies of its sampling/display Plots.
+Prefer a resident Linux/Pi adapter for external device interoperability when it
+can expose the existing typed observations and authorized operations. A gateway
+or paired device is not automatically a Body Host.
+
+Retain source/device and acquisition-time provenance across adapters. A retained
+last-known value remains distinct from a fresh physical observation; state
+delivery is not evidence that every intermediate observation was retained.
+Exact historical recovery still needs original sequence identity, verified
+ordering and durable commit custody. Device command submission, transport
+delivery and confirmed physical effect also remain distinct. Protocol topics,
+cluster identifiers and commissioning identities stay below semantic Cords
+unless the authored Plot explicitly means that protocol seam.
+
+The existing [Matter/BLE owner, #2298](https://github.com/dancxjo/conduit/issues/2298),
+was inspected and is closed. Its contract already distinguishes external device
+adaptation from Conduit Lines and membership. Closure alone does not establish
+current source or physical acceptance for this environmental Body; inspect its
+delivered implementation and proof before proposing another adapter initiative.
+Do not start MQTT/CoAP/Matter or new-radio work merely to broaden this evaluation.
+Any later comparison must identify existing machinery it replaces and measure
+the complete target cost, rather than assume protocol size determines savings.
+
+The shared socket handoff remains dependency-free `no_std`. Its Embassy owner
+belongs in a separately locked target crate: the pinned embedded time driver
+conflicts with the Linux workspace's registry driver if both are resolved in
+that workspace. This is platform dependency isolation, not another runtime,
+semantic transport abstraction or execution authority.
+
 ## Historical source and proof boundaries, 28 October 2026
 
 [PR #6457](https://github.com/dancxjo/conduit/pull/6457) is still a draft at
