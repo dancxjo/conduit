@@ -12,19 +12,40 @@ impl HostedTerminalMaskExecution {
         output: &mut W,
         expected: &str,
     ) -> Result<crate::body_execution::ParsecInstructionEffectObservation, TerminalError> {
-        let result = self.execute_instruction_inner(qualified, host, output, expected);
+        let result = self.execute_instruction_effect(qualified, host, |_, wording| {
+            let prefix = b"\r\x1b[2K";
+            let mut line = [0u8; 264];
+            let length = prefix
+                .len()
+                .checked_add(wording.len())
+                .filter(|length| *length <= line.len())
+                .ok_or_else(|| error("instruction effect exceeds prepared line bound"))?;
+            line[..prefix.len()].copy_from_slice(prefix);
+            line[prefix.len()..length].copy_from_slice(wording.as_bytes());
+            if &line[..length] != expected.as_bytes() || wording.len() > 256 {
+                return Err(error(
+                    "instruction effect differs from qualified source wording",
+                ));
+            }
+            output
+                .write_all(&line[..length])
+                .and_then(|()| output.flush())
+                .map_err(|e| error(format!("instruction effect write/flush: {e}")))
+        });
         if result.is_err() {
             let _ = self.cancel();
         }
         result
     }
-    fn execute_instruction_inner<W: Write + ?Sized>(
+    pub(super) fn execute_instruction_effect<F>(
         &mut self,
         qualified: QualifiedParsecInstruction,
         host: &HostAdvertisement,
-        output: &mut W,
-        expected: &str,
-    ) -> Result<crate::body_execution::ParsecInstructionEffectObservation, TerminalError> {
+        mut effect_callback: F,
+    ) -> Result<crate::body_execution::ParsecInstructionEffectObservation, TerminalError>
+    where
+        F: FnMut(&Face, &str) -> Result<(), TerminalError>,
+    {
         let source_request = self.pending_instruction_request(host)?;
         let (parent_plan, parent) = self
             .body_scope
@@ -47,9 +68,17 @@ impl HostedTerminalMaskExecution {
             .instruction_admission
             .as_mut()
             .ok_or_else(|| error("instruction Source has no admission"))?;
-        let value =
-            play.scheduler
-                .complete_instruction(admission, source_request, &qualified, host)?;
+        let value = play.scheduler.complete_instruction(
+            admission,
+            source_request,
+            &qualified,
+            host,
+            if self.visual {
+                conduit_face::ParsecInputInstructionLook::Arcade
+            } else {
+                conduit_face::ParsecInputInstructionLook::Linear
+            },
+        )?;
         let effect = play
             .instruction_effect
             .as_ref()
@@ -85,24 +114,7 @@ impl HostedTerminalMaskExecution {
             .require_effect_origin(&completed, parent, &active, host)
             .map_err(error)?;
         let wording = admission.effect_wording(&completed).map_err(error)?;
-        let prefix = b"\r\x1b[2K";
-        let mut line = [0u8; 264];
-        let length = prefix
-            .len()
-            .checked_add(wording.len())
-            .filter(|length| *length <= line.len())
-            .ok_or_else(|| error("instruction effect exceeds prepared line bound"))?;
-        line[..prefix.len()].copy_from_slice(prefix);
-        line[prefix.len()..length].copy_from_slice(wording.as_bytes());
-        if &line[..length] != expected.as_bytes() || wording.len() > 256 {
-            return Err(error(
-                "instruction effect differs from qualified source wording",
-            ));
-        }
-        output
-            .write_all(&line[..length])
-            .and_then(|()| output.flush())
-            .map_err(|e| error(format!("instruction effect write/flush: {e}")))?;
+        effect_callback(&play.face, wording)?;
         play.scheduler
             .complete_host_call(
                 request.node,

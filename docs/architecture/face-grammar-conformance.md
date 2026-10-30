@@ -837,22 +837,34 @@ it does not establish reconstruction of the instruction by other Masks.
 
 ### Parsec instruction carrier counterexample
 
-The #5636 I1 diagnostic has a separate supported entrance:
-`cargo xtask check action-prompt-i1`. A passing check reproduces missing
-acceptance behavior: the initial checked map selects Fire, the keyboard request
-is current, and the selected Fire realization has no current request. No
-alternate prompt, instruction witness or input epoch is produced. Even an
-Enter event with a fabricated current Show epoch refuses before queue admission;
-the source state and Face remain unchanged. An explicit checked remap and its
-source ACK then enable `Input: Enter to Begin.` on a replacement Show, retaining
-the same `game/start` action and Body. Cancellation revokes that witness.
+The #5636 I1 suite enters through `cargo xtask check action-prompt-i1`.
+Its initial diagnostic at revision `5797c83546` reproduced absent alternate
+wording when the preferred Fire realization had no current input request.
+The checked input policy now explicitly selects current Enter before gameplay
+when Fire is unavailable. It retains the preferred map state, mapping revision,
+Body and offered Start action; no Mask rewrites the mapping. Gameplay keeps its
+existing explicit remap requirement. No available scope yields no instruction.
+The caller derives availability only from exact current accepted input requests,
+then independently validates the source-selected origin, action and Show.
 
-This is a mechanism counterexample with synthetic request acceptance and source
-ACKs, not physical controller loss or completed I1 acceptance. The missing
-reachable source-authorized alternate route is #6608. Independent visual/linear
-instruction custody and effect/typed-return correlation are #6609; captured
-terminal records cannot grant either medium a current binding. #5636 and
-parent #5369 remain open for those requirements.
+The finite conformance fixture also runs a raster carrier through the existing
+Mask kernel, with distinct renderer/effect offers, resources, Plan and Show.
+The existing native Face scene is rasterized into an actual retained pixel buffer
+before the initial and supplementary effect acknowledgements. Its private owner
+qualifies the exact current visual Show from the live carrier; terminal records
+cannot grant that authority. The checked instruction Source supplies Arcade
+wording for the raster and Linear wording for the terminal from the same current
+input policy. Both checked interaction Fores return the same offered action,
+target, arguments and Face basis while retaining distinct exact Show identities.
+
+The suite covers current software Space and unavailable-Fire/current-Enter
+fallback, source policy's full availability matrix, unchanged state, typed Enter
+admission, stale input epoch, forged Fire wording, stale Show/map and cancellation
+before supplementary effects. Input request acceptance and source map ACKs are
+mechanism fixtures. Raster proof is actual in-memory painting, not physical
+controller input, native display scanout, browser execution or speech delivery.
+The raster attachment is a bounded test specimen, not a new installed native
+product route. Parent #5369 retains its broader platform/remap/loss acceptance.
 
 The explicit actual-artifact diagnostic
 `actual_parsec_instruction_is_lost_at_face_only_mask_boundary` passes against

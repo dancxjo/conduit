@@ -9,7 +9,7 @@ use conduit_plan_lowering::{
     lowering::{KernelIdentityMap, LoweredForePort, FIXED_KERNEL_STORAGE_PROFILE},
 };
 
-fn terminal_host() -> crate::StdHost {
+fn terminal_host_with_visual(visual: bool) -> crate::StdHost {
     let mut advertisement = crate::composition::build_advertisement(
         crate::StdHostConfig {
             host_id: "proof/parsec-terminal".into(),
@@ -37,6 +37,12 @@ fn terminal_host() -> crate::StdHost {
     offers.extend(
         crate::terminal_mask_execution::planning::parsec_instruction_capabilities().unwrap(),
     );
+    if visual {
+        offers.extend(
+            crate::terminal_mask_execution::HostedVisualMaskExecution::attached_capabilities()
+                .unwrap(),
+        );
+    }
     for offer in offers {
         if let Some(existing) = advertisement
             .capabilities
@@ -62,6 +68,11 @@ fn terminal_host() -> crate::StdHost {
     advertisement
         .resources
         .extend(crate::terminal_mask_execution::planning::parsec_instruction_resources());
+    if visual {
+        advertisement.resources.extend(
+            crate::terminal_mask_execution::HostedVisualMaskExecution::attached_resources(),
+        );
+    }
     advertisement.resources.sort();
     // Every fixture capability/resource is selected before the actual runner is constructed.
     crate::StdHost::from_advertisement(advertisement).unwrap()
@@ -75,7 +86,20 @@ pub(super) fn fixture() -> (
     LoweredForePort,
     NodeId,
 ) {
-    let host = terminal_host();
+    fixture_with_visual(false)
+}
+
+pub(super) fn fixture_with_visual(
+    visual: bool,
+) -> (
+    crate::StdHost,
+    BodyPlan,
+    BodyPlayIdentity,
+    KernelIdentityMap,
+    LoweredForePort,
+    NodeId,
+) {
+    let host = terminal_host_with_visual(visual);
     let plan = crate::BodyLiveForeQueue::authored_parsec_input_plan_on_host(host.advertisement());
     let body = Body::born(
         plan.source_document_id.clone(),

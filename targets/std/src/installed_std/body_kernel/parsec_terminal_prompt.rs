@@ -7,12 +7,12 @@ use crate::installed_std::{
 
 #[derive(PartialEq, Eq)]
 pub(super) struct CurrentPrompt {
-    binding: ActionInputBindingProposalInfo,
+    pub(super) binding: ActionInputBindingProposalInfo,
     producer_plan: conduit_core::PlanId,
     producer_plot: conduit_core::PlotIdentity,
     text: String,
     epoch: u64,
-    realization: InputRealization,
+    pub(super) realization: InputRealization,
 }
 
 impl ParsecTerminalOwner {
@@ -165,6 +165,16 @@ impl ParsecTerminalOwner {
         host: &HostAdvertisement,
         keys: &KeyboardInputHost<'_>,
     ) -> Result<Option<CurrentPrompt>, String> {
+        self.current_prompt_for_show(map, host, keys, None)
+    }
+
+    fn current_prompt_for_show(
+        &mut self,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+        carrier_show: Option<&MaskShow>,
+    ) -> Result<Option<CurrentPrompt>, String> {
         if self.retired
             || self.input_inflight.is_some()
             || self.refresh_after_input
@@ -174,7 +184,16 @@ impl ParsecTerminalOwner {
         }
         let (face, show) = self.current_face_show(map, host)?;
         let face = face.clone();
-        let show = show.clone();
+        let show = carrier_show.unwrap_or(show).clone();
+        show.validate(&face)
+            .map_err(|e| format!("Parsec carrier Show: {e:?}"))?;
+        if show.show.lifecycle != conduit_face::ManifestationLifecycle::Available
+            || show.planned_mask.show_placement().host_id != host.host_id
+            || show.planned_mask.show_placement().boot_id != host.boot_id
+            || show.planned_mask.show_placement().offer_generation != host.offer_generation
+        {
+            return Err("Parsec carrier lacks an available Show on current Host/Boot".into());
+        }
         let state = ParsecMapState::decode(map.current_state()?)
             .map_err(|e| format!("Parsec prompt map: {e:?}"))?;
         let action = face
@@ -200,37 +219,32 @@ impl ParsecTerminalOwner {
             .encode()
             .map_err(|e| format!("Parsec prompt encoding: {e:?}"))
         };
-        let unavailable = context(false)?;
-        let proposed = self
+        // These booleans come only from exact standing request admission. The
+        // checked application policy, rather than a Mask, selects any fallback.
+        let play = map.current_play()?;
+        let current = |realization| {
+            keys.require_current_input_scope(realization, &self.plan, play, host)
+                .is_ok_and(|id| id == &self.plan.plots[0].plan.plan_id)
+        };
+        let keyboard = current(InputRealization::RawKeyboard);
+        let fire = current(InputRealization::SpaceButton);
+        let context = context(keyboard || fire)?;
+        let produced = self
             .policy
-            .evaluate(map.current_state()?, &unavailable)
-            .map_err(|e| format!("Parsec proposed prompt policy: {e:?}"))?;
-        let proposed = ActionInputBindingProposalInfo::decode(proposed.proposal_bytes())
-            .map_err(|e| format!("Parsec proposed prompt: {e:?}"))?;
-        let (realization, label) = match proposed.control_identity().as_str() {
+            .evaluate_with_input_availability(map.current_state()?, &context, keyboard, fire)
+            .map_err(|e| format!("Parsec current prompt policy: {e:?}"))?;
+        let binding = ActionInputBindingProposalInfo::decode(produced.proposal_bytes())
+            .map_err(|e| format!("Parsec current prompt: {e:?}"))?;
+        if !*binding.available() {
+            return Ok(None);
+        }
+        let (realization, label) = match binding.control_identity().as_str() {
             "control/fire" => (InputRealization::SpaceButton, "Space"),
             "keyboard/enter" => (InputRealization::RawKeyboard, "Enter"),
             _ => return Err("Parsec source policy proposes unsupported input realization".into()),
         };
-        // This derives availability from actual request admission, never the
-        // source proposal's available field or the presence of an adapter.
-        let Ok(input_plan) =
-            keys.require_current_input_scope(realization, &self.plan, map.current_play()?, host)
-        else {
-            return Ok(None);
-        };
-        if input_plan != &self.plan.plots[0].plan.plan_id {
-            return Err("Parsec prompt origin belongs to a different input Plan".into());
-        }
-        let available = context(true)?;
-        let produced = self
-            .policy
-            .evaluate(map.current_state()?, &available)
-            .map_err(|e| format!("Parsec current prompt policy: {e:?}"))?;
-        let binding = ActionInputBindingProposalInfo::decode(produced.proposal_bytes())
-            .map_err(|e| format!("Parsec current prompt: {e:?}"))?;
-        if !*binding.available()
-            || binding.control_identity() != proposed.control_identity()
+        let input_plan = keys.require_current_input_scope(realization, &self.plan, play, host)?;
+        if input_plan != &self.plan.plots[0].plan.plan_id
             || binding.control_label() != label
             || binding.face_identity() != face.identity.as_str()
             || binding.show_identity() != show.show_id.as_str()
@@ -324,6 +338,61 @@ impl QualifiedParsecInstruction {
 }
 
 impl ParsecTerminalOwner {
+    #[cfg(test)]
+    pub(in crate::installed_std::body_kernel) fn qualify_visual_instruction(
+        &mut self,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+        visual: &crate::terminal_mask_execution::HostedVisualMaskExecution,
+    ) -> Result<Option<QualifiedParsecInstruction>, String> {
+        let Some(show) = visual.current_show() else {
+            return Ok(None);
+        };
+        let Some(current) = self.current_prompt_for_show(map, host, keys, Some(show))? else {
+            return Ok(None);
+        };
+        let binding = current
+            .binding
+            .encode()
+            .map_err(|e| format!("Parsec visual binding: {e:?}"))?;
+        let face = self.current_face_show(map, host)?.0.clone();
+        Ok(Some(QualifiedParsecInstruction {
+            binding,
+            map: map.current_state()?.to_vec(),
+            face,
+            show: show.clone(),
+            parent_plan: self.plan.clone(),
+            parent_play: map.current_play()?.clone(),
+            host: host.clone(),
+        }))
+    }
+
+    #[cfg(test)]
+    pub(in crate::installed_std::body_kernel) fn revalidate_visual_instruction(
+        &mut self,
+        witness: QualifiedParsecInstruction,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+        visual: &crate::terminal_mask_execution::HostedVisualMaskExecution,
+    ) -> Result<QualifiedParsecInstruction, String> {
+        let current = self
+            .qualify_visual_instruction(map, host, keys, visual)?
+            .ok_or("Parsec visual instruction has no current input/Show")?;
+        if current.binding != witness.binding
+            || current.map != witness.map
+            || current.face != witness.face
+            || current.show != witness.show
+            || current.parent_plan != witness.parent_plan
+            || current.parent_play != witness.parent_play
+            || current.host != witness.host
+        {
+            return Err("Parsec visual instruction witness is stale".into());
+        }
+        Ok(current)
+    }
+
     pub(in crate::installed_std::body_kernel) fn qualify_instruction(
         &mut self,
         map: &ParsecAcknowledgedMap,
@@ -384,3 +453,7 @@ pub(super) mod tests;
 #[cfg(test)]
 #[path = "action_prompt_i1_tests.rs"]
 mod action_prompt_i1_tests;
+
+#[cfg(test)]
+#[path = "action_prompt_visual_tests.rs"]
+mod action_prompt_visual_tests;

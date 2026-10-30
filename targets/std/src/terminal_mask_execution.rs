@@ -20,6 +20,11 @@ use conduit_plan_lowering::lowering::{
 mod backs;
 #[path = "terminal_mask_execution/instruction.rs"]
 mod instruction;
+#[cfg(test)]
+#[path = "terminal_mask_execution/visual.rs"]
+mod visual;
+#[cfg(test)]
+pub(crate) use visual::HostedVisualMaskExecution;
 #[path = "terminal_mask_execution/kernel.rs"]
 mod kernel;
 #[path = "terminal_mask_execution/parsec_instruction_effect.rs"]
@@ -30,6 +35,8 @@ pub(crate) mod planning;
 mod play;
 #[path = "terminal_mask_execution/remote.rs"]
 mod remote;
+#[path = "terminal_mask_execution/render_completion.rs"]
+mod render_completion;
 #[cfg(test)]
 #[path = "terminal_mask_execution/tests.rs"]
 mod tests;
@@ -42,6 +49,8 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const PRESENT_CALL: &str = "conduit.host/present@1";
 const INTERACTION_CALL: &str = "conduit.host/face-interaction@1";
 const TERMINAL_TARGET: &str = "face/base/std-terminal@1";
+const VISUAL_TARGET: &str = "face/base/std-raster@1";
+const VISUAL_EFFECT: &str = "std/parsec-raster-instruction-effect@1";
 fn error(message: impl Into<String>) -> TerminalError {
     TerminalError::Execution(message.into())
 }
@@ -63,6 +72,7 @@ pub struct HostedTerminalMaskExecution {
     body_scope: Option<(conduit_body::BodyPlan, conduit_body::BodyPlayIdentity)>,
     pending: Option<Play>,
     host_retired: bool,
+    visual: bool,
 }
 struct Play {
     scheduler: Box<kernel::Scheduler>,
@@ -154,6 +164,7 @@ impl HostedTerminalMaskExecution {
             body_scope: None,
             pending: None,
             host_retired: false,
+            visual: false,
         })
     }
     pub fn planned_mask(&self) -> &PlannedMaskPlot {
@@ -216,8 +227,17 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
                 .ok_or(TerminalError::InvalidFace)?
                 .identity
                 .clone(),
-            "terminal/output".into(),
-            format!("std/terminal/prepared/{sequence}").into(),
+            if self.visual {
+                "visual/output"
+            } else {
+                "terminal/output"
+            }
+            .into(),
+            format!(
+                "std/{}/prepared/{sequence}",
+                if self.visual { "raster" } else { "terminal" }
+            )
+            .into(),
         )
         .map_err(debug_error)?;
         let lowered = lower_plan_fragment(fragment).map_err(debug_error)?;
@@ -245,7 +265,12 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
         } else {
             Some(call(INTERACTION_CALL)?)
         };
-        if renderer.target_kind.as_ref().map(|k| k.as_str()) != Some(TERMINAL_TARGET)
+        if renderer.target_kind.as_ref().map(|k| k.as_str())
+            != Some(if self.visual {
+                VISUAL_TARGET
+            } else {
+                TERMINAL_TARGET
+            })
             || renderer.call != HostCallId(0)
             || interaction.as_ref().is_some_and(|interaction| {
                 interaction.call != HostCallId(0)
@@ -279,7 +304,12 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
                 .iter()
                 .find(|p| p.kind_id.as_str() == parsec_instruction_effect::KIND)
                 .ok_or_else(|| error("instruction effect placement is absent"))?;
-            if placement.implementation_id.as_str() != parsec_instruction_effect::IMPLEMENTATION
+            let implementation = if self.visual {
+                VISUAL_EFFECT
+            } else {
+                parsec_instruction_effect::IMPLEMENTATION
+            };
+            if placement.implementation_id.as_str() != implementation
                 || effect.binding.maximum_input_bytes != crate::flow_activation::parsec_instruction_source_offer::MAXIMUM_INSTRUCTION_BYTES
                 || effect.binding.maximum_output_bytes != 0 {
                 return Err(error("instruction effect differs from exact selected Back"));
@@ -352,73 +382,11 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
         &mut self,
         receipt: &TerminalEffectReceipt,
     ) -> Result<MaskShow, TerminalError> {
-        let mut play = self
-            .pending
-            .take()
-            .ok_or_else(|| error("no terminal renderer pending"))?;
-        if play.awaiting_input
-            || receipt.prepared_show() != &play.show
-            || receipt.bytes_written() == 0
-            || receipt.frame_sequence() == 0
-        {
-            return Err(TerminalError::StaleShow);
-        }
-        let available = play
-            .show
-            .transition(
-                ManifestationLifecycle::Available,
-                format!("std/terminal/available/{}", play.show.show.play_sequence).into(),
-            )
-            .map_err(debug_error)?;
-        let bytes = serde_json::to_vec(&available).map_err(debug_error)?;
-        play.complete_call(Some(&bytes))?;
-        play.show = available;
-        let mut observed = false;
-        let mut pending = None;
-        for _ in 0..64 {
-            if let Some(request) = play.scheduler.next_host_request() {
-                if Some(request.node) == play.instruction_node {
-                    play.accept_instruction_request(request, &self.host)?;
-                    continue;
-                }
-                if play.read_only
-                    || pending.is_some()
-                    || Some(request.node) != play.interaction_node
-                    || request.call != HostCallId(0)
-                    || request.request != RequestId(1)
-                    || play
-                        .scheduler
-                        .host_value(request.input.value)
-                        .map_err(debug_error)?
-                        != bytes
-                {
-                    return Err(error("terminal interaction Host Call mismatch"));
-                }
-                pending = Some(request);
-            }
-            if let Some(actual) = play.take_output(&play.show_fore.clone())? {
-                if observed || actual != bytes {
-                    return Err(error("terminal Show Fore mismatch"));
-                }
-                let actual_show: MaskShow = serde_json::from_slice(&actual).map_err(debug_error)?;
-                actual_show.validate(&play.face).map_err(debug_error)?;
-                play.show = actual_show;
-                observed = true;
-            }
-            if observed && play.read_only {
-                play.finish(None)?;
-                return Ok(play.show.clone());
-            }
-            if observed && pending.is_some() {
-                play.request = pending.take().expect("observed pending Host Call");
-                play.awaiting_input = true;
-                let show = play.show.clone();
-                self.pending = Some(play);
-                return Ok(show);
-            }
-            step(&mut play.scheduler)?;
-        }
-        Err(error("terminal Show Fore work bound exhausted"))
+        self.complete_carrier_render(
+            receipt.prepared_show(),
+            receipt.bytes_written(),
+            receipt.frame_sequence(),
+        )
     }
 
     fn interact(

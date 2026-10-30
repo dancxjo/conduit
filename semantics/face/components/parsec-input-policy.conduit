@@ -1,12 +1,16 @@
 # Application state and the explicit remap choice enter through typed Fores.
 # This policy proposes a binding; it does not observe or admit a physical input.
+# Before gameplay, unavailable Fire may use current Enter without changing remap state.
+# During gameplay the explicit choice remains authoritative; absent input withdraws it.
 type ParsecInputPolicyRequest = {
     started: Boolean
     keyboard: Boolean
+    keyboard_available: Boolean
+    fire_available: Boolean
     context: ActionInputBindingProposalInfo
 }
 
 plot parsec/input-policy (
  >> request: ParsecInputPolicyRequest
  binding: ActionInputBindingProposalInfo >>
-) = {available: .context.available, boot_id: .context.boot_id, control_identity: .keyboard ? "keyboard/enter" : "control/fire", control_label: .keyboard ? "Enter" : "Space", face_identity: .context.face_identity, host_id: .context.host_id, input_plan_id: .context.input_plan_id, mapping_revision: .context.mapping_revision, offered_action: {action_identity: .started ? "game/shoot" : "game/start", source_face_revision: .context.offered_action.source_face_revision}, show_identity: .context.show_identity, version: 1}
+) = {available: .context.available && ((.keyboard || (!.started && !.fire_available && .keyboard_available)) ? .keyboard_available : .fire_available), boot_id: .context.boot_id, control_identity: (.keyboard || (!.started && !.fire_available && .keyboard_available)) ? "keyboard/enter" : "control/fire", control_label: (.keyboard || (!.started && !.fire_available && .keyboard_available)) ? "Enter" : "Space", face_identity: .context.face_identity, host_id: .context.host_id, input_plan_id: .context.input_plan_id, mapping_revision: .context.mapping_revision, offered_action: {action_identity: .started ? "game/shoot" : "game/start", source_face_revision: .context.offered_action.source_face_revision}, show_identity: .context.show_identity, version: 1}
