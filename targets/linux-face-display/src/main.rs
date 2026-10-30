@@ -1,4 +1,6 @@
 //! Read-only Linux framebuffer realization of an exact caller-supplied Face.
+mod columns;
+mod display_clock;
 mod framebuffer;
 mod history_input;
 mod input;
@@ -30,6 +32,8 @@ fn run() -> Result<(), String> {
     let width = fb.geometry.width as u16;
     let height = fb.geometry.height as u16;
     let mut pixels = vec![0; width as usize * height as usize];
+    let content_height = display_clock::content_height(height)?;
+    let content_len = usize::from(width) * usize::from(content_height);
     eprintln!(
         "Linux Face display: {width}x{height} RGB565; read-only; source {}",
         input_path.display()
@@ -40,10 +44,14 @@ fn run() -> Result<(), String> {
     let mut previous = String::new();
     let mut retained = input::RetainedView::default();
     let mut recovered_history = false;
+    let mut columns = columns::Columns::new(width, content_height);
+    let history_width = columns
+        .as_ref()
+        .map_or(width, |layout| layout.history_width);
     let mut history = history_input::HistoryInput::new_at_size(
         preferred,
-        width,
-        height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
+        history_width,
+        content_height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
     );
     let mut history_status = String::new();
     loop {
@@ -91,16 +99,61 @@ fn run() -> Result<(), String> {
             }
             history_status = status;
         }
+        if let Some(columns) = columns.as_mut() {
+            let history_notice = if !history_status.is_empty() {
+                "HISTORY UPDATES DELAYED"
+            } else {
+                history.label().unwrap_or("RETAINED HISTORY")
+            };
+            let report_notice = historical_notice
+                .as_ref()
+                .map(|_| "LAST KNOWN · LIVE UPDATES DELAYED");
+            columns.render(
+                face,
+                history.scene(),
+                tick,
+                preferred,
+                columns::Notices {
+                    report: report_notice,
+                    history: history_notice,
+                },
+                &mut pixels[..content_len],
+            )?;
+            display_clock::render(width, height, start.elapsed().as_secs(), &mut pixels)?;
+            fb.present(&pixels)?;
+            if previous != status {
+                eprintln!("{status}");
+                previous = status;
+            }
+            std::thread::sleep(Duration::from_secs(1));
+            continue;
+        }
         let history_page = tick.is_multiple_of(2) && history.scene().is_some();
         let face_tick = face_page_tick(tick, history.scene().is_some());
         let rendered = if history_page {
             if let Some(history) = history.scene() {
-                view::render_graphics(history, width, height, &mut pixels)
+                view::render_graphics(history, width, content_height, &mut pixels[..content_len])
             } else {
-                view::render(face, width, height, face_tick, &mut pixels, preferred).map(|_| ())
+                view::render(
+                    face,
+                    width,
+                    content_height,
+                    face_tick,
+                    &mut pixels[..content_len],
+                    preferred,
+                )
+                .map(|_| ())
             }
         } else {
-            view::render(face, width, height, face_tick, &mut pixels, preferred).map(|_| ())
+            view::render(
+                face,
+                width,
+                content_height,
+                face_tick,
+                &mut pixels[..content_len],
+                preferred,
+            )
+            .map(|_| ())
         };
         match rendered {
             Ok(_) => {
@@ -116,21 +169,28 @@ fn run() -> Result<(), String> {
                         "{} / {status}",
                         history.label().unwrap_or("RETAINED HISTORY")
                     );
-                    view::render_notice(&notice, width, height, &mut pixels)?;
+                    view::render_notice(
+                        &notice,
+                        width,
+                        content_height,
+                        &mut pixels[..content_len],
+                    )?;
                 } else if let Some(notice) = historical_notice.as_deref() {
-                    view::render_notice(notice, width, height, &mut pixels)?;
+                    view::render_notice(notice, width, content_height, &mut pixels[..content_len])?;
                 }
+                display_clock::render(width, height, start.elapsed().as_secs(), &mut pixels)?;
                 fb.present(&pixels)?;
             }
             Err(reason) => {
                 view::render(
                     view::unavailable(&reason),
                     width,
-                    height,
+                    content_height,
                     0,
-                    &mut pixels,
+                    &mut pixels[..content_len],
                     preferred,
                 )?;
+                display_clock::render(width, height, start.elapsed().as_secs(), &mut pixels)?;
                 fb.present(&pixels)?;
                 eprintln!("{reason}");
             }
@@ -145,6 +205,13 @@ fn run() -> Result<(), String> {
 fn face_page_tick(tick: usize, history_present: bool) -> usize {
     if history_present { tick / 2 } else { tick }
 }
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("Linux Face display stopped: {error}");
+        std::process::exit(1);
+    }
+}
+
 #[cfg(test)]
 mod paging_tests {
     #[test]
@@ -162,12 +229,5 @@ mod paging_tests {
         for tick in 0..12 {
             assert_eq!(super::face_page_tick(tick, false), tick);
         }
-    }
-}
-
-fn main() {
-    if let Err(error) = run() {
-        eprintln!("Linux Face display stopped: {error}");
-        std::process::exit(1);
     }
 }

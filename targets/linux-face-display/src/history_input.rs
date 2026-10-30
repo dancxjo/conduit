@@ -32,7 +32,9 @@ fn hex(text: &str, maximum: usize) -> Result<Vec<u8>, String> {
         return Err("history hex bounds".into());
     }
     text.as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|b| {
             u8::from_str_radix(core::str::from_utf8(b).map_err(|_| "history hex")?, 16)
                 .map_err(|_| "history hex".into())

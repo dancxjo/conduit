@@ -73,3 +73,12 @@ gaps break lines. Temperature uses the selected Celsius/Fahrenheit display
 preference through canonical Quantity conversion. Historical evidence remains
 historical when the live Face transport lease expires; keeping it visible does
 not renew the live Play, its actions or its lease.
+
+A reserved 32-pixel footer shows the local Host's `HH:MM:SS UTC` wall clock and
+an alternating `DISPLAY +` / `DISPLAY o` heartbeat once per second. This is
+presentation liveness only, including while a retained or unavailable view is
+shown. `host clock` does not claim synchronized BodyTime, accurate sensor time,
+or producer freshness. A failed wall-clock read shows `CLOCK UNAVAILABLE`
+without stopping the heartbeat. Narrow displays use the compact `DISPLAY` label
+and `NO CLOCK` refusal wording. Content and charts use the remaining viewport;
+the footer never covers their labels or replaces their freshness notices.
