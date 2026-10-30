@@ -234,6 +234,7 @@ installed_step_dispatch!(
     RecordedSpeech,
     WhisperSpeech,
     MicrophoneClip,
+    MicrophoneFlow,
     AddressDetect,
     RecognitionText,
     RecognizedTurnCommit,

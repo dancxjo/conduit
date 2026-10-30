@@ -478,3 +478,9 @@ mod provider_drift;
 
 #[path = "hosted_microphone_tests/pipe_deadline.rs"]
 mod pipe_deadline;
+
+#[path = "hosted_microphone_tests/flow.rs"]
+mod flow;
+
+#[path = "hosted_microphone_tests/flow_plan.rs"]
+mod flow_plan;

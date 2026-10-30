@@ -6,9 +6,13 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
+pub mod capture_flow;
+mod flow_format;
+mod flow_provider;
 #[path = "hosted_microphone/provider_discovery.rs"]
 mod provider_discovery;
 mod provider_io;
+pub use flow_provider::{MicrophoneFlow, MicrophoneFlowPoll, PreparedMicrophoneFlow};
 use provider_discovery::capture_command;
 #[path = "hosted_microphone/provider_identity.rs"]
 mod provider_identity;
@@ -70,6 +74,10 @@ pub enum MicrophoneFailure {
     Timeout = 14,
     Cancelled = 15,
     InexactFormat = 16,
+    ClockUnavailable = 17,
+    PartialSampleFrame = 18,
+    CaptureOverrun = 19,
+    UnconfirmedFormat = 20,
 }
 
 impl core::fmt::Display for MicrophoneFailure {
@@ -134,6 +142,10 @@ impl AlsaMicrophoneAdapter {
             AlsaMicrophoneFormat::ExactHardware => conduit_std_offers::microphone_clip_offer(),
             AlsaMicrophoneFormat::AlsaPlug => conduit_std_offers::converted_microphone_clip_offer(),
         }
+    }
+
+    pub fn flow_offer(&self) -> conduit_core::CapabilityOffer {
+        conduit_std_offers::microphone_flow_offer(self.format == AlsaMicrophoneFormat::AlsaPlug)
     }
 
     pub fn executable_sha256(&self) -> &str {
@@ -278,14 +290,24 @@ impl AlsaMicrophoneAdapter {
     }
 
     fn spawn(&self) -> Result<Child, MicrophoneFailure> {
+        self.capture_process()
+            .spawn()
+            .map_err(|_| MicrophoneFailure::SpawnFailed)
+    }
+
+    fn capture_process(&self) -> Command {
+        self.capture_process_for(capture_frames(self.limits.capture_milliseconds))
+    }
+    fn capture_process_for(&self, frames: u32) -> Command {
         let device = format!(
             "{}:CARD={},DEV={}",
             self.format.device_prefix(),
             self.selection.card_id,
             self.selection.device
         );
-        let samples = capture_frames(self.limits.capture_milliseconds).to_string();
-        capture_command(&self.discovery.executable)
+        let samples = frames.to_string();
+        let mut command = capture_command(&self.discovery.executable);
+        command
             .args([
                 "--device",
                 &device,
@@ -302,9 +324,8 @@ impl AlsaMicrophoneAdapter {
             ])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|_| MicrophoneFailure::SpawnFailed)
+            .stderr(Stdio::piped());
+        command
     }
 }
 

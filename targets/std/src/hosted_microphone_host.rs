@@ -51,7 +51,7 @@ impl crate::StdHost {
                 mechanism_family: conduit_core::HostBaseKindId::from("std.base/alsa-microphone@1"),
                 enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
                 lifecycle: conduit_core::BaseLifecycle::Ready,
-                capabilities: vec![capability],
+                capabilities: vec![capability, adapter.flow_offer()],
                 resources: vec![resource],
             })
             .map_err(|error| format!("std microphone Base registration: {error:?}"))?;
@@ -101,6 +101,35 @@ impl crate::StdHost {
             .ok_or_else(|| "microphone capability has no authority contract".to_string())?;
         Ok(conduit_core::AuthorityGrant {
             grant_id: conduit_core::AuthorityGrantId::from(grant_id),
+            contract_id: requirement.contract_id.clone(),
+            host_call_contract_id: requirement.host_call_contract_id.clone(),
+            subject_kind: requirement.subject_kind.clone(),
+            host_id: self.advertisement.host_id.clone(),
+            boot_id: self.advertisement.boot_id.clone(),
+            capability_id: capability.capability_id.clone(),
+        })
+    }
+    pub fn microphone_flow_authority_grant(
+        &self,
+        grant_id: &str,
+    ) -> Result<conduit_core::AuthorityGrant, String> {
+        let adapter = self
+            .microphone
+            .as_ref()
+            .ok_or("std Host has no selected microphone resource")?;
+        let offer = adapter.flow_offer();
+        let capability = self
+            .advertisement
+            .capabilities
+            .iter()
+            .find(|capability| capability.capability_id == offer.capability_id)
+            .ok_or("microphone Flow is not advertised")?;
+        let requirement = capability
+            .authority_requirements
+            .first()
+            .ok_or("microphone Flow lacks authority contract")?;
+        Ok(conduit_core::AuthorityGrant {
+            grant_id: grant_id.into(),
             contract_id: requirement.contract_id.clone(),
             host_call_contract_id: requirement.host_call_contract_id.clone(),
             subject_kind: requirement.subject_kind.clone(),

@@ -23,6 +23,14 @@ impl InstalledRemoteFragment {
     }
 
     fn step_kernel(&mut self) -> Result<SchedulerStatus, String> {
+        if self.microphone_flow_required && self.microphone_flow_host.is_none() {
+            return Err(
+                "finite capture requires initialized provider preparation before Play".into(),
+            );
+        }
+        if let Some(host) = self.microphone_flow_host.as_mut() {
+            host.poll(&mut self.scheduler, false)?;
+        }
         self.scheduler
             .step()
             .map_err(|error| format!("step remote std fragment: {error:?}"))

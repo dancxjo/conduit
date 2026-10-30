@@ -90,7 +90,7 @@ impl Pipe {
 }
 
 #[cfg(unix)]
-fn nonblocking(pipe: &impl std::os::fd::AsRawFd) -> Result<(), MicrophoneFailure> {
+pub(super) fn nonblocking(pipe: &impl std::os::fd::AsRawFd) -> Result<(), MicrophoneFailure> {
     let fd = pipe.as_raw_fd();
     // SAFETY: the owned live pipe supplies a valid descriptor; fcntl only
     // inspects/updates its flags, retaining ownership with the Child stream.
@@ -102,7 +102,7 @@ fn nonblocking(pipe: &impl std::os::fd::AsRawFd) -> Result<(), MicrophoneFailure
 }
 
 #[cfg(not(unix))]
-fn nonblocking<T>(_: &T) -> Result<(), MicrophoneFailure> {
+pub(super) fn nonblocking<T>(_: &T) -> Result<(), MicrophoneFailure> {
     // ALSA capture has no supported non-Unix pipe implementation. Refuse before
     // reading rather than entering an unbounded blocking operation.
     Err(MicrophoneFailure::InvalidProvider)
