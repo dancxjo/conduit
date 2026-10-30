@@ -285,9 +285,9 @@ fn compact_keyboard_target_retains_exact_graph_and_canonical_values() {
         target: 3,
         value: Target {
             graph,
-            plan: Some("c9f5ac1bcad10e5d1543fb141c3aa734537ddb3ae9cac8cf709213d24538d7a0".into()),
+            plan: Some("65f2a3cf560c587fba263ebe699211d24fa359b871d68015e8d6f8008237f3dd".into()),
             body:
-                "body-plan/sha256:d9c386d2771d4e24e104860ac4eab8aec95744c8cc2b60cb4d6bea757f50228d"
+                "body-plan/sha256:5057f696991a44d70135381a3320929c0e47b40539734d51f3f876a64d829945"
                     .into(),
         },
     };
@@ -298,6 +298,25 @@ fn compact_keyboard_target_retains_exact_graph_and_canonical_values() {
         u32::from_le_bytes(bytes[8..12].try_into().unwrap()),
         Sha256::digest(&bytes)
     );
+    assert_eq!(bytes.len(), 9291, "exact retained CI input extent");
+    assert_eq!(
+        alloc::format!("{:x}", Sha256::digest(&bytes)),
+        "1ab6ae2e4cdec601570355f04e4dbe04ca7188fdafa540cd6ca2e086125d5ea5",
+        "actual failing CI command, not a merely related fixture"
+    );
+    if let Some(path) = std::env::var_os("CONDUIT_PREPARE_TARGET_CAPTURE") {
+        let path = std::path::PathBuf::from(path);
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(path.join("command.bin"), &bytes).unwrap();
+        let Command::PrepareTarget { value, .. } = &command else {
+            unreachable!()
+        };
+        std::fs::write(
+            path.join("graph.json"),
+            serde_json::to_vec(&value.graph).unwrap(),
+        )
+        .unwrap();
+    }
     // The exact former 17,606-byte / 426,638-expanded-byte payload and its
     // f92c0894... SHA-256 are retained at d1a15a3e3 and in the native receipt.
     // V2 changes only the private byte-array representation. Keep the same
