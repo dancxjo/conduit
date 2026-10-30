@@ -121,8 +121,8 @@ async function cryptographicSession(t, f, { revokeFailure = false } = {}) {
   const privateKeyFile = path.join(f.directory, 'ephemeral-fixture.pem');
   await writeFile(privateKeyFile, pair.privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
   let minted = 0, revoked = 0;
-  const protection = { required_status_checks: { contexts: ['train-accepted'], strict: false,
-    checks: [{ context: 'train-accepted', app_id: 15368 }] }, required_pull_request_reviews: null,
+  const protection = { required_status_checks: { contexts: ['train-proof'], strict: false,
+    checks: [{ context: 'train-proof', app_id: 15368 }] }, required_pull_request_reviews: null,
     enforce_admins: { enabled: true }, allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const policy = endpoint => endpoint === 'user' ? machine.observerUser : endpoint.includes('/protection') ? protection
     : endpoint.includes('/rulesets/') ? machine.ruleset : machine.branchRules;

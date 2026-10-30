@@ -8,7 +8,7 @@ import { createTrainCommands } from './train-command.mjs';
 import { createTrainDispatcher } from './train-dispatch.mjs';
 import { createTrainLander, assertSeparateTrainController } from './train-land.mjs';
 import { observeCheapTrainPolicy } from './train-cheap-policy.mjs';
-import { createPolicyObserverApi, validateMachineWriterConfiguration } from './train-machine-policy.mjs';
+import { createPolicyObserverApi, createAppIdentityApi, validateMachineWriterConfiguration } from './train-machine-policy.mjs';
 
 const fail = reason => { throw new Error(`Train controller: ${reason}`); };
 const shape = (value, fields) => value && typeof value === 'object' && !Array.isArray(value)
@@ -132,8 +132,8 @@ export async function runTrainController({ request, config, privateKeyFile, obse
     callback: async ({ jwt, installationToken }) => {
       const child = createTrainSessionCommand({ installationToken, observerEnvironmentReference, environment, command });
       const readApi = createTrainMetadataApi(child, request.targetSource);
-      const appReadApi = createTrainMetadataApi(createTrainSessionCommand({ installationToken: jwt,
-        observerEnvironmentReference, environment, command }), request.targetSource);
+      const appReadApi = createAppIdentityApi('CONDUIT_CONTROLLER_APP_JWT', { command,
+        directory: request.targetSource, env: { ...sourceEnvironment, CONDUIT_CONTROLLER_APP_JWT: jwt } });
       const appIdentityApi = endpoint => {
         if (endpoint !== 'app' && endpoint !== `app/installations/${config.installationId}`) fail('unsupported App identity endpoint');
         return appReadApi(endpoint);

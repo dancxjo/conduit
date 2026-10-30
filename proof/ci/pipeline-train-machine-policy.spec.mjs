@@ -120,7 +120,7 @@ test('JWT reference passes secret only to read-only identity command and errors 
   const secret = 'fixture-JWT-never-print';
   const api = createAppIdentityApi('CONDUIT_TRAIN_APP_JWT', { env: { CONDUIT_TRAIN_APP_JWT: secret },
     command(program, args, options) {
-      assert.equal(program, 'gh'); assert.deepEqual(args, ['api', 'app']);
+      assert.equal(program, 'python3'); assert.ok(args[0].endsWith('/train-app-identity.py')); assert.equal(args[1], 'app');
       assert.equal(options.env.GH_TOKEN, secret); return { status: 1, stderr: secret };
     } });
   assert.throws(() => api('app'), error => !error.message.includes(secret) && /observation failed/.test(error.message));

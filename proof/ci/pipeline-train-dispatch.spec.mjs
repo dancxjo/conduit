@@ -189,7 +189,7 @@ test('only Integration earns train-accepted after exhaustive proof or authentica
   const aggregate = workflow.split('  train-accepted:\n')[1];
   assert.match(aggregate, /if: \$\{\{ always\(\) \}\}/);
   assert.match(aggregate, /needs: \[train-source, adoption, proof\]/);
-  const script = aggregate.split('        run: |\n')[1].split('\n').map(line => line.slice(10)).join('\n');
+  const script = aggregate.split('        run: |\n')[1].split('\n      - ')[0].split('\n').map(line => line.slice(10)).join('\n');
   for (const [guard, adoption, adopted, result, accepted] of [
     ['success', 'skipped', '', 'success', true],
     ['skipped', 'success', 'false', 'success', true],

@@ -5,17 +5,21 @@ import path from 'node:path';
 import os from 'node:os';
 import { fixture } from './helpers/train-fixture.mjs';
 import { createTrainLander, assertSeparateTrainController } from '../../tools/ci/pipeline/train-land.mjs';
+import { proofStatusIdentity } from '../../tools/ci/pipeline/train-proof-status.mjs';
 import { machinePolicyFixture } from './helpers/train-machine-policy-fixture.mjs';
 
 async function setup(t, { configured = true, identity = true, observer = true } = {}) {
   const f = await fixture(t);
   const run = { ...f.observation.run, run_attempt: 1, check_suite_id: 777 };
   const machine = machinePolicyFixture(f.manifest.repository);
-  const protection = { required_status_checks: { contexts: ['train-accepted'], checks: [{ context: 'train-accepted', app_id: 15368 }], strict: false },
+  const protection = { required_status_checks: { contexts: ['train-proof'], checks: [{ context: 'train-proof', app_id: 15368 }], strict: false },
     required_pull_request_reviews: null, enforce_admins: { enabled: true },
     allow_force_pushes: { enabled: false }, allow_deletions: { enabled: false } };
   const check = { name: 'train-accepted', app: { id: 15368 }, head_sha: f.source,
     check_suite: { id: 777 }, status: 'completed', conclusion: 'success' };
+  const proofStatus = { id: 888, url: `https://api.github.com/repos/${f.manifest.repository}/statuses/${f.source}`,
+    creator: { id: 41898282, login: 'github-actions[bot]', type: 'Bot' },
+    ...proofStatusIdentity(f.manifest.repository, f.source, run.id, run.run_attempt) };
   const inventory = { total_count: 1, workflow_runs: [run] };
   const state = { dev: f.base, rules: machine.branchRules, head: f.source, tree: f.manifest.tree, reject: false,
     ambiguous: false, postAdvance: false, prepares: 0, mutations: 0, restores: 0 };
@@ -44,6 +48,7 @@ async function setup(t, { configured = true, identity = true, observer = true } 
     else if (endpoint === 'installation/repositories?per_page=100') value = machine.repositories;
     else if (endpoint.includes('/workflows/integration.yml/runs?')) value = inventory;
     else if (endpoint.includes('/actions/runs/')) value = run;
+    else if (endpoint.includes('/statuses?')) value = [proofStatus];
     else if (endpoint.includes('/check-suites/')) value = { total_count: 1, check_runs: [check] };
     else if (endpoint.endsWith('/git/ref/heads/dev')) value = { object: { sha: state.dev } };
     else if (endpoint.includes('/git/ref/heads/train/')) value = { object: { sha: state.head } };
@@ -62,7 +67,7 @@ async function setup(t, { configured = true, identity = true, observer = true } 
   const land = createTrainLander({ command, commands, directory: f.directory,
     machineWriter: configured ? machine.config : undefined, appIdentityApi: identity ? appIdentityApi : undefined,
     policyObserverApi: observer ? policyObserverApi : undefined });
-  return { ...f, run, protection, check, inventory, state, evidence, machine,
+  return { ...f, run, protection, check, proofStatus, inventory, state, evidence, machine,
     land: () => land('manifest.json', run.id, 'archives', evidence) };
 }
 
@@ -83,6 +88,9 @@ for (const options of [{ configured: false }, { identity: false }, { observer: f
 });
 for (const [name, mutate] of [
   ['newer failed Integration', f => { f.inventory.workflow_runs.push({ ...f.run, id: 999, conclusion: 'failure' }); f.inventory.total_count++; }],
+  ['writer-authored proof status', f => { f.proofStatus.creator.id = 202; }],
+  ['stale proof status attempt', f => { f.proofStatus.description = 'Integration 1 attempt 99'; }],
+  ['failed proof status', f => { f.proofStatus.state = 'failure'; }],
   ['ordinary Candidate green', f => { f.check.name = 'candidate'; }],
   ['ordinary Candidate protection policy', f => { f.protection.required_status_checks.contexts = ['candidate']; f.protection.required_status_checks.checks[0].context = 'candidate'; }],
   ['missing train acceptance', f => { f.check.name = 'unrelated'; }],
