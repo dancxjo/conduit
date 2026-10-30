@@ -3,6 +3,7 @@
 extern crate alloc;
 mod contract;
 pub mod credential_installation;
+pub mod credential_journal;
 mod credentials;
 pub use credentials::{
     CredentialCallRefusal, CredentialSource, CredentialSourceRefusal, NetworkCredentialsHostCall,
