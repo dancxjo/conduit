@@ -116,6 +116,8 @@ fn complete_look_tokens_drive_native_roles_with_accessibility_precedence() {
             phosphor_look().unwrap(),
             editorial_look().unwrap(),
             engineering_look().unwrap(),
+            conduit_face::field_instrument_day_look().unwrap(),
+            conduit_face::field_instrument_night_look().unwrap(),
             conduit_face::navy_look(
                 conduit_face::VisualDensity::Compact,
                 conduit_face::VisualTypography::Editorial,

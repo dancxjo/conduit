@@ -25,7 +25,7 @@ async function cordLabelContrasts(page) {
 
 // Documentary graph: checks appearance and retained renderer identities, not
 // live Body execution or native Mask selection.
-test('four typed application Looks retain the exact Face and graph', async ({ page }, info) => {
+test('six typed application Looks retain the exact Face and graph', async ({ page }, info) => {
   const child=spawn('target/debug/conduit-browser-patchbay-workbench',['--documentary-fixture'],{stdio:['ignore','pipe','pipe']});
   const errors=[];child.stderr.on('data',chunk=>errors.push(String(chunk)));
   const lines=createInterface({input:child.stdout});
@@ -53,6 +53,8 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
       ['editorial','rgb(244, 240, 231)','Georgia'],
       ['engineering','rgb(234, 240, 246)','Inter'],
       ['navy','rgb(16, 27, 42)','Georgia'],
+      ['field-instrument-day','rgb(241, 243, 242)','Inter'],
+      ['field-instrument-night','rgb(22, 30, 33)','Inter'],
     ]) {
       if(name!=='phosphor')await page.keyboard.press('ArrowDown');
       await expect(picker).toHaveValue(`conduit.look/${name}@1`);
@@ -79,7 +81,7 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
     await page.keyboard.press('Tab');
     await expect(picker).toBeFocused();
     await page.keyboard.press('Home');
-    for(const name of ['phosphor','editorial','engineering','navy']) {
+    for(const name of ['phosphor','editorial','engineering','navy','field-instrument-day','field-instrument-night']) {
       if(name!=='phosphor')await page.keyboard.press('ArrowDown');
       await expect(picker).toHaveValue(`conduit.look/${name}@1`);
       await picker.focus();
@@ -106,16 +108,16 @@ test('four typed application Looks retain the exact Face and graph', async ({ pa
     for(const label of forcedLabels){expect(label.ink).toBe(forcedSystem.canvasText);expect(label.paper).toBe(forcedSystem.canvas);}
     for(const label of forcedLabels)expect(label.ratio,'forced-color Cord badge').toBeGreaterThanOrEqual(4.5);
     await page.emulateMedia({forcedColors:'none',reducedMotion:'reduce'});
-    await expect(page.locator('body')).toHaveAttribute('data-application-look','conduit.look/navy@1');
-    const restoredLabels=await cordLabelContrasts(page),navyLabels=cordLabels.find(value=>value.look==='navy').labels;
-    expect(restoredLabels.map(({ink,paper})=>({ink,paper}))).toEqual(navyLabels.map(({ink,paper})=>({ink,paper})));
+    await expect(page.locator('body')).toHaveAttribute('data-application-look','conduit.look/field-instrument-night@1');
+    const restoredLabels=await cordLabelContrasts(page),nightLabels=cordLabels.find(value=>value.look==='field-instrument-night').labels;
+    expect(restoredLabels.map(({ink,paper})=>({ink,paper}))).toEqual(nightLabels.map(({ink,paper})=>({ink,paper})));
     expect((await (await page.request.get(`${url}/api/snapshot`)).json()).face).toEqual(baseline.face);
     await page.screenshot({path:info.outputPath('look-narrow-restored.png'),fullPage:true,animations:'disabled'});
     await writeFile(info.outputPath('look-receipt.json'),JSON.stringify({
       forced_color_restore:true,
       cord_labels:cordLabels,forced_color_cord_labels:forcedLabels,forced_system_colors:forcedSystem,
       scope:'documentary browser application Look switching; not live Body or native proof',
-      face:baseline.face, nodes, looks:['conduit.look/phosphor@1','conduit.look/editorial@1','conduit.look/engineering@1','conduit.look/navy@1'],
+      face:baseline.face, nodes, looks:cordLabels.map(({look})=>`conduit.look/${look}@1`),
       unchanged_face:true, keyboard_selection:true, narrow_forced_colors:true,
       browser:page.context().browser().version(),
       theme_css:{bytes:theme.length,sha256:createHash('sha256').update(theme).digest('hex')},
