@@ -199,6 +199,25 @@ fn checked_rejections_precede_raw_extent_creation_and_failed_connect_clears_outp
     assert_eq!(one, [42]);
 }
 #[test]
+fn c_write_budget_survives_nonblocking_read_mode() {
+    let (_, control) = install();
+    let g = connect();
+    let bytes = [0, 255, 128, 9];
+    let mut out = [42];
+    // SAFETY: both arrays own their declared extents throughout each callback.
+    unsafe {
+        assert_eq!(conduit_z_tcp_set_blocking(0, g, false), 0);
+        assert_eq!(conduit_z_tcp_write(0, g, bytes.as_ptr(), 4, 3), 4);
+        let before = control.now.get();
+        assert_eq!(conduit_z_tcp_write(0, g, bytes.as_ptr(), 1, 3), -1);
+        assert_eq!(control.now.get(), before + 3);
+        assert_eq!(conduit_z_tcp_read(0, g, out.as_mut_ptr(), 1, 3), -1);
+        assert_eq!(control.now.get(), before + 3);
+        assert_eq!(out, [42]);
+        assert_eq!(conduit_z_tcp_close(0, g), 0);
+    }
+}
+#[test]
 fn partial_binary_callbacks_preserve_prefix_and_read_eof_and_deadline() {
     let (access, _) = install();
     let g = connect();

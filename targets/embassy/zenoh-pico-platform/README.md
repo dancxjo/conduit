@@ -69,6 +69,16 @@ Entropy failure parks/retires the isolated worker without substituting bytes;
 its backing cannot be reused before retirement. Wall time may be unavailable.
 Endpoint strings come from an actual generation-matched socket snapshot.
 
+The C stream adapter must satisfy Zenoh's complete-slice write contract. It
+assembles known callback prefixes under one absolute socket deadline and retires
+the transport after any incomplete frame; accepted bytes are never replayed.
+C writes honor their explicit finite budget even when reads poll nonblocking.
+The public `SocketWorker::write` nonblocking semantics remain unchanged.
+`tests/run_pal_write.py` compiles the actual PAL against caller-supplied pinned
+upstream headers/configuration and tests exact partial offsets, deadline
+exhaustion, zero/error/overcount retirement and invalid extents. It downloads
+nothing and is separate from physical network evidence.
+
 The raw ABI still requires valid caller-owned extents and aligned u32 outputs;
 null, declared-size and slot checks cannot authenticate arbitrary C pointers.
 Provide disjoint local/remote output buffers. Tests instantiate and invoke the

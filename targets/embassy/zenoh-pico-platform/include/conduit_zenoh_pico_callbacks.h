@@ -39,6 +39,8 @@ int32_t conduit_z_tcp_connect(const uint8_t ipv4[4], uint16_t port, uint32_t tim
 /* >=0 transferred bytes <=len; read0 EOF; <0 timeout/fault/refusal.
  * A successful write means bytes accepted by transport, NEVER durable ACK. */
 intptr_t conduit_z_tcp_read(uint32_t slot, uint32_t generation, uint8_t *dst, size_t len, uint32_t timeout_ms);
+/* Known prefix, bounded by timeout_ms even when reads are nonblocking. The PAL
+ * assembles a complete streamed write under one absolute deadline. */
 intptr_t conduit_z_tcp_write(uint32_t slot, uint32_t generation, const uint8_t *src, size_t len, uint32_t timeout_ms);
 /* close success requires actual owner retirement. On finite deadline/fault,
  * return negative and leave generation quarantined until actual retirement;

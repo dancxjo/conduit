@@ -86,7 +86,7 @@ z_result_t _z_tcp_endpoint_init(_z_sys_net_endpoint_t *ep,const char *host,const
     candidate.port=(uint16_t)v; *ep=candidate; return _Z_RES_OK;
 }
 void _z_tcp_endpoint_clear(_z_sys_net_endpoint_t *ep) { if(ep) memset(ep,0,sizeof *ep); }
-static bool valid(_z_sys_net_socket_t s) { return s.generation!=0; }
+static bool valid(_z_sys_net_socket_t s) { return s.slot==0 && s.generation!=0; }
 z_result_t _z_tcp_open(_z_sys_net_socket_t *s,const _z_sys_net_endpoint_t ep,uint32_t timeout) {
     if (!s || !ep.port) return _Z_ERR_CONFIG_LOCATOR_INVALID;
     *s=(_z_sys_net_socket_t){0};
@@ -135,8 +135,23 @@ size_t _z_tcp_read_exact(_z_sys_net_socket_t s,uint8_t *p,size_t n) {
 size_t _z_tcp_write(_z_sys_net_socket_t s,const uint8_t *p,size_t n) {
     if (!n) return 0;
     if (!valid(s) || !p || n>INTPTR_MAX) return SIZE_MAX;
-    intptr_t r=conduit_z_tcp_write(s.slot,s.generation,p,n,Z_CONFIG_SOCKET_TIMEOUT);
-    return r<0 || (size_t)r>n ? SIZE_MAX : (size_t)r;
+    /* Zenoh's streamed link requires the complete slice. The callback accepts
+     * known prefixes into finite backing; never replay an accepted prefix. */
+    uint64_t deadline=add_sat(conduit_z_boot_us(),(uint64_t)Z_CONFIG_SOCKET_TIMEOUT*1000);
+    size_t done=0;
+    while(done<n) {
+        uint64_t now=conduit_z_boot_us();
+        if(now>=deadline) break;
+        uint32_t remaining=(uint32_t)((deadline-now+999)/1000);
+        intptr_t r=conduit_z_tcp_write(s.slot,s.generation,p+done,n-done,remaining);
+        if(r<=0 || (size_t)r>n-done) break;
+        done+=(size_t)r;
+    }
+    if(done==n) return done;
+    /* A partial streamed frame cannot be retried as an intact frame. Failed
+     * close retains the Rust worker's Closing quarantine until owner retirement. */
+    (void)conduit_z_tcp_close(s.slot,s.generation);
+    return SIZE_MAX;
 }
 z_result_t _z_socket_wait_readable(_z_socket_wait_iter_t *iter,uint32_t timeout) {
     if (!iter) return _Z_ERR_INVALID;

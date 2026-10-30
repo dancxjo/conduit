@@ -24,6 +24,8 @@ static BRIDGE: Mutex<RefCell<SocketBridge<RING, RING>>> =
 static CORE_STACK: StaticCell<CoreStack<STACK>> = StaticCell::new();
 #[derive(Clone, Copy)]
 struct Snapshot {
+    worker_phase: u8,
+    link_polls: u32,
     link: bool,
     endpoints: Option<(u32, Endpoint, Endpoint)>,
     opened: bool,
@@ -36,6 +38,8 @@ struct Snapshot {
     metrics_valid: bool,
 }
 static STATE: Mutex<RefCell<Snapshot>> = Mutex::new(RefCell::new(Snapshot {
+    worker_phase: 0,
+    link_polls: 0,
     link: false,
     endpoints: None,
     opened: false,
@@ -69,7 +73,9 @@ impl CallbackPlatform for Platform {
         if n > 1_000_000 {
             return Err(Fault::TimedOut);
         }
+        update(|s| s.worker_phase = 5);
         block_for(Duration::from_micros(n));
+        update(|s| s.worker_phase = 6);
         Ok(())
     }
     fn random_fill(&mut self, bytes: &mut [u8]) -> Result<(), Fault> {
@@ -131,11 +137,13 @@ pub fn start(core: Peri<'static, CORE1>, backing: &'static mut [MaybeUninit<u8>]
     let arena = CArena::new(backing).expect("explicit finite foreign partition");
     let stack = CORE_STACK.init_with(CoreStack::new);
     multicore::spawn_core1(core, stack, move || {
+        update(|s| s.worker_phase = 1);
         let worker = SocketWorker::new(&BRIDGE, Platform, 1000).unwrap();
         // SAFETY: only this unique core writes/uses the context, before C entry.
         unsafe {
             core::ptr::addr_of_mut!(CONTEXT).write(Some(Callbacks::new(worker, arena, Platform)));
         }
+        update(|s| s.worker_phase = 2);
         let result = unsafe { conduit_evaluation_run(construction::LOCATOR.as_ptr()) };
         conduit_evaluation_event(4, result);
         loop {
@@ -175,13 +183,20 @@ pub async fn network(stack: Stack<'static>) -> ! {
 }
 #[unsafe(no_mangle)]
 extern "C" fn conduit_evaluation_link_up() -> i32 {
-    i32::from(critical_section::with(|cs| STATE.borrow(cs).borrow().link))
+    let link = critical_section::with(|cs| {
+        let mut state = STATE.borrow(cs).borrow_mut();
+        state.worker_phase = 3;
+        state.link_polls = state.link_polls.saturating_add(1);
+        state.link
+    });
+    i32::from(link)
 }
 #[unsafe(no_mangle)]
 extern "C" fn conduit_evaluation_event(event: u32, result: i32) {
     let stats = with_context(|c| c.arena_stats());
     let now = Instant::now().as_micros();
     update(|s| {
+        s.worker_phase = 7;
         s.used = stats.used;
         s.peak = stats.peak_used;
         s.metrics_valid = true;
@@ -209,5 +224,10 @@ unsafe extern "C" fn conduit_evaluation_publish(session: *mut c_void, key: *cons
 }
 pub fn status(out: &mut impl Write) -> core::fmt::Result {
     let s = critical_section::with(|cs| *STATE.borrow(cs).borrow());
+    write!(
+        out,
+        ",\"zenoh_worker_phase\":{},\"zenoh_link_polls\":{}",
+        s.worker_phase, s.link_polls
+    )?;
     write!(out,",\"zenoh_evaluation\":{{\"link\":{},\"opened\":{},\"accepted_publications\":{},\"last_result\":{},\"prepared_us\":{},\"arena_used\":{},\"arena_peak\":{},\"metrics_valid\":{},\"rust_heap_capacity\":{},\"worker_stack_reserved\":{STACK}}}",s.link,s.opened,s.publications,s.result,s.prepared_us,s.used,s.peak,s.metrics_valid,crate::heap::capacity())
 }

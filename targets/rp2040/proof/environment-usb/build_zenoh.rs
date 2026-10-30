@@ -5,7 +5,11 @@ use std::{
     path::{Path, PathBuf},
 };
 pub fn prepare(out: &Path) -> Vec<PathBuf> {
-    for name in ["CONDUIT_ZENOH_EVAL_ARCHIVE", "CONDUIT_ZENOH_EVAL_LOCATOR"] {
+    for name in [
+        "CONDUIT_ZENOH_EVAL_ARCHIVE",
+        "CONDUIT_ZENOH_EVAL_LOCATOR",
+        "CONDUIT_ZENOH_EVAL_CONNECT_TIMEOUT_MS",
+    ] {
         println!("cargo:rerun-if-env-changed={name}");
     }
     let archive = PathBuf::from(
@@ -60,10 +64,20 @@ pub fn prepare(out: &Path) -> Vec<PathBuf> {
         ip.is_private() && port != 0,
         "private unicast evaluation router"
     );
+    // Upstream's default socket timeout is only 100ms. Keep a separately
+    // explicit connect budget, bounded by this PAL's existing ten-second cap.
+    let timeout: u32 = env::var("CONDUIT_ZENOH_EVAL_CONNECT_TIMEOUT_MS")
+        .expect("explicit evaluation TCP connect budget")
+        .parse()
+        .expect("numeric TCP connect budget");
+    assert!(
+        (1..=10_000).contains(&timeout),
+        "TCP connect budget exceeds PAL bound"
+    );
     let generated = out.join("zenoh.rs");
     fs::write(
         &generated,
-        format!("pub const LOCATOR:&[u8]=b\"tcp/{ip}:{port}\\0\";\n"),
+        format!("pub const LOCATOR:&[u8]=b\"tcp/{ip}:{port}#tout={timeout}\\0\";\n"),
     )
     .unwrap();
     files.push(generated);

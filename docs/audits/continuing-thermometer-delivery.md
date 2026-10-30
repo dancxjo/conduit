@@ -549,3 +549,38 @@ including alignment). Both builds retain the same total heap reservation and
 pass the same link bounds. The first baseline invocation omitted the required
 Wi-Fi feature and was correctly refused by the checked Host guard; its log is
 retained alongside the corrected successful build.
+
+### Bounded physical trial and adoption hold
+
+The final bounded physical trial used Green build
+`8ef247bbc3ae5f4aba595b1ee7a38ff4f5e1a61ea4d14f9760a443e4dd5ce3ab`
+and one pinned Linux router on Victus. The full image linked at 676,824 text,
+464 data and 99,988 BSS bytes. An explicit five-second upstream TCP locator
+connect timeout replaced the insufficient 100 ms default for this experiment;
+the PAL's existing ten-second cap stayed unchanged. Worker diagnostics distinguish
+entry/context, link polling, bounded sleep and session events.
+
+Physical testing exposed a real write-contract mismatch: Zenoh's streamed link
+requires a complete slice while the finite bridge returned known prefixes. The
+PAL now assembles those prefixes under one absolute socket deadline and requests
+close/quarantine after an incomplete frame. C writes retain their explicit
+finite budget even with nonblocking reads. The actual-C fixture fails before the
+fix and passes afterward; the supported adapter suite passes 29 tests and strict
+lint. No socket buffers or heap grants were enlarged.
+
+Victus received five status publications, four after an actual stop/restart of
+the owned router. During the outage the same MCU boot advanced from 3 to 6
+samples and from 42 to 74 acknowledged redraws, with no sensor/display fault.
+Observed C arena use was 6,116 bytes live / 6,988 peak; Rust heap peak stayed
+4,524 bytes. Initial open took 128,308 microseconds, not a full preparation-cost
+measurement. Router sampled high-water RSS reached 14,532 KiB. A transmit failure
+was observed before the outage and is retained as negative evidence; this is
+not a long-duration reliability result. Original records, image, logs and proof
+are under the task's `work/evidence/green-zenoh-stream-write-20261030` directory.
+
+The finite trial is stopped and Green's previously qualified everyday firmware
+is restored, rejoined and serving HTTP status again. Zenoh remains a candidate;
+adoption work is on hold while complete-workset admission and protected Lines
+are prioritized for live audio (#6606 producer flow remains Victus-owned).
+No NAT trial, exact buffered history over Zenoh, durable commit acknowledgment,
+proper MCU membership or selected recorder admission is claimed.

@@ -192,7 +192,7 @@ impl<
             unsafe { slice::from_raw_parts(input, len) }
         };
         self.worker
-            .write(generation, input, timeout)
+            .write_bounded(generation, input, timeout)
             .map_or(-1, |n| n as isize)
     }
     pub fn close(&mut self, slot: u32, generation: u32) -> i32 {

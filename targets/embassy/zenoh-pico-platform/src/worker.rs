@@ -122,9 +122,16 @@ impl<'a, A: BridgeAccess<RX, TX>, R: WorkerRuntime, const RX: usize, const TX: u
     fn transfer(
         &self,
         timeout_ms: u32,
-        mut operation: impl FnMut(&mut SocketBridge<RX, TX>) -> Result<Progress, Refusal>,
+        operation: impl FnMut(&mut SocketBridge<RX, TX>) -> Result<Progress, Refusal>,
     ) -> Result<usize, Refusal> {
         let deadline = self.deadline(if self.blocking { timeout_ms } else { 0 })?;
+        self.transfer_until(deadline, operation)
+    }
+    fn transfer_until(
+        &self,
+        deadline: u64,
+        mut operation: impl FnMut(&mut SocketBridge<RX, TX>) -> Result<Progress, Refusal>,
+    ) -> Result<usize, Refusal> {
         self.wait(deadline, |b| match operation(b)? {
             Progress::Bytes(n) => Ok(Some(n)),
             Progress::Eof => Ok(Some(0)),
@@ -152,6 +159,17 @@ impl<'a, A: BridgeAccess<RX, TX>, R: WorkerRuntime, const RX: usize, const TX: u
     ) -> Result<usize, Refusal> {
         let generation = self.generation(generation)?;
         self.transfer(timeout_ms, |b| b.write(generation, bytes))
+    }
+    /// C's streamed write uses its explicit finite budget even when reads poll
+    /// nonblocking. Only a known accepted prefix is returned on each call.
+    pub(crate) fn write_bounded(
+        &mut self,
+        generation: u32,
+        bytes: &[u8],
+        timeout_ms: u32,
+    ) -> Result<usize, Refusal> {
+        let generation = self.generation(generation)?;
+        self.transfer_until(self.deadline(timeout_ms)?, |b| b.write(generation, bytes))
     }
     /// Failure/EOF is readable, so accepted RX can drain before its terminal
     /// status. Deadline is ordinary lack of readiness, not a zero-byte read.
