@@ -421,6 +421,27 @@ fn execute_generation_with_basis(
         "fixture must reach a terminal kernel disposition: {result:?}"
     );
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    let (matches_content, digest_allocation) =
+        allocation_probe::observe(|| observer.committed_content_matches(&content));
+    assert_eq!(matches_content, matches!(result, ResultFixture::Published));
+    assert_eq!(
+        (
+            digest_allocation.allocations,
+            digest_allocation.reallocations
+        ),
+        (0, 0)
+    );
+    if matches_content {
+        let mut changed = content.clone();
+        let index = changed
+            .windows(3)
+            .position(|bytes| bytes == b"100")
+            .unwrap();
+        changed[index + 2] = b'1'; // Same sequence range, different producer time.
+        assert!(!observer.committed_content_matches(&changed));
+        assert!(!observer.committed_content_matches(&reference));
+        assert!(!observer.committed_content_matches(&content[..content.len() - 1]));
+    }
     let catalog = PreparedRecordingCatalog::prepare_committed(
         core::slice::from_ref(&selected),
         core::slice::from_ref(&observer),
