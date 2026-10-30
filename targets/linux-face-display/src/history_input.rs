@@ -14,6 +14,8 @@ struct Document {
     custody: String,
     body_id: String,
     producer_host: String,
+    #[serde(default)]
+    producer_display_name: Option<String>,
     producer_boot: String,
     scope_hex: String,
     forms_hex: String,
@@ -47,6 +49,7 @@ pub struct HistoryInput {
     accepted: Option<(Vec<u8>, conduit_face::GraphicsScene, String)>,
     preferred: Option<conduit_core::Unit>,
     size: (u16, u16),
+    window: Option<u64>,
 }
 impl HistoryInput {
     #[cfg(test)]
@@ -58,7 +61,37 @@ impl HistoryInput {
             accepted: None,
             preferred,
             size: (width, height),
+            window: None,
         }
+    }
+    pub fn configure(
+        &mut self,
+        unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
+        window: Option<u64>,
+    ) -> Result<(), String> {
+        if self.preferred == Some(unit) && self.size == (width, height) && self.window == window {
+            return Ok(());
+        }
+        let prepared = if let Some((bytes, _, _)) = &self.accepted {
+            let document: Document = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+            Some(validate_window(
+                document,
+                Some(unit),
+                (width, height),
+                window,
+            )?)
+        } else {
+            None
+        };
+        self.preferred = Some(unit);
+        self.size = (width, height);
+        self.window = window;
+        if let (Some((_, scene, _)), Some(prepared)) = (&mut self.accepted, prepared) {
+            *scene = prepared;
+        }
+        Ok(())
     }
     pub fn scene(&self) -> Option<&conduit_face::GraphicsScene> {
         self.accepted.as_ref().map(|(_, scene, _)| scene)
@@ -78,19 +111,18 @@ impl HistoryInput {
             return Ok(false);
         }
         let document: Document = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
-        let host: String = document.producer_host.chars().take(24).collect();
-        let boot: String = document
-            .producer_boot
-            .strip_prefix("boot/")
-            .unwrap_or(&document.producer_boot)
-            .chars()
-            .take(12)
-            .collect();
-        let mut label = format!("RETAINED HISTORY · {host} · {boot}");
-        while label.len() > 112 {
-            label.pop();
-        }
-        let prepared = validate_at_size(document, self.preferred, self.size)?;
+        let label = match document.producer_display_name.as_deref() {
+            Some(name)
+                if !name.trim().is_empty()
+                    && name.len() <= 64
+                    && !name.chars().any(char::is_control) =>
+            {
+                format!("Retained history · {}", name.trim())
+            }
+            Some(_) => return Err("history producer display name bounds".into()),
+            None => "Retained history".into(),
+        };
+        let prepared = validate_window(document, self.preferred, self.size, self.window)?;
         self.accepted = Some((bytes, prepared, label));
         Ok(true)
     }
@@ -125,10 +157,19 @@ fn validate(
 ) -> Result<conduit_face::GraphicsScene, String> {
     validate_at_size(document, preferred, (640, 360))
 }
+#[cfg(test)]
 fn validate_at_size(
     document: Document,
     preferred: Option<conduit_core::Unit>,
     size: (u16, u16),
+) -> Result<conduit_face::GraphicsScene, String> {
+    validate_window(document, preferred, size, None)
+}
+fn validate_window(
+    document: Document,
+    preferred: Option<conduit_core::Unit>,
+    size: (u16, u16),
+    window: Option<u64>,
 ) -> Result<conduit_face::GraphicsScene, String> {
     if document.schema != "conduit.environment/retained-observation-series@1"
         || document.custody != "retained-signed-evidence"
@@ -172,10 +213,11 @@ fn validate_at_size(
     )
     .map_err(|e| format!("history records: {e:?}"))?;
     graph
-        .native_scene_in_unit_at_size(
+        .native_scene_in_unit_at_size_with_window(
             preferred.unwrap_or(conduit_core::Unit::Celsius),
             size.0,
             size.1,
+            window,
         )
         .map_err(|e| format!("history scene: {e:?}"))
 }
@@ -212,6 +254,7 @@ mod tests {
             custody: "retained-signed-evidence".into(),
             body_id: body.into(),
             producer_host: "host/actual".into(),
+            producer_display_name: None,
             producer_boot: boot.into(),
             scope_hex: hex_string(&scope),
             forms_hex: hex_string(&Sha256::digest(descriptor)),
@@ -239,8 +282,7 @@ mod tests {
         let bytes = serde_json::to_vec(&document()).unwrap();
         let mut input = HistoryInput::new(Some(conduit_core::Unit::Fahrenheit));
         assert!(input.accept(bytes.clone()).unwrap());
-        assert!(input.label().unwrap().contains("host/actual"));
-        assert!(input.label().unwrap().contains("actual"));
+        assert_eq!(input.label(), Some("Retained history"));
         let original = input.scene().unwrap().encode();
         let identity = input.scene().unwrap() as *const _;
         assert!(!input.accept(bytes).unwrap());
@@ -253,12 +295,40 @@ mod tests {
         assert_ne!(input.scene().unwrap().encode(), original);
         let mut another_source = document();
         another_source.producer_host = "host/second".into();
+        another_source.producer_display_name = Some("Blue".into());
         assert!(
             input
                 .accept(serde_json::to_vec(&another_source).unwrap())
                 .unwrap()
         );
-        assert!(input.label().unwrap().contains("host/second"));
+        assert_eq!(input.label(), Some("Retained history · Blue"));
+    }
+    #[test]
+    fn friendly_name_is_optional_bounded_and_never_replaces_provenance() {
+        let mut value = serde_json::to_value(document()).unwrap();
+        value
+            .as_object_mut()
+            .unwrap()
+            .remove("producer_display_name");
+        let mut input = HistoryInput::new(None);
+        input.accept(serde_json::to_vec(&value).unwrap()).unwrap();
+        assert_eq!(input.label(), Some("Retained history"));
+        for name in ["Blue", "White", "  Yellow  "] {
+            let mut named = document();
+            named.producer_display_name = Some(name.into());
+            assert_eq!(named.producer_host, "host/actual");
+            input.accept(serde_json::to_vec(&named).unwrap()).unwrap();
+            assert_eq!(
+                input.label().unwrap(),
+                format!("Retained history · {}", name.trim())
+            );
+        }
+        for name in ["".into(), " ".into(), "Blue\nforged".into(), "x".repeat(65)] {
+            let mut invalid = document();
+            invalid.producer_display_name = Some(name);
+            assert!(input.accept(serde_json::to_vec(&invalid).unwrap()).is_err());
+            assert_eq!(input.label(), Some("Retained history · Yellow"));
+        }
     }
 }
 

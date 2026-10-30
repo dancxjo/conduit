@@ -1,10 +1,8 @@
 //! Existing Conduit Face scene and typography, without environmental reconstruction.
 pub(crate) const STATUS_STRIP_HEIGHT: usize = 36;
+use crate::raster_target::{ChartViewport, Pixels, paint_scene};
 use conduit_face::{Face, FaceBasis, FaceRole, FaceSubject, FaceText};
-use conduitos::{
-    display::{DisplayError, DisplayFormat, PixelTarget, RetainedPixelTarget, typography},
-    native_face_scene::NativeFaceScene,
-};
+use conduitos::{display::DisplayFormat, native_face_scene::NativeFaceScene};
 
 /// Host-owned pre-birth status, never represented as the environmental Body Face.
 pub fn unavailable(reason: &str) -> Face {
@@ -34,44 +32,15 @@ pub fn unavailable(reason: &str) -> Face {
     )
     .expect("bounded static host status")
 }
-struct Pixels<'a> {
-    format: DisplayFormat,
-    values: &'a mut [u32],
-}
-impl Pixels<'_> {
-    fn index(&self, x: u32, y: u32) -> Result<usize, DisplayError> {
-        if x >= self.format.width || y >= self.format.height {
-            return Err(DisplayError::InvalidExtent);
-        }
-        Ok(y as usize * self.format.width as usize + x as usize)
-    }
-}
-impl PixelTarget for Pixels<'_> {
-    fn format(&self) -> DisplayFormat {
-        self.format
-    }
-    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        let i = self.index(x, y)?;
-        *self.values.get_mut(i).ok_or(DisplayError::BufferTooSmall)? = pixel;
-        Ok(())
-    }
-}
-impl RetainedPixelTarget for Pixels<'_> {
-    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
-        self.values
-            .get(self.index(x, y)?)
-            .copied()
-            .ok_or(DisplayError::BufferTooSmall)
-    }
-}
 
-pub fn render(
+pub fn render_with_palette(
     face: Face,
     width: u16,
     height: u16,
     page_tick: usize,
     pixels: &mut [u32],
     preferred: Option<conduit_core::Unit>,
+    look: Option<&conduit_face::LookInfo>,
 ) -> Result<(usize, usize), String> {
     if pixels.len() != usize::from(width) * usize::from(height) {
         return Err("raster extent mismatch".into());
@@ -79,7 +48,7 @@ pub fn render(
     let (frame, page, pages, scale, chart_viewport) =
         frame(face, width, height, page_tick, preferred)?;
     if chart_viewport {
-        render_graphics(&frame, width, height, pixels)?;
+        render_graphics_with_palette(&frame, width, height, pixels, look)?;
         return Ok((page, pages));
     }
     let mut target = Pixels {
@@ -94,21 +63,26 @@ pub fn render(
         },
         values: pixels,
     };
-    typography::render_scene_scaled(
-        &mut target,
-        &frame,
-        |_, command| command.text_role().into(),
-        scale,
-    )
-    .map_err(|e| format!("Face raster refused: {e:?}"))?;
+    paint_scene(&mut target, &frame, scale, look)
+        .map_err(|e| format!("Face raster refused: {e:?}"))?;
     Ok((page, pages))
 }
 
+#[cfg(test)]
 pub fn render_graphics(
     scene: &conduit_face::GraphicsScene,
     width: u16,
     height: u16,
     pixels: &mut [u32],
+) -> Result<(), String> {
+    render_graphics_with_palette(scene, width, height, pixels, None)
+}
+pub fn render_graphics_with_palette(
+    scene: &conduit_face::GraphicsScene,
+    width: u16,
+    height: u16,
+    pixels: &mut [u32],
+    look: Option<&conduit_face::LookInfo>,
 ) -> Result<(), String> {
     if pixels.len() != usize::from(width) * usize::from(height)
         || usize::from(height) <= STATUS_STRIP_HEIGHT
@@ -122,62 +96,27 @@ pub fn render_graphics(
         height: usize::from(height),
         pixels,
     };
-    typography::render_scene_scaled(
-        &mut target,
-        scene,
-        |_, command| command.text_role().into(),
-        100,
-    )
-    .map(|_| ())
-    .map_err(|e| format!("history raster: {e:?}"))
+    paint_scene(&mut target, scene, 100, look)
+        .map(|_| ())
+        .map_err(|e| format!("history raster: {e:?}"))
 }
 /// Render already prepared native-resolution chart pixels one-to-one, reserving
 /// a separate Host status strip. No glyph or line pixel is stretched.
-struct ChartViewport<'a> {
-    width: usize,
-    height: usize,
-    pixels: &'a mut [u32],
-}
-impl PixelTarget for ChartViewport<'_> {
-    fn format(&self) -> DisplayFormat {
-        DisplayFormat {
-            width: self.width as u32,
-            height: (self.height - STATUS_STRIP_HEIGHT) as u32,
-            pitch: self.width as u32 * 4,
-            bits_per_pixel: 32,
-            red_shift: 16,
-            green_shift: 8,
-            blue_shift: 0,
-        }
-    }
-    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
-        if x as usize >= self.width || y as usize >= self.height - STATUS_STRIP_HEIGHT {
-            return Err(DisplayError::InvalidExtent);
-        }
-        self.pixels[(y as usize + STATUS_STRIP_HEIGHT) * self.width + x as usize] = pixel;
-        Ok(())
-    }
-}
-impl RetainedPixelTarget for ChartViewport<'_> {
-    fn read_pixel(&self, x: u32, y: u32) -> Result<u32, DisplayError> {
-        if x as usize >= self.width || y as usize >= self.height - STATUS_STRIP_HEIGHT {
-            return Err(DisplayError::InvalidExtent);
-        }
-        let px = x as usize;
-        let py = STATUS_STRIP_HEIGHT + y as usize;
-        self.pixels
-            .get(py * self.width + px)
-            .copied()
-            .ok_or(DisplayError::BufferTooSmall)
-    }
-}
-
 /// Host presentation status is separate from the unchanged producer Face.
 pub fn render_notice(
     text: &str,
     width: u16,
     height: u16,
     pixels: &mut [u32],
+) -> Result<(), String> {
+    render_notice_with_palette(text, width, height, pixels, None)
+}
+pub fn render_notice_with_palette(
+    text: &str,
+    width: u16,
+    height: u16,
+    pixels: &mut [u32],
+    look: Option<&conduit_face::LookInfo>,
 ) -> Result<(), String> {
     use conduit_face::{
         GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
@@ -234,17 +173,12 @@ pub fn render_notice(
         },
         values: pixels,
     };
-    typography::render_scene_scaled(
-        &mut target,
-        &scene,
-        |_, command| command.text_role().into(),
-        100,
-    )
-    .map(|_| ())
-    .map_err(|e| format!("notice raster: {e:?}"))
+    paint_scene(&mut target, &scene, 100, look)
+        .map(|_| ())
+        .map_err(|e| format!("notice raster: {e:?}"))
 }
 
-fn frame(
+pub(crate) fn frame(
     face: Face,
     width: u16,
     height: u16,
@@ -332,7 +266,12 @@ mod tests {
         for tick in 0..6 {
             let (scene, page, pages, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
             assert_eq!((page, pages), (0, 1));
-            assert!(scene.commands().iter().any(|c| c.payload() == "Real value"));
+            assert!(
+                scene
+                    .commands()
+                    .iter()
+                    .any(|c| c.payload() == "reading: Real value")
+            );
         }
         let unsupported = conduit_face::FaceProperty {
             subject: "instrument".into(),
@@ -422,6 +361,7 @@ mod tests {
 #[cfg(test)]
 mod native_chart_pixel_tests {
     use super::*;
+    use conduitos::display::{PixelTarget, RetainedPixelTarget};
     #[test]
     fn chart_pixel_is_written_once_without_stretching_and_preserves_status_strip() {
         let mut pixels = vec![0; 1024 * 600];

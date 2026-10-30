@@ -106,8 +106,16 @@ impl ChartGeometry<'_> {
             "°C"
         };
         for (panel, title) in [
-            format!("Temperature   {temp_latest} {unit_label}"),
-            format!("Humidity   {humidity_latest} %"),
+            if width < 480 {
+                format!("Temp {temp_latest} {unit_label}")
+            } else {
+                format!("Temperature   {temp_latest} {unit_label}")
+            },
+            if width < 480 {
+                format!("RH {humidity_latest} %")
+            } else {
+                format!("Humidity   {humidity_latest} %")
+            },
         ]
         .iter()
         .enumerate()
@@ -122,7 +130,11 @@ impl ChartGeometry<'_> {
                     height: 40,
                 },
                 title,
-                Role::Title,
+                if width < 480 {
+                    Role::Heading
+                } else {
+                    Role::Title
+                },
                 Paint::Foreground,
             )?;
         }
@@ -167,7 +179,11 @@ impl ChartGeometry<'_> {
         }
         let times = [first, first + (last - first) / 2, last];
         for (i, time) in times.into_iter().enumerate() {
+            if width < 480 && i == 1 {
+                continue;
+            }
             let x = match i {
+                0 if width < 480 => 16,
                 0 => layout.left,
                 1 => (layout.left + layout.right) / 2 - 60,
                 _ => layout.right - 120,

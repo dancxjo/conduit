@@ -23,6 +23,11 @@ pub struct RepositoryCommand {
 
 pub const REPOSITORY_COMMANDS: &[RepositoryCommand] = &[
     RepositoryCommand {
+        canonical: &["make", "linux-face-display"],
+        lifecycle: LifecycleClass::Make,
+        aliases: &[],
+    },
+    RepositoryCommand {
         canonical: &["integrate"],
         lifecycle: LifecycleClass::Integrate,
         aliases: &[],
