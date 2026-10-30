@@ -29,7 +29,10 @@ The command authors, checks, expands and plans a plot whose closing PCM Flow
 leaves a sealed output Fore. The consumer validates sequence, capture clock,
 frame offsets, block size and the exact short final block. Success requires the
 exact total frame count, completed Plan terminal and unchanged admitted value
-capacity. Receipts contain Plan/Play identity, provider identity, block/frame
+capacity. Each invocation constructs a fresh temporary Host and Boot identity before planning;
+it neither borrows an installed member identity nor resets a previous Boot’s Play
+sequence. Entropy failure refuses before acquisition. Receipts contain Host/Boot
+and Plan/Play identity, provider identity, block/frame
 counts, sample hash and consumer arrival timing; raw audio is not written.
 First-delivery latency is not an acquisition timestamp or BodyTime claim.
 

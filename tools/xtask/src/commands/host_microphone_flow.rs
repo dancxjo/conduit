@@ -3,7 +3,7 @@ use crate::cli::GlobalOpts;
 use conduit_std_host::hosted_microphone::{
     AlsaMicrophoneDiscovery, AlsaMicrophoneFormat, MicrophoneLimits,
 };
-use std::{path::PathBuf, time::Duration};
+use std::{io::Read, path::PathBuf, time::Duration};
 #[derive(clap::Args, Debug)]
 pub(super) struct Request {
     #[arg(long)]
@@ -71,10 +71,18 @@ pub(super) fn prove(request: Request, opts: &GlobalOpts) -> Result<(), Box<dyn s
             AlsaMicrophoneFormat::ExactHardware
         },
     )?;
+    // This is an independent temporary Host, never the installed Body member.
+    // A fresh process must not restart the same Boot's Play sequence at zero.
+    let mut nonce = [0; 16];
+    std::fs::File::open("/dev/urandom")?.read_exact(&mut nonce)?;
+    let nonce = u128::from_le_bytes(nonce);
+    if nonce == 0 {
+        return Err("temporary proof Host identity entropy unavailable".into());
+    }
     let receipt = conduit_std_host::microphone_flow_proof::run(
         conduit_std_host::StdHostConfig {
-            host_id: "host/microphone-flow-proof".into(),
-            boot_id: "boot/microphone-flow-proof".into(),
+            host_id: format!("host/microphone-flow-proof/{nonce:032x}").into(),
+            boot_id: format!("boot/microphone-flow-proof/{nonce:032x}").into(),
             offer_generation: conduit_core::OfferGeneration(1),
         },
         conduit_std_host::StdHostComposition::reference(),

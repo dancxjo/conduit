@@ -11,6 +11,8 @@ use std::{collections::BTreeMap, time::Instant};
 
 #[derive(Debug, serde::Serialize)]
 pub struct MicrophoneFlowProofReceipt {
+    pub host_id: String,
+    pub boot_id: String,
     pub plan_id: String,
     pub play_id: String,
     pub implementation_id: String,
@@ -62,6 +64,8 @@ pub fn run(
     microphone: AlsaMicrophoneAdapter,
     block_frames: u16,
 ) -> Result<MicrophoneFlowProofReceipt, Box<dyn std::error::Error>> {
+    let host_id = config.host_id.as_str().to_owned();
+    let boot_id = config.boot_id.as_str().to_owned();
     let milliseconds = microphone.limits().capture_milliseconds;
     let limits = MicrophoneFlowLimits {
         total_frames: milliseconds * 16,
@@ -168,6 +172,8 @@ pub fn run(
     }
     let play_id = kernel.active_play_id.as_str().to_owned();
     Ok(MicrophoneFlowProofReceipt {
+        host_id,
+        boot_id,
         plan_id,
         play_id,
         implementation_id,
