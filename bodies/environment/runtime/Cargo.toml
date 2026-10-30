@@ -15,6 +15,7 @@ display-output = ["construction", "dep:conduit-tm1637-wire", "dep:conduit-plan-l
 display-session = ["evidence-journal", "display-output", "conduit-computation/prepared-expression-session", "conduit-tm1637-wire/prepared-write-session"]
 mask-renderer = ["mask-kernel", "display-mask", "dep:conduit-tm1637-wire", "dep:sha2"]
 mask-kernel = ["dep:conduit-face", "dep:conduit-plan-lowering", "conduit-kernel/alloc"]
+member-receipts = ["dep:conduit-body", "conduit-body/authenticated-admission", "dep:serde", "dep:sha2", "dep:ed25519-dalek"]
 display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-planner"]
@@ -29,6 +30,8 @@ serde_json = { version = "1", default-features = false, features = ["alloc"], op
 conduit-body = { path = "../../../architecture/body", default-features = false, optional = true }
 conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"], optional = true }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
+ed25519-dalek = { version = "2.2", default-features = false, optional = true }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", optional = true }
 conduit-time = { path = "../../../semantics/time", default-features = false, optional = true }
 conduit-planner = { path = "../../../architecture/planner", optional = true }

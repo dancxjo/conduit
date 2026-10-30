@@ -19,7 +19,7 @@ conduit-core = { path = "../../../architecture/core" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-birth-plot = { path = "../../../plots/birth" }
 conduit-environment-make = { path = "../make" }
-conduit-environment-runtime = { path = "../runtime", features = ["construction", "body-image", "face-projection", "display-session"] }
+conduit-environment-runtime = { path = "../runtime", features = ["construction", "body-image", "face-projection", "display-session", "member-receipts"] }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
@@ -37,3 +37,8 @@ conduit-wire = { path = "../../../architecture/wire" }
 conduit-protected-line = { path = "../../../architecture/protected-line" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
+
+[profile.dev.build-override]
+opt-level = 1
+[profile.test.build-override]
+opt-level = 1

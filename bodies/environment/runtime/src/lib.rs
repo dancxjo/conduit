@@ -34,6 +34,8 @@ pub mod history_exchange;
 pub mod mask_kernel;
 #[cfg(feature = "mask-renderer")]
 pub mod mask_renderer;
+#[cfg(feature = "member-receipts")]
+pub mod member_receipts;
 pub mod observation;
 #[cfg(feature = "face-projection")]
 pub mod observed_record;
