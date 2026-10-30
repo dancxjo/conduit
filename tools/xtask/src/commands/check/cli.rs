@@ -56,6 +56,8 @@ pub enum CheckSuite {
     RecordingFiles,
     /// Check installed Body-durable catalog State across fresh processes.
     RecordingSeed,
+    /// Check actual snapshot publication before Body-durable catalog selection.
+    RecordingCheckpoint,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,

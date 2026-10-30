@@ -12,6 +12,8 @@ mod body_causal_evidence_conformance;
 mod bool_face_conformance;
 mod calendar_proposal_conformance;
 mod calendar_provider_conformance;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod catalog_checkpoint;
 mod catalog_seed;
 mod data_text_conformance;
 mod external_fore_conformance;

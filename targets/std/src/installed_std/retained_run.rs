@@ -28,6 +28,8 @@ pub(crate) struct RunLifecycle<'a, 'indicator, 'external> {
     pub external_fore: Option<crate::host_execution::ExternalForeRun<'external>>,
     pub spoken_mask: Option<crate::spoken_mask_runtime::SpokenMaskPreparation>,
     pub direct_spoken_mask: Option<crate::direct_spoken_mask_runtime::DirectSpokenMaskPreparation>,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    pub snapshot_directory: Option<&'a conduit_linux_snapshot_store::SnapshotDirectory>,
     pub durable_state: Option<DurableStateRun<'a>>,
 }
 
@@ -83,6 +85,8 @@ pub(crate) fn run_fragment<W: Write, T: TimerAdapter>(
             external_fore: None,
             spoken_mask: None,
             direct_spoken_mask: None,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            snapshot_directory: None,
             durable_state: None,
         },
     )

@@ -48,3 +48,29 @@ read-only recovery. Host offers and Body admission remain CPU fixtures, and the
 catalog reference is fixture data. This proves installed State and actual file
 recovery, not prior recording/catalog publication, live membership or an overnight
 recorder service. Those connections remain separate integration work (#6358).
+
+## Installed publication checkpoint
+
+`catalog-checkpoint.conduit` connects JSON publication to the same Body-lived
+State through the ordinary `some(ResourceRef)` expression. Its Fore accepts only
+the JSON payload; the selected publication returns the reference. The prepared
+expression evaluator preserves the first-class reference type, validates its Core
+encoding without allocation and uses the codec's finite storage bound.
+
+The optional `conduit-std-host` `linux-snapshot` feature installs exact publication
+and read Backs. Root supplies a separately retained `SnapshotDirectory` through
+`StdHost::run_body_durable_snapshot_plot_to`; constructing a descriptor does not
+admit a directory, storage capacity or authority. File effects run outside kernel
+Steps and complete the original Host Call. Other execution profiles supply no
+directory custody. An occupied generation or failed effect cannot produce a
+successful reference for downstream State.
+
+Run `cargo +stable xtask check recording-checkpoint`. The suite checks authored
+composition, bounded allocation-free reference expressions, actual file
+publication feeding installed durable State, refusal preserving the previous
+seed byte for byte, missing-directory refusal before file effects, and the
+existing fresh-process seed recovery. It also checks the optional and default
+Host builds. The checkpoint file tests use fixture JSON and fixture Host offers
+and grants: they do not validate a recording catalog's committed chunk domain,
+admit a live Body's disk capacity, or establish an overnight recorder service
+(#6359 and #6360).

@@ -7,10 +7,10 @@ use conduit_core as c;
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
 
 #[derive(Default)]
-struct Collector {
-    values: Vec<ExternalForeDelivery>,
-    stop_after: Option<Vec<u8>>,
-    control: crate::RunControl,
+pub(super) struct Collector {
+    pub(super) values: Vec<ExternalForeDelivery>,
+    pub(super) stop_after: Option<Vec<u8>>,
+    pub(super) control: crate::RunControl,
 }
 impl ExternalForeOutputAdapter for Collector {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
@@ -28,7 +28,7 @@ impl ExternalForeOutputAdapter for Collector {
         Ok(())
     }
 }
-fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoType) {
+pub(super) fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoType) {
     let source = if write {
         include_str!("../../../../bodies/environment/profiles/catalog-seed.conduit")
     } else {
@@ -53,7 +53,20 @@ fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoT
         &conduit_plot::ProfileCatalog::new(),
     )
     .unwrap();
-    let seed = &authoring.expanded.gears[0];
+    let (mut host, value_type) = configured_host(&authoring, boot);
+    let plan = plan_on_host(&authoring, &mut host, &[], 1024);
+    (host, plan, value_type)
+}
+pub(super) fn configured_host(
+    authoring: &conduit_plot::ExpandedAuthoringPlot,
+    boot: &str,
+) -> (crate::StdHost, c::StructuredInfoType) {
+    let seed = authoring
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| gear.kind_id.as_str() == c::STATE_VALUE_KIND)
+        .unwrap();
     let c::ConfigurationValue::Structured(initial) = &seed
         .configuration
         .iter()
@@ -85,6 +98,14 @@ fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoT
         compute: None,
         content: None,
     });
+    (host, value_type)
+}
+pub(super) fn plan_on_host(
+    authoring: &conduit_plot::ExpandedAuthoringPlot,
+    host: &mut crate::StdHost,
+    grants: &[c::AuthorityGrant],
+    bytes: u32,
+) -> c::Plan {
     host.advertisement
         .capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
@@ -110,7 +131,7 @@ fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoT
                 },
                 ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: 1024,
+                    byte_capacity: bytes,
                 },
             );
         }
@@ -126,8 +147,8 @@ fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoT
             connection_bases: &empty,
             line_candidates: &lines,
             connection_item_capacity: 1,
-            connection_byte_capacity: 1024,
-            authority_grants: &[],
+            connection_byte_capacity: bytes,
+            authority_grants: grants,
             protected_resource_grants: &[],
             line_offers: &[],
         },
@@ -135,7 +156,7 @@ fn plan(write: bool, boot: &str) -> (crate::StdHost, c::Plan, c::StructuredInfoT
     )
     .unwrap();
     assert_eq!(plan.fragments[0].states[0].lifetime, c::StateLifetime::Body);
-    (host, plan, value_type)
+    plan
 }
 fn reference() -> c::BoundedResourceRef {
     c::BoundedResourceRef {

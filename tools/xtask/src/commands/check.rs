@@ -44,6 +44,8 @@ mod privilege_inventory;
 mod prosody_commitment;
 #[path = "../suites/record_pronunciation.rs"]
 mod record_pronunciation;
+#[path = "../suites/recording_checkpoint.rs"]
+mod recording_checkpoint;
 #[path = "../suites/recording_files.rs"]
 mod recording_files;
 #[path = "../suites/recording_seed.rs"]
@@ -130,6 +132,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::LinuxSnapshot => run_suite(linux_snapshot::STEPS, &root, opts),
         CheckSuite::RecordingFiles => run_suite(recording_files::STEPS, &root, opts),
         CheckSuite::RecordingSeed => run_suite(recording_seed::STEPS, &root, opts),
+        CheckSuite::RecordingCheckpoint => run_suite(recording_checkpoint::STEPS, &root, opts),
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
         CheckSuite::ExpressionBaseline => run_suite(expression_baseline::STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),

@@ -43,6 +43,8 @@ impl StdHost {
                 external_fore: None,
                 spoken_mask: None,
                 direct_spoken_mask: None,
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                snapshot_directory: None,
                 durable_state: None,
             },
         )

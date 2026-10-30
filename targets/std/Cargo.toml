@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
+linux-snapshot = []
 default = []
 burn-model = ["dep:conduit-burn-model"]
 burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]

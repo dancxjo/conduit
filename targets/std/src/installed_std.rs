@@ -245,6 +245,9 @@ use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
 use std::time::Duration;
 
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod linux_snapshot_back;
+mod linux_snapshot_host;
 mod storage_profile;
 pub(crate) use facade::*;
 use storage_profile::{
@@ -293,6 +296,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut external_fore,
         spoken_mask,
         direct_spoken_mask,
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+        snapshot_directory,
         durable_state,
     } = lifecycle;
     let InstalledRunHost {
@@ -446,6 +451,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .as_ref()
             .map(|source| (source.node, source.input_bytes())),
     )?;
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    let mut snapshot_hosts =
+        linux_snapshot_host::PreparedSnapshots::prepare(snapshot_directory, fragment, &lowered)?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
         let placement = fragment
@@ -919,6 +927,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
+            } else if linux_snapshot_host::is_operation(cancelled_operation.contract_id.as_str()) {
+                // Cancellation never starts a synchronous file effect or undoes
+                // an already published immutable generation.
             } else if cancelled_operation.contract_id.as_str() == wav_artifact_back::HOST_CALL {
                 // The incomplete artifact is never finalized on cancellation.
             } else if matches!(
@@ -1080,6 +1091,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete durable State operation: {error:?}"))?;
                 continue;
+            } else if linux_snapshot_host::is_operation(contract.as_str()) {
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                {
+                    host_calls.record(request)?;
+                    snapshot_hosts.perform(&mut scheduler, request)?;
+                    continue;
+                }
             } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
                 let placement = fragment
                     .placements
