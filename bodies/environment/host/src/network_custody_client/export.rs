@@ -11,6 +11,7 @@ pub(crate) struct Export {
     run: PathBuf,
     body: BodyId,
     root: [u8; 32],
+    predecessor: Option<Scope>,
     boot: BootId,
     _lock: File,
     bound: Option<[u8; OFFER]>,
@@ -24,6 +25,31 @@ pub(crate) struct Export {
 }
 impl Export {
     pub(crate) fn open(run: &Path, body: &BodyId, root: [u8; 32], boot: &BootId) -> Result<Self> {
+        Self::open_scoped(run, body, root, boot, None)
+    }
+    /// Open one separately reserved finite transaction after an authenticated
+    /// Clean cursor. The caller must supply admitted aggregate custody; this
+    /// does not create directories, loop cycles or renew an existing allowance.
+    pub(crate) fn open_after(
+        run: &Path,
+        receipt: &super::super::receipt::CommittedNetworkCustody,
+    ) -> Result<Self> {
+        let scope = receipt.successor_scope()?;
+        Self::open_scoped(
+            run,
+            &scope.body.clone(),
+            scope.root,
+            &scope.producer_boot.clone(),
+            Some((scope, *receipt.bytes())),
+        )
+    }
+    fn open_scoped(
+        run: &Path,
+        body: &BodyId,
+        root: [u8; 32],
+        boot: &BootId,
+        predecessor: Option<(Scope, [u8; 480])>,
+    ) -> Result<Self> {
         if [body.as_str(), boot.as_str()]
             .iter()
             .any(|id| id.is_empty() || id.len() > 128 || id.chars().any(char::is_control))
@@ -45,12 +71,22 @@ impl Export {
         if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
             return Err("network export already running".into());
         }
+        let mut persisted_scope = serde_json::json!({
+            "body":body,"root":root,"boot":boot,"maximum_leases":LEASES
+        });
+        if let Some((_, cursor)) = &predecessor {
+            persisted_scope["predecessor_clean_sha256"] = serde_json::json!(digest(cursor));
+        }
         durable(
             &run.join("scope.json"),
-            &serde_json::to_vec(&serde_json::json!({
-                "body":body,"root":root,"boot":boot,"maximum_leases":LEASES
-            }))?,
+            &serde_json::to_vec(&persisted_scope)?,
         )?;
+        let chain_path = run.join("predecessor-clean.bin");
+        if predecessor.is_none() && chain_path.try_exists()? {
+            return Err("network successor requires original Clean receipt".into());
+        }
+        let preceding_cursor = predecessor.as_ref().map(|(_, cursor)| *cursor);
+        let predecessor = predecessor.map(|(scope, _)| scope);
         let mut spent = 0;
         for lease in 0..LEASES {
             let path = run.join(format!("lease-{lease}.bin"));
@@ -66,7 +102,9 @@ impl Export {
         let mut bound_id = None;
         let bound = if run.join("offer.bin").try_exists()? {
             let offer: [u8; OFFER] = reopen(&run.join("offer.bin"), OFFER)?.try_into().unwrap();
-            let scope = scope(body, root, boot, &offer);
+            let scope = predecessor
+                .clone()
+                .unwrap_or_else(|| scope(body, root, boot, &offer));
             let id = verify_offer(&scope, &offer)?;
             bound_id = Some(id);
             let completed = run.join(format!("network-{}", hex(&id)));
@@ -86,10 +124,14 @@ impl Export {
         } else {
             None
         };
+        if let Some(cursor) = preceding_cursor {
+            durable(&chain_path, &cursor)?;
+        }
         Ok(Self {
             run: run.into(),
             body: body.clone(),
             root,
+            predecessor,
             boot: boot.clone(),
             _lock: lock,
             bound,
@@ -227,7 +269,11 @@ impl Export {
                 return Err("network offer profile".into());
             }
             let offer = live::unhex::<OFFER>(&envelope.offer)?;
-            let id = verify_offer(&scope(&self.body, self.root, &self.boot, &offer), &offer)?;
+            let expected = self
+                .predecessor
+                .clone()
+                .unwrap_or_else(|| scope(&self.body, self.root, &self.boot, &offer));
+            let id = verify_offer(&expected, &offer)?;
             if live::unhex::<32>(&envelope.snapshot)? != id {
                 return Err("network offer id differs".into());
             }

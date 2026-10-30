@@ -189,7 +189,7 @@ fn member_transcript_and_encoding_match_actual_native_canonical_codec() {
 }
 
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_network_custody_wire.rs"]
-mod cursor;
+pub(super) mod cursor;
 pub(super) fn committed_cursor(
     f: &Fixture,
     token: &VerifiedDurableSnapshot,

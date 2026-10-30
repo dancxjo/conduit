@@ -12,8 +12,33 @@ struct Response {
 /// HTTP's unsigned generation is deliberately not an authoritative watermark.
 pub(crate) struct CommittedNetworkCustody {
     cursor: [u8; 480],
+    body: BodyId,
+    root: [u8; 32],
+    producer_boot: BootId,
 }
 impl CommittedNetworkCustody {
+    /// Exact successor scope, authenticated by the preceding verified Clean
+    /// receipt. This is correlation only; it reserves no storage or retry work.
+    pub(super) fn successor_scope(&self) -> Result<Scope> {
+        if self.cursor[8] != 2 {
+            return Err("network successor requires Clean receipt".into());
+        }
+        let epoch = u64::from_le_bytes(self.cursor[16..24].try_into().unwrap());
+        if epoch == u64::MAX {
+            return Err("network successor epoch exhausted".into());
+        }
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/network-retirement-predecessor@1\0");
+        hash.update(self.cursor);
+        Ok(Scope {
+            body: self.body.clone(),
+            root: self.root,
+            producer_boot: self.producer_boot.clone(),
+            epoch,
+            region: self.cursor[56..88].try_into().unwrap(),
+            predecessor: hash.finalize().into(),
+        })
+    }
     pub(crate) fn bytes(&self) -> &[u8; 480] {
         &self.cursor
     }
@@ -110,7 +135,12 @@ impl VerifiedDurableSnapshot {
                 &Signature::from_bytes(cursor[408..472].try_into().unwrap()),
             )
             .map_err(|_| "network receipt Root signature")?;
-        Ok(CommittedNetworkCustody { cursor })
+        Ok(CommittedNetworkCustody {
+            cursor,
+            body: self.scope.body.clone(),
+            root: self.scope.root,
+            producer_boot: self.scope.producer_boot.clone(),
+        })
     }
 }
 

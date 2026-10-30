@@ -397,3 +397,172 @@ fn incremental_authenticated_refusal_is_terminal_for_this_owner() {
         .is_err());
     assert!(!f.directory.join("offer.bin").exists());
 }
+
+#[test]
+fn clean_successor_export_binds_chain_before_retaining_offer_and_survives_restart() {
+    use crate::network_custody_client::tests::{committed_cursor, receipt_response};
+    use ed25519_dalek::{Signer, SigningKey};
+    let f = fixture();
+    let token =
+        VerifiedDurableSnapshot::retain(&f.directory, &f.offer, &f.snapshot, &f.scope).unwrap();
+    let ack = token
+        .encode_ack(
+            &f.credential,
+            SigningKey::from_bytes(&[22; 32])
+                .sign(&token.signing_transcript(&f.credential).unwrap())
+                .to_bytes(),
+        )
+        .unwrap();
+    let pending = token
+        .verify_committed_receipt(
+            &f.credential,
+            &ack,
+            &receipt_response(&committed_cursor(&f, &token, &ack, 1), 7),
+        )
+        .unwrap();
+    let mut next = fixture();
+    assert!(Export::open_after(&next.directory, &pending).is_err());
+    assert!(!next.directory.join("export.lock").exists());
+    let cursor = committed_cursor(&f, &token, &ack, 2);
+    let clean = token
+        .verify_committed_receipt(&f.credential, &ack, &receipt_response(&cursor, 7))
+        .unwrap();
+    next.scope = clean.successor_scope().unwrap();
+    let (epoch, predecessor) = crate::network_custody_client::tests::cursor::Cursor::decode(cursor)
+        .offer_chain(
+            &f.scope.body,
+            &VerifyingKey::from_bytes(&f.scope.root).unwrap(),
+        )
+        .unwrap();
+    assert_eq!(next.scope.epoch, epoch);
+    assert_eq!(next.scope.predecessor, predecessor);
+    next.offer[64..72].copy_from_slice(&epoch.to_le_bytes());
+    next.offer[144..176].copy_from_slice(&predecessor);
+    let signature =
+        SigningKey::from_bytes(&[41; 32]).sign(&offer_id(&next.scope.root, &next.offer));
+    next.offer[176..].copy_from_slice(&signature.to_bytes());
+    let mut export = Export::open_after(&next.directory, &clean).unwrap();
+    export
+        .advance(Instant::now() + Duration::from_secs(3), |path, _| {
+            response(&next, path)
+        })
+        .unwrap();
+    drop(export);
+    // A generic reopen must not silently discard the preceding Clean boundary.
+    assert!(Export::open(
+        &next.directory,
+        &next.scope.body,
+        next.scope.root,
+        &next.scope.producer_boot
+    )
+    .is_err());
+    let mut export = Export::open_after(&next.directory, &clean).unwrap();
+    let retained = loop {
+        match export
+            .advance(Instant::now() + Duration::from_secs(3), |path, _| {
+                response(&next, path)
+            })
+            .unwrap()
+        {
+            Progress::Complete(token) => break token,
+            Progress::Pending => (),
+        }
+    };
+    retained.revalidate().unwrap();
+    assert!(next.directory.join("lease-0.bin").exists());
+    assert!(next.directory.join("lease-1.bin").exists());
+    assert!(!next.directory.join("lease-2.bin").exists());
+    assert_eq!(
+        reopen(&next.directory.join("predecessor-clean.bin"), 480).unwrap(),
+        cursor
+    );
+    assert!(!retained.directory.join("ack.bin").exists());
+    drop(export);
+    std::fs::remove_file(next.directory.join("predecessor-clean.bin")).unwrap();
+    // The immutable scope independently pins the chain, even if its cursor
+    // file is lost. Generic reopening cannot turn this into an initial export.
+    assert!(Export::open(
+        &next.directory,
+        &next.scope.body,
+        next.scope.root,
+        &next.scope.producer_boot
+    )
+    .is_err());
+    let mut restored = Export::open_after(&next.directory, &clean).unwrap();
+    assert!(matches!(
+        restored
+            .advance(Instant::now() + Duration::from_secs(3), |_, _| panic!(
+                "verified completed successor needs no fresh request"
+            ))
+            .unwrap(),
+        Progress::Complete(_)
+    ));
+    assert!(!next.directory.join("lease-2.bin").exists());
+}
+
+#[test]
+fn clean_successor_refuses_root_signed_changes_to_every_chain_dimension() {
+    use crate::network_custody_client::tests::{committed_cursor, receipt_response};
+    use ed25519_dalek::{Signer, SigningKey};
+    let f = fixture();
+    let token =
+        VerifiedDurableSnapshot::retain(&f.directory, &f.offer, &f.snapshot, &f.scope).unwrap();
+    let ack = token
+        .encode_ack(
+            &f.credential,
+            SigningKey::from_bytes(&[22; 32])
+                .sign(&token.signing_transcript(&f.credential).unwrap())
+                .to_bytes(),
+        )
+        .unwrap();
+    let clean = token
+        .verify_committed_receipt(
+            &f.credential,
+            &ack,
+            &receipt_response(&committed_cursor(&f, &token, &ack, 2), 7),
+        )
+        .unwrap();
+    for changed in [0, 32, 64, 72, 144, 176] {
+        let mut next = fixture();
+        next.scope = clean.successor_scope().unwrap();
+        next.offer[64..72].copy_from_slice(&next.scope.epoch.to_le_bytes());
+        next.offer[144..176].copy_from_slice(&next.scope.predecessor);
+        if changed != 176 {
+            next.offer[changed] ^= 1;
+        }
+        let signature =
+            SigningKey::from_bytes(&[41; 32]).sign(&offer_id(&next.scope.root, &next.offer));
+        next.offer[176..].copy_from_slice(&signature.to_bytes());
+        if changed == 176 {
+            next.offer[176] ^= 1;
+        }
+        let mut export = Export::open_after(&next.directory, &clean).unwrap();
+        assert!(
+            export
+                .advance(Instant::now() + Duration::from_secs(3), |path, _| response(
+                    &next, path
+                ))
+                .is_err(),
+            "changed offset {changed}"
+        );
+        assert!(!next.directory.join("offer.bin").exists());
+        assert!(next.directory.join("lease-0.bin").exists());
+        assert!(!next.directory.join("lease-1.bin").exists());
+    }
+    // A legacy transaction must not acquire a foreign chain marker on refusal.
+    let mut existing = Export::open(
+        &f.directory,
+        &f.scope.body,
+        f.scope.root,
+        &f.scope.producer_boot,
+    )
+    .unwrap();
+    existing
+        .advance(Instant::now() + Duration::from_secs(3), |path, _| {
+            response(&f, path)
+        })
+        .unwrap();
+    drop(existing);
+    assert!(Export::open_after(&f.directory, &clean).is_err());
+    assert!(!f.directory.join("predecessor-clean.bin").exists());
+}
