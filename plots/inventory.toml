@@ -41,6 +41,12 @@ entry = "house-conversation"
 deterministic = { package = "conduit-tongues", test = "house_conversation", case = "canonical_house_conversation_is_an_ordinary_checked_plot" }
 browser_safe_not_applicable = "portable House conversation has no installed browser model realization"
 [[plots]]
+slug = "live-transcript"
+title = "Live Transcript"
+entry = "live-transcript"
+deterministic = { package = "conduit", test = "lib", case = "plot_source::conversation_catalog::tests::public_catalog_checks_and_expands_the_committed_transcript" }
+browser_safe_not_applicable = "streaming speech recognition and Face output require explicitly admitted realizations; the deterministic oracle proves public authoring only"
+[[plots]]
 slug = "live-conversation"
 title = "Live Conversation"
 entry = "spoken-live-conversation"

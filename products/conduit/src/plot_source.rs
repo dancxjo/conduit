@@ -4,6 +4,9 @@ use conduit_plot::{CanonicalBackCatalog, ExpandedCanonicalPlot, ProfileCatalog, 
 use std::fs;
 use std::path::Path;
 
+#[path = "plot_source/conversation_catalog.rs"]
+mod conversation_catalog;
+
 pub(crate) struct CanonicalSource {
     pub(crate) source: String,
     pub(crate) syntax: conduit_plot::SyntaxDocument,
@@ -267,6 +270,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_robotics_structured_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_navigation_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
+    conversation_catalog::install(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_education_catalogs(&mut startup, &mut profiles)?;
     conduit_chat::install_messaging_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profiles)?;

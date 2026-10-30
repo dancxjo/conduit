@@ -1,0 +1,15 @@
+# Committed recognition only. Capture equipment, recognizer, display and placement
+# are selected by the Host descriptions and exact Plan.
+plot live-transcript (
+    >> audio: PcmFrames...|
+) {
+    recognize: speech/recognize-stream(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) })
+    commit: speech/commit-recognized-turn
+    text: speech/committed-turn-to-text
+    show: face/text("Heard speech")
+
+    audio >> recognize.audio
+    recognize.events >> commit.events
+    commit.message >> text.message
+    text.text >> show.text
+}
