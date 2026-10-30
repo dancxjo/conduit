@@ -11,6 +11,7 @@ path = "src/main.rs"
 [workspace]
 
 [dependencies]
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["plot-catalog"] }
 serde = { version = "1", features = ["derive"] }
 conduit-body = { path = "../../../architecture/body" }
 conduit-birth-plot = { path = "../../../plots/birth" }
@@ -25,7 +26,7 @@ conduit-host-browser-make = { path = "../../../targets/browser/make" }
 conduit-face = { path = "../../../semantics/face", features = ["plot-catalog"] }
 conduit-plot = { path = "../../../architecture/plot", features = ["flat-image"] }
 serde_json = "1"
-conduit-environment-runtime = { path = "../runtime", features = ["construction"] }
+conduit-environment-runtime = { path = "../runtime", features = ["construction", "recording-kernel"] }
 conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 
@@ -52,3 +53,8 @@ embassy-executor = { version = "=0.10.0", default-features = false }
 embassy-time = { version = "=0.5.1", default-features = false, features = ["tick-hz-1_000_000"] }
 embassy-time-driver = { version = "=0.2.2", features = ["tick-hz-1_000_000"] }
 static_cell = "=2.1.1"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
+conduit-environment-linux = { path = "../linux" }

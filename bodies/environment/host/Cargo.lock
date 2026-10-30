@@ -478,6 +478,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
+ "conduit-semantic-catalog",
  "conduit-time",
  "conduit-tm1637-wire",
  "serde",
@@ -506,6 +507,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-semantic-catalog",
  "conduit-time",
  "conduit-tm1637-wire",
  "ed25519-dalek",
@@ -652,6 +654,7 @@ name = "conduit-linux-snapshot-store"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-resource-snapshot",
  "libc",
 ]
@@ -788,6 +791,9 @@ name = "conduit-resource-snapshot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
+ "conduit-web",
+ "serde",
 ]
 
 [[package]]

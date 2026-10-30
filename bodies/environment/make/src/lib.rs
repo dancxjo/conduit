@@ -14,9 +14,14 @@ mod display_material;
 pub use display_material::DisplaySourceMaterial;
 mod network_source;
 mod network_source_material;
-pub use network_source_material::NetworkSourceMaterial;
 pub use conduit_environment_runtime::construction::compile_default as compile_appliance_source;
 pub use network_source::{compile_network_scan, compile_network_setup};
+pub use network_source_material::NetworkSourceMaterial;
 
 mod mask_source;
 pub use mask_source::{SevenSegmentMaskMaterial, SevenSegmentMaskSource};
+
+mod recording_recovery;
+pub use recording_recovery::{
+    PreparedRecordingRecovery, RecordingPlanningRefusal, RecordingRecoverySource,
+};

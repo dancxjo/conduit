@@ -210,6 +210,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-linux"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-kernel",
+ "conduit-linux-snapshot-store",
+ "conduit-plan-lowering",
+ "conduit-resource-snapshot",
+]
+
+[[package]]
 name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
@@ -219,12 +231,14 @@ dependencies = [
  "conduit-core",
  "conduit-embedded-build",
  "conduit-environment-http",
+ "conduit-environment-linux",
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-kernel",
+ "conduit-linux-snapshot-store",
  "conduit-monotonic-wait",
  "conduit-net",
  "conduit-network-join-call",
@@ -232,6 +246,8 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-resource-snapshot",
+ "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
@@ -272,6 +288,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
@@ -348,6 +365,16 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-linux-snapshot-store"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-resource-snapshot",
+ "libc",
 ]
 
 [[package]]
@@ -442,6 +469,15 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-resource-snapshot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-web",
 ]
 
 [[package]]

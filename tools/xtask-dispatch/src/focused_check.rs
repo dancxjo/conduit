@@ -26,6 +26,8 @@ mod record_pronunciation;
 mod linux_snapshot;
 #[path = "../../xtask/src/suites/monotonic_wait.rs"]
 mod monotonic_wait;
+#[path = "../../xtask/src/suites/recording_files.rs"]
+mod recording_files;
 #[path = "../../xtask/src/suites/resource_snapshot.rs"]
 mod resource_snapshot;
 
@@ -40,6 +42,11 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "recording-files" => Some(Suite {
+            steps: recording_files::STEPS,
+            path: "tools/xtask/src/suites/recording_files.rs",
+            source: include_bytes!("../../xtask/src/suites/recording_files.rs"),
+        }),
         [check, suite] if check == "check" && suite == "tm1637-output" => Some(Suite {
             steps: tm1637_output::STEPS,
             path: "tools/xtask/src/suites/tm1637_output.rs",
@@ -176,6 +183,7 @@ mod tests {
             ("monotonic-wait", monotonic_wait::STEPS),
             ("resource-snapshot", resource_snapshot::STEPS),
             ("linux-snapshot", linux_snapshot::STEPS),
+            ("recording-files", recording_files::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),

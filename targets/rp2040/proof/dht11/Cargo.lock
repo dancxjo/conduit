@@ -349,6 +349,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
+ "conduit-semantic-catalog",
  "conduit-time",
  "conduit-tm1637-wire",
  "serde",
@@ -371,9 +372,11 @@ dependencies = [
  "conduit-core",
  "conduit-environment-measurement",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-semantic-catalog",
  "conduit-time",
 ]
 

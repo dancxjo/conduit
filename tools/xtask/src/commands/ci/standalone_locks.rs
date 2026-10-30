@@ -9,6 +9,10 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "bodies/environment/linux/Cargo.toml",
+        lock: "bodies/environment/linux/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/std/resource-snapshot/Cargo.toml",
         lock: "targets/std/resource-snapshot/Cargo.lock",
     },

@@ -4,6 +4,38 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+#[cfg(feature = "recording-kernel")]
+mod back;
+#[cfg(feature = "recording-kernel")]
+mod installation;
+#[cfg(feature = "recording-kernel")]
+mod kernel;
+#[cfg(feature = "recording-kernel")]
+mod recovery_back;
+#[cfg(feature = "recording-kernel")]
+mod reference_source;
+#[cfg(feature = "recording-kernel")]
+mod temporal;
+#[cfg(feature = "recording-kernel")]
+pub use back::RecordingBack;
+#[cfg(feature = "recording-kernel")]
+pub use installation::{
+    ReadyRecordingGenerations, ReadyRecordingRecovery, ReadyRecordingSingleton,
+    ReadyRecordingSoftware, RecoveryInstallationRefusal,
+};
+#[cfg(feature = "recording-kernel")]
+pub use kernel::{
+    PreparedRecordingKernel, RecordingKernel, RecordingKernelRefusal, RecordingRoles,
+};
+#[cfg(feature = "recording-kernel")]
+pub use recovery_back::{install_recovery_kind, recovery_kind, RecordingRecoveryBack};
+#[cfg(feature = "recording-kernel")]
+pub use reference_source::{
+    generation_source_kind, generation_value_kind, install_generation_source_kind,
+    install_generation_value_kind, RecordingReferenceRefusal, RecordingReferenceSource,
+};
+#[cfg(feature = "recording-kernel")]
+pub use temporal::{recording_singleton_kind, RecordingSingletonBack};
 mod history;
 mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};

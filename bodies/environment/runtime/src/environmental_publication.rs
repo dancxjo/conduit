@@ -1,9 +1,19 @@
 //! Sensor-independent environmental publications through the ordinary kernel
 //! input-consumption commit boundary. No direct DTO-to-Face publication API.
-use alloc::{vec, vec::Vec};
-use conduit_environment_measurement::source_observation::{
-    ObservationContract, SourceObservation, MAXIMUM_BYTES,
-};
+#[cfg(any(
+    feature = "local-planning",
+    feature = "environmental-source",
+    all(test, feature = "face-projection")
+))]
+use alloc::vec;
+use alloc::vec::Vec;
+#[cfg(any(
+    feature = "local-planning",
+    feature = "environmental-source",
+    all(test, feature = "face-projection")
+))]
+use conduit_environment_measurement::source_observation::MAXIMUM_BYTES;
+use conduit_environment_measurement::source_observation::{ObservationContract, SourceObservation};
 pub use conduit_environment_measurement::source_observation::{
     SourceFailure, SourceOutcome, SourceSample,
 };
@@ -62,6 +72,11 @@ impl<'a> CommittedEnvironmentalObservation<'a> {
     }
 }
 impl EnvironmentalPublicationBack {
+    #[cfg(any(
+        feature = "local-planning",
+        feature = "environmental-source",
+        all(test, feature = "face-projection")
+    ))]
     pub(crate) fn prepare(
         scope: PublicationScope,
         maximum_events: u32,

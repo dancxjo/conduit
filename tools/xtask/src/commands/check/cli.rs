@@ -52,6 +52,8 @@ pub enum CheckSuite {
     ResourceSnapshot,
     /// Check correlated immutable snapshot operations against actual Linux files.
     LinuxSnapshot,
+    /// Check planned recorder recovery through exact Linux file completions.
+    RecordingFiles,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,
