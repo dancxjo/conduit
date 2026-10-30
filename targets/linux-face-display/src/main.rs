@@ -4,7 +4,13 @@ mod display_clock;
 mod framebuffer;
 mod history_input;
 mod input;
+mod mask_controls;
+mod presentation_state;
+#[cfg(test)]
+mod presentation_tests;
 mod property_mask;
+mod raster_target;
+mod touch_input;
 mod view;
 use std::{
     path::PathBuf,
@@ -32,7 +38,11 @@ fn run() -> Result<(), String> {
     let width = fb.geometry.width as u16;
     let height = fb.geometry.height as u16;
     let mut pixels = vec![0; width as usize * height as usize];
-    let content_height = display_clock::content_height(height)?;
+    let interaction_height = display_clock::content_height(height)?;
+    let content_height = interaction_height
+        .checked_sub(mask_controls::HEIGHT)
+        .ok_or("display too short for presentation controls")?;
+    let mut ui = presentation_state::PresentationState::new(width, height, preferred);
     let content_len = usize::from(width) * usize::from(content_height);
     eprintln!(
         "Linux Face display: {width}x{height} RGB565; read-only; source {}",
@@ -54,7 +64,44 @@ fn run() -> Result<(), String> {
         content_height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
     );
     let mut history_status = String::new();
+    let mut dirty = true;
+    let mut last_render = Instant::now() - Duration::from_secs(1);
     loop {
+        let graph_left = columns
+            .as_ref()
+            .map_or(0, |c| c.report_width + columns::GAP);
+        dirty |= ui.poll(width, interaction_height, graph_left);
+        if last_render.elapsed() < Duration::from_millis(100)
+            || (!dirty && last_render.elapsed() < Duration::from_secs(1))
+        {
+            std::thread::sleep(Duration::from_millis(10));
+            continue;
+        }
+        dirty = false;
+        last_render = Instant::now();
+        let preferred = Some(ui.preferences.temperature.unit());
+        let look = ui
+            .preferences
+            .theme
+            .look()
+            .map_err(|e| format!("selected Look: {e:?}"))?;
+        use conduit_face::presentation_preferences::SplitLayout;
+        match ui.preferences.split {
+            SplitLayout::Split { .. } if width >= 652 => {
+                let requested = mask_controls::divider_position(ui.preferences, width);
+                if columns.as_ref().is_none_or(|c| c.report_width != requested) {
+                    columns = columns::Columns::at_divider(width, content_height, requested);
+                }
+            }
+            _ => columns = None,
+        }
+        let history_width = columns.as_ref().map_or(width, |c| c.history_width);
+        history.configure(
+            ui.preferences.temperature.unit(),
+            history_width,
+            content_height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
+            ui.preferences.history_window.milliseconds(),
+        )?;
         let now = input::now_ms()?;
         if retained.last(now).is_none()
             && let Ok(face) = input::read_last_known(&input_path, boot.trim())
@@ -108,50 +155,61 @@ fn run() -> Result<(), String> {
             let report_notice = historical_notice
                 .as_ref()
                 .map(|_| "LAST KNOWN · LIVE UPDATES DELAYED");
-            columns.render(
+            columns.render_with_palette(
                 face,
                 history.scene(),
                 tick,
-                preferred,
+                columns::Presentation {
+                    unit: preferred,
+                    look: Some(&look),
+                },
                 columns::Notices {
                     report: report_notice,
                     history: history_notice,
                 },
                 &mut pixels[..content_len],
             )?;
+            mask_controls::chrome(width, height, &mut pixels, ui.preferences, &look)?;
             display_clock::render(width, height, start.elapsed().as_secs(), &mut pixels)?;
             fb.present(&pixels)?;
             if previous != status {
                 eprintln!("{status}");
                 previous = status;
             }
-            std::thread::sleep(Duration::from_secs(1));
             continue;
         }
         let history_page = tick.is_multiple_of(2) && history.scene().is_some();
         let face_tick = face_page_tick(tick, history.scene().is_some());
         let rendered = if history_page {
             if let Some(history) = history.scene() {
-                view::render_graphics(history, width, content_height, &mut pixels[..content_len])
+                view::render_graphics_with_palette(
+                    history,
+                    width,
+                    content_height,
+                    &mut pixels[..content_len],
+                    Some(&look),
+                )
             } else {
-                view::render(
+                view::render_with_palette(
                     face,
                     width,
                     content_height,
                     face_tick,
                     &mut pixels[..content_len],
                     preferred,
+                    Some(&look),
                 )
                 .map(|_| ())
             }
         } else {
-            view::render(
+            view::render_with_palette(
                 face,
                 width,
                 content_height,
                 face_tick,
                 &mut pixels[..content_len],
                 preferred,
+                Some(&look),
             )
             .map(|_| ())
         };
@@ -169,27 +227,37 @@ fn run() -> Result<(), String> {
                         "{} / {status}",
                         history.label().unwrap_or("RETAINED HISTORY")
                     );
-                    view::render_notice(
+                    view::render_notice_with_palette(
                         &notice,
                         width,
                         content_height,
                         &mut pixels[..content_len],
+                        Some(&look),
                     )?;
                 } else if let Some(notice) = historical_notice.as_deref() {
-                    view::render_notice(notice, width, content_height, &mut pixels[..content_len])?;
+                    view::render_notice_with_palette(
+                        notice,
+                        width,
+                        content_height,
+                        &mut pixels[..content_len],
+                        Some(&look),
+                    )?;
                 }
+                mask_controls::chrome(width, height, &mut pixels, ui.preferences, &look)?;
                 display_clock::render(width, height, start.elapsed().as_secs(), &mut pixels)?;
                 fb.present(&pixels)?;
             }
             Err(reason) => {
-                view::render(
+                view::render_with_palette(
                     view::unavailable(&reason),
                     width,
                     content_height,
                     0,
                     &mut pixels[..content_len],
                     preferred,
+                    Some(&look),
                 )?;
+                mask_controls::chrome(width, height, &mut pixels, ui.preferences, &look)?;
                 display_clock::render(width, height, start.elapsed().as_secs(), &mut pixels)?;
                 fb.present(&pixels)?;
                 eprintln!("{reason}");
@@ -199,7 +267,6 @@ fn run() -> Result<(), String> {
             eprintln!("{status}");
             previous = status;
         }
-        std::thread::sleep(Duration::from_secs(1));
     }
 }
 fn face_page_tick(tick: usize, history_present: bool) -> usize {

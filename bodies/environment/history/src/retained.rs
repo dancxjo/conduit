@@ -73,16 +73,37 @@ impl RetainedEvidenceGraph {
         width: u16,
         height: u16,
     ) -> Result<GraphicsScene, GraphicsError> {
-        ChartGeometry {
-            samples: &self.samples,
-        }
-        .native_scene_at_size(
-            u64::from(self.outside),
+        self.native_scene_in_unit_at_size_with_window(unit, width, height, None)
+    }
+    /// Presentation-only viewport over authenticated original samples. No resampling.
+    pub fn native_scene_in_unit_at_size_with_window(
+        &self,
+        unit: Unit,
+        width: u16,
+        height: u16,
+        window_ms: Option<u64>,
+    ) -> Result<GraphicsScene, GraphicsError> {
+        let visible = self.samples_in_window(window_ms);
+        let start = self.samples.len() - visible.len();
+        ChartGeometry { samples: visible }.native_scene_at_size(
+            u64::from(self.outside) + start as u64,
             "RETAINED HISTORY",
             unit,
             width,
             height,
         )
+    }
+    pub fn samples_in_window(&self, window_ms: Option<u64>) -> &[GraphSample] {
+        let cutoff = window_ms.map(|window| {
+            self.samples
+                .last()
+                .map_or(0, |s| s.boot_ms.saturating_sub(window))
+        });
+        let start = cutoff.map_or(0, |cutoff| {
+            self.samples
+                .partition_point(|sample| sample.boot_ms < cutoff)
+        });
+        &self.samples[start..]
     }
     pub fn samples(&self) -> &[GraphSample] {
         &self.samples

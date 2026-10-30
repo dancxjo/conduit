@@ -50,7 +50,7 @@ mod contrast_tests;
 /// Complete Look tokens lower to the existing finite semantic paint roles.
 /// Platform accessibility colors always take precedence over authored tokens.
 #[cfg(feature = "native-compositor-core")]
-pub(super) fn visual_look_paint(
+pub fn visual_look_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,
     expression: Option<&conduit_face::AdmittedVisualExpression>,

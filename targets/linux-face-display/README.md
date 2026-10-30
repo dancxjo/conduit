@@ -94,3 +94,36 @@ or producer freshness. A failed wall-clock read shows `CLOCK UNAVAILABLE`
 without stopping the heartbeat. Narrow displays use the compact `DISPLAY` label
 and `NO CLOCK` refusal wording. Content and charts use the remaining viewport;
 the footer never covers their labels or replaces their freshness notices.
+
+Local presentation controls occupy a separate touch bar above the Host clock.
+Tap Theme to cycle the built-in Navy, Editorial and Engineering Look palettes,
+and Units to switch the existing Celsius/Fahrenheit quantity formatter. Zoom
+in/out selects a retained producer-time window (one hour, fifteen minutes,
+five minutes or one minute); Range resets to all retained samples. These are
+view windows, not sampler frequency or aggregation requests. No missing history
+is synthesized. Pinching inside the graph invokes the same bounded zoom actions.
+
+Drag the visible divider to resize the report and graph columns. Both retain
+at least 320 pixels; dragging to either outer edge collapses the split and
+restores timed full-page cycling. Drag the remaining edge handle inward to
+restore the split. Sensor properties are grouped under their subject heading,
+with individual field labels below it; narrow reports may paginate complete rows.
+
+Linux input is acquired from an absolute-position evdev device, independently
+of the semantic preferences/actions in `conduit_face::presentation_preferences`.
+The adapter supports at most five touch contacts and consumes at most 128 kernel
+events per poll, without grabbing the device. Queue overrun/disconnection resets
+gestures and requires a fresh touch after release. It scans at most 32 event nodes;
+`CONDUIT_DISPLAY_INPUT_DEVICE` may select an exact event device instead. The
+service user needs input-device read access. Input changes only local presentation;
+it never enables or submits Body actions. Palette selection reuses the native
+Look-token paint resolver; it does not claim all Look layout/font facets.
+
+Preferences persist atomically in the display user's private `preferences.json`
+under `~/.local/state/conduit-face-display/` (or the explicit
+`CONDUIT_DISPLAY_PREFERENCES_FILE` path). The file is bounded to 2048 bytes and
+must be a current-user regular 0600 file. Saved preferences take precedence over
+the initial `CONDUIT_DISPLAY_TEMPERATURE_UNIT` default. Input is polled every
+10ms between paints; redraws are limited to ten per second during interaction
+and once per second while idle. These are development-adapter scheduling limits,
+not an admitted Host Back or a real-time input-latency guarantee.
