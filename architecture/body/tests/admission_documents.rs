@@ -473,3 +473,6 @@ fn routed_response_profile_preserves_exact_receipt_and_legacy_version_policy() {
         assert_eq!(serde_json::to_value(decoded).unwrap(), value);
     }
 }
+
+#[path = "admission_documents/serialization_memory.rs"]
+mod serialization_memory;

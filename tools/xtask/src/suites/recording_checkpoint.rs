@@ -2,6 +2,49 @@
 use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
+        "recording-checkpoint.admission-codec",
+        "Preserve complete routed admission documents with borrowed encoding",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-body",
+            "--test",
+            "admission_documents",
+        ],
+    ),
+    Step::new(
+        "recording-checkpoint.admission-profile",
+        "Check exact compressed profile bounds and malformed input refusal",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-body",
+            "--lib",
+            "admission_advertisement_wire",
+        ],
+    ),
+    Step::new(
+        "recording-checkpoint.admission-lint",
+        "Lint borrowed complete-advertisement encoding and its memory proof",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "-p",
+            "conduit-body",
+            "--lib",
+            "--test",
+            "admission_documents",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    Step::new(
         "recording-checkpoint.history-clock",
         "Check shared history Face and browser/native event-time semantics",
         "cargo",

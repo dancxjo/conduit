@@ -29,11 +29,43 @@ struct EncodedAdvertisement {
     zlib_hex: String,
 }
 
+/// Reject a provably oversized structured payload before allocating its JSON
+/// representation. Canonical bytes serialize as a numeric sequence, so their
+/// summed lengths are a lower bound, not an alternate representation or grant.
+fn structured_payload_fits(advertisement: &HostAdvertisement) -> bool {
+    let mut remaining = MAXIMUM_EXPANDED_BYTES;
+    for capability in &advertisement.capabilities {
+        let defaults = capability
+            .semantic_contract
+            .configuration
+            .iter()
+            .filter_map(|field| {
+                if let conduit_core::ConfigurationValue::Structured(value) = &field.default_value {
+                    Some(value)
+                } else {
+                    None
+                }
+            });
+        for value in defaults.chain(capability.realization_properties.iter()) {
+            let Some(next) = remaining.checked_sub(value.canonical_value().len()) else {
+                return false;
+            };
+            remaining = next;
+        }
+    }
+    true
+}
+
 /// Serialize one complete ordinary public advertisement JSON document.
 pub fn serialize<S: Serializer>(
     advertisement: &HostAdvertisement,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
+    if !structured_payload_fits(advertisement) {
+        return Err(S::Error::custom(
+            "expanded admission advertisement capacity",
+        ));
+    }
     let bytes = serde_json::to_vec(advertisement).map_err(S::Error::custom)?;
     if bytes.is_empty() || bytes.len() > MAXIMUM_EXPANDED_BYTES {
         return Err(S::Error::custom(
@@ -113,6 +145,15 @@ pub fn deserialize<'de, D: Deserializer<'de>>(
 
 #[derive(Serialize, Deserialize)]
 pub struct CompactAdvertisement(#[serde(with = "self")] pub HostAdvertisement);
+
+/// Borrow the original complete advertisement during carrier construction.
+/// This does not copy decoded semantic definitions or canonical defaults.
+pub(crate) struct CompactAdvertisementRef<'a>(pub(crate) &'a HostAdvertisement);
+impl Serialize for CompactAdvertisementRef<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serialize(self.0, serializer)
+    }
+}
 
 #[cfg(test)]
 mod tests {
