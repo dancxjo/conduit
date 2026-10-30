@@ -94,7 +94,7 @@ pub fn prepare(reservation: &OwnerReservation) -> Result<(Publisher, Reader), &'
     let wake: conduit_body::WakeId = scope::identity(&reservation.wake)?;
     #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
     crate::native_observed_archive::bind(reservation)?;
-    prepare_scope(&body, &wake, &reservation.active)
+    prepare_scope(&body, &wake, &reservation.active, None)
 }
 /// Prepare publication custody for the exact installed local proposal. This
 /// does not start the Body or authorize polling the producer's kernel.
@@ -120,7 +120,12 @@ pub fn prepare_local(
     }
     #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
     crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
-    prepare_scope(body_id, wake_id, active)
+    prepare_scope(
+        body_id,
+        wake_id,
+        active,
+        Some(&body.evidence().friendly_name),
+    )
 }
 /// Prepare from the current opaque Body seal after checked Plot metadata was
 /// retired. No received identity replaces that seal or the linked Source.
@@ -140,7 +145,12 @@ pub fn prepare_installed_local(
     }
     #[cfg(any(feature = "local-evidence-store", feature = "observation-store"))]
     crate::native_observed_archive::bind_local(body_id.as_str(), active)?;
-    prepare_scope(body_id, wake_id, active)
+    prepare_scope(
+        body_id,
+        wake_id,
+        active,
+        Some(&body.evidence().friendly_name),
+    )
 }
 /// Prepare a fresh Face from the current canonical installed proposal. This
 /// does not bind a history outbox, start workers, or grant a replacement Play.
@@ -152,20 +162,22 @@ pub fn prepare_installed_replacement(
     generation: conduit_core::OfferGeneration,
 ) -> Result<PreparedReplacement, &'static str> {
     let source = crate::native_software::source_identity();
-    let (body, wake) = local_scope::check_installed(body, &source, fragment, active, generation)?;
-    prepare_replacement_scope(body, wake, active)
+    let (body_id, wake) =
+        local_scope::check_installed(body, &source, fragment, active, generation)?;
+    prepare_replacement_scope(body_id, wake, active, Some(&body.evidence().friendly_name))
 }
 fn prepare_scope(
     body: &conduit_body::BodyId,
     wake: &conduit_body::WakeId,
     active: &conduit_core::ActivePlayIdentity,
+    body_name: Option<&str>,
 ) -> Result<(Publisher, Reader), &'static str> {
     let PreparedReplacement {
         face,
         count,
         stale_after_ms,
         active: _,
-    } = prepare_replacement_scope(body, wake, active)?;
+    } = prepare_replacement_scope(body, wake, active, body_name)?;
     let face = Box::new(LocalPublicationFace::new(face));
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < CONTROL_RESERVE {
@@ -201,7 +213,13 @@ fn prepare_replacement_scope(
     body: &conduit_body::BodyId,
     wake: &conduit_body::WakeId,
     active: &conduit_core::ActivePlayIdentity,
+    body_name: Option<&str>,
 ) -> Result<PreparedReplacement, &'static str> {
+    if body_name.is_some_and(|name| {
+        name.trim().is_empty() || name.len() > conduit_body::MAX_BODY_FRIENDLY_NAME_BYTES
+    }) {
+        return Err("face-body-name");
+    }
     let stats = esp_alloc::HEAP.stats();
     if stats.size.saturating_sub(stats.current_usage) < PREPARATION_BYTES + CONTROL_RESERVE {
         return Err("face-preparation-capacity");
@@ -233,8 +251,11 @@ fn prepare_replacement_scope(
     };
     let count = cadence.count.try_into().map_err(|_| "face-count")?;
     let stale_after_ms = cadence.period_ms.checked_mul(2).ok_or("face-clock-bound")?;
-    let face = RetainedPublicationFace::prepare(basis, count, stale_after_ms)
-        .map_err(|_| "face-preparation")?;
+    let face = match body_name {
+        Some(name) => RetainedPublicationFace::prepare_named(basis, count, stale_after_ms, name),
+        None => RetainedPublicationFace::prepare(basis, count, stale_after_ms),
+    }
+    .map_err(|_| "face-preparation")?;
     stale_after_ms
         .checked_add(1)
         .ok_or("http-mask-clock-bound")?;

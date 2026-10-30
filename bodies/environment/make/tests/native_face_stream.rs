@@ -16,7 +16,21 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn complete_face_is_canonical_and_every_export_step_allocates_nothing() {
-    let face = fixture::face();
+    canonical_export(fixture::face());
+}
+
+#[test]
+fn named_body_face_preserves_exact_utf8_subject_and_canonical_export_without_allocation() {
+    let mut basis = fixture::face().basis;
+    basis.body_id = Some(serde_json::from_value(serde_json::json!("01".repeat(32))).unwrap());
+    basis.wake_id = Some(serde_json::from_value(serde_json::json!("02".repeat(32))).unwrap());
+    let owner = conduit_environment_runtime::retained_publication_face::RetainedPublicationFace::prepare_named(
+        basis, 2, 30_000, "Serre des épices \"est\"",
+    ).unwrap();
+    canonical_export(owner.current().clone());
+}
+
+fn canonical_export(face: conduit_face::Face) {
     face.validate().unwrap();
     let expected = serde_json::to_vec(&face).unwrap();
     let (descriptor, memory) = allocation_probe::observe(|| stream::snapshot(&face).unwrap());
