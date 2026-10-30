@@ -1380,6 +1380,7 @@ mod tests {
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn installed_host_accepts_exact_invitation_without_claiming_membership_or_play() {
         let (manifest, state) = fixture();
@@ -1427,7 +1428,10 @@ mod tests {
         )
         .unwrap();
 
-        accept_body_invitation(&path, &state, true).unwrap();
+        let (current, alias) = invitation::current_offer_tests::serve_current(&state, None);
+        accept_body_invitation(&path, &alias, true).unwrap();
+        current.join().unwrap();
+        fs::remove_file(alias).unwrap();
 
         let pending: serde_json::Value = serde_json::from_slice(
             &bounded_read(
@@ -1455,6 +1459,7 @@ mod tests {
         fs::remove_dir_all(state.parent().unwrap()).unwrap();
     }
 
+    #[cfg(unix)]
     #[test]
     fn admission_document_transaction_retains_current_offers_without_plan() {
         let (owner_manifest, owner_state) = fixture();
@@ -1511,7 +1516,10 @@ mod tests {
             },
         )
         .unwrap();
-        accept_body_invitation(&invitation_path, &joining_state, true).unwrap();
+        let (current, alias) = invitation::current_offer_tests::serve_current(&joining_state, None);
+        accept_body_invitation(&invitation_path, &alias, true).unwrap();
+        current.join().unwrap();
+        fs::remove_file(alias).unwrap();
         let pending: invitation::PendingBodyJoin = serde_json::from_slice(
             &bounded_read(
                 &joining_state.join("body/pending-join.json"),

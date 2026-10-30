@@ -9,8 +9,7 @@ use conduit_body::{
     AdmissionManager, AdmissionSigns, BodyBiographyEvidence, SpawnAdmissionProof,
     SpawnInvitationSecret,
 };
-use conduit_core::{bind_sign, BootId, HostId, OfferGeneration};
-use conduit_std_host::{StdHost, StdHostConfig};
+use conduit_core::{bind_sign, BootId, HostId};
 use serde::{Deserialize, Serialize};
 use std::{fs, io::Read, path::Path};
 
@@ -393,12 +392,13 @@ pub(super) fn prepare_body_join(
     if runtime.schema != RUNTIME_SCHEMA || runtime.host_id != installation.host_id {
         return Err("durable host runtime status is stale or belongs to another host".into());
     }
-    let host = StdHost::new_with_config(StdHostConfig {
-        host_id: HostId::from(runtime.host_id.as_str()),
-        boot_id: BootId::from(runtime.boot_id.as_str()),
-        offer_generation: OfferGeneration(runtime.offer_generation),
-    });
-    let advertisement = host.advertisement().clone();
+    let advertisement = crate::durable_host_control::current(state_dir)?.advertisement;
+    if advertisement.host_id.as_str() != runtime.host_id
+        || advertisement.boot_id.as_str() != runtime.boot_id
+        || advertisement.offer_generation.0 < runtime.offer_generation
+    {
+        return Err("current initialized Host disagrees with its runtime marker".into());
+    }
     let transcript = invitation.claim.signing_transcript(
         &advertisement.host_id,
         &advertisement.boot_id,
@@ -477,3 +477,7 @@ mod document_bounds_tests {
         assert!(encode_admission_document(&"x".repeat(maximum - 1)).is_err());
     }
 }
+
+#[cfg(all(test, unix))]
+#[path = "durable_host_invitation/current_offer_tests.rs"]
+pub(super) mod current_offer_tests;
