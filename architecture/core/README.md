@@ -24,6 +24,7 @@ depends on semantic, application, target, or proof packages.
 | `execution.rs` | universal architecture | Generic execution-region and admitted execution-profile records. |
 | `execution_fusion.rs` | universal architecture | Exact optional fusion of ordinary planned placements without a second executor. |
 | `front.rs` | universal architecture | Checked generic capability front and typed port surface. |
+| `host_name.rs` | universal architecture | Bounded checked Host declaration wording and exact-identity fallback; names remain separate from Host/Boot identity, membership, currentness and authority. |
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
