@@ -57,6 +57,8 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
     #[cfg(feature = "zenoh-evaluation")]
     crate::zenoh_evaluation::status(&mut out).map_err(|_| ())?;
     crate::flash_observation::append(&mut out).map_err(|_| ())?;
+    #[cfg(feature = "credential-store")]
+    crate::credential_store::append(&mut out).map_err(|_| ())?;
     out.push('}').map_err(|_| ())?;
     Ok(out)
 }
@@ -86,6 +88,8 @@ pub async fn run(
     let mut initialized = false;
     let mut last_sample = None;
     let mut prepared = None;
+    #[cfg(feature = "credential-store")]
+    let mut credentials = crate::credential_store::take_owner();
     let mut delay = Delay;
     loop {
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
@@ -168,6 +172,11 @@ pub async fn run(
         });
         if !ack {
             initialized = false;
+        }
+        #[cfg(feature = "credential-store")]
+        if let Some(owner) = credentials.as_mut() {
+            owner.wait().await;
+            continue;
         }
         Timer::after(Duration::from_secs(2)).await;
     }

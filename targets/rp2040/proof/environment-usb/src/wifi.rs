@@ -190,7 +190,10 @@ pub async fn configure(encoded: &[u8]) -> Result<(), &'static str> {
     REQUEST.signal(Request::Join(request));
     with_timeout(Duration::from_secs(50), response(token))
         .await
-        .map_err(|_| "radio-request-timeout")?
+        .map_err(|_| "radio-request-timeout")??;
+    #[cfg(feature = "credential-store")]
+    crate::credential_store::commit(encoded).await?;
+    Ok(())
 }
 static RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
 static FW: aligned::Aligned<aligned::A4, [u8; 231077]> = aligned::Aligned(*include_bytes!(
@@ -252,7 +255,19 @@ pub async fn run(
     for _ in 0..crate::environment_http::SESSIONS {
         spawner.spawn(crate::environment_http::run(stack).unwrap());
     }
+    #[cfg(not(feature = "credential-store"))]
     let mut retained: Option<JoinRequest> = None;
+    #[cfg(feature = "credential-store")]
+    let mut retained = crate::credential_store::restored().map(|wire| {
+        let mut request = JoinRequest {
+            bytes: [0; MAX],
+            length: wire.length,
+            token: 0,
+            deadline: Instant::now() + Duration::from_secs(50),
+        };
+        request.bytes[..wire.length].copy_from_slice(&wire.bytes[..wire.length]);
+        request
+    });
     let mut reconnect = reconnect::Reconnect::default();
     loop {
         if let Some(request) = retained.as_ref() {

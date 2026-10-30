@@ -177,8 +177,22 @@ fn main() {
             optional.push(Path::new(directory).join("build.rs"));
         }
     }
+    let credential_store = env::var_os("CARGO_FEATURE_CREDENTIAL_STORE").is_some();
+    if credential_store {
+        for directory in [
+            "../../../../mechanisms/io/monotonic-wait",
+            "../../../../mechanisms/io/network-join",
+        ] {
+            collect(&Path::new(directory).join("src"), &mut files);
+            files.push(Path::new(directory).join("Cargo.toml"));
+            optional.push(Path::new(directory).join("build.rs"));
+        }
+    }
     files.sort();
     let mut hash = Sha256::new();
+    println!("cargo:rerun-if-env-changed=CARGO_FEATURE_CREDENTIAL_STORE");
+    hash.update(b"credential-store=");
+    hash.update([u8::from(credential_store)]);
     hash.update(generated.as_bytes());
     for p in optional {
         println!("cargo:rerun-if-changed={}", p.display());

@@ -51,6 +51,8 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
         .map_err(|_| ())?;
     }
     crate::flash_observation::append(&mut out).map_err(|_| ())?;
+    #[cfg(feature = "credential-store")]
+    crate::credential_store::append(&mut out).map_err(|_| ())?;
     out.push('}').map_err(|_| ())?;
     Ok(out)
 }
@@ -98,6 +100,8 @@ pub async fn run(
     let mut delay = Delay;
     let mut last_sample = None;
     let mut prepared = None;
+    #[cfg(feature = "credential-store")]
+    let mut credentials = crate::credential_store::take_owner();
     loop {
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
@@ -155,6 +159,11 @@ pub async fn run(
                 s.acks = s.acks.saturating_add(1);
             }
         });
+        #[cfg(feature = "credential-store")]
+        if let Some(owner) = credentials.as_mut() {
+            owner.wait().await;
+            continue;
+        }
         Timer::after_secs(2).await;
     }
 }

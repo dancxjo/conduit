@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
+credential-store = ["wifi", "dep:conduit-monotonic-wait", "dep:conduit-network-join-call", "embassy-rp/unstable-pac"]
 default = []
 zenoh-evaluation = ["wifi", "dep:conduit-zenoh-pico-embassy", "dep:conduit-zenoh-pico-platform"]
 dht11-tm1637 = ["pio-capture", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-pulse-capture", "dep:conduit-rp2040-pulse-capture", "dep:conduit-rp2040-tm1637", "dep:conduit-tm1637-wire"]
@@ -14,6 +15,8 @@ pio-capture = []
 wifi = ["appliance-hil-client", "dep:cyw43", "dep:cyw43-pio", "dep:embassy-net", "dep:aligned", "dep:embassy-sync", "dep:conduit-net"]
 appliance-hil-client = []
 [dependencies]
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait", optional = true }
+conduit-network-join-call = { path = "../../../../mechanisms/io/network-join", optional = true }
 conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 conduit-zenoh-pico-embassy = { path = "../../../embassy/zenoh-pico-platform", optional = true }
 conduit-zenoh-pico-platform = { path = "../../../../mechanisms/io/zenoh-pico-platform", optional = true }
