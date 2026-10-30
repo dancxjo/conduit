@@ -37,3 +37,22 @@ so selected Plan metadata remains the dominant cost. Target flash/preparation
 cost, physical startup overlap and Root workspace custody still need separate
 qualification. This change proves no worker ingress, protected Line, Body
 membership, durable history commitment or physical execution.
+
+## ESP32 release qualification
+
+Source `5518282f2f3c833f97809f07eba64d1fee7d5ebb` passed the supported
+`cargo +stable xtask prove environment flat-network-appliance-image` path on
+pinned `esp-conduit-1.91.1`. The linked image retains the indexed task planner
+and excludes Source parsing, checking and expansion. The first actual target
+build exposed an input-borrow retirement error; the caller now drops the
+indexed view before its owned backing. The packaging symbol check recognizes
+the exact indexed-offer entry point without relaxing the authoring exclusions.
+
+Offline `espflash 4.5.0 save-image` with the existing 4 MiB partition table
+produced a 3,242,576-byte application image in the 3,371,008-byte factory
+partition (128,432 bytes remaining). Application SHA-256:
+`115d4a16fa8150339afc947819c1d3755cfab7ae7d23e9814cae0c998a2e8460`.
+This is a fit measurement, not a same-source before/after flash comparison.
+Private retained signing inputs were used only for compilation; no device was
+flashed and no installed identity was replaced. Physical startup RAM, combined
+Mask preparation, admission and restart/recovery remain unproved by this build.
