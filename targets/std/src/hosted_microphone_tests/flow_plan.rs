@@ -213,3 +213,49 @@ fn missing_capture_authority_is_refused_before_provider_execution() {
     assert!(collector.blocks.is_empty());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn failed_finite_provider_releases_lease_for_a_fresh_play() {
+    let _process = microphone_process();
+    // The pinned executable never changes. Only its first explicit capture fails.
+    let (root, mut host, fragment) = planned("#!/bin/sh\nif [ ! -f \"$0.failed-once\" ]; then touch \"$0.failed-once\"; exit 7; fi\nprintf '01234567890123456789012345678901'\n");
+    let mut collector = Collector {
+        release: root.join("arecord.release"),
+        blocks: Vec::with_capacity(2),
+    };
+    let error = host
+        .run_external_plot_to(
+            fragment.clone(),
+            &[],
+            &mut collector,
+            &mut Vec::new(),
+            &mut crate::ThreadTimer,
+        )
+        .unwrap_err();
+    assert!(
+        error.contains("HostCallFailed") && error.contains("detail: 9"),
+        "{error}"
+    );
+    assert!(
+        error.contains("logical-gear=finite-microphone/microphone"),
+        "{error}"
+    );
+    assert!(collector.blocks.is_empty());
+    let report = host
+        .run_external_plot_to(
+            fragment,
+            &[],
+            &mut collector,
+            &mut Vec::new(),
+            &mut crate::ThreadTimer,
+        )
+        .unwrap();
+    assert_eq!(collector.blocks.len(), 2);
+    assert!(matches!(
+        report.observations.last().map(|item| &item.kind),
+        Some(conduit_core::ObservationKind::PlanTerminal {
+            disposition: conduit_core::TerminalDisposition::Completed
+        })
+    ));
+    fs::remove_dir_all(root).unwrap();
+}
