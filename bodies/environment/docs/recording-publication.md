@@ -90,3 +90,18 @@ previous view. Publication tests use the production kernel and recording Back
 with explicit CPU storage-completion fixtures. They establish the commit gate,
 not actual file publication of those preceding chunks or their producer's
 authenticated identity. Those facts still need the admitted recorder integration.
+
+## Live producer provenance
+
+The signed observation journal binds Body, original producer Boot and Play
+digests. Those digests do not recover the original Host/Plan/Play identities.
+Root must retain and verify the matching canonical ActivePlay and original Plan
+evidence before constructing a recording context. A current-producer recovery
+receipt establishes current Boot identity; it does not supply a historical Plan
+or replace that context.
+
+Journal `observed_at_boot_ms` is producer-observation time, as its descriptor
+states. It is neither acquisition time nor UTC. The current recording publication
+entrance requires an actual producer sample time; a journal adapter must preserve
+its observation-clock basis explicitly before using that entrance. Recorder
+receipt time and receiver wall time cannot supply the missing provenance.

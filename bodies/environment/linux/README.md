@@ -56,5 +56,20 @@ separately validates the immutable file and complete domain encoding before
 returning generation references; missing files, foreign read grants and malformed
 catalogs return no references. The optional recording kernel selects the existing
 Flow implementation; it does not add that dependency to the default runtime.
-These tests retain explicit CPU Host/grant/producer fixtures. Discovery from an
-installed durable seed and a fresh-process recorder restart remain separate.
+These tests retain explicit CPU Host/grant/producer fixtures.
+
+The optional `installed-seed` feature provides `recover_durable_catalog_seed`
+through the existing installed Body-durable State entrance. It accepts only the
+exact read-only optional-reference view, validates the returned type and profile,
+and requires an attributed accepted stop before returning the reference. A write
+view refuses before file effects. This feature alone adds the hosted execution
+dependency; the default file adapter does not require it.
+
+Run `cargo +stable xtask check recording-checkpoint` for the combined journey:
+15 actual chunk publications feed a checked catalog publication and durable Body
+State; an occupied successor preserves the previous seed; a separate process
+discovers the seed and catalog and recovers all 960 observations through one
+ordered batch Plot. The child receives storage paths, not a catalog reference,
+and must return an explicit recovery receipt. Host/Body admission, independent
+storage grants and authenticated producer context remain fixtures. This does not
+establish power-loss durability or an installed live overnight recorder.

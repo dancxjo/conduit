@@ -10,6 +10,14 @@ path = "src/main.rs"
 
 [workspace]
 
+[features]
+installed-recording-proof = ["installed-seed-proof", "conduit-std-host/linux-snapshot"]
+installed-seed-proof = ["dep:conduit-std-host", "dep:conduit-std-offers", "dep:tempfile", "conduit-environment-linux/installed-seed"]
+
+[[test]]
+name = "catalog_restart"
+required-features = ["installed-seed-proof"]
+
 [dependencies]
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["plot-catalog"] }
 serde = { version = "1", features = ["derive"] }
@@ -58,3 +66,8 @@ static_cell = "=2.1.1"
 conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
 conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
 conduit-environment-linux = { path = "../linux" }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+conduit-std-host = { path = "../../../targets/std", default-features = false, optional = true }
+conduit-std-offers = { path = "../../../targets/std/offers", optional = true }
+tempfile = { version = "3", optional = true }
