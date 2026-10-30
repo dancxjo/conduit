@@ -81,6 +81,16 @@ impl PreparedRecordingSnapshot {
             .chunk
             .append(sequence, sampled_at_boot_ms, disposition, observation)?)
     }
+    /// Append an ordinary committed publication with its actual producer clock.
+    pub fn append_publication(
+        &mut self,
+        input: &mut PreparedRecordingInput,
+        snapshot: crate::publication::PublicationSnapshot<'_>,
+        sampled_at_boot_ms: u64,
+    ) -> Result<ChunkAppend, RecordingSnapshotRefusal> {
+        self.check_room(snapshot.sequence)?;
+        Ok(input.append(&mut self.chunk, snapshot, sampled_at_boot_ms)?)
+    }
     fn check_room(&self, sequence: u64) -> Result<(), RecordingSnapshotRefusal> {
         if self.chunk.sealed {
             return Err(RecordingRefusal::Sealed.into());

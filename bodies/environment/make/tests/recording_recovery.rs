@@ -258,3 +258,11 @@ fn wrong_generation_or_absent_resource_cannot_become_a_recovery_plan() {
 #[cfg(target_os = "linux")]
 #[path = "recording_recovery/linux_files.rs"]
 mod linux_files;
+
+#[cfg(target_os = "linux")]
+#[path = "recording_recovery/linux_files_publication.rs"]
+mod linux_files_publication;
+
+#[cfg(target_os = "linux")]
+#[path = "recording_recovery/linux_files_streaming_publication.rs"]
+mod linux_files_streaming_publication;

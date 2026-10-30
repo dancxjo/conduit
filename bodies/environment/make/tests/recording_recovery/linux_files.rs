@@ -6,9 +6,9 @@ use conduit_kernel::{self as k, scheduler::*, ValueStorage};
 use conduit_linux_snapshot_store::{FileOperationRefusal, PreparedFileSnapshotOperation};
 use conduit_resource_snapshot::{PUBLISH_OPERATION, READ_OPERATION};
 #[path = "../../../../../targets/std/resource-snapshot/tests/support/directory.rs"]
-mod directory;
+pub(super) mod directory;
 #[path = "../../../../../mechanisms/io/resource-snapshot/tests/support/fixture.rs"]
-mod publisher_fixture;
+pub(super) mod publisher_fixture;
 
 #[derive(Clone, Copy)]
 enum Mode {

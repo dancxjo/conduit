@@ -41,6 +41,10 @@ pub use catalog::{
     PreparedRecordingCatalog, PreparedRecordingCatalogReader, RecordingCatalogRefusal,
     MAXIMUM_CATALOG_GENERATIONS,
 };
+mod batch;
+pub use batch::{PreparedRecordingBatch, PreparedRecordingGeneration, RecordingBatchRefusal};
+mod publication;
+pub use publication::PreparedRecordingInput;
 mod history;
 mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};

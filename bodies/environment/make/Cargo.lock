@@ -219,6 +219,7 @@ dependencies = [
  "conduit-linux-snapshot-store",
  "conduit-plan-lowering",
  "conduit-resource-snapshot",
+ "conduit-semantic-catalog",
 ]
 
 [[package]]
