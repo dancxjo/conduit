@@ -14,6 +14,8 @@ mod native_joined_host_wire;
 #[allow(dead_code)] // Legacy envelope helpers are covered by native_restart tests.
 mod native_restart;
 use native_body_join::recovery;
+#[path = "native_body_join/equipment.rs"]
+mod equipment;
 #[path = "native_body_join/returning.rs"]
 mod returning;
 mod native_evidence_region {
@@ -368,6 +370,7 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
         Ok(())
     })
     .unwrap();
+    owner = equipment::prove(owner, &root_key, &host, &signer, &request);
     let (next, pending_membership) = membership::prove(owner, &root_key, &host, &signer);
     owner = next;
     owner = returning::prove(
