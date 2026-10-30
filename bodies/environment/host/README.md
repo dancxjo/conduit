@@ -43,8 +43,9 @@ The continuing joined collector accepts `--retained-projection current PRIVATE_O
 in place of an explicit `boot/...` pin. After successful collection, it uses its
 existing private continuity input to sign a fresh nonce-bound membership recovery
 query. The existing producer recovery receipt must match the pinned Root, producer
-Host and exact observer credential. A three-second socket budget and sixteen-poll
-limit bound this read-only probe; synchronous DNS remains outside that budget.
+Host and exact observer credential. A three-second socket budget and sixteen-exchange
+limit bound this read-only probe; transient socket failures retry the same signed
+query under that shared budget, while invalid protocol or identity evidence refuses. synchronous DNS remains outside that budget.
 Only a complete signed history prefix for the verified Boot can replace the view.
 An outage, replayed nonce, mismatched identity, absent prefix or ambiguous Play
 retains the previous view. Original per-Boot files and membership bindings remain

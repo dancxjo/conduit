@@ -3,6 +3,8 @@
 use super::*;
 use crate::local_recorder::{recovery, ValidatedBinding};
 use std::net::ToSocketAddrs;
+#[path = "current_producer_retry.rs"]
+mod retry;
 
 pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Result<String> {
     let binding = crate::local_recorder::validated_binding(binding_path)?;
@@ -39,18 +41,21 @@ pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Resul
         .find(|a| a.is_ipv4())
         .ok_or("current producer has no IPv4 route")?;
     let deadline = Instant::now() + Duration::from_secs(3);
-    let exchange = |method, path: &str, body: &[u8]| {
-        super::http::http_resolved_until(
-            super::http::Request {
-                peer,
-                method,
-                path,
-                body,
-                content_type: "application/json",
-            },
-            address,
-            deadline,
-        )
+    let mut attempts = 16;
+    let mut exchange = |method, path: &str, body: &[u8]| {
+        retry::exchange(deadline, &mut attempts, || {
+            super::http::http_resolved_until(
+                super::http::Request {
+                    peer,
+                    method,
+                    path,
+                    body,
+                    content_type: "application/json",
+                },
+                address,
+                deadline,
+            )
+        })
     };
     let (status, bytes) = exchange("POST", "/body/join", &payload)?;
     if status != 202 {
