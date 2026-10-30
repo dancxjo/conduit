@@ -36,6 +36,11 @@ pub use reference_source::{
 };
 #[cfg(feature = "recording-kernel")]
 pub use temporal::{recording_singleton_kind, RecordingSingletonBack};
+mod catalog;
+pub use catalog::{
+    PreparedRecordingCatalog, PreparedRecordingCatalogReader, RecordingCatalogRefusal,
+    MAXIMUM_CATALOG_GENERATIONS,
+};
 mod history;
 mod host_call;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};

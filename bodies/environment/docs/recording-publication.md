@@ -74,3 +74,19 @@ Host builds. The checkpoint file tests use fixture JSON and fixture Host offers
 and grants: they do not validate a recording catalog's committed chunk domain,
 admit a live Body's disk capacity, or establish an overnight recorder service
 (#6359 and #6360).
+
+`PreparedRecordingCatalogCheckpoint::prepare_after_publications` prepares this
+Source with recorder-domain catalog content only after every supplied publication
+observer reports kernel commit for its exact generation. Missing, failed,
+cancelled, mismatched or out-of-order publications refuse. The catalog's own
+record and byte extent count toward the supplied finite ceilings; these ceilings
+are constraints, not storage reservations. The lower-level `prepare` method
+checks content and Source only and does not establish prior publication.
+
+Catalog decoding validates the complete finite representation, reference profile
+and uniqueness before replacing its previous view, preserving the encoded entry
+order. It allocates no heap while reading; a malformed catalog preserves the
+previous view. Publication tests use the production kernel and recording Back
+with explicit CPU storage-completion fixtures. They establish the commit gate,
+not actual file publication of those preceding chunks or their producer's
+authenticated identity. Those facts still need the admitted recorder integration.

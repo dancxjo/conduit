@@ -334,3 +334,6 @@ fn selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial
     let mut reader = PreparedRecordingReader::prepare(snapshot_context(), &contract).unwrap();
     reader.read(snapshot.seal().unwrap()).unwrap();
 }
+
+#[path = "recording_chunks/catalog.rs"]
+mod catalog;

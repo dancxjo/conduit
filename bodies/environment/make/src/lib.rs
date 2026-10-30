@@ -27,4 +27,6 @@ pub use recording_recovery::{
 };
 
 mod catalog_seed;
-pub use catalog_seed::{RecordingCatalogSeedSource, MAXIMUM_CATALOG_SEED_BYTES};
+pub use catalog_seed::{
+    PreparedRecordingCatalogCheckpoint, RecordingCatalogSeedSource, MAXIMUM_CATALOG_SEED_BYTES,
+};

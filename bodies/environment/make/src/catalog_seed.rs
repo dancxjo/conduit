@@ -7,6 +7,64 @@ pub struct RecordingCatalogSeedSource {
     pub plot: conduit_plot::ExpandedAuthoringPlot,
     pub value_type: c::StructuredInfoType,
 }
+/// Prepared recorder-domain input and its checked publication-to-seed Source.
+/// This is not a publication receipt: Root must still admit the listed chunk
+/// commits and independently retain the selected storage and authority.
+pub struct PreparedRecordingCatalogCheckpoint {
+    source: RecordingCatalogSeedSource,
+    catalog: conduit_environment_runtime::recording::PreparedRecordingCatalog,
+    reference: c::BoundedResourceRef,
+}
+impl PreparedRecordingCatalogCheckpoint {
+    /// Root uses actual chunk publication observers before preparing the next
+    /// catalogue checkpoint. This is a new preparation phase, not Step work.
+    pub fn prepare_after_publications(
+        reference: c::BoundedResourceRef,
+        chunks: &[c::BoundedResourceRef],
+        observers: &[conduit_environment_runtime::recording::RecordingCommitObserver],
+        maximum_records: usize,
+        maximum_content_bytes: u64,
+    ) -> Result<Self, String> {
+        let catalog =
+            conduit_environment_runtime::recording::PreparedRecordingCatalog::prepare_committed(
+                chunks,
+                observers,
+                maximum_records,
+                maximum_content_bytes,
+            )
+            .map_err(|error| format!("catalog publications: {error:?}"))?;
+        Self::prepare(reference, catalog)
+    }
+    pub fn prepare(
+        reference: c::BoundedResourceRef,
+        catalog: conduit_environment_runtime::recording::PreparedRecordingCatalog,
+    ) -> Result<Self, String> {
+        if reference.extent.bytes != catalog.content().len() as u64 {
+            return Err("catalog reference extent does not match prepared content".into());
+        }
+        let source = RecordingCatalogSeedSource::compile_checkpoint(&reference)?;
+        Ok(Self {
+            source,
+            catalog,
+            reference,
+        })
+    }
+    pub fn source(&self) -> &RecordingCatalogSeedSource {
+        &self.source
+    }
+    pub fn content(&self) -> &str {
+        self.catalog.content()
+    }
+    pub fn reference(&self) -> &c::BoundedResourceRef {
+        &self.reference
+    }
+    pub fn required_records(&self) -> usize {
+        self.catalog.required_records()
+    }
+    pub fn required_content_bytes(&self) -> u64 {
+        self.catalog.required_content_bytes()
+    }
+}
 impl RecordingCatalogSeedSource {
     pub fn compile() -> Result<Self, String> {
         Self::compile_source(include_str!("../../profiles/catalog-seed.conduit"), false)

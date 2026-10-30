@@ -2,6 +2,21 @@
 use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
+        "recording-checkpoint.committed-catalog",
+        "Check finite catalogs against exact kernel-committed generations",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/runtime/Cargo.toml",
+            "--test",
+            "recording_chunks",
+            "--test",
+            "recording_publication",
+        ],
+    ),
+    Step::new(
         "recording-checkpoint.references",
         "Check bounded allocation-free first-class reference expressions",
         "cargo",
@@ -84,6 +99,25 @@ pub const STEPS: &[Step] = &[
             "-p",
             "conduit-std-host",
             "--lib",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    Step::new(
+        "recording-checkpoint.catalog-lint",
+        "Lint recording catalog validation and publication commit tests",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/runtime/Cargo.toml",
+            "--lib",
+            "--test",
+            "recording_chunks",
+            "--test",
+            "recording_publication",
             "--",
             "-D",
             "warnings",
