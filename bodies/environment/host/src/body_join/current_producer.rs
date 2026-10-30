@@ -59,7 +59,11 @@ pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Resul
     };
     let (status, bytes) = exchange("POST", "/body/join", &payload)?;
     if status != 202 {
-        return Err("current producer probe was not queued".into());
+        return Err(format!(
+            "current producer submission HTTP {status} ({})",
+            super::refusal_reason(&bytes)
+        )
+        .into());
     }
     let ticket: Ticket = serde_json::from_slice(&bytes)?;
     if ticket.schema != "conduit.environment/body-join-queued@1" || ticket.ticket == 0 {
@@ -76,7 +80,11 @@ pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Resul
             return verified_boot(&binding, &request, &receipt);
         }
         if status != 202 {
-            return Err("current producer probe result refused".into());
+            return Err(format!(
+                "current producer result HTTP {status} ({})",
+                super::refusal_reason(&bytes)
+            )
+            .into());
         }
         let pending: Ticket = serde_json::from_slice(&bytes)?;
         if pending.schema != ticket.schema || pending.ticket != ticket.ticket {

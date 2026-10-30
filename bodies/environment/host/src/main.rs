@@ -50,6 +50,18 @@ pub fn checked<T, E: Debug>(result: std::result::Result<T, E>) -> Result<T> {
 }
 fn main() -> Result<()> {
     let mut args: Vec<_> = std::env::args().collect();
+    if args.get(1).is_some_and(|arg| arg == "--inspect-current-producer") {
+        if args.len() != 5 {
+            return Err("expected --inspect-current-producer PRIVATE_BINDING PRIVATE_CONTINUITY HOST:PORT".into());
+        }
+        let boot = body_join::current_producer::probe(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+            &args[4],
+        )?;
+        println!("{}", serde_json::json!({"schema":"conduit.environment/current-producer-inspection@1","producer_boot":boot}));
+        return Ok(());
+    }
     if args.get(1).is_some_and(|a| a == "--inspect-retained-history") {
         if args.len() != 6 {
             return Err("expected --inspect-retained-history PRIVATE_BINDING EPOCH_DIRECTORY PRODUCER_BOOT PRIVATE_SERIES_FILE".into());

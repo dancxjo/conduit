@@ -1,5 +1,8 @@
 //! Private physical bootstrap followed by canonical, signed observer admission.
 use crate::local_recorder::joined;
+#[path = "body_join/refusal.rs"]
+mod refusal;
+pub(crate) use refusal::reason as refusal_reason;
 #[path = "body_join/recovery.rs"]
 mod recovery_client;
 #[path = "body_join/current_producer.rs"]

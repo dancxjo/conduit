@@ -51,3 +51,8 @@ An outage, replayed nonce, mismatched identity, absent prefix or ambiguous Play
 retains the previous view. Original per-Boot files and membership bindings remain
 unchanged. This selection does not grant recording custody, refresh Face leases,
 establish shared clock synchronization or commit observations to a selected recorder.
+
+`--inspect-current-producer PRIVATE_BINDING PRIVATE_CONTINUITY HOST:PORT` runs
+the same bounded read-only probe without changing the collector or its projection.
+Success reports the authenticated producer Boot; failure retains only the HTTP
+status and bounded public refusal code in its diagnostic.
