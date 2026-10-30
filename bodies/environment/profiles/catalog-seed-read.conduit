@@ -1,0 +1,7 @@
+# Same Body/State identity and exact value type, with no write entrance.
+plot recorder-catalog (
+    current: $ResourceRef? >>
+) {
+    seed: keep ResourceRef? <= 1KiB for life
+    seed >> current
+}

@@ -19,11 +19,32 @@ and cancellation remain their original terminal dispositions. This Back admits
 one immutable generation; it does not invent retries, replacement generations,
 a scheduler, storage provider, catalog update or an acquisition timestamp.
 
-`cargo xtask prove environment recording` includes deterministic tests of the
-actual recorder Back and production kernel. Placement and storage completion are
+The deterministic [recorder tests](../runtime/tests/recording_publication.rs)
+exercise the actual Back and production kernel. Placement and storage completion are
 explicit CPU fixtures. Success, storage failure, denial, cancellation, corrupt
 content and a foreign completion reference all reach checked terminal outcomes.
 The recurring kernel path allocates no Rust heap. These tests do not establish
 actual file/browser durability, live capability admission, a native producer Line,
 Body membership, Pi boot or overnight operation. Those integrations remain part
 of the continuing recorder appliance work (#6295).
+
+## Durable catalog selection
+
+The authored `catalog-seed.conduit` retains an optional ResourceRef in Body-lived
+State. Its read-only companion keeps the same State identity and exact type,
+without accepting a replacement value. Residence and authority remain Host/Plan
+facts; the reference supplies neither.
+
+`StdHost::run_body_durable_external_plot_to` supplies Root's Body/residence and
+the sealed external Fore to the existing installed kernel and synchronized State
+file implementation. The metadata recovery result is narrowed to its validated
+fixed header before the subsequent value-recovery request; the State-sized result
+allowance does not become a larger metadata input grant.
+
+Run `cargo xtask check recording-seed`. Separate child processes write, reopen
+under a fresh Boot/Plan, inspect a distinct Body and refuse a corrupt generation.
+The exact canonical reference and original published bytes are preserved during
+read-only recovery. Host offers and Body admission remain CPU fixtures, and the
+catalog reference is fixture data. This proves installed State and actual file
+recovery, not prior recording/catalog publication, live membership or an overnight
+recorder service. Those connections remain separate integration work (#6358).

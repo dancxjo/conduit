@@ -54,6 +54,8 @@ pub enum CheckSuite {
     LinuxSnapshot,
     /// Check planned recorder recovery through exact Linux file completions.
     RecordingFiles,
+    /// Check installed Body-durable catalog State across fresh processes.
+    RecordingSeed,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,

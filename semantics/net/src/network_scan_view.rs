@@ -25,7 +25,7 @@ impl<'a> ScanCompletionView<'a> {
         {
             return Err(ScanFailure::Malformed);
         }
-        for row in bytes[24..].chunks_exact(44) {
+        for row in bytes[24..].as_chunks::<44>().0 {
             if observation(row)?.observed_ms > completion.completed_ms {
                 return Err(ScanFailure::Malformed);
             }
@@ -42,7 +42,9 @@ impl<'a> ScanCompletionView<'a> {
         &self,
     ) -> impl ExactSizeIterator<Item = KnownScanObservation<'a>> + Clone + '_ {
         self.bytes[24..]
-            .chunks_exact(44)
+            .as_chunks::<44>()
+            .0
+            .iter()
             .map(|row| observation(row).expect("same completely validated immutable scan extent"))
     }
 }

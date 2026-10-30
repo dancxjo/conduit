@@ -91,7 +91,9 @@ mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;
-pub use host_execution::{ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters};
+pub use host_execution::{
+    ExternalForeRun, ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExternalForeInput {

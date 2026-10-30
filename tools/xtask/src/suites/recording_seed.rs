@@ -1,0 +1,75 @@
+//! Installed durable State with the authored optional catalog reference Fore.
+use crate::process::Step;
+pub const STEPS: &[Step] = &[
+    Step::new(
+        "recording-seed.source",
+        "Check optional catalog State and its read-only view",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "catalog_seed",
+        ],
+    ),
+    Step::new(
+        "recording-seed.process",
+        "Recover installed catalog State in fresh child processes",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "catalog_seed",
+        ],
+    ),
+    Step::new(
+        "recording-seed.state",
+        "Check existing durable State bounds and recovery",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "state_value::durable",
+        ],
+    ),
+    Step::new(
+        "recording-seed.source-lint",
+        "Lint checked catalog seed construction",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/make/Cargo.toml",
+            "--lib",
+            "--test",
+            "catalog_seed",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    Step::new(
+        "recording-seed.host-lint",
+        "Lint installed Host execution and durable State",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "-p",
+            "conduit-std-host",
+            "--lib",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+];

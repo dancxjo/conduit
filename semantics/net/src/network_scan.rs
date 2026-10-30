@@ -149,7 +149,7 @@ impl ScanCompletion {
         out[20] = self.count;
         out[21..23].copy_from_slice(&self.total.to_le_bytes());
         out[23] = u8::from(self.truncated());
-        for (r, b) in records.iter().zip(out[24..len].chunks_exact_mut(44)) {
+        for (r, b) in records.iter().zip(out[24..len].as_chunks_mut::<44>().0) {
             b[0] = r.length;
             b[1..33].copy_from_slice(&r.ssid);
             b[33..35].copy_from_slice(&r.rssi_dbm.to_le_bytes());

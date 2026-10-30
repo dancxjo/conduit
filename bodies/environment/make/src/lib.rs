@@ -25,3 +25,6 @@ mod recording_recovery;
 pub use recording_recovery::{
     PreparedRecordingRecovery, RecordingPlanningRefusal, RecordingRecoverySource,
 };
+
+mod catalog_seed;
+pub use catalog_seed::{RecordingCatalogSeedSource, MAXIMUM_CATALOG_SEED_BYTES};
