@@ -29,6 +29,12 @@ pub const STEPS: &[Step] = &[
         "action-prompt-i1.installed-input-regression",
         "Check existing installed Parsec software-input and source transitions",
         "cargo",
-        &["test", "--locked", "-p", "conduit-std-host", "--lib", "parsec_input_", "--", "--test-threads=1"],
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "parsec_live_fore_tests", "--", "--test-threads=1"],
+    ),
+    Step::new(
+        "action-prompt-i1.owner-regression",
+        "Check retained terminal owner input, prompt and stale-scope behavior",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--lib", "parsec_terminal_owner", "--", "--test-threads=1"],
     ),
 ];
