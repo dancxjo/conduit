@@ -70,7 +70,17 @@ The same carrier supports distinct checked Host configurations:
 
 All three perform local continuous diagnostics independently of USB and report `body_member:false`. Neither diagnostic is an installed same-Body sampling/Mask Play, and current Wi-Fi credentials are session RAM rather than restart-persistent configuration. The host explicitly establishes the carrier session after a power cycle.
 
-When several devices are attached, select the actual physical USB path and verify its build/configuration. These firmware variants currently share a USB product/serial descriptor, so the shared `/dev/serial/by-id` alias can move between devices. Never open the same CDC stream from two clients. Display ACKs are electrical observations; working pixels require physical visual confirmation.
+When several devices are attached, select the actual physical USB path and verify
+its build/configuration. New images use the flash device's eight-byte physical
+unique ID as a fixed 16-character hexadecimal USB serial. That serial survives
+firmware and sensor/display profile changes, so each board gets a distinct
+`/dev/serial/by-id` alias. It is physical presentation metadata, not a Conduit
+Host/Boot identity, membership proof or authority. If the read fails or returns
+an unprogrammed placeholder, USB omits the serial rather than inventing a shared
+fallback; local sensing still starts. Use `/dev/serial/by-path` in that case.
+Older images still report `conduit-environment-usb` and can collide until updated.
+Never open the same CDC stream from two clients. Display ACKs are electrical
+observations; working pixels require physical visual confirmation.
 
 All Wi-Fi profiles expose the same bounded read-only `GET /environment` route on
 TCP port 8080 after network configuration. Its response carries the firmware and

@@ -22,6 +22,7 @@ mod environment;
 mod environment_http;
 mod environment_show;
 mod heap;
+mod usb_identity;
 #[cfg(feature = "wifi")]
 mod wifi;
 #[cfg(feature = "zenoh-evaluation")]
@@ -45,15 +46,19 @@ static CONFIG: StaticCell<[u8; 256]> = StaticCell::new();
 static BOS: StaticCell<[u8; 256]> = StaticCell::new();
 static CONTROL: StaticCell<[u8; 64]> = StaticCell::new();
 static CDC: StaticCell<State> = StaticCell::new();
+static USB_SERIAL: StaticCell<[u8; 16]> = StaticCell::new();
 #[embassy_executor::task]
 async fn usb_task(mut device: UsbDevice<'static, usb::Driver<'static, USB>>) -> ! {
     device.run().await
 }
-fn cdc(driver: usb::Driver<'static, USB>) -> (UsbDevice<'static, usb::Driver<'static, USB>>, Cdc) {
+fn cdc(
+    driver: usb::Driver<'static, USB>,
+    serial: Option<&'static str>,
+) -> (UsbDevice<'static, usb::Driver<'static, USB>>, Cdc) {
     let mut config = embassy_usb::Config::new(0x2e8a, 0x000a);
     config.manufacturer = Some("Conduit");
     config.product = Some("Pico Environmental USB");
-    config.serial_number = Some("conduit-environment-usb");
+    config.serial_number = serial;
     config.max_power = 100;
     config.max_packet_size_0 = 64;
     let mut b = Builder::new(
@@ -87,6 +92,18 @@ async fn send(c: &mut Cdc, kind: u8, id: u32, payload: &[u8]) -> Result<(), ()> 
 async fn main(spawner: Spawner) {
     let _foreign_backing = unsafe { heap::initialize() };
     let p = embassy_rp::init(Default::default());
+    // Read once before starting either executor/core's hardware tasks. This
+    // performs no flash write and creates no Host/Boot or membership identity.
+    let serial = {
+        let mut flash =
+            embassy_rp::flash::Flash::<_, _, { 2 * 1024 * 1024 }>::new_blocking(p.FLASH);
+        let mut unique = [0; 8];
+        flash
+            .blocking_unique_id(&mut unique)
+            .ok()
+            .and_then(|_| usb_identity::serial(unique))
+            .and_then(|bytes| core::str::from_utf8(USB_SERIAL.init(bytes)).ok())
+    };
     config::start_environment!(spawner, p);
     #[cfg(feature = "zenoh-evaluation")]
     zenoh_evaluation::start(p.CORE1, _foreign_backing);
@@ -97,7 +114,7 @@ async fn main(spawner: Spawner) {
         )
         .unwrap(),
     );
-    let (device, mut class) = cdc(usb::Driver::new(p.USB, UsbIrqs));
+    let (device, mut class) = cdc(usb::Driver::new(p.USB, UsbIrqs), serial);
     spawner.spawn(usb_task(device).unwrap());
     #[cfg(feature = "wifi")]
     let mut decoder =
