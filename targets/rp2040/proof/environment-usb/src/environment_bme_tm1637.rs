@@ -96,6 +96,7 @@ pub async fn run(
     let mut display = Display(pins);
     let mut delay = Delay;
     let mut last_sample = None;
+    let mut prepared = None;
     loop {
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
@@ -125,18 +126,14 @@ pub async fn run(
             if reading.is_none() {
                 sensor = Sensor::new(sensor.into_inner(), address);
             }
+            let s = snapshot();
+            prepared = s
+                .reading
+                .and_then(|r| crate::environment_show::prepare(r, s.samples).ok());
         }
-        let s = snapshot();
-        let digits = s
-            .reading
-            .and_then(|r| {
-                crate::environment_show::render(
-                    r,
-                    s.samples,
-                    last_sample.map_or(30_000, |at| at.elapsed().as_millis()),
-                )
-                .ok()
-            })
+        let digits = prepared
+            .as_ref()
+            .map(|show| show.render(last_sample.map_or(30_000, |at| at.elapsed().as_millis())))
             .unwrap_or([0x40; 4]);
         let data = [0xc0, digits[0], digits[1], digits[2], digits[3], 0, 0];
         let brightness = [0x88 | config::BRIGHTNESS];

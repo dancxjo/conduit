@@ -68,6 +68,14 @@ The same carrier supports distinct checked Host configurations:
 - `pico-w-environment-usb.host.conduit`: Bosch environmental sensor and HT16K33 on I²C (Green).
 - `pico-w-dht11-tm1637.host.conduit`: authored DHT11 capture/decoder and GPIO TM1637 (Yellow). Build with `--features wifi,dht11-tm1637`; the checked profile selects GP3 data, GP7 CLK, GP6 DIO,50µs electrical half-period and weak pull-ups. Pressure is unavailable on this sensor and is omitted.
 
+Each accepted sample prepares the existing semantic environmental Face and resolves
+its finite temperature/humidity/pressure pages once. Timed redraws retain only the
+owned `PreparedEnvironmentalShow`, selecting pages without rebuilding a Face or
+allocating. Unsupported humidity/pressure stays absent; capture failure clears
+the prepared reading, and the existing 30-second lifetime remains enforced.
+This execution/preparation split reuses the common Mask rather than introducing
+an MCU-specific formatter.
+
 All three perform local continuous diagnostics independently of USB and report `body_member:false`. Neither diagnostic is an installed same-Body sampling/Mask Play, and current Wi-Fi credentials are session RAM rather than restart-persistent configuration. The host explicitly establishes the carrier session after a power cycle.
 
 When several devices are attached, select the actual physical USB path and verify

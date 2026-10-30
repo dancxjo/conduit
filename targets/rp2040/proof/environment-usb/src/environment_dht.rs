@@ -159,6 +159,7 @@ pub async fn run(
     let mut decoder = source::SourceDecoder::prepare();
     decoder.check_adapter();
     let mut sampled = None;
+    let mut prepared = None;
     loop {
         if sampled.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
             update(|s| s.attempts = s.attempts.saturating_add(1));
@@ -177,19 +178,15 @@ pub async fn run(
                     s.samples = s.samples.saturating_add(1)
                 }
             });
+            let s = critical_section::with(|cs| *STATE.borrow(cs).borrow());
+            prepared = s
+                .reading
+                .and_then(|(t, h)| EnvironmentalReading::temperature_humidity(t, h).ok())
+                .and_then(|r| crate::environment_show::prepare_common(r, s.samples).ok());
         }
-        let s = critical_section::with(|cs| *STATE.borrow(cs).borrow());
-        let digits = s
-            .reading
-            .and_then(|(t, h)| EnvironmentalReading::temperature_humidity(t, h).ok())
-            .and_then(|r| {
-                crate::environment_show::render_common(
-                    r,
-                    s.samples,
-                    sampled.map_or(30_000, |at| at.elapsed().as_millis()),
-                )
-                .ok()
-            })
+        let digits = prepared
+            .as_ref()
+            .map(|show| show.render(sampled.map_or(30_000, |at| at.elapsed().as_millis())))
             .unwrap_or([0x40; 4]);
         let bytes = [0xc0, digits[0], digits[1], digits[2], digits[3]];
         let before = display.released_levels();
