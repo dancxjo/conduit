@@ -109,7 +109,18 @@ pub mod native_boot_join;
 mod native_components;
 #[cfg(any(test, feature = "native-compositor-core"))]
 pub mod native_compositor;
-#[cfg(feature = "native-compositor-core")]
+#[cfg(all(
+    feature = "native-compositor-core",
+    any(
+        test,
+        target_arch = "x86_64",
+        feature = "ia32-product",
+        feature = "aarch64-product",
+        feature = "riscv64-product",
+        feature = "loongarch64-product",
+        feature = "aarch64-board"
+    )
+))]
 pub mod native_face_mask;
 #[cfg(feature = "native-compositor-core")]
 pub mod native_face_scene;
@@ -315,7 +326,15 @@ mod pointer_coordinates;
     test,
     target_arch = "x86_64",
     feature = "aarch64-product",
-    feature = "native-compositor-core"
+    all(
+        feature = "native-compositor-core",
+        any(
+            feature = "ia32-product",
+            feature = "riscv64-product",
+            feature = "loongarch64-product",
+            feature = "aarch64-board"
+        )
+    )
 ))]
 pub mod product_bases;
 #[cfg(any(
@@ -441,7 +460,18 @@ compile_error!(
 ))]
 pub mod compositor_semantic_recovery_proof;
 
-#[cfg(feature = "native-compositor-core")]
+#[cfg(all(
+    feature = "native-compositor-core",
+    any(
+        test,
+        target_arch = "x86_64",
+        feature = "ia32-product",
+        feature = "aarch64-product",
+        feature = "riscv64-product",
+        feature = "loongarch64-product",
+        feature = "aarch64-board"
+    )
+))]
 pub mod firmware_face;
 
 // Own the proof scanner's hosted poison/count controls without native mappings.
