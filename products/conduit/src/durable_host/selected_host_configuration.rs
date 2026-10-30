@@ -15,6 +15,8 @@ use std::path::Path;
 mod microphone;
 #[path = "selected_host_configuration/playback.rs"]
 mod playback;
+#[path = "selected_host_configuration/recognition.rs"]
+mod recognition;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -92,6 +94,9 @@ impl Selection {
                     let selected = playback::initialize(initialization, host)?;
                     host.attach_selected_playback(selected)?;
                 }
+                Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
+                    host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -124,6 +129,9 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 ) => microphone::validate(initialization, implementation)?,
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     playback::validate(initialization)?
+                }
+                Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
+                    recognition::validate(initialization)?;
                 }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }

@@ -2,7 +2,7 @@ use super::*;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 
-fn fixture(script: &str) -> (PathBuf, PathBuf, PathBuf) {
+pub(super) fn fixture(script: &str) -> (PathBuf, PathBuf, PathBuf) {
     let root = std::env::temp_dir().join(format!(
         "conduit-whisper-adapter-test-{}-{}",
         std::process::id(),
@@ -17,7 +17,7 @@ fn fixture(script: &str) -> (PathBuf, PathBuf, PathBuf) {
     (root, executable, model)
 }
 
-fn discover(executable: &Path, model: &Path) -> WhisperDiscovery {
+pub(super) fn discover(executable: &Path, model: &Path) -> WhisperDiscovery {
     let discovery = WhisperDiscovery::inspect(executable, model).unwrap();
     let coverage = crate::hosted_language::tests::fixture_coverage(
         &discovery.provider_identity(),
@@ -30,7 +30,7 @@ fn english() -> conduit_language::LanguageRequest {
     crate::hosted_language::tests::request("language/english")
 }
 
-fn pcm(samples: &[i16]) -> Vec<u8> {
+pub(super) fn pcm(samples: &[i16]) -> Vec<u8> {
     let payload = samples
         .iter()
         .flat_map(|sample| sample.to_le_bytes())
