@@ -56,6 +56,7 @@ pub fn host(
     };
     let pool_id = format!("{host}/surface");
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host),
         boot_id: BootId::from(boot),
@@ -243,6 +244,7 @@ pub fn available_mask_show(face: &Face) -> MaskShow {
         })
         .collect();
     let mask_host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/interaction-mask"),
         boot_id: BootId::from("boot/interaction-mask"),

@@ -53,6 +53,7 @@ pub(super) fn prepared_package_schemas(
     let entry =
         PreparedProtocolEntry::prepare(&serde_json::to_vec(package).unwrap(), entry_name).unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/keyboard-source-host".into(),
         boot_id: "fixture/keyboard-source-boot".into(),

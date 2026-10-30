@@ -100,6 +100,7 @@ pub fn plan() -> Plan {
     }
     let plot = conduit_plot::parse_with_startup("plot speech {\n text: speech-test/text\n voice: speech/utterance(clock = 7, language-request = { language: \"language/english\", variety: some({ identity: \"pronunciation/native-english@2\", language: \"language/english\" }), variety_policy: exact_variety(empty) })\n left: speech-test/sink\n right: speech-test/sink\n text.text >> voice.text\n voice.audio >> left.audio\n voice.audio >> right.audio\n}\n", &startup, &profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("speech-test-host"),
         boot_id: BootId::from("speech-test-boot"),

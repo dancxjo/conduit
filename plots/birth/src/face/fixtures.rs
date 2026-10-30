@@ -164,6 +164,7 @@ pub(super) fn prepared_fixture_show(face: &Face) -> MaskShow {
         })
         .collect();
     let mask_host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/interaction-mask"),
         boot_id: BootId::from("boot/interaction-mask"),
@@ -280,6 +281,7 @@ pub(super) fn producer_plan() -> Plan {
     )
     .build();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "host/birth".into(),
         boot_id: "boot/birth".into(),

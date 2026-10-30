@@ -58,6 +58,7 @@ fn host(algorithm: NumericalAlgorithm, id: &str) -> HostAdvertisement {
     .build();
     offer.realization_properties = vec![prepared(algorithm).property().unwrap()];
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(id),
         boot_id: BootId::from("numeric-boot"),

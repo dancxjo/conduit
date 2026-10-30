@@ -187,6 +187,7 @@ fn plan_seals_one_exact_4096_byte_triggered_current_sample_specialization() {
     let expanded =
         conduit_plot::expand_canonical_plot(&checked, "sample-current-text", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/current-sample-proof"),
         boot_id: "boot/current-sample-proof".into(),

@@ -99,6 +99,7 @@ fn acquired() -> BrowserUsbSession {
 
 fn advertisement(generation: u64) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: offer().host_id,
         boot_id: offer().boot_id,

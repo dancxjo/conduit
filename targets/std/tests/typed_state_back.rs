@@ -21,6 +21,7 @@ fn malformed_input_preserves_committed_state_and_is_not_completion() {
     )
     .unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("state-host"),
         boot_id: BootId::from("state-boot"),

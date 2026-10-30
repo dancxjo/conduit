@@ -212,6 +212,7 @@ fn port(name: &str, value: &str, direction: PortDirection) -> PortDescriptor {
 
 fn host(name: &str, kinds: &[&str], profile: &ProfileCatalog) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/{name}")),
         boot_id: BootId::from(format!("boot/{name}")),

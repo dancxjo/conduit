@@ -84,6 +84,24 @@ base, authorable finite `need` templates, and complete finite host limits.
 Resource capacity and bases remain explicit in the source. It contains no plot,
 application pin meaning, current presence, or authority truth.
 
+The identifier in `host Yellow { ... }` is the declared Host name. Checked
+configuration, image metadata, runtime descriptions and complete admission
+receipts preserve it as optional bounded presentation metadata (at most 160
+UTF-8 bytes, nonblank, with no control characters). Older unnamed descriptions
+omit the field and display their exact Host identity. Equal names never imply
+equal Hosts, membership, reachability or authority. A checked startup name
+change advances the ordinary offer generation; active reservations refuse a
+name change. Exact receipt validation still refuses altered or dropped metadata.
+
+An Owner that has authenticated the actual measuring Host and execution can use
+`FaceFragment::with_host_attribution` to label selected observation subjects,
+retain their execution basis, and add a `conduit.face/measured-by@1` relationship
+to a Host subject containing Host, Boot and offer-generation provenance. This
+bounded projection grants no authority or freshness and rejects reattribution.
+A USB or network relay must not replace the measuring Host as the source. These
+are development contracts; live environmental projection requires adoption by
+the authoritative Body owner.
+
 For Linux microphone equipment, `audio/microphone` can explicitly select
 `std/alsa-microphone-clip@1` for direct ALSA hardware or
 `std/alsa-plug-microphone-clip@1` for ALSA channel/rate conversion. Both produce

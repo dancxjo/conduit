@@ -13,6 +13,7 @@ const EXPIRES: u64 = 20_000;
 
 fn advertisement(index: usize) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/pressure/{index}")),
         boot_id: BootId::from(format!("boot/pressure/{index}")),

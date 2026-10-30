@@ -414,6 +414,7 @@ pub(super) fn build_advertisement(
     let resources = resources::offers(composition, playback, midi_input, midi_output);
 
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: config.host_id,
         boot_id: config.boot_id,

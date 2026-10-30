@@ -213,6 +213,7 @@ fn ordinary_linear_plan_reads_exact_resource_without_bias() {
     let source="plot linear-proof {\n input: numeric-test/input\n weights: numeric-test/weights\n operation: numeric/linear80x1\n sink: numeric-test/sink\n input.value >> operation.value\n weights.value >> operation.weights\n operation.result >> sink.value\n}\n";
     let plot = conduit_plot::parse_with_startup(source, &startup, &profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("numeric-test"),
         boot_id: BootId::from("numeric-test-boot"),

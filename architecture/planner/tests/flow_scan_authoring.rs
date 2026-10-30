@@ -106,6 +106,7 @@ fn sixty_four_item_scan_keeps_exact_child_and_top_level_fore() {
         })
         .collect();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("scan-host"),
         boot_id: BootId::from("scan-boot"),

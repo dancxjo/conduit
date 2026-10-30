@@ -381,6 +381,7 @@ fn renderer_host_for_profile(
     ];
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),

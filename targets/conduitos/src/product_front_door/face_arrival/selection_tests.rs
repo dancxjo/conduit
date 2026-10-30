@@ -37,6 +37,7 @@ fn snapshot() -> crate::native_guest_face::NativeGuestFace {
     )
     .unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "host/native".into(),
         boot_id: "boot/native".into(),

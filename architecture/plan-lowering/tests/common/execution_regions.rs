@@ -113,6 +113,7 @@ pub(crate) fn lane_host(
 ) -> (HostAdvertisement, Vec<ResourceObservation>) {
     let fragment = &plan.fragments[0];
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),

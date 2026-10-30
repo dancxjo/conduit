@@ -20,6 +20,7 @@ fn advertisement() -> BrowserAdmissionIngress {
     BrowserAdmissionIngress::Advertise {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         advertisement: HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("browser/frame-host"),
             boot_id: BootId::from("browser/frame-boot"),

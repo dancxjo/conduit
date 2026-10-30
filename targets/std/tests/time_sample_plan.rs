@@ -114,6 +114,7 @@ fn plan_retains_the_exact_non_authored_sample_specialization() {
     let expanded = conduit_plot::expand_canonical_plot(&checked, "sampled-text", &profile).unwrap();
 
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/sample-proof"),
         boot_id: "boot/sample-proof".into(),

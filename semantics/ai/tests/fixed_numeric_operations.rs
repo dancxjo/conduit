@@ -160,6 +160,7 @@ fn plan() -> Plan {
     let source="plot numeric-operation-proof {\n index: op-test/index\n features: op-test/features\n table: op-test/table\n weights: op-test/weights\n bias: op-test/bias\n embedding: numeric/embedding224x12\n concatenate: numeric/concatenate20x12\n affine: numeric/dense32x64\n activation: numeric/tanh64\n sink: op-test/sink\n index.value >> embedding.index\n table.value >> embedding.weights\n features.value >> concatenate.left\n embedding.result >> concatenate.right\n concatenate.result >> affine.value\n weights.value >> affine.weights\n bias.value >> affine.bias\n affine.result >> activation.value\n activation.result >> sink.value\n}\n";
     let plot = conduit_plot::parse_with_startup(source, &startup, &profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("op-test"),
         boot_id: BootId::from("op-boot"),

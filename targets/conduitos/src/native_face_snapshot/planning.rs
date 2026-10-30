@@ -56,6 +56,7 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
             expand_canonical_plot_for_authoring(&checked, "host-face-snapshot", &profiles)
                 .map_err(|_| FaceSnapshotRefusal::Catalog)?;
         let host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id,
             boot_id,

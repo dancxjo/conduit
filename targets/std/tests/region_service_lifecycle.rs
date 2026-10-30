@@ -42,6 +42,7 @@ fn public_service_selects_reserves_runs_and_withdraws_without_losing_custody() {
     let mut fragment = fixture::plan().fragments.remove(0);
     fragment.execution_regions.clear();
     let mut advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),

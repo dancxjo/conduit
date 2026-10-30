@@ -24,6 +24,7 @@ fn fixture() -> (Plan, HostAdvertisement) {
     );
     let r = &plan.fragments[0].shared_pools[0].realization_envelope[0];
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: r.host_id.clone(),
         boot_id: r.boot_id.clone(),

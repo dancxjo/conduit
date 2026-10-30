@@ -265,6 +265,7 @@ fn finite_reuse_reaches_ordinary_native_source_plan_admission() {
         artifact_id: entry.artifact_id().clone(),
     };
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: identity.host_id.clone(),
         boot_id: identity.boot_id.clone(),

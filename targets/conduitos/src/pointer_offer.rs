@@ -281,6 +281,7 @@ mod tests {
             crate::identity::hex(&realization.controller_id)
         );
         let mut advertisement = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("host"),
             boot_id: BootId::from("boot"),

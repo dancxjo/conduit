@@ -42,6 +42,7 @@ pub struct ExactR1SignalPlan {
 
 pub fn r1_signal_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: conduit_core::HostId::from(crate::R1_STD_HOST_ID),
         boot_id: BootId::from(crate::R1_STD_BOOT_ID),
@@ -81,6 +82,7 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
 
 pub fn r1_signal_pico_advertisement(boot_id: BootId) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: conduit_core::HostId::from(crate::R1_PICO_HOST_ID),
         boot_id,

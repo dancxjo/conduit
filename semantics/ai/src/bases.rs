@@ -256,6 +256,7 @@ fn base(
     resource_requirements.sort();
     LlmGenerateBaseFixture {
         advertisement: HostAdvertisement {
+            declared_name: None,
             protocol_version: 1,
             host_id: HostId::from(host),
             boot_id: BootId::from(boot),

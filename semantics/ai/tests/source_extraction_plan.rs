@@ -34,6 +34,7 @@ fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/extraction"),
         boot_id: BootId::from("boot/extraction/1"),

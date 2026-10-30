@@ -25,6 +25,7 @@ fn body_and_part() -> (conduit_body::BodyId, PartId) {
 
 fn host(profile: &str, resources: Vec<conduit_core::ResourceOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(profile),
         boot_id: BootId::from(format!("{profile}/boot")),

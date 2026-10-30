@@ -126,6 +126,7 @@ fn exact_text_lab_split_plan_with_loss(
     let expanded = conduit_plot::expand_canonical_plot(&checked, "text-lab", &profile)
         .map_err(|error| format!("expand canonical Text Lab: {error:?}"))?;
     let mut native = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(TEXT_LAB_NATIVE_HOST),
         boot_id: BootId::from(TEXT_LAB_NATIVE_BOOT),
@@ -156,6 +157,7 @@ fn exact_text_lab_split_plan_with_loss(
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let browser = HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: HostId::from(TEXT_LAB_BROWSER_HOST),
         boot_id: BootId::from(TEXT_LAB_BROWSER_BOOT),

@@ -26,6 +26,7 @@ fn registry() -> BaseRegistry {
 }
 fn prior() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "host".into(),
         boot_id: "boot".into(),

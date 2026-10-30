@@ -168,6 +168,7 @@ fn exercise_ordinary_session(
 ) {
     let session_secret = [37; 32];
     let advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/durable-fixture"),
         boot_id: BootId::from("boot/durable-fixture"),

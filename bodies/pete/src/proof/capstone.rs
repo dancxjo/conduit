@@ -196,6 +196,7 @@ pub fn capstone_advertisement(
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
 
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: observation.protocol_version,
         host_id: observation.host_id,
         boot_id: observation.boot_id,

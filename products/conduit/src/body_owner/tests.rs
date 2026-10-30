@@ -1007,11 +1007,14 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
     .unwrap();
     owner.restore_execution(&root).unwrap();
     assert_eq!(owner.admissions, Some(manager));
-    let guest = StdHost::new_with_config(StdHostConfig {
+    let mut guest = StdHost::new_with_config(StdHostConfig {
         host_id: HostId::from("host/native-guest"),
         boot_id: BootId::from("boot/native-guest/1"),
         offer_generation: OfferGeneration(1),
     });
+    guest
+        .set_declared_name(conduit_core::HostDeclaredName::new("Yellow").unwrap())
+        .unwrap();
     let advertisement = guest.advertisement().clone();
     let request = PortableSpawnAdmissionRequest {
         schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
@@ -1042,6 +1045,10 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
         .admit_invited(&root, request.clone(), "host/native-guest")
         .unwrap();
     receipt.validate_against(&request).unwrap();
+    assert_eq!(receipt.host_advertisement.display_name(), "Yellow");
+    let mut altered_receipt = receipt.clone();
+    altered_receipt.host_advertisement.declared_name = None;
+    assert!(altered_receipt.validate_against(&request).is_err());
     assert_eq!(receipt.credential.host_id, advertisement.host_id);
     assert_eq!(receipt.credential.boot_id, advertisement.boot_id);
     let retained = state::load(&root).unwrap().unwrap();

@@ -21,6 +21,7 @@ fn host(host: &str, boot: &str) -> HostInstance {
 
 fn advertisement(instance: &HostInstance, supports_reboot: bool) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: instance.host_id.clone(),
         boot_id: instance.boot_id.clone(),

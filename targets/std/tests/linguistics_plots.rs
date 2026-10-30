@@ -185,6 +185,7 @@ fn tokenizer_refuses_non_four_token_and_oversized_inputs() {
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/linguistics-proof"),
         boot_id: BootId::from("boot/linguistics-proof"),

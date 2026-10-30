@@ -197,6 +197,7 @@ fn scene() -> GraphicsScene {
 
 fn native_host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("conduitos/native"),
         boot_id: BootId::from("conduitos/boot/1"),

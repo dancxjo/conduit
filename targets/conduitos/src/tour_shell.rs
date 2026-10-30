@@ -195,6 +195,7 @@ impl TourShellPresenter {
         let plot = parse(RENDERER_FORM, &catalog).map_err(|_| TourShellError::Catalog)?;
         let implementation = ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION);
         let host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),

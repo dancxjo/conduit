@@ -31,6 +31,7 @@ pub const PICO_FACE_POOL_ID: &str = "s4/pico-cyw43-led";
 
 pub fn pico_local_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(PICO_LOCAL_HOST_ID),
         boot_id: BootId::from(PICO_LOCAL_BOOT_ID),
@@ -92,6 +93,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
 
 pub fn distributed_std_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(DISTRIBUTED_STD_HOST_ID),
         boot_id: BootId::from(DISTRIBUTED_STD_BOOT_ID),
@@ -128,6 +130,7 @@ pub fn distributed_std_source_advertisement() -> HostAdvertisement {
 
 pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(DISTRIBUTED_BROWSER_HOST_ID),
         boot_id: BootId::from(DISTRIBUTED_BROWSER_BOOT_ID),

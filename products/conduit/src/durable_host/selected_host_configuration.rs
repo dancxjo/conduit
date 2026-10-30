@@ -68,6 +68,10 @@ impl Selection {
     pub(super) fn attach_to_fresh_host(&self, host: &mut StdHost) -> Result<(), String> {
         let checked = self.checked()?;
         require_target(&checked, running_target_id()?)?;
+        host.set_declared_name(
+            conduit_core::HostDeclaredName::new(checked.configuration().name.clone())
+                .map_err(|e| e.to_string())?,
+        )?;
         let mut initialized = std::collections::BTreeSet::new();
         for base in &checked.configuration().bases {
             let Some(initialization) = &base.initialization else {

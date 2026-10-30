@@ -61,6 +61,7 @@ fn host(scan: &conduit_plot::CheckedGear, scan_queue_bytes: u32) -> HostAdvertis
         },
     };
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("todo-proof-host"),
         boot_id: BootId::from("todo-proof-boot"),

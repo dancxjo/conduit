@@ -104,6 +104,7 @@ pub(super) fn accept(
         encoded: carrier::encode(&schema, &snapshot, request, &contract)?,
     };
     let mut advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: host.clone(),
         boot_id: boot.clone(),

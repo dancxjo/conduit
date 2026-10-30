@@ -235,6 +235,7 @@ fn provider_neutral_text_fixture_exposes_exact_authorized_request_without_attach
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/messaging-proof"),
         boot_id: BootId::from("boot/messaging-proof"),

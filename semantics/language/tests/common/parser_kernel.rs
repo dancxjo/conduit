@@ -47,6 +47,7 @@ impl Execution {
             .expand(entry_name)
             .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));
         let mut host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: "fixture/language-parser".into(),
             boot_id: "fixture/language-parser-boot".into(),

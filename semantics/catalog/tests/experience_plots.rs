@@ -112,6 +112,7 @@ fn one_checked_experiencer_moves_between_compatible_hosts_without_changing_meani
         ))
         .unwrap();
     let host = |name: &str| HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("experience/{name}")),
         boot_id: BootId::from(format!("experience/{name}/boot")),

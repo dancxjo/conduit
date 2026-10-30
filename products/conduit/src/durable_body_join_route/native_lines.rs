@@ -152,6 +152,7 @@ mod tests {
 
     fn host(id: &str) -> HostAdvertisement {
         HostAdvertisement {
+            declared_name: None,
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: HostId::from(id),
             boot_id: BootId::from(format!("boot/{id}")),

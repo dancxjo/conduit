@@ -100,6 +100,7 @@ pub fn local_model_provider(
         .collect::<Vec<_>>();
     resources.sort();
     let advertisement = HostAdvertisement {
+        declared_name: None,
         protocol_version: 1,
         host_id: HostId::from(format!("host/{id}")),
         boot_id: BootId::from(format!("boot/{id}/1")),

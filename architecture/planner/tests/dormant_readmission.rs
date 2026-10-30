@@ -127,6 +127,7 @@ fn offer(kind: &str, host: &str) -> CapabilityOffer {
 
 fn host(name: &str, boot: &str, generation: u64, kinds: &[&str]) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(name),
         boot_id: BootId::from(boot),

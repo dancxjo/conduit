@@ -204,6 +204,7 @@ fn host(catalog: &ProfileCatalog) -> Result<HostAdvertisement, CatalogError> {
         .map(|kind| capability(catalog, kind))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("sound-adapter-reference-host"),
         boot_id: BootId::from("sound-adapter-reference-boot"),

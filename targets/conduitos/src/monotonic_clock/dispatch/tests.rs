@@ -61,6 +61,7 @@ impl Execution {
         }
         .unwrap();
         let mut host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: identity.host_id.clone(),
             boot_id: identity.boot_id.clone(),

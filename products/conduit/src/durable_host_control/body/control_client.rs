@@ -129,7 +129,9 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
-        | Request::BodyLull { token, .. } => token.fill(0),
+        | Request::BodyLull { token, .. }
+        | Request::InspectWorkerText { token, .. }
+        | Request::CompleteWorkerText { token, .. } => token.fill(0),
         Request::Status { .. }
         | Request::Join { .. }
         | Request::InstallBodyContext { .. }

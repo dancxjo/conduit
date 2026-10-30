@@ -101,6 +101,7 @@ fn source_owned_start_remap_and_gameplay_policies_have_typed_fores() {
         };
         let decoded = conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap();
         let host = conduit_core::HostAdvertisement {
+            declared_name: None,
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: conduit_core::HostId::from("host/current"),
             boot_id: conduit_core::BootId::from("boot/current"),

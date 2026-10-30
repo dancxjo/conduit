@@ -23,6 +23,7 @@ pub(super) fn artifact(entry_name: &str) -> PreparedProtocolArtifact {
     let entry =
         PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name).unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/pure-source-host".into(),
         boot_id: "fixture/pure-source-boot".into(),

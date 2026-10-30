@@ -59,6 +59,7 @@ fn three_print_jobs_use_ordinary_checked_ports_and_explicit_host_authority() {
     .unwrap();
     offer.realization_properties = vec![support.property().unwrap()];
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/printer-owner".into(),
         boot_id: "fixture/printer-owner/boot-1".into(),

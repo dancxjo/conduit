@@ -35,6 +35,7 @@ fn planned() -> Plan {
         limits: kind.limits.clone(),
     };
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "host/usb-fixture".into(),
         boot_id: "boot/usb-fixture".into(),

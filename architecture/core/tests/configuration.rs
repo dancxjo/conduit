@@ -120,3 +120,47 @@ fn configuration_nominal_values_keep_the_owned_aggregate_node_boundary() {
         );
     }
 }
+
+#[test]
+fn linked_structured_bytes_validate_without_copying_and_preserve_owned_wire() {
+    use serde::Serialize;
+    #[derive(Serialize)]
+    struct Original {
+        profile: conduit_core::KindId,
+        canonical_value: Vec<u8>,
+    }
+    let ty = StructuredInfoType::leaf(kind_id("value/count")).unwrap();
+    let value = StructuredInfoValue::leaf(ty.clone(), encode_count(7).to_vec()).unwrap();
+    // Hosted test owns this one permanent buffer. Make's compiled-expression
+    // conformance test separately exercises literal bytes linked in read-only data.
+    let bytes: &'static [u8] = Box::leak(value.canonical_bytes().unwrap().into_boxed_slice());
+    let profile = ty.profile().unwrap().value_kind().clone();
+    let linked = StructuredConfigurationValue::from_static(profile.clone(), bytes).unwrap();
+    let owned = StructuredConfigurationValue::new(profile.clone(), bytes.to_vec()).unwrap();
+    assert_eq!(linked.canonical_value().as_ptr(), bytes.as_ptr());
+    assert_eq!(linked.clone().canonical_value().as_ptr(), bytes.as_ptr());
+    assert_eq!(linked, owned);
+    let original = Original {
+        profile: profile.clone(),
+        canonical_value: bytes.to_vec(),
+    };
+    let json = serde_json::to_vec(&linked).unwrap();
+    assert_eq!(json, serde_json::to_vec(&original).unwrap());
+    let binary = postcard::to_allocvec(&linked).unwrap();
+    assert_eq!(binary, postcard::to_allocvec(&original).unwrap());
+    assert_eq!(
+        serde_json::from_slice::<StructuredConfigurationValue>(&json).unwrap(),
+        linked
+    );
+    assert_eq!(
+        postcard::from_bytes::<StructuredConfigurationValue>(&binary).unwrap(),
+        linked
+    );
+    assert!(
+        StructuredConfigurationValue::from_static(kind_id("structured-info/wrong@1"), bytes)
+            .is_none()
+    );
+    for invalid in [&[][..], &[0xff][..], &bytes[..bytes.len() - 1]] {
+        assert!(StructuredConfigurationValue::from_static(profile.clone(), invalid).is_none());
+    }
+}

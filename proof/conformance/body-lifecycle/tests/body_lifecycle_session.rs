@@ -602,6 +602,7 @@ fn born() -> BodyLifecycleSession {
 }
 fn advertisement(host_id: HostId, boot_id: BootId, generation: u64) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,

@@ -25,6 +25,7 @@ fn structured_output_above_ingress_limit_is_planned_lowered_and_delivered_exactl
     let source = PreparedProtocolSource::prepare(package.clone()).unwrap();
     let expanded = source.expand("paired").unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/output".into(),
         boot_id: "fixture/boot".into(),

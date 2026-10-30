@@ -154,7 +154,7 @@ pub(crate) fn attach_and_show(
                 route_plan_id,
                 show,
                 advertisement,
-            } => (route_plan_id, show, advertisement),
+            } => (route_plan_id, show, *advertisement),
             AttachReply::Refused {
                 protocol: PROTOCOL,
                 code,

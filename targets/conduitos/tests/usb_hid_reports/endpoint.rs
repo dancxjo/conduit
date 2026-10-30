@@ -94,6 +94,7 @@ fn endpoint_class_graphs_preserve_byte_refinements_without_advertising_physics()
             1
         );
         let mut host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: "fixture/hid".into(),
             boot_id: "fixture/boot".into(),

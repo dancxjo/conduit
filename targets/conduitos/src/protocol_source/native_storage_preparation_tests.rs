@@ -55,6 +55,7 @@ fn preparation(pair: usize) -> NativeStoragePreparation {
 }
 fn advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/storage-host".into(),
         boot_id: "fixture/storage-boot".into(),
