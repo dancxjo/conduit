@@ -82,6 +82,8 @@ mod logic_backs;
 mod math_backs;
 mod math_host;
 mod microphone_clip_back;
+mod microphone_flow_back;
+mod microphone_flow_host;
 mod microphone_host;
 mod midi_input_back;
 mod midi_output_back;
@@ -857,6 +859,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .contract_id;
     #[cfg(test)]
     let observer_target_kind = kind_id("conduit-test/tick-observation");
+    let mut microphone_flow_host =
+        microphone_flow_host::MicrophoneFlowHost::prepare(fragment, microphone.as_deref())?;
     timer.observe_kernel_phase(crate::KernelTimingPhase::PlayStarted);
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
@@ -951,6 +955,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled MIDI output: {error:?}"))?;
+            } else if cancelled_operation.contract_id.as_str()
+                == conduit_std_offers::MICROPHONE_FLOW_OPERATION
+            {
+                microphone_flow_host.cancel();
             } else if cancelled_operation.contract_id == midi_input_contract_id {
                 let node = usize::from(cancellation.node.0);
                 let session = midi_input_sessions
@@ -995,6 +1003,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
+        microphone_flow_host.poll(&mut scheduler, control.stop_requested())?;
         installed_model_work.poll(&mut scheduler, &mut model_work_output, || {
             control.stop_requested()
         })?;
@@ -1018,6 +1027,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     &mut host_calls,
                     maximum_output_bytes,
                 )?;
+                continue;
+            }
+            if host_calls
+                .get(request.node, request.call)
+                .is_some_and(|operation| {
+                    operation.contract_id.as_str() == conduit_std_offers::MICROPHONE_FLOW_OPERATION
+                })
+            {
+                host_calls.record(request)?;
+                microphone_flow_host.accept(request, &mut scheduler, control.stop_requested())?;
                 continue;
             }
             let input = scheduler
@@ -3486,16 +3505,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if completed_midi_input {
                     continue;
                 }
-                let completed_deadline = if installed_model_work.is_pending() {
-                    deadlines.complete_ready(&mut scheduler, timer)?
-                } else {
-                    deadlines.complete_next(&mut scheduler, timer)?
-                };
+                let completed_deadline =
+                    if installed_model_work.is_pending() || microphone_flow_host.is_pending() {
+                        deadlines.complete_ready(&mut scheduler, timer)?
+                    } else {
+                        deadlines.complete_next(&mut scheduler, timer)?
+                    };
                 if completed_deadline {
                     continue;
                 }
                 if !deadlines.is_empty()
                     || pending_midi_input
+                    || microphone_flow_host.is_pending()
                     || installed_model_work.is_pending()
                     || keyboard_host.is_pending()
                     || body_conversation_context_host.is_pending()

@@ -108,6 +108,7 @@ pub(super) enum InstalledBack {
     RecordedSpeech(super::recorded_speech_back::RecordedSpeechBack),
     WhisperSpeech(super::whisper_speech_back::WhisperSpeechBack),
     MicrophoneClip(MicrophoneClipBack),
+    MicrophoneFlow(super::microphone_flow_back::MicrophoneFlowBack),
     AddressDetect(super::address_detect_back::AddressDetectBack),
     RecognitionText(super::recognition_text_back::RecognitionTextBack),
     RecognizedTurnCommit(RecognizedTurnCommitBack),

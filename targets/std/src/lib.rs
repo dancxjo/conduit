@@ -191,6 +191,7 @@ mod installed_std_tests;
 pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
+pub mod microphone_flow_proof;
 pub mod microphone_whisper_proof;
 #[cfg(feature = "native-webrtc")]
 pub mod native_webrtc;

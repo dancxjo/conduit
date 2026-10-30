@@ -163,3 +163,16 @@ fn configuration_source(value: &ConfigurationValue) -> String {
         ConfigurationValue::TemperatureDifference(value) => value.source().into(),
     }
 }
+
+/// Install only the explicit finite microphone entrance, not a Host offer.
+pub fn install_audio_capture_finite_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(
+        startup,
+        profile,
+        super::audio_capture_finite_contract(),
+        super::AUDIO_CAPTURE_FINITE_REVISION,
+    )
+}
