@@ -31,3 +31,13 @@ MCU flash/RAM measurements, NAT recovery, or durable history proof. The actual
 firmware adapter must expose endpoint snapshots under its own synchronization,
 validate C slot/generation, and supply real monotonic time, entropy and an
 explicit finite arena. Transport progress cannot acknowledge recording custody.
+
+`SocketWorker` is the safe worker-side API for those C bindings. Its caller
+supplies a real monotonic clock and bounded worker sleep. Reads/writes return
+accepted prefixes immediately; nonblocking operations never sleep. A close has
+an explicit finite deadline, and a timeout leaves the socket quarantined until
+the actual owner aborts it. Failed unpublished connection attempts request the
+same retirement. Readiness includes buffered failure/EOF without consuming it.
+No thread, raw C export, clock, allocator or entropy provider is installed by
+constructing this value. Worker scheduling fixtures test these contracts;
+`socket_owner` separately exercises actual Embassy TCP with finite packet queues.

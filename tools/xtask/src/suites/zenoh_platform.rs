@@ -42,15 +42,14 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "zenoh-platform.embassy-test",
-        "Exercise real Embassy TCP over finite in-memory packet queues",
+        "Exercise actual Embassy TCP and bounded worker callback custody",
         "cargo",
         &[
             "test",
             "--locked",
             "--manifest-path",
             "targets/embassy/zenoh-pico-platform/Cargo.toml",
-            "--test",
-            "socket_owner",
+            "--tests",
         ],
     ),
     Step::new(

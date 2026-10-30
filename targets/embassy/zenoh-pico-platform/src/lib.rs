@@ -9,6 +9,8 @@ use embassy_net::{
     tcp::{State, TcpSocket},
     IpEndpoint, Ipv4Address, TryError,
 };
+mod worker;
+pub use worker::{SocketWorker, WorkerRuntime};
 
 /// Short access to caller-supplied fixed backing. No network call occurs while
 /// holding this lock. Implementations must serialize both cores.
