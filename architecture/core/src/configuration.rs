@@ -1,5 +1,6 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
-use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
+mod decoding;
 
 use crate::{KindId, PortId, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 
@@ -31,23 +32,6 @@ impl StructuredConfigurationValue {
 
     pub fn canonical_value(&self) -> &[u8] {
         &self.canonical_value
-    }
-}
-
-impl<'de> Deserialize<'de> for StructuredConfigurationValue {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Encoded {
-            profile: KindId,
-            canonical_value: Vec<u8>,
-        }
-
-        let encoded = Encoded::deserialize(deserializer)?;
-        Self::new(encoded.profile, encoded.canonical_value)
-            .ok_or_else(|| D::Error::custom("invalid structured configuration value"))
     }
 }
 
