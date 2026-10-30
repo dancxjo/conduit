@@ -498,3 +498,40 @@ transfer that service's implementation or authority into the requesting host.
 Local acquisition without reflashing requires an already-supported loader and
 sufficient admitted resources. This vocabulary is a design aid, not a delivered
 conformance profile or a new prerequisite for the thermometer.
+
+### Complete Pico evaluation image
+
+The `zenoh-evaluation` carrier feature now wires the actual single-threaded C
+client to core1 and the finite Embassy socket owner to core0. It replaces the
+legacy HTTP relay/status and multicast-query network tasks for this experiment;
+measurement, timed local display, Wi-Fi joining/rejoining and USB recovery stay
+in the firmware. An explicit pinned archive and numeric locator are build
+inputs, never Body admission or execution authority. The existing 49,152-byte
+heap reservation is partitioned into 32,768 Rust bytes and 16,384 foreign bytes;
+the worker also reserves a 16,384-byte stack, initialized in place. C allocations
+cannot fall back to the Rust allocator. Unknown wall time stays unknown.
+
+A complete thumbv6m release link passed with 676,372 text bytes, 464 initialized
+RAM bytes and 99,988 BSS bytes (static address extent 100,468 bytes, including
+alignment). Existing static-memory and main-stack-gap assertions passed without
+grant enlargement. Build `af15c95e8c7d674f522450cb9e655910c1397ddab218402c0ba6137572fc8d88`
+produced ELF SHA-256
+`cdd526840bf641939520514255f1dd71fe2a44dc14fb6cbe91f9ece623aa4bb7`.
+The shared relay module emits one unused Scratch re-export warning; this is not
+a strict firmware-lint result. Full log and ELF are retained in the task's
+`work/evidence/green-zenoh-complete-image-20261030` directory.
+
+This proves whole-image fit only. It does not prove runtime peaks, physical
+boot, NAT reconnect, exact history recovery, Body membership or proper Host
+admission. Accepted publications are not recorder acknowledgments. Initial
+session-open failure is observable and parks the isolated worker; no external
+custom retry loop is introduced. An established session's reconnect is left to
+Zenoh. A same-source legacy-Wi-Fi comparison is being qualified separately.
+
+The same-source `wifi` baseline subsequently linked in 6.30 seconds: 632,716
+text, 1,112 data and 97,136 BSS bytes. The evaluation replacement therefore adds
+43,656 text bytes and 2,204 data/BSS bytes (2,220 bytes of static address extent
+including alignment). Both builds retain the same total heap reservation and
+pass the same link bounds. The first baseline invocation omitted the required
+Wi-Fi feature and was correctly refused by the checked Host guard; its log is
+retained alongside the corrected successful build.

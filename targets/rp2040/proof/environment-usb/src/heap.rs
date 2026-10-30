@@ -6,6 +6,17 @@ use core::{
 use critical_section::Mutex;
 use linked_list_allocator::Heap;
 const CAPACITY: usize = crate::config::HEAP_BYTES;
+#[cfg(feature = "zenoh-evaluation")]
+const FOREIGN_BYTES: usize = 16 * 1024;
+#[cfg(not(feature = "zenoh-evaluation"))]
+const FOREIGN_BYTES: usize = 0;
+const RUST_BYTES: usize = CAPACITY - FOREIGN_BYTES;
+#[cfg(feature = "zenoh-evaluation")]
+const _: () = assert!(RUST_BYTES >= 16 * 1024);
+#[cfg(feature = "zenoh-evaluation")]
+pub type ForeignBacking = &'static mut [core::mem::MaybeUninit<u8>];
+#[cfg(not(feature = "zenoh-evaluation"))]
+pub type ForeignBacking = ();
 static mut BYTES: [u8; CAPACITY] = [0; CAPACITY];
 struct State {
     heap: Heap,
@@ -17,15 +28,30 @@ static ALLOCATOR: Allocator = Allocator(Mutex::new(RefCell::new(State {
     heap: Heap::empty(),
     peak: 0,
 })));
-pub unsafe fn initialize() {
+pub unsafe fn initialize() -> ForeignBacking {
     critical_section::with(|cs| unsafe {
         ALLOCATOR
             .0
             .borrow(cs)
             .borrow_mut()
             .heap
-            .init(core::ptr::addr_of_mut!(BYTES).cast(), CAPACITY);
+            .init(core::ptr::addr_of_mut!(BYTES).cast(), RUST_BYTES);
     });
+    #[cfg(feature = "zenoh-evaluation")]
+    unsafe {
+        // This disjoint suffix never enters the Rust global allocator.
+        core::slice::from_raw_parts_mut(
+            core::ptr::addr_of_mut!(BYTES)
+                .cast::<u8>()
+                .add(RUST_BYTES)
+                .cast(),
+            FOREIGN_BYTES,
+        )
+    }
+}
+#[cfg(feature = "zenoh-evaluation")]
+pub fn capacity() -> usize {
+    RUST_BYTES
 }
 pub fn usage() -> (usize, usize) {
     critical_section::with(|cs| {

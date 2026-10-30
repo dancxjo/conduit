@@ -1,6 +1,6 @@
 //! Opaque selected-peer TCP bytes, with bounded ownership and USB cancellation.
 extern crate alloc;
-use super::{Attachment, Request, REQUEST};
+use super::{current, Attachment, Request, REQUEST};
 use crate::{protocol, Cdc};
 use alloc::vec::Vec;
 use core::cell::Cell;
@@ -34,16 +34,6 @@ static NEXT: critical_section::Mutex<Cell<u64>> = critical_section::Mutex::new(C
 static CANCELLED: critical_section::Mutex<Cell<u64>> = critical_section::Mutex::new(Cell::new(0));
 fn cancelled(token: u64) -> bool {
     critical_section::with(|cs| CANCELLED.borrow(cs).get() == token)
-}
-pub(super) fn current(stack: Stack<'static>) -> Option<([u8; 4], u8)> {
-    stack
-        .is_link_up()
-        .then(|| {
-            stack
-                .config_v4()
-                .map(|c| (c.address.address().octets(), c.address.prefix_len()))
-        })
-        .flatten()
 }
 pub(super) async fn receive(cdc: &mut Cdc, id: u32, payload: &[u8]) -> Result<(), &'static str> {
     if !critical_section::with(|cs| super::STATUS.borrow(cs).borrow().ready) {

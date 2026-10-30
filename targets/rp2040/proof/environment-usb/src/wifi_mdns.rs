@@ -1,5 +1,5 @@
 //! One bounded mDNS observation of the already selected carrier peer.
-use super::{attachment_snapshot, transport, Request, REQUEST};
+use super::{attachment_snapshot, current, Request, REQUEST};
 use core::{cell::Cell, fmt::Write};
 use embassy_net::{
     udp::{PacketMetadata, UdpSocket},
@@ -97,7 +97,7 @@ async fn observe(
             return Err("usb-disconnected");
         }
         if attachment_snapshot().generation != attachment.generation
-            || !transport::current(stack)
+            || !current(stack)
                 .is_some_and(|(ip, prefix)| peer.matches(ip, prefix, attachment.generation))
         {
             Err("mdns-attachment-changed")

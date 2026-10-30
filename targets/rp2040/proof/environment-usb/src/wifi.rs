@@ -9,6 +9,7 @@ use embassy_rp::{peripherals::*, Peri};
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, signal::Signal};
 use embassy_time::{with_timeout, Duration, Instant};
 use static_cell::StaticCell;
+#[cfg(not(feature = "zenoh-evaluation"))]
 #[path = "wifi_mdns.rs"]
 mod mdns;
 #[path = "wifi_peer.rs"]
@@ -24,6 +25,7 @@ mod radio;
 mod reconnect;
 #[cfg(environment_dht11_tm1637)]
 pub(crate) use radio::RadioIrqs as CaptureDmaIrqs;
+#[cfg(not(feature = "zenoh-evaluation"))]
 #[path = "wifi_transport.rs"]
 mod transport;
 use peer::Attachment;
@@ -47,7 +49,9 @@ enum Request {
         token: u64,
         deadline: Instant,
     },
+    #[cfg(not(feature = "zenoh-evaluation"))]
     Http(transport::Transfer),
+    #[cfg(not(feature = "zenoh-evaluation"))]
     Mdns(mdns::Observation),
 }
 static ATTACHMENT: critical_section::Mutex<RefCell<Option<Attachment>>> =
@@ -79,9 +83,11 @@ pub async fn select_peer(bytes: &[u8]) -> Result<(), &'static str> {
         .await
         .map_err(|_| "peer-selection-timeout")?
 }
+#[cfg(not(feature = "zenoh-evaluation"))]
 pub async fn http(cdc: &mut crate::Cdc, id: u32, bytes: &[u8]) -> Result<(), &'static str> {
     transport::receive(cdc, id, bytes).await
 }
+#[cfg(not(feature = "zenoh-evaluation"))]
 pub async fn mdns(cdc: &mut crate::Cdc, id: u32, bytes: &[u8]) -> Result<(), &'static str> {
     mdns::receive(cdc, id, bytes).await
 }
@@ -122,6 +128,16 @@ static STATUS: critical_section::Mutex<RefCell<Status>> =
         ip: None,
         error: None,
     }));
+fn current(stack: Stack<'static>) -> Option<([u8; 4], u8)> {
+    stack
+        .is_link_up()
+        .then(|| {
+            stack
+                .config_v4()
+                .map(|c| (c.address.address().octets(), c.address.prefix_len()))
+        })
+        .flatten()
+}
 fn update(ready: bool, stack: Option<Stack<'static>>, error: Option<&'static str>) {
     critical_section::with(|cs| {
         *STATUS.borrow(cs).borrow_mut() = Status {
@@ -206,7 +222,9 @@ pub async fn run(
         loop {
             let request = REQUEST.wait().await;
             match request {
+                #[cfg(not(feature = "zenoh-evaluation"))]
                 Request::Http(transfer) => transport::unavailable(transfer).await,
+                #[cfg(not(feature = "zenoh-evaluation"))]
                 Request::Mdns(request) => mdns::unavailable(request),
                 Request::Join(request) => {
                     RESULT.signal((request.token, Err("radio-initialization-failed")))
@@ -226,8 +244,11 @@ pub async fn run(
         rng.next_u64(),
     );
     spawner.spawn(network(runner).unwrap());
+    #[cfg(feature = "zenoh-evaluation")]
+    spawner.spawn(crate::zenoh_evaluation::network(stack).unwrap());
     update(true, Some(stack), None);
     spawner.spawn(monitor(stack).unwrap());
+    #[cfg(not(feature = "zenoh-evaluation"))]
     for _ in 0..crate::environment_http::SESSIONS {
         spawner.spawn(crate::environment_http::run(stack).unwrap());
     }
@@ -235,7 +256,7 @@ pub async fn run(
     let mut reconnect = reconnect::Reconnect::default();
     loop {
         if let Some(request) = retained.as_ref() {
-            let usable = transport::current(stack).is_some();
+            let usable = current(stack).is_some();
             if reconnect.poll(
                 embassy_time::Instant::now().as_millis(),
                 usable,
@@ -274,7 +295,7 @@ pub async fn run(
                 reconnect.completed(embassy_time::Instant::now().as_millis(), result.is_ok());
                 // Replacement drops and wipes the previous fixed-capacity request.
                 retained = Some(request);
-                let _ = with_attachment(|a| a.observe(transport::current(stack)));
+                let _ = with_attachment(|a| a.observe(current(stack)));
                 update(true, Some(stack), result.as_ref().err().copied());
                 RESULT.signal((token, result));
             }
@@ -288,14 +309,16 @@ pub async fn run(
                     continue;
                 }
                 let result = with_attachment(|a| {
-                    a.observe(transport::current(stack))?;
+                    a.observe(current(stack))?;
                     a.select(address)
                 });
                 RESULT.signal((token, result));
             }
+            #[cfg(not(feature = "zenoh-evaluation"))]
             Request::Mdns(request) => mdns::serve(stack, request).await,
+            #[cfg(not(feature = "zenoh-evaluation"))]
             Request::Http(transfer) => {
-                let _ = with_attachment(|a| a.observe(transport::current(stack)));
+                let _ = with_attachment(|a| a.observe(current(stack)));
                 transport::serve(stack, &attachment_snapshot(), transfer).await;
             }
         }
@@ -332,9 +355,9 @@ async fn join(
 #[embassy_executor::task]
 async fn monitor(stack: Stack<'static>) -> ! {
     loop {
-        let observed = with_attachment(|a| a.observe(transport::current(stack)));
+        let observed = with_attachment(|a| a.observe(current(stack)));
         let old = critical_section::with(|cs| STATUS.borrow(cs).borrow().error);
-        let error = if transport::current(stack).is_some() && reconnect::network_error(old) {
+        let error = if current(stack).is_some() && reconnect::network_error(old) {
             observed.err()
         } else {
             observed.err().or(old)

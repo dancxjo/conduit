@@ -54,6 +54,8 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
         }
         .map_err(|_| ())?;
     }
+    #[cfg(feature = "zenoh-evaluation")]
+    crate::zenoh_evaluation::status(&mut out).map_err(|_| ())?;
     out.push('}').map_err(|_| ())?;
     Ok(out)
 }

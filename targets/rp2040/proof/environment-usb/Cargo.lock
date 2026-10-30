@@ -387,6 +387,8 @@ dependencies = [
  "conduit-rp2040-tm1637",
  "conduit-seven-segment-mask",
  "conduit-tm1637-wire",
+ "conduit-zenoh-pico-embassy",
+ "conduit-zenoh-pico-platform",
  "cortex-m",
  "cortex-m-rt",
  "critical-section",
@@ -401,6 +403,7 @@ dependencies = [
  "heapless 0.8.0",
  "linked_list_allocator",
  "panic-halt",
+ "serde_json",
  "sha2",
  "static_cell",
 ]
@@ -543,6 +546,20 @@ dependencies = [
  "conduit-plot",
  "serde",
 ]
+
+[[package]]
+name = "conduit-zenoh-pico-embassy"
+version = "0.1.0"
+dependencies = [
+ "conduit-zenoh-pico-platform",
+ "critical-section",
+ "embassy-net",
+ "linked_list_allocator",
+]
+
+[[package]]
+name = "conduit-zenoh-pico-platform"
+version = "0.1.0"
 
 [[package]]
 name = "cordyceps"

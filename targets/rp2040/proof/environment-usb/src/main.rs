@@ -18,12 +18,14 @@ mod environment;
 #[cfg(environment_dht11_tm1637)]
 #[path = "environment_dht.rs"]
 mod environment;
-#[cfg(feature = "wifi")]
+#[cfg(all(feature = "wifi", not(feature = "zenoh-evaluation")))]
 mod environment_http;
 mod environment_show;
 mod heap;
 #[cfg(feature = "wifi")]
 mod wifi;
+#[cfg(feature = "zenoh-evaluation")]
+mod zenoh_evaluation;
 #[allow(dead_code)]
 mod config {
     include!(concat!(env!("OUT_DIR"), "/host.rs"));
@@ -83,11 +85,11 @@ async fn send(c: &mut Cdc, kind: u8, id: u32, payload: &[u8]) -> Result<(), ()> 
 }
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
-    unsafe {
-        heap::initialize();
-    }
+    let _foreign_backing = unsafe { heap::initialize() };
     let p = embassy_rp::init(Default::default());
     config::start_environment!(spawner, p);
+    #[cfg(feature = "zenoh-evaluation")]
+    zenoh_evaluation::start(p.CORE1, _foreign_backing);
     #[cfg(feature = "wifi")]
     spawner.spawn(
         wifi::run(
@@ -169,7 +171,7 @@ async fn main(spawner: Spawner) {
                     embassy_rp::rom_data::reset_to_usb_boot(0, 0);
                 }
             }
-            #[cfg(feature = "wifi")]
+            #[cfg(all(feature = "wifi", not(feature = "zenoh-evaluation")))]
             protocol::MDNS_QUERY => {
                 if let Err(reason) = wifi::mdns(&mut class, id, frame.payload).await {
                     let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;
@@ -187,7 +189,7 @@ async fn main(spawner: Spawner) {
                     let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;
                 }
             },
-            #[cfg(feature = "wifi")]
+            #[cfg(all(feature = "wifi", not(feature = "zenoh-evaluation")))]
             protocol::REQUEST => {
                 if let Err(reason) = wifi::http(&mut class, id, frame.payload).await {
                     let _ = send(&mut class, protocol::ERROR, id, reason.as_bytes()).await;

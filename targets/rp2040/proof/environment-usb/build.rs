@@ -1,5 +1,6 @@
 //! The actual Host Conduitese checker/identity feeds executable pin selection.
 mod build_dht;
+mod build_zenoh;
 use sha2::{Digest, Sha256};
 use std::{
     env, fs,
@@ -83,6 +84,10 @@ fn main() {
         PathBuf::from("../../firmware/pico-w-signal/memory.x"),
         PathBuf::from("../usb-http-relay/src/lib.rs"),
     ];
+    if env::var_os("CARGO_FEATURE_ZENOH_EVALUATION").is_some() {
+        files.extend(build_zenoh::prepare(&out));
+    }
+    files.push("build_zenoh.rs".into());
     for path in [
         "src",
         "../../make/src",
