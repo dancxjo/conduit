@@ -11,6 +11,8 @@ use embassy_net::{
 };
 mod worker;
 pub use worker::{SocketWorker, WorkerRuntime};
+mod arena;
+pub use arena::{ArenaError, ArenaStats, CArena};
 
 /// Short access to caller-supplied fixed backing. No network call occurs while
 /// holding this lock. Implementations must serialize both cores.

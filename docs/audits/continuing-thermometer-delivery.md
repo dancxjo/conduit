@@ -132,6 +132,24 @@ continued sensing/displaying with no reported errors during these off-device
 tests; it has not received Zenoh and remains a carrier, not an admitted Body
 execution Host. The actual MCU/NAT/history acceptance gates above remain open.
 
+The next CPU experiment used the actual finite Rust C arena, not requested-byte
+accounting over the system allocator. With eight transport-I/O future slots,
+session open alone used 6,165 live requested bytes / 6,720 actual allocator bytes,
+peaking at 6,275 / 6,904 respectively. An 8,192-byte backing slice (8,184 usable
+after alignment) admitted the session and cleaned to zero. These are Linux
+session-only numbers: subscription payloads, the isolated worker, network stack,
+complete image and physical execution remain outside this measurement.
+
+At 4 KiB, unmodified pinned Zenoh-Pico refused with OOM but leaked one 40-byte
+payload block / 56 allocator bytes per attempt. Eight failures in the same arena
+left 320 / 448 bytes. Allocation tracing identified the partial wbuf in
+`_z_link_send_t_msg`. The retained one-line candidate patch clears it before
+return; eight repeated patched refusals and repeated successful opens returned
+to zero without resetting the arena. Preserve this pressure regression and
+upstream patch provenance before adoption; raising the grant or resetting the
+pool would conceal the lifetime bug. Local patch evidence is not upstream
+acceptance, full reconnect coverage or MCU recovery proof.
+
 ### Protocol reuse without additional MCU stacks
 
 Keep one Conduit architecture across protocol realizations. Zenoh is the active

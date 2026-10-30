@@ -41,3 +41,20 @@ same retirement. Readiness includes buffered failure/EOF without consuming it.
 No thread, raw C export, clock, allocator or entropy provider is installed by
 constructing this value. Worker scheduling fixtures test these contracts;
 `socket_owner` separately exercises actual Embassy TCP with finite packet queues.
+
+`CArena<ALIGN>` reuses the Pico firmware's `linked_list_allocator` over an explicit
+static slice. It has no global fallback or extension. Select ALIGN from the C
+target's `max_align_t` contract and check it in the C build. Its size prefix keeps
+returned pointers aligned; null/zero/overflow and failed realloc obey the C
+ownership contract. Free wipes the released block. Requested payload and actual
+allocator use have separate current/peak counters, including realloc overlap.
+The target must partition existing admitted backing before construction; this
+helper does not enlarge a grant or install a global allocator.
+
+The pinned upstream 1.10.2 handshake send path leaked a partially allocated wbuf
+on OOM. The retained candidate patch in `patches/` adds the missing clear before
+return. A Linux session using the actual Rust arena reproduced eight consecutive
+4 KiB failures accumulating 320 payload bytes/448 allocator bytes; with the patch
+all eight refusals returned to zero. Successful repeated opens also cleaned to
+zero. This is a local upstream-patch evaluation, not an accepted upstream fix;
+the adapter does not silently fetch or patch a library during its build.

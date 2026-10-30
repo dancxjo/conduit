@@ -1,0 +1,8 @@
+diff --git a/src/transport/common/tx.c b/src/transport/common/tx.c
+index fdbd7af..b5545a2 100644
+--- a/src/transport/common/tx.c
++++ b/src/transport/common/tx.c
+@@ -411,2 +411,3 @@ z_result_t _z_link_send_t_msg(const _z_link_t *zl, const _z_transport_message_t
+         _Z_ERROR_LOG(_Z_ERR_SYSTEM_OUT_OF_MEMORY);
++        _z_wbuf_clear(&wbf);
+         return _Z_ERR_SYSTEM_OUT_OF_MEMORY;
