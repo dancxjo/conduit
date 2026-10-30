@@ -45,3 +45,25 @@ fn complete_decode_retires_compressed_storage_before_metadata_construction() {
     assert!(serde_json::from_slice::<CompactAdvertisement>(&wire).is_err());
     drop(guard);
 }
+
+/// Optional accounting of an actual, privately retained complete Host offer.
+/// Supply only a local path; this proof performs no transport or Host effects.
+#[test]
+#[ignore = "requires CONDUIT_ADMISSION_MEASUREMENT_ADVERTISEMENT pointing to a private complete offer"]
+fn measure_actual_complete_advertisement_decode() {
+    let path = std::env::var_os("CONDUIT_ADMISSION_MEASUREMENT_ADVERTISEMENT").unwrap();
+    use std::io::Read;
+    let mut input = Vec::new();
+    std::fs::File::open(path)
+        .unwrap()
+        .take(64 * 1024 + 1)
+        .read_to_end(&mut input)
+        .unwrap();
+    assert!(input.len() <= 64 * 1024);
+    let expected: c::HostAdvertisement = serde_json::from_slice(&input).unwrap();
+    let wire = serde_json::to_vec(&CompactAdvertisement(expected.clone())).unwrap();
+    let (decoded, measured) =
+        allocation::observe(|| serde_json::from_slice::<CompactAdvertisement>(&wire));
+    assert_eq!(decoded.unwrap().0, expected);
+    eprintln!("complete-offer expanded={} carrier={} decode_peak={} retained={} allocations={} reallocations={}; CPU allocator only, excludes preexisting input/expected offer and stack", input.len(), wire.len(), measured.peak_bytes, measured.retained_bytes(), measured.allocations, measured.reallocations);
+}
