@@ -88,6 +88,7 @@ dependencies = [
  "conduit-environment-face",
  "conduit-environment-runtime",
  "conduit-face",
+ "conduit-kernel",
  "conduit-seven-segment-mask",
  "serde_json",
 ]

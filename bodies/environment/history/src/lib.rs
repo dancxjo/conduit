@@ -4,7 +4,7 @@
 extern crate alloc;
 mod contribution;
 pub use contribution::{
-    HISTORY_SUBJECT, HistoryFaceRefusal, HistoryFaceWindow, PreparedHistoryFace,
+    HistoryFaceRefusal, HistoryFaceWindow, PreparedHistoryFace, HISTORY_SUBJECT,
 };
 
 mod browser;
@@ -15,3 +15,8 @@ mod native;
 pub use graph::{GraphRefusal, GraphSample, HistoryGraph, MAX_GRAPH_SAMPLES};
 
 pub use native::NativeHistoryShow;
+
+mod committed;
+pub use committed::{
+    CommittedHistoryRefusal, PreparedCommittedHistoryFace, MAXIMUM_COMMITTED_HISTORY_GENERATIONS,
+};

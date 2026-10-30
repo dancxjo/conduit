@@ -13,6 +13,7 @@ conduit-environment-face = { path = "../face" }
 conduit-environment-runtime = { path = "../runtime", features = ["face-projection"] }
 
 [dev-dependencies]
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc", "step-test-support"] }
 serde_json = "1"
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 
