@@ -103,6 +103,11 @@ fn identity(name: &str) -> NetworkNativeIdentity {
     }
 }
 pub fn fixture() -> (NativePlay, Rc<Observations>, RootIssuer) {
+    let (mut play, state, issuer) = held_fixture();
+    play.release_held().unwrap();
+    (play, state, issuer)
+}
+pub fn held_fixture() -> (NativePlay, Rc<Observations>, RootIssuer) {
     let state = Rc::new(Observations::default());
     let mut play = NativePlay::new();
     // SAFETY: uniquely owned initialized inert CPU providers; no device offer.
@@ -167,7 +172,7 @@ pub fn fixture() -> (NativePlay, Rc<Observations>, RootIssuer) {
         &pins, &image, &host, &bases, &grants,
     )
     .unwrap();
-    play.install(&prepared, &mut source, &mut join, &mut issuer)
+    play.install_held(&prepared, &mut source, &mut join, &mut issuer)
         .unwrap();
     assert!(source.is_none() && join.is_none());
     (play, state, issuer)

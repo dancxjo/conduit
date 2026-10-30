@@ -84,3 +84,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../tests/network_retirement_storage.rs"]
 mod retirement_storage_tests;
+
+#[cfg(test)]
+#[path = "../tests/held_control_recovery.rs"]
+mod held_recovery_tests;
