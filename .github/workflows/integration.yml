@@ -148,6 +148,19 @@ jobs:
             esac
             test "$RESULT" = success
           fi
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
       - name: Report independently authored protected proof status
         env:
           GH_TOKEN: ${{ github.token }}

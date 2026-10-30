@@ -36,3 +36,31 @@ test('workflow requires successful aggregate before status and confines write pe
   assert.ok(!reporter.includes('always()'));
   assert.ok(!workflow.slice(0, workflow.indexOf('\n  train-accepted:')).includes('statuses: write'));
 });
+
+test('every Integration repository-script step has a preceding exact-source credential-free checkout', () => {
+  const workflow = readFileSync('.github/workflows/integration.yml', 'utf8');
+  const jobs = workflow.split(/\n  [a-z][a-z0-9-]*:\n/).slice(1);
+  let scripts = 0;
+  for (const job of jobs) {
+    const calls = [...job.matchAll(/run: node tools\/ci\/pipeline\/[^\n]+/g)];
+    for (const call of calls) {
+      scripts++;
+      const preceding = job.slice(0, call.index);
+      assert.match(preceding, /uses: actions\/checkout@v7\.0\.1\n        with:\n          ref: \$\{\{ github\.sha \}\}/);
+      assert.match(preceding, /persist-credentials: false/);
+    }
+  }
+  assert.ok(scripts >= 2);
+});
+
+test('successful aggregate checks out the exact source before executing its reporter', () => {
+  const workflow = readFileSync('.github/workflows/integration.yml', 'utf8');
+  const aggregate = workflow.slice(workflow.indexOf('\n  train-accepted:'));
+  const checkout = aggregate.indexOf('- uses: actions/checkout@v7.0.1');
+  assert.ok(checkout > aggregate.indexOf('test "$RESULT" = success'));
+  assert.ok(checkout < aggregate.indexOf('run: node tools/ci/pipeline/train-proof-status.mjs'));
+  const configuration = aggregate.slice(checkout, aggregate.indexOf('- name: Report independently'));
+  assert.match(configuration, /ref: \$\{\{ github\.sha \}\}/);
+  assert.match(configuration, /fetch-depth: 1/);
+  assert.match(configuration, /persist-credentials: false/);
+});
