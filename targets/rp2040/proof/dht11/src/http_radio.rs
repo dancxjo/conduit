@@ -107,7 +107,10 @@ async fn start(
         .await
         .expect("AP startup timeout");
         crate::http_view::set_ap_ready();
-        crate::http_ap::serve(stack).await;
+        if crate::http_ap::serve(stack).await.is_err() {
+            // The AP beacon alone is not evidence of a usable HTTP service.
+            crate::http_view::set_ap_unavailable();
+        }
     })
     .await;
 }
