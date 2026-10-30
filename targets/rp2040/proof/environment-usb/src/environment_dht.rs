@@ -131,6 +131,7 @@ pub fn status() -> Result<heapless::String<1536>, ()> {
     if let Some((t, h)) = s.reading {
         write!(&mut out,",\"temperature\":{{\"coefficient\":{},\"exponent\":{}}},\"humidity\":{{\"coefficient\":{},\"exponent\":{}}}",t.coefficient(),t.exponent(),h.coefficient(),h.exponent()).map_err(|_|())?;
     }
+    crate::flash_observation::append(&mut out).map_err(|_| ())?;
     out.push('}').map_err(|_| ())?;
     Ok(out)
 }

@@ -21,6 +21,7 @@ mod environment;
 #[cfg(all(feature = "wifi", not(feature = "zenoh-evaluation")))]
 mod environment_http;
 mod environment_show;
+mod flash_observation;
 mod heap;
 mod usb_identity;
 #[cfg(feature = "wifi")]
@@ -95,8 +96,14 @@ async fn main(spawner: Spawner) {
     // Read once before starting either executor/core's hardware tasks. This
     // performs no flash write and creates no Host/Boot or membership identity.
     let serial = {
-        let mut flash =
-            embassy_rp::flash::Flash::<_, _, { conduit_rp2040_flash_layout::FLASH_BYTES as usize }>::new_blocking(p.FLASH);
+        let mut flash = embassy_rp::flash::Flash::<
+            _,
+            _,
+            { conduit_rp2040_flash_layout::FLASH_BYTES as usize },
+        >::new_blocking(p.FLASH);
+        // Read-only physical evidence before any peripheral/core1 tasks start.
+        // This does not qualify write timing or create a writable region.
+        flash_observation::record(flash.blocking_jedec_id().ok());
         let mut unique = [0; 8];
         flash
             .blocking_unique_id(&mut unique)
