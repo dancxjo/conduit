@@ -123,18 +123,31 @@ export function parseRp2040Uf2(value, maximumTransferBytes) {
   const startAddress = pages[0].address;
   const endAddress = previousEnd;
   const eraseStart = Math.floor(startAddress / FLASH_SECTOR_BYTES) * FLASH_SECTOR_BYTES;
-  const eraseEnd = alignUp(endAddress, FLASH_SECTOR_BYTES);
   if (eraseStart !== startAddress) {
     refuse("FlashAlignment", "RP2040 IMAGE must begin on a flash erase boundary");
   }
+  // Erase only sectors containing admitted payload pages. A body-bound IMAGE
+  // can jump to the final Spore sector; that gap may hold retained private state.
+  const ranges = [];
+  for (const page of pages) {
+    const start = Math.floor(page.address / FLASH_SECTOR_BYTES) * FLASH_SECTOR_BYTES;
+    const end = alignUp(page.address + page.bytes.byteLength, FLASH_SECTOR_BYTES);
+    const last = ranges.at(-1);
+    if (last && start <= last.address + last.bytes) {
+      last.bytes = Math.max(last.address + last.bytes, end) - last.address;
+    } else {
+      ranges.push({ address: start, bytes: end - start });
+    }
+  }
+  const eraseRanges = Object.freeze(ranges.map((range) => Object.freeze(range)));
   return Object.freeze({
     uf2Bytes: bytes.byteLength,
     imageBytes: pages.length * PAYLOAD_BYTES,
     blockCount,
     startAddress,
     endAddress,
-    eraseStart,
-    eraseBytes: eraseEnd - eraseStart,
+    eraseRanges,
+    erasedBytes: eraseRanges.reduce((total, range) => total + range.bytes, 0),
     chunks: Object.freeze(chunks),
   });
 }
