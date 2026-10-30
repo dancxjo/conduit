@@ -340,6 +340,13 @@ pub(super) fn leaf_kind(
     value_type: &conduit_core::StructuredInfoType,
 ) -> Result<PrimitiveInfoKind, Refusal> {
     match value_type.shape() {
+        // Opaque borrowed storage only: info_kind retains ResourceRef identity
+        // and the evaluator validates its exact Core encoding independently.
+        StructuredInfoTypeShape::Leaf(kind)
+            if kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID =>
+        {
+            Ok(PrimitiveInfoKind::Bytes)
+        }
         StructuredInfoTypeShape::Leaf(kind) => primitive_info_kind(kind.as_str())
             .ok_or_else(|| Refusal::UnsupportedType(kind.as_str().into())),
         StructuredInfoTypeShape::Nominal { representation, .. } => leaf_kind(representation),
