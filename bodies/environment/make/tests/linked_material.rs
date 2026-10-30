@@ -171,6 +171,67 @@ fn display_plan<'a>(image: &'a conduit_plot::flat_image::indexed::IndexedSourceI
         connection_bases: &empty, line_candidates: &lines, connection_item_capacity: 1, connection_byte_capacity: conduit_tm1637_wire::MAXIMUM_BYTES, authority_grants: grants, protected_resource_grants: &[], line_offers: &[],
     }, &queues, &fore)
 }
+// Diagnostic clone costs of the actual verified preparation projection. Each
+// measurement owns only that field; it excludes enclosing Vec backing, stack,
+// allocator overhead and pre-existing Source. No alternate Plan is admitted.
+fn report_metadata_fields(plan: &c::VerifiedPlanMetadata) {
+    let mut totals = std::collections::BTreeMap::<&str, usize>::new();
+    let mut placements = 0usize;
+    for fragment in &plan.preparation_metadata().fragments {
+        macro_rules! fragment_field {
+            ($name:ident) => {{
+                let (copy, memory) = allocation_probe::observe(|| fragment.$name.clone());
+                *totals.entry(concat!("fragment/", stringify!($name))).or_default() += memory.retained_bytes();
+                drop(copy);
+            }};
+        }
+        fragment_field!(connections);
+        fragment_field!(execution_regions);
+        fragment_field!(execution_fusions);
+        fragment_field!(states);
+        fragment_field!(fore_ports);
+        fragment_field!(shared_pools);
+        fragment_field!(startup_dependencies);
+        fragment_field!(startup_order);
+        fragment_field!(expected_terminals);
+        fragment_field!(expected_sign);
+        fragment_field!(plan_fragments);
+        for gear in &fragment.placements {
+            placements += 1;
+            macro_rules! field {
+                ($name:ident) => {{
+                    let (copy, memory) = allocation_probe::observe(|| gear.$name.clone());
+                    *totals.entry(stringify!($name)).or_default() += memory.retained_bytes();
+                    drop(copy);
+                }};
+            }
+            field!(placement_id);
+            field!(gear_id);
+            field!(kind_id);
+            field!(kind_contract_revision);
+            field!(source_span);
+            field!(execution_profile_id);
+            field!(configuration);
+            field!(host_id);
+            field!(boot_id);
+            field!(capability_id);
+            field!(implementation_id);
+            field!(artifact_id);
+            field!(base);
+            field!(realization_characteristics);
+            field!(realization_properties);
+            field!(inputs);
+            field!(outputs);
+            field!(semantic_contract);
+            field!(terminal_transductions);
+            field!(host_calls);
+            field!(resources);
+            field!(authority);
+            field!(pool_references);
+        }
+    }
+    println!("actual_sampler_verified_placements={} planned_gear_inline_bytes={} field_dynamic_clone_bytes={:?}", placements, std::mem::size_of::<c::PlannedGear>(), totals);
+}
 fn main() {
     // Synthetic construction input for compile-only target checks; never deploy
     // this fixture as continuation of an existing physical Body.
@@ -236,7 +297,10 @@ fn main() {
     assert_eq!(plan_input(&linked, native.clone(), &[], false, Some(&ready)).err().unwrap(), plan(&linked, &{ let mut host = native.clone(); host.capabilities.extend(ready.decoded().map(Result::unwrap)); host }, &[], true).err().unwrap());
     assert!(indexed_memory.peak_bytes < eager_memory.peak_bytes);
     println!("actual_sampler_indexed_peak={} eager_catalogue_peak={} indexed_retained={} eager_retained={}", indexed_memory.peak_bytes, eager_memory.peak_bytes, indexed_memory.retained_bytes(), eager_memory.retained_bytes());
-    drop((indexed_plan, eager_plan));
+    drop(eager_plan);
+    let verified = indexed_plan.into_verified_metadata().unwrap();
+    report_metadata_fields(&verified);
+    drop(verified);
     let mut rich_host = native.clone(); rich_host.capabilities.extend(rich);
     let mut linked_host = native; linked_host.capabilities.extend(compact);
     let (rich_plan, rich_plan_memory) = allocation_probe::observe(|| plan(&ordinary, &rich_host, &grants, false).unwrap());

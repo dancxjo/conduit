@@ -56,3 +56,21 @@ This is a fit measurement, not a same-source before/after flash comparison.
 Private retained signing inputs were used only for compilation; no device was
 flashed and no installed identity was replaced. Physical startup RAM, combined
 Mask preparation, admission and restart/recovery remain unproved by this build.
+
+## Retained metadata attribution
+
+The actual generated sampler now also measures independent field clones from
+its verified configuration-free preparation projection. The owning complete
+Plan and refusal parity checks still pass. Its 15 placements have 712-byte
+inline PlannedGear records on the test CPU (not the ESP32 ABI). Dynamic field
+clone costs include 8,963 bytes for semantic contracts, 7,081 for connections,
+4,288 for expected signs, 2,816 for expected terminals, 2,464 for startup
+dependencies, and 4,072 for placement input/output descriptors. Configuration
+payloads retain zero bytes here, as intended by the existing indexed design.
+
+These are attribution diagnostics, not additive whole-Plan retention or target
+heap figures: enclosing container backing, capacity differences, stack and
+allocator overhead are excluded. No verification, admission, resource or
+terminal obligation was removed. This points toward sharing immutable Kind
+contracts and a checked compact graph representation, rather than further
+claims about an already-retired eager offer catalogue.
