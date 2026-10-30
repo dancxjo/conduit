@@ -86,6 +86,7 @@ impl LinearPresenter {
         let plot = parse(PLOT, &catalog).map_err(|_| LinearPresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(implementation);
         let host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),

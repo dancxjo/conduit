@@ -28,6 +28,7 @@ pub struct Fixture {
 }
 pub fn fixture(source: &DisplayOutputSource) -> Fixture {
     let mut host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/display".into(),
         boot_id: "fixture/boot".into(),

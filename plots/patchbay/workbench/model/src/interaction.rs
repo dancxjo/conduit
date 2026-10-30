@@ -205,6 +205,7 @@ impl PatchbayInteraction {
 
     fn advertisement(&self) -> HostAdvertisement {
         HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: self.host_id.clone(),
             boot_id: self.boot_id.clone(),

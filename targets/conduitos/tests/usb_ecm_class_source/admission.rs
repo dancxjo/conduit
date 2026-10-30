@@ -34,6 +34,7 @@ fn every_external_contract_matches_its_checked_native_back() {
     let source = source();
     let expanded = source.expand("cdc-ecm-frame-service").unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/ecm".into(),
         boot_id: "fixture/boot".into(),
@@ -108,6 +109,7 @@ fn every_pure_gear_has_an_exact_retained_native_realization() {
     let source = source();
     let expanded = source.expand("cdc-ecm-frame-service").unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/ecm".into(),
         boot_id: "fixture/boot".into(),

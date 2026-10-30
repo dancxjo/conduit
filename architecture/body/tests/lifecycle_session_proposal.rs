@@ -508,6 +508,7 @@ fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archi
         )
         .unwrap();
     let warm_advertisement = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "host/warm-observer".into(),
         boot_id: "boot/warm-observer".into(),
@@ -557,6 +558,7 @@ fn refused_invitation_at_membership_compaction_boundary_preserves_play_and_archi
         )
         .unwrap();
     let advertisement = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "host/observer".into(),
         boot_id: "boot/observer".into(),

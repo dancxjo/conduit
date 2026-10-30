@@ -268,6 +268,7 @@ fn host_for(
         })
         .collect();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host_id),
         boot_id: BootId::from(format!(

@@ -105,6 +105,7 @@ fn offer(definition: &KindProjection, part: &str) -> CapabilityOffer {
 fn host(part: &str, kinds: &[&str]) -> HostAdvertisement {
     let (_, profile) = catalogs();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("part-{part}")),
         boot_id: BootId::from(format!("boot-{part}")),

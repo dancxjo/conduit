@@ -435,6 +435,7 @@ fn observer_resident_ram_audit() {
         )
     });
     let observer = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: format!("linux/{}", "a".repeat(32)).into(),
         boot_id: format!("boot/{}", "b".repeat(36)).into(),

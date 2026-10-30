@@ -13,6 +13,7 @@ fn fixture() -> (Vec<BodyBiographyArchiveSegment>, BodyBiographyEvidence) {
     let evidence =
         b::BodyBiographyEvidence::born(body, membership, "Custody Fixture".into()).unwrap();
     let host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "host/custody".into(),
         boot_id: "boot/0".into(),

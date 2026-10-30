@@ -21,6 +21,7 @@ fn image(sequence: u64) -> BodyBiographyEvidence {
 }
 fn root(boot: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "host/actual-root".into(),
         boot_id: boot.into(),

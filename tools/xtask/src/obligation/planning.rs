@@ -140,6 +140,7 @@ fn port(direction: PortDirection) -> PortDescriptor {
 
 fn advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("repository-validation-host"),
         boot_id: BootId::from("repository-validation-boot"),

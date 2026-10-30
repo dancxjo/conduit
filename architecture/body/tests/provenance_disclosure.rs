@@ -40,6 +40,7 @@ fn capability(id: &str) -> CapabilityOffer {
 fn observation() -> CandidateObservation {
     CandidateObservation {
         advertisement: HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("host/browser-a"),
             boot_id: BootId::from("boot/browser-a/1"),

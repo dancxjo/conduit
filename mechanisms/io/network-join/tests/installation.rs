@@ -35,6 +35,7 @@ fn ready() -> ReadyNetworkJoinBase<Provider> {
 }
 fn advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: identity().host,
         boot_id: identity().boot,

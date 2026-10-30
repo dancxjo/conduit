@@ -145,6 +145,10 @@ pub(crate) struct DurableHostTruth {
 #[path = "durable_host_control/presentation_host.rs"]
 mod presentation_host;
 
+mod remote_fragment_driver;
+mod worker_text;
+use remote_fragment_driver::drive_remote_fragment;
+
 pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
@@ -152,6 +156,7 @@ pub(crate) struct DurableHostRuntime {
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
+    pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
     next_observation_sequence: u64,
@@ -183,6 +188,7 @@ impl DurableHostRuntime {
             birth: None,
             birth_root: None,
             remote_fragment: None,
+            pending_worker_text: None,
             pool_member: None,
             cancellation_signal: None,
             next_observation_sequence: 0,
@@ -452,7 +458,13 @@ impl DurableHostRuntime {
                             endpoint,
                             SessionMessage::Accepted { sequence },
                         )?);
-                        drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
+                        drive_remote_fragment(
+                            &mut self.host,
+                            admitted,
+                            &mut self.pending_worker_text,
+                            &mut responses,
+                            cancelled,
+                        )?;
                         responses.push(remote_response(
                             admitted,
                             endpoint,
@@ -490,14 +502,26 @@ impl DurableHostRuntime {
                     return Err("remote-egress-sequence".into());
                 }
                 admitted.runtime_mut().deliver_egress_identity(&transfer)?;
-                drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
+                drive_remote_fragment(
+                    &mut self.host,
+                    admitted,
+                    &mut self.pending_worker_text,
+                    &mut responses,
+                    cancelled,
+                )?;
             }
             SessionMessage::InputClosed { .. } => {
                 admitted.runtime_mut().close_ingress_with_disposition(
                     endpoint,
                     conduit_kernel::RemoteTerminalDisposition::NormalClose,
                 )?;
-                drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
+                drive_remote_fragment(
+                    &mut self.host,
+                    admitted,
+                    &mut self.pending_worker_text,
+                    &mut responses,
+                    cancelled,
+                )?;
             }
             SessionMessage::InputAbnormal { .. } => {
                 return Err("typed-semantic-abnormal-ingress-not-prepared".into());
@@ -547,7 +571,13 @@ impl DurableHostRuntime {
                 )?);
             }
             SessionMessage::Ready | SessionMessage::Pressure { .. } => {
-                drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
+                drive_remote_fragment(
+                    &mut self.host,
+                    admitted,
+                    &mut self.pending_worker_text,
+                    &mut responses,
+                    cancelled,
+                )?;
             }
             SessionMessage::Terminal { .. } => {
                 let terminal = admitted
@@ -555,7 +585,13 @@ impl DurableHostRuntime {
                     .get(endpoint)
                     .is_some_and(|session| session.machine().is_terminal());
                 if !terminal {
-                    drive_remote_fragment(&mut self.host, admitted, &mut responses, cancelled)?;
+                    drive_remote_fragment(
+                        &mut self.host,
+                        admitted,
+                        &mut self.pending_worker_text,
+                        &mut responses,
+                        cancelled,
+                    )?;
                 }
             }
         }
@@ -569,6 +605,7 @@ impl DurableHostRuntime {
     }
 
     fn release_remote(&mut self) -> Result<(), String> {
+        self.pending_worker_text = None;
         self.clear_cancellation_signal()?;
         if let Some(member) = self.pool_member.take() {
             self.host.release_local_model_pool_member(member)?;
@@ -797,129 +834,6 @@ fn remote_response(
         .admit_outbound(frame)
         .map_err(|error| format!("admit remote session response: {error:?}"))?;
     encode_remote_frame(&binding, frame)
-}
-
-fn drive_remote_fragment<F>(
-    host: &mut StdHost,
-    admitted: &mut AdmittedRemoteFragment,
-    responses: &mut Vec<Vec<u8>>,
-    cancelled: F,
-) -> Result<(), String>
-where
-    F: Fn() -> bool + Copy,
-{
-    const MAXIMUM_DRIVE_STEPS: usize = 64;
-    for _ in 0..MAXIMUM_DRIVE_STEPS {
-        if host.poll_remote_body_conversation_context(admitted)? {
-            continue;
-        }
-        if let Some(request) = admitted.runtime_mut().next_host_request() {
-            if admitted
-                .runtime_mut()
-                .complete_portable_host_call(request)?
-            {
-                continue;
-            }
-            if host.complete_remote_microphone_host_call(admitted, request, cancelled)? {
-                continue;
-            }
-            if host.complete_remote_voice_host_call(admitted, request, cancelled)? {
-                continue;
-            }
-            let work = admitted.runtime().describe_host_request(request)?;
-            return Err(format!(
-                "remote-host-call-unsupported:{}",
-                work.contract_id.as_str()
-            ));
-        }
-        let endpoints = admitted
-            .sessions()
-            .iter()
-            .filter(|session| session.direction == RemoteCordDirection::Egress)
-            .map(|session| session.endpoint)
-            .collect::<Vec<_>>();
-        for endpoint in endpoints {
-            if let Some(transfer) = admitted.runtime_mut().next_egress(endpoint)? {
-                responses.push(remote_response(
-                    admitted,
-                    endpoint,
-                    SessionMessage::Offered {
-                        sequence: transfer.sequence,
-                        payload: &transfer.bytes,
-                    },
-                )?);
-                return Ok(());
-            }
-        }
-        match admitted.runtime_mut().step()? {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Idle => return Ok(()),
-            SchedulerStatus::Drained => {
-                complete_remote_sessions(admitted, responses)?;
-                return Ok(());
-            }
-            SchedulerStatus::Cancelled => return Err("remote-fragment-cancelled".into()),
-        }
-    }
-    Err("remote-fragment-drive-bound".into())
-}
-
-fn complete_remote_sessions(
-    admitted: &mut AdmittedRemoteFragment,
-    responses: &mut Vec<Vec<u8>>,
-) -> Result<(), String> {
-    let endpoints = admitted
-        .sessions()
-        .iter()
-        .map(|session| (session.endpoint, session.direction))
-        .collect::<Vec<_>>();
-    let mut completions = Vec::with_capacity(endpoints.len());
-    for (endpoint, direction) in endpoints {
-        let checkpoint = admitted
-            .sessions()
-            .get(endpoint)
-            .ok_or_else(|| "remote-session-absent".to_string())?
-            .machine()
-            .checkpoint();
-        if direction == RemoteCordDirection::Egress {
-            let disposition = admitted
-                .runtime_mut()
-                .egress_terminal_disposition(endpoint)?
-                .ok_or_else(|| "remote-egress-not-terminal".to_string())?;
-            completions.push((
-                endpoint,
-                direction,
-                checkpoint.next_sequence,
-                Some(disposition),
-            ));
-        } else if !checkpoint.input_closed {
-            return Err("remote-ingress-not-closed".into());
-        } else {
-            completions.push((endpoint, direction, checkpoint.next_sequence, None));
-        }
-    }
-    for (endpoint, direction, final_sequence, disposition) in completions {
-        if direction == RemoteCordDirection::Egress {
-            let message = match disposition.expect("egress completion has disposition") {
-                conduit_kernel::RemoteTerminalDisposition::NormalClose => {
-                    SessionMessage::InputClosed { final_sequence }
-                }
-                conduit_kernel::RemoteTerminalDisposition::Abnormal => {
-                    return Err("typed-semantic-abnormal-egress-not-prepared".into());
-                }
-            };
-            responses.push(remote_response(admitted, endpoint, message)?);
-        }
-        responses.push(remote_response(
-            admitted,
-            endpoint,
-            SessionMessage::Terminal {
-                disposition: conduit_wire::SessionTerminalDisposition::Completed,
-                final_sequence,
-            },
-        )?);
-    }
-    Ok(())
 }
 
 fn encode_remote_hello_frames(
@@ -1281,6 +1195,17 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    InspectWorkerText {
+        protocol: u16,
+        token: Vec<u8>,
+        identity: ActivePlayIdentity,
+        expected_offer_generation: u64,
+    },
+    CompleteWorkerText {
+        protocol: u16,
+        token: Vec<u8>,
+        result: Box<conduit_std_host::worker_text_result::WorkerTextResult>,
+    },
 }
 
 #[derive(Serialize, Deserialize)]
@@ -1435,6 +1360,10 @@ enum Response {
     },
     RemoteReleased {
         protocol: u16,
+    },
+    WorkerText {
+        protocol: u16,
+        result: Option<Box<conduit_std_host::worker_text_result::WorkerTextResult>>,
     },
     Refused {
         protocol: u16,
@@ -1953,7 +1882,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::PrepareRemote { token, .. }
         | Request::PreparePoolMember { token, .. }
         | Request::ExchangeRemote { token, .. }
-        | Request::ReleaseRemote { token, .. } => token,
+        | Request::ReleaseRemote { token, .. }
+        | Request::InspectWorkerText { token, .. }
+        | Request::CompleteWorkerText { token, .. } => token,
         #[cfg(unix)]
         Request::BodyAttachedTerminalInteraction { token, .. } => token,
         #[cfg(unix)]
@@ -2559,6 +2490,28 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 })
                 .unwrap_or_else(|code| refused(&code))
         }
+        Request::InspectWorkerText {
+            protocol,
+            identity,
+            expected_offer_generation,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .inspect_worker_text(&identity, expected_offer_generation)
+            .map(|result| Response::WorkerText {
+                protocol: PROTOCOL,
+                result: result.map(Box::new),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::CompleteWorkerText {
+            protocol, result, ..
+        } if protocol == PROTOCOL => runtime
+            .complete_worker_text_to(&result, &mut std::io::stdout().lock())
+            .map(|exchange| Response::RemoteExchanged {
+                protocol: PROTOCOL,
+                responses: exchange.responses,
+                active: exchange.active,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::ReleaseRemote { protocol, .. } if protocol == PROTOCOL => runtime
             .release_remote()
             .map(|()| Response::RemoteReleased { protocol: PROTOCOL })

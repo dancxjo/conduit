@@ -244,6 +244,7 @@ mod tests {
             b::BodyBiographyEvidence::born(body, membership, "Owner custody fixture".into())
                 .unwrap();
         let host = conduit_core::HostAdvertisement {
+            declared_name: None,
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: "host/custody".into(),
             boot_id: "boot/0".into(),

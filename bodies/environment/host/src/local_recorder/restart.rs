@@ -212,7 +212,16 @@ fn joined_recorder_process_helper() {
     let list = format!("{refused_peer},{foreign_peer},{peer}");
     let peers = continuing_peers(&list).unwrap();
     let collector = admitted_collector(Path::new(&binding)).unwrap();
-    run_loop(collector, peers, Path::new(&history), true, None, None, None).unwrap();
+    run_loop(
+        collector,
+        peers,
+        Path::new(&history),
+        true,
+        None,
+        None,
+        None,
+    )
+    .unwrap();
     foreign_server.join().unwrap();
 }
 
@@ -228,6 +237,7 @@ pub(super) fn canonical_admission(
     use std::{io::Write, os::unix::fs::OpenOptionsExt};
     let key = ed25519_dalek::SigningKey::from_bytes(&[41; 32]);
     let root = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "producer/root".into(),
         boot_id: "producer/boot-one".into(),

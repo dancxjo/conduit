@@ -375,6 +375,7 @@ pub(crate) fn advertisement() -> HostAdvertisement {
         },
     );
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("browser-pointer-host"),
         boot_id: BootId::from("browser-pointer-boot"),

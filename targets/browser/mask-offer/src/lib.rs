@@ -389,6 +389,7 @@ mod configured_tests {
     #[test]
     fn actual_checked_todo_roots_use_exact_configured_offer_and_source_recipe() {
         let host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from("browser/component"),
             boot_id: BootId::from("browser/component/boot"),

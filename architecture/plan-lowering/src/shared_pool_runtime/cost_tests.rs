@@ -26,7 +26,7 @@ pub(super) fn hosts(plan: &Plan) -> Vec<HostAdvertisement> {
             inputs: vec![], outputs: vec![], host_calls: vec![], resource_requirements: vec![], authority_requirements: vec![],
             limits: CapabilityLimits { max_active_instances: 1, max_queue_items: 1, max_queue_bytes: 4096 },
         };
-        HostAdvertisement { protocol_version: PROTOCOL_VERSION, host_id: r.host_id.clone(), boot_id: r.boot_id.clone(), offer_generation: r.offer_generation,
+        HostAdvertisement { declared_name: None, protocol_version: PROTOCOL_VERSION, host_id: r.host_id.clone(), boot_id: r.boot_id.clone(), offer_generation: r.offer_generation,
             profile: "cost/generic-fixture@1".into(), bases: vec![], resources: vec![], capabilities: vec![offer], planner_capabilities: vec![] }
     }).collect()
 }

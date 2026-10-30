@@ -49,6 +49,7 @@ fn session(entry: &PreparedProtocolEntry, a: &BaseCapabilityAuthority) -> BodyLi
 }
 fn advertisement(a: &BaseCapabilityAuthority) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: a.grant.host_id.clone(),
         boot_id: a.grant.boot_id.clone(),

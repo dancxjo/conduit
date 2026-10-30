@@ -92,6 +92,7 @@ fn host() -> HostAdvertisement {
         .find(|offer| offer.kind_id.as_str() == conduit_chat::MESSAGING_MESSAGE_KIND)
         .unwrap();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/github-messaging"),
         boot_id: BootId::from("boot/github-messaging"),

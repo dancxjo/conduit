@@ -86,6 +86,7 @@ fn hex(bytes: &[u8]) -> String {
 }
 fn advertisement(old: &MembershipCredential, boot: conduit_core::BootId) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: old.host_id.clone(),
         boot_id: boot,

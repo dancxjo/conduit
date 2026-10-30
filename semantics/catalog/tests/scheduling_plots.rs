@@ -253,6 +253,7 @@ fn schedule_conformance_offers(profile: &ProfileCatalog) -> Vec<CapabilityOffer>
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/schedule-proof"),
         boot_id: BootId::from("boot/schedule-proof"),

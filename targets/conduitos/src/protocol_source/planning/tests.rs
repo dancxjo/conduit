@@ -55,6 +55,7 @@ fn an_atomic_input_fanout_uses_the_smallest_selected_queue_envelope() {
     let source = PreparedProtocolSource::prepare(package.clone()).unwrap();
     let expanded = source.expand("fanout").unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/fanout".into(),
         boot_id: "fixture/boot".into(),
@@ -278,6 +279,7 @@ fn source_admission_requires_the_actual_retained_concat_owner() {
     let source = PreparedProtocolSource::prepare(package.clone()).unwrap();
     let expanded = source.expand("ordered").unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/concat".into(),
         boot_id: "fixture/boot".into(),

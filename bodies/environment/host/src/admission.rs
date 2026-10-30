@@ -67,6 +67,7 @@ impl Authority {
         std::fs::set_permissions(&state, std::fs::Permissions::from_mode(0o700))?;
         Ok(Self {
             host: c::HostAdvertisement {
+                declared_name: None,
                 protocol_version: c::PROTOCOL_VERSION,
                 host_id: host_id.into(),
                 boot_id: boot_id.into(),

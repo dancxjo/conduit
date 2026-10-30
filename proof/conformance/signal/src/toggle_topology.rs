@@ -25,6 +25,7 @@ pub const BROWSER_BOOL_FACE_CAPABILITY: &str = "browser-bool-face-v1";
 
 pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(DISTRIBUTED_TOGGLE_STD_HOST_ID),
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_STD_BOOT_ID),
@@ -83,6 +84,7 @@ pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
 
 pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(DISTRIBUTED_TOGGLE_BROWSER_HOST_ID),
         boot_id: BootId::from(DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID),

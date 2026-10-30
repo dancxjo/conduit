@@ -91,6 +91,7 @@ fn installed() -> (
         conduit_environment_make::EnvironmentBodyImage::prepare_mask_from_sign(&sign).unwrap();
     let fragment = core_fixture::fragment();
     let host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),

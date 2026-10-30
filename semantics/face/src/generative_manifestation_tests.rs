@@ -236,6 +236,7 @@ fn plan_for_kind(kind_identity: &str) -> (conduit_core::Plan, PlacementId) {
     let source = alloc::format!("plot validation {{\n    validator: {kind_identity}(\"Generated semantic validation\")\n}}\n");
     let checked = conduit_plot::parse(&source, &profiles).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/validator"),
         boot_id: BootId::from("boot/validator"),

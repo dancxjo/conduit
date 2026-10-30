@@ -59,6 +59,7 @@ pub async fn run(
     let mut rng = embassy_rp::clocks::RoscRng;
     let boot = format!("boot/{:016x}{:016x}", rng.next_u64(), rng.next_u64());
     let mut ad = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: host.into(),
         boot_id: boot.into(),

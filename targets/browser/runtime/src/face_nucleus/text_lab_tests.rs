@@ -27,6 +27,7 @@ fn hosts() -> (
     conduit_core::HostAdvertisement,
 ) {
     let mut local = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: HostId::from(LOCAL_HOST),
         boot_id: BootId::from("text-lab/native/boot-1"),

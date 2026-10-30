@@ -11,6 +11,7 @@ pub fn standard_planning_fixture(
     boot_id: impl Into<conduit_core::BootId>,
 ) -> conduit_core::HostAdvertisement {
     conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: host_id.into(),
         boot_id: boot_id.into(),

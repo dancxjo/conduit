@@ -297,6 +297,7 @@ fn catalogs() -> (conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog) {
 
 fn advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("conduitos-http-host"),
         boot_id: BootId::from("conduitos-http-boot"),

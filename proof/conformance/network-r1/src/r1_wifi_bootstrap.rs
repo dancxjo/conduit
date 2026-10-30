@@ -43,6 +43,7 @@ pub struct ExactR1NetworkBootstrapPlan {
 
 pub fn r1_std_bootstrap_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(R1_STD_HOST_ID),
         boot_id: conduit_core::BootId::from(R1_STD_BOOT_ID),
@@ -61,6 +62,7 @@ pub fn r1_std_bootstrap_advertisement() -> HostAdvertisement {
 
 pub fn r1_pico_network_advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(R1_PICO_HOST_ID),
         boot_id: conduit_core::BootId::from(R1_PICO_BOOT_ID),

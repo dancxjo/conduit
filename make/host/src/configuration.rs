@@ -214,7 +214,7 @@ pub fn check_host_configuration(
             found: configuration.schema,
         });
     }
-    if configuration.name.trim().is_empty() {
+    if conduit_core::HostDeclaredName::new(configuration.name.clone()).is_err() {
         diagnostics.push(ConfigurationDiagnostic::InvalidName);
     }
     let descriptor = packages.target_descriptors().into_iter().find(|item| {

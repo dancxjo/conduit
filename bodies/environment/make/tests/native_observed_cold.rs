@@ -176,6 +176,7 @@ fn canonical_admission(
     use std::{io::Write, os::unix::fs::OpenOptionsExt};
     let key = ed25519_dalek::SigningKey::from_bytes(&[41; 32]);
     let root = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "producer/root".into(),
         boot_id: "producer/boot-one".into(),

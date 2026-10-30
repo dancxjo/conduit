@@ -61,6 +61,7 @@ use ed25519_dalek::{Signer, SigningKey};
 #[test]
 fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock() {
     let host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "host/root".into(),
         boot_id: "boot/root".into(),

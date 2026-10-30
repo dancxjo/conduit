@@ -156,6 +156,7 @@ fn run<const W: usize>(mode: u8, overflow: bool) -> ResultRow {
     );
     let plot = conduit_plot::parse_with_startup(&source, &startup, &profiles).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("compact-host"),
         boot_id: BootId::from("compact-boot"),

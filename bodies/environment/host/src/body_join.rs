@@ -335,6 +335,7 @@ pub fn join(input: &Path, state: &Path, peer: &str) -> Result<()> {
     )
     .into();
     let advertisement = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: host.clone(),
         boot_id: boot.clone(),
@@ -603,6 +604,7 @@ mod tests {
                 plan_created: false,
                 play_created: false,
                 host_advertisement: conduit_core::HostAdvertisement {
+                    declared_name: None,
                     protocol_version: conduit_core::PROTOCOL_VERSION,
                     host_id: pending.local_host,
                     boot_id: pending.local_boot,

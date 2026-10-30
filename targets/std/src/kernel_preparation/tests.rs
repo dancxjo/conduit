@@ -11,6 +11,7 @@ fn body_reservation_verifies_complete_activation_plan_before_exact_offer() {
     let plan = crate::flow_activation::authored_todo_plan();
     let fragment = &plan.fragments[0];
     let host = conduit_core::HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: fragment.host_id.clone(),
         boot_id: fragment.placements[0].boot_id.clone(),

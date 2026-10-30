@@ -51,6 +51,7 @@ fn plan(
     let checked = check_syntax_document(&parse_syntax_document(PLOT), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "project_history_rag", &profile).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/r6/{process}")),
         boot_id: BootId::from(format!("boot/r6/{process}/1")),

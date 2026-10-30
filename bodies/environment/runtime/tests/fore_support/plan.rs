@@ -24,6 +24,7 @@ pub fn plan(bytes: u32) -> c::Plan {
         limits:c::CapabilityLimits {max_active_instances:1,max_queue_items:1,max_queue_bytes:1024},
     };
     let host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/host".into(),
         boot_id: "fixture/boot".into(),

@@ -54,6 +54,7 @@ fn scan_fixture() -> (
     use conduit_network_join_call::{installation::NetworkNativeIdentity, scan::*};
     use std::collections::BTreeMap;
     let mut host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "cpu/host".into(),
         boot_id: "cpu/boot".into(),

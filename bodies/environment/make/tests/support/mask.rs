@@ -13,6 +13,7 @@ pub fn host() -> c::HostAdvertisement {
         artifact_id: "fixture/seven-segment".into(),
     };
     c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/mask-host".into(),
         boot_id: "fixture/mask-boot".into(),

@@ -22,6 +22,7 @@ pub fn prepare(factory: CarriedFormantFactory) -> (KernelCompositeHost, Plan) {
         expand_canonical_plot_for_authoring(&checked, "proof/carried-formant", &profile).unwrap();
     let offer = factory.offer();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "proof/carried-formant".into(),
         boot_id: "proof/carried-formant-boot".into(),

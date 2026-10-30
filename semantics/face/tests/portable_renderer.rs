@@ -66,6 +66,7 @@ fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
 fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
     let plot = checked_renderer_plot();
     let headless = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("headless"),
         boot_id: BootId::from("headless-boot"),

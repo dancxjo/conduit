@@ -188,6 +188,7 @@ fn plan() -> Plan {
     offers.push(fixed_affine_offer::<3, 2>().unwrap());
     let plot=conduit_plot::parse_with_startup("plot numeric-proof {\n vector: numeric-test/vector\n weights: numeric-test/weights\n bias: numeric-test/bias\n affine: numeric/dense3x2\n sink: numeric-test/sink\n vector.value >> affine.value\n weights.value >> affine.weights\n bias.value >> affine.bias\n affine.result >> sink.value\n}\n",&startup,&profile).unwrap();
     let hosts = [HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("numeric-test"),
         boot_id: BootId::from("numeric-test-boot"),

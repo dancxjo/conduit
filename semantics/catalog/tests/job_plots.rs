@@ -141,6 +141,7 @@ fn assert_nominal_sequence_bound(value_type: &conduit_core::StructuredInfoType, 
 
 fn host(capabilities: Vec<conduit_core::CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/job-proof"),
         boot_id: BootId::from("boot/job-proof"),

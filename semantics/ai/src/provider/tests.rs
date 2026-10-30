@@ -63,6 +63,7 @@ fn direct_host() -> HostAdvertisement {
     )
     .build();
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("direct-part"),
         boot_id: BootId::from("direct-boot"),
@@ -192,6 +193,7 @@ fn unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly() {
 
     let offers = provider_offers();
     let tiny = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("tiny-part"),
         boot_id: BootId::from("tiny-boot"),
@@ -232,6 +234,7 @@ fn unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly() {
     ));
     provider_capabilities.push(provider_http_offer());
     let provider = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("provider-part"),
         boot_id: BootId::from("provider-boot"),

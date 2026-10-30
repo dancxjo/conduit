@@ -87,6 +87,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
         Vec::new(),
     ));
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/lenia-proof"),
         boot_id: BootId::from("boot/lenia-proof"),

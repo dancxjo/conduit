@@ -123,6 +123,7 @@ mod tests {
 
     fn advertisement() -> HostAdvertisement {
         HostAdvertisement {
+            declared_name: Some(conduit_core::HostDeclaredName::new("Yellow").unwrap()),
             protocol_version: conduit_core::PROTOCOL_VERSION,
             host_id: "host/complete".into(),
             boot_id: "boot/complete".into(),

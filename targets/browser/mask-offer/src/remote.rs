@@ -151,6 +151,7 @@ mod tests {
 
     fn host(id: &str, browser: bool) -> HostAdvertisement {
         HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: HostId::from(id),
             boot_id: BootId::from(format!("{id}/boot")),

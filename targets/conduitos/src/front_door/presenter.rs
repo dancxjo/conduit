@@ -99,6 +99,7 @@ impl FrontDoorPresenter {
         let plot = parse(RENDERER_FORM, &catalog).map_err(|_| PresenterError::Catalog)?;
         let implementation_id = ImplementationId::from(NATIVE_PRESENTER_IMPLEMENTATION);
         let host = HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: host_id.clone(),
             boot_id: boot_id.clone(),

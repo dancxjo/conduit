@@ -127,6 +127,7 @@ pub(super) fn prepared() -> (
     .unwrap();
     let schema = entry.input_schema(&PortId::from("command")).unwrap();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/mouse-source-host".into(),
         boot_id: "fixture/mouse-source-boot".into(),

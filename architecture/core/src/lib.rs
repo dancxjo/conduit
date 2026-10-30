@@ -39,9 +39,11 @@ mod execution;
 mod execution_fusion;
 mod fixed_integer;
 mod front;
+mod host_name;
 mod ieee_float;
 mod implementation;
 mod info;
+pub use host_name::{HostDeclaredName, HostNameRefusal, MAX_HOST_DECLARED_NAME_BYTES};
 mod initialized_state;
 pub use initialized_state::{initialized_state_boundary, InitializedStateLaw};
 mod interop;
@@ -582,6 +584,9 @@ pub struct PlannerCapabilityOffer {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HostAdvertisement {
+    /// Checked declaration name, for presentation only; never identity or authority.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub declared_name: Option<HostDeclaredName>,
     pub protocol_version: u16,
     pub host_id: HostId,
     pub boot_id: BootId,

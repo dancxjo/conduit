@@ -191,6 +191,7 @@ fn actual_seventeen_boot_two_plot_biography_compresses_with_zero_codec_allocatio
     use conduit_body::{AdmissionManager, SealedBodyLifecycleSession};
     use conduit_core as c;
     let host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "esp32/b0a732286178".into(),
         boot_id: format!("boot/{:032x}", 0).into(),

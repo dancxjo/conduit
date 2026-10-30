@@ -91,6 +91,7 @@ fn run(
             .unwrap();
     let seed_schema = entry.input_schema(&port_id("seed")).unwrap().clone();
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/reuse".into(),
         boot_id: "fixture/reuse-boot".into(),

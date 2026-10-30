@@ -272,6 +272,7 @@ fn leaf(kind: &str) -> StructuredInfoType {
 
 fn host(capabilities: Vec<CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("host/diverse-structured-proof"),
         boot_id: conduit_core::BootId::from("boot/diverse-structured-proof"),

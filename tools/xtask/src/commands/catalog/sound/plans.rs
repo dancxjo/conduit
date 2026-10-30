@@ -75,6 +75,7 @@ fn create_plan() -> Result<conduit_core::Plan, CatalogError> {
 
 fn opl_plan(plot: &conduit_plot::CheckedPlot) -> Result<conduit_core::Plan, CatalogError> {
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("conformance-opl2"),
         boot_id: BootId::from("conformance-opl2-boot"),

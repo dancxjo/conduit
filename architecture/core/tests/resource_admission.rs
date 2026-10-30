@@ -14,6 +14,7 @@ mod batch;
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: 1,
         host_id: HostId::from("host/compute-fixture"),
         boot_id: BootId::from("boot/compute-fixture/1"),

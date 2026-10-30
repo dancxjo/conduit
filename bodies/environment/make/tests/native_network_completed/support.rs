@@ -120,6 +120,7 @@ pub fn held_fixture() -> (NativePlay, Rc<Observations>, RootIssuer) {
         )
     };
     let mut host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: identity("join").host,
         boot_id: identity("join").boot,

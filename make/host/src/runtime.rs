@@ -116,6 +116,7 @@ pub fn bind_runtime_offer(
         })
         .collect::<Vec<_>>();
     let mut advertisement = HostAdvertisement {
+        declared_name: manifest.declared_name.clone(),
         protocol_version: PROTOCOL_VERSION,
         host_id: inputs.host_id.clone(),
         boot_id: inputs.boot_id.clone(),

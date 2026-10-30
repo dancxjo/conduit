@@ -18,6 +18,7 @@ pub(crate) struct HistoryProofPlan<P> {
 }
 fn host(name: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(format!("host/{name}")),
         boot_id: BootId::from(format!("boot/{name}")),

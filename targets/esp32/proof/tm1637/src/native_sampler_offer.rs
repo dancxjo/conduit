@@ -5,6 +5,7 @@ use super::{c, NativeRoot};
 impl NativeRoot {
     pub(crate) fn sampler_native_advertisement(&self) -> Result<c::HostAdvertisement, ()> {
         let mut advertisement = c::HostAdvertisement {
+            declared_name: None,
             protocol_version: c::PROTOCOL_VERSION,
             host_id: self.host.clone(),
             boot_id: self.boot.clone(),

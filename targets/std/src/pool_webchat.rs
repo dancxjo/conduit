@@ -149,6 +149,7 @@ fn source_identity() -> Result<String, String> {
 
 fn advertisement() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("std-pool-webchat"),
         boot_id: BootId::from("std-pool-webchat-boot"),

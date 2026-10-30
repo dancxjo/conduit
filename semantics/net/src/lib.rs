@@ -213,6 +213,7 @@ pub fn install_network_bootstrap_catalogs(
 
 pub fn network_capable_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),
@@ -231,6 +232,7 @@ pub fn network_capable_advertisement(host_id: &str, boot_id: &str) -> HostAdvert
 
 pub fn network_omitting_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(host_id),
         boot_id: BootId::from(boot_id),

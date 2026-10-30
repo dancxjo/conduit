@@ -280,6 +280,7 @@ pub(crate) fn advertisement_for_machinery(
     }
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id,
         boot_id,

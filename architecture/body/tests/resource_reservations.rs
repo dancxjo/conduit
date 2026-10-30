@@ -23,6 +23,7 @@ fn fixture(
     .unwrap();
     let part = PartId::bind(&body.body_id, "workstation", 1).unwrap();
     let host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from("workstation"),
         boot_id: BootId::from("workstation/boot"),

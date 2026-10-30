@@ -36,6 +36,7 @@ pub fn native_advertisement(ready: &ReadyPulseBase<super::pulse::Provider>) -> H
     )
     .build()];
     let mut host = HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: ready.native_identity().host_id.clone(),
         boot_id: ready.native_identity().boot_id.clone(),

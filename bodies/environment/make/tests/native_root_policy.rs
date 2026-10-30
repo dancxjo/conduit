@@ -70,6 +70,7 @@ fn root_checks_both_owners_before_spending_issuance_or_moving_either() {
         issuer.grant_wait(wait.native_identity()).unwrap(),
     ];
     let mut host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: native.host_id.clone(),
         boot_id: native.boot_id.clone(),

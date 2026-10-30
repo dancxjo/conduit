@@ -422,6 +422,7 @@ impl ThinHostSupervisor {
         self.registry
             .append_ready_offers(&mut capabilities, &mut resources, &mut bases, None)?;
         Ok(HostAdvertisement {
+            declared_name: None,
             protocol_version: PROTOCOL_VERSION,
             host_id: self.host_id.clone(),
             boot_id: self.boot_id.clone(),

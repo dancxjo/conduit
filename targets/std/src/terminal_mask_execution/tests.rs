@@ -15,6 +15,7 @@ mod producer_fixture;
 
 fn host() -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: conduit_core::PROTOCOL_VERSION,
         host_id: "host/terminal-fixture".into(),
         boot_id: "boot/terminal-fixture".into(),

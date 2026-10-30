@@ -164,7 +164,14 @@ mod microphone_fixture {
             .as_str()
             == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION));
 
-        assert_eq!(host.advertisement().offer_generation.0, 2);
+        // The checked name and initialized microphone each advance the offer.
+        assert_eq!(host.advertisement().offer_generation.0, 3);
+        assert_eq!(
+            host.advertisement().display_name(),
+            parse_host_configuration_conduit(&selected.source)
+                .unwrap()
+                .name
+        );
         assert!(host.advertisement().capabilities.iter().any(|v| v
             .implementation
             .implementation_id
@@ -182,7 +189,7 @@ mod microphone_fixture {
         let duplicate = Selection::from_source(&duplicate_source, "std/x86_64/computer").unwrap();
         let mut duplicate_host = StdHost::default();
         duplicate.attach_to_fresh_host(&mut duplicate_host).unwrap();
-        assert_eq!(duplicate_host.advertisement().offer_generation.0, 2);
+        assert_eq!(duplicate_host.advertisement().offer_generation.0, 3);
         let converted = Selection::from_source(
             &selected.source.replace(
                 conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
@@ -233,4 +240,25 @@ fn checked_speaker_refuses_retained_physical_speech_overlap_without_provider_eff
     selection.validate_speech_overlap(Some(&artifact)).unwrap();
     let no_speaker = Selection::from_source(SOURCE, "std/x86_64/computer").unwrap();
     no_speaker.validate_speech_overlap(Some(&artifact)).unwrap();
+}
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[test]
+fn checked_declaration_name_reaches_fresh_installed_offer_without_identity_change() {
+    let source = SOURCE.replace("host linux-computer", "host Yellow");
+    let selection = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    let mut host = conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
+        host_id: "host/retained".into(),
+        boot_id: "boot/current".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+    });
+    let before = host.advertisement().clone();
+    selection.attach_to_fresh_host(&mut host).unwrap();
+    let after = host.advertisement();
+    assert_eq!(after.display_name(), "Yellow");
+    assert_eq!(after.host_id, before.host_id);
+    assert_eq!(after.boot_id, before.boot_id);
+    assert_eq!(after.capabilities, before.capabilities);
+    assert_eq!(after.resources, before.resources);
+    assert_eq!(after.offer_generation.0, before.offer_generation.0 + 1);
 }

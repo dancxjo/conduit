@@ -28,6 +28,7 @@ fn offer(name: &str, property: Option<StructuredConfigurationValue>) -> Capabili
 }
 fn host(offers: Vec<CapabilityOffer>) -> HostAdvertisement {
     HostAdvertisement {
+        declared_name: None,
         protocol_version: PROTOCOL_VERSION,
         host_id: "fixture/host".into(),
         boot_id: "fixture/boot".into(),

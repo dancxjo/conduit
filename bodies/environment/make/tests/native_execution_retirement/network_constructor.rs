@@ -334,6 +334,7 @@ fn prepare_rich(image: &conduit_plot::flat_image::indexed::IndexedSourceImage<'_
     let j = join.as_ref().unwrap().native_identity();
     let mut issuer = root::RootIssuer::fixture(j.host.clone(), j.boot.clone());
     let mut host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: j.host.clone(),
         boot_id: j.boot.clone(),

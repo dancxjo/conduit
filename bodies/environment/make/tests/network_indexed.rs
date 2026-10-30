@@ -125,6 +125,7 @@ fn indexed_task_planning_matches_owned_plan_and_preserves_refusals() {
         unsafe { conduit_plot::flat_image::indexed::IndexedSourceImage::from_make_image(&bytes) }
             .unwrap();
     let mut host = c::HostAdvertisement {
+        declared_name: None,
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/host".into(),
         boot_id: "fixture/boot".into(),
