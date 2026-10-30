@@ -39,6 +39,23 @@ impl RetainedPublicationFace {
         maximum_publications: u32,
         stale_after_ms: u64,
     ) -> Result<Self, RetainedPublicationRefusal> {
+        Self::prepare_with_name(basis, maximum_publications, stale_after_ms, None)
+    }
+    /// Allocate immutable owner-supplied Body wording only during preparation.
+    pub fn prepare_named(
+        basis: FaceBasis,
+        maximum_publications: u32,
+        stale_after_ms: u64,
+        body_name: &str,
+    ) -> Result<Self, RetainedPublicationRefusal> {
+        Self::prepare_with_name(basis, maximum_publications, stale_after_ms, Some(body_name))
+    }
+    fn prepare_with_name(
+        basis: FaceBasis,
+        maximum_publications: u32,
+        stale_after_ms: u64,
+        body_name: Option<&str>,
+    ) -> Result<Self, RetainedPublicationRefusal> {
         use RetainedPublicationRefusal as E;
         if basis.source_document_id.is_none()
             || basis.checked_plot_id.is_none()
@@ -49,13 +66,19 @@ impl RetainedPublicationFace {
         {
             return Err(E::MissingExecutionBasis);
         }
-        Ok(Self {
-            face: PreparedObservationFace::prepare_observed(
+        let face = if let Some(name) = body_name {
+            PreparedObservationFace::prepare_observed_named(
                 basis,
                 maximum_publications,
                 stale_after_ms,
+                name,
             )
-            .map_err(E::Publication)?,
+        } else {
+            PreparedObservationFace::prepare_observed(basis, maximum_publications, stale_after_ms)
+        }
+        .map_err(E::Publication)?;
+        Ok(Self {
+            face,
             last_sequence: 0,
         })
     }

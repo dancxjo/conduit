@@ -170,3 +170,87 @@ fn a_live_publication_owner_requires_complete_execution_provenance() {
         Err(Refusal::MissingExecutionBasis)
     ));
 }
+
+fn named_basis() -> FaceBasis {
+    let mut b = basis();
+    // Claimed CPU fixture IDs are not a real Body admission or execution proof.
+    b.body_id = Some(serde_json::from_value(serde_json::json!("01".repeat(32))).unwrap());
+    b.wake_id = Some(serde_json::from_value(serde_json::json!("02".repeat(32))).unwrap());
+    b
+}
+
+#[test]
+fn prepared_body_wording_stays_canonical_and_allocation_free_through_publication_and_expiry() {
+    let expected_basis = named_basis();
+    let mut owner = RetainedPublicationFace::prepare_named(
+        expected_basis.clone(),
+        3,
+        30_000,
+        "La serre des épices",
+    )
+    .unwrap();
+    let body = owner
+        .current()
+        .subjects
+        .iter()
+        .find(|s| s.role == conduit_face::FaceRole::Body)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        body.identity,
+        format!("body/{}", expected_basis.body_id.as_ref().unwrap().as_str())
+    );
+    assert_eq!(body.name, "La serre des épices");
+    let unnamed = RetainedPublicationFace::prepare(expected_basis.clone(), 3, 30_000).unwrap();
+    assert_ne!(owner.current().identity, unnamed.current().identity);
+    let contract = ObservationContract::prepare().unwrap();
+    let mut decoder = PreparedSourceFrameDecoder::prepare(&contract).unwrap();
+    let reading = decoder.decode(5, [53, 0, 20, 2, 75]).unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        owner
+            .publish(snapshot(Channel::Reading, 1, reading), 1_000)
+            .unwrap();
+        owner.at(31_001).unwrap();
+        owner.current().validate().unwrap();
+        assert_eq!(&owner.current().basis, &expected_basis);
+        assert_eq!(
+            owner
+                .current()
+                .subjects
+                .iter()
+                .filter(|s| s.role == conduit_face::FaceRole::Body)
+                .count(),
+            1
+        );
+        assert_eq!(
+            owner
+                .current()
+                .subjects
+                .iter()
+                .find(|s| s.role == conduit_face::FaceRole::Body),
+            Some(&body)
+        );
+        assert_eq!(
+            value(owner.current(), "fresh"),
+            &FacePropertyValue::Flag(false)
+        );
+    });
+    assert_eq!(memory.allocations + memory.reallocations, 0);
+}
+
+#[test]
+fn body_wording_requires_body_basis_and_valid_face_text() {
+    assert!(matches!(
+        RetainedPublicationFace::prepare_named(basis(), 1, 100, "A name"),
+        Err(Refusal::Publication(PublicationRefusal::InvalidBasis))
+    ));
+    for name in [
+        " ".to_owned(),
+        "x".repeat(conduit_face::MAX_FACE_TEXT_BYTES + 1),
+    ] {
+        assert!(matches!(
+            RetainedPublicationFace::prepare_named(named_basis(), 1, 100, &name),
+            Err(Refusal::Publication(PublicationRefusal::InvalidFace))
+        ));
+    }
+}

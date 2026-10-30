@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 
 #[path = "hosted_microphone/provider_discovery.rs"]
 mod provider_discovery;
+mod provider_io;
 use provider_discovery::capture_command;
 #[path = "hosted_microphone/provider_identity.rs"]
 mod provider_identity;
@@ -176,40 +177,15 @@ impl AlsaMicrophoneAdapter {
             return Err(MicrophoneFailure::Timeout);
         }
         let mut child = self.spawn()?;
-        let stdout = child.stdout.take().ok_or(MicrophoneFailure::SpawnFailed)?;
-        let stderr = child.stderr.take().ok_or(MicrophoneFailure::SpawnFailed)?;
         let maximum_audio_bytes = raw_bytes_for_duration(self.limits.capture_milliseconds);
-        let audio = std::thread::spawn(move || bounded_read(stdout, maximum_audio_bytes));
-        let diagnostics =
-            std::thread::spawn(move || bounded_read(stderr, MAXIMUM_DIAGNOSTIC_BYTES));
-        let status = loop {
-            if cancelled() {
-                stop(&mut child);
-                let _ = audio.join();
-                let _ = diagnostics.join();
-                return Err(MicrophoneFailure::Cancelled);
-            }
-            if started.elapsed() >= self.limits.timeout {
-                stop(&mut child);
-                let _ = audio.join();
-                let _ = diagnostics.join();
-                return Err(MicrophoneFailure::Timeout);
-            }
-            match child.try_wait() {
-                Ok(Some(status)) => break status,
-                Ok(None) => std::thread::sleep(Duration::from_millis(2)),
-                Err(_) => {
-                    stop(&mut child);
-                    let _ = audio.join();
-                    let _ = diagnostics.join();
-                    return Err(MicrophoneFailure::ProviderLost);
-                }
-            }
-        };
-        let audio = audio.join().map_err(|_| MicrophoneFailure::ReadFailed)??;
-        let diagnostics = diagnostics
-            .join()
-            .map_err(|_| MicrophoneFailure::ReadFailed)??;
+        let (status, audio, diagnostics) = provider_io::collect(
+            &mut child,
+            maximum_audio_bytes,
+            MAXIMUM_DIAGNOSTIC_BYTES,
+            started,
+            self.limits.timeout,
+            cancelled,
+        )?;
         self.finish_capture(status.success(), audio, diagnostics, maximum_audio_bytes)
     }
 
@@ -335,24 +311,6 @@ impl AlsaMicrophoneAdapter {
 struct BoundedRead {
     bytes: Vec<u8>,
     overflowed: bool,
-}
-
-fn bounded_read(mut reader: impl Read, maximum: usize) -> Result<BoundedRead, MicrophoneFailure> {
-    let mut bytes = Vec::with_capacity(maximum);
-    let mut overflowed = false;
-    let mut buffer = [0_u8; 4_096];
-    loop {
-        let count = reader
-            .read(&mut buffer)
-            .map_err(|_| MicrophoneFailure::ReadFailed)?;
-        if count == 0 {
-            break;
-        }
-        let remaining = maximum.saturating_sub(bytes.len());
-        bytes.extend_from_slice(&buffer[..count.min(remaining)]);
-        overflowed |= count > remaining;
-    }
-    Ok(BoundedRead { bytes, overflowed })
 }
 
 fn validate_limits(limits: MicrophoneLimits) -> Result<(), MicrophoneFailure> {

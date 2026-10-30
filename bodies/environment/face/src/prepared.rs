@@ -41,6 +41,7 @@ impl PreparedObservationFace {
             maximum_samples,
             stale_after_ms,
             "sampled-at-boot-ms",
+            None,
         )
     }
     /// Prepare Host-observed timing when acquisition time is unavailable. A
@@ -55,6 +56,23 @@ impl PreparedObservationFace {
             maximum_samples,
             stale_after_ms,
             "observed-at-boot-ms",
+            None,
+        )
+    }
+    /// Prepare owner-supplied Body wording under the exact Face Body basis.
+    /// The caller supplies its admitted name; wording grants no authority.
+    pub fn prepare_observed_named(
+        basis: FaceBasis,
+        maximum_samples: u32,
+        stale_after_ms: u64,
+        body_name: &str,
+    ) -> Result<Self, PublicationRefusal> {
+        Self::prepare_with_time_property(
+            basis,
+            maximum_samples,
+            stale_after_ms,
+            "observed-at-boot-ms",
+            Some(body_name),
         )
     }
     fn prepare_with_time_property(
@@ -62,10 +80,31 @@ impl PreparedObservationFace {
         maximum_samples: u32,
         stale_after_ms: u64,
         time_property: &'static str,
+        body_name: Option<&str>,
     ) -> Result<Self, PublicationRefusal> {
         if maximum_samples == 0 {
             return Err(PublicationRefusal::Exhausted);
         }
+        let mut subjects = alloc::vec::Vec::with_capacity(1 + usize::from(body_name.is_some()));
+        if let Some(name) = body_name {
+            let body = basis
+                .body_id
+                .as_ref()
+                .ok_or(PublicationRefusal::InvalidBasis)?;
+            if name.trim().is_empty() || name.len() > conduit_face::MAX_FACE_TEXT_BYTES {
+                return Err(PublicationRefusal::InvalidFace);
+            }
+            subjects.push(FaceSubject {
+                identity: alloc::format!("body/{}", body.as_str()),
+                role: FaceRole::Body,
+                name: name.into(),
+            });
+        }
+        subjects.push(FaceSubject {
+            identity: SUBJECT.into(),
+            role: FaceRole::Info,
+            name: "Room conditions".into(),
+        });
         let mut status = String::with_capacity(16);
         status.push_str("warming");
         let mut reason = String::with_capacity(32);
@@ -73,11 +112,7 @@ impl PreparedObservationFace {
         let mut face = Face::new(
             0,
             basis,
-            vec![FaceSubject {
-                identity: SUBJECT.into(),
-                role: FaceRole::Info,
-                name: "Room conditions".into(),
-            }],
+            subjects,
             vec![],
             vec![
                 property("fresh", FacePropertyValue::Flag(false)),
