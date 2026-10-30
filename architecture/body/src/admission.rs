@@ -15,6 +15,8 @@ pub use attachment::SpawnAdmissionHostScope;
 mod continuity;
 mod documents;
 mod invitation;
+mod membership_documents;
+pub use membership_documents::*;
 mod storage;
 pub use storage::AdmissionStorageCompactionRefusal;
 

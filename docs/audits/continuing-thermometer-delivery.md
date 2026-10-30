@@ -62,6 +62,48 @@ offer generation, initialized resources and realization provenance remain
 actual runtime facts. Membership by itself cannot unblock protected Lines,
 worker execution, selected recording or final shared Face delivery.
 
+## Zenoh Line-base evaluation, 30 October 2026
+
+The user has authorized evaluating Zenoh/Zenoh-Pico as a replacement Line base
+within this delivery lane. This advances the canon's dormant candidate to an
+experiment, not accepted architecture or a delivered adapter. Preserve authored
+Plots, Body identity, typed Cords, exact Plans, finite admission and authority.
+Do not extend the bespoke transport while its replacement is being evaluated;
+capability-definition retention and membership separation remain independently
+necessary.
+
+Start with one MCU and one Linux router, pinning upstream source and enabled
+features. Prove an actual outbound connection through a named NAT boundary,
+router/link interruption and automatic reconnection, continuous local sampling
+and display, and exact buffered-history recovery without duplicate commitment
+or premature evidence retirement. Measure complete firmware flash, steady and
+peak RAM (including stacks and transport buffers), preparation allocation/work,
+and Linux router preparation/residency. A host library size or upstream board
+demo is not MCU footprint or hardware proof.
+
+Zenoh discovery contributes planning evidence only. Keep Conduit's protected
+session, Host/Boot/Body checks, signed provenance, cancellation, stale-generation
+refusal and exact Cord framing above the carrier. Zenoh delivery acknowledgments
+must never authorize recording retirement; durable commit acknowledgments remain
+separate. Use host descriptions for router/transport implementations and finite
+resources, with current reachability as runtime evidence.
+
+Removal candidates are the custom rendezvous byte relay, HTTP history polling,
+selected-peer lookup and transport reconnect/backoff. `history_relay`'s directional
+Cord/session checks and `owner_reconnect`'s job/sequence continuity remain.
+Wi-Fi association, DHCP, credential selection, AP fallback and the requested
+`.local` provisioning surface also remain; a session library cannot replace them.
+Victus owns the pinned Linux router experiment; Forebrain owns MCU adaptation
+and footprint/history evidence. Adoption and deletion require these measurements
+and the actual interruption/recovery proof, through the existing delivery lane.
+
+The current MCU images use no_std Rust/Embassy with esp-hal or CYW43. Upstream
+Zenoh-Pico 1.10.2 has ESP-IDF and Pico SDK/FreeRTOS platforms plus an external
+platform interface. Its board examples do not directly integrate this executor,
+network stack or admitted allocator. Evaluate a bounded external platform/carrier
+seam before replacing working firmware; do not import another OS to satisfy a
+transport example.
+
 ## Historical source and proof boundaries, 28 October 2026
 
 [PR #6457](https://github.com/dancxjo/conduit/pull/6457) is still a draft at

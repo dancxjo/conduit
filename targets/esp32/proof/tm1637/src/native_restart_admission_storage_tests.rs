@@ -17,6 +17,7 @@ fn admit_with_original_invitation(
     invitation: &conduit_body::SpawnInvitation,
 ) {
     let peer = conduit_core::HostAdvertisement {
+        declared_name: None,
         host_id: "host/restored-invitation".into(),
         boot_id: "boot/restored-invitation".into(),
         protocol_version: conduit_core::PROTOCOL_VERSION,

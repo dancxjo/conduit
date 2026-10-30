@@ -116,6 +116,22 @@ impl NativeRoot {
         Ok(admitted.signed(signature))
     }
     #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn admit_body_membership_request(
+        &mut self,
+        request: &conduit_body::PortableMembershipAdmissionRequest,
+        now_millis: u64,
+    ) -> Result<conduit_body::PortableMembershipAdmissionReceipt, &'static str> {
+        let (host, boot, _) = self.offer_scope();
+        let (host, boot) = (host.clone(), boot.clone());
+        let key = self.admission.verifying_key();
+        let body = self.body.as_mut().ok_or("body-join-not-installed")?;
+        let admitted = crate::native_body_join::membership::admit(
+            body, &key, &host, &boot, request, now_millis,
+        )?;
+        let signature = self.admission.sign_membership(&admitted)?;
+        Ok(admitted.signed(signature))
+    }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
     pub(crate) fn recover_body_observer(
         &self,
         request: &crate::native_body_join::recovery::Request,

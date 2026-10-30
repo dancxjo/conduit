@@ -83,6 +83,16 @@ impl NativeAdmission {
         Ok(self.key.sign(&admitted.transcript()).to_bytes())
     }
     #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
+    pub(crate) fn sign_membership(
+        &self,
+        admitted: &crate::native_body_join::membership::DurablyAdmittedMembership,
+    ) -> Result<[u8; 64], &'static str> {
+        if !self.ready() || admitted.root() != &self.verifying_key() {
+            return Err("body-membership-not-durable");
+        }
+        Ok(self.key.sign(&admitted.transcript()).to_bytes())
+    }
+    #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
     pub(crate) fn sign_current_observer(
         &self,
         observer: &crate::native_body_join::recovery::VerifiedCurrentObserver,

@@ -189,6 +189,10 @@ impl crate::native_root::NativeRoot {
                     let receipt = self.admit_body_observer_request(&request, now_ms)?;
                     serde_json_core::to_slice(&receipt, &mut bytes)
                 }
+                crate::native_body_join::Command::Membership(request) => {
+                    let receipt = self.admit_body_membership_request(&request, now_ms)?;
+                    serde_json_core::to_slice(&receipt, &mut bytes)
+                }
                 crate::native_body_join::Command::Recovery(request) => {
                     let receipt = self.recover_body_observer(&request)?;
                     serde_json_core::to_slice(&receipt, &mut bytes)

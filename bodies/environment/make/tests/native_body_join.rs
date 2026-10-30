@@ -368,11 +368,23 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
         Ok(())
     })
     .unwrap();
+    let (next, pending_membership) = membership::prove(owner, &root_key, &host, &signer);
+    owner = next;
     owner = returning::prove(
         owner, &root_key, &host, &observer, &receipt, &secret, &signer, &media,
     );
     // No private bootstrap can leave the issuer after failed persistence.
     media.0.lock().unwrap().1 = false;
+    assert!(native_body_join::membership::admit(
+        &mut owner,
+        &root_key,
+        &host.host_id,
+        &host.boot_id,
+        &pending_membership,
+        120,
+    )
+    .is_err());
+    assert!(!native_restart::publication_ready());
     assert!(native_body_join::issue(
         &mut owner,
         &root_key,
@@ -501,3 +513,6 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_join_cache.rs"]
 mod native_body_join_cache;
+
+#[path = "native_body_join/membership.rs"]
+mod membership;

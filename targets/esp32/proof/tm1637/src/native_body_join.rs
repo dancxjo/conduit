@@ -5,6 +5,8 @@ pub(crate) mod owner;
 use crate::native_restart::payload::wire as biography_wire;
 #[path = "native_biography_custody_acceptance.rs"]
 pub(crate) mod biography_acceptance;
+#[path = "native_body_membership.rs"]
+pub(crate) mod membership;
 #[path = "native_joined_host_recovery.rs"]
 pub(crate) mod recovery;
 #[path = "native_body_return_wire.rs"]
@@ -17,6 +19,7 @@ pub(crate) enum Command {
     ReturnChallenge(return_wire::Begin),
     Return(return_wire::Complete),
     Admission(conduit_body::PortableSpawnAdmissionRequest),
+    Membership(conduit_body::PortableMembershipAdmissionRequest),
     Recovery(recovery::Request),
 }
 pub(crate) fn decode_command(bytes: &[u8]) -> Result<Command, &'static str> {
@@ -37,6 +40,9 @@ pub(crate) fn decode_command(bytes: &[u8]) -> Result<Command, &'static str> {
             return Err("body-recovery-request");
         }
         return Ok(Command::Recovery(request));
+    }
+    if let Ok(request) = conduit_body::PortableMembershipAdmissionRequest::decode(bytes) {
+        return Ok(Command::Membership(request));
     }
     wire::decode(bytes).map(Command::Admission)
 }
