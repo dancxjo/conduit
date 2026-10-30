@@ -37,8 +37,8 @@ export async function observeSupervisorDownstream({ queue, train, config, privat
         if (program !== 'python3') throw new Error('Unsupported downstream decoder');
         return command(program, ['-I', ...args], { ...options, cwd: directory, env: sourceEnvironment });
       };
-      const bytes = (endpoint, limit) => {
-        const result = child('gh', ['api', endpoint, '-H', 'Accept: application/octet-stream'],
+      const bytes = (endpoint, limit, accept) => {
+        const result = child('gh', ['api', endpoint, ...(accept ? ['-H', `Accept: ${accept}`] : [])],
           { cwd: directory, encoding: null, timeout: 60000, maxBuffer: limit });
         if (result?.status !== 0 || !Buffer.isBuffer(result.stdout) || result.stdout.length > limit) {
           throw new Error('Downstream archive acquisition refused');
@@ -50,7 +50,7 @@ export async function observeSupervisorDownstream({ queue, train, config, privat
         proofRunAttempt: proofBinding.attempt, manifestDigest: train.digest }, binding, api,
       discovery: options => discoverTrainAdoption({ ...options, directory: queue.worktree,
         command: sourceCommand, sourceEnvironment }),
-      readManifest: ({ assetId, limit }) => bytes(`repos/${queue.repository}/releases/assets/${assetId}`, limit),
+      readManifest: ({ assetId, limit }) => bytes(`repos/${queue.repository}/releases/assets/${assetId}`, limit, 'application/octet-stream'),
       readReceiptArchive: ({ artifactId, limit }) => bytes(`repos/${queue.repository}/actions/artifacts/${artifactId}/zip`, limit),
       decodeReceiptArchive: archive => decodePublicationReceiptArchive(archive, sourceCommand) });
     } });
