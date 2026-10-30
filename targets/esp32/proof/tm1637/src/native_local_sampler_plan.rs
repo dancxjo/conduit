@@ -137,7 +137,8 @@ impl NativeRoot {
         mark("compact-plan-live", compact.fragment_count());
         // Ordinary admission and fingerprinting own all selected metadata.
         // Their input ledgers are not needed by the final opaque verification.
-        drop((choices, queues, grants, empty, lines, indexed, offers, host));
+        drop((choices, queues, grants, empty, lines, indexed));
+        drop((offers, host));
         mark("planning-scratch-retired", 0);
         let plan = compact
             .into_verified_metadata()
