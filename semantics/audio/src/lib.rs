@@ -58,8 +58,10 @@ pub use generated::{
 
 mod audio_info;
 mod audio_render_demand;
+mod clip_frame_flow;
 mod exact_quantity_projection;
 mod pcm_clip;
+pub use clip_frame_flow::*;
 mod sampled_signal_mapping;
 mod sound_info;
 mod tone_terminal;

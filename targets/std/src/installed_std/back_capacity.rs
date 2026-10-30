@@ -46,6 +46,7 @@ impl InstalledBack {
             }
             Self::TestPcmSource(_) => 0,
             Self::MicrophoneClip(_) => 0,
+            Self::PcmClipFrames(operation) => operation.allocation_capacity(),
             #[cfg(any(test, feature = "local-model-proof"))]
             Self::TestSpeechSink(_) => 0,
             #[cfg(test)]

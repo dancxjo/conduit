@@ -295,6 +295,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         math_deadband_offer(),
         quantity_map_offer(),
         distance_frequency_map_offer(),
+        pcm_clip_frames_offer(),
         audio_time_analysis_offer(),
         audio_spectral_analysis_offer(),
         audio_pitch_analysis_offer(),
