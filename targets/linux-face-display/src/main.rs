@@ -160,7 +160,7 @@ fn run() -> Result<(), String> {
             };
             let report_notice = historical_notice
                 .as_ref()
-                .map(|_| "LAST KNOWN · LIVE UPDATES DELAYED");
+                .map(|_| "LAST KNOWN · FEED DELAYED");
             columns.render_with_palette(
                 face,
                 history.scene(),
