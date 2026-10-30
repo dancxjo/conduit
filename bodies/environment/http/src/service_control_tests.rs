@@ -73,3 +73,41 @@ fn canceled_new_command_cannot_reuse_old_ready_acknowledgment() {
         Err(ServiceControlRefusal::AlreadyClaimed)
     ));
 }
+
+#[test]
+fn service_failure_after_readiness_recovers_only_with_remaining_original_commands() {
+    let mailbox = ServiceMailbox::new();
+    let mut control = mailbox.claim_control(2).unwrap();
+    let first = {
+        let mut starting = Box::pin(control.request(ServiceMode::Running));
+        assert!(poll(starting.as_mut()).is_pending());
+        let first = command(&mailbox);
+        mailbox.acknowledge(first, ServiceState::Ready);
+        assert_eq!(poll(starting.as_mut()), Poll::Ready(Ok(())));
+        first
+    };
+    // A task can fail long after its initial bind acknowledgment was consumed.
+    mailbox.acknowledge(first, ServiceState::Failed);
+    assert_eq!(control.acknowledged_state(), Some(ServiceState::Failed));
+    assert_eq!(control.remaining_commands(), 1);
+    let replacement = {
+        let mut restarting = Box::pin(control.request(ServiceMode::Running));
+        assert!(poll(restarting.as_mut()).is_pending());
+        let replacement = command(&mailbox);
+        mailbox.acknowledge(first, ServiceState::Ready);
+        assert!(poll(restarting.as_mut()).is_pending());
+        mailbox.acknowledge(replacement, ServiceState::Ready);
+        assert_eq!(poll(restarting.as_mut()), Poll::Ready(Ok(())));
+        replacement
+    };
+    assert_eq!(control.acknowledged_state(), Some(ServiceState::Ready));
+    assert_eq!(control.remaining_commands(), 0);
+    mailbox.acknowledge(replacement, ServiceState::Failed);
+    let mut exhausted = Box::pin(control.request(ServiceMode::Running));
+    assert_eq!(
+        poll(exhausted.as_mut()),
+        Poll::Ready(Err(ServiceControlRefusal::Exhausted))
+    );
+    let mut next = Box::pin(mailbox.next_command());
+    assert!(poll(next.as_mut()).is_pending(), "no replacement grant issued");
+}
