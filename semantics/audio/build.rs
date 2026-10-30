@@ -196,6 +196,7 @@ fn main() {
             .into(),
             serde_record_types: ["PcmCompatibilityProfile".into()].into(),
             direct_checked_record_constructors: [
+                "PcmClipProfile".into(),
                 "AudioRelativeAmplitude".into(),
                 "AudioPowerRatio".into(),
                 "AudioAmplitudePowerSquared".into(),

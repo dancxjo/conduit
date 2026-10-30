@@ -475,3 +475,6 @@ mod format_conversion;
 
 #[path = "hosted_microphone_tests/provider_drift.rs"]
 mod provider_drift;
+
+#[path = "hosted_microphone_tests/pipe_deadline.rs"]
+mod pipe_deadline;
