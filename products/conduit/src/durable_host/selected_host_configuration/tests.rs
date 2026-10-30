@@ -164,7 +164,14 @@ mod microphone_fixture {
             .as_str()
             == conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION));
 
-        assert_eq!(host.advertisement().offer_generation.0, 2);
+        // The checked name and initialized microphone each advance the offer.
+        assert_eq!(host.advertisement().offer_generation.0, 3);
+        assert_eq!(
+            host.advertisement().display_name(),
+            parse_host_configuration_conduit(&selected.source)
+                .unwrap()
+                .name
+        );
         assert!(host.advertisement().capabilities.iter().any(|v| v
             .implementation
             .implementation_id
@@ -182,7 +189,7 @@ mod microphone_fixture {
         let duplicate = Selection::from_source(&duplicate_source, "std/x86_64/computer").unwrap();
         let mut duplicate_host = StdHost::default();
         duplicate.attach_to_fresh_host(&mut duplicate_host).unwrap();
-        assert_eq!(duplicate_host.advertisement().offer_generation.0, 2);
+        assert_eq!(duplicate_host.advertisement().offer_generation.0, 3);
         let converted = Selection::from_source(
             &selected.source.replace(
                 conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
