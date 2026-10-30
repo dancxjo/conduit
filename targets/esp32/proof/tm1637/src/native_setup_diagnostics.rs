@@ -54,6 +54,16 @@ impl NativeRoot {
     #[cfg(feature = "local-appliance")]
     #[inline(never)]
     #[cold]
+    pub(super) fn trace_network_floor_refusal(&self, backed: usize, required: usize) {
+        esp_println::println!(
+            "{{\"event\":\"network-floor-refused\",\"backed_bytes\":{},\"required_bytes\":{}}}",
+            backed,
+            required
+        );
+    }
+    #[cfg(feature = "local-appliance")]
+    #[inline(never)]
+    #[cold]
     pub(super) fn trace_network_preparation(&mut self, outcome: &'static [u8]) {
         // Keep status bytes borrowed from flash through one shared conversion;
         // specializing UTF-8 checks at each caller materializes RAM constants.

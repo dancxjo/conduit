@@ -32,6 +32,9 @@ mod native_owner_control;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_receipt.rs"]
 #[allow(dead_code)]
 mod native_owner_receipt;
+#[cfg(test)]
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_network_workspace_reserve.rs"]
+mod native_network_workspace_reserve;
 mod network_custody_client;
 mod observation;
 #[allow(clippy::duplicate_mod)] // Prototype tests separately include this exact portable client.

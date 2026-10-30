@@ -165,26 +165,12 @@ impl NativeRoot {
         // envelope is not a request for one contiguous 24KiB block. Protect the
         // actual 16KiB release floor across small regions while both bounded
         // preparation and execution-storage admission run above it.
-        let reserve = match floor_reserve::reserve(|bytes| {
-            if bytes != floor_reserve::BLOCK_BYTES {
-                return Err(());
-            }
-            type Block = [core::mem::MaybeUninit<u8>; floor_reserve::BLOCK_BYTES];
-            let layout = core::alloc::Layout::new::<Block>();
-            // SAFETY: the exact nonzero Block layout is used for allocation and
-            // Box deallocation. MaybeUninit bytes need no initialization, are
-            // never read, and have no element destructor. Null retains refusal;
-            // only a successful unique allocation becomes an owned thin Box.
-            let raw = unsafe { alloc::alloc::alloc(layout) }.cast::<Block>();
-            if raw.is_null() {
-                Err(())
-            } else {
-                Ok(unsafe { alloc::boxed::Box::from_raw(raw) })
-            }
-        }) {
+        let mut floor_allocator = floor_reserve::Global;
+        let reserve = match floor_reserve::reserve(&mut floor_allocator) {
             Ok(reserve) => reserve,
-            Err(_) => {
+            Err(refused) => {
                 self.trace_network_workspace("reserve", "floor-backing-refused");
+                self.trace_network_floor_refusal(refused.backed_bytes, refused.required_bytes);
                 return;
             }
         };
