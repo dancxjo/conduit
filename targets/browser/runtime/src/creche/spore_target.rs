@@ -207,6 +207,7 @@ fn orange_pi_target() -> Result<TargetFacts, String> {
         deployment_destination: Some("operator/removable-sd-writer"),
         output: descriptor.default_output,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -287,6 +288,7 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
         deployment_destination: Some("operator/local-disk-or-vm-loader"),
         output: SporeOutputKind::DiskImage,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -356,6 +358,7 @@ fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
         deployment_destination,
         output: descriptor.default_output,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -402,6 +405,7 @@ fn avr_target() -> Result<TargetFacts, String> {
         deployment_destination: None,
         output: SporeOutputKind::IntelHex,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -454,6 +458,7 @@ fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
         deployment_destination: Some("operator/local-download"),
         output: SporeOutputKind::NativeBundle,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -504,6 +509,7 @@ fn browser_target() -> Result<TargetFacts, String> {
         deployment_destination: Some("browser/local-sandbox"),
         output: SporeOutputKind::BrowserBundle,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -532,6 +538,7 @@ fn pico_target() -> Result<TargetFacts, String> {
         deployment_destination: Some("browser/webusb"),
         output: SporeOutputKind::Uf2,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,
@@ -589,6 +596,7 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
         deployment_destination: Some("browser/webserial"),
         output: SporeOutputKind::Esp32Image,
         configuration: HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: 1,

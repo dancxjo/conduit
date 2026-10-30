@@ -1,4 +1,8 @@
 mod attachments;
+mod identity;
+mod software;
+use identity::stable_host_configuration_identity_source;
+pub use software::HostSoftwarePurpose;
 #[path = "configuration/presentation.rs"]
 mod presentation;
 pub use attachments::{ConfigurationBus, ConfigurationDevice, ConfigurationScalar};
@@ -30,6 +34,10 @@ pub struct HostConfiguration {
     pub buses: Vec<ConfigurationBus>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub devices: Vec<ConfigurationDevice>,
+    /// None preserves the existing target composition; Some(empty) selects its
+    /// explicit baseline before equipment initialization, not zero offers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub software: Option<HostSoftwarePurpose>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -157,42 +165,17 @@ impl CheckedHostConfiguration {
     }
 }
 
-// Configuration identity predates the canonical Conduit construction source.
-// Keep this encoding private so accepted identities remain stable without
-// retaining TOML as a parseable or authorable construction format.
-fn stable_host_configuration_identity_source(
-    configuration: &HostConfiguration,
-) -> Result<String, ConfigurationDiagnostic> {
-    let mut canonical = configuration.clone();
-    canonical
-        .bases
-        .sort_by(|left, right| left.kind.cmp(&right.kind));
-    canonical
-        .resources
-        .sort_by(|left, right| left.id.cmp(&right.id));
-    canonical.buses.sort_by(|a, b| a.id().cmp(b.id()));
-    canonical.devices.sort_by(|a, b| a.id().cmp(b.id()));
-    // Attachment configurations have a distinct deterministic identity domain:
-    // their generic unsigned parameters include u64 values outside TOML's i64.
-    // Empty legacy configurations retain their original byte encoding below.
-    if !canonical.devices.is_empty() {
-        return serde_json::to_string(&canonical)
-            .map(|json| format!("conduit.host.attachments@1\n{json}"))
-            .map_err(|error| ConfigurationDiagnostic::Encode {
-                detail: error.to_string(),
-            });
-    }
-    toml::to_string_pretty(&canonical).map_err(|error| ConfigurationDiagnostic::Encode {
-        detail: error.to_string(),
-    })
-}
-
 pub fn check_host_configuration(
     configuration: HostConfiguration,
     catalog: &MakeCatalog,
     packages: &MakePackageSet,
 ) -> Result<CheckedHostConfiguration, Vec<ConfigurationDiagnostic>> {
     let mut configuration = configuration;
+    if let Some(software) = &configuration.software {
+        software
+            .validate()
+            .map_err(|detail| vec![ConfigurationDiagnostic::Decode { detail }])?;
+    }
     attachments::validate(&configuration.buses, &configuration.devices)
         .map_err(|detail| vec![ConfigurationDiagnostic::Decode { detail }])?;
     // Schema-1 descriptions may retain the retired deployment-role machine
@@ -379,7 +362,10 @@ pub fn check_host_configuration(
         },
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
-        capabilities: Vec::new(),
+        capabilities: configuration
+            .software
+            .as_ref()
+            .map_or_else(Vec::new, |s| s.capabilities.clone()),
         host_calls: presentation.host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases

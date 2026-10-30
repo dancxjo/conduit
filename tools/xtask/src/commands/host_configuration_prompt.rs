@@ -116,6 +116,9 @@ pub(crate) fn prompt(
     }
 
     let configuration = HostConfiguration {
+        software: existing
+            .filter(|_| same_target)
+            .and_then(|configuration| configuration.software.clone()),
         buses: Vec::new(),
         devices: Vec::new(),
         schema: HOST_CONFIGURATION_SCHEMA,
@@ -242,6 +245,7 @@ mod tests {
         let choices = compatible_base_implementations(descriptor, &packages);
         let (kind, implementations) = choices.first().unwrap();
         let prompted = prepare(HostConfiguration {
+            software: None,
             buses: Vec::new(),
             devices: Vec::new(),
             schema: HOST_CONFIGURATION_SCHEMA,

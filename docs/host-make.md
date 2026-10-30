@@ -84,6 +84,28 @@ base, authorable finite `need` templates, and complete finite host limits.
 Resource capacity and bases remain explicit in the source. It contains no plot,
 application pin meaning, current presence, or authority truth.
 
+A recipe can select the installed Linux Host's existing thin software baseline
+before device initialization:
+
+```conduit
+  software = {capabilities: []}
+```
+
+This explicit empty purpose is distinct from omitting `software`, which preserves
+the target's existing composition and legacy configuration identity. The baseline
+still advertises its real core offers, including `audio/tone` and its planner;
+initialized microphone, speaker and recognizer offers are then added through the
+ordinary checked Base initialization path. The complete resulting description is
+published without filtering. This can keep an equipment worker from constructing
+unrelated keymap and native-speech metadata.
+
+The generic Make checker also validates nonempty exact software selections
+(`kind`, `contract_revision`, `implementation`) against target and prerequisite
+metadata. The installed Linux constructor currently refuses nonempty purposes
+before provider initialization; it does not infer an entire software family from
+one selected Kind. Purpose selection grants no Body membership, execution
+authority, reservation, Plan or Line.
+
 The identifier in `host Yellow { ... }` is the declared Host name. Checked
 configuration, image metadata, runtime descriptions and complete admission
 receipts preserve it as optional bounded presentation metadata (at most 160
