@@ -279,3 +279,92 @@ fn one_checked_play_fans_out_the_same_frames_to_waveform_and_overlapping_spectru
         kernel.value_allocation_capacity_after
     );
 }
+
+/// Historical PCM replay only: clock 7 names this finite replay, not the
+/// microphone's acquisition clock or a current Body observation.
+#[test]
+#[ignore = "requires an explicitly supplied 2048-sample s16le mono historical excerpt"]
+fn retained_microphone_excerpt_runs_one_checked_waveform_and_spectrum_play() {
+    let path = std::env::var("CONDUIT_RETAINED_PCM_EXCERPT").unwrap();
+    let file = std::fs::File::open(path).unwrap();
+    use std::io::Read;
+    let mut pcm = Vec::new();
+    file.take(4097).read_to_end(&mut pcm).unwrap();
+    assert_eq!(pcm.len(), 4096);
+    let samples: Vec<i16> = pcm
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|s| i16::from_le_bytes(*s))
+        .collect();
+    let source = r#"plot measure (
+    >> clip: PcmClip
+    waveform: AudioTimeAnalysisObservation...| >>
+    spectrum: AudioSpectrumObservation...| >>
+) {
+    frames: audio/clip-to-frames
+    time: audio/measure-time(clock-id = 7, sample-rate-hz = 16000, frames = 1024, maximum-blocks = 64)
+    fft: audio/measure-spectrum(clock-id = 7, sample-rate = 16000Hz, source-frames = 1024, window-frames = 256, stride-frames = 128, window = "rectangular", maximum-blocks = 64)
+    clip >> frames.clip
+    frames.pcm >> time.pcm
+    frames.pcm >> fft.pcm
+    time.observation >> waveform
+    fft.observation >> spectrum
+}."#;
+    let first = frame(104448, &samples[..1024]);
+    let second = frame(105472, &samples[1024..]);
+    let bytes = encode_pcm_clip(&[&first, &second]).unwrap();
+    let (mut host, plan) = checked(source, "measure", &["waveform", "spectrum"]);
+    let mut output = Analyses::default();
+    let report = host
+        .run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "clip".into(),
+                track: ConnectionTrack::Payload,
+                bytes,
+            }],
+            &mut output,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap();
+    assert_eq!((output.waveform.len(), output.spectrum.len()), (2, 14));
+    for (index, bytes) in output.waveform.iter().enumerate() {
+        let time = AudioTimeAnalysisObservation::decode(bytes).unwrap();
+        let expected_rms = (samples[index * 1024..(index + 1) * 1024]
+            .iter()
+            .map(|s| (f64::from(*s) / 32768.0).powi(2))
+            .sum::<f64>()
+            / 1024.0)
+            .sqrt();
+        assert!((time.rms().get().value() - expected_rms).abs() < 1e-12);
+        assert_eq!(*time.start_frame(), 104448 + index as u64 * 1024);
+        for row in 0..7 {
+            let spectrum =
+                conduit_audio::AudioSpectrumObservation::decode(&output.spectrum[index * 7 + row])
+                    .unwrap();
+            assert_eq!(spectrum.source_digest().get(), time.source_digest().get());
+            assert_eq!(spectrum.clock_id(), time.clock_id());
+            assert_eq!(spectrum.source_start_frame(), time.start_frame());
+            assert_eq!(
+                *spectrum.window_start_frame(),
+                *time.start_frame() + row as u64 * 128
+            );
+        }
+        println!(
+            "retained replay block {index}: start={} rms={expected_rms}",
+            time.start_frame()
+        );
+    }
+    let kernel = report.kernel.unwrap();
+    assert_eq!(kernel.active_play.plan_id, plan.plan_id);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+    println!(
+        "retained replay: plan={} waveform=2 spectrum=14 unchanged_value_capacity=true",
+        plan.plan_id.as_str()
+    );
+}
