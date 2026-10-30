@@ -26,7 +26,7 @@ fn planned(script: &str) -> (PathBuf, StdHost, PlanFragment) {
             boot_id: "boot/finite-microphone-fixture".into(),
             offer_generation: OfferGeneration(1),
         },
-        StdHostComposition::reference(),
+        StdHostComposition::minimal().with_text(),
         adapter,
     )
     .unwrap();
@@ -129,7 +129,7 @@ fn public_finite_flow_proof_requires_exact_terminal_and_keeps_hash_only() {
             boot_id: "boot/proof-fixture".into(),
             offer_generation: OfferGeneration(1),
         },
-        StdHostComposition::reference(),
+        StdHostComposition::minimal().with_text(),
         host.microphone.take().unwrap(),
         10,
     )

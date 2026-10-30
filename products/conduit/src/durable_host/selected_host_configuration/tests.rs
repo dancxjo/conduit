@@ -208,7 +208,7 @@ mod microphone_fixture {
         assert_eq!(status.host_id, installation.host_id);
         // The ordinary installed constructor builds the selected baseline before
         // attaching the actual discovered provider, without trimming an offer.
-        assert_eq!(runtime.truth().advertisement.capabilities.len(), 2);
+        assert_eq!(runtime.truth().advertisement.capabilities.len(), 3);
         assert!(
             serde_json::to_vec(&runtime.truth().advertisement)
                 .unwrap()

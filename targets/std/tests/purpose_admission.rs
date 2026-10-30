@@ -74,8 +74,28 @@ fn verify_initialized(fixture: &Initialized) {
         base.implementation_id.as_str(),
         conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
     );
-    assert_eq!(base.capability_ids.len(), 1);
+    assert_eq!(base.capability_ids.len(), 2);
     assert_eq!(base.resource_pool_ids.len(), 1);
+    let implementations: std::collections::BTreeSet<_> = base
+        .capability_ids
+        .iter()
+        .map(|id| {
+            let offer = ad
+                .capabilities
+                .iter()
+                .find(|offer| &offer.capability_id == id)
+                .unwrap();
+            assert!(!offer.authority_requirements.is_empty());
+            offer.implementation.implementation_id.as_str()
+        })
+        .collect();
+    assert_eq!(
+        implementations,
+        std::collections::BTreeSet::from([
+            conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION,
+            conduit_std_offers::MICROPHONE_FLOW_IMPLEMENTATION,
+        ])
+    );
     let capability = ad
         .capabilities
         .iter()

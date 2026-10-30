@@ -25,6 +25,9 @@ initialized offer; this command does not call converted samples hardware-exact.
 `--dry-run` validates finite request bounds without inspecting or opening a
 microphone. Live use requires the explicit capture flag.
 
+The proof selects the text software family before initializing the microphone;
+it does not construct the universal reference inventory.
+
 The command authors, checks, expands and plans a plot whose closing PCM Flow
 leaves a sealed output Fore. The consumer validates sequence, capture clock,
 frame offsets, block size and the exact short final block. Success requires the

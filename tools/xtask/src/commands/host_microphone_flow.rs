@@ -85,7 +85,8 @@ pub(super) fn prove(request: Request, opts: &GlobalOpts) -> Result<(), Box<dyn s
             boot_id: format!("boot/microphone-flow-proof/{nonce:032x}").into(),
             offer_generation: conduit_core::OfferGeneration(1),
         },
-        conduit_std_host::StdHostComposition::reference(),
+        // The authored request needs text literals; no universal software inventory.
+        conduit_std_host::StdHostComposition::minimal().with_text(),
         microphone,
         request.block_frames,
     )?;
