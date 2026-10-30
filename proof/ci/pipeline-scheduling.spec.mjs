@@ -89,7 +89,7 @@ test('Integration earns its distinct protected context only with successful exha
   const gate = job(integration, 'train-accepted');
   assert.match(gate, /if: \$\{\{ always\(\) \}\}/);
   assert.match(gate, /needs: \[train-source, adoption, proof\]/);
-  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  const script = gate.split('        run: |\n')[1].split('\n      - ')[0].replace(/^          /gm, '');
   for (const guard of ['success', 'skipped', 'failure', 'cancelled', '']) {
     for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
       const observed = spawnSync('bash', ['-e', '-c', script], {
@@ -103,7 +103,7 @@ test('Integration earns its distinct protected context only with successful exha
 
 test('accepted train proof replaces dev rebuild only after successful adoption', () => {
   const gate = job(integration, 'train-accepted');
-  const script = gate.split('        run: |\n')[1].replace(/^          /gm, '');
+  const script = gate.split('        run: |\n')[1].split('\n      - ')[0].replace(/^          /gm, '');
   for (const adoption of ['success', 'failure', 'cancelled', 'skipped', '']) {
     for (const adopted of ['true', 'false', '', 'unknown']) {
       for (const result of ['success', 'failure', 'cancelled', 'skipped', '']) {
