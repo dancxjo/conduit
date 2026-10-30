@@ -36,7 +36,13 @@ fn solar_landmark_vocabulary_round_trips_without_a_host() {
         SolarLandmark::SolarNoon,
     ] {
         let structured = landmark.into_structured().unwrap();
-        assert_eq!(structured.value_type(), &SolarLandmark::semantic_type().unwrap());
-        assert_eq!(SolarLandmark::from_structured(structured).unwrap(), landmark);
+        assert_eq!(
+            structured.value_type(),
+            &SolarLandmark::semantic_type().unwrap()
+        );
+        assert_eq!(
+            SolarLandmark::from_structured(structured).unwrap(),
+            landmark
+        );
     }
 }
