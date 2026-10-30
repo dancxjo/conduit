@@ -174,12 +174,30 @@ async fn http(
             .await
             .ok()
             .and_then(Result::ok);
+            let close_deadline = Instant::now() + Duration::from_secs(1);
             socket.close();
-            let _ = with_timeout(Duration::from_secs(1), socket.flush()).await;
+            let _ = with_timeout(
+                close_deadline.saturating_duration_since(Instant::now()),
+                socket.flush(),
+            )
+            .await;
             // Finish retirement even when graceful close times out before
             // exposing acknowledged input to another task or reader.
             socket.abort();
+            // abort() queues the reset: reusing the socket before its flush
+            // completes can discard retirement of the previous connection.
+            // Both phases spend the original close budget. Failure retires
+            // this service instead of advertising a reusable socket.
+            let retired = with_timeout(
+                close_deadline.saturating_duration_since(Instant::now()),
+                socket.flush(),
+            )
+            .await
+            .is_ok_and(|result| result.is_ok());
             drop(custody);
+            if !retired {
+                return Err(());
+            }
         }
     }
 }
