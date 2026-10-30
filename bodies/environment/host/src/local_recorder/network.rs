@@ -77,6 +77,18 @@ impl Network {
                 })? {
                     resume::Progress::Pending => self.state = State::Export(export),
                     resume::Progress::Complete(token) => {
+                        match ack::reopen_completed(&token)? {
+                            ack::Retained::Complete(receipt) => {
+                                debug_assert_eq!(receipt.bytes()[8], 2);
+                                eprintln!("network custody: original signed Clean receipt reopened; no replacement ACK or erase requested");
+                                return Ok(());
+                            }
+                            ack::Retained::Interrupted => {
+                                eprintln!("network custody: original interrupted ACK retained; explicit reconciliation required; no replacement signed");
+                                return Ok(());
+                            }
+                            ack::Retained::Absent => {}
+                        }
                         let binding = validated_binding(&self.binding)?;
                         let bytes = crate::body_join::sign_durable_network_custody(
                             &self.binding,
