@@ -7,7 +7,7 @@ publish = false
 [workspace]
 
 [features]
-recording-kernel = ["conduit-kernel/alloc", "dep:conduit-plan-lowering", "dep:conduit-semantic-catalog"]
+recording-kernel = ["dep:conduit-composite", "conduit-kernel/alloc", "dep:conduit-plan-lowering", "dep:conduit-semantic-catalog"]
 environmental-source = ["dep:conduit-plan-lowering"]
 history-exchange = ["dep:conduit-plan-lowering"]
 evidence-journal = []
@@ -25,6 +25,7 @@ face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 
 [dependencies]
+conduit-composite = { path = "../../../architecture/composite", default-features = false, optional = true }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
 conduit-environment-measurement = { path = "../measurement" }

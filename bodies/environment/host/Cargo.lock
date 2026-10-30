@@ -497,6 +497,7 @@ name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-composite",
  "conduit-computation",
  "conduit-core",
  "conduit-environment-face",

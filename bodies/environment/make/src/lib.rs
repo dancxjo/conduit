@@ -24,6 +24,7 @@ pub use mask_source::{SevenSegmentMaskMaterial, SevenSegmentMaskSource};
 mod recording_recovery;
 pub use recording_recovery::{
     PreparedRecordingRecovery, RecordingPlanningRefusal, RecordingRecoverySource,
+    RecordingBatchRecoverySource, ReadyRecordingBatchSoftware, RecordingSoftwarePreparationRefusal,
 };
 
 mod catalog_seed;

@@ -4,6 +4,10 @@ use conduit_core as c;
 use conduit_environment_runtime::recording as r;
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 use std::collections::BTreeMap;
+mod batch;
+mod ready;
+pub use batch::RecordingBatchRecoverySource;
+pub use ready::{ReadyRecordingBatchSoftware, RecordingSoftwarePreparationRefusal};
 
 pub struct RecordingRecoverySource {
     expanded: conduit_plot::ExpandedCanonicalPlot,
@@ -27,34 +31,12 @@ impl RecordingRecoverySource {
             .encode()
             .map_err(|e| format!("reference: {e:?}"))?;
         let hex: String = encoded.iter().map(|b| format!("{b:02x}")).collect();
-        let mut startup = conduit_plot::StartupCatalog::new();
-        let mut profiles = conduit_plot::ProfileCatalog::new();
-        r::install_generation_value_kind(&mut startup, &mut profiles)?;
-        r::install_recovery_kind(&mut startup, &mut profiles)?;
-        let singleton = r::recording_singleton_kind();
-        startup.insert(conduit_plot::KindSignature {
-            kind: singleton.kind_id.as_str().into(),
-            startup_parameters: vec![],
-        })?;
-        startup.insert_fore(singleton.kind_id.as_str(), singleton.checked_front())?;
-        profiles
-            .insert_kind(singleton)
-            .map_err(|e| format!("{e:?}"))?;
-        conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profiles)?;
-        let read = conduit_semantic_catalog::resource_snapshot_semantic_contract(false);
-        startup.insert_fore(read.kind_id.as_str(), read.checked_front())?;
+        let (startup, profiles) = catalogs()?;
         let source = format!(
             "{}\nplot recorder {{\n recovery: environment-recording-recovery(\"{hex}\")\n}}\n",
             include_str!("../../profiles/recovery.conduit")
         );
-        let syntax = conduit_plot::parse_syntax_document(&source);
-        if !syntax.diagnostics.is_empty() {
-            return Err(format!("recording Source: {:?}", syntax.diagnostics));
-        }
-        let checked =
-            conduit_plot::check_syntax_document(&syntax, &startup).map_err(|e| format!("{e:?}"))?;
-        let expanded = conduit_plot::expand_canonical_plot(&checked, "recorder", &profiles)
-            .map_err(|e| format!("{e:?}"))?;
+        let expanded = checked_source(&source, &startup, &profiles)?;
         Ok(Self {
             expanded,
             reference: reference.clone(),
@@ -88,11 +70,47 @@ impl PreparedRecordingRecovery {
         bases: &[c::BaseImplementationId],
         authority: &[c::AuthorityGrant],
     ) -> Result<Self, RecordingPlanningRefusal> {
-        use RecordingPlanningRefusal as E;
         let expanded = source.expanded();
         let hosts = core::slice::from_ref(host);
-        let placements =
-            conduit_planner::default_expanded_placements(expanded, hosts).map_err(E::Placement)?;
+        let placements = conduit_planner::default_expanded_placements(expanded, hosts)
+            .map_err(RecordingPlanningRefusal::Placement)?;
+        Self::prepare_selected(
+            expanded,
+            core::slice::from_ref(source.reference()),
+            host,
+            &placements,
+            bases,
+            authority,
+        )
+    }
+    /// Root supplies exact current choices from its retained owners. This uses
+    /// the ordinary Planner and does not infer availability from descriptors.
+    pub fn prepare_batch(
+        source: &RecordingBatchRecoverySource,
+        host: &c::HostAdvertisement,
+        placements: &conduit_planner::PlacementChoices,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, RecordingPlanningRefusal> {
+        Self::prepare_selected(
+            source.expanded(),
+            source.references(),
+            host,
+            placements,
+            bases,
+            authority,
+        )
+    }
+    fn prepare_selected(
+        expanded: &conduit_plot::ExpandedCanonicalPlot,
+        references: &[c::BoundedResourceRef],
+        host: &c::HostAdvertisement,
+        placements: &conduit_planner::PlacementChoices,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, RecordingPlanningRefusal> {
+        use RecordingPlanningRefusal as E;
+        let hosts = core::slice::from_ref(host);
         let connection_limits = expanded
             .connections
             .iter()
@@ -126,7 +144,7 @@ impl PreparedRecordingRecovery {
         let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
             expanded,
             hosts,
-            &placements,
+            placements,
             bases,
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
@@ -146,19 +164,42 @@ impl PreparedRecordingRecovery {
         if fragment.host_id != host.host_id || fragment.boot_id != host.boot_id {
             return Err(E::ForeignFragment);
         }
-        let read = fragment
+        let reads: Vec<_> = fragment
             .placements
             .iter()
-            .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::SNAPSHOT_READ_KIND)
-            .ok_or(E::ReferenceBinding)?;
-        let [binding] = read.resources.as_slice() else {
+            .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::SNAPSHOT_READ_KIND)
+            .collect();
+        if reads.len() != references.len() {
             return Err(E::ReferenceBinding);
-        };
-        let content = binding.content.as_ref().ok_or(E::ReferenceBinding)?;
-        content
-            .contract
-            .accepts_reference(source.reference())
-            .map_err(|_| E::ReferenceBinding)?;
+        }
+        for reference in references {
+            let hex: String = reference
+                .encode()
+                .map_err(|_| E::ReferenceBinding)?
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            let mut matching = reads.iter().filter(|gear| {
+                gear.configuration.iter().any(|entry| {
+                    entry.key == "reference"
+                        && entry.value == c::ConfigurationValue::Text(hex.clone().into())
+                })
+            });
+            let read = matching.next().ok_or(E::ReferenceBinding)?;
+            if matching.next().is_some() {
+                return Err(E::ReferenceBinding);
+            }
+            let [binding] = read.resources.as_slice() else {
+                return Err(E::ReferenceBinding);
+            };
+            binding
+                .content
+                .as_ref()
+                .ok_or(E::ReferenceBinding)?
+                .contract
+                .accepts_reference(reference)
+                .map_err(|_| E::ReferenceBinding)?;
+        }
         let lowered =
             conduit_plan_lowering::lowering::lower_plan_fragment(fragment).map_err(E::Lowering)?;
         Ok(Self { plan, lowered })
@@ -179,4 +220,40 @@ impl PreparedRecordingRecovery {
             plan: self.plan.clone(),
         }
     }
+}
+
+fn catalogs() -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    r::install_generation_value_kind(&mut startup, &mut profiles)?;
+    r::install_recovery_kind(&mut startup, &mut profiles)?;
+    let singleton = r::recording_singleton_kind();
+    startup.insert(conduit_plot::KindSignature {
+        kind: singleton.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(singleton.kind_id.as_str(), singleton.checked_front())?;
+    profiles
+        .insert_kind(singleton)
+        .map_err(|e| format!("{e:?}"))?;
+    conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profiles)?;
+    let read = conduit_semantic_catalog::resource_snapshot_semantic_contract(false);
+    startup.insert_fore(read.kind_id.as_str(), read.checked_front())?;
+    Ok((startup, profiles))
+}
+
+fn checked_source(
+    source: &str,
+    startup: &conduit_plot::StartupCatalog,
+    profiles: &conduit_plot::ProfileCatalog,
+) -> Result<conduit_plot::ExpandedCanonicalPlot, String> {
+    let syntax = conduit_plot::parse_syntax_document(source);
+    if !syntax.diagnostics.is_empty() {
+        return Err(format!("recording Source: {:?}", syntax.diagnostics));
+    }
+    let checked =
+        conduit_plot::check_syntax_document(&syntax, startup).map_err(|e| format!("{e:?}"))?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "recorder", profiles)
+        .map_err(|e| format!("{e:?}"))?;
+    Ok(expanded)
 }

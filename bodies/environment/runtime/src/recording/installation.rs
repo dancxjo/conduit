@@ -3,12 +3,16 @@
 use super::*;
 use alloc::{format, vec};
 use conduit_core as c;
+mod batch;
+#[cfg(feature = "recording-kernel")]
+pub use batch::ReadyRecordingConcat;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecoveryInstallationRefusal {
     Source,
     References(RecordingReferenceRefusal),
     Initialization(RecordingHistoryRefusal),
+    TemporalInitialization,
     Advertisement,
     Selection,
     AlreadySelected,
@@ -120,11 +124,23 @@ impl<B> ReadyRecordingSoftware<B> {
         role: &str,
         artifact: &str,
     ) -> Result<Self, RecoveryInstallationRefusal> {
+        Self::from_prepared_for(source, host, boot, kind, back, (role, artifact), None)
+    }
+    fn from_prepared_for(
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        host: c::HostId,
+        boot: c::BootId,
+        kind: c::Kind,
+        back: B,
+        realization: (&str, &str),
+        selected_gear: Option<&c::GearId>,
+    ) -> Result<Self, RecoveryInstallationRefusal> {
+        let (role, artifact) = realization;
         use RecoveryInstallationRefusal as E;
-        let mut matches = source
-            .gears
-            .iter()
-            .filter(|gear| gear.kind_id == kind.kind_id);
+        let mut matches = source.gears.iter().filter(|gear| {
+            gear.kind_id == kind.kind_id
+                && selected_gear.is_none_or(|selected| selected == &gear.gear_id)
+        });
         let gear = matches.next().ok_or(E::Source)?;
         if matches.next().is_some()
             || host.as_str().is_empty()
@@ -134,6 +150,10 @@ impl<B> ReadyRecordingSoftware<B> {
             || gear.shorthand != kind.shorthand
             || gear.inputs != kind.inputs
             || gear.outputs != kind.outputs
+            || !gear
+                .terminal_transductions
+                .iter()
+                .eq(kind.terminal_transductions())
             || gear.semantic_contract != kind.semantic_contract()
             || !gear.configuration.is_empty()
         {
@@ -166,6 +186,15 @@ impl<B> ReadyRecordingSoftware<B> {
             offer,
             back: Some(back),
         })
+    }
+    /// Current retained and advertised selection facts, for ordinary Planner
+    /// choices. A historical descriptor after transfer is not availability.
+    pub fn current_selection(&self) -> Option<(&c::GearId, &c::HostId, &c::CapabilityId)> {
+        (self.back.is_some() && self.generation.is_some()).then_some((
+            &self.gear,
+            &self.host,
+            &self.offer.capability_id,
+        ))
     }
     /// Refusals preserve both arguments. Selected software is omitted from a
     /// fresh advertisement; Root must replace historical offer snapshots.
@@ -244,7 +273,14 @@ impl<B> ReadyRecordingSoftware<B> {
             || !gear.resources.is_empty()
             || !gear.authority.is_empty()
             || !gear.pool_references.is_empty()
-            || !gear.terminal_transductions.is_empty()
+            || !gear.terminal_transductions.iter().eq(offer
+                .semantic_contract
+                .laws
+                .iter()
+                .filter_map(|law| match law {
+                    c::KindSemanticLaw::TerminalTransduction(profile) => Some(profile),
+                    _ => None,
+                }))
             || !gear.realization_properties.is_empty()
             || !gear.realization_characteristics.is_empty()
         {

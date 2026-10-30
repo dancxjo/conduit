@@ -266,3 +266,15 @@ mod linux_files_publication;
 #[cfg(target_os = "linux")]
 #[path = "recording_recovery/linux_files_streaming_publication.rs"]
 mod linux_files_streaming_publication;
+
+#[path = "recording_recovery/batch_source.rs"]
+mod batch_source;
+#[path = "recording_recovery/batch_plan.rs"]
+mod batch_plan;
+#[path = "recording_recovery/batch_execution.rs"]
+mod batch_execution;
+#[path = "recording_recovery/software_preparation.rs"]
+mod software_preparation;
+#[cfg(target_os = "linux")]
+#[path = "recording_recovery/linux_batch_files.rs"]
+mod linux_batch_files;

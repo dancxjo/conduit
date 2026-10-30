@@ -5,6 +5,10 @@ use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
 #[cfg(feature = "recording-kernel")]
+mod batch_kernel;
+#[cfg(feature = "recording-kernel")]
+pub use batch_kernel::{PreparedRecordingBatchKernel, RecordingBatchKernel};
+#[cfg(feature = "recording-kernel")]
 mod back;
 #[cfg(feature = "recording-kernel")]
 mod installation;
@@ -20,7 +24,7 @@ mod temporal;
 pub use back::RecordingBack;
 #[cfg(feature = "recording-kernel")]
 pub use installation::{
-    ReadyRecordingGenerations, ReadyRecordingRecovery, ReadyRecordingSingleton,
+    ReadyRecordingConcat, ReadyRecordingGenerations, ReadyRecordingRecovery, ReadyRecordingSingleton,
     ReadyRecordingSoftware, RecoveryInstallationRefusal,
 };
 #[cfg(feature = "recording-kernel")]

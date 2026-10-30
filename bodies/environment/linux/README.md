@@ -41,3 +41,20 @@ Play and foreign implementation selection, and allocation-free streaming into
 preallocated backing. These are actual kernel and file effects with explicit CPU
 Host/Body/grant/producer fixtures. Persistent catalog-State selection, restart of
 the complete recorder and live Body admission still require their own integration.
+
+`PreparedFileBatchRecovery` executes one ordered batch recovery Plot through the
+same production fixed kernel. The checked Source composes exact snapshot reads,
+singleton Flows and ordinary finite concatenation. Root retains each initialized
+software owner, supplies current read choices and grants, and admits the complete
+closure before transferring owners into the kernel. Failed preparation leaves
+the supplied advertisement unchanged; transferred owners cease to be available.
+
+The file suite covers 15 full chunks (960 observations), the 16-chunk ceiling,
+reverse read completion, missing or invalid generations and stale software/table
+refusal. Recurring kernel/file service allocates nothing. Catalog discovery
+separately validates the immutable file and complete domain encoding before
+returning generation references; missing files, foreign read grants and malformed
+catalogs return no references. The optional recording kernel selects the existing
+Flow implementation; it does not add that dependency to the default runtime.
+These tests retain explicit CPU Host/grant/producer fixtures. Discovery from an
+installed durable seed and a fresh-process recorder restart remain separate.

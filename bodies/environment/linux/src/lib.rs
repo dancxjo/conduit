@@ -12,3 +12,8 @@ pub use publication_offer::{
     recording_publication_offer, RECORDING_PUBLICATION_ARTIFACT,
     RECORDING_PUBLICATION_IMPLEMENTATION, RECORDING_PUBLICATION_PROFILE,
 };
+
+mod batch;
+pub use batch::{FileBatchSoftware, PreparedFileBatchRecovery};
+mod catalog;
+pub use catalog::{FileCatalogRefusal, PreparedFileCatalogRecovery};
