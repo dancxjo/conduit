@@ -1,4 +1,5 @@
 //! Read-only Linux framebuffer realization of an exact caller-supplied Face.
+mod columns;
 mod framebuffer;
 mod history_input;
 mod input;
@@ -40,9 +41,13 @@ fn run() -> Result<(), String> {
     let mut previous = String::new();
     let mut retained = input::RetainedView::default();
     let mut recovered_history = false;
+    let mut columns = columns::Columns::new(width, height);
+    let history_width = columns
+        .as_ref()
+        .map_or(width, |layout| layout.history_width);
     let mut history = history_input::HistoryInput::new_at_size(
         preferred,
-        width,
+        history_width,
         height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
     );
     let mut history_status = String::new();
@@ -90,6 +95,34 @@ fn run() -> Result<(), String> {
                 eprintln!("{status}");
             }
             history_status = status;
+        }
+        if let Some(columns) = columns.as_mut() {
+            let history_notice = if !history_status.is_empty() {
+                "HISTORY UPDATES DELAYED"
+            } else {
+                history.label().unwrap_or("RETAINED HISTORY")
+            };
+            let report_notice = historical_notice
+                .as_ref()
+                .map(|_| "LAST KNOWN · LIVE UPDATES DELAYED");
+            columns.render(
+                face,
+                history.scene(),
+                tick,
+                preferred,
+                columns::Notices {
+                    report: report_notice,
+                    history: history_notice,
+                },
+                &mut pixels,
+            )?;
+            fb.present(&pixels)?;
+            if previous != status {
+                eprintln!("{status}");
+                previous = status;
+            }
+            std::thread::sleep(Duration::from_secs(1));
+            continue;
         }
         let history_page = tick.is_multiple_of(2) && history.scene().is_some();
         let face_tick = face_page_tick(tick, history.scene().is_some());
@@ -145,6 +178,13 @@ fn run() -> Result<(), String> {
 fn face_page_tick(tick: usize, history_present: bool) -> usize {
     if history_present { tick / 2 } else { tick }
 }
+fn main() {
+    if let Err(error) = run() {
+        eprintln!("Linux Face display stopped: {error}");
+        std::process::exit(1);
+    }
+}
+
 #[cfg(test)]
 mod paging_tests {
     #[test]
@@ -162,12 +202,5 @@ mod paging_tests {
         for tick in 0..12 {
             assert_eq!(super::face_page_tick(tick, false), tick);
         }
-    }
-}
-
-fn main() {
-    if let Err(error) = run() {
-        eprintln!("Linux Face display stopped: {error}");
-        std::process::exit(1);
     }
 }
