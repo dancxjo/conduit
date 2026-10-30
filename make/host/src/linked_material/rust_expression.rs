@@ -53,6 +53,7 @@ impl Compound {
         if let Kind::Struct(name) = self.kind {
             let defaults: &[(&str, &str)] = match name {
                 "PortDescriptor" => &[("abnormal_kind", "None")],
+                "ResourceRequirement" | "ResourceOffer" => &[("content", "None")],
                 "CapabilityOffer" => &[
                     ("state_retention", "None"),
                     ("realization_properties", "alloc::vec![]"),
