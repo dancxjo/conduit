@@ -1,9 +1,0 @@
-purpose-admission authenticated-microphone: capabilities=2 bases=1 resources=1 expanded=3644 compressed=1207 routed=3318 bytes; CPU fixture only
-purpose-admission microphone: capabilities=2 bases=1 resources=1 expanded=3644 compressed=1207 routed=3318 bytes; CPU fixture only
-purpose-admission microphone-time: unchanged codec REFUSED complete expanded=70762 bytes: expanded admission advertisement capacity
-purpose-admission microphone-text: complete expanded=21601 routed=6743 bytes
-purpose-admission microphone-time-text: unchanged codec REFUSED complete expanded=88619 bytes: expanded admission advertisement capacity
-purpose-admission microphone-input: unchanged codec REFUSED complete expanded=438857 bytes: expanded admission advertisement capacity
-purpose-admission microphone-native-speech: unchanged codec REFUSED complete expanded=252681 bytes: expanded admission advertisement capacity
-purpose-admission microphone-reference: unchanged codec REFUSED complete expanded=920759 bytes: expanded admission advertisement capacity
-test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s

@@ -20,3 +20,7 @@ The installed startup path can request its existing baseline with the checked
 Host declaration `software = {capabilities: []}`. Omission retains legacy
 composition and identity. Nonempty software choices are checked by Make but
 currently refuse installed construction before provider initialization.
+
+Raw test output is retained outside source in the task evidence archive
+`raw-audio-admission-20261030/measurements.log` (1130 bytes,
+SHA-256 `53f5e70b135bc99e3defc215da686a3dc244e3992fe08af09f2f7248b5687eca`).

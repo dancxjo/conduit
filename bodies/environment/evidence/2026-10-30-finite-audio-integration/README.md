@@ -18,3 +18,7 @@ They retain both Base offers and test explicit base-only configuration, actual
 fixture provider initialization, legacy identity and refusal before effects.
 This does not prove physical PCM delivery, Root worker admission, protected
 Lines or audio on the shared Face. Independent physical proof remains separate.
+
+Raw test output is retained outside source in the task evidence archive
+`raw-audio-admission-20261030/admission-measurements.log` (1130 bytes,
+SHA-256 `e106e3e8a49c2f89182fca9ef2c21af2dec2b7c0ab22d671ae31d81b4a93dc1c`).
