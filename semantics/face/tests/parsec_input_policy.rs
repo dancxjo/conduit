@@ -76,6 +76,8 @@ fn checked_phase_and_remap_policy_preserves_context_and_exact_action_semantics()
                     vec![
                         boolean("started", started),
                         boolean("keyboard", keyboard),
+                        boolean("keyboard_available", available),
+                        boolean("fire_available", available),
                         StructuredFieldValue::new(
                             "context",
                             context.clone().into_structured().unwrap(),
@@ -180,6 +182,8 @@ fn checked_phase_and_remap_policy_preserves_context_and_exact_action_semantics()
             vec![
                 started.clone(),
                 boolean("keyboard", keyboard),
+                boolean("keyboard_available", true),
+                boolean("fire_available", true),
                 StructuredFieldValue::new("context", context.clone().into_structured().unwrap())
                     .unwrap(),
             ],

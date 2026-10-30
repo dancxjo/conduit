@@ -1309,7 +1309,7 @@ impl<'a> BodyKernel<'a> {
                                     attachment.observer.instruction_observed(&observation)?;
                                 }
                             }
-                            owner.prompt_input_view_epoch(map, &attachment.host, &keys)?
+                            owner.prompt_input_view(map, &attachment.host, &keys)?
                         }
                         _ => None,
                     }
