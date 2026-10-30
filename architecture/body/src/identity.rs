@@ -87,7 +87,9 @@ pub(crate) fn validate_ids(values: &[&str]) -> Result<(), BodyLifecycleError> {
     Ok(())
 }
 
-pub(crate) fn bind_identity(domain: &str, values: &[&str], sequence: u64) -> String {
+/// Exact legacy identity transcript rendered into caller-owned fixed bytes.
+/// No identity owner is constructed merely to compare an existing digest.
+pub(crate) fn bound_identity_bytes(domain: &str, values: &[&str], sequence: u64) -> [u8; 64] {
     let mut digest = Sha256::new();
     for value in core::iter::once(domain).chain(values.iter().copied()) {
         digest.update((value.len() as u32).to_le_bytes());
@@ -95,10 +97,17 @@ pub(crate) fn bind_identity(domain: &str, values: &[&str], sequence: u64) -> Str
     }
     digest.update(sequence.to_le_bytes());
     let bytes: [u8; 32] = digest.finalize().into();
-    let mut output = String::with_capacity(64);
-    for byte in bytes {
-        use core::fmt::Write;
-        let _ = write!(output, "{byte:02x}");
+    let mut output = [0; 64];
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    for (pair, byte) in output.as_chunks_mut::<2>().0.iter_mut().zip(bytes) {
+        pair[0] = HEX[usize::from(byte >> 4)];
+        pair[1] = HEX[usize::from(byte & 15)];
     }
     output
+}
+
+pub(crate) fn bind_identity(domain: &str, values: &[&str], sequence: u64) -> String {
+    let bytes = bound_identity_bytes(domain, values, sequence);
+    // The fixed hexadecimal alphabet is always UTF-8, with unchanged wire text.
+    String::from(core::str::from_utf8(&bytes).expect("hexadecimal identity"))
 }

@@ -65,8 +65,32 @@ where
             &cord_specs,
             &routes,
         )?;
-        Ok(alloc::boxed::Box::new(Self {
-            node_specs,
+        // Evaluate constructors before transferring any affine input owner.
+        let ready = ReadySet::new(active_nodes);
+        let debug_control = DebugControlState::new();
+        let quiescence_cord_end = quiescence::quiescence_cord_end(&cord_specs[..active_cords]);
+        #[cfg(test)]
+        let scan_counts = core::cell::Cell::new(scan_characterization::ScanCounts::default());
+        let mut storage = alloc::boxed::Box::<Self>::new_uninit();
+        let pointer = storage.as_mut_ptr();
+        macro_rules! initialize {
+            ($( $(#[$attribute:meta])* $field:ident : $value:expr ),* $(,)?) => {
+                // This never-called exhaustive pattern makes adding a field
+                // without initializing it a compile error. It reads no storage.
+                let _check_fields = |value: &Self| {
+                    let Self { $( $(#[$attribute])* $field: _, )* } = value;
+                };
+                $(
+                    $(#[$attribute])*
+                    // SAFETY: uniquely owned exact-layout Box storage. No
+                    // reference to uninitialized Self is formed, and each
+                    // field is written once without reading or dropping it.
+                    unsafe { core::ptr::addr_of_mut!((*pointer).$field).write($value); }
+                )*
+            };
+        }
+        initialize! {
+            node_specs: node_specs,
             terminal_transductions: [[None; PORTS]; NODES],
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
@@ -74,12 +98,12 @@ where
             unresolved_abnormal: [None; NODES],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
-            quiescence_cord_end: quiescence::quiescence_cord_end(&cord_specs[..active_cords]),
+            quiescence_cord_end: quiescence_cord_end,
             armed_quiescence_count: 0,
-            cord_specs,
-            active_nodes,
-            active_cords,
-            routes,
+            cord_specs: cord_specs,
+            active_nodes: active_nodes,
+            active_cords: active_cords,
+            routes: routes,
             host_bindings: Some(host_bindings),
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
@@ -88,12 +112,12 @@ where
             undispatched_host_count: 0,
             undispatched_cancellation_count: 0,
             pending_host_slots: [None; NODES],
-            drivers,
-            values,
-            signs,
+            drivers: drivers,
+            values: values,
+            signs: signs,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
-            ready: ReadySet::new(active_nodes),
+            ready: ready,
             completed: [false; NODES],
             cursor: 0,
             host_request_cursor: 0,
@@ -105,9 +129,11 @@ where
             compact_f32_bindings: None,
             last_host_request: [None; NODES],
             cancelled: false,
-            debug_control: DebugControlState::new(),
+            debug_control: debug_control,
             #[cfg(test)]
-            scan_counts: core::cell::Cell::new(scan_characterization::ScanCounts::default()),
-        }))
+            scan_counts: scan_counts,
+        }
+        // SAFETY: every field is initialized, including cfg-specific fields.
+        Ok(unsafe { storage.assume_init() })
     }
 }

@@ -11,6 +11,8 @@ pub mod construction;
 #[cfg(feature = "display-mask")]
 pub mod display_mask;
 pub mod display_packets;
+#[cfg(feature = "member-receipts")]
+pub mod member_receipts;
 pub mod observation;
 pub mod publication;
 #[cfg(feature = "face-projection")]
