@@ -156,6 +156,7 @@ impl Advertisement {
         Ok(HostAdvertisement {
             protocol_version,
             host_id,
+            declared_name: None,
             boot_id,
             offer_generation,
             profile,
