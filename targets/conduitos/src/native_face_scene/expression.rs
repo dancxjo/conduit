@@ -174,6 +174,7 @@ impl NativeFaceScene {
             local_input_available: true,
             local_creche_preferences: false,
             local_notice: None,
+            read_only_overview: false,
         })
     }
 }

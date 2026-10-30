@@ -40,6 +40,14 @@ pub(super) fn prepare(
     face: &Face,
     interaction_admitted: bool,
 ) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
+    prepare_mode(face, interaction_admitted, false)
+}
+
+pub(super) fn prepare_mode(
+    face: &Face,
+    interaction_admitted: bool,
+    overview: bool,
+) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
     let mut primary = Vec::new();
     let mut details = Vec::with_capacity(plan.clauses.len());
@@ -185,6 +193,10 @@ pub(super) fn prepare(
                 .position(|candidate| candidate.identity == subject.identity);
             primary.push(item);
         };
+        let boolean_choice = face.actions.iter().enumerate().any(|(index, action)| {
+            action.target == subject.identity
+                && super::boolean_choice::selected(face, index).is_some()
+        });
         let name = if subject.role == FaceRole::Item {
             face.properties
                 .iter()
@@ -195,7 +207,17 @@ pub(super) fn prepare(
                     FacePropertyValue::Flag(complete) => Some(*complete),
                     _ => None,
                 })
-                .map(|complete| format!("[{}] {}", if complete { 'x' } else { ' ' }, subject.name))
+                .map(|complete| {
+                    if overview {
+                        format!(
+                            "{} · {}",
+                            if complete { "Done" } else { "To do" },
+                            subject.name
+                        )
+                    } else {
+                        format!("[{}] {}", if complete { 'x' } else { ' ' }, subject.name)
+                    }
+                })
                 .unwrap_or_else(|| subject.name.clone())
         } else {
             subject.name.clone()
@@ -211,12 +233,13 @@ pub(super) fn prepare(
         // An exactly associated field/checkbox row already carries this
         // subject's name. Keep the complete named subject in Details without
         // displaying a second primary expression of that same name.
-        let named_control = face.actions.iter().enumerate().any(|(index, action)| {
-            action.target == subject.identity
-                && (super::text_field::current(face, index).is_some()
-                    || (heading.text == subject.name
-                        && super::boolean_choice::selected(face, index).is_some()))
-        });
+        let named_control = !overview
+            && face.actions.iter().enumerate().any(|(index, action)| {
+                action.target == subject.identity
+                    && (super::text_field::current(face, index).is_some()
+                        || (heading.text == subject.name
+                            && super::boolean_choice::selected(face, index).is_some()))
+            });
         if !named_control {
             append(heading);
         }
@@ -253,11 +276,17 @@ pub(super) fn prepare(
                 .enumerate()
                 .find(|(_, action)| action.identity.as_str() == provenance.identity())
                 .ok_or(FaceSceneError::InvalidFace)?;
-            if action.target != subject.identity {
+            if action.target != subject.identity || overview {
                 continue;
             }
             let available = action.availability.is_available();
             let checkbox = super::boolean_choice::selected(face, index);
+            if boolean_choice
+                && checkbox.is_none()
+                && action.disclosure != FaceDisclosureLevel::Primary
+            {
+                continue;
+            }
             let label = if checkbox.is_some() {
                 &subject.name
             } else {
