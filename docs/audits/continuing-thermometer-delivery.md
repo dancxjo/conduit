@@ -24,6 +24,20 @@ in its original process after more than 21 hours. Retained signed evidence and
 a current/history projection remain distinct from committing those observations
 into the Body's selected recording.
 
+A subsequent fresh-process recovery on 30 October verified the current signed
+epoch through sequence 845. An immutable private snapshot of saved batch files
+was reopened by the existing qualified `54369019e7bb0c8f05a73638d2b468b7dddb1fdf`
+collector using `--record-joined ... --once`, the original independently admitted
+binding and Blue's `.local` HTTP endpoint. It verified the signed directory and
+complete prefix, reporting one authenticated epoch; all 844 batch files in that
+epoch matched the continuing collector byte-for-byte. This profile sends no
+custody ACK. No UART, firmware, Body membership or selected recording was changed.
+The original command's Boot label differs from this signed epoch; a plaintext
+current Boot name is not inferred from the old pin. Evidence is retained under
+the task's `work/evidence/blue-history-fresh-process-20261030` directory. This is
+real saved-evidence recovery, not selected-recorder commitment or a complete
+network-interruption acceptance result.
+
 The next integration belongs to the existing joining/recording lane (#6461),
 using Root-owned workset renewal. `admit_plot` and complete verified proposals
 require the authoritative Lulled Body, current membership and real reservations;
