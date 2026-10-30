@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [features]
+observed-recording = ["conduit-environment-runtime/face-projection"]
 installed-seed = ["dep:conduit-std-host", "dep:conduit-body"]
 
 [dependencies]

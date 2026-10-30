@@ -65,7 +65,7 @@ static_cell = "=2.1.1"
 [target.'cfg(target_os = "linux")'.dev-dependencies]
 conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
 conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
-conduit-environment-linux = { path = "../linux" }
+conduit-environment-linux = { path = "../linux", features = ["observed-recording"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 conduit-std-host = { path = "../../../targets/std", default-features = false, optional = true }

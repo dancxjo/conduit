@@ -416,6 +416,15 @@ name = "conduit-emergency-keyword-spotter"
 version = "0.1.0"
 
 [[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-measurement",
+ "conduit-face",
+]
+
+[[package]]
 name = "conduit-environment-linux"
 version = "0.1.0"
 dependencies = [
@@ -444,7 +453,9 @@ dependencies = [
  "conduit-composite",
  "conduit-computation",
  "conduit-core",
+ "conduit-environment-face",
  "conduit-environment-measurement",
+ "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",

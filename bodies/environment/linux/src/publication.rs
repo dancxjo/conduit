@@ -279,6 +279,24 @@ impl<'a> PreparedFileRecordingPublication<'a> {
             .append_publication(input, snapshot, at_boot_ms)
             .map_err(FilePublicationRefusal::Content)
     }
+    /// Stage one independently authenticated producer observation in the
+    /// preallocated generation. Its sequence and producer-observed Boot time
+    /// remain unchanged. This is neither acquisition-time evidence nor a
+    /// durable ACK; only the ordinary publication commit advances the observer.
+    #[cfg(feature = "observed-recording")]
+    pub fn append_observed(
+        &mut self,
+        active: &c::ActivePlayIdentity,
+        record: &conduit_environment_runtime::observed_record::ObservedRecord,
+    ) -> Result<conduit_environment_runtime::recording::ChunkAppend, FilePublicationRefusal> {
+        self.current(active)?;
+        if !self.accepting {
+            return Err(FilePublicationRefusal::Shape);
+        }
+        self.encoder
+            .append_observed(record)
+            .map_err(FilePublicationRefusal::Content)
+    }
     /// Admit exactly the retained, sealed chunk once through the checked Fore.
     /// A Full result advances neither ingress sequence nor this custody marker.
     pub fn admit(

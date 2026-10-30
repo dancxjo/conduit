@@ -224,7 +224,7 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "recording-checkpoint.seed-owner-lint",
-        "Lint optional installed durable-seed recovery",
+        "Lint optional installed durable-seed recovery and observed-record ingress",
         "cargo",
         &[
             "clippy",
@@ -232,7 +232,7 @@ pub const STEPS: &[Step] = &[
             "--manifest-path",
             "bodies/environment/linux/Cargo.toml",
             "--features",
-            "installed-seed",
+            "installed-seed,observed-recording",
             "--all-targets",
             "--",
             "-D",
