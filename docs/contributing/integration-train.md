@@ -179,16 +179,19 @@ mutation retry. Existing evidence and ambiguous outcomes require inspection.
 The existing dev policy requires a PR and exempts administrators; that policy
 cannot authorize this direct landing path. Before live train landing, an
 explicit branch-policy migration must require the distinct Actions-owned
-`train-accepted` check, require its enforcement for administrators, and replace the
+`train-proof` commit status, require its enforcement for administrators, and replace the
 PR requirement with exact train admission. Exact-proof protection alone does not
 establish exclusive machine writer authority; the separate update ruleset above
 must also be installed and verified. This command refuses the old policy
 and does not change it itself. A server rejection remains terminal. A returned landing receipt is not stable publication.
 
-Integration now earns the protected `train-accepted` context from its exhaustive
+Integration now earns the protected `train-proof` commit status from its exhaustive
 proof. The aggregate runs even after a guard refusal or cancelled dependency and
 accepts only successful exhaustive proof or authenticated exact-source train
-adoption. Ordinary Candidate success cannot satisfy this context. This
+adoption. Its final success-only step reports the distinct Actions-authored
+commit status, binding the current source, run and attempt; manual job checks
+alone are not eligible branch gates. The controller also retains its original
+exact-suite `train-accepted` job-check verification. Ordinary Candidate success cannot satisfy this context. This
 does not authenticate a caller-provided product bundle. Landing requires the
 archive authentication, producer custody and live checks above; local receipt
 hashes alone cannot authorize it. Full train acceptance and publication reuse

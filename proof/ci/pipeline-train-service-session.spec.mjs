@@ -22,7 +22,7 @@ async function setup(t){
   selected.candidateJobs={total_count:3,jobs:[['cheap-input/v1','success'],['candidate','success'],['proof','skipped']].map(([name,conclusion],i)=>({id:run.id*100+i,run_id:run.id,run_attempt:run.run_attempt,head_sha:run.head_sha,status:'completed',name,conclusion}))};
  }
  const integration={id:1000,run_attempt:1,repository:repo,head_repository:repo,head_sha:f.base,head_branch:'dev',path:'.github/workflows/integration.yml',event:'push',status:'completed',conclusion:'success'};
- const protection={required_status_checks:{contexts:['train-accepted'],checks:[{context:'train-accepted',app_id:15368}],strict:false},required_pull_request_reviews:null,enforce_admins:{enabled:true},allow_force_pushes:{enabled:false},allow_deletions:{enabled:false}};
+ const protection={required_status_checks:{contexts:['train-proof'],checks:[{context:'train-proof',app_id:15368}],strict:false},required_pull_request_reviews:null,enforce_admins:{enabled:true},allow_force_pushes:{enabled:false},allow_deletions:{enabled:false}};
  const state={minted:0,revoked:0,appReads:0,ownerReads:0,machineReads:0,revokeFailure:false,metadataFailure:false};
  const environment={PATH:'/fixture/no-executables',GH_TOKEN:'fixture-human',GITHUB_TOKEN:'fixture-actions',FIXTURE_OWNER:'fixture-owner',GH_HOST:'untrusted.invalid'};
  const metadata=endpoint=>{
