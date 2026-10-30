@@ -66,6 +66,9 @@ struct Archive {
     end: Vec<u8>,
 }
 impl HistoryProvider for Archive {
+    fn retained_layout_bytes(&self) -> usize {
+        std::mem::size_of::<Self>() + self.zero.capacity() + self.end.capacity()
+    }
     fn read_signed_batch(
         &mut self,
         cursor: u32,

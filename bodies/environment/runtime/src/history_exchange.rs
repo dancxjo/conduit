@@ -19,6 +19,10 @@ pub enum HistoryProviderRefusal {
 }
 /// Independent finite retained evidence provider; no retry or transport policy.
 pub trait HistoryProvider {
+    /// Stable owned layout bytes retained until retirement, including this
+    /// provider's inline state and heap backing. Native admission additionally
+    /// owns allocator overhead and the surrounding execution/kernel envelope.
+    fn retained_layout_bytes(&self) -> usize;
     fn read_signed_batch(
         &mut self,
         cursor: u32,
@@ -33,3 +37,12 @@ mod kernel_tests;
 mod test_support;
 #[cfg(test)]
 mod tests;
+
+/// Mandatory lower bound for provider retention plus the fixed raw output.
+/// This does not grant memory or account for the surrounding execution kernel.
+pub fn minimum_attachment_bytes(provider: &impl HistoryProvider) -> Option<u64> {
+    provider
+        .retained_layout_bytes()
+        .checked_add(MAXIMUM_SIGNED_BATCH_BYTES)
+        .and_then(|bytes| u64::try_from(bytes).ok())
+}

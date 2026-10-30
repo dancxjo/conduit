@@ -2,7 +2,7 @@
 use super::{
     contract::{HistoryReadContract, HISTORY_CALL, HISTORY_MAXIMUM_BYTES},
     owner::{HistoryAttachment, HistoryCallRefusal, HistoryCallSelection, HistoryHostCall},
-    HistoryProvider, MAXIMUM_SIGNED_BATCH_BYTES,
+    HistoryProvider,
 };
 use alloc::vec;
 use conduit_core::*;
@@ -36,6 +36,7 @@ pub enum HistoryInstallationRefusal {
     InvalidIdentity,
     WrongBoot,
     Advertisement,
+    InsufficientBacking,
 }
 impl<P: HistoryProvider> ReadyHistoryBase<P> {
     /// Retain an exclusively owned, configured evidence provider before planning.
@@ -60,9 +61,13 @@ impl<P: HistoryProvider> ReadyHistoryBase<P> {
             || identity.envelope_id.as_str().is_empty()
             || identity.artifact_id.as_str().is_empty()
             || attachment.generation == 0
-            || attachment.resource_bytes < MAXIMUM_SIGNED_BATCH_BYTES as u64
         {
             return Err(HistoryInstallationRefusal::InvalidIdentity);
+        }
+        if super::minimum_attachment_bytes(&provider)
+            .is_none_or(|required| attachment.resource_bytes < required)
+        {
+            return Err(HistoryInstallationRefusal::InsufficientBacking);
         }
         Ok(Self {
             identity,

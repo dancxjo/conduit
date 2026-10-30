@@ -66,7 +66,8 @@ impl<P: HistoryProvider> HistoryHostCall<P> {
             || claim.parameter_bytes != HISTORY_MAXIMUM_BYTES
             || claim.work_units != 1
             || attachment.generation == 0
-            || attachment.resource_bytes < MAXIMUM_SIGNED_BATCH_BYTES as u64
+            || super::minimum_attachment_bytes(&provider)
+                .is_none_or(|required| attachment.resource_bytes < required)
         {
             return Err(HistoryCallRefusal::Possession);
         }

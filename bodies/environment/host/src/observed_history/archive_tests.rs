@@ -205,6 +205,10 @@ fn physical_retained_batches_preserve_original_signed_bytes() {
             },
         )
         .unwrap();
+    let required =
+        conduit_environment_runtime::history_exchange::minimum_attachment_bytes(&archive).unwrap();
+    assert_eq!(required, (archive.retained_layout_bytes() + 2048) as u64);
+    println!("physical retained provider: mandatory-provider-and-output-bytes={required}; surrounding-owner/allocator/kernel admission separate");
     let cursors: Vec<_> = archive.entries.iter().map(|entry| entry.after).collect();
     let mut output = [0; 2048];
     let mut digest = Sha256::new();

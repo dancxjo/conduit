@@ -51,6 +51,16 @@ pub(super) fn bind(
     active: &ActivePlayIdentity,
     placement: &PlacementId,
 ) -> Result<HistoryHostCall<Provider>, HistoryCallRefusal> {
+    bind_provider(fragment, lowered, active, placement, Provider, 4096)
+}
+fn bind_provider<P: HistoryProvider>(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    active: &ActivePlayIdentity,
+    placement: &PlacementId,
+    provider: P,
+    resource_bytes: u64,
+) -> Result<HistoryHostCall<P>, HistoryCallRefusal> {
     let mut scope = scope();
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
@@ -111,9 +121,9 @@ pub(super) fn bind(
             claim,
             HistoryAttachment {
                 generation: 7,
-                resource_bytes: 4096,
+                resource_bytes,
             },
-            Provider,
+            provider,
             HistoryCallSelection {
                 contract: &HistoryReadContract::prepare().unwrap(),
                 fragment,
@@ -128,6 +138,9 @@ pub(super) fn bind(
 #[derive(Default)]
 pub(super) struct Provider;
 impl HistoryProvider for Provider {
+    fn retained_layout_bytes(&self) -> usize {
+        core::mem::size_of::<Self>()
+    }
     fn read_signed_batch(
         &mut self,
         cursor: u32,
@@ -171,4 +184,105 @@ fn changed_play_refuses_before_read() {
     let (fragment, lowered, mut active, placement) = selected();
     active.active_play_id = conduit_core::ActivePlayId::from("wrong/play");
     assert!(bind(&fragment, &lowered, &active, &placement).is_err());
+}
+
+struct ReportedRetention(usize);
+impl HistoryProvider for ReportedRetention {
+    fn retained_layout_bytes(&self) -> usize {
+        self.0
+    }
+    fn read_signed_batch(
+        &mut self,
+        _: u32,
+        _: &mut [u8; 2048],
+    ) -> Result<usize, HistoryProviderRefusal> {
+        panic!("admission cannot perform a provider read")
+    }
+    fn revoke(&mut self) {}
+}
+fn native_identity() -> installation::HistoryNativeIdentity {
+    installation::HistoryNativeIdentity {
+        host_id: "host/retained".into(),
+        boot_id: "boot/retained".into(),
+        base_id: "base/retained".into(),
+        provider_instance_id: "provider/retained".into(),
+        provider_generation: 1,
+        resource_pool_id: "resource/retained".into(),
+        resource_generation_id: ResourceGenerationId("generation/retained".into()),
+        envelope_id: "envelope/retained".into(),
+        artifact_id: "artifact/retained".into(),
+    }
+}
+#[test]
+fn ready_refuses_retained_backing_shortage_and_overflow_before_publication() {
+    let required = minimum_attachment_bytes(&ReportedRetention(8192)).unwrap();
+    for bytes in [0, 2048, required - 1] {
+        // SAFETY: isolated fixture owns this declared retention and no effects.
+        assert!(matches!(
+            unsafe {
+                installation::ReadyHistoryBase::new(
+                    native_identity(),
+                    HistoryAttachment {
+                        generation: 1,
+                        resource_bytes: bytes,
+                    },
+                    ReportedRetention(8192),
+                )
+            },
+            Err(installation::HistoryInstallationRefusal::InsufficientBacking)
+        ));
+    }
+    assert!(unsafe {
+        installation::ReadyHistoryBase::new(
+            native_identity(),
+            HistoryAttachment {
+                generation: 1,
+                resource_bytes: required,
+            },
+            ReportedRetention(8192),
+        )
+    }
+    .is_ok());
+    assert_eq!(
+        minimum_attachment_bytes(&ReportedRetention(usize::MAX)),
+        None
+    );
+    assert!(matches!(
+        unsafe {
+            installation::ReadyHistoryBase::new(
+                native_identity(),
+                HistoryAttachment {
+                    generation: 1,
+                    resource_bytes: u64::MAX,
+                },
+                ReportedRetention(usize::MAX),
+            )
+        },
+        Err(installation::HistoryInstallationRefusal::InsufficientBacking)
+    ));
+}
+#[test]
+fn selected_binding_also_refuses_provider_retention_without_read_or_grant_growth() {
+    let (fragment, lowered, active, placement) = selected();
+    let required = minimum_attachment_bytes(&ReportedRetention(8192)).unwrap();
+    assert!(matches!(
+        bind_provider(
+            &fragment,
+            &lowered,
+            &active,
+            &placement,
+            ReportedRetention(8192),
+            required - 1
+        ),
+        Err(HistoryCallRefusal::Possession)
+    ));
+    assert!(bind_provider(
+        &fragment,
+        &lowered,
+        &active,
+        &placement,
+        ReportedRetention(8192),
+        required
+    )
+    .is_ok());
 }

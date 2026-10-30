@@ -116,6 +116,9 @@ impl Archive {
     }
 }
 impl HistoryProvider for Archive {
+    fn retained_layout_bytes(&self) -> usize {
+        Archive::retained_layout_bytes(self)
+    }
     fn read_signed_batch(
         &mut self,
         cursor: u32,
