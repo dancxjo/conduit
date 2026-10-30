@@ -84,6 +84,7 @@ pub async fn run(
     };
     let mut initialized = false;
     let mut last_sample = None;
+    let mut prepared = None;
     let mut delay = Delay;
     loop {
         if last_sample.is_none_or(|at: Instant| at.elapsed() >= Duration::from_secs(30)) {
@@ -118,6 +119,10 @@ pub async fn run(
             if reading.is_none() {
                 sensor = Sensor::new(sensor.into_inner(), address);
             }
+            let s = critical_section::with(|cs| *STATE.borrow(cs).borrow());
+            prepared = s
+                .reading
+                .and_then(|r| crate::environment_show::prepare(r, s.samples).ok());
         }
         if !initialized {
             initialized = matches!(
@@ -129,13 +134,11 @@ pub async fn run(
                 Ok(Ok(()))
             );
         }
-        let snapshot = critical_section::with(|cs| *STATE.borrow(cs).borrow());
-        let frame = snapshot
-            .reading
-            .and_then(|r| {
+        let frame = prepared
+            .as_ref()
+            .and_then(|show| {
                 crate::environment_show::frame(
-                    r,
-                    snapshot.samples,
+                    show,
                     last_sample.map_or(30_000, |at| at.elapsed().as_millis()),
                 )
                 .ok()
