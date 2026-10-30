@@ -49,11 +49,9 @@ async fn http(stack: Stack<'static>) -> Result<(), ()> {
         }
         let close_deadline = Instant::now() + Duration::from_secs(1);
         socket.close();
-        let _ = with_timeout(
-            close_deadline.saturating_duration_since(Instant::now()),
-            socket.flush(),
-        )
-        .await;
+        // Reserve half of the unchanged close budget for flushing the reset.
+        // A peer withholding its FIN acknowledgment cannot spend that reserve.
+        let _ = with_timeout(Duration::from_millis(500), socket.flush()).await;
         socket.abort();
         // abort queues a reset; flush it before accepting another connection.
         // Both phases spend the same absolute close budget. A failure retires
