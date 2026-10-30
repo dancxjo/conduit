@@ -33,9 +33,10 @@ mod generated {
     }
 }
 pub use generated::{
-    AvailabilityBasis, AvailabilityInterval, AvailabilityState, CalendarEvent, CalendarEventTime,
+    AvailabilityBasis, AvailabilityInterval, AvailabilityState, CalendarDateIntent, CalendarEvent,
+    CalendarEventTime,
     CalendarRefusal, CandidateConflict, CivilFoldPolicy, CivilGapPolicy, CivilResolutionChoice,
-    CivilResolutionPolicy, CivilTrigger, ClockChangeBehavior, ElapsedTrigger,
+    CivilResolutionPolicy, CivilTrigger, ClockChangeBehavior, DeadlineIntent, ElapsedTrigger,
     HistoricalEntryOrigin, HistoricalEntryOriginForm, HistoricalOverflowPolicy,
     HistoricalOverflowPolicyForm, HistoricalReplayEntry, HistoricalRetentionGap,
     HistoricalTimelineCommand, HistoricalTimelineCommandAppend, HistoricalTimelineCommandRemove,
@@ -45,6 +46,7 @@ pub use generated::{
     MeetingProposalRequest, MissedOccurrencePolicy, MonotonicClockIdentity, MonotonicDuration,
     MonotonicInstant, NamedPatternTemplate, NamedPatternTemplateCommand,
     NamedPatternTemplateResult, NamedPatternTemplateSlot, NamedPatternTemplateSlots, NamedTimeZone,
+    ObservanceWindowIntent,
     NormalizedDurationSequence, OccurrenceInstant, OwnedReplayEvent, Participant,
     ParticipantAvailability, ParticipantRole, PatternComparison, PatternComparisonRefusal,
     ProposedMeetingSlot, PulseObservation, RecurrenceDefinition, RecurrenceExpansion,
@@ -52,9 +54,11 @@ pub use generated::{
     RejectedMeetingSlot, ReminderOccurrence, ReminderSpecification, ReplayCommand,
     ReplayCommandFail, ReplayPolicy, ReplayPolicyRate, ReplayState, ReplayStateFailed, RhythmState,
     ScheduleAssessment, ScheduleEffectIntent, ScheduleRefusal, ScheduleWorkflowLifecycle,
+    SolarLandmark,
     ScheduledIntentRefusal, ScheduledOccurrenceDecision, SequenceNormalizationRefusal,
     SuspendBehavior, SynchronizationOutcome, SynchronizationOutcomeAdjusted,
-    TemplateCollectionRefusal, TemporalBoundary, TemporalInstant, TemporalScale, TemporalWindow,
+    TemplateCollectionRefusal, TemporalBoundary, TemporalInstant, TemporalLandmark,
+    TemporalScale, TemporalWindow,
     TemporalWindowPosition, TemporalWindowRefusal, TimedCalendarSpan, TimedEventSequence,
     TimedPatternRefusal, TriggerObservation, TriggerProfile, WeekdaySet, WorkflowLifecycle,
     WorkflowTimingOutcome, WorkflowTimingOutcomeClockUncertain, WorkflowTimingOutcomeLate,
