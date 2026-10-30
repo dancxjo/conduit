@@ -721,3 +721,7 @@ fn dormant_mask_request_continuation_is_checked_without_resetting_provider() {
 }
 #[path = "native_mask_renderer/replacement.rs"]
 mod replacement;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_offer_order.rs"]
+mod native_offer_order;
+#[path = "native_mask_renderer/scoped_offer.rs"]
+mod scoped_offer;

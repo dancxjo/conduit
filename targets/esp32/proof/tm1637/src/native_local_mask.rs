@@ -340,14 +340,11 @@ impl NativeRoot {
     fn prepare_local_mask_plan(&mut self) -> Result<c::VerifiedPlanMetadata, &'static str> {
         let image = image()?;
         let boundary = material::planning_boundary().map_err(|_| "local-mask-boundary")?;
-        let mut host = self.advertisement().map_err(|_| "local-mask-host")?;
         // Actual initialized renderer and compiled routing factories only. Other
-        // retained Root providers keep custody but are not candidates here.
-        host.capabilities = alloc::vec::Vec::new();
-        host.resources = alloc::vec::Vec::new();
-        host.bases = alloc::vec::Vec::new();
-        self.display
-            .append_to_advertisement(&mut host)
+        // retained Root providers keep custody but are not candidates here. Do
+        // not decode their contracts merely to discard them before selection.
+        let mut host = self
+            .display_native_advertisement()
             .map_err(|_| "local-mask-renderer")?;
         self.display.append_software_offers(&mut host);
         mark("ordinary-mask-current-offers", host.capabilities.len());
