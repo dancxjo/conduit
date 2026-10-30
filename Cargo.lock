@@ -2906,6 +2906,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-zenoh-pico-platform"
+version = "0.1.0"
+
+[[package]]
 name = "conduitos"
 version = "0.1.0"
 dependencies = [

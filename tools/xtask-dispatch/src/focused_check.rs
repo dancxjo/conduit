@@ -38,6 +38,9 @@ mod resource_snapshot;
 #[path = "../../xtask/src/suites/tm1637_output.rs"]
 mod tm1637_output;
 
+#[path = "../../xtask/src/suites/zenoh_platform.rs"]
+mod zenoh_platform;
+
 struct Suite {
     steps: &'static [Step],
     path: &'static str,
@@ -46,6 +49,11 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "zenoh-platform" => Some(Suite {
+            steps: zenoh_platform::STEPS,
+            path: "tools/xtask/src/suites/zenoh_platform.rs",
+            source: include_bytes!("../../xtask/src/suites/zenoh_platform.rs"),
+        }),
         [check, suite] if check == "check" && suite == "recording-checkpoint" => Some(Suite {
             steps: recording_checkpoint::STEPS,
             path: "tools/xtask/src/suites/recording_checkpoint.rs",
@@ -200,6 +208,7 @@ mod tests {
             ("recording-files", recording_files::STEPS),
             ("recording-seed", recording_seed::STEPS),
             ("recording-checkpoint", recording_checkpoint::STEPS),
+            ("zenoh-platform", zenoh_platform::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),

@@ -47,6 +47,7 @@ members = [
 	"mechanisms/io/i2c-transaction",
 	"mechanisms/io/resource-snapshot",
 	"mechanisms/io/device-carrier-protocol",
+	"mechanisms/io/zenoh-pico-platform",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",

@@ -58,6 +58,8 @@ pub enum CheckSuite {
     RecordingSeed,
     /// Check actual snapshot publication before Body-durable catalog selection.
     RecordingCheckpoint,
+    /// Finite Zenoh platform handoff; no actual transport or hardware claim.
+    ZenohPlatform,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,

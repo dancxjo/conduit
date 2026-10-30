@@ -60,6 +60,8 @@ mod speech_ipa;
 mod todo;
 #[path = "../suites/todo_speech.rs"]
 mod todo_speech;
+#[path = "../suites/zenoh_platform.rs"]
+mod zenoh_platform;
 
 use crate::{
     cli::GlobalOpts,
@@ -132,6 +134,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::LinuxSnapshot => run_suite(linux_snapshot::STEPS, &root, opts),
         CheckSuite::RecordingFiles => run_suite(recording_files::STEPS, &root, opts),
         CheckSuite::RecordingSeed => run_suite(recording_seed::STEPS, &root, opts),
+        CheckSuite::ZenohPlatform => run_suite(zenoh_platform::STEPS, &root, opts),
         CheckSuite::RecordingCheckpoint => run_suite(recording_checkpoint::STEPS, &root, opts),
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
         CheckSuite::ExpressionBaseline => run_suite(expression_baseline::STEPS, &root, opts),
