@@ -9,7 +9,7 @@ pub(super) struct ChartLayout {
 }
 impl ChartLayout {
     pub fn new(width: u16, height: u16) -> Result<Self, GraphicsError> {
-        if width < 640 || height < 360 || width > i16::MAX as u16 || height > i16::MAX as u16 {
+        if width < 320 || height < 360 || width > i16::MAX as u16 || height > i16::MAX as u16 {
             return Err(GraphicsError::InvalidGeometry);
         }
         let panel = (height as i16 - 88) / 2;

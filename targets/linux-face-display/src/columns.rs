@@ -1,6 +1,10 @@
 //! Fixed spatial composition of the existing report and retained-history Masks.
 use conduit_face::{Face, GraphicsScene};
 
+pub struct Presentation<'a> {
+    pub unit: Option<conduit_core::Unit>,
+    pub look: Option<&'a conduit_face::LookInfo>,
+}
 pub struct Columns {
     pub report_width: u16,
     pub history_width: u16,
@@ -9,14 +13,19 @@ pub struct Columns {
     report: Vec<u32>,
     history: Vec<u32>,
 }
-const GAP: u16 = 12;
+pub const GAP: u16 = 12;
 impl Columns {
     pub fn new(width: u16, height: u16) -> Option<Self> {
-        if width < 972 || height < 396 {
+        if width < 972 {
             return None;
         }
-        let report_width = (u32::from(width) * 36 / 100) as u16;
-        let report_width = report_width.min(width - 640 - GAP);
+        Self::at_divider(width, height, (u32::from(width) * 36 / 100) as u16)
+    }
+    pub fn at_divider(width: u16, height: u16, requested: u16) -> Option<Self> {
+        if width < 652 || height < 396 {
+            return None;
+        }
+        let report_width = requested.clamp(320, width - 320 - GAP);
         let history_width = width - report_width - GAP;
         Some(Self {
             report_width,
@@ -27,6 +36,7 @@ impl Columns {
             history: vec![0; usize::from(history_width) * usize::from(height)],
         })
     }
+    #[cfg(test)]
     pub fn render(
         &mut self,
         face: Face,
@@ -36,41 +46,74 @@ impl Columns {
         notices: Notices<'_>,
         pixels: &mut [u32],
     ) -> Result<(), String> {
+        self.render_with_palette(
+            face,
+            history,
+            tick,
+            Presentation {
+                unit: preferred,
+                look: None,
+            },
+            notices,
+            pixels,
+        )
+    }
+    pub fn render_with_palette(
+        &mut self,
+        face: Face,
+        history: Option<&GraphicsScene>,
+        tick: usize,
+        presentation: Presentation<'_>,
+        notices: Notices<'_>,
+        pixels: &mut [u32],
+    ) -> Result<(), String> {
+        let preferred = presentation.unit;
+        let look = presentation.look;
         if pixels.len() != usize::from(self.width) * usize::from(self.height) {
             return Err("column raster extent mismatch".into());
         }
-        crate::view::render(
+        crate::view::render_with_palette(
             face,
             self.report_width,
             self.height,
             tick,
             &mut self.report,
             preferred,
+            look,
         )?;
         if let Some(notice) = notices.report {
-            crate::view::render_notice(notice, self.report_width, self.height, &mut self.report)?;
+            crate::view::render_notice_with_palette(
+                notice,
+                self.report_width,
+                self.height,
+                &mut self.report,
+                look,
+            )?;
         }
         if let Some(scene) = history {
-            crate::view::render_graphics(
+            crate::view::render_graphics_with_palette(
                 scene,
                 self.history_width,
                 self.height,
                 &mut self.history,
+                look,
             )?;
-            crate::view::render_notice(
+            crate::view::render_notice_with_palette(
                 notices.history,
                 self.history_width,
                 self.height,
                 &mut self.history,
+                look,
             )?;
         } else {
-            crate::view::render(
+            crate::view::render_with_palette(
                 crate::view::unavailable("Waiting for retained history"),
                 self.history_width,
                 self.height,
                 0,
                 &mut self.history,
                 preferred,
+                look,
             )?;
         }
         pixels.fill(0x242a32);
