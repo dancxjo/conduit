@@ -83,6 +83,15 @@ impl Continuing {
     pub(crate) fn due(&self) -> Option<Instant> {
         (!self.disabled).then_some(self.next)
     }
+    /// Called only after canonical return verifies. An idle refused lane may
+    /// resume, but a possibly accepted signed request keeps its original owner
+    /// and bytes; a new credential is not authority to replace that request.
+    pub(crate) fn membership_returned(&mut self) {
+        if self.pending.is_none() {
+            self.disabled = false;
+            self.next = Instant::now();
+        }
+    }
     pub(crate) fn tick(&mut self, binding: &Path, continuity: &Path, peer: &str, history: &Path) {
         if self.disabled || Instant::now() < self.next {
             return;
@@ -304,6 +313,18 @@ fn verify_receipt(
 mod producer_queue;
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn verified_return_resumes_idle_lane_but_preserves_possibly_accepted_request() {
+        let mut lane = super::Continuing::new();
+        lane.disabled = true;
+        lane.membership_returned();
+        assert!(lane.due().is_some());
+        lane.disabled = true;
+        lane.pending = Some((vec![1, 2], vec![3, 4]));
+        lane.membership_returned();
+        assert!(lane.due().is_none());
+        assert_eq!(lane.pending, Some((vec![1, 2], vec![3, 4])));
+    }
     use super::*;
     use ed25519_dalek::{Signer, SigningKey};
     use sha2::{Digest, Sha256};

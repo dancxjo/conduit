@@ -187,6 +187,7 @@ fn main() -> Result<()> {
             )
         };
     }
+    let return_options = body_join::automatic_return::take_options(&mut args)?;
     let projection_args = if matches!(
         args.get(1).map(String::as_str),
         Some("--record-joined" | "--record-joined-continuing")
@@ -234,6 +235,7 @@ fn main() -> Result<()> {
                 private_run: std::path::Path::new(&args[7]),
             }),
             projection,
+            return_options,
         );
     }
     if args

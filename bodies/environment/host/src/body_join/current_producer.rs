@@ -6,6 +6,25 @@ use std::net::ToSocketAddrs;
 #[path = "current_producer_retry.rs"]
 mod retry;
 
+/// An untrusted transport hint to attempt the canonical signed handshake.
+/// This error is never evidence of admission or of an actual Root restart.
+#[derive(Debug)]
+pub(crate) struct ReturnRequired;
+impl std::fmt::Display for ReturnRequired {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("current producer requires observer continuity return")
+    }
+}
+impl std::error::Error for ReturnRequired {}
+fn refusal(status: u16, bytes: &[u8]) -> Box<dyn std::error::Error> {
+    let reason = super::refusal_reason(bytes);
+    if status == 403 && reason == "observer-recovery-continuity" {
+        Box::new(ReturnRequired)
+    } else {
+        format!("current producer HTTP {status} ({reason})").into()
+    }
+}
+
 pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Result<String> {
     let binding = crate::local_recorder::validated_binding(binding_path)?;
     let bootstrap: Bootstrap = load(continuity)?;
@@ -59,11 +78,7 @@ pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Resul
     };
     let (status, bytes) = exchange("POST", "/body/join", &payload)?;
     if status != 202 {
-        return Err(format!(
-            "current producer submission HTTP {status} ({})",
-            super::refusal_reason(&bytes)
-        )
-        .into());
+        return Err(refusal(status, &bytes));
     }
     let ticket: Ticket = serde_json::from_slice(&bytes)?;
     if ticket.schema != "conduit.environment/body-join-queued@1" || ticket.ticket == 0 {
@@ -80,11 +95,7 @@ pub(crate) fn probe(binding_path: &Path, continuity: &Path, peer: &str) -> Resul
             return verified_boot(&binding, &request, &receipt);
         }
         if status != 202 {
-            return Err(format!(
-                "current producer result HTTP {status} ({})",
-                super::refusal_reason(&bytes)
-            )
-            .into());
+            return Err(refusal(status, &bytes));
         }
         let pending: Ticket = serde_json::from_slice(&bytes)?;
         if pending.schema != ticket.schema || pending.ticket != ticket.ticket {
@@ -117,4 +128,21 @@ fn verified_boot(
         return Err("current producer receipt identity differs".into());
     }
     Ok(receipt.producer_boot.as_str().to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn only_exact_continuity_refusal_is_a_return_hint() {
+        let bytes = br#"{"schema":"conduit.environment/body-join-refused@1","reason":"observer-recovery-continuity"}"#;
+        assert!(refusal(403, bytes).is::<ReturnRequired>());
+        assert!(!refusal(500, bytes).is::<ReturnRequired>());
+        assert!(!refusal(403, b"untrusted server error").is::<ReturnRequired>());
+        assert!(!refusal(
+            403,
+            br#"{"schema":"other","reason":"observer-recovery-continuity"}"#
+        )
+        .is::<ReturnRequired>());
+    }
 }

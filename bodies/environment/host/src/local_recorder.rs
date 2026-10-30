@@ -202,6 +202,7 @@ pub(crate) fn run_joined_continuing(
     directory: &Path,
     network: Option<network::Options<'_>>,
     projection: Option<crate::observed_history::retained::Projection<'_>>,
+    return_options: Option<crate::body_join::automatic_return::Options>,
 ) -> Result<()> {
     let peers = continuing_peers(peer)?;
     let collector = admitted_collector(binding)?;
@@ -214,7 +215,7 @@ pub(crate) fn run_joined_continuing(
         peers,
         directory,
         false,
-        Some((binding, continuity)),
+        Some(foreground::Custody { binding, continuity, return_options }),
         network
             .map(|options| network::Network::open(binding, continuity, options))
             .transpose()?,

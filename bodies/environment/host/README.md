@@ -24,7 +24,7 @@ conduit-environment-host --return-observer PRIVATE_STATE/recorder-binding.json P
 
 The command authenticates the Root's return challenge, signs the canonical part-return proof, verifies the returned membership receipt, and writes `NEW_PRIVATE_STATE/recorder-binding.json`. It preserves the original binding and does not restart an existing recorder. Select the new binding explicitly when starting its replacement. Run this on the original Linux machine: its `/etc/machine-id` must match the admitted Host identity.
 
-Retry with the same output directory after interrupted transport. The retained advertisement preserves the fresh Boot and the signed completion request; read-only recovery can retrieve a committed return whose reply was lost. A completed output directory is idempotent. If an uncommitted challenge expires, the command refuses; start a separately named return attempt rather than editing its retained signed material. A further new Boot also requires a new output directory.
+Retry with the same output directory after interrupted transport. The retained advertisement preserves the fresh Boot and the signed completion request; read-only recovery can retrieve a committed return whose reply was lost. A completed output directory is idempotent. Up to eight immutable challenge rounds may reconcile signed expiry or a signed authority restart; a local timeout cannot renew a challenge. Exhaustion refuses without editing the retained proofs. A further new observer Boot requires a new output directory.
 
 For a browser, generate a private local helper and run the loopback proof proxy on that browser's machine:
 
@@ -56,3 +56,33 @@ establish shared clock synchronization or commit observations to a selected reco
 the same bounded read-only probe without changing the collector or its projection.
 Success reports the authenticated producer Boot; failure retains only the HTTP
 status and bounded public refusal code in its diagnostic.
+
+## Finite automatic observer return
+
+An operator can explicitly reserve return-state capacity for the continuing collector:
+
+```sh
+conduit-environment-host --record-joined-continuing ORIGINAL_BINDING PRIVATE_CONTINUITY HISTORY_DIRECTORY HOST:PORT --retained-projection current PRIVATE_OUTPUT --observer-return PRIVATE_RETURN_DIRECTORY 8
+```
+
+The capacity must be 1 through 8. Its private immutable manifest pins the exact
+original binding, continuity input and capacity; restarting the collector cannot
+replenish it. Each successful canonical return retains a separate immutable
+binding. Interrupted attempts resume the same advertisement, Boot and proofs.
+Completed generations reopen locally without a transport entrance. Capacity
+exhaustion leaves collection and the last verified view available.
+
+Only the exact continuity-refusal code schedules a return attempt. That unsigned
+HTTP response is a hint, not evidence of a restart or authority: the existing
+Root-signed challenge and receipt checks still gate every credential change.
+Collection runs before recovery; each return step has one three-second socket
+budget. DNS, local signature verification and durable file operations remain
+synchronous, so this is not a hard real-time deadline.
+
+New observation requests use the verified returned binding. Already signed
+requests and a pinned network-custody transaction keep their original bytes and
+owner; return cannot authorize their replacement or renew an ACK window. An
+idle observation-custody lane can resume after verified return; an unresolved
+possibly accepted request still requires explicit reconciliation. This is a
+finite host-tool recovery policy, not proof of an installed selected recorder,
+execution-Host admission, or a checked HostDescription storage grant.

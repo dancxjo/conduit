@@ -56,8 +56,8 @@ impl Projection<'_> {
         directory: &Path,
         continuity: Option<&Path>,
         peer: &str,
-    ) {
-        let result = if self.producer_boot == "current" {
+    ) -> Result<()> {
+        if self.producer_boot == "current" {
             (|| {
                 let continuity = continuity
                     .ok_or("current projection requires continuing membership custody")?;
@@ -70,9 +70,6 @@ impl Projection<'_> {
             })()
         } else {
             self.refresh(binding, directory)
-        };
-        if let Err(error) = result {
-            eprintln!("retained projection unchanged: {error}");
         }
     }
 }

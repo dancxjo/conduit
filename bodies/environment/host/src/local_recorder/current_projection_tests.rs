@@ -103,7 +103,7 @@ fn fresh_membership_recovery_selects_boot_and_replayed_nonce_preserves_view() {
                 }
             }
         });
-        Projection {
+        let _ = Projection {
             producer_boot: "current",
             output: &f.output,
         }

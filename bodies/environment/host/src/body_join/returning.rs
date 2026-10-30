@@ -100,8 +100,6 @@ fn advertisement(old: &MembershipCredential, boot: conduit_core::BootId) -> Host
 }
 #[path = "return_exchange.rs"]
 mod return_exchange;
-#[cfg(test)]
-use return_exchange::exchange;
 
 fn query(bootstrap: &Bootstrap, ad: &HostAdvertisement, nonce: [u8; 32]) -> recovery::Request {
     let mut request = recovery::Request {
@@ -148,6 +146,22 @@ pub(super) fn run(binding_path: &Path, continuity: &Path, state: &Path, peer: &s
         peer,
         Instant::now() + Duration::from_secs(60),
     )
+}
+/// Local completed-proof verification has no socket/transport entrance.
+pub(super) fn reopen_completed(binding_path: &Path, continuity: &Path, state: &Path) -> Result<()> {
+    let old_binding = crate::local_recorder::validated_binding(binding_path)?;
+    let bootstrap: Bootstrap = load(continuity)?;
+    if old_binding.root() != &bootstrap.root_key
+        || old_binding.invitation() != &bootstrap.invitation.claim
+    {
+        return Err("observer return continuity/binding differs".into());
+    }
+    let old = old_binding.credential();
+    let ad: HostAdvertisement = load(&state.join("return-advertisement.json"))?;
+    if ad.boot_id == old.boot_id || ad != advertisement(old, ad.boot_id.clone()) {
+        return Err("retained return advertisement differs".into());
+    }
+    attempt::reopen_completed(&bootstrap, old, &ad, state)
 }
 pub(super) fn run_until(
     binding_path: &Path,
@@ -340,7 +354,8 @@ mod transport_tests {
         old_receipt.signature = key.sign(&old_receipt.transcript()).to_bytes().to_vec();
         let binding = dir.join("original-binding.json");
         let continuity = dir.join("continuity.json");
-        let output = dir.join("new-boot");
+        let custody = dir.join("automatic-returns");
+        let output = custody.join("return-00");
         save(&continuity, &bootstrap).unwrap();
         save(&binding,&serde_json::json!({"schema":"conduit.environment/joined-recorder@2","invitation":bootstrap.invitation.claim,"root_key":bootstrap.root_key,"local_host":old.host_id,"local_boot":old.boot_id,"recovery_request":old_query,"receipt":old_receipt})).unwrap();
         let original = std::fs::read(&binding).unwrap();
@@ -441,7 +456,18 @@ mod transport_tests {
                 }
             }
         });
-        run(&binding, &continuity, &output, &peer).unwrap();
+        let options = |capacity: &str| {
+            let mut args = vec!["host".into(), "--record-joined-continuing".into(),
+                "--observer-return".into(), custody.display().to_string(), capacity.into()];
+            super::super::automatic_return::take_options(&mut args).unwrap().unwrap()
+        };
+        let mut automatic = super::super::automatic_return::Owner::open(&binding, &continuity, options("1")).unwrap();
+        assert!(automatic.advance(&peer, Instant::now()).is_err());
+        assert_eq!(automatic.binding(), binding);
+        assert!(!output.exists());
+        drop(automatic);
+        let mut automatic = super::super::automatic_return::Owner::open(&binding, &continuity, options("1")).unwrap();
+        automatic.advance(&peer, Instant::now() + Duration::from_secs(3)).unwrap();
         server.join().unwrap();
         let returned =
             crate::local_recorder::validated_binding(&output.join("recorder-binding.json"))
@@ -451,6 +477,14 @@ mod transport_tests {
         assert_ne!(returned.credential().boot_id, old.boot_id);
         assert_eq!(std::fs::read(&binding).unwrap(), original);
         run(&binding, &continuity, &output, "127.0.0.1:1").unwrap();
+        drop(automatic);
+        let mut reopened = super::super::automatic_return::Owner::open(&binding, &continuity, options("1")).unwrap();
+        assert_eq!(reopened.binding(), output.join("recorder-binding.json"));
+        let completed = std::fs::read(reopened.binding()).unwrap();
+        assert!(reopened.advance("127.0.0.1:1", Instant::now() + Duration::from_secs(3)).unwrap_err().to_string().contains("exhausted"));
+        assert_eq!(std::fs::read(reopened.binding()).unwrap(), completed);
+        assert!(super::super::automatic_return::Owner::open(&binding, &continuity, options("2")).is_err());
+        assert_eq!(std::fs::read(&binding).unwrap(), original);
         std::fs::remove_dir_all(dir).unwrap();
     }
 }

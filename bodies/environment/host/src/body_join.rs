@@ -7,6 +7,8 @@ pub(crate) use refusal::reason as refusal_reason;
 mod recovery_client;
 #[path = "body_join/current_producer.rs"]
 pub(crate) mod current_producer;
+#[path = "body_join/automatic_return.rs"]
+pub(crate) mod automatic_return;
 #[path = "body_join/returning.rs"]
 mod returning;
 /// Explicit fresh-Boot return; initial join remains idempotent admission recovery.

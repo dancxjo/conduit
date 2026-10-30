@@ -74,6 +74,19 @@ pub(super) fn run(
         super::return_exchange::exchange_until(peer, request, deadline)
     })
 }
+pub(super) fn reopen_completed(
+    bootstrap: &Bootstrap,
+    old: &MembershipCredential,
+    ad: &HostAdvertisement,
+    state: &Path,
+) -> Result<()> {
+    if !state.join("recorder-binding.json").exists() {
+        return Err("observer return completion missing".into());
+    }
+    execute(bootstrap, old, ad, state, |_| {
+        Err("completed observer return cannot perform an exchange".into())
+    })
+}
 fn execute(
     bootstrap: &Bootstrap,
     old: &MembershipCredential,
