@@ -6,7 +6,7 @@
 //! Neither bound is a global HostAdvertisement semantic limit. No capabilities,
 //! defaults, canonical bytes or identities are elided, and decoding grants no
 //! admission. Standalone requests and receipts retain their existing JSON.
-use alloc::{string::String, vec, vec::Vec};
+use alloc::{string::String, vec::Vec};
 use conduit_core::HostAdvertisement;
 use miniz_oxide::{
     deflate::compress_to_vec_zlib,
@@ -109,21 +109,31 @@ pub fn deserialize<'de, D: Deserializer<'de>>(
             "admission advertisement encoding or capacity",
         ));
     }
-    let mut compressed = Vec::with_capacity(encoded.zlib_hex.len() / 2);
-    for pair in encoded.zlib_hex.as_bytes().as_chunks::<2>().0 {
+    // Consume the owned hex carrier in place: retaining it beside another
+    // compressed Vec would duplicate the same immutable input at peak decode.
+    let expanded_bytes = encoded.expanded_bytes;
+    let mut compressed = encoded.zlib_hex.into_bytes();
+    let compressed_len = compressed.len() / 2;
+    for index in 0..compressed_len {
         let nibble = |byte| match byte {
             b'0'..=b'9' => Some(byte - b'0'),
             b'a'..=b'f' => Some(byte - b'a' + 10),
             _ => None,
         };
-        let high =
-            nibble(pair[0]).ok_or_else(|| D::Error::custom("admission advertisement hex"))?;
-        let low = nibble(pair[1]).ok_or_else(|| D::Error::custom("admission advertisement hex"))?;
-        compressed.push(high * 16 + low);
+        let high = nibble(compressed[index * 2])
+            .ok_or_else(|| D::Error::custom("admission advertisement hex"))?;
+        let low = nibble(compressed[index * 2 + 1])
+            .ok_or_else(|| D::Error::custom("admission advertisement hex"))?;
+        compressed[index] = high * 16 + low;
     }
+    compressed.truncate(compressed_len);
     // Allocation follows the declared expanded cap. Exact stream consumption
     // rejects suffixes/concatenation; exact output rejects bombs and truncation.
-    let mut bytes = vec![0; encoded.expanded_bytes];
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(expanded_bytes)
+        .map_err(|_| D::Error::custom("admission advertisement expanded memory"))?;
+    bytes.resize(expanded_bytes, 0);
     let (status, consumed, written) = decompress(
         &mut DecompressorOxide::new(),
         &compressed,
@@ -132,14 +142,15 @@ pub fn deserialize<'de, D: Deserializer<'de>>(
         inflate_flags::TINFL_FLAG_PARSE_ZLIB_HEADER
             | inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF,
     );
-    if status != TINFLStatus::Done
-        || consumed != compressed.len()
-        || written != encoded.expanded_bytes
-    {
+    if status != TINFLStatus::Done || consumed != compressed.len() || written != expanded_bytes {
         return Err(D::Error::custom(
             "admission advertisement compressed document",
         ));
     }
+    // The decoder no longer needs the compressed input. Retire its allocation
+    // before the complete owned metadata starts allocating from expanded JSON.
+    drop(compressed);
+    drop(encoded.encoding);
     serde_json::from_slice(&bytes).map_err(D::Error::custom)
 }
 
@@ -158,7 +169,7 @@ impl Serialize for CompactAdvertisementRef<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloc::borrow::ToOwned;
+    use alloc::{borrow::ToOwned, vec};
     use conduit_core::OfferGeneration;
     use serde_json::{json, Value};
 
