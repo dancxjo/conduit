@@ -33,10 +33,6 @@ impl Selection {
             || self.admitted_memory_mib > 131_072
             || self.reviewed_offer.identity.model_name != self.model_name
             || self.reviewed_offer.limits.admitted_memory_mib != self.admitted_memory_mib
-            || !self
-                .reviewed_offer
-                .supported_profiles
-                .contains(&LocalModelKindProfile::PresentSemanticFront)
         {
             return Err("installed local-model selection violates its exact bounds".into());
         }
@@ -66,11 +62,12 @@ impl Selection {
 }
 
 pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
-    if options.model_generation
+    if (options.model_generation || !options.model_profiles.is_empty())
         && (options.selected_model.is_none() || options.without_selected_model)
     {
-        return Err("model generation requires an explicit model selection".into());
+        return Err("model profiles require an explicit model selection".into());
     }
+    let profiles = requested_profiles(&options)?;
     if options.without_selected_model {
         return Ok(Change::Remove);
     }
@@ -93,10 +90,6 @@ pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
         return Err("selected local-model options violate finite bounds".into());
     }
     let discovery = OllamaDiscovery::discover_at(&endpoint, &model_name)?;
-    let mut profiles = vec![LocalModelKindProfile::PresentSemanticFront];
-    if options.model_generation {
-        profiles.push(LocalModelKindProfile::Generate);
-    }
     let adapter = discovery.initialize(admitted_memory_mib, profiles)?;
     let selection = Selection {
         endpoint,
@@ -106,6 +99,30 @@ pub(super) fn change(options: InstalledModelOptions) -> Result<Change, String> {
     };
     selection.validate()?;
     Ok(Change::Replace(Box::new(selection)))
+}
+
+fn requested_profiles(
+    options: &InstalledModelOptions,
+) -> Result<Vec<LocalModelKindProfile>, String> {
+    if options.model_generation && !options.model_profiles.is_empty() {
+        return Err("explicit model profiles conflict with model-generation".into());
+    }
+    let mut profiles = options.model_profiles.clone();
+    if profiles.is_empty() {
+        profiles.push(LocalModelKindProfile::PresentSemanticFront);
+        if options.model_generation {
+            profiles.push(LocalModelKindProfile::Generate);
+        }
+    }
+    if profiles.len() > conduit_ai::MAXIMUM_LOCAL_MODEL_KINDS
+        || profiles
+            .iter()
+            .enumerate()
+            .any(|(i, p)| profiles[i + 1..].contains(p))
+    {
+        return Err("model profile selection is duplicated or exceeds its finite bound".into());
+    }
+    Ok(profiles)
 }
 
 #[cfg(test)]
@@ -177,6 +194,139 @@ mod tests {
             };
             assert!(error.contains("explicit model selection"));
         }
+    }
+
+    #[test]
+    fn explicit_stream_profile_does_not_select_unrelated_presentation() {
+        let options = InstalledModelOptions {
+            model_profiles: vec![LocalModelKindProfile::StreamGenerate],
+            ..Default::default()
+        };
+        assert_eq!(
+            requested_profiles(&options).unwrap(),
+            vec![LocalModelKindProfile::StreamGenerate]
+        );
+        let mut selected = fixture_retained_selection();
+        selected.reviewed_offer.supported_profiles = requested_profiles(&options).unwrap();
+        selected.validate().unwrap();
+        let restored: Selection =
+            serde_json::from_slice(&serde_json::to_vec(&selected).unwrap()).unwrap();
+        restored.validate().unwrap();
+        assert_eq!(restored, selected);
+        let offers = restored.reviewed_offer.capability_offers().unwrap();
+        assert!(offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == LocalModelKindProfile::StreamGenerate.kind()));
+        assert!(!offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str()
+                == LocalModelKindProfile::PresentSemanticFront.kind()));
+        assert!(!offers
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == LocalModelKindProfile::Generate.kind()));
+        assert_eq!(
+            selected.reviewed_offer.identity,
+            fixture_retained_selection().reviewed_offer.identity
+        );
+        assert_eq!(
+            selected.reviewed_offer.limits,
+            fixture_retained_selection().reviewed_offer.limits
+        );
+    }
+
+    #[test]
+    fn profile_defaults_duplicates_and_conflicts_are_exact_without_provider_io() {
+        assert_eq!(
+            requested_profiles(&InstalledModelOptions::default()).unwrap(),
+            vec![LocalModelKindProfile::PresentSemanticFront]
+        );
+        assert_eq!(
+            requested_profiles(&InstalledModelOptions {
+                model_generation: true,
+                ..Default::default()
+            })
+            .unwrap(),
+            vec![
+                LocalModelKindProfile::PresentSemanticFront,
+                LocalModelKindProfile::Generate
+            ]
+        );
+        let duplicate = InstalledModelOptions {
+            model_profiles: vec![LocalModelKindProfile::StreamGenerate; 2],
+            ..Default::default()
+        };
+        assert!(requested_profiles(&duplicate).is_err());
+        let conflict = InstalledModelOptions {
+            model_generation: true,
+            model_profiles: vec![LocalModelKindProfile::StreamGenerate],
+            ..Default::default()
+        };
+        assert!(requested_profiles(&conflict).is_err());
+        for without_selected_model in [false, true] {
+            assert!(change(InstalledModelOptions {
+                without_selected_model,
+                model_profiles: vec![LocalModelKindProfile::StreamGenerate],
+                ..Default::default()
+            })
+            .is_err());
+        }
+        let mut invalid = fixture_retained_selection();
+        invalid.reviewed_offer.supported_profiles.clear();
+        assert!(invalid.validate().is_err());
+    }
+
+    #[test]
+    #[ignore = "requires an explicitly chosen already-local loopback Ollama model"]
+    fn real_stream_selection_reobserves_provider_before_host_advertisement() {
+        let model =
+            std::env::var("CONDUIT_INSTALLED_MODEL_PROBE_MODEL").expect("explicit local model");
+        let Change::Replace(selection) = change(InstalledModelOptions {
+            selected_model: Some(model),
+            model_endpoint: Some("http://127.0.0.1:11434".into()),
+            model_memory_mib: Some(2048),
+            model_profiles: vec![LocalModelKindProfile::StreamGenerate],
+            ..Default::default()
+        })
+        .unwrap() else {
+            panic!("explicit model selection")
+        };
+        let restored: Selection =
+            serde_json::from_slice(&serde_json::to_vec(&selection).unwrap()).unwrap();
+        let adapter = restored.initialize().unwrap();
+        assert_eq!(adapter.offer(), &selection.reviewed_offer);
+        let fresh = conduit_std_host::StdHost::new();
+        let ad = fresh.advertisement();
+        let host = conduit_std_host::StdHost::new_with_local_model(
+            conduit_std_host::StdHostConfig {
+                host_id: ad.host_id.clone(),
+                boot_id: ad.boot_id.clone(),
+                offer_generation: ad.offer_generation,
+            },
+            conduit_std_host::StdHostComposition::reference(),
+            Box::new(adapter),
+        )
+        .unwrap();
+        assert!(host
+            .advertisement()
+            .capabilities
+            .iter()
+            .any(|offer| offer.kind_id.as_str() == LocalModelKindProfile::StreamGenerate.kind()));
+        assert!(!host
+            .advertisement()
+            .capabilities
+            .iter()
+            .any(|offer| offer.kind_id.as_str()
+                == LocalModelKindProfile::PresentSemanticFront.kind()));
+        let mut stale = restored;
+        stale
+            .reviewed_offer
+            .identity
+            .model_content_identity
+            .push('0');
+        let Err(error) = stale.initialize() else {
+            panic!("changed model identity must refuse")
+        };
+        assert!(error.contains("provider changed"));
     }
 
     #[test]
