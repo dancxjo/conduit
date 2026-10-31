@@ -13,9 +13,10 @@ author and local resources, composes the supplied fields, and uses the existing
 visual accessibility and Host data-admission path. It reports the selected
 resource, fallback, accessibility overrides and each known field's origin.
 A derived Look identity pins the exact author and local input bytes. An empty
-proposal preserves the author's Look identity. Spoken and generative facets
-remain unchanged by a visual proposal. A nonempty local visual proposal requires an author visual facet; it cannot
-manufacture that facet. An empty proposal retains the ordinary missing-visual
+proposal preserves the author's Look identity. Composing visual values preserves
+the author's spoken and generative facets; a selected visual fallback cannot
+select those facets for another Mask. A nonempty local visual proposal requires
+an author visual facet; it cannot manufacture that facet. An empty proposal retains the ordinary missing-visual
 fallback, with the original author and refusal still inspectable.
 
 The independently supplied accessibility floor outranks a weaker personal
@@ -42,8 +43,9 @@ Show. Palette ratios alone do not establish WCAG conformance, rendering, a Back,
 or a usable Show. The contrast requirement also applies to a selected fallback.
 
 The existing Look version 2, Face grammar and bounds are unchanged. Both input
-resources use the existing Look byte bound; resolution accepts one author and one local proposal, with fixed bounded
-requested/selected records and at most 29 supplied fields. This is the shared data-resolution seam. Appearance UI,
+resources use the existing Look byte bound. Resolution accepts one author and
+one local proposal, with fixed bounded requested/selected records and at most
+29 supplied fields. This is the shared data-resolution seam. Appearance UI,
 persistence and native/browser consumers are separate integration work; the
 current Threebee preferences are untouched.
 
