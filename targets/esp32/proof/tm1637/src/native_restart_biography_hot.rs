@@ -1,4 +1,4 @@
-//! One parked-owner custody transaction, with no new Boot/member checkpoint.
+//! Shared source-prefix transaction, with no new Boot/member checkpoint.
 //! The actual Store lease and parked token are held across host retention and
 //! incremental flash steps. This module never constructs a physical permit.
 use super::*;
@@ -9,8 +9,17 @@ use crate::native_body_checkpoint::{
 use conduit_monotonic_wait::flash_window::FlashPermit;
 use payload::biography_hot::Recipe;
 
-struct Transaction {
-    owner: Option<ParkedBody>,
+// Private implementations distinguish actual parked custody from a validated
+// short-borrow live scope. Neither can be constructed by a management client.
+pub(super) trait Scope {
+    fn source(&self, store: &Store) -> Result<(), &'static str>;
+    fn check(&self, store: &Store) -> Result<(), &'static str>;
+    fn body(&self) -> &conduit_body::BodyId;
+    fn root(&self) -> &[u8; 32];
+    fn adopted(&mut self, generation: u64);
+}
+pub(super) struct Transaction<O = ParkedBody> {
+    owner: Option<O>,
     offered: Export,
     recipe: Option<Recipe>,
     writer: Option<IncrementalRewrite>,
@@ -86,14 +95,31 @@ fn emit(
         .map(|_| ())
         .map_err(|e| refused.unwrap_or_else(|| stream_refusal(e)))
 }
-impl Transaction {
+impl Scope for ParkedBody {
+    fn source(&self, store: &Store) -> Result<(), &'static str> {
+        check_source(store, self)
+    }
+    fn check(&self, store: &Store) -> Result<(), &'static str> {
+        check(store, self)
+    }
+    fn body(&self) -> &conduit_body::BodyId {
+        &self.body_id
+    }
+    fn root(&self) -> &[u8; 32] {
+        &self.key
+    }
+    fn adopted(&mut self, generation: u64) {
+        self.generation = generation;
+    }
+}
+impl<O: Scope> Transaction<O> {
     #[allow(
         clippy::result_large_err,
         reason = "refusal returns the actual affine owner without allocating on the failure path"
     )]
-    fn prepare(store: &mut Store, owner: ParkedBody) -> Result<Self, (ParkedBody, &'static str)> {
+    pub(super) fn prepare(store: &mut Store, owner: O) -> Result<Self, (O, &'static str)> {
         let offered = (|| {
-            check(store, &owner)?;
+            owner.check(store)?;
             prepare_store(store)
         })();
         match offered {
@@ -107,14 +133,17 @@ impl Transaction {
             }),
         }
     }
-    fn export_chunk(
+    pub(super) fn export_chunk(
         &self,
         store: &mut Store,
         offset: usize,
         out: &mut [u8; 128],
     ) -> Result<usize, &'static str> {
         out.fill(0);
-        check_source(store, self.owner.as_ref().ok_or("biography-hot-owner")?)?;
+        self.owner
+            .as_ref()
+            .ok_or("biography-hot-owner")?
+            .source(store)?;
         check_offer_source(store, &self.offered.offer)?;
         if self.writer.is_some() || offset > payload::MAX_PLAIN_BYTES {
             return Err("biography-hot-export-state");
@@ -143,7 +172,7 @@ impl Transaction {
             }
         }
     }
-    fn begin(
+    pub(super) fn begin(
         &mut self,
         store: &mut Store,
         receipt: payload::wire::Receipt,
@@ -152,23 +181,23 @@ impl Transaction {
             return Err("biography-hot-already-started");
         }
         let owner = self.owner.as_ref().ok_or("biography-hot-owner")?;
-        check(store, owner)?;
+        owner.check(store)?;
         check_offer_source(store, &self.offered.offer)?;
         let current = prepare_store(store)?;
-        let key =
-            ed25519_dalek::VerifyingKey::from_bytes(&owner.key).map_err(|_| "biography-hot-key")?;
-        if current.offer.transcript(&owner.key) != self.offered.offer.transcript(&owner.key)
-            || receipt.offer.0 != current.offer.transcript(&owner.key)
+        let key = ed25519_dalek::VerifyingKey::from_bytes(owner.root())
+            .map_err(|_| "biography-hot-key")?;
+        if current.offer.transcript(owner.root()) != self.offered.offer.transcript(owner.root())
+            || receipt.offer.0 != current.offer.transcript(owner.root())
             || receipt.summary != current.offer.end
         {
             return Err("biography-hot-receipt-source");
         }
-        receipt.verify(&owner.body_id, &key)?;
+        receipt.verify(owner.body(), &key)?;
         let previous = store.custody.as_ref().ok_or("biography-hot-source")?;
         let recipe = Recipe::prepare(
             &previous.source,
-            &owner.body_id,
-            &owner.key,
+            owner.body(),
+            owner.root(),
             previous.span,
             previous.prefix.is_some(),
             receipt,
@@ -187,11 +216,14 @@ impl Transaction {
         self.writer = Some(writer);
         Ok(())
     }
-    fn prepare_chunk(&mut self, store: &mut Store) -> Result<(), &'static str> {
+    pub(super) fn prepare_chunk(&mut self, store: &mut Store) -> Result<(), &'static str> {
         if self.poisoned {
             return Err("biography-hot-failed");
         }
-        check(store, self.owner.as_ref().ok_or("biography-hot-owner")?)?;
+        self.owner
+            .as_ref()
+            .ok_or("biography-hot-owner")?
+            .check(store)?;
         let recipe = self.recipe.as_ref().ok_or("biography-hot-not-started")?;
         let result = self
             .writer
@@ -206,7 +238,7 @@ impl Transaction {
         }
         result
     }
-    fn advance(
+    pub(super) fn advance(
         &mut self,
         store: &mut Store,
         access: &mut impl SectorStorage<BodyRegion>,
@@ -216,7 +248,10 @@ impl Transaction {
         }
         // No signature, key derivation, codec or allocation runs inside the
         // caller's physical permit. The exclusive lease retains those pins.
-        check_source(store, self.owner.as_ref().ok_or("biography-hot-owner")?)?;
+        self.owner
+            .as_ref()
+            .ok_or("biography-hot-owner")?
+            .source(store)?;
         let result = self
             .writer
             .as_mut()
@@ -228,8 +263,11 @@ impl Transaction {
         }
         result
     }
-    fn cancel(&mut self, store: &mut Store) -> Result<ParkedBody, &'static str> {
-        check(store, self.owner.as_ref().ok_or("biography-hot-owner")?)?;
+    pub(super) fn cancel(&mut self, store: &mut Store) -> Result<O, &'static str> {
+        self.owner
+            .as_ref()
+            .ok_or("biography-hot-owner")?
+            .check(store)?;
         // Only the inactive bank was ever writable. Even an ambiguous commit
         // failure retains the old affine source in this running journal. A
         // later Boot may select the complete endorsed successor, never a
@@ -248,11 +286,14 @@ impl Transaction {
         self.recipe = None;
         self.owner.take().ok_or("biography-hot-owner")
     }
-    fn finish(&mut self, store: &mut Store) -> Result<ParkedBody, &'static str> {
+    pub(super) fn finish(&mut self, store: &mut Store) -> Result<O, &'static str> {
         if self.poisoned || !self.writer.as_ref().is_some_and(|w| w.is_complete()) {
             return Err("biography-hot-incomplete");
         }
-        check(store, self.owner.as_ref().ok_or("biography-hot-owner")?)?;
+        self.owner
+            .as_ref()
+            .ok_or("biography-hot-owner")?
+            .check(store)?;
         check_offer_source(store, &self.offered.offer)?;
         let previous = store.custody.as_ref().ok_or("biography-hot-source")?;
         let recipe = self.recipe.as_mut().ok_or("biography-hot-not-started")?;
@@ -284,10 +325,37 @@ impl Transaction {
         current.prefix = Some(prefix);
         current.local_count = 0;
         let mut owner = self.owner.take().ok_or("biography-hot-owner")?;
-        owner.generation = generation;
+        owner.adopted(generation);
         // Body evidence, proposal, current Boot, admissions, network cursor,
         // layout receipts, summary and the parked/ready flags are unchanged.
         Ok(owner)
+    }
+}
+impl<O> Transaction<O> {
+    pub(super) fn offer(&self) -> &Export {
+        &self.offered
+    }
+    pub(super) fn scope(&self) -> Result<&O, &'static str> {
+        self.owner.as_ref().ok_or("biography-hot-owner")
+    }
+    pub(super) fn planned_bytes(&self) -> Option<usize> {
+        self.recipe.as_ref().and_then(|r| r.planned_bytes())
+    }
+    pub(super) fn operation(&self) -> Option<Operation> {
+        if self.poisoned {
+            None
+        } else {
+            self.writer.as_ref().and_then(|w| w.operation())
+        }
+    }
+    pub(super) fn step(&self) -> u32 {
+        self.writer.as_ref().map_or(0, |w| w.step())
+    }
+    pub(super) fn needs_chunk(&self) -> bool {
+        !self.poisoned && self.writer.as_ref().is_some_and(|w| w.needs_chunk())
+    }
+    pub(super) fn is_complete(&self) -> bool {
+        !self.poisoned && self.writer.as_ref().is_some_and(|w| w.is_complete())
     }
 }
 impl Custody {

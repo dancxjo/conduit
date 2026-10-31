@@ -6,6 +6,8 @@ use payload::wire::{Hex, Offer, Summary};
 
 #[path = "native_restart_biography_hot.rs"]
 pub(crate) mod hot;
+#[path = "native_restart_biography_live.rs"]
+pub(crate) mod live;
 
 /// Minted only after the current complete affine snapshot is authenticated.
 /// Kept opaque so later transport cannot substitute an arbitrary source scope.
