@@ -65,3 +65,8 @@ unavailable) and repeated chunk polling. This is delivery evidence, not a new
 executable build attestation or a recording/return transaction. No ACK,
 retirement, erase, reboot or membership operation occurred; raw traces and
 bindings are private. Do not infer sustained Face freshness from these probes.
+
+Root combined qualification at `235095cc32` subsequently completed: all seven
+`native_restart biography::hot` tests passed (64 unrelated tests filtered out).
+This validates the combined CPU custody core, not the subsequent physical
+dispatch adapter, native SDK timing or hardware continuity.

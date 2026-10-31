@@ -18,12 +18,15 @@ enum Kind {
     Observed,
     #[cfg(feature = "body-persistence")]
     Pending,
+    #[cfg(feature = "body-persistence")]
+    Biography,
 }
 use crate::native_evidence_region::measurement::{ReviewedTiming, MAXIMUM_BUDGET_MS};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum SubmissionRefusal {
     UnreviewedTiming,
     Terminal,
+    Unprepared,
     Queue(crate::native_flash_jobs::Refusal),
 }
 pub(crate) struct Submitter {
@@ -49,7 +52,7 @@ impl Submitter {
             Ok(id) => Ok(id),
             Err((error, DomainJob::Observed(job))) => Err((SubmissionRefusal::Queue(error), job)),
             #[cfg(feature = "body-persistence")]
-            Err((_, DomainJob::Pending(_))) => {
+            Err((_, DomainJob::Pending(_) | DomainJob::Biography(_))) => {
                 unreachable!("submitted observed owner returned as pending")
             }
         }
@@ -75,7 +78,7 @@ impl Submitter {
         match self.inner.submit(DomainJob::Pending(job), budget) {
             Ok(id) => Ok(id),
             Err((error, DomainJob::Pending(job))) => Err((SubmissionRefusal::Queue(error), job)),
-            Err((_, DomainJob::Observed(_))) => {
+            Err((_, DomainJob::Observed(_) | DomainJob::Biography(_))) => {
                 unreachable!("submitted pending owner returned as observed")
             }
         }
@@ -100,7 +103,7 @@ impl Submitter {
             Ok(()) => Ok(()),
             Err(DomainError::Observed(error)) => Err(error),
             #[cfg(feature = "body-persistence")]
-            Err(DomainError::Pending(_)) => Err(Error::Phase),
+            Err(DomainError::Pending(_) | DomainError::Biography(_)) => Err(Error::Phase),
         };
         Ok(crate::native_flash_jobs::Completion {
             id: done.id,
@@ -128,6 +131,10 @@ impl Submitter {
             Kind::Pending => self
                 .inner
                 .owner_matches(id, |owner| matches!(owner, DomainJob::Pending(_))),
+            #[cfg(feature = "body-persistence")]
+            Kind::Biography => self
+                .inner
+                .owner_matches(id, |owner| matches!(owner, DomainJob::Biography(_))),
         };
         if matches {
             Ok(())
@@ -155,7 +162,9 @@ impl Submitter {
         let result = match done.result {
             Ok(()) => Ok(()),
             Err(DomainError::Pending(error)) => Err(error),
-            Err(DomainError::Observed(_)) => Err("flash-domain-owner-kind"),
+            Err(DomainError::Observed(_) | DomainError::Biography(_)) => {
+                Err("flash-domain-owner-kind")
+            }
         };
         Ok(crate::native_flash_jobs::Completion {
             id: done.id,
@@ -217,3 +226,7 @@ pub(crate) fn prepare(
         gate,
     ))
 }
+
+#[cfg(feature = "body-persistence")]
+#[path = "native_flash_domain_biography.rs"]
+mod biography;
