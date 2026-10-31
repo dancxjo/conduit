@@ -1,16 +1,8 @@
-//! Hash the historical fragment encoding incrementally. Reuse one scratch
-//! buffer across placements and their contracts instead of retaining all
-//! canonical bytes at once. Chunk boundaries are absent from the digest.
+//! Stream the historical canonical fragment encoding into its fingerprint.
+//! Immutable payloads and contracts are borrowed, without a second byte buffer.
 use super::*;
-use sha2::Digest;
-fn flush(digest: &mut sha2::Sha256, canonical: &mut Vec<u8>) {
-    digest.update(&*canonical);
-    canonical.clear();
-}
-
 pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
-    let mut canonical = Vec::new();
-    let mut digest = sha2::Sha256::new();
+    let mut canonical = CanonicalHash::new();
     push_string(&mut canonical, fragment.source_document_id.as_str());
     push_string(&mut canonical, fragment.checked_plot_id.as_str());
     push_string(&mut canonical, fragment.expanded_plot_id.as_str());
@@ -25,7 +17,6 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     execution_fusion::push_canonical(&mut canonical, &fragment.execution_fusions);
     push_u32(&mut canonical, fragment.placements.len() as u32);
     for gear in &fragment.placements {
-        flush(&mut digest, &mut canonical);
         push_string(&mut canonical, gear.placement_id.as_str());
         push_string(&mut canonical, gear.gear_id.as_str());
         push_string(&mut canonical, gear.kind_id.as_str());
@@ -34,56 +25,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.configuration.len() as u32);
         for entry in &gear.configuration {
             push_string(&mut canonical, &entry.key);
-            match entry.value {
-                ConfigurationValue::Bool(value) => {
-                    canonical.push(0);
-                    canonical.push(u8::from(value));
-                }
-                ConfigurationValue::U64(value) => {
-                    canonical.push(1);
-                    push_u64(&mut canonical, value);
-                }
-                ConfigurationValue::I64(value) => {
-                    canonical.push(3);
-                    canonical.extend_from_slice(&value.to_le_bytes());
-                }
-                ConfigurationValue::Text(ref value) => {
-                    // Leave geometric headroom for the rest of this chunk.
-                    // A large extend followed by small fields otherwise causes
-                    // a second allocation while the old buffer is still live.
-                    let needed = canonical
-                        .len()
-                        .saturating_add(value.len())
-                        .saturating_add(5);
-                    let capacity = needed.checked_next_power_of_two().unwrap_or(needed);
-                    if capacity > canonical.capacity() {
-                        canonical.reserve_exact(capacity - canonical.len());
-                    }
-                    canonical.push(2);
-                    push_string(&mut canonical, value);
-                }
-                ConfigurationValue::Structured(ref value) => {
-                    canonical.push(4);
-                    push_string(&mut canonical, value.profile().as_str());
-                    push_u32(&mut canonical, value.canonical_value().len() as u32);
-                    canonical.extend_from_slice(value.canonical_value());
-                }
-                ConfigurationValue::Quantity(ref value) => {
-                    canonical.push(6);
-                    canonical.extend_from_slice(value.canonical_value());
-                    push_string(&mut canonical, value.source());
-                }
-                ConfigurationValue::TemperatureDifference(ref value) => {
-                    canonical.push(8);
-                    canonical.extend_from_slice(value.canonical_value());
-                    push_string(&mut canonical, value.source());
-                }
-                ConfigurationValue::Unit(ref value) => {
-                    canonical.push(7);
-                    canonical.extend_from_slice(value.canonical_value());
-                    push_string(&mut canonical, value.source());
-                }
-            }
+            push_configuration_value(&mut canonical, &entry.value);
         }
         push_string(&mut canonical, gear.host_id.as_str());
         push_string(&mut canonical, gear.boot_id.as_str());
@@ -127,9 +69,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         push_u32(&mut canonical, gear.limits.max_queue_bytes);
         push_ports(&mut canonical, &gear.inputs);
         push_ports(&mut canonical, &gear.outputs);
-        flush(&mut digest, &mut canonical);
         push_semantic_contract(&mut canonical, &gear.semantic_contract);
-        flush(&mut digest, &mut canonical);
         push_u32(&mut canonical, gear.terminal_transductions.len() as u32);
         for profile in &gear.terminal_transductions {
             push_string(&mut canonical, "terminal-transduction@2");
@@ -170,7 +110,6 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     }
     push_u32(&mut canonical, fragment.connections.len() as u32);
     for connection in &fragment.connections {
-        flush(&mut digest, &mut canonical);
         push_string(&mut canonical, connection.connection_id.as_str());
         push_string(&mut canonical, connection.source_placement_id.as_str());
         push_string(&mut canonical, connection.source_port_id.as_str());
@@ -226,7 +165,6 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     }
     push_u32(&mut canonical, fragment.fore_ports.len() as u32);
     for port in &fragment.fore_ports {
-        flush(&mut digest, &mut canonical);
         push_string(&mut canonical, port.front_port_id.as_str());
         canonical.push(port.direction as u8);
         push_string(&mut canonical, port.placement_id.as_str());
@@ -261,7 +199,6 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     }
     push_u32(&mut canonical, fragment.shared_pools.len() as u32);
     for pool in &fragment.shared_pools {
-        flush(&mut digest, &mut canonical);
         push_string(&mut canonical, pool.pool_id.as_str());
         push_string(&mut canonical, pool.declaration_id.as_str());
         push_checked_front(&mut canonical, &pool.member_front);
@@ -385,16 +322,15 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
         .fore_ports
         .iter()
         .enumerate()
-        .filter_map(|(index, port)| port.selected_line.as_ref().map(|line| (index, line)))
-        .collect::<Vec<_>>();
-    if !bound.is_empty() {
+        .filter_map(|(index, port)| port.selected_line.as_ref().map(|line| (index, line)));
+    let bound_count = bound.clone().count();
+    if bound_count != 0 {
         push_string(&mut canonical, "conduit.plan/fore-lines@1");
-        push_u32(&mut canonical, bound.len() as u32);
+        push_u32(&mut canonical, bound_count as u32);
         for (index, line) in bound {
             push_u32(&mut canonical, index as u32);
             push_admitted_line(&mut canonical, line);
         }
     }
-    flush(&mut digest, &mut canonical);
-    FragmentId::from(crate::hex_digest(&digest.finalize()))
+    FragmentId::from(crate::hex_digest(&canonical.finish()))
 }

@@ -7,18 +7,23 @@ mod execution_regions;
 mod semantic_contract;
 use semantic_contract::push_semantic_contract;
 
+use crate::canonical_bytes::{CanonicalHash, CanonicalSink};
 use crate::{
-    characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
-    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
+    characteristic, execution_fusion, plan_realization, push_resource_binding, push_string,
+    push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
     ConfigurationValue, ExpectedSign, ExpectedTerminal, FragmentCommitment, FragmentId,
     LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
     PlannedActivationPreparationBinding, PlotBack, PlotIdentity, PortDescriptor, PortDirection,
     PortTemporal, TerminalPolicy,
 };
 use alloc::string::String;
+#[cfg(test)]
 use alloc::vec::Vec;
 
-fn push_optional_string(canonical: &mut Vec<u8>, value: Option<&str>) {
+fn push_optional_string(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    value: Option<&str>,
+) {
     match value {
         Some(value) => {
             canonical.push(1);
@@ -31,7 +36,10 @@ fn push_optional_string(canonical: &mut Vec<u8>, value: Option<&str>) {
 mod fragment;
 pub use fragment::compute_fragment_id;
 
-pub(crate) fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue) {
+pub(crate) fn push_configuration_value(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    value: &ConfigurationValue,
+) {
     match value {
         ConfigurationValue::Bool(value) => {
             canonical.push(0);
@@ -74,7 +82,7 @@ pub(crate) fn push_configuration_value(canonical: &mut Vec<u8>, value: &Configur
 }
 
 fn push_terminal_transduction(
-    canonical: &mut Vec<u8>,
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     profile: &crate::TerminalTransductionProfile,
 ) {
     use crate::{
@@ -130,7 +138,10 @@ fn push_terminal_transduction(
     }
 }
 
-fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
+fn push_checked_front(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    front: &CheckedFront,
+) {
     push_u32(canonical, front.startup_parameters().len() as u32);
     for parameter in front.startup_parameters() {
         push_string(canonical, &parameter.name);
@@ -183,7 +194,10 @@ fn push_checked_front(canonical: &mut Vec<u8>, front: &CheckedFront) {
     }
 }
 
-fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueContract) {
+fn push_value_contract(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    contract: &crate::CheckedValueContract,
+) {
     let identity = contract.identity_bytes();
     push_u32(canonical, identity.len() as u32);
     canonical.extend_from_slice(&identity);
@@ -194,12 +208,15 @@ fn push_value_contract(canonical: &mut Vec<u8>, contract: &crate::CheckedValueCo
 /// Nominal callable names and authoring aliases are deliberately absent. The
 /// digest changes only when the exact callable contract changes.
 pub fn compute_checked_front_fingerprint(front: &CheckedFront) -> String {
-    let mut canonical = Vec::new();
+    let mut canonical = CanonicalHash::new();
     push_checked_front(&mut canonical, front);
-    hash_bytes(&canonical)
+    crate::hex_digest(&canonical.finish())
 }
 
-fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
+fn push_bound_link(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    binding: &BoundLink,
+) {
     push_string(canonical, binding.binding_id.as_str());
     push_string(canonical, binding.source.host_id.as_str());
     push_string(canonical, binding.source.boot_id.as_str());
@@ -229,7 +246,10 @@ fn push_bound_link(canonical: &mut Vec<u8>, binding: &BoundLink) {
     push_u32(canonical, binding.limits.maximum_frame_bytes);
 }
 
-fn push_admitted_line(canonical: &mut Vec<u8>, line: &AdmittedLine) {
+fn push_admitted_line(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    line: &AdmittedLine,
+) {
     push_string(canonical, line.line_id.as_str());
     push_bound_link(canonical, &line.binding);
     canonical.push(line.contract.scope as u8);
@@ -248,7 +268,7 @@ pub(crate) fn compute_plan_id(
     commitments: &[FragmentCommitment],
     activation_preparations: &[PlannedActivationPreparationBinding],
 ) -> PlanId {
-    let mut canonical = Vec::new();
+    let mut canonical = CanonicalHash::new();
     push_string(&mut canonical, plot_identity.source_document_id.as_str());
     push_string(&mut canonical, plot_identity.checked_plot_id.as_str());
     push_string(&mut canonical, plot_identity.expanded_plot_id.as_str());
@@ -377,10 +397,13 @@ pub(crate) fn compute_plan_id(
         push_string(&mut canonical, commitment.host_id.as_str());
         push_string(&mut canonical, commitment.fragment_id.as_str());
     }
-    PlanId::from(hash_bytes(&canonical))
+    PlanId::from(crate::hex_digest(&canonical.finish()))
 }
 
-fn push_activation_front(canonical: &mut Vec<u8>, front: &crate::PlannedActivationFront) {
+fn push_activation_front(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    front: &crate::PlannedActivationFront,
+) {
     push_string(canonical, front.front_port_id.as_str());
     push_string(canonical, front.value_kind.as_str());
     push_optional_string(
@@ -389,7 +412,10 @@ fn push_activation_front(canonical: &mut Vec<u8>, front: &crate::PlannedActivati
     );
 }
 
-fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
+fn push_ports(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    ports: &[PortDescriptor],
+) {
     push_u32(canonical, ports.len() as u32);
     for port in ports {
         push_string(canonical, port.port_id.as_str());
