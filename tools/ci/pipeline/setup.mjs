@@ -5,6 +5,7 @@ import { apt, command } from './targets/common.mjs';
 import { COMMON_APT, cacheRoot } from './acquisition/tools.mjs';
 import { recordOperation, recordTool } from './acquisition/metrics.mjs';
 import { setupHostedSandbox } from './targets/hosted-sandbox.mjs';
+import { prepareHostedUnitStorage } from './runner-storage.mjs';
 
 export const ACTIONLINT = Object.freeze({
   version: '1.7.7',
@@ -60,6 +61,7 @@ export async function setupCi() {
 }
 export function setupUnit() {
   if (process.platform !== 'linux') throw new Error('unit runner requires Linux');
+  prepareHostedUnitStorage();
   apt(...COMMON_APT);
   setupPreflightRuntime();
 }

@@ -111,13 +111,16 @@ async function execute(base, interfaceNumber, token, command, args, data, signal
   }
 }
 
-export function requiredPicobootTransfers(chunkCount) {
+export function requiredPicobootTransfers(chunkCount, eraseRangeCount) {
   if (!Number.isInteger(chunkCount) || chunkCount <= 0 || chunkCount > 512) {
     refuse("ChunkBound", "RP2040 IMAGE chunk count exceeds the finite flash bound");
   }
+  if (!Number.isInteger(eraseRangeCount) || eraseRangeCount < 1 || eraseRangeCount > 2) {
+    refuse("EraseRangeBound", "RP2040 IMAGE admits at most two touched-sector erase ranges");
+  }
   return Object.freeze({
-    maximumOutTransfers: 2 * chunkCount + 6,
-    maximumInTransfers: 2 * chunkCount + 10,
+    maximumOutTransfers: 2 * chunkCount + eraseRangeCount + 5,
+    maximumInTransfers: 2 * chunkCount + 2 * eraseRangeCount + 8,
   });
 }
 
@@ -144,7 +147,9 @@ export async function deployPicoboot({ base, image, interfaceNumber, signal, pro
   }
   await run(COMMAND.exclusiveAccess, new Uint8Array([2]));
   await run(COMMAND.exitXip);
-  await run(COMMAND.flashErase, littleEndianWords(image.eraseStart, image.eraseBytes));
+  for (const range of image.eraseRanges) {
+    await run(COMMAND.flashErase, littleEndianWords(range.address, range.bytes));
+  }
   for (const chunk of image.chunks) {
     await run(
       COMMAND.write,
