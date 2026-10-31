@@ -1,8 +1,9 @@
 //! Read-only pinned-Root Face feed. Publication preserves the complete sealed
 //! Face; the local lease reports transport availability, never sensor freshness.
 use crate::Result;
+#[cfg(test)]
 use conduit_environment_host::signed_face_export::{verify_snapshot, VerifiedSnapshot as Verified};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 #[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::{
@@ -12,32 +13,10 @@ use std::{
     path::Path,
     time::Duration,
 };
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Chunk {
-    profile: String,
-    digest: String,
-    offset: u32,
-    bytes: String,
-}
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
-fn unhex(text: &str) -> Result<Vec<u8>> {
-    if !text.len().is_multiple_of(2)
-        || !text
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    {
-        return Err("Face export hex".into());
-    }
-    text.as_bytes()
-        .as_chunks::<2>()
-        .0
-        .iter()
-        .map(|p| Ok(u8::from_str_radix(std::str::from_utf8(p)?, 16)?))
-        .collect()
-}
+#[cfg(test)]
 fn verify(
     root: &[u8; 32],
     body: &conduit_body::BodyId,
@@ -117,42 +96,14 @@ fn fetch(
 ) -> Result<(conduit_face::Face, u64)> {
     let mut nonce = [0; 32];
     File::open("/dev/urandom")?.read_exact(&mut nonce)?;
-    let started = boot_ms()?;
-    let offer = get(
-        peer,
-        &format!("/face/export/snapshot?nonce={}", hex(&nonce)),
-        started,
+    let read = conduit_environment_host::signed_face_export::read_snapshot_with(
+        root,
+        body,
+        &nonce,
+        |path, started| get(peer, path, started),
+        boot_ms,
     )?;
-    let verified = verify(root, body, &nonce, &offer)?;
-    let mut document = Vec::with_capacity(verified.bytes() as usize);
-    for offset in (0..verified.bytes()).step_by(512) {
-        let path = format!(
-            "/face/export/chunk?digest={}&revision={}&bytes={}&offset={offset}",
-            hex(verified.digest()),
-            verified.revision(),
-            verified.bytes()
-        );
-        let chunk: Chunk = serde_json::from_slice(&get(peer, &path, started)?)?;
-        let bytes = unhex(&chunk.bytes)?;
-        if chunk.profile != "conduit.face/chunk@1"
-            || chunk.digest != hex(verified.digest())
-            || chunk.offset != offset
-            || bytes.len() != 512.min((verified.bytes() - offset) as usize)
-        {
-            return Err("Face export chunk scope".into());
-        }
-        document.extend_from_slice(&bytes);
-    }
-    let face = verified.decode_document(&document)?;
-    // Include time spent fetching/signing/chunks and any local suspend. Never
-    // restart the producer's semantic freshness window on remote arrival.
-    let deadline = started
-        .checked_add(verified.lifetime())
-        .ok_or("Face export deadline")?;
-    if boot_ms()?.saturating_add(1) >= deadline {
-        return Err("Face export expired in transit".into());
-    }
-    Ok((face, deadline))
+    Ok((read.face, read.deadline_boot_ms))
 }
 fn private(path: &Path, directory: bool) -> Result<()> {
     let m = std::fs::symlink_metadata(path)?;

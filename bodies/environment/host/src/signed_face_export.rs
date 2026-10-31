@@ -132,3 +132,80 @@ pub fn verify_snapshot(
         lifetime,
     })
 }
+
+/// One complete authenticated document, retaining its original local deadline.
+pub struct VerifiedFaceRead {
+    pub face: conduit_face::Face,
+    pub producer_boot: conduit_core::BootId,
+    pub observed_at_boot_ms: u64,
+    pub deadline_boot_ms: u64,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Chunk {
+    profile: String,
+    digest: String,
+    offset: u32,
+    bytes: String,
+}
+fn hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+/// Retrieve through the caller's selected transport. The callback must enforce
+/// the supplied absolute start plus 5000ms budget during blocking operations.
+/// The clock must be the same local suspend-aware monotonic clock throughout.
+/// This function grants no execution, membership or durable recording authority.
+pub fn read_snapshot_with(
+    root: &[u8; 32],
+    body: &conduit_body::BodyId,
+    nonce: &[u8; 32],
+    mut get: impl FnMut(&str, u64) -> Result<Vec<u8>>,
+    mut now: impl FnMut() -> Result<u64>,
+) -> Result<VerifiedFaceRead> {
+    let started = now()?;
+    let offer = get(
+        &format!("/face/export/snapshot?nonce={}", hex(nonce)),
+        started,
+    )?;
+    let verified = verify_snapshot(root, body, nonce, &offer)?;
+    let deadline = started
+        .checked_add(verified.lifetime())
+        .ok_or("Face export deadline")?;
+    let mut document = Vec::with_capacity(verified.bytes() as usize);
+    for offset in (0..verified.bytes()).step_by(512) {
+        if now()? >= deadline {
+            return Err("Face export expired in transit".into());
+        }
+        let path = format!(
+            "/face/export/chunk?digest={}&revision={}&bytes={}&offset={offset}",
+            hex(verified.digest()),
+            verified.revision(),
+            verified.bytes()
+        );
+        let reply = get(&path, started)?;
+        if reply.len() > 1408 {
+            return Err("Face export chunk capacity".into());
+        }
+        let chunk: Chunk = serde_json::from_slice(&reply)?;
+        let bytes = unhex(&chunk.bytes)?;
+        if chunk.profile != "conduit.face/chunk@1"
+            || chunk.digest != hex(verified.digest())
+            || chunk.offset != offset
+            || bytes.len() != 512.min((verified.bytes() - offset) as usize)
+        {
+            return Err("Face export chunk scope".into());
+        }
+        document.extend_from_slice(&bytes);
+    }
+    let face = verified.decode_document(&document)?;
+    let observed = now()?;
+    if observed < started || observed.saturating_add(1) >= deadline {
+        return Err("Face export expired in transit".into());
+    }
+    Ok(VerifiedFaceRead {
+        face,
+        producer_boot: verified.producer_boot().clone(),
+        observed_at_boot_ms: observed,
+        deadline_boot_ms: deadline,
+    })
+}

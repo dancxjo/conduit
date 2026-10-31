@@ -125,3 +125,60 @@ fn signed_but_incomplete_execution_basis_is_not_an_environmental_face() {
     .unwrap();
     assert!(verified.decode_document(&document).is_err());
 }
+
+#[test]
+fn shared_reader_preserves_deadline_and_rejects_delayed_or_foreign_chunks() {
+    use conduit_environment_host::signed_face_export::read_snapshot_with;
+    let key = SigningKey::from_bytes(&[17; 32]);
+    let original = face();
+    let document = serde_json::to_vec(&original).unwrap();
+    let signed = offer(&key, &document, 5000);
+    let digest: String = Sha256::digest(&document)
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    for (finish, wrong_offset, oversized, accepted) in [
+        (1100, false, false, true),
+        (6000, false, false, false),
+        (1100, true, false, false),
+        (1100, false, true, false),
+    ] {
+        let mut offset = 0usize;
+        let mut clock_calls = 0;
+        let result = read_snapshot_with(
+            &key.verifying_key().to_bytes(),
+            &body(),
+            &[4; 32],
+            |path, started| {
+                assert_eq!(started, 1000);
+                if path.starts_with("/face/export/snapshot?") {
+                    return Ok(signed.clone());
+                }
+                if oversized {
+                    return Ok(vec![b' '; 1409]);
+                }
+                assert!(path.ends_with(&format!("offset={offset}")));
+                let bytes = &document[offset..document.len().min(offset + 512)];
+                let encoded: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+                let reply = serde_json::to_vec(&serde_json::json!({
+                    "profile":"conduit.face/chunk@1", "digest":digest,
+                    "offset":offset + usize::from(wrong_offset), "bytes":encoded
+                }))
+                .unwrap();
+                offset += bytes.len();
+                Ok(reply)
+            },
+            || {
+                clock_calls += 1;
+                Ok(if clock_calls == 1 { 1000 } else { finish })
+            },
+        );
+        assert_eq!(result.is_ok(), accepted);
+        if let Ok(read) = result {
+            assert_eq!(read.face, original);
+            assert_eq!(read.deadline_boot_ms, 6000);
+            assert_eq!(read.observed_at_boot_ms, 1100);
+            assert_eq!(read.producer_boot.as_str(), "fixture/producer-boot");
+        }
+    }
+}
