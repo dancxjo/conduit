@@ -4,6 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { expect, test } from "@playwright/test";
+import { installWasmResponseCustody } from "./wasm-response-custody.mjs";
+
+installWasmResponseCustody(test);
 
 async function startAuthoringEntrance(plotSource = "plot making {\n}\n") {
   const directory = await mkdtemp(join(tmpdir(), "conduit-browser-authoring-"));
