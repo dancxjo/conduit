@@ -25,6 +25,14 @@ fn built_in_options_round_trip_and_keep_readable_text_and_focus() {
         (editorial_look().unwrap(), EDITORIAL_LOOK_ID),
         (engineering_look().unwrap(), ENGINEERING_LOOK_ID),
         (
+            field_instrument_day_look().unwrap(),
+            FIELD_INSTRUMENT_DAY_LOOK_ID,
+        ),
+        (
+            field_instrument_night_look().unwrap(),
+            FIELD_INSTRUMENT_NIGHT_LOOK_ID,
+        ),
+        (
             navy_look(VisualDensity::Compact, VisualTypography::Editorial).unwrap(),
             navy_look_id(VisualDensity::Compact, VisualTypography::Editorial),
         ),

@@ -4,11 +4,13 @@ use conduit_plot::rust_binding::{
 };
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
+mod look_resources_build;
 mod parsec_map_build;
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=look.conduit");
+    println!("cargo:rerun-if-changed=field-instrument-looks.conduit");
     println!("cargo:rerun-if-changed=component-layout.conduit");
     let mut catalog = StartupCatalog::new();
     catalog
@@ -42,6 +44,7 @@ fn main() {
             &[
                 include_str!("types.conduit"),
                 include_str!("look.conduit"),
+                include_str!("field-instrument-looks.conduit"),
                 include_str!("component-layout.conduit"),
             ]
             .join("\n"),
@@ -49,6 +52,7 @@ fn main() {
         &catalog,
     )
     .expect("face semantic Types must check");
+    look_resources_build::generate(&checked);
     for name in [
         "GeneratedActionAffordance",
         "ActionInputBindingProposalInfo",
