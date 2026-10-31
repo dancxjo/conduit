@@ -1592,6 +1592,8 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-environment-host",
+ "conduit-environment-measurement",
  "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",
@@ -2024,6 +2026,96 @@ name = "conduit-emergency-keyword-spotter"
 version = "0.1.0"
 
 [[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-measurement",
+ "conduit-face",
+]
+
+[[package]]
+name = "conduit-environment-host"
+version = "0.1.0"
+dependencies = [
+ "conduit-birth-plot",
+ "conduit-body",
+ "conduit-core",
+ "conduit-embedded-build",
+ "conduit-environment-make",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-make",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-seven-segment-mask",
+ "conduit-std-host",
+ "conduit-web",
+ "ed25519-dalek",
+ "libc",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-environment-make"
+version = "0.1.0"
+dependencies = [
+ "conduit-birth-plot",
+ "conduit-body",
+ "conduit-body-make",
+ "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-face",
+ "conduit-host-browser-make",
+ "conduit-host-make",
+ "conduit-host-rp2040",
+ "conduit-net",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-composite",
+ "conduit-computation",
+ "conduit-core",
+ "conduit-environment-face",
+ "conduit-environment-measurement",
+ "conduit-face",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
+ "conduit-tm1637-wire",
+ "ed25519-dalek",
+ "serde",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
@@ -2452,6 +2544,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
@@ -2561,6 +2662,15 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "serde",
+]
+
+[[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -2793,6 +2903,16 @@ dependencies = [
  "conduit-plot",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-tm1637-wire"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]

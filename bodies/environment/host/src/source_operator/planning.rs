@@ -76,7 +76,7 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         )
         .map_err(|error| Refusal::Planning(Box::new(error)))
     }
-    fn grant(&self) -> AuthorityGrant {
+    pub(super) fn grant(&self) -> AuthorityGrant {
         AuthorityGrant {
             grant_id: format!("grant/{}", self.identity.provider_instance_id.as_str()).into(),
             contract_id: AUTHORITY_CONTRACT.into(),
@@ -100,10 +100,23 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         ),
         Refusal,
     > {
-        let active = issued.identity();
         if !lease.matches_fragment(fragment) {
             return Err(Refusal::Authority);
         }
+        self.issue_for_active(fragment, issued.identity())
+    }
+    pub(super) fn issue_for_active(
+        &self,
+        fragment: &PlanFragment,
+        active: &ActivePlayIdentity,
+    ) -> Result<
+        (
+            BaseCapabilityTable,
+            BaseCapabilityHandle,
+            BaseOperationClaim,
+        ),
+        Refusal,
+    > {
         if fragment.host_id != self.identity.host_id
             || fragment.boot_id != self.identity.boot_id
             || !verify_plan_fragment(fragment)

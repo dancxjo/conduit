@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 default-run = "conduit"
 
+[features]
+installed-environmental-sources = ["dep:conduit-environment-host"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+conduit-environment-host = { path = "../../bodies/environment/host", optional = true, features = ["carrier-source"] }
+
 [dependencies]
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
@@ -55,6 +61,7 @@ sha2 = "0.10"
 socket2 = "0.6"
 
 [dev-dependencies]
+conduit-environment-measurement = { path = "../../bodies/environment/measurement" }
 conduit-composite = { path = "../../architecture/composite" }
 conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }
 rcgen = "0.14"

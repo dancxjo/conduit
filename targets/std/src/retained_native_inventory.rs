@@ -33,6 +33,7 @@ impl crate::StdHost {
     pub unsafe fn install_retained_native_base(
         &mut self,
         base: BaseProviderEntry,
+        native_kinds: Vec<Kind>,
     ) -> Result<(), (BaseProviderEntry, String)> {
         let result = (|| -> Result<_, String> {
             if !self.kernel_resources.is_idle() || base.lifecycle != BaseLifecycle::Ready {
@@ -47,6 +48,32 @@ impl crate::StdHost {
                 >= 4
             {
                 return Err("retained native mechanism capacity exhausted".into());
+            }
+            let mut native_calls = Vec::with_capacity(native_kinds.len());
+            for kind in &native_kinds {
+                kind.validate()
+                    .map_err(|error| format!("retained native Kind: {error:?}"))?;
+                let offers = base
+                    .capabilities
+                    .iter()
+                    .filter(|offer| offer.kind_id == kind.kind_id)
+                    .collect::<Vec<_>>();
+                let [offer] = offers.as_slice() else {
+                    return Err("native Kind needs one exact offered Back".into());
+                };
+                if self.retained_native_calls.len() + native_kinds.len() > 8
+                    || offer.inputs != kind.inputs
+                    || offer.outputs != kind.outputs
+                    || offer.semantic_contract != kind.semantic_contract()
+                    || offer.host_calls.len() != 1
+                    || offer.host_calls[0].maximum_in_flight != 1
+                {
+                    return Err(
+                        "retained native call differs from initialized Kind or finite capacity"
+                            .into(),
+                    );
+                }
+                native_calls.push((offer.capability_id.clone(), kind.clone()));
             }
             let mut registry = self.base_registry.clone();
             registry
@@ -68,10 +95,11 @@ impl crate::StdHost {
                 .capabilities
                 .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
             let ledger = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
-            Ok((registry, advertisement, ledger))
+            Ok((registry, advertisement, ledger, native_calls))
         })();
         match result {
-            Ok((registry, advertisement, ledger)) => {
+            Ok((registry, advertisement, ledger, native_calls)) => {
+                self.retained_native_calls.extend(native_calls);
                 self.base_registry = registry;
                 self.advertisement = advertisement;
                 self.kernel_resources = ledger;

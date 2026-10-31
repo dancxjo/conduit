@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "base_commit": "b4a092f212e19a17d5af62ca07fd518b0e2772db",
+  "regression_before": "remote-host-call-unsupported:conduit.host/http-client-exchange",
+  "before_log_sha256": "82668fe3df10333013e517312b4d01dc85d5a85c66b8ceaab07fb8837d09e500",
+  "after_log_sha256": "b742f22c03b7c1cc702775cd0d1d80612f0fa0a1f60b283d642f6cb5149bfe7b",
+  "result": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 313
+  },
+  "scope": [
+    "selected ordinary http/client dispatched through authenticated control actor",
+    "actual confined worker and exact retained endpoint",
+    "original native reservation retained during IO and idle after release",
+    "existing native Source completion, cancellation and Body-resume tests pass"
+  ],
+  "not_proven": [
+    "durable history recording or acknowledgment",
+    "physical MCU or NAT interruption acceptance",
+    "combined integration branch or hosted CI"
+  ]
+}

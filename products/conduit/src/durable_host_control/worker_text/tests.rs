@@ -26,6 +26,7 @@ fn pending() -> (DurableHostRuntime, PlanFragment) {
         &mut runtime.host,
         runtime.remote_fragment.as_mut().unwrap(),
         &mut runtime.pending_worker_text,
+        &mut runtime.pending_native_source,
         &mut Vec::new(),
         || false,
     )
