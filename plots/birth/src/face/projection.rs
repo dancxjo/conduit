@@ -323,6 +323,7 @@ impl Projection {
                         },
                     ]);
                 }
+                let mut previous_option: Option<String> = None;
                 for (index, option) in options.iter().enumerate() {
                     // The bounded item identity belongs to the exact Source/check
                     // pair. Labels and visible positions cannot replace it.
@@ -335,6 +336,15 @@ impl Projection {
                         })
                         .ok_or(BirthFaceRefusal::InvalidProjection)?;
                     let id = format!("{subject}/{}", option.identity);
+                    // Stable identities carry no lexical presentation order.
+                    // Preserve the source's visible order for every reader.
+                    if let Some(previous) = previous_option.replace(id.clone()) {
+                        self.relationships.push(FaceRelationship {
+                            source: previous,
+                            target: id.clone(),
+                            kind: FaceRelationshipKind::Semantic(kind_id("document/precedes")),
+                        });
+                    }
                     self.subjects.push(FaceSubject {
                         identity: id.clone(),
                         role: FaceRole::Plot,
