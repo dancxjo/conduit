@@ -1,11 +1,10 @@
-# Parked-owner biography custody: bounded CPU slice
+# Biography custody: parked and live CPU slices
 
-The running environmental Root can have a valid parked owner while its sealed
-biography fills the checkpoint bank. The old biography retention entrance is
-cold-only; observer return is neither a prerequisite nor authority to discard
-this history. This slice adds an original-owner custody transaction around the
-actual parked token and Store lease. It adds no transport, dispatcher, Body,
-member, Boot, changed capacity limit, or hardware action.
+The normal sampler/Mask path restores its parked token into Root's actual
+`SealedBodyLifecycleSession` before proposal commit and execution. A parked-only
+transaction cannot represent that live owner. This slice preserves the parked
+API and adds a separate live source-prefix transaction. Neither adds transport,
+dispatcher, Body, member, Boot, changed capacity limits, or hardware actions.
 
 The [sanitized receipt](receipt.json) separates copied-media, allocation,
 arbitration and native/physical claims. Private inputs, actual identity values,
@@ -48,9 +47,63 @@ ambiguous completed commit may become the valid endorsed successor on a later
 Boot; cancellation does not falsely adopt it into the running journal. Tests
 check both complete-snapshot selection and same-Boot old-owner restoration.
 
+## Live owner and WaitLane handoff
+
+`native_restart::biography::live::LiveCustody` leaves Root's actual Body installed.
+It holds the exclusive original Store lease and a small typed scope witness,
+not another Body, Plan, archive vector, or raw owner pointer. The live Store
+requires `ready=true`, `parked=false`; existing evidence/admissions remain in
+their original state. The pending RAM chain must continue the exact committed
+summary, including its predecessor digest and compaction head/count.
+
+The integration seam is:
+
+- Root calls `reserve(actual_owner, root_key, current_host, current_boot)` without
+  a flash permit. This pins memory scope only; no flash, codec replay, or key
+  derivation occurs. The actual Body borrow ends before the owned job moves.
+- The admitted WaitLane calls `prepare_source(quiet_permit)`. Root/source checks
+  and the complete authenticated export offer are prepared under its actual
+  permit. `offer()` and `export_witness()` return `Result` until this succeeds.
+- Existing `export_chunk`, `begin`, `planned_bytes`, `operation`, `step`,
+  `needs_chunk`, `prepare_chunk`, `advance`, and `is_complete` reuse the same
+  Recipe/incremental writer and original-owner wire as the parked path.
+- WaitLane calls `finish_source(quiet_permit)` or `cancel_source(quiet_permit)`;
+  errors retain the borrowed job and lease. Complete readback updates only the
+  committed source/proof/span/prefix/local count. Pending RAM archives are
+  neither acknowledged nor cleared; the live realization is never reconstructed.
+- Root calls `adopt(owned_job, actual_owner)` without a permit. This checks the
+  pinned memory scope without allocation or serialization and releases Store
+  custody. A refusal returns the complete job/lease for recovery with the
+  original owner. `validate_owner(actual_owner)` is also memory-only.
+
+Root **must fence every canonical Body/admin/renewal mutation** from reserve
+through adoption. The memory witness pins Body/Root/current Host/Boot, canonical
+sequence/sign, membership revision, pending archive count/head, foreground,
+state, and immutable realization Wake/Plan/Play identities. It is not permission
+to mutate the Body between phases. Admitted sampler/Mask kernels may continue
+independently, but their actual continuity still requires integrated proof.
+No ambient Gate introspection or fabricated Root-side permit is used.
+
+The next ordinary successful checkpoint appends the untouched RAM pending tail
+on top of the new committed prefix, then acknowledges that tail using the
+existing checkpoint contract. Compaction proves custody of the **already
+committed prefix**; it does not make newer RAM evidence durable on its own.
+
+The live CPU fixture constructs a canonical actual started realization with a
+nonempty pending archive tail. It verifies unchanged owner address, evidence,
+realization, same Boot, admissions and Clean cursor; the next checkpoint appends
+the tail exactly once. Its 63 storage operations produce 189 NOR cut cases
+(zero/half/full effects), retaining the actual live owner and pending tail while
+reopening only the old or complete endorsed successor. A separate fresh-process
+owned seam test exercises actual shared Gate permits, premature/wrong-owner
+adoption refusal and retained-lease recovery. Reservation peaks at 2,644 bytes
+including its 2,264-byte job backing on this CPU host; Root adoption allocates
+zero bytes. These are representative CPU results, not actual889 dense live
+qualification, native memory/timing acceptance, or physical worker evidence.
+
 ## Root integration contract (not implemented here)
 
-The management slot must retain the returned `Box<Custody>` across asynchronous
+For the parked API, the management slot must retain the returned `Box<Custody>` across asynchronous
 I/O and dispatcher completions, and explicitly finish or cancel it rather than
 drop its owner. The API is:
 

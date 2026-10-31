@@ -9,14 +9,16 @@
   "code_base": "4076538797f87f05e01dcc93e974d2f6ec66f8e7",
   "branch": "feat/blue-parked-biography-custody-20261031",
   "implementation_sha256": {
-    "targets/esp32/proof/tm1637/src/native_restart_biography.rs": "02db267c15c2c96b16fdc02f482f502b31e051baca7c0925eedc5e22cd62552c",
+    "targets/esp32/proof/tm1637/src/native_restart_biography.rs": "75a4987afbb0d270560d428b6b36f8a5f9142f9fd1e641285b18e44fadf8e7d4",
     "targets/esp32/proof/tm1637/src/native_restart_payload.rs": "77fbe36c87c8407e48be178df75748af8f7265734e09af1bfaa2adbb3042330f",
-    "targets/esp32/proof/tm1637/src/native_restart_biography_hot.rs": "242a7761dd5f5390e06fb4e6d37e86ec770221402b12288a1e7030ff80eb3810",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot.rs": "ae1a65bf6a819eb13644bf27f023faeae88f3f8b0174db6ccb96b97e7590a67b",
     "targets/esp32/proof/tm1637/src/native_restart_biography_hot_json.rs": "a1e6d6e1bad6926119c98d4a467d8f327d08c37011777e98c7faa08d5529e1a5",
     "targets/esp32/proof/tm1637/src/native_restart_biography_hot_rewrite.rs": "8b912321fe343f90877a2b5af46ea412dac56f4a1aeb693f3f16bd281bcd129f",
     "targets/esp32/proof/tm1637/src/native_restart_biography_hot_tests.rs": "703cc0653c6124c9f1af4d7962e5d93b59e7feed6689e8cda193ebfd3b00299c",
     "targets/esp32/proof/tm1637/src/native_restart_biography_hot_private_tests.rs": "e7b12979349af25cf1d1c77e1de94145e0fbbf4280c51ee9363ba69c6767bf00",
-    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_window_tests.rs": "badd0ca5a70797942b4565dc1deaee68fc652e0a71eeeddf4b54919d60074709"
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_window_tests.rs": "badd0ca5a70797942b4565dc1deaee68fc652e0a71eeeddf4b54919d60074709",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_live.rs": "efc33f6e23e129b932e3c80e323e8ca6c546f0100367e0d3703797c06c63888d",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_live_tests.rs": "801d4bc1577c2c5f3d879f0d2a73f016239dc4af1e3b75198fcfccb9538fc87a"
   },
   "basic_restart_tests": {
     "passed": 7,
@@ -26,7 +28,9 @@
     "passed": 10,
     "failed": 0,
     "private_opt_in_ignored_by_default": 1,
-    "includes_the_seven_basic_cases": true
+    "includes_the_seven_basic_cases": true,
+    "live_follow_on_regression_passed": 10,
+    "live_follow_on_regression_seconds": 58.81
   },
   "actual_gate_mailbox_cpu_model": {
     "operations": 39,
@@ -89,7 +93,8 @@
     "candidate_diagnostics": 15,
     "same_messages_and_source_locations": true,
     "new_module_diagnostics": 0,
-    "existing_harness_lint_policy_changed": false
+    "existing_harness_lint_policy_changed": false,
+    "scope": "parked slice at 34d4684; live follow-on not rerun (requested scope excludes broad Clippy)"
   },
   "unchanged_renewal_guard_bytes": 26000,
   "hardware_reset_flash_ack_or_erase_performed_for_this_slice": false,
@@ -100,6 +105,44 @@
     "Native maximum read/codec replay duration vs actual remaining admitted wait window",
     "Integrated native heap, stack and linked application fit",
     "Fresh current checkpoint/cursor/capacity qualification before migration",
-    "Physical sample/Mask continuity, failure/cancel/backpressure and long-duration renewal"
-  ]
+    "Physical sample/Mask continuity, failure/cancel/backpressure and long-duration renewal",
+    "Live Root owner mutation fence, static owned WaitLane dispatch/adoption integration and actual dense private-state live qualification; representative CPU owner proof is not physical continuity"
+  ],
+  "live_follow_on_base": "34d4684a4c212cde52beeeac44d8efa558c408ab",
+  "parked_private_evidence_source_commit": "34d4684a4c212cde52beeeac44d8efa558c408ab",
+  "live_owner_cpu": {
+    "regular_tests_passed": 3,
+    "default_ignored_boot_global_test": 1,
+    "fresh_process_owned_seam_tests_passed": 1,
+    "actual_sealed_started_realization": true,
+    "actual_box_owner_preserved": true,
+    "pending_ram_archives_preserved_without_ack": true,
+    "same_body_root_host_boot_realization_and_foreground": true,
+    "next_ordinary_checkpoint_appends_tail_exactly_once": true,
+    "stale_host_boot_root_source_tail_and_owner_refused": true,
+    "nor_operations": 63,
+    "nor_effect_modes": 3,
+    "nor_cases": 189,
+    "nor_reopen": "old or complete endorsed successor only",
+    "source_lease_retained_on_premature_or_wrong_owner_adoption": true,
+    "original_owner_retry_recovers_lease": true,
+    "root_reservation": "memory only, no flash/codec/key derivation",
+    "waitlane_phases_require_real_flash_permit": true,
+    "root_adoption": "memory checks only; allocation-free",
+    "reservation_peak_bytes_host_cpu": 2644,
+    "job_backing_bytes_host_cpu": 2264,
+    "adoption_allocations": 0,
+    "adoption_reallocations": 0,
+    "canonical_body_mutation_fence_required": "Root fences all canonical Body/admin/renewal mutations reserve through adopt; actual Body stays in Root",
+    "fixture": "representative canonical Core plans with CPU NOR media; not actual889 dense live state",
+    "hardware_or_worker_continuity_proven": false,
+    "native_timing_or_wcet_proven": false,
+    "private_dense_export_phase_timing_measured": false,
+    "production_callsite_integration_in_this_slice": false,
+    "original_admissions_and_clean_retained": true,
+    "nonempty_layout_in_live_fixture": false,
+    "layout_preservation_evidence": "unchanged shared projection; prior actual copied private parked fixture, not a new nonempty live layout fixture",
+    "regular_suite_seconds": 144.66,
+    "fresh_process_owned_seam_seconds": 0.93
+  }
 }
