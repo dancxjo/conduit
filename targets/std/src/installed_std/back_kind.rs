@@ -101,6 +101,7 @@ use conduit_todo_plot::TodoCombineBack;
 pub(super) enum InstalledBack {
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
+    PcmClipFrames(super::pcm_clip_frames_back::PcmClipFramesBack),
     AudioTimeAnalysis(super::audio_time_analysis_back::AudioTimeAnalysisBack),
     AudioPitchAnalysis(super::audio_pitch_analysis_back::AudioPitchAnalysisBack),
     AudioSpectralAnalysis(super::audio_spectral_analysis_back::AudioSpectralAnalysisBack),

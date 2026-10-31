@@ -1,7 +1,11 @@
 //! Ordered sound contract inventory.
 use super::*;
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 15] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 16] {
     [
+        (
+            crate::audio_clip_frames_contract(),
+            crate::PCM_CLIP_FRAMES_REVISION,
+        ),
         (
             crate::audio_time_analysis_contract(),
             crate::AUDIO_TIME_ANALYSIS_REVISION,
