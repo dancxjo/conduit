@@ -25,3 +25,21 @@ source capture through this owner, live four-device Face publication, overnight
 continuity, or physical flash/pulse timing. The confined endpoints are explicit
 CPU fixtures. Existing physical carrier firmware and local displays were not
 changed by this qualification.
+
+## Follow-on qualification
+
+At `787a5eeb74`, the existing signed-Face retrieval loop delegates to the shared
+`read_snapshot_with` API. Four signed protocol tests and all five original
+Face-client regression tests passed. This retains the original local deadline,
+full document digest and execution basis; it adds no transport or authority.
+
+At `6e121ca3d3`, the typed serial/network attachment prerequisite is integrated.
+Its originating Make qualification passed all 86 library tests; the combined
+Source/history library suite passed all 19 tests at this integration commit.
+The declarations carry finite scalar configuration and retain existing device
+identity and duplicate-Base rules. They do not acquire resources by themselves.
+
+The subsequent merge of dev `644262694a` brings in the independent checked
+atan2 quantity-difference repair. The preceding test counts are tied to the
+commits above, not claimed as rerun after this merge. Installed Source execution,
+physical deployment and same-Body durable recording remain unproved here.
