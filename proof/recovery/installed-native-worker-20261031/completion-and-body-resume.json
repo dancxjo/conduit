@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "base_commit": "f60b49556318cbe615ce795bf837ce721fd54a74",
+  "test_filter": "durable_host_control::environmental_worker::tests",
+  "result": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 313
+  },
+  "worker_sha256": "f9dfb9e6087385f490e6ed2c4a3c0dc83b35e71bb43264666e6fab7af9e4381a",
+  "log_sha256": "3ce6bff0343c42dea5dd2c5cbfdfdde14c9d8ffc2bc7f39d471f1e22e4bb4140",
+  "scope": [
+    "authenticated control and cancellation during real confined HTTP IO",
+    "late output discarded after cancellation",
+    "normal result decoded with typed ObservationContract, source counter and reported source coordinate retained",
+    "single result at ordinary admitted Fore and original resources idle after release",
+    "retained Body resumed on a new Boot preserves exact selected sensor inventory and completes Source IO"
+  ],
+  "not_proven": [
+    "recovery paths that replace unrelated native offers",
+    "generic HTTP remote actor dispatch",
+    "durable recording or durable acknowledgment",
+    "physical MCU continuity or NAT interruption acceptance",
+    "full fleet Body membership"
+  ]
+}

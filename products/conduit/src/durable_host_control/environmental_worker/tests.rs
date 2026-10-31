@@ -244,12 +244,27 @@ fn exchange(runtime: &mut DurableHostRuntime, token: &[u8; 32], frame: Vec<u8>) 
 fn host_is_out(runtime: &DurableHostRuntime) -> bool {
     match &runtime.host {
         HostSource::Bare(owner) => owner.is_playing(),
-        _ => panic!("fixture has no Body"),
+        HostSource::Body { owner, .. } => owner.host.is_playing(),
+        HostSource::Transitioning => panic!("fixture ownership is transitioning"),
     }
 }
 
 #[test]
 fn ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel() {
+    exercise_actor(true, false);
+}
+
+#[test]
+fn ordinary_actor_commits_native_result_and_returns_original_resources() {
+    exercise_actor(false, false);
+}
+
+#[test]
+fn resumed_body_keeps_selected_native_inventory_and_commits_source_result() {
+    exercise_actor(false, true);
+}
+
+fn exercise_actor(cancel: bool, resume_body: bool) {
     let Some(worker) = std::env::var_os("CONDUIT_ENVIRONMENT_TEST_WORKER") else {
         eprintln!(
             "native actor process proof skipped: explicitly set CONDUIT_ENVIRONMENT_TEST_WORKER"
@@ -320,6 +335,45 @@ fn ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel
         host,
     )
     .with_selected_environmental_equipment(Some(equipment));
+    let body_root = if resume_body {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-native-resume-{}",
+            crate::birth_identity::fresh_uuid().unwrap()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        fs::write(root.join("installation.json"), serde_json::to_vec(&serde_json::json!({
+            "schema":"conduit.install/durable-host@1", "host_id":"actor/native-host",
+            "release_source_identity":"source/test", "release_bundle_sha256":format!("sha256:{}", "a".repeat(64)),
+            "product_executable":"fixture-unused", "body_state":null, "joined_body_state":null
+        })).unwrap()).unwrap();
+        let prior_host = StdHost::new_with_config(StdHostConfig {
+            host_id: "actor/native-host".into(),
+            boot_id: "actor/prior-boot".into(),
+            offer_generation: OfferGeneration(1),
+        });
+        let resident = conduit_body::ResidentPlot::new(
+            plan.source_document_id.clone(),
+            plan.checked_plot_id.clone(),
+        );
+        let mut owner = crate::durable_host::owner::Owner::open(
+            prior_host,
+            resident,
+            None,
+            "Native actor Body",
+        )
+        .unwrap();
+        owner.persist(&root).unwrap();
+        drop(owner);
+        runtime = runtime.with_owned_body(&root).unwrap();
+        assert_eq!(
+            runtime.truth().advertisement,
+            inventory,
+            "ordinary environmental Body resume preserves exact selected inventory"
+        );
+        Some(root)
+    } else {
+        None
+    };
     let prepared = runtime
         .prepare_remote(
             inventory.boot_id.as_str(),
@@ -380,40 +434,42 @@ fn ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel
         matches!(response, Response::Status { advertisement, .. } if advertisement == inventory)
     );
     assert!(runtime.environmental_worker_active() && host_is_out(&runtime));
-    let decoded = decode_session_frame(
-        &hello,
-        MAXIMUM_CONTROL_FRAME_BYTES as u32,
-        MAXIMUM_CONTROL_FRAME_BYTES as u32,
-    )
-    .unwrap();
-    let mut cancelled = vec![0; MAXIMUM_CONTROL_FRAME_BYTES];
-    let length = encode_session_frame_into(
-        conduit_wire::SessionFrame {
-            identity: decoded.identity,
-            message: SessionMessage::Cancelled { code: 9 },
-        },
-        &mut cancelled,
-        MAXIMUM_CONTROL_FRAME_BYTES as u32,
-        MAXIMUM_CONTROL_FRAME_BYTES as u32,
-    )
-    .unwrap();
-    cancelled.truncate(length);
-    let cancellation = exchange(&mut runtime, &token, cancelled);
-    assert!(cancellation.iter().any(|frame| matches!(
-        decode_session_frame(
-            frame,
+    if cancel {
+        let decoded = decode_session_frame(
+            &hello,
             MAXIMUM_CONTROL_FRAME_BYTES as u32,
-            MAXIMUM_CONTROL_FRAME_BYTES as u32
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
         )
-        .unwrap()
-        .message,
-        SessionMessage::Cancelled { code: 9 }
-    )));
-    assert!(runtime.environmental_worker_active() && host_is_out(&runtime));
-    assert_eq!(
-        runtime.remote_fragment.as_ref().unwrap().identity(),
-        &identity
-    );
+        .unwrap();
+        let mut cancelled = vec![0; MAXIMUM_CONTROL_FRAME_BYTES];
+        let length = encode_session_frame_into(
+            conduit_wire::SessionFrame {
+                identity: decoded.identity,
+                message: SessionMessage::Cancelled { code: 9 },
+            },
+            &mut cancelled,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+            MAXIMUM_CONTROL_FRAME_BYTES as u32,
+        )
+        .unwrap();
+        cancelled.truncate(length);
+        let cancellation = exchange(&mut runtime, &token, cancelled);
+        assert!(cancellation.iter().any(|frame| matches!(
+            decode_session_frame(
+                frame,
+                MAXIMUM_CONTROL_FRAME_BYTES as u32,
+                MAXIMUM_CONTROL_FRAME_BYTES as u32
+            )
+            .unwrap()
+            .message,
+            SessionMessage::Cancelled { code: 9 }
+        )));
+        assert!(runtime.environmental_worker_active() && host_is_out(&runtime));
+        assert_eq!(
+            runtime.remote_fragment.as_ref().unwrap().identity(),
+            &identity
+        );
+    }
     // Cancellation cannot release an in-flight provider's original reservation.
     device.release.store(true, Ordering::SeqCst);
     let deadline = Instant::now() + Duration::from_secs(3);
@@ -424,24 +480,62 @@ fn ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel
     assert!(!runtime.environmental_worker_active() && !host_is_out(&runtime));
     assert!(
         device.count.load(Ordering::SeqCst) >= 3,
-        "native Source actually completed a fresh counter after cancellation"
+        "native Source actually completed a fresh counter"
     );
     assert!(runtime.pending_native_source.is_none());
     assert_eq!(runtime.truth().advertisement, inventory);
     assert!(!runtime.host.native_resources_idle());
     let admitted = runtime.remote_fragment.as_mut().unwrap();
     assert_eq!(admitted.identity(), &identity);
-    assert!(
-        !matches!(
+    if cancel {
+        assert!(
+            !matches!(
+                admitted
+                    .runtime_mut()
+                    .take_local_fore_output(&"observation".into()),
+                Ok(Some(_))
+            ),
+            "late native bytes must not become an ordinary committed output"
+        );
+    } else {
+        let mut output = None;
+        for _ in 0..64 {
+            if let Some(value) = admitted
+                .runtime_mut()
+                .take_local_fore_output(&"observation".into())
+                .unwrap()
+            {
+                output = Some(value);
+                break;
+            }
+            admitted.runtime_mut().step().unwrap();
+        }
+        let output = output.expect("completed native result reaches the admitted Fore");
+        let observation =
+            conduit_environment_measurement::source_observation::ObservationContract::prepare()
+                .unwrap()
+                .decode(&output)
+                .unwrap();
+        assert!(
+            matches!(observation.outcome,
+            conduit_environment_measurement::source_observation::SourceOutcome::Available(sample)
+            if sample.source_counter >= 3 && sample.reported_source_ms == Some(123)),
+            "the committed value retains the real fixture sample and source coordinate"
+        );
+        assert!(
             admitted
                 .runtime_mut()
-                .take_local_fore_output(&"observation".into()),
-            Ok(Some(_))
-        ),
-        "late native bytes must not become an ordinary committed output"
-    );
+                .take_local_fore_output(&"observation".into())
+                .unwrap()
+                .is_none(),
+            "the same result is not published twice"
+        );
+    }
     runtime.release_remote().unwrap();
     assert!(runtime.host.native_resources_idle());
     assert_eq!(runtime.truth().advertisement, inventory);
     assert!(runtime.selected_environmental_equipment.is_some());
+    if let Some(root) = body_root {
+        fs::remove_dir_all(root).unwrap();
+    }
 }

@@ -1593,6 +1593,7 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-environment-host",
+ "conduit-environment-measurement",
  "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",
