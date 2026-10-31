@@ -1,0 +1,26 @@
+diff --git a/architecture/core/src/configuration.rs b/architecture/core/src/configuration.rs
+index ab426ea2cb..45970c3c41 100644
+--- a/architecture/core/src/configuration.rs
++++ b/architecture/core/src/configuration.rs
+@@ -288,17 +288,17 @@ pub enum KindSemanticLaw {
+     /// Exact finite contracts for values at this Kind's Fore.
+     ValueContracts(Vec<crate::FrontValueContract>),
+     /// Finite correlation semantics for a two-sided one-to-one keyed join.
+-    KeyedJoin(KeyedJoinSemanticLaw),
++    KeyedJoin(Box<KeyedJoinSemanticLaw>),
+     /// Finite collection of one closing Flow into exactly one sequence Value.
+-    BoundedCollect(BoundedCollectSemanticLaw),
++    BoundedCollect(Box<BoundedCollectSemanticLaw>),
+     /// Exact bounded lifting of one Value transform over a closing Flow.
+     FlowEach(FlowEachSemanticLaw),
+     /// Exact bounded lifting of one Value-to-Boolean predicate over a closing Flow.
+     FlowSelect(FlowSelectSemanticLaw),
+     /// Exact bounded left fold of one closing Flow through a reviewed combine Plot.
+-    FlowFold(FlowFoldSemanticLaw),
++    FlowFold(Box<FlowFoldSemanticLaw>),
+     /// Exact bounded retained progression through a reviewed combine Plot.
+-    FlowScan(FlowScanSemanticLaw),
++    FlowScan(Box<FlowScanSemanticLaw>),
+     /// Exact initial current value and delayed typed update input.
+     InitializedState(crate::InitializedStateLaw),
+ }
