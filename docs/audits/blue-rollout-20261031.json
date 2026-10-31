@@ -1,0 +1,43 @@
+{
+  "schema": "conduit.audit/blue-rollout@1",
+  "date": "2026-10-31",
+  "instrument": "Blue ESP32 on Victus",
+  "source_commit": "ac3ac678ea5b3ab649eebe92235d54113a63f2f1",
+  "app_sha256": "ea5c903fb7eb88f58c51b3add89e6df0a3bc2a34dca53f0c96e63259f11e8596",
+  "elf_sha256": "52098aac48ce9c0c0f1080f95fed54ece6dc8e8d38c401151b40fe29bc5402ea",
+  "application_bytes": 3245088,
+  "application_partition_bytes": 3371008,
+  "reserved_stack_bytes": 37412,
+  "unchanged_stack_floor_bytes": 36864,
+  "original_body_root_owner_and_nonapp_flash_preserved": true,
+  "newest_clean_cursor_authenticated_and_equal_to_independently_accepted_prior": true,
+  "immediately_prewrite_checkpoint": {
+    "generation": 889,
+    "encoded_bytes": 29115
+  },
+  "copied_next_boot_maximum_checkpoint_bytes": 30376,
+  "checkpoint_payload_capacity": 32608,
+  "copied_next_boot_payload_margin": 2232,
+  "physical_capture_seconds": 180,
+  "reported_restored_checkpoint_generation": 891,
+  "saved_wifi_reconnected": true,
+  "fresh_retained_observation_records": 2,
+  "mask_acknowledgements": 50,
+  "face_fresh": true,
+  "sampler_or_mask_fault": false,
+  "fatal_marker_seen": false,
+  "successful_live_checkpoint_events": 2,
+  "custody_refusals": {
+    "reason": "observed-offer-not-frozen",
+    "count": 3
+  },
+  "custody_ack_erase_or_offload_performed": false,
+  "renewal_guard_bytes_unchanged": 26000,
+  "second_forced_restart_performed": false,
+  "post_startup_checkpoint_encoded_extent_reread": false,
+  "long_duration_renewal_proven": false,
+  "new_observer_return_or_membership_proven": false,
+  "physical_visual_display_confirmation": false,
+  "uart_lease_released_to": "forebrain",
+  "private_inputs_or_recovered_records_in_this_receipt": false
+}
