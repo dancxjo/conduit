@@ -33,6 +33,36 @@ pub fn unavailable(reason: &str) -> Face {
     .expect("bounded static host status")
 }
 
+/// The adapter supplies ordinary Mask-local guidance. Choose the first wording
+/// admitted by the shared measured footer; never clip text or ignore refusal.
+fn set_read_only_notice(
+    scene: &mut NativeFaceScene,
+    missing_glyphs: bool,
+) -> Result<(), conduitos::native_face_scene::FaceSceneError> {
+    use conduitos::native_face_scene::FaceSceneError;
+    let candidates = if missing_glyphs {
+        [
+            "Font missing characters; original text retained",
+            "Missing glyphs; text retained",
+            "Missing glyphs",
+        ]
+    } else {
+        [
+            "Read only; Details for actions and facts",
+            "Read only; see Details",
+            "Read only; Details",
+        ]
+    };
+    for notice in candidates {
+        match scene.set_local_notice(notice) {
+            Ok(()) => return Ok(()),
+            Err(FaceSceneError::InputBound) => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(FaceSceneError::InputBound)
+}
+
 pub struct Presentation<'a> {
     pub unit: Option<conduit_core::Unit>,
     pub look: Option<&'a conduit_face::LookInfo>,
@@ -311,12 +341,7 @@ pub(crate) fn frame_with_context(
             )
             .unsupported
         });
-    scene
-        .set_local_notice(if unsupported {
-            "Font missing characters; original text retained"
-        } else {
-            "Read only; Details for actions and facts"
-        })
+    set_read_only_notice(&mut scene, unsupported)
         .map_err(|e| format!("Face notice refused: {e:?}"))?;
     if details {
         let pages = scene.pages();

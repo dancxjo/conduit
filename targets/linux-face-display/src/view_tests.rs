@@ -183,3 +183,114 @@ fn missing_visual_facet_uses_the_same_selected_phosphor_metrics_and_pixels() {
     assert_eq!(fallback, expected);
     assert_eq!(face, original);
 }
+
+#[test]
+fn authored_look_notices_fit_narrow_unavailable_and_retained_views() {
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        for missing_glyph in [false, true] {
+            let mut face = unavailable("Source unavailable; retained facts are not live readings");
+            if missing_glyph {
+                face.subjects[0].name = "Instrument 🦄".into();
+                face = Face::new(
+                    0,
+                    face.basis,
+                    face.subjects,
+                    face.relationships,
+                    face.properties,
+                    face.text,
+                )
+                .unwrap();
+            }
+            let original = face.clone();
+            for width in [320, 360, 1024] {
+                for details in [false, true] {
+                    for retained in [false, true] {
+                        let (scene, _, _, scale, _) = frame_with_context(
+                            face.clone(),
+                            width,
+                            564,
+                            0,
+                            None,
+                            details,
+                            Some(&look),
+                            retained,
+                            true,
+                        )
+                        .unwrap();
+                        let typography =
+                            crate::raster_target::selected_typography(Some(&look)).unwrap();
+                        for command in scene.commands() {
+                            if command.kind == conduit_face::GraphicsCommandKind::Text {
+                                let height =
+                                    conduitos::display::typography::TextLayout::new_selected(
+                                        command.payload(),
+                                        typography.style(command.text_role().into()),
+                                        command.bounds.width,
+                                        scale,
+                                    )
+                                    .unwrap()
+                                    .finish_height();
+                                assert!(
+                                    height <= u32::from(command.bounds.height),
+                                    "{} at {width}: {height} > {}",
+                                    command.payload(),
+                                    command.bounds.height
+                                );
+                            }
+                        }
+                        assert!(scene.commands().iter().any(|c| if missing_glyph {
+                            c.payload().contains("glyph")
+                                || c.payload().contains("missing characters")
+                        } else {
+                            c.payload().contains("Read only")
+                        }));
+                    }
+                }
+            }
+            assert_eq!(face, original);
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires explicitly selected private actual current Face"]
+fn actual_face_authored_look_remains_readable_in_narrow_retained_and_details_views() {
+    let path = std::env::var_os("CONDUIT_PRIVATE_CURRENT_FACE_TEST").expect("private actual Face");
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let face: Face = serde_json::from_value(document["face"].clone()).unwrap();
+    face.validate().unwrap();
+    let original = face.clone();
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        for details in [false, true] {
+            for retained in [false, true] {
+                for tick in 0..8 {
+                    let mut pixels = vec![0; 320 * 564];
+                    render_with_details(
+                        face.clone(),
+                        320,
+                        564,
+                        tick,
+                        &mut pixels,
+                        Presentation {
+                            unit: Some(conduit_core::Unit::Fahrenheit),
+                            look: Some(&look),
+                            details,
+                            retained_snapshot: retained,
+                            history_in_primary: true,
+                        },
+                    )
+                    .unwrap();
+                    assert!(pixels.iter().any(|pixel| *pixel != 0));
+                }
+            }
+        }
+    }
+    assert_eq!(face, original);
+}

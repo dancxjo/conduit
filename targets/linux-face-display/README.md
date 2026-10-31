@@ -138,7 +138,10 @@ resampling preserves the existing 128×128 per-glyph work bound; unsupported lin
 boxes or size requests refuse before scene/hit publication. No runtime font loader
 is introduced. Token-driven component spacing, radii and local partial overrides
 are still pending; Theme selection does not claim those contracts or a successful
-hardware Show.
+hardware Show. Narrow observer chrome uses the same compact headings as its
+measured reservation, and selects full or compact read-only/font guidance by
+footer admission. If no complete candidate fits, preparation still refuses;
+text is never silently clipped or scaled down to fit.
 
 ### Shared collector-observed series
 

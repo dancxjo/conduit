@@ -34,6 +34,8 @@ impl NativeFaceScene {
         let heading = if self.read_only_overview {
             if self.showing_details {
                 "DETAILS"
+            } else if chrome.compact {
+                "VIEW"
             } else {
                 "CURRENT VIEW"
             }
