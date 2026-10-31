@@ -4,6 +4,10 @@
 mod coverage;
 mod font;
 #[cfg(feature = "native-face-raster")]
+pub(crate) mod look_paint;
+#[cfg(feature = "native-face-raster")]
+pub use look_paint::visual_look_paint;
+#[cfg(feature = "native-face-raster")]
 mod icons;
 mod polyline;
 mod raw;
