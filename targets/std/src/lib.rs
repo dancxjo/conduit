@@ -2265,3 +2265,6 @@ pub mod todo_spoken_reading;
 pub mod device_carrier;
 /// Finite worker text evidence; admission and shared Face projection remain owner decisions.
 pub mod worker_text_result;
+
+mod retained_native_inventory;
+pub use retained_native_inventory::NativeFragmentReservation;

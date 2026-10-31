@@ -78,6 +78,19 @@ pub struct DeviceCarrier {
     failure: Option<Failure>,
 }
 impl DeviceCarrier {
+    /// Advance only this retained exclusive physical owner within the same
+    /// native Host/Boot while Root prepares a newer inventory before publication.
+    pub fn prepare_for_host(&mut self, host: &HostAdvertisement) -> Result<(), Failure> {
+        if self.failure.is_some()
+            || host.host_id != self.binding.host
+            || host.boot_id != self.binding.boot
+            || host.offer_generation.0 < self.binding.offer_generation.0
+        {
+            return Err(Failure::Scope);
+        }
+        self.binding.offer_generation = host.offer_generation;
+        Ok(())
+    }
     pub fn acquire(
         path: &Path,
         host: &HostAdvertisement,

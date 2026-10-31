@@ -34,10 +34,12 @@ pub enum Refusal {
     Planning(Box<conduit_planner::PlannerError>),
     Capacity,
 }
-struct Identity {
+pub(super) struct Identity {
     host_id: HostId,
     boot_id: BootId,
     base_id: HostBaseId,
+    capability: CapabilityId,
+    publication: CapabilityId,
     provider_instance_id: BaseInstanceId,
     provider_generation: u64,
     resource_pool_id: ResourcePoolId,
@@ -50,12 +52,12 @@ struct Identity {
 /// Owns the local Root advertisement and actual initialized peripheral together.
 /// Never reconstructed from a received Plan, member receipt or device report.
 pub struct UsbSourceRoot<P = DeviceEnvironmentalSource> {
-    host: HostAdvertisement,
-    installed: Option<SharedHost>,
+    installed: SharedHost,
     identity: Identity,
     provider: Option<P>,
     key: [u8; 32],
     next_play: u64,
+    failed: bool,
 }
 impl UsbSourceRoot {
     pub fn acquire(
@@ -78,7 +80,15 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         provider: P,
         realization: &str,
     ) -> Result<Self, Refusal> {
-        let mut host = installed
+        Self::attach_with_inventory(installed, provider, realization, |_, _, _| Ok(()))
+    }
+    pub(super) fn attach_with_inventory(
+        installed: SharedHost,
+        provider: P,
+        realization: &str,
+        configure: impl FnOnce(&mut P, &Identity, &mut BaseProviderEntry) -> Result<(), Refusal>,
+    ) -> Result<Self, Refusal> {
+        let host = installed
             .borrow()
             .as_ref()
             .ok_or(Refusal::Acquisition)?
@@ -100,6 +110,8 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),
             base_id: format!("base/environment-source/{nonce}").into(),
+            capability: format!("environment/source/{nonce}").into(),
+            publication: format!("environment/publication/{nonce}").into(),
             provider_instance_id: format!("instance/environment-source/{nonce}").into(),
             provider_generation: 1,
             resource_pool_id: format!("pool/environment-source/{nonce}").into(),
@@ -112,50 +124,45 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
             base_implementation_id: format!("linux/environment-source-{realization}-base@1").into(),
         };
         let mut root = Self {
-            host: host.clone(),
-            installed: Some(installed),
+            installed,
             identity,
             provider: Some(provider),
             key,
             next_play: 0,
+            failed: false,
         };
-        root.append_to_advertisement(&mut host)?;
-        host.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
-        host.capabilities
-            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
-        root.host = host;
+        let mut base = root.base_entry()?;
+        configure(
+            root.provider
+                .as_mut()
+                .expect("retained initialized provider"),
+            &root.identity,
+            &mut base,
+        )?;
+        // The actual initialized provider remains retained in root throughout
+        // this idle, transactional installation on the one installed Host.
+        unsafe {
+            root.installed
+                .borrow_mut()
+                .as_mut()
+                .ok_or(Refusal::Acquisition)?
+                .install_retained_native_base(base)
+        }
+        .map_err(|_| Refusal::Advertisement)?;
         Ok(root)
     }
-}
-impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
-    pub fn host(&self) -> &HostAdvertisement {
-        &self.host
+    pub fn advertisement(&self) -> Result<HostAdvertisement, Refusal> {
+        Ok(self
+            .installed
+            .borrow()
+            .as_ref()
+            .ok_or(Refusal::Acquisition)?
+            .advertisement()
+            .clone())
     }
-    /// Project only the actual retained provider into the matching Host/Boot.
-    /// Preparation may allocate; this method starts no timer work.
-    fn append_to_advertisement(
-        &self,
-        advertisement: &mut HostAdvertisement,
-    ) -> Result<(), Refusal> {
-        use Refusal as R;
+    fn base_entry(&self) -> Result<BaseProviderEntry, Refusal> {
         let identity = &self.identity;
-        if advertisement.host_id != identity.host_id || advertisement.boot_id != identity.boot_id {
-            return Err(R::WrongBoot);
-        }
-        if advertisement.bases.iter().any(|base| {
-            base.base_id == identity.base_id
-                || base.provider_instance_id == identity.provider_instance_id
-        }) || advertisement
-            .capabilities
-            .iter()
-            .any(|c| c.capability_id.as_str() == CAPABILITY)
-            || advertisement
-                .resources
-                .iter()
-                .any(|r| r.pool_id == identity.resource_pool_id)
-        {
-            return Err(R::Advertisement);
-        }
+        type R = Refusal;
         let kind = ObservationContract::prepare()
             .map_err(|_| R::Advertisement)?
             .kind(false)
@@ -163,7 +170,7 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         let offer = BackOfferBuilder::new(
             kind.clone(),
             Back {
-                capability_id: CAPABILITY.into(),
+                capability_id: identity.capability.clone(),
                 execution_profile_id: PROFILE.into(),
                 implementation_id: identity.implementation_id.clone(),
                 artifact_id: identity.artifact_id.clone(),
@@ -183,40 +190,38 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
             },
         )
         .build();
-        let mut registry = BaseRegistry::new(BaseRegistryLimits {
-            maximum_bases: 1,
-            maximum_capabilities_per_base: 1,
-            maximum_resources_per_base: 1,
-            maximum_advertised_capabilities: u16::try_from(
-                advertisement.capabilities.len().saturating_add(1),
-            )
-            .map_err(|_| R::Advertisement)?,
-            maximum_advertised_resources: u16::try_from(
-                advertisement.resources.len().saturating_add(1),
-            )
-            .map_err(|_| R::Advertisement)?,
-        })
-        .map_err(|_| R::Advertisement)?;
-        registry
-            .register(BaseProviderEntry {
-                base_id: identity.base_id.clone(),
-                provider_instance_id: identity.provider_instance_id.clone(),
-                provider_generation: identity.provider_generation,
-                implementation_id: identity.base_implementation_id.clone(),
-                mechanism_family: RESOURCE_CLASS.into(),
-                enforcement_class: BaseEnforcementClass::Cooperative,
-                lifecycle: BaseLifecycle::Ready,
-                capabilities: vec![offer],
-                resources: vec![resource_offer(
-                    identity.resource_pool_id.as_str(),
-                    RESOURCE_CLASS,
-                    1,
-                )],
-            })
+        let publication_kind = ObservationContract::prepare()
+            .map_err(|_| R::Advertisement)?
+            .kind(true)
             .map_err(|_| R::Advertisement)?;
-        registry
-            .project_ready_into(advertisement)
-            .map_err(|_| R::Advertisement)
+        let publication = BackOfferBuilder::new(
+            publication_kind,
+            Back {
+                capability_id: identity.publication.clone(),
+                execution_profile_id: PROFILE.into(),
+                implementation_id: "linux/environmental-publication@1".into(),
+                artifact_id: "native/environmental-publication@1".into(),
+                host_calls: vec![],
+                resource_requirements: vec![],
+                authority_requirements: vec![],
+            },
+        )
+        .build();
+        Ok(BaseProviderEntry {
+            base_id: identity.base_id.clone(),
+            provider_instance_id: identity.provider_instance_id.clone(),
+            provider_generation: identity.provider_generation,
+            implementation_id: identity.base_implementation_id.clone(),
+            mechanism_family: RESOURCE_CLASS.into(),
+            enforcement_class: BaseEnforcementClass::Cooperative,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![offer, publication],
+            resources: vec![resource_offer(
+                identity.resource_pool_id.as_str(),
+                RESOURCE_CLASS,
+                1,
+            )],
+        })
     }
 }
 

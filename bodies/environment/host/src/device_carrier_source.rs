@@ -82,6 +82,14 @@ impl DeviceEnvironmentalSource {
     }
 }
 impl EnvironmentalSourceProvider for DeviceEnvironmentalSource {
+    fn prepare_for_host(&mut self, host: &HostAdvertisement) -> Result<(), Refusal> {
+        self.carrier
+            .prepare_for_host(host)
+            .map_err(|_| Refusal::Possession)?;
+        self.host = host.clone();
+        Ok(())
+    }
+
     async fn observe(&mut self) -> Result<SourceObservation, Refusal> {
         if self.failed {
             return Err(Refusal::Provider);

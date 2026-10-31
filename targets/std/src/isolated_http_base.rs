@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 
 mod adversarial;
 mod child;
+mod exchange;
+pub use exchange::exchange_selected_response;
 mod host;
 mod provider;
 
