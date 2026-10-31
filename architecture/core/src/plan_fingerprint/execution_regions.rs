@@ -1,8 +1,10 @@
 //! Exact execution-region and worker-storage commitments.
 use crate::{push_resource_binding, push_string, push_u32, ExecutionRegion, ExecutionScheduling};
-use alloc::vec::Vec;
 
-pub(super) fn push_canonical(canonical: &mut Vec<u8>, regions: &[ExecutionRegion]) {
+pub(super) fn push_canonical(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    regions: &[ExecutionRegion],
+) {
     push_u32(canonical, regions.len() as u32);
     for region in regions {
         push_string(canonical, region.region_id.as_str());
