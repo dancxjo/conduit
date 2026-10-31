@@ -61,6 +61,7 @@ pub struct RemoteValueTransfer {
 }
 
 mod host_work;
+mod local_fore;
 mod microphone;
 mod worker_text;
 pub use host_work::{RemoteHostWork, RemoteHostWorkRef};
@@ -142,7 +143,13 @@ impl InstalledRemoteFragment {
         };
         if !supports(fragment)
             && !fragment.placements.iter().all(|gear| {
-                native_matches(gear) || super::catalog::factory(&gear.implementation_id).is_some() || matches!(gear.implementation_id.as_str(), conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION | conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION)
+                native_matches(gear)
+                    || super::catalog::factory(&gear.implementation_id).is_some()
+                    || matches!(
+                        gear.implementation_id.as_str(),
+                        conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION
+                            | conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+                    )
             })
         {
             return Err("remote fragment contains an uninstalled std implementation".into());
@@ -199,6 +206,17 @@ impl InstalledRemoteFragment {
                 maximum_value_bytes = maximum_value_bytes.max(cord.byte_capacity);
             }
         }
+        for port in &lowered.fore_ports {
+            if port.direction == conduit_core::PortDirection::Input {
+                value_items = value_items
+                    .checked_add(port.item_capacity)
+                    .ok_or("local Fore value item budget overflow")?;
+                value_bytes = value_bytes
+                    .checked_add(port.byte_capacity)
+                    .ok_or("local Fore value byte budget overflow")?;
+                maximum_value_bytes = maximum_value_bytes.max(port.byte_capacity);
+            }
+        }
         let mut values =
             HostedValueStore::new(value_items.max(1), maximum_value_bytes, value_bytes.max(1))
                 .map_err(|error| format!("remote fragment value store: {error:?}"))?;
@@ -241,7 +259,23 @@ impl InstalledRemoteFragment {
         let sign_bytes = u32::from(sign_items)
             .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
             .ok_or_else(|| "remote fragment Sign byte budget overflow".to_string())?;
-        let remote_sign_items = remote_sign_capacity(&lowered)?.max(retention.remote_items);
+        let mut remote_sign_items = remote_sign_capacity(&lowered)?;
+        for port in &lowered.fore_ports {
+            let per_item = if port.direction == conduit_core::PortDirection::Input {
+                1
+            } else {
+                3
+            };
+            remote_sign_items = remote_sign_items
+                .checked_add(
+                    port.item_capacity
+                        .checked_mul(per_item)
+                        .and_then(|items| items.checked_add(1))
+                        .ok_or("local Fore Sign capacity overflow")?,
+                )
+                .ok_or("local Fore Sign capacity overflow")?;
+        }
+        let remote_sign_items = remote_sign_items.max(retention.remote_items);
         let remote_sign_bytes = conduit_kernel::remote_sign_storage_bytes(remote_sign_items)
             .ok_or_else(|| "remote fragment remote Sign byte budget overflow".to_string())?;
         let signs = HostedSignLog::new_with_remote_storage(

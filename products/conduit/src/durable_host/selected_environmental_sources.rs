@@ -11,11 +11,53 @@ pub(crate) struct AttachedEquipment {
     pub(crate) native: DetachedCollectorEquipment,
     /// Instrument construction/placement context is distinct from the sampling Plot.
     pub(crate) instruments: Vec<SelectedInstrument>,
+    pub(crate) authority_grants: Vec<conduit_core::AuthorityGrant>,
 }
 pub(crate) struct SelectedInstrument {
     pub(crate) attachment_id: String,
     pub(crate) source_configuration: CheckedHostConfiguration,
     pub(crate) firmware: [u8; 32],
+    pub(crate) session: conduit_environment_host::source_operator::SourceSessionDescriptor,
+}
+impl AttachedEquipment {
+    /// Check descriptive associations against the actual retained inventory.
+    /// These checks confer no ownership, grant, or remote device membership.
+    pub(crate) fn validate_owner(&self, host: &StdHost) -> Result<(), String> {
+        let mut labels = BTreeSet::new();
+        for instrument in &self.instruments {
+            if !labels.insert(&instrument.attachment_id)
+                || instrument
+                    .source_configuration
+                    .configuration_id()
+                    .is_empty()
+                || instrument.firmware == [0; 32]
+                || instrument.session.host() != &host.advertisement().host_id
+                || instrument.session.boot() != &host.advertisement().boot_id
+                || !host
+                    .advertisement()
+                    .capabilities
+                    .iter()
+                    .any(|offer| &offer.capability_id == instrument.session.capability())
+                || !host.advertisement().bases.iter().any(|base| {
+                    &base.provider_instance_id == instrument.session.session()
+                        && base
+                            .capability_ids
+                            .contains(instrument.session.capability())
+                })
+            {
+                return Err(
+                    "selected instrument association differs from retained native inventory".into(),
+                );
+            }
+        }
+        if self.authority_grants.iter().any(|grant| {
+            grant.host_id != host.advertisement().host_id
+                || grant.boot_id != host.advertisement().boot_id
+        }) {
+            return Err("retained native planning grant has a foreign scope".into());
+        }
+        Ok(())
+    }
 }
 const IMPLEMENTATION: &str = "linux/environmental-sources@1";
 const DEVICE: &str = "environment/source@1";
@@ -177,27 +219,21 @@ pub(super) fn attach(
         return Err("selected environmental worker identity changed".into());
     }
     let budget = Duration::from_millis(parameters.timeout_milliseconds);
-    let instruments = attachments
-        .iter()
-        .map(|attachment| SelectedInstrument {
-            attachment_id: attachment.device.id().to_owned(),
-            source_configuration: attachment.checked.clone(),
-            firmware: attachment.firmware,
-        })
-        .collect();
-    let mut collector = CollectorRoot::new(host);
+    let mut instruments = Vec::with_capacity(attachments.len());
+    let mut collector = CollectorRoot::new_installed(host);
     for attachment in attachments {
-        match attachment.device {
-            ConfigurationDevice::Serial { path, .. } => {
-                collector
-                    .attach_usb(
-                        std::path::Path::new(&path),
-                        &attachment.checked,
-                        attachment.firmware,
-                        budget,
-                    )
-                    .map_err(|e| format!("initialize selected serial Source: {e:?}"))?;
-            }
+        let attachment_id = attachment.device.id().to_owned();
+        let source_configuration = attachment.checked.clone();
+        let firmware = attachment.firmware;
+        let id = match attachment.device {
+            ConfigurationDevice::Serial { path, .. } => collector
+                .attach_usb(
+                    std::path::Path::new(&path),
+                    &attachment.checked,
+                    attachment.firmware,
+                    budget,
+                )
+                .map_err(|e| format!("initialize selected serial Source: {e:?}"))?,
             ConfigurationDevice::Network {
                 id,
                 endpoint,
@@ -228,19 +264,31 @@ pub(super) fn attach(
                         &attachment.checked,
                         budget,
                     )
-                    .map_err(|e| format!("initialize selected network Source: {e:?}"))?;
+                    .map_err(|e| format!("initialize selected network Source: {e:?}"))?
             }
             _ => return Err("unsupported selected source transport".into()),
-        }
+        };
+        let session = collector
+            .source_descriptor(id)
+            .map_err(|reason| format!("retain selected instrument session: {reason:?}"))?;
+        instruments.push(SelectedInstrument {
+            attachment_id,
+            source_configuration,
+            firmware,
+            session,
+        });
     }
+    let authority_grants = collector
+        .native_authority_grants()
+        .map_err(|reason| format!("retain selected native grants: {reason:?}"))?;
     let (host, equipment) = collector
         .detach()
         .map_err(|e| format!("seal selected Source inventory: {:?}", e.reason))?;
-    Ok((
-        host,
-        Some(AttachedEquipment {
-            native: equipment,
-            instruments,
-        }),
-    ))
+    let equipment = AttachedEquipment {
+        native: equipment,
+        instruments,
+        authority_grants,
+    };
+    equipment.validate_owner(&host)?;
+    Ok((host, Some(equipment)))
 }

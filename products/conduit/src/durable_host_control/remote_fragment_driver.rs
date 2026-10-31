@@ -34,9 +34,9 @@ where
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
-            if work.contract_id.as_str()=="environment/read-environmental-source" {
-                host.admitted_native_request(admitted,request)?;
-                *pending_native=Some(request);
+            if work.contract_id.as_str() == "environment/read-environmental-source" {
+                host.admitted_native_request(admitted, request)?;
+                *pending_native = Some(request);
                 return Ok(());
             }
             if work.contract_id.as_str() == conduit_core::PRESENT_HOST_CALL_CONTRACT {

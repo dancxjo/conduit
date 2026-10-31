@@ -32,6 +32,7 @@ pub struct CollectorRoot {
     installed: SharedHost,
     slots: Vec<UsbSourceRoot<Provider>>,
     sealed: bool,
+    standalone_publication: bool,
 }
 impl CollectorRoot {
     pub fn new(installed: conduit_std_host::StdHost) -> Self {
@@ -39,7 +40,14 @@ impl CollectorRoot {
             installed: Arc::new(Mutex::new(Some(installed))),
             slots: Vec::with_capacity(4),
             sealed: false,
+            standalone_publication: true,
         }
+    }
+    /// Installed execution exposes only Backs dispatched by the ordinary kernel.
+    pub fn new_installed(installed: conduit_std_host::StdHost) -> Self {
+        let mut root = Self::new(installed);
+        root.standalone_publication = false;
+        root
     }
     pub fn attach_usb(
         &mut self,
@@ -96,9 +104,15 @@ impl CollectorRoot {
             self.installed.clone(),
             provider,
             realization,
-            |provider, identity, base| match provider {
-                Provider::Usb(_) => Ok(()),
-                Provider::Network(network) => network.register_native(identity, base),
+            |provider, identity, base| {
+                if !self.standalone_publication {
+                    base.capabilities
+                        .retain(|offer| offer.capability_id != identity.publication);
+                }
+                match provider {
+                    Provider::Usb(_) => Ok(()),
+                    Provider::Network(network) => network.register_native(identity, base),
+                }
             },
         )?;
         let id = CollectorSourceId(self.slots.len());
@@ -108,6 +122,25 @@ impl CollectorRoot {
     /// Locally owned planning grants; copying them establishes no remote membership.
     pub fn source_authority_grants(&self) -> Vec<AuthorityGrant> {
         self.slots.iter().map(UsbSourceRoot::grant).collect()
+    }
+    pub fn native_authority_grants(&self) -> Result<Vec<AuthorityGrant>, Refusal> {
+        let host = self.advertisement()?;
+        let mut grants = self.source_authority_grants();
+        for slot in &self.slots {
+            if let Some(Provider::Network(network)) = slot.provider.as_ref() {
+                grants.extend(network.authority_grants(&host));
+            }
+        }
+        Ok(grants)
+    }
+    pub fn source_descriptor(
+        &self,
+        id: CollectorSourceId,
+    ) -> Result<SourceSessionDescriptor, Refusal> {
+        self.slots
+            .get(id.0)
+            .map(UsbSourceRoot::source_descriptor)
+            .ok_or(Refusal::Possession)
     }
     pub fn advertisement(&self) -> Result<HostAdvertisement, Refusal> {
         Ok(self
@@ -137,6 +170,9 @@ impl CollectorRoot {
     }
     /// Serial capture is enforced by exclusive access to the same composite owner.
     pub async fn sample(&mut self, id: CollectorSourceId) -> Result<CommittedSample, Refusal> {
+        if !self.standalone_publication {
+            return Err(Refusal::Authority);
+        }
         self.seal_inventory()?;
         self.slots
             .get_mut(id.0)
@@ -271,6 +307,7 @@ mod handoff_tests {
             installed: installed.clone(),
             slots: Vec::new(),
             sealed: false,
+            standalone_publication: true,
         };
         let lease = installed
             .lock()
@@ -350,6 +387,58 @@ impl DetachedCollectorEquipment {
                 .is_some()
         {
             return (host, self, admitted, Err(Refusal::Advertisement));
+        }
+        let http = (|| {
+            let witness = host
+                .admitted_native_request(&admitted, request)
+                .map_err(|_| Refusal::Authority)?;
+            if witness.work().contract_id.as_str()
+                != conduit_std_host::isolated_http_base::HTTP_CLIENT_OPERATION
+            {
+                return Ok(None);
+            }
+            let selected = witness.selected();
+            let gear = selected
+                .fragment
+                .placements
+                .iter()
+                .find(|gear| &gear.placement_id == selected.placement_id)
+                .ok_or(Refusal::Plan)?;
+            let slot=self.collector.slots.iter().find(|slot| matches!(slot.provider.as_ref(),Some(Provider::Network(network)) if network.matches_capability(&gear.capability_id))).ok_or(Refusal::Possession)?;
+            if slot.failed {
+                return Err(Refusal::Possession);
+            }
+            let Some(Provider::Network(network)) = slot.provider.as_ref() else {
+                return Err(Refusal::Possession);
+            };
+            network
+                .exchange_admitted(&host, &admitted, request)
+                .map(Some)
+        })();
+        match http {
+            Ok(Some(bytes)) => {
+                let result = (|| {
+                    let value = admitted
+                        .runtime_mut()
+                        .store_host_value(&bytes)
+                        .map_err(|_| Refusal::Capacity)?;
+                    admitted
+                        .runtime_mut()
+                        .complete_host_call(
+                            request,
+                            conduit_kernel::HostCallOutcome {
+                                disposition: conduit_kernel::HostCallDisposition::Completed,
+                                output: Some(value),
+                                failure: None,
+                            },
+                        )
+                        .map_err(|_| Refusal::Authority)?;
+                    Ok(true)
+                })();
+                return (host, self, admitted, result);
+            }
+            Err(reason) => return (host, self, admitted, Err(reason)),
+            Ok(None) => {}
         }
         let prepared = (|| {
             let witness = host

@@ -153,15 +153,16 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
                 .expect("collector Host mutex poisoned")
                 .as_mut()
                 .ok_or(Refusal::Acquisition)?
-                .install_retained_native_base(
-                    base,
-                    Some(
-                        ObservationContract::prepare()
-                            .map_err(|_| Refusal::Advertisement)?
-                            .kind(false)
-                            .map_err(|_| Refusal::Advertisement)?,
-                    ),
-                )
+                .install_retained_native_base(base, {
+                    let mut kinds = vec![ObservationContract::prepare()
+                        .map_err(|_| Refusal::Advertisement)?
+                        .kind(false)
+                        .map_err(|_| Refusal::Advertisement)?];
+                    if realization == "isolated-http" {
+                        kinds.push(conduit_web::http_client_semantics().into_semantic_contract());
+                    }
+                    kinds
+                })
         }
         .map_err(|_| Refusal::Advertisement)?;
         Ok(root)
@@ -267,3 +268,6 @@ pub fn install_catalog(
 ) -> Result<(), String> {
     conduit_environment_runtime::environmental_source::install_catalog(startup, profiles)
 }
+
+mod description;
+pub use description::SourceSessionDescriptor;

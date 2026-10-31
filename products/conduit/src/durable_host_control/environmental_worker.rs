@@ -66,6 +66,10 @@ impl DurableHostRuntime {
         if self.selected_environmental_equipment.is_none() {
             return Err("selected Source equipment absent".into());
         }
+        self.selected_environmental_equipment
+            .as_ref()
+            .expect("validated retained equipment")
+            .validate_owner(&self.host)?;
         let host = self.host.take_native_worker_host()?;
         let equipment = self
             .selected_environmental_equipment
@@ -80,15 +84,17 @@ impl DurableHostRuntime {
         // deadlines. No display polling or additional resource reservation occurs.
         self.environmental_worker = Some(Worker {
             thread: std::thread::spawn(move || {
-                let instruments = equipment.instruments;
-                let (host, native, admitted, result) = block_on(
-                    equipment
-                        .native
-                        .complete_admitted_request(host, admitted, request),
-                );
+                let AttachedEquipment {
+                    native,
+                    instruments,
+                    authority_grants,
+                } = equipment;
+                let (host, native, admitted, result) =
+                    block_on(native.complete_admitted_request(host, admitted, request));
                 let equipment = AttachedEquipment {
                     native,
                     instruments,
+                    authority_grants,
                 };
                 (
                     host,

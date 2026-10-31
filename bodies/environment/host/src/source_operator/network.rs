@@ -79,6 +79,57 @@ impl NetworkSource {
         ));
         Ok(())
     }
+    pub(super) fn matches_capability(&self, capability: &CapabilityId) -> bool {
+        self.capability.as_ref() == Some(capability)
+    }
+    pub(super) fn exchange_admitted(
+        &self,
+        host: &conduit_std_host::StdHost,
+        admitted: &conduit_std_host::AdmittedRemoteFragment,
+        request: conduit_kernel::scheduler::HostCallRequest,
+    ) -> Result<Vec<u8>, Refusal> {
+        if self.failed {
+            return Err(Refusal::Possession);
+        }
+        let response = conduit_std_host::isolated_http_base::exchange_admitted_response(
+            host,
+            admitted,
+            request,
+            &self.configuration.http,
+        )
+        .map_err(|_| Refusal::Acquisition)?;
+        conduit_web::encode_response(&response).map_err(|_| Refusal::Capacity)
+    }
+    pub(super) fn authority_grants(&self, host: &HostAdvertisement) -> Vec<AuthorityGrant> {
+        self.capability
+            .as_ref()
+            .and_then(|id| {
+                host.capabilities
+                    .iter()
+                    .find(|offer| &offer.capability_id == id)
+            })
+            .map(|offer| {
+                offer
+                    .authority_requirements
+                    .iter()
+                    .enumerate()
+                    .map(|(index, requirement)| AuthorityGrant {
+                        grant_id: format!(
+                            "grant/environment-http/{}/{index}",
+                            offer.capability_id.as_str()
+                        )
+                        .into(),
+                        contract_id: requirement.contract_id.clone(),
+                        host_call_contract_id: requirement.host_call_contract_id.clone(),
+                        subject_kind: requirement.subject_kind.clone(),
+                        host_id: host.host_id.clone(),
+                        boot_id: host.boot_id.clone(),
+                        capability_id: offer.capability_id.clone(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
     fn read(&mut self) -> Result<Vec<u8>, SourceRefusal> {
         let transaction = self.next_transaction;
         self.next_transaction = self

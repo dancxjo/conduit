@@ -4,6 +4,7 @@ use conduit_core::PlanFragment;
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
+#[cfg(test)]
 pub(super) fn prepare_operations(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
