@@ -203,3 +203,11 @@ it is 1,269,072 bytes and reserves 71,724 stack bytes. It has not been installed
 This staged cold pause is a first-migration option, not acceptance of cold pauses
 as ongoing autonomous history custody. No reset, flash, genuine ACK, erase, new
 observer or Body membership transaction was performed for this slice.
+
+The combined developer checkout is additionally verified by
+[combined-dev-73a00bc772.json](combined-dev-73a00bc772.json). The actual opt-in
+`native_observed_cold` harness selected all four live-custody tests: three passed
+normally, including 189 modeled NOR cuts, and the Boot-global STORE test passed
+alone in a fresh process. This corrects an earlier invocation that selected zero
+tests. These are CPU custody and refusal results; the native Root caller/fences,
+phase timing and continuous physical sampler/Mask proof remain outstanding.
