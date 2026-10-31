@@ -28,6 +28,7 @@ fn display_typed_value_in_unit(
 struct Row {
     group: String,
     group_label: String,
+    placement: Option<String>,
     group_order: usize,
     label: String,
     value: String,
@@ -43,11 +44,26 @@ fn rows(
         if subject.role != FaceRole::Info {
             continue;
         }
-        for property in face
-            .properties
-            .iter()
-            .filter(|p| p.subject == subject.identity)
-        {
+        let mut placements = face.properties.iter().filter(|p| {
+            p.subject == subject.identity
+                && p.name == conduit_environment_history::source_series::SOURCE_PLACEMENT_PROPERTY
+        });
+        let placement = match placements.next().map(|p| &p.value) {
+            None => None,
+            Some(FacePropertyValue::Text(value))
+                if conduit_environment_history::source_series::valid_source_placement(value) =>
+            {
+                Some(value.clone())
+            }
+            _ => return None,
+        };
+        if placements.next().is_some() {
+            return None;
+        }
+        for property in face.properties.iter().filter(|p| {
+            p.subject == subject.identity
+                && p.name != conduit_environment_history::source_series::SOURCE_PLACEMENT_PROPERTY
+        }) {
             let (value, quantity) = match &property.value {
                 FacePropertyValue::TypedValue { contract, bytes } => (
                     preferred
@@ -75,6 +91,7 @@ fn rows(
             rows.push(Row {
                 group: subject.identity.clone(),
                 group_label: subject.name.clone(),
+                placement: placement.clone(),
                 group_order,
                 label,
                 value,
@@ -180,6 +197,20 @@ fn row_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
     .finish_height();
     u16::try_from(measured).ok()?.checked_add(8)
 }
+fn placement_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
+    let Some(placement) = row.placement.as_deref() else {
+        return Some(0);
+    };
+    let measured = TextLayout::new_selected(
+        placement,
+        typography.style(GraphicsTextRole::Label.into()),
+        width.checked_sub(48)?,
+        100,
+    )
+    .ok()?
+    .finish_height();
+    u16::try_from(measured).ok()?.checked_add(8)
+}
 fn group_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
     let measured = TextLayout::new_selected(
         &row.group_label,
@@ -189,7 +220,10 @@ fn group_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
     )
     .ok()?
     .finish_height();
-    u16::try_from(measured).ok()?.checked_add(8)
+    u16::try_from(measured)
+        .ok()?
+        .checked_add(8)?
+        .checked_add(placement_height(row, width, typography)?)
 }
 /// Selects one finite property page. `None` retains the complete ordinary Face
 /// scene as the refusal/fallback, never partial or fabricated sensor wording.
@@ -309,6 +343,24 @@ pub fn frame_with_context(
     let mut group = None;
     for row in &rows[start..end] {
         if group != Some(row.group.as_str()) {
+            let placement_height = placement_height(row, width, typography)?;
+            if let Some(placement) = row.placement.as_deref() {
+                text(
+                    &mut scene,
+                    screen,
+                    LayoutRect {
+                        x: 24,
+                        y,
+                        width: width.checked_sub(48)?,
+                        height: placement_height,
+                    },
+                    placement,
+                    GraphicsTextRole::Label,
+                    GraphicsPaintRole::Muted,
+                    typography,
+                )?;
+                y += i16::try_from(placement_height).ok()?;
+            }
             text(
                 &mut scene,
                 screen,
@@ -316,14 +368,16 @@ pub fn frame_with_context(
                     x: 24,
                     y,
                     width: width.checked_sub(48)?,
-                    height: group_height(row, width, typography)?,
+                    height: group_height(row, width, typography)?.checked_sub(placement_height)?,
                 },
                 &row.group_label,
                 GraphicsTextRole::Heading,
                 GraphicsPaintRole::Accent,
                 typography,
             )?;
-            y += i16::try_from(group_height(row, width, typography)?).ok()?;
+            y +=
+                i16::try_from(group_height(row, width, typography)?.checked_sub(placement_height)?)
+                    .ok()?;
             group = Some(row.group.as_str());
         }
         if !row.quantity {

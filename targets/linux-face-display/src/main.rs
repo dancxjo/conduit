@@ -5,6 +5,8 @@ mod framebuffer;
 mod history_input;
 mod input;
 mod mask_controls;
+#[cfg(test)]
+mod placement_tests;
 mod presentation_state;
 #[cfg(test)]
 mod presentation_tests;

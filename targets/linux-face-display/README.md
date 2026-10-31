@@ -163,3 +163,9 @@ and drawing pressure refuses within the existing 48-command bound. Invalid or
 unsupported shared input is never replaced by unrelated legacy data under the
 same graph title. This development adapter still does not establish installed
 Host/Show admission or prove that a real collector has delivered four devices.
+
+An Info subject's optional ordinary `placement` Text is presented between the
+Body heading and its fieldgroup. It is measured in the selected Look, repeated
+once per fieldgroup on each page, and retained exactly in Details. The Mask
+supplies no default room and performs no host/network inference; the owner
+projects the current authored metadata from host configuration.
