@@ -146,27 +146,28 @@ pub fn resolve_local_visual_look(
     if local_bytes.len() > MAX_LOOK_BYTES {
         return Err(LocalLookRefusal::ResourceBound(LocalLookValueOrigin::Local));
     }
-    let LookVisualFacetOption::Some(visual) = author.visual() else {
-        return Err(LocalLookRefusal::AuthorHasNoVisualFacet);
-    };
-    let mut proposal = fields::Proposal::new(visual);
-    let overridden = proposal.apply(local.visual().as_slice())?;
-    let requested = if overridden.is_empty() {
-        author.clone()
+    let (requested, overridden) = if local.visual().is_empty() {
+        (author.clone(), Vec::new())
     } else {
+        let LookVisualFacetOption::Some(visual) = author.visual() else {
+            return Err(LocalLookRefusal::AuthorHasNoVisualFacet);
+        };
+        let mut proposal = fields::Proposal::new(visual);
+        let overridden = proposal.apply(local.visual().as_slice())?;
         let mut hash = Sha256::new();
         hash.update(b"conduit.look/local-resolution@1\0");
         hash.update((author_bytes.len() as u64).to_le_bytes());
         hash.update(author_bytes);
         hash.update(local_bytes);
         let identity = format!("conduit.look/resolved-{:x}", hash.finalize());
-        LookInfo::new(
+        let requested = LookInfo::new(
             author.generative().clone(),
             identity.clone(),
             author.spoken().clone(),
             2,
             proposal.finish(visual, &identity)?,
-        )?
+        )?;
+        (requested, overridden)
     };
     let admitted = admit_visual_look(&requested, user).map_err(LocalLookRefusal::Visual)?;
     let (required_contrast, contrast_requirement_origin) =

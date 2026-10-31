@@ -356,6 +356,19 @@ fn local_visual_values_cannot_manufacture_an_authors_absent_visual_facet() {
         ),
         Err(LocalLookRefusal::AuthorHasNoVisualFacet)
     ));
+    let untouched = resolve(&author, &local(vec![]), user()).unwrap();
+    assert_eq!(untouched.author, author);
+    assert_eq!(untouched.admitted.requested, author);
+    assert!(matches!(
+        untouched.admitted.visual.outcome,
+        VisualExpressionOutcome::PhosphorFallback {
+            refusal: VisualExpressionRefusal::MissingVisualFacet
+        }
+    ));
+    assert_eq!(
+        untouched.field_origin("background"),
+        Some(LocalLookValueOrigin::Fallback)
+    );
     assert_eq!(author.visual(), &LookVisualFacetOption::None);
 }
 
