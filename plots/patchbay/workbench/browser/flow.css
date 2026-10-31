@@ -9,7 +9,6 @@
 .flow-frontplate {
   width: 15rem;
   max-width: 15rem;
-  /* Handles straddle the card edge and must remain pointer targets. */
   overflow: visible;
   border: 1px solid var(--conduit-structure-primary);
   border-radius: .55rem;
