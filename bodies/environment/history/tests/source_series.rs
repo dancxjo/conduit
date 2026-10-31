@@ -38,7 +38,7 @@ fn seal(f: conduit_face::FaceFragment) -> Face {
             wake_id: None,
             source_document_id: Some("source/series-test".into()),
             checked_plot_id: Some(basis().checked_plot_id),
-            expanded_plot_id: None,
+            expanded_plot_id: Some("expanded/series-test".into()),
             plan_id: Some(basis().plan_id),
             active_play_id: Some(basis().active_play_id),
             sign_ids: vec![],
@@ -93,10 +93,10 @@ fn four_streams_share_exact_collector_clock_and_preserve_canonical_pressure() {
     let face = seal(collection(&series).contribution(basis()).unwrap());
     let original = face.clone();
     let graph = SourceSeriesGraph::prepare(&face, "observations").unwrap();
-    assert_eq!(graph.series.len(), 4);
-    assert_eq!(graph.collector_host, "host/collector");
-    assert_eq!(graph.collector_boot, "boot/collector");
-    for s in graph.series {
+    assert_eq!(graph.series().len(), 4);
+    assert_eq!(graph.collector_host(), "host/collector");
+    assert_eq!(graph.collector_boot(), "boot/collector");
+    for s in graph.series() {
         assert_eq!(s.points[0].observation.observed_at_host_boot_ms, 4500);
         assert_eq!(
             s.state_at(5000).unwrap(),
@@ -149,7 +149,7 @@ fn cutoff_staleness_failures_and_missing_sequences_are_not_zero_values() {
             .unwrap(),
     );
     let g = SourceSeriesGraph::prepare(&face, "observations").unwrap();
-    let s = &g.series[0];
+    let s = &g.series()[0];
     assert_eq!((s.points[0].sequence, s.points[1].sequence), (4, 7));
     assert_eq!(
         s.state_at(5000).unwrap(),
@@ -165,7 +165,7 @@ fn cutoff_staleness_failures_and_missing_sequences_are_not_zero_values() {
             .unwrap(),
     );
     let g = SourceSeriesGraph::prepare(&face, "observations").unwrap();
-    let s = &g.series[0];
+    let s = &g.series()[0];
     assert_eq!(
         s.state_at(5500).unwrap(),
         SourceSeriesState::Stale { age_ms: 1000 }
@@ -247,4 +247,127 @@ fn face_reader_checks_clock_canonical_type_and_sequence_after_reordering() {
         SourceSeriesGraph::prepare(&seal(fragment), "observations"),
         Err(SourceSeriesRefusal::Clock)
     );
+}
+
+fn palette(s: &PreparedSourceSeries) -> conduit_environment_history::SourceSeriesStyle {
+    use conduit_face::GraphicsPaintRole as P;
+    conduit_environment_history::SourceSeriesStyle {
+        paint: match s.name.as_str() {
+            "Blue" => P::Accent,
+            "Green" => P::Success,
+            "White" => P::Foreground,
+            "Yellow" => P::Warning,
+            _ => P::Muted,
+        },
+        dashed: s.name == "White",
+    }
+}
+#[test]
+fn shared_quantity_axes_match_label_and_line_roles_without_mutating_face() {
+    use conduit_face::{GraphicsCommandKind as K, GraphicsPaintRole as P};
+    let a = value(1000, 1);
+    let b = value(4500, 2);
+    let records = [
+        SourceSeriesRecord {
+            sequence: 1,
+            observation: &a,
+        },
+        SourceSeriesRecord {
+            sequence: 2,
+            observation: &b,
+        },
+    ];
+    let series: Vec<_> = [
+        ("Blue", "series/blue", "equipment/blue"),
+        ("Green", "series/green", "equipment/green"),
+        ("White", "series/white", "equipment/white"),
+        ("Yellow", "series/yellow", "equipment/yellow"),
+    ]
+    .into_iter()
+    .map(|(name, subject, source)| SourceSeries {
+        name,
+        subject,
+        source,
+        ..series(&records)
+    })
+    .collect();
+    let face = seal(collection(&series).contribution(basis()).unwrap());
+    let original = face.clone();
+    let graph = SourceSeriesGraph::prepare(&face, "observations").unwrap();
+    for width in [320, 500, 1024] {
+        let scene = graph
+            .native_scene_at_size(Unit::Fahrenheit, width, 440, None, palette)
+            .unwrap();
+        assert!(scene.commands().len() <= 48);
+        for (name, paint) in [
+            ("Blue", P::Accent),
+            ("Green", P::Success),
+            ("White", P::Foreground),
+            ("Yellow", P::Warning),
+        ] {
+            assert!(scene
+                .commands()
+                .iter()
+                .any(|c| c.payload() == name && c.paint == paint));
+            let lines: Vec<_> = scene
+                .commands()
+                .iter()
+                .filter(|c| c.kind == K::Polyline && c.paint == paint)
+                .collect();
+            assert_eq!(lines.len(), 2); // both quantities, same clock axis
+            assert_eq!(lines[0].polyline_geometry().unwrap().points()[0].x(), &72);
+        }
+        assert!(scene
+            .commands()
+            .iter()
+            .any(|c| c.payload() == "Temperature (°F)"));
+        assert!(scene
+            .commands()
+            .iter()
+            .any(|c| c.payload().contains("Collector observed")));
+    }
+    assert_eq!(face, original);
+}
+#[test]
+fn missing_sequences_never_connect_and_fragmentation_refuses_without_bound_inflation() {
+    use conduit_face::{GraphicsCommandKind as K, GraphicsError};
+    let values: Vec<_> = (1..=16).map(|i| value(i * 100, i)).collect();
+    let records: Vec<_> = values
+        .iter()
+        .enumerate()
+        .map(|(i, b)| SourceSeriesRecord {
+            sequence: (i * 2 + 1) as u64,
+            observation: b,
+        })
+        .collect();
+    let streams: Vec<_> = [
+        ("Blue", "series/blue", "equipment/blue"),
+        ("Green", "series/green", "equipment/green"),
+        ("White", "series/white", "equipment/white"),
+        ("Yellow", "series/yellow", "equipment/yellow"),
+    ]
+    .into_iter()
+    .map(|(name, subject, source)| SourceSeries {
+        name,
+        subject,
+        source,
+        ..series(&records)
+    })
+    .collect();
+    let face = seal(collection(&streams).contribution(basis()).unwrap());
+    let graph = SourceSeriesGraph::prepare(&face, "observations").unwrap();
+    assert_eq!(
+        graph.native_scene_at_size(Unit::Fahrenheit, 500, 440, None, palette),
+        Err(GraphicsError::TooManyCommands)
+    );
+    let face = seal(
+        collection(&[series(&records[..2])])
+            .contribution(basis())
+            .unwrap(),
+    );
+    let graph = SourceSeriesGraph::prepare(&face, "observations").unwrap();
+    let scene = graph
+        .native_scene_at_size(Unit::Fahrenheit, 500, 440, None, palette)
+        .unwrap();
+    assert!(scene.commands().iter().all(|c| c.kind != K::Polyline));
 }

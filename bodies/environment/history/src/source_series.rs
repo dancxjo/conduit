@@ -57,11 +57,11 @@ pub struct PreparedSourceSeries {
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SourceSeriesGraph {
-    pub subject: String,
-    pub collector_host: String,
-    pub collector_boot: String,
-    pub observed_through_boot_ms: u64,
-    pub series: Vec<PreparedSourceSeries>,
+    pub(crate) subject: String,
+    pub(crate) collector_host: String,
+    pub(crate) collector_boot: String,
+    pub(crate) observed_through_boot_ms: u64,
+    pub(crate) series: Vec<PreparedSourceSeries>,
 }
 pub(crate) fn identity(value: &str) -> bool {
     !value.trim().is_empty() && value.len() <= 192 && !value.chars().any(char::is_control)
@@ -147,5 +147,23 @@ impl PreparedSourceSeries {
             }
             SourceOutcome::Available(_) => SourceSeriesState::Available { age_ms },
         })
+    }
+}
+
+impl SourceSeriesGraph {
+    pub fn subject(&self) -> &str {
+        &self.subject
+    }
+    pub fn collector_host(&self) -> &str {
+        &self.collector_host
+    }
+    pub fn collector_boot(&self) -> &str {
+        &self.collector_boot
+    }
+    pub fn observed_through_boot_ms(&self) -> u64 {
+        self.observed_through_boot_ms
+    }
+    pub fn series(&self) -> &[PreparedSourceSeries] {
+        &self.series
     }
 }

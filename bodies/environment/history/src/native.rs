@@ -52,5 +52,5 @@ impl<'a> HistoryGraph<'a> {
         .native_scene_at_size(self.omitted, "RECORDED HISTORY", unit, width, height)
     }
 }
-mod layout;
+pub(crate) mod layout;
 mod scene;

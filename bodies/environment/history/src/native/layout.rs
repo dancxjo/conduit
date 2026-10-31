@@ -1,6 +1,6 @@
 use conduit_face::GraphicsError;
 
-pub(super) struct ChartLayout {
+pub(crate) struct ChartLayout {
     pub left: i16,
     pub right: i16,
     pub top: [i16; 2],
@@ -39,7 +39,7 @@ impl ChartLayout {
     }
 }
 #[derive(Clone, Copy)]
-pub(super) struct NiceScale {
+pub(crate) struct NiceScale {
     pub min: i128,
     pub max: i128,
 }
@@ -86,7 +86,7 @@ impl NiceScale {
         (self.min + self.max) / 2
     }
 }
-pub(super) fn decimal(value: impl Into<i128>) -> alloc::string::String {
+pub(crate) fn decimal(value: impl Into<i128>) -> alloc::string::String {
     let value = value.into();
     let rounded = (value.abs() + 50) / 100;
     alloc::format!(
@@ -96,7 +96,7 @@ pub(super) fn decimal(value: impl Into<i128>) -> alloc::string::String {
         rounded % 10
     )
 }
-pub(super) fn elapsed(time: u64) -> alloc::string::String {
+pub(crate) fn elapsed(time: u64) -> alloc::string::String {
     let s = time / 1000;
     alloc::format!("{:02}:{:02}:{:02}", s / 3600, (s / 60) % 60, s % 60)
 }
