@@ -148,7 +148,12 @@ fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
         &face,
         &available,
         "creche.plot.1",
-        "birth/encounter/prebirth-conformance/initial-plots/1",
+        &face
+            .actions
+            .iter()
+            .find(|action| action.identity == "creche.plot.1")
+            .expect("current Face retains the exact action target")
+            .target,
         vec![],
         1
     )
