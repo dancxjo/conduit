@@ -212,7 +212,7 @@
     }
   },
   "yellow": {
-    "result": "built and UF2-validated; not flashed because Motherbrain route is unavailable",
+    "result": "application-only update, authorized network provision, loose display connection repaired by operator; clean display and automatic saved-network rejoin after same-image restart without JOIN",
     "image": {
       "device": "yellow",
       "source": "051d0300386c3f0e4620ce00586393882a0f669b",
@@ -239,10 +239,317 @@
       ],
       "erasedBytes": 745472,
       "payload_chunks_retained": false
+    },
+    "physical_usb_serial": "e6639c758f335f34",
+    "before": {
+      "build": "c9c95121dd3f4c6c09b3db3238ba073fe05b697a6279875db213a915247805ac",
+      "network": {
+        "role": "conduit.environment-wifi-carrier@1",
+        "build": "c9c95121dd3f4c6c09b3db3238ba073fe05b697a6279875db213a915247805ac",
+        "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+        "body_member": false,
+        "radio_ready": true,
+        "link_up": false,
+        "ip": null,
+        "attachment_generation": 0,
+        "peer_ready": false,
+        "radio_error": null
+      },
+      "environment": {
+        "role": "conduit.environment-wifi-carrier@1",
+        "build": "c9c95121dd3f4c6c09b3db3238ba073fe05b697a6279875db213a915247805ac",
+        "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+        "sensor": "dht11",
+        "display": "tm1637",
+        "body_member": false,
+        "attempts": 3,
+        "samples": 3,
+        "frames": 35,
+        "acks": 35,
+        "heap_peak": 5900,
+        "status": "ok",
+        "clock_gpio": 7,
+        "data_gpio": 6,
+        "half_period_us": 50,
+        "weak_pullups": true,
+        "settled_us": 1000,
+        "idle_clock_high": true,
+        "idle_data_high": true,
+        "after_clock_high": true,
+        "after_data_high": true,
+        "last_wire_error": "acknowledged",
+        "display_frame": [
+          118,
+          0,
+          79,
+          79
+        ],
+        "maximum_clock_rise_us": 46,
+        "clock_release_timeouts": 0,
+        "temperature": {
+          "coefficient": 226,
+          "exponent": -1
+        },
+        "humidity": {
+          "coefficient": 33,
+          "exponent": 0
+        }
+      }
+    },
+    "after": {
+      "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+      "environment": {
+        "role": "conduit.environment-wifi-carrier@1",
+        "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+        "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+        "sensor": "dht11",
+        "display": "tm1637",
+        "body_member": false,
+        "attempts": 1,
+        "samples": 1,
+        "frames": 4,
+        "acks": 0,
+        "heap_peak": 5900,
+        "status": "ok",
+        "clock_gpio": 7,
+        "data_gpio": 6,
+        "half_period_us": 50,
+        "weak_pullups": true,
+        "settled_us": 1000,
+        "idle_clock_high": true,
+        "idle_data_high": true,
+        "after_clock_high": true,
+        "after_data_high": true,
+        "last_wire_error": "nack",
+        "display_frame": [
+          118,
+          0,
+          79,
+          79
+        ],
+        "maximum_clock_rise_us": 5,
+        "clock_release_timeouts": 0,
+        "sampled_at_boot_ms": 92,
+        "nack_packet": 0,
+        "nack_byte": 0,
+        "temperature": {
+          "coefficient": 244,
+          "exponent": -1
+        },
+        "humidity": {
+          "coefficient": 33,
+          "exponent": 0
+        },
+        "flash_jedec_id": 15679509,
+        "configured_flash_bytes": 2097152,
+        "flash_write_timing_qualified": false,
+        "credentials": {
+          "ready": true,
+          "restored": false,
+          "revision": 0,
+          "commits": 0,
+          "deferred": 0,
+          "max_us": 0
+        }
+      },
+      "network": {
+        "role": "conduit.environment-wifi-carrier@1",
+        "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+        "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+        "body_member": false,
+        "radio_ready": true,
+        "link_up": false,
+        "ip": null,
+        "attachment_generation": 0,
+        "peer_ready": false,
+        "radio_error": null
+      }
+    },
+    "joined": {
+      "network": {
+        "role": "conduit.environment-wifi-carrier@1",
+        "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+        "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+        "body_member": false,
+        "radio_ready": true,
+        "link_up": true,
+        "ip": [
+          192,
+          168,
+          1,
+          213
+        ],
+        "attachment_generation": 2,
+        "peer_ready": false,
+        "radio_error": null
+      },
+      "environment": {
+        "role": "conduit.environment-wifi-carrier@1",
+        "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+        "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+        "sensor": "dht11",
+        "display": "tm1637",
+        "body_member": false,
+        "attempts": 2,
+        "samples": 2,
+        "frames": 22,
+        "acks": 0,
+        "heap_peak": 5900,
+        "status": "ok",
+        "clock_gpio": 7,
+        "data_gpio": 6,
+        "half_period_us": 50,
+        "weak_pullups": true,
+        "settled_us": 1000,
+        "idle_clock_high": true,
+        "idle_data_high": true,
+        "after_clock_high": true,
+        "after_data_high": true,
+        "last_wire_error": "nack",
+        "display_frame": [
+          7,
+          109,
+          99,
+          113
+        ],
+        "maximum_clock_rise_us": 5,
+        "clock_release_timeouts": 0,
+        "sampled_at_boot_ms": 30363,
+        "nack_packet": 0,
+        "nack_byte": 0,
+        "temperature": {
+          "coefficient": 241,
+          "exponent": -1
+        },
+        "humidity": {
+          "coefficient": 32,
+          "exponent": 0
+        },
+        "flash_jedec_id": 15679509,
+        "configured_flash_bytes": 2097152,
+        "flash_write_timing_qualified": false,
+        "credentials": {
+          "ready": true,
+          "restored": false,
+          "revision": 1,
+          "commits": 1,
+          "deferred": 0,
+          "max_us": 35229
+        }
+      }
+    },
+    "cold_power_cycle_performed": false,
+    "display_acceptance": true,
+    "bootloader_mount": "Motherbrain desktop auto-mounted /media/dancxjo/RPI-RP2; headless helper refused duplicate; existing mount revalidated as sole USB-removable RPI-RP2 FAT source before writing.",
+    "display_acceptance_scope": "Operator reported display visible after reconnecting loose connection; post-repair restart has real electrical ACKs on every observed frame.",
+    "after_operator_reconnection": {
+      "role": "conduit.environment-wifi-carrier@1",
+      "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+      "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+      "sensor": "dht11",
+      "display": "tm1637",
+      "body_member": false,
+      "attempts": 5,
+      "samples": 5,
+      "frames": 72,
+      "acks": 21,
+      "heap_peak": 5900,
+      "status": "ok",
+      "clock_gpio": 7,
+      "data_gpio": 6,
+      "half_period_us": 50,
+      "weak_pullups": true,
+      "settled_us": 1000,
+      "idle_clock_high": true,
+      "idle_data_high": true,
+      "after_clock_high": true,
+      "after_data_high": true,
+      "last_wire_error": "acknowledged",
+      "display_frame": [
+        118,
+        0,
+        79,
+        91
+      ],
+      "maximum_clock_rise_us": 47,
+      "clock_release_timeouts": 0,
+      "sampled_at_boot_ms": 121279,
+      "temperature": {
+        "coefficient": 249,
+        "exponent": -1
+      },
+      "humidity": {
+        "coefficient": 32,
+        "exponent": 0
+      },
+      "flash_jedec_id": 15679509,
+      "configured_flash_bytes": 2097152,
+      "flash_write_timing_qualified": false,
+      "credentials": {
+        "ready": true,
+        "restored": false,
+        "revision": 1,
+        "commits": 1,
+        "deferred": 0,
+        "max_us": 35229
+      }
+    },
+    "restart": {
+      "role": "conduit.environment-wifi-carrier@1",
+      "build": "5721ccdc87115f9f2c1ce9f8da3d794d78752b03c52a55aff397a119f2764a77",
+      "configuration": "sha256:5ac1c36771db2cd151fc9c8985463026ed88ec4c1633e457d91bacd732dece9c",
+      "sensor": "dht11",
+      "display": "tm1637",
+      "body_member": false,
+      "attempts": 2,
+      "samples": 2,
+      "frames": 16,
+      "acks": 16,
+      "heap_peak": 5900,
+      "status": "ok",
+      "clock_gpio": 7,
+      "data_gpio": 6,
+      "half_period_us": 50,
+      "weak_pullups": true,
+      "settled_us": 1000,
+      "idle_clock_high": true,
+      "idle_data_high": true,
+      "after_clock_high": true,
+      "after_data_high": true,
+      "last_wire_error": "acknowledged",
+      "display_frame": [
+        7,
+        125,
+        99,
+        113
+      ],
+      "maximum_clock_rise_us": 47,
+      "clock_release_timeouts": 0,
+      "sampled_at_boot_ms": 30539,
+      "temperature": {
+        "coefficient": 247,
+        "exponent": -1
+      },
+      "humidity": {
+        "coefficient": 32,
+        "exponent": 0
+      },
+      "flash_jedec_id": 15679509,
+      "configured_flash_bytes": 2097152,
+      "flash_write_timing_qualified": false,
+      "credentials": {
+        "ready": true,
+        "restored": true,
+        "revision": 1,
+        "commits": 0,
+        "deferred": 0,
+        "max_us": 0
+      }
     }
   },
   "full_flash_readback": false,
   "optical_acceptance": false,
   "body_membership": false,
-  "host_services_changed": false
+  "host_services_changed": false,
+  "optical_acceptance_scope": "Overall all-device optical acceptance is unproved; Yellow has the operator report recorded in its device receipt."
 }

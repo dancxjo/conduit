@@ -26,12 +26,28 @@ JOIN was sent. It restored revision 1 with zero commits, automatically obtained
 `192.168.1.248`, and served two readings/18 display ACKs without reported faults.
 This is a firmware restart test, not an independently observed cold power cycle.
 
-Yellow on motherbrain was initially observed measuring successfully. Its new
-image builds and passes the shared UF2 parser, but is **not deployed**: the Pi
-briefly returned, then both hostname discovery and its last address became
-unavailable. The old application remains selected; no Yellow reset was sent.
-The retained old Yellow recovery UF2 SHA256 is
+Yellow on motherbrain was initially observed measuring successfully. After the
+Pi returned, the checked application image was installed without writing the
+reserved sectors. Its desktop auto-mounted BOOTSEL first; the headless helper
+refused a duplicate mount. The existing FAT mount was revalidated against the
+sole removable USB RP2 device before writing. The old application recovery UF2
+was retained with SHA256
 `69a63f9b6a6994129d7102358478abe0c6cd991bdf1fb1520154b82b203acd3f`.
+
+Yellow reads the DHT11 and joined at `192.168.1.213`. A verified credential
+commit produced revision 1 in 35,229 us. Its physical USB serial is
+`e6639c758f335f34`. The first 22 redraws returned NACK at packet 0/byte 0.
+The operator then reported a loose connection and confirmed the display became
+visible after reconnecting it. Electrical acknowledgments resumed without any
+firmware, pin or timing change. Those initial failures remain in the receipt.
+
+A second application-only load of the same image restarted Yellow. No JOIN was
+sent afterward. It restored credential revision 1 with zero commits and
+reconnected automatically. HTTP then reported two readings and 16/16 display
+ACKs, no clock-release timeouts, and acknowledged display status. The operator's
+reconnection report is not treated as proof of a full MCU cold power cycle.
+Yellow therefore has firmware-restart recovery and a reported visible display;
+no additional cold-cycle claim is made.
 
 All three images were built on forebrain, without compiling on the Pis:
 
