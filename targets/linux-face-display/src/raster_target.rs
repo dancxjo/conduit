@@ -117,6 +117,20 @@ pub fn panel(
         .map_err(|e| format!("panel raster: {e:?}"))
 }
 
+/// Shared scene preparation receives exactly the text metrics used by paint.
+pub fn measure_chart_text(
+    typography: typography::Typography,
+    text: &str,
+    role: conduit_face::GraphicsTextRole,
+    width: u16,
+) -> Result<u16, conduit_face::GraphicsError> {
+    let height =
+        typography::TextLayout::new_selected(text, typography.style(role.into()), width, 100)
+            .map_err(|_| conduit_face::GraphicsError::InvalidGeometry)?
+            .finish_height();
+    u16::try_from(height).map_err(|_| conduit_face::GraphicsError::InvalidGeometry)
+}
+
 /// Measurement and paint select the same fixed, made font resource.
 /// No runtime font loader or Face mutation is involved.
 pub fn selected_typography(

@@ -393,15 +393,21 @@ pub(crate) fn frame_with_context(
     }
     let chart_page = page - shared_pages;
     if chart_page < charts.len() {
-        let show = charts[chart_page]
-            .native_show_in_unit_at_size(
+        let typography = crate::raster_target::selected_typography(look)
+            .map_err(|e| format!("history typography refused: {e:?}"))?;
+        let graphics = charts[chart_page]
+            .native_scene_in_unit_at_size_measured(
                 preferred.unwrap_or(conduit_core::Unit::Celsius),
                 width,
                 height.saturating_sub(STATUS_STRIP_HEIGHT as u16),
+                &|text, role, width| {
+                    crate::raster_target::measure_chart_text(typography, text, role, width)
+                },
             )
             .map_err(|e| format!("history graph refused: {e:?}"))?;
-        return Ok((show.scene, page, pages, 100, true));
+        return Ok((graphics, page, pages, 100, true));
     }
+
     let content_page = chart_page - charts.len();
     if content_page < property_pages {
         let (graphics, _, _) = crate::property_mask::frame_with_context(

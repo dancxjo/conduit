@@ -312,3 +312,49 @@ fn extreme_coordinate_retains_its_axis_and_partial_record_is_refused() {
         Err(GraphRefusal::InvalidProperty)
     ));
 }
+
+#[test]
+fn selected_text_geometry_keeps_the_same_recorded_face_and_sample_coordinates() {
+    let input = face(&[100, 200, 1100]);
+    let original = input.clone();
+    let graph = HistoryGraph::prepare(&input, "body/history").unwrap();
+    let baseline = graph
+        .native_scene_in_unit_at_size(Unit::Fahrenheit, 588, 476)
+        .unwrap();
+    let measured = graph
+        .native_scene_in_unit_at_size_measured(Unit::Fahrenheit, 588, 476, &|text, role, _| {
+            Ok(if text.contains(" · elapsed · ") {
+                72
+            } else if role == conduit_face::GraphicsTextRole::Title {
+                41
+            } else {
+                24
+            })
+        })
+        .unwrap();
+    assert_eq!(measured.commands().len(), baseline.commands().len());
+    let coordinates = |scene: &conduit_face::GraphicsScene| {
+        scene
+            .commands()
+            .iter()
+            .filter_map(|c| c.polyline_geometry())
+            .map(|line| line.points().iter().map(|p| *p.x()).collect::<Vec<_>>())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(coordinates(&measured), coordinates(&baseline));
+    let footer = measured
+        .commands()
+        .iter()
+        .find(|c| c.payload().starts_with("RECORDED HISTORY · elapsed"))
+        .unwrap();
+    assert_eq!(footer.bounds.height, 72);
+    assert!(i32::from(footer.bounds.y) + i32::from(footer.bounds.height) <= 476);
+    assert_eq!(graph.content_id(), original.identity.as_str());
+    assert_eq!(graph.revision(), original.revision);
+    assert!(graph
+        .native_scene_in_unit_at_size_measured(Unit::Fahrenheit, 588, 476, &|_, _, _| Err(
+            conduit_face::GraphicsError::InvalidGeometry
+        ))
+        .is_err());
+    assert_eq!(input, original);
+}

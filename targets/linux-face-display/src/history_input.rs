@@ -50,6 +50,7 @@ pub struct HistoryInput {
     preferred: Option<conduit_core::Unit>,
     size: (u16, u16),
     window: Option<u64>,
+    typography: Option<conduitos::display::typography::Typography>,
 }
 impl HistoryInput {
     #[cfg(test)]
@@ -62,6 +63,7 @@ impl HistoryInput {
             preferred,
             size: (width, height),
             window: None,
+            typography: None,
         }
     }
     pub fn configure(
@@ -70,8 +72,13 @@ impl HistoryInput {
         width: u16,
         height: u16,
         window: Option<u64>,
+        typography: Option<conduitos::display::typography::Typography>,
     ) -> Result<(), String> {
-        if self.preferred == Some(unit) && self.size == (width, height) && self.window == window {
+        if self.preferred == Some(unit)
+            && self.size == (width, height)
+            && self.window == window
+            && self.typography == typography
+        {
             return Ok(());
         }
         let prepared = if let Some((bytes, _, _)) = &self.accepted {
@@ -81,6 +88,7 @@ impl HistoryInput {
                 Some(unit),
                 (width, height),
                 window,
+                typography,
             )?)
         } else {
             None
@@ -88,6 +96,7 @@ impl HistoryInput {
         self.preferred = Some(unit);
         self.size = (width, height);
         self.window = window;
+        self.typography = typography;
         if let (Some((_, scene, _)), Some(prepared)) = (&mut self.accepted, prepared) {
             *scene = prepared;
         }
@@ -122,7 +131,13 @@ impl HistoryInput {
             Some(_) => return Err("history producer display name bounds".into()),
             None => "Retained history".into(),
         };
-        let prepared = validate_window(document, self.preferred, self.size, self.window)?;
+        let prepared = validate_window(
+            document,
+            self.preferred,
+            self.size,
+            self.window,
+            self.typography,
+        )?;
         self.accepted = Some((bytes, prepared, label));
         Ok(true)
     }
@@ -163,13 +178,14 @@ fn validate_at_size(
     preferred: Option<conduit_core::Unit>,
     size: (u16, u16),
 ) -> Result<conduit_face::GraphicsScene, String> {
-    validate_window(document, preferred, size, None)
+    validate_window(document, preferred, size, None, None)
 }
 fn validate_window(
     document: Document,
     preferred: Option<conduit_core::Unit>,
     size: (u16, u16),
     window: Option<u64>,
+    typography: Option<conduitos::display::typography::Typography>,
 ) -> Result<conduit_face::GraphicsScene, String> {
     if document.schema != "conduit.environment/retained-observation-series@1"
         || document.custody != "retained-signed-evidence"
@@ -212,14 +228,21 @@ fn validate_window(
         document.samples_outside_view,
     )
     .map_err(|e| format!("history records: {e:?}"))?;
-    graph
-        .native_scene_in_unit_at_size_with_window(
-            preferred.unwrap_or(conduit_core::Unit::Celsius),
+    let unit = preferred.unwrap_or(conduit_core::Unit::Celsius);
+    let result = if let Some(typography) = typography {
+        graph.native_scene_in_unit_at_size_with_window_measured(
+            unit,
             size.0,
             size.1,
             window,
+            &|text, role, width| {
+                crate::raster_target::measure_chart_text(typography, text, role, width)
+            },
         )
-        .map_err(|e| format!("history scene: {e:?}"))
+    } else {
+        graph.native_scene_in_unit_at_size_with_window(unit, size.0, size.1, window)
+    };
+    result.map_err(|e| format!("history scene: {e:?}"))
 }
 
 #[cfg(test)]
@@ -329,6 +352,42 @@ mod tests {
             assert!(input.accept(serde_json::to_vec(&invalid).unwrap()).is_err());
             assert_eq!(input.label(), Some("Retained history · Yellow"));
         }
+    }
+    #[test]
+    fn unchanged_evidence_is_relaid_out_when_selected_look_metrics_change() {
+        let bytes = serde_json::to_vec(&document()).unwrap();
+        let mut input = HistoryInput::new_at_size(Some(conduit_core::Unit::Fahrenheit), 320, 476);
+        input.accept(bytes.clone()).unwrap();
+        let baseline = input.scene().unwrap().clone();
+        let field = conduit_face::field_instrument_night_look().unwrap();
+        let typography = crate::raster_target::selected_typography(Some(&field)).unwrap();
+        input
+            .configure(
+                conduit_core::Unit::Fahrenheit,
+                320,
+                476,
+                None,
+                Some(typography),
+            )
+            .unwrap();
+        assert!(
+            !input.accept(bytes.clone()).unwrap(),
+            "unchanged input is not a new observation"
+        );
+        let footer = |scene: &conduit_face::GraphicsScene| {
+            scene
+                .commands()
+                .iter()
+                .find(|c| c.payload().contains(" · elapsed · "))
+                .unwrap()
+                .bounds
+        };
+        assert!(footer(input.scene().unwrap()).height > footer(&baseline).height);
+        assert_eq!(input.accepted.as_ref().unwrap().0, bytes);
+        input
+            .configure(conduit_core::Unit::Fahrenheit, 320, 476, None, None)
+            .unwrap();
+        assert_eq!(input.scene().unwrap(), &baseline);
     }
 }
 

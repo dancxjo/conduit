@@ -3,6 +3,8 @@ mod columns;
 mod display_clock;
 mod framebuffer;
 mod history_input;
+#[cfg(test)]
+mod history_text_tests;
 mod input;
 mod mask_controls;
 #[cfg(test)]
@@ -106,6 +108,10 @@ fn run() -> Result<(), String> {
             history_width,
             content_height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
             ui.preferences.history_window.milliseconds(),
+            Some(
+                raster_target::selected_typography(Some(&look))
+                    .map_err(|e| format!("history typography: {e:?}"))?,
+            ),
         )?;
         let now = input::now_ms()?;
         if retained.last(now).is_none()

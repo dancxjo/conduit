@@ -38,6 +38,15 @@ the native material uses the existing finite `GraphicsScene` grammar with exact
 Face identity/revision retained beside its payload. These are inert preparation
 adapters, not yet installed checked Mask Plays or acknowledged Shows.
 
+A native Mask selecting a Look supplies its actual bounded text measurement to
+`native_scene_in_unit_at_size_measured` (or the retained-evidence window variant).
+The same selected font metrics must be used for paint. Chart preparation reserves
+measured heading and footer height before placing observation coordinates, checks
+all required text boxes, and refuses impossible geometry without changing the
+Face, evidence, samples or window. One wrapped footer remains one text command;
+the 48-command, 192-byte text and 16-sample limits are unchanged. The older nominal
+scene entrypoints do not establish that an arbitrary selected Look fits.
+
 ```sh
 cargo +stable xtask prove environment history-target
 cargo +stable xtask prove environment history-preview

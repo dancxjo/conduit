@@ -19,7 +19,14 @@ fn label(
     text: &str,
     role: Role,
     paint: Paint,
+    measure: Option<&super::NativeHistoryTextMeasure<'_>>,
 ) -> Result<(), GraphicsError> {
+    if let Some(measure) = measure {
+        let measured = measure(text, role, bounds.width)?;
+        if measured == 0 || measured > bounds.height {
+            return Err(GraphicsError::InvalidGeometry);
+        }
+    }
     scene.push(GraphicsCommand::text(bounds, clip, paint, text)?.with_text_role(role)?)
 }
 fn breaks(sample: &GraphSample, previous: Option<u64>, value: Option<i64>) -> bool {
@@ -36,7 +43,18 @@ impl ChartGeometry<'_> {
         width: u16,
         height: u16,
     ) -> Result<GraphicsScene, GraphicsError> {
-        let layout = ChartLayout::new(width, height)?;
+        self.native_scene_at_size_measured(omitted, provenance, unit, (width, height), None)
+    }
+    pub(crate) fn native_scene_at_size_measured(
+        &self,
+        omitted: u64,
+        provenance: &str,
+        unit: Unit,
+        size: (u16, u16),
+        measure: Option<&super::NativeHistoryTextMeasure<'_>>,
+    ) -> Result<GraphicsScene, GraphicsError> {
+        let (width, height) = size;
+        ChartLayout::new(width, height)?;
         if !matches!(unit, Unit::Celsius | Unit::Fahrenheit) {
             return Err(GraphicsError::InvalidGeometry);
         }
@@ -61,11 +79,12 @@ impl ChartGeometry<'_> {
                     x: 24,
                     y: 24,
                     width: width - 48,
-                    height: 40,
+                    height: height - 48,
                 },
                 "No retained readings",
                 Role::Title,
                 Paint::Foreground,
+                measure,
             )?;
             return Ok(scene);
         }
@@ -105,7 +124,7 @@ impl ChartGeometry<'_> {
         } else {
             "°C"
         };
-        for (panel, title) in [
+        let headings = [
             if width < 480 {
                 format!("Temp {temp_latest} {unit_label}")
             } else {
@@ -116,10 +135,33 @@ impl ChartGeometry<'_> {
             } else {
                 format!("Humidity   {humidity_latest} %")
             },
-        ]
-        .iter()
-        .enumerate()
-        {
+        ];
+        let role = if width < 480 {
+            Role::Heading
+        } else {
+            Role::Title
+        };
+        let failures = self.samples.iter().filter(|s| s.failure).count();
+        let gaps = self
+            .samples
+            .iter()
+            .filter(|s| s.gap_before.is_some())
+            .count();
+        let footer = format!("{provenance} · elapsed · {} points · {gaps} gaps · {failures} unavailable · +{omitted}", self.samples.len());
+        let mut heading_height = 40;
+        let mut footer_height = 24;
+        if let Some(measure) = measure {
+            for heading in &headings {
+                heading_height = heading_height.max(measure(
+                    heading,
+                    role,
+                    width - if width >= 900 { 128 } else { 112 },
+                )?);
+            }
+            footer_height = footer_height.max(measure(&footer, Role::Label, width - 32)?);
+        }
+        let layout = ChartLayout::with_text_heights(width, height, heading_height, footer_height)?;
+        for (panel, title) in headings.iter().enumerate() {
             label(
                 &mut scene,
                 clip,
@@ -127,7 +169,7 @@ impl ChartGeometry<'_> {
                     x: layout.left,
                     y: layout.heading[panel],
                     width: (layout.right - layout.left) as u16,
-                    height: 40,
+                    height: heading_height,
                 },
                 title,
                 if width < 480 {
@@ -136,6 +178,7 @@ impl ChartGeometry<'_> {
                     Role::Title
                 },
                 Paint::Foreground,
+                measure,
             )?;
         }
         let mut grid = Vec::with_capacity(8);
@@ -157,6 +200,7 @@ impl ChartGeometry<'_> {
                 },
                 Role::Label,
                 Paint::Muted,
+                measure,
             )?;
             grid.push(y);
         }
@@ -174,6 +218,7 @@ impl ChartGeometry<'_> {
                 &format!("{}%", value / 1000),
                 Role::Label,
                 Paint::Muted,
+                measure,
             )?;
             grid.push(y);
         }
@@ -193,37 +238,29 @@ impl ChartGeometry<'_> {
                 clip,
                 LayoutRect {
                     x,
-                    y: height as i16 - 62,
+                    y: height as i16 - footer_height as i16 - 38,
                     width: 120,
                     height: 24,
                 },
                 &elapsed(time),
                 Role::Label,
                 Paint::Muted,
+                measure,
             )?;
         }
-        let failures = self.samples.iter().filter(|s| s.failure).count();
-        let gaps = self
-            .samples
-            .iter()
-            .filter(|s| s.gap_before.is_some())
-            .count();
-        let footer = format!(
-            "{provenance} · elapsed · {} points · {gaps} gaps · {failures} unavailable · +{omitted}",
-            self.samples.len()
-        );
         label(
             &mut scene,
             clip,
             LayoutRect {
                 x: 16,
-                y: height as i16 - 26,
+                y: height as i16 - footer_height as i16 - 2,
                 width: width - 32,
-                height: 24,
+                height: footer_height,
             },
             &footer,
             Role::Label,
             Paint::Muted,
+            measure,
         )?;
         // Fixed decoration:15 commands. At most32 series runs. Only actual
         // remaining slots become grids; never enlarge the48-command grammar.
