@@ -191,6 +191,12 @@ measurements retain diagnostics and remain visible as failures in their own run.
 
 ## Tool acquisition
 
+Linux unit/admission setup reclaims the unused Android and .NET image SDKs only
+on GitHub-hosted runners, recording free space before and after. Local and
+self-hosted execution skips that cleanup; source, Rust caches, test outputs and
+unexpected redirected SDK paths are preserved. The full Std proof and its
+feature set remain required after this capacity repair.
+
 Each lane resolves one package set and checks installed tools before acquiring
 anything. IA-32 UEFI firmware uses the shared
 `cargo xtask make conduitos prepare-ia32-firmware` and

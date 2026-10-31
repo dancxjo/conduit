@@ -1,7 +1,6 @@
 //! Finite typed domain facts of one concrete realization, never catalog membership.
 use crate::{push_string, push_u32, ConfigurationValue, KindId, StructuredConfigurationValue};
 use alloc::string::String;
-use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 pub const MAXIMUM_REALIZATION_PROPERTIES: usize = 8;
@@ -66,7 +65,10 @@ pub fn valid_realization_properties(properties: &[StructuredConfigurationValue])
             .all(|pair| pair[0].profile() < pair[1].profile())
 }
 
-pub(super) fn push_canonical(canonical: &mut Vec<u8>, properties: &[StructuredConfigurationValue]) {
+pub(super) fn push_canonical(
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
+    properties: &[StructuredConfigurationValue],
+) {
     push_string(canonical, "realization-properties@1");
     push_u32(canonical, properties.len() as u32);
     for property in properties {

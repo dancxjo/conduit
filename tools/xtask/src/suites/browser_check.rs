@@ -78,7 +78,11 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "check.browser.physical-host-workflow",
         "Prove deterministic physical Host catalog and workflow contracts",
         "node",
-        &["--test", "proof/browser/physical-host-workflow.test.mjs"],
+        &[
+            "--test",
+            "proof/browser/physical-host-workflow.test.mjs",
+            "proof/browser/rp2040-flash-custody.test.mjs",
+        ],
     ),
     Step::new(
         "check.browser.look-wire",
