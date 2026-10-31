@@ -75,3 +75,23 @@ fn absent_adapter_never_admits_a_request() {
         assert!(pending(&host, kind).is_none());
     }
 }
+
+#[test]
+fn input_view_stamp_without_current_admission_cannot_bypass_fanout_wait() {
+    let mut adapter = Pending;
+    let contracts = contracts();
+    let mut host = KeyboardInputHost::new(Some(&mut adapter), &contracts);
+    host.accept(request(0), &[], InputRequestKind::Keyboard)
+        .unwrap();
+    assert!(!host.ready_to_poll());
+    host.set_input_view_epoch(Some((7, InputRealization::SpaceButton)));
+    assert!(!host.ready_to_poll());
+    host.set_input_view_epoch(Some((7, InputRealization::RawKeyboard)));
+    assert!(!host.ready_to_poll());
+    assert!(host.pending_button.is_none());
+    host.set_input_view_epoch(None);
+    assert!(!host.ready_to_poll());
+    host.set_input_view_epoch(Some((7, InputRealization::RawKeyboard)));
+    host.cancel();
+    assert!(!host.ready_to_poll());
+}

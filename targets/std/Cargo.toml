@@ -129,6 +129,7 @@ path = "src/bin/native-webrtc-line-probe.rs"
 required-features = ["native-webrtc"]
 
 [dev-dependencies]
+conduitos = { path = "../conduitos", features = ["native-compositor-core"] }
 tempfile = "3"
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }

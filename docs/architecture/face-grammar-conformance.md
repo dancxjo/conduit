@@ -837,6 +837,38 @@ it does not establish reconstruction of the instruction by other Masks.
 
 ### Parsec instruction carrier counterexample
 
+The #5636 I1 suite enters through `cargo xtask check action-prompt-i1`.
+Its initial diagnostic at revision `5797c83546` reproduced absent alternate
+wording when the preferred Fire realization had no current input request.
+The checked input policy now explicitly selects current Enter before gameplay
+when Fire is unavailable. It retains the preferred map state, mapping revision,
+Body and offered Start action; no Mask rewrites the mapping. Gameplay keeps its
+existing explicit remap requirement. No available scope yields no instruction.
+The caller derives availability only from exact current accepted input requests,
+then independently validates the source-selected origin, action and Show.
+The flushed source-selected Enter view also permits polling the admitted keyboard
+request while Fire has no current admission. A caller-supplied epoch alone cannot
+bypass the ordinary paired-input wait or create a Fire completion.
+
+The finite conformance fixture also runs a raster carrier through the existing
+Mask kernel, with distinct renderer/effect offers, resources, Plan and Show.
+The existing native Face scene is rasterized into an actual retained pixel buffer
+before the initial and supplementary effect acknowledgements. Its private owner
+qualifies the exact current visual Show from the live carrier; terminal records
+cannot grant that authority. The checked instruction Source supplies Arcade
+wording for the raster and Linear wording for the terminal from the same current
+input policy. Both checked interaction Fores return the same offered action,
+target, arguments and Face basis while retaining distinct exact Show identities.
+
+The suite covers current software Space and unavailable-Fire/current-Enter
+fallback, source policy's full availability matrix, unchanged state, typed Enter
+admission, stale input epoch, forged Fire wording, stale Show/map and cancellation
+before supplementary effects. Input request acceptance and source map ACKs are
+mechanism fixtures. Raster proof is actual in-memory painting, not physical
+controller input, native display scanout, browser execution or speech delivery.
+The raster attachment is a bounded test specimen, not a new installed native
+product route. Parent #5369 retains its broader platform/remap/loss acceptance.
+
 The explicit actual-artifact diagnostic
 `actual_parsec_instruction_is_lost_at_face_only_mask_boundary` passes against
 the post-flush exchange above. It validates captured Face/Show/Body/Host/binding

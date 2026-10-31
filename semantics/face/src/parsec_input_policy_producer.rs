@@ -2,8 +2,9 @@
 use crate::PreparedCheckedSourcePlan;
 use alloc::vec::Vec;
 use conduit_core::{
-    validate_canonical_structured_value, ConfigurationValue, PlanId, PlotIdentity,
-    PreparedStructuredComposer, ValidatedCanonicalStructuredValue,
+    kind_id, validate_canonical_structured_value, ConfigurationValue, PlanId, PlotIdentity,
+    PreparedStructuredComposer, StructuredInfoType, StructuredInfoValue,
+    ValidatedCanonicalStructuredValue,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -103,6 +104,7 @@ impl PreparedLaws {
 pub struct PreparedParsecInputPolicy {
     evaluator: PreparedPortableExpressionEvaluator,
     request: PreparedStructuredComposer,
+    boolean_frames: [Vec<u8>; 2],
     state_laws: PreparedLaws,
     proposal_laws: PreparedLaws,
     producer_plan: PlanId,
@@ -172,6 +174,15 @@ pub fn prepare_checked_parsec_input_policy(
             PARSEC_INPUT_POLICY_FRAME_BYTES,
         )
         .map_err(|_| ParsecInputPolicyRefusal::Preparation)?,
+        boolean_frames: [false, true].map(|flag| {
+            StructuredInfoValue::leaf(
+                StructuredInfoType::leaf(kind_id("value/bool")).expect("Boolean type"),
+                alloc::vec![u8::from(flag)],
+            )
+            .expect("Boolean value")
+            .canonical_bytes()
+            .expect("Boolean frame")
+        }),
         evaluator: PreparedPortableExpressionEvaluator::new(&program)
             .map_err(|_| ParsecInputPolicyRefusal::Preparation)?,
         state_laws: PreparedLaws::new(state)?,
@@ -200,6 +211,33 @@ impl PreparedParsecInputPolicy {
         if context.len() > PARSEC_INPUT_POLICY_FRAME_BYTES {
             return Err(ParsecInputPolicyRefusal::Context);
         }
+        let context_value = validate_canonical_structured_value(context)
+            .map_err(|_| ParsecInputPolicyRefusal::Context)?;
+        let available = context_value
+            .record_field("available")
+            .map_err(|_| ParsecInputPolicyRefusal::Context)?
+            .ok_or(ParsecInputPolicyRefusal::Context)?
+            .primitive_bytes("value/bool")
+            .map_err(|_| ParsecInputPolicyRefusal::Context)?
+            == [1];
+        self.evaluate_with_input_availability(state, context, available, available)
+    }
+
+    /// Candidate-only evaluation from explicit current input availability supplied
+    /// by the caller. This grants no input, binding, retained state, or Show authority.
+    pub fn evaluate_with_input_availability<'a>(
+        &'a mut self,
+        state: &[u8],
+        context: &[u8],
+        keyboard_available: bool,
+        fire_available: bool,
+    ) -> Result<SourceEvaluatedParsecInputProposal<'a>, ParsecInputPolicyRefusal> {
+        if state.len() > PARSEC_INPUT_POLICY_FRAME_BYTES {
+            return Err(ParsecInputPolicyRefusal::State);
+        }
+        if context.len() > PARSEC_INPUT_POLICY_FRAME_BYTES {
+            return Err(ParsecInputPolicyRefusal::Context);
+        }
         let state = validate_canonical_structured_value(state)
             .map_err(|_| ParsecInputPolicyRefusal::State)?;
         self.state_laws
@@ -218,7 +256,19 @@ impl PreparedParsecInputPolicy {
         };
         let request = self
             .request
-            .record(&[context, field("keyboard")?, field("started")?])
+            .record(&[
+                context,
+                validate_canonical_structured_value(
+                    &self.boolean_frames[usize::from(fire_available)],
+                )
+                .map_err(|_| ParsecInputPolicyRefusal::Preparation)?,
+                field("keyboard")?,
+                validate_canonical_structured_value(
+                    &self.boolean_frames[usize::from(keyboard_available)],
+                )
+                .map_err(|_| ParsecInputPolicyRefusal::Preparation)?,
+                field("started")?,
+            ])
             .map_err(|_| ParsecInputPolicyRefusal::Evaluation)?;
         let proposal = self
             .evaluator
@@ -239,6 +289,8 @@ impl PreparedParsecInputPolicy {
         })
     }
     pub fn prepared_buffer_bytes(&self) -> usize {
-        self.request.prepared_heap_bytes() + self.evaluator.output_capacity()
+        self.request.prepared_heap_bytes()
+            + self.evaluator.output_capacity()
+            + self.boolean_frames.iter().map(Vec::capacity).sum::<usize>()
     }
 }

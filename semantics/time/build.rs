@@ -42,6 +42,7 @@ fn main() {
             serde_record_types: [
                 "AvailabilityBasis".into(),
                 "AvailabilityInterval".into(),
+                "CalendarDateIntent".into(),
                 "CalendarEvent".into(),
                 "CandidateConflict".into(),
                 "CivilTrigger".into(),

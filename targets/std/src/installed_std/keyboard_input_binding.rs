@@ -461,9 +461,9 @@ impl KeyboardRequestAdmission {
         }
     }
 
-    #[cfg(test)]
     pub(super) fn is_current(&self, realization: InputRealization) -> bool {
-        self.issued
+        !self.revoked
+            && self.issued
             && self.descriptors.iter().any(|descriptor| {
                 descriptor.realization == realization
                     && matches!(descriptor.state, RequestAdmission::Current(_))

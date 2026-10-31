@@ -70,7 +70,7 @@ fn plan_on_host(
     )
 }
 
-fn plan_on_host_source(
+pub(super) fn plan_on_host_source(
     host: &HostAdvertisement,
     planning_host: &HostAdvertisement,
     source: &str,
@@ -103,7 +103,7 @@ fn plan_on_host_source(
             .map_err(debug_error)?;
         catalog.insert(kind).map_err(debug_error)?;
     }
-    if name == "parsec/terminal-mask" {
+    if name.starts_with("parsec/") {
         crate::flow_activation::parsec_instruction_source_offer::install_catalogs(
             &mut startup,
             &mut catalog,
