@@ -70,3 +70,8 @@ Placement is current operator-authored description, not historical acquisition
 evidence. Updating it does not change stable source/session identity, rewrite
 canonical observations or splice histories. Host configuration owns its authored
 value independently of hardware pins and execution/offer identity.
+
+Here `source` is the owner's stable **instrument/provider referent**, not the
+checked sampling-program Source identity (`PublicationScope::source`). Several
+instruments may run the same checked sampling program. Session identity is
+separate; names, addresses and placement must not be used to invent either key.
