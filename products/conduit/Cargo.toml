@@ -61,6 +61,7 @@ sha2 = "0.10"
 socket2 = "0.6"
 
 [dev-dependencies]
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 conduit-environment-measurement = { path = "../../bodies/environment/measurement" }
 conduit-composite = { path = "../../architecture/composite" }
 conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }

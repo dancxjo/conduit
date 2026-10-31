@@ -10,6 +10,12 @@ use conduit_core::HostAdvertisement;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
+#[path = "durable_host_membership/compact.rs"]
+mod compact;
+pub(crate) use compact::{
+    accept as accept_membership_invitation, complete as complete_membership_join,
+};
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(super) struct JoinedBodyBinding {
     pub(super) body_id: String,

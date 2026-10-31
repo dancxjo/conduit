@@ -487,6 +487,27 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
     },
+    /// Prepare bounded membership proof for this actual running installed Host.
+    #[command(hide = true)]
+    AcceptMembership {
+        invitation: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Independently trusted issuer public key (64 hexadecimal characters).
+        #[arg(long)]
+        root_key: String,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
+    },
+    /// Verify a pinned Root's membership-only receipt and retain this membership.
+    #[command(hide = true)]
+    CompleteMembership {
+        receipt: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_membership: bool,
+    },
 }
 
 #[cfg(test)]

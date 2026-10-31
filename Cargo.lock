@@ -1624,6 +1624,7 @@ dependencies = [
  "conduit-wire",
  "conduit-workspace-make",
  "conduitos",
+ "ed25519-dalek",
  "getrandom 0.3.4",
  "patchbay-hosted",
  "patchbay-svg-mask",
