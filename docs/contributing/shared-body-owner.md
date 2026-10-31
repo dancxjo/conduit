@@ -76,6 +76,15 @@ selection flags preserves that exact choice. Removing the choice or adding
 generation requires an explicit selection change. A generation offer alone
 does not create a shared pool, admit a request, or connect another Host.
 
+To select incremental generation explicitly, add `--model-profile stream-generate`
+with the complete model selection. Repeat `--model-profile` for several reviewed
+semantic profiles. Explicit profiles replace the presentation default and are
+mutually exclusive with `--model-generation`; duplicates refuse before provider
+initialization. For example, a stream-only worker offers `llm/generate-stream`
+without also offering the semantic presenter. The complete actual initialized
+offer, including any provider-initialized companion profiles, is retained and
+reobserved on each Boot. These choices grant no Body admission or execution.
+
 For a fresh installation, `--no-start` leaves the Host available for foreground
 ownership. Omitting it preserves the normal service activation behavior. It does
 not stop an already running service; use a fresh installation for this sequence.
