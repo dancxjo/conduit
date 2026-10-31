@@ -238,6 +238,67 @@ type CalendarEvent = {
     reminders: sequence ReminderSpecification <= 16
 }
 
+
+# Temporal intentions are not resolved instants. A calendar may have leap
+# months or non-midnight day boundaries; its calendar-specific month code is
+# interpreted only by an admitted, versioned calendar resolution Gear.
+# Merely constructing this finite label does not establish a valid date.
+type CalendarDateIntent = {
+    calendar_identity: Text <= 128B not in [""]
+    rule_set_identity: Text <= 128B not in [""]
+    year: I32
+    month_code: Text <= 32B not in [""]
+    day: U8 in 1..=31
+}
+
+# Solar landmarks require an exact location and a selected observation/
+# calculation convention. In polar regions resolution may be unavailable.
+type SolarLandmark =
+    sunrise
+    | sunset
+    | nightfall
+    | solar_noon
+
+# Preserve what was meant until an authorized Gear resolves it. In
+# particular, a date-only intention is neither midnight nor 23:59:59.
+type TemporalLandmark =
+    exact {
+        instant: TemporalInstant
+    }
+    | civil {
+        local: LocalDateTime
+        zone: NamedTimeZone
+    }
+    | calendar_date {
+        date: CalendarDateIntent
+    }
+    | solar {
+        date: CalendarDateIntent
+        location_identity: Text <= 256B not in [""]
+        convention_identity: Text <= 256B not in [""]
+        landmark: SolarLandmark
+    }
+
+# A deadline constrains fulfillment; it is not evidence of an occurrence.
+# The boundary convention is independently explicit and date-only anchors
+# still require a later policy choice before lateness can be calculated.
+type DeadlineIntent = {
+    identity: Text <= 256B not in [""]
+    latest: TemporalLandmark
+    boundary: TemporalBoundary
+}
+
+# An observance may begin at sunset and end at nightfall on the following
+# calendrical day. These are intentions, not an asserted 24-hour span.
+# The occasion/tradition are referenced, not defined, by the time substrate.
+type ObservanceWindowIntent = {
+    identity: Text <= 256B not in [""]
+    occasion_identity: Text <= 256B not in [""]
+    convention_identity: Text <= 256B not in [""]
+    begins: TemporalLandmark
+    ends: TemporalLandmark
+}
+
 type AvailabilityInterval = {
     participant_identity: Text <= 256B not in [""]
     interval: TemporalWindow
