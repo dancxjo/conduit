@@ -444,3 +444,6 @@ pub(crate) mod retained;
 
 #[cfg(feature = "retained-history-provider")]
 pub(crate) mod archive;
+
+#[allow(dead_code)] // Preparation witness; live recorder installation remains separately admitted.
+pub(crate) mod producer_context;

@@ -1,7 +1,7 @@
 //! Shared exact-selection fixture for cooperative Host Call contract tests.
 use alloc::{format, vec};
 use conduit_core::*;
-use conduit_plan_lowering::lowering::{LoweredPlanFragment, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
 pub(crate) fn selected(
     scope: &BaseCapabilityScope,
