@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-environment-measurement = { path = "../measurement" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-environment-face = { path = "../face" }

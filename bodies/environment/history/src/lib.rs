@@ -20,3 +20,8 @@ mod committed;
 pub use committed::{
     CommittedHistoryRefusal, PreparedCommittedHistoryFace, MAXIMUM_COMMITTED_HISTORY_GENERATIONS,
 };
+
+pub mod source_series;
+mod source_series_face;
+mod source_series_native;
+pub use source_series_native::{SourceSeriesStyle, SourceSeriesStyleResolver};
