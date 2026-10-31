@@ -56,7 +56,7 @@ pub fn encode_quantity_atan2_denotation(
     if y.dimension() != x.dimension() {
         return Err(R::Quantity(Atan2Refusal::MismatchedDimensions));
     }
-    if y.role() != QuantityRole::Linear || x.role() != QuantityRole::Linear {
+    if y.role() != x.role() || !matches!(y.role(), QuantityRole::Linear | QuantityRole::Delta) {
         return Err(R::Quantity(Atan2Refusal::UnsupportedRole));
     }
     let coordinate = |value, work: &mut Work| {
