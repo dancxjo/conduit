@@ -34,6 +34,12 @@ pub enum Refusal {
 /// advance. NoNewObservation cannot refresh a Face. Counter/uptime rollback
 /// invalidates the physical session and requires cancellation/re-admission.
 pub trait EnvironmentalSourceProvider {
+    /// Root preparation only, before resource reservation/Play. Native owners
+    /// revalidate the same Host/Boot against the current installed inventory.
+    fn prepare_for_host(&mut self, _host: &c::HostAdvertisement) -> Result<(), Refusal> {
+        Ok(())
+    }
+
     fn observe(&mut self)
         -> impl core::future::Future<Output = Result<SourceObservation, Refusal>>;
 }

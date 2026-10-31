@@ -24,6 +24,7 @@ pub(super) struct NetworkSource {
     failed: bool,
     next_transaction: u64,
     plan: Option<Plan>,
+    capability: Option<CapabilityId>,
 }
 impl NetworkSource {
     pub(super) fn acquire(
@@ -49,6 +50,7 @@ impl NetworkSource {
             failed: false,
             next_transaction: 1,
             plan: None,
+            capability: None,
         };
         // The native HTTP provider must complete the existing exact-endpoint selected
         // exchange and independently pinned identity check before Source is offered.
@@ -56,74 +58,129 @@ impl NetworkSource {
         decode(&bytes, owner.encoding).map_err(|_| Refusal::Acquisition)?;
         Ok(owner)
     }
+    pub(super) fn register_native(
+        &mut self,
+        identity: &Identity,
+        base: &mut BaseProviderEntry,
+    ) -> Result<(), Refusal> {
+        self.configuration.http.base_instance_id = identity.provider_instance_id.clone();
+        self.configuration.http.provider_generation = identity.provider_generation;
+        self.configuration.http.resource_generation_id =
+            ResourceGenerationId(format!("{}/http", identity.resource_generation_id.0));
+        let mut offer = conduit_std_host::isolated_http_base::isolated_http_client_offer();
+        offer.capability_id = format!("{}/http", identity.capability.as_str()).into();
+        self.capability = Some(offer.capability_id.clone());
+        self.plan = None;
+        base.capabilities.push(offer);
+        base.resources.push(resource_offer(
+            &format!("{}/http", identity.resource_pool_id.as_str()),
+            conduit_std_host::isolated_http_base::HTTP_CLIENT_RESOURCE,
+            1,
+        ));
+        Ok(())
+    }
     fn read(&mut self) -> Result<Vec<u8>, SourceRefusal> {
         let transaction = self.next_transaction;
         self.next_transaction = self
             .next_transaction
             .checked_add(1)
             .ok_or(SourceRefusal::Capacity)?;
-        let installed = self
-            .installed
-            .borrow_mut()
-            .take()
-            .ok_or(SourceRefusal::Provider)?;
-        let mut http = match IsolatedHttpHost::from_host(installed, self.configuration.http.clone())
-        {
-            Ok(http) => http,
-            Err((host, _)) => {
-                *self.installed.borrow_mut() = Some(host);
-                return Err(SourceRefusal::Provider);
-            }
-        };
-        let result = (|| -> Result<Vec<u8>, SourceRefusal> {
-            if self.plan.is_none() {
-                self.plan = Some(http_plan(&http).map_err(|_| SourceRefusal::Provider)?);
-            }
-            let plan = self.plan.as_ref().expect("prepared exact HTTP plan");
-            if plan.fragments.len() != 1 {
-                return Err(SourceRefusal::Provider);
-            }
-            let fragment = &plan.fragments[0];
-            let play = http
-                .host_mut()
-                .issue_kernel_play(fragment)
-                .map_err(|_| SourceRefusal::Provider)?;
-            let request = conduit_web::HttpRequest {
-                transaction_id: conduit_web::HttpTransactionId::new(transaction)
-                    .map_err(|_| SourceRefusal::Request)?,
-                method: conduit_web::HttpMethod::Get,
-                target: conduit_web::HttpTarget::new(
-                    self.configuration.http.authority.clone(),
-                    "/environment".into(),
-                    conduit_web::HttpScheme::Http,
-                )
-                .map_err(|_| SourceRefusal::Request)?,
-                headers: Default::default(),
-                body: conduit_web::HttpBody::inline([]),
-            };
-            let (_, response) = http
-                .exchange_response(play, fragment, &request)
-                .map_err(|_| SourceRefusal::Provider)?;
-            if response.status != 200 {
-                return Err(SourceRefusal::Provider);
-            }
-            let bytes = response
-                .body
-                .as_inline()
-                .filter(|b| b.len() <= 1536)
+        let bytes = if self.capability.is_some() {
+            let mut installed = self.installed.borrow_mut();
+            let host = installed.as_mut().ok_or(SourceRefusal::Provider)?;
+            perform(
+                host,
+                &self.configuration.http,
+                self.plan.as_ref().ok_or(SourceRefusal::Possession)?,
+                transaction,
+            )?
+        } else {
+            let installed = self
+                .installed
+                .borrow_mut()
+                .take()
                 .ok_or(SourceRefusal::Provider)?;
-            verify_identity(
-                bytes,
-                &self.configuration.firmware,
-                &self.expected_configuration,
-            )?;
-            Ok(bytes.to_vec())
-        })();
-        *self.installed.borrow_mut() = Some(http.into_host());
-        result
+            let mut http =
+                match IsolatedHttpHost::from_host(installed, self.configuration.http.clone()) {
+                    Ok(http) => http,
+                    Err((host, _)) => {
+                        *self.installed.borrow_mut() = Some(host);
+                        return Err(SourceRefusal::Provider);
+                    }
+                };
+            let result = (|| {
+                let plan = http_plan(http.host().advertisement(), None)
+                    .map_err(|_| SourceRefusal::Provider)?;
+                perform(
+                    http.host_mut(),
+                    &self.configuration.http,
+                    &plan,
+                    transaction,
+                )
+            })();
+            *self.installed.borrow_mut() = Some(http.into_host());
+            result?
+        };
+        verify_identity(
+            &bytes,
+            &self.configuration.firmware,
+            &self.expected_configuration,
+        )?;
+        Ok(bytes)
     }
 }
+fn perform(
+    host: &mut conduit_std_host::StdHost,
+    configuration: &IsolatedHttpBaseConfig,
+    plan: &Plan,
+    transaction: u64,
+) -> Result<Vec<u8>, SourceRefusal> {
+    if plan.fragments.len() != 1 {
+        return Err(SourceRefusal::Possession);
+    }
+    let fragment = &plan.fragments[0];
+    let play = host
+        .issue_kernel_play(fragment)
+        .map_err(|_| SourceRefusal::Provider)?;
+    let request = conduit_web::HttpRequest {
+        transaction_id: conduit_web::HttpTransactionId::new(transaction)
+            .map_err(|_| SourceRefusal::Request)?,
+        method: conduit_web::HttpMethod::Get,
+        target: conduit_web::HttpTarget::new(
+            configuration.authority.clone(),
+            "/environment".into(),
+            conduit_web::HttpScheme::Http,
+        )
+        .map_err(|_| SourceRefusal::Request)?,
+        headers: Default::default(),
+        body: conduit_web::HttpBody::inline([]),
+    };
+    let (_, response) = conduit_std_host::isolated_http_base::exchange_selected_response(
+        host,
+        configuration,
+        play,
+        fragment,
+        &request,
+    )
+    .map_err(|_| SourceRefusal::Provider)?;
+    if response.status != 200 {
+        return Err(SourceRefusal::Provider);
+    }
+    response
+        .body
+        .as_inline()
+        .filter(|b| b.len() <= 1536)
+        .map(|b| b.to_vec())
+        .ok_or(SourceRefusal::Provider)
+}
+
 impl EnvironmentalSourceProvider for NetworkSource {
+    fn prepare_for_host(&mut self, host: &HostAdvertisement) -> Result<(), SourceRefusal> {
+        self.plan =
+            Some(http_plan(host, self.capability.as_ref()).map_err(|_| SourceRefusal::Possession)?);
+        Ok(())
+    }
+
     async fn observe(&mut self) -> Result<SourceObservation, SourceRefusal> {
         if self.failed {
             return Err(SourceRefusal::Provider);
@@ -216,7 +273,7 @@ fn boot_ms() -> Result<u64, SourceRefusal> {
         .and_then(|s| s.checked_add(clock.tv_nsec as u64 / 1_000_000))
         .ok_or(SourceRefusal::Provider)
 }
-fn http_plan(http: &IsolatedHttpHost) -> Result<Plan, String> {
+fn http_plan(host: &HostAdvertisement, selected: Option<&CapabilityId>) -> Result<Plan, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut catalog = conduit_plot::ProfileCatalog::new();
     conduit_web::install_http_catalogs(&mut startup, &mut catalog)?;
@@ -225,13 +282,16 @@ fn http_plan(http: &IsolatedHttpHost) -> Result<Plan, String> {
         &catalog,
     )
     .map_err(|e| format!("{e:?}"))?;
-    let host = http.host().advertisement();
     let capability = host
         .capabilities
         .iter()
         .find(|c| {
             c.implementation.implementation_id.as_str()
                 == conduit_std_host::isolated_http_base::ISOLATED_HTTP_IMPLEMENTATION
+                && selected.map_or(
+                    c.capability_id.as_str() == "std-isolated-http-client-http1",
+                    |id| &c.capability_id == id,
+                )
         })
         .ok_or("selected HTTP capability missing")?;
     let grants = capability
@@ -241,7 +301,7 @@ fn http_plan(http: &IsolatedHttpHost) -> Result<Plan, String> {
         .map(|(i, r)| AuthorityGrant {
             grant_id: format!(
                 "grant/environment-http/{}/{i}",
-                http.inspection().base_instance_id.as_str()
+                capability.capability_id.as_str()
             )
             .into(),
             contract_id: r.contract_id.clone(),
@@ -253,8 +313,21 @@ fn http_plan(http: &IsolatedHttpHost) -> Result<Plan, String> {
         })
         .collect::<Vec<_>>();
     let hosts = [host.clone()];
-    let placements =
-        conduit_planner::default_placements(&plot, &hosts).map_err(|e| format!("{e:?}"))?;
+    let placements = conduit_planner::PlacementChoices {
+        by_gear: plot
+            .gears
+            .iter()
+            .map(|gear| {
+                (
+                    gear.gear_id.clone(),
+                    conduit_planner::PlacementChoice {
+                        host_id: host.host_id.clone(),
+                        capability_id: capability.capability_id.clone(),
+                    },
+                )
+            })
+            .collect(),
+    };
     conduit_planner::plan_with_options(
         &plot,
         &hosts,

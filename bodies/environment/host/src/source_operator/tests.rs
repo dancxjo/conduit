@@ -28,46 +28,22 @@ impl EnvironmentalSourceProvider for CpuSource {
     }
 }
 fn fixture() -> UsbSourceRoot<CpuSource> {
-    let host = HostAdvertisement {
-        declared_name: None,
-        protocol_version: PROTOCOL_VERSION,
-        host_id: "fixture/native-source-host".into(),
-        boot_id: "fixture/native-source-boot".into(),
-        offer_generation: OfferGeneration(1),
-        profile: PROFILE.into(),
-        bases: vec![],
-        resources: vec![],
-        capabilities: vec![],
-        planner_capabilities: vec![],
-    };
-    let identity = Identity {
-        host_id: host.host_id.clone(),
-        boot_id: host.boot_id.clone(),
-        base_id: "fixture/base".into(),
-        provider_instance_id: "fixture/source-slot".into(),
-        provider_generation: 1,
-        resource_pool_id: "fixture/pool".into(),
-        resource_generation_id: ResourceGenerationId("fixture/generation".into()),
-        envelope_id: "fixture/envelope".into(),
-        artifact_id: "fixture/native-source".into(),
-        implementation_id: "fixture/source-implementation".into(),
-        base_implementation_id: "fixture/source-base".into(),
-    };
-    let mut root = UsbSourceRoot {
-        host: host.clone(),
-        installed: None,
-        identity,
-        provider: Some(CpuSource {
+    let mut installed =
+        conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
+            host_id: "fixture/native-source-host".into(),
+            boot_id: "fixture/native-source-boot".into(),
+            offer_generation: OfferGeneration(1),
+        });
+    installed.set_initial_kernel_play_sequence(9).unwrap();
+    UsbSourceRoot::attach(
+        Rc::new(RefCell::new(Some(installed))),
+        CpuSource {
             counter: 0,
             fail: false,
-        }),
-        key: [7; 32],
-        next_play: 0,
-    };
-    let mut advertisement = host;
-    root.append_to_advertisement(&mut advertisement).unwrap();
-    root.host = advertisement;
-    root
+        },
+        "cpu-fixture",
+    )
+    .unwrap()
 }
 fn ready<F: std::future::Future>(future: F) -> F::Output {
     use std::{
@@ -89,22 +65,15 @@ fn ready<F: std::future::Future>(future: F) -> F::Output {
 #[test]
 fn checked_plot_runs_source_through_kernel_commit_and_retains_provider_across_real_plays() {
     let mut root = fixture();
-    let mut installed =
-        conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
-            host_id: root.host.host_id.clone(),
-            boot_id: root.host.boot_id.clone(),
-            offer_generation: root.host.offer_generation,
-        });
-    installed.set_initial_kernel_play_sequence(9).unwrap();
-    root.installed = Some(Rc::new(RefCell::new(Some(installed))));
+    let advertisement = root.advertisement().unwrap();
     let first = ready(root.sample()).unwrap();
     let second = ready(root.sample()).unwrap();
     assert_eq!(
         first.scope.play(),
         &bind_active_play(
             first.scope.plan(),
-            &root.host.host_id,
-            &root.host.boot_id,
+            &advertisement.host_id,
+            &advertisement.boot_id,
             9
         )
         .active_play_id
@@ -113,14 +82,14 @@ fn checked_plot_runs_source_through_kernel_commit_and_retains_provider_across_re
         second.scope.play(),
         &bind_active_play(
             second.scope.plan(),
-            &root.host.host_id,
-            &root.host.boot_id,
+            &advertisement.host_id,
+            &advertisement.boot_id,
             10
         )
         .active_play_id
     );
-    assert_eq!(first.scope.host(), &root.host.host_id);
-    assert_eq!(first.scope.boot(), &root.host.boot_id);
+    assert_eq!(first.scope.host(), &advertisement.host_id);
+    assert_eq!(first.scope.boot(), &advertisement.boot_id);
     assert_eq!(first.scope.plan(), second.scope.plan());
     assert_ne!(first.scope.play(), second.scope.play());
     assert_eq!(first.session(), second.session());
@@ -138,18 +107,23 @@ fn provider_failure_cannot_publish_or_reacquire_possession() {
     let mut root = fixture();
     root.provider.as_mut().unwrap().fail = true;
     assert!(matches!(ready(root.sample()), Err(Refusal::Acquisition)));
-    assert!(root.provider.is_none());
+    assert!(root.provider.is_some());
+    assert!(root.failed);
     assert!(matches!(ready(root.sample()), Err(Refusal::Acquisition)));
 }
 #[test]
-fn foreign_boot_cannot_receive_actual_native_offer() {
+fn foreign_boot_cannot_reserve_actual_native_capacity() {
     let root = fixture();
-    let mut other = root.host.clone();
-    other.boot_id = "fixture/foreign-boot".into();
-    assert_eq!(
-        root.append_to_advertisement(&mut other),
-        Err(Refusal::WrongBoot)
-    );
+    let plan = root.plan().unwrap();
+    let mut fragment = plan.fragments[0].clone();
+    fragment.boot_id = "fixture/foreign".into();
+    assert!(root
+        .installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .reserve_native_fragment(&fragment)
+        .is_err());
 }
 
 #[test]
@@ -157,28 +131,130 @@ fn received_fragment_cannot_issue_foreign_source_authority() {
     let root = fixture();
     let plan = root.plan().unwrap();
     let mut fragment = plan.fragments[0].clone();
-    let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
+    let issued = root
+        .installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .issue_kernel_play(&fragment)
+        .unwrap();
+    let lease = root
+        .installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .reserve_native_fragment(&fragment)
+        .unwrap();
     fragment.boot_id = "fixture/foreign-boot".into();
     assert!(matches!(
-        root.issue(&fragment, &active),
+        root.issue(&fragment, &issued, &lease),
         Err(Refusal::Authority)
     ));
+    root.installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .release_native_fragment(lease)
+        .unwrap();
     assert_eq!(root.provider.as_ref().unwrap().counter, 0);
 }
 
 #[test]
 fn actual_planner_refusal_classification_is_preserved_before_capture() {
-    let mut root = fixture();
-    root.host.resources.push(resource_offer(
+    let root = fixture();
+    let mut host = root.advertisement().unwrap();
+    host.resources.push(resource_offer(
         "fixture/secondary",
         "fixture/finite-unused",
         1,
     ));
-    root.host
-        .resources
-        .sort_by(|a, b| b.pool_id.cmp(&a.pool_id));
+    host.resources.sort_by(|a, b| b.pool_id.cmp(&a.pool_id));
     assert!(
-        matches!(root.plan(),Err(Refusal::Planning(error)) if matches!(*error,conduit_planner::PlannerError::InvalidResourceContract(_)))
+        matches!(root.plan_on(&host),Err(Refusal::Planning(error)) if matches!(*error,conduit_planner::PlannerError::InvalidResourceContract(_)))
     );
     assert_eq!(root.provider.as_ref().unwrap().counter, 0);
+}
+
+#[test]
+fn actual_source_fragment_reservation_refuses_duplicate_capacity_and_releases() {
+    let mut root = fixture();
+    let plan = root.plan().unwrap();
+    let lease = root
+        .installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .reserve_native_fragment(&plan.fragments[0])
+        .unwrap();
+    assert!(matches!(ready(root.sample()), Err(Refusal::Capacity)));
+    assert_eq!(root.provider.as_ref().unwrap().counter, 0);
+    root.installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .release_native_fragment(lease)
+        .unwrap();
+    assert!(ready(root.sample()).is_ok());
+}
+
+#[test]
+fn actual_inventory_is_bounded_unique_and_cannot_change_under_a_live_lease() {
+    let root = fixture();
+    let installed = root.installed.clone();
+    let fragment = root.plan().unwrap().fragments.remove(0);
+    let lease = installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .reserve_native_fragment(&fragment)
+        .unwrap();
+    let prior = root.advertisement().unwrap();
+    assert!(UsbSourceRoot::attach(
+        installed.clone(),
+        CpuSource {
+            counter: 0,
+            fail: false
+        },
+        "cpu-fixture"
+    )
+    .is_err());
+    assert_eq!(root.advertisement().unwrap(), prior);
+    installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .release_native_fragment(lease)
+        .unwrap();
+    let mut owners = vec![root];
+    for _ in 1..4 {
+        owners.push(
+            UsbSourceRoot::attach(
+                installed.clone(),
+                CpuSource {
+                    counter: 0,
+                    fail: false,
+                },
+                "cpu-fixture",
+            )
+            .unwrap(),
+        );
+    }
+    let inventory = owners[0].advertisement().unwrap();
+    let source_ids = inventory
+        .capabilities
+        .iter()
+        .filter(|offer| offer.kind_id.as_str() == HOST_CALL)
+        .map(|offer| &offer.capability_id)
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(source_ids.len(), 4);
+    assert!(UsbSourceRoot::attach(
+        installed,
+        CpuSource {
+            counter: 0,
+            fail: false
+        },
+        "cpu-fixture"
+    )
+    .is_err());
+    assert_eq!(owners[0].advertisement().unwrap(), inventory);
 }

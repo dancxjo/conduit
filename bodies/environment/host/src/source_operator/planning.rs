@@ -5,6 +5,9 @@ use std::collections::BTreeMap;
 const SOURCE:&str = "plot sample (\n >> begin: Empty...|\n) {\n source: environment/read-environmental-source()\n publication: environment/publish-environmental-observation()\n begin >> source.request\n source.observation >> publication.value\n}\n";
 impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
     pub(super) fn plan(&self) -> Result<Plan, Refusal> {
+        self.plan_on(&self.advertisement()?)
+    }
+    pub(super) fn plan_on(&self, host: &HostAdvertisement) -> Result<Plan, Refusal> {
         if self.provider.is_none() {
             return Err(Refusal::Acquisition);
         }
@@ -22,29 +25,25 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         .map_err(|_| Refusal::Plan)?;
         let plot = conduit_plot::expand_canonical_plot_for_authoring(&checked, "sample", &profiles)
             .map_err(|_| Refusal::Plan)?;
-        let mut host = self.host.clone();
-        let kind = ObservationContract::prepare()
-            .map_err(|_| Refusal::Plan)?
-            .kind(true)
-            .map_err(|_| Refusal::Plan)?;
-        host.capabilities.push(
-            BackOfferBuilder::new(
-                kind,
-                Back {
-                    capability_id: "linux/environmental-publication@1".into(),
-                    execution_profile_id: PROFILE.into(),
-                    implementation_id: "linux/environmental-publication@1".into(),
-                    artifact_id: "native/environmental-publication@1".into(),
-                    host_calls: vec![],
-                    resource_requirements: vec![],
-                    authority_requirements: vec![],
+        let host = host.clone();
+        let mut choices = conduit_planner::PlacementChoices {
+            by_gear: BTreeMap::new(),
+        };
+        for gear in &plot.expanded.gears {
+            let capability = if gear.kind_id.as_str() == SOURCE_KIND {
+                self.identity.capability.clone()
+            } else {
+                self.identity.publication.clone()
+            };
+            choices.by_gear.insert(
+                gear.gear_id.clone(),
+                conduit_planner::PlacementChoice {
+                    host_id: host.host_id.clone(),
+                    capability_id: capability,
                 },
-            )
-            .build(),
-        );
+            );
+        }
         let hosts = [host];
-        let choices = conduit_planner::default_expanded_placements(&plot.expanded, &hosts)
-            .map_err(|error| Refusal::Planning(Box::new(error)))?;
         let mut fore = BTreeMap::new();
         for binding in &plot.input_bindings {
             fore.insert(
@@ -83,15 +82,16 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
             contract_id: AUTHORITY_CONTRACT.into(),
             host_call_contract_id: HOST_CALL.into(),
             subject_kind: SOURCE_KIND.into(),
-            host_id: self.host.host_id.clone(),
-            boot_id: self.host.boot_id.clone(),
-            capability_id: CAPABILITY.into(),
+            host_id: self.identity.host_id.clone(),
+            boot_id: self.identity.boot_id.clone(),
+            capability_id: self.identity.capability.clone(),
         }
     }
     pub(super) fn issue(
         &self,
         fragment: &PlanFragment,
-        active: &ActivePlayIdentity,
+        issued: &conduit_std_host::IssuedKernelPlay,
+        lease: &conduit_std_host::NativeFragmentReservation,
     ) -> Result<
         (
             BaseCapabilityTable,
@@ -100,14 +100,18 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         ),
         Refusal,
     > {
-        if fragment.host_id != self.host.host_id
-            || fragment.boot_id != self.host.boot_id
+        let active = issued.identity();
+        if !lease.matches_fragment(fragment) {
+            return Err(Refusal::Authority);
+        }
+        if fragment.host_id != self.identity.host_id
+            || fragment.boot_id != self.identity.boot_id
             || !verify_plan_fragment(fragment)
             || *active
                 != bind_active_play(
                     &fragment.plan_id,
-                    &self.host.host_id,
-                    &self.host.boot_id,
+                    &self.identity.host_id,
+                    &self.identity.boot_id,
                     active.play_sequence,
                 )
         {
@@ -133,7 +137,7 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
             active_play_id: active.active_play_id.clone(),
             authority_grant_id: grant.grant_id.clone(),
             authority_contract_id: grant.contract_id.clone(),
-            capability_id: CAPABILITY.into(),
+            capability_id: self.identity.capability.clone(),
             implementation_id: i.implementation_id.clone(),
             operation_contract_id: HOST_CALL.into(),
             subject_kind: SOURCE_KIND.into(),

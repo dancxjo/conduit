@@ -44,6 +44,8 @@ pub struct IsolatedHttpHost {
     host: crate::StdHost,
     registry: BaseRegistry,
     provider: IsolatedHttpBaseConfig,
+    incoming: conduit_core::HostAdvertisement,
+    incoming_registry: BaseRegistry,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,14 +110,24 @@ impl IsolatedHttpHost {
             host.advertisement
                 .bases
                 .retain(|base| base.implementation_id.as_str() != ISOLATED_HTTP_IMPLEMENTATION);
-            host.advertisement
-                .capabilities
-                .retain(|offer| offer.kind_id.as_str() != conduit_web::HTTP_CLIENT_KIND);
+            host.advertisement.capabilities.retain(|offer| {
+                !matches!(
+                    offer.capability_id.as_str(),
+                    "std-http-client-http1" | "std-isolated-http-client-http1"
+                )
+            });
             let resource_index = host
                 .advertisement
                 .resources
                 .iter()
-                .position(|offer| offer.class_id.as_str() == HTTP_CLIENT_RESOURCE)
+                .position(|offer| {
+                    offer.class_id.as_str() == HTTP_CLIENT_RESOURCE
+                        && !host
+                            .advertisement
+                            .bases
+                            .iter()
+                            .any(|base| base.resource_pool_ids.contains(&offer.pool_id))
+                })
                 .ok_or("std Host has no HTTP client resource for the isolated Base")?;
             let resource = host.advertisement.resources.remove(resource_index);
             let maximum_advertised_capabilities =
@@ -162,11 +174,17 @@ impl IsolatedHttpHost {
             Ok(registry)
         })();
         match prepared {
-            Ok(registry) => Ok(Self {
-                host,
-                registry,
-                provider,
-            }),
+            Ok(registry) => {
+                let incoming_registry =
+                    std::mem::replace(&mut host.base_registry, registry.clone());
+                Ok(Self {
+                    host,
+                    registry,
+                    provider,
+                    incoming: original,
+                    incoming_registry,
+                })
+            }
             Err(error) => {
                 host.advertisement = original;
                 host.kernel_resources =
@@ -176,7 +194,16 @@ impl IsolatedHttpHost {
             }
         }
     }
-    pub fn into_host(self) -> crate::StdHost {
+    pub fn into_host(mut self) -> crate::StdHost {
+        assert!(
+            self.host.kernel_resources.is_idle(),
+            "temporary HTTP owner returned with active resources"
+        );
+        self.host.advertisement = self.incoming;
+        self.host.base_registry = self.incoming_registry;
+        self.host.kernel_resources =
+            crate::kernel_preparation::KernelResourceLedger::new(&self.host.advertisement)
+                .expect("retained incoming valid inventory");
         self.host
     }
 
@@ -209,41 +236,14 @@ impl IsolatedHttpHost {
         fragment: &conduit_core::PlanFragment,
         request: &conduit_web::HttpRequest,
     ) -> Result<(IsolatedHttpExchangeReceipt, conduit_web::HttpResponse), String> {
-        let active_play = play.identity();
-        if active_play.plan_id != fragment.plan_id
-            || active_play.host_id != fragment.host_id
-            || active_play.boot_id != fragment.boot_id
-        {
-            return Err("HTTP Play identity does not match its immutable Plan fragment".into());
-        }
-        request
-            .validate()
-            .map_err(|_| "isolated HTTP request exceeds its semantic bounds".to_string())?;
-        if request.target.scheme() != &conduit_web::HttpScheme::Http
-            || request.target.authority() != &self.provider.authority
-        {
-            return Err("isolated HTTP request is outside the selected exact endpoint".into());
-        }
-        let placement = exact_http_placement(fragment)?;
-        let (issue, claim) = capability(fragment, placement, active_play, &self.provider)?;
-        let reservation = self
-            .host
-            .kernel_resources
-            .prepare_and_reserve(&self.host.advertisement, fragment)?;
-        let result = exchange_provider(&self.provider, issue, claim, request);
-        let release = self.host.kernel_resources.release(reservation);
-        release?;
-        let response = result?;
-        Ok((
-            IsolatedHttpExchangeReceipt {
-                active_play_id: active_play.active_play_id.clone(),
-                status: response.status,
-                response_bytes: conduit_web::encode_response(&response)
-                    .map_err(|_| "isolated HTTP response exceeds semantic bounds")?
-                    .len() as u32,
-            },
-            response,
-        ))
+        super::exchange::exchange_with_registry(
+            &mut self.host,
+            &self.registry,
+            &self.provider,
+            play,
+            fragment,
+            request,
+        )
     }
 
     pub fn inspection(&self) -> IsolatedHttpBaseInspection {
@@ -259,7 +259,7 @@ impl IsolatedHttpHost {
     }
 }
 
-fn exact_http_placement(
+pub(super) fn exact_http_placement(
     fragment: &conduit_core::PlanFragment,
 ) -> Result<&conduit_core::PlannedGear, String> {
     let mut placements = fragment
@@ -288,6 +288,22 @@ pub(super) fn capability(
     play: &ActivePlayIdentity,
     provider: &IsolatedHttpBaseConfig,
 ) -> Result<(CapabilityIssueRequest, BaseOperationClaim), String> {
+    capability_for_installed_base(
+        fragment,
+        placement,
+        play,
+        provider,
+        ISOLATED_HTTP_IMPLEMENTATION,
+    )
+}
+
+pub(super) fn capability_for_installed_base(
+    fragment: &conduit_core::PlanFragment,
+    placement: &conduit_core::PlannedGear,
+    play: &ActivePlayIdentity,
+    provider: &IsolatedHttpBaseConfig,
+    installed_implementation: &str,
+) -> Result<(CapabilityIssueRequest, BaseOperationClaim), String> {
     let authority = &placement.authority[0];
     let resource = &placement.resources[0];
     let operation = placement.host_calls[0].clone();
@@ -297,7 +313,7 @@ pub(super) fn capability(
         .ok_or("planned HTTP realization has no Base provider provenance")?;
     if base.provider_instance_id != provider.base_instance_id
         || base.provider_generation != provider.provider_generation
-        || base.implementation_id.as_str() != ISOLATED_HTTP_IMPLEMENTATION
+        || base.implementation_id.as_str() != installed_implementation
     {
         return Err("planned HTTP Base provider is stale or does not match the executor".into());
     }
@@ -374,7 +390,7 @@ pub(super) fn capability(
     Ok((issue, claim))
 }
 
-fn exchange_provider(
+pub(super) fn exchange_provider(
     config: &IsolatedHttpBaseConfig,
     issue: CapabilityIssueRequest,
     mut claim: BaseOperationClaim,

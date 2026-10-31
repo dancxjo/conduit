@@ -84,10 +84,33 @@ fn two_exact_devices_commit_on_one_actual_host_clock_without_fabricated_membersh
     let b = collector
         .attach_network(configurations.remove(0), &checked, Duration::from_secs(31))
         .unwrap();
+    let inventory = collector.advertisement().unwrap();
+    let sources = inventory
+        .capabilities
+        .iter()
+        .filter(|cap| {
+            cap.kind_id.as_str() == conduit_environment_runtime::environmental_source::HOST_CALL
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(sources.len(), 2);
+    assert_ne!(sources[0].capability_id, sources[1].capability_id);
+    let bases = inventory
+        .bases
+        .iter()
+        .filter(|base| {
+            base.mechanism_family.as_str()
+                == conduit_environment_runtime::environmental_source::RESOURCE_CLASS
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(bases.len(), 2);
+    assert!(bases
+        .iter()
+        .all(|base| base.capability_ids.len() == 3 && base.resource_pool_ids.len() == 2));
     let before = boot_ms();
     let x = ready(collector.sample(a)).unwrap();
     let y = ready(collector.sample(b)).unwrap();
     let z = ready(collector.sample(a)).unwrap();
+    assert_eq!(collector.advertisement().unwrap(), inventory);
     assert_eq!(x.scope().host(), y.scope().host());
     assert_eq!(x.scope().boot(), y.scope().boot());
     assert_ne!(x.session(), y.session());
