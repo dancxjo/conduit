@@ -39,6 +39,7 @@ pub struct Presentation<'a> {
     pub details: bool,
     /// Properties are historical facts of the retained snapshot, not current liveness.
     pub retained_snapshot: bool,
+    pub history_in_primary: bool,
 }
 pub fn render_with_palette(
     face: Face,
@@ -60,6 +61,7 @@ pub fn render_with_palette(
             look,
             details: false,
             retained_snapshot: false,
+            history_in_primary: true,
         },
     )
 }
@@ -76,6 +78,7 @@ pub fn render_with_details(
         look,
         details,
         retained_snapshot,
+        history_in_primary,
     } = presentation;
     if pixels.len() != usize::from(width) * usize::from(height) {
         return Err("raster extent mismatch".into());
@@ -89,6 +92,7 @@ pub fn render_with_details(
         details,
         look,
         retained_snapshot,
+        history_in_primary,
     )?;
     if chart_viewport {
         render_graphics_with_palette(&frame, width, height, pixels, look)?;
@@ -251,7 +255,7 @@ pub(crate) fn frame_with_look(
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
     frame_with_context(
-        face, width, height, page_tick, preferred, details, look, false,
+        face, width, height, page_tick, preferred, details, look, false, true,
     )
 }
 #[allow(clippy::too_many_arguments)]
@@ -264,6 +268,7 @@ pub(crate) fn frame_with_context(
     details: bool,
     look: Option<&conduit_face::LookInfo>,
     retained_snapshot: bool,
+    history_in_primary: bool,
 ) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
     let property_face = face.clone();
     let property = crate::property_mask::frame_with_context(
@@ -322,6 +327,20 @@ pub(crate) fn frame_with_context(
         let frame = scene.frame().map_err(|e| format!("Details: {e:?}"))?;
         return Ok((frame.scene, page, pages, scene.text_scale_percent(), false));
     }
+    let summarized = crate::source_history::scope(&property_face)?;
+    let shared = if history_in_primary {
+        crate::source_history::prepare(
+            &property_face,
+            preferred.unwrap_or(conduit_core::Unit::Celsius),
+            width,
+            height.saturating_sub(STATUS_STRIP_HEIGHT as u16),
+            None,
+            look,
+        )?
+    } else {
+        None
+    };
+    let shared_pages = usize::from(shared.is_some());
     let charts: Vec<_> = property_face
         .subjects
         .iter()
@@ -332,16 +351,24 @@ pub(crate) fn frame_with_context(
         .collect();
     let property_pages = property.as_ref().map_or(0, |(_, _, pages)| *pages);
     let native_pages = if property_pages > 0
-        && crate::property_mask::has_no_additional_native_primary_content(&property_face)
-    {
+        && crate::property_mask::has_no_additional_native_primary_content_except(
+            &property_face,
+            &summarized,
+        ) {
         0
     } else {
         scene.pages()
     };
-    let pages = charts.len() + native_pages + property_pages;
+    let pages = shared_pages + charts.len() + native_pages + property_pages;
     let page = page_tick % pages;
-    if page < charts.len() {
-        let show = charts[page]
+    if let Some(shared) = shared
+        && page == 0
+    {
+        return Ok((shared.scene, page, pages, 100, true));
+    }
+    let chart_page = page - shared_pages;
+    if chart_page < charts.len() {
+        let show = charts[chart_page]
             .native_show_in_unit_at_size(
                 preferred.unwrap_or(conduit_core::Unit::Celsius),
                 width,
@@ -350,7 +377,7 @@ pub(crate) fn frame_with_context(
             .map_err(|e| format!("history graph refused: {e:?}"))?;
         return Ok((show.scene, page, pages, 100, true));
     }
-    let content_page = page - charts.len();
+    let content_page = chart_page - charts.len();
     if content_page < property_pages {
         let (graphics, _, _) = crate::property_mask::frame_with_context(
             &property_face,

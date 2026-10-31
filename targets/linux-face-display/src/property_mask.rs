@@ -103,15 +103,19 @@ fn body_heading(face: &Face) -> Option<&str> {
 /// Keep native primary pages whenever they add content beyond the Info headings
 /// already named by the property Look. This is not a full Face/Details projection.
 pub fn has_no_additional_native_primary_content(face: &Face) -> bool {
+    has_no_additional_native_primary_content_except(face, &[])
+}
+pub fn has_no_additional_native_primary_content_except(face: &Face, summarized: &[String]) -> bool {
     !face.subjects.is_empty()
         && face.subjects.iter().all(|subject| {
-            (subject.role == FaceRole::Body
-                && face
-                    .basis
-                    .body_id
-                    .as_ref()
-                    .is_some_and(|id| subject.identity == format!("body/{}", id.as_str()))
-                && body_heading(face) == Some(subject.name.as_str()))
+            summarized.contains(&subject.identity)
+                || (subject.role == FaceRole::Body
+                    && face
+                        .basis
+                        .body_id
+                        .as_ref()
+                        .is_some_and(|id| subject.identity == format!("body/{}", id.as_str()))
+                    && body_heading(face) == Some(subject.name.as_str()))
                 || subject.role == FaceRole::Info
                     && face.properties.iter().any(|p| {
                         p.subject == subject.identity
@@ -124,7 +128,10 @@ pub fn has_no_additional_native_primary_content(face: &Face) -> bool {
                     })
         })
         && face.text.is_empty()
-        && face.relationships.is_empty()
+        && face
+            .relationships
+            .iter()
+            .all(|r| summarized.contains(&r.source) && summarized.contains(&r.target))
         && face.composition.is_empty()
         && face.actions.is_empty()
         && face.disclosures.is_empty()

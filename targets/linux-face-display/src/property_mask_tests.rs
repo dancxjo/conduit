@@ -248,7 +248,7 @@ fn retained_context_qualifies_status_without_altering_face_or_exact_details() {
     .unwrap();
     let original = face.clone();
     let retained =
-        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, false, None, true)
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, false, None, true, true)
             .unwrap()
             .0;
     let text: Vec<_> = retained.commands().iter().map(|c| c.payload()).collect();
@@ -256,7 +256,7 @@ fn retained_context_qualifies_status_without_altering_face_or_exact_details() {
     assert!(text.contains(&"At observation · sensor status: available"));
     assert!(!text.contains(&"fresh: true"));
     let current =
-        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, false, None, false)
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, false, None, false, true)
             .unwrap()
             .0;
     assert!(
@@ -266,10 +266,11 @@ fn retained_context_qualifies_status_without_altering_face_or_exact_details() {
             .any(|c| c.payload() == "fresh: true")
     );
     let details =
-        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, true, None, false)
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, true, None, false, true)
             .unwrap();
     let retained_details =
-        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, true, None, true).unwrap();
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, true, None, true, true)
+            .unwrap();
     assert_eq!(details.0.encode(), retained_details.0.encode());
     assert_eq!(face, original);
 }

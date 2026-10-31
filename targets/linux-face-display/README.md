@@ -137,3 +137,29 @@ pages use the shared native visual-expression preparation. This adapter currentl
 lowers the Look palette and fixed typography. Full token-driven spacing, font
 sizes, line height and local partial overrides are still pending; the Theme
 selection does not claim those contracts or a successful hardware Show.
+
+### Shared collector-observed series
+
+When the actual supplied Face contains the history library's
+`environment/source-observation-series@1` Collection, the right column presents
+that collection instead of the separate legacy signed-history preview. All
+instruments share the quantity axes and the exact collector Host/Boot time
+basis. The Mask does not poll equipment, collect observations or retain another
+history. See `bodies/environment/history/SOURCE_SERIES.md` for the checked data
+profile and its explicit provenance/clock limits.
+
+The operator's Blue, Green, White and Yellow names select cobalt, green,
+contrasting neutral/dashed and amber expression roles. Other sources receive
+remaining distinct styles in stable source order. A name changes appearance
+only; it never selects equipment or grants membership. Label and line use the
+same resolved style. Actual selected-font measurement refuses a label that
+cannot fit rather than silently clipping it.
+
+Split mode retains the report on the left and the shared graph on the right;
+unsplit mode cycles report and graph. Original technical observations remain
+in Details. Source-series gaps/failures are not joined or plotted at zero,
+collector-relative staleness remains separate from the Face transport lease,
+and drawing pressure refuses within the existing 48-command bound. Invalid or
+unsupported shared input is never replaced by unrelated legacy data under the
+same graph title. This development adapter still does not establish installed
+Host/Show admission or prove that a real collector has delivered four devices.

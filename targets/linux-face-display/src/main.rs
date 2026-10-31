@@ -10,6 +10,7 @@ mod presentation_state;
 mod presentation_tests;
 mod property_mask;
 mod raster_target;
+mod source_history;
 #[cfg(test)]
 mod todo_mask_tests;
 mod touch_input;
@@ -135,7 +136,12 @@ fn run() -> Result<(), String> {
                 }
             }
         };
-        ui.context = mask_controls::Context::for_face(&face, history_path.is_some());
+        let shared_history_present = source_history::present(&face);
+        ui.context = mask_controls::Context::for_face(
+            &face,
+            history_path.is_some() || shared_history_present,
+        );
+        ui.context.temperature |= shared_history_present;
         if !ui.context.history {
             columns = None;
         }
@@ -153,7 +159,31 @@ fn run() -> Result<(), String> {
             history_status = status;
         }
         if let Some(columns) = columns.as_mut() {
-            let history_notice = if !history_status.is_empty() {
+            let shared_history = if shared_history_present {
+                match source_history::prepare(
+                    &face,
+                    preferred.unwrap_or(conduit_core::Unit::Celsius),
+                    columns.history_width,
+                    content_height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
+                    ui.preferences.history_window.milliseconds(),
+                    Some(&look),
+                ) {
+                    Ok(prepared) => prepared,
+                    Err(reason) => Some(source_history::Prepared {
+                        scene: source_history::refused_scene(
+                            &reason,
+                            columns.history_width,
+                            content_height.saturating_sub(view::STATUS_STRIP_HEIGHT as u16),
+                        )?,
+                        label: "Source history unavailable · Details".into(),
+                    }),
+                }
+            } else {
+                None
+            };
+            let history_notice = if let Some(prepared) = &shared_history {
+                prepared.label.as_str()
+            } else if !history_status.is_empty() {
                 "HISTORY UPDATES DELAYED"
             } else {
                 history.label().unwrap_or("RETAINED HISTORY")
@@ -163,12 +193,16 @@ fn run() -> Result<(), String> {
                 .map(|_| "LAST KNOWN · FEED DELAYED");
             columns.render_with_palette(
                 face,
-                history.scene(),
+                shared_history
+                    .as_ref()
+                    .map(|prepared| &prepared.scene)
+                    .or_else(|| history.scene()),
                 tick,
                 columns::Presentation {
                     unit: preferred,
                     details: ui.preferences.details,
                     retained_snapshot: historical_notice.is_some(),
+                    history_in_primary: true,
                     look: Some(&look),
                 },
                 columns::Notices {
@@ -193,9 +227,14 @@ fn run() -> Result<(), String> {
             }
             continue;
         }
-        let history_page =
-            !ui.preferences.details && tick.is_multiple_of(2) && history.scene().is_some();
-        let face_tick = face_page_tick(tick, !ui.preferences.details && history.scene().is_some());
+        let history_page = !shared_history_present
+            && !ui.preferences.details
+            && tick.is_multiple_of(2)
+            && history.scene().is_some();
+        let face_tick = face_page_tick(
+            tick,
+            !shared_history_present && !ui.preferences.details && history.scene().is_some(),
+        );
         let rendered = if history_page {
             if let Some(history) = history.scene() {
                 view::render_graphics_with_palette(
@@ -217,6 +256,7 @@ fn run() -> Result<(), String> {
                         look: Some(&look),
                         details: ui.preferences.details,
                         retained_snapshot: historical_notice.is_some(),
+                        history_in_primary: true,
                     },
                 )
                 .map(|_| ())
@@ -233,6 +273,7 @@ fn run() -> Result<(), String> {
                     look: Some(&look),
                     details: ui.preferences.details,
                     retained_snapshot: historical_notice.is_some(),
+                    history_in_primary: true,
                 },
             )
             .map(|_| ())
@@ -290,6 +331,7 @@ fn run() -> Result<(), String> {
                         look: Some(&look),
                         details: ui.preferences.details,
                         retained_snapshot: historical_notice.is_some(),
+                        history_in_primary: true,
                     },
                 )?;
                 mask_controls::chrome_in_context(

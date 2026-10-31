@@ -98,7 +98,7 @@ impl SourceSeriesGraph {
         width: u16,
         height: u16,
         window_ms: Option<u64>,
-        style: SourceSeriesStyleResolver,
+        style: impl Fn(&PreparedSourceSeries) -> SourceSeriesStyle,
     ) -> Result<GraphicsScene, Error> {
         if !matches!(unit, Unit::Celsius | Unit::Fahrenheit)
             || width < 320
