@@ -132,11 +132,13 @@ not an admitted Host Back or a real-time input-latency guarantee.
 The Theme control includes Field · day and Field · night, using the exact
 Conduitese-authored Field instrument Look resources shared with browser Masks.
 It changes local presentation and retains the same Face and action contracts.
-Property pages measure the selected fixed title font before painting; generic
-pages use the shared native visual-expression preparation. This adapter currently
-lowers the Look palette and fixed typography. Full token-driven spacing, font
-sizes, line height and local partial overrides are still pending; the Theme
-selection does not claim those contracts or a successful hardware Show.
+Property pages and generic scenes measure and paint the same selected fixed font
+resources at the Look's authored body/small sizes and line height. Exact rational
+resampling preserves the existing 128×128 per-glyph work bound; unsupported line
+boxes or size requests refuse before scene/hit publication. No runtime font loader
+is introduced. Token-driven component spacing, radii and local partial overrides
+are still pending; Theme selection does not claim those contracts or a successful
+hardware Show.
 
 ### Shared collector-observed series
 

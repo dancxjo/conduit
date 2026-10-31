@@ -144,3 +144,42 @@ mod native_chart_pixel_tests {
         assert!(pixels[..36 * 1024].iter().all(|p| *p == 0));
     }
 }
+
+#[test]
+fn missing_visual_facet_uses_the_same_selected_phosphor_metrics_and_pixels() {
+    let face = crate::view::unavailable("Waiting for the actual source");
+    let original = face.clone();
+    let spoken = conduit_face::LookInfo::new(
+        conduit_face::LookGenerativeFacetOption::None,
+        "test/spoken-only".into(),
+        conduit_face::LookSpokenFacetOption::None,
+        2,
+        conduit_face::LookVisualFacetOption::None,
+    )
+    .unwrap();
+    let phosphor = conduit_face::phosphor_look().unwrap();
+    let mut expected = vec![0; 500 * 476];
+    let mut fallback = expected.clone();
+    crate::view::render_with_palette(
+        face.clone(),
+        500,
+        476,
+        0,
+        &mut expected,
+        None,
+        Some(&phosphor),
+    )
+    .unwrap();
+    crate::view::render_with_palette(
+        face.clone(),
+        500,
+        476,
+        0,
+        &mut fallback,
+        None,
+        Some(&spoken),
+    )
+    .unwrap();
+    assert_eq!(fallback, expected);
+    assert_eq!(face, original);
+}

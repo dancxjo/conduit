@@ -58,6 +58,7 @@ fn authored_look_metrics_do_not_change_control_identity_or_reading_order() {
     let face = tests::face(2);
     let mut reference = None;
     for look in [
+        conduit_face::engineering_look().unwrap(),
         conduit_face::field_instrument_day_look().unwrap(),
         conduit_face::field_instrument_night_look().unwrap(),
     ] {

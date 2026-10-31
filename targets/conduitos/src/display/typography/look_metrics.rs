@@ -5,6 +5,7 @@ use conduit_face::{LookVisualTokensInfo, VisualTypography};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LookTypographyRefusal {
     MetricBounds,
+    FallbackResource,
     LineBox { role: TextRole },
     GlyphBudget { role: TextRole },
 }

@@ -78,6 +78,8 @@ pub fn paint_scene(
     scale: u16,
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<DisplayReceipt, DisplayError> {
+    let fallback = visual_fallback(look).map_err(|_| DisplayError::InvalidExtent)?;
+    let look = fallback.as_ref().or(look);
     let format = target.format();
     typography::render_scene_selected(
         target,
@@ -121,6 +123,8 @@ pub fn selected_typography(
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<typography::Typography, typography::LookTypographyRefusal> {
     use conduit_face::{LookVisualFacetOption, VisualTypography, VisualTypographyPreference};
+    let fallback = visual_fallback(look)?;
+    let look = fallback.as_ref().or(look);
     let Some(LookVisualFacetOption::Some(visual)) = look.map(|value| value.visual()) else {
         return Ok(typography::Typography::EDITORIAL);
     };
@@ -129,4 +133,19 @@ pub fn selected_typography(
         _ => VisualTypography::Editorial,
     };
     typography::Typography::with_look_metrics(intent, visual.tokens(), 200)
+}
+
+fn visual_fallback(
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<Option<conduit_face::LookInfo>, typography::LookTypographyRefusal> {
+    if matches!(
+        look.map(|l| l.visual()),
+        Some(conduit_face::LookVisualFacetOption::None)
+    ) {
+        conduit_face::phosphor_look()
+            .map(Some)
+            .map_err(|_| typography::LookTypographyRefusal::FallbackResource)
+    } else {
+        Ok(None)
+    }
 }
