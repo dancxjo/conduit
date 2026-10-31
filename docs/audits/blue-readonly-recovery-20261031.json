@@ -1,0 +1,213 @@
+{
+  "schema": "conduit.audit/blue-readonly-recovery@1",
+  "checked_utc": "2026-10-31T22:56:15.000106+00:00",
+  "scope": "Read-only live UART and member-state inspection, offline signed-prefix verification and private fsynced backup; no new hardware, invitation, admission, ACK or identity mutation.",
+  "body_id": "71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57",
+  "producer_host": "esp32/b0a732286178",
+  "producer_boot": "boot/a7c642d8db1ef1965a011c502a2a9269",
+  "firmware_provenance": {
+    "installed_source": "ac3ac678ea5b3ab649eebe92235d54113a63f2f1",
+    "app_sha256": "ea5c903fb7eb88f58c51b3add89e6df0a3bc2a34dca53f0c96e63259f11e8596",
+    "elf_sha256": "52098aac48ce9c0c0f1080f95fed54ece6dc8e8d38c401151b40fe29bc5402ea",
+    "retained_artifact_hashes_rechecked": true,
+    "fresh_physical_flash_readback_today": false,
+    "basis": "Previously verified app-only install and nonapp equality; current signed epoch retains same Boot."
+  },
+  "usb": {
+    "vid": "10c4",
+    "pid": "ea60",
+    "serial": "0001",
+    "path": "pci-0000:00:14.0-usb-0:10:1.0",
+    "color": "Blue",
+    "prior_verified_profile": "ESP32; DHT11 GPIO27; TM1637 CLK18/DIO19 at3.3V; unchanged by this work"
+  },
+  "passive_uart": {
+    "capture_seconds": 65,
+    "progress_events": 4,
+    "progress_millis": [
+      16644805,
+      16690140
+    ],
+    "source_sequence": [
+      277,
+      277
+    ],
+    "mask_acknowledgements": [
+      5543,
+      5558
+    ],
+    "sampler_phase": "running",
+    "mask_phase": "running",
+    "sampler_failure": null,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "station_address": [
+      10,
+      0,
+      0,
+      210
+    ],
+    "network_control": "attached",
+    "archive": {
+      "committed": 277,
+      "retained_bytes": 29344,
+      "last_sequence": 277,
+      "scope_ready": true,
+      "failed": false,
+      "recovered_read_only": false,
+      "maximum_records": 960
+    },
+    "face_fresh": true,
+    "renewal_failure": null,
+    "observed_custody_refusal": "observed-offer-not-frozen",
+    "capture_sha256": "52e8b180663f8a4e866bfaed1d328363024342c640594dfd7d072e099e38acb6"
+  },
+  "retained_signed_prefix": {
+    "host": "threebee.local",
+    "epoch_path": "/home/dancxjo/.local/state/conduit-environment/retained-history-store-ec570ec3/epoch-f18bc3601061d0a5ee368118211fe0c8e230e36c8ab7c79f411a406b3526e2ec1dfbfc16ea58e9fbb3a5773dfc758a2e71ba41e6ccf70b031f32a204be4124d6b2470783599aecc36cf6edd8a6027473af7442c126482b5ab827c0b0e08904b1",
+    "independent_fresh_inspector_exit": 0,
+    "inspector_source": "ac3ac678ea",
+    "inspector_binary_sha256": "da3ccb8e8f16075058d7e73b43564e7f6657b9f57fb280d8e2e1373a96100e5a",
+    "verified_through_sequence": 278,
+    "original_batch_files": 269,
+    "series_sha256": "8b848b14b2326776864dc02617c176b79dfe6a145cca2edf6c7108bdbc7ba897",
+    "root_public_key_sha256": "1997375db93ef6e0fcf73659ca6ee260fb0070b09b979ecdda1e80c084fb1c11",
+    "matches_independently_pinned_original_root": true,
+    "custody": "retained-signed-evidence; NOT a selected recorder commitment or ACK",
+    "private_backup_path": "/home/dancxjo/Documents/Codex/2026-10-28/take-ownership-of-the-two-thermometers/work/private/blue-inventory-20261031/reopened-observations-a7c-through278",
+    "private_backup_manifest_sha256": "0139f537c1f09d09766155a5a7f1833a70f1f22ce9f21699ca16110481f780af",
+    "private_backup_files_and_directories_fsynced": true,
+    "all_backup_files_reopened_checksum_equal": true
+  },
+  "installed_host_snapshots": [
+    {
+      "host": "threebee.local",
+      "runtime_path": "/home/dancxjo/.local/state/conduit/runtime.json",
+      "runtime_sha256": "db131f91f25345df2172cd5dc1558aeedb259678bc6595c5d36cd0adbd3c2114",
+      "schema": "conduit.install/durable-host-runtime@1",
+      "host_id": "host/installed/9741ac216129a8296654338e04174e8ea2b3ef253a524e5bffdc1b6ad0d335bc",
+      "boot_id": "boot/installed/66f3a28cbed20ca1b510ad9410b499ad1371643f23d4918d6ea64e5aaeaf6676",
+      "offer_generation": 2,
+      "body_id": null,
+      "interpretation": "Observed installed runtime snapshot has no Body binding; this is not a new service-RPC admission proof."
+    },
+    {
+      "host": "beeplus.local",
+      "runtime_path": "/home/dancxjo/.local/state/conduit/runtime.json",
+      "runtime_sha256": "6f7ca8d80fd12cfca04f364f3b73da00b9adbbe03e1477a7847131a29abfa03e",
+      "schema": "conduit.install/durable-host-runtime@1",
+      "host_id": "host/installed/94d17c927bee3a5b51c9396e8555d3b39eb897104c7177cf84babec82d286223",
+      "boot_id": "boot/installed/458975c309ea5d7599991b1dac0fbf59d0c12d57a5405a4ef1346673afd859c2",
+      "offer_generation": 1,
+      "body_id": null,
+      "interpretation": "Observed installed runtime snapshot has no Body binding; this is not a new service-RPC admission proof."
+    },
+    {
+      "host": "motherbrain.local",
+      "runtime_path": "/home/dancxjo/.local/state/conduit/runtime.json",
+      "runtime_sha256": "643f67d676f96bb498fd4b6a6e0c86c385ae6c5be93ab7cc37350a64837657a6",
+      "schema": "conduit.install/durable-host-runtime@1",
+      "host_id": "host/installed/b777f6a6b88c372c9f85b9cb5a543342db3c038f3619be558cab4e39e316c6b3",
+      "boot_id": "boot/installed/b53ab1e234ebd6259b0ea14fd96965a309080d9d894af72fe242d916df04d071",
+      "offer_generation": 4,
+      "body_id": null,
+      "interpretation": "Observed installed runtime snapshot has no Body binding; this is not a new service-RPC admission proof."
+    }
+  ],
+  "active_diagnostic_bindings": [
+    {
+      "host": "threebee.local",
+      "role": "recorder",
+      "binding_path": "/home/dancxjo/.local/state/conduit-environment/observer-return-after-98bd/recorder-binding.json",
+      "binding_sha256": "c5030f9a1a2c9dc10d3ae79c93ccfd0fe093600c42eb1e0b2a2614c98cb2552b",
+      "observer_host": "linux/50054d1a07904afab1d218950e342fb8",
+      "observer_boot": "boot/0427b5f7-deb8-44d5-9368-754d2747e5f7",
+      "receipt_producer_boot": "boot/98bd0026574e3e0c956c283b85387bcc",
+      "membership_revision": 407,
+      "current_producer_receipt_verified_today": false
+    },
+    {
+      "host": "threebee.local",
+      "role": "face",
+      "binding_path": "/home/dancxjo/.local/state/conduit-environment/blue-observer-return-a255-recovery/recorder-binding.json",
+      "binding_sha256": "c4eda7bd806a9eb8002232d2206dce7355f4bfa7403cfee02a07d98d6fdfeb85",
+      "observer_host": "linux/50054d1a07904afab1d218950e342fb8",
+      "observer_boot": "boot/9fdfac79-db9b-4cb4-886a-2a61ef1a4e8a",
+      "receipt_producer_boot": "boot/a255e338dacfb4a01d2cf9cd61074b65",
+      "membership_revision": 395,
+      "current_producer_receipt_verified_today": false
+    },
+    {
+      "host": "beeplus.local",
+      "role": "recorder",
+      "binding_path": "/home/dancxjo/.local/state/conduit-environment/blue-observer-return-82b19c8d-29fe-4883-8321-eaacfb263754/recorder-binding.json",
+      "binding_sha256": "0727db4ccfc5e29c54b159eee2c70c90fc56571d3b19c2df9103f7e12e83168d",
+      "observer_host": "linux/89e2b39a9ed742d9a9b5c69a5b6208bb",
+      "observer_boot": "boot/21fc3fda-d463-40f3-a120-6c4e60173316",
+      "receipt_producer_boot": "boot/d7195c46c8493e795063198d70ed722e",
+      "membership_revision": 314,
+      "current_producer_receipt_verified_today": false
+    },
+    {
+      "host": "motherbrain.local",
+      "role": "face",
+      "binding_path": "/home/dancxjo/.local/state/conduit-environment/blue-observer-return-4fd0e96e-c810/recorder-binding.json",
+      "binding_sha256": "fcf6ace78902a2762bc9e8376ec31720b7bed6853d32271a42071536f820136d",
+      "observer_host": "linux/141bfd7c22024a70a7d632e8292861e2",
+      "observer_boot": "boot/983e002f-7572-42f5-b662-a1aa63431a7c",
+      "receipt_producer_boot": "boot/c8104c70e42055188a4f453637de8951",
+      "membership_revision": 332,
+      "current_producer_receipt_verified_today": false
+    }
+  ],
+  "current_producer_probe": {
+    "client": "qualified-ac3ac678ea",
+    "binding_role": "Threebee historical observer-return-after-98bd",
+    "peer": "127.0.0.1:18080",
+    "result": "WouldBlock / Resource temporarily unavailable",
+    "new_signed_current_membership_receipt": false,
+    "fresh_ReturnRequired_refusal_observed": false
+  },
+  "existing_general_membership_path": {
+    "present_in_installed_source": true,
+    "present_in_retained_linked_image": true,
+    "request_max_bytes": 1024,
+    "receipt_max_bytes": 2048,
+    "request_schema": "conduit.body/membership-admission-request@1",
+    "receipt_schema": "conduit.body/membership-admission-receipt@1",
+    "source_sha256": {
+      "targets/esp32/proof/tm1637/src/native_body_join.rs": "a5d4f6a892bfdc25aa6851270cc3512fc47ddfd6b08e3d23a0b9d58cd470820b",
+      "targets/esp32/proof/tm1637/src/native_body_join_http.rs": "a90a4c8d8fda73ec768c32debd896347db6bb6513e966aebdb342ecc5bc7f699",
+      "targets/esp32/proof/tm1637/src/native_body_root.rs": "95794ee9e3f0e6204709c2755f5cabb696479609df83c7884b91cf36336f3591",
+      "targets/esp32/proof/tm1637/src/native_body_membership.rs": "c3f8dbc5e6529f4eafae890f1f75b617e75bf83b0f950c94ff5860ad051c880a",
+      "architecture/body/src/admission/membership_documents.rs": "84fdc2f81ae4c7a1bb571c2250d7da0e4cb91f4e2ee0b2d89dd036a991c594da"
+    },
+    "entry": "native_body_join::decode_command -> Command::Membership -> native_body_join_http -> NativeRoot::admit_body_membership_request -> native_body_join::membership::admit -> durable admissions_transaction -> Root signature",
+    "existing_safeguard": "Reject authority-host self admission and active BodyTime-pinned membership mutation. Membership alone makes no offers/Plan/Play.",
+    "physical_membership_request_tested_today": false
+  },
+  "older_biography_anchor": {
+    "original_handoff_biography_files_checksum_verified_today": 241,
+    "mismatches": 0,
+    "historical_owner_log_checkpoint_generation": 632,
+    "historical_retained_offer_generation": 631,
+    "historical_retained_offer_end_segments": 233,
+    "new_biography_ACK_or_offload_today": false,
+    "not_a_fresh_claim_about_latest_receiver_prefix": true
+  },
+  "blocked_handoff": [
+    "Bind the real installed Host/current Boot to this original Body using the existing bounded general membership request/Root-signed completion; diagnostic linux observer identity is a different member and must not be cloned.",
+    "Membership is separate from initialized offers. Publish actual complete initialized Host offers and admit the authored recorder Plot, exact Plan/Play and protected Back/resource authority through the normal contracts.",
+    "Commit exact observations through the selected real Back, reopen in a fresh process and validate prefix before a typed durable ACK; signed collector files, transport delivery and SourceHistoryStore are not that ACK."
+  ],
+  "remaining_gates": [
+    "No current independent visual confirmation of Blue display or resolution of historical3.3V interface issue.",
+    "No forced disconnect/reconnect, reset, flash or physical restart attempted in this read-only lane.",
+    "Current live Body checkpoint extent and capacity for another canonical admission were not reread; qualify before mutation.",
+    "Fresh current observer/member continuity remains unverified after bounded WouldBlock probe.",
+    "Current proper installed-host same-Body recorder placement/Back commitment not demonstrated."
+  ],
+  "private_evidence_directory": "/home/dancxjo/Documents/Codex/2026-10-28/take-ownership-of-the-two-thermometers/work/private/blue-inventory-20261031",
+  "private_records_or_credentials_published": false,
+  "body_boot_binding_basis": "Independently pinned Root-signed retained epoch advancing through278; passive uptime is consistent with the known running Boot. A new nonce-bound current-producer/member receipt was not obtained (WouldBlock)."
+}
