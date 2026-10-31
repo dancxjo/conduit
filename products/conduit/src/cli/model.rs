@@ -16,12 +16,114 @@ pub(crate) struct InstalledModelOptions {
     /// Also offer bounded text generation through this explicitly selected model.
     #[arg(long, requires = "selected_model")]
     pub(crate) model_generation: bool,
+    /// Select an exact semantic model profile (for example stream-generate).
+    /// Repeat for several profiles; omitted profiles retain the presentation default.
+    #[arg(long = "model-profile", value_name = "PROFILE", requires = "selected_model", conflicts_with = "model_generation", value_parser = parse_model_profile)]
+    pub(crate) model_profiles: Vec<conduit_std_host::hosted_local_model::LocalModelKindProfile>,
+}
+
+fn parse_model_profile(
+    value: &str,
+) -> Result<conduit_std_host::hosted_local_model::LocalModelKindProfile, String> {
+    use conduit_std_host::hosted_local_model::LocalModelKindProfile as P;
+    match value {
+        "generate" => Ok(P::Generate),
+        "stream-generate" => Ok(P::StreamGenerate),
+        "generate-flow" => Ok(P::GenerateFlow),
+        "classify-finite-labels" => Ok(P::ClassifyFiniteLabels),
+        "extract-validated-info" => Ok(P::ExtractValidatedInfo),
+        "embed-finite-vector" => Ok(P::EmbedFiniteVector),
+        "interpret-sign-evidence" => Ok(P::InterpretSignEvidence),
+        "present-semantic-front" => Ok(P::PresentSemanticFront),
+        _ => Err("unknown semantic model profile".into()),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::cli::{Cli, Command, HostCommand, HostServiceCommand};
     use clap::Parser;
+
+    #[test]
+    fn profile_spellings_select_the_existing_exact_semantic_profiles() {
+        use conduit_std_host::hosted_local_model::LocalModelKindProfile as P;
+        for (spelling, expected) in [
+            ("generate", P::Generate),
+            ("stream-generate", P::StreamGenerate),
+            ("generate-flow", P::GenerateFlow),
+            ("classify-finite-labels", P::ClassifyFiniteLabels),
+            ("extract-validated-info", P::ExtractValidatedInfo),
+            ("embed-finite-vector", P::EmbedFiniteVector),
+            ("interpret-sign-evidence", P::InterpretSignEvidence),
+            ("present-semantic-front", P::PresentSemanticFront),
+        ] {
+            assert_eq!(super::parse_model_profile(spelling).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn explicit_profiles_require_selection_and_reject_ambiguous_or_unknown_input() {
+        let base = [
+            "conduit",
+            "host",
+            "service",
+            "install",
+            "release.json",
+            "--state-dir",
+            "state",
+        ];
+        assert!(Cli::try_parse_from(
+            base.into_iter()
+                .chain(["--model-profile", "stream-generate"])
+        )
+        .is_err());
+        let mut args = base.to_vec();
+        args.extend([
+            "--selected-model",
+            "local",
+            "--model-endpoint",
+            "http://127.0.0.1:11434",
+            "--model-memory-mib",
+            "2048",
+            "--model-profile",
+            "stream-generate",
+        ]);
+        let cli = Cli::try_parse_from(&args).unwrap();
+        let Some(Command::Host {
+            command:
+                Some(HostCommand::Service {
+                    command: HostServiceCommand::Install { model, .. },
+                }),
+        }) = cli.command
+        else {
+            panic!("installed model selection")
+        };
+        assert_eq!(
+            model.model_profiles,
+            vec![conduit_std_host::hosted_local_model::LocalModelKindProfile::StreamGenerate]
+        );
+        assert!(Cli::try_parse_from(args.iter().copied().chain(["--model-generation"])).is_err());
+        assert!(
+            Cli::try_parse_from(args.iter().copied().chain(["--model-profile", "unknown"]))
+                .is_err()
+        );
+        let both = Cli::try_parse_from(
+            args.iter()
+                .copied()
+                .chain(["--model-profile", "embed-finite-vector"]),
+        )
+        .unwrap();
+        let Some(Command::Host {
+            command:
+                Some(HostCommand::Service {
+                    command: HostServiceCommand::Install { model, .. },
+                }),
+        }) = both.command
+        else {
+            panic!("installed model profiles")
+        };
+        assert_eq!(model.model_profiles.len(), 2);
+    }
 
     #[test]
     fn selected_model_generation_requires_complete_explicit_selection() {

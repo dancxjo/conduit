@@ -74,6 +74,12 @@ entry = "bench-telemetry"
 deterministic = { package = "conduit-data", test = "measurement_processing_reuse", case = "bench_consumes_the_exact_little_seismograph_plot_back_without_copying_source" }
 browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and face remain separate unfinished Plots"
 [[plots]]
+slug = "audio-clip-frames"
+title = "PCM Clip Frames"
+entry = "unpack"
+deterministic = { package = "conduit-std-host", test = "pcm_clip_frames", case = "ordinary_checked_plan_drains_all_original_frames_including_short_tail_and_closes" }
+browser_safe_not_applicable = "portable PCM clip and frame Types are shared; the browser has no admitted audio/clip-to-frames Back"
+[[plots]]
 slug = "audio-time-analysis"
 title = "PCM Time Analysis"
 entry = "measure"
