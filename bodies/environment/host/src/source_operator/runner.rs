@@ -116,7 +116,8 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         let issued = {
             let installed = &self.installed;
             installed
-                .borrow_mut()
+                .lock()
+                .expect("collector Host mutex poisoned")
                 .as_mut()
                 .ok_or(Refusal::Acquisition)?
                 .issue_kernel_play(fragment)
@@ -315,7 +316,8 @@ struct NativeReservation {
 impl NativeReservation {
     fn acquire(host: SharedHost, fragment: &PlanFragment) -> Result<Self, Refusal> {
         let lease = host
-            .borrow_mut()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .as_mut()
             .ok_or(Refusal::Acquisition)?
             .reserve_native_fragment(fragment)
@@ -328,7 +330,13 @@ impl NativeReservation {
 }
 impl Drop for NativeReservation {
     fn drop(&mut self) {
-        if let (Some(host), Some(lease)) = (self.host.borrow_mut().as_mut(), self.lease.take()) {
+        if let (Some(host), Some(lease)) = (
+            self.host
+                .lock()
+                .expect("collector Host mutex poisoned")
+                .as_mut(),
+            self.lease.take(),
+        ) {
             let _ = host.release_native_fragment(lease);
         }
     }
