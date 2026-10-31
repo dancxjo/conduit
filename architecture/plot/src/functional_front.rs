@@ -135,6 +135,27 @@ impl CheckedCanonicalPlot {
     }
 }
 
+// Compare the stable port-id ordering used by CheckedFront without cloning or
+// sorting descriptors. Equal-id occurrences retain their original order.
+fn canonical_ports_eq(
+    left: &[conduit_core::PortDescriptor],
+    right: &[conduit_core::PortDescriptor],
+) -> bool {
+    left.len() == right.len()
+        && left.iter().enumerate().all(|(index, port)| {
+            let occurrence = left
+                .iter()
+                .take(index)
+                .filter(|previous| previous.port_id == port.port_id)
+                .count();
+            right
+                .iter()
+                .filter(|candidate| candidate.port_id == port.port_id)
+                .nth(occurrence)
+                == Some(port)
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -220,25 +241,4 @@ mod tests {
             alternate.implementation.implementation_id
         );
     }
-}
-
-// Compare the stable port-id ordering used by CheckedFront without cloning or
-// sorting descriptors. Equal-id occurrences retain their original order.
-fn canonical_ports_eq(
-    left: &[conduit_core::PortDescriptor],
-    right: &[conduit_core::PortDescriptor],
-) -> bool {
-    left.len() == right.len()
-        && left.iter().enumerate().all(|(index, port)| {
-            let occurrence = left
-                .iter()
-                .take(index)
-                .filter(|previous| previous.port_id == port.port_id)
-                .count();
-            right
-                .iter()
-                .filter(|candidate| candidate.port_id == port.port_id)
-                .nth(occurrence)
-                == Some(port)
-        })
 }
