@@ -43,3 +43,25 @@ The subsequent merge of dev `644262694a` brings in the independent checked
 atan2 quantity-difference repair. The preceding test counts are tied to the
 commits above, not claimed as rerun after this merge. Installed Source execution,
 physical deployment and same-Body durable recording remain unproved here.
+
+At `2806ab1ff8`, the finite hosted environmental Source construction offer is
+integrated, including an exact worker path/hash and 31,000..45,000ms capture
+initialization. `cargo +stable test --locked -p conduit-host-hosted --lib -j2`
+passed all 13 tests on that tree, including the current dev repair. Existing
+audio initialization tests remained in this suite.
+
+At `235095cc32`, the independently qualified parked-biography custody core is
+integrated from Victus `34d4684a4c`. Its original CPU, copied-media and baseline
+lint boundaries are recorded in
+`proof/recovery/parked-biography-custody-20261031/README.md`. Root's combined
+restart-harness build is still pending at this checkpoint; this integration
+receipt does not claim it passed or establish native timing/physical delivery.
+
+A bounded read-only live Face probe using an existing diagnostic executable
+(SHA-256 `e46931c2e88262559c171fe44851a137a082441286acc13c2d510e589e98799c`)
+refused expiry after 5,324ms. One traced follow-up also refused expiry after
+5,641ms, with 26 observed HTTP replies (12 successful, 12 pending, two
+unavailable) and repeated chunk polling. This is delivery evidence, not a new
+executable build attestation or a recording/return transaction. No ACK,
+retirement, erase, reboot or membership operation occurred; raw traces and
+bindings are private. Do not infer sustained Face freshness from these probes.
