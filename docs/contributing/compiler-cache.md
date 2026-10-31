@@ -125,7 +125,18 @@ No macro consumer is admitted by a string claiming its inputs are complete.
 
 The initial hosted limits are 4 GiB compiler objects, 12 GiB private task output
 and 10 GiB free reserve. Both task and cache filesystems are checked. Limits are
-monitored admission/refusal bounds, not filesystem hard quotas. Receipts retain
+monitored admission/refusal bounds, not filesystem hard quotas.
+
+On a builder with less spare disk, callers may explicitly lower
+`maxCacheBytes` and `maxTaskBytes` while retaining the 10 GiB free-space reserve.
+For example, a 512 MiB object cap and 8 GiB private task cap require 18.5 GiB
+free on the cache filesystem at build admission, plus 18 GiB on the task
+filesystem; when both use one filesystem these checks share that headroom.
+Snapshot preparation/storage is additional. Every build receipt records all
+three bounds. A reduced cap changes capacity; it does not permit sharing mutable
+Cargo targets or bypassing reserve checks.
+
+Receipts retain
 actual sccache counters, output hashes and Cargo wall time. The retained GNU
 time output measures the external bwrap launcher on this host and must not be
 reported as compiler CPU or memory. The measurement harness separately samples
