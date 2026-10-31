@@ -239,5 +239,7 @@ impl<P> Drop for UsbSourceRoot<P> {
 
 mod composite;
 mod network;
-pub use composite::{CollectorRoot, CollectorSourceId};
+pub use composite::{
+    CollectorRoot, CollectorSourceId, DetachRefusal, DetachedCollectorEquipment, ResumeRefusal,
+};
 pub use network::NetworkSourceConfiguration;
