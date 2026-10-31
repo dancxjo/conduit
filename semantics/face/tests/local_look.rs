@@ -1,6 +1,13 @@
 //! Local proposal resolution, not rendering, Host selection or acknowledged Show proof.
 use conduit_face::*;
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
+fn resolve(
+    author: &LookInfo,
+    local: &LocalLookInfo,
+    user: VisualUserConstraints,
+) -> Result<ResolvedLocalLook, LocalLookRefusal> {
+    resolve_local_visual_look(author, local, user, LocalLookContrast::Standard)
+}
 fn user() -> VisualUserConstraints {
     VisualUserConstraints {
         forced_colors: false,
@@ -32,7 +39,7 @@ fn partial_values_preserve_every_unset_token_and_nonvisual_facet() {
         LocalLookVisualOverride::TypeBodyPx(18),
         LocalLookVisualOverride::SpacePanelPx(0),
     ]);
-    let resolved = resolve_local_visual_look(&author, &local, user()).unwrap();
+    let resolved = resolve(&author, &local, user()).unwrap();
     let selected = &resolved.admitted.selected;
     assert_eq!(*tokens(selected).type_body_px(), 18);
     assert_eq!(*tokens(selected).space_panel_px(), 0);
@@ -64,16 +71,14 @@ fn partial_values_preserve_every_unset_token_and_nonvisual_facet() {
     assert_eq!(resolved.local, local);
     assert_eq!(
         resolved.admitted,
-        resolve_local_visual_look(&author, &local, user())
-            .unwrap()
-            .admitted
+        resolve(&author, &local, user()).unwrap().admitted
     );
 }
 #[test]
 fn empty_override_preserves_author_identity_and_duplicates_do_not_gain_order_precedence() {
     let author = engineering_look().unwrap();
     assert_eq!(
-        resolve_local_visual_look(&author, &local(vec![]), user())
+        resolve(&author, &local(vec![]), user())
             .unwrap()
             .admitted
             .selected,
@@ -90,7 +95,7 @@ fn empty_override_preserves_author_identity_and_duplicates_do_not_gain_order_pre
         ],
     ] {
         assert!(matches!(
-            resolve_local_visual_look(&author, &local(values), user()),
+            resolve(&author, &local(values), user()),
             Err(LocalLookRefusal::DuplicateField("space_panel_px"))
         ));
     }
@@ -125,7 +130,7 @@ fn accessibility_and_host_fallback_keep_their_origins_and_original_requests() {
         LocalLookVisualOverride::TextScalePercent(200),
         LocalLookVisualOverride::Motion(VisualMotionPreference::Restrained),
     ]);
-    let resolved = resolve_local_visual_look(
+    let resolved = resolve(
         &author,
         &local,
         VisualUserConstraints {
@@ -153,7 +158,7 @@ fn accessibility_and_host_fallback_keep_their_origins_and_original_requests() {
     );
     assert_eq!(resolved.author, author);
     assert_eq!(resolved.local, local);
-    assert!(resolve_local_visual_look(
+    assert!(resolve(
         &author,
         &local,
         VisualUserConstraints {
@@ -170,11 +175,12 @@ fn contrast_checks_resolved_pairs_and_identifies_the_originating_layer() {
     let bad = local(vec![
         LocalLookVisualOverride::text_primary(231, 240, 244).unwrap()
     ]);
-    match resolve_local_visual_look(&author, &bad, user()) {
+    match resolve(&author, &bad, user()) {
         Err(LocalLookRefusal::Contrast {
             pair,
             foreground,
             background,
+            ..
         }) => {
             assert_eq!(pair.foreground, "text_primary");
             assert_eq!(pair.background, "background");
@@ -184,7 +190,7 @@ fn contrast_checks_resolved_pairs_and_identifies_the_originating_layer() {
         }
         other => panic!("{other:?}"),
     }
-    let forced = resolve_local_visual_look(
+    let forced = resolve(
         &author,
         &bad,
         VisualUserConstraints {
@@ -213,9 +219,7 @@ fn all_existing_builtin_palettes_pass_standard_nominal_pair_checks() {
         navy_look(VisualDensity::Compact, VisualTypography::Editorial).unwrap(),
     ] {
         assert_eq!(
-            resolve_local_visual_look(&author, &local(vec![]), user())
-                .unwrap()
-                .contrast,
+            resolve(&author, &local(vec![]), user()).unwrap().contrast,
             LocalLookContrastOutcome::CheckedNominalTokens
         );
     }
@@ -231,7 +235,7 @@ fn enhanced_text_restraint_is_not_downgraded_by_fallback_or_local_omission() {
     )
     .unwrap();
     assert!(matches!(
-        resolve_local_visual_look(&author, &enhanced, user()),
+        resolve(&author, &enhanced, user()),
         Err(LocalLookRefusal::Contrast { .. })
     ));
     let values = vec![
@@ -250,9 +254,7 @@ fn enhanced_text_restraint_is_not_downgraded_by_fallback_or_local_omission() {
     )
     .unwrap();
     assert_eq!(
-        resolve_local_visual_look(&author, &enhanced, user())
-            .unwrap()
-            .contrast,
+        resolve(&author, &enhanced, user()).unwrap().contrast,
         LocalLookContrastOutcome::CheckedNominalTokens
     );
 }
@@ -324,7 +326,7 @@ fn local_visual_values_cannot_manufacture_an_authors_absent_visual_facet() {
     )
     .unwrap();
     assert!(matches!(
-        resolve_local_visual_look(
+        resolve(
             &author,
             &local(vec![LocalLookVisualOverride::TypeBodyPx(18)]),
             user()
@@ -332,4 +334,33 @@ fn local_visual_values_cannot_manufacture_an_authors_absent_visual_facet() {
         Err(LocalLookRefusal::AuthorHasNoVisualFacet)
     ));
     assert_eq!(author.visual(), &LookVisualFacetOption::None);
+}
+
+#[test]
+fn personal_proposal_cannot_weaken_an_independent_accessibility_contrast_floor() {
+    let author = editorial_look().unwrap();
+    let personal = local(vec![]);
+    assert!(
+        resolve_local_visual_look(&author, &personal, user(), LocalLookContrast::Enhanced).is_err()
+    );
+    let forced = resolve_local_visual_look(
+        &author,
+        &personal,
+        VisualUserConstraints {
+            forced_colors: true,
+            ..user()
+        },
+        LocalLookContrast::Enhanced,
+    )
+    .unwrap();
+    assert_eq!(forced.required_contrast, LocalLookContrast::Enhanced);
+    assert_eq!(
+        forced.contrast_requirement_origin,
+        LocalLookValueOrigin::Accessibility
+    );
+    assert_eq!(
+        forced.contrast,
+        LocalLookContrastOutcome::PlatformColorsRequired
+    );
+    assert_eq!(forced.local.contrast(), &LocalLookContrast::Standard);
 }

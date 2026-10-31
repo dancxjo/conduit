@@ -11,8 +11,11 @@ pub const LOCAL_LOOK_SOURCE: &str = include_str!("../local-look.conduit");
 
 #[derive(Debug)]
 pub enum LocalLookRefusal {
-    Native(NativeBindingRefusal),
-    ResourceBound,
+    Native {
+        origin: LocalLookValueOrigin,
+        refusal: NativeBindingRefusal,
+    },
+    ResourceBound(LocalLookValueOrigin),
     AuthorHasNoVisualFacet,
     DuplicateField(&'static str),
     Visual(LookVisualAdmissionRefusal),
@@ -20,11 +23,15 @@ pub enum LocalLookRefusal {
         pair: LocalLookContrastFailure,
         foreground: LocalLookValueOrigin,
         background: LocalLookValueOrigin,
+        requirement: LocalLookValueOrigin,
     },
 }
 impl From<NativeBindingRefusal> for LocalLookRefusal {
     fn from(value: NativeBindingRefusal) -> Self {
-        Self::Native(value)
+        Self::Native {
+            origin: LocalLookValueOrigin::Local,
+            refusal: value,
+        }
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -46,6 +53,8 @@ pub struct ResolvedLocalLook {
     pub local: LocalLookInfo,
     pub admitted: AdmittedVisualLook,
     pub contrast: LocalLookContrastOutcome,
+    pub required_contrast: LocalLookContrast,
+    pub contrast_requirement_origin: LocalLookValueOrigin,
     overridden: Vec<&'static str>,
 }
 impl ResolvedLocalLook {
@@ -110,19 +119,32 @@ pub fn resolve_local_visual_look(
     author: &LookInfo,
     local: &LocalLookInfo,
     user: VisualUserConstraints,
+    minimum_contrast: LocalLookContrast,
 ) -> Result<ResolvedLocalLook, LocalLookRefusal> {
     let author_bytes = author
         .clone()
-        .into_structured()?
+        .into_structured()
+        .map_err(|refusal| LocalLookRefusal::Native {
+            origin: LocalLookValueOrigin::Author,
+            refusal,
+        })?
         .canonical_bytes()
-        .map_err(NativeBindingRefusal::InvalidValue)?;
+        .map_err(|value| LocalLookRefusal::Native {
+            origin: LocalLookValueOrigin::Author,
+            refusal: NativeBindingRefusal::InvalidValue(value),
+        })?;
     let local_bytes = local
         .clone()
         .into_structured()?
         .canonical_bytes()
         .map_err(NativeBindingRefusal::InvalidValue)?;
-    if author_bytes.len() > MAX_LOOK_BYTES || local_bytes.len() > MAX_LOOK_BYTES {
-        return Err(LocalLookRefusal::ResourceBound);
+    if author_bytes.len() > MAX_LOOK_BYTES {
+        return Err(LocalLookRefusal::ResourceBound(
+            LocalLookValueOrigin::Author,
+        ));
+    }
+    if local_bytes.len() > MAX_LOOK_BYTES {
+        return Err(LocalLookRefusal::ResourceBound(LocalLookValueOrigin::Local));
     }
     let LookVisualFacetOption::Some(visual) = author.visual() else {
         return Err(LocalLookRefusal::AuthorHasNoVisualFacet);
@@ -147,13 +169,27 @@ pub fn resolve_local_visual_look(
         )?
     };
     let admitted = admit_visual_look(&requested, user).map_err(LocalLookRefusal::Visual)?;
+    let (required_contrast, contrast_requirement_origin) =
+        if matches!(minimum_contrast, LocalLookContrast::Enhanced) {
+            (
+                LocalLookContrast::Enhanced,
+                LocalLookValueOrigin::Accessibility,
+            )
+        } else if matches!(local.contrast(), LocalLookContrast::Enhanced) {
+            (LocalLookContrast::Enhanced, LocalLookValueOrigin::Local)
+        } else {
+            (
+                LocalLookContrast::Standard,
+                LocalLookValueOrigin::Accessibility,
+            )
+        };
     let contrast = if admitted.visual.platform_forced_colors {
         LocalLookContrastOutcome::PlatformColorsRequired
     } else {
         let LookVisualFacetOption::Some(selected) = admitted.selected.visual() else {
             return Err(LocalLookRefusal::AuthorHasNoVisualFacet);
         };
-        contrast::check(selected.tokens(), local.contrast()).map_err(|pair| {
+        contrast::check(selected.tokens(), &required_contrast).map_err(|pair| {
             LocalLookRefusal::Contrast {
                 foreground: if matches!(
                     admitted.visual.outcome,
@@ -171,6 +207,7 @@ pub fn resolve_local_visual_look(
                 } else {
                     origin(&overridden, pair.background)
                 },
+                requirement: contrast_requirement_origin,
                 pair,
             }
         })?;
@@ -181,6 +218,8 @@ pub fn resolve_local_visual_look(
         local: local.clone(),
         admitted,
         contrast,
+        required_contrast,
+        contrast_requirement_origin,
         overridden,
     })
 }

@@ -17,6 +17,8 @@ proposal preserves the author's Look identity. Spoken and generative facets
 remain unchanged by a visual proposal. An absent author visual facet refuses;
 the local resource cannot manufacture that facet.
 
+The independently supplied accessibility floor outranks a weaker personal
+proposal; a personal proposal may request a stronger floor.
 Standard restraints require nominal text token contrast of 4.5:1; enhanced
 restraints require 7:1. Focus and meaningful structure tokens require 3:1. These
 are conservative normal-text and non-text thresholds from WCAG 2.2
