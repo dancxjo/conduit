@@ -141,3 +141,7 @@ impl DurableHostRuntime {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "environmental_worker/tests.rs"]
+mod tests;

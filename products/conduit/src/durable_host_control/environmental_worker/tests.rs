@@ -118,7 +118,7 @@ fn mixed_plan(
                 .clone(),
         )
         .unwrap();
-    let source = "plot native_actor (\n >> begin: Empty...|\n observation: NativeObservation...| >>\n text: Text...| >>\n) {\n native: environment/read-environmental-source()\n upper: text/upper()\n begin >> native.request\n native.observation >> observation\n \"actor peer\" >> upper\n upper >> text\n}\n";
+    let source = "plot native_actor (\n >> begin: Empty...|\n observation: NativeObservation...| >>\n text: Text >>\n) {\n native: environment/read-environmental-source()\n upper: text/upper()\n begin >> native.request\n native.observation >> observation\n \"actor peer\" >> upper\n upper >> text\n}\n";
     let checked =
         conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
             .unwrap();
@@ -137,9 +137,9 @@ fn mixed_plan(
                         (&advertisements[0], capability.clone())
                     } else {
                         let ad = if gear.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND {
-                            &advertisements[1]
-                        } else {
                             &advertisements[0]
+                        } else {
+                            &advertisements[1]
                         };
                         (
                             ad,
@@ -166,8 +166,8 @@ fn mixed_plan(
         "actor/native-line/binding",
         BaseImplementationId::from("conduit.base/websocket-rfc6455@1"),
         "actor/native-line/instance",
-        &advertisements[0],
         &advertisements[1],
+        &advertisements[0],
         LinkLimits {
             maximum_in_flight_items: 4,
             maximum_payload_bytes: 4096,
@@ -183,6 +183,15 @@ fn mixed_plan(
         (PortDirection::Output, &expanded.output_bindings),
     ] {
         for binding in bindings {
+            let placement = &placements.by_gear[&binding.gear_id];
+            let offer = advertisements
+                .iter()
+                .find(|ad| ad.host_id == placement.host_id)
+                .unwrap()
+                .capabilities
+                .iter()
+                .find(|offer| offer.capability_id == placement.capability_id)
+                .unwrap();
             fore.insert(
                 conduit_planner::ForeBoundaryKey {
                     direction,
@@ -191,7 +200,7 @@ fn mixed_plan(
                 },
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: 4096,
+                    byte_capacity: offer.limits.max_queue_bytes.min(256),
                 },
             );
         }
@@ -208,7 +217,7 @@ fn mixed_plan(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: 4096,
+            connection_byte_capacity: 256,
             authority_grants: grants,
             protected_resource_grants: &[],
             line_offers: &[line],

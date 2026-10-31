@@ -1,0 +1,26 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "base_commit": "402055e51a11890cf7871587ede0fe6b8db2c562",
+  "test": "durable_host_control::environmental_worker::tests::ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel",
+  "result": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 313
+  },
+  "worker_sha256": "f9dfb9e6087385f490e6ed2c4a3c0dc83b35e71bb43264666e6fab7af9e4381a",
+  "log_sha256": "1e7ba8632c8776a99a4191205b6f0a06a3a377ecfba6fd21ef604a088a227b34",
+  "scope": [
+    "actual installed StdHost and original affine reservation",
+    "real confined HTTP worker and gated TCP sensor fixture",
+    "authenticated status and cancellation during native IO",
+    "discard late result after cancellation",
+    "release restores idle native resources"
+  ],
+  "not_proven": [
+    "cold Body preparation inventory finalization",
+    "ordinary HTTP operation dispatch and successful output commitment",
+    "physical MCU or network interruption acceptance",
+    "same Body installed recorder admission"
+  ]
+}

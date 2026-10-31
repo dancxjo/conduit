@@ -463,6 +463,11 @@ fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
         birth_root: None,
         remote_fragment: None,
         pending_worker_text: None,
+        pending_native_source: None,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        selected_environmental_equipment: None,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        environmental_worker: None,
         pool_member: None,
         cancellation_signal: None,
         next_observation_sequence: 0,
