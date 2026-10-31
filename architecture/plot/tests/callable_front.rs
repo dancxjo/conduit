@@ -33,7 +33,7 @@ fn fixture() -> (CheckedGear, c::CapabilityOffer) {
         },
     )
     .build();
-    let gear = CheckedGear {
+    let gear = conduit_plot::checked_gear_from_parts! {
         gear_id: "gear".into(),
         kind_id: offer.kind_id.clone(),
         kind_contract_revision: offer.kind_contract_revision.clone(),
