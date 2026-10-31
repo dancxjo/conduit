@@ -34,7 +34,13 @@ where
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
-            if work.contract_id.as_str() == "environment/read-environmental-source" {
+            let native_source =
+                work.contract_id.as_str() == "environment/read-environmental-source";
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            let native_source = native_source
+                || work.contract_id.as_str()
+                    == conduit_std_host::isolated_http_base::HTTP_CLIENT_OPERATION;
+            if native_source {
                 host.admitted_native_request(admitted, request)?;
                 *pending_native = Some(request);
                 return Ok(());

@@ -103,6 +103,7 @@ fn mixed_plan(
     peer: &StdHost,
     capability: &CapabilityId,
     grants: &[conduit_core::AuthorityGrant],
+    http: bool,
 ) -> Plan {
     let (mut startup, profiles) = crate::plot_source::standard_catalogs().unwrap();
     startup
@@ -119,9 +120,31 @@ fn mixed_plan(
         )
         .unwrap();
     let source = "plot native_actor (\n >> begin: Empty...|\n observation: NativeObservation...| >>\n text: Text >>\n) {\n native: environment/read-environmental-source()\n upper: text/upper()\n begin >> native.request\n native.observation >> observation\n \"actor peer\" >> upper\n upper >> text\n}\n";
-    let checked =
-        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
+    let source = if http {
+        let input = host
+            .advertisement()
+            .capabilities
+            .iter()
+            .find(|offer| &offer.capability_id == capability)
+            .unwrap()
+            .inputs[0]
+            .value_kind
+            .clone();
+        startup
+            .insert_value_kind_alias("NativeRequest", input)
             .unwrap();
+        source
+            .replace("Empty...|", "NativeRequest...|")
+            .replace("environment/read-environmental-source", "http/client")
+            .replace("native.observation", "native.response")
+    } else {
+        source.to_owned()
+    };
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(&source),
+        &startup,
+    )
+    .unwrap();
     let expanded =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "native_actor", &profiles)
             .unwrap();
@@ -132,25 +155,27 @@ fn mixed_plan(
             .gears
             .iter()
             .map(|gear| {
-                let (ad, selected) =
-                    if gear.kind_id.as_str() == "environment/read-environmental-source" {
-                        (&advertisements[0], capability.clone())
+                let (ad, selected) = if matches!(
+                    gear.kind_id.as_str(),
+                    "environment/read-environmental-source" | conduit_web::HTTP_CLIENT_KIND
+                ) {
+                    (&advertisements[0], capability.clone())
+                } else {
+                    let ad = if gear.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND {
+                        &advertisements[0]
                     } else {
-                        let ad = if gear.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND {
-                            &advertisements[0]
-                        } else {
-                            &advertisements[1]
-                        };
-                        (
-                            ad,
-                            ad.capabilities
-                                .iter()
-                                .find(|offer| offer.kind_id == gear.kind_id)
-                                .unwrap()
-                                .capability_id
-                                .clone(),
-                        )
+                        &advertisements[1]
                     };
+                    (
+                        ad,
+                        ad.capabilities
+                            .iter()
+                            .find(|offer| offer.kind_id == gear.kind_id)
+                            .unwrap()
+                            .capability_id
+                            .clone(),
+                    )
+                };
                 (
                     GearId::from(gear.gear_id.as_str()),
                     PlacementChoice {
@@ -200,7 +225,11 @@ fn mixed_plan(
                 },
                 conduit_planner::ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: offer.limits.max_queue_bytes.min(256),
+                    byte_capacity: if http && &placement.capability_id == capability {
+                        offer.limits.max_queue_bytes
+                    } else {
+                        offer.limits.max_queue_bytes.min(256)
+                    },
                 },
             );
         }
@@ -251,20 +280,25 @@ fn host_is_out(runtime: &DurableHostRuntime) -> bool {
 
 #[test]
 fn ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel() {
-    exercise_actor(true, false);
+    exercise_actor(true, false, false);
 }
 
 #[test]
 fn ordinary_actor_commits_native_result_and_returns_original_resources() {
-    exercise_actor(false, false);
+    exercise_actor(false, false, false);
 }
 
 #[test]
 fn resumed_body_keeps_selected_native_inventory_and_commits_source_result() {
-    exercise_actor(false, true);
+    exercise_actor(false, true, false);
 }
 
-fn exercise_actor(cancel: bool, resume_body: bool) {
+#[test]
+fn ordinary_actor_dispatches_selected_http_through_original_native_lease() {
+    exercise_actor(false, false, true);
+}
+
+fn exercise_actor(cancel: bool, resume_body: bool, http: bool) {
     let Some(worker) = std::env::var_os("CONDUIT_ENVIRONMENT_TEST_WORKER") else {
         eprintln!(
             "native actor process proof skipped: explicitly set CONDUIT_ENVIRONMENT_TEST_WORKER"
@@ -318,7 +352,20 @@ fn exercise_actor(cancel: bool, resume_body: bool) {
     let grants = collector.native_authority_grants().unwrap();
     let inventory = collector.seal_inventory().unwrap();
     let (host, native) = collector.detach().unwrap();
-    let plan = mixed_plan(&host, &peer, session.capability(), &grants);
+    let capability = if http {
+        &inventory
+            .capabilities
+            .iter()
+            .find(|offer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_host::isolated_http_base::ISOLATED_HTTP_IMPLEMENTATION
+            })
+            .unwrap()
+            .capability_id
+    } else {
+        session.capability()
+    };
+    let plan = mixed_plan(&host, &peer, capability, &grants, http);
     let equipment = AttachedEquipment {
         native,
         instruments: vec![SelectedInstrument {
@@ -374,6 +421,23 @@ fn exercise_actor(cancel: bool, resume_body: bool) {
     } else {
         None
     };
+    let input = if http {
+        conduit_web::encode_request(&conduit_web::HttpRequest {
+            transaction_id: conduit_web::HttpTransactionId::new(9).unwrap(),
+            method: conduit_web::HttpMethod::Get,
+            target: conduit_web::HttpTarget::new(
+                format!("actor-device.invalid:{}", device.endpoint.port()),
+                "/environment".into(),
+                conduit_web::HttpScheme::Http,
+            )
+            .unwrap(),
+            headers: Default::default(),
+            body: conduit_web::HttpBody::inline([]),
+        })
+        .unwrap()
+    } else {
+        Vec::new()
+    };
     let prepared = runtime
         .prepare_remote(
             inventory.boot_id.as_str(),
@@ -388,7 +452,7 @@ fn exercise_actor(cancel: bool, resume_body: bool) {
         .as_mut()
         .unwrap()
         .runtime_mut()
-        .admit_local_fore_input(&"begin".into(), 0, &[])
+        .admit_local_fore_input(&"begin".into(), 0, &input)
         .unwrap();
     runtime
         .remote_fragment
@@ -397,6 +461,7 @@ fn exercise_actor(cancel: bool, resume_body: bool) {
         .runtime_mut()
         .close_local_fore_input(&"begin".into())
         .unwrap();
+    let before_native = device.count.load(Ordering::SeqCst);
     device.armed.store(true, Ordering::SeqCst);
     let token = [23; 32];
     let hello = prepared.hello_frames[0].clone();
@@ -478,9 +543,10 @@ fn exercise_actor(cancel: bool, resume_body: bool) {
         std::thread::sleep(Duration::from_millis(2));
     }
     assert!(!runtime.environmental_worker_active() && !host_is_out(&runtime));
+    let completed_counter = device.count.load(Ordering::SeqCst);
     assert!(
-        device.count.load(Ordering::SeqCst) >= 3,
-        "native Source actually completed a fresh counter"
+        completed_counter > before_native,
+        "native operation performs a new sensor request"
     );
     assert!(runtime.pending_native_source.is_none());
     assert_eq!(runtime.truth().advertisement, inventory);
@@ -511,17 +577,22 @@ fn exercise_actor(cancel: bool, resume_body: bool) {
             admitted.runtime_mut().step().unwrap();
         }
         let output = output.expect("completed native result reaches the admitted Fore");
-        let observation =
-            conduit_environment_measurement::source_observation::ObservationContract::prepare()
-                .unwrap()
-                .decode(&output)
-                .unwrap();
-        assert!(
-            matches!(observation.outcome,
+        if http {
+            let response = conduit_web::decode_response(&output).unwrap();
+            assert_eq!(response.status, 200);
+        } else {
+            let observation =
+                conduit_environment_measurement::source_observation::ObservationContract::prepare()
+                    .unwrap()
+                    .decode(&output)
+                    .unwrap();
+            assert!(
+                matches!(observation.outcome,
             conduit_environment_measurement::source_observation::SourceOutcome::Available(sample)
-            if sample.source_counter >= 3 && sample.reported_source_ms == Some(123)),
-            "the committed value retains the real fixture sample and source coordinate"
-        );
+            if sample.source_counter == completed_counter && sample.reported_source_ms == Some(123)),
+                "the committed value retains the real fixture sample and source coordinate"
+            );
+        }
         assert!(
             admitted
                 .runtime_mut()
