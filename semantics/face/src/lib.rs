@@ -73,6 +73,8 @@ mod generated {
         }
     }
 }
+pub use generated::{LocalLookContrast, LocalLookInfo, LocalLookVisualOverride};
+
 pub use generated::{
     LookFacetAvailability, LookFacetRequest, LookGenerativeFacetInfo, LookGenerativeFacetOption,
     LookGenerativeRegister, LookInfo, LookSpokenDelivery, LookSpokenFacetInfo,
@@ -154,6 +156,8 @@ mod layout;
 mod linear;
 mod linear_navigation;
 mod look;
+mod local_look;
+pub use local_look::*;
 mod look_selection;
 mod manifestation;
 mod manifestation_set;
