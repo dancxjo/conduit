@@ -38,10 +38,10 @@ mod resource_snapshot;
 #[path = "../../xtask/src/suites/tm1637_output.rs"]
 mod tm1637_output;
 
-#[path = "../../xtask/src/suites/zenoh_platform.rs"]
-mod zenoh_platform;
 #[path = "../../xtask/src/suites/action_prompt_i1.rs"]
 mod action_prompt_i1;
+#[path = "../../xtask/src/suites/zenoh_platform.rs"]
+mod zenoh_platform;
 
 struct Suite {
     steps: &'static [Step],
