@@ -94,29 +94,16 @@ impl ParsecTerminalOwner {
             .actions
             .first()
             .ok_or("Parsec current Face has no source action")?;
-        let context = ActionInputBindingProposalInfo::new(
-            true,
-            host.boot_id.as_str().into(),
-            control.into(),
-            "Observed control".into(),
-            face.identity.as_str().into(),
-            host.host_id.as_str().into(),
-            self.plan.plots[0].plan.plan_id.as_str().into(),
-            *state.mapping_revision(),
-            GeneratedActionAffordance::new(action.identity.clone(), face.revision)
-                .map_err(|e| format!("Parsec current action: {e:?}"))?,
-            show.show_id.as_str().into(),
-            1,
-        )
-        .map_err(|e| format!("Parsec input context: {e:?}"))?
-        .encode()
-        .map_err(|e| format!("Parsec input context bytes: {e:?}"))?;
-        let proposal = self
-            .policy
-            .evaluate(map.current_state()?, &context)
-            .map_err(|e| format!("Parsec current policy: {e:?}"))?;
-        let binding = ActionInputBindingProposalInfo::decode(proposal.proposal_bytes())
-            .map_err(|e| format!("Parsec policy output: {e:?}"))?;
+        // The flushed prompt retains the exact checked policy output, including
+        // a source-authorized fallback. Production revalidates its current input
+        // request through authorize_prompted_event immediately before this call.
+        let Some(prompt) = self.prompt.as_ref() else {
+            return Ok(false);
+        };
+        if prompt.realization != event.realization {
+            return Ok(false);
+        }
+        let binding = prompt.binding.clone();
         if binding.control_identity() != control {
             return Ok(false);
         }

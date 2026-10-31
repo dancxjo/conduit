@@ -40,6 +40,8 @@ mod tm1637_output;
 
 #[path = "../../xtask/src/suites/zenoh_platform.rs"]
 mod zenoh_platform;
+#[path = "../../xtask/src/suites/action_prompt_i1.rs"]
+mod action_prompt_i1;
 
 struct Suite {
     steps: &'static [Step],
@@ -68,6 +70,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             steps: recording_files::STEPS,
             path: "tools/xtask/src/suites/recording_files.rs",
             source: include_bytes!("../../xtask/src/suites/recording_files.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "action-prompt-i1" => Some(Suite {
+            steps: action_prompt_i1::STEPS,
+            path: "tools/xtask/src/suites/action_prompt_i1.rs",
+            source: include_bytes!("../../xtask/src/suites/action_prompt_i1.rs"),
         }),
         [check, suite] if check == "check" && suite == "tm1637-output" => Some(Suite {
             steps: tm1637_output::STEPS,
@@ -201,6 +208,7 @@ mod tests {
     #[test]
     fn exact_entrance_selects_the_shared_complete_suite() {
         for (name, expected) in [
+            ("action-prompt-i1", action_prompt_i1::STEPS),
             ("tm1637-output", tm1637_output::STEPS),
             ("monotonic-wait", monotonic_wait::STEPS),
             ("resource-snapshot", resource_snapshot::STEPS),

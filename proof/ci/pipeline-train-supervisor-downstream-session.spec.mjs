@@ -94,6 +94,13 @@ async function setup(t) {
     if (endpoint.includes('/releases/tags/') && state.releaseFailure) return state.releaseFailure;
     const bytes = binary(endpoint);
     if (bytes) {
+      // Artifact ZIP endpoints require the normal GitHub JSON media type for
+      // their redirect; only release asset endpoints accept octet-stream.
+      if (endpoint.includes('/actions/artifacts/')) {
+        assert.ok(!args.includes('Accept: application/octet-stream'));
+      } else if (endpoint.includes('/releases/assets/')) {
+        assert.deepEqual(args.slice(2), ['-H', 'Accept: application/octet-stream']);
+      }
       state.acquisitions.push({ endpoint, limit: options.maxBuffer });
       if (state.binaryFailure) return { status: 1, stderr: 'fixture-installation' };
       return { status: 0, stdout: state.oversizedBinary ? Buffer.alloc(options.maxBuffer + 1) : bytes };

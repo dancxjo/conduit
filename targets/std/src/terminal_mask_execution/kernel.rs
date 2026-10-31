@@ -272,16 +272,11 @@ impl Scheduler {
         request: HostCallRequest,
         qualified: &crate::installed_std::body_kernel::QualifiedParsecInstruction,
         host: &HostAdvertisement,
+        look: conduit_face::ParsecInputInstructionLook,
     ) -> Result<ValueRef, TerminalError> {
         match self {
             Self::Parsec(s) => admission
-                .complete_on_scheduler(
-                    request,
-                    qualified,
-                    conduit_face::ParsecInputInstructionLook::Linear,
-                    host,
-                    s.as_mut(),
-                )
+                .complete_on_scheduler(request, qualified, look, host, s.as_mut())
                 .map_err(error),
             Self::Ordinary(_) => Err(error("ordinary Mask has no instruction Source")),
         }

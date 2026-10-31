@@ -19,6 +19,7 @@ pub(super) struct KeyboardInputHost<'a> {
     request_admission: Option<KeyboardRequestAdmission>,
     physical_event: u64,
     input_view_epoch: Option<u64>,
+    current_input: Option<InputRealization>,
 }
 
 #[derive(Clone, Copy)]
@@ -62,6 +63,7 @@ impl<'a> KeyboardInputHost<'a> {
             request_admission: None,
             physical_event: 0,
             input_view_epoch: None,
+            current_input: None,
         }
     }
 
@@ -78,8 +80,27 @@ impl<'a> KeyboardInputHost<'a> {
 
     /// Snapshot supplied by the private current-Show owner before each poll.
     /// The stamp itself never grants current Face, map or input authority.
-    pub(super) fn set_input_view_epoch(&mut self, epoch: Option<u64>) {
-        self.input_view_epoch = if self.terminal { None } else { epoch };
+    pub(super) fn set_input_view_epoch(&mut self, view: Option<(u64, InputRealization)>) {
+        let view = if self.terminal { None } else { view };
+        self.input_view_epoch = view.map(|(epoch, _)| epoch);
+        self.current_input = view.map(|(_, input)| input);
+    }
+
+    pub(super) fn ready_to_poll(&self) -> bool {
+        let all_pending = (!self.keyboard_source || self.pending_keyboard.is_some())
+            && (!self.button_source || self.pending_button.is_some());
+        // An acknowledged source-selected keyboard instruction may remain
+        // reachable while Fire has no current accepted request. This does not
+        // invent a Fire completion or relax the later event-origin checks.
+        all_pending
+            || (self.input_view_epoch.is_some()
+                && self.current_input == Some(InputRealization::RawKeyboard)
+                && self.pending_keyboard.is_some()
+                && self.pending_button.is_none()
+                && self.request_admission.as_ref().is_some_and(|admission| {
+                    admission.is_current(InputRealization::RawKeyboard)
+                        && !admission.is_current(InputRealization::SpaceButton)
+                }))
     }
 
     pub(super) fn claim_completed_event(
@@ -203,6 +224,7 @@ impl<'a> KeyboardInputHost<'a> {
         }
         self.terminal = true;
         self.input_view_epoch = None;
+        self.current_input = None;
         self.pending_keyboard = None;
         self.pending_button = None;
     }
@@ -225,9 +247,7 @@ impl<'a> KeyboardInputHost<'a> {
         }
         // One physical event fans out to all admitted input realizations. Do
         // not consume it until each source can retain its own completion.
-        if (self.keyboard_source && self.pending_keyboard.is_none())
-            || (self.button_source && self.pending_button.is_none())
-        {
+        if !self.ready_to_poll() {
             return Ok(false);
         }
         if let Some(admission) = &self.request_admission {
