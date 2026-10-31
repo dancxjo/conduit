@@ -398,3 +398,57 @@ fn ordinary_name_entry_reaches_first_choice_with_one_tab() {
     assert_eq!(interaction.action_id, "creche.plot.0");
     assert_eq!(interaction.arguments[0].value, vec![0]);
 }
+
+#[test]
+fn observer_overview_does_not_remove_neighbouring_actions_from_admitted_views() {
+    let (draft, basis) = fixture();
+    let mut face = draft.face(&basis).unwrap();
+    let target = face
+        .actions
+        .iter()
+        .find(|action| action.identity == "creche.plot.0")
+        .unwrap()
+        .target
+        .clone();
+    for disclosure in [
+        conduit_face::FaceDisclosureLevel::CurrentAction,
+        conduit_face::FaceDisclosureLevel::SelectedDetail,
+    ] {
+        let index = face.actions.len();
+        let identity = alloc::format!("choice.inspect.{index}");
+        face.actions.push(conduit_face::FaceAction {
+            identity: identity.clone(),
+            target: target.clone(),
+            intent: "inspect/choice@1".into(),
+            name: "Inspect choice".into(),
+            arguments: vec![],
+            disclosure,
+            availability: FaceActionAvailability::Available,
+        });
+        let current_basis = face.basis.clone();
+        face = face.with_basis(current_basis).unwrap();
+        let (primary, details) = document::prepare_mode(&face, true, false).unwrap();
+        assert!(
+            primary
+                .iter()
+                .any(|row| row.control.is_some_and(|c| c.action == index))
+        );
+        assert!(
+            details
+                .iter()
+                .any(|row| row.text.contains("Inspect choice"))
+        );
+        let (overview, _) = document::prepare_mode(&face, false, true).unwrap();
+        assert!(overview.iter().all(|row| row.control.is_none()));
+        let mut admitted = NativeFaceScene::prepare(face.clone(), 1024, 600).unwrap();
+        assert!(admitted.use_read_only_overview().is_err());
+        admitted
+            .focus_named(&FaceFocusRequest {
+                action_id: identity,
+                argument_name: None,
+            })
+            .unwrap();
+        assert_eq!(admitted.focused().unwrap().action, index);
+        assert_eq!(admitted.face(), &face);
+    }
+}

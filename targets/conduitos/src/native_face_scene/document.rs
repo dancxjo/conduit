@@ -193,10 +193,6 @@ pub(super) fn prepare_mode(
                 .position(|candidate| candidate.identity == subject.identity);
             primary.push(item);
         };
-        let boolean_choice = face.actions.iter().enumerate().any(|(index, action)| {
-            action.target == subject.identity
-                && super::boolean_choice::selected(face, index).is_some()
-        });
         let name = if subject.role == FaceRole::Item {
             face.properties
                 .iter()
@@ -281,12 +277,6 @@ pub(super) fn prepare_mode(
             }
             let available = action.availability.is_available();
             let checkbox = super::boolean_choice::selected(face, index);
-            if boolean_choice
-                && checkbox.is_none()
-                && action.disclosure != FaceDisclosureLevel::Primary
-            {
-                continue;
-            }
             let label = if checkbox.is_some() {
                 &subject.name
             } else {
