@@ -70,3 +70,27 @@ Root combined qualification at `235095cc32` subsequently completed: all seven
 `native_restart biography::hot` tests passed (64 unrelated tests filtered out).
 This validates the combined CPU custody core, not the subsequent physical
 dispatch adapter, native SDK timing or hardware continuity.
+
+## Live-owner integration correction
+
+The parked primitive is not a live-worker compaction proof. In
+`native_local_mask.rs`, `plan_local_mask_from_sampler` restores the parked token
+into `self.body` before `finish_local_mask_stage` commits the proposal and starts
+local execution. `native_restart::park_box` correctly requires Lulled state and
+no realization. A running Root therefore retains its actual live
+`SealedBodyLifecycleSession`, not a `ParkedBody` available to the new adapter.
+The seven passing tests above cover genuine parked custody only.
+
+Do not stop or lull local workers, clear the parked/ready guards, or manufacture
+a parked token to make that API fit. Live prefix compaction needs the actual
+live-owner scope plus the exclusive Store lease, preserving the RAM realization
+and pending archives. It must change only the authenticated committed archive
+prefix and demonstrate exact continuation at the next ordinary checkpoint.
+That live-owner path is under implementation and not established here.
+
+The actual flash permit is lent inside the sampler's `WaitLane` callback. Root
+management cannot mint one or retain a Body borrow into that independent task.
+Read/codec preparation therefore also needs an owned scoped job handoff and an
+independently qualified duration, not just the existing SDK write-step budget.
+The typed physical queue adapter in `a10cdc6074` has no live management caller;
+its image build is pending. No live compaction or physical deployment is claimed.
