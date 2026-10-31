@@ -146,8 +146,9 @@ text is never silently clipped or scaled down to fit.
 Retained and recorded history charts now prepare their heading/footer boxes using
 the same selected typography as raster paint. Wrapping reserves space above the
 controls rather than clipping the provenance, gaps, failure or omitted-sample
-counts. Switching Look invalidates cached chart geometry even when the evidence
-bytes are unchanged; it never creates a new observation or changes the window.
+counts. Changing Look text metrics invalidates cached chart geometry even when the
+evidence bytes are unchanged; it never creates a new observation or changes the
+window.
 
 ### Shared collector-observed series
 
