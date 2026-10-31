@@ -84,7 +84,7 @@ pub(super) fn project(
         ],
         selected_review_in_primary: !draft.search().trim().is_empty(),
     };
-    projection.node(&view.root)?;
+    projection.node(&view.root, draft)?;
     let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
         BirthProjectionBasis::Planned(b) => (
             Some(b.producer_plot.source_document_id.clone()),
@@ -191,7 +191,11 @@ impl Projection {
         });
         self.events.push((action.identity.clone(), action.event));
     }
-    fn node(&mut self, node: &SemanticFaceNode) -> Result<(), BirthFaceRefusal> {
+    fn node(
+        &mut self,
+        node: &SemanticFaceNode,
+        draft: &BirthDraft,
+    ) -> Result<(), BirthFaceRefusal> {
         let subject = format!("{}/{}", self.root, node.key);
         match &node.mechanism {
             FaceMechanism::Shell => {}
@@ -320,7 +324,17 @@ impl Projection {
                     ]);
                 }
                 for (index, option) in options.iter().enumerate() {
-                    let id = format!("{subject}/{index}");
+                    // The bounded item identity belongs to the exact Source/check
+                    // pair. Labels and visible positions cannot replace it.
+                    let choice = draft
+                        .choices()
+                        .iter()
+                        .find(|choice| {
+                            crate::plot_choice_identity::plot_choice_identity(&choice.plot)
+                                == option.identity
+                        })
+                        .ok_or(BirthFaceRefusal::InvalidProjection)?;
+                    let id = format!("{subject}/{}", option.identity);
                     self.subjects.push(FaceSubject {
                         identity: id.clone(),
                         role: FaceRole::Plot,
@@ -340,6 +354,13 @@ impl Projection {
                     self.disclosures.push(FaceDisclosure {
                         subject: selection_details.clone(),
                         level: FaceDisclosureLevel::SelectedDetail,
+                    });
+                    self.properties.push(FaceProperty {
+                        subject: id.clone(),
+                        name: "checked-plot-id".into(),
+                        value: FacePropertyValue::Identity(
+                            choice.plot.checked_plot_id.as_str().into(),
+                        ),
                     });
                     self.properties.push(FaceProperty {
                         subject: id.clone(),
@@ -401,7 +422,7 @@ impl Projection {
             _ => return Err(BirthFaceRefusal::UnsupportedMechanism),
         }
         for child in &node.children {
-            self.node(child)?;
+            self.node(child, draft)?;
         }
         Ok(())
     }
