@@ -1,8 +1,9 @@
 //! Read-only pinned-Root Face feed. Publication preserves the complete sealed
 //! Face; the local lease reports transport availability, never sensor freshness.
 use crate::Result;
-use ed25519_dalek::{Signature, VerifyingKey};
+use conduit_environment_host::signed_face_export::{verify_snapshot, VerifiedSnapshot as Verified};
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::{
     fs::{File, OpenOptions},
@@ -13,25 +14,11 @@ use std::{
 };
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Offer {
-    profile: String,
-    producer_boot: String,
-    body_id: conduit_body::BodyId,
-    offer: String,
-}
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
 struct Chunk {
     profile: String,
     digest: String,
     offset: u32,
     bytes: String,
-}
-struct Verified {
-    digest: [u8; 32],
-    revision: u64,
-    bytes: u32,
-    lifetime: u64,
 }
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
@@ -57,49 +44,7 @@ fn verify(
     nonce: &[u8; 32],
     bytes: &[u8],
 ) -> Result<Verified> {
-    let reply: Offer = serde_json::from_slice(bytes)?;
-    let offer = unhex(&reply.offer)?;
-    if reply.profile != "conduit.face/export@1"
-        || reply.body_id != *body
-        || reply.producer_boot.is_empty()
-        || reply.producer_boot.len() > 256
-        || offer.len() != 220
-    {
-        return Err("Face export scope/extent".into());
-    }
-    let mut hash = Sha256::new();
-    hash.update(b"conduit.face/export@1\0");
-    hash.update(root);
-    hash.update(&offer[..156]);
-    crate::checked(
-        crate::checked(VerifyingKey::from_bytes(root))?.verify_strict(
-            &hash.finalize(),
-            &Signature::from_bytes(offer[156..].try_into()?),
-        ),
-    )?;
-    if offer[..32] != *nonce
-        || offer[32..64] != Sha256::digest(body.as_str().as_bytes())[..]
-        || offer[64..96] != Sha256::digest(reply.producer_boot.as_bytes())[..]
-    {
-        return Err("Face export signed scope".into());
-    }
-    let revision = u64::from_le_bytes(offer[128..136].try_into()?);
-    let length = u32::from_le_bytes(offer[136..140].try_into()?);
-    let issued = u64::from_le_bytes(offer[140..148].try_into()?);
-    let until = u64::from_le_bytes(offer[148..156].try_into()?);
-    let lifetime = until
-        .checked_sub(issued)
-        .filter(|n| (1..=5000).contains(n))
-        .ok_or("Face export lifetime")?;
-    if !(1..=8192).contains(&length) {
-        return Err("Face export document capacity".into());
-    }
-    Ok(Verified {
-        digest: offer[96..128].try_into()?,
-        revision,
-        bytes: length,
-        lifetime,
-    })
+    verify_snapshot(root, body, nonce, bytes)
 }
 fn boot_ms() -> Result<u64> {
     let mut time = libc::timespec {
@@ -179,45 +124,30 @@ fn fetch(
         started,
     )?;
     let verified = verify(root, body, &nonce, &offer)?;
-    let mut document = Vec::with_capacity(verified.bytes as usize);
-    for offset in (0..verified.bytes).step_by(512) {
+    let mut document = Vec::with_capacity(verified.bytes() as usize);
+    for offset in (0..verified.bytes()).step_by(512) {
         let path = format!(
             "/face/export/chunk?digest={}&revision={}&bytes={}&offset={offset}",
-            hex(&verified.digest),
-            verified.revision,
-            verified.bytes
+            hex(verified.digest()),
+            verified.revision(),
+            verified.bytes()
         );
         let chunk: Chunk = serde_json::from_slice(&get(peer, &path, started)?)?;
         let bytes = unhex(&chunk.bytes)?;
         if chunk.profile != "conduit.face/chunk@1"
-            || chunk.digest != hex(&verified.digest)
+            || chunk.digest != hex(verified.digest())
             || chunk.offset != offset
-            || bytes.len() != 512.min((verified.bytes - offset) as usize)
+            || bytes.len() != 512.min((verified.bytes() - offset) as usize)
         {
             return Err("Face export chunk scope".into());
         }
         document.extend_from_slice(&bytes);
     }
-    if Sha256::digest(&document)[..] != verified.digest {
-        return Err("Face export document digest".into());
-    }
-    let face: conduit_face::Face = serde_json::from_slice(&document)?;
-    crate::checked(face.validate())?;
-    if face.revision != verified.revision
-        || face.basis.body_id.as_ref() != Some(body)
-        || face.basis.wake_id.is_none()
-        || face.basis.source_document_id.is_none()
-        || face.basis.checked_plot_id.is_none()
-        || face.basis.expanded_plot_id.is_none()
-        || face.basis.plan_id.is_none()
-        || face.basis.active_play_id.is_none()
-    {
-        return Err("Face export execution basis".into());
-    }
+    let face = verified.decode_document(&document)?;
     // Include time spent fetching/signing/chunks and any local suspend. Never
     // restart the producer's semantic freshness window on remote arrival.
     let deadline = started
-        .checked_add(verified.lifetime)
+        .checked_add(verified.lifetime())
         .ok_or("Face export deadline")?;
     if boot_ms()?.saturating_add(1) >= deadline {
         return Err("Face export expired in transit".into());

@@ -9,3 +9,5 @@ pub mod source_operator;
 
 #[cfg(all(unix, feature = "carrier-source"))]
 pub mod source_history_store;
+
+pub mod signed_face_export;

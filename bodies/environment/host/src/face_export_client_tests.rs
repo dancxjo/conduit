@@ -34,7 +34,7 @@ fn root_signature_nonce_body_and_finite_lifetime_are_all_required() {
     let reply = offered(&key, &body, nonce, 5000);
     let verified = verify(&root, &body, &nonce, &reply).unwrap();
     assert_eq!(
-        (verified.bytes, verified.revision, verified.lifetime),
+        (verified.bytes(), verified.revision(), verified.lifetime()),
         (1024, 7, 5000)
     );
     assert!(verify(&root, &body, &[5; 32], &reply).is_err());
