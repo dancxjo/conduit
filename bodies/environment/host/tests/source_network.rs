@@ -126,8 +126,14 @@ fn two_exact_devices_commit_on_one_actual_host_clock_without_fabricated_membersh
     };
     assert_eq!(refusal.reason, Refusal::Advertisement);
     assert!(refusal.host.native_resources_idle());
-    let mut collector = refusal.equipment.resume(host).unwrap();
-    let z = ready(collector.sample(a)).unwrap();
+    let ((host, equipment), z) = std::thread::spawn(move || {
+        let mut collector = refusal.equipment.resume(host).unwrap();
+        let z = ready(collector.sample(a)).unwrap();
+        (collector.detach().unwrap(), z)
+    })
+    .join()
+    .expect("bounded collector worker");
+    let mut collector = equipment.resume(host).unwrap();
     assert_ne!(x.scope().play(), z.scope().play());
     assert_eq!(x.scope().plan(), z.scope().plan());
     // Sealed ownership refuses inventory mutation before attempting physical IO.

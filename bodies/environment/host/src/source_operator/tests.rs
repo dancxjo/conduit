@@ -36,7 +36,7 @@ pub(super) fn fixture() -> UsbSourceRoot<CpuSource> {
         });
     installed.set_initial_kernel_play_sequence(9).unwrap();
     UsbSourceRoot::attach(
-        Rc::new(RefCell::new(Some(installed))),
+        Arc::new(Mutex::new(Some(installed))),
         CpuSource {
             counter: 0,
             fail: false,
@@ -119,7 +119,8 @@ fn foreign_boot_cannot_reserve_actual_native_capacity() {
     fragment.boot_id = "fixture/foreign".into();
     assert!(root
         .installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .reserve_native_fragment(&fragment)
@@ -133,14 +134,16 @@ fn received_fragment_cannot_issue_foreign_source_authority() {
     let mut fragment = plan.fragments[0].clone();
     let issued = root
         .installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .issue_kernel_play(&fragment)
         .unwrap();
     let lease = root
         .installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .reserve_native_fragment(&fragment)
@@ -151,7 +154,8 @@ fn received_fragment_cannot_issue_foreign_source_authority() {
         Err(Refusal::Authority)
     ));
     root.installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .release_native_fragment(lease)
@@ -181,7 +185,8 @@ fn actual_source_fragment_reservation_refuses_duplicate_capacity_and_releases() 
     let plan = root.plan().unwrap();
     let lease = root
         .installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .reserve_native_fragment(&plan.fragments[0])
@@ -189,7 +194,8 @@ fn actual_source_fragment_reservation_refuses_duplicate_capacity_and_releases() 
     assert!(matches!(ready(root.sample()), Err(Refusal::Capacity)));
     assert_eq!(root.provider.as_ref().unwrap().counter, 0);
     root.installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .release_native_fragment(lease)
@@ -203,7 +209,8 @@ fn actual_inventory_is_bounded_unique_and_cannot_change_under_a_live_lease() {
     let installed = root.installed.clone();
     let fragment = root.plan().unwrap().fragments.remove(0);
     let lease = installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .reserve_native_fragment(&fragment)
@@ -220,7 +227,8 @@ fn actual_inventory_is_bounded_unique_and_cannot_change_under_a_live_lease() {
     .is_err());
     assert_eq!(root.advertisement().unwrap(), prior);
     installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .release_native_fragment(lease)
@@ -265,7 +273,8 @@ fn actual_reservation_matches_only_its_exact_fragment_and_offer_generation() {
     let fragment = root.plan().unwrap().fragments.remove(0);
     let lease = root
         .installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .reserve_native_fragment(&fragment)
@@ -287,7 +296,8 @@ fn actual_reservation_matches_only_its_exact_fragment_and_offer_generation() {
     other.plan_fragments.sort();
     assert!(!verify_plan_fragment(&other));
     root.installed
-        .borrow_mut()
+        .lock()
+        .expect("collector Host mutex poisoned")
         .as_mut()
         .unwrap()
         .release_native_fragment(lease)

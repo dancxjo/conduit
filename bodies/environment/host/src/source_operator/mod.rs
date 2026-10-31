@@ -19,8 +19,13 @@ use conduit_environment_runtime::environmental_source::{
 };
 use conduit_host_make::CheckedHostConfiguration;
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
-use std::{cell::RefCell, io::Read, path::Path, rc::Rc, time::Duration};
-pub(super) type SharedHost = Rc<RefCell<Option<conduit_std_host::StdHost>>>;
+use std::{
+    io::Read,
+    path::Path,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+pub(super) type SharedHost = Arc<Mutex<Option<conduit_std_host::StdHost>>>;
 pub const CAPABILITY: &str = "linux/environmental-source@1";
 pub const PROFILE: &str = "linux/environmental-source-bounded@1";
 #[derive(Debug, PartialEq, Eq)]
@@ -71,7 +76,7 @@ impl UsbSourceRoot {
         let provider =
             DeviceEnvironmentalSource::acquire(path, &host, configuration, firmware, budget)
                 .map_err(|_| Refusal::Acquisition)?;
-        Self::attach(Rc::new(RefCell::new(Some(installed))), provider, "usb")
+        Self::attach(Arc::new(Mutex::new(Some(installed))), provider, "usb")
     }
 }
 impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
@@ -89,7 +94,8 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         configure: impl FnOnce(&mut P, &Identity, &mut BaseProviderEntry) -> Result<(), Refusal>,
     ) -> Result<Self, Refusal> {
         let host = installed
-            .borrow()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .as_ref()
             .ok_or(Refusal::Acquisition)?
             .advertisement()
@@ -143,7 +149,8 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         // this idle, transactional installation on the one installed Host.
         unsafe {
             root.installed
-                .borrow_mut()
+                .lock()
+                .expect("collector Host mutex poisoned")
                 .as_mut()
                 .ok_or(Refusal::Acquisition)?
                 .install_retained_native_base(base)
@@ -154,7 +161,8 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
     pub fn advertisement(&self) -> Result<HostAdvertisement, Refusal> {
         Ok(self
             .installed
-            .borrow()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .as_ref()
             .ok_or(Refusal::Acquisition)?
             .advertisement()

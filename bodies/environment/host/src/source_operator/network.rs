@@ -86,7 +86,10 @@ impl NetworkSource {
             .checked_add(1)
             .ok_or(SourceRefusal::Capacity)?;
         let bytes = if self.capability.is_some() {
-            let mut installed = self.installed.borrow_mut();
+            let mut installed = self
+                .installed
+                .lock()
+                .expect("collector Host mutex poisoned");
             let host = installed.as_mut().ok_or(SourceRefusal::Provider)?;
             perform(
                 host,
@@ -97,14 +100,18 @@ impl NetworkSource {
         } else {
             let installed = self
                 .installed
-                .borrow_mut()
+                .lock()
+                .expect("collector Host mutex poisoned")
                 .take()
                 .ok_or(SourceRefusal::Provider)?;
             let mut http =
                 match IsolatedHttpHost::from_host(installed, self.configuration.http.clone()) {
                     Ok(http) => http,
                     Err((host, _)) => {
-                        *self.installed.borrow_mut() = Some(host);
+                        *self
+                            .installed
+                            .lock()
+                            .expect("collector Host mutex poisoned") = Some(host);
                         return Err(SourceRefusal::Provider);
                     }
                 };
@@ -118,7 +125,10 @@ impl NetworkSource {
                     transaction,
                 )
             })();
-            *self.installed.borrow_mut() = Some(http.into_host());
+            *self
+                .installed
+                .lock()
+                .expect("collector Host mutex poisoned") = Some(http.into_host());
             result?
         };
         verify_identity(

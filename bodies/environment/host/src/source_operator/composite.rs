@@ -36,7 +36,7 @@ pub struct CollectorRoot {
 impl CollectorRoot {
     pub fn new(installed: conduit_std_host::StdHost) -> Self {
         Self {
-            installed: Rc::new(RefCell::new(Some(installed))),
+            installed: Arc::new(Mutex::new(Some(installed))),
             slots: Vec::with_capacity(4),
             sealed: false,
         }
@@ -50,7 +50,10 @@ impl CollectorRoot {
     ) -> Result<CollectorSourceId, Refusal> {
         self.capacity()?;
         let provider = {
-            let owner = self.installed.borrow();
+            let owner = self
+                .installed
+                .lock()
+                .expect("collector Host mutex poisoned");
             let host = owner.as_ref().ok_or(Refusal::Acquisition)?;
             DeviceEnvironmentalSource::acquire(
                 path,
@@ -105,7 +108,8 @@ impl CollectorRoot {
     pub fn advertisement(&self) -> Result<HostAdvertisement, Refusal> {
         Ok(self
             .installed
-            .borrow()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .as_ref()
             .ok_or(Refusal::Acquisition)?
             .advertisement()
@@ -181,7 +185,8 @@ impl CollectorRoot {
             }
             if !self
                 .installed
-                .borrow()
+                .lock()
+                .expect("collector Host mutex poisoned")
                 .as_ref()
                 .ok_or(Refusal::Possession)?
                 .native_resources_idle()
@@ -201,7 +206,8 @@ impl CollectorRoot {
         };
         let host = self
             .installed
-            .borrow_mut()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .take()
             .expect("validated actual owner");
         Ok((
@@ -218,7 +224,13 @@ impl DetachedCollectorEquipment {
     /// Refusals return both affine owners; no inventory or issuer is reconstructed.
     #[allow(clippy::result_large_err)]
     pub fn resume(self, host: conduit_std_host::StdHost) -> Result<CollectorRoot, ResumeRefusal> {
-        let reason = if self.collector.installed.borrow().is_some() {
+        let reason = if self
+            .collector
+            .installed
+            .lock()
+            .expect("collector Host mutex poisoned")
+            .is_some()
+        {
             Some(Refusal::Possession)
         } else if !host.native_resources_idle() {
             Some(Refusal::Capacity)
@@ -234,7 +246,11 @@ impl DetachedCollectorEquipment {
                 reason,
             });
         }
-        *self.collector.installed.borrow_mut() = Some(host);
+        *self
+            .collector
+            .installed
+            .lock()
+            .expect("collector Host mutex poisoned") = Some(host);
         Ok(self.collector)
     }
 }
@@ -253,7 +269,8 @@ mod handoff_tests {
             sealed: false,
         };
         let lease = installed
-            .borrow_mut()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .as_mut()
             .unwrap()
             .reserve_native_fragment(&fragment)
@@ -264,26 +281,43 @@ mod handoff_tests {
         };
         assert_eq!(refusal.reason, Refusal::Capacity);
         installed
-            .borrow_mut()
+            .lock()
+            .expect("collector Host mutex poisoned")
             .as_mut()
             .unwrap()
             .release_native_fragment(lease)
             .unwrap();
         let (mut host, equipment) = refusal.collector.detach().unwrap();
-        assert!(installed.borrow().is_none());
+        assert!(installed
+            .lock()
+            .expect("collector Host mutex poisoned")
+            .is_none());
         let lease = host.reserve_native_fragment(&fragment).unwrap();
         let mut refusal = match equipment.resume(host) {
             Err(refusal) => refusal,
             Ok(_) => panic!("active lease resumed"),
         };
         assert_eq!(refusal.reason, Refusal::Capacity);
-        assert!(installed.borrow().is_none());
+        assert!(installed
+            .lock()
+            .expect("collector Host mutex poisoned")
+            .is_none());
         refusal.host.release_native_fragment(lease).unwrap();
         let collector = refusal.equipment.resume(refusal.host).unwrap();
-        assert!(installed.borrow().is_some());
+        assert!(installed
+            .lock()
+            .expect("collector Host mutex poisoned")
+            .is_some());
         assert_eq!(
             collector.advertisement().unwrap(),
             source.advertisement().unwrap()
         );
     }
 }
+
+#[cfg(test)]
+const _: fn() = || {
+    fn send<T: Send>() {}
+    send::<conduit_std_host::StdHost>();
+    send::<DetachedCollectorEquipment>();
+};
