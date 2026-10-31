@@ -44,6 +44,7 @@ impl Entry {
     }
 }
 pub(super) struct Fragment {
+    pub continuation: Option<LayoutContinuation>,
     pub entries: Vec<Entry>,
     pub height: u16,
     pub cost: usize,
@@ -51,6 +52,7 @@ pub(super) struct Fragment {
 impl Fragment {
     pub fn empty() -> Self {
         Self {
+            continuation: None,
             entries: Vec::new(),
             height: 0,
             cost: 0,
@@ -76,10 +78,30 @@ impl Fragment {
         let mut used_cost = 0;
         let mut used_height = 0u32;
         let mut end = 0;
+        let incoming = self.continuation;
+        let mut pressure = None;
         for (index, entry) in self.entries.iter().enumerate() {
             used_cost += entry.cost;
             used_height = used_height.max(entry.end());
             if index >= rows || used_cost > cost || used_height > u32::from(height) {
+                pressure = LayoutContinuation::pressure(
+                    used_height > u32::from(height),
+                    index >= rows,
+                    used_cost > cost,
+                )
+                .map(|cause| {
+                    if end < index
+                        || !entry.break_before
+                        || self
+                            .entries
+                            .get(index + 1)
+                            .is_some_and(|next| !next.break_before)
+                    {
+                        cause.keeping_group()
+                    } else {
+                        cause
+                    }
+                });
                 break;
             }
             if self
@@ -91,11 +113,14 @@ impl Fragment {
             }
         }
         if end == 0 {
+            self.continuation = LayoutContinuation::merge(incoming, pressure);
             return None;
         }
+        self.continuation = pressure;
         let tail = self.entries.split_off(end);
         let entries = core::mem::replace(&mut self.entries, tail);
         let mut prefix = Self {
+            continuation: incoming,
             entries,
             height: 0,
             cost: 0,

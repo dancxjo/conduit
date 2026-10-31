@@ -73,7 +73,7 @@ pub(super) fn arrange(
                 control_atomic = None;
             }
         }
-        if demand.is_some_and(|demand| {
+        if demand.as_ref().is_some_and(|demand| {
             !demand.fits(
                 current.height
                     + if current.entries.is_empty() {
@@ -87,8 +87,25 @@ pub(super) fn arrange(
             )
         }) && !current.entries.is_empty()
         {
+            let cause = demand
+                .as_ref()
+                .and_then(|demand| {
+                    demand.pressure(
+                        current.height
+                            + if current.entries.is_empty() {
+                                0
+                            } else {
+                                SPACE_SM
+                            },
+                        height,
+                        current.entries.len(),
+                        current.cost + chrome::COMMANDS + 1,
+                    )
+                })
+                .map(LayoutContinuation::keeping_group);
             fragments.push(current);
             current = Fragment::empty();
+            current.continuation = cause;
         }
 
         let item_inset = u16::from(item.indent)
@@ -126,8 +143,14 @@ pub(super) fn arrange(
                 if current.entries.is_empty() {
                     return Err(FaceSceneError::SceneBound);
                 }
+                let cause = LayoutContinuation::pressure(
+                    bottom > height,
+                    current.entries.len() >= MAX_PAGE_ROWS,
+                    current.cost + cost + chrome::COMMANDS >= conduit_face::MAX_GRAPHICS_COMMANDS,
+                );
                 fragments.push(current);
                 current = Fragment::empty();
+                current.continuation = cause;
             }
             let y = if current.entries.is_empty() {
                 0
@@ -146,6 +169,7 @@ pub(super) fn arrange(
                 outer_padding: 0,
                 extent: None,
                 row: Row {
+                    continuation: None,
                     text: remaining[..end].into(),
                     role: item.role,
                     paint: item.paint,

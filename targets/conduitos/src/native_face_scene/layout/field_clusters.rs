@@ -76,9 +76,21 @@ pub(super) struct Demand {
 
 impl Demand {
     pub fn fits(&self, y: u16, bottom: u16, rows: usize, commands: usize) -> bool {
-        u32::from(y) + self.height <= u32::from(bottom)
-            && rows + self.rows <= MAX_PAGE_ROWS
-            && commands + self.commands <= conduit_face::MAX_GRAPHICS_COMMANDS
+        self.pressure(y, bottom, rows, commands).is_none()
+    }
+
+    pub fn pressure(
+        &self,
+        y: u16,
+        bottom: u16,
+        rows: usize,
+        commands: usize,
+    ) -> Option<LayoutContinuation> {
+        LayoutContinuation::pressure(
+            u32::from(y) + self.height > u32::from(bottom),
+            rows + self.rows > MAX_PAGE_ROWS,
+            commands + self.commands > conduit_face::MAX_GRAPHICS_COMMANDS,
+        )
     }
 }
 
