@@ -8,6 +8,7 @@ use conduit_core::{BaseOperationClaim, CapabilityIssueRequest};
 use serde::{Deserialize, Serialize};
 
 mod adversarial;
+mod child;
 mod host;
 mod provider;
 

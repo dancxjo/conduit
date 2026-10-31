@@ -96,7 +96,7 @@ fn checked_plot_runs_source_through_kernel_commit_and_retains_provider_across_re
             offer_generation: root.host.offer_generation,
         });
     installed.set_initial_kernel_play_sequence(9).unwrap();
-    root.installed = Some(installed);
+    root.installed = Some(Rc::new(RefCell::new(Some(installed))));
     let first = ready(root.sample()).unwrap();
     let second = ready(root.sample()).unwrap();
     assert_eq!(
@@ -163,5 +163,22 @@ fn received_fragment_cannot_issue_foreign_source_authority() {
         root.issue(&fragment, &active),
         Err(Refusal::Authority)
     ));
+    assert_eq!(root.provider.as_ref().unwrap().counter, 0);
+}
+
+#[test]
+fn actual_planner_refusal_classification_is_preserved_before_capture() {
+    let mut root = fixture();
+    root.host.resources.push(resource_offer(
+        "fixture/secondary",
+        "fixture/finite-unused",
+        1,
+    ));
+    root.host
+        .resources
+        .sort_by(|a, b| b.pool_id.cmp(&a.pool_id));
+    assert!(
+        matches!(root.plan(),Err(Refusal::Planning(error)) if matches!(*error,conduit_planner::PlannerError::InvalidResourceContract(_)))
+    );
     assert_eq!(root.provider.as_ref().unwrap().counter, 0);
 }

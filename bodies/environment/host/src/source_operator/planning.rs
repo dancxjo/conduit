@@ -44,7 +44,7 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         );
         let hosts = [host];
         let choices = conduit_planner::default_expanded_placements(&plot.expanded, &hosts)
-            .map_err(|_| Refusal::Plan)?;
+            .map_err(|error| Refusal::Planning(Box::new(error)))?;
         let mut fore = BTreeMap::new();
         for binding in &plot.input_bindings {
             fore.insert(
@@ -75,7 +75,7 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
             },
             &fore,
         )
-        .map_err(|_| Refusal::Plan)
+        .map_err(|error| Refusal::Planning(Box::new(error)))
     }
     fn grant(&self) -> AuthorityGrant {
         AuthorityGrant {

@@ -104,8 +104,11 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
         {
             return Err(Refusal::Authority);
         }
-        let active = if let Some(installed) = self.installed.as_mut() {
+        let active = if let Some(installed) = self.installed.as_ref() {
             installed
+                .borrow_mut()
+                .as_mut()
+                .ok_or(Refusal::Acquisition)?
                 .issue_kernel_play(fragment)
                 .map_err(|_| Refusal::Authority)?
                 .identity()
@@ -245,12 +248,8 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
                         k::HostCallOutcome {
                             disposition: k::HostCallDisposition::Completed,
                             output: Some(
-                                k::BoundedValueRef::new(value, MAXIMUM_BYTES as u32).map_err(
-                                    |e| {
-                                        eprintln!("capacity line {}: {e:?}", line!());
-                                        Refusal::Capacity
-                                    },
-                                )?,
+                                k::BoundedValueRef::new(value, MAXIMUM_BYTES as u32)
+                                    .map_err(|_| Refusal::Capacity)?,
                             ),
                             failure: None,
                         },

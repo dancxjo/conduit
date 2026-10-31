@@ -115,7 +115,12 @@ fn exact_endpoint_plan_executes_without_redirect_or_sibling_authority() {
 
     let exact_request = request(&provider.authority, "/selected");
     let play = host.host_mut().issue_kernel_play(fragment).unwrap();
-    let receipt = host.exchange(play, fragment, &exact_request).unwrap();
+    let (receipt, response) = host
+        .exchange_response(play, fragment, &exact_request)
+        .unwrap();
+    assert_eq!(response.status, 302);
+    assert_eq!(response.body.as_inline(), Some(&[][..]));
+    assert_eq!(response.transaction_id, exact_request.transaction_id);
     assert_eq!(receipt.status, 302);
     assert!(receipt.response_bytes <= conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES);
 
@@ -261,4 +266,30 @@ fn read_http_message(stream: &mut impl Read) -> Result<Vec<u8>, String> {
             return Err("request exceeded bound".into());
         }
     }
+}
+
+#[test]
+fn idle_existing_owner_survives_endpoint_installation_and_refusal() {
+    let owner = conduit_std_host::StdHost::new();
+    let before = owner.advertisement().clone();
+    let provider = config(
+        "127.0.0.1:9876".parse().unwrap(),
+        "fixture.invalid:9876".into(),
+        1,
+        "fixture/resource/1",
+    );
+    let http = IsolatedHttpHost::from_host(owner, provider.clone())
+        .map_err(|(_, error)| error)
+        .unwrap();
+    assert_eq!(http.host().advertisement().host_id, before.host_id);
+    assert_eq!(http.host().advertisement().boot_id, before.boot_id);
+    let owner = http.into_host();
+    let mut wrong = provider;
+    wrong.provider_generation = 0;
+    let (owner, _) = match IsolatedHttpHost::from_host(owner, wrong) {
+        Err(refusal) => refusal,
+        Ok(_) => panic!("invalid provider accepted"),
+    };
+    assert_eq!(owner.advertisement().host_id, before.host_id);
+    assert_eq!(owner.advertisement().boot_id, before.boot_id);
 }
