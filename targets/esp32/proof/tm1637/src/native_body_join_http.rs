@@ -239,3 +239,7 @@ fn response(
         },
     }
 }
+
+#[cfg(test)]
+#[path = "native_body_join_http_tests.rs"]
+mod tests;
