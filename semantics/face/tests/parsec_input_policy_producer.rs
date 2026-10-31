@@ -343,3 +343,86 @@ fn source_proposal_does_not_establish_context_revision_authority() {
     assert_eq!(*proposal.mapping_revision(), 2);
     assert_eq!(proposal.offered_action().action_identity(), "game/shoot");
 }
+
+#[test]
+fn finite_pregame_fallback_matrix_has_no_gameplay_fallback_or_growth() {
+    let fixture = Fixture::new(checked_parsec_input_policy().unwrap());
+    let mut evaluator = prepare_checked_parsec_input_policy(&fixture.custody()).unwrap();
+    let capacity = evaluator.prepared_buffer_bytes();
+    for started in [false, true] {
+        for keyboard in [false, true] {
+            for keyboard_available in [false, true] {
+                for fire_available in [false, true] {
+                    for context_available in [false, true] {
+                        let state = state(started, keyboard, 2);
+                        let mut context_value =
+                            ActionInputBindingProposalInfo::decode(&context(2)).unwrap();
+                        // Availability belongs to the current binding context as well
+                        // as the individual accepted input origins.
+                        context_value = ActionInputBindingProposalInfo::new(
+                            context_available,
+                            context_value.boot_id().into(),
+                            context_value.control_identity().into(),
+                            context_value.control_label().into(),
+                            context_value.face_identity().into(),
+                            context_value.host_id().into(),
+                            context_value.input_plan_id().into(),
+                            *context_value.mapping_revision(),
+                            context_value.offered_action().clone(),
+                            context_value.show_identity().into(),
+                            1,
+                        )
+                        .unwrap();
+                        let context = context_value.encode().unwrap();
+                        let mut capture = Vec::with_capacity(PARSEC_INPUT_POLICY_FRAME_BYTES);
+                        COUNTING.with(|enabled| enabled.set(true));
+                        ALLOCATIONS.with(|count| count.set(0));
+                        let proposal = evaluator
+                            .evaluate_with_input_availability(
+                                &state,
+                                &context,
+                                keyboard_available,
+                                fire_available,
+                            )
+                            .unwrap();
+                        capture.extend_from_slice(proposal.proposal_bytes());
+                        COUNTING.with(|enabled| enabled.set(false));
+                        assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+                        assert_eq!(evaluator.prepared_buffer_bytes(), capacity);
+                        let proposal = ActionInputBindingProposalInfo::decode(&capture).unwrap();
+                        let use_keyboard =
+                            keyboard || (!started && !fire_available && keyboard_available);
+                        assert_eq!(
+                            proposal.control_identity(),
+                            if use_keyboard {
+                                "keyboard/enter"
+                            } else {
+                                "control/fire"
+                            }
+                        );
+                        assert_eq!(
+                            proposal.control_label(),
+                            if use_keyboard { "Enter" } else { "Space" }
+                        );
+                        assert_eq!(
+                            *proposal.available(),
+                            context_available
+                                && if use_keyboard {
+                                    keyboard_available
+                                } else {
+                                    fire_available
+                                }
+                        );
+                        assert_eq!(
+                            proposal.offered_action().action_identity(),
+                            if started { "game/shoot" } else { "game/start" }
+                        );
+                        assert_eq!(*proposal.mapping_revision(), 2);
+                        assert_eq!(proposal.face_identity(), "face/current");
+                        assert_eq!(proposal.show_identity(), "show/current");
+                    }
+                }
+            }
+        }
+    }
+}

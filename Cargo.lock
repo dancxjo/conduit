@@ -2637,6 +2637,7 @@ dependencies = [
  "conduit-web",
  "conduit-wire",
  "conduit-workspace-make",
+ "conduitos",
  "dbus",
  "ed25519-dalek",
  "futures",
