@@ -258,3 +258,38 @@ fn actual_inventory_is_bounded_unique_and_cannot_change_under_a_live_lease() {
     .is_err());
     assert_eq!(owners[0].advertisement().unwrap(), inventory);
 }
+
+#[test]
+fn actual_reservation_matches_only_its_exact_fragment_and_offer_generation() {
+    let root = fixture();
+    let fragment = root.plan().unwrap().fragments.remove(0);
+    let lease = root
+        .installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .reserve_native_fragment(&fragment)
+        .unwrap();
+    assert!(lease.matches_fragment(&fragment));
+    let mut other = fragment.clone();
+    other.fragment_id = "fixture/different-fragment".into();
+    assert_eq!(other.plan_id, fragment.plan_id);
+    assert!(!lease.matches_fragment(&other));
+    let mut other = fragment.clone();
+    other.offer_generation.0 += 1;
+    assert!(!lease.matches_fragment(&other));
+    // Core forbids two fragments for the same Host in one committed Plan.
+    let mut other = fragment.clone();
+    other.plan_fragments.push(FragmentCommitment {
+        host_id: fragment.host_id.clone(),
+        fragment_id: "fixture/second-fragment".into(),
+    });
+    other.plan_fragments.sort();
+    assert!(!verify_plan_fragment(&other));
+    root.installed
+        .borrow_mut()
+        .as_mut()
+        .unwrap()
+        .release_native_fragment(lease)
+        .unwrap();
+}
