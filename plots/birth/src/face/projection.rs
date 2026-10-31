@@ -419,7 +419,11 @@ impl Projection {
                 if let Some(last) = previous_choice {
                     for field in ["name-system", "plot-search"] {
                         let target = format!("{}/{field}", self.root);
-                        if !self.subjects.iter().any(|subject| subject.identity == target) {
+                        if !self
+                            .subjects
+                            .iter()
+                            .any(|subject| subject.identity == target)
+                        {
                             continue;
                         }
                         self.relationships.push(FaceRelationship {
