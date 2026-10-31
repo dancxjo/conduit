@@ -1,5 +1,5 @@
 {
-  "identity": "238b53613a6f088dfaec0559bfdadcc5875d2cb1f2bc26b6434cb82d7cbaf88d",
+  "identity": "a14d7564e935d0144b5421adc13e33fa4bb2b4c09fcf96a37e17c9fba830d2b1",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -180,6 +180,13 @@
       "source": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
       "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
       "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
