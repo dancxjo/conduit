@@ -84,7 +84,7 @@ pub fn paint_scene(
         scene,
         |_, command| command.text_role().into(),
         scale,
-        selected_typography(look),
+        selected_typography(look).map_err(|_| DisplayError::InvalidExtent)?,
         |role| conduitos::display::visual_look_paint(format, role, None, look),
     )
 }
@@ -117,15 +117,16 @@ pub fn panel(
 
 /// Measurement and paint select the same fixed, made font resource.
 /// No runtime font loader or Face mutation is involved.
-pub fn selected_typography(look: Option<&conduit_face::LookInfo>) -> typography::Typography {
+pub fn selected_typography(
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<typography::Typography, typography::LookTypographyRefusal> {
     use conduit_face::{LookVisualFacetOption, VisualTypography, VisualTypographyPreference};
-    let intent = match look.map(|value| value.visual()) {
-        Some(LookVisualFacetOption::Some(visual))
-            if *visual.expression().typography() == VisualTypographyPreference::Engineering =>
-        {
-            VisualTypography::Engineering
-        }
+    let Some(LookVisualFacetOption::Some(visual)) = look.map(|value| value.visual()) else {
+        return Ok(typography::Typography::EDITORIAL);
+    };
+    let intent = match visual.expression().typography() {
+        VisualTypographyPreference::Engineering => VisualTypography::Engineering,
         _ => VisualTypography::Editorial,
     };
-    typography::Typography::new(intent)
+    typography::Typography::with_look_metrics(intent, visual.tokens(), 200)
 }

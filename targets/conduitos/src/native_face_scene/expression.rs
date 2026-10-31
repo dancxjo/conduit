@@ -76,10 +76,50 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
+        Self::prepare_visual_typography(
+            face,
+            width,
+            height,
+            interaction_admitted,
+            expression,
+            Typography::new(expression.expression.typography),
+        )
+    }
+    /// Realize the selected immutable Look's existing typed size/leading tokens.
+    /// Paint must consume this same selected Look/typography and admitted scale.
+    pub fn prepare_visual_look(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        look: &conduit_face::AdmittedVisualLook,
+    ) -> Result<Self, FaceSceneError> {
+        let conduit_face::LookVisualFacetOption::Some(visual) = look.selected.visual() else {
+            return Err(FaceSceneError::InvalidExtent);
+        };
+        let typography =
+            Typography::with_look_metrics(look.visual.expression.typography, visual.tokens(), 200)
+                .map_err(FaceSceneError::LookTypography)?;
+        Self::prepare_visual_typography(
+            face,
+            width,
+            height,
+            interaction_admitted,
+            &look.visual,
+            typography,
+        )
+    }
+    fn prepare_visual_typography(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+        typography: Typography,
+    ) -> Result<Self, FaceSceneError> {
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
         let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
         let scale = expression.expression.text_scale_percent;
-        let typography = Typography::new(expression.expression.typography);
         let padding = match expression.expression.density {
             conduit_face::VisualDensity::Compact => SPACE_SM,
             conduit_face::VisualDensity::Spacious => SPACE_SM * 2,

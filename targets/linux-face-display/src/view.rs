@@ -291,7 +291,7 @@ pub(crate) fn frame_with_context(
             },
         )
         .map_err(|e| format!("Look capacity refused: {e:?}"))?;
-        NativeFaceScene::prepare_visual_fallback(face, width, height, false, &admitted.visual)
+        NativeFaceScene::prepare_visual_look(face, width, height, false, &admitted)
     } else {
         NativeFaceScene::prepare_with_input(face, width, height, false)
     }

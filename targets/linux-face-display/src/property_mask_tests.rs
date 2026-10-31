@@ -189,7 +189,7 @@ fn selected_look_measures_its_actual_title_resource_without_changing_the_face() 
         conduit_face::field_instrument_day_look().unwrap(),
         conduit_face::field_instrument_night_look().unwrap(),
     ] {
-        let typography = crate::raster_target::selected_typography(Some(&look));
+        let typography = crate::raster_target::selected_typography(Some(&look)).unwrap();
         for width in [320, 368, 692] {
             let (scene, _, _) =
                 crate::property_mask::frame_with_look(&face, width, 512, 0, None, Some(&look))

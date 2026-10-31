@@ -83,7 +83,7 @@ fn placement_wraps_between_body_and_fieldgroup_once_per_page_in_both_looks() {
                         .iter()
                         .any(|c| c.payload().starts_with("placement:"))
                 );
-                let typography = crate::raster_target::selected_typography(Some(&look));
+                let typography = crate::raster_target::selected_typography(Some(&look)).unwrap();
                 let measured = conduitos::display::typography::TextLayout::new_selected(
                     place,
                     typography.style(placement.text_role().into()),

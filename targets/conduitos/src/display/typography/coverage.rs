@@ -8,11 +8,24 @@ pub(super) fn sample(
     percent: u16,
     coverage: impl Fn(u8, u8) -> u8,
 ) -> u8 {
+    sample_ratio(x, y, width, height, u32::from(percent), 100, coverage)
+}
+/// Exact admitted glyph-size ratio. This is distinct from user text scaling.
+pub(super) fn sample_ratio(
+    x: u8,
+    y: u8,
+    width: u8,
+    height: u8,
+    numerator: u32,
+    denominator: u32,
+    coverage: impl Fn(u8, u8) -> u8,
+) -> u8 {
     if width == 0 || height == 0 {
         return 0;
     }
     let axis = |pixel: u8, size: u8| {
-        let coordinate = ((i32::from(pixel) * 2 + 1) * 100 * 256) / (i32::from(percent) * 2) - 128;
+        let coordinate =
+            ((i32::from(pixel) * 2 + 1) * denominator as i32 * 256) / (numerator as i32 * 2) - 128;
         let base = coordinate.div_euclid(256);
         let fraction = coordinate.rem_euclid(256) as u32;
         let last = i32::from(size) - 1;

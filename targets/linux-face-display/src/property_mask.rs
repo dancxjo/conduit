@@ -256,7 +256,7 @@ pub fn frame_with_context(
     look: Option<&conduit_face::LookInfo>,
     retained_snapshot: bool,
 ) -> Option<(GraphicsScene, usize, usize)> {
-    let typography = crate::raster_target::selected_typography(look);
+    let typography = crate::raster_target::selected_typography(look).ok()?;
     let rows = rows(face, preferred, retained_snapshot)?;
     let heading = body_heading(face).unwrap_or("Conduit");
     let title_width = width.checked_sub(48)?;

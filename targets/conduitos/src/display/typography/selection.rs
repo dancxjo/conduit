@@ -3,18 +3,39 @@ use super::{ProfileMetrics, TextRole};
 use conduit_face::VisualTypography;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Typography(VisualTypography);
+pub struct Typography {
+    pub(super) intent: VisualTypography,
+    pub(super) metrics: Option<super::look_metrics::LookTextMetrics>,
+}
 impl Typography {
-    pub const EDITORIAL: Self = Self(VisualTypography::Editorial);
+    pub const EDITORIAL: Self = Self::new(VisualTypography::Editorial);
     pub const fn new(intent: VisualTypography) -> Self {
-        Self(intent)
+        Self {
+            intent,
+            metrics: None,
+        }
     }
     pub const fn style(self, role: TextRole) -> TextStyle {
-        let profile = match (role, self.0) {
+        let profile = match (role, self.intent) {
             (TextRole::Title, VisualTypography::Engineering) => 5,
             _ => role as u8,
         };
-        TextStyle { profile }
+        let em_size = match self.metrics {
+            Some(metrics) => metrics.em_size(role),
+            None => 0,
+        };
+        TextStyle {
+            profile,
+            maximum_scale: match self.metrics {
+                Some(metrics) => metrics.maximum_scale,
+                None => 200,
+            },
+            em_size,
+            line_height: match self.metrics {
+                Some(metrics) => metrics.line_height(em_size),
+                None => 0,
+            },
+        }
     }
 }
 
@@ -22,14 +43,25 @@ impl Typography {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TextStyle {
     pub(super) profile: u8,
+    pub(super) em_size: u16,
+    pub(super) line_height: u16,
+    pub(super) maximum_scale: u16,
 }
 impl From<TextRole> for TextStyle {
     fn from(role: TextRole) -> Self {
         Typography::EDITORIAL.style(role)
     }
 }
-pub const fn selected_metrics(style: TextStyle) -> &'static ProfileMetrics {
-    &super::PROFILES[style.profile as usize]
+pub const fn selected_metrics(style: TextStyle) -> ProfileMetrics {
+    let base = &super::PROFILES[style.profile as usize];
+    if style.em_size == 0 {
+        return *base;
+    }
+    ProfileMetrics {
+        em_size: style.em_size,
+        ascent: ((base.ascent as u32 * style.em_size as u32).div_ceil(base.em_size as u32)) as i16,
+        line_height: style.line_height,
+    }
 }
 
 #[cfg(test)]
@@ -76,5 +108,14 @@ mod tests {
                 }
             }
         }
+    }
+}
+
+impl TextStyle {
+    pub(super) fn admit_scale(self, percent: u16) -> Result<(), crate::display::DisplayError> {
+        if percent > self.maximum_scale {
+            return Err(crate::display::DisplayError::InvalidExtent);
+        }
+        Ok(())
     }
 }

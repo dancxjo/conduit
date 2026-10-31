@@ -5,7 +5,11 @@
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
 mod coverage;
+mod look_metrics;
 mod selection;
+pub use look_metrics::LookTypographyRefusal;
+mod glyph_scale;
+use glyph_scale::GlyphScale;
 pub use selection::{TextStyle, Typography, selected_metrics};
 mod raster;
 pub use raster::{render_glyph, render_text, render_text_scaled, render_text_selected};
@@ -64,6 +68,7 @@ pub(super) struct Glyph {
 }
 
 /// Vertical metrics in physical pixels for one fixed Presenter profile.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ProfileMetrics {
     /// Actual rasterization size, distinct from ascent and line spacing.
     pub em_size: u16,
@@ -82,7 +87,7 @@ enum Raster {
 /// Borrowed glyph with explicit unsupported-scalar reporting.
 pub struct GlyphRaster {
     raster: Raster,
-    scale: TextScale,
+    scale: GlyphScale,
     pub unsupported: bool,
 }
 
@@ -108,8 +113,9 @@ pub(super) fn scaled_glyph(
     character: char,
     scale: TextScale,
 ) -> GlyphRaster {
-    let mut raster = selected_glyph(role.into(), character);
-    raster.scale = scale;
+    let role = role.into();
+    let mut raster = selected_glyph(role, character);
+    raster.scale = GlyphScale::selected(role, scale);
     raster
 }
 
@@ -126,14 +132,14 @@ pub fn selected_glyph(style: TextStyle, character: char) -> GlyphRaster {
     match GLYPHS.binary_search_by_key(&key, |glyph| (glyph.profile, glyph.codepoint)) {
         Ok(index) => GlyphRaster {
             raster: Raster::Smooth(&GLYPHS[index]),
-            scale: TextScale(100),
+            scale: GlyphScale::selected(style, TextScale(100)),
             unsupported: false,
         },
         Err(_) => {
             let (glyph, unsupported) = super::font::glyph(character);
             GlyphRaster {
                 raster: Raster::Rescue(glyph),
-                scale: TextScale(100),
+                scale: GlyphScale::selected(style, TextScale(100)),
                 unsupported,
             }
         }
@@ -181,13 +187,19 @@ impl GlyphRaster {
         if x >= width || y >= height {
             return 0;
         }
-        if self.scale.0 == 100 {
+        if self.scale.is_identity() {
             return self.base_coverage(x, y);
         }
         let (width, height) = self.base_extent();
-        coverage::sample(x, y, width, height, self.scale.0, |x, y| {
-            self.base_coverage(x, y)
-        })
+        coverage::sample_ratio(
+            x,
+            y,
+            width,
+            height,
+            self.scale.numerator,
+            self.scale.denominator,
+            |x, y| self.base_coverage(x, y),
+        )
     }
 
     fn base_coverage(&self, x: u8, y: u8) -> u8 {

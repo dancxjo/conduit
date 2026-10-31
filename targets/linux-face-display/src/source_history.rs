@@ -79,7 +79,8 @@ pub fn prepare(
                 .1
         })
         .map_err(|e| format!("Source history drawing refused: {e:?}"))?;
-    let typography = crate::raster_target::selected_typography(look);
+    let typography = crate::raster_target::selected_typography(look)
+        .map_err(|e| format!("Source chart typography refused: {e:?}"))?;
     for command in scene
         .commands()
         .iter()
