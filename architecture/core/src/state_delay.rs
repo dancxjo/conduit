@@ -174,7 +174,10 @@ pub fn state_resource_budget(
 }
 
 /// State is an immutable fragment commitment, not an unsealed side table.
-pub(crate) fn push_canonical_state(bytes: &mut Vec<u8>, states: &[PlannedStateBoundary]) {
+pub(crate) fn push_canonical_state(
+    bytes: &mut impl crate::canonical_bytes::CanonicalSink,
+    states: &[PlannedStateBoundary],
+) {
     if states.is_empty() {
         return;
     }

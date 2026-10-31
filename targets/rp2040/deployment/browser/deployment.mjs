@@ -164,7 +164,7 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
     if (actualContentId !== sporeContentId) {
       refuse("ContentIdentity", "selected native Spore bytes do not match their sealed SHA-256 identity");
     }
-    const required = requiredPicobootTransfers(image.chunks.length);
+    const required = requiredPicobootTransfers(image.chunks.length, image.eraseRanges.length);
     if (
       truth.transfer_bounds.maximum_in_flight !== 1
       || truth.transfer_bounds.maximum_in_transfers < required.maximumInTransfers
@@ -191,6 +191,8 @@ export function createRp2040BrowserDeploymentAdapter({ base, cryptoApi = globalT
       requiredOutTransfers: required.maximumOutTransfers,
       imageBytes: image.imageBytes,
       chunkCount: image.chunks.length,
+      eraseRanges: image.eraseRanges,
+      erasedBytes: image.erasedBytes,
     });
     sealedPlans.set(plan, { image, identity });
     publish({
