@@ -140,10 +140,10 @@ impl SourceHistoryStore {
             if count > capacity {
                 return Err(Error::Capacity);
             }
-            let name = name.to_str().ok_or(Error::Invalid)?;
+            let name = name.to_str().ok_or(Error::Invalid)?.as_bytes();
             if name.len() != 24
-                || !name.ends_with(".json")
-                || !name[..19].bytes().all(|b| b.is_ascii_digit())
+                || !name.ends_with(b".json")
+                || !name[..19].iter().all(u8::is_ascii_digit)
             {
                 return Err(Error::Invalid);
             }
@@ -178,7 +178,8 @@ impl SourceHistoryStore {
             .iter()
             .find(|s| s.source == record.source)
             .and_then(|s| s.records.back())
-            .map_or(1, |r| r.sequence + 1);
+            .map_or(Some(1), |r| r.sequence.checked_add(1))
+            .ok_or(Error::Invalid)?;
         if record.sequence != expected_sequence {
             return Err(Error::Invalid);
         }
