@@ -276,7 +276,9 @@ fn compact_request(request: &conduit_body::PortableSpawnAdmissionRequest) -> Res
 }
 pub(crate) mod http;
 pub(crate) use http::{http, http_binary};
-#[derive(Deserialize)]
+#[path = "body_join/membership_transport.rs"]
+pub(crate) mod membership_transport;
+#[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Ticket {
     schema: String,
