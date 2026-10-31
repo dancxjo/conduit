@@ -8,6 +8,7 @@ pub(super) fn append(capabilities: &mut Vec<CapabilityOffer>) {
         conduit_std_offers::math_deadband_offer(),
         conduit_std_offers::quantity_map_offer(),
         conduit_std_offers::distance_frequency_map_offer(),
+        conduit_std_offers::pcm_clip_frames_offer(),
         conduit_std_offers::audio_time_analysis_offer(),
         conduit_std_offers::audio_spectral_analysis_offer(),
         conduit_std_offers::audio_pitch_analysis_offer(),
