@@ -16,6 +16,11 @@ impl NativeFragmentReservation {
     }
 }
 impl crate::StdHost {
+    /// True only when the actual global resource ledger has no outstanding leases.
+    pub fn native_resources_idle(&self) -> bool {
+        self.kernel_resources.is_idle()
+    }
+
     /// # Safety
     /// Root must retain the actual initialized providers for every advertised
     /// capability and resource independently of received metadata. Installation

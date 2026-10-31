@@ -4,7 +4,7 @@ use conduit_environment_runtime::environmental_reading::source_observation::{
     SourceObservation, SourceOutcome, SourceSample,
 };
 use conduit_environment_runtime::environmental_reading::EnvironmentalReading;
-struct CpuSource {
+pub(super) struct CpuSource {
     counter: u64,
     fail: bool,
 }
@@ -27,7 +27,7 @@ impl EnvironmentalSourceProvider for CpuSource {
         })
     }
 }
-fn fixture() -> UsbSourceRoot<CpuSource> {
+pub(super) fn fixture() -> UsbSourceRoot<CpuSource> {
     let mut installed =
         conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
             host_id: "fixture/native-source-host".into(),

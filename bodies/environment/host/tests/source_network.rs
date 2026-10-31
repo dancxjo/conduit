@@ -109,7 +109,40 @@ fn two_exact_devices_commit_on_one_actual_host_clock_without_fabricated_membersh
     let before = boot_ms();
     let x = ready(collector.sample(a)).unwrap();
     let y = ready(collector.sample(b)).unwrap();
+    let (mut host, equipment) = collector.detach().unwrap();
+    assert_eq!(host.advertisement(), &inventory);
+    assert!(host.native_resources_idle());
+    // Prior actual Plays keep the one-shot issuer initializer consumed.
+    assert!(host.set_initial_kernel_play_sequence(0).is_err());
+    let replacement = StdHost::new_with_config(StdHostConfig {
+        host_id: inventory.host_id.clone(),
+        boot_id: inventory.boot_id.clone(),
+        offer_generation: inventory.offer_generation,
+    });
+    // Matching Host/Boot labels cannot replace the retained native inventory.
+    let refusal = match equipment.resume(replacement) {
+        Ok(_) => panic!("replacement without actual inventory accepted"),
+        Err(refusal) => refusal,
+    };
+    assert_eq!(refusal.reason, Refusal::Advertisement);
+    assert!(refusal.host.native_resources_idle());
+    let mut collector = refusal.equipment.resume(host).unwrap();
     let z = ready(collector.sample(a)).unwrap();
+    assert_ne!(x.scope().play(), z.scope().play());
+    assert_eq!(x.scope().plan(), z.scope().plan());
+    // Sealed ownership refuses inventory mutation before attempting physical IO.
+    assert!(matches!(
+        collector.attach_usb(
+            std::path::Path::new("/no-such-device"),
+            &checked,
+            [1; 32],
+            Duration::from_secs(31)
+        ),
+        Err(Refusal::Authority)
+    ));
+    let (host, equipment) = collector.detach().unwrap();
+    assert!(host.native_resources_idle());
+    let collector = equipment.resume(host).unwrap();
     assert_eq!(collector.advertisement().unwrap(), inventory);
     assert_eq!(x.scope().host(), y.scope().host());
     assert_eq!(x.scope().boot(), y.scope().boot());

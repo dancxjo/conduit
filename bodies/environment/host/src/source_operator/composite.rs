@@ -137,3 +137,153 @@ impl CollectorRoot {
             .await
     }
 }
+
+/// Affine retained native equipment while its actual Host is owned elsewhere.
+/// This object exposes no acquisition or sampling API. Its shared Host cell is empty.
+pub struct DetachedCollectorEquipment {
+    collector: CollectorRoot,
+    inventory: HostAdvertisement,
+}
+pub struct DetachRefusal {
+    pub collector: CollectorRoot,
+    pub reason: Refusal,
+}
+pub struct ResumeRefusal {
+    pub host: conduit_std_host::StdHost,
+    pub equipment: DetachedCollectorEquipment,
+    pub reason: Refusal,
+}
+impl std::fmt::Debug for DetachRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DetachRefusal")
+            .field("reason", &self.reason)
+            .finish_non_exhaustive()
+    }
+}
+impl std::fmt::Debug for ResumeRefusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ResumeRefusal")
+            .field("reason", &self.reason)
+            .finish_non_exhaustive()
+    }
+}
+impl CollectorRoot {
+    /// Seal before publication and move the actual idle Host out without cloning
+    /// it, its Play allocator, or its ledger. All native providers stay retained.
+    #[allow(clippy::result_large_err)]
+    pub fn detach(
+        mut self,
+    ) -> Result<(conduit_std_host::StdHost, DetachedCollectorEquipment), DetachRefusal> {
+        let prepared = (|| {
+            let inventory = self.seal_inventory()?;
+            if self.slots.iter().any(|slot| slot.provider.is_none()) {
+                return Err(Refusal::Possession);
+            }
+            if !self
+                .installed
+                .borrow()
+                .as_ref()
+                .ok_or(Refusal::Possession)?
+                .native_resources_idle()
+            {
+                return Err(Refusal::Capacity);
+            }
+            Ok(inventory)
+        })();
+        let inventory = match prepared {
+            Ok(inventory) => inventory,
+            Err(reason) => {
+                return Err(DetachRefusal {
+                    collector: self,
+                    reason,
+                })
+            }
+        };
+        let host = self
+            .installed
+            .borrow_mut()
+            .take()
+            .expect("validated actual owner");
+        Ok((
+            host,
+            DetachedCollectorEquipment {
+                collector: self,
+                inventory,
+            },
+        ))
+    }
+}
+impl DetachedCollectorEquipment {
+    /// Return the exact original Host after ordinary installed-Root execution.
+    /// Refusals return both affine owners; no inventory or issuer is reconstructed.
+    #[allow(clippy::result_large_err)]
+    pub fn resume(self, host: conduit_std_host::StdHost) -> Result<CollectorRoot, ResumeRefusal> {
+        let reason = if self.collector.installed.borrow().is_some() {
+            Some(Refusal::Possession)
+        } else if !host.native_resources_idle() {
+            Some(Refusal::Capacity)
+        } else if host.advertisement() != &self.inventory {
+            Some(Refusal::Advertisement)
+        } else {
+            None
+        };
+        if let Some(reason) = reason {
+            return Err(ResumeRefusal {
+                host,
+                equipment: self,
+                reason,
+            });
+        }
+        *self.collector.installed.borrow_mut() = Some(host);
+        Ok(self.collector)
+    }
+}
+
+#[cfg(test)]
+mod handoff_tests {
+    use super::*;
+    #[test]
+    fn actual_ledger_lease_refuses_both_handoff_directions_without_losing_owners() {
+        let source = super::super::tests::fixture();
+        let fragment = source.plan().unwrap().fragments.remove(0);
+        let installed = source.installed.clone();
+        let collector = CollectorRoot {
+            installed: installed.clone(),
+            slots: Vec::new(),
+            sealed: false,
+        };
+        let lease = installed
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .reserve_native_fragment(&fragment)
+            .unwrap();
+        let refusal = match collector.detach() {
+            Err(refusal) => refusal,
+            Ok(_) => panic!("active lease detached"),
+        };
+        assert_eq!(refusal.reason, Refusal::Capacity);
+        installed
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .release_native_fragment(lease)
+            .unwrap();
+        let (mut host, equipment) = refusal.collector.detach().unwrap();
+        assert!(installed.borrow().is_none());
+        let lease = host.reserve_native_fragment(&fragment).unwrap();
+        let mut refusal = match equipment.resume(host) {
+            Err(refusal) => refusal,
+            Ok(_) => panic!("active lease resumed"),
+        };
+        assert_eq!(refusal.reason, Refusal::Capacity);
+        assert!(installed.borrow().is_none());
+        refusal.host.release_native_fragment(lease).unwrap();
+        let collector = refusal.equipment.resume(refusal.host).unwrap();
+        assert!(installed.borrow().is_some());
+        assert_eq!(
+            collector.advertisement().unwrap(),
+            source.advertisement().unwrap()
+        );
+    }
+}
