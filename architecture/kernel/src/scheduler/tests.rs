@@ -23,6 +23,10 @@ mod host_slot_allocation;
 mod host_value_occupancy;
 mod host_value_pending;
 mod local_coalescing;
+mod prepared_materialization;
+mod prepared_outputs;
+mod prepared_retry;
+mod prepared_terminal;
 mod queue_ring_bounds;
 mod terminal_sign_admission;
 

@@ -6,3 +6,5 @@ mod common;
 mod fidelity;
 #[path = "projection/scores.rs"]
 mod scores;
+#[path = "projection/policy_permission.rs"]
+mod policy_permission;

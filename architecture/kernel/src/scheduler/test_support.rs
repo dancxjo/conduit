@@ -20,7 +20,7 @@ impl<const PORTS: usize> StepIo<PORTS> {
             consumed_closed: [false; PORTS],
             outputs: [None; PORTS],
             canonical_output: None,
-            prepared_output: None,
+            prepared_outputs: [None; PORTS],
             #[cfg(feature = "alloc")]
             native_output_port: None,
             #[cfg(feature = "alloc")]
@@ -74,19 +74,18 @@ impl<const PORTS: usize> StepIo<PORTS> {
         self.canonical_output.as_ref()
     }
 
+    /// Inspect the first byte-backed prepared output for legacy one-port fixtures.
     pub const fn test_prepared_output(&self) -> Option<(PortId, u32)> {
-        match self.prepared_output {
-            Some((port, super::generated_value::PreparedStepValue::Bytes(length))) => {
-                Some((port, length))
+        let mut index = 0;
+        while index < PORTS {
+            if let Some(super::generated_value::PreparedStepValue::Bytes(length)) =
+                self.prepared_outputs[index]
+            {
+                return Some((PortId(index as u16), length));
             }
-            #[cfg(feature = "alloc")]
-            Some((
-                _,
-                super::generated_value::PreparedStepValue::NativeU64(_)
-                | super::generated_value::PreparedStepValue::CompactF32(_),
-            )) => None,
-            None => None,
+            index += 1;
         }
+        None
     }
 
     pub fn test_discards(&self) -> &[Option<ValueRef>; PORTS] {
