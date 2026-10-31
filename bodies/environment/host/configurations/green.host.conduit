@@ -1,0 +1,12 @@
+# Concrete USB-only diagnostic attachment requests; no Body or runtime grant.
+# Both devices share I2C1: GP6 SDA (physical9), GP7 SCL (physical10).
+host pico-w-environment-usb {
+  metadata = {placement: "Forebrain room"}
+  schema = 1
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  bus = {kind: "i2c", id: "environment", controller: 1, sda: 6, scl: 7, frequency_hz: 100000}
+  device = {kind: "i2c", id: "sensor", bus: "environment", address: 118, implementation: "bosch-environment@1"}
+  device = {kind: "i2c", id: "display", bus: "environment", address: 112, implementation: "ht16k33@1", configuration: {brightness: 3, layout: "alpha4"}}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 49152, queue_items: 16, buffered_bytes: 8192, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 16}
+}

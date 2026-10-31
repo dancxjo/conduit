@@ -84,6 +84,22 @@ base, authorable finite `need` templates, and complete finite host limits.
 Resource capacity and bases remain explicit in the source. It contains no plot,
 application pin meaning, current presence, or authority truth.
 
+A recipe may carry bounded, non-authorizing placement metadata:
+
+```conduit
+  metadata = {placement: "Forebrain room"}
+```
+
+`placement` is a nonempty description of at most 96 UTF-8 bytes with no control
+characters. It describes the configured Host's current placement; it does not
+assert presence, acquisition location, Body membership or authority. Canonical
+source preserves it. The checked `configuration_id` and build
+`source_configuration_id` remain realization identities and exclude this
+metadata; they are not full-document digests. Editing placement does not change
+equipment/firmware pins, finite bounds, selected offers or grants and requires no
+MCU reflash. Existing observations retain their original source identities and
+are not relabelled with a historical acquisition place.
+
 A recipe can select the installed Linux Host's existing thin software baseline
 before device initialization:
 

@@ -58,6 +58,16 @@ pub fn canonical_host_configuration_conduit(
         })?;
     }
     source.push_str("}\n");
+    if let Some(metadata) = &canonical.metadata {
+        writeln!(
+            &mut source,
+            "  metadata = {{placement: {}}}",
+            string(&metadata.placement)?
+        )
+        .map_err(|error| ConfigurationDiagnostic::Encode {
+            detail: error.to_string(),
+        })?;
+    }
     if let Some(software) = &canonical.software {
         source.push_str("  software = {capabilities: [");
         for (index, selected) in software.capabilities.iter().enumerate() {

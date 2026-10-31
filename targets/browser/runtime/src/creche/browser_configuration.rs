@@ -273,6 +273,7 @@ pub(super) fn review(
         .first()
         .ok_or_else(|| "browser make package omitted its page target".to_string())?;
     let configuration = HostConfiguration {
+        metadata: None,
         software: None,
         buses: Vec::new(),
         devices: Vec::new(),

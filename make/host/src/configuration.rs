@@ -1,5 +1,7 @@
 mod attachments;
 mod identity;
+mod metadata;
+pub use metadata::HostMetadata;
 mod software;
 use identity::stable_host_configuration_identity_source;
 pub use software::HostSoftwarePurpose;
@@ -22,6 +24,9 @@ pub const HOST_CONFIGURATION_SCHEMA: u32 = 1;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HostConfiguration {
+    /// Mutable descriptive context; excluded from checked realization identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HostMetadata>,
     pub schema: u32,
     pub name: String,
     pub target: ConfigurationTarget,
@@ -84,6 +89,7 @@ pub enum ConfigurationDiagnostic {
         found: u32,
     },
     InvalidName,
+    InvalidMetadata,
     Initialization {
         kind: String,
         detail: String,
@@ -157,6 +163,8 @@ impl CheckedHostConfiguration {
     pub fn into_profile(self) -> HostProfile {
         self.profile
     }
+    /// Checked realization identity, excluding mutable descriptive metadata.
+    /// This is not a digest of the complete authorable document.
     pub fn configuration_id(&self) -> &str {
         &self.configuration_id
     }
@@ -199,6 +207,9 @@ pub fn check_host_configuration(
     }
     if conduit_core::HostDeclaredName::new(configuration.name.clone()).is_err() {
         diagnostics.push(ConfigurationDiagnostic::InvalidName);
+    }
+    if configuration.metadata.as_ref().is_some_and(|m| !m.valid()) {
+        diagnostics.push(ConfigurationDiagnostic::InvalidMetadata);
     }
     let descriptor = packages.target_descriptors().into_iter().find(|item| {
         item.architecture == configuration.target.architecture

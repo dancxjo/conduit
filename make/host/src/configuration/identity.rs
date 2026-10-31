@@ -7,6 +7,9 @@ pub(super) fn stable_host_configuration_identity_source(
     configuration: &HostConfiguration,
 ) -> Result<String, ConfigurationDiagnostic> {
     let mut canonical = configuration.clone();
+    // This is the checked realization identity, not a full-document digest.
+    // Descriptive placement cannot invalidate firmware/equipment pins.
+    canonical.metadata = None;
     canonical
         .bases
         .sort_by(|left, right| left.kind.cmp(&right.kind));
