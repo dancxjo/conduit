@@ -94,3 +94,13 @@ Read/codec preparation therefore also needs an owned scoped job handoff and an
 independently qualified duration, not just the existing SDK write-step budget.
 The typed physical queue adapter in `a10cdc6074` has no live management caller;
 its image build is pending. No live compaction or physical deployment is claimed.
+
+At `193de37431`, Face retrieval uses the existing resolved HTTP entrance and
+caps each blocking exchange by both the original fetch budget and the verified
+signed document deadline (while retaining the existing three-second exchange
+ceiling). Resolution prepares one finite address set before requesting a lease.
+The original start is preserved across pending replies and all chunks; neither
+freshness nor recording authority is enlarged. All six Face-client regression
+tests passed, including a real delayed TCP response, and all four signed-Face
+protocol tests passed, including propagation of a shorter signed lifetime.
+These are CPU/loopback checks. They do not establish sustained live delivery.
