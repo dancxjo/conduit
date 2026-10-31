@@ -5,13 +5,16 @@ use conduit_core::*;
 pub struct NativeFragmentReservation {
     scope: (HostId, BootId, OfferGeneration),
     plan: PlanId,
+    fragment: FragmentId,
     reservation: crate::kernel_preparation::KernelResourceReservation,
 }
 impl NativeFragmentReservation {
     pub fn matches_fragment(&self, fragment: &PlanFragment) -> bool {
         self.scope.0 == fragment.host_id
             && self.scope.1 == fragment.boot_id
+            && self.scope.2 == fragment.offer_generation
             && self.plan == fragment.plan_id
+            && self.fragment == fragment.fragment_id
             && verify_plan_fragment(fragment)
     }
 }
@@ -86,6 +89,7 @@ impl crate::StdHost {
             .prepare_and_reserve(&self.advertisement, fragment)?;
         Ok(NativeFragmentReservation {
             plan: fragment.plan_id.clone(),
+            fragment: fragment.fragment_id.clone(),
             scope: (
                 self.advertisement.host_id.clone(),
                 self.advertisement.boot_id.clone(),
