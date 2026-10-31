@@ -50,6 +50,7 @@ impl Columns {
             Presentation {
                 unit: preferred,
                 details: false,
+                retained_snapshot: false,
                 look: None,
             },
             notices,
@@ -80,6 +81,7 @@ impl Columns {
                 unit: preferred,
                 look,
                 details: presentation.details,
+                retained_snapshot: presentation.retained_snapshot,
             },
         )?;
         if let Some(notice) = notices.report {

@@ -33,7 +33,11 @@ struct Row {
     value: String,
     quantity: bool,
 }
-fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> {
+fn rows(
+    face: &Face,
+    preferred: Option<conduit_core::Unit>,
+    retained_snapshot: bool,
+) -> Option<Vec<Row>> {
     let mut rows = Vec::new();
     for (group_order, subject) in face.subjects.iter().enumerate() {
         if subject.role != FaceRole::Info {
@@ -56,6 +60,13 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
                 _ => continue,
             };
             let label = property.name.replace('-', " ");
+            // Qualify snapshot-local status without editing the immutable Face.
+            // Exact original property names and values remain in Details.
+            let label = if retained_snapshot && !quantity {
+                format!("At observation · {label}")
+            } else {
+                label
+            };
             // Larger documents retain the ordinary scene's complete bounded
             // wrapping/pagination rather than truncating a semantic value.
             if label.len() > 192 || value.len() > 192 {
@@ -192,8 +203,20 @@ pub fn frame_with_look(
     preferred: Option<conduit_core::Unit>,
     look: Option<&conduit_face::LookInfo>,
 ) -> Option<(GraphicsScene, usize, usize)> {
+    frame_with_context(face, width, height, tick, preferred, look, false)
+}
+#[allow(clippy::too_many_arguments)]
+pub fn frame_with_context(
+    face: &Face,
+    width: u16,
+    height: u16,
+    tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    look: Option<&conduit_face::LookInfo>,
+    retained_snapshot: bool,
+) -> Option<(GraphicsScene, usize, usize)> {
     let typography = crate::raster_target::selected_typography(look);
-    let rows = rows(face, preferred)?;
+    let rows = rows(face, preferred, retained_snapshot)?;
     let heading = body_heading(face).unwrap_or("Conduit");
     let title_width = width.checked_sub(48)?;
     let title_height = u16::try_from(

@@ -129,6 +129,7 @@ fn actual_preferences_preview_preserves_face() {
                     0,
                     crate::columns::Presentation {
                         details: false,
+                        retained_snapshot: false,
                         unit: Some(conduit_core::Unit::Fahrenheit),
                         look: Some(&look),
                     },

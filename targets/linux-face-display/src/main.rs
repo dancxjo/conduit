@@ -168,6 +168,7 @@ fn run() -> Result<(), String> {
                 columns::Presentation {
                     unit: preferred,
                     details: ui.preferences.details,
+                    retained_snapshot: historical_notice.is_some(),
                     look: Some(&look),
                 },
                 columns::Notices {
@@ -215,6 +216,7 @@ fn run() -> Result<(), String> {
                         unit: preferred,
                         look: Some(&look),
                         details: ui.preferences.details,
+                        retained_snapshot: historical_notice.is_some(),
                     },
                 )
                 .map(|_| ())
@@ -230,6 +232,7 @@ fn run() -> Result<(), String> {
                     unit: preferred,
                     look: Some(&look),
                     details: ui.preferences.details,
+                    retained_snapshot: historical_notice.is_some(),
                 },
             )
             .map(|_| ())
@@ -286,6 +289,7 @@ fn run() -> Result<(), String> {
                         unit: preferred,
                         look: Some(&look),
                         details: ui.preferences.details,
+                        retained_snapshot: historical_notice.is_some(),
                     },
                 )?;
                 mask_controls::chrome_in_context(
