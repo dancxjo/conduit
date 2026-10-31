@@ -18,6 +18,10 @@ pub(crate) fn function(name: &str) -> Option<Function> {
 pub(crate) fn quantity_dimension(kind: &str) -> Option<Option<conduit_core::QuantityDimension>> {
     if kind == conduit_core::QUANTITY_INFO_ID {
         Some(None)
+    } else if kind == conduit_core::temperature_delta_info_id() {
+        // This intrinsic Type retains its family and Delta role. Admission is
+        // local to atan2; it does not make nominal quantity Types interchangeable.
+        Some(Some(conduit_core::QuantityDimension::Temperature))
     } else {
         conduit_core::quantity_info_dimension(kind).map(Some)
     }
