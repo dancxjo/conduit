@@ -65,7 +65,7 @@ test("Workspace admits its current storage module and still refuses an undersize
 test("Workspace packages the Body host and owner adapter dependency closure with exact byte custody", async () => {
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
   assert.ok(template.resources.length <= 96);
-  assert.equal(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0), 22454272);
+  assert.equal(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0), 22500352);
   assert.ok(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0) <= 32 * 1024 * 1024);
   const byRole = new Map(template.resources.map(resource => [resource.role, resource]));
   const included = new Set();

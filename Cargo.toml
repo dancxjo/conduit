@@ -100,6 +100,7 @@ members = [
 	"targets/esp32/make",
 	"targets/orange-pi/make",
 	"targets/raspberry-pi/make",
+	"targets/rp2040/flash-layout",
 	"targets/rp2040/make",
 	"targets/rp2040/network-realization",
 	"targets/std",

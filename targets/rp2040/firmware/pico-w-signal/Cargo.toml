@@ -22,6 +22,7 @@ light-switch = ["session-control"]
 indicator-resource = ["light-switch"]
 
 [dependencies]
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.6"
 panic-halt = "1.0.0"
@@ -64,6 +65,8 @@ ed25519-dalek = { version = "2.2", default-features = false }
 serde-json-core = "0.6"
 
 [build-dependencies]
+sha2 = "0.10"
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 conduit-alife-distributed-conformance = { path = "../../../../proof/conformance/alife-distributed" }
 conduit-core = { path = "../../../../architecture/core" }
 conduit-embedded-build = { path = "../../../../make/embedded-build" }
