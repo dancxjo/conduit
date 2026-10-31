@@ -13,6 +13,8 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
         conduit_face::PHOSPHOR_LOOK_ID,
         conduit_face::EDITORIAL_LOOK_ID,
         conduit_face::ENGINEERING_LOOK_ID,
+        conduit_face::FIELD_INSTRUMENT_DAY_LOOK_ID,
+        conduit_face::FIELD_INSTRUMENT_NIGHT_LOOK_ID,
         conduit_face::navy_look_id(
             conduit_face::VisualDensity::Compact,
             conduit_face::VisualTypography::Editorial,
@@ -20,7 +22,33 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     ] {
         assert!(body.contains(&format!("[data-application-look=\"{identity}\"]")));
     }
-    assert_eq!(body.matches("--conduit-look-identity:").count(), 4);
+    assert_eq!(body.matches("--conduit-look-identity:").count(), 6);
+    for (identity, background, ink) in [
+        (
+            conduit_face::FIELD_INSTRUMENT_DAY_LOOK_ID,
+            "#F1F3F2",
+            "#222B2D",
+        ),
+        (
+            conduit_face::FIELD_INSTRUMENT_NIGHT_LOOK_ID,
+            "#161E21",
+            "#EDF3F4",
+        ),
+    ] {
+        let selected = body
+            .split(&format!("[data-application-look=\"{identity}\"]{{"))
+            .nth(1)
+            .unwrap()
+            .split('}')
+            .next()
+            .unwrap();
+        assert!(selected.contains(&format!("--conduit-background:{background}")));
+        assert!(selected.contains(&format!("--conduit-text-primary:{ink}")));
+        assert!(selected.contains("--conduit-type-body:18px"));
+        assert!(selected.contains("--conduit-type-small:16px"));
+        assert!(selected.contains("--conduit-radius-panel:0px"));
+        assert!(selected.contains("--conduit-radius-control:2px"));
+    }
     assert!(!body.contains("--patchbay-"));
     for (token, color) in [
         ("background", "#05070B"),

@@ -3,6 +3,12 @@
 use crate::*;
 use conduit_plot::rust_binding::NativeBindingRefusal;
 
+mod field_instrument;
+pub use field_instrument::{
+    field_instrument_day_look, field_instrument_night_look, FIELD_INSTRUMENT_DAY_LOOK_ID,
+    FIELD_INSTRUMENT_LOOKS_SOURCE, FIELD_INSTRUMENT_NIGHT_LOOK_ID,
+};
+
 pub const MAX_LOOK_BYTES: usize = 65_536;
 pub const PHOSPHOR_LOOK_ID: &str = "conduit.look/phosphor@1";
 pub const LOOK_SOURCE: &str = include_str!("../look.conduit");
