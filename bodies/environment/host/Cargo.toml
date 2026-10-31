@@ -9,9 +9,11 @@ publish = false
 [features]
 default = []
 retained-history-provider = ["conduit-environment-runtime/history-exchange"]
-carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source"]
+carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source", "dep:conduit-plot", "dep:conduit-planner"]
 
 [dependencies]
+conduit-plot = { path = "../../../architecture/plot", optional = true }
+conduit-planner = { path = "../../../architecture/planner", optional = true }
 conduit-std-host = { path = "../../../targets/std", optional = true }
 conduit-host-make = { path = "../../../make/host", optional = true }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
