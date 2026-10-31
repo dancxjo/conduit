@@ -78,7 +78,9 @@ where
             return Ok(0);
         }
         let slot = queue_slot(spec, state.head, state.len - 1);
-        let newest = self.queue_slots[slot].ok_or(SchedulerError::InvalidPlan)?;
+        let newest = self.queue_slots[slot]
+            .ok_or(SchedulerError::InvalidPlan)?
+            .resolve(&self.values)?;
         Ok(spec
             .byte_capacity
             .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))
@@ -125,6 +127,32 @@ where
     ) -> Result<Option<GeneratedStepOutput>, SchedulerError> {
         if let Some((port, output)) = io.prepared_output {
             let declared_len = output.logical_bytes();
+            #[cfg(feature = "alloc")]
+            if let PreparedStepValue::CompactCanonical(logical) = output {
+                let (bound_port, layout) = self
+                    .compact_canonical_output_binding(node)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                if bound_port != port {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.ensure_output_value_envelope(node, port, logical)?;
+                let bytes = self.drivers[node]
+                    .prepared_compact_canonical_output(port)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                let value = self
+                    .values
+                    .store_compact_canonical(layout, bytes, logical)?;
+                let slot = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if slot.is_some() {
+                    self.values.release(value)?;
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                *slot = Some(value);
+                return Ok(Some(GeneratedStepOutput::copied(value)));
+            }
             #[cfg(feature = "alloc")]
             if let PreparedStepValue::NativeU64(value) = output {
                 if self.native_output_ports[node] != Some(port) {
@@ -189,6 +217,28 @@ where
                     return Err(SchedulerError::InvalidPortAccess);
                 }
                 *slot = Some(value);
+                return Ok(Some(GeneratedStepOutput::copied(value)));
+            }
+            if self.drivers[node].encodes_prepared_output(port) {
+                self.ensure_output_value_envelope(node, port, declared_len)?;
+                let output = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if output.is_some() {
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                let declared =
+                    usize::try_from(declared_len).map_err(|_| StorageError::ValueTooLarge)?;
+                let driver = &self.drivers[node];
+                let value = self.values.store_prepared_encoded(declared, &mut |bytes| {
+                    let length = driver.encode_prepared_output(port, bytes)?;
+                    if length != declared {
+                        return Err(StorageError::ValueTooLarge);
+                    }
+                    Ok(length)
+                })?;
+                *output = Some(value);
                 return Ok(Some(GeneratedStepOutput::copied(value)));
             }
             let bytes = self.drivers[node]

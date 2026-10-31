@@ -24,7 +24,11 @@ pub(super) fn validate_input(
     bytes: &[u8],
     profile: QuantityValueProfile,
 ) -> Result<(), Refusal> {
-    if crate::expression_quantity::is_quantity(kind) {
+    if kind == conduit_core::RESOURCE_REFERENCE_INFO_ID {
+        conduit_core::BoundedResourceRef::validate_encoded(bytes)
+            .map(|_| ())
+            .map_err(|_| Refusal::InvalidInput)
+    } else if crate::expression_quantity::is_quantity(kind) {
         validate_quantity(kind, bytes, profile)
     } else {
         conduit_core::validate_primitive_info(kind, bytes).map_err(|_| Refusal::InvalidInput)
@@ -124,7 +128,12 @@ impl super::PreparedPortableExpressionEvaluator {
     /// storage has not been reviewed for the installed exact profile.
     pub fn exact_quantity_profile_bounds(&self) -> Option<(usize, usize, usize, u64)> {
         use super::{PreparedInput, PreparedOperation as Op, PreparedRoot};
-        if self.input.quantity_profile() != QuantityValueProfile::Exact {
+        // Predicate ownership has a separate work/schema ledger. This concrete
+        // tree bound does not claim the complete retained predicate closure.
+        if self.input.quantity_profile() != QuantityValueProfile::Exact
+            || self.input_value_contract.is_some()
+            || self.output_value_contract.is_some()
+        {
             return None;
         }
         let PreparedRoot::Primitive {

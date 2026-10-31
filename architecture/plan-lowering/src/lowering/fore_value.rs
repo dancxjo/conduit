@@ -90,7 +90,7 @@ fn validate_quantity(
         .map_err(ForeValueRefusal::QuantityProfile)
 }
 
-pub(super) fn selected_profile(
+pub(crate) fn selected_profile(
     fragment: &PlanFragment,
     fore: &conduit_core::PlannedForePort,
 ) -> Result<QuantityValueProfile, LoweringError> {
@@ -139,6 +139,33 @@ fn required_capacity(
     match direction {
         PortDirection::Input => contract.map_or(maximum, |c| c.maximum_bytes.min(maximum)),
         PortDirection::Output => maximum,
+    }
+}
+
+/// Canonical external Fore/port contract check shared by rich and borrowed projections.
+pub(super) fn fields_match(
+    value_kind: &KindId,
+    abnormal_kind: Option<&KindId>,
+    temporal: PortTemporal,
+    planned: &conduit_core::PlannedForePort,
+) -> bool {
+    match planned.track {
+        ConnectionTrack::Payload => {
+            value_kind == &planned.value_kind && temporal == planned.temporal
+        }
+        ConnectionTrack::AbnormalTerminal => {
+            abnormal_kind == Some(&planned.value_kind) && planned.temporal == PortTemporal::Value
+        }
+        ConnectionTrack::NormalClose => {
+            temporal == (PortTemporal::Flow { closes: true })
+                && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
+                && planned.temporal == PortTemporal::Value
+        }
+        ConnectionTrack::Quiescence => {
+            matches!(temporal, PortTemporal::Flow { .. })
+                && planned.value_kind.as_str() == conduit_core::EMPTY_INFO_ID
+                && planned.temporal == PortTemporal::Value
+        }
     }
 }
 

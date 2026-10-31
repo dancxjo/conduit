@@ -352,7 +352,7 @@ fn oversized_explicit_context_refuses_before_configuration_cloning() {
         .iter_mut()
         .find(|entry| entry.key == "basis")
         .unwrap()
-        .value = ConfigurationValue::Text("x".repeat(1024 * 1024));
+        .value = ConfigurationValue::Text("x".repeat(1024 * 1024).into());
     assert!(matches!(
         scope.prepare_literal(
             &document,

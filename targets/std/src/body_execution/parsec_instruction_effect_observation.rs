@@ -11,7 +11,7 @@ pub struct ParsecInstructionEffectObservation {
     pub(crate) source_call: u16,
     pub(crate) source_request: u32,
     pub(crate) value_slot: u16,
-    pub(crate) value_generation: u16,
+    pub(crate) value_generation: u32,
     pub(crate) value_bytes: u32,
     pub(crate) effect_node: u16,
     pub(crate) effect_call: u16,

@@ -1,0 +1,22 @@
+[package]
+name = "conduit-environment-linux"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[features]
+observed-recording = ["conduit-environment-runtime/face-projection"]
+installed-seed = ["dep:conduit-std-host", "dep:conduit-body"]
+
+[dependencies]
+conduit-std-host = { path = "../../../targets/std", default-features = false, optional = true }
+conduit-body = { path = "../../../architecture/body", optional = true }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false }
+conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
+conduit-environment-runtime = { path = "../runtime", features = ["recording-kernel"] }
+conduit-linux-snapshot-store = { path = "../../../targets/std/resource-snapshot" }
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot", features = ["host-call"] }

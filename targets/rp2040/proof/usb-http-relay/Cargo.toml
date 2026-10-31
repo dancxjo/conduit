@@ -1,0 +1,61 @@
+[package]
+name = "conduit-pico-usb-http-relay"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[features]
+default = []
+# Selects only the existing physical CYW43 network initializer's compatibility
+# cfg. No Signal, Body, HIL client or authored Plan is imported into this image.
+firmware = ["appliance-hil-client"]
+appliance-hil-client = []
+
+[[bin]]
+name = "conduit-pico-usb-http-relay"
+path = "src/main.rs"
+required-features = ["firmware"]
+
+[dependencies]
+conduit-device-carrier-protocol = { path = "../../../../mechanisms/io/device-carrier-protocol" }
+
+[target.'cfg(target_arch = "arm")'.dependencies]
+conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
+conduit-rp2040-network-realization = { path = "../../../../targets/rp2040/network-realization" }
+conduit-environment-face = { path = "../../../../bodies/environment/face" }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+conduit-rp2040-tm1637 = { path = "../../tm1637" }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }
+linked_list_allocator = { version = "0.10.6", default-features = false }
+critical-section = "1.2"
+aligned = "0.4.3"
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.6"
+panic-halt = "1.0.0"
+static_cell = "2"
+portable-atomic = { version = "1", features = ["critical-section"] }
+heapless = "0.8"
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["platform-cortex-m", "executor-thread"] }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["critical-section-impl", "rp2040", "time-driver"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp", "udp"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[dev-dependencies]
+conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
+conduit-environment-face = { path = "../../../../bodies/environment/face" }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+
+[build-dependencies]
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }

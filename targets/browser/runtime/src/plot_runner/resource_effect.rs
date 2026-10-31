@@ -1,39 +1,17 @@
 //! Storage effects beneath the existing browser scheduler. No scheduling policy.
 use super::*;
-use crate::resource_snapshot::{
-    PreparedSnapshotRecord, SnapshotRefusal, PUBLISH_OPERATION, READ_OPERATION,
-};
-use conduit_core::{AuthorityBinding, PlannedGear};
-use conduit_kernel::{Failure, FailureCode};
+pub(super) use crate::resource_snapshot::PreparedSnapshotOperation as SnapshotState;
+use crate::resource_snapshot::{SnapshotStorageRequest, PUBLISH_OPERATION, READ_OPERATION};
+use conduit_kernel::Failure;
 
-pub(super) struct SnapshotState {
-    record: PreparedSnapshotRecord,
-    reference: Vec<u8>,
-    authority: AuthorityBinding,
-    pending: Option<conduit_kernel::RequestId>,
-}
-impl SnapshotState {
-    pub(super) fn prepare(placement: &PlannedGear) -> Result<Self, String> {
-        let reference = crate::installed_browser::resource::reference(placement)?;
-        let record = PreparedSnapshotRecord::prepare(placement, &reference).map_err(debug_error)?;
-        Ok(Self {
-            record,
-            reference: reference.encode().map_err(debug_error)?,
-            authority: placement.authority[0].clone(),
-            pending: None,
-        })
-    }
-}
 pub(super) fn matches(contract: &str) -> bool {
     matches!(contract, PUBLISH_OPERATION | READ_OPERATION)
 }
 
 pub(super) fn begin(
     scheduler: &mut TourScheduler,
-    placement: &PlannedGear,
     request: HostCallRequest,
 ) -> Result<Option<PendingHostEffect>, String> {
-    let publish = placement.host_calls[0].contract_id.as_str() == PUBLISH_OPERATION;
     let input = scheduler
         .kernel
         .host_value(request.input.value)
@@ -41,27 +19,8 @@ pub(super) fn begin(
     let state = scheduler.snapshots[usize::from(request.node.0)]
         .as_mut()
         .ok_or("snapshot was not prepared")?;
-    let failure = if publish {
-        match conduit_web::validate_json_text(input) {
-            Ok(_) => state
-                .record
-                .publication(&state.authority, input)
-                .err()
-                .map(snapshot_failure),
-            Err(error) => Some(Failure {
-                code: FailureCode::InvalidInput,
-                detail: error as u16,
-            }),
-        }
-    } else if input != state.reference {
-        Some(Failure {
-            code: FailureCode::InvalidInput,
-            detail: 208,
-        })
-    } else {
-        None
-    };
-    if let Some(failure) = failure {
+    let publish = state.is_publish();
+    if let Err(failure) = state.begin(request, input) {
         scheduler
             .complete_host_call(
                 request.node,
@@ -75,43 +34,23 @@ pub(super) fn begin(
             .map_err(debug_error)?;
         return Ok(None);
     }
-    state.pending = Some(request.request);
     Ok(Some(PendingHostEffect {
         request,
         effect: BrowserHostEffect::Snapshot { publish },
     }))
 }
 
-#[derive(serde::Serialize)]
-pub(in crate::plot_runner) struct StorageRequest<'a> {
-    pub effect_kind: &'static str,
-    pub key: &'a str,
-    pub record: Option<&'a [u8]>,
-}
-
 pub(in crate::plot_runner) fn describe<'a>(
     scheduler: &'a TourScheduler,
     pending: &PendingHostEffect,
-) -> Result<StorageRequest<'a>, String> {
-    let BrowserHostEffect::Snapshot { publish } = pending.effect else {
+) -> Result<SnapshotStorageRequest<'a>, String> {
+    let BrowserHostEffect::Snapshot { .. } = pending.effect else {
         return Err("not a snapshot request".into());
     };
     let state = scheduler.snapshots[usize::from(pending.request.node.0)]
         .as_ref()
         .ok_or("snapshot was not prepared")?;
-    Ok(StorageRequest {
-        effect_kind: if publish {
-            "resource-publish"
-        } else {
-            "resource-read"
-        },
-        key: state.record.storage_key(),
-        record: if publish {
-            state.record.candidate_record()
-        } else {
-            None
-        },
-    })
+    state.describe(pending.request).map_err(debug_error)
 }
 
 /// Acknowledgement completes the original kernel request. Failed storage cannot
@@ -121,26 +60,15 @@ pub(super) fn complete(
     pending: &PendingHostEffect,
     result: Result<Option<&[u8]>, Failure>,
 ) -> Result<(), String> {
-    let BrowserHostEffect::Snapshot { publish } = pending.effect else {
+    let BrowserHostEffect::Snapshot { .. } = pending.effect else {
         return Err("not a snapshot request".into());
     };
     let state = scheduler.snapshots[usize::from(pending.request.node.0)]
         .as_ref()
         .ok_or("snapshot was not prepared")?;
-    if state.pending != Some(pending.request.request) {
-        return Err("snapshot completion is stale".into());
-    }
-    let result = result.and_then(|record| match (publish, record) {
-        (true, None) => Ok(state.reference.as_slice()),
-        (false, Some(record)) => state
-            .record
-            .restore(&state.authority, record)
-            .map_err(snapshot_failure),
-        _ => Err(Failure {
-            code: FailureCode::HostCallFailed,
-            detail: 209,
-        }),
-    });
+    state.describe(pending.request).map_err(debug_error)?;
+    let bound = state.output_bound();
+    let result = state.completion(pending.request, result);
     let outcome = match result {
         Ok(bytes) => HostCallOutcome {
             disposition: HostCallDisposition::Completed,
@@ -150,7 +78,7 @@ pub(super) fn complete(
                         .kernel
                         .store_host_value(bytes)
                         .map_err(debug_error)?,
-                    if publish { 512 } else { 4096 },
+                    bound,
                 )
                 .map_err(debug_error)?,
             ),
@@ -168,30 +96,12 @@ pub(super) fn complete(
     scheduler.snapshots[usize::from(pending.request.node.0)]
         .as_mut()
         .expect("prepared snapshot")
-        .pending = None;
+        .finish(pending.request)
+        .map_err(debug_error)?;
     if completion.is_err() {
         if let Some(output) = output {
             scheduler.discard_host_value(output).map_err(debug_error)?;
         }
     }
     completion.map_err(debug_error)
-}
-
-fn snapshot_failure(error: SnapshotRefusal) -> Failure {
-    let detail = match error {
-        SnapshotRefusal::InvalidBinding => 200,
-        SnapshotRefusal::ForeignHost => 201,
-        SnapshotRefusal::StaleBoot => 202,
-        SnapshotRefusal::UnsupportedLifetime => 203,
-        SnapshotRefusal::AuthorityDenied => 204,
-        SnapshotRefusal::Reference(_) => 205,
-        SnapshotRefusal::WrongAccess => 206,
-        SnapshotRefusal::ContentExtent => 207,
-        SnapshotRefusal::CorruptRecord => 208,
-        SnapshotRefusal::UnsupportedExpiry => 210,
-    };
-    Failure {
-        code: FailureCode::HostCallFailed,
-        detail,
-    }
 }

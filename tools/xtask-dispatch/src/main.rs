@@ -145,6 +145,8 @@ mod ci_dispatch;
 #[path = "../../xtask/src/commands/dht11_probe.rs"]
 mod dht11_probe;
 mod linux_display;
+#[path = "../../xtask/src/commands/linux_face_display.rs"]
+mod linux_face_display;
 mod local_storage;
 #[path = "../../xtask/src/commands/model_authoring.rs"]
 mod model_authoring;
@@ -154,6 +156,13 @@ mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.starts_with(&["make".into(), "linux-face-display".into()]) {
+        if let Err(error) = linux_face_display::run(&arguments[2..]) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if arguments.starts_with(&[
         "make".into(),
         "host".into(),

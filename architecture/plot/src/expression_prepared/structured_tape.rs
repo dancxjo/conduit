@@ -3,7 +3,7 @@ use super::{append, child, constant_child, ChildEvaluator, PreparedChild};
 use crate::expression_prepared::fixed_projection;
 use crate::expression_prepared::{PreparedInput, ProgramView, Refusal};
 use crate::{PortableExpressionNode as Node, PortableExpressionOperation as Expression};
-use alloc::vec::Vec;
+use alloc::{borrow::Cow, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
 const MAX_OPERATIONS: usize = 512;
@@ -12,22 +12,32 @@ const MAX_CONSTANT_BYTES: usize = 64 * 1024;
 const MAX_DEPTH: u8 = 32;
 
 #[derive(Clone, Copy)]
-enum Operation {
+pub(in crate::expression_prepared) enum Operation {
     Bytes { start: u32, length: u32 },
     InputNode { start: u32, length: u32 },
     Value(u16),
     BranchFalse { value: u16, target: u16 },
     Jump(u16),
 }
-pub(super) struct StructuredTape {
-    code: Vec<Operation>,
-    constants: Vec<u8>,
-    values: Vec<PreparedChild>,
+pub(in crate::expression_prepared) struct StructuredTape {
+    pub(in crate::expression_prepared) code: Vec<Operation>,
+    pub(in crate::expression_prepared) linked: Option<&'static [u8]>,
+    pub(in crate::expression_prepared) constants: Cow<'static, [u8]>,
+    pub(in crate::expression_prepared) values: Vec<PreparedChild>,
 }
 impl StructuredTape {
+    pub(in crate::expression_prepared) fn compact_scalars(&mut self) {
+        for value in &mut self.values {
+            value.evaluator.compact_scalars();
+        }
+    }
+
     /// Optimization eligibility is not a new program-acceptance rule. Bounded
     /// compiler refusal leaves ordinary preparation to report its own result.
-    pub(super) fn prepare(program: ProgramView<'_>, input: &PreparedInput) -> Option<Self> {
+    pub(in crate::expression_prepared) fn prepare(
+        program: ProgramView<'_>,
+        input: &PreparedInput,
+    ) -> Option<Self> {
         if !matches!(
             program.root.operation,
             Expression::Record(_)
@@ -40,20 +50,29 @@ impl StructuredTape {
         }
         let mut tape = Self {
             code: Vec::new(),
-            constants: Vec::new(),
+            linked: None,
+            constants: Cow::Owned(Vec::new()),
             values: Vec::new(),
         };
         tape.lower(program, program.root, input, 0).ok()?;
         tape.code.shrink_to_fit();
-        tape.constants.shrink_to_fit();
+        tape.constants.to_mut().shrink_to_fit();
         tape.values.shrink_to_fit();
         Some(tape)
     }
 
-    pub(super) fn evaluate(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
+    pub(in crate::expression_prepared) fn evaluate(
+        &mut self,
+        input: &[u8],
+        output: &mut Vec<u8>,
+    ) -> Result<(), Refusal> {
         let mut pc = 0;
-        while pc < self.code.len() {
-            match self.code[pc] {
+        while pc < self.linked.map_or(self.code.len(), |r| r.len() / 12) {
+            match if let Some(r) = self.linked {
+                super::super::linked::structured_instruction(r, pc)?
+            } else {
+                self.code[pc]
+            } {
                 Operation::Bytes { start, length } => {
                     let bytes = self
                         .constants
@@ -111,7 +130,7 @@ impl StructuredTape {
             return Err(Refusal::InvalidProgram);
         }
         let start = self.constants.len() as u32;
-        self.constants.extend_from_slice(bytes);
+        self.constants.to_mut().extend_from_slice(bytes);
         // A jump to the next instruction must execute subsequent common bytes.
         // Extending a previous branch's Bytes instruction would skip them.
         let joins_here = self.code.iter().any(|operation| {

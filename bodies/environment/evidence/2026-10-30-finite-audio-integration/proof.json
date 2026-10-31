@@ -1,0 +1,35 @@
+{
+  "schema": "conduit.environment/finite-audio-integration-cpu@1",
+  "proof_class": "CPU initialized-provider/Plan/Fore/codec fixtures; not shared Body delivery",
+  "upstream_commits": [
+    "db4e72618f51bfc30e57844bbe1f909a7e902b2c",
+    "0e08cf3217"
+  ],
+  "applied_commits": [
+    "59318d2640",
+    "dc3f079dc3"
+  ],
+  "tests": {
+    "relevant_microphone": 42,
+    "complete_admission": 3,
+    "installed_startup": 8
+  },
+  "complete_thin_microphone_host": {
+    "capabilities": 3,
+    "base_capabilities": 2,
+    "bases": 1,
+    "resource_units": 1,
+    "expanded_bytes": 5248,
+    "compressed_bytes": 1415,
+    "routed_bytes": 3734
+  },
+  "complete_reference_expanded_bytes": 922363,
+  "original_limits_unchanged": true,
+  "authored_proof_composition": "minimal with text; actual initialized clip and Flow offers retained",
+  "physical_pcm_flow": false,
+  "shared_body_admission": false,
+  "protected_line": false,
+  "shared_face_audio": false,
+  "std_host_strict_clippy": true,
+  "xtask_check": true
+}

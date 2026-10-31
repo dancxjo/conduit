@@ -132,8 +132,68 @@ impl ApplianceSource {
         authority: &[conduit_core::AuthorityGrant],
     ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
         use alloc::collections::BTreeMap;
-        let hosts = [host.clone()];
-        let placements = conduit_planner::default_expanded_placements(&self.expanded, &hosts)?;
+        let (placements, connection_limits) = self.local_planning_inputs(host)?;
+        let hosts = core::slice::from_ref(host);
+        conduit_planner::plan_expanded_canonical_with_connection_limits(
+            &self.expanded,
+            hosts,
+            &placements,
+            bases,
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 1024,
+                authority_grants: authority,
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &connection_limits,
+        )
+    }
+    /// Retire the checked expansion after ordinary planning, transferring its
+    /// program/configuration buffers into the resulting exact current Plan.
+    pub fn into_plan_local(
+        self,
+        host: &conduit_core::HostAdvertisement,
+        bases: &[conduit_core::BaseImplementationId],
+        authority: &[conduit_core::AuthorityGrant],
+    ) -> Result<conduit_core::Plan, conduit_planner::PlannerError> {
+        use alloc::collections::BTreeMap;
+        let (placements, connection_limits) = self.local_planning_inputs(host)?;
+        conduit_planner::plan_expanded_canonical_consuming_with_connection_limits(
+            self.expanded,
+            core::slice::from_ref(host),
+            &placements,
+            bases,
+            conduit_planner::PlanningOptions {
+                connection_bases: &BTreeMap::new(),
+                line_candidates: &BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: 1024,
+                authority_grants: authority,
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+            &connection_limits,
+        )
+    }
+
+    fn local_planning_inputs(
+        &self,
+        host: &conduit_core::HostAdvertisement,
+    ) -> Result<
+        (
+            conduit_planner::PlacementChoices,
+            alloc::collections::BTreeMap<
+                conduit_planner::ConnectionEndpoints,
+                conduit_planner::ConnectionQueueLimits,
+            >,
+        ),
+        conduit_planner::PlannerError,
+    > {
+        let hosts = core::slice::from_ref(host);
+        let placements = conduit_planner::default_expanded_placements(&self.expanded, hosts)?;
         let connection_limits = self
             .expanded
             .connections
@@ -186,22 +246,7 @@ impl ApplianceSource {
                 ))
             })
             .collect::<Result<_, conduit_planner::PlannerError>>()?;
-        conduit_planner::plan_expanded_canonical_with_connection_limits(
-            &self.expanded,
-            &hosts,
-            &placements,
-            bases,
-            conduit_planner::PlanningOptions {
-                connection_bases: &BTreeMap::new(),
-                line_candidates: &BTreeMap::new(),
-                connection_item_capacity: 1,
-                connection_byte_capacity: 1024,
-                authority_grants: authority,
-                protected_resource_grants: &[],
-                line_offers: &[],
-            },
-            &connection_limits,
-        )
+        Ok((placements, connection_limits))
     }
 }
 

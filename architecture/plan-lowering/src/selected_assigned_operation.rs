@@ -47,6 +47,29 @@ pub fn bind_selected_assigned_operation(
 ) -> Result<NodeId, E> {
     bind_selected_assigned_configured_operation(table, claim, definition, &[], native, selected)
 }
+/// Bind against an authority subject retained by the initialized native owner,
+/// independently of any received assignment or operation claim.
+pub fn bind_selected_assigned_operation_for_subject(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    subject: &c::KindId,
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        &[],
+        native,
+        AssignedSelection {
+            subject,
+            operation: selected,
+            fore: None,
+        },
+    )
+}
 /// Check assigned configuration against trusted Source facts retained by Root.
 pub fn bind_selected_assigned_configured_operation(
     table: &c::BaseCapabilityTable,
@@ -56,6 +79,7 @@ pub fn bind_selected_assigned_configured_operation(
     native: AssignedNativeIdentity<'_>,
     selected: SelectedAssignedOperationPlan<'_>,
 ) -> Result<NodeId, E> {
+    let subject = &definition.kind.kind_id;
     bind_assigned_profile(
         table,
         claim,
@@ -63,6 +87,7 @@ pub fn bind_selected_assigned_configured_operation(
         configuration,
         native,
         AssignedSelection {
+            subject,
             operation: selected,
             fore: None,
         },
@@ -77,19 +102,42 @@ pub fn bind_selected_assigned_fore_operation(
     native: AssignedNativeIdentity<'_>,
     selected: SelectedAssignedForeOperationPlan<'_>,
 ) -> Result<NodeId, E> {
-    bind_assigned_profile(
+    bind_selected_assigned_configured_fore_operation(
         table,
         claim,
         definition,
         &[],
         native,
+        selected,
+    )
+}
+/// Local Fore admission with independently retained checked configuration.
+/// Nonempty renderer configuration must be checked here as well as in the
+/// kernel tables; the incoming assignment cannot supply its own expectation.
+pub fn bind_selected_assigned_configured_fore_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedForeOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    let subject = &definition.kind.kind_id;
+    bind_assigned_profile(
+        table,
+        claim,
+        definition,
+        configuration,
+        native,
         AssignedSelection {
+            subject,
             operation: selected.operation,
             fore: Some(selected.fore),
         },
     )
 }
 struct AssignedSelection<'a> {
+    subject: &'a c::KindId,
     operation: SelectedAssignedOperationPlan<'a>,
     fore: Option<&'a [c::AssignedForeRequirement]>,
 }
@@ -141,7 +189,7 @@ fn bind_assigned_profile(
             &claim.boot_id,
             active.play_sequence,
         ) != *active
-        || claim.subject_kind != definition.kind.kind_id
+        || &claim.subject_kind != admission.subject
         || claim.operation_contract_id.as_str() != definition.call
     {
         return Err(wrong());
@@ -210,7 +258,7 @@ fn bind_assigned_profile(
                 calls += 1;
                 if u16_at(data, 2)? != 0
                     || identity(data, 4)? != id(definition.call)
-                    || identity(data, 20)? != id(definition.kind.kind_id.as_str())
+                    || identity(data, 20)? != id(admission.subject.as_str())
                     || u16_at(data, 36)? != 1
                     || u32_at(data, 38)? != definition.input_bytes
                     || u32_at(data, 42)? != definition.output_bytes
@@ -253,7 +301,7 @@ fn bind_assigned_profile(
         || b.grant != id(scope.authority_grant_id.as_str())
         || b.authority != id(native.authority)
         || b.call != id(definition.call)
-        || b.subject != id(definition.kind.kind_id.as_str())
+        || b.subject != id(admission.subject.as_str())
         || b.host != view.host
         || b.boot != view.boot
         || b.authority_capability != b.capability

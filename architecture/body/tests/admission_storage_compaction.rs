@@ -66,7 +66,10 @@ fn actual_record_compaction_preserves_wire_order_attempts_and_nested_identity_ba
         .map(|(a, b)| (a.capacity - b.capacity) * a.element_bytes)
         .sum();
     assert!(reclaimed > 0);
-    println!("inline storage before={old:?} after={after:?} reclaimed_bytes={reclaimed} replacement_peak_bytes={}", observed.peak_bytes);
+    println!(
+        "inline storage before={old:?} after={after:?} reclaimed_bytes={reclaimed} replacement_peak_bytes={}",
+        observed.peak_bytes
+    );
     assert_eq!(
         observed.deallocated_bytes - observed.requested_bytes,
         reclaimed
@@ -103,7 +106,19 @@ fn each_real_replacement_allocation_can_refuse_atomically() {
 
 #[test]
 fn empty_collections_release_only_spare_backing_without_allocating() {
-    let mut empty = AdmissionManager::new(manager().body_id.clone()).unwrap();
+    let mut manager = manager();
+    manager.retire_unfinished_challenges();
+    manager.try_compact_storage().unwrap();
+    let usage = manager.storage_usage();
+    assert_eq!(
+        (
+            usage.pending_admissions.capacity,
+            usage.invitations.capacity,
+            usage.pending_returns.capacity
+        ),
+        (0, 0, 0)
+    );
+    let mut empty = AdmissionManager::new(manager.body_id.clone()).unwrap();
     empty.receipts.reserve_exact(3);
     let (result, memory) = allocation_probe::observe(|| empty.try_compact_storage());
     assert_eq!(result, Ok(()));

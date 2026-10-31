@@ -82,6 +82,17 @@ fn only_retained_native_slot_projects_its_exact_resource_and_zero_result_offer()
 }
 #[test]
 fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight() {
+    retained_transfer(0);
+}
+#[test]
+fn verified_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight() {
+    retained_transfer(1);
+}
+#[test]
+fn direct_slot_survives_binding_refusal_and_transfers_only_after_complete_preflight() {
+    retained_transfer(2);
+}
+fn retained_transfer(verified: u8) {
     let state = Rc::new(State::default());
     let mut slot = Some(ready(state.clone()));
     let (mut fragment, _, _, placement) = fixture::selected();
@@ -109,7 +120,8 @@ fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_pref
     let mut foreign = active.clone();
     foreign.boot_id = "fixture/stale".into();
     let (table, handle, claim) = issue();
-    assert!(ReadyMonotonicWaitBase::bind_selected_retained(
+    assert!(bind_variant(
+        verified,
         &mut slot,
         table,
         handle,
@@ -125,13 +137,36 @@ fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_pref
     .is_err());
     assert!(slot.is_some());
     assert_eq!(state.calls.get(), 0);
+    let mut changed_configuration = fixture::configuration();
+    changed_configuration[1].value = ConfigurationValue::U64(251);
+    let (table, handle, claim) = issue();
+    assert!(matches!(
+        bind_variant(
+            verified,
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &changed_configuration,
+            SelectedOperationPlan {
+                fragment: &fragment,
+                lowered: &lowered,
+                active: &active,
+                placement_id: &placement
+            },
+        ),
+        Err(WaitCallRefusal::WrongBinding)
+    ));
+    assert!(slot.is_some());
+    assert_eq!(state.calls.get(), 0);
     let mut small_scope = fixture::scope();
     small_scope.capability_id = WAIT_CAPABILITY.into();
     small_scope.authority_contract_id = WAIT_AUTHORITY.into();
     small_scope.maximum_operations = 2; // independently checked Source needs three
     let (table, handle, claim) = fixture::authorization(small_scope, &fragment, &active);
     assert!(matches!(
-        ReadyMonotonicWaitBase::bind_selected_retained(
+        bind_variant(
+            verified,
             &mut slot,
             table,
             handle,
@@ -162,7 +197,8 @@ fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_pref
     );
     let (table, handle, claim) = issue();
     assert!(matches!(
-        ReadyMonotonicWaitBase::bind_selected_retained(
+        bind_variant(
+            verified,
             &mut too_short,
             table,
             handle,
@@ -180,7 +216,8 @@ fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_pref
     assert!(too_short.is_some());
     assert_eq!(state.calls.get(), 0);
     let (table, handle, claim) = issue();
-    let mut owner = ReadyMonotonicWaitBase::bind_selected_retained(
+    let mut owner = bind_variant(
+        verified,
         &mut slot,
         table,
         handle,
@@ -205,4 +242,78 @@ fn retained_slot_survives_binding_refusal_and_transfers_only_after_complete_pref
         Ok(())
     );
     assert_eq!(state.calls.get(), 1);
+}
+
+fn bind_variant(
+    verified: u8,
+    slot: &mut Option<ReadyMonotonicWaitBase<Provider>>,
+    table: BaseCapabilityTable,
+    handle: BaseCapabilityHandle,
+    claim: BaseOperationClaim,
+    configuration: &[ConfigurationEntry],
+    selection: SelectedOperationPlan<'_>,
+) -> Result<MonotonicWaitHostCall<Provider>, WaitCallRefusal> {
+    if verified == 0 {
+        return ReadyMonotonicWaitBase::bind_selected_retained(
+            slot,
+            table,
+            handle,
+            claim,
+            configuration,
+            selection,
+        );
+    }
+    let fragment = selection.fragment;
+    let mut plan = seal_plan(
+        PlotIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
+        },
+        vec![fragment.clone()],
+    );
+    for gear in &mut plan.fragments[0].placements {
+        gear.configuration.clear();
+    }
+    let plan = verify_plan_metadata_with_configurations(plan, |gear| {
+        Ok::<_, ()>(
+            fragment
+                .placements
+                .iter()
+                .find(|original| original.placement_id == gear.placement_id)
+                .unwrap()
+                .configuration
+                .clone(),
+        )
+    })
+    .unwrap();
+    if verified == 2 {
+        let tables=conduit_plan_lowering::local_tables::DirectLocalKernelTables::<1,0,1,1,0,1>::prepare(&plan,&fragment.fragment_id).unwrap();
+        return ReadyMonotonicWaitBase::bind_direct_retained(
+            slot,
+            table,
+            handle,
+            claim,
+            configuration,
+            conduit_plan_lowering::selected_operation::SelectedDirectOperationPlan {
+                tables: &tables,
+                active: selection.active,
+                placement_id: selection.placement_id,
+            },
+        );
+    }
+    ReadyMonotonicWaitBase::bind_verified_retained(
+        slot,
+        table,
+        handle,
+        claim,
+        configuration,
+        conduit_plan_lowering::selected_operation::SelectedVerifiedOperationPlan {
+            plan: &plan,
+            fragment_id: &fragment.fragment_id,
+            lowered: selection.lowered,
+            active: selection.active,
+            placement_id: selection.placement_id,
+        },
+    )
 }

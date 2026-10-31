@@ -63,7 +63,7 @@ impl BaseInitialization {
                 .get(&field.key)
                 .ok_or_else(|| format!("missing initialization field '{}'", field.key))?;
             let value = match value {
-                serde_json::Value::String(text) => ConfigurationValue::Text(text.clone()),
+                serde_json::Value::String(text) => ConfigurationValue::Text(text.clone().into()),
                 serde_json::Value::Bool(value) => ConfigurationValue::Bool(*value),
                 serde_json::Value::Number(value) => ConfigurationValue::U64(
                     value

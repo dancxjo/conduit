@@ -2,9 +2,9 @@ use crate::{BodyBiographyEvidence, BodyState, MembershipState, WakeLifecycle};
 use alloc::vec::Vec;
 use conduit_core::{bind_sign, BootId, HostId};
 
-use crate::{BodyLifecycleSession, BodyLifecycleSessionError};
+use crate::BodyLifecycleSessionError;
 
-impl BodyLifecycleSession {
+impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
     /// Restore one local body after the host has acquired exclusive continuity
     /// ownership and observed that the old Boot is gone. This is a trusted Host
     /// report, not a grant or proof of hostile-code confinement. A missing Play

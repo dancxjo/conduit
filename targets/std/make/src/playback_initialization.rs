@@ -6,7 +6,7 @@ use conduit_host_make::{
 pub(super) fn contract() -> BaseInitializationContract {
     let text = |key: &str, maximum| KindConfigurationField {
         key: key.into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text("".into()),
         rule: KindConfigurationRule::DataLabel { maximum },
     };
     BaseInitializationContract {

@@ -118,7 +118,7 @@ fn configuration_bounds_and_diagnostics_match_source_expansion() {
         assert_eq!(tool.is_ok(), expanded.is_ok());
         match (tool, expanded) {
             (Ok(value), Ok(plot)) => {
-                assert_eq!(value, ConfigurationValue::Text(text));
+                assert_eq!(value, ConfigurationValue::Text(text.into()));
                 assert_eq!(plot.gears[0].configuration[0].value, value);
             }
             (Err(tool), Err(source)) => {

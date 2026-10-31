@@ -66,9 +66,9 @@ fn fixture(
     entry.key = "values".into();
     if let ConfigurationValue::Text(encoded) = &mut entry.value {
         if optional_keep {
-            encoded.clear();
+            *encoded = Default::default();
         } else {
-            *encoded = format!("{encoded},{encoded}");
+            *encoded = format!("{encoded},{encoded}").into();
         }
     }
     let ConfigurationValue::Text(default) = &entry.value else {
@@ -114,7 +114,7 @@ fn fixture(
         let ConfigurationValue::Text(text) = entry.value else {
             unreachable!()
         };
-        text
+        text.into_string()
     };
     let mut expected = if optional_keep {
         encode(&initial)
@@ -153,7 +153,7 @@ fn fixture(
         .unwrap();
     let sink_contract = KindConfigurationField {
         key: expectation_key.into(),
-        default_value: ConfigurationValue::Text(expected.clone()),
+        default_value: ConfigurationValue::Text(expected.clone().into()),
         rule: KindConfigurationRule::TextBytes { maximum: 256 },
     };
     sink.semantic_contract.configuration = vec![sink_contract.clone()];

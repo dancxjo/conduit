@@ -12,6 +12,7 @@ pub mod activation_fragment;
 pub mod execution_regions;
 pub mod fragment_set;
 pub mod lowering;
+pub mod local_tables;
 pub mod shared_pool_runtime;
 
 /// Exact single-call native selection validation before Play.

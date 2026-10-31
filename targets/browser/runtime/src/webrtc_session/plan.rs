@@ -60,7 +60,7 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
         track: conduit_core::ConnectionTrack::Payload,
         temporal: PortTemporal::Value,
         pressure_policy: Default::default(),
-        selected_line: Some(line.clone()),
+        selected_line: Some(Box::new(line.clone())),
         admitted_lines: vec![line],
         item_capacity: 1,
         byte_capacity: PAYLOAD_CAPACITY,
@@ -71,12 +71,18 @@ pub(super) fn exact_binding(variant: u32) -> Result<SessionBinding, WireError> {
         1 => connection.connection_id = ConnectionId::from("browser-webrtc/wrong-connection"),
         2 => connection.value_kind = KindId::from("conduit-test/wrong-value@1"),
         3 => {
-            let line = connection.selected_line.as_mut().expect("selected Line");
+            let line = connection
+                .selected_line
+                .as_deref_mut()
+                .expect("selected Line");
             line.binding.source.boot_id = BootId::from("browser-webrtc/stale-source-boot");
             connection.admitted_lines[0] = line.clone();
         }
         4 => {
-            let line = connection.selected_line.as_mut().expect("selected Line");
+            let line = connection
+                .selected_line
+                .as_deref_mut()
+                .expect("selected Line");
             line.binding.base_instance_id =
                 BaseInstanceId::from("browser-webrtc/wrong-base-instance");
             connection.admitted_lines[0] = line.clone();

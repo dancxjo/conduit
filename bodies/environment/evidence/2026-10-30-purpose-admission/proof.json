@@ -1,0 +1,32 @@
+{
+  "schema": "conduit.environment/purpose-admission-cpu@1",
+  "proof_class": "CPU fixture; no microphone capture or native Root admission",
+  "limits": {
+    "expanded_advertisement_bytes": 65536,
+    "compressed_advertisement_bytes": 24576,
+    "routed_request_bytes": 49152
+  },
+  "microphone": {
+    "capabilities": 2,
+    "bases": 1,
+    "resources": 1,
+    "expanded_bytes": 3644,
+    "compressed_bytes": 1207,
+    "routed_bytes": 3318
+  },
+  "reference_expanded_bytes": 920759,
+  "optional_families_expanded_bytes": {
+    "time": 70762,
+    "text": 21601,
+    "time_text": 88619,
+    "input": 438857,
+    "native_speech": 252681
+  },
+  "native_root_admission": false,
+  "protected_line": false,
+  "body_plan_or_play": false,
+  "physical_audio": false,
+  "checked_make_tests_passed": 79,
+  "installed_startup_tests_passed": 8,
+  "admission_cpu_tests_passed": 3
+}

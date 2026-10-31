@@ -318,7 +318,7 @@ fn remote_session_claim_and_disclosure_keep_exact_truth() {
         track: Default::default(),
         temporal: PortTemporal::Flow { closes: true },
         pressure_policy: Default::default(),
-        selected_line: Some(admitted.clone()),
+        selected_line: Some(Box::new(admitted.clone())),
         admitted_lines: vec![admitted],
         item_capacity: 1,
         byte_capacity: 128,

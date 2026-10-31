@@ -4,8 +4,8 @@ use conduit_body::{
     validate_pico_spawn_provision, PicoSpawnProvision, MAX_PICO_ADMISSION_FRAME_BYTES,
 };
 
-const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
-const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+const FLASH_BOOTSTRAP_ADDRESS: usize = conduit_rp2040_flash_layout::BOOTSTRAP.address() as usize;
+const FLASH_BOOTSTRAP_BYTES: usize = conduit_rp2040_flash_layout::BOOTSTRAP.bytes() as usize;
 const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
 const HEADER_BYTES: usize = MAGIC.len() + 4;
 

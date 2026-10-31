@@ -44,8 +44,10 @@ members = [
 	"make/workspace",
 
 	# Reusable lower mechanisms and implementations.
-	"mechanisms/io/resource-snapshot",
 	"mechanisms/io/i2c-transaction",
+	"mechanisms/io/resource-snapshot",
+	"mechanisms/io/device-carrier-protocol",
+	"mechanisms/io/zenoh-pico-platform",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
@@ -100,6 +102,7 @@ members = [
 	"targets/esp32/make",
 	"targets/orange-pi/make",
 	"targets/raspberry-pi/make",
+	"targets/rp2040/flash-layout",
 	"targets/rp2040/make",
 	"targets/rp2040/network-realization",
 	"targets/std",

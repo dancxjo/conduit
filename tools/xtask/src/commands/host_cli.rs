@@ -196,6 +196,8 @@ pub(super) enum HostCommand {
         #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..=120))]
         timeout_seconds: u64,
     },
+    /// Capture finite PCM blocks through an admitted Plan and sealed output Fore.
+    ProveMicrophoneFlow(super::host_microphone_flow::Request),
     /// Explicitly capture one bounded microphone clip and recognize it through Whisper.
     ProveMicrophoneWhisper {
         #[arg(long)]

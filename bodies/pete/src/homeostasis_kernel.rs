@@ -255,7 +255,7 @@ fn policy_from_placement(placement: &PlannedGear) -> Result<HomeostasisPolicy, S
             .ok_or_else(|| format!("missing {key}"))
     };
     Ok(HomeostasisPolicy {
-        revision: text("policy-revision")?,
+        revision: text("policy-revision")?.to_string(),
         energy_low_permille: count("energy-low-permille")?,
         energy_critical_permille: count("energy-critical-permille")?,
         thermal_constrained_milli_celsius: scalar("thermal-constrained-milli-celsius")?,

@@ -51,7 +51,9 @@ pub(super) fn validate(value: &BodyMembership) -> Result<(), MembershipRefusal> 
     let base_parts = value
         .checkpoint
         .as_ref()
-        .map_or_else(Vec::new, |checkpoint| checkpoint.parts.clone());
+        .map_or_else(MembershipParts::default, |checkpoint| {
+            checkpoint.parts.clone()
+        });
     validate_parts(&base_parts)?;
     let replayed = replay_events(&value.body_id, base_parts, &value.events)?;
     if replayed != value.parts {
@@ -63,9 +65,9 @@ pub(super) fn validate(value: &BodyMembership) -> Result<(), MembershipRefusal> 
 
 fn replay_events(
     body_id: &BodyId,
-    mut parts: Vec<PartMembership>,
+    mut parts: MembershipParts,
     events: &[MembershipEvent],
-) -> Result<Vec<PartMembership>, MembershipRefusal> {
+) -> Result<MembershipParts, MembershipRefusal> {
     for event in events {
         match &event.kind {
             MembershipEventKind::Admitted { proof_id } => {

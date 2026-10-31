@@ -56,7 +56,8 @@ pub fn structured_selector_definition(
             default_value: ConfigurationValue::Text(
                 selector
                     .canonical_hex()
-                    .expect("checked selector has a finite canonical configuration"),
+                    .expect("checked selector has a finite canonical configuration")
+                    .into(),
             ),
             rule: KindConfigurationRule::TextBytes {
                 maximum: (MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,

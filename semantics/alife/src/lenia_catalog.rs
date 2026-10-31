@@ -200,7 +200,7 @@ pub fn scalar_field_face_definition() -> KindProjection {
             .chain(vec![
                 KindConfigurationField {
                     key: TITLE_KEY.to_string(),
-                    default_value: ConfigurationValue::Text(alloc::string::String::new()),
+                    default_value: ConfigurationValue::Text(alloc::string::String::new().into()),
                     rule: KindConfigurationRule::TextBytes { maximum: 64 },
                 },
                 i64_field(MINIMUM_KEY, 0, 0, 1_000_000),
@@ -239,7 +239,7 @@ fn i64_field(key: &str, default: i64, minimum: i64, maximum: i64) -> KindConfigu
 fn text_choice(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
     KindConfigurationField {
         key: key.to_string(),
-        default_value: ConfigurationValue::Text(default.to_string()),
+        default_value: ConfigurationValue::Text(default.to_string().into()),
         rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).to_string()).collect(),
         },

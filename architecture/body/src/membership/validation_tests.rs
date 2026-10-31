@@ -218,7 +218,8 @@ fn malformed_histories_keep_exact_legacy_refusal_and_first_error_order() {
         check(&changed);
     }
     let mut full = histories().remove(MAX_MEMBERSHIP_EVENTS);
-    full.parts.push(full.parts[0].clone());
+    let repeated = full.parts[0].clone();
+    full.parts.push(repeated);
     check(&full);
     let mut checkpoint = histories()
         .into_iter()
@@ -261,5 +262,38 @@ fn stack_identity_digest_matches_original_length_delimited_unicode_and_u64_bytes
                 );
             }
         }
+    }
+}
+
+#[test]
+fn borrowed_validation_preserves_shared_and_independent_checkpoint_owners() {
+    for value in histories()
+        .into_iter()
+        .filter(|value| value.checkpoint.is_some() && value.events.is_empty())
+    {
+        let checkpoint = value.checkpoint.as_ref().unwrap();
+        assert!(value.parts.shares_storage_with(&checkpoint.parts));
+        check(&value);
+        assert!(value.parts.shares_storage_with(&checkpoint.parts));
+        let mut decoded: BodyMembership =
+            serde_json::from_slice(&serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(
+            !decoded
+                .parts
+                .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts)
+        );
+        check(&decoded);
+        assert!(
+            !decoded
+                .parts
+                .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts)
+        );
+        decoded.share_validated_checkpoint_parts().unwrap();
+        check(&decoded);
+        assert!(
+            decoded
+                .parts
+                .shares_storage_with(&decoded.checkpoint.as_ref().unwrap().parts)
+        );
     }
 }

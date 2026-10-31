@@ -1,0 +1,173 @@
+//! UART management and autonomous Root setup polling; no Body lifecycle.
+//! Root setup advances independently of UART input through its selected kernel.
+use crate::native_carrier::Carrier;
+use crate::{
+    native_command::{Command, CommandBuffer},
+    native_root::NativeRoot,
+};
+use embassy_time::{with_timeout, Duration};
+const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"native_plan_installed\":false,\"image_sha256\":null,\"network_configuration\":\"";
+const REFUSED: &[u8] =
+    b"{\"event\":\"native-root-request-refused\",\"native_plan_installed\":false}\n";
+/// UART0 owns GPIO1 TX/GPIO3 RX. Command storage holds at most 64 bytes;
+/// reception has a five-second deadline and each response has two seconds.
+pub async fn serve(root: &mut NativeRoot, uart: &mut Carrier<'_>) -> Result<(), ()> {
+    let mut output = [0; crate::native_admission::MAXIMUM_ENVELOPE_BYTES];
+    #[cfg(not(feature = "owner-wifi"))]
+    offer(root, uart, &mut output).await?;
+    loop {
+        let mut byte = [0];
+        root.advance_setup().await;
+        match with_timeout(Duration::from_millis(100), uart.read_async(&mut byte)).await {
+            Err(_) => continue,
+            Ok(Ok(0)) | Ok(Err(_)) => return Err(()),
+            Ok(Ok(_)) => {}
+        }
+        let command = with_timeout(Duration::from_secs(5), async {
+            let mut command = CommandBuffer::new();
+            loop {
+                if let Some(command) = command.push(byte[0]) {
+                    return Ok(command);
+                }
+                if uart.read_async(&mut byte).await.map_err(|_| ())? == 0 {
+                    return Err(());
+                }
+            }
+        })
+        .await;
+        match command {
+            #[cfg(feature = "mask-root")]
+            Ok(Ok(Command::MaskContext)) => {
+                crate::native_mask_wire::receive(root, uart, &mut output).await?
+            }
+            #[cfg(feature = "mask-root")]
+            Ok(Ok(Command::MaskPolicy)) => {
+                let encoded = root.mask_policy(&mut output);
+                with_timeout(Duration::from_secs(2), async {
+                    write_all(uart, b"\n").await?;
+                    match encoded {
+                        Ok(n) => write_all(uart, &output[..n]).await?,
+                        Err(()) => write_all(uart, REFUSED).await?,
+                    }
+                    write_all(uart, b"\n").await
+                })
+                .await
+                .map_err(|_| ())??;
+            }
+            #[cfg(feature = "display-physical-check")]
+            Ok(Ok(Command::DisplayCheckControl)) => {
+                crate::native_owner_wire::receive_display(root, uart, &mut output).await?
+            }
+            #[cfg(feature = "display-physical-check")]
+            Ok(Ok(Command::DisplayCheckAssignment)) => {
+                crate::native_assignment::receive_display(root, uart, &mut output).await?
+            }
+            Ok(Ok(Command::OwnerControl)) => {
+                crate::native_owner_wire::receive(root, uart, &mut output).await?
+            }
+            Ok(Ok(Command::KernelPrepare)) => {
+                crate::native_kernel::report(root, uart, &mut output).await?
+            }
+            Ok(Ok(Command::Admission)) => {
+                // Malformed proof requests retire only this exchange, not Root.
+                if crate::native_admission_wire::serve(root, uart, &mut output)
+                    .await
+                    .is_err()
+                {
+                    with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
+                        .await
+                        .map_err(|_| ())??;
+                }
+            }
+            Ok(Ok(Command::AssignmentTransfer)) => {
+                crate::native_assignment::receive(root, uart, &mut output).await?
+            }
+            Ok(Ok(Command::Offer)) => offer(root, uart, &mut output).await?,
+            Ok(Ok(Command::DisplaySoftwareOffer)) => {
+                if crate::native_display_offer::write(root, uart)
+                    .await
+                    .is_err()
+                {
+                    with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
+                        .await
+                        .map_err(|_| ())??;
+                }
+            }
+            Ok(Ok(Command::SoftwareOffer)) => {
+                if crate::native_software_offer::write(root, uart)
+                    .await
+                    .is_err()
+                {
+                    with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
+                        .await
+                        .map_err(|_| ())??;
+                }
+            }
+            Ok(Ok(Command::AppliancePolicy)) => {
+                let encoded = crate::native_appliance_policy::encode(root, &mut output);
+                with_timeout(Duration::from_secs(2), async {
+                    write_all(uart, b"\n").await?;
+                    match encoded {
+                        Ok(len) => {
+                            write_all(uart, &output[..len]).await?;
+                            write_all(uart, b"\n").await
+                        }
+                        Err(()) => write_all(uart, REFUSED).await,
+                    }
+                })
+                .await
+                .map_err(|_| ())??;
+            }
+            Ok(Err(())) => return Err(()),
+            _ => with_timeout(Duration::from_secs(2), write_all(uart, REFUSED))
+                .await
+                .map_err(|_| ())??,
+        }
+    }
+}
+async fn offer(root: &mut NativeRoot, uart: &mut Carrier<'_>, output: &mut [u8]) -> Result<(), ()> {
+    let configuration = root.control_status().as_bytes();
+    let (failure_phase, failure_reason) = root.control_failure();
+    let (steps, dispatches, receipt) = root.control_progress();
+    let mut binding = [0; 512];
+    let len = serde_json_core::to_slice(&root.control_binding(), &mut binding).map_err(|_| ())?;
+    let binding = core::str::from_utf8(&binding[..len]).map_err(|_| ())?;
+    let (display_ready, display_refusal) = root.display_software_status();
+    let memory = crate::sdk_memory::stats();
+    let root_memory = esp_alloc::HEAP.stats();
+    let mut preparation = [0u8; 32];
+    let preparation_len =
+        serde_json_core::to_slice(&root.kernel_preparation_bound(), &mut preparation)
+            .map_err(|_| ())?;
+    let mut memory_json = heapless::String::<1536>::new();
+    use core::fmt::Write;
+    write!(
+        memory_json,
+        "\",\"body_installed\":{},\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_sdk_heap_peak_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"native_root_heap_peak_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"network_control_installed\":{},\"network_control_failure_phase\":\"{}\",\"network_control_failure_reason\":\"{}\",\"network_control_steps\":{},\"network_control_dispatches\":[{},{},{}],\"network_control_receipt\":{},\"network_control_kernel_bytes\":{},\"network_control_binding\":{},\"assignment_staged\":{},\"appliance_kernel_prepared\":{},\"owner_control_configured\":{},\"owner_control_sequence\":{},\"display_software_ready\":{},\"display_software_refusal\":\"{}\",\"sampling_software_ready\":{},\"advertisement\":",
+        root.body_installed(), memory.size, memory.current_usage, memory.max_usage, root_memory.size, root_memory.current_usage, root_memory.max_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready(), root.control_installed(), failure_phase, failure_reason, steps, dispatches[0], dispatches[1], dispatches[2], receipt, conduit_network_join_call::CONTROL_KERNEL_BYTES, binding, root.assignment_staged(), root.appliance_kernel_prepared(), root.owner_control_configured(), root.owner_control_sequence(), display_ready, display_refusal, root.software().is_some()
+    )
+    .map_err(|_| ())?;
+    // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.
+    let length = root.write_offer(output)?;
+    with_timeout(Duration::from_secs(2), async {
+        write_all(uart, PREFIX).await?;
+        write_all(uart, configuration).await?;
+        write_all(uart, memory_json.as_bytes()).await?;
+        write_all(uart, &output[..length]).await?;
+        write_all(uart, b",\"kernel_additional_preparation_bound\":").await?;
+        write_all(uart, &preparation[..preparation_len]).await?;
+        write_all(uart, b"}\n").await
+    })
+    .await
+    .map_err(|_| ())?
+}
+pub(super) async fn write_all(uart: &mut Carrier<'_>, mut bytes: &[u8]) -> Result<(), ()> {
+    while !bytes.is_empty() {
+        let count = uart.write_async(bytes).await.map_err(|_| ())?;
+        if count == 0 {
+            return Err(());
+        }
+        bytes = &bytes[count..];
+    }
+    Ok(())
+}

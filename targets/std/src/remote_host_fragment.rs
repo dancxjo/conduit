@@ -266,7 +266,15 @@ impl StdHost {
             fragment,
             play.identity().play_sequence,
         ) {
-            Ok(runtime) => runtime,
+            Ok(mut runtime) => {
+                if let Err(error) =
+                    runtime.prepare_microphone_flow_host(fragment, self.microphone.as_ref())
+                {
+                    self.kernel_resources.release(reservation)?;
+                    return Err(error);
+                }
+                runtime
+            }
             Err(error) => {
                 self.kernel_resources.release(reservation)?;
                 return Err(error);

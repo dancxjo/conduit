@@ -149,6 +149,12 @@ fn prepare_runtime_with_composition(
         })
     })?;
     let mut host = trace.run(Phase::HostConstruction, || {
+        let composition = installation
+            .selected_host_configuration
+            .as_ref()
+            .map(|selection| selection.composition(composition))
+            .transpose()?
+            .unwrap_or(composition);
         Ok(if let Some((initial, maximum_items)) = todo {
             StdHost::new_for_todo_scan(config, initial, maximum_items)?
         } else if let Some((initial, maximum_items)) = thermostat {

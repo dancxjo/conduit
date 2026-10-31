@@ -24,6 +24,7 @@ impl From<BodyLifecycleSessionError> for Refusal {
             Membership(error) => format!("Membership.{error:?}"),
             Lifecycle(error) => format!("Lifecycle.{error:?}"),
             Plan(error) => format!("Plan.{error:?}"),
+            PlanSeal(error) => format!("PlanSeal.{error:?}"),
             NotLulled => "NotLulled".into(),
             NoProposal => "NoProposal".into(),
             AlreadyPlaying => "AlreadyPlaying".into(),

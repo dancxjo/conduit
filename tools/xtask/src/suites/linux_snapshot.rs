@@ -5,7 +5,13 @@ pub const STEPS: &[Step] = &[
         "linux-snapshot.records",
         "Check the shared immutable record codec",
         "cargo",
-        &["test", "--locked", "-p", "conduit-resource-snapshot"],
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-resource-snapshot",
+            "--all-features",
+        ],
     ),
     Step::new(
         "linux-snapshot.files",

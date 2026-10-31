@@ -4,6 +4,11 @@ mod host_call_back;
 mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
+mod stored_value;
+use stored_value::{StoredHostOutcome, StoredValueKey};
+mod remote_input;
+#[cfg(feature = "alloc")]
+pub use remote_input::HostEncodingRefusal;
 mod output_readiness;
 pub use host_call_back::HostCallBack;
 pub use host_values::HostValueDiscardRefusal;
@@ -22,6 +27,7 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+mod compact_canonical;
 #[cfg(feature = "alloc")]
 mod compact_f32;
 mod cord_prefix;
@@ -336,7 +342,7 @@ struct PendingHostCall {
     dispatched: bool,
     cancellation_requested: bool,
     cancellation_dispatched: bool,
-    completion: Option<HostCallOutcome>,
+    completion: Option<StoredHostOutcome>,
 }
 
 pub trait StepBack<const PORTS: usize> {
@@ -374,6 +380,15 @@ pub trait StepBack<const PORTS: usize> {
     }
     /// Exact compact layouts implemented by this prepared Back. These are
     /// physical declarations, not proofs of semantic purity or authority.
+    fn compact_canonical_input(&self, _port: PortId) -> Option<crate::CompactCanonicalLayout> {
+        None
+    }
+    fn compact_canonical_output(&self) -> Option<(PortId, crate::CompactCanonicalLayout)> {
+        None
+    }
+    fn prepared_compact_canonical_output(&self, _port: PortId) -> Option<&[u8]> {
+        None
+    }
     #[cfg(feature = "alloc")]
     fn compact_f32_input(&self, _port: PortId) -> Option<CompactF32Layout> {
         None
@@ -395,6 +410,26 @@ pub trait StepBack<const PORTS: usize> {
         _port: PortId,
     ) -> Option<&mut alloc::vec::Vec<u8>> {
         None
+    }
+    /// Explicit opt-in: canonical bytes are composed only into the scheduler's
+    /// admitted transactional slot, after the ordinary Step preflight. This
+    /// declaration is stable before Play and independent of pending state.
+    fn encodes_prepared_output(&self, _port: PortId) -> bool {
+        false
+    }
+    fn encode_prepared_output(
+        &self,
+        port: PortId,
+        output: &mut [u8],
+    ) -> Result<usize, StorageError> {
+        let bytes = self
+            .prepared_output(port)
+            .ok_or(StorageError::RepresentationMismatch)?;
+        let target = output
+            .get_mut(..bytes.len())
+            .ok_or(StorageError::ValueTooLarge)?;
+        target.copy_from_slice(bytes);
+        Ok(bytes.len())
     }
     /// Physical bytes staged by prepared or admitted compact publication. The storage
     /// belongs to this already-prepared Back and must remain unchanged until
@@ -423,6 +458,8 @@ pub struct StepInputBytes<'a, const PORTS: usize> {
     native_u64: Option<&'a [Option<u64>; PORTS]>,
     #[cfg(feature = "alloc")]
     compact_f32: Option<&'a [Option<&'a [u8]>; PORTS]>,
+    #[cfg(feature = "alloc")]
+    compact_canonical: Option<&'a [Option<&'a [u8]>; PORTS]>,
     host_output: Option<&'a [u8]>,
 }
 
@@ -449,6 +486,8 @@ impl<'a, const PORTS: usize> StepInputBytes<'a, PORTS> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical: None,
             host_output,
         }
     }
@@ -462,6 +501,8 @@ impl StepInputBytes<'static, 1> {
             native_u64: None,
             #[cfg(feature = "alloc")]
             compact_f32: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical: None,
             host_output: None,
         }
     }
@@ -482,6 +523,8 @@ pub struct StepIo<const PORTS: usize> {
     native_output_port: Option<PortId>,
     #[cfg(feature = "alloc")]
     compact_f32_output: Option<(PortId, CompactF32Layout)>,
+    #[cfg(feature = "alloc")]
+    compact_canonical_output: Option<PortId>,
     discards: [Option<ValueRef>; PORTS],
     host_completion: Option<(RequestId, HostCallOutcome)>,
     consumed_host_completion: bool,
@@ -822,6 +865,8 @@ impl StepIo<1> {
             native_output_port: None,
             #[cfg(feature = "alloc")]
             compact_f32_output: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical_output: None,
             discards: [None],
             host_completion,
             consumed_host_completion: false,
@@ -972,6 +1017,9 @@ impl CordState {
     };
 }
 
+mod terminal_storage;
+use terminal_storage::TerminalContracts;
+
 pub struct FixedScheduler<
     D,
     S,
@@ -990,7 +1038,7 @@ pub struct FixedScheduler<
     E: SignSink,
 {
     node_specs: [NodeSpec<PORTS>; NODES],
-    terminal_transductions: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    terminal_transductions: TerminalContracts<NODES, PORTS>,
     terminal_inputs_consumed: [[bool; PORTS]; NODES],
     terminal_phases: [Option<ActiveTerminalPhase>; NODES],
     terminal_cancellation_pending: [bool; NODES],
@@ -1015,7 +1063,7 @@ pub struct FixedScheduler<
     values: S,
     signs: E,
     cords: [CordState; CORDS],
-    queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
+    queue_slots: [Option<StoredValueKey>; QUEUE_SLOTS],
     ready: ReadySet<NODES>,
     completed: [bool; NODES],
     cursor: usize,
@@ -1029,6 +1077,8 @@ pub struct FixedScheduler<
     native_output_ports: [Option<PortId>; NODES],
     #[cfg(feature = "alloc")]
     compact_f32_bindings: Option<alloc::boxed::Box<CompactF32Bindings<NODES, PORTS>>>,
+    #[cfg(feature = "alloc")]
+    compact_canonical_binding: Option<compact_canonical::Binding>,
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1108,9 +1158,10 @@ where
             &cord_specs,
             &routes,
         )?;
+        validate_prepared_encoding_profile::<D, S, PORTS>(&drivers[..active_nodes], &values)?;
         Ok(Self {
             node_specs,
-            terminal_transductions: [[None; PORTS]; NODES],
+            terminal_transductions: TerminalContracts::empty(),
             terminal_inputs_consumed: [[false; PORTS]; NODES],
             terminal_phases: [None; NODES],
             terminal_cancellation_pending: [false; NODES],
@@ -1149,6 +1200,8 @@ where
             native_output_ports: [None; NODES],
             #[cfg(feature = "alloc")]
             compact_f32_bindings: None,
+            #[cfg(feature = "alloc")]
+            compact_canonical_binding: None,
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1230,8 +1283,30 @@ where
         self.step_region(&mut proceed)
     }
 
+    /// Maximum additional cold heap backing for terminal-law binding. Alloc
+    /// profiles allocate this table only when at least one exact law is present;
+    /// non-alloc profiles already include it in the fixed scheduler footprint.
+    /// Callers must admit it before binding; stepping never allocates this table.
+    pub const fn maximum_terminal_transduction_preparation_bytes() -> usize {
+        #[cfg(feature = "alloc")]
+        {
+            core::mem::size_of::<[[Option<AssignedTerminalTransduction>; PORTS]; NODES]>()
+        }
+        #[cfg(not(feature = "alloc"))]
+        {
+            0
+        }
+    }
+    /// Additional backing for these exact supplied laws, admitted before bind.
+    pub fn terminal_transduction_preparation_bytes(
+        contracts: &[[Option<AssignedTerminalTransduction>; PORTS]; NODES],
+    ) -> usize {
+        TerminalContracts::preparation_bytes(contracts)
+    }
+
     /// Bind the exact Plan-lowered terminal contracts before play. A prepared
-    /// Back may not claim a different mapping or behavior.
+    /// Back may not claim a different mapping or behavior. Admit the additional
+    /// preparation bytes before calling; execution never allocates this table.
     pub fn bind_terminal_transductions(
         &mut self,
         contracts: [[Option<AssignedTerminalTransduction>; PORTS]; NODES],
@@ -1254,7 +1329,7 @@ where
                 return Err(SchedulerError::InvalidPlan);
             }
         }
-        self.terminal_transductions = contracts;
+        self.terminal_transductions = TerminalContracts::prepare(contracts);
         self.bind_projected_recoveries()?;
         Ok(())
     }
@@ -1366,7 +1441,10 @@ where
         E: DebugObserverControl,
     {
         #[cfg(feature = "alloc")]
-        if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
+        if self.native_output_ports.iter().any(Option::is_some)
+            || self.has_compact_f32_outputs()
+            || self.compact_canonical_binding.is_some()
+        {
             return Err(DebugObservationRefusal::UnsupportedPhysicalProfile);
         }
         self.signs.attach_debug_observer(history)
@@ -1393,7 +1471,10 @@ where
             return Err(DebugControlRefusal::UnknownSubject);
         }
         #[cfg(feature = "alloc")]
-        if self.native_output_ports.iter().any(Option::is_some) || self.has_compact_f32_outputs() {
+        if self.native_output_ports.iter().any(Option::is_some)
+            || self.has_compact_f32_outputs()
+            || self.compact_canonical_binding.is_some()
+        {
             return Err(DebugControlRefusal::UnsupportedPhysicalProfile);
         }
         self.debug_control.arm(breakpoint, node)
@@ -1591,77 +1672,6 @@ where
             },
         )?;
         Ok(())
-    }
-
-    /// Admits bytes through a remote ingress cord into the kernel-owned value
-    /// store and queue. `Full` performs no allocation or sequence advance, so
-    /// the line must retry the same sequence.
-    pub fn admit_remote_input(
-        &mut self,
-        endpoint: RemoteEndpointId,
-        cord: CordId,
-        sequence: u64,
-        bytes: &[u8],
-    ) -> Result<RemoteIngressOutcome, SchedulerError> {
-        if self.cancelled {
-            return Err(SchedulerError::Cancelled);
-        }
-        let cord_index = usize::from(cord.0);
-        if cord_index >= self.active_cords {
-            return Err(SchedulerError::InvalidRemoteCordAccess);
-        }
-        let spec = *self
-            .cord_specs
-            .get(cord_index)
-            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
-        let (sink_node, sink_port) = match (spec.source, spec.sink) {
-            (CordEndpoint::Remote(candidate), CordEndpoint::Local { node, port })
-                if candidate == endpoint =>
-            {
-                (node, port)
-            }
-            _ => return Err(SchedulerError::InvalidRemoteCordAccess),
-        };
-        let state = self
-            .cords
-            .get(cord_index)
-            .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
-        if state.producer_closed || state.next_remote_sequence != sequence {
-            return Err(SchedulerError::RemoteSequenceRejected);
-        }
-        let byte_len =
-            u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
-        if !self.payload_admissible(spec, state, byte_len)? {
-            return Ok(RemoteIngressOutcome::Full { sequence });
-        }
-        let next_sequence = sequence
-            .checked_add(1)
-            .ok_or(SchedulerError::RemoteSequenceRejected)?;
-        self.ensure_sign_capacity(1)?;
-        self.ensure_remote_sign_capacity(1)?;
-        let value = self.values.store(bytes)?;
-        match self.push(cord_index, value) {
-            Ok(Some(superseded)) => self.values.release(superseded)?,
-            Ok(None) => {}
-            Err(error) => {
-                self.values.release(value)?;
-                return Err(error);
-            }
-        }
-        self.cords[cord_index].next_remote_sequence = next_sequence;
-        self.set_ready(usize::from(sink_node.0), true);
-        self.signs.record_remote(
-            sink_node,
-            sink_port,
-            KernelEventKind::RemoteInputAdmitted,
-            crate::RemoteLifecycleIdentity {
-                endpoint,
-                cord,
-                direction: crate::RemoteCordDirection::Ingress,
-                sequence,
-            },
-        )?;
-        Ok(RemoteIngressOutcome::Accepted { sequence })
     }
 
     pub fn close_remote_input(
@@ -1913,6 +1923,7 @@ where
             }
             self.values.get(output.value)?;
         }
+        let stored_outcome = StoredHostOutcome::checked(outcome, &self.values)?;
         self.ensure_sign_capacity(1)?;
         if pending.cancellation_requested && !pending.cancellation_dispatched {
             self.undispatched_cancellation_count -= 1;
@@ -1923,7 +1934,7 @@ where
         self.pending_host_calls[slot]
             .as_mut()
             .ok_or(SchedulerError::HostCallCompletionRejected)?
-            .completion = Some(outcome);
+            .completion = Some(stored_outcome);
         self.set_ready(usize::from(pending.request.node.0), true);
         self.signs.record(
             pending.request.node,
@@ -1995,6 +2006,8 @@ where
     }
 
     fn context(&self, node: usize) -> Result<StepIo<PORTS>, SchedulerError> {
+        #[cfg(feature = "alloc")]
+        self.check_compact_canonical_binding()?;
         let mut inputs = [None; PORTS];
         let mut input_closed = [false; PORTS];
         let mut input_abnormal = [None; PORTS];
@@ -2007,11 +2020,19 @@ where
             counts.context_pending_slots += 1;
             self.scan_counts.set(counts);
         }
-        let host_completion = pending.and_then(|pending| {
-            pending
-                .completion
-                .map(|outcome| (pending.request.request, outcome))
-        });
+        let host_completion = pending
+            .map(|pending| {
+                pending
+                    .completion
+                    .map(|outcome| {
+                        outcome
+                            .resolve(&self.values)
+                            .map(|outcome| (pending.request.request, outcome))
+                    })
+                    .transpose()
+            })
+            .transpose()?
+            .flatten();
         for (port, cord) in self.node_specs[node]
             .input_cords
             .iter()
@@ -2117,6 +2138,10 @@ where
             native_output_port: self.native_output_ports[node],
             #[cfg(feature = "alloc")]
             compact_f32_output: self.compact_f32_output_binding(node),
+            #[cfg(feature = "alloc")]
+            compact_canonical_output: self
+                .compact_canonical_output_binding(node)
+                .map(|(port, _)| port),
             discards: [None; PORTS],
             host_completion,
             consumed_host_completion: false,
@@ -2857,12 +2882,16 @@ where
                 KernelEventKind::ValueConsumed,
             )?;
             #[cfg(feature = "alloc")]
-            let observed = native_region::observed_bytes(
-                &self.values,
-                value,
-                self.native_input_ports[node] == Some(PortId(as_u16(port)?))
-                    || self.has_compact_f32_input(node, port),
-            )?;
+            let observed = if self.compact_canonical_input_binding(node, port).is_some() {
+                None
+            } else {
+                native_region::observed_bytes(
+                    &self.values,
+                    value,
+                    self.native_input_ports[node] == Some(PortId(as_u16(port)?))
+                        || self.has_compact_f32_input(node, port),
+                )?
+            };
             #[cfg(not(feature = "alloc"))]
             let observed = Some(self.values.get(value)?);
             self.signs.observe_debug(DebugRuntimeEvent {
@@ -2891,17 +2920,18 @@ where
                 counts.consumed_completion_slots += 1;
                 self.scan_counts.set(counts);
             }
-            let pending = self.pending_host_calls[slot]
-                .take()
-                .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            let pending =
+                self.pending_host_calls[slot].ok_or(SchedulerError::InvalidHostCallAccess)?;
+            let completion = pending
+                .completion
+                .ok_or(SchedulerError::InvalidHostCallAccess)?
+                .resolve(&self.values)?;
+            self.pending_host_calls[slot] = None;
             self.pending_host_count -= 1;
             self.host_slot_search_start = self.host_slot_search_start.min(slot);
             self.pending_host_slots[node] = None;
             let retains_input = self.drivers[node]
                 .retains_host_call_input(pending.request.request, pending.request.input.value);
-            let completion = pending
-                .completion
-                .ok_or(SchedulerError::InvalidHostCallAccess)?;
             (
                 (pending.owns_input
                     && !retains_input
@@ -3065,14 +3095,21 @@ where
                     KernelEventKind::ValueRouted,
                 )?;
                 #[cfg(feature = "alloc")]
-                let observed = native_region::observed_bytes(
-                    &self.values,
-                    value,
-                    self.native_output_ports[node] == Some(PortId(as_u16(port)?))
-                        || self
-                            .compact_f32_output_binding(node)
-                            .is_some_and(|(p, _)| usize::from(p.0) == port),
-                )?;
+                let observed = if self
+                    .compact_canonical_output_binding(node)
+                    .is_some_and(|(p, _)| usize::from(p.0) == port)
+                {
+                    None
+                } else {
+                    native_region::observed_bytes(
+                        &self.values,
+                        value,
+                        self.native_output_ports[node] == Some(PortId(as_u16(port)?))
+                            || self
+                                .compact_f32_output_binding(node)
+                                .is_some_and(|(p, _)| usize::from(p.0) == port),
+                    )?
+                };
                 #[cfg(not(feature = "alloc"))]
                 let observed = Some(self.values.get(value)?);
                 self.signs.observe_debug(DebugRuntimeEvent {
@@ -3129,12 +3166,16 @@ where
         });
         let available_host_value = completed_pending
             .and_then(|pending| pending.completion)
+            .map(|outcome| outcome.resolve(&self.values))
+            .transpose()?
             .and_then(|outcome| outcome.output)
             .map(|output| output.value);
         let consumed_host_value = if consumed_host_completion {
             completed_pending
                 .ok_or(SchedulerError::InvalidHostCallAccess)?
                 .completion
+                .map(|outcome| outcome.resolve(&self.values))
+                .transpose()?
                 .and_then(|outcome| outcome.output)
                 .map(|output| output.value)
         } else {
@@ -3199,6 +3240,19 @@ where
                     && self.values.compact_f32(value)?.is_some());
             #[cfg(not(feature = "alloc"))]
             let native = false;
+            #[cfg(feature = "alloc")]
+            let native = native
+                || if let Some((_, layout)) = self
+                    .compact_canonical_output_binding(node)
+                    .filter(|(p, _)| usize::from(p.0) == port)
+                {
+                    self.values
+                        .compact_canonical(value, layout)?
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                    true
+                } else {
+                    false
+                };
             if !native {
                 self.values.get(value)?;
             }
@@ -3588,13 +3642,14 @@ where
         if state.len == 0 {
             return Ok(None);
         }
-        let slot = queue_slot(spec, state.head, 0);
         self.queue_slots
-            .get(slot)
+            .get(queue_slot(spec, state.head, 0))
             .copied()
-            .ok_or(SchedulerError::InvalidPlan)
+            .ok_or(SchedulerError::InvalidPlan)?
+            .map(|key| key.resolve(&self.values))
+            .transpose()
+            .map_err(Into::into)
     }
-
     fn pop(&mut self, cord: usize) -> Result<ValueRef, SchedulerError> {
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
@@ -3603,15 +3658,16 @@ where
         }
         let slot = queue_slot(spec, state.head, 0);
         let value = self.queue_slots[slot]
-            .take()
-            .ok_or(SchedulerError::InvalidPlan)?;
+            .ok_or(SchedulerError::InvalidPlan)?
+            .resolve(&self.values)?;
+        self.queue_slots[slot] = None;
         state.head = (state.head + 1) % spec.item_capacity;
         state.len -= 1;
         state.queued_bytes -= value.byte_len;
         Ok(value)
     }
-
     fn push(&mut self, cord: usize, value: ValueRef) -> Result<Option<ValueRef>, SchedulerError> {
+        let key = StoredValueKey::checked(value, &self.values)?;
         let spec = self.cord_specs[cord];
         let state = &mut self.cords[cord];
         if state.len >= spec.item_capacity {
@@ -3620,15 +3676,15 @@ where
             }
             let slot = queue_slot(spec, state.head, state.len - 1);
             let superseded = self.queue_slots[slot]
-                .replace(value)
-                .ok_or(SchedulerError::InvalidPlan)?;
+                .ok_or(SchedulerError::InvalidPlan)?
+                .resolve(&self.values)?;
             let remaining = spec
                 .byte_capacity
                 .saturating_sub(state.queued_bytes.saturating_sub(superseded.byte_len));
             if value.byte_len > remaining {
-                self.queue_slots[slot] = Some(superseded);
                 return Err(SchedulerError::QueueByteCapacityExceeded);
             }
+            self.queue_slots[slot] = Some(key);
             state.queued_bytes = state
                 .queued_bytes
                 .saturating_sub(superseded.byte_len)
@@ -3639,7 +3695,7 @@ where
         if self.queue_slots[slot].is_some() {
             return Err(SchedulerError::InvalidPlan);
         }
-        self.queue_slots[slot] = Some(value);
+        self.queue_slots[slot] = Some(key);
         state.len += 1;
         state.queued_bytes += value.byte_len;
         Ok(None)
@@ -3827,3 +3883,17 @@ impl<I: Iterator<Item = RouteTarget>> CollectTargets for I {}
 
 #[cfg(test)]
 mod tests;
+
+fn validate_prepared_encoding_profile<D: StepBack<P>, S: ValueStorage, const P: usize>(
+    drivers: &[D],
+    values: &S,
+) -> Result<(), SchedulerError> {
+    if !values.supports_prepared_encoding()
+        && drivers
+            .iter()
+            .any(|driver| (0..P).any(|port| driver.encodes_prepared_output(PortId(port as u16))))
+    {
+        return Err(SchedulerError::InvalidPlan);
+    }
+    Ok(())
+}

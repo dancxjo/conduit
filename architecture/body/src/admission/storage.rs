@@ -6,29 +6,7 @@ pub enum AdmissionStorageCompactionRefusal {
     Capacity,
 }
 
-/// Read-only inline storage accounting, excluding nested allocations and data.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct AdmissionStorageUsage {
-    pub pending_admissions: crate::VecStorageUsage,
-    pub invitations: crate::VecStorageUsage,
-    pub continuity_keys: crate::VecStorageUsage,
-    pub pending_returns: crate::VecStorageUsage,
-    pub receipts: crate::VecStorageUsage,
-}
-
 impl AdmissionManager {
-    /// Inspect retained collection backing without allocating or exposing keys,
-    /// records, authorization, or nested identity storage.
-    pub fn storage_usage(&self) -> AdmissionStorageUsage {
-        AdmissionStorageUsage {
-            pending_admissions: crate::VecStorageUsage::inspect(&self.pending),
-            invitations: crate::VecStorageUsage::inspect(&self.invitations),
-            continuity_keys: crate::VecStorageUsage::inspect(&self.continuity_keys),
-            pending_returns: crate::VecStorageUsage::inspect(&self.pending_returns),
-            receipts: crate::VecStorageUsage::inspect(&self.receipts),
-        }
-    }
-
     /// Remove spare inline collection capacity without retiring any admission,
     /// key, invitation, return, or receipt. Order and nested allocations remain
     /// unchanged. Capacity is storage accounting, never an admission grant.

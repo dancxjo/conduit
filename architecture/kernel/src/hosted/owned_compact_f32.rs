@@ -22,7 +22,7 @@ impl HostedValueStore {
             slot.pending = false;
             slot.pending_identity = 0;
             if slot.identity.is_none() {
-                self.slots[index].generation = u16::MAX;
+                self.slots[index].generation = u32::MAX;
                 self.has_retired_slots = true;
             }
         }
@@ -52,7 +52,11 @@ impl HostedValueStore {
         requests: &[(CompactF32Layout, u16)],
         canonical_reservations: &[u32],
     ) -> Result<Vec<Vec<u16>>, StorageError> {
-        if requests.is_empty() || requests.len() > 32 || canonical_reservations.contains(&0) {
+        if self.compact_canonical.is_some()
+            || requests.is_empty()
+            || requests.len() > 32
+            || canonical_reservations.contains(&0)
+        {
             return Err(StorageError::InvalidBudget);
         }
         let count = requests
@@ -68,7 +72,7 @@ impl HostedValueStore {
             .enumerate()
             .filter(|(index, slot)| {
                 slot.references == 0
-                    && slot.generation != u16::MAX
+                    && slot.generation != u32::MAX
                     && !self.is_owned_compact(*index)
             })
             .map(|(index, _)| index)
@@ -204,7 +208,7 @@ impl HostedValueStore {
             self.owned_slot(owner, *index)?;
             let slot = &self.slots[usize::from(*index)];
             if slot.references == 0
-                && slot.generation != u16::MAX
+                && slot.generation != u32::MAX
                 && self
                     .used_bytes
                     .checked_add(owner.layout.logical_bytes)
@@ -216,7 +220,7 @@ impl HostedValueStore {
         if owner
             .slots
             .iter()
-            .all(|index| self.slots[usize::from(*index)].generation == u16::MAX)
+            .all(|index| self.slots[usize::from(*index)].generation == u32::MAX)
         {
             return Err(StorageError::GenerationExhausted);
         }
@@ -258,13 +262,13 @@ impl HostedValueStore {
             .copied()
             .find(|index| {
                 let slot = &self.slots[usize::from(*index)];
-                slot.references == 0 && slot.generation != u16::MAX
+                slot.references == 0 && slot.generation != u32::MAX
             })
             .ok_or(
                 if owner
                     .slots
                     .iter()
-                    .any(|i| self.slots[usize::from(*i)].generation == u16::MAX)
+                    .any(|i| self.slots[usize::from(*i)].generation == u32::MAX)
                 {
                     StorageError::GenerationExhausted
                 } else {
@@ -345,7 +349,7 @@ impl HostedValueStore {
         self.used_items -= 1;
         self.used_bytes -= value.byte_len;
         self.clear_compact_layout(value.slot);
-        self.has_retired_slots |= value.generation == u16::MAX;
+        self.has_retired_slots |= value.generation == u32::MAX;
         publication.value = None;
         let metadata = self.owned_compact_slots[usize::from(value.slot)]
             .as_mut()

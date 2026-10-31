@@ -7,6 +7,7 @@ use crate::{
     ipa_phonetic::{phonetic_from_ipa, AdmittedPhoneticTranscription},
     semantic::*,
 };
+use alloc::string::ToString;
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{
     ConfigurationValue, StructuredFieldValue, StructuredInfoValue, StructuredInfoValueShape,
@@ -131,7 +132,7 @@ impl PreparedRecordPronunciationProfile {
         };
         Ok(Self {
             program: PortableExpressionProgram::from_canonical_hex(hex).map_err(|_| Output)?,
-            program_hex: hex.clone(),
+            program_hex: hex.to_string(),
             source_id: checked.source_document_id.as_str().into(),
             checked,
         })

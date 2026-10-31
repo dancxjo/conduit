@@ -1,6 +1,14 @@
 //! Fixed-capacity DHCP and HTTP service over the existing AP network base.
+use conduit_environment_http::{
+    exchange::{CompletedExchange, NetworkSetupMode, ReadingProvider, SelectedNetworkSetup},
+    network_setup::{NetworkSetupLimits, NetworkSetupWriter},
+};
 use conduit_rp2040_network_realization::{answer_appliance_dhcp, DhcpLeasePool};
-use embassy_futures::join::join;
+use core::{
+    future::{poll_fn, Future},
+    task::Poll,
+};
+use embassy_futures::select::select;
 use embassy_net::{
     tcp::TcpSocket,
     udp::{PacketMetadata, UdpSocket},
@@ -8,16 +16,106 @@ use embassy_net::{
 };
 use embassy_time::{with_timeout, Duration, Instant};
 
-pub async fn serve(stack: Stack<'static>) {
-    join(dhcp(stack), join(http(stack), http(stack))).await;
+pub type ReadingBuffers = [heapless::String<2048>; 2];
+
+#[derive(Clone, Copy)]
+pub enum ServiceReady {
+    Dhcp,
+    Http0,
+    Http1,
 }
-async fn dhcp(stack: Stack<'static>) {
+/// Ready is emitted only after actual socket binding/listening. Dropping this
+/// future retires all three sockets and their in-flight request futures.
+pub async fn serve_acknowledged(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    let mut responses = [heapless::String::new(), heapless::String::new()];
+    serve_acknowledged_with_reading(stack, setup, connect, None, &mut responses, ready).await
+}
+
+/// Root explicitly selects reading availability. This entry retains no Face or
+/// sampler and cannot bypass bootstrap through the exchange callback alone.
+pub async fn serve_acknowledged_with_reading(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    responses: &mut ReadingBuffers,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    serve_mode_with_reading(stack, setup, connect, reading, responses, true, ready).await
+}
+/// One shared HTTP future for either interface. The DHCP future remains dormant
+/// in station mode; it cannot bind an upstream DHCP socket. Runtime mode avoids
+/// retaining duplicate HTTP request frames across AP/station service changes.
+pub async fn serve_mode_with_reading(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    responses: &mut ReadingBuffers,
+    access_point: bool,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    let address_service = async {
+        if access_point {
+            dhcp(stack, &ready).await
+        } else {
+            core::future::pending::<Result<(), ()>>().await
+        }
+    };
+    let _ = select(
+        address_service,
+        serve_station_with_reading(stack, setup, connect, reading, responses, &ready),
+    )
+    .await;
+    Err(())
+}
+/// Station mode retains only the two HTTP sockets. It must never serve DHCP on
+/// the selected upstream network. Dropping this future retires both requests.
+pub async fn serve_station_with_reading(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    responses: &mut ReadingBuffers,
+    ready: impl Fn(ServiceReady),
+) -> Result<(), ()> {
+    let [first, second] = responses;
+    let _ = select(
+        http(
+            stack,
+            setup.clone(),
+            connect,
+            reading,
+            first,
+            ServiceReady::Http0,
+            &ready,
+        ),
+        http(
+            stack,
+            setup,
+            connect,
+            reading,
+            second,
+            ServiceReady::Http1,
+            &ready,
+        ),
+    )
+    .await;
+    Err(())
+}
+async fn dhcp(stack: Stack<'static>, ready: &impl Fn(ServiceReady)) -> Result<(), ()> {
     let mut rx_meta = [PacketMetadata::EMPTY; 1];
     let mut tx_meta = [PacketMetadata::EMPTY; 1];
     let mut rx = [0; 576];
     let mut tx = [0; 576];
     let mut socket = UdpSocket::new(stack, &mut rx_meta, &mut rx, &mut tx_meta, &mut tx);
-    socket.bind(67).unwrap();
+    socket.bind(67).map_err(|_| ())?;
+    ready(ServiceReady::Dhcp);
     let mut leases = DhcpLeasePool::default();
     loop {
         let mut request = [0; 576];
@@ -36,56 +134,122 @@ async fn dhcp(stack: Stack<'static>) {
         }
     }
 }
-async fn http(stack: Stack<'static>) {
+async fn http(
+    stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    response: &mut heapless::String<2048>,
+    service: ServiceReady,
+    ready: &impl Fn(ServiceReady),
+) -> Result<(), ()> {
     let mut rx = [0; 512];
     let mut tx = [0; 2048];
     let mut socket = TcpSocket::new(stack, &mut rx, &mut tx);
     socket.set_timeout(Some(Duration::from_secs(5)));
+    let mut announced = false;
     loop {
-        if socket.accept(80).await.is_ok() {
-            let _ = with_timeout(Duration::from_secs(5), exchange(&mut socket)).await;
+        let result = {
+            let mut accept = core::pin::pin!(socket.accept(80));
+            poll_fn(|cx| {
+                let status = accept.as_mut().poll(cx);
+                if !announced && !matches!(&status, Poll::Ready(Err(_))) {
+                    ready(service);
+                    announced = true;
+                }
+                status
+            })
+            .await
+        };
+        result.map_err(|_| ())?;
+        {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            // Only credential submissions acquire mutation custody. The returned
+            // completion retains it across the bounded close; ordinary reads
+            // retain the selected policy without queueing behind this mailbox.
+            let custody = with_timeout(
+                deadline.saturating_duration_since(Instant::now()),
+                exchange(&mut socket, setup.as_ref(), connect, reading, response),
+            )
+            .await
+            .ok()
+            .and_then(Result::ok);
+            let close_started = Instant::now();
+            let close_deadline = close_started + Duration::from_secs(1);
+            // Graceful flush can wait for a FIN acknowledgement. Reserve half
+            // of the existing close budget for abort retirement so a silent
+            // peer cannot consume the reset's entire scheduling interval.
+            let graceful_deadline = close_started + Duration::from_millis(500);
             socket.close();
-            let _ = with_timeout(Duration::from_secs(1), socket.flush()).await;
+            let _ = with_timeout(
+                graceful_deadline.saturating_duration_since(Instant::now()),
+                socket.flush(),
+            )
+            .await;
+            // Finish retirement even when graceful close times out before
+            // exposing acknowledged input to another task or reader.
+            socket.abort();
+            // abort() queues the reset: reusing the socket before its flush
+            // completes can discard retirement of the previous connection.
+            // Both phases spend the original close budget. Failure retires
+            // this service instead of advertising a reusable socket.
+            let retired = with_timeout(
+                close_deadline.saturating_duration_since(Instant::now()),
+                socket.flush(),
+            )
+            .await
+            .is_ok_and(|result| result.is_ok());
+            drop(custody);
+            if !retired {
+                return Err(());
+            }
         }
-        socket.abort();
     }
 }
-async fn exchange(socket: &mut TcpSocket<'_>) -> Result<(), ()> {
-    let mut request = [0; 512];
-    let mut used = 0;
-    loop {
-        let count = socket.read(&mut request[used..]).await.map_err(|_| ())?;
-        if count == 0 {
-            return Err(());
-        }
-        used += count;
-        if request[..used].windows(4).any(|v| v == b"\r\n\r\n") {
-            break;
-        }
-        if used == request.len() {
-            return Err(());
-        }
-    }
-    let response = if request[..used].starts_with(b"GET / HTTP/1.") {
-        crate::http_view::response(Instant::now().as_millis(), false)
-    } else if request[..used].starts_with(b"GET /reading HTTP/1.") {
-        crate::http_view::response(Instant::now().as_millis(), true)
-    } else {
-        heapless::String::try_from(
-            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+async fn exchange<'a>(
+    socket: &mut TcpSocket<'_>,
+    setup: Option<&'a NetworkSetupWriter<'_>>,
+    connect: bool,
+    reading: Option<ReadingProvider>,
+    response: &mut heapless::String<2048>,
+) -> Result<CompletedExchange<'a>, ()> {
+    let selection = if let Some(writer) = setup {
+        let mode = if connect && reading.is_some() {
+            NetworkSetupMode::Ready
+        } else if connect {
+            NetworkSetupMode::BootstrapControl
+        } else {
+            NetworkSetupMode::PreparationOnly
+        };
+        Some(
+            SelectedNetworkSetup::new(
+                writer,
+                NetworkSetupLimits {
+                    minimum_credential_bytes: 8,
+                    maximum_credential_bytes: 63,
+                },
+                mode,
+            )
+            .map_err(|_| ())?,
         )
-        .unwrap()
+    } else {
+        None
     };
-    let mut written = 0;
-    while written < response.len() {
-        let count = socket
-            .write(&response.as_bytes()[written..])
-            .await
-            .map_err(|_| ())?;
-        if count == 0 {
-            return Err(());
+    let selected = reading.unwrap_or(|now, json, after| {
+        if after.is_some() {
+            None
+        } else {
+            Some(conduit_environment_http::response(now, json))
         }
-        written += count;
-    }
-    socket.flush().await.map_err(|_| ())
+    });
+    conduit_environment_http::exchange::exchange_selected_setup(
+        socket,
+        || Instant::now().as_millis(),
+        selection,
+        response,
+        |now, json| selected(now, json, None),
+        |after| selected(Instant::now().as_millis(), true, Some(after)),
+    )
+    .await
+    .map_err(|_| ())
 }

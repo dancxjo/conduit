@@ -2,20 +2,20 @@
 
 use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProgram};
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 #[path = "structured_tape.rs"]
-mod tape;
+pub(super) mod tape;
 
 pub(super) struct PreparedStructuredExpression {
-    type_prefix: Vec<u8>,
-    shape: PreparedShape,
+    pub(super) type_prefix: Cow<'static, [u8]>,
+    pub(super) shape: PreparedShape,
 }
 
-enum PreparedShape {
+pub(super) enum PreparedShape {
     Tape(Box<tape::StructuredTape>),
     Input,
-    Constant(Vec<u8>),
+    Constant(Cow<'static, [u8]>),
     Selected(Box<super::member_selection::PreparedMemberSelection>),
     SequenceSelected(Box<super::sequence_selection::PreparedSequenceSelection>),
     Record(Vec<PreparedField>),
@@ -31,45 +31,93 @@ enum PreparedShape {
     },
 }
 
-struct PreparedField {
+pub(super) struct PreparedField {
     name: String,
     value: PreparedChild,
 }
 
-struct PreparedChild {
-    output: ChildOutput,
-    evaluator: ChildEvaluator,
+pub(super) struct PreparedChild {
+    pub(super) output: ChildOutput,
+    pub(super) evaluator: ChildEvaluator,
 }
-enum ChildEvaluator {
-    Constant { encoded: Vec<u8> },
+pub(super) enum ChildEvaluator {
+    Constant { encoded: Cow<'static, [u8]> },
     Dynamic(Box<PreparedPortableExpressionEvaluator>),
+    Scalar(Box<super::compact::ScalarChild>),
 }
 impl ChildEvaluator {
+    fn compact_scalars(&mut self) {
+        let Self::Dynamic(evaluator) = self else {
+            return;
+        };
+        evaluator.compact_scalars();
+        if evaluator.scalar_child_eligible() {
+            let Self::Dynamic(evaluator) = core::mem::replace(
+                self,
+                Self::Constant {
+                    encoded: Cow::Owned(Vec::new()),
+                },
+            ) else {
+                unreachable!("preflighted dynamic child")
+            };
+            *self = Self::Scalar(Box::new(super::compact::ScalarChild::take(*evaluator)));
+        }
+    }
+
     fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Refusal> {
         match self {
             Self::Constant { encoded, .. } => Ok(encoded),
             Self::Dynamic(evaluator) => evaluator.evaluate(input),
+            Self::Scalar(evaluator) => evaluator.evaluate(input),
         }
     }
     fn output_bytes(&self) -> &[u8] {
         match self {
             Self::Constant { encoded, .. } => encoded,
             Self::Dynamic(evaluator) => evaluator.output_bytes(),
+            Self::Scalar(evaluator) => evaluator.output_bytes(),
         }
     }
     fn output_type_prefix(&self) -> Option<&[u8]> {
         match self {
-            Self::Constant { .. } => None,
+            Self::Constant { .. } | Self::Scalar(_) => None,
             Self::Dynamic(evaluator) => evaluator.output_type_prefix(),
         }
     }
 }
-enum ChildOutput {
+pub(super) enum ChildOutput {
     Leaf,
     Structured,
 }
 
 impl PreparedStructuredExpression {
+    pub(super) fn compact_scalars(&mut self) {
+        match &mut self.shape {
+            PreparedShape::Tape(tape) => tape.compact_scalars(),
+            PreparedShape::Record(fields) => {
+                for field in fields {
+                    field.value.evaluator.compact_scalars();
+                }
+            }
+            PreparedShape::Collection(values) => {
+                for value in values {
+                    value.evaluator.compact_scalars();
+                }
+            }
+            PreparedShape::Variant { payload, .. } => payload.evaluator.compact_scalars(),
+            PreparedShape::Conditional {
+                condition,
+                when_true,
+                when_false,
+            } => {
+                condition.evaluator.compact_scalars();
+                when_true.evaluator.compact_scalars();
+                when_false.evaluator.compact_scalars();
+            }
+            _ => (),
+        }
+    }
+
     pub(super) fn type_prefix(&self) -> &[u8] {
         &self.type_prefix
     }
@@ -83,7 +131,8 @@ impl PreparedStructuredExpression {
                 type_prefix: program
                     .output_type
                     .canonical_bytes()
-                    .map_err(|_| Refusal::InvalidProgram)?,
+                    .map_err(|_| Refusal::InvalidProgram)?
+                    .into(),
                 shape: PreparedShape::Tape(Box::new(tape)),
             });
         }
@@ -101,7 +150,7 @@ impl PreparedStructuredExpression {
                     output_type: program.output_type.clone(),
                     root: program.root.clone(),
                 };
-                PreparedShape::Constant(constant.evaluate(&[])?)
+                PreparedShape::Constant(constant.evaluate(&[])?.into())
             }
             PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(Box::new(
                 super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
@@ -193,7 +242,8 @@ impl PreparedStructuredExpression {
             type_prefix: program
                 .output_type
                 .canonical_bytes()
-                .map_err(|_| Refusal::InvalidProgram)?,
+                .map_err(|_| Refusal::InvalidProgram)?
+                .into(),
             shape,
         })
     }
@@ -335,14 +385,24 @@ fn child(
     })
 }
 
-/// Cache only ordinary Boolean/octet leaves using the existing literal codec.
+/// Cache intrinsic fixed-integer/Boolean leaves using the existing literal codec.
 /// Other Types, predicates and expression operations retain normal preparation.
 /// Codec refusal falls back without changing its original refusal phase.
 fn constant_child(node: &PortableExpressionNode) -> Option<ChildEvaluator> {
     if !matches!(node.value_type.shape(), StructuredInfoTypeShape::Leaf(_))
         || !matches!(
             super::leaf_kind(&node.value_type).ok()?,
-            conduit_core::PrimitiveInfoKind::Bool | conduit_core::PrimitiveInfoKind::U8
+            conduit_core::PrimitiveInfoKind::Bool
+                | conduit_core::PrimitiveInfoKind::U8
+                | conduit_core::PrimitiveInfoKind::U16
+                | conduit_core::PrimitiveInfoKind::U32
+                | conduit_core::PrimitiveInfoKind::U64
+                | conduit_core::PrimitiveInfoKind::U128
+                | conduit_core::PrimitiveInfoKind::I8
+                | conduit_core::PrimitiveInfoKind::I16
+                | conduit_core::PrimitiveInfoKind::I32
+                | conduit_core::PrimitiveInfoKind::I64
+                | conduit_core::PrimitiveInfoKind::I128
         )
     {
         return None;
@@ -359,7 +419,9 @@ fn constant_child(node: &PortableExpressionNode) -> Option<ChildEvaluator> {
         }
         _ => return None,
     };
-    Some(ChildEvaluator::Constant { encoded })
+    Some(ChildEvaluator::Constant {
+        encoded: encoded.into(),
+    })
 }
 
 fn push_text(output: &mut Vec<u8>, value: &str) -> Result<(), Refusal> {

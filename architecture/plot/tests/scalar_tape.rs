@@ -239,3 +239,58 @@ fn scratch_profiles_keep_failed_and_unselected_branch_values_isolated_without_al
     assert_eq!(tape.scalar_tape_limits(), limits);
     assert_eq!(tape.output_capacity(), output_capacity);
 }
+
+#[test]
+fn shared_interpreter_preserves_each_scratch_boundary_and_exact_reference_refusals() {
+    let mut slot_bytes = None;
+    for leaves in [1usize, 2, 3, 4, 5, 16, 17, 64] {
+        let source = format!(
+            "plot boundary (\n >> value: U64\n result: U64 >>\n) = ({})\n",
+            balanced_sum(leaves)
+        );
+        let p = program(&source, "boundary");
+        let mut baseline = PreparedPortableExpressionEvaluator::new(&p).unwrap();
+        let mut tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+        let (instructions, scratch) = tape.scalar_tape_limits().unwrap();
+        assert_eq!(instructions, 2 * leaves - 1);
+        let slots = match instructions {
+            0..=4 => 4,
+            5..=8 => 8,
+            9..=32 => 32,
+            _ => 128,
+        };
+        let bytes_per_slot = *slot_bytes.get_or_insert(scratch / slots);
+        assert_eq!(scratch, slots * bytes_per_slot);
+        // Prepare both independent reference results outside the measured tape
+        // loop. A failed call must not affect the next call's fresh scratch.
+        let cases: Vec<_> = [
+            Vec::new(),
+            vec![0; 7],
+            vec![0; 9],
+            0u64.to_le_bytes().to_vec(),
+            u64::MAX.to_le_bytes().to_vec(),
+            (u64::MAX / leaves as u64).to_le_bytes().to_vec(),
+            1u64.to_le_bytes().to_vec(),
+        ]
+        .into_iter()
+        .map(|input| {
+            let expected = p.evaluate(&input);
+            let prepared = baseline.evaluate(&input).map(|v| v.to_vec());
+            assert_eq!(prepared, expected);
+            (input, expected)
+        })
+        .collect();
+        let (_, observed) = allocation_probe::observe(|| {
+            for _ in 0..16 {
+                for (input, expected) in &cases {
+                    match expected {
+                        Ok(value) => assert_eq!(tape.evaluate(input).unwrap(), value),
+                        Err(error) => assert_eq!(tape.evaluate(input).unwrap_err(), *error),
+                    }
+                }
+            }
+        });
+        assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+        assert_eq!(tape.scalar_tape_limits(), Some((instructions, scratch)));
+    }
+}

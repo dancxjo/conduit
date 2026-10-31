@@ -211,6 +211,11 @@ pub struct ResourceRendererRealizationOffer {
     pub limits: CapabilityLimits,
 }
 
+/// Canonical semantic contract, independent of any Host renderer realization.
+pub fn renderer_kind() -> Kind {
+    renderer_contract()
+}
+
 pub fn renderer_offer(realization: RendererRealizationOffer) -> CapabilityOffer {
     build_offer(
         renderer_contract(),

@@ -53,6 +53,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-bosch-env"
+version = "0.1.0"
+dependencies = [
+ "embedded-hal",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -66,9 +74,19 @@ dependencies = [
 name = "conduit-environment-face"
 version = "0.1.0"
 dependencies = [
+ "conduit-bosch-env",
  "conduit-core",
+ "conduit-environment-measurement",
  "conduit-face",
+ "conduit-ht16k33",
  "conduit-seven-segment-mask",
+]
+
+[[package]]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
@@ -85,6 +103,14 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "conduit-ht16k33"
+version = "0.1.0"
+dependencies = [
+ "embedded-hal",
+ "embedded-hal-async",
 ]
 
 [[package]]
@@ -180,6 +206,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-hal"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
+
+[[package]]
+name = "embedded-hal-async"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c4c685bbef7fe13c3c6dd4da26841ed3980ef33e841cddfa15ce8a8fb3f1884"
+dependencies = [
+ "embedded-hal",
+]
+
+[[package]]
 name = "embedded-io"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,6 +297,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
 dependencies = [
  "portable-atomic",
+ "serde",
 ]
 
 [[package]]

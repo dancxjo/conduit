@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+sha2 = { version = "0.10", default-features = false }
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot", optional = true }
 
@@ -14,6 +15,7 @@ conduit-kernel = { path = "../../../architecture/kernel", optional = true }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
 
 [build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]

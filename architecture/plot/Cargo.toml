@@ -3,10 +3,14 @@ name = "conduit-plot"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+flat-image = ["dep:serde_json"]
+
 [dependencies]
 conduit-core = { path = "../core" }
 sha2 = { version = "0.10", default-features = false }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
 
 [dev-dependencies]
 conduit-kernel = { path = "../kernel" }

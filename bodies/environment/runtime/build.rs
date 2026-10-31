@@ -5,6 +5,8 @@ use std::{env, fs, path::PathBuf};
 mod build_display;
 #[path = "build/display_frame.rs"]
 mod display_frame;
+#[path = "build/observation_template.rs"]
+mod observation_template;
 #[path = "build/sampling_extents.rs"]
 mod sampling_extents;
 fn main() {
@@ -23,6 +25,7 @@ fn main() {
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     build_observation_source::emit(&out);
     sampling_extents::emit(&checked, &out);
+    observation_template::emit(&checked, &out);
     for (name, file) in [
         ("PulseReadCapture", "pulse-capture.type"),
         ("Dht11DecodedResult", "decoded.type"),

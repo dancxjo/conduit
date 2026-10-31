@@ -33,7 +33,7 @@ pub fn bitmap_face_definition() -> KindProjection {
         outputs: Vec::new(),
         configuration: vec![KindConfigurationField {
             key: "label".to_string(),
-            default_value: ConfigurationValue::Text(alloc::string::String::new()),
+            default_value: ConfigurationValue::Text(alloc::string::String::new().into()),
             rule: KindConfigurationRule::DataLabel { maximum: 128 },
         }],
     }

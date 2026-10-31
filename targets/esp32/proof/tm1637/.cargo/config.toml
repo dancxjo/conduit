@@ -4,3 +4,6 @@ rustflags = ["-C", "link-arg=-nostartfiles"]
 target = "xtensa-esp32-none-elf"
 [unstable]
 build-std = ["core", "alloc"]
+# Use the standard library's small-target algorithms (also selected for
+# 16-bit pointers). Keep supported crate optimization levels and full semantics.
+build-std-features = ["optimize_for_size"]

@@ -11,6 +11,8 @@ use conduit_kernel::{
 };
 pub const EXCHANGE_BYTES: usize = 4096;
 const HEADER: usize = 32;
+/// Version2 widens store-local value generations to32 bits; version1 is refused.
+pub const WIRE_VERSION: u16 = 2;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Malformed;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -115,7 +117,7 @@ fn begin(bytes: &mut [u8], e: Envelope, tag: u16) -> Result<Writer<'_>, Malforme
     }
     let mut w = Writer { bytes, at: 0 };
     w.raw(b"CRUN")?;
-    w.u16(1)?;
+    w.u16(WIRE_VERSION)?;
     w.u16(tag)?;
     w.u32(0)?;
     w.u32(0)?;
@@ -136,7 +138,7 @@ fn read(bytes: &[u8]) -> Result<(Envelope, u16, Reader<'_>), Malformed> {
         return Err(Malformed);
     }
     let mut r = Reader { bytes, at: 0 };
-    if r.raw(4)? != b"CRUN" || r.u16()? != 1 {
+    if r.raw(4)? != b"CRUN" || r.u16()? != WIRE_VERSION {
         return Err(Malformed);
     }
     let tag = r.u16()?;
@@ -342,13 +344,13 @@ pub fn decode_response(
 }
 fn value_write(w: &mut Writer<'_>, value: ValueRef) -> Result<(), Malformed> {
     w.u16(value.slot)?;
-    w.u16(value.generation)?;
+    w.u32(value.generation)?;
     w.u32(value.byte_len)
 }
 fn value_read(r: &mut Reader<'_>) -> Result<ValueRef, Malformed> {
     Ok(ValueRef {
         slot: r.u16()?,
-        generation: r.u16()?,
+        generation: r.u32()?,
         byte_len: r.u32()?,
     })
 }
@@ -403,4 +405,34 @@ fn outcome_read(r: &mut Reader<'_>) -> Result<HostCallOutcome, Malformed> {
         output,
         failure,
     })
+}
+#[cfg(test)]
+mod generation_wire_tests {
+    use super::*;
+    #[test]
+    fn generation_v2_roundtrips_above_old_limit_and_refuses_v1() {
+        let mut bytes = [0; 128];
+        let mut w = begin(
+            &mut bytes,
+            Envelope {
+                instance: 1,
+                request: 1,
+            },
+            7,
+        )
+        .unwrap();
+        let value = ValueRef {
+            slot: 3,
+            generation: 76_802,
+            byte_len: 9,
+        };
+        value_write(&mut w, value).unwrap();
+        let len = end(w).unwrap();
+        assert_eq!(&bytes[4..6], &2u16.to_le_bytes());
+        let (_, _, mut r) = read(&bytes[..len]).unwrap();
+        assert_eq!(value_read(&mut r), Ok(value));
+        r.finish().unwrap();
+        bytes[4..6].copy_from_slice(&1u16.to_le_bytes());
+        assert!(read(&bytes[..len]).is_err());
+    }
 }

@@ -258,6 +258,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-computation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -363,6 +371,7 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
+ "conduit-rp2040-flash-layout",
  "conduit-semantic-catalog",
  "serde",
  "serde_json",
@@ -467,11 +476,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-rp2040-flash-layout"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "conduit-semantic-catalog"
 version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-audio",
+ "conduit-computation",
  "conduit-core",
  "conduit-data",
  "conduit-education",
@@ -2078,6 +2096,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
 dependencies = [
  "portable-atomic",
+ "serde",
 ]
 
 [[package]]

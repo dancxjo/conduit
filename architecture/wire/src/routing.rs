@@ -59,7 +59,7 @@ impl LineMachine {
                 return Err(LineError::DuplicateCandidate);
             }
         }
-        let selected = connection.selected_line.as_ref();
+        let selected = connection.selected_line.as_deref();
         let candidates = lines
             .into_iter()
             .map(|line| {
@@ -194,7 +194,7 @@ mod tests {
             track: Default::default(),
             temporal: PortTemporal::Value,
             pressure_policy: Default::default(),
-            selected_line: Some(lines[0].clone()),
+            selected_line: Some(alloc::boxed::Box::new(lines[0].clone())),
             admitted_lines: lines.to_vec(),
             item_capacity: 1,
             byte_capacity: 64,

@@ -235,8 +235,14 @@ mod tests {
                 .find(|fore| fore.front_port_id.as_str() == name)
                 .unwrap()
         };
-        assert_eq!(fore("face").selected_line, Some(face.admitted_line()));
-        assert_eq!(fore("show").selected_line, Some(returning.admitted_line()));
+        assert_eq!(
+            fore("face").selected_line,
+            Some(Box::new(face.admitted_line()))
+        );
+        assert_eq!(
+            fore("show").selected_line,
+            Some(Box::new(returning.admitted_line()))
+        );
         assert_eq!(fore("interaction").selected_line, None);
         assert_eq!(fore("face").item_capacity, 1);
         assert_eq!(fore("show").item_capacity, 1);
@@ -338,7 +344,7 @@ mod tests {
                 .find(|fore| fore.front_port_id.as_str() == "interaction")
                 .unwrap()
                 .selected_line,
-            Some(interaction.admitted_line())
+            Some(Box::new(interaction.admitted_line()))
         );
         assert!(conduit_core::verify_plan(&selected.plan));
         assert!(planned_owner_face_show_interaction_mask(

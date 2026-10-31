@@ -1,0 +1,271 @@
+//! C allocation boundary for the pinned radio SDK. Native Root gives it a
+//! dedicated arena; the attended bench retains its previous shared allocator.
+//! C callers must free only live pointers returned here, once, and obey their
+//! allocation extents. There is no fallback allocator on pressure or overflow.
+use core::{
+    alloc::{GlobalAlloc, Layout},
+    ptr,
+};
+
+const HEADER: usize = core::mem::size_of::<usize>();
+
+#[cfg(feature = "native-root")]
+pub const SDK_BYTES: usize = 72 * 1024;
+// Reuse static task backing released by the shared HTTP response buffer. The
+// keyed link separately enforces the unchanged CPU stack floor.
+#[cfg(feature = "native-root")]
+pub const ROOT_INTERNAL_BYTES: usize =
+    60 * 1024 + ROOT_HTTP_BACKING_BYTES - ROOT_REBALANCE_BYTES - ROOT_RTC_BYTES;
+#[cfg(feature = "native-root")]
+const ROOT_HTTP_BACKING_BYTES: usize = if cfg!(feature = "native-face-root") {
+    // Exact static reduction in the keyed Face profile after page/ACK response
+    // bytes reuse the already prepared per-connection buffer across awaits.
+    4080
+} else {
+    0
+};
+// CPU0-only awake native Face profile. RTC-fast backing is never offered to
+// SDK/DMA callers and is not retained lifecycle state across reset or sleep.
+#[cfg(feature = "native-root")]
+const ROOT_RTC_BYTES: usize = if cfg!(feature = "native-face-root") {
+    8 * 1024
+} else {
+    0
+};
+#[cfg(feature = "native-root")]
+const ROOT_REBALANCE_BYTES: usize = if cfg!(feature = "native-face-root") {
+    // Preserve the keyed image's 36 KiB stack floor without reducing total
+    // Root backing; this space is available in the reclaimed RAM bank.
+    1280
+} else {
+    384
+};
+#[cfg(feature = "native-root")]
+const ROOT_RECLAIMED_BYTES: usize = 52 * 1024 + ROOT_REBALANCE_BYTES;
+#[cfg(feature = "native-root")]
+pub const ROOT_BYTES: usize = 112 * 1024 + ROOT_HTTP_BACKING_BYTES;
+#[cfg(feature = "native-root")]
+static SDK_HEAP: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
+
+fn heap() -> &'static esp_alloc::EspHeap {
+    #[cfg(feature = "native-root")]
+    {
+        &SDK_HEAP
+    }
+    #[cfg(not(feature = "native-root"))]
+    {
+        &esp_alloc::HEAP
+    }
+}
+
+/// Unique proof that this Boot initialized the SDK's actual isolated backing.
+/// It admits storage only; Root must separately bound operations and cleanup.
+#[cfg(feature = "native-root")]
+pub struct NativeSdkReservation {
+    _private: (),
+}
+#[cfg(feature = "native-root")]
+impl NativeSdkReservation {
+    pub fn bytes(&self) -> usize {
+        SDK_HEAP.stats().size
+    }
+}
+
+/// Called once before RTOS/radio startup. The base partition is 184 KiB:
+/// 112 KiB for Root Rust allocations and 32+40 KiB for the SDK C boundary.
+/// The native Face profile adds 4,080 bytes released from HTTP task storage
+/// to Root; no bytes come from the SDK reservation or admitted stack floor.
+/// The awake CPU0 Face profile moves 8 KiB of Root backing to RTC-fast RAM.
+/// This is a fixed partition before radio startup, not borrowing or fallback.
+/// Complete appliance and SDK work admission remains a separate requirement.
+#[cfg(feature = "native-root")]
+pub fn initialize() -> NativeSdkReservation {
+    use core::{
+        mem::MaybeUninit,
+        sync::atomic::{AtomicBool, Ordering},
+    };
+    static INITIALIZED: AtomicBool = AtomicBool::new(false);
+    assert!(!INITIALIZED.swap(true, Ordering::SeqCst));
+    assert_eq!(esp_alloc::HEAP.stats().size, ROOT_INTERNAL_BYTES);
+    assert_eq!(esp_alloc::HEAP.used(), 0);
+    #[esp_hal::ram(reclaimed)]
+    static mut ROOT: [MaybeUninit<u32>; ROOT_RECLAIMED_BYTES / 4] =
+        [MaybeUninit::uninit(); ROOT_RECLAIMED_BYTES / 4];
+    #[cfg(feature = "native-face-root")]
+    #[esp_hal::ram(unstable(rtc_fast))]
+    static mut RTC: [MaybeUninit<u32>; ROOT_RTC_BYTES / 4] =
+        [MaybeUninit::uninit(); ROOT_RTC_BYTES / 4];
+    static mut FIRST: [MaybeUninit<u32>; 32 * 1024 / 4] = [MaybeUninit::uninit(); 32 * 1024 / 4];
+    #[esp_hal::ram(reclaimed)]
+    static mut SECOND: [MaybeUninit<u32>; 40 * 1024 / 4] = [MaybeUninit::uninit(); 40 * 1024 / 4];
+    // SAFETY: uniquely initialized, disjoint internal static backing, retained
+    // for this Boot. SDK regions never enter Root's global allocator.
+    unsafe {
+        #[cfg(feature = "native-face-root")]
+        {
+            // Only CPU0 Rust ownership uses this region; C SDK allocations
+            // remain in their disjoint ordinary-RAM arena. Check byte access
+            // before admitting the separately linked, aligned full region.
+            let bytes = ptr::addr_of_mut!(RTC).cast::<u8>();
+            for offset in 0..ROOT_RTC_BYTES {
+                bytes.add(offset).write_volatile((offset as u8) ^ 0xa5);
+            }
+            for offset in 0..ROOT_RTC_BYTES {
+                assert_eq!(bytes.add(offset).read_volatile(), (offset as u8) ^ 0xa5);
+            }
+            esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+                bytes,
+                ROOT_RTC_BYTES,
+                esp_alloc::MemoryCapability::Internal.into(),
+            ));
+        }
+        // Fill the existing smaller RTC bank before the larger reclaimed bank.
+        // Late contiguous Plan arrays exceed 8 KiB; leaving RTC until last can
+        // strand enough free bytes across banks despite adequate total space.
+        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+            ptr::addr_of_mut!(ROOT).cast(),
+            ROOT_RECLAIMED_BYTES,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
+        SDK_HEAP.add_region(esp_alloc::HeapRegion::new(
+            ptr::addr_of_mut!(FIRST).cast(),
+            32 * 1024,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
+        SDK_HEAP.add_region(esp_alloc::HeapRegion::new(
+            ptr::addr_of_mut!(SECOND).cast(),
+            40 * 1024,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
+    }
+    assert_eq!(SDK_HEAP.stats().size, SDK_BYTES);
+    assert_eq!(esp_alloc::HEAP.stats().size, ROOT_BYTES);
+    assert_eq!(ROOT_BYTES + SDK_BYTES, 184 * 1024 + ROOT_HTTP_BACKING_BYTES);
+    self_check();
+    NativeSdkReservation { _private: () }
+}
+
+#[cfg(feature = "native-root")]
+fn self_check() {
+    let root_used = esp_alloc::HEAP.used();
+    // SAFETY: exercise actual C boundary before any concurrent SDK allocation.
+    unsafe {
+        let input = calloc(16, 1);
+        assert!(!input.is_null());
+        assert!(SDK_HEAP.used() >= 16 + HEADER);
+        assert_eq!(esp_alloc::HEAP.used(), root_used);
+        for i in 0..16 {
+            assert_eq!(*input.add(i), 0);
+            *input.add(i) = i as u8;
+        }
+        let grown = realloc_internal(input, 32);
+        assert!(!grown.is_null());
+        for i in 0..16 {
+            assert_eq!(*grown.add(i), i as u8);
+        }
+        assert!(realloc_internal(grown, usize::MAX).is_null());
+        assert!(malloc(SDK_BYTES).is_null());
+        assert!(calloc(usize::MAX, usize::MAX).is_null());
+        for i in 0..16 {
+            assert_eq!(*grown.add(i), i as u8);
+        }
+        free(grown);
+        free(ptr::null_mut());
+    }
+    assert_eq!(SDK_HEAP.used(), 0);
+    assert_eq!(esp_alloc::HEAP.used(), root_used);
+}
+
+#[cfg(feature = "native-root")]
+pub fn stats() -> esp_alloc::HeapStats {
+    SDK_HEAP.stats()
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn malloc(size: usize) -> *mut u8 {
+    let Some(total) = size.checked_add(HEADER) else {
+        return ptr::null_mut();
+    };
+    let Ok(layout) = Layout::from_size_align(total, HEADER) else {
+        return ptr::null_mut();
+    };
+    let base = unsafe { heap().alloc_caps(esp_alloc::MemoryCapability::Internal.into(), layout) };
+    if base.is_null() {
+        return base;
+    }
+    unsafe {
+        base.cast::<usize>().write(total);
+        base.add(HEADER)
+    }
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn malloc_internal(size: usize) -> *mut u8 {
+    unsafe { malloc(size) }
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn free(pointer: *mut u8) {
+    if pointer.is_null() {
+        return;
+    }
+    unsafe {
+        let base = pointer.sub(HEADER);
+        let total = base.cast::<usize>().read();
+        let layout = Layout::from_size_align_unchecked(total, HEADER);
+        GlobalAlloc::dealloc(heap(), base, layout);
+    }
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn free_internal(pointer: *mut u8) {
+    unsafe { free(pointer) }
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn calloc(count: usize, size: usize) -> *mut u8 {
+    let Some(size) = count.checked_mul(size) else {
+        return ptr::null_mut();
+    };
+    let pointer = unsafe { malloc(size) };
+    if !pointer.is_null() {
+        unsafe {
+            pointer.write_bytes(0, size);
+        }
+    }
+    pointer
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn calloc_internal(count: usize, size: usize) -> *mut u8 {
+    unsafe { calloc(count, size) }
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn realloc(pointer: *mut u8, size: usize) -> *mut u8 {
+    if size == 0 {
+        unsafe {
+            free(pointer);
+        }
+        return ptr::null_mut();
+    }
+    let replacement = unsafe { malloc(size) };
+    if !replacement.is_null() && !pointer.is_null() {
+        unsafe {
+            let old_size = pointer.sub(HEADER).cast::<usize>().read() - HEADER;
+            ptr::copy_nonoverlapping(pointer, replacement, old_size.min(size));
+            free(pointer);
+        }
+    }
+    replacement
+}
+
+#[unsafe(no_mangle)]
+unsafe extern "C" fn realloc_internal(pointer: *mut u8, size: usize) -> *mut u8 {
+    unsafe { realloc(pointer, size) }
+}
+
+#[unsafe(no_mangle)]
+extern "C" fn get_free_internal_heap_size() -> usize {
+    heap().free()
+}

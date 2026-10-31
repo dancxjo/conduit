@@ -410,7 +410,7 @@ fn checked_expression_retains_its_exact_input_and_output_contract() {
         PortableExpressionProgram::from_canonical_hex(program),
         Ok(portable)
     );
-    let mut malformed = program.clone();
+    let mut malformed = program.to_string();
     malformed.push('0');
     assert!(PortableExpressionProgram::from_canonical_hex(&malformed).is_err());
 

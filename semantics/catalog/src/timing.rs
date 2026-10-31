@@ -62,7 +62,7 @@ pub fn time_debounce_contract() -> StandardKindContract {
             duration_field(),
             KindConfigurationField {
                 key: "policy".to_string(),
-                default_value: ConfigurationValue::Text(TIME_POLICY_TRAILING.to_string()),
+                default_value: ConfigurationValue::Text(TIME_POLICY_TRAILING.to_string().into()),
                 rule: KindConfigurationRule::TextOneOf {
                     values: vec![TIME_POLICY_TRAILING.to_string()],
                 },
@@ -138,7 +138,7 @@ pub fn time_throttle_contract() -> StandardKindContract {
             duration_field(),
             KindConfigurationField {
                 key: "policy".to_string(),
-                default_value: ConfigurationValue::Text(TIME_POLICY_LEADING.to_string()),
+                default_value: ConfigurationValue::Text(TIME_POLICY_LEADING.to_string().into()),
                 rule: KindConfigurationRule::TextOneOf {
                     values: vec![TIME_POLICY_LEADING.to_string()],
                 },

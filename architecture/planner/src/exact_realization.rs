@@ -2,16 +2,16 @@
 //! Domain-specific coverage and numerical refinement retain their own owners.
 use crate::prelude::*;
 use crate::{PlannerError, MAXIMUM_REALIZATION_DECISION_RECORDS};
-use conduit_core::{CapabilityOffer, HostAdvertisement, KindSemanticLaw};
+use conduit_core::KindSemanticLaw;
 use conduit_plot::CheckedGear;
 
-pub(crate) fn filter_candidates<T, F>(
+pub(crate) fn filter_candidate_evidence<T, F>(
     gear: &CheckedGear,
     candidates: Vec<T>,
     fields: F,
 ) -> Result<Vec<T>, PlannerError>
 where
-    F: for<'a> Fn(&'a T) -> (&'a HostAdvertisement, &'a CapabilityOffer),
+    F: for<'a> Fn(&'a T) -> crate::offer_access::RealizationCandidateRef<'a>,
 {
     let requirements = gear
         .semantic_contract
@@ -42,7 +42,7 @@ where
     let mut admitted = Vec::new();
     let mut rejected = Vec::new();
     for candidate in candidates {
-        let (_, offer) = fields(&candidate);
+        let offer = fields(&candidate);
         let mut failure = None;
         for requirement in &requirements {
             let configured = gear
@@ -51,7 +51,7 @@ where
                 .find(|entry| entry.key == requirement.configuration_key);
             if let Err(why) = requirement.check(
                 configured.map(|entry| &entry.value),
-                &offer.realization_properties,
+                offer.realization_properties,
             ) {
                 failure = Some((requirement.property_profile.clone(), why));
                 break;

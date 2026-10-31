@@ -65,6 +65,8 @@ pub mod flow_activation;
 pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub mod linux_snapshot;
 mod reluctant_replan;
 pub use reluctant_replan::{
     StdReluctantReplanError, StdReluctantReplanOutcome, StdReluctantReplanRefusal,
@@ -91,7 +93,9 @@ mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;
-pub use host_execution::{ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters};
+pub use host_execution::{
+    ExternalForeRun, ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExternalForeInput {
@@ -187,6 +191,7 @@ mod installed_std_tests;
 pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
+pub mod microphone_flow_proof;
 pub mod microphone_whisper_proof;
 #[cfg(feature = "native-webrtc")]
 pub mod native_webrtc;
@@ -1991,7 +1996,7 @@ mod tests {
         let mut remote = fragment.clone();
         let foreign_line: conduit_core::AdmittedLine =
             (&conduit_signal_conformance::distributed_websocket_line_offer()).into();
-        remote.connections[0].selected_line = Some(foreign_line.clone());
+        remote.connections[0].selected_line = Some(Box::new(foreign_line.clone()));
         remote.connections[0].admitted_lines = vec![foreign_line];
         let remote = seal_plan(plot_identity.clone(), vec![remote]);
         assert!(matches!(
@@ -2256,5 +2261,10 @@ pub mod hosted_integer_categorical;
 
 pub mod todo_spoken_reading;
 
+#[cfg(target_os = "linux")]
+pub mod device_carrier;
 /// Finite worker text evidence; admission and shared Face projection remain owner decisions.
 pub mod worker_text_result;
+
+mod retained_native_inventory;
+pub use retained_native_inventory::NativeFragmentReservation;

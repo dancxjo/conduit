@@ -1,5 +1,8 @@
 //! Seal exact external Fore contracts after expanded planning.
 use super::*;
+#[path = "authoring/fore_port_sort.rs"]
+mod fore_port_sort;
+use fore_port_sort::sort_fore_ports;
 
 /// Seal a root's exact Fore together with its recursively planned activations.
 /// The checked document is required because an expanded parent does not carry
@@ -80,15 +83,99 @@ fn seal_fore(
     mut plan: Plan,
     boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
 ) -> Result<Plan, PlannerError> {
-    let expected = plot
-        .input_bindings
+    attach_fore(
+        &plot.front,
+        &plot.input_bindings,
+        &plot.output_bindings,
+        &mut plan.fragments,
+        boundary_limits,
+    )?;
+    Ok(conduit_core::seal_plan_with_activation_entries(
+        PlotIdentity {
+            source_document_id: plan.source_document_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
+        },
+        plan.completion_policy,
+        plan.realization_backs,
+        plan.activations,
+        plan.fragments,
+    ))
+}
+
+/// Shared exact Fore checks for rich authoring and authenticated indexed Make
+/// material. The caller seals the resulting fragments in their original scope.
+pub(crate) fn attach_fore(
+    front: &conduit_core::CheckedFront,
+    input_bindings: &[conduit_plot::AuthoringFrontBinding],
+    output_bindings: &[conduit_plot::AuthoringFrontBinding],
+    fragments: &mut [conduit_core::PlanFragment],
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+) -> Result<(), PlannerError> {
+    let count = input_bindings.len() + output_bindings.len();
+    // Preserve all-or-nothing attachment while avoiding a second indexed port
+    // array for the common local fragment. Every port is checked by visit_fore.
+    if fragments.len() == 1 {
+        let mut ports = Vec::with_capacity(count);
+        visit_fore(
+            front,
+            input_bindings,
+            output_bindings,
+            fragments,
+            boundary_limits,
+            |index, port| {
+                debug_assert_eq!(index, 0);
+                ports.push(port);
+                Ok(())
+            },
+        )?;
+        if fragments[0].fore_ports.is_empty() {
+            fragments[0].fore_ports = ports;
+        } else {
+            fragments[0].fore_ports.extend(ports);
+        }
+        sort_fore_ports(&mut fragments[0].fore_ports);
+        return Ok(());
+    }
+    let mut ports = Vec::with_capacity(count);
+    visit_fore(
+        front,
+        input_bindings,
+        output_bindings,
+        fragments,
+        boundary_limits,
+        |index, port| {
+            ports.push((index, port));
+            Ok(())
+        },
+    )?;
+    for (index, port) in ports {
+        fragments[index].fore_ports.push(port);
+    }
+    for fragment in fragments {
+        sort_fore_ports(&mut fragment.fore_ports);
+    }
+    Ok(())
+}
+
+/// Construct one exact Fore at a time for sealing or read-only comparison.
+/// Verification never clones the selected graph or its configuration payloads.
+pub(crate) fn visit_fore(
+    front: &conduit_core::CheckedFront,
+    input_bindings: &[conduit_plot::AuthoringFrontBinding],
+    output_bindings: &[conduit_plot::AuthoringFrontBinding],
+    fragments: &[conduit_core::PlanFragment],
+    boundary_limits: &BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
+    mut visit: impl FnMut(usize, PlannedForePort) -> Result<(), PlannerError>,
+) -> Result<(), PlannerError> {
+    let expected = input_bindings
         .iter()
         .map(|binding| ForeBoundaryKey {
             direction: conduit_core::PortDirection::Input,
             front_port_id: binding.front_port_id.clone(),
             track: binding.track,
         })
-        .chain(plot.output_bindings.iter().map(|binding| ForeBoundaryKey {
+        .chain(output_bindings.iter().map(|binding| ForeBoundaryKey {
             direction: conduit_core::PortDirection::Output,
             front_port_id: binding.front_port_id.clone(),
             track: binding.track,
@@ -104,13 +191,13 @@ fn seal_fore(
     for (direction, bindings, descriptors) in [
         (
             conduit_core::PortDirection::Input,
-            plot.input_bindings.as_slice(),
-            plot.front.inputs(),
+            input_bindings,
+            front.inputs(),
         ),
         (
             conduit_core::PortDirection::Output,
-            plot.output_bindings.as_slice(),
-            plot.front.outputs(),
+            output_bindings,
+            front.outputs(),
         ),
     ] {
         for binding in bindings {
@@ -162,17 +249,17 @@ fn seal_fore(
                         conduit_core::FrontValueLocation::Output(binding.front_port_id.clone())
                     }
                 };
-                plot.front
+                front
                     .value_contracts()
                     .iter()
                     .find(|contract| contract.location == location)
                     .map(|contract| contract.contract.clone())
             })
             .flatten();
-            let fragment = plan
-                .fragments
-                .iter_mut()
-                .find(|fragment| {
+            let (fragment_index, fragment) = fragments
+                .iter()
+                .enumerate()
+                .find(|(_, fragment)| {
                     fragment
                         .placements
                         .iter()
@@ -207,12 +294,12 @@ fn seal_fore(
                                     // abnormal terminal through distinct Fores.
                                     // The exact same internal Port must supply
                                     // the separately declared terminal output.
-                                    plot.output_bindings.iter().any(|terminal| {
+                                    output_bindings.iter().any(|terminal| {
                                         terminal.gear_id == binding.gear_id
                                             && terminal.gear_port_id == binding.gear_port_id
                                             && terminal.track
                                                 == conduit_core::ConnectionTrack::AbnormalTerminal
-                                            && plot.front.outputs().iter().any(|output| {
+                                            && front.outputs().iter().any(|output| {
                                                 output.port_id == terminal.front_port_id
                                                     && &output.value_kind == kind
                                                     && output.temporal
@@ -291,41 +378,25 @@ fn seal_fore(
                     binding.front_port_id.as_str(),
                 )));
             }
-            fragment.fore_ports.push(PlannedForePort {
-                front_port_id: binding.front_port_id.clone(),
-                direction,
-                placement_id: placement.placement_id.clone(),
-                gear_port_id: binding.gear_port_id.clone(),
-                value_kind: descriptor.value_kind.clone(),
-                value_contract,
-                abnormal_kind: descriptor.abnormal_kind.clone(),
-                track: binding.track,
-                temporal: descriptor.temporal,
-                pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
-                item_capacity: limits.item_capacity,
-                byte_capacity: limits.byte_capacity,
-                selected_line: None,
-            });
+            visit(
+                fragment_index,
+                PlannedForePort {
+                    front_port_id: binding.front_port_id.clone(),
+                    direction,
+                    placement_id: placement.placement_id.clone(),
+                    gear_port_id: binding.gear_port_id.clone(),
+                    value_kind: descriptor.value_kind.clone(),
+                    value_contract,
+                    abnormal_kind: descriptor.abnormal_kind.clone(),
+                    track: binding.track,
+                    temporal: descriptor.temporal,
+                    pressure_policy: conduit_core::DeliveryPressurePolicy::PreserveOrder,
+                    item_capacity: limits.item_capacity,
+                    byte_capacity: limits.byte_capacity,
+                    selected_line: None,
+                },
+            )?;
         }
     }
-    for fragment in &mut plan.fragments {
-        fragment.fore_ports.sort_by(|left, right| {
-            (left.direction as u8, &left.front_port_id, left.track).cmp(&(
-                right.direction as u8,
-                &right.front_port_id,
-                right.track,
-            ))
-        });
-    }
-    Ok(conduit_core::seal_plan_with_activation_entries(
-        PlotIdentity {
-            source_document_id: plan.source_document_id,
-            checked_plot_id: plan.checked_plot_id,
-            expanded_plot_id: plan.expanded_plot_id,
-        },
-        plan.completion_policy,
-        plan.realization_backs,
-        plan.activations,
-        plan.fragments,
-    ))
+    Ok(())
 }

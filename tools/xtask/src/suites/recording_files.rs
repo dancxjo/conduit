@@ -1,0 +1,66 @@
+//! Checked Source, retained Backs and original kernel requests over actual files.
+use crate::process::Step;
+pub const STEPS: &[Step] = &[
+    Step::new(
+        "recording-files.kernel",
+        "Check planned recovery and actual file completions",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/make/Cargo.toml",
+            "--test",
+            "recording_recovery",
+        ],
+    ),
+    Step::new(
+        "recording-files.lint",
+        "Lint recovery preparation and file proof",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/make/Cargo.toml",
+            "--lib",
+            "--test",
+            "recording_recovery",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    Step::new(
+        "recording-files.runtime-lint",
+        "Lint the prepared production recording Backs",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/runtime/Cargo.toml",
+            "--features",
+            "recording-kernel",
+            "--lib",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+    Step::new(
+        "recording-files.linux-lint",
+        "Lint the owned Linux recovery kernel adapter",
+        "cargo",
+        &[
+            "clippy",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/linux/Cargo.toml",
+            "--all-targets",
+            "--",
+            "-D",
+            "warnings",
+        ],
+    ),
+];

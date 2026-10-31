@@ -1,5 +1,10 @@
 #![cfg(feature = "plot-catalog")]
 
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
 use conduit_body::{
     Body, BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlotPlan,
     BodyWorkset, ResidentPlot,
@@ -792,3 +797,9 @@ fn seven_segment_source_is_an_ordinary_mask_with_one_role_boundary() {
 
 #[path = "mask_plot/wire.rs"]
 mod wire;
+
+#[path = "mask_plot/context_verified.rs"]
+mod context_verified;
+
+#[path = "mask_plot/routes_sealed.rs"]
+mod routes_sealed;

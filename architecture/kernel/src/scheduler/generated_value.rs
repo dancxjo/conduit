@@ -6,6 +6,8 @@ pub(super) enum PreparedStepValue {
     NativeU64(u64),
     #[cfg(feature = "alloc")]
     CompactF32(super::CompactF32Layout),
+    #[cfg(feature = "alloc")]
+    CompactCanonical(u32),
 }
 impl PreparedStepValue {
     pub(super) fn logical_bytes(self) -> u32 {
@@ -15,6 +17,8 @@ impl PreparedStepValue {
             Self::NativeU64(_) => 8,
             #[cfg(feature = "alloc")]
             Self::CompactF32(layout) => layout.logical_bytes,
+            #[cfg(feature = "alloc")]
+            Self::CompactCanonical(bytes) => bytes,
         }
     }
 }

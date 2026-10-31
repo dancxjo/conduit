@@ -2,8 +2,8 @@
 use crate::prelude::*;
 use crate::{PlannerError, MAXIMUM_REALIZATION_DECISION_RECORDS};
 use conduit_core::{
-    CapabilityOffer, ExactNumericWork, HostAdvertisement, KindSemanticLaw,
-    NumericalRealizationRefusal, NumericalRealizationRequest, PreparedNumericalRealization,
+    CapabilityOffer, ExactNumericWork, KindSemanticLaw, NumericalRealizationRefusal,
+    NumericalRealizationRequest, PreparedNumericalRealization,
 };
 use conduit_plot::CheckedGear;
 
@@ -57,16 +57,23 @@ pub(crate) fn candidate_check(
     gear: &CheckedGear,
     offer: &CapabilityOffer,
 ) -> Result<Result<(), NumericalRealizationRefusal>, PlannerError> {
+    candidate_check_fields(gear, &offer.capability_id, &offer.realization_properties)
+}
+pub(crate) fn candidate_check_fields(
+    gear: &CheckedGear,
+    capability_id: &conduit_core::CapabilityId,
+    realization_properties: &[conduit_core::StructuredConfigurationValue],
+) -> Result<Result<(), NumericalRealizationRefusal>, PlannerError> {
     if !has_requests(gear) {
-        return if conduit_core::valid_realization_properties(&offer.realization_properties) {
+        return if conduit_core::valid_realization_properties(realization_properties) {
             Ok(Ok(()))
         } else {
             Err(PlannerError::InvalidRealizationProperties(
-                offer.capability_id.clone(),
+                capability_id.clone(),
             ))
         };
     }
-    numerical_candidate_check(gear, offer)
+    numerical_candidate_check(gear, capability_id, realization_properties)
 }
 fn has_requests(gear: &CheckedGear) -> bool {
     gear.semantic_contract.laws.iter().any(|law| {
@@ -79,19 +86,19 @@ fn has_requests(gear: &CheckedGear) -> bool {
 #[inline(never)]
 fn numerical_candidate_check(
     gear: &CheckedGear,
-    offer: &CapabilityOffer,
+    capability_id: &conduit_core::CapabilityId,
+    realization_properties: &[conduit_core::StructuredConfigurationValue],
 ) -> Result<Result<(), NumericalRealizationRefusal>, PlannerError> {
     let requests = requests(gear)?;
-    if !conduit_core::valid_realization_properties(&offer.realization_properties) {
+    if !conduit_core::valid_realization_properties(realization_properties) {
         return Err(PlannerError::InvalidRealizationProperties(
-            offer.capability_id.clone(),
+            capability_id.clone(),
         ));
     }
     if requests.is_empty() {
         return Ok(Ok(()));
     }
-    let Some(property) = offer
-        .realization_properties
+    let Some(property) = realization_properties
         .iter()
         .find(|property| is_profile(property.profile()))
     else {
@@ -109,13 +116,13 @@ fn numerical_candidate_check(
     }
     Ok(Ok(()))
 }
-pub(crate) fn filter_candidates<T, F>(
+pub(crate) fn filter_candidate_evidence<T, F>(
     gear: &CheckedGear,
     candidates: Vec<T>,
     fields: F,
 ) -> Result<Vec<T>, PlannerError>
 where
-    F: for<'a> Fn(&'a T) -> (&'a HostAdvertisement, &'a CapabilityOffer),
+    F: for<'a> Fn(&'a T) -> crate::offer_access::RealizationCandidateRef<'a>,
 {
     if !has_requests(gear) {
         return Ok(candidates);
@@ -130,8 +137,8 @@ where
     let mut admitted = Vec::new();
     let mut reasons = Vec::new();
     for candidate in candidates {
-        let (_, offer) = fields(&candidate);
-        match candidate_check(gear, offer)? {
+        let offer = fields(&candidate);
+        match candidate_check_fields(gear, offer.capability_id, offer.realization_properties)? {
             Ok(()) => admitted.push(candidate),
             Err(why) => reasons.push((offer.capability_id.clone(), why)),
         }

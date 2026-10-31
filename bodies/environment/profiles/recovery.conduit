@@ -1,0 +1,12 @@
+# Reference identity is portable data; residence and access are selected by Plan.
+plot environment-recording-recovery (
+    reference: Text
+) {
+    generation: environment/recording-generation
+    snapshot: resource/read-json-snapshot(reference)
+    events: flow/singleton
+    history: environment/recover-recording
+    generation.generation >> snapshot.source
+    snapshot.value >> events.value
+    events.flow >> history.chunk
+}

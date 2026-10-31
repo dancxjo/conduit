@@ -15,6 +15,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 mod browser_admission;
+mod environment_image;
 #[cfg(unix)]
 mod provision_conduitos;
 mod scaffold;
@@ -31,6 +32,8 @@ pub struct BodyArgs {
 
 #[derive(Subcommand, Debug)]
 enum BodyCommand {
+    /// Build an ESP32 image with a Crèche-born body; autonomous startup is still in development.
+    EnvironmentImage(environment_image::Args),
     /// Package a birthable local browser application as self-contained static files.
     Static(static_application::StaticArgs),
     /// Prove bounded admission, carrier loss and fresh-Boot return with a real browser SDK.
@@ -104,6 +107,7 @@ struct HostReport<'a> {
 
 pub fn run(args: BodyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command {
+        BodyCommand::EnvironmentImage(args) => environment_image::run(args, opts),
         BodyCommand::Static(args) => static_application::run(args, opts),
         BodyCommand::ProveBrowserAdmission(args) => browser_admission::run(args, opts),
         #[cfg(unix)]

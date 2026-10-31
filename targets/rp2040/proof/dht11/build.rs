@@ -1,15 +1,45 @@
+#[cfg(feature = "maximal-target")]
+#[path = "../../../esp32/proof/tm1637/build_body.rs"]
+mod build_body;
 #[path = "kernel_image.rs"]
 mod kernel_image;
 fn main() {
     let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
-    std::fs::write(out.join("memory.x"), include_bytes!("memory.x")).unwrap();
+    std::fs::write(
+        out.join("memory.x"),
+        format!(
+            "EXTERN(BOOT2_FIRMWARE)\n{}",
+            conduit_rp2040_flash_layout::LINKER_MEMORY_X
+        ),
+    )
+    .unwrap();
     println!("cargo:rustc-link-search={}", out.display());
     println!("cargo:rustc-link-arg=-Tlink.x");
     println!("cargo:rustc-link-arg=--nmagic");
-    println!("cargo:rerun-if-changed=memory.x");
+    println!("cargo:rerun-if-changed=../../deployment/browser/flash-layout.mjs");
     prepare_source(&out);
     if std::env::var_os("CARGO_FEATURE_KERNEL_EVALUATION").is_some() {
         kernel_image::prepare(&out);
+    }
+    #[cfg(feature = "maximal-target")]
+    {
+        let recipe = build_body::emit(&out);
+        let mut rust = String::new();
+        recipe
+            .write_source_rust(&mut rust)
+            .expect("checked Source material");
+        std::fs::write(out.join("appliance-software.rs"), rust).unwrap();
+        println!("cargo:rerun-if-changed=src/maximal_target.rs");
+        println!("cargo:rerun-if-changed=src/maximal_planning.rs");
+        std::fs::write(
+            out.join("checkpoint-stack.x"),
+            "ASSERT(_stack_start - __euninit >= 36864, \"Pico checkpoint stack below 36 KiB\");\n",
+        )
+        .unwrap();
+        println!(
+            "cargo:rustc-link-arg=-T{}",
+            out.join("checkpoint-stack.x").display()
+        );
     }
 }
 
@@ -32,7 +62,11 @@ fn prepare_source(out: &std::path::Path) {
         "Cargo.toml",
         "Cargo.lock",
         "build.rs",
-        "memory.x",
+        "../../deployment/browser/flash-layout.mjs",
+        "../../flash-layout/Cargo.toml",
+        "../../flash-layout/build.rs",
+        "../../flash-layout/build/definition.rs",
+        "../../flash-layout/src/lib.rs",
         "src/main.rs",
         "src/display_probe.rs",
         "src/http_ap.rs",
@@ -84,6 +118,11 @@ fn prepare_source(out: &std::path::Path) {
     build_hash.update(std::env::var("CARGO_FEATURE_SOURCE_EVALUATION").unwrap_or_default());
     build_hash.update(std::env::var("CARGO_FEATURE_PIO_CAPTURE").unwrap_or_default());
     build_hash.update(std::env::var("CARGO_FEATURE_KERNEL_EVALUATION").unwrap_or_default());
+    build_hash.update(std::env::var("CARGO_FEATURE_MAXIMAL_TARGET").unwrap_or_default());
+    #[cfg(feature = "maximal-target")]
+    for file in ["src/maximal_target.rs", "src/maximal_planning.rs"] {
+        build_hash.update(std::fs::read(file).unwrap());
+    }
     let mut capture_source = String::new();
     for file in ["pulse-types.conduit", "dht11-capture.conduit"] {
         let path = format!("../../../../plots/device-protocols/{file}");

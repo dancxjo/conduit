@@ -27,6 +27,8 @@ mod http_ap;
 mod http_radio;
 #[cfg(feature = "http-ap")]
 use conduit_environment_http as http_view;
+#[cfg(feature = "maximal-target")]
+mod maximal_target;
 mod usb_link;
 // Reuse the exact lifecycle challenge/ACK and reboot implementation.
 #[path = "../../../firmware/pico-w-signal/src/bootsel.rs"]
@@ -134,6 +136,16 @@ async fn main(_spawner: Spawner) {
         probe_heap::ALLOCATOR.initialize();
     }
     let p = embassy_rp::init(Default::default());
+    #[cfg(feature = "maximal-target")]
+    let unique_id = {
+        let mut flash =
+            embassy_rp::flash::Flash::<_, embassy_rp::flash::Blocking, 2097152>::new_blocking(
+                p.FLASH,
+            );
+        let mut id = [0; 8];
+        flash.blocking_unique_id(&mut id).expect("flash UID");
+        id
+    };
     #[cfg(feature = "http-ap")]
     let network = http_radio::Resources {
         spawner: _spawner,
@@ -276,8 +288,10 @@ async fn main(_spawner: Spawner) {
     };
     #[cfg(all(feature = "kernel-evaluation", not(feature = "http-ap")))]
     let diagnostic = kernel_probe::run(electrical, &mut link);
-    #[cfg(feature = "http-ap")]
+    #[cfg(all(feature = "http-ap", not(feature = "maximal-target")))]
     let diagnostic = kernel_probe::run(electrical, &mut link, network);
+    #[cfg(feature = "maximal-target")]
+    let diagnostic = maximal_target::run(electrical, &mut link, network, unique_id);
     #[cfg(feature = "display-wire")]
     let diagnostic = display_probe::run(p.PIN_3, p.PIN_4, &mut link);
     join(device.run(), diagnostic).await;

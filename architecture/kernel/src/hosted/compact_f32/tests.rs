@@ -122,10 +122,10 @@ fn heterogeneous_slots_and_exhausted_generations_remain_bounded() {
     let mut values = HostedValueStore::new_with_slot_capacities(&[4, 24], 28).unwrap();
     values.prepare_compact_f32();
     assert_eq!(values.compact_f32_available(20), (1, 28));
-    values.slots[1].generation = u16::MAX - 1;
+    values.slots[1].generation = u32::MAX - 1;
     let last = values.store_compact_f32(&LANES, 20).unwrap();
     assert_eq!(last.slot, 1);
-    assert_eq!(last.generation, u16::MAX);
+    assert_eq!(last.generation, u32::MAX);
     values.release(last).unwrap();
     assert_eq!(values.compact_f32_available(20), (0, 28));
     assert_eq!(

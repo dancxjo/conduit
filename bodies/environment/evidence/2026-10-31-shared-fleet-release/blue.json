@@ -1,0 +1,30 @@
+{
+  "source": "ac3ac678ea5b3ab649eebe92235d54113a63f2f1",
+  "app_sha256": "ea5c903fb7eb88f58c51b3add89e6df0a3bc2a34dca53f0c96e63259f11e8596",
+  "app_bytes": 3245088,
+  "body_id": "71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57",
+  "boot_id": "boot/a7c642d8db1ef1965a011c502a2a9269",
+  "restored_checkpoint_generation": 891,
+  "station_address": "10.0.0.210",
+  "same_original_body_root_owner_and_all_nonapp_flash_preserved": true,
+  "current_capture_seconds": 180,
+  "local_samples": 2,
+  "local_retained_records": 2,
+  "local_mask_acknowledgements": 50,
+  "sampler_and_mask_faults": false,
+  "fatal_marker_seen": false,
+  "checkpoint_success_events": 2,
+  "historical_26000_renewal_guard_unchanged": true,
+  "fresh_prewrite_predicted_next_checkpoint_bytes": 30376,
+  "payload_capacity": 32608,
+  "prewrite_predicted_margin": 2232,
+  "gaps": [
+    "Post-startup checkpoint encoded extent was not reread; further ROM capture/restart needs separate capacity qualification",
+    "No second forced restart or overnight/finite-renewal claim",
+    "New signed observer return/invitation remains owned by forebrain",
+    "Physical visual display was not independently observed; controller acknowledgements verified",
+    "Active observation custody returned observed-offer-not-frozen; no ACK, erase or offload authorized"
+  ],
+  "source_branch": "recover/blue-shared-sync-20261031",
+  "shared_owner": "forebrain"
+}

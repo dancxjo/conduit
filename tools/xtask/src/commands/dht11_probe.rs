@@ -1,8 +1,14 @@
 //! Focused environmental Body specification, Mask and physical diagnostic proof.
 #[path = "environment_appliance.rs"]
 mod environment_appliance;
+#[path = "environment_body_image.rs"]
+mod environment_body_image;
+#[path = "environment_esp32.rs"]
+mod environment_esp32;
 #[path = "environment_face_publication.rs"]
 mod environment_face_publication;
+#[path = "environment_host_owned.rs"]
+mod environment_host_owned;
 #[path = "environment_history.rs"]
 mod environment_history;
 #[path = "environment_output.rs"]
@@ -26,6 +32,12 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if let Some(result) = environment_host_owned::dispatch(&root, arguments) {
+        return result;
+    }
+    if arguments == ["body-image"] {
+        return environment_body_image::prove(&root);
+    }
     if arguments == ["appliance"] {
         return environment_appliance::prove(&root);
     }
@@ -80,22 +92,17 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments == ["display-esp32"] {
-        let package = root.join("targets/esp32/proof/tm1637");
-        let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
-            package.join("rust-toolchain.toml"),
-        )?)?;
-        let channel = toolchain
-            .get("toolchain")
-            .and_then(|value| value.get("channel"))
-            .and_then(toml::Value::as_str)
-            .ok_or("display diagnostic has no pinned toolchain")?;
-        return execute(
-            Command::new("cargo")
-                .current_dir(&package)
-                .arg(format!("+{channel}"))
-                .args(["build", "--locked", "--release"])
-                .env("CARGO_TARGET_DIR", root.join("target/environment-esp32")),
+    if arguments == ["native-memory-esp32"] {
+        return environment_esp32::build_memory_check(&root);
+    }
+    if arguments == ["display-esp32"]
+        || arguments == ["native-esp32"]
+        || arguments == ["native-body-esp32"]
+    {
+        return environment_esp32::build(
+            &root,
+            arguments != ["display-esp32"],
+            arguments == ["native-body-esp32"],
         );
     }
     if arguments == ["display-target"] {
@@ -322,7 +329,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, appliance, source, display-output, face-publication, face, recording, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, body-image, appliance, source, display-output, face-publication, face, recording, mask, display-esp32, native-esp32, native-body-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

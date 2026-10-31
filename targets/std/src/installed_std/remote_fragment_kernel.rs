@@ -90,6 +90,8 @@ pub struct InstalledRemoteFragment {
     vision_run_id: String,
     vision_clock_basis: String,
     pending_body_context: Option<HostCallRequest>,
+    microphone_flow_host: Option<super::microphone_flow_host::MicrophoneFlowHost>,
+    microphone_flow_required: bool,
     delivered_body_context: Option<[u8; 32]>,
     data_text_hosts: super::data_text_host::DataTextGenerationHosts<'static>,
 }
@@ -244,6 +246,10 @@ impl InstalledRemoteFragment {
             vision_run_id,
             vision_clock_basis,
             pending_body_context: None,
+            microphone_flow_host: None,
+            microphone_flow_required: fragment.placements.iter().any(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::AUDIO_CAPTURE_FINITE_KIND
+            }),
             delivered_body_context: None,
             data_text_hosts,
         })
@@ -696,6 +702,9 @@ impl InstalledRemoteFragment {
             .map_err(|error| format!("read remote std abnormal terminal: {error:?}"))
     }
     pub fn cancel(&mut self) -> Result<(), String> {
+        if let Some(host) = self.microphone_flow_host.as_mut() {
+            host.cancel();
+        }
         self.pending_body_context = None;
         for host in self.speech_window_hosts.iter_mut().flatten() {
             host.cancel();

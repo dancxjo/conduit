@@ -1,0 +1,18 @@
+[package]
+name = "conduit-network-join-call"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
+conduit-net = { path = "../../../semantics/net" }
+[profile.dev.build-override]
+opt-level = 1
+[profile.test.build-override]
+opt-level = 1
+
+[dev-dependencies]
+conduit-embedded-build = { path = "../../../make/embedded-build" }

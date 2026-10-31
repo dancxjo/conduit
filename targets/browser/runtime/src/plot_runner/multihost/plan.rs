@@ -290,7 +290,7 @@ pub(super) fn accept(
         }
     }
     let line = memory_line(&source_host, &sink_host, admitted.binding.base.as_str())?;
-    if admitted != &line.admitted_line() {
+    if admitted.as_ref() != &line.admitted_line() {
         return Err("received multi-host Plan changed the exact browser-memory Line".into());
     }
     let source_fragment_count = plan

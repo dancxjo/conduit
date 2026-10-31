@@ -1,5 +1,13 @@
+mod attachments;
+mod identity;
+mod metadata;
+pub use metadata::HostMetadata;
+mod software;
+use identity::stable_host_configuration_identity_source;
+pub use software::HostSoftwarePurpose;
 #[path = "configuration/presentation.rs"]
 mod presentation;
+pub use attachments::{ConfigurationBus, ConfigurationDevice, ConfigurationScalar};
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -16,6 +24,9 @@ pub const HOST_CONFIGURATION_SCHEMA: u32 = 1;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct HostConfiguration {
+    /// Mutable descriptive context; excluded from checked realization identity.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<HostMetadata>,
     pub schema: u32,
     pub name: String,
     pub target: ConfigurationTarget,
@@ -24,6 +35,14 @@ pub struct HostConfiguration {
     #[serde(default)]
     pub resources: Vec<ResourceBudget>,
     pub limits: HostBounds,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub buses: Vec<ConfigurationBus>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub devices: Vec<ConfigurationDevice>,
+    /// None preserves the existing target composition; Some(empty) selects its
+    /// explicit baseline before equipment initialization, not zero offers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub software: Option<HostSoftwarePurpose>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +89,7 @@ pub enum ConfigurationDiagnostic {
         found: u32,
     },
     InvalidName,
+    InvalidMetadata,
     Initialization {
         kind: String,
         detail: String,
@@ -143,6 +163,8 @@ impl CheckedHostConfiguration {
     pub fn into_profile(self) -> HostProfile {
         self.profile
     }
+    /// Checked realization identity, excluding mutable descriptive metadata.
+    /// This is not a digest of the complete authorable document.
     pub fn configuration_id(&self) -> &str {
         &self.configuration_id
     }
@@ -151,30 +173,19 @@ impl CheckedHostConfiguration {
     }
 }
 
-// Configuration identity predates the canonical Conduit construction source.
-// Keep this encoding private so accepted identities remain stable without
-// retaining TOML as a parseable or authorable construction format.
-fn stable_host_configuration_identity_source(
-    configuration: &HostConfiguration,
-) -> Result<String, ConfigurationDiagnostic> {
-    let mut canonical = configuration.clone();
-    canonical
-        .bases
-        .sort_by(|left, right| left.kind.cmp(&right.kind));
-    canonical
-        .resources
-        .sort_by(|left, right| left.id.cmp(&right.id));
-    toml::to_string_pretty(&canonical).map_err(|error| ConfigurationDiagnostic::Encode {
-        detail: error.to_string(),
-    })
-}
-
 pub fn check_host_configuration(
     configuration: HostConfiguration,
     catalog: &MakeCatalog,
     packages: &MakePackageSet,
 ) -> Result<CheckedHostConfiguration, Vec<ConfigurationDiagnostic>> {
     let mut configuration = configuration;
+    if let Some(software) = &configuration.software {
+        software
+            .validate()
+            .map_err(|detail| vec![ConfigurationDiagnostic::Decode { detail }])?;
+    }
+    attachments::validate(&configuration.buses, &configuration.devices)
+        .map_err(|detail| vec![ConfigurationDiagnostic::Decode { detail }])?;
     // Schema-1 descriptions may retain the retired deployment-role machine
     // labels. Migrate them at the checked-description boundary; the canonical
     // catalog and emitted identity contain only the hosted computer target.
@@ -196,6 +207,9 @@ pub fn check_host_configuration(
     }
     if conduit_core::HostDeclaredName::new(configuration.name.clone()).is_err() {
         diagnostics.push(ConfigurationDiagnostic::InvalidName);
+    }
+    if configuration.metadata.as_ref().is_some_and(|m| !m.valid()) {
+        diagnostics.push(ConfigurationDiagnostic::InvalidMetadata);
     }
     let descriptor = packages.target_descriptors().into_iter().find(|item| {
         item.architecture == configuration.target.architecture
@@ -359,7 +373,10 @@ pub fn check_host_configuration(
         },
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
-        capabilities: Vec::new(),
+        capabilities: configuration
+            .software
+            .as_ref()
+            .map_or_else(Vec::new, |s| s.capabilities.clone()),
         host_calls: presentation.host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases
@@ -481,4 +498,12 @@ fn validate_limits(
     limit!(timer_slots);
     limit!(line_sessions);
     limit!(evidence_items);
+}
+
+pub(crate) fn write_attachment_conduit(
+    source: &mut String,
+    buses: &[ConfigurationBus],
+    devices: &[ConfigurationDevice],
+) -> Result<(), serde_json::Error> {
+    attachments::write(source, buses, devices)
 }

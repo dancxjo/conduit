@@ -15,6 +15,24 @@ fn retained_source_requires_exact_checked_identity_and_actual_target() {
 }
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 #[test]
+fn explicit_base_only_purpose_is_distinct_from_legacy_software_composition() {
+    let legacy = Selection::from_source(SOURCE, "std/x86_64/computer").unwrap();
+    let fallback = StdHostComposition::minimal().with_time();
+    assert_eq!(legacy.composition(fallback).unwrap(), fallback);
+    let mut configuration = parse_host_configuration_conduit(SOURCE).unwrap();
+    configuration.software = Some(conduit_host_make::HostSoftwarePurpose {
+        capabilities: Vec::new(),
+    });
+    let source = canonical_host_configuration_conduit(&configuration).unwrap();
+    let selected = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    assert_ne!(legacy.configuration_id, selected.configuration_id);
+    assert_eq!(
+        selected.composition(fallback).unwrap(),
+        StdHostComposition::minimal()
+    );
+}
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[test]
 fn configure_reinstall_and_clear_preserve_durable_host_identity() {
     let (manifest, state) = super::super::tests::fixture();
     let mut initial = install(&manifest, &state).unwrap();
@@ -107,6 +125,9 @@ mod microphone_fixture {
     use std::os::unix::fs::PermissionsExt;
     fn selection(executable: &Path, base_identity: &str) -> Selection {
         let mut configuration = parse_host_configuration_conduit(SOURCE).unwrap();
+        configuration.software = Some(conduit_host_make::HostSoftwarePurpose {
+            capabilities: Vec::new(),
+        });
         let initialization: BaseInitialization = serde_json::from_value(serde_json::json!({
             "executable": executable, "executable_sha256": digest(&fs::read(executable).unwrap()).trim_start_matches("sha256:"),
             "card_id":"ConduitFixture", "device":0, "base_identity":base_identity,
@@ -139,6 +160,37 @@ mod microphone_fixture {
         assert!(!state.join("fixture-arecord.observed").exists());
         assert!(!state.join("fixture-arecord.capture").exists());
 
+        // A catalog-valid software selection is not permission to approximate
+        // unsupported construction or probe the configured microphone.
+        let before = fs::read(state.join("installation.json")).unwrap();
+        let mut unsupported = parse_host_configuration_conduit(&selected.source).unwrap();
+        let offer = conduit_std_offers::text_literal_offer();
+        unsupported.software = Some(conduit_host_make::HostSoftwarePurpose {
+            capabilities: vec![conduit_host_make::CapabilitySelection {
+                kind: offer.kind_id.as_str().into(),
+                contract_revision: offer.kind_contract_revision.as_str().into(),
+                implementation: offer.implementation.implementation_id.as_str().into(),
+            }],
+        });
+        check_host_configuration(
+            unsupported.clone(),
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+        )
+        .unwrap();
+        let unsupported_source = state.join("unsupported-software.host.conduit");
+        fs::write(
+            &unsupported_source,
+            canonical_host_configuration_conduit(&unsupported).unwrap(),
+        )
+        .unwrap();
+        assert!(configure(&state, Some(&unsupported_source), false)
+            .unwrap_err()
+            .contains("cannot construct the selected software purpose"));
+        assert_eq!(before, fs::read(state.join("installation.json")).unwrap());
+        assert!(!state.join("fixture-arecord.observed").exists());
+        assert!(!state.join("fixture-arecord.capture").exists());
+
         let mut host = StdHost::new_with_config(StdHostConfig {
             host_id: "host/installed-microphone-fixture".into(),
             boot_id: "boot/installed-microphone-fixture".into(),
@@ -154,6 +206,15 @@ mod microphone_fixture {
         let (status, runtime) =
             super::super::super::runtime_preparation::prepare_runtime(&state).unwrap();
         assert_eq!(status.host_id, installation.host_id);
+        // The ordinary installed constructor builds the selected baseline before
+        // attaching the actual discovered provider, without trimming an offer.
+        assert_eq!(runtime.truth().advertisement.capabilities.len(), 3);
+        assert!(
+            serde_json::to_vec(&runtime.truth().advertisement)
+                .unwrap()
+                .len()
+                <= 64 * 1024
+        );
         assert_eq!(
             runtime.truth().advertisement.offer_generation.0,
             status.offer_generation

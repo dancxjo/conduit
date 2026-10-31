@@ -7,17 +7,33 @@ publish = false
 [workspace]
 
 [features]
+recording-kernel = ["dep:conduit-composite", "conduit-kernel/alloc", "dep:conduit-plan-lowering", "dep:conduit-semantic-catalog"]
+environmental-source = ["dep:conduit-plan-lowering"]
+history-exchange = ["dep:conduit-plan-lowering"]
+evidence-journal = []
+body-image = ["dep:conduit-body"]
+display-output = ["construction", "dep:conduit-tm1637-wire", "dep:conduit-plan-lowering"]
+display-session = ["evidence-journal", "display-output", "conduit-computation/prepared-expression-session", "conduit-tm1637-wire/prepared-write-session"]
+mask-renderer = ["mask-kernel", "display-mask", "dep:conduit-tm1637-wire", "dep:sha2"]
+mask-kernel = ["dep:conduit-face", "dep:conduit-plan-lowering", "conduit-kernel/alloc"]
 member-receipts = ["dep:conduit-body", "conduit-body/authenticated-admission", "dep:serde", "dep:sha2", "dep:ed25519-dalek"]
 display-mask = ["dep:conduit-face", "dep:conduit-seven-segment-mask"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-planner"]
+local-planning = ["construction", "dep:conduit-plan-lowering", "dep:serde_json", "conduit-plot/flat-image", "conduit-planner/indexed-source"]
 face-projection = ["dep:conduit-environment-face", "dep:conduit-face"]
 source-capture = ["dep:conduit-pulse-capture"]
 
 [dependencies]
-conduit-body = { path = "../../../architecture/body", default-features = false, optional = true }
-serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
+conduit-composite = { path = "../../../architecture/composite", default-features = false, optional = true }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, optional = true }
 sha2 = { version = "0.10", default-features = false, optional = true }
+conduit-environment-measurement = { path = "../measurement" }
+serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
+conduit-body = { path = "../../../architecture/body", default-features = false, optional = true }
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637", features = ["host-call"], optional = true }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"], optional = true }
 ed25519-dalek = { version = "2.2", default-features = false, optional = true }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask", optional = true }
 conduit-time = { path = "../../../semantics/time", default-features = false, optional = true }
@@ -28,7 +44,7 @@ conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", default
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel" }
 conduit-plot = { path = "../../../architecture/plot" }
-conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+conduit-computation = { path = "../../../mechanisms/implementations/computation", features = ["kernel-step"] }
 
 [build-dependencies]
 conduit-core = { path = "../../../architecture/core" }

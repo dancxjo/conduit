@@ -7,7 +7,7 @@ use conduit_host_make::{
     canonical_host_configuration_conduit, check_host_configuration,
     parse_host_configuration_conduit, CheckedHostConfiguration,
 };
-use conduit_std_host::StdHost;
+use conduit_std_host::{StdHost, StdHostComposition};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -65,6 +65,21 @@ impl Selection {
     pub(super) fn validate(&self) -> Result<(), String> {
         self.checked().map(|_| ())
     }
+    /// Choose software before constructing advertisement, ledger or providers.
+    /// An absent purpose preserves the caller's existing composition. An explicit
+    /// empty purpose requests the existing base-only construction baseline.
+    pub(super) fn composition(
+        &self,
+        fallback: StdHostComposition,
+    ) -> Result<StdHostComposition, String> {
+        let checked = self.checked()?;
+        require_target(&checked, running_target_id()?)?;
+        match &checked.configuration().software {
+            None => Ok(fallback),
+            Some(purpose) if purpose.capabilities.is_empty() => Ok(StdHostComposition::minimal()),
+            Some(_) => Err("installed Host cannot construct the selected software purpose".into()),
+        }
+    }
     pub(super) fn attach_to_fresh_host(&self, host: &mut StdHost) -> Result<(), String> {
         let checked = self.checked()?;
         require_target(&checked, running_target_id()?)?;
@@ -119,6 +134,14 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
         &conduit_workspace_make::package_set(),
     )
     .map_err(|e| format!("Host configuration refused: {e:?}"))?;
+    if checked
+        .configuration()
+        .software
+        .as_ref()
+        .is_some_and(|purpose| !purpose.capabilities.is_empty())
+    {
+        return Err("installed Host cannot construct the selected software purpose".into());
+    }
     for base in &checked.configuration().bases {
         if let Some(initialization) = &base.initialization {
             let implementation = checked

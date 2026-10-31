@@ -240,7 +240,7 @@ fn request_from_expanded(
             .iter()
             .find_map(|entry| match (entry.key.as_str(), &entry.value) {
                 (candidate, ConfigurationValue::Text(value)) if candidate == key => {
-                    Some(value.clone())
+                    Some(value.to_string())
                 }
                 _ => None,
             })
@@ -360,7 +360,7 @@ fn source_definition(kind: &str) -> KindProjection {
             .iter()
             .map(|key| KindConfigurationField {
                 key: (*key).into(),
-                default_value: ConfigurationValue::Text(String::new()),
+                default_value: ConfigurationValue::Text(String::new().into()),
                 rule: KindConfigurationRule::TextBytes {
                     maximum: MAX_INTERACTION_ID_BYTES as u32,
                 },

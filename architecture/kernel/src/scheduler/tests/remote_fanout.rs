@@ -1,5 +1,5 @@
 use super::*;
-use crate::SignError;
+use crate::{SignError, StorageError};
 const TARGETS: [(RemoteEndpointId, CordId); 2] = [
     (RemoteEndpointId(0), CordId(0)),
     (RemoteEndpointId(1), CordId(1)),
@@ -342,12 +342,11 @@ fn remote_payloads_obey_semantic_value_bounds_before_pressure_or_coalescing() {
 fn retire_value_slots(scheduler: &mut FanoutScheduler, slots: u16) -> ValueRef {
     let mut first = None;
     for slot in 0..slots {
-        for generation in 1..=u16::MAX {
-            let value = scheduler.store_host_value(b"x").unwrap();
-            first.get_or_insert(value);
-            assert_eq!((value.slot, value.generation), (slot, generation));
-            scheduler.discard_host_value(value).unwrap();
-        }
+        scheduler.values.slots[usize::from(slot)].generation = u32::MAX - 1;
+        let value = scheduler.store_host_value(b"x").unwrap();
+        first.get_or_insert(value);
+        assert_eq!((value.slot, value.generation), (slot, u32::MAX));
+        scheduler.discard_host_value(value).unwrap();
     }
     first.unwrap()
 }
@@ -418,4 +417,41 @@ fn shared_remote_publication_uses_remaining_fresh_generation_slot() {
     );
     scheduler.cancel().unwrap();
     assert_eq!(scheduler.values.used_items(), 0);
+}
+#[test]
+fn compact_queue_preserves_lengths_stale_refusal_and_failure_atomicity() {
+    let mut scheduler = scheduler_with_policy(16, AssignedPressurePolicy::CoalesceLatest);
+    let original = scheduler.values.store(b"old").unwrap();
+    scheduler.push(0, original).unwrap();
+    let mut wrong = original;
+    wrong.byte_len = 2;
+    assert_eq!(
+        scheduler.push(0, wrong),
+        Err(SchedulerError::Storage(StorageError::StaleReference))
+    );
+    assert_eq!(scheduler.peek(0), Ok(Some(original)));
+    assert_eq!(scheduler.cords[0].queued_bytes, 3);
+    assert_eq!(scheduler.pop(0), Ok(original));
+    scheduler.values.release(original).unwrap();
+    for generation in 2..=76_802u32 {
+        let value = scheduler.values.store(b"x").unwrap();
+        assert_eq!(value.generation, generation);
+        scheduler.push(0, value).unwrap();
+        assert_eq!(scheduler.peek(0), Ok(Some(value)));
+        assert_eq!(scheduler.pop(0), Ok(value));
+        scheduler.values.release(value).unwrap();
+    }
+    assert_eq!(
+        scheduler.values.get(original),
+        Err(StorageError::StaleReference)
+    );
+    let value = scheduler.values.store(b"x").unwrap();
+    scheduler.push(0, value).unwrap();
+    scheduler.values.clear();
+    assert_eq!(
+        scheduler.pop(0),
+        Err(SchedulerError::Storage(StorageError::StaleReference))
+    );
+    assert_eq!(scheduler.cords[0].len, 1);
+    assert_eq!(scheduler.cords[0].queued_bytes, 1);
 }

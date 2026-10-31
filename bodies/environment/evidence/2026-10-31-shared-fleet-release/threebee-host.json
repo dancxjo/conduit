@@ -1,0 +1,16 @@
+{
+  "source": "ac3ac678ea5b3ab649eebe92235d54113a63f2f1",
+  "binary_sha256": "sha256:9d104f95538d2504ed39171b8fe8db28ff87d930e31925a0e410a4a8aefd3f5f",
+  "identity_and_equipment_preserved": true,
+  "runtime": {
+    "schema": "conduit.install/durable-host-runtime@1",
+    "host_id": "host/installed/9741ac216129a8296654338e04174e8ea2b3ef253a524e5bffdc1b6ad0d335bc",
+    "boot_id": "boot/installed/5cba744fce8a2e2d50ba552f4c95a971ff36a006a59ec520dce559aaa001bd5e",
+    "offer_generation": 2,
+    "process_id": 3118,
+    "release_bundle_sha256": "sha256:6b5ec09a90f28fdc17f58b3cc647b3b2e2841e4f2cbf509d086dc18eb0b95a36",
+    "body_id": null
+  },
+  "service": "MainPID=3118\nNRestarts=0",
+  "rolled_back": false
+}

@@ -26,12 +26,20 @@ mod record_pronunciation;
 mod linux_snapshot;
 #[path = "../../xtask/src/suites/monotonic_wait.rs"]
 mod monotonic_wait;
+#[path = "../../xtask/src/suites/recording_checkpoint.rs"]
+mod recording_checkpoint;
+#[path = "../../xtask/src/suites/recording_files.rs"]
+mod recording_files;
+#[path = "../../xtask/src/suites/recording_seed.rs"]
+mod recording_seed;
 #[path = "../../xtask/src/suites/resource_snapshot.rs"]
 mod resource_snapshot;
 
 #[path = "../../xtask/src/suites/tm1637_output.rs"]
 mod tm1637_output;
 
+#[path = "../../xtask/src/suites/zenoh_platform.rs"]
+mod zenoh_platform;
 #[path = "../../xtask/src/suites/action_prompt_i1.rs"]
 mod action_prompt_i1;
 
@@ -43,6 +51,26 @@ struct Suite {
 
 fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
+        [check, suite] if check == "check" && suite == "zenoh-platform" => Some(Suite {
+            steps: zenoh_platform::STEPS,
+            path: "tools/xtask/src/suites/zenoh_platform.rs",
+            source: include_bytes!("../../xtask/src/suites/zenoh_platform.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "recording-checkpoint" => Some(Suite {
+            steps: recording_checkpoint::STEPS,
+            path: "tools/xtask/src/suites/recording_checkpoint.rs",
+            source: include_bytes!("../../xtask/src/suites/recording_checkpoint.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "recording-seed" => Some(Suite {
+            steps: recording_seed::STEPS,
+            path: "tools/xtask/src/suites/recording_seed.rs",
+            source: include_bytes!("../../xtask/src/suites/recording_seed.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "recording-files" => Some(Suite {
+            steps: recording_files::STEPS,
+            path: "tools/xtask/src/suites/recording_files.rs",
+            source: include_bytes!("../../xtask/src/suites/recording_files.rs"),
+        }),
         [check, suite] if check == "check" && suite == "action-prompt-i1" => Some(Suite {
             steps: action_prompt_i1::STEPS,
             path: "tools/xtask/src/suites/action_prompt_i1.rs",
@@ -185,6 +213,10 @@ mod tests {
             ("monotonic-wait", monotonic_wait::STEPS),
             ("resource-snapshot", resource_snapshot::STEPS),
             ("linux-snapshot", linux_snapshot::STEPS),
+            ("recording-files", recording_files::STEPS),
+            ("recording-seed", recording_seed::STEPS),
+            ("recording-checkpoint", recording_checkpoint::STEPS),
+            ("zenoh-platform", zenoh_platform::STEPS),
             ("acoustic-flow", acoustic_flow::STEPS),
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),

@@ -1,6 +1,7 @@
 //! Bounded preparation of the existing public resonator Source chain.
 //! This evaluates pure expressions only; it is not an installed Host or Play.
 use crate::DspSourcePackage;
+use alloc::string::ToString;
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::{
     ConfigurationValue, ConnectionTrack, StructuredInfoType, StructuredInfoValue,
@@ -126,7 +127,7 @@ impl PreparedResonatorNumericProjection {
             {
                 return Err(String::from("resonator chain Type mismatch"));
             }
-            programs.push((encoded.clone(), program));
+            programs.push((encoded.to_string(), program));
             let outgoing: Vec<_> = graph
                 .connections
                 .iter()

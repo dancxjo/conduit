@@ -24,6 +24,8 @@ mod host_local_model;
 mod host_local_model_journey;
 #[path = "host_microphone.rs"]
 mod host_microphone;
+#[path = "host_microphone_flow.rs"]
+mod host_microphone_flow;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_release_catalog.rs"]
@@ -48,6 +50,7 @@ mod host_speech_proof;
 
 pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command.unwrap_or(HostCommand::Std) {
+        HostCommand::ProveMicrophoneFlow(request) => host_microphone_flow::prove(request, opts),
         HostCommand::Std => super::demo::run_std(opts),
         HostCommand::Browser => super::browser::run(opts),
         HostCommand::ProveSpokenBirth {

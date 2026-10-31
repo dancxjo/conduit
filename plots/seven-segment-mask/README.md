@@ -44,7 +44,7 @@ quantities and exact Face correlation. Rendering and selection allocate nothing.
 | --- | --- |
 | Temperature | Exact conversion to the Look's unit; one decimal place and `F` or `C`, right aligned. |
 | Temperature fitting | Round directly to whole degrees if sign, digits and suffix cannot fit, or the selected wiring cannot express the required decimal point. |
-| Humidity | Whole percent with `H`; accept physical values from 0% through 100%. |
+| Humidity | Whole percent as `H 44`, `H 05` or `H100`; colon and decimal points off. Accept physical values from 0% through 100%. |
 | Clock | Four zero-padded digits with the separate colon requested. |
 | Rounding | Nearest, ties away from zero. A rounded zero has no minus sign. |
 | Overflow | `----`, with an explicit unavailable reason; no clipping or digit loss. |
@@ -95,3 +95,24 @@ The default Look uses decimal points. An explicitly selected colon fractional
 marker retains temperature tenths on colon-only glass: `67:6F` means 67.6 °F.
 This Look requests the existing colon annunciator and leaves all decimal points
 off. The hardware profile must still declare the colon's actual wiring.
+
+
+## Optional typed barometer page
+
+`PreparedEnvironmentalFace` adds a checked optional `atmospheric-pressure`
+Quantity to the existing environmental projection. It requires a positive linear
+pressure Quantity, retaining its original unit and exact Face correlation.
+`TimedEnvironmentalMask` explicitly selects the shared environmental page set:
+temperature, supported humidity, supported pressure. Thus BME readings select
+T/RH/P, BMP readings select T/P, and DHT readings select T/RH. Missing unsupported
+measurements do not become zero or a fabricated humidity value.
+
+The pressure Look is whole hectopascals: `1012` means 1012 hPa. Conversion uses
+ordinary typed Unit laws and the same nearest/ties-away rounding policy. All
+four positions carry numerals, with colon and decimal points off. Overflow,
+staleness and unavailable sensor state retain explicit unavailable dispositions.
+`PreparedEnvironmentalShow` can resolve these three pages without allocation;
+it does not retain a Face or its Quantities. The existing two-page
+`PreparedAlternatingShow` and its storage layout are unchanged. These additive
+views do not rewrite legacy observations, grant a Body admission, or issue a
+native output permit.

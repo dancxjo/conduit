@@ -1,0 +1,65 @@
+[package]
+name = "conduit-pico-environment-usb"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[features]
+credential-store = ["wifi", "dep:conduit-monotonic-wait", "dep:conduit-network-join-call", "embassy-rp/unstable-pac"]
+default = []
+zenoh-evaluation = ["wifi", "dep:conduit-zenoh-pico-embassy", "dep:conduit-zenoh-pico-platform"]
+dht11-tm1637 = ["pio-capture", "dep:conduit-core", "dep:conduit-plot", "dep:conduit-pulse-capture", "dep:conduit-rp2040-pulse-capture", "dep:conduit-rp2040-tm1637", "dep:conduit-tm1637-wire"]
+bosch-tm1637 = ["dep:conduit-rp2040-tm1637", "dep:conduit-tm1637-wire"]
+pio-capture = []
+# Compatibility cfg selects the existing finite CYW43 network initializer.
+wifi = ["appliance-hil-client", "dep:cyw43", "dep:cyw43-pio", "dep:embassy-net", "dep:aligned", "dep:embassy-sync", "dep:conduit-net"]
+appliance-hil-client = []
+[dependencies]
+conduit-monotonic-wait = { path = "../../../../mechanisms/io/monotonic-wait", optional = true }
+conduit-network-join-call = { path = "../../../../mechanisms/io/network-join", optional = true }
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
+conduit-zenoh-pico-embassy = { path = "../../../embassy/zenoh-pico-platform", optional = true }
+conduit-zenoh-pico-platform = { path = "../../../../mechanisms/io/zenoh-pico-platform", optional = true }
+conduit-device-carrier-protocol = { path = "../../../../mechanisms/io/device-carrier-protocol" }
+conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
+conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
+conduit-environment-face = { path = "../../../../bodies/environment/face" }
+conduit-face = { path = "../../../../semantics/face", default-features = false }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+linked_list_allocator = { version = "0.10.6", default-features = false }
+critical-section = "1.2"
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.6"
+panic-halt = "1.0.0"
+static_cell = "2"
+heapless = "0.8"
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["platform-cortex-m", "executor-thread"] }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["critical-section-impl", "rp2040", "time-driver"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+aligned = { version = "0.4.3", optional = true }
+conduit-net = { path = "../../../../semantics/net", optional = true }
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+embassy-sync = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["dhcpv4", "medium-ethernet", "proto-ipv4", "tcp", "udp"], optional = true }
+conduit-core = {path="../../../../architecture/core",optional=true}
+conduit-plot = {path="../../../../architecture/plot",optional=true}
+conduit-pulse-capture = {path="../../../../mechanisms/io/pulse-capture",optional=true}
+conduit-rp2040-pulse-capture = {path="../../pulse-capture",optional=true}
+conduit-rp2040-tm1637 = {path="../../tm1637",optional=true}
+conduit-tm1637-wire = {path="../../../../mechanisms/io/tm1637",optional=true}
+[build-dependencies]
+conduit-rp2040-flash-layout = { path = "../../flash-layout" }
+serde_json = "1"
+conduit-core = {path="../../../../architecture/core"}
+conduit-plot = {path="../../../../architecture/plot"}
+conduit-host-make = { path = "../../../../make/host" }
+conduit-host-rp2040 = { path = "../../make" }
+sha2 = "0.10"
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+[profile.release.build-override]
+opt-level = 1

@@ -11,6 +11,14 @@ impl CheckedGear {
         .with_value_contracts(self.semantic_contract.value_contracts().to_vec())
     }
 
+    /// Exact callable equality without constructing two temporary Fronts when
+    /// startup and explicit value contracts are absent. In that case default
+    /// value contracts are determined completely by the ordered port fields.
+    /// Other Fronts retain the complete ordinary constructor comparison.
+    pub fn accepts_callable_front(&self, offer: &conduit_core::CapabilityOffer) -> bool {
+        crate::CheckedGearRef::from(self).accepts_callable_front(offer.into())
+    }
+
     /// Tests both callable fit and semantic realization eligibility.
     ///
     /// Ordinary gears require the same semantic contract identity. A semantic
@@ -20,12 +28,7 @@ impl CheckedGear {
     /// a merely front-compatible offer for another Kind is not a Back for this
     /// Gear.
     pub fn accepts_realization(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        self.kind_id == offer.kind_id
-            && self.checked_front() == offer.checked_front()
-            && self.accepts_semantic_contract(offer)
-            && (self.kind_contract_revision == offer.kind_contract_revision
-                || self.kind_contract_revision.as_str()
-                    == conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT)
+        crate::CheckedGearRef::from(self).accepts_realization_ref(offer.into())
     }
 
     /// Exact Kind law and configuration-schema equality, excluding the finite
@@ -33,26 +36,7 @@ impl CheckedGear {
     /// authored values belong to this Gear's `configuration`; only actual Kind
     /// defaults (`has_default = true`) are part of realization identity.
     pub fn accepts_semantic_contract(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        self.semantic_contract.laws == offer.semantic_contract.laws
-            && self.semantic_contract.configuration.len()
-                == offer.semantic_contract.configuration.len()
-            && self
-                .semantic_contract
-                .configuration
-                .iter()
-                .zip(&offer.semantic_contract.configuration)
-                .all(|(gear, offered)| {
-                    gear.key == offered.key
-                        && gear.rule == offered.rule
-                        && self
-                            .startup_parameters
-                            .iter()
-                            .find(|parameter| parameter.name == gear.key)
-                            .is_some_and(|parameter| {
-                                !parameter.has_default
-                                    || gear.default_value == offered.default_value
-                            })
-                })
+        crate::CheckedGearRef::from(self).accepts_semantic_contract(offer.into())
     }
 
     #[doc(hidden)]

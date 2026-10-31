@@ -1945,6 +1945,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-computation"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-conduitos-mask-offer"
 version = "0.1.0"
 dependencies = [
@@ -1981,6 +1990,10 @@ dependencies = [
  "conduit-plot",
  "conduit-time",
 ]
+
+[[package]]
+name = "conduit-device-carrier-protocol"
+version = "0.1.0"
 
 [[package]]
 name = "conduit-education"
@@ -2094,6 +2107,7 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
+ "conduit-rp2040-flash-layout",
  "conduit-semantic-catalog",
  "conduit-std-offers",
  "serde",
@@ -2185,6 +2199,7 @@ name = "conduit-linux-snapshot-store"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-resource-snapshot",
  "libc",
 ]
@@ -2465,6 +2480,9 @@ name = "conduit-resource-snapshot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
+ "conduit-web",
+ "serde",
 ]
 
 [[package]]
@@ -2474,6 +2492,14 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-plot",
+]
+
+[[package]]
+name = "conduit-rp2040-flash-layout"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -2516,6 +2542,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-alife",
  "conduit-audio",
+ "conduit-computation",
  "conduit-core",
  "conduit-data",
  "conduit-education",
@@ -2604,6 +2631,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",
+ "conduit-device-carrier-protocol",
  "conduit-emergency-keyword-spotter",
  "conduit-face",
  "conduit-finance",
@@ -2886,6 +2914,10 @@ dependencies = [
  "sha2 0.10.9",
  "toml 0.8.23",
 ]
+
+[[package]]
+name = "conduit-zenoh-pico-platform"
+version = "0.1.0"
 
 [[package]]
 name = "conduitos"
@@ -7268,6 +7300,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10ab3eb7f3becc3a1cbc4f2c6f20267996cfc1a6467a873763411b136a122715"
 dependencies = [
  "portable-atomic",
+ "serde",
 ]
 
 [[package]]

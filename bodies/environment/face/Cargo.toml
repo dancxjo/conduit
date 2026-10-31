@@ -7,10 +7,13 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-environment-measurement = { path = "../measurement" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 
 [dev-dependencies]
+conduit-bosch-env = { path = "../../../mechanisms/io/bosch-env" }
+conduit-ht16k33 = { path = "../../../mechanisms/io/ht16k33" }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
 
 [profile.dev.build-override]

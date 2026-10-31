@@ -2,7 +2,7 @@
 use super::*;
 use conduit_kernel::{BoundedValueRef, RequestId};
 
-fn event(request: u32, generation: u16) -> CompletedInputEvent {
+fn event(request: u32, generation: u32) -> CompletedInputEvent {
     CompletedInputEvent {
         descriptor: 0,
         realization: InputRealization::RawKeyboard,
@@ -103,7 +103,7 @@ fn capacity_and_revocation_never_silently_replace_completed_event() {
     let allocations = crate::allocation_probe::begin();
     for request in 0..MAX_COMPLETED_INPUT_EVENTS as u32 {
         ledger.require_capacity(1).unwrap();
-        ledger.record(event(request, request as u16 + 1)).unwrap();
+        ledger.record(event(request, request + 1)).unwrap();
     }
     assert_eq!(allocations.finish(), 0);
     assert!(ledger.require_capacity(1).is_err());

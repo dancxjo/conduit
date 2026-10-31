@@ -1,0 +1,19 @@
+{
+  "native_code_commit": "a10cdc60748052524badb9a5a715a58612ceead6",
+  "elf_sha256": "395f13169a993dc61b35ad43b0019c565096734687927b8bc58b1a7e18ac157b",
+  "elf_file_bytes": 7561128,
+  "stack_reserve_bytes": 37852,
+  "stack_floor_bytes": 36864,
+  "linked_packaging_check_passed": true,
+  "runtime_packages": 168,
+  "reviewed_conduit_runtime_packages": 26,
+  "fresh_construction_inputs": true,
+  "actual_blue_identity_image": false,
+  "hardware_flashed": false,
+  "live_custody_api_included": false,
+  "live_management_caller_included": false,
+  "application_bytes": 3173664,
+  "application_sha256": "f09859c55500377eaeda77893042965e7237c84a7fdd6bb296bb761888595abc",
+  "partition_bytes": 3371008,
+  "partition_margin_bytes": 197344
+}

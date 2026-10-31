@@ -59,3 +59,31 @@ fn mixed_hosted_capacities_keep_smallest_fit_and_first_equal_slot() {
     assert_eq!(store.store(b"xx").unwrap().slot, 2);
     assert_eq!(store.store(b"x").unwrap().slot, 1);
 }
+
+#[test]
+fn final_generation_retires_without_wrap_on_release_or_clear() {
+    for clear in [false, true] {
+        let mut store = HostedValueStore::new(2, 1, 2).unwrap();
+        store.slots[0].generation = u32::MAX - 1;
+        let last = store.store(b"x").unwrap();
+        assert_eq!(last.generation, u32::MAX);
+        assert_eq!(store.resolve_identity(last.slot, last.generation), Ok(last));
+        if clear {
+            store.clear();
+        } else {
+            store.release(last).unwrap();
+        }
+        assert_eq!(
+            store.resolve_identity(last.slot, last.generation),
+            Err(StorageError::StaleReference)
+        );
+        let next = store.store(b"x").unwrap();
+        assert_eq!((next.slot, next.generation), (1, 1));
+        store.clear();
+        let next2 = store.store(b"x").unwrap();
+        assert_eq!((next2.slot, next2.generation), (1, 2));
+        store.clear();
+        store.slots[1].generation = u32::MAX;
+        assert_eq!(store.store(b"x"), Err(StorageError::GenerationExhausted));
+    }
+}

@@ -24,6 +24,7 @@ impl ExpandedConnectionOrigin {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "flat-image", derive(serde::Serialize, serde::Deserialize))]
 pub struct ExpandedConnectionProvenance {
     /// Exact endpoints, track, Kind and temporal facts, never an inferred path prefix.
     pub connection: CheckedConnection,

@@ -168,8 +168,20 @@ impl PreparedObservationFace {
         status: SensorStatus,
         now: u64,
     ) -> Result<(), PublicationRefusal> {
+        self.publish_at(observation, status, now, now)
+    }
+    /// Retain an earlier producer observation at the current Boot clock without
+    /// replacing its observation time with transport arrival. Both coordinates
+    /// belong to the same independently verified producer Boot.
+    pub fn publish_at(
+        &mut self,
+        observation: Option<(Quantity, Quantity)>,
+        status: SensorStatus,
+        observed_at_ms: u64,
+        now: u64,
+    ) -> Result<(), PublicationRefusal> {
         use PublicationRefusal as R;
-        if now < self.last_observed_ms {
+        if observed_at_ms > now || now < self.last_observed_ms {
             return Err(R::ClockReversed);
         }
         let sequence = self.count("sequence");
@@ -221,7 +233,7 @@ impl PreparedObservationFace {
                 };
                 bytes.copy_from_slice(&value.encode());
             }
-            *self.value_mut(self.time_property) = FacePropertyValue::Count(now);
+            *self.value_mut(self.time_property) = FacePropertyValue::Count(observed_at_ms);
         }
         let label = match status {
             SensorStatus::Available => "available",

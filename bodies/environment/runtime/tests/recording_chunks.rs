@@ -11,6 +11,8 @@ use conduit_environment_runtime::{
 fn chunk(contract: &ObservationContract) -> PreparedRecordingChunk {
     PreparedRecordingChunk::prepare(
         RecordingContext {
+            timestamp_basis:
+                conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
             host: &HostId::from("host/sensor"),
             boot: &BootId::from("boot/one"),
             plan: &PlanId::from("plan/exact"),
@@ -156,6 +158,8 @@ fn context_is_finite_and_is_not_invented_by_the_encoder() {
     assert!(matches!(
         PreparedRecordingChunk::prepare(
             RecordingContext {
+                timestamp_basis:
+                    conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
                 host: &HostId::from(""),
                 boot: &BootId::from("boot"),
                 plan: &PlanId::from("plan"),
@@ -168,6 +172,8 @@ fn context_is_finite_and_is_not_invented_by_the_encoder() {
     assert!(matches!(
         PreparedRecordingChunk::prepare(
             RecordingContext {
+                timestamp_basis:
+                    conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
                 host: &HostId::from("x".repeat(129)),
                 boot: &BootId::from("boot"),
                 plan: &PlanId::from("plan"),
@@ -206,6 +212,8 @@ fn every_authored_absence_and_sequence_exhaustion_remains_explicit() {
     }
     let mut last = PreparedRecordingChunk::prepare(
         RecordingContext {
+            timestamp_basis:
+                conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
             host: &HostId::from("host"),
             boot: &BootId::from("boot"),
             plan: &PlanId::from("plan"),
@@ -245,6 +253,8 @@ fn snapshot_context() -> RecordingContext<'static> {
     static PLAN: LazyLock<PlanId> = LazyLock::new(|| "plan/exact".into());
     static PLAY: LazyLock<ActivePlayId> = LazyLock::new(|| "play/exact".into());
     RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &HOST,
         boot: &BOOT,
         plan: &PLAN,
@@ -334,3 +344,9 @@ fn selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial
     let mut reader = PreparedRecordingReader::prepare(snapshot_context(), &contract).unwrap();
     reader.read(snapshot.seal().unwrap()).unwrap();
 }
+
+#[path = "recording_chunks/catalog.rs"]
+mod catalog;
+
+#[path = "recording_chunks/batch.rs"]
+mod batch;

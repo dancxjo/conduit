@@ -62,10 +62,13 @@ impl CurrentHostOffers {
             if self.hosts.len() == MAX_BODY_PARTS {
                 return Err(CurrentHostOfferError::CapacityExceeded);
             }
+            self.hosts
+                .try_reserve(1)
+                .map_err(|_| CurrentHostOfferError::CapacityExceeded)?;
             self.hosts.push(advertisement);
         }
         self.hosts
-            .sort_by(|left, right| left.host_id.cmp(&right.host_id));
+            .sort_unstable_by(|left, right| left.host_id.cmp(&right.host_id));
         Ok(())
     }
 
@@ -97,3 +100,11 @@ fn validate_shape(advertisement: &HostAdvertisement) -> Result<(), CurrentHostOf
     }
     Ok(())
 }
+
+#[cfg(feature = "authenticated-admission")]
+mod authenticated;
+#[cfg(feature = "authenticated-admission")]
+pub use authenticated::*;
+
+#[cfg(feature = "authenticated-admission")]
+mod descriptor_hash;

@@ -248,8 +248,13 @@ development implementation; those need fresh source-bound proof.
 
 Configured Looks remain full typed immutable values in the ordinary Mask Plan.
 The JSON `PlannedMaskPlot.plan` envelope is explicitly versioned
-`conduit.face/mask-plan-deflate-json@1`: inspectable `plan_id`, finite
-`expanded_bytes`, and `zlib_hex`. The existing pinned no-std DEFLATE implementation
+`conduit.face/mask-plan-deflate-json@2`: inspectable `plan_id`, finite
+`expanded_bytes`, and canonically padded RFC4648 `zlib_base64`. Both the new
+version and legacy `conduit.face/mask-plan-deflate-json@1` with `zlib_hex` decode
+the same complete canonical Plan JSON. Version and payload field must agree;
+mixed representations and noncanonical padding are rejected. Older hosts that
+only understand version1 reject outbound version2 until updated; this is not
+backward outbound compatibility. The pinned no-std DEFLATE decoder
 restores the exact ordinary Plan before its existing validation. The decoded
 extent is at most 256 KiB; compressed bytes are at most 64 KiB. Exact consumed
 input, decoded length and Plan ID are required. Carrier, route, response, native

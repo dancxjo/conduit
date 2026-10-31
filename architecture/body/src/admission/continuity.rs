@@ -1,3 +1,6 @@
+#[path = "return_challenge.rs"]
+mod return_challenge;
+
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, SignId};
 use serde::{Deserialize, Serialize};
 
@@ -116,75 +119,6 @@ impl AdmissionManager {
         });
     }
 
-    pub fn begin_return(
-        &mut self,
-        membership: &BodyMembership,
-        part_id: &PartId,
-        advertisement: &HostAdvertisement,
-        nonce: [u8; 32],
-        now_millis: u64,
-        expires_at_millis: u64,
-    ) -> Result<PartReturnChallenge, AdmissionRefusal> {
-        self.validate_expiry(nonce, now_millis, expires_at_millis)?;
-        if membership.body_id != self.body_id {
-            return Err(AdmissionRefusal::WrongBody);
-        }
-        if self.pending_returns.len() == MAX_PENDING_ADMISSIONS {
-            return Err(AdmissionRefusal::PendingCapacityExhausted);
-        }
-        let part = membership
-            .parts
-            .iter()
-            .find(|part| &part.part_id == part_id)
-            .ok_or(AdmissionRefusal::Membership(
-                crate::MembershipRefusal::UnknownPart,
-            ))?;
-        if part.state != crate::MembershipState::Admitted || part.current.is_some() {
-            return Err(AdmissionRefusal::CandidateNotEligible);
-        }
-        let key = self
-            .continuity_keys
-            .iter()
-            .find(|record| &record.part_id == part_id)
-            .ok_or(AdmissionRefusal::InvalidProof)?;
-        if key.host_id != advertisement.host_id {
-            return Err(AdmissionRefusal::WrongHost);
-        }
-        if self
-            .pending_returns
-            .iter()
-            .any(|pending| pending.challenge.part_id == *part_id)
-        {
-            return Err(AdmissionRefusal::Replay);
-        }
-        let admission_id = AdmissionId::bound(crate::identity::bind_identity(
-            "part-return",
-            &[
-                self.body_id.as_str(),
-                part_id.as_str(),
-                advertisement.host_id.as_str(),
-                advertisement.boot_id.as_str(),
-            ],
-            now_millis,
-        ));
-        let challenge = PartReturnChallenge {
-            admission_id,
-            body_id: self.body_id.clone(),
-            part_id: part_id.clone(),
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            offer_generation: advertisement.offer_generation,
-            nonce,
-            issued_at_millis: now_millis,
-            expires_at_millis,
-        };
-        self.pending_returns.push(PendingReturn {
-            challenge: challenge.clone(),
-            attempts: 0,
-        });
-        Ok(challenge)
-    }
-
     pub fn complete_return(
         &mut self,
         membership: &mut BodyMembership,
@@ -285,5 +219,222 @@ impl AdmissionManager {
         self.retain_receipt(challenge.admission_id.clone(), credential.clone())?;
         *membership = next;
         Ok(credential)
+    }
+}
+
+/// Exact signature evidence from an already admitted, currently present Part.
+/// This is not a grant, current execution permission, or a deserializable trust
+/// record. Consumers must still bind their fresh nonce, purpose and endpoint to
+/// `transcript` and recheck current membership before using the observation.
+#[derive(Debug, PartialEq, Eq)]
+pub struct VerifiedAdmittedMessage {
+    body_id: BodyId,
+    part_id: PartId,
+    host_id: HostId,
+    boot_id: BootId,
+    membership_revision: crate::BodyMembershipRevision,
+    transcript: [u8; 32],
+}
+impl VerifiedAdmittedMessage {
+    pub fn body_id(&self) -> &BodyId {
+        &self.body_id
+    }
+    pub fn part_id(&self) -> &PartId {
+        &self.part_id
+    }
+    pub fn host_id(&self) -> &HostId {
+        &self.host_id
+    }
+    pub fn boot_id(&self) -> &BootId {
+        &self.boot_id
+    }
+    pub fn membership_revision(&self) -> crate::BodyMembershipRevision {
+        self.membership_revision
+    }
+    pub fn transcript(&self) -> &[u8; 32] {
+        &self.transcript
+    }
+}
+impl AdmissionManager {
+    /// Revoke every unfinished Boot-clock challenge when its issuing authority
+    /// restarts. Continuity keys and completed receipts remain intact; old
+    /// proofs cannot regain validity when the monotonic clock starts again.
+    /// The caller must durably retain this change before accepting new proofs.
+    pub fn retire_unfinished_challenges(&mut self) {
+        self.pending.clear();
+        self.invitations.clear();
+        self.pending_returns.clear();
+    }
+
+    /// Authenticate only against the manager's retained canonical continuity
+    /// key and the exact current admitted membership. IDs or a caller-supplied
+    /// key cannot construct this evidence. This read-only operation leaves an
+    /// existing local Wake/Plan/Play untouched, including during execution.
+    #[allow(clippy::too_many_arguments)]
+    pub fn verify_admitted_message(
+        &self,
+        membership: &BodyMembership,
+        part_id: &PartId,
+        host_id: &HostId,
+        boot_id: &BootId,
+        transcript: &[u8; 32],
+        signature: &[u8; ADMISSION_SIGNATURE_BYTES],
+    ) -> Result<VerifiedAdmittedMessage, AdmissionRefusal> {
+        if membership.body_id != self.body_id {
+            return Err(AdmissionRefusal::WrongBody);
+        }
+        membership
+            .validate()
+            .map_err(AdmissionRefusal::Membership)?;
+        let part = membership
+            .parts
+            .iter()
+            .find(|part| &part.part_id == part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if part.state != crate::MembershipState::Admitted {
+            return Err(AdmissionRefusal::CandidateNotEligible);
+        }
+        let current = part
+            .current
+            .as_ref()
+            .ok_or(AdmissionRefusal::CandidateNotEligible)?;
+        if &current.host_id != host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        if &current.boot_id != boot_id {
+            return Err(AdmissionRefusal::StaleBoot);
+        }
+        let key = self
+            .continuity_keys
+            .iter()
+            .find(|record| &record.part_id == part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if &key.host_id != host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        verify_signature(key.verifying_key, transcript, *signature)?;
+        Ok(VerifiedAdmittedMessage {
+            body_id: self.body_id.clone(),
+            part_id: part_id.clone(),
+            host_id: host_id.clone(),
+            boot_id: boot_id.clone(),
+            membership_revision: membership.revision,
+            transcript: *transcript,
+        })
+    }
+}
+
+/// Signature evidence for read-only durable custody by the latest completed
+/// credential of a still-admitted Part. Offline custody is not current presence,
+/// a return, a fresh incarnation, or execution permission. Consumers must bind
+/// their exact custody purpose/content to `transcript`; this witness has no
+/// public constructor or deserialization entrance.
+#[derive(Debug, PartialEq, Eq)]
+pub struct VerifiedRetainedCustodyMessage {
+    credential: MembershipCredential,
+    verifying_key: [u8; 32],
+    membership_revision: crate::BodyMembershipRevision,
+    transcript: [u8; 32],
+}
+impl VerifiedRetainedCustodyMessage {
+    /// Public signer data from the actual retained continuity-key record.
+    /// This conveys neither presence nor any additional custody authority.
+    pub fn verifying_key(&self) -> &[u8; 32] {
+        &self.verifying_key
+    }
+    pub fn credential(&self) -> &MembershipCredential {
+        &self.credential
+    }
+    pub fn body_id(&self) -> &BodyId {
+        &self.credential.body_id
+    }
+    pub fn part_id(&self) -> &PartId {
+        &self.credential.part_id
+    }
+    pub fn host_id(&self) -> &HostId {
+        &self.credential.host_id
+    }
+    pub fn boot_id(&self) -> &BootId {
+        &self.credential.boot_id
+    }
+    pub fn membership_revision(&self) -> crate::BodyMembershipRevision {
+        self.membership_revision
+    }
+    pub fn transcript(&self) -> &[u8; 32] {
+        &self.transcript
+    }
+}
+impl AdmissionManager {
+    /// Observe the latest completed credential in this manager's bounded receipt
+    /// log. This is data only: it proves neither current presence nor a signature.
+    pub fn latest_completed_credential(&self, part_id: &PartId) -> Option<&MembershipCredential> {
+        self.receipts
+            .iter()
+            .rev()
+            .find(|receipt| &receipt.credential.part_id == part_id)
+            .map(|receipt| &receipt.credential)
+    }
+
+    /// Authenticate a custody-only transcript using the retained continuity key
+    /// and exact latest completed credential. A detached admitted Part may retain
+    /// durable files while the producer restarts. Revocation, replacement and a
+    /// later admitted Boot still fence its old credential. This operation never
+    /// observes a Host as present or changes admission/return/lifecycle state.
+    pub fn verify_retained_custody_message(
+        &self,
+        membership: &BodyMembership,
+        credential: &MembershipCredential,
+        transcript: &[u8; 32],
+        signature: &[u8; ADMISSION_SIGNATURE_BYTES],
+    ) -> Result<VerifiedRetainedCustodyMessage, AdmissionRefusal> {
+        if membership.body_id != self.body_id || credential.body_id != self.body_id {
+            return Err(AdmissionRefusal::WrongBody);
+        }
+        membership
+            .validate()
+            .map_err(AdmissionRefusal::Membership)?;
+        let part = membership
+            .parts
+            .iter()
+            .find(|part| part.part_id == credential.part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if part.state != crate::MembershipState::Admitted {
+            return Err(AdmissionRefusal::CandidateNotEligible);
+        }
+        let latest = self
+            .latest_completed_credential(&credential.part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if latest.host_id != credential.host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        if latest.boot_id != credential.boot_id {
+            return Err(AdmissionRefusal::StaleBoot);
+        }
+        if latest != credential {
+            return Err(AdmissionRefusal::InvalidProof);
+        }
+        if let Some(current) = &part.current {
+            if current.host_id != credential.host_id {
+                return Err(AdmissionRefusal::WrongHost);
+            }
+            if current.boot_id != credential.boot_id {
+                return Err(AdmissionRefusal::StaleBoot);
+            }
+        }
+        let key = self
+            .continuity_keys
+            .iter()
+            .find(|record| record.part_id == credential.part_id)
+            .ok_or(AdmissionRefusal::InvalidProof)?;
+        if key.host_id != credential.host_id {
+            return Err(AdmissionRefusal::WrongHost);
+        }
+        verify_signature(key.verifying_key, transcript, *signature)?;
+        Ok(VerifiedRetainedCustodyMessage {
+            credential: credential.clone(),
+            verifying_key: key.verifying_key,
+            membership_revision: membership.revision,
+            transcript: *transcript,
+        })
     }
 }

@@ -163,6 +163,9 @@ mod mask_journey;
 mod mask_plot;
 mod mask_routes;
 mod mask_show;
+mod mask_show_context;
+mod mask_show_encoding;
+mod mask_show_json;
 mod mask_topology;
 mod mask_wardrobe;
 mod mask_wardrobe_control;
@@ -173,6 +176,7 @@ mod orifina_face;
 mod owner_face_plan;
 mod owner_face_route;
 mod owner_mask_route;
+pub mod presentation_preferences;
 mod projection;
 mod readable_choices;
 mod remote_owner_mask_route;
@@ -227,6 +231,9 @@ pub use mask_journey::*;
 pub use mask_plot::*;
 pub use mask_routes::*;
 pub use mask_show::*;
+pub use mask_show_context::*;
+pub use mask_show_encoding::MaskJsonPart;
+pub use mask_show_json::*;
 pub use mask_topology::*;
 pub use mask_wardrobe::*;
 pub use mask_wardrobe_control::*;
@@ -254,7 +261,9 @@ pub use temporal_wording::*;
 pub use visual_expression::*;
 
 mod typed_value;
-pub use typed_value::{display_typed_value, spoken_typed_value, MAX_FACE_VALUE_BYTES};
+pub use typed_value::{
+    display_typed_value, display_typed_value_in_unit, spoken_typed_value, MAX_FACE_VALUE_BYTES,
+};
 
 #[cfg(feature = "plot-catalog")]
 mod configured_mask;
@@ -302,5 +311,7 @@ pub use parsec_instruction_frame::{
 mod parsec_input_instruction_producer;
 pub use parsec_input_instruction_producer::*;
 
+mod prepared_face_value;
+pub use prepared_face_value::{PreparedFaceValue, ValidatedFace};
 mod collection_facts;
 pub use collection_facts::CollectionFactsRefusal;

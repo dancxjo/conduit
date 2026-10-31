@@ -1,0 +1,12 @@
+# DHT11 DATA GP3 (physical5), TM1637 CLK GP7 (physical10), DIO GP6 (physical9).
+# Explicit attended electrical profile: 50us half-period and weak pad pull-ups.
+# No Body or execution authority is granted by this construction request.
+host pico-w-dht11-tm1637 {
+  metadata = {placement: "Motherbrain room"}
+  schema = 1
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  device = {kind: "gpio", id: "sensor", implementation: "dht11@1", pins: {data: 3}}
+  device = {kind: "gpio", id: "display", implementation: "tm1637@1", pins: {clk: 7, dio: 6}, configuration: {brightness: 3, layout: "seven4", half_period_us: 50, weak_pullups: true}}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 49152, queue_items: 16, buffered_bytes: 8192, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 16}
+}

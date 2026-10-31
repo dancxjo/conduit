@@ -114,7 +114,7 @@ fn selected_line_changes_only_bound_identity_and_survives_lowering() {
     assert_eq!(original.fragments[0].fore_ports[0].selected_line, None);
     assert_eq!(
         bound.fragments[0].fore_ports[0].selected_line,
-        Some(offer().admitted_line())
+        Some(Box::new(offer().admitted_line()))
     );
     assert!(verify_plan(&bound));
     let profile = FIXED_KERNEL_STORAGE_PROFILE
@@ -272,7 +272,7 @@ fn two_host_fragments_account_for_one_lines_total_capacity() {
     ));
     let mut overbooked = admitted;
     for fragment in &mut overbooked.fragments {
-        fragment.fore_ports[0].selected_line = Some(narrow.admitted_line());
+        fragment.fore_ports[0].selected_line = Some(Box::new(narrow.admitted_line()));
     }
     let overbooked = seal_plan(
         PlotIdentity {

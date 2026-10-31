@@ -2,22 +2,23 @@
 use super::*;
 const MAXIMUM_INSTRUCTIONS: usize = 128;
 pub(super) struct ScalarTape {
-    instructions: Vec<Instruction>,
-    result: usize,
-    scratch: ScratchProfile,
+    pub(super) instructions: Vec<Instruction>,
+    pub(super) linked: Option<(&'static [u8], &'static [u8])>,
+    pub(super) result: usize,
+    pub(super) scratch: ScratchProfile,
 }
 
-// Bound before Play. Four monomorphized loops limit both scratch initialization
-// and code growth; the largest profile retains the original 128-slot ceiling.
+// Bound before Play. Four small wrappers retain their fixed scratch profiles;
+// one shared interpreter avoids duplicating the loop for each array length.
 #[derive(Clone, Copy)]
-enum ScratchProfile {
+pub(super) enum ScratchProfile {
     Tiny,
     Small,
     Medium,
     Maximum,
 }
 impl ScratchProfile {
-    fn prepare(instructions: usize) -> Self {
+    pub(super) fn prepare(instructions: usize) -> Self {
         match instructions {
             0..=4 => Self::Tiny,
             5..=8 => Self::Small,
@@ -34,15 +35,17 @@ impl ScratchProfile {
         }
     }
 }
-struct Instruction {
-    kind: PrimitiveInfoKind,
-    destination: usize,
-    operation: Operation,
+pub(super) struct Instruction<B = Vec<u8>> {
+    pub(super) kind: PrimitiveInfoKind,
+    pub(super) destination: usize,
+    pub(super) operation: Operation<B>,
 }
-enum Operation {
+pub(super) enum Operation<B = Vec<u8>> {
     Input,
-    Literal(Vec<u8>),
+    Literal(B),
+    ProjectedInput { start: u32, length: u32 },
     Unary(UnaryOperator, usize),
+    Widen(usize),
     Binary(BinaryOperator, bool, usize, usize),
     BranchFalse(usize, usize),
     Jump(usize),
@@ -67,12 +70,14 @@ fn supported(kind: PrimitiveInfoKind) -> bool {
 impl ScalarTape {
     pub(super) fn prepare(root: &PreparedNode) -> Result<Self, Refusal> {
         let mut tape = Self {
-            instructions: Vec::with_capacity(MAXIMUM_INSTRUCTIONS),
+            instructions: Vec::new(),
+            linked: None,
             result: 0,
             scratch: ScratchProfile::Maximum,
         };
         tape.result = tape.lower(root)?;
         tape.scratch = ScratchProfile::prepare(tape.instructions.len());
+        tape.instructions.shrink_to_fit();
         Ok(tape)
     }
     fn push(&mut self, kind: PrimitiveInfoKind, operation: Operation) -> Result<usize, Refusal> {
@@ -97,9 +102,16 @@ impl ScalarTape {
         }
         let operation = match &node.operation {
             PreparedOperation::Input => Operation::Input,
+            PreparedOperation::Projection(selection) => {
+                let (start, length) = selection.fixed_leaf().ok_or_else(|| {
+                    Refusal::UnsupportedType("scalar-tape/variable-projection@1".into())
+                })?;
+                Operation::ProjectedInput { start, length }
+            }
             PreparedOperation::Literal(bytes) if bytes.len() <= 16 => {
                 Operation::Literal(bytes.clone())
             }
+            PreparedOperation::Widen(operand) => Operation::Widen(self.lower(operand)?),
             PreparedOperation::Unary { operator, operand } => {
                 Operation::Unary(*operator, self.lower(operand)?)
             }
@@ -137,7 +149,8 @@ impl ScalarTape {
         self.push(node.kind, operation)
     }
     pub(super) fn instruction_count(&self) -> usize {
-        self.instructions.len()
+        self.linked
+            .map_or(self.instructions.len(), |(r, _)| r.len() / 24)
     }
     pub(super) fn scratch_bytes(&self) -> usize {
         core::mem::size_of::<Option<PrimitiveValue<'static>>>() * self.scratch.slots()
@@ -165,9 +178,21 @@ impl ScalarTape {
         input_kind: Option<PrimitiveInfoKind>,
     ) -> Result<PrimitiveValue<'a>, Refusal> {
         let mut slots: [Option<PrimitiveValue<'a>>; SLOTS] = core::array::from_fn(|_| None);
+        self.evaluate_in_slots(input, input_kind, &mut slots)
+    }
+    // The caller retains the exact admitted array and owns its initialization
+    // and cleanup. Only the instruction loop is shared; no scratch is allocated
+    // here, and a returned value borrows the tape/input rather than this slice.
+    #[inline(never)]
+    fn evaluate_in_slots<'a>(
+        &'a self,
+        input: &'a [u8],
+        input_kind: Option<PrimitiveInfoKind>,
+        slots: &mut [Option<PrimitiveValue<'a>>],
+    ) -> Result<PrimitiveValue<'a>, Refusal> {
         let mut pc = 0;
-        while pc < self.instructions.len() {
-            let instruction = &self.instructions[pc];
+        while pc < self.instruction_count() {
+            let instruction = self.instruction(pc)?;
             let get = |index: usize| {
                 slots
                     .get(index)
@@ -182,7 +207,22 @@ impl ScalarTape {
                     PrimitiveValue::borrowed(instruction.kind, input)?
                 }
                 Operation::Literal(bytes) => PrimitiveValue::borrowed(instruction.kind, bytes)?,
+                Operation::ProjectedInput { start, length } => {
+                    let node = input
+                        .get(*start as usize..*start as usize + *length as usize)
+                        .ok_or(Refusal::InvalidInput)?;
+                    let [0, a, b, c, d, bytes @ ..] = node else {
+                        return Err(Refusal::InvalidInput);
+                    };
+                    if bytes.len() != u32::from_le_bytes([*a, *b, *c, *d]) as usize {
+                        return Err(Refusal::InvalidInput);
+                    }
+                    PrimitiveValue::borrowed(instruction.kind, bytes)?
+                }
                 Operation::Unary(op, index) => evaluate_unary(*op, instruction.kind, get(*index)?)?,
+                Operation::Widen(index) => {
+                    primitive::evaluate_widen(instruction.kind, get(*index)?)?
+                }
                 Operation::Binary(op, proven, left, right) => {
                     evaluate_binary(*op, *proven, instruction.kind, get(*left)?, get(*right)?)?
                 }
@@ -261,7 +301,9 @@ impl PreparedPortableExpressionEvaluator {
 // retain their validation programs. Unwrapping its representation would erase
 // those laws, including assumptions used by proven arithmetic. Such profiles
 // need a retained validation witness before this Back can admit them.
-fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Result<(), Refusal> {
+pub(super) fn require_intrinsic_type(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<(), Refusal> {
     match value_type.shape() {
         StructuredInfoTypeShape::Leaf(_) => Ok(()),
         StructuredInfoTypeShape::Nominal { .. } => Err(Refusal::UnsupportedType(
@@ -278,7 +320,7 @@ fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Resu
     }
 }
 
-fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
+pub(super) fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
     require_intrinsic_type(&node.value_type)?;
     match &node.operation {
         PortableExpressionOperation::ValueContract { value: operand, .. }
@@ -298,7 +340,46 @@ fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Ref
             require_intrinsic_node_types(when_true)?;
             require_intrinsic_node_types(when_false)
         }
-        // Other composite operations already refuse during tape lowering.
+        PortableExpressionOperation::Projection { value, .. }
+        | PortableExpressionOperation::Variant { payload: value, .. } => {
+            require_intrinsic_node_types(value)
+        }
+        PortableExpressionOperation::Tuple(values)
+        | PortableExpressionOperation::Collection(values)
+        | PortableExpressionOperation::SemanticCall {
+            arguments: values, ..
+        } => values.iter().try_for_each(require_intrinsic_node_types),
+        PortableExpressionOperation::Record(fields) => fields
+            .iter()
+            .try_for_each(|(_, value)| require_intrinsic_node_types(value)),
         _ => Ok(()),
+    }
+}
+
+impl ScalarTape {
+    fn instruction(&self, pc: usize) -> Result<Instruction<&[u8]>, Refusal> {
+        if let Some((records, literals)) = self.linked {
+            return super::linked::scalar_instruction(records, literals, pc);
+        }
+        let i = self.instructions.get(pc).ok_or(Refusal::InvalidProgram)?;
+        let operation = match &i.operation {
+            Operation::Input => Operation::Input,
+            Operation::Literal(b) => Operation::Literal(b.as_slice()),
+            Operation::ProjectedInput { start, length } => Operation::ProjectedInput {
+                start: *start,
+                length: *length,
+            },
+            Operation::Unary(a, b) => Operation::Unary(*a, *b),
+            Operation::Widen(a) => Operation::Widen(*a),
+            Operation::Binary(a, b, c, d) => Operation::Binary(*a, *b, *c, *d),
+            Operation::BranchFalse(a, b) => Operation::BranchFalse(*a, *b),
+            Operation::Jump(a) => Operation::Jump(*a),
+            Operation::Move(a) => Operation::Move(*a),
+        };
+        Ok(Instruction {
+            kind: i.kind,
+            destination: i.destination,
+            operation,
+        })
     }
 }

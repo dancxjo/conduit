@@ -30,5 +30,25 @@ pub fn emit(out: &Path) {
         program.input_type.canonical_bytes().unwrap(),
     )
     .unwrap();
+    let canonical = program.canonical_bytes().unwrap();
+    let material = conduit_plot::MakeExpressionMaterial::export(&program).unwrap();
+    fs::write(out.join("tm1637-expression.make"), material.bytes()).unwrap();
+    fs::write(out.join("tm1637-expression-material.rs"),format!(
+        "pub const PROGRAM_DIGEST:[u8;32]={:?};\npub const MATERIAL_DIGEST:[u8;32]={:?};\npub const BOUNDS:(u32,u32)=({},{});\n",
+        conduit_core::assigned_plan_payload_digest(&canonical),conduit_core::assigned_plan_payload_digest(material.bytes()),program.maximum_prepared_input_bytes().unwrap(),program.maximum_prepared_output_bytes().unwrap())).unwrap();
+    let conduit_core::StructuredInfoTypeShape::Variant { cases, .. } = program.output_type.shape()
+    else {
+        panic!("TM1637 packet variant")
+    };
+    let packets = cases
+        .iter()
+        .find(|c| c.tag() == "packets")
+        .unwrap()
+        .payload_type();
+    fs::write(
+        out.join("tm1637-packet-output.type"),
+        packets.canonical_bytes().unwrap(),
+    )
+    .unwrap();
     crate::display_frame::emit(&program.input_type, out);
 }

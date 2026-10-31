@@ -1,10 +1,10 @@
 //! Selection/admission fixture. Cloned signal plumbing makes no numeric execution claim.
 use super::*;
 use conduit_core::{
-    ConfigurationEntry, ConfigurationValue, ExactRational as Q, KindConfigurationField,
-    KindConfigurationRule, MathematicalValue as Value, NumericalAlgorithm as Algorithm,
-    StructuredConfigurationValue, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
-    StructuredInfoValue,
+    ConfigurationEntry, ConfigurationValue, ExactRational as Q, HostAdvertisement,
+    KindConfigurationField, KindConfigurationRule, MathematicalValue as Value,
+    NumericalAlgorithm as Algorithm, StructuredConfigurationValue, StructuredFieldType,
+    StructuredFieldValue, StructuredInfoType, StructuredInfoValue,
 };
 fn math(s: &str) -> Value {
     Value::parse_literal(s, &mut ExactNumericWork::new(VERIFICATION_WORK)).unwrap()
@@ -238,4 +238,25 @@ fn ordinary_candidate_still_validates_properties_without_numeric_requirements() 
         candidate_check(gear, &offer),
         Err(PlannerError::InvalidRealizationProperties(id)) if id == offer.capability_id
     ));
+}
+
+#[cfg(feature = "indexed-source")]
+#[test]
+fn indexed_make_offers_preserve_precision_selection_and_certificate_refusals() {
+    for maximum_error in ["0", "1"] {
+        let (plot, mut hosts) = fixture(maximum_error);
+        crate::indexed_source::test_support::selection_parity(
+            &plot.gears,
+            &plot.connections,
+            &hosts,
+        );
+        for host in &mut hosts {
+            host.capabilities[0].realization_properties.clear();
+        }
+        crate::indexed_source::test_support::selection_parity(
+            &plot.gears,
+            &plot.connections,
+            &hosts,
+        );
+    }
 }

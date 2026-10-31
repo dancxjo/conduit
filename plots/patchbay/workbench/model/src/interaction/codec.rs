@@ -370,7 +370,7 @@ fn decode_configuration_value(
         }
         2 => Ok(ConfigurationValue::U64(read_u64(input, cursor)?)),
         3 => Ok(ConfigurationValue::I64(read_i64(input, cursor)?)),
-        4 => Ok(ConfigurationValue::Text(read_field(input, cursor)?)),
+        4 => Ok(ConfigurationValue::Text(read_field(input, cursor)?.into())),
         5 => {
             let profile = conduit_core::KindId::from(read_field(input, cursor)?);
             let canonical = read_blob(input, cursor)?;

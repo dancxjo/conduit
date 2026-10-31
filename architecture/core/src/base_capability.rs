@@ -33,6 +33,43 @@ pub struct BaseCapabilityAuthority {
     pub maximum_operations: u32,
 }
 
+/// Borrowed descriptive policy for the same ordinary issuance checks. This is
+/// not a grant, possession, or authorization proof; the actual issuing table
+/// validates every field before retaining its owned immutable scope.
+#[derive(Clone, Copy)]
+pub struct BaseCapabilityAuthorityRef<'a> {
+    pub grant: crate::AuthorityGrantRef<'a>,
+    pub base_instance_id: &'a str,
+    pub base_provider_generation: u64,
+    pub resource_pool_id: &'a str,
+    pub resource_generation_id: &'a str,
+    pub operation_contract_id: &'a str,
+    pub envelope_id: &'a str,
+    pub maximum_parameter_bytes: u32,
+    pub maximum_result_bytes: u32,
+    pub maximum_work_units: u64,
+    pub maximum_in_flight: u16,
+    pub maximum_operations: u32,
+}
+impl<'a> From<&'a BaseCapabilityAuthority> for BaseCapabilityAuthorityRef<'a> {
+    fn from(authority: &'a BaseCapabilityAuthority) -> Self {
+        Self {
+            grant: (&authority.grant).into(),
+            base_instance_id: authority.base_instance_id.as_str(),
+            base_provider_generation: authority.base_provider_generation,
+            resource_pool_id: authority.resource_pool_id.as_str(),
+            resource_generation_id: authority.resource_generation_id.0.as_str(),
+            operation_contract_id: authority.operation_contract_id.as_str(),
+            envelope_id: authority.envelope_id.as_str(),
+            maximum_parameter_bytes: authority.maximum_parameter_bytes,
+            maximum_result_bytes: authority.maximum_result_bytes,
+            maximum_work_units: authority.maximum_work_units,
+            maximum_in_flight: authority.maximum_in_flight,
+            maximum_operations: authority.maximum_operations,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BaseCapabilityScope {
     pub host_id: HostId,
@@ -173,6 +210,28 @@ pub struct BaseCapabilityTable {
     entries: Vec<CapabilityEntry>,
 }
 
+/// Admitted memory only; this value conveys no capability or authority.
+pub struct BaseCapabilityIssuanceBacking {
+    sequences: Vec<u32>,
+    possession: alloc::string::String,
+}
+impl BaseCapabilityIssuanceBacking {
+    pub fn try_new(maximum_in_flight: u16) -> Result<Self, BaseCapabilityRefusal> {
+        let mut sequences = Vec::new();
+        sequences
+            .try_reserve_exact(usize::from(maximum_in_flight))
+            .map_err(|_| BaseCapabilityRefusal::Capacity)?;
+        let mut possession = alloc::string::String::new();
+        possession
+            .try_reserve_exact(64)
+            .map_err(|_| BaseCapabilityRefusal::Capacity)?;
+        Ok(Self {
+            sequences,
+            possession,
+        })
+    }
+}
+
 impl BaseCapabilityTable {
     pub fn new(
         host_id: HostId,
@@ -211,24 +270,61 @@ impl BaseCapabilityTable {
         &mut self,
         request: CapabilityIssueRequest,
     ) -> Result<BaseCapabilityHandle, BaseCapabilityRefusal> {
+        let CapabilityIssueRequest { scope, authority } = request;
+        self.issue_borrowed(scope, (&authority).into())
+    }
+
+    /// Same validation, refusal ordering, bearer transcript and immutable scope
+    /// retention as `issue`, without cloning phase-local authority metadata.
+    pub fn issue_borrowed(
+        &mut self,
+        scope: BaseCapabilityScope,
+        authority: BaseCapabilityAuthorityRef<'_>,
+    ) -> Result<BaseCapabilityHandle, BaseCapabilityRefusal> {
         if self.entries.len() == self.maximum_capabilities as usize {
             return Err(BaseCapabilityRefusal::TableFull);
         }
-        validate_issue_request(self, &request)?;
+        validate_issue_request(self, &scope, authority)?;
+        let backing = BaseCapabilityIssuanceBacking::try_new(scope.maximum_in_flight)?;
+        self.issue_validated(scope, backing)
+    }
+
+    pub fn issue_borrowed_with_backing(
+        &mut self,
+        scope: BaseCapabilityScope,
+        authority: BaseCapabilityAuthorityRef<'_>,
+        backing: BaseCapabilityIssuanceBacking,
+    ) -> Result<BaseCapabilityHandle, BaseCapabilityRefusal> {
+        if self.entries.len() == self.maximum_capabilities as usize {
+            return Err(BaseCapabilityRefusal::TableFull);
+        }
+        validate_issue_request(self, &scope, authority)?;
+        if backing.sequences.capacity() < usize::from(scope.maximum_in_flight)
+            || backing.possession.capacity() < 64
+        {
+            return Err(BaseCapabilityRefusal::Capacity);
+        }
+        self.issue_validated(scope, backing)
+    }
+
+    fn issue_validated(
+        &mut self,
+        scope: BaseCapabilityScope,
+        mut backing: BaseCapabilityIssuanceBacking,
+    ) -> Result<BaseCapabilityHandle, BaseCapabilityRefusal> {
         let issuance = self.next_issuance;
-        let mut active_sequences = Vec::new();
-        active_sequences
-            .try_reserve_exact(usize::from(request.scope.maximum_in_flight))
-            .map_err(|_| BaseCapabilityRefusal::Capacity)?;
-        let bearer = bearer_digest(&self.issuer_key, issuance, &request.scope);
-        let possession_id =
-            CapabilityPossessionId::from(hex_digest(&inspection_digest(issuance, &request.scope))?);
+        let bearer = bearer_digest(&self.issuer_key, issuance, &scope);
+        write_hex_digest(
+            &mut backing.possession,
+            &inspection_digest(issuance, &scope),
+        );
+        let possession_id = CapabilityPossessionId::from(backing.possession);
         self.entries.push(CapabilityEntry {
             bearer,
-            active_sequences,
+            active_sequences: backing.sequences,
             inspection: CapabilityInspection {
                 possession_id,
-                scope: request.scope,
+                scope,
                 lifecycle: CapabilityLifecycle::Issued,
                 completed_operations: 0,
                 in_flight_operations: 0,
@@ -362,10 +458,9 @@ impl BaseCapabilityTable {
 
 fn validate_issue_request(
     table: &BaseCapabilityTable,
-    request: &CapabilityIssueRequest,
+    scope: &BaseCapabilityScope,
+    authority: BaseCapabilityAuthorityRef<'_>,
 ) -> Result<(), BaseCapabilityRefusal> {
-    let scope = &request.scope;
-    let authority = &request.authority;
     if scope.plan_id.as_str().is_empty()
         || scope.active_play_id.as_str().is_empty()
         || scope.authority_grant_id.as_str().is_empty()
@@ -391,19 +486,19 @@ fn validate_issue_request(
         || scope.boot_id != table.boot_id
         || scope.base_instance_id != table.base_instance_id
         || scope.base_provider_generation != table.base_provider_generation
-        || authority.grant.host_id != table.host_id
-        || authority.grant.boot_id != table.boot_id
-        || authority.base_instance_id != table.base_instance_id
+        || authority.grant.host_id != table.host_id.as_str()
+        || authority.grant.boot_id != table.boot_id.as_str()
+        || authority.base_instance_id != table.base_instance_id.as_str()
         || authority.base_provider_generation != table.base_provider_generation
-        || authority.grant.grant_id != scope.authority_grant_id
-        || authority.grant.contract_id != scope.authority_contract_id
-        || authority.grant.capability_id != scope.capability_id
-        || authority.grant.host_call_contract_id != scope.operation_contract_id
-        || authority.grant.subject_kind != scope.subject_kind
-        || authority.operation_contract_id != scope.operation_contract_id
-        || authority.resource_pool_id != scope.resource_pool_id
-        || authority.resource_generation_id != scope.resource_generation_id
-        || authority.envelope_id != scope.envelope_id
+        || authority.grant.grant_id != scope.authority_grant_id.as_str()
+        || authority.grant.contract_id != scope.authority_contract_id.as_str()
+        || authority.grant.capability_id != scope.capability_id.as_str()
+        || authority.grant.host_call_contract_id != scope.operation_contract_id.as_str()
+        || authority.grant.subject_kind != scope.subject_kind.as_str()
+        || authority.operation_contract_id != scope.operation_contract_id.as_str()
+        || authority.resource_pool_id != scope.resource_pool_id.as_str()
+        || authority.resource_generation_id != scope.resource_generation_id.0.as_str()
+        || authority.envelope_id != scope.envelope_id.as_str()
     {
         return Err(BaseCapabilityRefusal::AuthorityMismatch);
     }
@@ -494,15 +589,10 @@ fn bearer_matches(left: &[u8; 32], right: &[u8; 32]) -> bool {
         == 0
 }
 
-fn hex_digest(bytes: &[u8; 32]) -> Result<alloc::string::String, BaseCapabilityRefusal> {
+fn write_hex_digest(result: &mut alloc::string::String, bytes: &[u8; 32]) {
     const HEX: &[u8; 16] = b"0123456789abcdef";
-    let mut result = alloc::string::String::new();
-    result
-        .try_reserve_exact(64)
-        .map_err(|_| BaseCapabilityRefusal::Capacity)?;
     for byte in bytes {
         result.push(char::from(HEX[usize::from(byte >> 4)]));
         result.push(char::from(HEX[usize::from(byte & 15)]));
     }
-    Ok(result)
 }

@@ -174,3 +174,56 @@ pub(super) fn released_bytes<T>(f: impl FnOnce() -> T) -> (T, usize) {
     assert_eq!(ALLOCATIONS.with(Cell::get), 0);
     (result, RELEASED.with(Cell::get))
 }
+
+#[test]
+fn fallible_constructor_and_each_issuance_allocation_leave_issuer_reusable() {
+    let args = (
+        HostId::from("host"),
+        BootId::from("boot"),
+        BaseInstanceId::from("base"),
+    );
+    FAIL_AFTER.with(|n| n.set(Some(0)));
+    let result = BaseCapabilityTable::new(args.0, args.1, args.2, 1, [7; 32], 1);
+    FAIL_AFTER.with(|n| n.set(None));
+    assert_eq!(result.err(), Some(BaseCapabilityRefusal::Capacity));
+    for failure in [0, 1] {
+        let mut actual = table(7);
+        let expected = table(7).issue(request()).unwrap();
+        let input = request();
+        FAIL_AFTER.with(|n| n.set(Some(failure)));
+        let result = actual.issue(input);
+        FAIL_AFTER.with(|n| n.set(None));
+        assert_eq!(result.err(), Some(BaseCapabilityRefusal::Capacity));
+        assert_eq!(actual.inspections().count(), 0);
+        assert!(actual.issue(request()).unwrap() == expected);
+    }
+}
+
+#[test]
+fn preallocated_issuance_is_equivalent_and_allocates_nothing() {
+    use conduit_core::BaseCapabilityIssuanceBacking;
+    let mut actual = table(7);
+    let policy = authority();
+    let input = scope();
+    let backing = BaseCapabilityIssuanceBacking::try_new(input.maximum_in_flight).unwrap();
+    let expected = table(7).issue(request()).unwrap();
+    let claim = claim();
+    without_allocations(|| {
+        let mut handle = actual
+            .issue_borrowed_with_backing(input, (&policy).into(), backing)
+            .unwrap();
+        assert!(handle == expected);
+        let lease = actual.authorize(&handle, &claim).unwrap();
+        actual.complete(&mut handle, lease, 16).unwrap();
+    });
+    assert_eq!(actual.inspections().count(), 1);
+    let mut other = table(7);
+    let backing = BaseCapabilityIssuanceBacking::try_new(0).unwrap();
+    assert_eq!(
+        other
+            .issue_borrowed_with_backing(scope(), (&policy).into(), backing)
+            .err(),
+        Some(BaseCapabilityRefusal::Capacity)
+    );
+    assert!(other.issue(request()).unwrap() == expected);
+}

@@ -1,13 +1,25 @@
 #![no_std]
 //! Class-neutral electrical pulse sampling. No peripheral recognition or policy.
 extern crate alloc;
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+#[cfg(test)]
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
 mod codec;
 mod contract;
+mod schema {
+    include!(concat!(env!("OUT_DIR"), "/pulse_schemas.rs"));
+}
 #[cfg(feature = "host-call")]
 pub mod installation;
 #[cfg(feature = "host-call")]
 pub mod owner;
-pub use codec::{PreparedPulseCodec, PulseCodecRefusal};
+pub use codec::{
+    PreparedPulseCodec, PulseCodecRefusal, PULSE_READ_CANONICAL_REQUEST_BYTES,
+    PULSE_READ_CANONICAL_RESULT_BYTES,
+};
 pub use contract::{PulseReadContract, PULSE_READ_CALL, PULSE_READ_KIND, PULSE_READ_MAXIMUM_BYTES};
 
 pub const MAXIMUM_OCTETS: usize = 8;

@@ -463,7 +463,7 @@ fn catalogs() -> (
         .unwrap();
     let sink_contract = KindConfigurationField {
         key: "value".into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text(String::new().into()),
         rule: KindConfigurationRule::TextBytes {
             maximum: (conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES * 2) as u32,
         },

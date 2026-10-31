@@ -51,11 +51,29 @@ impl PreparedRecordingHistory {
     /// refusal preserve the prior loaded chunk and high-water mark. Gaps remain
     /// visible on samples; they never become fabricated observations.
     pub fn read_next(&mut self, json: &str) -> Result<(), RecordingHistoryRefusal> {
-        if self.recovered.chunks == self.maximum_chunks {
+        self.read_from(json, self.recovered, self.previous)
+    }
+    /// Both workspaces are prepared together for the same context by the Back.
+    /// Only its committed workspace supplies the next boundary.
+    #[cfg(feature = "recording-kernel")]
+    pub(super) fn stage_from(
+        &mut self,
+        committed: &Self,
+        json: &str,
+    ) -> Result<(), RecordingHistoryRefusal> {
+        self.read_from(json, committed.recovered, committed.previous)
+    }
+    fn read_from(
+        &mut self,
+        json: &str,
+        recovered: RecoveredHistory,
+        previous: Option<(u64, u64)>,
+    ) -> Result<(), RecordingHistoryRefusal> {
+        if recovered.chunks == self.maximum_chunks {
             return Err(RecordingHistoryRefusal::Capacity);
         }
         self.reader
-            .read_after(json, self.previous)
+            .read_after(json, previous)
             .map_err(RecordingHistoryRefusal::Content)?;
         let first = self
             .reader
@@ -66,7 +84,8 @@ impl PreparedRecordingHistory {
             .reader
             .sample(self.reader.len() - 1)
             .expect("validated nonempty chunk");
-        self.previous = Some((last.sequence, last.sampled_at_boot_ms));
+        self.previous = Some((last.sequence, last.at_boot_ms));
+        self.recovered = recovered;
         self.recovered.first_sequence.get_or_insert(first);
         self.recovered.last_sequence = Some(last.sequence);
         self.recovered.chunks += 1;

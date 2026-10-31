@@ -1,5 +1,5 @@
 //! Browser challenge admission while lulled, without reopening lifecycle state.
-use super::{sign, BodyLifecycleSession, BodyLifecycleSessionError as Error};
+use super::{sign, BodyLifecycleSessionError as Error};
 use crate::{
     AdmissionManager, AdmissionSigns, AmbientAdmissionProof, BodyBiographyError, BodyState,
     CandidateInventory, MembershipCredential, PartReturnProof,
@@ -7,7 +7,7 @@ use crate::{
 use alloc::vec::Vec;
 use conduit_core::{BootId, HostAdvertisement, HostId};
 
-impl BodyLifecycleSession {
+impl<P: crate::BodyPlanEvidence> super::BodyLifecycleOwner<P> {
     fn require_lulled_admission(&self, host: &HostId, boot: &BootId) -> Result<(), Error> {
         self.require_host(host, boot)?;
         if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {

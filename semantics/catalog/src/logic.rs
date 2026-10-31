@@ -68,7 +68,7 @@ pub fn logic_compare_scalar_contract() -> StandardKindContract {
         )],
         configuration: vec![KindConfigurationField {
             key: COMPARE_OPERATOR_KEY.to_string(),
-            default_value: ConfigurationValue::Text("eq".to_string()),
+            default_value: ConfigurationValue::Text("eq".to_string().into()),
             rule: KindConfigurationRule::TextOneOf {
                 values: comparison_operator_values(),
             },
@@ -186,7 +186,7 @@ pub fn install_logic_catalogs(
                     name: field.key.clone(),
                     value_type: "Text".to_string(),
                     default: Some(match &field.default_value {
-                        ConfigurationValue::Text(value) => value.clone(),
+                        ConfigurationValue::Text(value) => value.to_string(),
                         _ => unreachable!("logic configuration is finite text"),
                     }),
                 })

@@ -1,6 +1,55 @@
 use super::*;
 use crate::{BodyState, Wake, WakeLifecycleEvent};
 
+// Restore only fields changed by a Wake transaction; retained history is never copied.
+struct WakeTransaction<'a> {
+    evidence: &'a mut BodyBiographyEvidence,
+    body: Option<Body>,
+    state: Option<BodyState>,
+    wake: Option<(usize, Wake)>,
+    wakes: usize,
+    records: usize,
+    signs: usize,
+    events: usize,
+    committed: bool,
+}
+
+impl<'a> WakeTransaction<'a> {
+    fn new(evidence: &'a mut BodyBiographyEvidence) -> Self {
+        Self {
+            wakes: evidence.wakes.len(),
+            records: evidence.records.len(),
+            signs: evidence.body.sign_ids.len(),
+            events: evidence.body.events.len(),
+            evidence,
+            body: None,
+            state: None,
+            wake: None,
+            committed: false,
+        }
+    }
+}
+impl Drop for WakeTransaction<'_> {
+    fn drop(&mut self) {
+        if self.committed {
+            return;
+        }
+        self.evidence.records.truncate(self.records);
+        self.evidence.wakes.truncate(self.wakes);
+        if let Some((index, wake)) = self.wake.take() {
+            self.evidence.wakes[index] = wake;
+        }
+        if let Some(body) = self.body.take() {
+            self.evidence.body = body;
+        }
+        if let Some(state) = self.state.take() {
+            self.evidence.body.state = state;
+            self.evidence.body.sign_ids.truncate(self.signs);
+            self.evidence.body.events.truncate(self.events);
+        }
+    }
+}
+
 impl BodyBiographyEvidence {
     /// Seal and remove one oldest completed Wake from the active window.
     /// The caller must durably retain the returned segment before committing
@@ -115,7 +164,28 @@ impl BodyBiographyEvidence {
         wake: Wake,
         first_sequence: u64,
     ) -> Result<(), BodyBiographyError> {
+        self.append_wake_with_body(Some(body), wake, first_sequence)
+    }
+
+    /// Retain a Wake extension while the current Body remains unchanged. Full
+    /// canonical validation and rollback are shared with `append_wake`; the
+    /// resident Body is borrowed instead of cloned and replaced.
+    pub fn append_unchanged_body_wake(
+        &mut self,
+        wake: Wake,
+        first_sequence: u64,
+    ) -> Result<(), BodyBiographyError> {
+        self.append_wake_with_body(None, wake, first_sequence)
+    }
+
+    fn append_wake_with_body(
+        &mut self,
+        replacement_body: Option<Body>,
+        wake: Wake,
+        first_sequence: u64,
+    ) -> Result<(), BodyBiographyError> {
         self.validate()?;
+        let body = replacement_body.as_ref().unwrap_or(&self.body);
         if body.body_id != self.body_id || wake.body_id != self.body_id {
             return Err(BodyBiographyError::WrongBody);
         }
@@ -187,15 +257,12 @@ impl BodyBiographyEvidence {
         if first_sequence <= self.last_sequence() {
             return Err(BodyBiographyError::InvalidSequence);
         }
-        let mut candidate = self.clone();
-        candidate.body = body;
-        if let Some(index) = position {
-            candidate.wakes[index] = wake;
-        } else {
-            candidate.wakes.push(wake);
-        }
+        let mut records = Vec::new();
+        records
+            .try_reserve_exact(additions.len())
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
         for (offset, (sign_id, kind)) in additions.into_iter().enumerate() {
-            candidate.records.push(BodyBiographyRecord {
+            records.push(BodyBiographyRecord {
                 sequence: first_sequence
                     .checked_add(offset as u64)
                     .ok_or(BodyBiographyError::InvalidSequence)?,
@@ -203,9 +270,112 @@ impl BodyBiographyEvidence {
                 kind,
             });
         }
-        candidate.validate()?;
-        *self = candidate;
+        self.records
+            .try_reserve(records.len())
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        if position.is_none() {
+            self.wakes
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        }
+        let mut transaction = WakeTransaction::new(self);
+        if let Some(body) = replacement_body {
+            transaction.body = Some(core::mem::replace(&mut transaction.evidence.body, body));
+        }
+        if let Some(index) = position {
+            transaction.wake = Some((
+                index,
+                core::mem::replace(&mut transaction.evidence.wakes[index], wake),
+            ));
+        } else {
+            transaction.evidence.wakes.push(wake);
+        }
+        transaction.evidence.records.extend(records);
+        transaction.evidence.validate()?;
+        transaction.committed = true;
         Ok(())
+    }
+
+    /// Commit a fresh Wake only inside an unpublished owner transaction. The
+    /// token was checked against this unchanged Body before Plan retention.
+    /// Refusals restore all changed fields without copying retained history.
+    pub(crate) fn append_prepared_wake_unpublished(
+        &mut self,
+        prepared: crate::lifecycle::PreparedBodyWake,
+        first_sequence: u64,
+    ) -> Result<Wake, BodyBiographyError> {
+        self.append_prepared_wake_unpublished_retained(prepared, first_sequence)
+            .map_err(|(_, error)| error)
+    }
+
+    #[allow(clippy::result_large_err)] // Return the original inline token, with no allocation or re-minting.
+    pub(crate) fn append_prepared_wake_unpublished_retained(
+        &mut self,
+        prepared: crate::lifecycle::PreparedBodyWake,
+        first_sequence: u64,
+    ) -> Result<Wake, (crate::lifecycle::PreparedBodyWake, BodyBiographyError)> {
+        let checked: Result<_, BodyBiographyError> = (|| {
+            self.validate()?;
+            let wake = prepared.wake();
+            if wake.body_id != self.body_id {
+                return Err(BodyBiographyError::WrongBody);
+            }
+            wake.validate()
+                .map_err(|_| BodyBiographyError::InvalidEvidence)?;
+            if self.wakes.iter().any(|old| old.wake_id == wake.wake_id) {
+                return Err(BodyBiographyError::InvalidEvidence);
+            }
+            if self.wakes.len() >= MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(BodyBiographyError::CapacityExhausted);
+            }
+            self.can_append(1)?;
+            if first_sequence <= self.last_sequence() {
+                return Err(BodyBiographyError::InvalidSequence);
+            }
+            let sign_id = wake.sign_ids[0].clone();
+            let wake_id = wake.wake_id.clone();
+            let retained = wake.clone();
+            self.wakes
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            self.records
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            self.body
+                .sign_ids
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            self.body
+                .events
+                .try_reserve(1)
+                .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+            Ok((sign_id, wake_id, retained))
+        })();
+        let (sign_id, wake_id, retained) = match checked {
+            Ok(checked) => checked,
+            Err(error) => return Err((prepared, error)),
+        };
+        let mut transaction = WakeTransaction::new(self);
+        transaction.state = Some(transaction.evidence.body.state.clone());
+        transaction
+            .evidence
+            .body
+            .apply_prepared_wake_unpublished(&prepared);
+        transaction.evidence.wakes.push(retained);
+        transaction.evidence.records.push(BodyBiographyRecord {
+            sequence: first_sequence,
+            sign_id,
+            kind: BodyBiographyRecordKind::WakeEvent {
+                wake_id,
+                event_index: 0,
+            },
+        });
+        if let Err(error) = transaction.evidence.validate() {
+            drop(transaction);
+            return Err((prepared, error));
+        }
+        transaction.committed = true;
+        Ok(prepared.into_wake())
     }
 
     pub(super) fn validate_wake_history(&self) -> Result<(), BodyBiographyError> {
@@ -387,5 +557,190 @@ impl BodyBiographyEvidence {
             return Err(BodyBiographyError::InvalidEvidence);
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod unpublished_tests {
+    use super::*;
+
+    #[test]
+    fn fresh_wake_matches_public_extension_without_recopying_existing_storage() {
+        let body = Body::born(
+            "source/work".into(),
+            "checked/work".into(),
+            1,
+            "sign/birth".into(),
+        )
+        .unwrap();
+        let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let mut candidate =
+            BodyBiographyEvidence::born(body, membership, "Workbench".into()).unwrap();
+        let mut expected = candidate.clone();
+        let (body, wake) = expected.body.wake(2, "sign/wake".into()).unwrap();
+        expected.append_wake(body, wake.clone(), 2).unwrap();
+        let body_storage = candidate.body.body_id.as_str().as_ptr();
+        let name_storage = candidate.friendly_name.as_ptr();
+        let birth_storage = candidate.records[0].sign_id.as_str().as_ptr();
+        let prepared = candidate.body.prepare_wake(2, "sign/wake".into()).unwrap();
+        let actual = candidate
+            .append_prepared_wake_unpublished(prepared, 2)
+            .unwrap();
+        assert_eq!(actual, wake);
+        assert_eq!(candidate, expected);
+        assert_eq!(
+            serde_json::to_vec(&candidate).unwrap(),
+            serde_json::to_vec(&expected).unwrap()
+        );
+        assert_eq!(
+            postcard::to_allocvec(&candidate).unwrap(),
+            postcard::to_allocvec(&expected).unwrap()
+        );
+        // These allocations belong to the existing candidate. A nested Body or
+        // biography transaction would copy them and replace their addresses.
+        assert_eq!(candidate.body.body_id.as_str().as_ptr(), body_storage);
+        assert_eq!(candidate.friendly_name.as_ptr(), name_storage);
+        assert_eq!(
+            candidate.records[0].sign_id.as_str().as_ptr(),
+            birth_storage
+        );
+    }
+    #[test]
+    fn fresh_wake_sequence_refusal_matches_public_extension() {
+        let body = Body::born(
+            "source/work".into(),
+            "checked/work".into(),
+            1,
+            "sign/birth".into(),
+        )
+        .unwrap();
+        let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let original = BodyBiographyEvidence::born(body, membership, "Workbench".into()).unwrap();
+        let mut public = original.clone();
+        let mut unpublished = original.clone();
+        let (body, wake) = public.body.wake(2, "sign/wake".into()).unwrap();
+        let expected = public.append_wake(body, wake, 1).unwrap_err();
+        let prepared = unpublished
+            .body
+            .prepare_wake(2, "sign/wake".into())
+            .unwrap();
+        assert_eq!(
+            unpublished
+                .append_prepared_wake_unpublished(prepared, 1)
+                .unwrap_err(),
+            expected
+        );
+        assert_eq!(public, original);
+        assert_eq!(unpublished, original);
+    }
+
+    #[test]
+    fn retained_fresh_wake_keeps_original_storage_on_preflight_and_postvalidation_refusal() {
+        fn evidence() -> BodyBiographyEvidence {
+            let body = Body::born(
+                "source/work".into(),
+                "checked/work".into(),
+                1,
+                "sign/birth".into(),
+            )
+            .unwrap();
+            let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+            BodyBiographyEvidence::born(body, membership, "Workbench".into()).unwrap()
+        }
+        let mut before_start = evidence();
+        let prepared = before_start
+            .body
+            .prepare_wake(2, "sign/wake".into())
+            .unwrap();
+        let pointers = (
+            prepared.wake().sign_ids.as_ptr(),
+            prepared.wake().events.as_ptr(),
+            prepared.wake().workset.plots().as_ptr(),
+        );
+        let expected = prepared.wake().clone();
+        let before = postcard::to_allocvec(&before_start).unwrap();
+        let (prepared, error) =
+            match before_start.append_prepared_wake_unpublished_retained(prepared, 1) {
+                Err(refused) => refused,
+                Ok(_) => panic!("stale sequence must refuse"),
+            };
+        assert_eq!(error, BodyBiographyError::InvalidSequence);
+        assert_eq!(prepared.wake(), &expected);
+        assert_eq!(
+            (
+                prepared.wake().sign_ids.as_ptr(),
+                prepared.wake().events.as_ptr(),
+                prepared.wake().workset.plots().as_ptr()
+            ),
+            pointers
+        );
+        assert_eq!(postcard::to_allocvec(&before_start).unwrap(), before);
+        let wake = before_start
+            .append_prepared_wake_unpublished_retained(prepared, 2)
+            .map_err(|(_, error)| error)
+            .unwrap();
+        assert_eq!(
+            (
+                wake.sign_ids.as_ptr(),
+                wake.events.as_ptr(),
+                wake.workset.plots().as_ptr()
+            ),
+            pointers
+        );
+
+        let mut changed = evidence();
+        let mut original = changed.clone();
+        let prepared = changed
+            .body
+            .prepare_wake(3, "sign/next-wake".into())
+            .unwrap();
+        let pointers = (
+            prepared.wake().sign_ids.as_ptr(),
+            prepared.wake().events.as_ptr(),
+            prepared.wake().workset.plots().as_ptr(),
+        );
+        let expected = prepared.wake().clone();
+        let body = changed
+            .body
+            .admit_plot(
+                crate::ResidentPlot::new("source/other".into(), "checked/other".into()),
+                "sign/admit".into(),
+            )
+            .unwrap();
+        changed
+            .append_body_lifecycle_events(body, &[("sign/admit".into(), 2)])
+            .unwrap();
+        let before = postcard::to_allocvec(&changed).unwrap();
+        // All primitive preflights pass; the complete history check detects
+        // that this opaque Wake predates the newly admitted Plot workset.
+        let (prepared, _) = match changed.append_prepared_wake_unpublished_retained(prepared, 3) {
+            Err(refused) => refused,
+            Ok(_) => panic!("stale workset must fail complete validation"),
+        };
+        assert_eq!(prepared.wake(), &expected);
+        assert_eq!(
+            (
+                prepared.wake().sign_ids.as_ptr(),
+                prepared.wake().events.as_ptr(),
+                prepared.wake().workset.plots().as_ptr()
+            ),
+            pointers
+        );
+        assert_eq!(postcard::to_allocvec(&changed).unwrap(), before);
+        assert_eq!(changed.last_sequence(), 2);
+        changed.validate().unwrap();
+        let wake = original
+            .append_prepared_wake_unpublished_retained(prepared, 3)
+            .map_err(|(_, error)| error)
+            .unwrap();
+        assert_eq!(
+            (
+                wake.sign_ids.as_ptr(),
+                wake.events.as_ptr(),
+                wake.workset.plots().as_ptr()
+            ),
+            pointers
+        );
+        original.validate().unwrap();
     }
 }

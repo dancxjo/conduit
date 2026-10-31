@@ -18,6 +18,11 @@ impl crate::HostedSignLog {
         };
         local.checked_add(remote)
     }
+    /// Alignment of the actual local entry backing, for allocation diagnostics.
+    /// This describes storage only and grants no Sign retention capacity.
+    pub const fn canonical_local_storage_alignment() -> usize {
+        core::mem::align_of::<Option<crate::packed_sign::PackedKernelEvent>>()
+    }
     pub fn reserved_storage_bytes(&self) -> usize {
         self.entries.capacity()
             * core::mem::size_of::<Option<crate::packed_sign::PackedKernelEvent>>()
@@ -29,6 +34,15 @@ impl crate::HostedSignLog {
 #[cfg(test)]
 mod tests {
     use crate::HostedSignLog;
+    #[test]
+    fn local_alignment_matches_actual_entry_layout() {
+        assert_eq!(
+            HostedSignLog::canonical_local_storage_alignment(),
+            core::alloc::Layout::array::<Option<crate::packed_sign::PackedKernelEvent>>(128)
+                .unwrap()
+                .align()
+        );
+    }
     #[test]
     fn preparation_size_matches_both_allocated_entry_backings() {
         for (items, remote) in [(1, 0), (4, 2), (17, 17)] {
