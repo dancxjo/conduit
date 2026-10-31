@@ -18,6 +18,7 @@ pub(crate) fn nucleus_kind(contract: StandardKindContract, revision: &str) -> Ki
         MATH_SCALE_KIND => math_scale_semantic_contract(),
         MATH_DEADBAND_KIND => math_deadband_semantic_contract(),
         FIRST_KIND => flow_first_scalar_semantic_contract(),
+        PCM_CLIP_FRAMES_KIND => pcm_clip_frames_semantic_contract(),
         AUDIO_TONE_KIND => audio_tone_semantic_contract(),
         _ => contract.into_semantic_contract(revision),
     }
