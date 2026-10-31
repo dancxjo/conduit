@@ -6,3 +6,6 @@ pub mod member_binding;
 pub mod device_carrier_source;
 #[cfg(feature = "carrier-source")]
 pub mod source_operator;
+
+#[cfg(all(unix, feature = "carrier-source"))]
+pub mod source_history_store;
