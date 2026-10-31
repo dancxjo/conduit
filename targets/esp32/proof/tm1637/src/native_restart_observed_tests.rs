@@ -19,6 +19,9 @@ pub(crate) fn receipt(body: &conduit_body::BodyId, seed: &[u8; 32], region: u8) 
 #[test]
 fn five_receipts_survive_replay_checkpoint_and_park_with_exact_original_metadata() {
     let (mut store, mut owner, host, key) = super::super::park_tests::fixture();
+    let region = crate::native_evidence_region::test_empty();
+    let media = region.media.clone();
+    store.journal = Checkpoint::open(region).unwrap();
     checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap();
     let evidence = owner.as_ref().unwrap().evidence().clone();
     let before = serde_json::to_vec(&store.admissions).unwrap();
@@ -64,7 +67,26 @@ fn five_receipts_survive_replay_checkpoint_and_park_with_exact_original_metadata
         assert!(decoded.layouts.find(&[i; 32]).is_some());
     }
     drop(decoded);
+    let original_layout_backing = store.custody.as_ref().unwrap().layouts.backing_identity();
+    let original_generation = store.journal.generation();
+    let original_source = *store.custody.as_ref().unwrap().source.digest();
+    media.lock().unwrap().1 = false;
+    assert!(checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).is_err());
+    assert_eq!(store.journal.generation(), original_generation);
+    assert_eq!(
+        *store.custody.as_ref().unwrap().source.digest(),
+        original_source
+    );
+    assert_eq!(
+        store.custody.as_ref().unwrap().layouts.backing_identity(),
+        original_layout_backing
+    );
+    media.lock().unwrap().1 = true;
     checkpoint_store(&mut store, owner.as_mut().unwrap(), &key).unwrap();
+    assert_eq!(
+        store.custody.as_ref().unwrap().layouts.backing_identity(),
+        original_layout_backing
+    );
     let mut parked =
         park_store(&mut store, &mut owner, &key, &host.host_id, &host.boot_id).unwrap();
     let restored =
