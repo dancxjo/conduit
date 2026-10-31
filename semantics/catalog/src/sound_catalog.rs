@@ -12,7 +12,9 @@ pub fn install_sound_catalogs(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     for (contract, revision) in sound_contracts_with_revisions() {
-        if contract.kind_id.as_str() == super::AUDIO_TIME_ANALYSIS_KIND {
+        if contract.kind_id.as_str() == super::PCM_CLIP_FRAMES_KIND {
+            super::install_audio_clip_frames_catalog(startup, profile)?;
+        } else if contract.kind_id.as_str() == super::AUDIO_TIME_ANALYSIS_KIND {
             super::install_audio_time_analysis_catalog(startup, profile)?;
         } else if contract.kind_id.as_str() == super::AUDIO_PITCH_ANALYSIS_KIND {
             super::install_audio_pitch_analysis_catalog(startup, profile)?;
