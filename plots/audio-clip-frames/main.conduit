@@ -1,0 +1,9 @@
+# One finite clip; retain original frames, clock, offsets and partial final block.
+plot unpack (
+    >> clip: PcmClip
+    pcm: PcmFrames...| >>
+) {
+    frames: audio/clip-to-frames
+    clip >> frames.clip
+    frames.pcm >> pcm
+}.

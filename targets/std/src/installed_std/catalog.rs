@@ -224,6 +224,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::numerical_back::FLOAT_FACTORY,
     &super::numerical_back::ENCLOSED_FACTORY,
     &DISTANCE_FREQUENCY_FACTORY,
+    &super::pcm_clip_frames_back::FACTORY,
     &AUDIO_TIME_ANALYSIS_FACTORY,
     &AUDIO_SPECTRAL_ANALYSIS_FACTORY,
     &AUDIO_PITCH_ANALYSIS_FACTORY,
