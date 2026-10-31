@@ -136,6 +136,11 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
                 .face(&mask.birth_basis("arrival/creche-bounds"))
                 .unwrap();
             let mut pixels = Pixels::new(320, 240);
+            let encoded_bytes = serde_json::to_vec(&face).unwrap().len();
+            assert!(
+                encoded_bytes <= crate::native_face_snapshot::MAX_SNAPSHOT_BYTES,
+                "full inventory snapshot needs {encoded_bytes} bytes"
+            );
             mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
             assert_eq!(mask.component_fallback(), None);
             let mut words = alloc::string::String::new();
