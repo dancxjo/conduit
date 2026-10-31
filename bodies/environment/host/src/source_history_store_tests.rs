@@ -169,3 +169,19 @@ fn occupied_sequence_never_replaces_bytes_and_requires_recovery() {
     assert!(SourceHistoryStore::open(&dir, scope(), 10).is_err());
     fs::remove_dir_all(dir).unwrap();
 }
+#[test]
+fn non_ascii_filename_boundary_refuses_without_panicking() {
+    let dir = directory();
+    // 18 ASCII bytes followed by a two-byte character crosses byte index19.
+    let name = format!("{}éjson", "0".repeat(18));
+    assert_eq!(name.len(), 24);
+    fs::write(dir.join(name), b"corrupt").unwrap();
+    let with_suffix = format!("{}é.json", "0".repeat(17));
+    assert_eq!(with_suffix.len(), 24);
+    fs::write(dir.join(with_suffix), b"corrupt").unwrap();
+    assert!(matches!(
+        SourceHistoryStore::open(&dir, scope(), 10),
+        Err(Error::Invalid)
+    ));
+    fs::remove_dir_all(dir).unwrap();
+}
