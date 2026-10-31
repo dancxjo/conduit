@@ -1136,6 +1136,18 @@ fn checked_parameters(
         } else {
             None
         };
+        if let Some(CanonicalStartupValue::Structured(value)) = &default {
+            let expression = &plot.front.startup_parameters[index]
+                .default
+                .as_ref()
+                .expect("resolved default has authored Source");
+            crate::native_type::validate_concrete_value_type(
+                value,
+                catalog,
+                crate::NativeRefinementSource::new(&expression.syntax, &BTreeMap::new()),
+                expression.span,
+            )?;
+        }
         if let Some(value) = &default {
             validate_quantity_type(
                 value,
@@ -1232,6 +1244,18 @@ fn check_invocation(
                 .map_err(|error| error.diagnostic(invocation.span))?;
         let value = canonicalize_integer_value(value, &parameter.value_type, catalog)
             .map_err(|error| error.diagnostic(invocation.span))?;
+        if let CanonicalStartupValue::Structured(structured) = &value {
+            // Omitted catalog defaults and references must meet the same retained
+            // laws as explicit arguments. Catalog defaults have no lexical Source
+            // here: locate refusals at the invocation rather than invent spans.
+            let source = crate::ExpressionSyntax::Atomic(invocation.kind.clone());
+            crate::native_type::validate_concrete_value_type(
+                structured,
+                catalog,
+                crate::NativeRefinementSource::new(&source, &BTreeMap::new()),
+                invocation.span,
+            )?;
+        }
         validate_quantity_type(&value, &parameter.value_type, invocation.span)?;
         startup_bindings.push(CheckedStartupBinding {
             name: parameter.name.clone(),
