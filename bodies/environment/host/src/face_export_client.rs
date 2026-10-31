@@ -39,9 +39,50 @@ fn boot_ms() -> Result<u64> {
         .and_then(|n| n.checked_add(time.tv_nsec as u64 / 1_000_000))
         .ok_or_else(|| "Face feed clock".into())
 }
-fn get(peer: &str, path: &str, started: u64) -> Result<Vec<u8>> {
+fn get(
+    peer: &str,
+    addresses: &[std::net::SocketAddr],
+    path: &str,
+    started: u64,
+    deadline_boot_ms: u64,
+) -> Result<Vec<u8>> {
     get_until(
-        || crate::body_join::http(peer, "GET", path, &[]),
+        || {
+            let now = boot_ms()?;
+            let elapsed = now.checked_sub(started).ok_or("Face feed clock")?;
+            let remaining = FETCH_BUDGET_MS
+                .checked_sub(elapsed)
+                .filter(|n| *n > 0)
+                .ok_or("Face export absolute deadline")?;
+            // Retain the existing per-exchange ceiling, bounded further by the
+            // original fetch. A pending reply cannot restart either budget.
+            let remaining = deadline_boot_ms
+                .checked_sub(now)
+                .filter(|n| *n > 0)
+                .ok_or("Face export signed deadline")?
+                .min(remaining);
+            let deadline = std::time::Instant::now()
+                .checked_add(Duration::from_millis(remaining.min(3000)))
+                .ok_or("Face export socket deadline")?;
+            let mut last = None;
+            for &address in addresses {
+                match crate::body_join::http::http_resolved_until(
+                    crate::body_join::http::Request {
+                        peer,
+                        method: "GET",
+                        path,
+                        body: &[],
+                        content_type: "application/json",
+                    },
+                    address,
+                    deadline,
+                ) {
+                    Ok(reply) => return Ok(reply),
+                    Err(error) => last = Some(error),
+                }
+            }
+            Err(last.unwrap_or_else(|| "Face feed has no bounded IPv4 route".into()))
+        },
         boot_ms,
         || std::thread::sleep(Duration::from_millis(RETRY_PAUSE_MS)),
         started,
@@ -94,13 +135,27 @@ fn fetch(
     body: &conduit_body::BodyId,
     peer: &str,
 ) -> Result<(conduit_face::Face, u64)> {
+    use std::net::ToSocketAddrs;
+    if peer.is_empty() || peer.len() > 255 || peer.contains(['/', '@', '\r', '\n']) {
+        return Err("Face feed peer must be HOST:PORT".into());
+    }
+    // Synchronous resolution is preparation, before requesting a signed lease.
+    // Pin the finite address set for every retry/chunk of this same fetch.
+    let addresses = peer
+        .to_socket_addrs()?
+        .filter(|a| a.is_ipv4())
+        .take(8)
+        .collect::<Vec<_>>();
+    if addresses.is_empty() {
+        return Err("Face feed has no bounded IPv4 route".into());
+    }
     let mut nonce = [0; 32];
     File::open("/dev/urandom")?.read_exact(&mut nonce)?;
     let read = conduit_environment_host::signed_face_export::read_snapshot_with(
         root,
         body,
         &nonce,
-        |path, started| get(peer, path, started),
+        |path, started, deadline| get(peer, &addresses, path, started, deadline),
         boot_ms,
     )?;
     Ok((read.face, read.deadline_boot_ms))

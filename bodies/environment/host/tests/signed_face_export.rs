@@ -132,28 +132,31 @@ fn shared_reader_preserves_deadline_and_rejects_delayed_or_foreign_chunks() {
     let key = SigningKey::from_bytes(&[17; 32]);
     let original = face();
     let document = serde_json::to_vec(&original).unwrap();
-    let signed = offer(&key, &document, 5000);
     let digest: String = Sha256::digest(&document)
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect();
-    for (finish, wrong_offset, oversized, accepted) in [
-        (1100, false, false, true),
-        (6000, false, false, false),
-        (1100, true, false, false),
-        (1100, false, true, false),
+    for (finish, wrong_offset, oversized, accepted, lifetime) in [
+        (1100, false, false, true, 5000),
+        (1100, false, false, true, 200),
+        (6000, false, false, false, 5000),
+        (1100, true, false, false, 5000),
+        (1100, false, true, false, 5000),
     ] {
+        let signed = offer(&key, &document, lifetime);
         let mut offset = 0usize;
         let mut clock_calls = 0;
         let result = read_snapshot_with(
             &key.verifying_key().to_bytes(),
             &body(),
             &[4; 32],
-            |path, started| {
+            |path, started, deadline| {
                 assert_eq!(started, 1000);
                 if path.starts_with("/face/export/snapshot?") {
+                    assert_eq!(deadline, 6000);
                     return Ok(signed.clone());
                 }
+                assert_eq!(deadline, 1000 + lifetime);
                 if oversized {
                     return Ok(vec![b' '; 1409]);
                 }
@@ -176,7 +179,7 @@ fn shared_reader_preserves_deadline_and_rejects_delayed_or_foreign_chunks() {
         assert_eq!(result.is_ok(), accepted);
         if let Ok(read) = result {
             assert_eq!(read.face, original);
-            assert_eq!(read.deadline_boot_ms, 6000);
+            assert_eq!(read.deadline_boot_ms, 1000 + lifetime);
             assert_eq!(read.observed_at_boot_ms, 1100);
             assert_eq!(read.producer_boot.as_str(), "fixture/producer-boot");
         }

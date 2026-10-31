@@ -152,20 +152,22 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 /// Retrieve through the caller's selected transport. The callback must enforce
-/// the supplied absolute start plus 5000ms budget during blocking operations.
+/// the supplied original start and absolute deadline during blocking operations.
 /// The clock must be the same local suspend-aware monotonic clock throughout.
 /// This function grants no execution, membership or durable recording authority.
 pub fn read_snapshot_with(
     root: &[u8; 32],
     body: &conduit_body::BodyId,
     nonce: &[u8; 32],
-    mut get: impl FnMut(&str, u64) -> Result<Vec<u8>>,
+    mut get: impl FnMut(&str, u64, u64) -> Result<Vec<u8>>,
     mut now: impl FnMut() -> Result<u64>,
 ) -> Result<VerifiedFaceRead> {
     let started = now()?;
+    let fetch_deadline = started.checked_add(5000).ok_or("Face export deadline")?;
     let offer = get(
         &format!("/face/export/snapshot?nonce={}", hex(nonce)),
         started,
+        fetch_deadline,
     )?;
     let verified = verify_snapshot(root, body, nonce, &offer)?;
     let deadline = started
@@ -182,7 +184,7 @@ pub fn read_snapshot_with(
             verified.revision(),
             verified.bytes()
         );
-        let reply = get(&path, started)?;
+        let reply = get(&path, started, deadline)?;
         if reply.len() > 1408 {
             return Err("Face export chunk capacity".into());
         }

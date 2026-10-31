@@ -248,3 +248,43 @@ fn refresh_cadence_includes_transfer_time_without_extending_the_lease() {
     assert_eq!(super::refresh_delay(100, 2100), std::time::Duration::ZERO);
     assert_eq!(super::refresh_delay(100, 5100), std::time::Duration::ZERO);
 }
+
+#[test]
+fn a_slow_socket_cannot_restart_the_remaining_fetch_budget() {
+    use std::io::{Read, Write};
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    let server = std::thread::spawn(move || {
+        let (mut socket, _) = listener.accept().unwrap();
+        socket
+            .set_read_timeout(Some(Duration::from_secs(2)))
+            .unwrap();
+        let mut request = Vec::new();
+        while !request.ends_with(b"\r\n\r\n") {
+            let mut byte = [0];
+            socket.read_exact(&mut byte).unwrap();
+            request.push(byte[0]);
+            assert!(request.len() <= 1024);
+        }
+        std::thread::sleep(Duration::from_millis(250));
+        // The client may already have closed its original bounded exchange.
+        let _ = socket
+            .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}");
+    });
+    let started = super::boot_ms()
+        .unwrap()
+        .checked_sub(FETCH_BUDGET_MS - 100)
+        .unwrap();
+    let result = super::get(
+        &address.to_string(),
+        &[address],
+        "/face/export/snapshot",
+        started,
+        started + FETCH_BUDGET_MS,
+    );
+    assert!(
+        result.is_err(),
+        "late 200 response must not restart the fetch budget"
+    );
+    server.join().unwrap();
+}
