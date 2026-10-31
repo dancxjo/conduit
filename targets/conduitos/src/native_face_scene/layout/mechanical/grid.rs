@@ -216,8 +216,16 @@ pub(super) fn arrange(
                 if current.entries.is_empty() {
                     return Err(FaceSceneError::UnsupportedStructure);
                 }
+                let cause = LayoutContinuation::pressure(
+                    target > u32::from(height),
+                    current.entries.len() + band.entries.len() > MAX_PAGE_ROWS,
+                    current.cost + band.cost + chrome::COMMANDS
+                        >= conduit_face::MAX_GRAPHICS_COMMANDS,
+                )
+                .map(LayoutContinuation::keeping_group);
                 pages.push(current);
                 current = Fragment::empty();
+                current.continuation = cause;
                 page_origin = origin;
                 y = 0;
             }
