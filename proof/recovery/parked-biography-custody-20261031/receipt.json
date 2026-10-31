@@ -1,0 +1,105 @@
+{
+  "schema": "conduit.proof/parked-biography-custody@1",
+  "date": "2026-10-31",
+  "proof_classes": [
+    "CPU fake media and clock",
+    "private copied checkpoint",
+    "CPU allocation instrumentation"
+  ],
+  "code_base": "4076538797f87f05e01dcc93e974d2f6ec66f8e7",
+  "branch": "feat/blue-parked-biography-custody-20261031",
+  "implementation_sha256": {
+    "targets/esp32/proof/tm1637/src/native_restart_biography.rs": "02db267c15c2c96b16fdc02f482f502b31e051baca7c0925eedc5e22cd62552c",
+    "targets/esp32/proof/tm1637/src/native_restart_payload.rs": "77fbe36c87c8407e48be178df75748af8f7265734e09af1bfaa2adbb3042330f",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot.rs": "242a7761dd5f5390e06fb4e6d37e86ec770221402b12288a1e7030ff80eb3810",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_json.rs": "a1e6d6e1bad6926119c98d4a467d8f327d08c37011777e98c7faa08d5529e1a5",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_rewrite.rs": "8b912321fe343f90877a2b5af46ea412dac56f4a1aeb693f3f16bd281bcd129f",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_tests.rs": "703cc0653c6124c9f1af4d7962e5d93b59e7feed6689e8cda193ebfd3b00299c",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_private_tests.rs": "e7b12979349af25cf1d1c77e1de94145e0fbbf4280c51ee9363ba69c6767bf00",
+    "targets/esp32/proof/tm1637/src/native_restart_biography_hot_window_tests.rs": "badd0ca5a70797942b4565dc1deaee68fc652e0a71eeeddf4b54919d60074709"
+  },
+  "basic_restart_tests": {
+    "passed": 7,
+    "failed": 0
+  },
+  "observation_profile_tests": {
+    "passed": 10,
+    "failed": 0,
+    "private_opt_in_ignored_by_default": 1,
+    "includes_the_seven_basic_cases": true
+  },
+  "actual_gate_mailbox_cpu_model": {
+    "operations": 39,
+    "pulse_owned_refusals": 39,
+    "one_permit_one_operation": true,
+    "native_timing_proven": false
+  },
+  "nor_fault_matrix": {
+    "operations": 39,
+    "effect_modes": 3,
+    "cases": 117,
+    "old_owner_restorable": true,
+    "reopened_checkpoint": "old or complete endorsed successor only"
+  },
+  "copied_private_hot": {
+    "original_input_generation": 889,
+    "canonical_copied_next_boot_setup_generation": 892,
+    "hardware_boots": 0,
+    "transaction_generations": [
+      892,
+      893
+    ],
+    "transaction_adds_boot_or_member": false,
+    "encoded_bytes_before": 30369,
+    "encoded_bytes_after": 6951,
+    "local_archives_before": 24,
+    "local_archives_after": 0,
+    "total_archives_preserved": 332,
+    "preparation_peak_bytes_on_cpu_host": 408,
+    "job_backing_bytes_on_cpu_host": 2016,
+    "replay_write_adoption_allocations": 0,
+    "replay_write_adoption_reallocations": 0,
+    "storage_model_operations": 123,
+    "exact_body_root_admissions_clean_and_layout_preserved": true,
+    "endorsement_kind": "CPU fixture only; not genuine receiver custody or ACK"
+  },
+  "copied_first_cold_migration": {
+    "input_generation": 889,
+    "compaction_generation": 890,
+    "encoded_bytes_before": 29115,
+    "encoded_bytes_after": 7848,
+    "copied_next_boot_checkpoint_bytes": 9251,
+    "payload_capacity": 32608,
+    "endorsement_kind": "CPU fixture only",
+    "hardware_action": false
+  },
+  "staged_maintenance_artifact": {
+    "source": "4076538797f87f05e01dcc93e974d2f6ec66f8e7",
+    "profile": "biography-maintenance",
+    "app_bytes": 1269072,
+    "app_sha256": "c0019543e39a3f5191ff908eb9c51001cf9d46d2136a05fbc039d83d432bf2f7",
+    "elf_sha256": "c15978e375511b9ac0dcda688d4da83f9d878e3d307c0bb5126ce9d5ed51391f",
+    "reserved_stack_bytes": 71724,
+    "actual_retained_construction_inputs_used": true,
+    "installed": false
+  },
+  "strict_clippy": {
+    "green": false,
+    "baseline_diagnostics": 15,
+    "candidate_diagnostics": 15,
+    "same_messages_and_source_locations": true,
+    "new_module_diagnostics": 0,
+    "existing_harness_lint_policy_changed": false
+  },
+  "unchanged_renewal_guard_bytes": 26000,
+  "hardware_reset_flash_ack_or_erase_performed_for_this_slice": false,
+  "new_transport_dispatcher_or_wire_added": false,
+  "private_keys_inputs_records_or_endorsements_published": false,
+  "remaining_gates": [
+    "Root management/original-owner async channel and permitted dispatcher integration",
+    "Native maximum read/codec replay duration vs actual remaining admitted wait window",
+    "Integrated native heap, stack and linked application fit",
+    "Fresh current checkpoint/cursor/capacity qualification before migration",
+    "Physical sample/Mask continuity, failure/cancel/backpressure and long-duration renewal"
+  ]
+}

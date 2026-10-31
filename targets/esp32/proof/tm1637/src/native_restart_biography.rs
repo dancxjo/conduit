@@ -4,6 +4,9 @@ use super::*;
 use ed25519_dalek::Signer;
 use payload::wire::{Hex, Offer, Summary};
 
+#[path = "native_restart_biography_hot.rs"]
+pub(crate) mod hot;
+
 /// Minted only after the current complete affine snapshot is authenticated.
 /// Kept opaque so later transport cannot substitute an arbitrary source scope.
 pub(crate) struct Export {
