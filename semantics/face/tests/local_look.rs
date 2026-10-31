@@ -51,6 +51,29 @@ fn partial_values_preserve_every_unset_token_and_nonvisual_facet() {
         tokens(selected).type_small_px(),
         tokens(&author).type_small_px()
     );
+    let before = tokens(&author).clone().into_structured().unwrap();
+    let after = tokens(selected).clone().into_structured().unwrap();
+    let conduit_core::StructuredInfoValueShape::Record(before) = before.shape() else {
+        panic!("token record")
+    };
+    let conduit_core::StructuredInfoValueShape::Record(after) = after.shape() else {
+        panic!("token record")
+    };
+    assert_eq!(before.len(), after.len());
+    for field in before {
+        let retained = after
+            .iter()
+            .find(|candidate| candidate.name() == field.name())
+            .unwrap();
+        if !matches!(field.name(), "type_body_px" | "space_panel_px") {
+            assert_eq!(
+                field.value(),
+                retained.value(),
+                "unset field {}",
+                field.name()
+            );
+        }
+    }
     assert_eq!(selected.spoken(), author.spoken());
     assert_eq!(selected.generative(), author.generative());
     assert_eq!(
