@@ -2281,4 +2281,6 @@ pub mod worker_text_result;
 mod retained_native_inventory;
 pub use retained_native_inventory::NativeFragmentReservation;
 
-pub use remote_host_fragment::AdmittedNativeRequest;
+pub use remote_host_fragment::{
+    AdmittedNativeRequest, NativeWorkReturnRefusal, PreparedNativeWork, ReturnedNativeRequest,
+};

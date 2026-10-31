@@ -364,9 +364,8 @@ const _: fn() = || {
 };
 
 impl DetachedCollectorEquipment {
-    /// Complete an ordinary selected Source request on the admitted Play's EXISTING
-    /// global lease. All affine owners are returned even on normal refusal.
-    /// The caller runs this bounded native IO turn on its existing worker.
+    /// Compatibility caller: prepare one original-lease work owner, retire native
+    /// IO, then reunite and complete the same ordinary kernel request.
     pub async fn complete_admitted_request(
         self,
         host: conduit_std_host::StdHost,
@@ -378,6 +377,37 @@ impl DetachedCollectorEquipment {
         conduit_std_host::AdmittedRemoteFragment,
         Result<bool, Refusal>,
     ) {
+        let work = match host.prepare_native_work(&mut admitted, request) {
+            Ok(work) => work,
+            Err(_) => return (host, self, admitted, Err(Refusal::Authority)),
+        };
+        let (host, equipment, work, captured) = self.complete_native_work(host, work).await;
+        let returned = match host.return_native_work(&mut admitted, work) {
+            Ok(returned) => returned,
+            Err(_) => return (host, equipment, admitted, Err(Refusal::Authority)),
+        };
+        let completed = returned
+            .complete(&mut admitted, captured.as_ref().ok().map(Vec::as_slice))
+            .map_err(|_| Refusal::Authority);
+        let result = match captured {
+            Ok(_) => completed,
+            Err(reason) => Err(reason),
+        };
+        (host, equipment, admitted, result)
+    }
+    /// Worker owns the actual Host, native equipment and ORIGINAL affine lease.
+    /// The ordinary kernel/session stays on the control thread. No lease is
+    /// copied, released, reconstructed or reserved a second time by this turn.
+    pub async fn complete_native_work(
+        self,
+        host: conduit_std_host::StdHost,
+        mut work: conduit_std_host::PreparedNativeWork,
+    ) -> (
+        conduit_std_host::StdHost,
+        Self,
+        conduit_std_host::PreparedNativeWork,
+        Result<Vec<u8>, Refusal>,
+    ) {
         if host.advertisement() != &self.inventory
             || self
                 .collector
@@ -385,95 +415,51 @@ impl DetachedCollectorEquipment {
                 .lock()
                 .expect("collector Host mutex poisoned")
                 .is_some()
+            || host.validate_native_work(&work).is_err()
         {
-            return (host, self, admitted, Err(Refusal::Advertisement));
+            return (host, self, work, Err(Refusal::Advertisement));
         }
-        let http = (|| {
-            let witness = host
-                .admitted_native_request(&admitted, request)
-                .map_err(|_| Refusal::Authority)?;
-            if witness.work().contract_id.as_str()
-                != conduit_std_host::isolated_http_base::HTTP_CLIENT_OPERATION
-            {
-                return Ok(None);
-            }
-            let selected = witness.selected();
-            let gear = selected
-                .fragment
-                .placements
-                .iter()
-                .find(|gear| &gear.placement_id == selected.placement_id)
-                .ok_or(Refusal::Plan)?;
-            let slot=self.collector.slots.iter().find(|slot| matches!(slot.provider.as_ref(),Some(Provider::Network(network)) if network.matches_capability(&gear.capability_id))).ok_or(Refusal::Possession)?;
-            if slot.failed {
-                return Err(Refusal::Possession);
-            }
-            let Some(Provider::Network(network)) = slot.provider.as_ref() else {
-                return Err(Refusal::Possession);
-            };
-            network
-                .exchange_admitted(&host, &admitted, request)
-                .map(Some)
-        })();
-        match http {
-            Ok(Some(bytes)) => {
-                let result = (|| {
-                    let value = admitted
-                        .runtime_mut()
-                        .store_host_value(&bytes)
-                        .map_err(|_| Refusal::Capacity)?;
-                    admitted
-                        .runtime_mut()
-                        .complete_host_call(
-                            request,
-                            conduit_kernel::HostCallOutcome {
-                                disposition: conduit_kernel::HostCallDisposition::Completed,
-                                output: Some(value),
-                                failure: None,
-                            },
-                        )
-                        .map_err(|_| Refusal::Authority)?;
-                    Ok(true)
-                })();
-                return (host, self, admitted, result);
-            }
-            Err(reason) => return (host, self, admitted, Err(reason)),
-            Ok(None) => {}
-        }
-        let prepared = (|| {
-            let witness = host
-                .admitted_native_request(&admitted, request)
-                .map_err(|_| Refusal::Authority)?;
-            if witness.work().contract_id.as_str() != HOST_CALL {
-                return Ok(None);
-            }
-            let selected = witness.selected();
-            let gear = selected
-                .fragment
-                .placements
-                .iter()
-                .find(|gear| &gear.placement_id == selected.placement_id)
-                .ok_or(Refusal::Plan)?;
-            let slot = self
-                .collector
-                .slots
-                .iter()
-                .position(|slot| slot.identity.capability == gear.capability_id)
-                .ok_or(Refusal::Possession)?;
-            Ok(Some((
-                slot,
-                selected.fragment.clone(),
-                selected.lowered.clone(),
-                selected.active.clone(),
-                selected.placement_id.clone(),
-                witness.work().input.to_vec(),
-            )))
-        })();
-        let (index, fragment, lowered, active, placement, input) = match prepared {
-            Ok(Some(prepared)) => prepared,
-            Ok(None) => return (host, self, admitted, Ok(false)),
-            Err(reason) => return (host, self, admitted, Err(reason)),
+        let selected = work.selected();
+        let Some(operation) = selected.lowered.host_calls.iter().find(|operation| {
+            operation.node == work.request().node && operation.call == work.request().call
+        }) else {
+            return (host, self, work, Err(Refusal::Plan));
         };
+        let Some(gear) = selected
+            .fragment
+            .placements
+            .iter()
+            .find(|gear| &gear.placement_id == selected.placement_id)
+        else {
+            return (host, self, work, Err(Refusal::Plan));
+        };
+        if operation.contract_id.as_str()
+            == conduit_std_host::isolated_http_base::HTTP_CLIENT_OPERATION
+        {
+            let slot=self.collector.slots.iter().find(|slot|matches!(slot.provider.as_ref(),Some(Provider::Network(network)) if network.matches_capability(&gear.capability_id)));
+            let result = match slot {
+                Some(slot) if !slot.failed => match slot.provider.as_ref() {
+                    Some(Provider::Network(network)) => network.exchange_admitted(&host, &mut work),
+                    _ => Err(Refusal::Possession),
+                },
+                _ => Err(Refusal::Possession),
+            };
+            return (host, self, work, result);
+        }
+        if operation.contract_id.as_str() != HOST_CALL {
+            return (host, self, work, Err(Refusal::Authority));
+        }
+        let Some(index) = self
+            .collector
+            .slots
+            .iter()
+            .position(|slot| slot.identity.capability == gear.capability_id)
+        else {
+            return (host, self, work, Err(Refusal::Possession));
+        };
+        if host.begin_native_work(&mut work).is_err() {
+            return (host, self, work, Err(Refusal::Authority));
+        }
         *self
             .collector
             .installed
@@ -481,46 +467,38 @@ impl DetachedCollectorEquipment {
             .expect("collector Host mutex poisoned") = Some(host);
         let mut equipment = self;
         let result = async {
+            let selected = work.selected();
             let slot = &mut equipment.collector.slots[index];
             if slot.failed {
                 return Err(Refusal::Possession);
             }
-            let (table, handle, claim) = slot.issue_for_active(&fragment, &active)?;
+            let (table, handle, claim) =
+                slot.issue_for_active(selected.fragment, selected.active)?;
             let contract = ObservationContract::prepare().map_err(|_| Refusal::Plan)?;
             let provider = slot.provider.take().ok_or(Refusal::Possession)?;
-            // This equipment retains actual native custody independently; the
-            // opaque witness above verifies the actual admitted lease/selection.
+            // Actual initialized custody remains retained here; the opaque work
+            // owner carries the original admitted lease and selected request.
             let binding = unsafe {
                 EnvironmentalSourceHostCall::bind_selected(
-                    table,
-                    handle,
-                    claim,
-                    provider,
-                    &contract,
-                    SelectedOperationPlan {
-                        fragment: &fragment,
-                        lowered: &lowered,
-                        active: &active,
-                        placement_id: &placement,
-                    },
+                    table, handle, claim, provider, &contract, selected,
                 )
             };
             let mut owner = match binding {
                 Ok(owner) => owner,
                 Err((_, _, _, provider, _)) => {
                     slot.provider = Some(provider);
-                    slot.failed = true;
                     return Err(Refusal::Authority);
                 }
             };
-            let mut output = [0u8; MAXIMUM_BYTES];
+            let request = work.request();
+            let mut bytes = [0u8; MAXIMUM_BYTES];
             let captured = owner
                 .invoke(
                     request.node,
                     request.call,
                     request.request,
-                    &input,
-                    &mut output,
+                    work.input(),
+                    &mut bytes,
                 )
                 .await
                 .map_err(|_| Refusal::Acquisition);
@@ -538,22 +516,7 @@ impl DetachedCollectorEquipment {
                 }
             };
             revoked?;
-            let value = admitted
-                .runtime_mut()
-                .store_host_value(&output[..length])
-                .map_err(|_| Refusal::Capacity)?;
-            admitted
-                .runtime_mut()
-                .complete_host_call(
-                    request,
-                    conduit_kernel::HostCallOutcome {
-                        disposition: conduit_kernel::HostCallDisposition::Completed,
-                        output: Some(value),
-                        failure: None,
-                    },
-                )
-                .map_err(|_| Refusal::Authority)?;
-            Ok(true)
+            Ok(bytes[..length].to_vec())
         }
         .await;
         let host = equipment
@@ -563,6 +526,6 @@ impl DetachedCollectorEquipment {
             .expect("collector Host mutex poisoned")
             .take()
             .expect("actual owner retained through native turn");
-        (host, equipment, admitted, result)
+        (host, equipment, work, result)
     }
 }

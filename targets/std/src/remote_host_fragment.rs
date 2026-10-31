@@ -18,6 +18,7 @@ use core::ops::{Deref, DerefMut};
 pub struct AdmittedRemoteFragment {
     runtime: InstalledRemoteFragment,
     source_fragment: PlanFragment,
+    native_work_request: Option<HostCallRequest>,
     reservation: Option<KernelResourceReservation>,
     identity: ActivePlayIdentity,
     offer_generation: conduit_core::OfferGeneration,
@@ -286,6 +287,7 @@ impl StdHost {
         Ok(AdmittedRemoteFragment {
             runtime,
             source_fragment: fragment.clone(),
+            native_work_request: None,
             reservation: Some(reservation),
             identity: play.identity().clone(),
             offer_generation: advertisement.offer_generation,
@@ -354,7 +356,9 @@ impl StdHost {
         request: HostCallRequest,
     ) -> Result<AdmittedNativeRequest<'a>, String> {
         let fragment = &admitted.source_fragment;
-        if !admitted.runtime.native_request_is_pending(request) || admitted.reservation.is_none()
+        if admitted.native_work_request.is_some()
+            || !admitted.runtime.native_request_is_pending(request)
+            || admitted.reservation.is_none()
             || admitted.identity.host_id != self.advertisement.host_id
             || admitted.identity.boot_id != self.advertisement.boot_id
             || admitted.offer_generation != self.advertisement.offer_generation
@@ -392,3 +396,6 @@ impl StdHost {
         })
     }
 }
+
+mod native_work;
+pub use native_work::{NativeWorkReturnRefusal, PreparedNativeWork, ReturnedNativeRequest};

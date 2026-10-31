@@ -1947,7 +1947,12 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         if let Err(reason) = runtime.progress_environmental_worker() {
             return refused(&reason);
         }
-        if runtime.environmental_worker_active() && !matches!(&request, Request::Status { .. }) {
+        if runtime.environmental_worker_active()
+            && !matches!(
+                &request,
+                Request::Status { .. } | Request::ExchangeRemote { .. }
+            )
+        {
             return refused("native-source-active");
         }
     }

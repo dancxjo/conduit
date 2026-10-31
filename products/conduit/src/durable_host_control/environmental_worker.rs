@@ -6,8 +6,8 @@ pub(super) struct Worker {
     thread: JoinHandle<(
         StdHost,
         AttachedEquipment,
-        AdmittedRemoteFragment,
-        Result<bool, String>,
+        conduit_std_host::PreparedNativeWork,
+        Result<Vec<u8>, String>,
     )>,
 }
 fn block_on<F: std::future::Future>(future: F) -> F::Output {
@@ -70,16 +70,18 @@ impl DurableHostRuntime {
             .as_ref()
             .expect("validated retained equipment")
             .validate_owner(&self.host)?;
+        let work = self.host.prepare_native_work(
+            self.remote_fragment
+                .as_mut()
+                .expect("validated admitted fragment"),
+            request,
+        )?;
         let host = self.host.take_native_worker_host()?;
         let equipment = self
             .selected_environmental_equipment
             .take()
             .expect("validated retained equipment");
-        let admitted = self
-            .remote_fragment
-            .take()
-            .expect("validated admitted fragment");
-        self.pending_native_source = None;
+        // pending_native_source and the ordinary admitted/session remain resident.
         // The ordinary thread is finite by the selected provider's admitted IO
         // deadlines. No display polling or additional resource reservation occurs.
         self.environmental_worker = Some(Worker {
@@ -89,8 +91,8 @@ impl DurableHostRuntime {
                     instruments,
                     authority_grants,
                 } = equipment;
-                let (host, native, admitted, result) =
-                    block_on(native.complete_admitted_request(host, admitted, request));
+                let (host, native, work, result) =
+                    block_on(native.complete_native_work(host, work));
                 let equipment = AttachedEquipment {
                     native,
                     instruments,
@@ -99,7 +101,7 @@ impl DurableHostRuntime {
                 (
                     host,
                     equipment,
-                    admitted,
+                    work,
                     result
                         .map_err(|reason| format!("native Source completion refused: {reason:?}")),
                 )
@@ -119,16 +121,23 @@ impl DurableHostRuntime {
             .environmental_worker
             .take()
             .expect("finished native Source worker");
-        let (host, equipment, mut admitted, result) = worker
+        let (host, equipment, work, result) = worker
             .thread
             .join()
             .map_err(|_| "native Source worker failed before returning actual Host")?;
+        let admitted = self
+            .remote_fragment
+            .as_mut()
+            .ok_or("native work lost its retained ordinary admitted kernel")?;
+        let returned = host
+            .return_native_work(admitted, work)
+            .map_err(|refusal| refusal.reason)?;
+        // Actual IO is retired and the ORIGINAL lease is reunited before any
+        // kernel completion/output can be observed by another control request.
         self.host.restore_native_worker_host(host)?;
         self.selected_environmental_equipment = Some(equipment);
-        if result.is_err() {
-            admitted.cancel()?;
-        }
-        self.remote_fragment = Some(admitted);
+        returned.complete(admitted, result.as_ref().ok().map(Vec::as_slice))?;
+        self.pending_native_source = None;
         Ok(())
     }
 }

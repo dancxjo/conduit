@@ -25,6 +25,7 @@ struct Device {
     endpoint: std::net::SocketAddr,
     requests: Arc<AtomicU64>,
     stop: Arc<AtomicBool>,
+    held: Arc<AtomicBool>,
     worker: Option<std::thread::JoinHandle<()>>,
 }
 impl Device {
@@ -36,6 +37,8 @@ impl Device {
         let counter = requests.clone();
         let stop = Arc::new(AtomicBool::new(false));
         let stopped = stop.clone();
+        let held = Arc::new(AtomicBool::new(false));
+        let holding = held.clone();
         let worker = std::thread::spawn(move || {
             while !stopped.load(Ordering::SeqCst) {
                 let (mut stream, _) = match listener.accept() {
@@ -58,6 +61,10 @@ impl Device {
                 }
                 assert!(request.starts_with(b"GET /environment HTTP/1.1\r\n"));
                 let sequence = counter.fetch_add(1, Ordering::SeqCst) + 1;
+                let deadline = std::time::Instant::now() + Duration::from_secs(2);
+                while holding.load(Ordering::SeqCst) && std::time::Instant::now() < deadline {
+                    std::thread::sleep(Duration::from_millis(2));
+                }
                 let body = serde_json::json!({"role":"conduit.environment-wifi-carrier@1", "build":"01".repeat(32), "configuration":configuration, "body_member":false, "samples":sequence, "attempts":sequence, "sensor_error":false, "temperature_centi_celsius":2150, "pressure_centi_pascal":10000000, "humidity_percent_q10":null, "sampled_at_boot_ms":123}).to_string();
                 write!(
                     stream,
@@ -72,6 +79,7 @@ impl Device {
             endpoint,
             requests,
             stop,
+            held,
             worker: Some(worker),
         }
     }
@@ -81,6 +89,7 @@ impl Device {
 }
 impl Drop for Device {
     fn drop(&mut self) {
+        self.held.store(false, Ordering::SeqCst);
         self.stop.store(true, Ordering::SeqCst);
         self.worker.take().unwrap().join().expect("fixture worker");
     }
@@ -392,4 +401,104 @@ fn source_and_http_requests_use_existing_admission_and_reject_stale_effects_befo
     let retained = collector.source_descriptor(source).unwrap();
     assert_eq!(retained.session(), descriptor.session());
     assert_eq!(retained.capability(), descriptor.capability());
+}
+
+#[test]
+fn original_native_lease_stays_owned_through_inflight_cancellation_and_late_output_is_discarded() {
+    let checked = checked();
+    let device = Device::new(checked.configuration_id().to_owned());
+    let host = StdHost::new_with_config(StdHostConfig {
+        host_id: "fixture/inflight-source".into(),
+        boot_id: "fixture/inflight-boot".into(),
+        offer_generation: OfferGeneration(1),
+    });
+    let mut collector = CollectorRoot::new_installed(host);
+    let source = collector
+        .attach_network(
+            NetworkSourceConfiguration {
+                http: IsolatedHttpBaseConfig {
+                    executable: env!("CARGO_BIN_EXE_conduit-environment-http-provider").into(),
+                    base_instance_id: "fixture/inflight-acquisition".into(),
+                    provider_generation: 1,
+                    authority: format!("device.invalid:{}", device.endpoint.port()),
+                    endpoint: device.endpoint,
+                    resource_generation_id: ResourceGenerationId(
+                        "fixture/inflight-acquisition-resource".into(),
+                    ),
+                },
+                firmware: [1; 32],
+            },
+            &checked,
+            Duration::from_secs(31),
+        )
+        .unwrap();
+    let descriptor = collector.source_descriptor(source).unwrap();
+    let grants = collector.native_authority_grants().unwrap();
+    let inventory = collector.seal_inventory().unwrap();
+    assert!(!inventory.capabilities.iter().any(|offer| offer
+        .implementation
+        .implementation_id
+        .as_str()
+        == "linux/environmental-publication@1"));
+    let before = device.count();
+    assert!(matches!(
+        ready(collector.sample(source)),
+        Err(Refusal::Authority)
+    ));
+    assert_eq!(device.count(), before);
+    let source_plan = plan(&inventory, descriptor.capability(), &grants, false);
+    let (mut host, equipment) = collector.detach().unwrap();
+    let (mut admitted, request) = begin(&mut host, &source_plan, &[]);
+    let work = host.prepare_native_work(&mut admitted, request).unwrap();
+    assert!(!host.native_resources_idle());
+    assert!(host.prepare_native_work(&mut admitted, request).is_err());
+    let foreign = StdHost::new_with_config(StdHostConfig {
+        host_id: inventory.host_id.clone(),
+        boot_id: "fixture/foreign-work-boot".into(),
+        offer_generation: inventory.offer_generation,
+    });
+    let refusal = foreign.return_native_work(&mut admitted, work).unwrap_err();
+    let work = refusal.work;
+    assert_eq!(device.count(), before);
+    device.held.store(true, Ordering::SeqCst);
+    let worker = std::thread::spawn(move || ready(equipment.complete_native_work(host, work)));
+    let deadline = std::time::Instant::now() + Duration::from_secs(1);
+    while device.count() == before && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    assert!(
+        device.count() > before,
+        "native IO must actually be in flight"
+    );
+    assert!(!worker.is_finished());
+    // The actual kernel/session remains owned by this control thread. Cancellation
+    // cannot release the worker's ORIGINAL lease or create a replacement owner.
+    admitted.runtime_mut().cancel().unwrap();
+    device.held.store(false, Ordering::SeqCst);
+    let (mut host, equipment, mut work, captured) = worker.join().unwrap();
+    assert!(captured.is_ok());
+    assert!(!host.native_resources_idle());
+    assert!(
+        host.begin_native_work(&mut work).is_err(),
+        "one native work cannot repeat physical IO"
+    );
+    let returned = host.return_native_work(&mut admitted, work).unwrap();
+    assert!(!host.native_resources_idle());
+    assert!(host.prepare_native_work(&mut admitted, request).is_err());
+    assert!(!returned
+        .complete(&mut admitted, captured.as_ref().ok().map(Vec::as_slice))
+        .unwrap());
+    assert!(admitted
+        .runtime_mut()
+        .take_local_fore_output(&"result".into())
+        .unwrap()
+        .is_none());
+    host.release_remote_fragment(admitted).unwrap();
+    assert!(host.native_resources_idle());
+    assert_eq!(host.advertisement(), &inventory);
+    let collector = equipment.resume(host).unwrap();
+    assert_eq!(
+        collector.source_descriptor(source).unwrap().session(),
+        descriptor.session()
+    );
 }

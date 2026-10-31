@@ -88,21 +88,27 @@ pub(super) fn exchange_with_registry(
 /// Execute the exact dispatched HTTP request under its already admitted lease.
 /// The initialized endpoint/provider and actual current registry remain native
 /// authority; request metadata cannot construct this admitted witness.
-pub fn exchange_admitted_response(
+pub fn exchange_native_work_response(
     host: &crate::StdHost,
-    admitted: &crate::AdmittedRemoteFragment,
-    request: conduit_kernel::scheduler::HostCallRequest,
+    work: &mut crate::PreparedNativeWork,
     provider: &IsolatedHttpBaseConfig,
 ) -> Result<conduit_web::HttpResponse, String> {
-    let witness = host.admitted_native_request(admitted, request)?;
-    let work = witness.work();
-    if work.contract_id.as_str() != super::HTTP_CLIENT_OPERATION
-        || work.input.len() > conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize
-        || work.maximum_output_bytes != conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES
+    host.begin_native_work(work)?;
+    let selected = work.selected();
+    let operation = selected
+        .lowered
+        .host_calls
+        .iter()
+        .find(|operation| {
+            operation.node == work.request().node && operation.call == work.request().call
+        })
+        .ok_or("native HTTP operation missing")?;
+    if operation.contract_id.as_str() != super::HTTP_CLIENT_OPERATION
+        || work.input().len() > conduit_web::HTTP_MAXIMUM_ENCODED_REQUEST_BYTES as usize
+        || work.maximum_output_bytes() != conduit_web::HTTP_MAXIMUM_ENCODED_RESPONSE_BYTES
     {
         return Err("admitted HTTP request differs from its exact finite Back contract".into());
     }
-    let selected = witness.selected();
     let placement = selected
         .fragment
         .placements
@@ -148,7 +154,7 @@ pub fn exchange_admitted_response(
                     .any(|resource| resource.pool_id == placement.resources[0].pool_id)
         })
         .ok_or("admitted HTTP Base is not the actual retained provider")?;
-    let decoded = conduit_web::decode_request(work.input)
+    let decoded = conduit_web::decode_request(work.input())
         .map_err(|_| "admitted HTTP input is not its canonical request")?;
     if decoded.target.scheme() != &conduit_web::HttpScheme::Http
         || decoded.target.authority() != &provider.authority
@@ -167,7 +173,7 @@ pub fn exchange_admitted_response(
     let response = exchange_provider(provider, issue, claim, &decoded)?;
     let bytes = conduit_web::encode_response(&response)
         .map_err(|_| "admitted HTTP response exceeds canonical bounds")?;
-    if bytes.len() > work.maximum_output_bytes as usize {
+    if bytes.len() > work.maximum_output_bytes() as usize {
         return Err("admitted HTTP response exceeds the selected output reservation".into());
     }
     Ok(response)

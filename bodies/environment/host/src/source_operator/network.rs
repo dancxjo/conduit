@@ -85,16 +85,14 @@ impl NetworkSource {
     pub(super) fn exchange_admitted(
         &self,
         host: &conduit_std_host::StdHost,
-        admitted: &conduit_std_host::AdmittedRemoteFragment,
-        request: conduit_kernel::scheduler::HostCallRequest,
+        work: &mut conduit_std_host::PreparedNativeWork,
     ) -> Result<Vec<u8>, Refusal> {
         if self.failed {
             return Err(Refusal::Possession);
         }
-        let response = conduit_std_host::isolated_http_base::exchange_admitted_response(
+        let response = conduit_std_host::isolated_http_base::exchange_native_work_response(
             host,
-            admitted,
-            request,
+            work,
             &self.configuration.http,
         )
         .map_err(|_| Refusal::Acquisition)?;

@@ -2,7 +2,7 @@
 use super::*;
 
 pub(super) fn drive_remote_fragment<F>(
-    host: &mut StdHost,
+    host: &mut HostSource,
     admitted: &mut AdmittedRemoteFragment,
     pending_text: &mut Option<conduit_kernel::scheduler::HostCallRequest>,
     pending_native: &mut Option<conduit_kernel::scheduler::HostCallRequest>,
