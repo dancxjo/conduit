@@ -70,9 +70,6 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
     STATE.lock(|state| {
         let mut state = state.borrow_mut();
         prune_completed(&mut state, embassy_time::Instant::now().as_millis());
-        if !state.enabled || !crate::native_restart::publication_ready() {
-            return Err("body-join-unavailable");
-        }
         if let Some(done) = &state.completed {
             if done.digest == digest {
                 return Ok(done.ticket);
@@ -92,6 +89,11 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
                 Err("body-join-busy")
             };
         }
+        // Retrying retained custody does not start admission or need Store access.
+        // Only a new proof is gated on the current checkpoint owner being ready.
+        if !state.enabled || !crate::native_restart::publication_ready() {
+            return Err("body-join-unavailable");
+        }
         let ticket = state.next.checked_add(1).ok_or("body-join-exhausted")?;
         state.next = ticket;
         state.pending = Some(Pending {
@@ -106,9 +108,6 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
     STATE.lock(|state| {
         let mut state = state.borrow_mut();
         prune_completed(&mut state, embassy_time::Instant::now().as_millis());
-        if !state.enabled {
-            return ResultReply::Unavailable;
-        }
         if let Some(done) = &state.completed {
             if done.ticket == ticket {
                 let mut bytes = Vec::new();
@@ -129,6 +128,8 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
         }
         if let Some((refused, reason)) = state.refused.filter(|(refused, _)| *refused == ticket) {
             ResultReply::Refused(refused, reason)
+        } else if !state.enabled {
+            ResultReply::Unavailable
         } else {
             ResultReply::Unknown
         }
