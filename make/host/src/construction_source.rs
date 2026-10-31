@@ -11,7 +11,8 @@ pub use render::canonical_host_configuration_conduit;
 
 use crate::{
     ConfigurationBase, ConfigurationBus, ConfigurationDevice, ConfigurationDiagnostic,
-    ConfigurationTarget, HostBounds, HostConfiguration, HostSoftwarePurpose, ResourceBudget,
+    ConfigurationTarget, HostBounds, HostConfiguration, HostMetadata, HostSoftwarePurpose,
+    ResourceBudget,
 };
 
 pub fn parse_host_configuration_conduit(
@@ -34,6 +35,11 @@ pub fn parse_host_configuration_conduit(
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let devices = repeated::<ConfigurationDevice>(&declarations, "device")
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
+    let metadata = declarations
+        .get("metadata")
+        .map(|_| one_required::<HostMetadata>(&declarations, "metadata"))
+        .transpose()
+        .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let software = declarations
         .get("software")
         .map(|_| one_required::<HostSoftwarePurpose>(&declarations, "software"))
@@ -42,11 +48,12 @@ pub fn parse_host_configuration_conduit(
     reject_unknown(
         &declarations,
         &[
-            "schema", "target", "limits", "base", "need", "bus", "device", "software",
+            "schema", "target", "limits", "base", "need", "bus", "device", "software", "metadata",
         ],
     )
     .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     Ok(HostConfiguration {
+        metadata,
         schema,
         name: construction.name.text.clone(),
         target,
