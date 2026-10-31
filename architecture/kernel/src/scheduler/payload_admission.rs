@@ -2,13 +2,17 @@
 use super::*;
 
 pub(super) struct GeneratedStepOutput {
+    #[cfg(feature = "alloc")]
     value: ValueRef,
     #[cfg(feature = "alloc")]
     owned: Option<(PortId, crate::PendingCompactF32Publication)>,
 }
 impl GeneratedStepOutput {
     fn copied(value: ValueRef) -> Self {
+        #[cfg(not(feature = "alloc"))]
+        let _ = value;
         Self {
+            #[cfg(feature = "alloc")]
             value,
             #[cfg(feature = "alloc")]
             owned: None,
@@ -307,6 +311,7 @@ where
     ) -> Result<(), SchedulerError> {
         self.commit_one_generated_output(node, generated)
     }
+    #[cfg(feature = "alloc")]
     fn rollback_one_generated_output(
         &mut self,
         node: usize,
