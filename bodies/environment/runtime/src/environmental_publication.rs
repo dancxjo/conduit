@@ -35,6 +35,29 @@ pub struct PublicationScope {
     pub(crate) checked: conduit_core::CheckedPlotId,
     pub(crate) expanded: conduit_core::ExpandedPlotId,
 }
+impl PublicationScope {
+    pub fn host(&self) -> &conduit_core::HostId {
+        &self.host
+    }
+    pub fn boot(&self) -> &conduit_core::BootId {
+        &self.boot
+    }
+    pub fn plan(&self) -> &conduit_core::PlanId {
+        &self.plan
+    }
+    pub fn play(&self) -> &conduit_core::ActivePlayId {
+        &self.play
+    }
+    pub fn source(&self) -> &conduit_core::SourceDocumentId {
+        &self.source
+    }
+    pub fn checked(&self) -> &conduit_core::CheckedPlotId {
+        &self.checked
+    }
+    pub fn expanded(&self) -> &conduit_core::ExpandedPlotId {
+        &self.expanded
+    }
+}
 pub struct EnvironmentalPublicationBack {
     scope: PublicationScope,
     contract: ObservationContract,

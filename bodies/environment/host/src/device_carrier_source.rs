@@ -26,23 +26,23 @@ enum Encoding {
     Bosch,
     Dht11,
 }
-pub struct DeviceEnvironmentalSource<'a> {
+pub struct DeviceEnvironmentalSource {
     carrier: DeviceCarrier,
-    host: &'a HostAdvertisement,
+    host: HostAdvertisement,
     encoding: Encoding,
     continuity: SourceContinuity,
     acquisition_budget: Duration,
     query_budget: Duration,
     failed: bool,
 }
-impl<'a> DeviceEnvironmentalSource<'a> {
+impl DeviceEnvironmentalSource {
     /// Initialize once and retain this same owner (including continuity) across
     /// child Plays. Root must separately advertise/admit its finite session,
     /// bounded worker time and exact Source Host Call before invocation. This
     /// synchronous native I/O belongs on that admitted worker, not a display loop.
     pub fn acquire(
         path: &Path,
-        host: &'a HostAdvertisement,
+        host: &HostAdvertisement,
         configuration: &CheckedHostConfiguration,
         firmware: [u8; 32],
         acquisition_budget: Duration,
@@ -72,7 +72,7 @@ impl<'a> DeviceEnvironmentalSource<'a> {
         .map_err(|_| Refusal::Provider)?;
         Ok(Self {
             carrier,
-            host,
+            host: host.clone(),
             encoding,
             continuity: SourceContinuity::default(),
             acquisition_budget,
@@ -81,7 +81,7 @@ impl<'a> DeviceEnvironmentalSource<'a> {
         })
     }
 }
-impl EnvironmentalSourceProvider for DeviceEnvironmentalSource<'_> {
+impl EnvironmentalSourceProvider for DeviceEnvironmentalSource {
     async fn observe(&mut self) -> Result<SourceObservation, Refusal> {
         if self.failed {
             return Err(Refusal::Provider);
@@ -106,7 +106,7 @@ impl EnvironmentalSourceProvider for DeviceEnvironmentalSource<'_> {
                     .ok_or(Refusal::Provider);
             }
             let info = match self.carrier.query_with_budget(
-                self.host,
+                &self.host,
                 ReadOnlyQuery::SensorStatus,
                 remaining.min(self.query_budget),
             ) {
