@@ -116,10 +116,18 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-environment-face",
+ "conduit-environment-measurement",
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-seven-segment-mask",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-environment-measurement"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
 ]
 
 [[package]]
