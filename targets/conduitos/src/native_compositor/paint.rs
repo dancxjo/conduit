@@ -1,5 +1,5 @@
 //! Shared native paint realization for both renderer backends.
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 pub(super) fn visual_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,
@@ -43,13 +43,13 @@ pub(super) fn visual_paint(
     format.pixel(color.0, color.1, color.2)
 }
 
-#[cfg(all(test, feature = "native-compositor-core"))]
+#[cfg(all(test, feature = "native-face-raster"))]
 #[path = "paint_contrast_tests.rs"]
 mod contrast_tests;
 
 /// Complete Look tokens lower to the existing finite semantic paint roles.
 /// Platform accessibility colors always take precedence over authored tokens.
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 pub fn visual_look_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,

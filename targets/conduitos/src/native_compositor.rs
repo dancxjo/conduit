@@ -221,5 +221,5 @@ fn map_manifestation_error(error: ManifestationError) -> NativeCompositorError {
 }
 
 /// Shared finite Look paint lowering for hosted framebuffer adapters.
-#[cfg(feature = "native-compositor-core")]
+#[cfg(feature = "native-face-raster")]
 pub use paint::visual_look_paint;

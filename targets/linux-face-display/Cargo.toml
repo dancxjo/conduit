@@ -10,7 +10,7 @@ publish = false
 sha2 = "0.10"
 conduit-environment-runtime = { path = "../../bodies/environment/runtime" }
 conduit-environment-history = { path = "../../bodies/environment/history" }
-conduitos = { path = "../conduitos", features = ["native-compositor-core"] }
+conduitos = { path = "../conduitos", features = ["native-face-raster"] }
 conduit-face = { path = "../../semantics/face" }
 conduit-core = { path = "../../architecture/core" }
 libc = "0.2"
