@@ -144,10 +144,7 @@ impl NativeFaceScene {
     fn look_typography(
         look: &conduit_face::AdmittedVisualLook,
     ) -> Result<Typography, FaceSceneError> {
-        let conduit_face::LookVisualFacetOption::Some(visual) = look.selected.visual() else {
-            return Err(FaceSceneError::InvalidExtent);
-        };
-        Typography::with_look_metrics(look.visual.expression.typography, visual.tokens(), 200)
+        Typography::with_visual_look(look.visual.expression.typography, &look.selected, 200)
             .map_err(FaceSceneError::LookTypography)
     }
 

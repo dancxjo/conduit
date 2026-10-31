@@ -4,6 +4,7 @@ use super::{PROFILE_GLYPH_EXTENTS, PROFILES, TextRole, Typography};
 use conduit_face::{LookVisualTokensInfo, VisualTypography};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LookTypographyRefusal {
+    MissingVisualFacet,
     MetricBounds,
     LineBox { role: TextRole },
     GlyphBudget { role: TextRole },
@@ -29,6 +30,19 @@ impl LookTextMetrics {
     }
 }
 impl Typography {
+    /// Consume the selected resource's tokens; admission and identity remain
+    /// the caller's responsibility. No second Look selection or fallback.
+    pub fn with_visual_look(
+        intent: VisualTypography,
+        look: &conduit_face::LookInfo,
+        maximum_user_scale: u16,
+    ) -> Result<Self, LookTypographyRefusal> {
+        let conduit_face::LookVisualFacetOption::Some(visual) = look.visual() else {
+            return Err(LookTypographyRefusal::MissingVisualFacet);
+        };
+        Self::with_look_metrics(intent, visual.tokens(), maximum_user_scale)
+    }
+
     /// Realize the authored body/small sizes and leading. The complete admitted
     /// user scale range is checked before any scene or hit geometry is prepared.
     pub fn with_look_metrics(

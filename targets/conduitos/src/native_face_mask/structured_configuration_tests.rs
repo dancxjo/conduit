@@ -35,17 +35,15 @@ fn explicit_layout_configuration_reaches_consumer_and_preserves_complete_fallbac
         minimum_text_scale_percent: 100,
         maximum_supported_text_scale_percent: 200,
     };
-    let expression = conduit_face::admit_visual_expression(
-        Ok(conduit_face::VisualExpression::phosphor()),
-        constraints,
-    )
-    .unwrap();
-    let baseline = crate::native_face_scene::NativeFaceScene::prepare_visual_fallback(
+    let look =
+        conduit_face::admit_visual_look(&conduit_face::phosphor_look().unwrap(), constraints)
+            .unwrap();
+    let baseline = crate::native_face_scene::NativeFaceScene::prepare_visual_look(
         face.clone(),
         1280,
         800,
         true,
-        &expression,
+        &look,
     )
     .unwrap();
     let expected = observe(baseline);
