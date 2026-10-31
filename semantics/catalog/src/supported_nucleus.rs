@@ -87,6 +87,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             distance_frequency_map_contract(),
             DISTANCE_FREQUENCY_MAP_REVISION,
         ),
+        (audio_clip_frames_contract(), PCM_CLIP_FRAMES_REVISION),
         (audio_time_analysis_contract(), AUDIO_TIME_ANALYSIS_REVISION),
         (
             audio_spectral_analysis_contract(),
