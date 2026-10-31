@@ -157,6 +157,12 @@ pub(crate) struct DurableHostRuntime {
     birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
+    pending_native_source: Option<conduit_kernel::scheduler::HostCallRequest>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    selected_environmental_equipment:
+        Option<crate::durable_host::selected_environmental_sources::AttachedEquipment>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    environmental_worker: Option<environmental_worker::Worker>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
     next_observation_sequence: u64,
@@ -174,7 +180,9 @@ pub(crate) struct DurableHostRuntime {
 impl DurableHostRuntime {
     pub(crate) fn into_owner_host(self) -> StdHost {
         match self.host {
-            HostSource::Bare(host) => *host,
+            HostSource::Bare(mut host) => host
+                .take_for_play()
+                .expect("foreground owner remains available"),
             HostSource::Transitioning => unreachable!("Host transition is synchronous"),
             HostSource::Body { .. } => unreachable!("foreground owner cannot take a service Body"),
         }
@@ -184,11 +192,16 @@ impl DurableHostRuntime {
         Self {
             target_id,
             image_content_digest,
-            host: HostSource::Bare(Box::new(host)),
+            host: HostSource::Bare(Box::new(crate::durable_host::owner::OwnerHost::new(host))),
             birth: None,
             birth_root: None,
             remote_fragment: None,
             pending_worker_text: None,
+            pending_native_source: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_worker: None,
             pool_member: None,
             cancellation_signal: None,
             next_observation_sequence: 0,
@@ -208,6 +221,20 @@ impl DurableHostRuntime {
         equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
     ) -> Self {
         self.selected_speech_equipment = equipment;
+        self
+    }
+
+    pub(crate) fn with_selected_environmental_equipment(
+        mut self,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        equipment: Option<
+            crate::durable_host::selected_environmental_sources::AttachedEquipment,
+        >,
+    ) -> Self {
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        {
+            self.selected_environmental_equipment = equipment;
+        }
         self
     }
 
@@ -462,6 +489,7 @@ impl DurableHostRuntime {
                             &mut self.host,
                             admitted,
                             &mut self.pending_worker_text,
+                            &mut self.pending_native_source,
                             &mut responses,
                             cancelled,
                         )?;
@@ -506,6 +534,7 @@ impl DurableHostRuntime {
                     &mut self.host,
                     admitted,
                     &mut self.pending_worker_text,
+                    &mut self.pending_native_source,
                     &mut responses,
                     cancelled,
                 )?;
@@ -519,6 +548,7 @@ impl DurableHostRuntime {
                     &mut self.host,
                     admitted,
                     &mut self.pending_worker_text,
+                    &mut self.pending_native_source,
                     &mut responses,
                     cancelled,
                 )?;
@@ -575,6 +605,7 @@ impl DurableHostRuntime {
                     &mut self.host,
                     admitted,
                     &mut self.pending_worker_text,
+                    &mut self.pending_native_source,
                     &mut responses,
                     cancelled,
                 )?;
@@ -589,6 +620,7 @@ impl DurableHostRuntime {
                         &mut self.host,
                         admitted,
                         &mut self.pending_worker_text,
+                        &mut self.pending_native_source,
                         &mut responses,
                         cancelled,
                     )?;
@@ -1437,8 +1469,21 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     let token = read_secret(&state_dir.join("control.token"))?;
     let mut polling_play = false;
     loop {
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        runtime.progress_environmental_worker()?;
         terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running()
+        let native_running = {
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            {
+                runtime.environmental_worker_active()
+            }
+            #[cfg(not(all(feature = "installed-environmental-sources", target_os = "linux")))]
+            {
+                false
+            }
+        };
+        let running = native_running
+            || runtime.host.body_is_running()
             || runtime.speech_worker.is_some()
             || runtime.owner_spoken_worker.is_some()
             || terminal_attach::is_attached(&mut runtime);
@@ -1897,6 +1942,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
     if !authenticated {
         return refused("unauthorized");
     }
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    {
+        if let Err(reason) = runtime.progress_environmental_worker() {
+            return refused(&reason);
+        }
+        if runtime.environmental_worker_active() && !matches!(&request, Request::Status { .. }) {
+            return refused("native-source-active");
+        }
+    }
     #[cfg(target_os = "linux")]
     let notebook_read = matches!(
         &request,
@@ -1941,7 +1995,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         return refused("selected-speech-active");
     }
     let truth = runtime.truth();
-    match request {
+    let response = match request {
         Request::Status { protocol, .. } if protocol == PROTOCOL => Response::Status {
             protocol: PROTOCOL,
             target_id: truth.target_id.clone(),
@@ -2517,7 +2571,12 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|()| Response::RemoteReleased { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         _ => refused("protocol"),
+    };
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    if let Err(reason) = runtime.start_pending_environmental_source() {
+        return refused(&reason);
     }
+    response
 }
 
 fn create_join(
@@ -3235,3 +3294,7 @@ mod tests {
         runtime.release_remote().unwrap();
     }
 }
+
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "durable_host_control/environmental_worker.rs"]
+mod environmental_worker;

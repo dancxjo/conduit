@@ -105,6 +105,10 @@ impl CollectorRoot {
         self.slots.push(root);
         Ok(id)
     }
+    /// Locally owned planning grants; copying them establishes no remote membership.
+    pub fn source_authority_grants(&self) -> Vec<AuthorityGrant> {
+        self.slots.iter().map(UsbSourceRoot::grant).collect()
+    }
     pub fn advertisement(&self) -> Result<HostAdvertisement, Refusal> {
         Ok(self
             .installed
@@ -321,3 +325,155 @@ const _: fn() = || {
     send::<conduit_std_host::StdHost>();
     send::<DetachedCollectorEquipment>();
 };
+
+impl DetachedCollectorEquipment {
+    /// Complete an ordinary selected Source request on the admitted Play's EXISTING
+    /// global lease. All affine owners are returned even on normal refusal.
+    /// The caller runs this bounded native IO turn on its existing worker.
+    pub async fn complete_admitted_request(
+        self,
+        host: conduit_std_host::StdHost,
+        mut admitted: conduit_std_host::AdmittedRemoteFragment,
+        request: conduit_kernel::scheduler::HostCallRequest,
+    ) -> (
+        conduit_std_host::StdHost,
+        Self,
+        conduit_std_host::AdmittedRemoteFragment,
+        Result<bool, Refusal>,
+    ) {
+        if host.advertisement() != &self.inventory
+            || self
+                .collector
+                .installed
+                .lock()
+                .expect("collector Host mutex poisoned")
+                .is_some()
+        {
+            return (host, self, admitted, Err(Refusal::Advertisement));
+        }
+        let prepared = (|| {
+            let witness = host
+                .admitted_native_request(&admitted, request)
+                .map_err(|_| Refusal::Authority)?;
+            if witness.work().contract_id.as_str() != HOST_CALL {
+                return Ok(None);
+            }
+            let selected = witness.selected();
+            let gear = selected
+                .fragment
+                .placements
+                .iter()
+                .find(|gear| &gear.placement_id == selected.placement_id)
+                .ok_or(Refusal::Plan)?;
+            let slot = self
+                .collector
+                .slots
+                .iter()
+                .position(|slot| slot.identity.capability == gear.capability_id)
+                .ok_or(Refusal::Possession)?;
+            Ok(Some((
+                slot,
+                selected.fragment.clone(),
+                selected.lowered.clone(),
+                selected.active.clone(),
+                selected.placement_id.clone(),
+                witness.work().input.to_vec(),
+            )))
+        })();
+        let (index, fragment, lowered, active, placement, input) = match prepared {
+            Ok(Some(prepared)) => prepared,
+            Ok(None) => return (host, self, admitted, Ok(false)),
+            Err(reason) => return (host, self, admitted, Err(reason)),
+        };
+        *self
+            .collector
+            .installed
+            .lock()
+            .expect("collector Host mutex poisoned") = Some(host);
+        let mut equipment = self;
+        let result = async {
+            let slot = &mut equipment.collector.slots[index];
+            if slot.failed {
+                return Err(Refusal::Possession);
+            }
+            let (table, handle, claim) = slot.issue_for_active(&fragment, &active)?;
+            let contract = ObservationContract::prepare().map_err(|_| Refusal::Plan)?;
+            let provider = slot.provider.take().ok_or(Refusal::Possession)?;
+            // This equipment retains actual native custody independently; the
+            // opaque witness above verifies the actual admitted lease/selection.
+            let binding = unsafe {
+                EnvironmentalSourceHostCall::bind_selected(
+                    table,
+                    handle,
+                    claim,
+                    provider,
+                    &contract,
+                    SelectedOperationPlan {
+                        fragment: &fragment,
+                        lowered: &lowered,
+                        active: &active,
+                        placement_id: &placement,
+                    },
+                )
+            };
+            let mut owner = match binding {
+                Ok(owner) => owner,
+                Err((_, _, _, provider, _)) => {
+                    slot.provider = Some(provider);
+                    slot.failed = true;
+                    return Err(Refusal::Authority);
+                }
+            };
+            let mut output = [0u8; MAXIMUM_BYTES];
+            let captured = owner
+                .invoke(
+                    request.node,
+                    request.call,
+                    request.request,
+                    &input,
+                    &mut output,
+                )
+                .await
+                .map_err(|_| Refusal::Acquisition);
+            let revoked = owner.revoke().map_err(|_| Refusal::Authority);
+            let mut retained = Some(owner);
+            slot.provider = Some(
+                EnvironmentalSourceHostCall::retire_retained(&mut retained)
+                    .map_err(|_| Refusal::Possession)?,
+            );
+            let length = match captured {
+                Ok(length) => length,
+                Err(reason) => {
+                    slot.failed = true;
+                    return Err(reason);
+                }
+            };
+            revoked?;
+            let value = admitted
+                .runtime_mut()
+                .store_host_value(&output[..length])
+                .map_err(|_| Refusal::Capacity)?;
+            admitted
+                .runtime_mut()
+                .complete_host_call(
+                    request,
+                    conduit_kernel::HostCallOutcome {
+                        disposition: conduit_kernel::HostCallDisposition::Completed,
+                        output: Some(value),
+                        failure: None,
+                    },
+                )
+                .map_err(|_| Refusal::Authority)?;
+            Ok(true)
+        }
+        .await;
+        let host = equipment
+            .collector
+            .installed
+            .lock()
+            .expect("collector Host mutex poisoned")
+            .take()
+            .expect("actual owner retained through native turn");
+        (host, equipment, admitted, result)
+    }
+}

@@ -153,7 +153,15 @@ impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
                 .expect("collector Host mutex poisoned")
                 .as_mut()
                 .ok_or(Refusal::Acquisition)?
-                .install_retained_native_base(base)
+                .install_retained_native_base(
+                    base,
+                    Some(
+                        ObservationContract::prepare()
+                            .map_err(|_| Refusal::Advertisement)?
+                            .kind(false)
+                            .map_err(|_| Refusal::Advertisement)?,
+                    ),
+                )
         }
         .map_err(|_| Refusal::Advertisement)?;
         Ok(root)
@@ -251,3 +259,11 @@ pub use composite::{
     CollectorRoot, CollectorSourceId, DetachRefusal, DetachedCollectorEquipment, ResumeRefusal,
 };
 pub use network::NetworkSourceConfiguration;
+
+/// Install only semantic Source contracts; this supplies no native provider.
+pub fn install_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profiles: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    conduit_environment_runtime::environmental_source::install_catalog(startup, profiles)
+}

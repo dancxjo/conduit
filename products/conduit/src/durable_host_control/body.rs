@@ -50,7 +50,7 @@ pub(super) mod speech;
 pub(super) use control_client::call;
 
 pub(super) enum HostSource {
-    Bare(Box<StdHost>),
+    Bare(Box<crate::durable_host::owner::OwnerHost>),
     /// Occupied only while the same Host moves into a journaled Body owner.
     Transitioning,
     Body {
@@ -342,6 +342,11 @@ impl DurableHostRuntime {
             birth_root,
             remote_fragment,
             pending_worker_text,
+            pending_native_source,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_worker,
             pool_member,
             cancellation_signal,
             next_observation_sequence,
@@ -354,11 +359,11 @@ impl DurableHostRuntime {
             owner_spoken_terminal,
             spoken_template_session,
         } = self;
-        let HostSource::Bare(host) = host else {
+        let HostSource::Bare(mut host) = host else {
             return Err("durable Host already owns a Body session".into());
         };
         let previous_generation = host.advertisement().offer_generation;
-        let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let owner = crate::durable_host::owner::resume_service(host.take_for_play()?, root)?;
         let current = owner.host.advertisement();
         if current.offer_generation != previous_generation {
             crate::durable_host::refresh_offer_generation(
@@ -383,6 +388,11 @@ impl DurableHostRuntime {
             birth_root,
             remote_fragment,
             pending_worker_text,
+            pending_native_source,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_worker,
             pool_member,
             cancellation_signal,
             next_observation_sequence,

@@ -1597,3 +1597,7 @@ mod tests {
         fs::remove_dir_all(joining_state.parent().unwrap()).unwrap();
     }
 }
+
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "durable_host/selected_environmental_sources.rs"]
+pub(crate) mod selected_environmental_sources;

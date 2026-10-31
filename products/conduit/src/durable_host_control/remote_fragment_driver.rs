@@ -5,13 +5,14 @@ pub(super) fn drive_remote_fragment<F>(
     host: &mut StdHost,
     admitted: &mut AdmittedRemoteFragment,
     pending_text: &mut Option<conduit_kernel::scheduler::HostCallRequest>,
+    pending_native: &mut Option<conduit_kernel::scheduler::HostCallRequest>,
     responses: &mut Vec<Vec<u8>>,
     cancelled: F,
 ) -> Result<(), String>
 where
     F: Fn() -> bool + Copy,
 {
-    if pending_text.is_some() {
+    if pending_text.is_some() || pending_native.is_some() {
         return Ok(());
     }
     const MAXIMUM_DRIVE_STEPS: usize = 64;
@@ -33,6 +34,11 @@ where
                 continue;
             }
             let work = admitted.runtime().describe_host_request(request)?;
+            if work.contract_id.as_str()=="environment/read-environmental-source" {
+                host.admitted_native_request(admitted,request)?;
+                *pending_native=Some(request);
+                return Ok(());
+            }
             if work.contract_id.as_str() == conduit_core::PRESENT_HOST_CALL_CONTRACT {
                 admitted.pending_worker_text_result(host.advertisement(), request)?;
                 *pending_text = Some(request);

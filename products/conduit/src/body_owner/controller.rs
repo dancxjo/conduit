@@ -107,7 +107,7 @@ pub(crate) struct OwnerHost {
 }
 
 impl OwnerHost {
-    fn new(host: StdHost) -> Self {
+    pub(crate) fn new(host: StdHost) -> Self {
         Self {
             advertised: host.advertisement().clone(),
             current: Some(host),

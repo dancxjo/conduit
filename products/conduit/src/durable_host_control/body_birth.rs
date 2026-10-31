@@ -128,12 +128,14 @@ impl DurableHostRuntime {
                     .retain(root, primary_source.as_deref().map(str::as_bytes))
                     .map_err(|_| super::CONTROL_OUTCOME_UNKNOWN.to_owned())?;
                 let old = std::mem::replace(&mut self.host, HostSource::Transitioning);
-                let HostSource::Bare(host) = old else {
+                let HostSource::Bare(mut host) = old else {
                     self.host = old;
                     return Err(super::CONTROL_OUTCOME_UNKNOWN.into());
                 };
-                let mut owner =
-                    crate::durable_host::owner::Owner::from_prepared_born(*host, prepared);
+                let mut owner = crate::durable_host::owner::Owner::from_prepared_born(
+                    host.take_for_play()?,
+                    prepared,
+                );
                 let presented = (|| {
                     if let Some(checked) = &checked_source {
                         owner.set_resident_plot_name(checked)?;
