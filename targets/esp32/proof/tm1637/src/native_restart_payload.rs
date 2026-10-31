@@ -445,6 +445,8 @@ fn validate_retained(
 
 #[path = "native_restart_json.rs"]
 pub(crate) mod json;
+#[path = "native_restart_biography_hot_rewrite.rs"]
+pub(crate) mod biography_hot;
 #[derive(Debug)]
 pub enum StreamRefusal<E> {
     Sink(E),
