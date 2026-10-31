@@ -18,6 +18,7 @@ pub enum SourceSeriesRefusal {
     Observation,
     Face,
     Contract,
+    Placement,
 }
 /// Original complete canonical SourceObservation, not a re-encoded DHT record.
 pub struct SourceSeriesRecord<'a> {
@@ -51,6 +52,7 @@ pub struct PreparedSourceSeries {
     pub subject: String,
     pub source: String,
     pub name: String,
+    pub placement: Option<String>,
     pub samples_outside_view: u64,
     pub stale_after_ms: u64,
     pub points: Vec<SourceSeriesPoint>,
@@ -166,4 +168,17 @@ impl SourceSeriesGraph {
     pub fn series(&self) -> &[PreparedSourceSeries] {
         &self.series
     }
+}
+
+/// Current operator-authored placement keyed by stable source, not session/name.
+pub struct SourcePlacement<'a> {
+    pub source: &'a str,
+    pub placement: &'a str,
+}
+pub const SOURCE_PLACEMENT_PROPERTY: &str = "placement";
+pub const MAX_SOURCE_PLACEMENT_BYTES: usize = 96;
+pub fn valid_source_placement(value: &str) -> bool {
+    !value.trim().is_empty()
+        && value.len() <= MAX_SOURCE_PLACEMENT_BYTES
+        && !value.chars().any(char::is_control)
 }

@@ -371,3 +371,127 @@ fn missing_sequences_never_connect_and_fragmentation_refuses_without_bound_infla
         .unwrap();
     assert!(scene.commands().iter().all(|c| c.kind != K::Polyline));
 }
+
+#[test]
+fn optional_placement_moves_without_changing_source_session_or_observations() {
+    let bytes = value(4500, 42);
+    let records = [SourceSeriesRecord {
+        sequence: 4,
+        observation: &bytes,
+    }];
+    let streams = [series(&records)];
+    let c = collection(&streams);
+    let plain = seal(c.contribution(basis()).unwrap());
+    assert_eq!(
+        SourceSeriesGraph::prepare(&plain, "observations")
+            .unwrap()
+            .series()[0]
+            .placement,
+        None
+    );
+    let mut previous_geometry = None;
+    for location in ["north room", "south room"] {
+        let face = seal(
+            c.contribution_with_placements(
+                basis(),
+                &[SourcePlacement {
+                    source: "equipment/blue",
+                    placement: location,
+                }],
+            )
+            .unwrap(),
+        );
+        let graph = SourceSeriesGraph::prepare(&face, "observations").unwrap();
+        let stream = &graph.series()[0];
+        assert_eq!(stream.placement.as_deref(), Some(location));
+        assert_eq!(stream.subject, "series/blue");
+        assert_eq!(stream.source, "equipment/blue");
+        assert_eq!(stream.points[0].sequence, 4);
+        assert_eq!(stream.points[0].observation.observed_at_host_boot_ms, 4500);
+        let scene = graph
+            .native_scene_at_size(Unit::Fahrenheit, 500, 440, None, palette)
+            .unwrap()
+            .encode();
+        if let Some(previous) = &previous_geometry {
+            assert_eq!(&scene, previous);
+        }
+        previous_geometry = Some(scene);
+        assert!(face
+            .properties
+            .iter()
+            .any(|p| matches!(&p.value,V::TypedValue {bytes:actual,..} if actual==&bytes)));
+    }
+}
+#[test]
+fn placement_requires_exact_source_and_bounded_nonempty_utf8_text() {
+    let bytes = value(4500, 42);
+    let records = [SourceSeriesRecord {
+        sequence: 4,
+        observation: &bytes,
+    }];
+    let streams = [series(&records)];
+    let c = collection(&streams);
+    for text in [
+        "".to_string(),
+        " ".to_string(),
+        "a\nb".to_string(),
+        "é".repeat(49),
+    ] {
+        assert_eq!(
+            c.contribution_with_placements(
+                basis(),
+                &[SourcePlacement {
+                    source: "equipment/blue",
+                    placement: &text
+                }]
+            ),
+            Err(SourceSeriesRefusal::Placement)
+        );
+    }
+    assert!(c
+        .contribution_with_placements(
+            basis(),
+            &[SourcePlacement {
+                source: "equipment/blue",
+                placement: &"é".repeat(48)
+            }]
+        )
+        .is_ok());
+    assert_eq!(
+        c.contribution_with_placements(
+            basis(),
+            &[SourcePlacement {
+                source: "equipment/foreign",
+                placement: "north room"
+            }]
+        ),
+        Err(SourceSeriesRefusal::Identity)
+    );
+    let same = SourcePlacement {
+        source: "equipment/blue",
+        placement: "north room",
+    };
+    assert_eq!(
+        c.contribution_with_placements(
+            basis(),
+            &[
+                same,
+                SourcePlacement {
+                    source: "equipment/blue",
+                    placement: "south room"
+                }
+            ]
+        ),
+        Err(SourceSeriesRefusal::Identity)
+    );
+    let mut fragment = c.contribution(basis()).unwrap();
+    fragment.properties.push(conduit_face::FaceProperty {
+        subject: "series/blue".into(),
+        name: "placement".into(),
+        value: V::Count(1),
+    });
+    assert_eq!(
+        SourceSeriesGraph::prepare(&seal(fragment), "observations"),
+        Err(SourceSeriesRefusal::Placement)
+    );
+}

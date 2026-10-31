@@ -51,3 +51,22 @@ This is a hosted preparation/library contract. It does not establish installed
 collector execution, MCU membership, recording commitment, durable custody,
 physical rendering or accepted release. The graph and live integration remain
 separate qualification steps under draft PR #6633 and the existing owners.
+
+## Optional current placement
+
+The additive `contribution_with_placements(basis, &[SourcePlacement { source,
+placement }])` entrance adds ordinary optional `placement` Text properties to
+source-series Collection subjects. Existing `SourceSeries` construction and
+`contribution` remain unchanged. Only sources actually in this collection may
+be annotated; duplicate/foreign source keys, empty/control text and values over
+96 UTF-8 bytes refuse. Absence stays absent.
+
+The owner may project the same property on that source's current quantity Info
+subject for other Masks. The native report presents it once above the fieldgroup,
+between the Body title and Room conditions, with measured wrapping/pagination.
+The Mask reads the Face property; it does not infer a room from a name or address.
+
+Placement is current operator-authored description, not historical acquisition
+evidence. Updating it does not change stable source/session identity, rewrite
+canonical observations or splice histories. Host configuration owns its authored
+value independently of hardware pins and execution/offer identity.

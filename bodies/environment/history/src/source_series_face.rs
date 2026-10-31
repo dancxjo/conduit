@@ -26,6 +26,47 @@ fn value_contract(
         .map_err(|_| SourceSeriesRefusal::Contract)
 }
 impl SourceSeriesCollection<'_> {
+    /// Optional current descriptive metadata. Moving does not rewrite observations
+    /// or change stable source/session identity; this is not acquisition evidence.
+    pub fn contribution_with_placements(
+        &self,
+        basis: FaceContributionBasis,
+        placements: &[SourcePlacement<'_>],
+    ) -> Result<FaceFragment, SourceSeriesRefusal> {
+        if placements.len() > MAX_SOURCE_SERIES {
+            return Err(SourceSeriesRefusal::Extent);
+        }
+        for (index, placement) in placements.iter().enumerate() {
+            if !valid_source_placement(placement.placement) {
+                return Err(SourceSeriesRefusal::Placement);
+            }
+            if placements[..index]
+                .iter()
+                .any(|old| old.source == placement.source)
+                || !self.series.iter().any(|s| s.source == placement.source)
+            {
+                return Err(SourceSeriesRefusal::Identity);
+            }
+        }
+        let mut fragment = self.contribution(basis)?;
+        for placement in placements {
+            let series = self
+                .series
+                .iter()
+                .find(|s| s.source == placement.source)
+                .ok_or(SourceSeriesRefusal::Identity)?;
+            property(
+                &mut fragment.properties,
+                series.subject,
+                SOURCE_PLACEMENT_PROPERTY,
+                V::Text(placement.placement.into()),
+            );
+        }
+        fragment
+            .validate_bounds()
+            .map_err(|_| SourceSeriesRefusal::Face)?;
+        Ok(fragment)
+    }
     /// Retains original canonical observation bytes. The caller owns authority,
     /// sampling/history retention and separately admitted complete Face capacity.
     pub fn contribution(
@@ -251,6 +292,22 @@ impl SourceSeriesGraph {
                 subject: child.identity.clone(),
                 source: source.into(),
                 name: child.name.clone(),
+                placement: {
+                    let mut values = face.properties.iter().filter(|p| {
+                        p.subject == child.identity && p.name == SOURCE_PLACEMENT_PROPERTY
+                    });
+                    let first = values.next();
+                    if values.next().is_some() {
+                        return Err(R::Placement);
+                    }
+                    match first.map(|p| &p.value) {
+                        None => None,
+                        Some(V::Text(value)) if valid_source_placement(value) => {
+                            Some(value.clone())
+                        }
+                        _ => return Err(R::Placement),
+                    }
+                },
                 samples_outside_view: count(face, &child.identity, "samples-outside-view")?,
                 stale_after_ms,
                 points,
