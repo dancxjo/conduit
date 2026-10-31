@@ -253,3 +253,27 @@ fn distinct_source_documents_with_one_checked_plot_retain_distinct_choice_subjec
     apply(&mut owner, "creche.plot.1", Some(("value/bool", &[1]))).unwrap();
     assert!(owner.choices().iter().all(|choice| choice.selected));
 }
+
+#[test]
+fn stable_choice_identity_does_not_replace_inventory_reading_order() {
+    let mut choices = inventory();
+    for (index, choice) in choices.iter_mut().enumerate() {
+        choice.title = format!("Inventory choice {index}");
+    }
+    for choices in [choices.clone(), choices.into_iter().rev().collect()] {
+        let expected: Vec<_> = choices.iter().map(|choice| choice.title.clone()).collect();
+        let face = from_inventory(choices).face(&basis()).unwrap();
+        let reading = conduit_face::plan_face_utterances(&face).unwrap();
+        let observed: Vec<_> = reading
+            .clauses
+            .iter()
+            .filter_map(|clause| {
+                expected
+                    .iter()
+                    .find(|title| clause.text == format!("Plot: {title}."))
+                    .cloned()
+            })
+            .collect();
+        assert_eq!(observed, expected);
+    }
+}

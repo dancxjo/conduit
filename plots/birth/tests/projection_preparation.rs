@@ -152,6 +152,6 @@ fn whole_widget_and_portable_face_keep_canonical_projection_bytes() {
     let actual = format!("{:x}", digest.finalize());
     assert_eq!(
         actual,
-        "cd94b59b73280dd300f88d2a3a2a642ecaa3642c837a20a2ad8fa788720941dc"
+        "e5f0a441638fc2e134136c425794ef3a0b413901f6b8519b2473d3aee7aab2b7"
     );
 }

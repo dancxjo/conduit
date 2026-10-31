@@ -1,5 +1,5 @@
 {
-  "identity": "a14d7564e935d0144b5421adc13e33fa4bb2b4c09fcf96a37e17c9fba830d2b1",
+  "identity": "cfd2c114e61dcfbc4093baed980952390fe578024eca80ca0c205ce0635754cb",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -78,22 +78,22 @@
       "name": "Plots to include"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "identity": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "role": "Plot",
       "name": "Scratch"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
+      "identity": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/d",
       "role": "Info",
       "name": "Scratch selection details"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "identity": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "role": "Plot",
       "name": "Chime"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
+      "identity": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas/d",
       "role": "Info",
       "name": "Chime selection details"
     },
@@ -173,30 +173,44 @@
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "target": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
+      "source": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
+      "target": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/d",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "source": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
+      "target": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "kind": {
         "Semantic": "document/precedes"
       }
     },
     {
       "source": "birth/encounter/prebirth-conformance/initial-plots",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "target": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "kind": "Contains"
     },
     {
-      "source": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
+      "source": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
+      "target": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas/d",
       "kind": "Contains"
+    },
+    {
+      "source": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
+      "target": "birth/encounter/prebirth-conformance/name-system",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
+      "target": "birth/encounter/prebirth-conformance/plot-search",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
     },
     {
       "source": "birth/encounter/prebirth-conformance/article",
@@ -597,56 +611,56 @@
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "name": "checked-plot-id",
       "value": {
         "Identity": "checked/scratch"
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "name": "selected",
       "value": {
         "Flag": true
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "name": "order",
       "value": {
         "Count": 0
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.0"
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "subject": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "name": "checked-plot-id",
       "value": {
         "Identity": "checked/chime"
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "subject": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "name": "selected",
       "value": {
         "Flag": false
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "subject": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "name": "order",
       "value": {
         "Count": 1
       }
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "subject": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "name": "boolean-change-action",
       "value": {
         "Identity": "creche.plot.1"
@@ -793,11 +807,11 @@
       "text": "Current value: (empty)."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/d",
       "text": "Included."
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
+      "subject": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas/d",
       "text": "Not included."
     },
     {
@@ -1146,7 +1160,7 @@
     {
       "identity": "creche.plot.0",
       "intent": "conduit.intent/creche.plot.0@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e",
+      "target": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24",
       "name": "Include Plot",
       "arguments": [
         {
@@ -1165,7 +1179,7 @@
     {
       "identity": "creche.plot.1",
       "intent": "conduit.intent/creche.plot.1@1",
-      "target": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab",
+      "target": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas",
       "name": "Include Plot",
       "arguments": [
         {
@@ -1218,11 +1232,11 @@
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/f079edfa8290f0cf315a8d3adcef58cc8c74dca80c9fe4848487e44b3b84b36e/selection-details",
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/d",
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/initial-plots/2edce3de9e4f5788606db11b5cca5ba721f37631cd4c5833507851116c4a25ab/selection-details",
+      "subject": "Ltzj3p5PV4hgbbEbXMpbpyHzdjHNTFgzUHhREWxKJas/d",
       "level": "SelectedDetail"
     },
     {

@@ -323,7 +323,7 @@ impl Projection {
                         },
                     ]);
                 }
-                let mut previous_option: Option<String> = None;
+                let mut previous_choice = None;
                 for (index, option) in options.iter().enumerate() {
                     // The bounded item identity belongs to the exact Source/check
                     // pair. Labels and visible positions cannot replace it.
@@ -335,10 +335,13 @@ impl Projection {
                                 == option.identity
                         })
                         .ok_or(BirthFaceRefusal::InvalidProjection)?;
-                    let id = format!("{subject}/{}", option.identity);
-                    // Stable identities carry no lexical presentation order.
-                    // Preserve the source's visible order for every reader.
-                    if let Some(previous) = previous_option.replace(id.clone()) {
+                    // The digest already identifies the complete Source/check
+                    // pair; repeating the encounter and collection path in every
+                    // reference needlessly consumes the fixed snapshot grant.
+                    let id = option.identity.clone();
+                    // Identity is not order. Preserve the owner's visible
+                    // inventory order through every generic reading/Mask route.
+                    if let Some(previous) = previous_choice.replace(id.clone()) {
                         self.relationships.push(FaceRelationship {
                             source: previous,
                             target: id.clone(),
@@ -354,7 +357,7 @@ impl Projection {
                     // Independent selection is already primary typed meaning.
                     // Keep its readable fallback explicitly inspectable without
                     // requiring any Mask to infer state from these words.
-                    let selection_details = format!("{id}/selection-details");
+                    let selection_details = format!("{id}/d");
                     self.subjects.push(FaceSubject {
                         identity: selection_details.clone(),
                         role: FaceRole::Info,
@@ -409,6 +412,22 @@ impl Projection {
                             .map_err(|_| BirthFaceRefusal::InvalidProjection)?,
                     };
                     self.action(&id, &option.change_action, vec![argument]);
+                }
+                // Compact item identities no longer share their collection's
+                // lexical prefix. Keep the existing choice-before-secondary-
+                // fields reading order explicit at the Source boundary too.
+                if let Some(last) = previous_choice {
+                    for field in ["name-system", "plot-search"] {
+                        let target = format!("{}/{field}", self.root);
+                        if !self.subjects.iter().any(|subject| subject.identity == target) {
+                            continue;
+                        }
+                        self.relationships.push(FaceRelationship {
+                            source: last.clone(),
+                            target,
+                            kind: FaceRelationshipKind::Semantic(kind_id("document/precedes")),
+                        });
+                    }
                 }
             }
             FaceMechanism::Action(action) => self.action(&self.navigation.clone(), action, vec![]),
