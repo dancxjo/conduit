@@ -83,7 +83,7 @@ for (const width of [1440, 980]) test(`ordinary Morse encounter and checked refu
     await page.getByRole("button",{name:"Inspect",exact:true}).click();
     await expect(page.locator("#flow-root")).toHaveAttribute("aria-busy", "false");
     const output = page.locator(`.faceplate-port[data-port-id="${key.identity}"]`);
-    await output.focus(); await page.keyboard.press("Enter");
+    await output.getByRole("button", { name: `Select ${key.name}`, exact: true }).focus(); await page.keyboard.press("Enter");
     const query = page.waitForResponse(response=>response.url().endsWith("/api/authoring-query") && response.request().method()==="POST");
     await page.getByRole("button",{name:"Start Cord here",exact:true}).click();
     const candidates = (await (await query).json()).candidates;
@@ -93,7 +93,7 @@ for (const width of [1440, 980]) test(`ordinary Morse encounter and checked refu
     await page.getByRole("button",{name:"Inspect",exact:true}).click();
     await expect(page.locator("#flow-root")).toHaveAttribute("aria-busy", "false");
     const input = page.locator(`.faceplate-port[data-port-id="${sink.identity}"]`);
-    await input.focus(); await page.keyboard.press("Enter");
+    await input.getByRole("button", { name: `Select ${sink.name}`, exact: true }).focus(); await page.keyboard.press("Enter");
     await expect(page.locator("#authoring-actions")).toContainText(incompatible.diagnostic);
     const refused = await snapshot(page);
     expect(refused.authoring.source_document_id).toBe(opened.authoring.source_document_id);

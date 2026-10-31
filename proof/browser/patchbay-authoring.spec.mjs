@@ -363,10 +363,12 @@ async function clickInteraction(page, locator) {
 }
 
 async function clickNavigation(page, locator) {
-  if (await locator.evaluate(element => !!element.closest("#maker-views"))
-      && await page.locator("#maker-views").getAttribute("open") === null) {
-    await page.locator("#maker-views > summary").click();
+  const views = page.locator("#maker-views");
+  if (await locator.count() === 0 && await views.isVisible()
+      && await views.getAttribute("open") === null) {
+    await views.locator(":scope > summary").click();
   }
+  await expect(locator).toBeVisible();
   const aspect = await locator.getAttribute("data-aspect");
   const [snapshot] = await Promise.all([
     page.waitForResponse(candidate => candidate.url().endsWith("/api/navigation") && candidate.request().method() === "POST"
