@@ -1,5 +1,6 @@
 [package]
 name = "conduit-environment-host"
+default-run = "conduit-environment-host"
 version = "0.1.0"
 edition = "2021"
 publish = false
@@ -9,9 +10,10 @@ publish = false
 [features]
 default = []
 retained-history-provider = ["conduit-environment-runtime/history-exchange"]
-carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source", "dep:conduit-plot", "dep:conduit-planner"]
+carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source", "dep:conduit-plot", "dep:conduit-planner", "dep:conduit-web", "conduit-std-host/isolated-http-base"]
 
 [dependencies]
+conduit-web = { path = "../../../semantics/web", optional = true, features = ["plot-catalog"] }
 conduit-plot = { path = "../../../architecture/plot", optional = true }
 conduit-planner = { path = "../../../architecture/planner", optional = true }
 conduit-std-host = { path = "../../../targets/std", optional = true }
@@ -33,6 +35,7 @@ sha2 = { version = "0.10", default-features = false }
 libc = "0.2"
 
 [dev-dependencies]
+conduit-host-rp2040 = { path = "../../../targets/rp2040/make" }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-environment-runtime = { path = "../runtime", features = ["history-exchange"] }
 conduit-wire = { path = "../../../architecture/wire" }
@@ -44,3 +47,8 @@ conduit-planner = { path = "../../../architecture/planner" }
 opt-level = 1
 [profile.test.build-override]
 opt-level = 1
+
+[[bin]]
+name = "conduit-environment-http-provider"
+path = "src/bin/conduit-environment-http-provider.rs"
+required-features = ["carrier-source"]

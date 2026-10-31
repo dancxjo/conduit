@@ -22,7 +22,7 @@ use conduit_environment_runtime::environmental_reading::source_observation::{
     SourceContinuity, SourceContinuityRefusal, SourceObservation,
 };
 #[derive(Clone, Copy)]
-enum Encoding {
+pub(crate) enum Encoding {
     Bosch,
     Dht11,
 }
@@ -166,7 +166,7 @@ impl EnvironmentalSourceProvider for DeviceEnvironmentalSource {
         }
     }
 }
-fn encoding(configuration: &CheckedHostConfiguration) -> Result<Encoding, Refusal> {
+pub(crate) fn encoding(configuration: &CheckedHostConfiguration) -> Result<Encoding, Refusal> {
     let mut found = None;
     for device in &configuration.configuration().devices {
         let candidate = match device {
@@ -235,7 +235,7 @@ struct Dht<'a> {
     temperature: Option<Decimal>,
     humidity: Option<Decimal>,
 }
-fn decode(bytes: &[u8], encoding: Encoding) -> Result<SourceOutcome, Refusal> {
+pub(crate) fn decode(bytes: &[u8], encoding: Encoding) -> Result<SourceOutcome, Refusal> {
     let (common, outcome) = match encoding {
         Encoding::Bosch => {
             let value: Bosch = serde_json::from_slice(bytes).map_err(|_| Refusal::Provider)?;

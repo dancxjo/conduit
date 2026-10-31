@@ -19,16 +19,19 @@ use conduit_environment_runtime::environmental_source::{
 };
 use conduit_host_make::CheckedHostConfiguration;
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
-use std::{io::Read, path::Path, time::Duration};
+use std::{cell::RefCell, io::Read, path::Path, rc::Rc, time::Duration};
+pub(super) type SharedHost = Rc<RefCell<Option<conduit_std_host::StdHost>>>;
 pub const CAPABILITY: &str = "linux/environmental-source@1";
 pub const PROFILE: &str = "linux/environmental-source-bounded@1";
 #[derive(Debug, PartialEq, Eq)]
 pub enum Refusal {
     Acquisition,
+    Possession,
     Advertisement,
     WrongBoot,
     Authority,
     Plan,
+    Planning(Box<conduit_planner::PlannerError>),
     Capacity,
 }
 struct Identity {
@@ -48,7 +51,7 @@ struct Identity {
 /// Never reconstructed from a received Plan, member receipt or device report.
 pub struct UsbSourceRoot<P = DeviceEnvironmentalSource> {
     host: HostAdvertisement,
-    installed: Option<conduit_std_host::StdHost>,
+    installed: Option<SharedHost>,
     identity: Identity,
     provider: Option<P>,
     key: [u8; 32],
@@ -62,10 +65,25 @@ impl UsbSourceRoot {
         firmware: [u8; 32],
         budget: Duration,
     ) -> Result<Self, Refusal> {
-        let mut host = installed.advertisement().clone();
+        let host = installed.advertisement().clone();
         let provider =
             DeviceEnvironmentalSource::acquire(path, &host, configuration, firmware, budget)
                 .map_err(|_| Refusal::Acquisition)?;
+        Self::attach(Rc::new(RefCell::new(Some(installed))), provider, "usb")
+    }
+}
+impl<P: EnvironmentalSourceProvider> UsbSourceRoot<P> {
+    pub(super) fn attach(
+        installed: SharedHost,
+        provider: P,
+        realization: &str,
+    ) -> Result<Self, Refusal> {
+        let mut host = installed
+            .borrow()
+            .as_ref()
+            .ok_or(Refusal::Acquisition)?
+            .advertisement()
+            .clone();
         let mut key = [0u8; 32];
         std::fs::File::open("/dev/urandom")
             .and_then(|mut f| f.read_exact(&mut key))
@@ -89,9 +107,9 @@ impl UsbSourceRoot {
                 "generation/environment-source/{nonce}"
             )),
             envelope_id: format!("envelope/environment-source/{nonce}").into(),
-            artifact_id: "native/linux/environment-source-usb@1".into(),
-            implementation_id: "linux/environment-source-usb@1".into(),
-            base_implementation_id: "linux/environment-source-usb-base@1".into(),
+            artifact_id: format!("native/linux/environment-source-{realization}@1").into(),
+            implementation_id: format!("linux/environment-source-{realization}@1").into(),
+            base_implementation_id: format!("linux/environment-source-{realization}-base@1").into(),
         };
         let mut root = Self {
             host: host.clone(),
@@ -102,6 +120,9 @@ impl UsbSourceRoot {
             next_play: 0,
         };
         root.append_to_advertisement(&mut host)?;
+        host.resources.sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        host.capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
         root.host = host;
         Ok(root)
     }
@@ -210,3 +231,8 @@ impl<P> Drop for UsbSourceRoot<P> {
         self.key.fill(0);
     }
 }
+
+mod composite;
+mod network;
+pub use composite::{CollectorRoot, CollectorSourceId};
+pub use network::NetworkSourceConfiguration;
