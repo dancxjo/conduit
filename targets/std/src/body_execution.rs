@@ -33,6 +33,8 @@ pub use fore_custody::{
 
 mod parsec_terminal;
 #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod selected_storage;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
 mod snapshot;
 mod todo_checkpoint;
 pub(crate) use parsec_terminal::ParsecTerminalAttachment;

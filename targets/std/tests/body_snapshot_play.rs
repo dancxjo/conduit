@@ -90,6 +90,15 @@ fn planned(
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let host = StdHost::from_advertisement(advertisement).unwrap();
+    let (host, plan) = planned_on(host, &reference, &grant, write);
+    (host, plan, resource, grant, reference)
+}
+fn planned_on(
+    host: StdHost,
+    reference: &BoundedResourceRef,
+    grant: &AuthorityGrant,
+    write: bool,
+) -> (StdHost, Plan) {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     startup
@@ -164,14 +173,14 @@ fn planned(
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
             connection_byte_capacity: 4096,
-            authority_grants: core::slice::from_ref(&grant),
+            authority_grants: core::slice::from_ref(grant),
             protected_resource_grants: &[],
             line_offers: &[],
         },
         &boundaries,
     )
     .unwrap();
-    (host, plan, resource, grant, reference)
+    (host, plan)
 }
 fn thread(test: fn()) {
     std::thread::Builder::new()
@@ -404,3 +413,7 @@ fn foreign_grant_refuses_before_start() {
         }
     });
 }
+
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+#[path = "body_snapshot_play/selected_storage.rs"]
+mod selected_storage;

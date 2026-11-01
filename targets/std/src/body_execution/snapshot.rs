@@ -36,16 +36,7 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        if selection.body_id != &request.plan.body_id
-            || selection.plan_id != &request.plan.plan_id
-            || selection.authority.host_id != self.advertisement.host_id
-            || selection.authority.boot_id != self.advertisement.boot_id
-            || !self.advertisement.resources.contains(selection.resource)
-        {
-            return Err(
-                "Body snapshot selection differs from admitted Body/Plan/Host/Boot/resource".into(),
-            );
-        }
+        selection.validate(self, &request)?;
         self.run_body_plan_to_with_start_and_clock_storage(
             request,
             output,
@@ -59,6 +50,56 @@ impl StdHost {
             Some(selection),
             None,
             false,
+            started,
+        )
+    }
+}
+
+impl BodySnapshotSelection<'_> {
+    fn validate(&self, host: &StdHost, request: &BodyRunRequest<'_>) -> Result<(), String> {
+        if self.body_id != &request.plan.body_id
+            || self.plan_id != &request.plan.plan_id
+            || self.authority.host_id != host.advertisement.host_id
+            || self.authority.boot_id != host.advertisement.boot_id
+            || !host.advertisement.resources.contains(self.resource)
+        {
+            return Err(
+                "Body snapshot selection differs from admitted Body/Plan/Host/Boot/resource".into(),
+            );
+        }
+        Ok(())
+    }
+}
+impl StdHost {
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_body_plan_with_snapshot_borrowed_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[crate::ExternalForeInput],
+        output_fore: &mut dyn super::BodyBorrowedForeOutputAdapter,
+        selection: BodySnapshotSelection<'_>,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        selection.validate(self, &request)?;
+        let mut adapter = super::borrowed_fore::BorrowedAdapter(output_fore);
+        self.run_body_plan_to_with_start_and_clock_storage(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((inputs, false, &mut adapter)),
+            None,
+            None,
+            None,
+            Some(selection),
+            None,
+            true,
             started,
         )
     }
