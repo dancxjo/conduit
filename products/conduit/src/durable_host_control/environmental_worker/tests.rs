@@ -42,8 +42,23 @@ impl GatedDevice {
         let (tx, entered) = mpsc::channel();
         let (a, r, s, c) = (armed.clone(), release.clone(), stop.clone(), count.clone());
         let worker = std::thread::spawn(move || {
+            let mut listener = Some(listener);
             while !s.load(Ordering::SeqCst) {
-                let (mut stream, _) = match listener.accept() {
+                if f.load(Ordering::SeqCst) == 6 {
+                    // Refuse connects without replacing Source equipment or its
+                    // endpoint. Restore this same device when the test permits.
+                    drop(listener.take());
+                    while f.load(Ordering::SeqCst) == 6 && !s.load(Ordering::SeqCst) {
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
+                    if s.load(Ordering::SeqCst) {
+                        break;
+                    }
+                    let restored = TcpListener::bind(endpoint).unwrap();
+                    restored.set_nonblocking(true).unwrap();
+                    listener = Some(restored);
+                }
+                let (mut stream, _) = match listener.as_ref().unwrap().accept() {
                     Ok(value) => value,
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(Duration::from_millis(2));
@@ -81,6 +96,11 @@ impl GatedDevice {
                     while Instant::now() < deadline && !s.load(Ordering::SeqCst) {
                         std::thread::sleep(Duration::from_millis(2));
                     }
+                    continue;
+                }
+                if mode == 5 {
+                    // EOF is transport IO, unlike malformed HTTP or worker framing.
+                    drop(stream);
                     continue;
                 }
                 let configuration = if mode == 2 {
@@ -679,7 +699,7 @@ fn owned_source_cadence_projects_current_face_then_lull_and_readmission() {
 }
 
 #[test]
-fn owned_source_reports_transport_timeout_without_late_fore_or_reuse() {
+fn owned_source_transport_timeout_is_unavailable_then_recovers() {
     exercise_actor_fault(false, false, false, true, false, 1)
 }
 #[test]
@@ -694,4 +714,13 @@ fn owned_source_reports_semantic_counter_rollback_without_reopening_equipment() 
 #[test]
 fn owned_source_reports_malformed_observation_without_payload_or_reuse() {
     exercise_actor_fault(false, false, false, true, false, 4)
+}
+
+#[test]
+fn owned_source_transport_io_is_unavailable_then_recovers() {
+    exercise_actor_fault(false, false, false, true, false, 5)
+}
+#[test]
+fn owned_source_connection_refused_is_unavailable_then_recovers() {
+    exercise_actor_fault(false, false, false, true, false, 6)
 }
