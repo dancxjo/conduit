@@ -145,9 +145,9 @@ mod matching_tests {
     #[test]
     fn exact_comparison_checks_every_credential_field_and_packed_identity() {
         let credential = MembershipCredential {
-            credential_id: "ab".repeat(32).into(),
-            body_id: "body/one".into(),
-            part_id: "part/one".into(),
+            credential_id: MembershipCredentialId::bound("ab".repeat(32)),
+            body_id: BodyId::bound("body/one".into()),
+            part_id: PartId::bound("part/one".into()),
             host_id: "host/one".into(),
             boot_id: "boot/one".into(),
             issued_at_millis: 7,
@@ -165,9 +165,9 @@ mod matching_tests {
         for field in 0..6 {
             let mut changed = credential.clone();
             match field {
-                0 => changed.credential_id = "cd".repeat(32).into(),
-                1 => changed.body_id = "body/other".into(),
-                2 => changed.part_id = "part/other".into(),
+                0 => changed.credential_id = MembershipCredentialId::bound("cd".repeat(32)),
+                1 => changed.body_id = BodyId::bound("body/other".into()),
+                2 => changed.part_id = PartId::bound("part/other".into()),
                 3 => changed.host_id = "host/other".into(),
                 4 => changed.boot_id = "boot/other".into(),
                 _ => changed.issued_at_millis += 1,
