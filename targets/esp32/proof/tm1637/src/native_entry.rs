@@ -138,6 +138,8 @@ async fn main(spawner: Spawner) {
     {
         #[cfg(feature = "body-image-root")]
         root.install_linked_body().expect("linked body biography");
+        #[cfg(feature = "checkpoint-preparation-check")]
+        root.measure_checkpoint_preparation();
         root.start_preparation_service(spawner)
             .await
             .expect("Root preparation service must start");
@@ -175,11 +177,13 @@ async fn main(spawner: Spawner) {
                     // and history readers run independently; emergency cancellation
                     // remains a separate scoped entrance.
                     #[cfg(feature = "body-persistence")]
+                    root.advance_membership();
+                    #[cfg(feature = "body-persistence")]
                     root.advance_observed_reclaim();
                     #[cfg(feature = "body-persistence")]
                     root.advance_network_export();
                     #[cfg(feature = "body-persistence")]
-                    let network_writing = root.network_write_inflight();
+                    let network_writing = root.network_write_inflight() || root.membership_busy();
                     #[cfg(not(feature = "body-persistence"))]
                     let network_writing = false;
                     if !root.local_renewal_pending() && !network_writing {

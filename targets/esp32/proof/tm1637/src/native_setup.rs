@@ -61,6 +61,9 @@ impl NativeRoot {
         release: bool,
         backing: Option<conduit_network_join_call::PreparedNetworkKernelStorage>,
     ) -> &'static [u8] {
+        if self.membership_busy() {
+            return b"body-membership-busy";
+        }
         #[cfg(not(feature = "flat-network-appliance"))]
         let _ = backing;
         if self.network.retirement.is_some() {
@@ -243,6 +246,9 @@ impl NativeRoot {
     /// on the planner's stack; the same held installation guards still apply.
     #[inline(never)]
     pub fn prepare_setup(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         #[cfg(not(feature = "network-workspace-check"))]
         {
             if self.network.retirement.is_some() {
@@ -266,6 +272,9 @@ impl NativeRoot {
     /// Independent control polling. Current interface/service evidence controls
     /// availability; a receipt from an old successful join is insufficient.
     pub async fn advance_setup_prepared(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         #[cfg(feature = "network-workspace-check")]
         {
             self.check_network_workspace();

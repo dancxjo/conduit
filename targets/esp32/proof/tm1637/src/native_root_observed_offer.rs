@@ -48,6 +48,9 @@ fn submit(request: Request) -> Reply {
 }
 impl NativeRoot {
     pub(crate) fn advance_observed_offer(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         if !http::available() {
             if self.body.as_ref().is_none() || !crate::native_restart::publication_ready() {
                 return;
@@ -241,6 +244,9 @@ impl NativeRoot {
     /// Root polls completions even during local renewal. The sampler's actual
     /// wait provider performs every physical step under its own scoped permit.
     pub(crate) fn advance_observed_reclaim(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         if self.observed_reclaim.is_none() && self.observed_reclaim_cursor < 6 {
             if let Err(reason) = self.resume_observed_reclaim() {
                 esp_println::println!(

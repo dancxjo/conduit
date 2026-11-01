@@ -198,6 +198,8 @@ impl NativeRoot {
     #[cfg(all(feature = "local-appliance", feature = "target-memory-trace"))]
     #[inline(never)]
     pub fn report_local_progress(&self) {
+        #[cfg(all(feature = "body-persistence", target_os = "none"))]
+        esp_println::println!("body-membership: {}", self.membership_status());
         #[derive(serde::Serialize)]
         struct Report {
             event: &'static str,

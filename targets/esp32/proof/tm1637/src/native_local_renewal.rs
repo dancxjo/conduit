@@ -261,6 +261,9 @@ impl NativeRoot {
     /// storage and cold control backing exist. Neither path fabricates completed
     /// work or changes the old scope's sequence; refusals retain actual custody.
     pub async fn advance_local_renewal(&mut self) -> Result<(), &'static str> {
+        if self.membership_busy() {
+            return Ok(());
+        }
         if self.local_renewal.is_none() {
             let reason = if self.local_normal_completion() {
                 RenewalReason::NormalCompleted

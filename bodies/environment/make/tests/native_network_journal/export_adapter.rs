@@ -36,11 +36,15 @@ mod local_renewal {
 struct NativeRoot {
     body: Option<()>,
     pending: bool,
+    membership_busy: bool,
     body_id: conduit_body::BodyId,
     boot: conduit_core::BootId,
     key: ed25519_dalek::SigningKey,
 }
 impl NativeRoot {
+    pub(crate) fn membership_busy(&self) -> bool {
+        self.membership_busy
+    }
     fn local_renewal_pending(&self) -> bool {
         self.pending
     }
@@ -72,6 +76,7 @@ fn exercise_root_export() {
     let mut root = NativeRoot {
         body: Some(()),
         pending: false,
+        membership_busy: false,
         body_id: serde_json::from_str("\"body/network-export-test\"").unwrap(),
         boot: conduit_core::BootId::new("boot/export"),
         key: ed25519_dalek::SigningKey::from_bytes(&[0x51; 32]),
@@ -95,6 +100,15 @@ fn exercise_root_export() {
     root.advance_network_export();
     assert!(journal::inspect().is_ok());
     root.pending = false;
+    let owner = root.body.take();
+    root.membership_busy = true;
+    root.advance_network_export();
+    assert!(root.body.is_none());
+    assert!(journal::inspect().is_ok(), "busy export froze the journal");
+    assert!(matches!(http::dispatch(Request::Offer), Reply::Pending));
+    root.body = owner;
+    root.membership_busy = false;
+    // The original queued request now progresses through the actual exporter.
     for _ in 0..64 {
         root.advance_network_export();
     }

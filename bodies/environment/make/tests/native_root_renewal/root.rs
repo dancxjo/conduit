@@ -260,11 +260,65 @@ fn complete<F: core::future::Future>(executor: &manual_clock::Executor, future: 
     panic!("Root async preparation exceeded bounded CPU polls");
 }
 
+std::thread_local! {
+    static MEMBERSHIP_BUSY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+fn prove_membership_fence(
+    executor: &manual_clock::Executor,
+    root: &mut NativeRoot,
+    effects: &std::rc::Rc<std::cell::Cell<usize>>,
+    advance_running_workers: bool,
+) {
+    assert!(root.local_renewal.is_none());
+    let owner = root.body.take().expect("actual Body before affine handoff");
+    let owner_pointer = &*owner as *const _;
+    let generation = root.offer_generation;
+    let active = root.issuer.native_issued_active().unwrap().clone();
+    let face = root.face_reader.as_ref().unwrap() as *const _;
+    let reads = effects.get();
+    MEMBERSHIP_BUSY.with(|busy| busy.set(true));
+    // Actual production method sees no Root.body, exactly as during membership
+    // custody. Neither capacity recovery nor normal completion may replace it.
+    for _ in 0..8192 {
+        complete(executor, root.advance_local_renewal()).unwrap();
+        assert!(root.body.is_none());
+        assert!(root.local_renewal.is_none());
+        assert!(root.retired_native.is_none());
+        assert_eq!(root.offer_generation, generation);
+        assert_eq!(root.issuer.native_issued_active(), Some(&active));
+        assert_eq!(root.face_reader.as_ref().unwrap() as *const _, face);
+        if advance_running_workers && effects.get() == reads {
+            executor.poll_ready();
+            assert!(executor.advance_next_timer());
+        } else {
+            break;
+        }
+    }
+    if advance_running_workers {
+        assert!(
+            effects.get() > reads,
+            "sampler stopped during affine membership custody"
+        );
+        assert!(root.worker.as_ref().unwrap().status().failure.is_none());
+        assert!(root
+            .local_mask_worker
+            .as_ref()
+            .unwrap()
+            .status()
+            .failure
+            .is_none());
+    }
+    root.body = Some(owner);
+    MEMBERSHIP_BUSY.with(|busy| busy.set(false));
+    assert_eq!(&**root.body.as_ref().unwrap() as *const _, owner_pointer);
+}
 pub(super) fn prove_two_handoffs() {
     use conduit_kernel::ValueStorage;
     let executor = manual_clock::Executor::new();
     let (mut root, media, effects) = bootstrap(&executor);
     complete(&executor, root.start_local_appliance()).unwrap();
+    prove_membership_fence(&executor, &mut root, &effects, true);
+    let mut terminal_membership_fence_proved = false;
     let original_body = root.body.as_ref().unwrap().evidence().body_id.clone();
     let original_boot = root.boot.clone();
     let mut old_lease = root.face_reader.as_ref().unwrap().lease();
@@ -312,6 +366,15 @@ pub(super) fn prove_two_handoffs() {
                 .is_some_and(|s| !s.task_active && s.completed == native_display::MAXIMUM_CHILDREN)
         {
             break;
+        }
+        if !terminal_membership_fence_proved
+            && sampler.is_some_and(|s| !s.task_active && s.completed == [960, 960])
+            && mask
+                .is_some_and(|s| !s.task_active && s.completed == native_display::MAXIMUM_CHILDREN)
+            && root.local_renewal.is_none()
+        {
+            prove_membership_fence(&executor, &mut root, &effects, false);
+            terminal_membership_fence_proved = true;
         }
         let phase = root.local_renewal.as_ref().map(|s| s.phase_name());
         if phase == Some("checkpoint-lull") && !fault_proved {
@@ -425,6 +488,7 @@ pub(super) fn prove_two_handoffs() {
     assert_eq!(last_generation, 3);
     assert_eq!(reclaimed, 2);
     assert!(fault_proved);
+    assert!(terminal_membership_fence_proved);
     assert_eq!(effects.get(), 3 * 960);
     let sampler = root.worker.as_ref().unwrap().status();
     let mask = root.local_mask_worker.as_ref().unwrap().status();
@@ -504,6 +568,9 @@ pub(super) fn prove_fresh_journal_failure_latches() {
 mod display_offers;
 
 impl NativeRoot {
+    pub(crate) fn membership_busy(&self) -> bool {
+        MEMBERSHIP_BUSY.with(|busy| busy.get())
+    }
     fn control_status(&self) -> &'static str {
         "cpu-network-uninstalled"
     }

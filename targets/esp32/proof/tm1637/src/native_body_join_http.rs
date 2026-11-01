@@ -10,6 +10,10 @@ struct Pending {
     ticket: u32,
     digest: [u8; 32],
     bytes: Vec<u8>,
+    // Strict submission decoding fixes this scalar; deferred ticks need no
+    // repeated allocation/decoding of the accepted proof to select the gate.
+    membership: bool,
+    response: Option<Vec<u8>>,
 }
 struct Completed {
     ticket: u32,
@@ -60,7 +64,10 @@ pub(crate) enum ResultReply {
 }
 pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
     // Strict scalar/empty-array decoder only; no capability metadata visitors.
-    crate::native_body_join::decode_command(bytes)?;
+    let membership = matches!(
+        crate::native_body_join::decode_command(bytes)?,
+        crate::native_body_join::Command::Membership(_)
+    );
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     let mut owned = Vec::new();
     owned
@@ -100,6 +107,8 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
             ticket,
             digest,
             bytes: owned,
+            membership,
+            response: None,
         });
         Ok(ticket)
     })
@@ -117,6 +126,9 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
                 bytes.extend_from_slice(&done.bytes);
                 return ResultReply::Complete(bytes);
             }
+        }
+        if let Some((refused, reason)) = state.refused.filter(|(refused, _)| *refused == ticket) {
+            return ResultReply::Refused(refused, reason);
         }
         if state
             .pending
@@ -141,11 +153,65 @@ fn take_prepared_pending(
     state: &mut State,
     prepare_response: impl FnOnce() -> Result<Vec<u8>, &'static str>,
 ) -> Option<(Pending, Vec<u8>)> {
-    state.pending.as_ref()?;
-    let bytes = prepare_response().ok()?;
+    let pending = state.pending.as_mut()?;
+    let bytes = match pending.response.take() {
+        Some(bytes) => bytes,
+        None => prepare_response().ok()?,
+    };
     let pending = state.pending.take()?;
     state.inflight = Some((pending.ticket, pending.digest));
     Some((pending, bytes))
+}
+/// Accepted ticket, original request, and pre-admitted response backing stay together.
+pub(crate) struct Accepted {
+    pending: Pending,
+    response: Vec<u8>,
+}
+pub(crate) fn retained_failure(accepted: &Accepted, reason: &'static str) {
+    STATE.lock(|slot| slot.borrow_mut().refused = Some((accepted.pending.ticket, reason)));
+}
+pub(crate) fn complete_accepted(
+    accepted: Accepted,
+    result: Result<(Vec<u8>, Option<u64>), &'static str>,
+) {
+    STATE.lock(|slot| {
+        let mut state = slot.borrow_mut();
+        state.inflight = None;
+        match result {
+            Ok((bytes, deadline)) => {
+                state.completed = Some(Completed {
+                    ticket: accepted.pending.ticket,
+                    digest: accepted.pending.digest,
+                    bytes,
+                    deadline,
+                })
+            }
+            Err(reason) => state.refused = Some((accepted.pending.ticket, reason)),
+        }
+    });
+}
+pub(crate) fn complete_membership(
+    mut accepted: Accepted,
+    receipt: Result<conduit_body::PortableMembershipAdmissionReceipt, &'static str>,
+) {
+    let result = receipt.and_then(|receipt| {
+        let length = serde_json_core::to_slice(&receipt, &mut accepted.response)
+            .map_err(|_| "body-join-response-capacity")?;
+        accepted.response.truncate(length);
+        Ok((
+            cache::compact(core::mem::take(&mut accepted.response)),
+            None,
+        ))
+    });
+    complete_accepted(accepted, result);
+}
+fn restore_accepted(mut accepted: Accepted) {
+    accepted.pending.response = Some(accepted.response);
+    STATE.lock(|slot| {
+        let mut state = slot.borrow_mut();
+        state.inflight = None;
+        state.pending = Some(accepted.pending);
+    });
 }
 fn response_backing() -> Result<Vec<u8>, &'static str> {
     let mut bytes = Vec::new();
@@ -162,6 +228,9 @@ impl crate::native_root::NativeRoot {
     /// Call from Root's ordinary50ms service tick, independently of both local
     /// workers. Canonical admission and checkpoint complete before receipt release.
     pub(crate) fn advance_join(&mut self, now_ms: u64) {
+        if self.membership_busy() {
+            return;
+        }
         if !conduit_environment_http::body_join::available() {
             if self.body_join_scope().is_err() {
                 return;
@@ -175,11 +244,41 @@ impl crate::native_root::NativeRoot {
             if !state.enabled {
                 return None;
             }
+            #[cfg(all(
+                feature = "local-appliance",
+                feature = "body-persistence",
+                target_os = "none"
+            ))]
+            if state
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.membership)
+                && !self.membership_ready()
+            {
+                return None;
+            }
             take_prepared_pending(&mut state, response_backing)
         });
         let Some((pending, mut bytes)) = pending else {
             return;
         };
+        #[cfg(all(
+            feature = "local-appliance",
+            feature = "body-persistence",
+            target_os = "none"
+        ))]
+        if let Ok(crate::native_body_join::Command::Membership(request)) =
+            crate::native_body_join::decode_command(&pending.bytes)
+        {
+            let accepted = Accepted {
+                pending,
+                response: bytes,
+            };
+            if let Err(accepted) = self.start_membership(accepted, request) {
+                restore_accepted(accepted);
+            }
+            return;
+        }
         let ticket = pending.ticket;
         let digest = pending.digest;
         let result = (|| {

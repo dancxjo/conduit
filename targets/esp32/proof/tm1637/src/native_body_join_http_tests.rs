@@ -31,6 +31,8 @@ fn retained_custody_remains_accessible_while_publication_is_unavailable() {
             ticket: 41,
             digest,
             bytes: original.clone(),
+            membership: true,
+            response: None,
         });
     });
     STATE.lock(|slot| {
@@ -45,6 +47,29 @@ fn retained_custody_remains_accessible_while_publication_is_unavailable() {
         assert!(state.inflight.is_none());
         assert!(state.refused.is_none());
     });
+    // A reservation failure restores both original request and the already
+    // admitted response allocation; retry performs no replacement allocation.
+    let (pending, response) =
+        STATE.lock(|slot| take_prepared_pending(&mut slot.borrow_mut(), response_backing).unwrap());
+    let request_pointer = pending.bytes.as_ptr();
+    let response_pointer = response.as_ptr();
+    restore_accepted(Accepted { pending, response });
+    let (pending, response) = STATE.lock(|slot| {
+        take_prepared_pending(&mut slot.borrow_mut(), || panic!("response reallocated")).unwrap()
+    });
+    assert_eq!(pending.bytes.as_ptr(), request_pointer);
+    assert_eq!(response.as_ptr(), response_pointer);
+    let accepted = Accepted { pending, response };
+    retained_failure(&accepted, "checkpoint-reconciliation-required");
+    assert!(matches!(
+        result(41),
+        ResultReply::Refused(41, "checkpoint-reconciliation-required")
+    ));
+    // The same retry remains correlated, while another proof cannot enter.
+    assert_eq!(submit(&original), Ok(41));
+    assert_eq!(submit(&other), Err("body-join-busy"));
+    STATE.lock(|slot| slot.borrow_mut().refused = None);
+    restore_accepted(accepted);
     assert_eq!(submit(&original), Ok(41));
     assert!(matches!(result(41), ResultReply::Pending(41)));
     assert_eq!(submit(&other), Err("body-join-busy"));
@@ -85,6 +110,8 @@ fn retained_custody_remains_accessible_while_publication_is_unavailable() {
             ticket: 42,
             digest: Sha256::digest(&other).into(),
             bytes: other.clone(),
+            membership: true,
+            response: None,
         });
     });
     assert_eq!(submit(&original), Ok(41));

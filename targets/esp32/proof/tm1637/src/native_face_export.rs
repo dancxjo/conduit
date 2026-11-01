@@ -60,6 +60,9 @@ fn string<T: serde::Serialize>(out: &mut Vec<u8>, value: &T) -> Result<(), &'sta
 impl super::NativeRoot {
     #[inline(never)]
     pub(crate) fn advance_face_export(&mut self, now: u64) {
+        if self.membership_busy() {
+            return;
+        }
         // Retirement cannot depend on the reader returning or on admission
         // remaining available. Release expired response storage every Root turn.
         STATE.lock(|state| state.borrow_mut().expire(now));

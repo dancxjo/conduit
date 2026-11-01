@@ -68,6 +68,9 @@ mod native_body_join_uart {
 mod native_root {
     pub struct NativeRoot;
     impl NativeRoot {
+        pub fn membership_busy(&self) -> bool {
+            false
+        }
         pub fn body_join_scope(&self) -> Result<(), &'static str> {
             Ok(())
         }

@@ -3,6 +3,9 @@ use super::NativeRoot;
 impl NativeRoot {
     #[cfg(feature = "body-image-root")]
     pub fn install_linked_body(&mut self) -> Result<(), &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         if self.body.is_some() {
             return Err("body-image-already-installed");
         }
@@ -18,6 +21,9 @@ impl NativeRoot {
     }
     #[cfg(all(feature = "body-image-root", feature = "body-persistence"))]
     pub fn checkpoint_body(&mut self) -> Result<(), &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         let key = self.admission.verifying_key();
         let body = self.body.as_mut().ok_or("restart-body-not-installed")?;
         crate::native_restart::checkpoint(body, &key)?;
@@ -70,6 +76,9 @@ impl NativeRoot {
         now_millis: u64,
         expires_at_millis: u64,
     ) -> Result<crate::native_body_join::PrivateBodyInvitation, &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         let prepared = conduit_body::SpawnInvitationSecret::from_csprng_bytes(secret);
         secret.fill(0);
         let secret = prepared.map_err(|_| "body-join-entropy")?;
@@ -106,6 +115,9 @@ impl NativeRoot {
         request: &conduit_body::PortableSpawnAdmissionRequest,
         now_millis: u64,
     ) -> Result<crate::native_joined_host_wire::JoinedHostReceipt, &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         let (host, boot, _) = self.offer_scope();
         let (host, boot) = (host.clone(), boot.clone());
         let key = self.admission.verifying_key();
@@ -121,6 +133,9 @@ impl NativeRoot {
         request: &conduit_body::PortableMembershipAdmissionRequest,
         now_millis: u64,
     ) -> Result<conduit_body::PortableMembershipAdmissionReceipt, &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         let (host, boot, _) = self.offer_scope();
         let (host, boot) = (host.clone(), boot.clone());
         let key = self.admission.verifying_key();
@@ -158,6 +173,9 @@ impl NativeRoot {
         nonce: [u8; 32],
         now: u64,
     ) -> Result<crate::native_body_join::returning::Challenge, &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         let (host, boot, _) = self.offer_scope();
         let (host, boot) = (host.clone(), boot.clone());
         let key = self.admission.verifying_key();
@@ -174,6 +192,9 @@ impl NativeRoot {
         request: &crate::native_body_join::return_wire::Complete,
         now: u64,
     ) -> Result<crate::native_body_join::recovery::Receipt, &'static str> {
+        if self.membership_busy() {
+            return Err("body-membership-busy");
+        }
         let (host, boot, _) = self.offer_scope();
         let (host, boot) = (host.clone(), boot.clone());
         let key = self.admission.verifying_key();
@@ -186,7 +207,7 @@ impl NativeRoot {
     pub fn body_installed(&self) -> bool {
         #[cfg(feature = "body-image-root")]
         {
-            self.body.is_some()
+            self.body.is_some() || self.membership_busy()
         }
         #[cfg(not(feature = "body-image-root"))]
         {

@@ -92,6 +92,9 @@ impl NativeRoot {
     /// Run even while other preparation is deferred: expiration must always
     /// restore the actual frozen owner. Each productive turn reads at most512B.
     pub(crate) fn advance_network_export(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         let now = embassy_time::Instant::now().as_millis();
         SLOT.lock(|cell| expire(&mut cell.borrow_mut(), now));
         if !http::available() {
