@@ -367,5 +367,5 @@ pub(crate) use browser_completion::BrowserAdmissionCompletion;
     target_os = "linux"
 ))]
 pub(crate) use controller::{
-    source_recording_control_fixture, source_recording_control_read_grant,
+    source_recording_control_fixture, source_recording_control_multi_fixture, source_recording_control_read_grant,
 };

@@ -27,6 +27,10 @@ pub(crate) enum RecordingOperation {
         authority: conduit_core::AuthorityGrant,
     },
     RecoverCatalog {},
+    NextChunk {
+        expected_index: u8,
+        expected_canonical_sha256: [u8; 32],
+    },
     ReadRecoveredCatalog {
         #[serde(deserialize_with = "deserialize_authority")]
         authority: conduit_core::AuthorityGrant,
@@ -86,7 +90,7 @@ impl DurableHostRuntime {
     pub(super) fn start_owned_recording(
         &mut self,
         request: RecordingRequest,
-    ) -> Result<(), String> {
+    ) -> Result<super::Response, String> {
         if self.environmental_worker_active() {
             return Err("native-source-active".into());
         }
@@ -128,10 +132,32 @@ impl DurableHostRuntime {
         {
             return Err("recording chunk index exceeds the finite catalog profile".into());
         }
+        if let RecordingOperation::NextChunk {
+            expected_index,
+            expected_canonical_sha256,
+        } = &request.operation
+        {
+            if *expected_index >= 16 {
+                return Err("recording chunk index exceeds the finite stage profile".into());
+            }
+            let metadata = owner.prepare_next_source_recording_chunk(
+                root,
+                *expected_index,
+                *expected_canonical_sha256,
+                request.preparation_limit_bytes,
+            )?;
+            return Ok(super::Response::BodyRecordingChunkPrepared {
+                protocol: super::PROTOCOL,
+                metadata,
+            });
+        }
         let previous_generation = ad.offer_generation;
         // Never take selected_environmental_equipment: the single ordinary
         // General worker owns only this operation's original Host custody.
         let result = match request.operation {
+            RecordingOperation::NextChunk { .. } => {
+                return Err("recording preparation was not handled".into())
+            }
             RecordingOperation::Publish { authority } => owner.start_service_source_publication(
                 root,
                 request.maximum_millis,
@@ -199,7 +225,13 @@ impl DurableHostRuntime {
                 });
             }
         }
-        preparation_error.map_or(Ok(()), Err)
+        preparation_error.map_or(
+            Ok(super::Response::BodyRunRequested {
+                protocol: super::PROTOCOL,
+                maximum_millis: request.maximum_millis,
+            }),
+            Err,
+        )
     }
     #[cfg(not(all(
         feature = "installed-environmental-sources",
@@ -209,13 +241,19 @@ impl DurableHostRuntime {
     pub(super) fn start_owned_recording(
         &mut self,
         _request: RecordingRequest,
-    ) -> Result<(), String> {
+    ) -> Result<super::Response, String> {
         Err("installed recording requires installed-environmental-sources and installed-body-storage on Linux".into())
     }
 }
 #[cfg(unix)]
 pub(crate) fn recording(state_dir: &Path, request: RecordingRequest) -> Result<(), String> {
     let expected_millis = request.maximum_millis;
+    let expected_chunk = match &request.operation {
+        RecordingOperation::NextChunk { expected_index, .. } => {
+            Some(u64::from(*expected_index) + 1)
+        }
+        _ => None,
+    };
     match super::body::call(
         state_dir,
         super::Request::BodyRecording {
@@ -227,10 +265,25 @@ pub(crate) fn recording(state_dir: &Path, request: RecordingRequest) -> Result<(
         super::Response::BodyRunRequested {
             protocol: super::PROTOCOL,
             maximum_millis,
-        } if maximum_millis == expected_millis => {
+        } if expected_chunk.is_none() && maximum_millis == expected_millis => {
             println!(
                 "{}",
                 serde_json::json!({"schema":"conduit.body/service-run-requested@1","maximum_millis":maximum_millis,"play_state":"preparing"})
+            );
+            Ok(())
+        }
+        super::Response::BodyRecordingChunkPrepared {
+            protocol: super::PROTOCOL,
+            metadata,
+        } if metadata
+            .get("chunk_index")
+            .and_then(serde_json::Value::as_u64)
+            == expected_chunk
+            && expected_chunk.is_some() =>
+        {
+            println!(
+                "{}",
+                serde_json::json!({"schema":"conduit.body/recording-chunk-prepared@1", "execution_started":false,"chunk":metadata})
             );
             Ok(())
         }

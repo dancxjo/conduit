@@ -1390,6 +1390,10 @@ enum Response {
         show: Box<MaskShow>,
         advertisement: HostAdvertisement,
     },
+    BodyRecordingChunkPrepared {
+        protocol: u16,
+        metadata: serde_json::Value,
+    },
     BodyRunRequested {
         protocol: u16,
         maximum_millis: u64,
@@ -2519,8 +2523,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyRecording { protocol, request, .. } if protocol == PROTOCOL => {
-            let maximum_millis=request.maximum_millis;
-            runtime.start_owned_recording(*request).map(|()|Response::BodyRunRequested {protocol:PROTOCOL,maximum_millis})
+            runtime.start_owned_recording(*request)
                 .unwrap_or_else(|code|refused(&code))
         },
         Request::BodyStart {

@@ -36,6 +36,13 @@ enum Operation {
         authority_file: PathBuf,
     },
     RecoverCatalog,
+    /// Prepare the next chunk without executing a Play or retiring observations.
+    NextChunk {
+        #[arg(long,value_parser=clap::value_parser!(u8).range(0..16))]
+        expected_index: u8,
+        #[arg(long,value_parser=parse_sha256)]
+        expected_canonical_sha256: [u8; 32],
+    },
     ReadRecoveredCatalog {
         #[arg(long)]
         authority_file: PathBuf,
@@ -59,6 +66,13 @@ pub(crate) fn run(args: BodyRecordingArgs) -> Result<(), String> {
             authority: read_authority(&authority_file)?,
         },
         Operation::RecoverCatalog => RecordingOperation::RecoverCatalog {},
+        Operation::NextChunk {
+            expected_index,
+            expected_canonical_sha256,
+        } => RecordingOperation::NextChunk {
+            expected_index,
+            expected_canonical_sha256,
+        },
         Operation::ReadRecoveredCatalog { authority_file } => {
             RecordingOperation::ReadRecoveredCatalog {
                 authority: read_authority(&authority_file)?,
@@ -82,6 +96,17 @@ pub(crate) fn run(args: BodyRecordingArgs) -> Result<(), String> {
             expected_boot_id: args.expected_boot_id,
         },
     )
+}
+fn parse_sha256(text: &str) -> Result<[u8; 32], String> {
+    if text.len() != 64 || !text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err("expected canonical SHA256 must contain exactly 64 hexadecimal digits".into());
+    }
+    let mut digest = [0; 32];
+    for (index, byte) in digest.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16)
+            .map_err(|_| "invalid canonical SHA256".to_string())?;
+    }
+    Ok(digest)
 }
 fn read_authority(path: &Path) -> Result<conduit_core::AuthorityGrant, String> {
     const LIMIT: u64 = 16 * 1024;
@@ -133,6 +158,55 @@ mod tests {
             "/tmp/selected.json",
             "--index",
             "16"
+        ])
+        .is_err());
+    }
+    #[test]
+    fn next_chunk_requires_exact_compare_fields_and_no_authority_file() {
+        let digest = "01".repeat(32);
+        assert_eq!(parse_sha256(&digest).unwrap(), [1; 32]);
+        for invalid in ["0".repeat(63), "x".repeat(64), "0".repeat(65)] {
+            assert!(parse_sha256(&invalid).is_err());
+        }
+        let base = [
+            "conduit",
+            "body",
+            "recording",
+            "--state-dir",
+            "/tmp/fixture",
+            "--expected-body-id",
+            "body/test",
+            "--expected-boot-id",
+            "boot/test",
+            "--preparation-limit-bytes",
+            "8192",
+            "next-chunk",
+        ];
+        let parse = |tail: &[&str]| {
+            crate::cli::Cli::try_parse_from(base.iter().copied().chain(tail.iter().copied()))
+        };
+        assert!(parse(&[
+            "--expected-index",
+            "0",
+            "--expected-canonical-sha256",
+            &digest
+        ])
+        .is_ok());
+        assert!(parse(&[
+            "--expected-index",
+            "16",
+            "--expected-canonical-sha256",
+            &digest
+        ])
+        .is_err());
+        assert!(parse(&["--expected-index", "0"]).is_err());
+        assert!(parse(&[
+            "--expected-index",
+            "0",
+            "--expected-canonical-sha256",
+            &digest,
+            "--authority-file",
+            "/tmp/forbidden"
         ])
         .is_err());
     }

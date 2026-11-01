@@ -43,6 +43,13 @@ mod recording_run;
     feature = "installed-body-storage",
     target_os = "linux"
 ))]
+#[path = "continuing/recording_status.rs"]
+mod recording_status;
+#[cfg(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
 #[path = "continuing/recovered_read_run.rs"]
 pub(super) mod recovered_read_run;
 #[cfg(all(

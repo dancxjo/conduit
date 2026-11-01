@@ -57,7 +57,8 @@ mod owned {
     use super::super::super::body::HostSource;
     use super::*;
     use crate::durable_host::owner::{
-        source_recording_control_fixture, source_recording_control_read_grant,
+        source_recording_control_fixture, source_recording_control_multi_fixture,
+        source_recording_control_read_grant,
     };
     fn make_request(
         runtime: &DurableHostRuntime,
@@ -111,6 +112,104 @@ mod owned {
         assert_eq!(
             marker["offer_generation"],
             runtime.truth().advertisement.offer_generation.0
+        );
+    }
+    #[test]
+    fn authenticated_next_chunk_prepares_once_without_play_or_retirement() {
+        let (root, _disk, mut owner, publish) = source_recording_control_multi_fixture();
+        let host = owner.host.take_for_play().unwrap();
+        let mut runtime =
+            DurableHostRuntime::new("std/x86_64/computer".into(), "fixture-image".into(), host);
+        let HostSource::Bare(host) =
+            std::mem::replace(&mut runtime.host, HostSource::Transitioning)
+        else {
+            panic!("original Host absent")
+        };
+        owner.host.restore_after_play(host).unwrap();
+        let stage = owner.truth()["source_recording_stage"].clone();
+        let text = stage["canonical_sha256"].as_str().unwrap();
+        let digest =
+            std::array::from_fn(|i| u8::from_str_radix(&text[i * 2..i * 2 + 2], 16).unwrap());
+        assert_eq!(stage["chunk_index"], 0);
+        assert!(stage["records"].as_u64().unwrap() < 16);
+        runtime.host = HostSource::Body {
+            owner: Box::new(owner),
+            root: root.clone(),
+            running: None,
+        };
+        let ad = runtime.truth().advertisement;
+        std::fs::write(root.join("runtime.json"), serde_json::to_vec(&serde_json::json!({"schema":"conduit.install/durable-host-runtime@1","host_id":ad.host_id,"boot_id":ad.boot_id,"offer_generation":ad.offer_generation.0,"process_id":std::process::id(),"release_bundle_sha256":"sha256:fixture"})).unwrap()).unwrap();
+        let next = RecordingOperation::NextChunk {
+            expected_index: 0,
+            expected_canonical_sha256: digest,
+        };
+        let req = make_request(&runtime, next.clone());
+        assert!(matches!(
+            invoke(&mut runtime, req),
+            Response::Refused { .. }
+        ));
+        for operation in [
+            RecordingOperation::Publish { authority: publish },
+            RecordingOperation::Readback {
+                authority: {
+                    let HostSource::Body { owner, .. } = &mut runtime.host else {
+                        panic!()
+                    };
+                    source_recording_control_read_grant(owner)
+                },
+            },
+        ] {
+            let req = make_request(&runtime, operation);
+            assert!(matches!(
+                invoke(&mut runtime, req),
+                Response::BodyRunRequested { .. }
+            ));
+            finish(&mut runtime);
+        }
+        let before = runtime.truth().advertisement;
+        let receipt = {
+            let HostSource::Body { owner, .. } = &runtime.host else {
+                panic!()
+            };
+            owner.truth()["last_execution"].clone()
+        };
+        let req = make_request(&runtime, next.clone());
+        let Response::BodyRecordingChunkPrepared {
+            protocol: PROTOCOL,
+            metadata,
+        } = invoke(&mut runtime, req)
+        else {
+            panic!("next chunk did not return preparation evidence")
+        };
+        assert_eq!(metadata["chunk_index"], 1);
+        let req = make_request(&runtime, next);
+        assert!(
+            matches!(invoke(&mut runtime,req),Response::BodyRecordingChunkPrepared{metadata:again,..} if again==metadata)
+        );
+        let req = make_request(
+            &runtime,
+            RecordingOperation::NextChunk {
+                expected_index: 0,
+                expected_canonical_sha256: [0; 32],
+            },
+        );
+        assert!(matches!(
+            invoke(&mut runtime, req),
+            Response::Refused { .. }
+        ));
+        assert_eq!(runtime.truth().advertisement, before);
+        let HostSource::Body { owner, running, .. } = &runtime.host else {
+            panic!()
+        };
+        assert!(
+            running.is_none(),
+            "preparation cannot install a Play worker"
+        );
+        let truth = owner.truth();
+        assert_eq!(truth["source_recording_stage"]["chunk_index"], 1);
+        assert_eq!(
+            truth["last_execution"], receipt,
+            "preparation cannot rewrite a prior Play receipt"
         );
     }
     #[test]

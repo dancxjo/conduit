@@ -470,7 +470,10 @@ impl Owner {
         Ok(())
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
-        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending})
+        let truth = serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending});
+        #[cfg(all(feature = "installed-environmental-sources", feature = "installed-body-storage", target_os = "linux"))]
+        let truth = self.with_recording_stage_truth(truth);
+        truth
     }
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even
@@ -898,5 +901,6 @@ mod tests;
 ))]
 pub(crate) use continuing::source_recording_stage::publication::tests::{
     fixture as source_recording_control_fixture,
+    fixture_sixteen as source_recording_control_multi_fixture,
     independent_read_grant as source_recording_control_read_grant,
 };
