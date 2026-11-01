@@ -138,7 +138,7 @@ fn node(action: &str, input: &Path, source: &Path, destination: &Path) -> Result
 fn checked_browser_preparation(
     value: &Value,
     expected_body: &str,
-) -> Result<(PortableInvitation, conduit_body::BodyRootAuthority)> {
+) -> Result<(PortableInvitation, conduit_body::BodyRootAuthority, Value)> {
     if value["schema"] != "conduit.body/browser-invitation-window@1"
         || value["authorization"]["body_id"] != expected_body
         || value["remote_execution"] != false
@@ -153,7 +153,21 @@ fn checked_browser_preparation(
     {
         return Err(BrowserFabricationRefusal::BodyAuthorityMismatch.into());
     }
-    Ok((invitation, root))
+    let producer_host = value["authorization"]["owner_host_id"]
+        .as_str()
+        .ok_or(BrowserFabricationRefusal::BodyAuthorityMismatch)?;
+    let producer_boot = value["authorization"]["owner_boot_id"]
+        .as_str()
+        .filter(|s| !s.is_empty() && s.len() <= 256)
+        .ok_or(BrowserFabricationRefusal::BodyAuthorityMismatch)?;
+    if producer_host != root.owner_host_id.as_str() {
+        return Err(BrowserFabricationRefusal::BodyAuthorityMismatch.into());
+    }
+    Ok((
+        invitation,
+        root,
+        json!({"host_id":producer_host,"boot_id":producer_boot}),
+    ))
 }
 
 /// Build inert reviewed bytes before minting the short-lived invitation.
@@ -200,7 +214,7 @@ pub(super) fn fabricate(
     // The same serialized owner operation issues the claim AND awaits that
     // exact claim. Never issue a second unrelated invitation for the Spore.
     let preparation = product_json(state, "browser-window")?;
-    let (mut invitation, root_authority) =
+    let (mut invitation, root_authority, root_producer) =
         checked_browser_preparation(&preparation, &body.description().body.id)?;
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
@@ -251,7 +265,7 @@ pub(super) fn fabricate(
         &manifest_path,
         serde_json::to_vec_pretty(&bound_spore.manifest)?,
     )?;
-    let prepared = json!({"spore_manifest":bound_spore.manifest,"spore_id":bound_spore.manifest.spore_id,"body_id":bound_spore.manifest.body_id,"image_content_digest":digest,"invitation_id":invitation.claim.invitation_id,"invitation_nonce":invitation.claim.nonce,"invitation_secret":invitation.secret,"invitation_expires_at_millis":invitation.claim.expires_at_millis,"rendezvous":invitation.rendezvous,"root_authority":root_authority});
+    let prepared = json!({"spore_manifest":bound_spore.manifest,"spore_id":bound_spore.manifest.spore_id,"body_id":bound_spore.manifest.body_id,"image_content_digest":digest,"invitation_id":invitation.claim.invitation_id,"invitation_nonce":invitation.claim.nonce,"invitation_secret":invitation.secret,"invitation_expires_at_millis":invitation.claim.expires_at_millis,"rendezvous":invitation.rendezvous,"root_authority":root_authority,"root_producer":root_producer});
     let private = root.join(".prepared-spore.json");
     write_private(&private, &serde_json::to_vec(&prepared)?)?;
     invitation.secret.fill(0);
@@ -297,14 +311,16 @@ mod tests {
     fn preparation_keeps_one_owner_claim_and_exact_public_root_scope() {
         let value = serde_json::json!({
             "schema":"conduit.body/browser-invitation-window@1", "remote_execution":false,
-            "authorization":{"body_id":"body/one","window_id":"window/one","maximum_millis":60000},
+            "authorization":{"body_id":"body/one","window_id":"window/one","maximum_millis":60000,"owner_host_id":"host/owner","owner_boot_id":"boot/owner"},
             "invitation":{"schema":"conduit.body/spawn-invitation@1","claim":{
                 "invitation_id":"invitation/one","body_id":"body/one","nonce":vec![1;32],"expires_at_millis":1234},"secret":vec![2;32]},
             "root_authority":{"schema":"conduit.body/root-authority@1","body_id":"body/one","owner_host_id":"host/owner","public_key":vec![3;32]}
         });
-        let (invitation, root) = super::checked_browser_preparation(&value, "body/one").unwrap();
+        let (invitation, root, producer) =
+            super::checked_browser_preparation(&value, "body/one").unwrap();
         assert_eq!(invitation.claim.invitation_id.as_str(), "invitation/one");
         assert_eq!(root.body_id, invitation.claim.body_id);
+        assert_eq!(producer["boot_id"], "boot/owner");
         for field in ["schema", "root_authority", "authorization"] {
             let mut invalid = value.clone();
             invalid.as_object_mut().unwrap().remove(field);

@@ -26,6 +26,7 @@ export async function createBodyBoundZip({ prepared, release, filename }) {
       expires_at_millis: prepared.invitation_expires_at_millis,
       secret: prepared.invitation_secret,
       root_authority: prepared.root_authority,
+      root_producer: prepared.root_producer,
       rendezvous: boundSpawnRendezvous(prepared.rendezvous, prepared.body_id, prepared.invitation_id),
       rendezvous_candidates: boundedRendezvousCandidates(prepared.rendezvous_candidates, {
         bodyId: prepared.body_id,
