@@ -7,6 +7,7 @@ struct SelectedMetrics {
     control: Option<layout::RowInsets>,
     panel: Option<u16>,
     focus_marker_width: u16,
+    corners: Option<corners::LookCorners>,
 }
 impl SelectedMetrics {
     fn legacy(typography: Typography) -> Self {
@@ -16,6 +17,7 @@ impl SelectedMetrics {
             control: None,
             panel: None,
             focus_marker_width: 2,
+            corners: None,
         }
     }
     fn spacing(&self, expression: &conduit_face::AdmittedVisualExpression) -> layout::RowSpacing {
@@ -86,6 +88,7 @@ impl NativeFaceScene {
             text_scale_percent: 100,
             header_top: viewport.chrome.top,
             focus_marker_width: 2,
+            look_corners: None,
             typography: Typography::EDITORIAL,
             page: 0,
             focus: None,
@@ -204,6 +207,7 @@ impl NativeFaceScene {
         scene.text_scale_percent = scale;
         scene.typography = typography;
         scene.focus_marker_width = metrics.focus_marker_width;
+        scene.look_corners = metrics.corners;
         Ok(scene)
     }
 
@@ -280,6 +284,7 @@ impl NativeFaceScene {
             typography,
             row_gap,
             focus_marker_width: *visual.tokens().focus_width_px(),
+            corners: Some(corners::LookCorners::from_tokens(visual.tokens())?),
             panel: Some(*visual.tokens().space_panel_px()),
             control: Some(layout::RowInsets {
                 inline: *visual.tokens().space_control_inline_px(),
@@ -323,6 +328,7 @@ impl NativeFaceScene {
         scene.text_scale_percent = scale;
         scene.typography = typography;
         scene.focus_marker_width = metrics.focus_marker_width;
+        scene.look_corners = metrics.corners;
         Ok(scene)
     }
 }
@@ -426,6 +432,7 @@ impl NativeFaceScene {
             text_scale_percent: scale,
             header_top: viewport.chrome.top,
             focus_marker_width: metrics.focus_marker_width,
+            look_corners: metrics.corners,
             typography,
             page: 0,
             focus: None,

@@ -23,6 +23,7 @@ impl LookTextMetrics {
             TextRole::Body | TextRole::Code => self.body,
             TextRole::Heading => (self.body * 5).div_ceil(4),
             TextRole::Title => (self.body * 3).div_ceil(2),
+            TextRole::Value => self.body * 2,
         }
     }
     pub const fn line_height(self, em: u16) -> u16 {
@@ -73,6 +74,7 @@ impl Typography {
             TextRole::Heading,
             TextRole::Title,
             TextRole::Code,
+            TextRole::Value,
         ] {
             let style = selected.style(role);
             let base = &PROFILES[style.profile as usize];

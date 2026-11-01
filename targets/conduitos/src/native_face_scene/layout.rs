@@ -32,7 +32,7 @@ mod panels;
 pub(super) use super::chrome::{FOOTER, HEADER};
 #[path = "layout/row_chrome.rs"]
 mod row_chrome;
-pub(super) use row_chrome::{append_panel_chrome, append_row_chrome};
+pub(super) use row_chrome::{RowChromeMetrics, append_panel_chrome, append_row_chrome};
 
 pub(super) const MAX_PAGE_ROWS: usize = 20;
 const MAX_ROWS: usize = 32_768;

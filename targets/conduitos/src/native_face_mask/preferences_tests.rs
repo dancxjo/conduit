@@ -32,9 +32,9 @@ fn configured() -> NativeFaceMask {
 }
 
 #[test]
-fn personal_look_replacement_keeps_author_face_and_refuses_the_old_show() {
+fn personal_look_roundtrip_refuses_held_input_then_routes_fresh_source_action() {
     let mut mask = configured();
-    let draft = super::super::tests::draft();
+    let mut draft = super::super::tests::draft();
     let face = draft
         .face(&mask.birth_basis("arrival/native-personal"))
         .unwrap();
@@ -105,6 +105,52 @@ fn personal_look_replacement_keeps_author_face_and_refuses_the_old_show() {
     assert_eq!(authored.component_configuration(), Some(&author));
     assert_eq!(authored.scene().unwrap().face(), &face);
     assert_eq!(authored.scene().unwrap().focused_request(), focus);
+
+    // Exercise the actual pending Mask Play after both Look replacements,
+    // rather than stopping at the standalone interaction validator.
+    let show = authored.show().unwrap().clone();
+    let publication = authored.publication().unwrap().clone();
+    let revision = draft.revision();
+    assert_eq!(
+        authored.submit_with_display(held, &mut pixels).err(),
+        Some(NativeFaceMaskError::Mask(NativeMaskPlayError::Interaction(
+            FaceInteractionRefusal::StaleShow
+        )))
+    );
+    assert_eq!(authored.show(), Some(&show));
+    assert_eq!(authored.publication(), Some(&publication));
+    assert_eq!(authored.scene().unwrap().face(), &face);
+    assert_eq!(draft.revision(), revision);
+
+    let fresh = authored
+        .scene()
+        .unwrap()
+        .interaction(
+            &face.identity,
+            face.revision,
+            crate::native_face_scene::FaceControl {
+                action,
+                argument: None,
+            },
+            &show,
+            vec![],
+            2,
+        )
+        .unwrap();
+    let correlation = authored
+        .submit_with_display(fresh.clone(), &mut pixels)
+        .unwrap();
+    assert_eq!(correlation.interaction, fresh);
+    assert_eq!(correlation.show_id, show.show_id);
+    assert!(authored.show().is_none());
+    draft
+        .apply_face_interaction(
+            &authored.birth_basis("arrival/native-personal"),
+            &show,
+            &correlation.interaction,
+        )
+        .unwrap();
+    assert!(draft.revision() > revision);
 }
 
 #[test]
@@ -127,14 +173,6 @@ fn invalid_local_proposals_have_distinct_refusals_without_drawing() {
                 LocalLookVisualOverride::text_primary(20, 20, 20).unwrap(),
             ]),
             NativeLocalLookRefusal::Contrast,
-        ),
-        (
-            local(vec![LocalLookVisualOverride::RadiusControlPx(0)]),
-            NativeLocalLookRefusal::UnsupportedField("radius_control_px"),
-        ),
-        (
-            local(vec![LocalLookVisualOverride::RadiusPanelPx(8)]),
-            NativeLocalLookRefusal::UnsupportedField("radius_panel_px"),
         ),
     ]
     .into_iter()
@@ -204,6 +242,16 @@ fn unconfigured_mask_explicitly_refuses_personal_look() {
 #[test]
 #[ignore = "requires retained real Faces and their checked personal browser views"]
 fn identical_personal_resources_select_identical_native_and_browser_looks() {
+    qualify_personal_pairing(false);
+}
+
+#[test]
+#[ignore = "requires retained real Faces and their checked personal corner browser views"]
+fn personal_corners_prepare_real_faces_with_matching_browser_bytes_and_canonical_graphics() {
+    qualify_personal_pairing(true);
+}
+
+fn qualify_personal_pairing(corners: bool) {
     use conduit_conduitos_mask_offer::{
         NativeMaskStorageProfile, native_layout_host_advertisement,
         prepare_layout_component_document,
@@ -227,12 +275,29 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
         NativeMaskStorageProfile::Standard,
     );
     let preferences = NativeLookPreferences {
-        local: Some(local(vec![
-            LocalLookVisualOverride::TypeBodyPx(20),
-            LocalLookVisualOverride::SpacePanelPx(0),
-        ])),
+        local: Some(local(if corners {
+            vec![
+                LocalLookVisualOverride::TypeBodyPx(20),
+                LocalLookVisualOverride::TypeSmallPx(18),
+                LocalLookVisualOverride::RadiusControlPx(20),
+                LocalLookVisualOverride::RadiusPanelPx(20),
+            ]
+        } else {
+            vec![
+                LocalLookVisualOverride::TypeBodyPx(20),
+                LocalLookVisualOverride::SpacePanelPx(0),
+            ]
+        })),
         minimum_contrast: LocalLookContrast::Standard,
     };
+    let suffix = if corners {
+        "personal-corners"
+    } else {
+        "personal"
+    };
+    let mut preparations = 0;
+    let mut comparisons = 0;
+    let mut explicit_rectangles = 0;
     for component in ["todo-component-flat", "creche-component-columns"] {
         for theme in ["day", "night"] {
             let (_, configuration) = prepare_layout_component_document(
@@ -279,7 +344,7 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
                     let bytes = std::fs::read(
                         counterpart
                             .join(name)
-                            .join(alloc::format!("{browser}-{theme}-personal.json")),
+                            .join(alloc::format!("{browser}-{theme}-{suffix}.json")),
                     )
                     .unwrap();
                     let view: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
@@ -293,16 +358,90 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
                         selected, browser_selected,
                         "{name}/{component}/{browser}/{theme}"
                     );
+                    comparisons += 1;
                 }
                 for details in [false, true] {
                     scene.show_details(details);
                     for _ in 0..scene.pages() {
-                        assert!(scene.frame().unwrap().hits.is_empty());
+                        let frame = scene.frame().unwrap();
+                        assert!(frame.hits.is_empty());
+                        let encoded = frame.scene.encode();
+                        assert_eq!(
+                            conduit_face::GraphicsScene::decode(
+                                &encoded[..frame.scene.encoded_len()]
+                            ),
+                            Ok(frame.scene),
+                        );
+                        if corners {
+                            for command in frame.scene.commands() {
+                                if let Some(metrics) = command.rect_metrics() {
+                                    assert_eq!(metrics, (20, 1));
+                                    explicit_rectangles += 1;
+                                }
+                            }
+                        }
                         scene.turn_page(true);
                     }
                 }
                 assert_eq!(scene.face(), &export.face);
+                preparations += 1;
             }
         }
+    }
+    assert_eq!(preparations, 8);
+    assert_eq!(comparisons, 16);
+    if corners {
+        assert!(explicit_rectangles > 0);
+    }
+}
+
+#[test]
+fn personal_corner_overrides_reach_prepared_graphics_before_show_acknowledgment() {
+    use conduit_face::{GraphicsCommandKind, GraphicsShapeStyle};
+    for (control, panel) in [(0, 32), (32, 0), (4, 12)] {
+        let mut mask = configured();
+        let author = mask.component_configuration().unwrap().clone();
+        let face = super::super::tests::draft()
+            .face(&mask.birth_basis("arrival/personal-corners"))
+            .unwrap();
+        mask.set_local_visual_look(
+            Some(local(vec![
+                LocalLookVisualOverride::RadiusControlPx(control),
+                LocalLookVisualOverride::RadiusPanelPx(panel),
+            ])),
+            LocalLookContrast::Standard,
+        );
+        let mut pixels = super::super::tests::CountingDisplay::default();
+        mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
+        assert!(pixels.writes > 0);
+        assert!(mask.show().is_some());
+        assert_eq!(mask.scene().unwrap().face(), &face);
+        assert_eq!(mask.component_configuration().unwrap(), &author);
+        let selected = &mask
+            .local_visual_look_resolution()
+            .unwrap()
+            .admitted
+            .selected;
+        let LookVisualFacetOption::Some(visual) = selected.visual() else {
+            panic!()
+        };
+        assert_eq!(*visual.tokens().radius_control_px(), control);
+        assert_eq!(*visual.tokens().radius_panel_px(), panel);
+        let frame = mask.scene().unwrap().frame().unwrap();
+        let mut controls = 0;
+        for hit in &frame.hits {
+            if let Some(command) = frame.scene.commands().iter().find(|c| {
+                c.kind == GraphicsCommandKind::Rect
+                    && c.bounds == hit.bounds
+                    && matches!(
+                        c.style,
+                        GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
+                    )
+            }) {
+                assert_eq!(command.rect_metrics(), Some((control as u8, 1)));
+                controls += 1;
+            }
+        }
+        assert!(controls > 0);
     }
 }

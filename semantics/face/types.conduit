@@ -279,6 +279,7 @@ type GraphicsTextRole =
     | warning
     | action
     | muted
+    | value
 
 form face/graphics-text-role = GraphicsTextRole as u8 from 1
 

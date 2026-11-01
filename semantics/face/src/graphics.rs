@@ -7,10 +7,11 @@ use crate::{
 };
 mod path;
 mod polyline;
+mod rectangle;
 pub use path::{GraphicsPath, MAX_GRAPHICS_PATH_POINTS};
 pub use polyline::{GraphicsPolyline, MAX_GRAPHICS_POLYLINE_POINTS};
 
-pub const GRAPHICS_SCENE_KIND: &str = "face/graphics-scene@1";
+pub const GRAPHICS_SCENE_KIND: &str = "face/graphics-scene@2";
 pub const MAX_GRAPHICS_COMMANDS: usize = 48;
 /// One bounded pane-sized UTF-8 payload. Commands remain fixed-capacity, but
 /// can retain a small complete source document instead of a single label.
@@ -23,6 +24,7 @@ pub const MAX_GRAPHICS_SCENE_BYTES: usize =
 // Surface and Border append paint tags without changing existing tags or
 // command layout. Readers without those paints refuse the unknown tag.
 const VERSION: u8 = 2;
+const RECT_METRICS_VERSION: u8 = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GraphicsError {
@@ -171,6 +173,8 @@ impl GraphicsCommand {
             {
                 return Err(GraphicsError::NonCanonicalEncoding);
             }
+        } else if kind == GraphicsCommandKind::Rect {
+            rectangle::validate(style, payload)?;
         } else if !payload.is_empty() {
             return Err(GraphicsError::NonCanonicalEncoding);
         }
@@ -197,7 +201,9 @@ impl GraphicsCommand {
     pub fn payload(&self) -> &str {
         if matches!(
             self.kind,
-            GraphicsCommandKind::OrthogonalPath | GraphicsCommandKind::Polyline
+            GraphicsCommandKind::OrthogonalPath
+                | GraphicsCommandKind::Polyline
+                | GraphicsCommandKind::Rect
         ) {
             return "";
         }
@@ -278,7 +284,7 @@ impl GraphicsScene {
 
     pub fn encode(self) -> [u8; MAX_GRAPHICS_SCENE_BYTES] {
         let mut output = [0; MAX_GRAPHICS_SCENE_BYTES];
-        output[0] = VERSION;
+        output[0] = self.version();
         output[1] = self.count;
         let mut offset = 2;
         for command in self.commands() {
@@ -304,8 +310,20 @@ impl GraphicsScene {
             .sum::<usize>()
     }
 
+    fn version(&self) -> u8 {
+        if self
+            .commands()
+            .iter()
+            .any(|command| command.rect_metrics().is_some())
+        {
+            RECT_METRICS_VERSION
+        } else {
+            VERSION
+        }
+    }
+
     pub fn decode(input: &[u8]) -> Result<Self, GraphicsError> {
-        if input.len() < 2 || input[0] != VERSION {
+        if input.len() < 2 || !matches!(input[0], VERSION | RECT_METRICS_VERSION) {
             return Err(GraphicsError::MalformedEncoding);
         }
         let count = usize::from(input[1]);
@@ -344,7 +362,7 @@ impl GraphicsScene {
             scene.push(command)?;
             offset += 21 + len;
         }
-        if offset != input.len() {
+        if offset != input.len() || scene.version() != input[0] {
             return Err(GraphicsError::NonCanonicalEncoding);
         }
         Ok(scene)

@@ -111,7 +111,13 @@ impl NativeFaceScene {
         self.check_show(show)?;
         if self.showing_diagram {
             let mut drawing = GraphicsScene::empty();
-            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let hits = diagram::append(
+                &mut drawing,
+                &self.face,
+                self.screen,
+                self.page,
+                self.look_corners.map(|c| c.panel),
+            )?;
             let selected = hits.hit_test(x, y).map(String::from);
             if let Some(identity) = selected {
                 self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;

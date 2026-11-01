@@ -7,7 +7,7 @@ use conduit_core::{
 };
 
 pub const GRAPHICS_FACE_KIND: &str = "face/graphics";
-pub const GRAPHICS_FACE_REVISION: &str = "conduit.std/face-graphics@1";
+pub const GRAPHICS_FACE_REVISION: &str = "conduit.std/face-graphics@2";
 
 pub fn graphics_face_contract() -> StandardKindContract {
     StandardKindContract {
