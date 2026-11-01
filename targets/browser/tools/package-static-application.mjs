@@ -69,6 +69,10 @@ try {
   const paths = new Set();
   const ownerPresentation = template.application_id === 'conduit.application/handbook'
     && template.resources.find(resource => resource.role === 'owner-face-presentation');
+  // Resolve before normalization removes the per-resource source override.
+  const ownerComponentSource = ownerPresentation && path.join(
+    path.dirname(path.resolve(sourceRoot, ownerPresentation.source ?? ownerPresentation.path)),
+    'owner-face-component.mjs');
 
   for (const resource of template.resources) {
     if (!safe(resource.path)) throw new Error(`Unsafe application path: ${resource.path}`);
@@ -88,8 +92,7 @@ try {
   if (ownerPresentation) {
     const name = 'owner-face-component.mjs';
     if (paths.has(name)) throw new Error('Optional owner Back collides with a mandatory resource');
-    const presentation = path.resolve(sourceRoot, ownerPresentation.source ?? ownerPresentation.path);
-    const sourcePath = path.join(path.dirname(presentation), name);
+    const sourcePath = ownerComponentSource;
     const source = await regular(path.parse(sourcePath).root, path.relative(path.parse(sourcePath).root, sourcePath));
     const bytes = (await lstat(source)).size;
     if (bytes < 1 || bytes > 8192) throw new Error('Optional owner Back exceeds its resource bound');
