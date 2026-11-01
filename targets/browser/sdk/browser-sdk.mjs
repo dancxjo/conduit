@@ -142,10 +142,11 @@ export class BrowserHost {
 
   /** Join this already-admitted Host and Boot to one external Body invitation.
    * invitedProvision supplies first-admission proof inside an independently
-   * authorized owner window; it opens no route or window. Portable Part-key
-   * return is not implemented by the current browser membership ABI. */
+   * authorized owner window; it opens no route or window. Root-aware mode retains
+   * a runtime-verified Part in this application’s selected storage; current
+   * presence and Face authority remain separate. */
   async participate({ invitation, sessionCarrier = null, expectedBodyId = null, retainedCredential = null, onCredential,
-    onState, onBiographyEvidence, onOfferEvidence, invitedProvision = null, renewPresence = true, reconnectPresence = true } = {}) {
+    onState, onBiographyEvidence, onOfferEvidence, invitedProvision = null, sporeRoot = null, renewPresence = true, reconnectPresence = true } = {}) {
     if (sessionCarrier === null && (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048)) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
     }
@@ -162,6 +163,8 @@ export class BrowserHost {
       expectedBodyId,
       retainedCredential,
       invitedProvision,
+      sporeRoot,
+      selectedStorage: this.#state.storage,
       onCredential,
       onState: state => {
         if (state === "offline" || state.startsWith("refused:")) this.#state.bridge.ownerFaceClear?.();
