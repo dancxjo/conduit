@@ -1,7 +1,7 @@
 //! Repository demonstration entrances that hide package and fixture details.
 
 use crate::cli::{GlobalOpts, PatchbayDemoArgs, PatchbayHost};
-use crate::process::{run_step, Step};
+use crate::process::{run_step, run_step_with_arguments, Step};
 use crate::workspace::workspace_root;
 
 pub(crate) const STD_STEP: Step = Step::new(
@@ -50,6 +50,9 @@ pub fn run_patchbay(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
+    if !args.plot.is_empty() && args.on != PatchbayHost::Browser {
+        return Err("--plot requires --on browser".into());
+    }
     if !args.first_run_proof && args.on == PatchbayHost::Browser {
         run_step(
             &Step::new(
@@ -88,20 +91,19 @@ pub fn run_patchbay(
             "run",
             "-p",
             "conduit-browser-patchbay-workbench",
+            "--bin",
+            "conduit-browser-patchbay-workbench",
             "--",
-            "--seed",
+            "--plot",
             "Text Lab",
             "plots/text-lab/main.conduit",
-            "--seed",
+            "--plot",
             "Hello",
             "plots/hello/main.conduit",
-            "--seed",
+            "--plot",
             "Greet",
             "plots/greet/main.conduit",
-            "--seed",
-            "Clock",
-            "plots/clock/main.conduit",
-            "--seed",
+            "--plot",
             "Count",
             "plots/count/main.conduit",
         ][..]
@@ -118,7 +120,12 @@ pub fn run_patchbay(
         "cargo",
         command,
     );
-    run_step(&step, &root, opts)?;
+    let mut arguments: Vec<String> = command.iter().map(|argument| (*argument).into()).collect();
+    for plot in args.plot.as_chunks::<2>().0 {
+        arguments.push("--plot".into());
+        arguments.extend_from_slice(plot);
+    }
+    run_step_with_arguments(&step, &arguments, &root, opts)?;
     Ok(())
 }
 

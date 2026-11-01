@@ -134,6 +134,19 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   // canonical Face still owns the exact typed facts needed to draw
   // those admitted subjects (for example Port direction and Cord endpoints).
   const subjectProperties = propertiesBySubject(snapshot.face);
+  const catalog = new Map((snapshot.authoring?.palette ?? []).map(entry => [entry.kind_id, entry]));
+  function wording(subject) {
+    const properties = subjectProperties.get(subject.identity);
+    const entry = catalog.get(properties?.get("kind-id"));
+    const dataLabel = entry?.configuration.find(field => field.rule?.DataLabel);
+    const configured = dataLabel && snapshot.authoring.configuration.find(field =>
+      field.gear_identity === properties.get("semantic-id") && field.key === dataLabel.key)?.value?.Text;
+    return {
+      title: configured || (subject.role === "Gear"
+        ? properties?.get("semantic-id")?.split("/").at(-1) ?? subject.name : subject.name),
+      purpose: entry?.summary,
+    };
+  }
   const candidates = snapshot.authoring?.connection_candidates || [];
   if (!Array.isArray(candidates) || candidates.length > MAX_FLOW_SUBJECTS) {
     throw new Error("Connection candidate bound exceeded");
@@ -165,7 +178,12 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   };
   const subjects = face.subjects.filter((subject) =>
     ["Plot", "Body", "Host", "Part", "Gear"].includes(subject.role)
-      && visibleThroughBacks(subject));
+      && visibleThroughBacks(subject)
+      // The current Plot already titles the workbench. Keep its card only
+      // when its genuine boundary Ports participate in the diagram.
+      && !(face.cursor?.place === "Program" && subject.role === "Plot"
+        && face.subjects.some(item => item.role === "Gear")
+        && !(children.get(subject.identity) || []).some(id => allSubjects.get(id)?.role === "Port")));
   if (subjects.length > MAX_FLOW_SUBJECTS) throw new Error("Flow subject bound exceeded");
   const nodes = subjects.map((subject) => ({
     id: subject.identity,
@@ -174,12 +192,14 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
       subjectIdentity: subject.identity,
       workspaceSubject: subjectProperties.get(subject.identity)?.get("semantic-id") || null,
       label: subject.name,
+      title: wording(subject).title,
       role: subject.role,
       accessibilityName: subject.name,
       icon: subjectProperties.get(subject.identity)?.get("icon-token") || (subject.role === "Gear" ? "◆" : "◇"),
       iconToken: subjectProperties.get(subject.identity)?.get("icon-token") || null,
       iconName: subjectProperties.get(subject.identity)?.get("icon-name") || subject.role,
-      clue: compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
+      clue: lens === "plot" ? wording(subject).purpose || compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens)
+        : compactClue(subject.role, subjectProperties.get(subject.identity) || new Map(), lens),
       reviewedBack: subjectProperties.get(subject.identity)?.get("reviewed-back") === "available",
       backExpanded: openedBacks.has(subject.identity),
       diagnosticError: subjectProperties.get(subject.identity)?.get("diagnostic-state") === "error",
@@ -193,7 +213,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
         return {
           id: port.identity,
           semanticSelected: (snapshot.navigation?.cursor.focus ?? snapshot.interaction.selected_subject) === port.identity,
-          label: port.name,
+          label: properties.get("port-id") || port.name,
           accessibilityName: port.name,
           direction: properties.get("direction"),
           // Root Plot Ports face the external caller; their diagram handles

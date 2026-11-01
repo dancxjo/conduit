@@ -41,7 +41,7 @@ function PortRow({ port, onActivate }) {
     "data-compatibility": compatibility,
     title: diagnostic,
   });
-  return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-compatibility": compatibility, title: diagnostic, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();onActivate(port.id);} },
+  return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-compatibility": compatibility, title: diagnostic, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();if(!event.target.closest?.(".faceplate-handle"))onActivate(port.id);} },
     target && handle,
     e("button", {
       type: "button",
@@ -58,7 +58,7 @@ function PortRow({ port, onActivate }) {
 }
 
 export function FaceplateNode({ data }) {
-  const title = data.role === "Gear" ? data.label.slice(data.label.lastIndexOf("/") + 1) : data.label;
+  const title = data.title ?? data.label;
   return e("article", {
     className: `flow-frontplate role-${data.role.toLowerCase()}${data.workspaceCollapsed ? " workspace-collapsed" : ""}${data.semanticSelected ? " semantic-selected" : ""}${data.diagnosticError ? " diagnostic-error" : ""}${data.debugger ? ` debugger-${data.debugger.phase}` : ""}`,
     "data-subject": data.subjectIdentity,
