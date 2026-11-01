@@ -1,0 +1,50 @@
+{
+  "scope": "Actual copied custody CPU proof plus offline Xtensa build; no live admission, firmware deployment or target preparation timing",
+  "source_commit": "6401c5fc20f2a3b5ea5655933898694e5a74b995",
+  "normal": {
+    "tests_passed": 1,
+    "canonical_encoding_passes": 3,
+    "cache_capacity_and_source_index_bytes": 8757,
+    "chunk_allocation_bytes": 0,
+    "phases_start_prepare_capture_chunk_physical_finish": [
+      1,
+      1,
+      1,
+      81,
+      175,
+      1
+    ],
+    "checkpoint_generation": 901,
+    "checkpoint_bytes": 10368,
+    "original_prefix_preserved": true,
+    "reopened_credential_verified": true
+  },
+  "capacity_refusal": {
+    "tests_passed": 1,
+    "canonical_encoding_passes": 84,
+    "cache_bytes": 0,
+    "capture_physical_calls": 0,
+    "same_checkpoint_and_credential_reopened": true
+  },
+  "lifecycle_tests_passed": 1,
+  "incremental_tests_passed": 14,
+  "allocation_scope": "CPU64 per-step observations exclude original Body and do not establish total target peak",
+  "reviewed_preparation_profile_installed": false,
+  "offline_esp32": {
+    "app_bytes": 3274160,
+    "app_partition_bytes": 3371008,
+    "app_remaining_bytes": 96848,
+    "stack_bytes": 37356,
+    "stack_floor_bytes": 36864,
+    "stack_margin_bytes": 492,
+    "flashed": false
+  },
+  "app_sha256": "66bde1ef8bdbb57db3eef0d767aa7712d1a9127fca1d35b1e54beca7efe078a2",
+  "logs_sha256": {
+    "owned-frozen-runtime-final-build.log": "6c468adecab31d5e9b1721d0e768ae22bc91884af1f9e5d4c13f6c02523f0cde",
+    "owned-frozen-runtime-final-lower-test.log": "6bc6f67c21d793ad5e32685a0647afe923f6932769ca5b905099aed1078f7c19",
+    "owned-frozen-runtime-final-owner-test.log": "add4c11fd22929cb8a72922ff5963836755f2261d5b501b2cb5480a250c2adcd",
+    "owned-frozen-runtime-final-pressure-test.log": "05518103b95944a70b74392ac9afecb6e279ae7da689490b560bc7007e2ee393",
+    "owned-frozen-runtime-final-private-test.log": "04335a90a63a823b29cbec430b1623538e2809fe4b25a64504d0bd7a1933d4cd"
+  }
+}
