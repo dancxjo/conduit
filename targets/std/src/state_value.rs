@@ -299,3 +299,23 @@ pub(crate) fn prepare_durable_state(
         .map_err(|error| format!("prepare durable State: {error:?}"))?;
     Ok(InstalledDurableStateBack { back, validator })
 }
+
+/// Shared closed refusal classification for synchronous durable State effects.
+/// Both fragment and Body execution complete the original request as failed;
+/// a failed residence operation is never left pending or retried.
+pub(crate) fn durable_refusal_failure(refusal: DurableStateRefusal) -> conduit_kernel::Failure {
+    conduit_kernel::Failure {
+        code: conduit_kernel::FailureCode::HostCallFailed,
+        detail: match refusal {
+            DurableStateRefusal::InvalidBinding => 1,
+            DurableStateRefusal::ValueTooLarge => 2,
+            DurableStateRefusal::GenerationGap => 3,
+            DurableStateRefusal::ConflictingDigest => 4,
+            DurableStateRefusal::Corrupt => 5,
+            DurableStateRefusal::Incompatible => 6,
+            DurableStateRefusal::Lost => 7,
+            DurableStateRefusal::StaleRecovery => 8,
+            DurableStateRefusal::InvalidReceipt => 9,
+        },
+    }
+}
