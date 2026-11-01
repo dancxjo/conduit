@@ -13,6 +13,8 @@ use conduit_body::{
 use core::cell::RefCell;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use sha2::{Digest, Sha256};
+#[path = "native_restart_owned_checkpoint.rs"]
+pub(crate) mod owned_checkpoint;
 #[path = "native_restart_biography.rs"]
 pub(crate) mod biography;
 #[path = "native_restart_network_pending.rs"]
