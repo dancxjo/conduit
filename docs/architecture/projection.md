@@ -42,7 +42,9 @@ category and causal digest, distinct from semantic insufficiency. A failed or
 unattempted mechanism cannot report a successfully preserved target.
 
 `require_exact` refuses partial and permitted-lossy targets. `require_policy`
-requires the exact admitting policy identity and a completed result. Inspection
+requires the exact admitting policy identity, a completed result, and permission
+frozen by that policy when the report is admitted. Zero loss establishes exact
+fidelity independently; it does not override a policy that denies consumption. Inspection
 may separately borrow a partial target without implying semantic acceptance.
 The immutable report preserves its source, target, projector, requested route,
 source/target contracts, policy and optional exact expanded-form boundary.

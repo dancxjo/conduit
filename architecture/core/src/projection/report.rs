@@ -24,6 +24,7 @@ pub struct ProjectionReport<'a, D: ProjectionDomain> {
     target_contract: ProjectionText<'a>,
     policy: ProjectionText<'a>,
     summary: ProjectionSummary,
+    policy_permitted: bool,
 }
 impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
     pub fn new<P: ProjectionPolicy<D>>(
@@ -207,13 +208,17 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
                 ProjectionFact::Lost { class, .. } => summary.losses[*class as usize] += 1,
             }
         }
+        let policy_permitted = input.mechanism == ProjectionMechanism::Completed
+            && input
+                .target
+                .is_some_and(|target| policy.permits(input.source, target, input.facts));
         summary.disposition = match input.mechanism {
             ProjectionMechanism::Completed => match input.target {
                 None => ProjectionDisposition::Insufficient,
                 Some(_) if summary.losses.iter().all(|n| *n == 0) => {
                     ProjectionDisposition::Completed(ProjectionFidelity::Exact)
                 }
-                Some(target) if policy.permits(input.source, target, input.facts) => {
+                Some(_) if policy_permitted => {
                     ProjectionDisposition::Completed(ProjectionFidelity::PermittedLossy)
                 }
                 Some(_) => ProjectionDisposition::Insufficient,
@@ -228,6 +233,7 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
             policy: policy.identity(),
             input,
             summary,
+            policy_permitted,
         })
     }
     pub fn basis(&self) -> ProjectionBasis<'a> {
@@ -272,6 +278,9 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
             ProjectionDisposition::Completed(_)
         ) {
             return Err(ProjectionRefusal::ConsumerRequiresExact);
+        }
+        if !self.policy_permitted {
+            return Err(ProjectionRefusal::PolicyMismatch);
         }
         self.input
             .target
