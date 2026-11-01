@@ -41,7 +41,10 @@ pub(in super::super) struct SourceRecordingStage {
     contract: ObservationContract,
     slots: [Option<StagedObservation>; CAPACITY],
     length: usize,
+    prepared: Option<checkpoint::PreparedSourceChunk>,
 }
+#[path = "source_recording_stage/checkpoint.rs"]
+mod checkpoint;
 impl SourceRecordingStage {
     pub(in super::super) fn prepare(
         body_id: conduit_body::BodyId,
@@ -54,6 +57,7 @@ impl SourceRecordingStage {
             contract: ObservationContract::prepare().map_err(|_| Refusal::Observation)?,
             slots: std::array::from_fn(|_| None),
             length: 0,
+            prepared: None,
         })
     }
     pub(in super::super) fn len(&self) -> usize {

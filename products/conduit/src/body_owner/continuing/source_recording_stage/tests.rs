@@ -121,3 +121,66 @@ fn body_id(birth: u64) -> conduit_body::BodyId {
     .unwrap()
     .body_id
 }
+
+#[test]
+fn staged_source_checkpoint_preparation_preserves_all_bytes_and_stable_identity() {
+    let mut selected = selection().as_ref().clone();
+    selected.attachment_id = "a".repeat(220);
+    selected.host_id = "h".repeat(220).into();
+    selected.boot_id = "b".repeat(220).into();
+    selected.capability_id = "c".repeat(220).into();
+    selected.provider_instance_id = "p".repeat(220).into();
+    selected.plan_id = "q".repeat(220).into();
+    selected.fragment_id = "f".repeat(220).into();
+    selected.placement_id = "l".repeat(220).into();
+    selected.configuration_id = "g".repeat(220);
+    let selected = Arc::new(selected);
+    let body = body_id(1);
+    let mut stage = SourceRecordingStage::prepare(body.clone(), selected.clone()).unwrap();
+    for sequence in 0..CAPACITY {
+        stage
+            .accept(&fore(&selected, sequence as u64, 9, sequence as u64))
+            .unwrap();
+    }
+    let original: Vec<_> = stage
+        .observations()
+        .map(|v| v.canonical().to_vec())
+        .collect();
+    stage.prepare_checkpoint_input().unwrap();
+    let prepared = stage.prepared.as_ref().unwrap();
+    let content = prepared.snapshot.content().unwrap().to_vec();
+    let reference = prepared.reference.clone();
+    let recovered = conduit_environment_runtime::source_recording::SourceRecordingSnapshot::read(
+        &content,
+        prepared.snapshot.context(),
+    )
+    .unwrap();
+    assert!(recovered.len() > 0 && recovered.len() < CAPACITY);
+    assert_eq!(recovered.context().body_id, body.as_str());
+    assert_eq!(recovered.context().native_play.play_sequence, 9);
+    for index in 0..recovered.len() {
+        let (sequence, bytes) = recovered.observation(index).unwrap();
+        assert_eq!(sequence, index as u64 + 1);
+        assert_eq!(bytes, original[index]);
+    }
+    assert!(content.len() <= 4096);
+    assert_eq!(reference.extent.bytes, content.len() as u64);
+    assert_eq!(stage.len(), CAPACITY);
+    stage.prepare_checkpoint_input().unwrap();
+    assert_eq!(stage.prepared.as_ref().unwrap().reference, reference);
+    assert_eq!(
+        stage.prepared.as_ref().unwrap().snapshot.content().unwrap(),
+        content
+    );
+    assert_eq!(
+        stage
+            .observations()
+            .map(|v| v.canonical().to_vec())
+            .collect::<Vec<_>>(),
+        original
+    );
+    assert_eq!(
+        stage.prepared_input_metadata().unwrap()["producer_retirement_authorized"],
+        false
+    );
+}

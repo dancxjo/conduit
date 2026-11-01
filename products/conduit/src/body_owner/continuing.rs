@@ -314,7 +314,17 @@ impl Owner {
                 receipt["source_fore_refusal"] = refusal.diagnostics();
             }
             #[cfg(feature = "installed-body-storage")]
-            if let Some(stage) = self.source_recording_stage.as_ref() {
+            if let Some(stage) = self.source_recording_stage.as_mut() {
+                // Worker cleanup has returned its Host before encoding begins.
+                // A codec refusal retains all original accepted bytes.
+                match stage.prepare_checkpoint_input() {
+                    Ok(()) => {
+                        receipt["source_recording_prepared"] = stage
+                            .prepared_input_metadata()
+                            .unwrap_or(serde_json::Value::Null)
+                    }
+                    Err(error) => receipt["source_recording_preparation_refusal"] = error.into(),
+                }
                 receipt["source_recording_pending"] = serde_json::json!({
                     "custody": "volatile-accepted-fore-not-durable-recording",
                     "count": stage.len(),

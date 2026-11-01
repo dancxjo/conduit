@@ -1595,6 +1595,7 @@ dependencies = [
  "conduit-environment-history",
  "conduit-environment-host",
  "conduit-environment-measurement",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",
@@ -2130,6 +2131,7 @@ dependencies = [
  "conduit-tm1637-wire",
  "ed25519-dalek",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
 ]
 
