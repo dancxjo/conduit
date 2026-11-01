@@ -130,6 +130,10 @@ fn exercise_transport_unavailable(
 ) {
     use conduit_environment_measurement::source_observation::{SourceFailure, SourceOutcome};
     let play = owner_truth(runtime)["realization"]["play"].clone();
+    assert!(
+        play["active_play_id"].is_string(),
+        "no admitted continuing Play"
+    );
     let prior = before.series()[0].points.last().unwrap();
     let SourceOutcome::Available(prior_sample) = prior.observation.outcome else {
         panic!("fixture did not establish a fresh reading");
