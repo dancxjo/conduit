@@ -102,4 +102,3 @@ selection. Invalid local resolution cannot draw or acknowledge a usable Show.
 CPU pixel writes and matched canonical native/browser selections are software
 evidence; physical output, complete accessibility and Host deployment require
 their own qualification. Appearance UI and durable preferences are not added.
-
