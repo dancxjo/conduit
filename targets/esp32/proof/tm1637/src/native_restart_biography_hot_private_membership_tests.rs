@@ -89,22 +89,30 @@ fn prove_private_membership(pressure: bool) {
     let generation_before_probe = crate::native_restart::generation();
     let owner_before_probe = serde_json::to_vec(owner.evidence()).unwrap();
     let mut tick = 0u64;
-    let report = crate::native_restart::owned_checkpoint::probe_frozen(
-        &owner,
-        &root,
-        || {
-            tick += 1;
-            tick
-        },
-        || [0, 0],
-    )
-    .unwrap();
+    let (report, probe_memory) = crate::allocation_probe::observe(|| {
+        crate::native_restart::owned_checkpoint::probe_frozen(
+            &owner,
+            &root,
+            || {
+                tick += 1;
+                tick
+            },
+            || [0, 0],
+        )
+    });
+    let report = report.unwrap();
+    assert_eq!(probe_memory.retained_bytes(), 0);
     assert!(report.retained_cache_bytes > 0);
+    assert_eq!(Some(report.source_generation), generation_before_probe);
+    assert_eq!(report.source_bytes, before_recipe[4]);
+    assert_eq!(report.output_bytes, before_recipe[5]);
     let cache_refusal = crate::allocation_probe::refuse_next_allocation_size(before_recipe[0]);
-    let failed =
-        crate::native_restart::owned_checkpoint::probe_frozen(&owner, &root, || 0, || [0, 0]);
+    let (failed, failure_memory) = crate::allocation_probe::observe(|| {
+        crate::native_restart::owned_checkpoint::probe_frozen(&owner, &root, || 0, || [0, 0])
+    });
     drop(cache_refusal);
     assert_eq!(failed, Err("checkpoint-probe-cache-capacity"));
+    assert_eq!(failure_memory.retained_bytes(), 0);
     assert!(crate::native_restart::publication_ready());
     assert_eq!(crate::native_restart::generation(), generation_before_probe);
     assert!(serde_json::to_vec(owner.evidence()).unwrap() == owner_before_probe);
