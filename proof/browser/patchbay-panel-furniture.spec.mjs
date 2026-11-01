@@ -34,7 +34,7 @@ test("Patchbay has one stable Library and one contextual Inspect surface", async
     await expect(page.locator("body")).toHaveAttribute("data-application-ready", "true");
     const navigation = page.getByRole("navigation", { name: "Patchbay workspace" });
     await expect(navigation.getByRole("button", { name: "Library" })).toHaveCount(1);
-    await expect(navigation.getByRole("button", { name: "Inspect" })).toHaveCount(1);
+    await expect(navigation.getByRole("button", { name: "Inspect", exact: true })).toHaveCount(1);
     await expect(navigation.getByRole("button")).toHaveCount(3);
     await expect(page.locator("#palette")).toBeHidden();
     await expect(page.locator("#inspector")).toBeHidden();
@@ -53,7 +53,7 @@ test("Patchbay has one stable Library and one contextual Inspect surface", async
     await expect(page.locator("#inspector")).toBeHidden();
     await navigation.getByRole("button", { name: "Library" }).click();
     await expect(page.locator("#palette")).toBeHidden();
-    await navigation.getByRole("button", { name: "Inspect" }).focus();
+    await navigation.getByRole("button", { name: "Inspect", exact: true }).focus();
     await page.keyboard.press("Enter");
     await expect(page.locator("#inspector")).toBeVisible();
     await page.getByRole("button", { name: "Debug", exact: true }).click();

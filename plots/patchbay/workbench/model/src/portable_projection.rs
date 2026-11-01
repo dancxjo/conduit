@@ -4,7 +4,7 @@ use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SignId, SourceDocumentId};
 use conduit_face::{
     Face, FaceAction, FaceActionAvailability, FaceBasis, FaceContributionBasis, FaceDisclosure,
-    FaceDisclosureLevel, FaceError, FaceFragment, FaceFragmentError, FaceRole,
+    FaceDisclosureLevel, FaceError, FaceFragment, FaceFragmentError, FacePropertyValue, FaceRole,
 };
 
 pub(super) use crate::portable_content::ContentBuilder;
@@ -449,6 +449,16 @@ fn append_plan_and_play(face: &PatchbayFace, document: &str, content: &mut Conte
             format!("play/{}", play.active_play_id.as_str()),
             FaceRole::Play,
             format!("Play {}", play.active_play_id.as_str()),
+        );
+        content.property(
+            &subject,
+            "play-state",
+            FacePropertyValue::Text(format!("{:?}", play.terminal)),
+        );
+        content.property(
+            &subject,
+            "sign-count",
+            FacePropertyValue::Count(play.signs.len() as u64),
         );
         content.describes(&subject, document);
         for line in &play.lines {

@@ -1,5 +1,21 @@
 // Inputs check wire representation; only the canonical editor admits edits.
 export class ConfigurationValueError extends Error {}
+
+// Compare the server's two revision axes; a newer interaction cannot revive an older Face.
+export function snapshotOrder(incoming, current) {
+  if (!current) return 1;
+  if (incoming.revision !== current.revision) return Math.sign(incoming.revision - current.revision);
+  return Math.sign(incoming.interaction.revision - current.interaction.revision);
+}
+
+// A transport acknowledgement is not an admitted edit or Save.
+export function requireAuthoringSuccess(snapshot) {
+  const disposition = snapshot?.interaction?.last_disposition;
+  if (disposition !== "Succeeded") throw new Error(disposition ?? "No canonical acknowledgement received");
+  return snapshot;
+}
+
+// Native controls render catalog rules; only the canonical editor validates edits.
 export function authoringBasis(value) {
   return value ? JSON.stringify([value.source_document_id, value.source_revision,
     value.checked_plot_id, value.expanded_plot_id]) : null;
@@ -57,6 +73,13 @@ export function renderConfigurationFields(root, fields, apply, options = {}) {
     group.dataset.applicationComponent = "plot-field";
     const label = document.createElement("label");
     label.textContent = options.label ?? (field.rule?.DataLabel ? "Data name" : `Configure ${field.key}`);
+    if (field.value.Structured !== undefined) {
+      const notice = document.createElement("p");
+      notice.textContent = `${field.key}: this structured value is editable in canonical source; no scalar control is available.`;
+      group.append(notice);
+      root.append(group);
+      continue;
+    }
     const choices = field.rule?.TextOneOf?.values ?? (field.value.Bool !== undefined ? ["false", "true"] : null);
     const input = document.createElement(choices ? "select" : "input");
     input.id = `authoring-field-${crypto.randomUUID()}`;

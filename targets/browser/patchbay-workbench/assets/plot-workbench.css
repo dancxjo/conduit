@@ -1,0 +1,60 @@
+/* Plot authoring furniture. Existing Look tokens and Flow geometry remain in use. */
+#maker-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; grid-column:1/-1; }
+#maker-toolbar button,#maker-choices button { min-height:44px; }
+#maker-invitation { position:absolute; z-index:3; top:30%; left:max(2rem,32%); width:min(35rem,60%); padding:1.5rem; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.55rem; }
+#maker-invitation h2 { font-size:1.6rem; }
+#maker-invitation p { line-height:1.5; }
+#maker-choices { display:flex; flex-wrap:wrap; gap:.6rem; }
+#maker-status { position:fixed; z-index:11; inset:auto .75rem .5rem; padding:.6rem .85rem; background:var(--conduit-surface); border:1px solid var(--conduit-structure-secondary); border-radius:.4rem; }
+#maker-status[data-refused="true"] { color:var(--conduit-failure); border-color:var(--conduit-failure); }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) .workspace { height:100%; }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #palette { width:17rem; bottom:3.8rem; }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #inspector { width:20rem; bottom:3.8rem; }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) .canvas-heading { left:18.5rem; right:.75rem; top:5rem; max-width:none; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:.5rem; }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) .canvas-actions { display:flex; }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #current-status,
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #front-door-actions,
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #temporal-context { display:none; }
+body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) [data-application-key="product-status"] { display:none; }
+body[data-maker-mode="welcome"] #flow-root { visibility:hidden; }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #flow-root { top:15rem; bottom:4rem; height:auto; }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) .faceplate-title,
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) .faceplate-clue,
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) .faceplate-port-name { white-space:normal; overflow-wrap:anywhere; text-overflow:clip; }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) .faceplate-clue { line-height:1.35; }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) .faceplate-port { min-height:2.3rem; cursor:pointer; }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) .faceplate-port:focus-visible { outline:3px solid var(--conduit-focus); outline-offset:-3px; }
+@media (min-width:1001px) {
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"])[data-palette-open="true"] #flow-root { left:18.5rem; }
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"])[data-inspector-open="true"]:has(#inspector[data-furniture-dock="right"][data-furniture-collapsed="false"]) #flow-root { right:21.5rem; }
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"])[data-inspector-open="true"]:has(#inspector[data-furniture-dock="right"][data-furniture-collapsed="false"]) .canvas-heading { right:21.5rem; }
+}
+@media (max-width:1000px) {
+  body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) .canvas-heading { left:.75rem; }
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #flow-root { left:0; right:0; }
+  #maker-invitation { left:1rem; top:33%; width:calc(100% - 2rem); }
+  body[data-maker-mode="welcome"][data-palette-open="true"] #maker-invitation { left:18.5rem; width:calc(100% - 19.5rem); }
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #palette { max-height:55vh; }
+}
+@media (max-width:720px) {
+  body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) .canvas-heading { top:10rem; max-height:13rem; overflow:auto; grid-template-columns:1fr; }
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #flow-root { top:23rem; }
+  body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #palette,
+  body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #inspector { top:23rem; width:calc(100% - 1.5rem); max-height:45vh; }
+  body[data-maker-mode="welcome"] #maker-invitation { left:1rem; top:25rem; width:calc(100% - 2rem); }
+  #maker-status { max-height:5rem; overflow:auto; }
+}
+
+#maker-toolbar[hidden] { display:none; }
+
+#maker-views { margin-top:.4rem; font-size:.85rem; }
+#maker-views summary { cursor:pointer; }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #flow-root { top:var(--maker-heading-bottom,15rem); }
+body:is([data-maker-mode="edit"],[data-maker-mode="run"])[data-palette-open="false"] .canvas-heading { left:.75rem; }
+@media(max-width:1000px) {
+  body:is([data-maker-mode="welcome"],[data-maker-mode="edit"],[data-maker-mode="run"]) #palette { top:var(--maker-heading-bottom,15rem); }
+  body:is([data-maker-mode="edit"],[data-maker-mode="run"]) #inspector { left:auto; right:.75rem; }
+}
+
+#maker-views #current-status, #maker-views #front-door-actions, #maker-views #temporal-context { display:flex; position:static; max-width:none; }
+#maker-views .status-strip[hidden] { display:none; }
