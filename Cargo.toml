@@ -127,6 +127,7 @@ members = [
 ]
 exclude = [
 	# Retain independently rooted environmental/MCU construction workspaces.
+	"bodies/environment/history",
 	"bodies/environment/host",
 	"bodies/environment/make",
 	"bodies/environment/runtime",

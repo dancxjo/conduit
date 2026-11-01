@@ -2,6 +2,8 @@
 
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod backs;
+#[cfg(test)]
+mod history_tests;
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod interaction;
 #[cfg(any(test, feature = "native-compositor-core"))]
@@ -32,7 +34,7 @@ use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedVal
 #[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 #[cfg(any(test, feature = "native-compositor-core"))]
-use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
+use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 #[cfg(any(test, feature = "native-compositor-core"))]
 use serde::Serialize;
 #[cfg(any(test, feature = "native-compositor-core"))]

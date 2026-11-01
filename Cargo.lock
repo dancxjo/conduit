@@ -2036,6 +2036,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-history"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-environment-face",
+ "conduit-environment-measurement",
+ "conduit-environment-runtime",
+ "conduit-face",
+]
+
+[[package]]
 name = "conduit-environment-host"
 version = "0.1.0"
 dependencies = [
@@ -3052,6 +3063,8 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-environment-history",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-home-model",
  "conduit-human",

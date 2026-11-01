@@ -3,6 +3,7 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-preview" => Some(preview(root)),
@@ -62,5 +63,18 @@ fn browser(root: &Path) -> Result<(), Box<dyn Error>> {
         "chromium",
         "--workers=1",
         "--retries=0",
+    ]))
+}
+
+fn native(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_mask_play::history_tests",
     ]))
 }
