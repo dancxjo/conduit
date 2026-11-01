@@ -7,7 +7,7 @@ use crate::{
 };
 use alloc::{collections::BTreeSet, vec::Vec};
 
-const MAX_PREPARED_COLLECTION_ITEMS: usize = 64;
+pub(crate) const MAX_PREPARED_COLLECTION_ITEMS: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CollectionFactsRefusal {
@@ -64,7 +64,7 @@ fn selected(face: &Face, subject: &str) -> Result<bool, Refusal> {
         _ => Err(Refusal::Type),
     }
 }
-fn value<'a>(
+pub(crate) fn value<'a>(
     face: &'a Face,
     subject: &str,
     name: &str,
@@ -90,15 +90,33 @@ pub(crate) fn multiplicity(
     }
 }
 
+/// Borrowed results of the same validation used by structural recipes.
+#[derive(Debug)]
+pub(crate) struct PreparedCollectionFacts<'a> {
+    pub subject: &'a FaceSubject,
+    pub items: Vec<&'a FaceSubject>,
+    pub multiplicity: Option<ChoiceMultiplicity>,
+    pub exclusive_action: Option<&'a FaceAction>,
+}
+
 pub(crate) fn validate_collection(
     face: &Face,
     collection: &str,
     maximum_items: usize,
 ) -> Result<(), Refusal> {
+    prepare_collection(face, collection, maximum_items).map(|_| ())
+}
+
+pub(crate) fn prepare_collection<'a>(
+    face: &'a Face,
+    collection: &str,
+    maximum_items: usize,
+) -> Result<PreparedCollectionFacts<'a>, Refusal> {
     if maximum_items == 0 || maximum_items > MAX_PREPARED_COLLECTION_ITEMS {
         return Err(Refusal::Capacity);
     }
-    face.subjects
+    let subject = face
+        .subjects
         .iter()
         .find(|s| s.identity == collection && s.role == FaceRole::Collection)
         .ok_or(Refusal::MissingCollection)?;
@@ -133,19 +151,23 @@ pub(crate) fn validate_collection(
     }
     items.sort_by_key(|item| count(face, &item.identity, "order").expect("admitted source order"));
     let multiplicity = multiplicity(face, collection)?;
-    match multiplicity {
-        Some(ChoiceMultiplicity::Exclusive) => {
-            exclusive(face, collection, &items)?;
-        }
+    let exclusive_action = match multiplicity {
+        Some(ChoiceMultiplicity::Exclusive) => Some(exclusive(face, collection, &items)?),
         Some(ChoiceMultiplicity::Independent) => {
             independent_counts(face, collection, &items)?;
             for item in &items {
                 independent(face, &item.identity)?;
             }
+            None
         }
-        None => {}
-    }
-    Ok(())
+        None => None,
+    };
+    Ok(PreparedCollectionFacts {
+        subject,
+        items,
+        multiplicity,
+        exclusive_action,
+    })
 }
 
 fn exclusive<'a>(
@@ -255,7 +277,7 @@ fn independent_counts(
     Ok(())
 }
 
-fn independent<'a>(face: &'a Face, item: &str) -> Result<&'a FaceAction, Refusal> {
+pub(crate) fn independent<'a>(face: &'a Face, item: &str) -> Result<&'a FaceAction, Refusal> {
     let id = identity(face, item, "boolean-change-action")?;
     let (index, action) = face
         .actions
