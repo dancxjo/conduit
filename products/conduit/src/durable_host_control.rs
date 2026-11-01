@@ -959,6 +959,11 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyEstablishRootSigner {
+        protocol: u16,
+        token: Vec<u8>,
+        body_id: String,
+    },
     BodyInspect {
         protocol: u16,
         token: Vec<u8>,
@@ -1248,6 +1253,10 @@ enum Response {
         target_id: String,
         image_content_digest: String,
         advertisement: HostAdvertisement,
+    },
+    BodyRootSignerEstablished {
+        protocol: u16,
+        binding: crate::durable_host::root_signer::Binding,
     },
     BodyTruth {
         protocol: u16,
@@ -1894,6 +1903,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         #[cfg(target_os = "linux")]
         Request::Notebook { token, .. } => token,
         Request::Status { token, .. }
+        | Request::BodyEstablishRootSigner { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
@@ -2007,6 +2017,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             image_content_digest: truth.image_content_digest.clone(),
             advertisement: truth.advertisement.clone(),
         },
+        Request::BodyEstablishRootSigner {
+            protocol, body_id, ..
+        } if protocol == PROTOCOL => runtime
+            .establish_owned_root_signer(&body_id)
+            .map(|binding| Response::BodyRootSignerEstablished {
+                protocol: PROTOCOL,
+                binding,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyInspect { protocol, .. } if protocol == PROTOCOL => runtime
             .owned_body_truth()
             .map(|truth| Response::BodyTruth {
@@ -3303,3 +3322,11 @@ mod tests {
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 #[path = "durable_host_control/environmental_worker.rs"]
 mod environmental_worker;
+
+pub(crate) fn establish_root_signer(
+    state_dir: &Path,
+    body_id: &str,
+    authorized: bool,
+) -> Result<(), String> {
+    body::establish_root_signer(state_dir, body_id, authorized)
+}

@@ -112,6 +112,7 @@ fn archive_transaction_replays_before_active_biography_and_refuses_corruption() 
     write_json_atomic(
         &root.join("body/owner-transaction.json"),
         &Transaction {
+            root_signer: None,
             schema: "conduit.body/owner-transaction@1".into(),
             biography: biography.clone(),
             installation,

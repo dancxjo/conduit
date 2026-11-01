@@ -18,6 +18,8 @@ pub(super) const MAXIMUM_STATE: u64 = 2 * 1024 * 1024;
 #[serde(deny_unknown_fields)]
 struct Transaction {
     schema: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    root_signer: Option<crate::durable_host::root_signer::Binding>,
     biography: BodyBiographyEvidence,
     installation: Installation,
     #[serde(default)]
@@ -89,6 +91,22 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     {
         return Err("owner transaction biography identity differs".into());
     }
+    if let Some(binding) = &transaction.root_signer {
+        crate::durable_host::root_signer::validate(
+            root,
+            binding,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
+    } else if crate::durable_host::root_signer::selected(
+        root,
+        transaction.biography.body_id.as_str(),
+        &transaction.installation.host_id,
+    )?
+    .is_some()
+    {
+        return Err("owner transaction would erase selected Root signer".into());
+    }
     if let Some(source) = &transaction.source {
         validate_source(&transaction.biography, source)?;
     }
@@ -126,6 +144,14 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
         if legacy.exists() {
             fs::remove_file(legacy).map_err(|error| error.to_string())?;
         }
+    }
+    if let Some(binding) = &transaction.root_signer {
+        crate::durable_host::root_signer::commit(
+            root,
+            binding,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
     }
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
@@ -166,6 +192,7 @@ pub(super) fn retain_with_archives(
         None,
         None,
         archives,
+        None,
     )
 }
 
@@ -192,6 +219,7 @@ pub(super) fn retain_session(
         source,
         todo_selection,
         session.pending_archives(),
+        None,
     )?;
     if let Some(head) = head {
         session
@@ -220,6 +248,7 @@ pub(super) fn retain_with_source_and_todo_selection(
         source,
         todo_selection,
         &[],
+        None,
     )
 }
 
@@ -231,6 +260,7 @@ fn retain_inner(
     source: Option<&[u8]>,
     todo_selection: Option<&super::super::selected_todo::Selection>,
     archives: &[BodyBiographyArchiveSegment],
+    establish_signer: Option<crate::durable_host::root_signer::Binding>,
 ) -> Result<(), String> {
     recover(root)?;
     validate_archive_segments(root, biography, archives)?;
@@ -295,7 +325,28 @@ fn retain_inner(
         biography.body_id.as_str(),
         last_execution,
     )?;
+    let selected_signer = crate::durable_host::root_signer::selected(
+        root,
+        biography.body_id.as_str(),
+        &installation.host_id,
+    )?;
+    if selected_signer
+        .as_ref()
+        .is_some_and(|old| establish_signer.as_ref().is_some_and(|new| old != new))
+    {
+        return Err("Root signer replacement refused".into());
+    }
+    let root_signer = establish_signer.or(selected_signer);
+    if let Some(binding) = &root_signer {
+        crate::durable_host::root_signer::validate(
+            root,
+            binding,
+            biography.body_id.as_str(),
+            &installation.host_id,
+        )?;
+    }
     let transaction = Transaction {
+        root_signer,
         schema: "conduit.body/owner-transaction@1".into(),
         biography: biography.clone(),
         installation,
@@ -353,6 +404,11 @@ pub(super) fn load(root: &Path) -> Result<Option<BodyBiographyEvidence>, String>
     if biography.body_id.as_str() != binding.body_id {
         return Err("retained Body identity differs".into());
     }
+    crate::durable_host::root_signer::selected(
+        root,
+        biography.body_id.as_str(),
+        &installation.host_id,
+    )?;
     Ok(Some(biography))
 }
 
@@ -398,6 +454,9 @@ pub(super) fn admissions(
 #[path = "state_archive_tests.rs"]
 mod archive_tests;
 
+#[cfg(all(test, unix))]
+#[path = "state_root_signer_tests.rs"]
+mod root_signer_tests;
 #[cfg(test)]
 #[path = "state_tests.rs"]
 mod tests;
@@ -447,3 +506,32 @@ fn new_play_started(root: &Path, biography: &BodyBiographyEvidence) -> Result<bo
 #[cfg(test)]
 #[path = "state_execution_custody_tests.rs"]
 mod execution_custody_tests;
+
+/// Called only by the authenticated live owner while its ownership lock is held.
+pub(super) fn establish_root_signer(
+    root: &Path,
+    expected_body: &str,
+) -> Result<crate::durable_host::root_signer::Binding, String> {
+    recover(root)?;
+    let biography = load(root)?.ok_or("installed owner has no Body")?;
+    if biography.body_id.as_str() != expected_body {
+        return Err("Root signer establishment differs from exact Body".into());
+    }
+    let installation = read_installation(&root.join("installation.json"))?;
+    if installation.joined_body_state.is_some() {
+        return Err("joined Host cannot establish Root signer".into());
+    }
+    let signer =
+        crate::durable_host::root_signer::prepare(root, expected_body, &installation.host_id)?;
+    retain_inner(
+        root,
+        &biography,
+        execution(root)?.as_ref(),
+        admissions(root, &biography.body_id)?.as_ref(),
+        None,
+        None,
+        &[],
+        Some(signer.clone()),
+    )?;
+    Ok(signer)
+}

@@ -52,6 +52,7 @@ fn checked_source_and_biography_replay_as_one_owner_transaction() {
     retain_with_source(&root, &evidence, None, None, Some(SOURCE.as_bytes())).unwrap();
     let committed = read_installation(&root.join("installation.json")).unwrap();
     let transaction = Transaction {
+        root_signer: None,
         schema: "conduit.body/owner-transaction@1".into(),
         biography: evidence.clone(),
         installation: committed,
@@ -168,6 +169,7 @@ fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
     write_json_atomic(
         &root.join("body/owner-transaction.json"),
         &Transaction {
+            root_signer: None,
             schema: "conduit.body/owner-transaction@1".into(),
             biography: evidence.clone(),
             installation: retained_installation,
