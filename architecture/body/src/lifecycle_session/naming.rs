@@ -32,7 +32,7 @@ impl BodyLifecycleSession {
             .find(|record| matches!(record.kind, BodyBiographyRecordKind::Renamed { .. }));
         if self.evidence.friendly_name == request.new_name {
             if let Some(record) = retry.filter(|record| matches!(&record.kind, BodyBiographyRecordKind::Renamed { request_digest, .. } if request_digest == &authorized.digest)) {
-                return Ok(BodyRenameResult { body_id: self.evidence.body_id.clone(), friendly_name: self.evidence.friendly_name.clone(), sequence: record.sequence, sign_id: record.sign_id.clone(), request_digest: authorized.digest, changed: false });
+                return Ok(BodyRenameResult { body_id: self.evidence.body_id.clone(), friendly_name: self.evidence.friendly_name.clone(), sequence: record.sequence, sign_id: record.sign_id.clone(), request_digest: authorized.digest, record_digest: Some(record.rename_digest().map_err(|_| BodyRenameRefusal::Evidence)?), changed: false });
             }
         }
         if request.expected_sequence != self.evidence.last_sequence() {
@@ -56,12 +56,13 @@ impl BodyLifecycleSession {
                 .clone()
         };
         // Prepare completion storage before changing the authoritative session.
-        let result = BodyRenameResult {
+        let mut result = BodyRenameResult {
             body_id: self.evidence.body_id.clone(),
             friendly_name: request.new_name.clone(),
             sequence,
             sign_id: sign_id.clone(),
             request_digest: authorized.digest,
+            record_digest: None,
             changed,
         };
         if changed {
@@ -85,6 +86,14 @@ impl BodyLifecycleSession {
             candidate
                 .validate()
                 .map_err(|_| BodyRenameRefusal::Evidence)?;
+            result.record_digest = Some(
+                candidate
+                    .records
+                    .last()
+                    .ok_or(BodyRenameRefusal::Evidence)?
+                    .rename_digest()
+                    .map_err(|_| BodyRenameRefusal::Evidence)?,
+            );
             self.evidence = candidate;
         }
         Ok(result)

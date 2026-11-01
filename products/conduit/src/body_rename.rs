@@ -34,6 +34,8 @@ pub(crate) struct Args {
 
 pub(crate) fn run(args: Args) -> Result<(), String> {
     let root = read_key(&args.root_key_file)?;
+    let mut nonce = [0; 32];
+    getrandom::fill(&mut nonce).map_err(|_| "rename request randomness unavailable")?;
     let mut request = BodyRenameRequest {
         schema: BODY_RENAME_REQUEST_SCHEMA.into(),
         body_id: serde_json::from_value(serde_json::Value::String(args.body_id))
@@ -41,6 +43,7 @@ pub(crate) fn run(args: Args) -> Result<(), String> {
         host_id: args.host_id.into(),
         boot_id: args.boot_id.into(),
         expected_sequence: args.expected_sequence,
+        nonce,
         new_name: args.name,
         attribution: args.attribution,
         signature: vec![],
@@ -55,11 +58,16 @@ pub(crate) fn run(args: Args) -> Result<(), String> {
     let response = exchange(args.endpoint, "POST", "/body/join", &encoded)?;
     let queued: serde_json::Value =
         serde_json::from_slice(&response).map_err(|_| "rename queue response")?;
+    if queued.get("schema").and_then(|value| value.as_str())
+        != Some("conduit.environment/body-join-queued@1")
+    {
+        return Err("rename was not queued".into());
+    }
     let ticket = queued
         .get("ticket")
-        .or_else(|| queued.get("id"))
-        .and_then(|v| v.as_u64())
-        .ok_or("rename was not queued")?;
+        .and_then(|value| value.as_u64())
+        .filter(|ticket| *ticket > 0 && *ticket <= u64::from(u32::MAX))
+        .ok_or("rename queue ticket")?;
     let deadline = Instant::now() + Duration::from_secs(30);
     loop {
         let response = exchange(
@@ -72,9 +80,20 @@ pub(crate) fn run(args: Args) -> Result<(), String> {
             receipt
                 .verify(&root, &request)
                 .map_err(|e| format!("rename receipt: {e:?}"))?;
+            #[derive(serde::Serialize)]
+            struct Completion<'a> {
+                schema: &'static str,
+                request: &'a BodyRenameRequest,
+                receipt: &'a BodyRenameReceipt,
+            }
             println!(
                 "{}",
-                serde_json::to_string_pretty(&receipt).map_err(|_| "rename receipt encoding")?
+                serde_json::to_string_pretty(&Completion {
+                    schema: "conduit.body/rename-completion@1",
+                    request: &request,
+                    receipt: &receipt,
+                })
+                .map_err(|_| "rename receipt encoding")?
             );
             return Ok(());
         }

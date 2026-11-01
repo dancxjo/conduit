@@ -74,15 +74,16 @@ WebUSB consume these semantics; opening a product never requests permission.
 The friendly name is bounded administrative metadata, independent of Body
 identity, workload revision, membership, Plan and Play. A rename is an explicit
 owner-signed request naming the exact Body, receiving Host/Boot, expected
-biography sequence, new name and attribution. The trusted adapter supplies the
+biography sequence, fresh request nonce, new name and attribution. The trusted adapter supplies the
 provisioned owner verification key; neither a request-supplied key nor membership
 confers permission. Fulfilled Bodies refuse changes.
 
 The lifecycle session appends `Renamed` evidence and updates the current name
 atomically. Stale requests refuse; an exact successful retry or an already-current
 name appends nothing. The adapter must commit the resulting biography and any
-archive custody before issuing a Root-signed completion. Transport acceptance is
-not completion. A failed or uncertain write requires reconciliation before retry.
+archive custody before issuing a Root-signed completion. That completion binds
+the exact rename record digest, authenticating both names, attribution and owner
+key as well as the request. Transport acceptance is not completion. A failed or uncertain write requires reconciliation before retry.
 
 Renamed biographies use `biography-evidence@3`, which older writers reject;
 existing v2 evidence retains its original name without synthetic rename events.

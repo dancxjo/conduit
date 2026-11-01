@@ -18,6 +18,7 @@ pub struct BodyRenameRequest {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub expected_sequence: u64,
+    pub nonce: [u8; 32],
     pub new_name: String,
     pub attribution: String,
     pub signature: Vec<u8>,
@@ -50,6 +51,8 @@ pub struct BodyRenameResult {
     pub sequence: u64,
     pub sign_id: conduit_core::SignId,
     pub request_digest: [u8; 32],
+    /// Exact renamed biography record authenticated by this completion.
+    pub record_digest: Option<[u8; 32]>,
     pub changed: bool,
 }
 
@@ -70,6 +73,7 @@ impl BodyRenameRequest {
             hash.update(value.as_bytes());
         }
         hash.update(self.expected_sequence.to_le_bytes());
+        hash.update(self.nonce);
         hash.finalize().into()
     }
 
@@ -78,6 +82,7 @@ impl BodyRenameRequest {
         pinned_owner_key: &[u8; 32],
     ) -> Result<AuthorizedBodyRename, BodyRenameRefusal> {
         if self.schema != BODY_RENAME_REQUEST_SCHEMA
+            || self.nonce == [0; 32]
             || !valid_name(&self.new_name)
             || self.attribution.trim().is_empty()
             || self.attribution.len() > MAX_LIFECYCLE_ID_BYTES
@@ -147,8 +152,49 @@ impl BodyRenameReceipt {
         }
         hash.update(self.result.sequence.to_le_bytes());
         hash.update(self.result.request_digest);
+        hash.update([u8::from(self.result.record_digest.is_some())]);
+        if let Some(digest) = self.result.record_digest {
+            hash.update(digest);
+        }
         hash.update([u8::from(self.result.changed)]);
         Ok(hash.finalize().into())
+    }
+    /// Verify the previous/new names and attribution against the Root-signed
+    /// completion, in addition to verifying the request and current name.
+    pub fn verify_record(
+        &self,
+        pinned_root: &[u8; 32],
+        request: &BodyRenameRequest,
+        record: &crate::BodyBiographyRecord,
+    ) -> Result<(), BodyRenameRefusal> {
+        self.verify(pinned_root, request)?;
+        let crate::BodyBiographyRecordKind::Renamed {
+            new_name,
+            attribution,
+            request_digest,
+            ..
+        } = &record.kind
+        else {
+            return Err(BodyRenameRefusal::Evidence);
+        };
+        if new_name != &self.result.friendly_name
+            || attribution != &request.attribution
+            || request_digest != &self.result.request_digest
+        {
+            return Err(BodyRenameRefusal::Evidence);
+        }
+        if self.result.record_digest
+            != Some(
+                record
+                    .rename_digest()
+                    .map_err(|_| BodyRenameRefusal::Evidence)?,
+            )
+            || record.sequence != self.result.sequence
+            || record.sign_id != self.result.sign_id
+        {
+            return Err(BodyRenameRefusal::Evidence);
+        }
+        Ok(())
     }
     pub fn verify(
         &self,
@@ -161,6 +207,7 @@ impl BodyRenameReceipt {
             || self.result.friendly_name != request.new_name
             || self.result.request_digest != request.transcript()
             || self.result.sign_id.as_str().is_empty()
+            || (self.result.changed && self.result.record_digest.is_none())
             || self.result.sequence < request.expected_sequence
         {
             return Err(BodyRenameRefusal::Evidence);

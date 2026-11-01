@@ -23,6 +23,7 @@ impl BodyBiographyEvidence {
                     || attribution.chars().any(char::is_control)
                     || last_name.is_some_and(|name| name != previous_name)
                     || record.sign_id.as_str().is_empty()
+                    || record.sign_id.as_str().len() > MAX_LIFECYCLE_ID_BYTES
                 {
                     return Err(BodyBiographyError::InvalidEvidence);
                 }
@@ -75,4 +76,22 @@ fn valid_name(name: &str) -> bool {
     !name.trim().is_empty()
         && name.len() <= MAX_BODY_FRIENDLY_NAME_BYTES
         && !name.chars().any(char::is_control)
+}
+
+impl BodyBiographyRecord {
+    /// Bounded canonical event digest; a Root completion authenticates this
+    /// exact record, including previous name, new name, actor and owner key.
+    pub fn rename_digest(&self) -> Result<[u8; 32], BodyBiographyError> {
+        use sha2::{Digest, Sha256};
+        if !matches!(self.kind, BodyBiographyRecordKind::Renamed { .. }) {
+            return Err(BodyBiographyError::InvalidEvidence);
+        }
+        let mut buffer = [0; 1024];
+        let bytes = postcard::to_slice(self, &mut buffer)
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.body/renamed-record@1\0");
+        hash.update(bytes);
+        Ok(hash.finalize().into())
+    }
 }

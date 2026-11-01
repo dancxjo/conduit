@@ -79,6 +79,7 @@ fn request(
         host_id: host.clone(),
         boot_id: boot.clone(),
         expected_sequence: session.evidence().last_sequence(),
+        nonce: [23; 32],
         new_name: name.into(),
         attribution: "House operator".into(),
         signature: vec![],
@@ -239,6 +240,23 @@ fn signed_receipt_binds_root_body_name_and_request() {
         .unwrap();
     let (_, allocations) = allocation_probe::observe(|| receipt.transcript().unwrap());
     assert_eq!(allocations.allocations + allocations.reallocations, 0);
+    let mut fresh = r.clone();
+    fresh.nonce[0] ^= 1;
+    fresh.sign(&[7; 32]);
+    assert!(receipt
+        .verify(&root.verifying_key().to_bytes(), &fresh)
+        .is_err());
+    let record = session.evidence().records.last().unwrap();
+    receipt
+        .verify_record(&root.verifying_key().to_bytes(), &r, record)
+        .unwrap();
+    let mut tampered = record.clone();
+    if let BodyBiographyRecordKind::Renamed { previous_name, .. } = &mut tampered.kind {
+        *previous_name = "forged old name".into();
+    }
+    assert!(receipt
+        .verify_record(&root.verifying_key().to_bytes(), &r, &tampered)
+        .is_err());
     receipt.result.friendly_name = "forged".into();
     assert!(receipt
         .verify(&root.verifying_key().to_bytes(), &r)
