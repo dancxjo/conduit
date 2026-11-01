@@ -1,19 +1,29 @@
 //! Paint chrome from admitted row geometry; no layout or input authority.
 use super::*;
 
+pub(in crate::native_face_scene) struct RowChromeMetrics {
+    pub focus_marker_width: u16,
+    pub control_radius: Option<u8>,
+}
+
 /// Draw panel surfaces before any rows: authored geometry order may differ
 /// from the source reading order restored after layout admission.
 pub(in crate::native_face_scene) fn append_panel_chrome(
     scene: &mut GraphicsScene,
     row: &Row,
     screen: LayoutRect,
+    radius: Option<u8>,
 ) -> Result<(), FaceSceneError> {
     if let Some(bounds) = row.panel_bounds {
         for (paint, shape) in [
             (GraphicsPaintRole::Surface, GraphicsShapeStyle::RoundedFill),
             (GraphicsPaintRole::Border, GraphicsShapeStyle::RoundedStroke),
         ] {
-            push(scene, GraphicsCommand::rect(bounds, screen, paint, shape))?;
+            push(
+                scene,
+                GraphicsCommand::rect(bounds, screen, paint, shape)
+                    .and_then(|command| corners::apply(command, radius)),
+            )?;
         }
     }
     Ok(())
@@ -28,8 +38,12 @@ pub(in crate::native_face_scene) fn append_row_chrome(
     outline: GraphicsPaintRole,
     showing_details: bool,
     focused: bool,
-    focus_marker_width: u16,
+    metrics: RowChromeMetrics,
 ) -> Result<(), FaceSceneError> {
+    let RowChromeMetrics {
+        focus_marker_width,
+        control_radius,
+    } = metrics;
     if !showing_details && row.region_start && row.region.is_none() {
         push(
             scene,
@@ -64,7 +78,8 @@ pub(in crate::native_face_scene) fn append_row_chrome(
                 } else {
                     GraphicsShapeStyle::RoundedStroke
                 },
-            ),
+            )
+            .and_then(|command| corners::apply(command, control_radius)),
         )?;
     }
     // An inset outline distinguishes focus even with identical paints. Choice
@@ -130,7 +145,8 @@ pub(in crate::native_face_scene) fn append_row_chrome(
                         GraphicsPaintRole::Border
                     },
                     GraphicsShapeStyle::RoundedStroke,
-                ),
+                )
+                .and_then(|command| corners::apply(command, control_radius)),
             )?;
             return Ok(());
         }

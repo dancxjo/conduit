@@ -17,6 +17,7 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
     rows: &[Row],
     page: usize,
     screen: LayoutRect,
+    radius: Option<u8>,
 ) -> Result<(), FaceSceneError> {
     let mut surfaces: [Option<Surface>; MAX_PAGE_ROWS] = [None; MAX_PAGE_ROWS];
     let mut count = 0;
@@ -69,7 +70,8 @@ pub(in crate::native_face_scene) fn append_region_surfaces(
                     screen,
                     GraphicsPaintRole::Surface,
                     GraphicsShapeStyle::RoundedFill,
-                ),
+                )
+                .and_then(|command| corners::apply(command, radius)),
             )?;
         }
     }

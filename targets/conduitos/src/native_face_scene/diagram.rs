@@ -124,6 +124,7 @@ pub(super) fn append<'a>(
     face: &'a Face,
     screen: LayoutRect,
     page: usize,
+    radius: Option<u8>,
 ) -> Result<DiagramHits<'a>, FaceSceneError> {
     let gear_count = face
         .subjects
@@ -219,7 +220,8 @@ pub(super) fn append<'a>(
                 screen,
                 GraphicsPaintRole::Accent,
                 GraphicsShapeStyle::RoundedStroke,
-            ),
+            )
+            .and_then(|command| corners::apply(command, radius)),
         )?;
         if badges {
             badges::append(scene, bounds, screen)?;

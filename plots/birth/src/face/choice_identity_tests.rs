@@ -277,3 +277,73 @@ fn stable_choice_identity_does_not_replace_inventory_reading_order() {
         assert_eq!(observed, expected);
     }
 }
+
+/// Actual current Birth owner; the Show acknowledgement remains a Mask fixture.
+#[test]
+fn prepared_collection_proposal_commits_only_through_current_birth_owner() {
+    let mut draft = from_inventory(inventory());
+    let basis = host_owned_basis();
+    let face = draft.host_owned_face(&basis).unwrap();
+    let collection = face
+        .subjects
+        .iter()
+        .find(|subject| {
+            subject.role == conduit_face::FaceRole::Collection
+                && face.properties.iter().any(|property| {
+                    property.subject == subject.identity
+                        && property.name == "choice-multiplicity"
+                        && property.value == FacePropertyValue::Text("independent".into())
+                })
+        })
+        .unwrap();
+    let prepared = conduit_face::prepare_face_collection(&face, &collection.identity, 64).unwrap();
+    let original = draft.selection(draft.revision()).unwrap();
+    prepared.page(0, 1).unwrap();
+    assert_eq!(draft.selection(draft.revision()).unwrap(), original);
+    let show = super::fixtures::acknowledged_fixture_show(&face);
+    let beta = option(&face, "checked/beta");
+    let proposal = prepared
+        .interaction(&face, &show, &beta.identity, true, 1)
+        .unwrap();
+    assert_eq!(draft.selection(draft.revision()).unwrap(), original);
+    assert_eq!(
+        draft.apply_host_owned_face_interaction(&basis, &show, &proposal),
+        Ok(BirthActionOutcome::Changed)
+    );
+    let changed = draft.selection(draft.revision()).unwrap();
+    assert_eq!(changed.workset.len(), original.workset.len() + 1);
+    assert_eq!(
+        draft.apply_host_owned_face_interaction(&basis, &show, &proposal),
+        Err(BirthFaceRefusal::Interaction(
+            FaceInteractionRefusal::StaleFace
+        ))
+    );
+    assert_eq!(draft.selection(draft.revision()).unwrap(), changed);
+    let current = draft.host_owned_face(&basis).unwrap();
+    assert_eq!(
+        prepared.interaction(&current, &show, &beta.identity, true, 2),
+        Err(conduit_face::FaceCollectionRefusal::StaleFace)
+    );
+    let current_show = super::fixtures::acknowledged_fixture_show(&current);
+    let current_prepared =
+        conduit_face::prepare_face_collection(&current, &collection.identity, 64).unwrap();
+    let deselect = current_prepared
+        .interaction(&current, &current_show, &beta.identity, false, 2)
+        .unwrap();
+    assert_eq!(draft.selection(draft.revision()).unwrap(), changed);
+    assert_eq!(
+        draft.apply_host_owned_face_interaction(&basis, &current_show, &deselect),
+        Ok(BirthActionOutcome::Changed)
+    );
+    let restored = draft.selection(draft.revision()).unwrap();
+    assert_eq!(restored.workset, original.workset);
+    assert_eq!(restored.friendly_name, original.friendly_name);
+    assert!(restored.revision > changed.revision);
+    assert_eq!(
+        draft.apply_host_owned_face_interaction(&basis, &current_show, &deselect),
+        Err(BirthFaceRefusal::Interaction(
+            FaceInteractionRefusal::StaleFace
+        ))
+    );
+    assert_eq!(draft.selection(draft.revision()).unwrap(), restored);
+}

@@ -1,4 +1,4 @@
-//! Immutable Host profile selection; five text purposes remain portable.
+//! Immutable Host profile selection; six text purposes remain portable.
 use super::{ProfileMetrics, TextRole};
 use conduit_face::VisualTypography;
 
@@ -18,6 +18,7 @@ impl Typography {
     pub const fn style(self, role: TextRole) -> TextStyle {
         let profile = match (role, self.intent) {
             (TextRole::Title, VisualTypography::Engineering) => 5,
+            (TextRole::Value, _) => TextRole::Body as u8,
             _ => role as u8,
         };
         let em_size = match self.metrics {

@@ -312,3 +312,9 @@ pub use parsec_input_instruction_producer::*;
 
 mod collection_facts;
 pub use collection_facts::CollectionFactsRefusal;
+
+mod collections;
+pub use collections::{
+    prepare_face_collection, FaceCollectionPage, FaceCollectionRefusal, PreparedFaceCollection,
+    MAX_PREPARED_COLLECTION_ITEMS,
+};

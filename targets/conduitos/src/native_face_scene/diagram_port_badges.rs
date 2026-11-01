@@ -86,7 +86,7 @@ mod tests {
             height: 720,
         };
         let mut scene = GraphicsScene::empty();
-        let hits = super::super::append(&mut scene, &face, screen, 0).unwrap();
+        let hits = super::super::append(&mut scene, &face, screen, 0, None).unwrap();
         let symbols: Vec<_> = scene
             .commands()
             .iter()
