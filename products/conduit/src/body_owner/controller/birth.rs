@@ -132,6 +132,18 @@ impl Owner {
                 target_os = "linux"
             ))]
             recovered_source_catalog: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog_contents: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_chunk: None,
             todo_verified: None,
             notebook: None,
         }

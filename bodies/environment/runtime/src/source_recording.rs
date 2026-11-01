@@ -200,11 +200,21 @@ impl SourceRecordingSnapshot {
     /// Require Root's independently retained original context on recovery.
     /// This is exact correspondence, not signature verification or admission.
     pub fn read(bytes: &[u8], expected: &SourceRecordingContext) -> Result<Self, Refusal> {
+        Self::decode(bytes, Some(expected))
+    }
+    /// Decode bounded canonical candidate evidence without granting origin,
+    /// membership or storage authority. Recovery must independently establish
+    /// catalog custody, exact content identity and the expected Body before
+    /// accepting the embedded original context. Live readers should use read.
+    pub fn decode_candidate(bytes: &[u8]) -> Result<Self, Refusal> {
+        Self::decode(bytes, None)
+    }
+    fn decode(bytes: &[u8], expected: Option<&SourceRecordingContext>) -> Result<Self, Refusal> {
         if bytes.len() > MAXIMUM_BYTES {
             return Err(Refusal::Capacity);
         }
         let document: Document = serde_json::from_slice(bytes).map_err(|_| Refusal::Encoding)?;
-        if document.schema != SCHEMA || &document.context != expected {
+        if document.schema != SCHEMA || expected.is_some_and(|e| &document.context != e) {
             return Err(Refusal::Scope);
         }
         if document.entries.is_empty() {

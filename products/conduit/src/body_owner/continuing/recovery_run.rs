@@ -8,8 +8,16 @@ pub(in super::super) struct RecoveredCatalogReference {
     binding: conduit_std_host::state_value::DurableStateBinding,
     play: BodyPlayIdentity,
     reference: c::BoundedResourceRef,
+    host_id: c::HostId,
+    boot_id: c::BootId,
 }
 impl RecoveredCatalogReference {
+    pub(in super::super) fn host_id(&self) -> &c::HostId {
+        &self.host_id
+    }
+    pub(in super::super) fn boot_id(&self) -> &c::BootId {
+        &self.boot_id
+    }
     pub(in super::super) fn reference(&self) -> &c::BoundedResourceRef {
         &self.reference
     }
@@ -26,6 +34,7 @@ pub(super) struct RecoveryRun {
     bytes: [u8; 1024],
     length: usize,
     own_stop: bool,
+    host_boot: Option<(c::HostId, c::BootId)>,
 }
 impl RecoveryRun {
     pub(super) fn new(input: SourceCatalogRecoveryInput) -> Result<Self, String> {
@@ -37,6 +46,7 @@ impl RecoveryRun {
             bytes: [0; 1024],
             length: 0,
             own_stop: false,
+            host_boot: None,
         })
     }
     pub(super) fn execute<W: std::io::Write, T: conduit_std_host::TimerAdapter, F>(
@@ -50,6 +60,10 @@ impl RecoveryRun {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        self.host_boot = Some((
+            host.advertisement().host_id.clone(),
+            host.advertisement().boot_id.clone(),
+        ));
         let mut capture = RecoveryCapture {
             kind: &self.input.binding.value_kind,
             validator: &self.validator,
@@ -120,6 +134,18 @@ impl RecoveryRun {
                     binding: self.input.binding.clone(),
                     play: report.expect("clean report").play.clone(),
                     reference,
+                    host_id: self
+                        .host_boot
+                        .as_ref()
+                        .ok_or("recovery Host scope absent")?
+                        .0
+                        .clone(),
+                    boot_id: self
+                        .host_boot
+                        .as_ref()
+                        .ok_or("recovery Boot scope absent")?
+                        .1
+                        .clone(),
                 }))
             }
             _ => Err("catalog recovery current is not an optional reference".into()),

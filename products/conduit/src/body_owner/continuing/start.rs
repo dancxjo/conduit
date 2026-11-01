@@ -136,11 +136,43 @@ impl Owner {
         }
         let input = self.prepare_source_catalog_recovery(root, preparation_limit_bytes)?;
         self.recovered_source_catalog = None;
+        self.recovered_source_catalog_contents = None;
+        self.recovered_source_chunk = None;
         self.start_service_run_inner(
             root,
             maximum_millis,
             &mut None,
             Some(recording_run::RecordingRun::recovery(input)?),
+        )
+    }
+
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    pub(crate) fn start_service_recovered_source_read(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        authority: &conduit_core::AuthorityGrant,
+        chunk_index: Option<usize>,
+        preparation_limit_bytes: u64,
+    ) -> Result<RunWorker, String> {
+        if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
+            return Err("service run duration must be 1..900000 milliseconds".into());
+        }
+        let input = self.prepare_recovered_source_read(
+            root,
+            authority,
+            chunk_index,
+            preparation_limit_bytes,
+        )?;
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            &mut None,
+            Some(recording_run::RecordingRun::recovered_read(input)),
         )
     }
 

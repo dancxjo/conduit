@@ -18,6 +18,7 @@ pub(super) enum RecordingRun {
     Snapshot(SnapshotRun),
     Catalog(super::catalog_run::CatalogRun),
     Recovery(super::recovery_run::RecoveryRun),
+    RecoveredRead(super::recovered_read_run::RecoveredReadRun),
 }
 impl RecordingRun {
     pub(super) fn new(input: SourcePublicationInput) -> Self {
@@ -42,6 +43,20 @@ impl RecordingRun {
             _ => Ok(None),
         }
     }
+    pub(super) fn recovered_read(
+        input: source_recording_stage::recovered_read::RecoveredSourceReadInput,
+    ) -> Self {
+        Self::RecoveredRead(super::recovered_read_run::RecoveredReadRun::new(input))
+    }
+    pub(super) fn recovered_content(
+        &self,
+        report: Option<&BodyRunReport>,
+    ) -> Result<Option<super::recovered_read_run::RecoveredReadResult>, String> {
+        match self {
+            Self::RecoveredRead(run) => run.recovered(report),
+            _ => Ok(None),
+        }
+    }
     pub(super) fn execute<W: std::io::Write, T: conduit_std_host::TimerAdapter, F>(
         &mut self,
         host: StdHost,
@@ -57,6 +72,7 @@ impl RecordingRun {
             Self::Snapshot(run) => run.execute(host, request, output, timer, started),
             Self::Catalog(run) => run.execute(host, request, output, timer, started),
             Self::Recovery(run) => run.execute(host, request, output, timer, started),
+            Self::RecoveredRead(run) => run.execute(host, request, output, timer, started),
         }
     }
     pub(super) fn metadata(&self, report: Option<&BodyRunReport>) -> serde_json::Value {
@@ -64,6 +80,7 @@ impl RecordingRun {
             Self::Snapshot(run) => run.metadata(report),
             Self::Catalog(run) => run.metadata(report),
             Self::Recovery(run) => run.metadata(report),
+            Self::RecoveredRead(run) => run.metadata(report),
         }
     }
     pub(super) fn verified_snapshot(
@@ -72,7 +89,7 @@ impl RecordingRun {
     ) -> Option<VerifiedSourceSnapshot> {
         match self {
             Self::Snapshot(run) => run.verified_snapshot(report),
-            Self::Catalog(_) | Self::Recovery(_) => None,
+            Self::Catalog(_) | Self::Recovery(_) | Self::RecoveredRead(_) => None,
         }
     }
 }

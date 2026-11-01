@@ -43,6 +43,13 @@ mod recording_run;
     feature = "installed-body-storage",
     target_os = "linux"
 ))]
+#[path = "continuing/recovered_read_run.rs"]
+pub(super) mod recovered_read_run;
+#[cfg(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
 #[path = "continuing/recovery_run.rs"]
 pub(super) mod recovery_run;
 #[cfg(all(
@@ -217,7 +224,9 @@ impl Owner {
         let receipt = {
             let mut receipt = receipt;
             if let Some(publication) = publication {
-                let field = if publication.get("catalog_reference_recovered").is_some() {
+                let field = if publication.get("read_completed").is_some() {
+                    "source_recovered_read"
+                } else if publication.get("catalog_reference_recovered").is_some() {
                     "source_catalog_recovery"
                 } else if publication.get("catalog_checkpoint_observed").is_some() {
                     "source_catalog"
@@ -326,7 +335,24 @@ impl RunWorker {
             feature = "installed-body-storage",
             target_os = "linux"
         ))]
-        let publication = recording.as_ref().map(|r| r.metadata(result.as_ref().ok()));
+        let mut publication = recording.as_ref().map(|r| r.metadata(result.as_ref().ok()));
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        let recovered_content = recording
+            .as_ref()
+            .map(|r| r.recovered_content(result.as_ref().ok()))
+            .transpose();
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        if let (Some(metadata), Err(error)) = (&mut publication, &recovered_content) {
+            metadata["content_verification_refusal"] = error.clone().into();
+        }
         #[cfg(all(
             feature = "installed-environmental-sources",
             feature = "installed-body-storage",
@@ -387,6 +413,34 @@ impl RunWorker {
                 return Err("recovered catalog belongs to another Body".into());
             }
             owner.recovered_source_catalog = Some(recovered);
+        }
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        if let Some(Some(content)) = recovered_content? {
+            match content {
+                recovered_read_run::RecoveredReadResult::Catalog(contents) => {
+                    if owner
+                        .recovered_source_catalog
+                        .as_ref()
+                        .is_none_or(|r| r.reference() != contents.catalog_reference())
+                    {
+                        return Err("read catalog differs from recovered Body State".into());
+                    }
+                    owner.recovered_source_catalog_contents = Some(contents);
+                    owner.recovered_source_chunk = None;
+                }
+                recovered_read_run::RecoveredReadResult::Chunk(chunk) => {
+                    owner
+                        .recovered_source_catalog_contents
+                        .as_mut()
+                        .ok_or("recovered catalog contents vanished")?
+                        .accept_chunk(&chunk)?;
+                    owner.recovered_source_chunk = Some(chunk);
+                }
+            }
         }
         Ok(true)
     }

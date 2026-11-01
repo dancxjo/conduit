@@ -229,6 +229,19 @@ pub(crate) struct Owner {
         target_os = "linux"
     ))]
     recovered_source_catalog: Option<continuing::recovery_run::RecoveredCatalogReference>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recovered_source_catalog_contents:
+        Option<continuing::recovered_read_run::RecoveredCatalogContents>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recovered_source_chunk: Option<continuing::recovered_read_run::RecoveredSourceChunk>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
     /// Bounded display cache from an exact selected read Host Call and both
@@ -348,6 +361,18 @@ impl Owner {
                 target_os = "linux"
             ))]
             recovered_source_catalog: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog_contents: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_chunk: None,
             todo_verified: None,
             notebook: None,
         })
@@ -392,6 +417,18 @@ impl Owner {
                 target_os = "linux"
             ))]
             recovered_source_catalog: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog_contents: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_chunk: None,
             todo_verified: None,
             notebook: None,
         })
