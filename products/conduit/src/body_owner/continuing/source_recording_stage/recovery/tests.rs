@@ -132,3 +132,29 @@ fn recovery_preparation_volume_refuses_before_generation_or_state_effect() {
     assert_eq!(std::fs::read_dir(disk).unwrap().count(), 0);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn absent_catalog_state_emits_none_without_inventing_recovered_reference() {
+    let (root, _disk, mut owner, _) = fixture();
+    owner.source_recording_stage = None;
+    let worker = owner
+        .start_service_source_catalog_recovery(&root, 5000, 1024 * 1024)
+        .unwrap();
+    finish_worker(&root, &mut owner, worker);
+    let receipt = owner.last_execution.as_ref().unwrap();
+    assert_eq!(
+        receipt["source_catalog_recovery"]["state_current_observed"],
+        true
+    );
+    assert_eq!(
+        receipt["source_catalog_recovery"]["catalog_reference_recovered"],
+        false
+    );
+    assert_eq!(
+        receipt["source_catalog_recovery"]["producer_retirement_authorized"],
+        false
+    );
+    assert!(owner.recovered_source_catalog.is_none());
+    assert!(owner.source_recording_stage.is_none());
+    std::fs::remove_dir_all(root).unwrap();
+}
