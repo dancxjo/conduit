@@ -12,6 +12,7 @@ use std::{
         },
     },
     path::{Path, PathBuf},
+    sync::Arc,
 };
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -154,7 +155,8 @@ impl SelectedBodyStorage {
         &self.pool_namespace
     }
     /// Exact currently owned struct/String/Path buffer footprint. This narrow
-    /// quantity is not the complete operation or Body preparation envelope.
+    /// quantity excludes the Host shared-owner bookkeeping and is not the
+    /// complete operation or Body preparation envelope.
     pub fn custody_preparation_bytes(&self) -> u64 {
         (std::mem::size_of::<Self>()
             + self.identity.canonical_path.capacity()
@@ -189,11 +191,11 @@ impl crate::StdHost {
             return Err("Body storage selection requires a fresh idle Host".into());
         }
         // No offer, Base Ready, grant, inventory refresh or ledger replacement.
-        self.selected_body_storage = Some(selected);
+        self.selected_body_storage = Some(Arc::new(selected));
         Ok(())
     }
     pub fn selected_body_storage(&self) -> Option<&SelectedBodyStorage> {
-        self.selected_body_storage.as_ref()
+        self.selected_body_storage.as_deref()
     }
 }
 
@@ -245,6 +247,40 @@ mod tests {
         );
         assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
         let _held_snapshot = selected.snapshot_directory();
+    }
+    #[test]
+    fn worker_borrow_retains_the_same_descriptor_owner_without_reopening_root() {
+        let parent = tempfile::tempdir().unwrap();
+        let root = parent.path().join("selected");
+        std::fs::create_dir(&root).unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let selected = SelectedBodyStorage::open(&root, "body/storage", bounds(), None).unwrap();
+        let identity = selected.identity().clone();
+        let mut host = crate::StdHost::new();
+        let advertised = host.advertisement().clone();
+        host.attach_selected_body_storage(selected).unwrap();
+        // Internal execution borrows the same owned descriptors. This handle
+        // neither escapes as a public selection nor authorizes an operation.
+        let retained = Arc::clone(host.selected_body_storage.as_ref().unwrap());
+        assert!(std::ptr::eq(
+            host.selected_body_storage().unwrap(),
+            retained.as_ref()
+        ));
+        assert_eq!(host.advertisement(), &advertised);
+        let lifetime = Arc::downgrade(&retained);
+        std::fs::rename(&root, parent.path().join("moved")).unwrap();
+        std::fs::create_dir(&root).unwrap();
+        drop(host);
+        let metadata = std::fs::metadata(retained.state_root()).unwrap();
+        assert_eq!(
+            (metadata.dev(), metadata.ino()),
+            (identity.device, identity.inode)
+        );
+        assert_eq!(Arc::strong_count(&retained), 1);
+        assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
+        drop(retained);
+        assert!(lifetime.upgrade().is_none());
     }
     #[test]
     fn insufficient_candidate_disk_or_preparation_refuses_without_filesystem_effect() {

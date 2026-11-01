@@ -611,7 +611,7 @@ pub struct StdHost {
     #[cfg(target_os = "linux")]
     selected_text_file: Option<text_file::SelectedTextFileResidence>,
     #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
-    selected_body_storage: Option<body_storage::SelectedBodyStorage>,
+    selected_body_storage: Option<std::sync::Arc<body_storage::SelectedBodyStorage>>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
