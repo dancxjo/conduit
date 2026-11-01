@@ -3,6 +3,46 @@ use super::*;
 // Ordinary typed author proposals exercise arbitrary sizes independently of
 // Field resource registration; these are test values, never physical proof.
 fn metric_proposal(body: u16, small: u16, leading: u16) -> conduit_face::LookInfo {
+    metric_proposal_with_gap(body, small, leading, 4)
+}
+pub(super) fn metric_proposal_with_gap(
+    body: u16,
+    small: u16,
+    leading: u16,
+    gap: u16,
+) -> conduit_face::LookInfo {
+    metric_proposal_with_insets(body, small, leading, gap, 10, 7)
+}
+pub(super) fn metric_proposal_with_insets(
+    body: u16,
+    small: u16,
+    leading: u16,
+    gap: u16,
+    inline: u16,
+    block: u16,
+) -> conduit_face::LookInfo {
+    metric_proposal_with_panel(body, small, leading, gap, inline, block, 12)
+}
+pub(super) fn metric_proposal_with_panel(
+    body: u16,
+    small: u16,
+    leading: u16,
+    gap: u16,
+    inline: u16,
+    block: u16,
+    panel: u16,
+) -> conduit_face::LookInfo {
+    metric_proposal_with_focus(body, small, leading, gap, (inline, block, panel), 3)
+}
+pub(super) fn metric_proposal_with_focus(
+    body: u16,
+    small: u16,
+    leading: u16,
+    gap: u16,
+    insets: (u16, u16, u16),
+    focus: u16,
+) -> conduit_face::LookInfo {
+    let (inline, block, panel) = insets;
     use conduit_face::*;
     let base = engineering_look().unwrap();
     let LookVisualFacetOption::Some(visual) = base.visual() else {
@@ -15,16 +55,16 @@ fn metric_proposal(body: u16, small: u16, leading: u16) -> conduit_face::LookInf
         *t.emphasis(),
         *t.failure(),
         *t.focus(),
-        *t.focus_width_px(),
+        focus,
         leading,
         *t.muted(),
         *t.radius_control_px(),
         *t.radius_panel_px(),
         *t.reading_paper(),
-        *t.space_control_block_px(),
-        *t.space_control_inline_px(),
-        *t.space_panel_px(),
-        *t.space_unit_px(),
+        block,
+        inline,
+        panel,
+        gap,
         *t.structure_primary(),
         *t.structure_secondary(),
         *t.success(),
@@ -37,7 +77,9 @@ fn metric_proposal(body: u16, small: u16, leading: u16) -> conduit_face::LookInf
         *t.workbench_canvas(),
     )
     .unwrap();
-    let id = alloc::format!("test/native-metric-{body}-{small}-{leading}");
+    let id = alloc::format!(
+        "test/native-metric-{body}-{small}-{leading}-{gap}-{inline}-{block}-{panel}-{focus}"
+    );
     let expression = VisualExpressionInfo::new(
         VisualDensityPreference::Compact,
         id.clone(),

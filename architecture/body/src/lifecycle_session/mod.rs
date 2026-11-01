@@ -14,6 +14,8 @@ mod browser_admission;
 mod continuity;
 mod flow;
 mod membership;
+#[cfg(feature = "authenticated-admission")]
+mod naming;
 mod proposal;
 mod workload;
 
@@ -374,6 +376,13 @@ impl BodyLifecycleSession {
                 None => self
                     .evidence
                     .seal_membership_history()
+                    .map_err(BodyLifecycleSessionError::Biography)?,
+            };
+            let segment = match segment {
+                Some(segment) => Some(segment),
+                None => self
+                    .evidence
+                    .seal_name_history()
                     .map_err(BodyLifecycleSessionError::Biography)?,
             };
             let Some(segment) = segment else {

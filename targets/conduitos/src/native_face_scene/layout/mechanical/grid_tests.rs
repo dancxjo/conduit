@@ -104,7 +104,7 @@ fn track_contributions_support_zero_single_and_spanning_demands_without_empty_mi
         items: &items,
         width: 1000,
         scale: 100,
-        padding: SPACE_SM,
+        spacing: RowSpacing::legacy(SPACE_SM),
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };
@@ -177,7 +177,7 @@ fn grid_conflicts_and_oversized_cells_refuse_without_losing_fallback_identity() 
         },
         &profile,
         100,
-        SPACE_SM,
+        RowSpacing::legacy(SPACE_SM),
         Typography::EDITORIAL,
     );
     assert_eq!(rows.err(), Some(FaceSceneError::InvalidExtent));
@@ -199,7 +199,7 @@ fn grid_conflicts_and_oversized_cells_refuse_without_losing_fallback_identity() 
             },
             &profile,
             100,
-            SPACE_SM,
+            RowSpacing::legacy(SPACE_SM),
             Typography::EDITORIAL
         )
         .err(),

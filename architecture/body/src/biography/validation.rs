@@ -8,8 +8,10 @@ impl BodyBiographyEvidence {
         self.membership
             .validate()
             .map_err(|_| BodyBiographyError::InvalidEvidence)?;
-        if self.schema != "conduit.body/biography-evidence@2"
-            || self.body_id != self.body.body_id
+        if !matches!(
+            self.schema.as_str(),
+            "conduit.body/biography-evidence@2" | "conduit.body/biography-evidence@3"
+        ) || self.body_id != self.body.body_id
             || self.body_id != self.membership.body_id
             || self.friendly_name.trim().is_empty()
             || self.friendly_name.len() > MAX_BODY_FRIENDLY_NAME_BYTES
@@ -53,6 +55,7 @@ impl BodyBiographyEvidence {
         {
             return Err(BodyBiographyError::InvalidMetadata);
         }
+        self.validate_names()?;
         self.validate_records()?;
         self.validate_wake_history()
     }
@@ -220,6 +223,7 @@ impl BodyBiographyEvidence {
                         return Err(BodyBiographyError::InvalidEvidence);
                     }
                 }
+                BodyBiographyRecordKind::Renamed { .. } => {}
                 BodyBiographyRecordKind::EmergencyConfigured { configuration } => {
                     configuration
                         .validate()

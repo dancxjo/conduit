@@ -38,11 +38,11 @@ pub(super) fn starts(previous: Option<Key>, current: &document::Item) -> bool {
 pub(super) fn text_width(
     item: &document::Item,
     width: u16,
-    padding: u16,
+    insets: RowInsets,
     scale: u16,
 ) -> Result<u16, FaceSceneError> {
     width
-        .checked_sub(padding * 2)
+        .checked_sub(insets.inline * 2 + insets.leading)
         .and_then(|width| {
             width.checked_sub(super::super::semantic_icons::inset(
                 item.icon,
@@ -65,7 +65,7 @@ pub(super) struct Metrics {
     pub maximum_height: u16,
     pub scale: u16,
     pub typography: Typography,
-    pub padding: u16,
+    pub spacing: RowSpacing,
 }
 
 pub(super) struct Demand {
@@ -151,18 +151,26 @@ fn measure_cluster<'a>(
             .width
             .checked_sub(u16::from(item.indent) * INDENT_STEP)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let width = text_width(item, width, metrics.padding, metrics.scale)?;
+        let insets = metrics.spacing.insets(item);
+        let maximum_height = metrics
+            .maximum_height
+            .checked_sub(insets.block * 2)
+            .filter(|height| *height > 0)
+            .ok_or(FaceSceneError::InvalidExtent)?;
+        let width = text_width(item, width, insets, metrics.scale)?;
         let mut remaining = item.text.as_str();
         while !remaining.is_empty() {
             let (end, height) = measure_prefix(
                 remaining,
                 item.role,
                 width,
-                metrics.maximum_height,
+                maximum_height,
                 metrics.scale,
                 metrics.typography,
             )?;
-            demand.height += u32::from(height + metrics.padding * 2 + SPACE_SM);
+            demand.height += u32::from(
+                metrics.spacing.box_height(item, height, metrics.scale)? + metrics.spacing.gap,
+            );
             demand.rows += 1;
             demand.commands += row_commands(item, marker);
             marker = false;
@@ -171,8 +179,8 @@ fn measure_cluster<'a>(
             // empty-page advance or repeated suffix measurement.
             if demand.rows > MAX_PAGE_ROWS
                 || demand.commands + chrome::COMMANDS + 1 > conduit_face::MAX_GRAPHICS_COMMANDS
-                || demand.height - u32::from(SPACE_SM)
-                    > u32::from(metrics.maximum_height + metrics.padding * 2)
+                || demand.height - u32::from(metrics.spacing.gap)
+                    > u32::from(metrics.maximum_height)
             {
                 return Ok(None);
             }
@@ -182,6 +190,6 @@ fn measure_cluster<'a>(
     if item_count < 2 || demand.rows == 0 {
         return Ok(None);
     }
-    demand.height -= u32::from(SPACE_SM);
+    demand.height -= u32::from(metrics.spacing.gap);
     Ok(Some(demand))
 }

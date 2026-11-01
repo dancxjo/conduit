@@ -1,0 +1,10 @@
+# Prepare another Body through the existing Body's admitted encounter operation.
+# Profiles, builds, paths, authorities and deployment devices belong to its Host.
+plot creche/main (
+    >> request: conduit.creche/request@1 <= 32B
+    outcome: conduit.creche/outcome@1 <= 65B >>
+) {
+    prepare: creche/prepare
+    request >> prepare.request
+    prepare.outcome >> outcome
+}.

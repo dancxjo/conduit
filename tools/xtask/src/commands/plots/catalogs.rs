@@ -5,6 +5,10 @@ pub(super) fn catalogs(
     let mut startup = conduit_signal::primary_signal_startup_catalog();
     let mut profile = conduit_signal::primary_signal_profile_catalog();
     conduit_plot::quantity_conversion::install(&mut startup, &mut profile)?;
+    conduit_body_make::deployment_runtime_catalog::install_creche_catalogs(
+        &mut startup,
+        &mut profile,
+    )?;
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_body_startup_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;

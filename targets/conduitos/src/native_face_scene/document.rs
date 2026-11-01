@@ -10,6 +10,7 @@ use conduit_face::{
 
 pub(super) struct Item {
     pub text: String,
+    pub part: layout::NativePart,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
@@ -24,6 +25,7 @@ pub(super) struct Item {
 fn item(text: String, role: GraphicsTextRole) -> Item {
     Item {
         text,
+        part: layout::NativePart::Content,
         role,
         paint: GraphicsPaintRole::Foreground,
         control: None,
@@ -34,6 +36,30 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         checkbox: None,
         icon: None,
     }
+}
+
+/// A complete admitted encounter heading already names this exact Body.
+/// Keep all source text, values, actions and Details; remove only its second
+/// primary heading. Ambiguous or unfit names have no such header association.
+pub(super) fn omit_encounter_heading(
+    primary: &mut Vec<Item>,
+    face: &Face,
+    chrome: &chrome::Chrome,
+    scale: u16,
+) {
+    let Some(body) = chrome.named_body(face, scale) else {
+        return;
+    };
+    primary.retain(|item| {
+        !(item.part == layout::NativePart::Content
+            && item.role == GraphicsTextRole::Title
+            && item.control.is_none()
+            && item.text == body.name
+            && item
+                .subject_index
+                .and_then(|index| face.subjects.get(index))
+                .is_some_and(|subject| subject.identity == body.identity))
+    });
 }
 
 pub(super) fn prepare(
@@ -108,6 +134,7 @@ pub(super) fn prepare(
             _ => None,
         };
         if let Some((name, argument_name)) = action_name {
+            detail.part = layout::NativePart::Control;
             let (index, action) = face
                 .actions
                 .iter()
@@ -238,10 +265,30 @@ pub(super) fn prepare(
                 ));
             }
         }
-        // Contains already determines indentation. Readable primary wording
-        // comes from this subject's Face text; technical relationships and
-        // properties remain inspectable in Details without becoming a second
-        // copy of the main view.
+        // Typed values are portable human content, unlike technical properties.
+        // Use the canonical formatter; no domain names, unit inference or local
+        // sensor cache belongs here. Exactly associated editable current values
+        // already have their field row and must not be duplicated.
+        for property in face.properties.iter().filter(|property| {
+            property.subject == subject.identity
+                && !(named_control
+                    && subject.role == FaceRole::TextEntry
+                    && property.name == "current-value")
+        }) {
+            if let FacePropertyValue::TypedValue { contract, bytes } = &property.value {
+                append(item(
+                    format!(
+                        "{}: {}",
+                        property.name,
+                        conduit_face::display_typed_value(contract, bytes)
+                    ),
+                    GraphicsTextRole::Body,
+                ));
+            }
+        }
+        // Contains already determines indentation. Face text and canonical typed
+        // values supply primary wording; technical relationships and untyped
+        // properties remain inspectable in Details.
         // Action order comes from the Face, never an application-name convention.
         for clause in &plan.clauses {
             let Provenance::Action(provenance) = &clause.provenance else {
@@ -269,6 +316,7 @@ pub(super) fn prepare(
                 GraphicsPaintRole::Muted
             };
             append(Item {
+                part: layout::NativePart::Control,
                 text: match &action.availability {
                     FaceActionAvailability::Unavailable {
                         reason_code,
@@ -313,6 +361,7 @@ pub(super) fn prepare(
                 }
                 let hint = argument_hint(argument);
                 append(Item {
+                    part: layout::NativePart::Control,
                     text: super::text_field::current(face, index).map_or_else(
                         || {
                             format!(
@@ -384,3 +433,7 @@ fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
         |choices| format!("Choose {}", choices.join(", ")),
     )
 }
+
+#[cfg(test)]
+#[path = "typed_value_tests.rs"]
+mod typed_value_tests;

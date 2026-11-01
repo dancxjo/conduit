@@ -69,9 +69,33 @@ Current resource truth may produce a CapabilityOffer, but acquisition grants
 neither workload authority nor plan selection. Browser media, WebSerial, and
 WebUSB consume these semantics; opening a product never requests permission.
 
+## Body naming
+
+The friendly name is bounded administrative metadata, independent of Body
+identity, workload revision, membership, Plan and Play. A rename is an explicit
+owner-signed request naming the exact Body, receiving Host/Boot, expected
+biography sequence, fresh request nonce, new name and attribution. The trusted adapter supplies the
+provisioned owner verification key; neither a request-supplied key nor membership
+confers permission. Fulfilled Bodies refuse changes.
+
+The lifecycle session appends `Renamed` evidence and updates the current name
+atomically. Stale requests refuse; an exact successful retry or an already-current
+name appends nothing. The adapter must commit the resulting biography and any
+archive custody before issuing a Root-signed completion. That completion binds
+the exact rename record digest, authenticating both names, attribution and owner
+key as well as the request. Transport acceptance is not completion. A failed or uncertain write requires reconciliation before retry.
+
+Renamed biographies use `biography-evidence@3`, which older writers reject;
+existing v2 evidence retains its original name without synthetic rename events.
+Retain a v3-capable recovery artifact before applying the first rename.
+Name-history compaction preserves the latest rename in the active window and
+moves older records into digest-linked v3 archive segments. Face producers
+project the committed name using prepared storage, without changing observations
+or substituting a Mask-local label.
+
 ## Administration and fault disposition
 
-Birth, join/leave, plot revision, wake/lull, explicit fulfillment, resource acquisition/release,
+Birth, rename, join/leave, plot revision, wake/lull, explicit fulfillment, resource acquisition/release,
 authority change, inspection, and surviving-part recovery are exact bounded
 administrative intents. Mutation checks authority at the trusted boundary;
 reachability and membership are not authority. CLI and Patchbay/Creche are

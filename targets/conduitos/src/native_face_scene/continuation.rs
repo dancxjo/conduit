@@ -56,6 +56,7 @@ mod tests {
     fn rows(count: usize, height: u16, controls: bool) -> Vec<layout::Row> {
         let items = (0..count)
             .map(|n| document::Item {
+                part: crate::native_face_scene::layout::NativePart::Content,
                 text: format!("value {n}"),
                 role: if controls {
                     GraphicsTextRole::Heading

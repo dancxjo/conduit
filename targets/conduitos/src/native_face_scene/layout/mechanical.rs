@@ -23,16 +23,18 @@ mod structure;
 use fragment::{Entry, Fragment};
 use structure::{Demand, Group, Node};
 
-pub(in crate::native_face_scene) fn admit(
+pub(in crate::native_face_scene) fn admit_viewport(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     prepared: &PreparedComponentLayout<'_>,
-    scale: u16,
-    padding: u16,
-    typography: Typography,
+    spacing: RowSpacing,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let screen = viewport.screen;
+    let scale = viewport.scale;
+    let typography = viewport.typography;
+    let spacing = spacing.validate()?;
     field_clusters::validate(&items)?;
-    let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
+    let chrome = &viewport.chrome;
     let height = chrome
         .bottom
         .checked_sub(chrome.top)
@@ -42,7 +44,7 @@ pub(in crate::native_face_scene) fn admit(
         items: &items,
         width: screen.width,
         scale,
-        padding,
+        spacing,
         typography,
         rows: core::cell::Cell::new(0),
     };
@@ -113,11 +115,24 @@ fn arrange_candidate(
     )
 }
 
+#[cfg(test)]
+fn admit(
+    items: Vec<document::Item>,
+    screen: LayoutRect,
+    prepared: &PreparedComponentLayout<'_>,
+    scale: u16,
+    spacing: RowSpacing,
+    typography: Typography,
+) -> Result<Vec<Row>, FaceSceneError> {
+    let viewport = Viewport::legacy(screen, scale, typography)?;
+    admit_viewport(items, prepared, spacing, &viewport)
+}
+
 struct Context<'a> {
     items: &'a [document::Item],
     width: u16,
     scale: u16,
-    padding: u16,
+    spacing: RowSpacing,
     typography: Typography,
     rows: core::cell::Cell<usize>,
 }
@@ -125,6 +140,13 @@ impl Context<'_> {
     fn em(&self, units: u16) -> Result<u16, FaceSceneError> {
         resolve_em_sixteenths(self.typography.style(TextRole::Body), self.scale, units)
             .map_err(|_| FaceSceneError::InvalidExtent)
+    }
+    fn panel_padding(&self, region: Option<usize>) -> u16 {
+        if region.is_some() && self.items(region).any(|(_, item)| !item.text.is_empty()) {
+            self.spacing.panel.unwrap_or(0)
+        } else {
+            0
+        }
     }
     fn items(
         &self,

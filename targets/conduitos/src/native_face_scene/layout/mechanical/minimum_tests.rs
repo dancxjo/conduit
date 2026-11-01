@@ -39,7 +39,7 @@ fn outer_minimum_selects_single_column_and_scales_with_font_metrics() {
             },
             &profile,
             scale,
-            SPACE_SM,
+            RowSpacing::legacy(SPACE_SM),
             Typography::EDITORIAL,
         )
         .unwrap();

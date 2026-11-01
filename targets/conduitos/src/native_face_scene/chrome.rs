@@ -11,15 +11,8 @@ pub(super) const COMMANDS: usize = 6;
 const EDGE: u16 = 8;
 pub(super) const HEADER: u16 = 56;
 pub(super) const FOOTER: u16 = 56;
-const COMPACT_HEADINGS: [&str; 3] = ["VIEW", "DETAILS", "GRAPH"];
-const HEADINGS: [&str; 6] = [
-    "CURRENT VIEW",
-    "DETAILS",
-    "PATCHBAY",
-    "OWNER FACE / SNAPSHOT",
-    "OWNER FACE / DETAILS",
-    "OWNER FACE / PATCHBAY",
-];
+const COMPACT_HEADINGS: [&str; 3] = ["View", "Details", "Graph"];
+const HEADINGS: [&str; 3] = ["Overview", "Details", "Connections"];
 pub(super) const EDITOR_FOOTER: &str =
     "Type message · Backspace erase · Tab switch plot · F2 details";
 pub(super) const EDITOR_COMPACT_FOOTER: &str = "Type · F2";
@@ -175,6 +168,92 @@ impl Chrome {
         })
     }
 
+    /// A single explicitly presented Body can name the encounter. Neither an
+    /// opaque basis identifier nor the first of several Bodies supplies a name.
+    /// Keep the complete name in the ordinary document when it exceeds this
+    /// already admitted chrome; never truncate meaning to fit a command.
+    pub fn encounter_heading<'a>(
+        &self,
+        face: &'a conduit_face::Face,
+        details: bool,
+        diagram: bool,
+        scale: u16,
+    ) -> &'a str {
+        if let Some(body) = self.named_body(face, scale) {
+            return &body.name;
+        }
+        if diagram && self.compact {
+            "Graph"
+        } else if diagram {
+            "Connections"
+        } else if details {
+            "Details"
+        } else if self.compact {
+            "View"
+        } else {
+            "Overview"
+        }
+    }
+
+    /// Exact subject whose complete name is actually admitted in this header.
+    /// Primary disclosure may omit only that duplicate heading, never its facts.
+    pub fn named_body<'a>(
+        &self,
+        face: &'a conduit_face::Face,
+        scale: u16,
+    ) -> Option<&'a conduit_face::FaceSubject> {
+        let body = body_subject(face)?;
+        height(
+            &body.name,
+            self.heading_role,
+            self.heading.width,
+            scale,
+            self.typography,
+        )
+        .is_ok_and(|height| height <= self.heading.height)
+        .then_some(body)
+    }
+
+    /// Reserve complete wording only while every actual content row can still
+    /// admit a full line. Oversized names stay intact in the paged document.
+    pub fn reserve_body_name(
+        &mut self,
+        face: &conduit_face::Face,
+        scale: u16,
+        minimum_row: u16,
+    ) -> Result<(), FaceSceneError> {
+        if let Some(body) = body_subject(face)
+            && let Ok(needed) = height(
+                &body.name,
+                self.heading_role,
+                self.heading.width,
+                scale,
+                self.typography,
+            )
+            && let Some(top) = needed.checked_add(EDGE * 2)
+            && top > self.top
+            && self
+                .bottom
+                .checked_sub(top)
+                .is_some_and(|space| space >= minimum_row)
+        {
+            self.reserve_top(top)?;
+        }
+        Ok(())
+    }
+
+    /// Reconstruct exactly the extent admitted during scene preparation.
+    /// Footer and screen coordinates do not move when the heading grows.
+    pub fn reserve_top(&mut self, top: u16) -> Result<(), FaceSceneError> {
+        if top < self.top || top >= self.bottom {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        self.top = top;
+        self.heading.height = top - EDGE * 2;
+        self.marker.height = top - EDGE * 2;
+        Ok(())
+    }
+
     /// Only the visible provisional suffix is shortened. The argument buffer
     /// remains authoritative for submission; geometry uses the paint metrics.
     pub fn draft_preview(
@@ -239,6 +318,29 @@ impl Chrome {
         }
         Ok(())
     }
+}
+
+fn body_subject(face: &conduit_face::Face) -> Option<&conduit_face::FaceSubject> {
+    let mut bodies = face
+        .subjects
+        .iter()
+        .filter(|subject| subject.role == conduit_face::FaceRole::Body);
+    let body = bodies.next()?;
+    (bodies.next().is_none()
+        && !body.name.trim().is_empty()
+        && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
+        && face
+            .disclosures
+            .iter()
+            .filter(|d| d.subject == body.identity)
+            .all(|d| {
+                matches!(
+                    d.level,
+                    conduit_face::FaceDisclosureLevel::Primary
+                        | conduit_face::FaceDisclosureLevel::Context
+                )
+            }))
+    .then_some(body)
 }
 
 #[cfg(test)]

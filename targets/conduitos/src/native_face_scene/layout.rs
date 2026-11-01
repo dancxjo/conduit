@@ -5,7 +5,7 @@ use alloc::string::String;
 
 #[path = "layout/mechanical.rs"]
 mod mechanical;
-pub(super) use mechanical::admit as admit_mechanical;
+pub(super) use mechanical::admit_viewport as admit_mechanical;
 #[path = "layout/surfaces.rs"]
 mod surfaces;
 pub(super) use surfaces::append_region_surfaces;
@@ -16,12 +16,24 @@ mod configured;
 pub(super) use configured::admit_configured;
 pub(super) use configured::{ConfiguredColumns, admit_configured_selected, authored_panel_groups};
 
+#[path = "layout/spacing.rs"]
+mod spacing;
+pub(super) use spacing::{NativePart, PackedRowInsets, RowInsets, RowSpacing};
+
+#[path = "layout/viewport.rs"]
+mod viewport;
+pub(super) use viewport::Viewport;
+
 #[path = "layout/field_clusters.rs"]
 mod field_clusters;
 #[path = "layout/panels.rs"]
 mod panels;
 
 pub(super) use super::chrome::{FOOTER, HEADER};
+#[path = "layout/row_chrome.rs"]
+mod row_chrome;
+pub(super) use row_chrome::{append_panel_chrome, append_row_chrome};
+
 pub(super) const MAX_PAGE_ROWS: usize = 20;
 const MAX_ROWS: usize = 32_768;
 const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
@@ -40,7 +52,7 @@ pub(super) struct Row {
     pub page: usize,
     pub bounds: LayoutRect,
     pub region_start: bool,
-    pub padding: u16,
+    pub insets: PackedRowInsets,
     pub checkbox: Option<bool>,
     pub icon: Option<conduit_face::FaceIconKey>,
     pub icon_size: u16,
@@ -72,153 +84,18 @@ impl Row {
             0
         } + super::semantic_icons::inset(self.icon, self.icon_size);
         LayoutRect {
-            x: self.bounds.x + self.padding as i16 + inset as i16,
-            y: self.bounds.y + self.padding as i16,
-            width: self.bounds.width - self.padding * 2 - inset,
-            height: self.bounds.height - self.padding * 2,
+            x: self.bounds.x
+                + self.insets.inline() as i16
+                + self.insets.leading() as i16
+                + inset as i16,
+            y: self.bounds.y + self.insets.block() as i16,
+            width: self.bounds.width - self.insets.inline() * 2 - self.insets.leading() - inset,
+            height: self.bounds.height - self.insets.block() * 2,
         }
     }
 }
 
-/// Draw panel surfaces before any rows: authored geometry order may differ
-/// from the source reading order restored after layout admission.
-pub(super) fn append_panel_chrome(
-    scene: &mut GraphicsScene,
-    row: &Row,
-    screen: LayoutRect,
-) -> Result<(), FaceSceneError> {
-    if let Some(bounds) = row.panel_bounds {
-        for (paint, shape) in [
-            (GraphicsPaintRole::Surface, GraphicsShapeStyle::RoundedFill),
-            (GraphicsPaintRole::Border, GraphicsShapeStyle::RoundedStroke),
-        ] {
-            push(scene, GraphicsCommand::rect(bounds, screen, paint, shape))?;
-        }
-    }
-    Ok(())
-}
-
-/// Row-local drawing belongs with its measured bounds. A heading marker and
-/// control outline are Mask geometry; neither changes the Face or hit target.
-pub(super) fn append_row_chrome(
-    scene: &mut GraphicsScene,
-    row: &Row,
-    screen: LayoutRect,
-    outline: GraphicsPaintRole,
-    showing_details: bool,
-    focused: bool,
-) -> Result<(), FaceSceneError> {
-    if !showing_details && row.region_start && row.region.is_none() {
-        push(
-            scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: row.bounds.x,
-                    y: row.bounds.y,
-                    width: row.bounds.width,
-                    height: 2,
-                },
-                screen,
-                GraphicsPaintRole::Muted,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-    }
-    if row.control.is_some() && row.checkbox.is_none() {
-        push(
-            scene,
-            GraphicsCommand::rect(
-                row.bounds,
-                screen,
-                if row.emphasized() {
-                    GraphicsPaintRole::Accent
-                } else if focused || row.paint == GraphicsPaintRole::Muted {
-                    outline
-                } else {
-                    GraphicsPaintRole::Border
-                },
-                if row.emphasized() {
-                    GraphicsShapeStyle::RoundedFill
-                } else {
-                    GraphicsShapeStyle::RoundedStroke
-                },
-            ),
-        )?;
-    }
-    // An inset outline distinguishes focus even with identical paints. Choice
-    // indicators remain independent; other controls also have their outer box.
-    if focused {
-        push(
-            scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: row.bounds.x + 3,
-                    y: row.bounds.y + 3,
-                    width: row.bounds.width - 6,
-                    height: row.bounds.height - 6,
-                },
-                screen,
-                // Filled primary actions need an interior contrast against
-                // Accent, including white fills under forced colors. Keep the
-                // outer focus outline, but use the same contrasting paint as
-                // the primary label for this independent inset marker.
-                if row.emphasized() {
-                    GraphicsPaintRole::Background
-                } else {
-                    outline
-                },
-                GraphicsShapeStyle::Stroke,
-            ),
-        )?;
-    }
-    if !showing_details
-        && (row.icon.is_none() || row.emphasized())
-        && matches!(
-            row.role,
-            GraphicsTextRole::Title | GraphicsTextRole::Heading
-        )
-    {
-        if row.emphasized() {
-            push(
-                scene,
-                GraphicsCommand::rect(
-                    row.bounds,
-                    screen,
-                    if focused {
-                        outline
-                    } else {
-                        GraphicsPaintRole::Border
-                    },
-                    GraphicsShapeStyle::RoundedStroke,
-                ),
-            )?;
-            return Ok(());
-        }
-        push(
-            scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: row.bounds.x,
-                    y: row.bounds.y + 4,
-                    width: 3,
-                    height: row.bounds.height - 8,
-                },
-                screen,
-                GraphicsPaintRole::Accent,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-    }
-    Ok(())
-}
-
-pub(super) fn admit(
-    items: Vec<document::Item>,
-    screen: LayoutRect,
-) -> Result<Vec<Row>, FaceSceneError> {
-    admit_with_expression(items, screen, SPACE_XL, 1, 100, SPACE_SM)
-}
-
+#[cfg(test)]
 /// Geometry belongs to this admitted Mask; semantic rows remain in their
 /// existing order and retain exact action/argument references across columns.
 pub(super) fn admit_with_expression(
@@ -229,28 +106,31 @@ pub(super) fn admit_with_expression(
     text_scale_percent: u16,
     padding: u16,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let viewport = Viewport::legacy(screen, text_scale_percent, Typography::EDITORIAL)?;
     admit_with_expression_selected(
         items,
-        screen,
         gutter,
         columns,
-        text_scale_percent,
-        padding,
-        Typography::EDITORIAL,
+        RowSpacing::legacy(padding),
+        &viewport,
     )
 }
 
 pub(super) fn admit_with_expression_selected(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     gutter: u16,
     columns: u16,
-    text_scale_percent: u16,
-    padding: u16,
-    typography: Typography,
+    spacing: RowSpacing,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let screen = viewport.screen;
+    let typography = viewport.typography;
+    let text_scale_percent = viewport.scale;
     field_clusters::validate(&items)?;
-    if !(1..=2).contains(&columns) || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
+    let spacing = spacing.validate()?;
+    let gap = spacing.gap;
+    let padding = spacing.padding;
+    if !(1..=2).contains(&columns) {
         return Err(FaceSceneError::InvalidExtent);
     }
     // A recipe permits columns; the narrow encounter admits one measured
@@ -263,7 +143,7 @@ pub(super) fn admit_with_expression_selected(
         .map(|width| width / columns)
         .filter(|width| *width > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
-    let chrome = chrome::Chrome::prepare_selected(screen, text_scale_percent, typography)?;
+    let chrome = &viewport.chrome;
     let bottom = chrome.bottom;
     let padding = fit_padding(
         items.iter(),
@@ -272,9 +152,9 @@ pub(super) fn admit_with_expression_selected(
         padding,
         typography,
     );
-    let maximum_height = bottom
+    let spacing = RowSpacing { padding, ..spacing };
+    let available_height = bottom
         .checked_sub(chrome.top)
-        .and_then(|height| height.checked_sub(padding * 2))
         .filter(|height| *height > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
     let mut column = 0u16;
@@ -287,6 +167,11 @@ pub(super) fn admit_with_expression_selected(
     let mut items = items.into_iter();
     let mut previous_item = None;
     while let Some(item) = items.next() {
+        let insets = spacing.insets(&item);
+        let maximum_height = available_height
+            .checked_sub(insets.block * 2)
+            .filter(|height| *height > 0)
+            .ok_or(FaceSceneError::InvalidExtent)?;
         let cluster_start = field_clusters::starts(previous_item, &item);
         previous_item = field_clusters::key(&item);
         let mut region_start = item.region.is_some() && item.region != previous_region;
@@ -295,17 +180,16 @@ pub(super) fn admit_with_expression_selected(
         let item_width = width
             .checked_sub(inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width =
-            field_clusters::text_width(&item, item_width, padding, text_scale_percent)?;
+        let text_width = field_clusters::text_width(&item, item_width, insets, text_scale_percent)?;
         if cluster_start
             && let Some(demand) = field_clusters::measure(
                 core::iter::once(&item).chain(items.as_slice().iter()),
                 field_clusters::Metrics {
                     width,
-                    maximum_height,
+                    maximum_height: available_height,
                     scale: text_scale_percent,
                     typography,
-                    padding,
+                    spacing,
                 },
                 region_start,
             )?
@@ -340,7 +224,10 @@ pub(super) fn admit_with_expression_selected(
                 text_scale_percent,
                 typography,
             )?;
-            let box_height = height + padding * 2;
+            let box_height = spacing.box_height(&item, height, text_scale_percent)?;
+            if box_height > available_height {
+                return Err(FaceSceneError::InvalidExtent);
+            }
             let cost = row_commands(&item, region_start);
             let command_pressure = commands + cost > conduit_face::MAX_GRAPHICS_COMMANDS;
             if y + box_height > bottom || count == MAX_PAGE_ROWS || command_pressure {
@@ -372,7 +259,7 @@ pub(super) fn admit_with_expression_selected(
                 region_inset: 0,
                 page,
                 region_start,
-                padding,
+                insets: PackedRowInsets::new(insets)?,
                 checkbox: item.checkbox,
                 icon: item.icon,
                 icon_size: super::semantic_icons::size(text_scale_percent),
@@ -385,7 +272,7 @@ pub(super) fn admit_with_expression_selected(
                 },
             });
             region_start = false;
-            y += box_height + SPACE_SM;
+            y += box_height + gap;
             count += 1;
             commands += cost;
             remaining = &remaining[end..];
