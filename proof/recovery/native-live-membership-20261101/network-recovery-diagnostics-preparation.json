@@ -29,7 +29,7 @@
     "root_free_bytes": 22064,
     "root_peak_bytes": 115168
   },
-  "current_limit": "Observed one history timeout followed by canonical reader reconnection. Sustained recovery, automatic running-Play custody, NAT interruption acceptance, browser/Pi joining and ordinary preparation CPU qualification remain unproved. Cold maintenance reclamation and this diagnostic boot do not prove those outcomes.",
+  "current_limit": "After initial station recovery, station link loss triggered actual AP restoration. Retry now refuses physical backing for the unchanged16KiB construction floor. Local sampling/display/history continue. A phased kernel/Sign reservation is under investigation to remove preparation/execution overlap; no saving or successful retry is claimed. Automatic running-Play custody, NAT interruption acceptance, browser/Pi joining and ordinary preparation CPU qualification remain unproved.",
   "boot": "boot/21e01d2f483bff874eb1e9a7f71b4a11",
   "guarded_install": {
     "fresh_full_backup": true,
@@ -57,5 +57,30 @@
     "new_boot_records_recovered": 2,
     "recording_ack_sent": false,
     "selected_installed_recorder_commitment": false
+  },
+  "post_join_recovery_observation": {
+    "local_progress_boot_ms": 345801,
+    "sampler_sequence": 5,
+    "archive_committed": 5,
+    "mask_updates": 110,
+    "sampler_failure": null,
+    "mask_failure": null,
+    "archive_failed": false,
+    "services": "access-point-ready",
+    "network_control": "retry-backoff",
+    "station_address": null,
+    "root_free_bytes_after_refusal": 26456,
+    "retry_preparation_backing_bytes": 4192,
+    "free_bytes_after_backing": 22264,
+    "bank_free_after_backing": [
+      2384,
+      820,
+      19060
+    ],
+    "actual_floor_backed_bytes": 15616,
+    "unchanged_required_floor_bytes": 16384,
+    "floor_refusal_preserved_local_play": true,
+    "linux_connection_trace": "connect timeout and EHOSTUNREACH with repeated FAILED neighbour resolution; not HTTP parser failure",
+    "cause_of_original_radio_link_loss": "not yet established"
   }
 }
