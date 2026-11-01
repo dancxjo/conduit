@@ -124,11 +124,13 @@ fn reservation_and_source_order_refuse_without_unbounded_growth() {
             sink(EncodedPiece::Reused {
                 source_offset: 4,
                 bytes: &[1; 2],
-            })?;
+            })
+            .map_err(StreamRefusal::Sink)?;
             sink(EncodedPiece::Reused {
                 source_offset: 7,
                 bytes: &[1; 2],
-            })?;
+            })
+            .map_err(StreamRefusal::Sink)?;
             Ok(())
         }
     )
