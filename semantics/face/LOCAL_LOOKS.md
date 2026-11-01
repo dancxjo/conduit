@@ -53,3 +53,30 @@ Concrete startup defaults and explicit arguments must satisfy the same retained
 Source laws, including bounds below a sequence/variant path. The tests keep the
 regression found while authoring this resource. Native binding admission is also
 required; it does not excuse a checker accepting a range-invalid default.
+
+## Native prepared Masks
+
+`NativeFaceMask::set_local_visual_look` independently binds typed personal data
+and a contrast floor before presentation of a configured Mask. It uses the same
+resolver as the browser preparation path; the original author configuration,
+Plan and complete Face remain unchanged. `local_visual_look_resolution` exposes
+the prepared resolution and field origins. It does not prove an available Show.
+`NativeLocalLookRefusal` distinguishes native-value, resource-bound,
+missing-visual-facet, duplicate-field, visual-admission and contrast failures.
+An unconfigured Mask explicitly refuses personal preferences. The current native
+scene contract cannot express selected control/panel corner radii, so personal
+overrides of either field refuse with the field name, rather than pretending
+those overrides rendered. Shared graphics evolution remains separate work.
+
+A Look-only change over the same immutable Face uses the existing fresh-Mask
+replacement: prepare a replacement, bind its personal data, transfer the local
+encounter with `preserve_encounter_from`, suspend the old Mask, then present
+and acknowledge the new Show. This preserves logical focus and refuses old Show
+interactions. Republishing the same old surface revision remains refused;
+changing style must not invent a new semantic Face revision.
+
+The configured and capacity-fallback native scenes consume the same admitted
+selection. Invalid local resolution cannot draw or acknowledge a usable Show.
+CPU pixel writes and matched canonical native/browser selections are software
+evidence; physical output, complete accessibility and Host deployment require
+their own qualification. Appearance UI and durable preferences are not added.
