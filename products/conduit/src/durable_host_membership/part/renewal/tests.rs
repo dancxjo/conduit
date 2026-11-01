@@ -29,7 +29,7 @@ impl Fixture {
         super::super::super::super::write_json_atomic(&path, &record.receipt.credential).unwrap();
         let installation:Installation=serde_json::from_value(serde_json::json!({
    "schema":crate::durable_host::INSTALL_SCHEMA,"host_id":record.receipt.credential.host_id,
-   "release_source_identity":"source/renewal-test","release_bundle_sha256":"00".repeat(32),
+   "release_source_identity":"source/renewal-test","release_bundle_sha256":digest(b"renewal-fixture"),
    "product_executable":"unused","body_state":null,
    "joined_body_state":{"body_id":record.receipt.credential.body_id,"part_id":record.receipt.credential.part_id,
     "credential_path":path.display().to_string(),"credential_sha256":digest(&encoded(&record.receipt.credential).unwrap())}
