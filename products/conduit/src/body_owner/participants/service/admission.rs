@@ -44,7 +44,7 @@ impl Owner {
                     if manager
                         .receipts
                         .iter()
-                        .any(|receipt| receipt.credential.host_id == window.expected)
+                        .any(|receipt| receipt.credential.host_id == window.expected.as_str())
                     {
                         return Err("admitted browser must present its retained credential".into());
                     }
@@ -111,8 +111,8 @@ impl Owner {
                         .receipts
                         .iter()
                         .rev()
-                        .find(|receipt| receipt.credential.part_id == credential.part_id)
-                        .is_none_or(|receipt| receipt.credential != credential)
+                        .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
+                        .is_none_or(|receipt| !receipt.credential.matches(&credential))
                     {
                         return Err("returning browser credential is stale or unknown".into());
                     }

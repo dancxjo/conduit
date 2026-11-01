@@ -69,6 +69,17 @@ pub struct ReceiptCredentialRef<'a> {
     pub boot_id: &'a str,
     pub issued_at_millis: u64,
 }
+impl ReceiptCredentialRef<'_> {
+    /// Compare exact historical identity without reconstructing an owned row.
+    pub fn matches(&self, credential: &MembershipCredential) -> bool {
+        self.credential_id.equals(credential.credential_id.as_str())
+            && self.body_id == credential.body_id.as_str()
+            && self.part_id == credential.part_id.as_str()
+            && self.host_id == credential.host_id.as_str()
+            && self.boot_id == credential.boot_id.as_str()
+            && self.issued_at_millis == credential.issued_at_millis
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename = "AdmissionReceipt")]
 pub struct AdmissionReceiptRef<'a> {
@@ -127,3 +138,41 @@ identity_serde!(body_id_serde, "BodyId", &str);
 identity_serde!(part_id_serde, "PartId", &str);
 identity_serde!(host_id_serde, "HostId", &str);
 identity_serde!(boot_id_serde, "BootId", &str);
+
+#[cfg(test)]
+mod matching_tests {
+    use super::*;
+    #[test]
+    fn exact_comparison_checks_every_credential_field_and_packed_identity() {
+        let credential = MembershipCredential {
+            credential_id: "ab".repeat(32).into(),
+            body_id: "body/one".into(),
+            part_id: "part/one".into(),
+            host_id: "host/one".into(),
+            boot_id: "boot/one".into(),
+            issued_at_millis: 7,
+        };
+        let packed_id = [0xab; 32];
+        let view = ReceiptCredentialRef {
+            credential_id: ReceiptIdentityRef::Hex(&packed_id),
+            body_id: "body/one",
+            part_id: "part/one",
+            host_id: "host/one",
+            boot_id: "boot/one",
+            issued_at_millis: 7,
+        };
+        assert!(view.matches(&credential));
+        for field in 0..6 {
+            let mut changed = credential.clone();
+            match field {
+                0 => changed.credential_id = "cd".repeat(32).into(),
+                1 => changed.body_id = "body/other".into(),
+                2 => changed.part_id = "part/other".into(),
+                3 => changed.host_id = "host/other".into(),
+                4 => changed.boot_id = "boot/other".into(),
+                _ => changed.issued_at_millis += 1,
+            }
+            assert!(!view.matches(&changed));
+        }
+    }
+}

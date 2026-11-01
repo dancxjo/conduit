@@ -395,11 +395,11 @@ impl Owner {
         let admitted = self.admissions.as_ref().is_some_and(|manager| {
             manager.receipts.iter().any(|receipt| {
                 request.has_exact_basis()
-                    && request.credential_id == receipt.credential.credential_id.as_str()
-                    && request.body_id == receipt.credential.body_id
-                    && request.part_id == receipt.credential.part_id
-                    && request.host_id == receipt.credential.host_id
-                    && request.boot_id == receipt.credential.boot_id
+                    && receipt.credential.credential_id.equals(&request.credential_id)
+                    && request.body_id.as_str() == receipt.credential.body_id
+                    && request.part_id.as_str() == receipt.credential.part_id
+                    && request.host_id.as_str() == receipt.credential.host_id
+                    && request.boot_id.as_str() == receipt.credential.boot_id
             })
         });
         if !admitted {

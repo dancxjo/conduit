@@ -318,7 +318,7 @@ impl Owner {
             manager
                 .receipts
                 .iter()
-                .any(|receipt| receipt.credential.host_id == expected)
+                .any(|receipt| receipt.credential.host_id == expected.as_str())
         });
         if !known && new_key.is_none() {
             return Err("first browser admission requires its exact public verifying key".into());
@@ -424,8 +424,8 @@ impl Owner {
                 .receipts
                 .iter()
                 .rev()
-                .find(|receipt| receipt.credential.part_id == credential.part_id)
-                .is_some_and(|receipt| receipt.credential == *credential)
+                .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
+                .is_some_and(|receipt| receipt.credential.matches(credential))
         });
         if !current || !admitted || self.session.evidence().body_id != credential.body_id {
             return Err("part-unavailable".into());
@@ -501,9 +501,9 @@ impl Owner {
                     .receipts
                     .iter()
                     .rev()
-                    .find(|receipt| receipt.credential.part_id == credential.part_id)
+                    .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
             });
-            if latest.is_none_or(|receipt| receipt.credential != *credential) {
+            if latest.is_none_or(|receipt| !receipt.credential.matches(credential)) {
                 return Err("browser leave credential is no longer current".into());
             }
             let mut session = self.session.clone();
