@@ -3,6 +3,9 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_body_root.rs"]
 mod body;
+#[cfg(feature = "checkpoint-preparation-check")]
+#[path = "native_checkpoint_preparation_check.rs"]
+mod checkpoint_preparation_check;
 #[cfg(feature = "display-physical-check")]
 #[path = "native_display_check.rs"]
 mod display_check;

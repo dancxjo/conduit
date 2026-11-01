@@ -138,6 +138,8 @@ async fn main(spawner: Spawner) {
     {
         #[cfg(feature = "body-image-root")]
         root.install_linked_body().expect("linked body biography");
+        #[cfg(feature = "checkpoint-preparation-check")]
+        root.measure_checkpoint_preparation();
         root.start_preparation_service(spawner)
             .await
             .expect("Root preparation service must start");
