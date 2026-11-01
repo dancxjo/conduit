@@ -301,6 +301,17 @@ impl Owner {
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         let receipt = {
             let mut receipt = receipt;
+            #[cfg(feature = "installed-body-storage")]
+            if let Some(stage) = self.source_recording_stage.as_ref() {
+                receipt["source_recording_pending"] = serde_json::json!({
+                    "custody": "volatile-accepted-fore-not-durable-recording",
+                    "count": stage.len(),
+                    "capacity": source_recording_stage::CAPACITY,
+                    "source_selection": stage.scope().map(|scope| &*scope.selection),
+                    "native_play": stage.scope().map(|scope| &scope.native_play),
+                    "producer_retirement_authority": false,
+                });
+            }
             if let Some(accepted) = accepted_fore {
                 let value = accepted.value;
                 receipt["accepted_source_fore"] = serde_json::json!({

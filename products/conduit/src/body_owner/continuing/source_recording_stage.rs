@@ -1,11 +1,11 @@
 //! Finite accepted-Fore preparation custody; no durable receipt or authority.
 use super::native::{CompletedScope, LiveFore, SourceSelection};
-use conduit_environment_measurement::source_observation::{MAXIMUM_BYTES, ObservationContract};
+use conduit_environment_measurement::source_observation::{ObservationContract, MAXIMUM_BYTES};
 use std::sync::Arc;
 
-pub(super) const CAPACITY: usize = 16;
+pub(in super::super) const CAPACITY: usize = 16;
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum Refusal {
+pub(in super::super) enum Refusal {
     Scope,
     Observation,
     Sequence,
@@ -13,20 +13,20 @@ pub(super) enum Refusal {
     Capacity,
 }
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum Accepted {
+pub(in super::super) enum Accepted {
     Added,
     Duplicate,
 }
-pub(super) struct StagedObservation {
+pub(in super::super) struct StagedObservation {
     sequence: u64,
     length: usize,
     bytes: [u8; MAXIMUM_BYTES],
 }
 impl StagedObservation {
-    pub(super) fn sequence(&self) -> u64 {
+    pub(in super::super) fn sequence(&self) -> u64 {
         self.sequence
     }
-    pub(super) fn canonical(&self) -> &[u8] {
+    pub(in super::super) fn canonical(&self) -> &[u8] {
         &self.bytes[..self.length]
     }
 }
@@ -34,7 +34,7 @@ impl StagedObservation {
 /// The first accepted completion freezes the actual native Play. No rotation,
 /// implicit clearing, or eviction is provided: the owner must retain this value
 /// across worker completion and workset replacement until explicit disposition.
-pub(super) struct SourceRecordingStage {
+pub(in super::super) struct SourceRecordingStage {
     body_id: conduit_body::BodyId,
     selection: Arc<SourceSelection>,
     scope: Option<Arc<CompletedScope>>,
@@ -43,7 +43,7 @@ pub(super) struct SourceRecordingStage {
     length: usize,
 }
 impl SourceRecordingStage {
-    pub(super) fn prepare(
+    pub(in super::super) fn prepare(
         body_id: conduit_body::BodyId,
         selection: Arc<SourceSelection>,
     ) -> Result<Self, Refusal> {
@@ -56,16 +56,16 @@ impl SourceRecordingStage {
             length: 0,
         })
     }
-    pub(super) fn len(&self) -> usize {
+    pub(in super::super) fn len(&self) -> usize {
         self.length
     }
-    pub(super) fn scope(&self) -> Option<&CompletedScope> {
+    pub(in super::super) fn scope(&self) -> Option<&CompletedScope> {
         self.scope.as_deref()
     }
-    pub(super) fn observations(&self) -> impl Iterator<Item = &StagedObservation> {
+    pub(in super::super) fn observations(&self) -> impl Iterator<Item = &StagedObservation> {
         self.slots[..self.length].iter().filter_map(Option::as_ref)
     }
-    pub(super) fn check_selection(
+    pub(in super::super) fn check_selection(
         &self,
         body_id: &conduit_body::BodyId,
         selection: &SourceSelection,
@@ -76,11 +76,11 @@ impl SourceRecordingStage {
             Err(Refusal::Scope)
         }
     }
-    pub(super) fn validate(&self, fore: &LiveFore) -> Result<Accepted, Refusal> {
+    pub(in super::super) fn validate(&self, fore: &LiveFore) -> Result<Accepted, Refusal> {
         self.check(fore)
     }
     /// All validation precedes mutation, including first-Play scope adoption.
-    pub(super) fn accept(&mut self, fore: &LiveFore) -> Result<Accepted, Refusal> {
+    pub(in super::super) fn accept(&mut self, fore: &LiveFore) -> Result<Accepted, Refusal> {
         let accepted = self.check(fore)?;
         if accepted == Accepted::Duplicate {
             return Ok(accepted);
@@ -123,7 +123,7 @@ impl SourceRecordingStage {
         }
         if let Some(old) = self
             .observations()
-            .find(|old| old.sequence == fore.sequence)
+            .find(|old| old.sequence() == fore.sequence)
         {
             return if old.canonical() == &fore.bytes[..fore.length] {
                 Ok(Accepted::Duplicate)
