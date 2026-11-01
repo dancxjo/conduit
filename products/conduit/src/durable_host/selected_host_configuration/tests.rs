@@ -338,6 +338,20 @@ fn storage_source(root: &std::path::Path) -> String {
     target_os = "linux",
     target_arch = "x86_64"
 ))]
+fn private_storage_root(state: &std::path::Path) -> std::path::PathBuf {
+    use std::os::unix::fs::DirBuilderExt;
+    let root = state.join("selected-storage-root");
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&root)
+        .unwrap();
+    root
+}
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
 #[test]
 fn storage_check_is_pure_and_failed_explicit_selection_never_persists_half_binding() {
     let (manifest, state) = super::super::tests::fixture();
@@ -367,9 +381,9 @@ fn storage_check_is_pure_and_failed_explicit_selection_never_persists_half_bindi
 fn configured_storage_reopens_same_private_root_and_refuses_substituted_directory() {
     let (manifest, state) = super::super::tests::fixture();
     install(&manifest, &state).unwrap();
-    let root = tempfile::tempdir().unwrap();
+    let root = private_storage_root(&state);
     let source_path = state.join("storage.host.conduit");
-    fs::write(&source_path, storage_source(root.path())).unwrap();
+    fs::write(&source_path, storage_source(&root)).unwrap();
     configure(&state, Some(&source_path), false).unwrap();
     let installed = read_installation(&state.join("installation.json")).unwrap();
     let selected = installed.selected_host_configuration.unwrap();
@@ -381,7 +395,7 @@ fn configured_storage_reopens_same_private_root_and_refuses_substituted_director
     assert_eq!(host.advertisement().resources, ad.resources);
     assert_eq!(host.advertisement().capabilities, ad.capabilities);
     assert_eq!(host.advertisement().bases, ad.bases);
-    let path = root.path().to_path_buf();
+    let path = root.clone();
     let moved = path.with_extension("selected-moved");
     fs::rename(&path, &moved).unwrap();
     fs::create_dir(&path).unwrap();
@@ -409,8 +423,10 @@ fn storage_and_environmental_intent_coexist_without_network_effect_or_source_off
     use conduit_host_make::{
         BaseInitialization, ConfigurationBase, ConfigurationDevice, ConfigurationScalar,
     };
-    let root = tempfile::tempdir().unwrap();
-    let mut configuration = parse_host_configuration_conduit(&storage_source(root.path())).unwrap();
+    let (manifest, state) = super::super::tests::fixture();
+    install(&manifest, &state).unwrap();
+    let root = private_storage_root(&state);
+    let mut configuration = parse_host_configuration_conduit(&storage_source(&root)).unwrap();
     configuration.bases.push(ConfigurationBase {kind:"environment/source".into(),implementation:Some("linux/environmental-sources@1".into()),implementations:Vec::new(),initialization:Some(serde_json::from_value::<BaseInitialization>(serde_json::json!({"worker_executable":"/not-opened-by-inert-initialization","worker_sha256":"11".repeat(32),"timeout_milliseconds":31000})).unwrap())});
     let source_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../bodies/environment/host/configurations/green.host.conduit")
@@ -443,5 +459,5 @@ fn storage_and_environmental_intent_coexist_without_network_effect_or_source_off
     assert_eq!(host.advertisement().resources, before.resources);
     assert_eq!(host.advertisement().capabilities, before.capabilities);
     assert_eq!(host.advertisement().bases, before.bases);
-    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
 }
