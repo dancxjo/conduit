@@ -18,7 +18,7 @@ pub(super) use configured::{ConfiguredColumns, admit_configured_selected, author
 
 #[path = "layout/spacing.rs"]
 mod spacing;
-pub(super) use spacing::RowSpacing;
+pub(super) use spacing::{NativePart, PackedRowInsets, RowInsets, RowSpacing};
 
 #[path = "layout/field_clusters.rs"]
 mod field_clusters;
@@ -48,7 +48,7 @@ pub(super) struct Row {
     pub page: usize,
     pub bounds: LayoutRect,
     pub region_start: bool,
-    pub padding: u16,
+    pub insets: PackedRowInsets,
     pub checkbox: Option<bool>,
     pub icon: Option<conduit_face::FaceIconKey>,
     pub icon_size: u16,
@@ -80,10 +80,13 @@ impl Row {
             0
         } + super::semantic_icons::inset(self.icon, self.icon_size);
         LayoutRect {
-            x: self.bounds.x + self.padding as i16 + inset as i16,
-            y: self.bounds.y + self.padding as i16,
-            width: self.bounds.width - self.padding * 2 - inset,
-            height: self.bounds.height - self.padding * 2,
+            x: self.bounds.x
+                + self.insets.inline() as i16
+                + self.insets.leading() as i16
+                + inset as i16,
+            y: self.bounds.y + self.insets.block() as i16,
+            width: self.bounds.width - self.insets.inline() * 2 - self.insets.leading() - inset,
+            height: self.bounds.height - self.insets.block() * 2,
         }
     }
 }
@@ -126,7 +129,9 @@ pub(super) fn admit_with_expression_selected(
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
     field_clusters::validate(&items)?;
-    let RowSpacing { padding, gap } = spacing.validate()?;
+    let spacing = spacing.validate()?;
+    let gap = spacing.gap;
+    let padding = spacing.padding;
     if !(1..=2).contains(&columns) {
         return Err(FaceSceneError::InvalidExtent);
     }
@@ -149,9 +154,9 @@ pub(super) fn admit_with_expression_selected(
         padding,
         typography,
     );
-    let maximum_height = bottom
+    let spacing = RowSpacing { padding, ..spacing };
+    let available_height = bottom
         .checked_sub(chrome.top)
-        .and_then(|height| height.checked_sub(padding * 2))
         .filter(|height| *height > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
     let mut column = 0u16;
@@ -164,6 +169,11 @@ pub(super) fn admit_with_expression_selected(
     let mut items = items.into_iter();
     let mut previous_item = None;
     while let Some(item) = items.next() {
+        let insets = spacing.insets(&item);
+        let maximum_height = available_height
+            .checked_sub(insets.block * 2)
+            .filter(|height| *height > 0)
+            .ok_or(FaceSceneError::InvalidExtent)?;
         let cluster_start = field_clusters::starts(previous_item, &item);
         previous_item = field_clusters::key(&item);
         let mut region_start = item.region.is_some() && item.region != previous_region;
@@ -172,18 +182,16 @@ pub(super) fn admit_with_expression_selected(
         let item_width = width
             .checked_sub(inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width =
-            field_clusters::text_width(&item, item_width, padding, text_scale_percent)?;
+        let text_width = field_clusters::text_width(&item, item_width, insets, text_scale_percent)?;
         if cluster_start
             && let Some(demand) = field_clusters::measure(
                 core::iter::once(&item).chain(items.as_slice().iter()),
                 field_clusters::Metrics {
                     width,
-                    maximum_height,
+                    maximum_height: available_height,
                     scale: text_scale_percent,
                     typography,
-                    padding,
-                    gap,
+                    spacing,
                 },
                 region_start,
             )?
@@ -218,7 +226,10 @@ pub(super) fn admit_with_expression_selected(
                 text_scale_percent,
                 typography,
             )?;
-            let box_height = height + padding * 2;
+            let box_height = spacing.box_height(&item, height, text_scale_percent)?;
+            if box_height > available_height {
+                return Err(FaceSceneError::InvalidExtent);
+            }
             let cost = row_commands(&item, region_start);
             let command_pressure = commands + cost > conduit_face::MAX_GRAPHICS_COMMANDS;
             if y + box_height > bottom || count == MAX_PAGE_ROWS || command_pressure {
@@ -250,7 +261,7 @@ pub(super) fn admit_with_expression_selected(
                 region_inset: 0,
                 page,
                 region_start,
-                padding,
+                insets: PackedRowInsets::new(insets)?,
                 checkbox: item.checkbox,
                 icon: item.icon,
                 icon_size: super::semantic_icons::size(text_scale_percent),

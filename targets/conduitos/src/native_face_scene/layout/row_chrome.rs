@@ -69,15 +69,33 @@ pub(in crate::native_face_scene) fn append_row_chrome(
     // An inset outline distinguishes focus even with identical paints. Choice
     // indicators remain independent; other controls also have their outer box.
     if focused {
-        push(
-            scene,
-            GraphicsCommand::rect(
+        // Selected control padding may be zero. Keep the non-color marker in
+        // its admitted leading gutter, outside both glyph and choice ink.
+        let (marker, shape) = if row.insets.leading() != 0 {
+            (
+                LayoutRect {
+                    x: row.bounds.x + 3,
+                    y: row.bounds.y + 3,
+                    width: 2,
+                    height: row.bounds.height - 6,
+                },
+                GraphicsShapeStyle::Fill,
+            )
+        } else {
+            (
                 LayoutRect {
                     x: row.bounds.x + 3,
                     y: row.bounds.y + 3,
                     width: row.bounds.width - 6,
                     height: row.bounds.height - 6,
                 },
+                GraphicsShapeStyle::Stroke,
+            )
+        };
+        push(
+            scene,
+            GraphicsCommand::rect(
+                marker,
                 screen,
                 // Filled primary actions need an interior contrast against
                 // Accent, including white fills under forced colors. Keep the
@@ -88,7 +106,7 @@ pub(in crate::native_face_scene) fn append_row_chrome(
                 } else {
                     outline
                 },
-                GraphicsShapeStyle::Stroke,
+                shape,
             ),
         )?;
     }

@@ -31,7 +31,7 @@ pub(in crate::native_face_scene) fn admit(
     spacing: RowSpacing,
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
-    let RowSpacing { padding, gap } = spacing.validate()?;
+    let spacing = spacing.validate()?;
     field_clusters::validate(&items)?;
     let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
     let height = chrome
@@ -43,8 +43,7 @@ pub(in crate::native_face_scene) fn admit(
         items: &items,
         width: screen.width,
         scale,
-        padding,
-        gap,
+        spacing,
         typography,
         rows: core::cell::Cell::new(0),
     };
@@ -119,8 +118,7 @@ struct Context<'a> {
     items: &'a [document::Item],
     width: u16,
     scale: u16,
-    padding: u16,
-    gap: u16,
+    spacing: RowSpacing,
     typography: Typography,
     rows: core::cell::Cell<usize>,
 }

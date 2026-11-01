@@ -217,7 +217,9 @@ pub(super) fn admit(
     groups: [u8; 2],
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
-    let RowSpacing { padding, gap } = spacing.validate()?;
+    let spacing = spacing.validate()?;
+    let padding = spacing.padding;
+    let gap = spacing.gap;
     let items = ordering::prepare(items, groups)?;
     // Empty authored regions do not reserve space. This decision is derived
     // from admitted rows, without changing source subjects or reading order.
@@ -242,6 +244,7 @@ pub(super) fn admit(
         padding,
         typography,
     );
+    let spacing = RowSpacing { padding, ..spacing };
     let mut rows = Vec::new();
     let mut reading_order = Vec::new();
     let mut bytes = 0usize;
@@ -249,6 +252,7 @@ pub(super) fn admit(
     let mut items = items.into_iter();
     let mut previous_item = None;
     while let Some((original, item)) = items.next() {
+        let insets = spacing.insets(&item);
         let cluster_start = field_clusters::starts(previous_item, &item);
         previous_item = field_clusters::key(&item);
         bytes = bytes
@@ -258,13 +262,15 @@ pub(super) fn admit(
         let lane = flow.lane(item.region);
         flow.select(lane, &mut rows);
         let inset = u16::from(item.indent) * INDENT_STEP;
-        let maximum_height = flow
+        let available_height = flow
             .bottom
             .checked_sub(flow.top)
-            .and_then(|value| {
-                value.checked_sub(padding * 2 + if lane.is_some() { EDGE * 2 } else { 0 })
-            })
+            .and_then(|value| value.checked_sub(if lane.is_some() { EDGE * 2 } else { 0 }))
             .filter(|value| *value > 0)
+            .ok_or(FaceSceneError::InvalidExtent)?;
+        let maximum_height = available_height
+            .checked_sub(insets.block * 2)
+            .filter(|height| *height > 0)
             .ok_or(FaceSceneError::InvalidExtent)?;
         let mut region_start = item.region.is_some() && item.region != previous_region;
         previous_region = item.region;
@@ -274,11 +280,10 @@ pub(super) fn admit(
                     core::iter::once(&item).chain(items.as_slice().iter().map(|(_, item)| item)),
                     field_clusters::Metrics {
                         width,
-                        maximum_height,
+                        maximum_height: available_height,
                         scale,
                         typography,
-                        padding,
-                        gap,
+                        spacing,
                     },
                     region_start,
                 )
@@ -336,7 +341,7 @@ pub(super) fn admit(
                         .width(lane)
                         .checked_sub(inset)
                         .ok_or(FaceSceneError::InvalidExtent)?;
-                    let text_width = field_clusters::text_width(&item, width, padding, scale)?;
+                    let text_width = field_clusters::text_width(&item, width, insets, scale)?;
                     let (end, height) = measure_prefix(
                         remaining,
                         item.role,
@@ -363,7 +368,10 @@ pub(super) fn admit(
                     }
                     result => result?,
                 };
-                let height = height + padding * 2;
+                let height = spacing.box_height(&item, height, scale)?;
+                if height > available_height {
+                    return Err(FaceSceneError::InvalidExtent);
+                }
                 let cost =
                     row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));
                 if flow.fits(lane, height, cost) {
@@ -395,7 +403,7 @@ pub(super) fn admit(
                 region_inset: 0,
                 page: flow.page,
                 region_start,
-                padding,
+                insets: PackedRowInsets::new(insets)?,
                 checkbox: item.checkbox,
                 icon: item.icon,
                 icon_size: super::super::semantic_icons::size(scale),

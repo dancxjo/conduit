@@ -6,7 +6,6 @@ pub(super) fn arrange(
     width: u16,
     height: u16,
 ) -> Result<Vec<Fragment>, FaceSceneError> {
-    let maximum_height = inset(height, context.padding)?;
     let mut fragments = Vec::new();
     let mut current = Fragment::empty();
     // One surface cue per authored group replaces its per-region dividers.
@@ -32,15 +31,16 @@ pub(super) fn arrange(
         if item.text.is_empty() {
             continue;
         }
+        let insets = context.spacing.insets(item);
+        let maximum_height = inset(height, insets.block)?;
         let starts = field_clusters::starts(previous, item);
         previous = field_clusters::key(item);
         let metrics = || field_clusters::Metrics {
             width,
-            maximum_height,
+            maximum_height: height,
             scale: context.scale,
             typography: context.typography,
-            padding: context.padding,
-            gap: context.gap,
+            spacing: context.spacing,
         };
         let mut demand = None;
         if starts {
@@ -80,7 +80,7 @@ pub(super) fn arrange(
                     + if current.entries.is_empty() {
                         0
                     } else {
-                        context.gap
+                        context.spacing.gap
                     },
                 height,
                 current.entries.len(),
@@ -96,7 +96,7 @@ pub(super) fn arrange(
                             + if current.entries.is_empty() {
                                 0
                             } else {
-                                context.gap
+                                context.spacing.gap
                             },
                         height,
                         current.entries.len(),
@@ -115,8 +115,7 @@ pub(super) fn arrange(
         let item_width = width
             .checked_sub(item_inset)
             .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width =
-            field_clusters::text_width(item, item_width, context.padding, context.scale)?;
+        let text_width = field_clusters::text_width(item, item_width, insets, context.scale)?;
         let mut remaining = item.text.as_str();
         let mut chunk = 0;
         while !remaining.is_empty() {
@@ -131,11 +130,14 @@ pub(super) fn arrange(
                 context.scale,
                 context.typography,
             )?;
-            let box_height = add(measured, context.padding * 2)?;
+            let box_height = context.spacing.box_height(item, measured, context.scale)?;
+            if box_height > height {
+                return Err(FaceSceneError::InvalidExtent);
+            }
             let gap = if current.entries.is_empty() {
                 0
             } else {
-                context.gap
+                context.spacing.gap
             };
             let y = add(current.height, gap)?;
             let bottom = add(y, box_height)?;
@@ -156,7 +158,7 @@ pub(super) fn arrange(
             let y = if current.entries.is_empty() {
                 0
             } else {
-                add(current.height, context.gap)?
+                add(current.height, context.spacing.gap)?
             };
             current.height = add(y, box_height)?;
             current.cost += cost;
@@ -186,7 +188,7 @@ pub(super) fn arrange(
                         height: box_height,
                     },
                     region_start: marker,
-                    padding: context.padding,
+                    insets: PackedRowInsets::new(insets)?,
                     checkbox: item.checkbox,
                     icon: item.icon,
                     icon_size: super::super::super::semantic_icons::size(context.scale),

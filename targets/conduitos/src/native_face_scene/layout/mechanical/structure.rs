@@ -78,7 +78,9 @@ pub(super) fn measure(
                     continue;
                 }
                 result.inline_grow = 1;
-                let extra = u32::from(context.padding) * 2
+                let insets = context.spacing.insets(item);
+                let extra = u32::from(insets.inline) * 2
+                    + u32::from(insets.leading)
                     + u32::from(item.indent) * u32::from(INDENT_STEP)
                     + u32::from(super::super::super::semantic_icons::inset(
                         item.icon,

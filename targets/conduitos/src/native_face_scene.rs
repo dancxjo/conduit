@@ -476,3 +476,7 @@ mod authored_look_metrics_tests;
 #[cfg(test)]
 #[path = "native_face_scene/row_spacing_tests.rs"]
 mod row_spacing_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/control_spacing_tests.rs"]
+mod control_spacing_tests;

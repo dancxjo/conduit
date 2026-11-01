@@ -13,6 +13,7 @@ pub(super) fn screen(width: u16, height: u16) -> LayoutRect {
 }
 pub(super) fn item(text: &str, region: Option<u8>) -> document::Item {
     document::Item {
+        part: crate::native_face_scene::layout::NativePart::Content,
         text: text.into(),
         role: GraphicsTextRole::Label,
         paint: GraphicsPaintRole::Foreground,

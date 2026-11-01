@@ -10,6 +10,7 @@ use conduit_face::{
 
 pub(super) struct Item {
     pub text: String,
+    pub part: layout::NativePart,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
     pub control: Option<FaceControl>,
@@ -24,6 +25,7 @@ pub(super) struct Item {
 fn item(text: String, role: GraphicsTextRole) -> Item {
     Item {
         text,
+        part: layout::NativePart::Content,
         role,
         paint: GraphicsPaintRole::Foreground,
         control: None,
@@ -108,6 +110,7 @@ pub(super) fn prepare(
             _ => None,
         };
         if let Some((name, argument_name)) = action_name {
+            detail.part = layout::NativePart::Control;
             let (index, action) = face
                 .actions
                 .iter()
@@ -289,6 +292,7 @@ pub(super) fn prepare(
                 GraphicsPaintRole::Muted
             };
             append(Item {
+                part: layout::NativePart::Control,
                 text: match &action.availability {
                     FaceActionAvailability::Unavailable {
                         reason_code,
@@ -333,6 +337,7 @@ pub(super) fn prepare(
                 }
                 let hint = argument_hint(argument);
                 append(Item {
+                    part: layout::NativePart::Control,
                     text: super::text_field::current(face, index).map_or_else(
                         || {
                             format!(

@@ -57,8 +57,8 @@ pub(super) fn append(
         return Ok(());
     };
     let bounds = LayoutRect {
-        x: row.bounds.x + row.padding as i16,
-        y: row.bounds.y + row.padding as i16,
+        x: row.bounds.x + row.insets.inline() as i16 + row.insets.leading() as i16,
+        y: row.bounds.y + row.insets.block() as i16,
         width: 18,
         height: 18,
     };

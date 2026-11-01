@@ -4,12 +4,14 @@ use super::*;
 struct SelectedMetrics {
     typography: Typography,
     row_gap: u16,
+    control: Option<layout::RowInsets>,
 }
 impl SelectedMetrics {
     fn legacy(typography: Typography) -> Self {
         Self {
             typography,
             row_gap: SPACE_SM,
+            control: None,
         }
     }
     fn spacing(&self, expression: &conduit_face::AdmittedVisualExpression) -> layout::RowSpacing {
@@ -19,6 +21,7 @@ impl SelectedMetrics {
                 conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
             },
             gap: self.row_gap,
+            control: self.control,
         }
     }
 }
@@ -177,6 +180,11 @@ impl NativeFaceScene {
         Ok(SelectedMetrics {
             typography,
             row_gap,
+            control: Some(layout::RowInsets {
+                inline: *visual.tokens().space_control_inline_px(),
+                block: *visual.tokens().space_control_block_px(),
+                leading: 8,
+            }),
         })
     }
 
