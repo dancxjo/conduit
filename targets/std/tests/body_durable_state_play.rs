@@ -7,6 +7,16 @@ use std::collections::BTreeMap;
 #[path = "common/checkpoint_fixture.rs"]
 mod checkpoint_fixture;
 use checkpoint_fixture::{body_plan, CapturedFore};
+struct BorrowedCapture(Vec<Vec<u8>>);
+impl BodyBorrowedForeOutputAdapter for BorrowedCapture {
+    fn deliver(&mut self, output: BodyForeDeliveryRef<'_>) -> Result<(), String> {
+        if self.0.len() == 2 {
+            return Err("fixture's independently finite custody is full".into());
+        }
+        self.0.push(output.bytes.to_vec());
+        Ok(())
+    }
+}
 fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
     let ty = StructuredInfoType::leaf(kind_id(TEXT_INFO_ID)).unwrap();
     let initial = StructuredInfoValue::leaf(ty.clone(), Vec::new()).unwrap();
@@ -57,7 +67,7 @@ fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let host = StdHost::from_advertisement(advertisement).unwrap();
-    let checked = conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document("plot durable (\n >> write: Text <= 4KiB\n current: $Text <= 4KiB >>\n) {\n cell: keep Text(\"\") <= 4KiB for life\n write >> cell\n cell >> current\n}\n"), &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document("plot durable (\n >> write: Text\n current: $Text >>\n) {\n cell: keep Text(\"\") <= 4KiB for life\n write >> cell\n cell >> current\n}\n"), &startup).unwrap();
     let authored =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "durable", &profiles).unwrap();
     let hosts = [host.advertisement().clone()];
@@ -82,7 +92,7 @@ fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
                 track: ConnectionTrack::Payload,
             },
             conduit_planner::ConnectionQueueLimits {
-                item_capacity: 2,
+                item_capacity: 1,
                 byte_capacity: 4096,
             },
         ),
@@ -124,7 +134,7 @@ fn actual_body_state_recovers_after_fresh_host_boot() {
         let mut original_body = None;
         for (boot, input) in [
             ("state/boot-a", Some(b"remember this".as_slice())),
-            ("state/boot-b", None),
+            ("state/boot-b", Some(b"after recovery".as_slice())),
         ] {
             let (mut host, plan, resource) = planned(boot);
             let (wake, body) = body_plan(plan);
@@ -141,19 +151,17 @@ fn actual_body_state_recovers_after_fresh_host_boot() {
                     bytes: bytes.to_vec(),
                 })
                 .collect();
-            let mut fore = CapturedFore::default();
+            let mut fore = BorrowedCapture(Vec::with_capacity(2));
             let report = host
-                .run_body_plan_with_durable_state_to_with_start(
+                .run_body_plan_with_durable_state_borrowed_to_with_start(
                     BodyRunRequest {
                         wake: &wake,
                         plan: &body,
-                        control: &RunControl::new(),
+                        control: &RunControl::default(),
                         keyboard: None,
                     },
-                    BodyForeExchange {
-                        inputs: &inputs,
-                        output: &mut fore,
-                    },
+                    &inputs,
+                    &mut fore,
                     BodyDurableStateSelection {
                         root: root.path(),
                         resource: &resource,
@@ -161,6 +169,8 @@ fn actual_body_state_recovers_after_fresh_host_boot() {
                         body_id: &body.body_id,
                         plan_id: &body.plan_id,
                     },
+                    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                    None,
                     &mut Vec::new(),
                     &mut ThreadTimer,
                     |play, _| {
@@ -176,8 +186,11 @@ fn actual_body_state_recovers_after_fresh_host_boot() {
                 report.failure
             );
             assert!(report.cleanup_failure.is_none());
+            if boot == "state/boot-b" {
+                assert_eq!(fore.0.first().unwrap().as_slice(), b"remember this");
+            }
             assert!(
-                fore.0.iter().any(|row| row.bytes == b"remember this"),
+                fore.0.iter().any(|row| row.as_slice() == b"remember this"),
                 "{:?}",
                 fore.0
             );
@@ -195,7 +208,7 @@ fn rejected_start_has_no_state_effect_and_releases_original_pool() {
             BodyRunRequest {
                 wake: &wake,
                 plan: &body,
-                control: &RunControl::new(),
+                control: &RunControl::default(),
                 keyboard: None,
             },
             &[],
@@ -210,18 +223,20 @@ fn rejected_start_has_no_state_effect_and_releases_original_pool() {
         );
         assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
         for accept in [false, true] {
-            let mut fore = CapturedFore::default();
-            let result = host.run_body_plan_with_durable_state_to_with_start(
+            let mut fore = BorrowedCapture(Vec::with_capacity(2));
+            let result = host.run_body_plan_with_durable_state_borrowed_to_with_start(
                 BodyRunRequest {
                     wake: &wake,
                     plan: &body,
-                    control: &RunControl::new(),
+                    control: &RunControl::default(),
                     keyboard: None,
                 },
-                BodyForeExchange {
-                    inputs: &[],
-                    output: &mut fore,
-                },
+                &[ExternalForeInput {
+                    front_port_id: port_id("write"),
+                    track: ConnectionTrack::Payload,
+                    bytes: b"accepted".to_vec(),
+                }],
+                &mut fore,
                 BodyDurableStateSelection {
                     root: root.path(),
                     resource: &resource,
@@ -229,6 +244,8 @@ fn rejected_start_has_no_state_effect_and_releases_original_pool() {
                     body_id: &body.body_id,
                     plan_id: &body.plan_id,
                 },
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                None,
                 &mut Vec::new(),
                 &mut ThreadTimer,
                 |_, _| {
@@ -243,7 +260,8 @@ fn rejected_start_has_no_state_effect_and_releases_original_pool() {
             if accept {
                 assert_eq!(result.unwrap().terminal, TerminalDisposition::Completed);
             } else {
-                assert!(result.unwrap_err().contains("fixture rejected start"));
+                let error = result.unwrap_err();
+                assert!(error.contains("fixture rejected start"), "{error}");
                 assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
             }
         }
@@ -263,7 +281,7 @@ fn foreign_selected_resource_refuses_before_start_or_residence_effect() {
             BodyRunRequest {
                 wake: &wake,
                 plan: &body,
-                control: &RunControl::new(),
+                control: &RunControl::default(),
                 keyboard: None,
             },
             BodyForeExchange {

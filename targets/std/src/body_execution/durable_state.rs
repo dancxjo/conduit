@@ -51,6 +51,125 @@ impl StdHost {
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             None,
             Some(selection),
+            false,
+            started,
+        )
+    }
+}
+
+impl StdHost {
+    /// Execute one exact authored checkpoint with both independently selected
+    /// residences, under the same original complete-Plan reservation.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_body_plan_with_state_and_snapshot_to_with_start<'a, W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        fore: BodyForeExchange<'a>,
+        state: BodyDurableStateSelection<'a>,
+        snapshot: BodySnapshotSelection<'a>,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        if state.body_id != &request.plan.body_id
+            || state.plan_id != &request.plan.plan_id
+            || !self.advertisement.resources.contains(state.resource)
+            || state.authorities.iter().any(|grant| {
+                grant.host_id != self.advertisement.host_id
+                    || grant.boot_id != self.advertisement.boot_id
+            })
+            || snapshot.body_id != &request.plan.body_id
+            || snapshot.plan_id != &request.plan.plan_id
+            || snapshot.authority.host_id != self.advertisement.host_id
+            || snapshot.authority.boot_id != self.advertisement.boot_id
+            || !self.advertisement.resources.contains(snapshot.resource)
+        {
+            return Err("Body storage differs from exact Body/Plan/Host/Boot/resources".into());
+        }
+        self.run_body_plan_to_with_start_and_clock_storage(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((fore.inputs, false, fore.output)),
+            None,
+            None,
+            None,
+            Some(snapshot),
+            Some(state),
+            false,
+            started,
+        )
+    }
+}
+
+impl StdHost {
+    /// Borrowed delivery recycles only the original acknowledged kernel slots;
+    /// the caller must retain accepted bytes in its own independently finite custody.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_body_plan_with_durable_state_borrowed_to_with_start<
+        'a,
+        W: Write,
+        T: TimerAdapter,
+        F,
+    >(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &'a [ExternalForeInput],
+        output_fore: &'a mut dyn BodyBorrowedForeOutputAdapter,
+        selection: BodyDurableStateSelection<'a>,
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshot: Option<
+            BodySnapshotSelection<'a>,
+        >,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        if selection.body_id != &request.plan.body_id
+            || selection.plan_id != &request.plan.plan_id
+            || !self.advertisement.resources.contains(selection.resource)
+            || selection.authorities.iter().any(|grant| {
+                grant.host_id != self.advertisement.host_id
+                    || grant.boot_id != self.advertisement.boot_id
+            })
+        {
+            return Err(
+                "Body State selection differs from exact Body/Plan/Host/Boot/resource".into(),
+            );
+        }
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+        if let Some(snapshot) = snapshot.as_ref() {
+            if snapshot.body_id != &request.plan.body_id
+                || snapshot.plan_id != &request.plan.plan_id
+                || snapshot.authority.host_id != self.advertisement.host_id
+                || snapshot.authority.boot_id != self.advertisement.boot_id
+                || !self.advertisement.resources.contains(snapshot.resource)
+            {
+                return Err("Body snapshot differs from exact Body/Plan/Host/Boot/resource".into());
+            }
+        }
+        let mut adapter = super::borrowed_fore::BorrowedAdapter(output_fore);
+        self.run_body_plan_to_with_start_and_clock_storage(
+            request,
+            output,
+            timer,
+            None,
+            None,
+            Some((inputs, false, &mut adapter)),
+            None,
+            None,
+            None,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            snapshot,
+            Some(selection),
+            true,
             started,
         )
     }

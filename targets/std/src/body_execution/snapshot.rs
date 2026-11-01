@@ -58,6 +58,7 @@ impl StdHost {
             None,
             Some(selection),
             None,
+            false,
             started,
         )
     }
