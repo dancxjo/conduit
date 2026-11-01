@@ -178,7 +178,9 @@ fn candidate_decode_preserves_evidence_without_replacing_pinned_context_checks()
         Err(Refusal::Scope)
     ));
     assert!(matches!(
-        SourceRecordingSnapshot::decode_candidate(&[0; MAXIMUM_BYTES + 1]),
+        SourceRecordingSnapshot::decode_candidate(
+            &[0; conduit_environment_runtime::source_recording::MAXIMUM_BYTES + 1]
+        ),
         Err(Refusal::Capacity)
     ));
 }
