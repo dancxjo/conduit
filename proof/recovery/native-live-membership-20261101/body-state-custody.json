@@ -1,0 +1,38 @@
+{
+  "schema": "conduit.body-state-custody-proof@1",
+  "tested_source": "d731da8a59",
+  "scope": "fixture-admitted actual Body kernel and existing durable State filesystem residence; no installed owner or history acknowledgement",
+  "test_command": "cargo +stable test --offline -p conduit-std-host --features linux-snapshot --test body_durable_state_play -- --test-threads=1",
+  "result": {
+    "passed": 3,
+    "failed": 0,
+    "exit_code": 0,
+    "log_sha256": "9839112a39582672c7d73a8b2a663c235fa00ec061a41eaabb105d07d96855d2"
+  },
+  "proved": [
+    "Actual sealed Body Plan reserves original Host ledger, consumes actual Play sequence, prepares exact partition ActivePlay State before accepted-start callback",
+    "One current independently retained exact ResourceOffer; canonical State offer has no AuthorityRequirement, so exact empty authority list is accepted without inventing a grant",
+    "Real commit followed by fresh StdHost and distinct Boot with same Body; first emitted current value matches previously committed bytes before new update",
+    "Rejected started callback creates no residence directory or output; same original one-unit pool subsequently admits and completes",
+    "Foreign selected resource refuses before started callback and filesystem effects",
+    "Absent selection continues refusing Body-lived State",
+    "Borrowed Fore uses existing post-ACK slot recycling and independent fixture max2 accepted-value custody"
+  ],
+  "bounds": {
+    "state_instances": 1,
+    "state_maximum_value_bytes": 4096,
+    "state_resource_units": 1,
+    "fixture_accepted_output_capacity": 2,
+    "filesystem_envelope": "Existing FileDurableStateResidence candidate/current synchronized generation; actual directory-to-pool and finite disk envelope remain Root-selected realization responsibilities"
+  },
+  "regression": {
+    "snapshot_tests_passed": 3,
+    "source": "fdb952de43 before redundant combined convenience wrapper removal; no snapshot effect code changed by removal"
+  },
+  "not_proved": [
+    "Installed Hamm selected recorder/catalog State",
+    "Combined snapshot-plus-State effects in one authored checkpoint (entrance compiles, actual combined fixture remains)",
+    "Fresh OS process or power-cycle recovery",
+    "Durable history acknowledgement or MCU Body membership"
+  ]
+}
