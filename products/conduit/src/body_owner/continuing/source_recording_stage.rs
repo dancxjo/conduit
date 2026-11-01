@@ -50,6 +50,8 @@ pub(crate) mod catalog;
 mod checkpoint;
 #[path = "source_recording_stage/publication.rs"]
 pub(crate) mod publication;
+#[path = "source_recording_stage/recovered_read.rs"]
+pub(crate) mod recovered_read;
 #[path = "source_recording_stage/recovery.rs"]
 pub(crate) mod recovery;
 impl SourceRecordingStage {
