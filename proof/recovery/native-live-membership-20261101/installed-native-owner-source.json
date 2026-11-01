@@ -1,28 +1,58 @@
 {
   "schema": "conduit.proof/installed-native-owner-source@1",
-  "source_identity": "98d7b51bb1f92731b2d273571003bca801581484",
+  "source_identity": "c5716838cc5aed738197719cf85c8b19e41fef50",
+  "accepted_dev": "f3097677f0",
   "source_check": {
-    "command": "cargo +stable check --offline -p conduit --features installed-environmental-sources --tests",
-    "result": "passed",
-    "scope": "product and test-target compilation, not test execution or physical deployment"
+    "command": "cargo +stable test --offline -p conduit --bin conduit --features installed-environmental-sources --no-run",
+    "result": "passed"
+  },
+  "combined_tree_tests": {
+    "native_actor_process_tests": 6,
+    "foreign_root_grant_refusal_tests": 1,
+    "exact_typed_fore_refusal_tests": 1,
+    "invited_browser_owner_tests": 4,
+    "result": "12 passed, zero failed",
+    "worker_environment_explicitly_set": true,
+    "native_test_scope": [
+      "actual selected confined HTTP worker IO",
+      "actual installed owner lifecycle and typed Fore",
+      "same equipment session across two explicit Plays",
+      "late-cancelled output suppression",
+      "ambiguous equipment attribution refuses before proposal",
+      "exact attachment/capability/provider/Plan/fragment/placement/native Play retained with reading"
+    ],
+    "browser_test_scope": [
+      "exact authorized Host/key/claim/offer",
+      "durable invitation consume before Active Line grant",
+      "owner reopen/replay refusal",
+      "storage refusal rollback and invalid-proof window retirement"
+    ]
+  },
+  "node_tests": {
+    "handshake_and_sdk_zip_inventory": 4,
+    "result": "passed"
+  },
+  "isolated_worker": {
+    "bytes": 14189704,
+    "sha256": "0025025f77d85ed3f97279000472728a0ac068cdc47b6af07e0063abbfba6878"
   },
   "native_runner_tests": {
-    "result": "8 passed",
-    "source_commits": [
-      "048b06bb848beaccbc0387cd77cb6924dc67132e",
-      "21e04843f0dd8065c131a1dc60237a80bec9f995"
-    ],
-    "scope": "cooperative fixture effects, original reservations, typed Fore, cancellation, prepared immutable/input storage reuse"
-  },
-  "native_owner_process_tests": {
-    "result": "not yet executed",
-    "reason": "selected isolated-provider worker and executable test build still active"
+    "result": "10 passed",
+    "final_source_commit": "ef2ce73d7d55e897adf1f34df064bab10a4fbb8e",
+    "scope": "cooperative fixture effects, original reservations, typed Fore, cancellation, prepared immutable/input storage reuse, unprepared route pre-Play refusal"
   },
   "remaining": [
-    "execute installed owner/provider IO and cancellation tests",
-    "deploy actual selected source on existing new Body",
-    "project accepted typed Fore into shared Face",
-    "selected durable Recorder commit and exact recovery",
-    "browser protected carrier and Part-key return continuity"
+    "physical deployment of actual selected source on existing new Body",
+    "authored autonomous cadence and current shared Face contribution",
+    "selected durable Recorder commitment and interrupted exact recovery",
+    "protected browser remote carrier and human Spore import",
+    "Part-key return continuity for Linux browser window"
+  ],
+  "non_claims": [
+    "no MCU execution-Host membership",
+    "no autonomous cadence from explicit two-Play test",
+    "no durable Recorder commitment from accepted Fore",
+    "no browser standalone package or remote-carrier proof",
+    "no physical NAT interruption from loopback process fixture"
   ]
 }
