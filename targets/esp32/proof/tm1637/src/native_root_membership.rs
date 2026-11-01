@@ -42,8 +42,15 @@ impl NativeRoot {
             return Err(accepted);
         }
         let backing = unsafe { Box::from_raw(raw) };
-        let host = self.host.clone();
-        let boot = self.boot.clone();
+        let mut host = alloc::string::String::new();
+        let mut boot = alloc::string::String::new();
+        if host.try_reserve_exact(self.host.as_str().len()).is_err()
+            || boot.try_reserve_exact(self.boot.as_str().len()).is_err()
+        {
+            return Err(accepted);
+        }
+        host.push_str(self.host.as_str());
+        boot.push_str(self.boot.as_str());
         let owner = self.body.take().expect("checked original Body");
         let job = match Job::reserve(owner, self.admission.verifying_key(), host, boot, request) {
             Ok(job) => job,
