@@ -141,9 +141,18 @@ async fn main(spawner: Spawner) {
         #[cfg(feature = "checkpoint-preparation-check")]
         root.measure_checkpoint_preparation();
         #[cfg(feature = "membership-preparation-check")]
-        await_outlined(root.qualify_cold_membership(&mut invitation_uart, flash_timing))
-            .await
-            .expect("attended cold membership qualification");
+        {
+            // Cold preparation must not enlarge the permanent executor task.
+            // Exact fallible backing comes from the existing Root arena and is
+            // dropped before any local Plot worker starts. No grant is enlarged.
+            let future = root.qualify_cold_membership(&mut invitation_uart, flash_timing);
+            let backing = crate::native_box_backing::reserve_box()
+                .expect("finite cold membership preparation backing");
+            let future = alloc::boxed::Box::into_pin(alloc::boxed::Box::write(backing, future));
+            await_outlined(future)
+                .await
+                .expect("attended cold membership qualification");
+        }
         root.start_preparation_service(spawner)
             .await
             .expect("Root preparation service must start");
