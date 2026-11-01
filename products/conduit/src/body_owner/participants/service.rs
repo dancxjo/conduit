@@ -141,7 +141,10 @@ pub(crate) struct BrowserWindow {
 
 enum BrowserWindowScope {
     ExactHost,
-    InvitationScope(conduit_body::SpawnInvitationClaim),
+    InvitationScope {
+        claim: conduit_body::SpawnInvitationClaim,
+        observed_sha256: Option<String>,
+    },
 }
 
 enum WindowState {
@@ -350,7 +353,10 @@ impl Owner {
             id: id.clone(),
             expected: None,
             new_key: None,
-            scope: BrowserWindowScope::InvitationScope(invitation.claim.clone()),
+            scope: BrowserWindowScope::InvitationScope {
+                claim: invitation.claim.clone(),
+                observed_sha256: None,
+            },
             invited_proof_refused: false,
             clock,
             deadline: clock + Duration::from_millis(maximum_millis),

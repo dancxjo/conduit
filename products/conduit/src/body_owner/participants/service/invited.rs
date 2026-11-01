@@ -42,11 +42,26 @@ pub(super) fn begin(
             }
             false
         }
-        BrowserWindowScope::InvitationScope(expected_claim) => {
-            if expected_claim != &claim || window.expected.is_some() || window.new_key.is_some() {
+        BrowserWindowScope::InvitationScope {
+            claim: expected_claim,
+            observed_sha256,
+        } => {
+            if expected_claim != &claim {
                 return Err("invited browser differs from exact retained invitation scope".into());
             }
-            true
+            if observed_sha256.is_some() {
+                if window.expected.as_ref() != Some(&advertisement.host_id)
+                    || window.new_key != Some(key)
+                {
+                    return Err("invited retry differs from frozen Host/key".into());
+                }
+                false
+            } else {
+                if window.expected.is_some() || window.new_key.is_some() {
+                    return Err("invited browser scope has inconsistent frozen identity".into());
+                }
+                true
+            }
         }
     };
     let manager = owner
@@ -80,9 +95,23 @@ pub(super) fn begin(
     // Freeze only after exact claim, finite observation and deadline validation.
     // Pending retains the full immutable observed Host/Boot/offer; later proofs
     // cannot replace it with a competing endpoint.
-    if fresh_scope {
-        window.expected = Some(observation.advertisement.host_id.clone());
-        window.new_key = Some(key);
+    if let BrowserWindowScope::InvitationScope {
+        observed_sha256, ..
+    } = &mut window.scope
+    {
+        let digest =
+            crate::durable_host::root_signer::receipt::offered_digest(&observation.advertisement)?;
+        if observed_sha256
+            .as_ref()
+            .is_some_and(|frozen| frozen != &digest)
+        {
+            return Err("invited retry differs from frozen Boot/generation/offer".into());
+        }
+        if fresh_scope {
+            window.expected = Some(observation.advertisement.host_id.clone());
+            window.new_key = Some(key);
+            *observed_sha256 = Some(digest);
+        }
     }
     window.state = WindowState::Pending(Box::new(Pending {
         binding: binding.clone(),
