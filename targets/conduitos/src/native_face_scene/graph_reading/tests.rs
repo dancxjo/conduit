@@ -140,7 +140,7 @@ fn pointer_uses_emitted_gear_port_and_uncovered_cord_targets() {
     let mut scene = NativeFaceScene::prepare(face.clone(), 1280, 800).unwrap();
     scene.show_diagram(true);
     let mut drawing = GraphicsScene::empty();
-    let hits = diagram::append(&mut drawing, &face, scene.screen, scene.page()).unwrap();
+    let hits = diagram::append(&mut drawing, &face, scene.screen, scene.page(), None).unwrap();
     let mut targets = Vec::new();
     for (bounds, identity) in hits.gears.iter().chain(hits.ports.iter()).flatten() {
         let point = (bounds.x + 1, bounds.y + 1);

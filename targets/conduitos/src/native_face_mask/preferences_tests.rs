@@ -128,14 +128,6 @@ fn invalid_local_proposals_have_distinct_refusals_without_drawing() {
             ]),
             NativeLocalLookRefusal::Contrast,
         ),
-        (
-            local(vec![LocalLookVisualOverride::RadiusControlPx(0)]),
-            NativeLocalLookRefusal::UnsupportedField("radius_control_px"),
-        ),
-        (
-            local(vec![LocalLookVisualOverride::RadiusPanelPx(8)]),
-            NativeLocalLookRefusal::UnsupportedField("radius_panel_px"),
-        ),
     ]
     .into_iter()
     .enumerate()
@@ -304,5 +296,56 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
                 assert_eq!(scene.face(), &export.face);
             }
         }
+    }
+}
+
+#[test]
+fn personal_corner_overrides_reach_prepared_graphics_before_show_acknowledgment() {
+    use conduit_face::{GraphicsCommandKind, GraphicsShapeStyle};
+    for (control, panel) in [(0, 32), (32, 0), (4, 12)] {
+        let mut mask = configured();
+        let author = mask.component_configuration().unwrap().clone();
+        let face = super::super::tests::draft()
+            .face(&mask.birth_basis("arrival/personal-corners"))
+            .unwrap();
+        mask.set_local_visual_look(
+            Some(local(vec![
+                LocalLookVisualOverride::RadiusControlPx(control),
+                LocalLookVisualOverride::RadiusPanelPx(panel),
+            ])),
+            LocalLookContrast::Standard,
+        );
+        let mut pixels = super::super::tests::CountingDisplay::default();
+        mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
+        assert!(pixels.writes > 0);
+        assert!(mask.show().is_some());
+        assert_eq!(mask.scene().unwrap().face(), &face);
+        assert_eq!(mask.component_configuration().unwrap(), &author);
+        let selected = &mask
+            .local_visual_look_resolution()
+            .unwrap()
+            .admitted
+            .selected;
+        let LookVisualFacetOption::Some(visual) = selected.visual() else {
+            panic!()
+        };
+        assert_eq!(*visual.tokens().radius_control_px(), control);
+        assert_eq!(*visual.tokens().radius_panel_px(), panel);
+        let frame = mask.scene().unwrap().frame().unwrap();
+        let mut controls = 0;
+        for hit in &frame.hits {
+            if let Some(command) = frame.scene.commands().iter().find(|c| {
+                c.kind == GraphicsCommandKind::Rect
+                    && c.bounds == hit.bounds
+                    && matches!(
+                        c.style,
+                        GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
+                    )
+            }) {
+                assert_eq!(command.rect_metrics(), Some((control as u8, 1)));
+                controls += 1;
+            }
+        }
+        assert!(controls > 0);
     }
 }

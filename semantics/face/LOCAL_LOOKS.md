@@ -85,10 +85,12 @@ Plan and complete Face remain unchanged. `local_visual_look_resolution` exposes
 the prepared resolution and field origins. It does not prove an available Show.
 `NativeLocalLookRefusal` distinguishes native-value, resource-bound,
 missing-visual-facet, duplicate-field, visual-admission and contrast failures.
-An unconfigured Mask explicitly refuses personal preferences. The current native
-scene contract cannot express selected control/panel corner radii, so personal
-overrides of either field refuse with the field name, rather than pretending
-those overrides rendered. Shared graphics evolution remains separate work.
+An unconfigured Mask explicitly refuses personal preferences. Configured native
+Masks resolve control and panel radii into explicit graphics-scene@2 rectangle
+metrics before Show presentation. The same fields reach row controls, grouped
+surfaces, diagram panels and the active document editor. Radius zero is explicitly
+square. Geometry changes neither semantic Face nor measured rows and hit regions;
+legacy scenes without a selected Look retain their original rectangle encoding.
 
 A Look-only change over the same immutable Face uses the existing fresh-Mask
 replacement: prepare a replacement, bind its personal data, transfer the local

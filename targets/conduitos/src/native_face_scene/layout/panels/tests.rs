@@ -214,7 +214,7 @@ fn measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outli
             .unwrap();
         }
         for row in rows.iter().filter(|row| row.page == page) {
-            append_panel_chrome(&mut scene, row, screen(1280, 800)).unwrap();
+            append_panel_chrome(&mut scene, row, screen(1280, 800), None).unwrap();
         }
         for row in rows.iter().filter(|row| row.page == page) {
             append_row_chrome(
@@ -224,7 +224,10 @@ fn measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outli
                 row.paint,
                 false,
                 false,
-                2,
+                RowChromeMetrics {
+                    focus_marker_width: 2,
+                    control_radius: None,
+                },
             )
             .unwrap();
             crate::native_face_scene::boolean_choice::append(&mut scene, row, screen(1280, 800))
