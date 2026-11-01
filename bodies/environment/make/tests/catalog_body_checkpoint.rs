@@ -231,6 +231,7 @@ fn read_body(
 struct Capture {
     values: Vec<Vec<u8>>,
     sabotage: Option<std::path::PathBuf>,
+    stop: Option<host::RunControl>,
 }
 impl BodyBorrowedForeOutputAdapter for Capture {
     fn deliver(&mut self, value: BodyForeDeliveryRef<'_>) -> Result<(), String> {
@@ -250,6 +251,11 @@ impl BodyBorrowedForeOutputAdapter for Capture {
             std::fs::create_dir(entries[0].join("candidate")).map_err(|e| e.to_string())?;
         }
         self.values.push(value.bytes.to_vec());
+        if let Some(control) = self.stop.take() {
+            control
+                .request_stop(host::RunControlRequestId::new("fixture/first-current").unwrap())
+                .map_err(|e| format!("fixture stop: {e:?}"))?;
+        }
         Ok(())
     }
 }
@@ -274,13 +280,17 @@ use conduit_resource_snapshot::{PUBLISH_OPERATION, READ_OPERATION};
 fn independently_read(
     directory: &conduit_linux_snapshot_store::SnapshotDirectory,
     reference: &c::BoundedResourceRef,
+    owner: &c::HostId,
 ) -> Vec<u8> {
     let (mut placement, _) = snapshot_fixture::placement(
         "fixture/independent-read-boot",
         false,
         reference.extent.bytes as usize,
     );
+    placement.host_id = owner.clone();
+    placement.authority[0].host_id = owner.clone();
     let content = placement.resources[0].content.as_mut().unwrap();
+    content.owner_host = owner.clone();
     content.contract.identity = reference.identity;
     content.contract.version = reference.lifetime.version;
     let mut selected = conduit_linux_snapshot_store::PreparedFileSnapshot::prepare(
@@ -355,6 +365,7 @@ fn run(fail_state: bool) {
     let mut capture = Capture {
         values: Vec::with_capacity(2),
         sabotage: fail_state.then(|| state_root.path().to_path_buf()),
+        stop: None,
     };
     let inputs = [host::ExternalForeInput {
         front_port_id: "catalog".into(),
@@ -396,12 +407,33 @@ fn run(fail_state: bool) {
         )
         .unwrap();
     assert!(
+        report.failure.is_none() || fail_state,
+        "{:?} / {:?}",
+        report.failure,
+        report.kernel_failure
+    );
+    if fail_state {
+        assert_eq!(
+            report.kernel_failure,
+            Some(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostCallFailed,
+                detail: 7
+            }),
+            "{:?}",
+            report.failure
+        );
+    }
+    assert!(
         report.cleanup_failure.is_none(),
         "{:?}",
         report.cleanup_failure
     );
     assert_eq!(
-        independently_read(&directory, &reference),
+        independently_read(
+            &directory,
+            &reference,
+            &plan.plots[0].plan.fragments[0].host_id
+        ),
         catalog.content().as_bytes()
     );
     let mut decoded =
@@ -410,11 +442,14 @@ fn run(fail_state: bool) {
     assert_eq!(decoded.len(), 1);
     assert_eq!(decoded_reference(capture.values.first().unwrap()), None);
     if fail_state {
-        assert!(report
-            .failure
-            .as_deref()
-            .unwrap()
-            .contains("Body State residence refused"));
+        assert!(report.failure.is_some());
+        assert_eq!(
+            report.kernel_failure,
+            Some(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::HostCallFailed,
+                detail: 7
+            })
+        );
         assert!(matches!(
             report.terminal,
             c::TerminalDisposition::Failed { .. }
@@ -448,16 +483,18 @@ fn run(fail_state: bool) {
         read_plan.plots[0].plan.fragments[0].states[0].state_id,
         plan.plots[0].plan.fragments[0].states[0].state_id
     );
+    let read_control = host::RunControl::default();
     let mut recovered = Capture {
         values: Vec::with_capacity(2),
         sabotage: None,
+        stop: Some(read_control.clone()),
     };
     let result = fresh
         .run_body_plan_with_durable_state_borrowed_to_with_start(
             BodyRunRequest {
                 wake: &wake,
                 plan: &read_plan,
-                control: &host::RunControl::default(),
+                control: &read_control,
                 keyboard: None,
             },
             &[],
@@ -475,12 +512,13 @@ fn run(fail_state: bool) {
             |_, _| Ok(()),
         )
         .unwrap();
-    assert_eq!(
-        result.terminal,
-        c::TerminalDisposition::Completed,
+    assert!(
+        matches!(result.terminal, c::TerminalDisposition::Cancelled { .. }),
         "{:?}",
-        result.failure
+        result
     );
+
+    assert!(result.cleanup_failure.is_none());
     assert_eq!(recovered.values.len(), 1);
     assert_eq!(
         decoded_reference(&recovered.values[0]),

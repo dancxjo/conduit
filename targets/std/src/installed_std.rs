@@ -1091,20 +1091,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     Err(refusal) => HostCallOutcome {
                         disposition: HostCallDisposition::Failed,
                         output: None,
-                        failure: Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallFailed,
-                            detail: match refusal {
-                                crate::state_value::DurableStateRefusal::InvalidBinding => 1,
-                                crate::state_value::DurableStateRefusal::ValueTooLarge => 2,
-                                crate::state_value::DurableStateRefusal::GenerationGap => 3,
-                                crate::state_value::DurableStateRefusal::ConflictingDigest => 4,
-                                crate::state_value::DurableStateRefusal::Corrupt => 5,
-                                crate::state_value::DurableStateRefusal::Incompatible => 6,
-                                crate::state_value::DurableStateRefusal::Lost => 7,
-                                crate::state_value::DurableStateRefusal::StaleRecovery => 8,
-                                crate::state_value::DurableStateRefusal::InvalidReceipt => 9,
-                            },
-                        }),
+                        failure: Some(crate::state_value::durable_refusal_failure(refusal)),
                     },
                 };
                 host_calls.record(request)?;

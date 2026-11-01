@@ -109,23 +109,28 @@ impl PreparedBodyState {
         let input = scheduler
             .host_value(request.input.value)
             .map_err(|e| format!("Body State input: {e:?}"))?;
-        if self.host.is_none() {
-            self.host = Some(
-                InstalledDurableStateHost::open(&self.root, self.binding.clone())
-                    .map_err(|e| format!("open selected Body State: {e:?}"))?,
-            );
-        }
-        let host = self.host.as_mut().ok_or("Body State residence absent")?;
-        let result = if operation.contract_id.as_str()
-            == conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
-        {
-            match input {
-                [1] => host.recover_metadata(),
-                metadata => host.recover_exact(metadata),
+        let result = (|| {
+            if self.host.is_none() {
+                self.host = Some(InstalledDurableStateHost::open(
+                    &self.root,
+                    self.binding.clone(),
+                )?);
             }
-        } else {
-            host.commit(input).map(|receipt| receipt.to_vec())
-        };
+            let host = self
+                .host
+                .as_mut()
+                .ok_or(crate::state_value::DurableStateRefusal::Lost)?;
+            if operation.contract_id.as_str()
+                == conduit_std_offers::STATE_VALUE_DURABLE_RECOVER_HOST_CALL
+            {
+                match input {
+                    [1] => host.recover_metadata(),
+                    metadata => host.recover_exact(metadata),
+                }
+            } else {
+                host.commit(input).map(|receipt| receipt.to_vec())
+            }
+        })();
         let outcome = match result {
             Ok(bytes) => {
                 let value = scheduler
@@ -140,7 +145,11 @@ impl PreparedBodyState {
                     failure: None,
                 }
             }
-            Err(refusal) => return Err(format!("Body State residence refused: {refusal:?}")),
+            Err(refusal) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
+                output: None,
+                failure: Some(crate::state_value::durable_refusal_failure(refusal)),
+            },
         };
         scheduler
             .complete_host_call(request.node, request.request, outcome)
