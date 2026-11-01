@@ -29,12 +29,16 @@ impl BodyForeOutputAdapter for Capture {
         Ok(())
     }
 }
-fn install_source(host: &mut StdHost, calls: Arc<AtomicUsize>) -> (c::Kind, c::AuthorityGrant) {
+fn install_source(
+    host: &mut StdHost,
+    calls: Arc<AtomicUsize>,
+    temporal: c::PortTemporal,
+) -> (c::Kind, c::AuthorityGrant) {
     let port = |id: &str, direction| c::PortDescriptor {
         port_id: id.into(),
         value_kind: c::kind_id(c::BOOL_INFO_ID),
         direction,
-        temporal: c::PortTemporal::Value,
+        temporal,
         abnormal_kind: None,
     };
     let kind = c::Kind {
@@ -118,11 +122,10 @@ fn install_source(host: &mut StdHost, calls: Arc<AtomicUsize>) -> (c::Kind, c::A
         .unwrap();
     (kind, grant)
 }
-#[test]
-fn selected_program_executes_with_retained_source_and_sealed_body_play() {
+fn execute_selected_program(temporal: c::PortTemporal) {
     let mut host = host();
     let calls = Arc::new(AtomicUsize::new(0));
-    let (kind, grant) = install_source(&mut host, calls.clone());
+    let (kind, grant) = install_source(&mut host, calls.clone(), temporal);
     let provider = host.native_source.as_ref().unwrap() as *const _;
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
@@ -136,10 +139,17 @@ fn selected_program_executes_with_retained_source_and_sealed_body_play() {
         .insert_value_kind_alias("Bool", c::kind_id(c::BOOL_INFO_ID))
         .unwrap();
     profiles.insert_kind(kind).unwrap();
-    let source = "plot selected (\n >> begin: Bool\n result: Bool >>\n) {\n source: test/selected-bool-source()\n begin >> source.input\n source.output >> (.) >> result\n}\n";
-    let checked =
-        conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document(source), &startup)
-            .unwrap();
+    let suffix = if temporal == c::PortTemporal::Value {
+        ""
+    } else {
+        "...|"
+    };
+    let source = format!("plot selected (\n >> begin: Bool{suffix}\n result: Bool{suffix} >>\n) {{\n source: test/selected-bool-source()\n begin >> source.input\n source.output >> (.) >> result\n}}\n");
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(&source),
+        &startup,
+    )
+    .unwrap();
     let expanded =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "selected", &profiles).unwrap();
     let expression = expanded
@@ -152,8 +162,12 @@ fn selected_program_executes_with_retained_source_and_sealed_body_play() {
         panic!("source-bound canonical program")
     };
     let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-    let selected = conduit_std_offers::pure_expression_local_offer(&program).unwrap();
-    host.select_expression_programs(&[(program, c::PortTemporal::Value)], 1_048_576)
+    let selected = match temporal {
+        c::PortTemporal::Value => conduit_std_offers::pure_expression_local_offer(&program),
+        _ => conduit_std_offers::pure_expression_local_flow_offer(&program),
+    }
+    .unwrap();
+    host.select_expression_programs(&[(program, temporal)], 1_048_576)
         .unwrap();
     assert_eq!(host.native_source.as_ref().unwrap() as *const _, provider);
     assert!(selected.host_calls.is_empty());
@@ -259,7 +273,7 @@ fn selected_program_executes_with_retained_source_and_sealed_body_play() {
                 track: c::ConnectionTrack::Payload,
                 bytes: vec![0],
             }],
-            true,
+            temporal != c::PortTemporal::Value,
             &mut capture,
             &mut Vec::new(),
             &mut Timer,
@@ -277,4 +291,13 @@ fn selected_program_executes_with_retained_source_and_sealed_body_play() {
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(host.native_source.as_ref().unwrap() as *const _, provider);
     assert!(host.native_resources_idle());
+}
+
+#[test]
+fn selected_value_program_executes_with_retained_source_and_sealed_body_play() {
+    execute_selected_program(c::PortTemporal::Value);
+}
+#[test]
+fn selected_closing_flow_program_executes_with_retained_source_and_sealed_body_play() {
+    execute_selected_program(c::PortTemporal::Flow { closes: true });
 }
