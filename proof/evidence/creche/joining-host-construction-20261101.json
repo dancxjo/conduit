@@ -1,0 +1,46 @@
+{
+  "source": "dcf128253d3aa8a73d0d3e3aa1848710b6be4433",
+  "class": "native Rust software construction and browser consumer tests; no deployed wasm/Seed/Boot/admission proof",
+  "scope": "shared checked joining-Host construction used by existing browser Workspace Seed preparation",
+  "retained": [
+    "validated original Body biography",
+    "public same-Body invitation and expiry",
+    "exact checked configuration/profile under supplied catalog/packages",
+    "original Birth Sign at existing sealer",
+    "selected image content digest"
+  ],
+  "identity_change": "new construction uses Body friendly name and digest-derived configuration key; newly prepared construction/Spore identities may differ",
+  "checks": [
+    {
+      "log": "joining-host-tests.log",
+      "result": "2 shared tests passed",
+      "sha256": "9b68ae09247d1ca705104d7a62a5fab8ac54ab6532132fbfaa94628b3770e57e"
+    },
+    {
+      "log": "browser-joining-host-tests.log",
+      "result": "1 actual browser consumer test passed; also included in regression run",
+      "sha256": "bbe0105913418c8fd7264e1ebb37ebdaba06e2b37dbb1bc6205bb7ef1cd600f1"
+    },
+    {
+      "log": "browser-spore-regressions.log",
+      "result": "9 browser Spore regressions passed",
+      "sha256": "db9a048a18982ec0a9a9ad609c98c037b7002f4d371978d985c8b89f322ff9e3"
+    },
+    {
+      "log": "joining-host-clippy.log",
+      "result": "strict library Clippy passed for body Make and browser runtime",
+      "sha256": "cceecbfaec5ccc8ecfd690beff34ff31458554eb0d6969127127b64959c80e57"
+    },
+    {
+      "log": "joining-host-format.log",
+      "result": "workspace formatting passed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "remaining": [
+    "production Cr\u00e8che provider and first-Boot owner readiness",
+    "real installed authoring/Make journey",
+    "Seed production/deployment and actual same-Body membership",
+    "native ConduitOS media/boot scope of #6471"
+  ]
+}

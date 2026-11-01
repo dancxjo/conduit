@@ -123,6 +123,25 @@ qualified execution behavior. The accepted projection-evidence changes from
 dev1e1456e4af were then integrated. No new release containing these additions has
 been installed yet: the live entrance above remains the pinned dc2e85c6e2 build.
 
+### Shared joining-Host construction
+
+The existing browser Workspace Seed path now uses shared `check_joining_host`
+instead of assembling its construction through the browser target template.
+The helper validates the retained Body biography and public invitation scope and
+expiry, rechecks the exact selected Host configuration/profile against the supplied
+catalogue/packages, and produces checked self-joining construction intent. The
+existing sealer retains the original Birth Sign and selected image digest.
+No new birth, authority, artifact, provider readiness or membership is inferred.
+
+Two shared tests and all nine browser Spore regressions passed, including the
+actual Workspace consumer and expired-invitation refusal. Strict library Clippy
+and workspace formatting passed. Independent review found no concrete defect.
+Construction now uses the Body friendly name and a digest-derived configuration
+reference, so new construction/Spore identities may differ from earlier output.
+Proof: `proof/evidence/creche/joining-host-construction-20261101.json`.
+This is native Rust software proof, not deployed WASM, installed provider, media
+manufacture or physical joining; #6471's native media/boot acceptance stays open.
+
 ## 3. Source gates to address at the real encounter
 
 On the inspected source, the installed Birth encounter offers reviewed Morse,
