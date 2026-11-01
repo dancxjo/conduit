@@ -171,7 +171,8 @@ fn execute_selected_program(temporal: c::PortTemporal) {
         _ => conduit_std_offers::pure_expression_local_flow_offer(&program),
     }
     .unwrap();
-    host.select_expression_programs(&[(program, temporal)], 1_048_576)
+    let requested = [(program, temporal)];
+    host.select_expression_programs(&requested, 1_048_576)
         .unwrap();
     assert_eq!(source_payload(&host), provider);
     assert!(selected.host_calls.is_empty());
@@ -264,7 +265,7 @@ fn execute_selected_program(temporal: c::PortTemporal) {
     )
     .unwrap();
     let mut capture = Capture::default();
-    let (host, report) = host.run_body_plan_owned_native_to(
+    let (mut host, report) = host.run_body_plan_owned_native_to(
         BodyRunRequest {
             wake: &wake,
             plan: &sealed,
@@ -292,6 +293,37 @@ fn execute_selected_program(temporal: c::PortTemporal) {
     assert!(report.failure.is_none());
     assert!(report.cleanup_failure.is_none());
     assert_eq!(capture.0, vec![vec![1]]);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(source_payload(&host), provider);
+    assert!(host.native_resources_idle());
+    // A new selection invalidates this old sealed Plan before another Source
+    // call; retain the actual Host, owner and original resource accounting.
+    host.select_expression_programs(&requested, 1_048_576)
+        .unwrap();
+    let generation = host.advertisement.offer_generation;
+    assert_ne!(
+        sealed.plots[0].plan.fragments[0].offer_generation,
+        generation
+    );
+    let (host, stale) = host.run_body_plan_owned_native_to(
+        BodyRunRequest {
+            wake: &wake,
+            plan: &sealed,
+            control: &crate::RunControl::default(),
+            keyboard: None,
+        },
+        &[crate::ExternalForeInput {
+            front_port_id: "begin".into(),
+            track: c::ConnectionTrack::Payload,
+            bytes: vec![0],
+        }],
+        &mut capture,
+        &mut Vec::new(),
+        &mut Timer,
+        &mut provider_owner,
+        |_, _| Ok(()),
+    );
+    assert!(stale.is_err());
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(source_payload(&host), provider);
     assert!(host.native_resources_idle());
