@@ -12,7 +12,6 @@ use std::{
     sync::Arc,
 };
 mod census;
-mod clone_backing;
 use census::StorageCensus;
 
 pub struct BodyStorageSnapshotRequest {
@@ -121,103 +120,155 @@ impl StdHost {
                 .ok_or("storage offer generation exhausted")?,
         );
         let staged = prepare(storage, &self.advertisement, generation, request)?;
-        let registry_bytes = self.base_registry.entries().iter().try_fold(
-            std::mem::size_of::<c::BaseRegistry>(),
-            |n, entry| {
-                n.checked_add(clone_backing::count(entry)?)
-                    .ok_or_else(|| "storage registry workspace overflow".to_string())
-            },
-        )?;
-        let required = staged
-            .evidence
-            .preparation_bytes
-            .checked_add(registry_bytes as u64)
-            .ok_or("storage workspace overflow")?;
-        if required > storage.bounds().preparation_bytes {
-            return Err(format!(
-                "storage generation preparation requires {required} bytes, selected {}",
-                storage.bounds().preparation_bytes
-            ));
-        }
         let mut staged = staged;
-        staged.evidence.preparation_bytes = required;
-        let mut registry = self.base_registry.clone();
-        match old {
-            Some(prior) => registry.replace(
-                &prior.base.base_id,
-                &prior.base.provider_instance_id,
-                prior.base.provider_generation,
-                staged.base.clone(),
-            ),
-            None => registry.register(staged.base.clone()),
-        }
-        .map_err(|error| format!("storage Base selection: {error:?}"))?;
-        let mut next = self.advertisement.clone();
-        if let Some(prior) = old {
-            next.resources.retain(|r| {
-                !prior
-                    .base
-                    .resources
-                    .iter()
-                    .any(|old| old.pool_id == r.pool_id)
-            });
-            next.capabilities.retain(|r| {
-                !prior
-                    .base
-                    .capabilities
-                    .iter()
-                    .any(|old| old.capability_id == r.capability_id)
-            });
-            next.bases.retain(|r| r.base_id != prior.base.base_id);
-        }
-        for resource in &staged.base.resources {
-            if next.resources.iter().any(|r| r.pool_id == resource.pool_id) {
-                return Err("storage pool collides with other equipment".into());
-            }
-        }
-        for capability in &staged.base.capabilities {
-            if next
-                .capabilities
+        let new_resources = staged.base.resources.clone();
+        let new_capabilities = staged.base.capabilities.clone();
+        let new_provider = c::BaseProviderAdvertisement {
+            base_id: staged.base.base_id.clone(),
+            provider_instance_id: staged.base.provider_instance_id.clone(),
+            provider_generation: staged.base.provider_generation,
+            implementation_id: staged.base.implementation_id.clone(),
+            mechanism_family: staged.base.mechanism_family.clone(),
+            enforcement_class: staged.base.enforcement_class,
+            lifecycle: staged.base.lifecycle,
+            capability_ids: new_capabilities
                 .iter()
-                .any(|r| r.capability_id == capability.capability_id)
-            {
-                return Err("storage capability collides with other equipment".into());
-            }
-        }
-        next.offer_generation = generation;
-        registry
-            .project_base_ready_into(&staged.base.base_id, &mut next)
-            .map_err(|error| format!("storage Base projection: {error:?}"))?;
-        next.resources.sort();
-        crate::normalize_capability_offers(&mut next.capabilities)?;
+                .map(|c| c.capability_id.clone())
+                .collect(),
+            resource_pool_ids: new_resources.iter().map(|r| r.pool_id.clone()).collect(),
+        };
         let backing = self
             .native_source
             .as_ref()
             .and_then(|source| source.backing.as_ref());
         let ledger = self.kernel_resources.prepare_storage_refresh(
             &self.advertisement,
-            &next,
             old.map(|g| &g.base),
             &staged.base,
             backing,
         )?;
-        // This preflight performs no mutation, then the established provider
-        // generation transfer occurs before the remaining infallible commit.
-        self.advance_retained_spoken_offer_generation(generation)?;
+        let prior_resource_capacity = self.advertisement.resources.capacity();
+        let prior_capability_capacity = self.advertisement.capabilities.capacity();
+        let prior_base_capacity = self.advertisement.bases.capacity();
+        self.advertisement
+            .resources
+            .try_reserve_exact(
+                new_resources
+                    .len()
+                    .saturating_sub(old.map_or(0, |g| g.base.resources.len())),
+            )
+            .map_err(|_| "storage advertisement resource backing unavailable")?;
+        self.advertisement
+            .capabilities
+            .try_reserve_exact(
+                new_capabilities
+                    .len()
+                    .saturating_sub(old.map_or(0, |g| g.base.capabilities.len())),
+            )
+            .map_err(|_| "storage advertisement capability backing unavailable")?;
+        self.advertisement
+            .bases
+            .try_reserve_exact(usize::from(old.is_none()))
+            .map_err(|_| "storage advertisement Base backing unavailable")?;
+        let growth = vector_growth(
+            prior_resource_capacity,
+            self.advertisement.resources.capacity(),
+            std::mem::size_of::<c::ResourceOffer>(),
+        )? + vector_growth(
+            prior_capability_capacity,
+            self.advertisement.capabilities.capacity(),
+            std::mem::size_of::<c::CapabilityOffer>(),
+        )? + vector_growth(
+            prior_base_capacity,
+            self.advertisement.bases.capacity(),
+            std::mem::size_of::<c::BaseProviderAdvertisement>(),
+        )?;
+        staged.evidence.preparation_bytes = staged
+            .evidence
+            .preparation_bytes
+            .checked_add(ledger.workspace_bytes)
+            .and_then(|n| n.checked_add(growth))
+            .ok_or("storage metadata workspace overflow")?;
+        if staged.evidence.preparation_bytes > storage.bounds().preparation_bytes {
+            return Err(format!(
+                "storage generation preparation requires {} bytes, selected {}",
+                staged.evidence.preparation_bytes,
+                storage.bounds().preparation_bytes
+            ));
+        }
+        let registry = self
+            .base_registry
+            .prepare_update(
+                old.map(|g| (&g.base.provider_instance_id, g.base.provider_generation)),
+                staged.base.clone(),
+            )
+            .map_err(|e| format!("storage Base selection: {e:?}"))?;
+        // The registry guard holds only its field. Transfer the same established
+        // spoken provider generations without borrowing/replacing the Host.
+        let prior = self.advertisement.offer_generation;
+        let boot = &self.advertisement.boot_id;
+        if self
+            .playback
+            .as_ref()
+            .is_some_and(|p| p.boot_id != *boot || p.offer_generation != prior)
+            || self
+                .wav_artifact
+                .as_ref()
+                .is_some_and(|p| p.boot_id != *boot || p.offer_generation != prior)
+        {
+            return Err("retained spoken resource differs from current Host offer".into());
+        }
+        if let Some(adapter) = &mut self.speech_synthesis {
+            adapter
+                .advance_offer_generation(&self.advertisement.host_id, boot, prior, generation)
+                .map_err(|e| format!("retained speech provider: {e:?}"))?;
+        }
+        if let Some(playback) = &mut self.playback {
+            playback.offer_generation = generation;
+        }
+        if let Some(artifact) = &mut self.wav_artifact {
+            artifact.offer_generation = generation;
+        }
+        // Every check and vector growth is complete. Move only storage-owned
+        // entries; unrelated capability payloads and pool objects stay owned.
+        if let Some(old) = old {
+            self.advertisement.resources.retain(|r| {
+                !old.base
+                    .resources
+                    .iter()
+                    .any(|owned| owned.pool_id == r.pool_id)
+            });
+            self.advertisement.capabilities.retain(|r| {
+                !old.base
+                    .capabilities
+                    .iter()
+                    .any(|owned| owned.capability_id == r.capability_id)
+            });
+            self.advertisement
+                .bases
+                .retain(|r| r.base_id != old.base.base_id);
+        }
+        self.advertisement.resources.extend(new_resources);
+        self.advertisement.resources.sort_unstable();
+        self.advertisement.capabilities.extend(new_capabilities);
+        self.advertisement
+            .capabilities
+            .sort_unstable_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        self.advertisement.bases.push(new_provider);
+        self.advertisement.offer_generation = generation;
+        registry.commit();
+        self.kernel_resources.apply_storage_refresh(ledger);
         if let Some(backing) = self
             .native_source
             .as_mut()
             .and_then(|source| source.backing.as_mut())
         {
-            backing.adopt_refreshed_ledger(&ledger);
+            backing.adopt_refreshed_ledger(&self.kernel_resources);
         }
         let evidence = staged.evidence.clone();
         Arc::get_mut(self.selected_body_storage.as_mut().expect("selected above"))
-            .expect("exclusive holder checked above")
+            .expect("exclusive strong and weak ownership checked before commit")
             .generation = Some(staged);
-        self.base_registry = registry;
-        self.advertisement = next;
-        self.kernel_resources = ledger;
         Ok(evidence)
     }
 }
@@ -351,13 +402,21 @@ fn prepare(
         capabilities,
         resources,
     };
-    // Base mapping plus staged Base registry/advertisement copies and selected
-    // resource clones coexist. Count descriptor backing without making a JSON
-    // tree or copying immutable capability payloads merely to measure them.
-    let descriptor_bound = clone_backing::count(&base)?
-        .checked_mul(4)
+    // Closed storage factory descriptors only: snapshot/typed State metadata
+    // contains finite strings, vectors and canonical-value bytes, no recursive
+    // numerical Quantity boxes from unrelated Host offers. JSON scratch stays
+    // local to this quote; existing Host/provider payloads are never cloned.
+    let descriptor_bound = closed_descriptor_model(&base)?
+        .checked_mul(5)
         .ok_or("storage descriptor workspace overflow")?;
-    let inventory_bound = clone_backing::count(host)?;
+    let retained_bound = storage
+        .generation
+        .as_ref()
+        .map(|g| closed_descriptor_model(&g.base))
+        .transpose()?
+        .unwrap_or(0)
+        .checked_mul(2)
+        .ok_or("retained storage workspace overflow")?;
     let binding_bytes = binding.as_ref().map_or(0, |binding| {
         binding.body.capacity() + binding.state.as_str().len() + binding.value_kind.as_str().len()
     });
@@ -367,7 +426,7 @@ fn prepare(
             (std::mem::size_of::<SelectedBodyStorageGeneration>()
                 + 2 * std::mem::size_of::<usize>()
                 + descriptor_bound
-                + inventory_bound
+                + retained_bound
                 + binding_bytes) as u64,
         )
         .and_then(|v| v.checked_add(census.workspace_bytes))
@@ -428,3 +487,46 @@ fn open_directory(path: &Path) -> Result<File, String> {
 
 #[cfg(test)]
 mod tests;
+
+fn vector_growth(before: usize, after: usize, item: usize) -> Result<u64, String> {
+    if after <= before {
+        return Ok(0);
+    }
+    before
+        .checked_add(after)
+        .and_then(|n| n.checked_mul(item))
+        .map(|n| n as u64)
+        .ok_or("storage vector growth overflow".into())
+}
+fn closed_descriptor_model(base: &c::BaseProviderEntry) -> Result<usize, String> {
+    let wire = serde_json::to_vec(base).map_err(|e| e.to_string())?;
+    let tree: serde_json::Value = serde_json::from_slice(&wire).map_err(|e| e.to_string())?;
+    json_backing(&tree)?
+        .checked_add(wire.capacity())
+        .and_then(|n| n.checked_add(std::mem::size_of::<c::BaseProviderEntry>()))
+        .ok_or("closed storage descriptor workspace overflow".into())
+}
+fn json_backing(value: &serde_json::Value) -> Result<usize, String> {
+    let own = std::mem::size_of::<serde_json::Value>();
+    let extra = match value {
+        serde_json::Value::String(s) => s.capacity(),
+        serde_json::Value::Array(items) => items.iter().try_fold(
+            items.capacity() * std::mem::size_of::<serde_json::Value>(),
+            |n, v| {
+                n.checked_add(json_backing(v)?)
+                    .ok_or_else(|| "descriptor array footprint overflow".to_string())
+            },
+        )?,
+        serde_json::Value::Object(items) => items.iter().try_fold(
+            items.len() * std::mem::size_of::<(String, serde_json::Value)>(),
+            |n, (k, v)| {
+                n.checked_add(k.capacity())
+                    .and_then(|n| n.checked_add(json_backing(v).ok()?))
+                    .ok_or_else(|| "descriptor object footprint overflow".to_string())
+            },
+        )?,
+        _ => 0,
+    };
+    own.checked_add(extra)
+        .ok_or("descriptor footprint overflow".into())
+}
