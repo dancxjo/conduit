@@ -397,3 +397,51 @@ fn configured_storage_reopens_same_private_root_and_refuses_substituted_director
     drop(host);
     fs::remove_dir_all(moved).unwrap();
 }
+
+#[cfg(all(
+    feature = "installed-body-storage",
+    feature = "installed-environmental-sources",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+#[test]
+fn storage_and_environmental_intent_coexist_without_network_effect_or_source_offers() {
+    use conduit_host_make::{
+        BaseInitialization, ConfigurationBase, ConfigurationDevice, ConfigurationScalar,
+    };
+    let root = tempfile::tempdir().unwrap();
+    let mut configuration = parse_host_configuration_conduit(&storage_source(root.path())).unwrap();
+    configuration.bases.push(ConfigurationBase {kind:"environment/source".into(),implementation:Some("linux/environmental-sources@1".into()),implementations:Vec::new(),initialization:Some(serde_json::from_value::<BaseInitialization>(serde_json::json!({"worker_executable":"/not-opened-by-inert-initialization","worker_sha256":"11".repeat(32),"timeout_milliseconds":31000})).unwrap())});
+    let source_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../bodies/environment/host/configurations/green.host.conduit")
+        .canonicalize()
+        .unwrap();
+    configuration.devices.push(ConfigurationDevice::Network {
+        id: "inert-green".into(),
+        authority: "green.environment.invalid:8080".into(),
+        endpoint: "127.0.0.1:9".into(),
+        implementation: "environment/source@1".into(),
+        configuration: std::collections::BTreeMap::from([
+            (
+                "source_configuration".into(),
+                ConfigurationScalar::Text(source_path.to_str().unwrap().into()),
+            ),
+            (
+                "firmware_sha256".into(),
+                ConfigurationScalar::Text("11".repeat(32)),
+            ),
+        ]),
+    });
+    let source = canonical_host_configuration_conduit(&configuration).unwrap();
+    let mut selection = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    selection.storage_root = storage::select_identity(&selection.checked().unwrap()).unwrap();
+    selection.validate().unwrap();
+    let mut host = StdHost::new();
+    let before = host.advertisement().clone();
+    selection.attach_to_fresh_host(&mut host).unwrap();
+    assert!(host.selected_body_storage().is_some());
+    assert_eq!(host.advertisement().resources, before.resources);
+    assert_eq!(host.advertisement().capabilities, before.capabilities);
+    assert_eq!(host.advertisement().bases, before.bases);
+    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+}
