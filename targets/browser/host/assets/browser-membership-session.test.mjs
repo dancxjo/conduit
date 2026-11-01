@@ -55,13 +55,15 @@ test('cancellation during durable credential custody cannot restore live admissi
  }finally{Object.assign(globalThis,saved);}
 });
 
-test('WS preserves canonical large advertisement envelope while protected carrier keeps exact bound',async()=>{
+test('WS retains its envelope and protected carrier chunks within exact admitted bound',async()=>{
  const s=createBrowserMembershipSession({url:'wss://owner.invalid',WebSocketType:Socket});
  s.start({open(){},message(){},close(){}});const ws=Socket.instances.at(-1);ws.emit('open');await turn();
  s.send(new Uint8Array(701632));assert.equal(ws.sent[0].length,701632);
  assert.throws(()=>s.send(new Uint8Array(2*1024*1024+1025)),/bound/);s.close();
  const c=carrier(),protectedSession=createBrowserMembershipSession({carrier:c});protectedSession.start({open(){},message(){},close(){}});await turn();
- assert.throws(()=>protectedSession.send(new Uint8Array(65520)),/bound/);protectedSession.close();
+ protectedSession.send(new Uint8Array(65520));
+ for(let turnCount=0;c.sent.length<2 && turnCount<100;turnCount++)await turn();
+ assert.equal(c.sent.length,2);assert(c.sent.every(frame=>frame.length<=65519));protectedSession.close();
  const limited=carrier();limited.maximumFrameBytes=32;const small=createBrowserMembershipSession({carrier:limited});small.start({open(){},message(){},close(){}});await turn();assert.throws(()=>small.send(new Uint8Array(33)),/bound/);small.close();
 });
 

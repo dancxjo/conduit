@@ -66,6 +66,15 @@ impl CarrierFailure {
 /// timeout on each receive and never retain the caller's buffers.
 pub trait ProtectedFrameCarrier {
     fn send_frame(&mut self, frame: &[u8]) -> Result<(), CarrierFailure>;
+    /// Optional deadline narrowing for a bounded multi-frame operation. None
+    /// means unsupported, never permission to fall back to an untimed send.
+    fn send_frame_with_timeout(
+        &mut self,
+        _frame: &[u8],
+        _timeout_millis: u32,
+    ) -> Option<Result<(), CarrierFailure>> {
+        None
+    }
     fn receive_frame(
         &mut self,
         output: &mut [u8],
@@ -208,10 +217,47 @@ impl<C: ProtectedFrameCarrier> ProtectedCarrier<C> {
         Ok(())
     }
 
+    pub fn send_with_timeout_millis(
+        &mut self,
+        plaintext: &[u8],
+        timeout_millis: u32,
+    ) -> Result<(), ProtectedLineError> {
+        if timeout_millis == 0 {
+            self.session.fail(ProtectedLineError::InvalidPolicy);
+            return Err(ProtectedLineError::InvalidPolicy);
+        }
+        let length = self.session.seal(plaintext, &mut self.send)?;
+        let Some(result) = self
+            .carrier
+            .send_frame_with_timeout(&self.send[..length], timeout_millis)
+        else {
+            self.session.fail(ProtectedLineError::InvalidPolicy);
+            return Err(ProtectedLineError::InvalidPolicy);
+        };
+        if let Err(failure) = result {
+            let error = failure.protected(false);
+            self.retire_carrier_failure(failure, error);
+            return Err(error);
+        }
+        Ok(())
+    }
+
     pub fn receive(&mut self) -> Result<&[u8], ProtectedLineError> {
+        self.receive_with_timeout_millis(self.timeout_millis)
+    }
+
+    /// Narrow this receive to remaining caller work, without extending idle.
+    pub fn receive_with_timeout_millis(
+        &mut self,
+        timeout_millis: u32,
+    ) -> Result<&[u8], ProtectedLineError> {
+        if timeout_millis == 0 {
+            self.session.fail(ProtectedLineError::InvalidPolicy);
+            return Err(ProtectedLineError::InvalidPolicy);
+        }
         let length = match self
             .carrier
-            .receive_frame(&mut self.receive, self.timeout_millis)
+            .receive_frame(&mut self.receive, timeout_millis.min(self.timeout_millis))
         {
             Ok(length) => length,
             Err(failure) => {
@@ -232,6 +278,9 @@ impl<C: ProtectedFrameCarrier> ProtectedCarrier<C> {
 
     pub fn close(&mut self) -> Result<(), ProtectedLineError> {
         self.session.close();
+        self.send.fill(0);
+        self.receive.fill(0);
+        self.plaintext.fill(0);
         self.carrier
             .close()
             .map_err(|failure| failure.protected(false))?;

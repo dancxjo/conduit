@@ -1,6 +1,6 @@
 // Parse inert owner-prepared provision only. This does not authenticate a
 // release, admit a Host, select a Line, or start a Plot/Mask.
-import { boundedRendezvousCandidates } from '../../workspace/creche-rendezvous-candidates.mjs';
+import { boundedRendezvousCandidates } from './browser-rendezvous-candidates.mjs';
 
 const MAXIMUM_BYTES = 256 * 1024;
 const encoder = new TextEncoder();

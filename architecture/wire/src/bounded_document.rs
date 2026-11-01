@@ -100,6 +100,19 @@ impl BoundedDocumentAssembly {
     }
 }
 
+impl BoundedDocumentAssembly {
+    /// Move a complete document out without retaining a second full copy.
+    pub fn into_completed(mut self) -> Option<(Vec<u8>, [u8; 32])> {
+        let (total, digest) = self.identity?;
+        (self.bytes.len() == total).then(|| (core::mem::take(&mut self.bytes), digest))
+    }
+}
+impl Drop for BoundedDocumentAssembly {
+    fn drop(&mut self) {
+        self.bytes.fill(0);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
