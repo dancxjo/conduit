@@ -14,11 +14,56 @@ impl VerifiedSourceSnapshot {
         &self.reference
     }
 }
-pub(super) struct RecordingRun {
+pub(super) enum RecordingRun {
+    Snapshot(SnapshotRun),
+    Catalog(super::catalog_run::CatalogRun),
+}
+impl RecordingRun {
+    pub(super) fn new(input: SourcePublicationInput) -> Self {
+        Self::Snapshot(SnapshotRun::new(input))
+    }
+    pub(super) fn catalog(
+        input: source_recording_stage::catalog::SourceCatalogInput,
+    ) -> Result<Self, String> {
+        super::catalog_run::CatalogRun::new(input).map(Self::Catalog)
+    }
+    pub(super) fn execute<W: std::io::Write, T: conduit_std_host::TimerAdapter, F>(
+        &mut self,
+        host: StdHost,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> (StdHost, Result<BodyRunReport, String>)
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        match self {
+            Self::Snapshot(run) => run.execute(host, request, output, timer, started),
+            Self::Catalog(run) => run.execute(host, request, output, timer, started),
+        }
+    }
+    pub(super) fn metadata(&self, report: Option<&BodyRunReport>) -> serde_json::Value {
+        match self {
+            Self::Snapshot(run) => run.metadata(report),
+            Self::Catalog(run) => run.metadata(report),
+        }
+    }
+    pub(super) fn verified_snapshot(
+        &self,
+        report: Option<&BodyRunReport>,
+    ) -> Option<VerifiedSourceSnapshot> {
+        match self {
+            Self::Snapshot(run) => run.verified_snapshot(report),
+            Self::Catalog(_) => None,
+        }
+    }
+}
+pub(super) struct SnapshotRun {
     input: SourcePublicationInput,
     matched: bool,
 }
-impl RecordingRun {
+impl SnapshotRun {
     pub(super) fn new(input: SourcePublicationInput) -> Self {
         Self {
             input,

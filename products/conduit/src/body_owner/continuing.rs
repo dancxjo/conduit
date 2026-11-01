@@ -21,6 +21,13 @@ const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 pub(super) mod native;
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 pub(super) use native::SourceSelection;
+#[cfg(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
+#[path = "continuing/catalog_run.rs"]
+mod catalog_run;
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 #[path = "continuing/fore_refusal.rs"]
 mod fore_refusal;
@@ -135,7 +142,12 @@ impl Owner {
         }
         let input =
             self.prepare_source_recording_publication(root, authority, preparation_limit_bytes)?;
-        self.start_service_run_inner(root, maximum_millis, &mut None, Some(input))
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            &mut None,
+            Some(recording_run::RecordingRun::new(input)),
+        )
     }
 
     #[cfg(all(
@@ -155,7 +167,37 @@ impl Owner {
         }
         let input =
             self.prepare_source_recording_readback(root, authority, preparation_limit_bytes)?;
-        self.start_service_run_inner(root, maximum_millis, &mut None, Some(input))
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            &mut None,
+            Some(recording_run::RecordingRun::new(input)),
+        )
+    }
+
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    pub(crate) fn start_service_source_catalog(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        authority: &conduit_core::AuthorityGrant,
+        preparation_limit_bytes: u64,
+    ) -> Result<RunWorker, String> {
+        if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
+            return Err("service run duration must be 1..900000 milliseconds".into());
+        }
+        let input =
+            self.prepare_source_recording_catalog(root, authority, preparation_limit_bytes)?;
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            &mut None,
+            Some(recording_run::RecordingRun::catalog(input)?),
+        )
     }
 
     fn start_service_run_inner(
@@ -171,7 +213,7 @@ impl Owner {
             feature = "installed-body-storage",
             target_os = "linux"
         ))]
-        publication: Option<source_recording_stage::publication::SourcePublicationInput>,
+        publication: Option<recording_run::RecordingRun>,
     ) -> Result<RunWorker, String> {
         if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
             return Err("service run duration must be 1..900000 milliseconds".into());
@@ -234,7 +276,7 @@ impl Owner {
             feature = "installed-body-storage",
             target_os = "linux"
         ))]
-        let mut recording = publication.map(recording_run::RecordingRun::new);
+        let mut recording = publication;
         let control = RunControl::default();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
@@ -484,7 +526,9 @@ impl Owner {
         let receipt = {
             let mut receipt = receipt;
             if let Some(publication) = publication {
-                let field = if publication.get("snapshot_readback_completed").is_some() {
+                let field = if publication.get("catalog_checkpoint_observed").is_some() {
+                    "source_catalog"
+                } else if publication.get("snapshot_readback_completed").is_some() {
                     "source_readback"
                 } else {
                     "source_publication"
