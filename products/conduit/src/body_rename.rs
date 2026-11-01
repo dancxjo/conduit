@@ -128,7 +128,7 @@ fn read_key(path: &Path) -> Result<[u8; 32], String> {
             return Err("rename key must contain 32 raw bytes or 64 hex digits".into());
         }
         let mut key = [0; 32];
-        for (out, pair) in key.iter_mut().zip(text.as_bytes().chunks_exact(2)) {
+        for (out, pair) in key.iter_mut().zip(text.as_bytes().as_chunks::<2>().0) {
             let digit = |b: u8| {
                 (b as char)
                     .to_digit(16)
