@@ -32,9 +32,9 @@ fn configured() -> NativeFaceMask {
 }
 
 #[test]
-fn personal_look_replacement_keeps_author_face_and_refuses_the_old_show() {
+fn personal_look_roundtrip_refuses_held_input_then_routes_fresh_source_action() {
     let mut mask = configured();
-    let draft = super::super::tests::draft();
+    let mut draft = super::super::tests::draft();
     let face = draft
         .face(&mask.birth_basis("arrival/native-personal"))
         .unwrap();
@@ -105,6 +105,52 @@ fn personal_look_replacement_keeps_author_face_and_refuses_the_old_show() {
     assert_eq!(authored.component_configuration(), Some(&author));
     assert_eq!(authored.scene().unwrap().face(), &face);
     assert_eq!(authored.scene().unwrap().focused_request(), focus);
+
+    // Exercise the actual pending Mask Play after both Look replacements,
+    // rather than stopping at the standalone interaction validator.
+    let show = authored.show().unwrap().clone();
+    let publication = authored.publication().unwrap().clone();
+    let revision = draft.revision();
+    assert_eq!(
+        authored.submit_with_display(held, &mut pixels).err(),
+        Some(NativeFaceMaskError::Mask(NativeMaskPlayError::Interaction(
+            FaceInteractionRefusal::StaleShow
+        )))
+    );
+    assert_eq!(authored.show(), Some(&show));
+    assert_eq!(authored.publication(), Some(&publication));
+    assert_eq!(authored.scene().unwrap().face(), &face);
+    assert_eq!(draft.revision(), revision);
+
+    let fresh = authored
+        .scene()
+        .unwrap()
+        .interaction(
+            &face.identity,
+            face.revision,
+            crate::native_face_scene::FaceControl {
+                action,
+                argument: None,
+            },
+            &show,
+            vec![],
+            2,
+        )
+        .unwrap();
+    let correlation = authored
+        .submit_with_display(fresh.clone(), &mut pixels)
+        .unwrap();
+    assert_eq!(correlation.interaction, fresh);
+    assert_eq!(correlation.show_id, show.show_id);
+    assert!(authored.show().is_none());
+    draft
+        .apply_face_interaction(
+            &authored.birth_basis("arrival/native-personal"),
+            &show,
+            &correlation.interaction,
+        )
+        .unwrap();
+    assert!(draft.revision() > revision);
 }
 
 #[test]
