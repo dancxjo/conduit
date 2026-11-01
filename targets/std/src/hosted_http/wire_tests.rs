@@ -55,7 +55,8 @@ fn responses_still_require_finite_length_and_requests_reject_transfer_framing() 
     let id = HttpTransactionId::new(1).unwrap();
     assert!(read_response(&mut b"HTTP/1.1 200 OK\r\n\r\n".as_slice(), id.clone()).is_err());
     assert!(read_request(
-        &mut b"GET / HTTP/1.1\r\nHost: sensor.invalid\r\nTransfer-Encoding: chunked\r\n\r\n".as_slice(),
+        &mut b"GET / HTTP/1.1\r\nHost: sensor.invalid\r\nTransfer-Encoding: chunked\r\n\r\n"
+            .as_slice(),
         id,
     )
     .is_err());
