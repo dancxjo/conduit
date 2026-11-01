@@ -1,11 +1,60 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { acknowledgeOwnerFaceShow, clearOwnerFaceShow } from './browser-sdk-owner-show-state.mjs';
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions, ownerVisualPreferencesRequireFullFrame } from './browser-sdk-owner-show-state.mjs';
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
   return { promise, resolve, reject };
 };
+
+test('personal Look bytes are independent snapshots across Show replacement and explicit clearing', () => {
+  const state = {}, input = new Uint8Array([1, 2, 3]);
+  const first = ownerVisualPreferences(state, { localLook: input, enhancedContrast: true });
+  input[0] = 9;
+  assert.deepEqual(first.local_look, [1, 2, 3]);
+  assert(Object.isFrozen(first.local_look));
+  clearOwnerFaceShow(state);
+  assert.deepEqual(ownerVisualPreferences(state), first);
+  assert.deepEqual(ownerVisualPreferences(state, { localLook: null, enhancedContrast: false }),
+    { minimum_text_scale_percent: 100 });
+});
+
+test('invalid preferences refuse atomically without replacing prior preferences', () => {
+  const state = {};
+  ownerVisualPreferences(state, { localLook: [1], minimumTextScalePercent: 150 });
+  const previous = structuredClone(state);
+  for (const options of [{ localLook: [] }, { localLook: [256] }, { localLook: [1.2] },
+    { localLook: new Uint8Array(65_537) }, { localLook: 'selectors' },
+    { enhancedContrast: 'yes' }, { enhancedContrast: null }, { minimumTextScalePercent: 99 }]) {
+    assert.throws(() => ownerVisualPreferences(state, options));
+    assert.deepEqual(state, previous);
+  }
+});
+
+test('personal preference preparation and clearing require a full frame without leaking local data', () => {
+  const prior = { lastSeenRevision: '9', lastSeenIdentity: 'face/9', localLook: [1], enhancedContrast: true };
+  assert.deepEqual(ownerFaceSnapshotOptions({}, prior, {}),
+    { lastSeenRevision: '9', lastSeenIdentity: 'face/9' });
+  for (const [state, preferences] of [[{}, { local_look: [1] }], [{}, { enhanced_contrast: true }],
+    [{ ownerPersonalLookPrepared: true }, {}]]) {
+    assert.deepEqual(ownerFaceSnapshotOptions(state, prior, preferences),
+      { lastSeenRevision: undefined, lastSeenIdentity: undefined });
+  }
+});
+
+test('scale and platform preference changes and clears cannot reuse the old rendering', () => {
+  const prior = { lastSeenRevision: '9', lastSeenIdentity: 'face/9' };
+  for (const preferences of [{minimum_text_scale_percent:200}, {forced_colors:true}, {reduced_motion:true}]) {
+    const state = {};
+    assert.equal(ownerVisualPreferencesRequireFullFrame(preferences),true);
+    assert.deepEqual(ownerFaceSnapshotOptions(state,prior,preferences),{lastSeenRevision:undefined,lastSeenIdentity:undefined});
+    // The SDK records this only after an exact new Mask was prepared.
+    state.ownerPersonalLookPrepared = ownerVisualPreferencesRequireFullFrame(preferences);
+    assert.deepEqual(ownerFaceSnapshotOptions(state,prior,{minimum_text_scale_percent:100}),{lastSeenRevision:undefined,lastSeenIdentity:undefined});
+    state.ownerPersonalLookPrepared = ownerVisualPreferencesRequireFullFrame({minimum_text_scale_percent:100});
+    assert.deepEqual(ownerFaceSnapshotOptions(state,prior,{minimum_text_scale_percent:100}),prior);
+  }
+});
 
 test('clearing a Show fences an acknowledgement already awaiting the owner', async () => {
   const state = { lastOwnerShow: { show_id: 'previous' } }, gate = deferred();

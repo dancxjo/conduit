@@ -45,8 +45,8 @@
       "maximum_bytes": 65536,
       "dependencies": [
         {
-          "role": "owner-face-component",
-          "specifier": "./owner-face-component.mjs"
+          "role": "owner-face-presentation",
+          "specifier": "./owner-face-presentation.mjs"
         },
         {
           "role": "owner-face-reachability",
@@ -81,15 +81,15 @@
       "maximum_bytes": 8192,
       "dependencies": [
         {
-          "role": "owner-face-component",
-          "specifier": "./owner-face-component.mjs"
+          "role": "owner-face-pointer",
+          "specifier": "./owner-face-pointer.mjs"
         }
       ]
     },
     {
-      "role": "owner-face-component",
+      "role": "owner-face-presentation",
       "kind": "module",
-      "path": "owner-face-component.mjs",
+      "path": "owner-face-presentation.mjs",
       "maximum_bytes": 65536,
       "dependencies": [
         {
@@ -99,8 +99,30 @@
         {
           "role": "application-look",
           "specifier": "../host/assets/application-look.mjs"
+        },
+        {
+          "role": "owner-face-pointer",
+          "specifier": "./owner-face-pointer.mjs"
+        },
+        {
+          "role": "owner-face-graphics",
+          "specifier": "./owner-face-graphics.mjs"
         }
       ]
+    },
+    {
+      "role": "owner-face-graphics",
+      "kind": "module",
+      "path": "owner-face-graphics.mjs",
+      "maximum_bytes": 65536,
+      "dependencies": []
+    },
+    {
+      "role": "owner-face-pointer",
+      "kind": "module",
+      "path": "owner-face-pointer.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
     },
     {
       "role": "application-look",

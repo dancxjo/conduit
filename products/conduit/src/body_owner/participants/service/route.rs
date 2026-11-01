@@ -184,7 +184,11 @@ impl Owner {
             let (mask_source, mask_root, mask_offer) = match window.component_mask_selection {
                 Some((look, recipe)) => {
                     let (source, root) = recipe.source_root(look);
-                    (source, root, conduit_browser_mask_offer::configured_offer())
+                    (
+                        source,
+                        root,
+                        conduit_browser_mask_offer::owner_component::owner_component_offer()?,
+                    )
                 }
                 None => (
                     conduit_browser_mask_offer::MASK_SOURCE,

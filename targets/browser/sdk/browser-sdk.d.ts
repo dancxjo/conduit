@@ -105,6 +105,11 @@ export class BrowserHost {
   plot(source: string): BrowserPlot;
   /** Rust expands selected Plots against this exact Host without acquiring resources or making a Plan. */
   review(plots: readonly (BrowserPlot | CheckedPlot | CheckedSource)[]): Promise<PlotWorkloadReview>;
+  /** Admit the finite owner component before exporting this Host advertisement. */
+  admitOwnerFaceComponent(application: unknown): Promise<Readonly<{
+    selected: boolean; reason?: string; constructor?: CustomElementConstructor;
+    identity?: string; artifactId?: string; bundleSha256?: string;
+  }>>;
   /** Participate in one externally owned Body without creating a second Host or Boot. */
   participate(options: {
     invitation?: string;
@@ -156,6 +161,10 @@ export class BrowserBodyParticipation {
   /** Request one revision-bound Wear, Doff, or Prefer while the Body is lulled. */
   changeOwnerWardrobe(report: Readonly<Record<string, unknown>>, routeId: string, verb: "wear" | "doff" | "prefer"): Promise<Readonly<Record<string, unknown>>>;
   prepareOwnerFaceMask(options?: { lastSeenRevision?: string | null; lastSeenIdentity?: string | null }): Promise<Readonly<Record<string, unknown>>>;
+  /** Select a reviewed structural Source on the existing authenticated owner route. */
+  selectOwnerComponentMask(options: { look: "compact" | "spacious" | "compact-editorial" | "spacious-phosphor";
+    recipe: "flat" | "grouped" | "required-item" | "patchbay-nodes";
+    minimumTextScalePercent?: number }): Promise<Readonly<Record<string, unknown>>>;
   acknowledgeOwnerFaceMask(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;
   /** Direct readout of the current acknowledged graphical Show by installed owner equipment. */
   selectedDirectSpeechStart(view: Readonly<Record<string, unknown>>): Promise<Readonly<Record<string, unknown>>>;

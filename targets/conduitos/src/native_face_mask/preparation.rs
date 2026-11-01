@@ -401,6 +401,7 @@ impl NativeFaceMask {
             local_creche_preferences,
             component_configuration,
             visual_look: None,
+            look_preferences: preferences::NativeLookPreferences::default(),
             visual_constraints: conduit_face::VisualUserConstraints {
                 forced_colors: false,
                 reduced_motion: true,

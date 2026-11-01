@@ -13,15 +13,26 @@ assert.equal(require('@playwright/test/package.json').version, '1.62.0');
 const capture = JSON.parse(await readFile(recordsPath, 'utf8'));
 assert.equal(capture.schema, 'conduit.proof/parsec-component-reconstruction@1');
 assert.equal(capture.records.length, 4);
-const module = await readFile(new URL('../../targets/browser/handbook/instruction-component.mjs', import.meta.url), 'utf8');
-const owner = await readFile(new URL('../../targets/browser/handbook/owner-face-component.mjs', import.meta.url), 'utf8');
+const handbook = new URL('../../targets/browser/handbook/', import.meta.url);
+const assets = new Map(await Promise.all([
+  ['/instruction.mjs', 'instruction-component.mjs'],
+  ['/owner.mjs', 'owner-face-component.mjs'],
+  ['/owner-face-presentation.mjs', 'owner-face-presentation.mjs'],
+  ['/owner-face-pointer.mjs', 'owner-face-pointer.mjs'],
+  ['/owner-face-icons.mjs', 'owner-face-icons.mjs'],
+  ['/host/assets/application-look.mjs', '../host/assets/application-look.mjs'],
+  ['/owner-face-look.css', 'owner-face-look.css'],
+].map(async ([route, file]) => [route, await readFile(new URL(file, handbook), 'utf8')])));
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage();
   await page.route('http://component.test/**', async route => {
     const name = new URL(route.request().url()).pathname;
-    await route.fulfill({ contentType: name.endsWith('.mjs') ? 'text/javascript' : 'text/html',
-      body: name === '/instruction.mjs' ? module : name === '/owner.mjs' ? owner : '<!doctype html><html lang="en"><title>Captured component</title><body></body></html>' });
+    if (name === '/') return route.fulfill({ contentType: 'text/html',
+      body: '<!doctype html><html lang="en"><title>Captured component</title><body></body></html>' });
+    if (!assets.has(name)) return route.abort('failed');
+    await route.fulfill({ contentType: name.endsWith('.css') ? 'text/css' : 'text/javascript',
+      body: assets.get(name) });
   });
   await page.goto('http://component.test/');
   await page.evaluate(async () => {

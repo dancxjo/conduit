@@ -34,7 +34,10 @@
     "browser-sdk.d.ts",
     "README.md",
     "bundle/**",
-    "workspace/*.mjs"
+    "workspace/*.mjs",
+    "browser-sdk-owner-component.mjs",
+    "owner-face-presentation.mjs",
+    "owner-face-pointer.mjs"
   ],
   "engines": {
     "node": ">=20"

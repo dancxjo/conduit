@@ -68,10 +68,9 @@ textarea:disabled{opacity:.52;cursor:not-allowed}
 textarea:focus-visible{outline:3px solid var(--face-focus,#247c85);outline-offset:3px}
 @media(forced-colors:active){textarea{background:Canvas;color:CanvasText;border-color:CanvasText}textarea:focus-visible{outline-color:Highlight}}
 
-/* A finite graphical leaf keeps its intrinsic aspect on the full admitted column span. */
+
 .owner-face-graphics-subject{grid-column:1/-1;min-width:0}
-/* Disabled ink stays readable; native state and dashed borders supply the cue.
-   System colors retain authority. */
+
 :host([data-component-look]) button:disabled,:host([data-component-look]) input:not([type=radio]):disabled,:host([data-component-look]) :is(select,textarea):disabled,:host([data-component-look]) .owner-face-choice:has(input:disabled){opacity:1;border-style:dashed;cursor:not-allowed}
 :host([data-component-look]) button,:host([data-component-look]) .owner-face-choice{background:var(--face-card);color:var(--face-ink);border-color:var(--face-control)}
 :host([data-component-look]) button:hover:not(:disabled){background:var(--face-paper);border-color:var(--face-accent)}

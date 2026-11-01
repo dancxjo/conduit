@@ -124,6 +124,7 @@ fn twenty_unicode_rows_and_actions_fit_the_view_without_duplicate_look_bytes() {
                     forced_colors: true,
                     reduced_motion: true,
                     minimum_text_scale_percent: 200,
+                    ..Default::default()
                 }),
             },
             face.clone(),

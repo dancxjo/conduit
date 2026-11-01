@@ -1,7 +1,8 @@
 import { openBrowserPartMembershipStore } from "../host/assets/browser-part-membership.mjs";
 import { showBodyFace } from "./browser-sdk-body-face.mjs";
 import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
-import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
+import { admitOwnerFaceComponentBack } from "./browser-sdk-owner-component.mjs";
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions, ownerVisualPreferencesRequireFullFrame } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedAcknowledgedOwnerFaceArguments, checkedPatchbayFaceArguments } from "./browser-sdk-face-actions.mjs";
@@ -139,6 +140,9 @@ export class BrowserHost {
   async review(plots) {
     return reviewBrowserPlots({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, plots });
   }
+
+  admitOwnerFaceComponent(application) { return admitOwnerFaceComponentBack(this.#state, application,
+    { fetchAsset, sha256, importModule: url => import(url) }); }
 
   /** Join this already-admitted Host and Boot to one external Body invitation.
    * invitedProvision supplies first-admission proof inside an independently
@@ -284,24 +288,19 @@ export class BrowserBodyParticipation {
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
     }
-    const minimumTextScale = options?.minimumTextScalePercent
-      ?? this.#state.minimumOwnerTextScalePercent ?? 100;
-    if (!Number.isInteger(minimumTextScale) || minimumTextScale < 100 || minimumTextScale > 200) {
-      throw new Error("minimum text scale must be between 100 and 200 percent");
-    }
-    this.#state.minimumOwnerTextScalePercent = minimumTextScale;
+    const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
+    const preferences = {
+      ...ownerVisualPreferences(this.#state, options),
+      forced_colors: mediaMatches('(forced-colors: active)'),
+      reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
+    };
     const hostId = this.hostId, bootId = this.bootId, bodyId = credential.body_id;
     return prepareOwnerFaceShow(this.#state, epoch,
-      () => this.ownerFaceSnapshot(options),
+      () => this.ownerFaceSnapshot(ownerFaceSnapshotOptions(this.#state, options, preferences)),
       frame => {
-        const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
         const view = this.#state.host.bridge.ownerFacePrepare({
           body_id: bodyId, host_id: hostId, boot_id: bootId,
-          visual_constraints: {
-            forced_colors: mediaMatches('(forced-colors: active)'),
-            reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
-            minimum_text_scale_percent: minimumTextScale,
-          },
+          visual_constraints: preferences,
         }, frame);
         if (view?.schema === "conduit.browser/owner-face-refusal@1") {
           throw new Error(`owner Face refused: ${view.code}`);
@@ -311,6 +310,7 @@ export class BrowserBodyParticipation {
             typeof view.interactions_admitted !== "boolean") {
           throw new Error("owner Face Mask did not prepare one exact Show");
         }
+        this.#state.ownerPersonalLookPrepared = ownerVisualPreferencesRequireFullFrame(preferences);
         return view;
       },
       () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
@@ -447,7 +447,11 @@ export class BrowserBodyParticipation {
     const preparation = { proposal, owner: null, play: null, bridge: this.#state.host.bridge,
       current: () => this.presenceState() === 'available' && this.hostId === selectedHost && this.bootId === selectedBoot
         && this.membershipCredential()?.body_id === proposal.plan.body_id };
-    const renderPatchbay = request => (onPatchbayPublication ?? renderPatchbayPublication)({ ...request, play: preparation.play });
+    const renderPatchbay = async request => {
+      const render = onPatchbayPublication
+        ?? (await import("./browser-sdk-patchbay.mjs")).renderPatchbayPublication;
+      return render({ ...request, play: preparation.play });
+    };
     const owner = acquireBrowserBodyHost({
       api: this.#state.host.api,
       hostId: this.hostId,
@@ -482,7 +486,9 @@ export class BrowserBodyPreparation {
 
   /** Publish the fresh post-Started canonical Body Face through its selected Mask. */
   showBodyFace({ coordinator, root, transport }) {
-    return showBodyFace({ coordinator, root, transport, bridge: this.#state.bridge, play: this.#state.play, current: this.#state.current });
+    const request = { coordinator, root, transport, bridge: this.#state.bridge,
+      play: this.#state.play, current: this.#state.current };
+    return import("./browser-sdk-body-face.mjs").then(({ showBodyFace }) => showBodyFace(request));
   }
   observations() { return Object.freeze(this.#state.owner.observations().map(item => Object.freeze({ ...item }))); }
   evidence() { return this.#state.owner.evidence(); }
