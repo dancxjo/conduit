@@ -207,7 +207,7 @@ impl NativeRoot {
     pub fn body_installed(&self) -> bool {
         #[cfg(feature = "body-image-root")]
         {
-            self.body.is_some()
+            self.body.is_some() || self.membership_busy()
         }
         #[cfg(not(feature = "body-image-root"))]
         {

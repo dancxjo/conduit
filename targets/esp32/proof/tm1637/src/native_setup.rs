@@ -61,6 +61,9 @@ impl NativeRoot {
         release: bool,
         backing: Option<conduit_network_join_call::PreparedNetworkKernelStorage>,
     ) -> &'static [u8] {
+        if self.membership_busy() {
+            return b"body-membership-busy";
+        }
         #[cfg(not(feature = "flat-network-appliance"))]
         let _ = backing;
         if self.network.retirement.is_some() {

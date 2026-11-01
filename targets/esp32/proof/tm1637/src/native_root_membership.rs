@@ -45,13 +45,7 @@ impl NativeRoot {
         let host = self.host.clone();
         let boot = self.boot.clone();
         let owner = self.body.take().expect("checked original Body");
-        let job = match Job::reserve(
-            owner,
-            self.admission.verifying_key(),
-            host,
-            boot,
-            request,
-        ) {
+        let job = match Job::reserve(owner, self.admission.verifying_key(), host, boot, request) {
             Ok(job) => job,
             Err((owner, _, _, _, _)) => {
                 self.body = Some(owner);
