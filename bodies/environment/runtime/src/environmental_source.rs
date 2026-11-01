@@ -53,106 +53,9 @@ pub struct EnvironmentalSourceHostCall<P> {
     next_request: u32,
     codec: PreparedObservationCodec,
 }
+#[path = "environmental_source/binding.rs"]
+mod binding;
 impl<P: EnvironmentalSourceProvider> EnvironmentalSourceHostCall<P> {
-    /// # Safety
-    /// Root must retain the actual exclusive initialized provider and checked
-    /// configuration independently of received Plan bytes. Its finite transport,
-    /// cancellation and memory bounds must already be admitted. A claimed ID or
-    /// a diagnostic packet cannot establish possession at this native boundary.
-    #[allow(clippy::result_large_err)] // Failed preparation must return every affine owner.
-    pub unsafe fn bind_selected(
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
-        provider: P,
-        contract: &ObservationContract,
-        selected: SelectedOperationPlan<'_>,
-    ) -> Result<
-        Self,
-        (
-            BaseCapabilityTable,
-            BaseCapabilityHandle,
-            BaseOperationClaim,
-            P,
-            Refusal,
-        ),
-    > {
-        let prepared = (|| -> Result<_, Refusal> {
-            let mut inspections = table.inspections();
-            let entry = inspections.next().ok_or(Refusal::Possession)?;
-            if inspections.next().is_some()
-                || entry.scope.authority_contract_id.as_str() != AUTHORITY_CONTRACT
-                || entry.scope.maximum_in_flight != 1
-                || entry.scope.maximum_operations == 0
-                || entry.scope.maximum_parameter_bytes < 1
-                || entry.scope.maximum_result_bytes < MAXIMUM_BYTES as u32
-                || claim.parameter_bytes != 1
-                || claim.work_units != 1
-            {
-                return Err(Refusal::Possession);
-            }
-            drop(inspections);
-            let gear = selected
-                .fragment
-                .placements
-                .iter()
-                .find(|p| &p.placement_id == selected.placement_id)
-                .ok_or(Refusal::Possession)?;
-            if gear.resources.len() != 1
-                || gear.resources[0].class_id.as_str() != RESOURCE_CLASS
-                || gear.resources[0].units != 1
-            {
-                return Err(Refusal::Possession);
-            }
-            let kind = contract.kind(false).map_err(Refusal::Encoding)?;
-            let scope = super::environmental_publication::PublicationScope {
-                host: selected.fragment.host_id.clone(),
-                boot: selected.fragment.boot_id.clone(),
-                plan: selected.fragment.plan_id.clone(),
-                play: selected.active.active_play_id.clone(),
-                source: selected.fragment.source_document_id.clone(),
-                checked: selected.fragment.checked_plot_id.clone(),
-                expanded: selected.fragment.expanded_plot_id.clone(),
-            };
-            let fragment = selected.fragment.fragment_id.clone();
-            let placement = selected.placement_id.clone();
-            let node = bind_selected_operation(
-                &table,
-                &claim,
-                SelectedOperationContract {
-                    kind: &kind,
-                    call: HOST_CALL,
-                    input_bytes: 1,
-                    output_bytes: MAXIMUM_BYTES as u32,
-                    resource_bytes: MAXIMUM_BYTES as u64,
-                },
-                selected,
-            )
-            .map_err(Refusal::Binding)?;
-            let codec = PreparedObservationCodec::prepare(contract).map_err(Refusal::Encoding)?;
-            Ok((scope, fragment, placement, node, codec))
-        })();
-        let (scope, fragment, placement, node, codec) = match prepared {
-            Ok(prepared) => prepared,
-            Err(reason) => return Err((table, handle, claim, provider, reason)),
-        };
-        let operation = match BoundBaseOperation::bind(table, handle, claim) {
-            Ok(operation) => operation,
-            Err((table, handle, claim, reason)) => {
-                return Err((table, handle, claim, provider, Refusal::Capability(reason)))
-            }
-        };
-        Ok(Self {
-            scope,
-            fragment,
-            placement,
-            operation,
-            provider,
-            node,
-            next_request: 0,
-            codec,
-        })
-    }
     /// Bind the actual retained provider to its exact verified local Source
     /// edge before constructing a publication endpoint. Metadata alone cannot
     /// construct this witness: this method requires the native bound owner.
@@ -231,9 +134,7 @@ impl<P: EnvironmentalSourceProvider> EnvironmentalSourceHostCall<P> {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, Refusal> {
-        if node != self.node
-            || call != HostCallId(0)
-            || request != RequestId(self.next_request)
+        if !invocation_matches(self.node, self.next_request, node, call, request)
             || !input.is_empty()
         {
             return Err(Refusal::Request);
@@ -280,6 +181,15 @@ impl<P: EnvironmentalSourceProvider> EnvironmentalSourceHostCall<P> {
     pub fn revoke(&mut self) -> Result<(), Refusal> {
         self.operation.revoke().map_err(Refusal::Capability)
     }
+}
+fn invocation_matches(
+    expected_node: NodeId,
+    next_request: u32,
+    node: NodeId,
+    call: HostCallId,
+    request: RequestId,
+) -> bool {
+    node == expected_node && call == HostCallId(0) && request == RequestId(next_request)
 }
 struct Pending<'a> {
     operation: &'a mut BoundBaseOperation,
@@ -472,5 +382,48 @@ mod fore_catalog_tests {
         );
         assert_eq!(expanded.input_bindings.len(), 1);
         assert_eq!(expanded.output_bindings.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod request_correlation_tests {
+    use super::*;
+    #[test]
+    fn stale_wrong_node_and_wrong_call_cannot_match_the_exact_request() {
+        assert!(invocation_matches(
+            NodeId(2),
+            7,
+            NodeId(2),
+            HostCallId(0),
+            RequestId(7)
+        ));
+        assert!(!invocation_matches(
+            NodeId(2),
+            7,
+            NodeId(2),
+            HostCallId(0),
+            RequestId(6)
+        ));
+        assert!(!invocation_matches(
+            NodeId(2),
+            7,
+            NodeId(3),
+            HostCallId(0),
+            RequestId(7)
+        ));
+        assert!(!invocation_matches(
+            NodeId(2),
+            7,
+            NodeId(2),
+            HostCallId(1),
+            RequestId(7)
+        ));
+        assert!(invocation_matches(
+            NodeId(2),
+            0,
+            NodeId(2),
+            HostCallId(0),
+            RequestId(0)
+        ));
     }
 }

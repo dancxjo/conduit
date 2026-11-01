@@ -479,8 +479,14 @@ impl DetachedCollectorEquipment {
             // Actual initialized custody remains retained here; the opaque work
             // owner carries the original admitted lease and selected request.
             let binding = unsafe {
-                EnvironmentalSourceHostCall::bind_selected(
-                    table, handle, claim, provider, &contract, selected,
+                EnvironmentalSourceHostCall::bind_selected_request(
+                    table,
+                    handle,
+                    claim,
+                    provider,
+                    &contract,
+                    selected,
+                    work.request(),
                 )
             };
             let mut owner = match binding {
