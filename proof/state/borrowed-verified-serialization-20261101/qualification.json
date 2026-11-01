@@ -1,0 +1,22 @@
+{
+  "source": "318fe582823fc59520ea9d0625d247e2459eea52",
+  "base": "729e9d43a90dc23adff622a7a43fd0f6b05845b3",
+  "command": "cargo +stable test -p conduit-core --test verified_plan_serialization -- --nocapture",
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "exit_code": 0,
+  "passed": 6,
+  "build_seconds": 7.13,
+  "test_seconds": 0.02,
+  "log": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/esp32-immutable-20261101/core-318fe58282.log",
+    "bytes": 1531,
+    "sha256": "f7999d2e792f0d3d4feaf58ea5f8a6adcee2d5ed65f025b50735e070cf51911c"
+  },
+  "proof_boundary": "CPU canonical serialization and allocation only; no MCU build, flash, boot, simultaneous sensing/network or workspace admission claim"
+}
