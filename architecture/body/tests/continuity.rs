@@ -101,6 +101,7 @@ fn return_proof(
 fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
     let (mut manager, mut membership, key) = admitted();
     manager.try_compact_storage().unwrap();
+    manager.receipts.try_compact_historical().unwrap();
     let part_id = membership.parts[0].part_id.clone();
     membership
         .observe_offline(
@@ -118,6 +119,7 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
         .begin_return(&membership, &part_id, &returned, [63; 32], 2_100, 3_100)
         .unwrap();
     manager.try_compact_storage().unwrap();
+    manager.receipts.try_compact_historical().unwrap();
     let returned_credential = manager
         .complete_return(
             &mut membership,
@@ -128,6 +130,7 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
         )
         .unwrap();
     manager.try_compact_storage().unwrap();
+    manager.receipts.try_compact_historical().unwrap();
     assert_eq!(returned_credential.body_id, membership.body_id);
     assert_eq!(returned_credential.part_id, part_id);
     assert_eq!(
@@ -135,10 +138,14 @@ fn offline_part_returns_under_same_identity_only_with_fresh_signed_boot() {
         HostId::from("host/durable-browser")
     );
     assert_eq!(returned_credential.boot_id, BootId::from("boot/fresh"));
-    assert_ne!(
-        returned_credential.credential_id,
-        manager.receipts[0].credential.credential_id
-    );
+    assert!(!manager
+        .receipts
+        .iter()
+        .next()
+        .unwrap()
+        .credential
+        .credential_id
+        .equals(returned_credential.credential_id.as_str()));
     assert_eq!(
         manager.receipts.last().unwrap().credential,
         returned_credential

@@ -29,7 +29,9 @@ mod native_evidence_region {
     std::thread_local! {
         static WRITES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
     }
-    pub fn writes() -> usize { WRITES.with(|n| n.get()) }
+    pub fn writes() -> usize {
+        WRITES.with(|n| n.get())
+    }
     #[derive(Clone)]
     pub struct BodyRegion(pub Arc<Mutex<(Vec<u8>, bool)>>);
     pub fn test_empty() -> BodyRegion {
@@ -329,7 +331,12 @@ fn real_store_producer_admits_only_after_durable_custody_and_restores_short_lock
         .is_err());
         query.signature = secret.sign(&query.transcript()).to_vec();
         let mut duplicate = restored.clone();
-        duplicate.receipts.push(duplicate.receipts[0].clone());
+        duplicate
+            .receipts
+            .try_push(duplicate.receipts.owned(0).unwrap().clone())
+            .unwrap();
+        duplicate.receipts.try_compact_historical().unwrap();
+        assert!(duplicate.receipts.owned(0).is_none());
         assert!(recovery::verify_current(
             &duplicate,
             &owner.evidence().membership,

@@ -370,11 +370,7 @@ impl AdmissionManager {
     /// Observe the latest completed credential in this manager's bounded receipt
     /// log. This is data only: it proves neither current presence nor a signature.
     pub fn latest_completed_credential(&self, part_id: &PartId) -> Option<&MembershipCredential> {
-        self.receipts
-            .iter()
-            .rev()
-            .find(|receipt| &receipt.credential.part_id == part_id)
-            .map(|receipt| &receipt.credential)
+        self.receipts.latest_completed_credential(part_id)
     }
 
     /// Authenticate a custody-only transcript using the retained continuity key

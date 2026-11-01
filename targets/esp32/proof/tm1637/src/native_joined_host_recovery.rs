@@ -129,18 +129,23 @@ pub(crate) fn verify_current(
         .as_slice()
         .try_into()
         .map_err(|_| "observer-recovery-signature-extent")?;
-    let mut matched = manager.receipts.iter().filter(|r| {
-        r.credential.body_id == request.body_id
-            && r.credential.host_id == request.host_id
-            && r.credential.boot_id == request.boot_id
+    let mut matched = manager.receipts.iter().enumerate().filter(|(_, r)| {
+        r.credential.body_id == request.body_id.as_str()
+            && r.credential.host_id == request.host_id.as_str()
+            && r.credential.boot_id == request.boot_id.as_str()
     });
-    let credential = &matched
-        .next()
-        .ok_or("observer-recovery-unknown")?
-        .credential;
+    let (index, _) = matched.next().ok_or("observer-recovery-unknown")?;
     if matched.next().is_some() {
         return Err("observer-recovery-ambiguous");
     }
+    // Historical matches still participate in ambiguity checks. Only the typed
+    // retained credential can proceed to the unchanged current-membership and
+    // continuity verifier; no old packed row is rehydrated to mint authority.
+    let credential = &manager
+        .receipts
+        .owned(index)
+        .ok_or("observer-recovery-continuity")?
+        .credential;
     let verified = manager
         .verify_admitted_message(
             membership,

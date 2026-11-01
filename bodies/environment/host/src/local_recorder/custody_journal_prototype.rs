@@ -821,7 +821,7 @@ fn successor(mut media: Media, f: &Fixture, number: u8) -> (Media, [u8; ACCEPTAN
     )
     .unwrap();
     assert_eq!(manager.receipts.len(), 1);
-    let credential = &manager.receipts[0].credential;
+    let credential = &manager.receipts.owned(0).unwrap().credential;
     let message = consumer_message(&accepted);
     let secret = conduit_body::SpawnInvitationSecret::from_csprng_bytes([22; 32]).unwrap();
     let signature = secret.sign(&message);

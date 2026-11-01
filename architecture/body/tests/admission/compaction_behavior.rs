@@ -29,7 +29,7 @@ fn compacted_pending_proof_still_admits_and_retained_key_authenticates() {
             &signature,
         )
         .unwrap();
-    assert_eq!(manager.receipts[0].credential, credential);
+    assert_eq!(manager.receipts.owned(0).unwrap().credential, credential);
     assert_eq!(
         manager.complete_ambient(
             &mut candidates,

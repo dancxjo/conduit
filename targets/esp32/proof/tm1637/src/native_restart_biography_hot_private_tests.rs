@@ -405,3 +405,6 @@ fn private_committed_prefix_survives_next_boot_without_new_custody() {
 
 #[path = "native_restart_biography_hot_private_membership_tests.rs"]
 mod owned_membership;
+
+#[path = "native_restart_private_receipt_log_tests.rs"]
+mod private_receipt_log;

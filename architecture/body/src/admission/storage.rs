@@ -34,8 +34,9 @@ impl AdmissionManager {
                 key.part_id = prior.part_id.clone();
             }
         }
-        for index in 0..self.receipts.len() {
-            let (previous, remaining) = self.receipts.split_at_mut(index);
+        let receipts = self.receipts.owned_receipts_mut();
+        for index in 0..receipts.len() {
+            let (previous, remaining) = receipts.split_at_mut(index);
             let credential = &mut remaining[0].credential;
             if credential.body_id != self.body_id {
                 continue;
@@ -71,6 +72,7 @@ impl AdmissionManager {
                 .map(|key| &key.part_id)
                 .or_else(|| {
                     self.receipts
+                        .owned_receipts()
                         .iter()
                         .find(|r| {
                             r.credential.body_id == self.body_id
@@ -97,17 +99,18 @@ impl AdmissionManager {
         let invitations = replacement(&self.invitations)?;
         let keys = replacement(&self.continuity_keys)?;
         let returns = replacement(&self.pending_returns)?;
-        let receipts = replacement(&self.receipts)?;
+        self.receipts.try_compact_spare()?;
         replace(&mut self.pending, pending);
         replace(&mut self.invitations, invitations);
         replace(&mut self.continuity_keys, keys);
         replace(&mut self.pending_returns, returns);
-        replace(&mut self.receipts, receipts);
         Ok(())
     }
 }
 
-fn replacement<T>(records: &Vec<T>) -> Result<Option<Vec<T>>, AdmissionStorageCompactionRefusal> {
+pub(super) fn replacement<T>(
+    records: &Vec<T>,
+) -> Result<Option<Vec<T>>, AdmissionStorageCompactionRefusal> {
     if records.capacity() == records.len() {
         return Ok(None);
     }
@@ -118,7 +121,7 @@ fn replacement<T>(records: &Vec<T>) -> Result<Option<Vec<T>>, AdmissionStorageCo
     Ok(Some(replacement))
 }
 
-fn replace<T>(records: &mut Vec<T>, replacement: Option<Vec<T>>) {
+pub(super) fn replace<T>(records: &mut Vec<T>, replacement: Option<Vec<T>>) {
     if let Some(mut replacement) = replacement {
         // Reservation already guarantees enough capacity for every original
         // element. append moves them without cloning or allocating.

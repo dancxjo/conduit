@@ -475,6 +475,10 @@ fn compact_admission_storage(admissions: &mut AdmissionManager) {
     // Decoding gives equal immutable identities independent backing. Reuse the
     // manager's existing owners without retiring records or changing wire data.
     admissions.share_equal_identity_storage();
+    // Cold preparation only: preserve the full legacy receipt sequence while
+    // keeping historical rows in bounded lossless data and latest credentials
+    // typed. Fallible preparation retains the original complete log on refusal.
+    let _ = admissions.receipts.try_compact_historical();
     if admissions.try_compact_storage().is_err() {
         // Capacity pressure must not discard valid metadata or block otherwise
         // admissible local work. Later workset bounds remain unchanged.

@@ -291,7 +291,8 @@ fn late_membership_refusal_and_receipt_capacity_preserve_atomicity_and_invitatio
         signs(),
     )
     .unwrap();
-    full.manager.receipts = vec![one.receipts[0].clone(); MAX_ADMISSION_RECEIPTS];
+    full.manager.receipts =
+        vec![one.receipts.owned(0).unwrap().clone(); MAX_ADMISSION_RECEIPTS].into();
     assert_eq!(
         compare(&full, NOW + 1),
         Err(AdmissionRefusal::ReceiptCapacityExhausted)
@@ -363,7 +364,7 @@ fn exact_receipt_allocation_refusal_preserves_membership_authority_and_invitatio
     let before = serde_json::to_vec(&f.manager).unwrap();
     let membership = f.membership.clone();
     let pointer = f.manager.receipts.as_ptr();
-    let required = (f.manager.receipts.len() + 1) * core::mem::size_of_val(&f.manager.receipts[0]);
+    let required = (f.manager.receipts.len() + 1) * core::mem::size_of::<AdmissionReceipt>();
     let refusal = allocation_probe::refuse_next_reallocation(pointer.cast(), required);
     let result = complete(&mut f);
     drop(refusal);
@@ -418,7 +419,7 @@ fn return_receipt_allocation_refusal_retains_exact_challenge_for_valid_retry() {
     let before = serde_json::to_vec(&f.manager).unwrap();
     let membership = f.membership.clone();
     let pointer = f.manager.receipts.as_ptr();
-    let required = 2 * core::mem::size_of_val(&f.manager.receipts[0]);
+    let required = 2 * core::mem::size_of::<AdmissionReceipt>();
     let refusal = allocation_probe::refuse_next_reallocation(pointer.cast(), required);
     let result = f.manager.complete_return(
         &mut f.membership,

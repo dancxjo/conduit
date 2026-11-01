@@ -17,20 +17,41 @@ fn decoded_twenty_two_receipts_keep_exact_wire_and_release_duplicate_identity_al
     let original = serde_json::to_vec(&manager).unwrap();
     let canonical_body = manager.body_id.as_str().as_ptr();
     assert_ne!(
-        manager.receipts[0].credential.body_id.as_str().as_ptr(),
+        manager
+            .receipts
+            .owned(0)
+            .unwrap()
+            .credential
+            .body_id
+            .as_str()
+            .as_ptr(),
         canonical_body
     );
     let (_, memory) = allocation_probe::observe(|| manager.share_equal_identity_storage());
     assert_eq!(memory.allocations + memory.reallocations, 0);
     assert!(memory.deallocated_bytes >= 2048);
     assert_eq!(serde_json::to_vec(&manager).unwrap(), original);
-    for receipt in &manager.receipts {
+    for receipt in (0..manager.receipts.len()).map(|i| manager.receipts.owned(i).unwrap()) {
         assert_eq!(receipt.credential.body_id.as_str().as_ptr(), canonical_body);
     }
     for i in 6..manager.receipts.len() {
         assert_eq!(
-            manager.receipts[i].credential.part_id.as_str().as_ptr(),
-            manager.receipts[i % 6].credential.part_id.as_str().as_ptr()
+            manager
+                .receipts
+                .owned(i)
+                .unwrap()
+                .credential
+                .part_id
+                .as_str()
+                .as_ptr(),
+            manager
+                .receipts
+                .owned(i % 6)
+                .unwrap()
+                .credential
+                .part_id
+                .as_str()
+                .as_ptr()
         );
     }
     let (_, repeated) = allocation_probe::observe(|| manager.share_equal_identity_storage());
@@ -47,10 +68,34 @@ fn foreign_body_and_distinct_ids_are_preserved_including_original_backing() {
     value["receipts"][2]["credential"]["part_id"] = json!("distinct/part");
     let mut manager: AdmissionManager = serde_json::from_value(value).unwrap();
     let original = serde_json::to_vec(&manager).unwrap();
-    let foreign_body = manager.receipts[1].credential.body_id.as_str().as_ptr();
-    let foreign_part = manager.receipts[1].credential.part_id.as_str().as_ptr();
-    let distinct_part = manager.receipts[2].credential.part_id.as_str().as_ptr();
-    let credential = manager.receipts[0]
+    let foreign_body = manager
+        .receipts
+        .owned(1)
+        .unwrap()
+        .credential
+        .body_id
+        .as_str()
+        .as_ptr();
+    let foreign_part = manager
+        .receipts
+        .owned(1)
+        .unwrap()
+        .credential
+        .part_id
+        .as_str()
+        .as_ptr();
+    let distinct_part = manager
+        .receipts
+        .owned(2)
+        .unwrap()
+        .credential
+        .part_id
+        .as_str()
+        .as_ptr();
+    let credential = manager
+        .receipts
+        .owned(0)
+        .unwrap()
         .credential
         .credential_id
         .as_str()
@@ -58,19 +103,43 @@ fn foreign_body_and_distinct_ids_are_preserved_including_original_backing() {
     manager.share_equal_identity_storage();
     assert_eq!(serde_json::to_vec(&manager).unwrap(), original);
     assert_eq!(
-        manager.receipts[1].credential.body_id.as_str().as_ptr(),
+        manager
+            .receipts
+            .owned(1)
+            .unwrap()
+            .credential
+            .body_id
+            .as_str()
+            .as_ptr(),
         foreign_body
     );
     assert_eq!(
-        manager.receipts[1].credential.part_id.as_str().as_ptr(),
+        manager
+            .receipts
+            .owned(1)
+            .unwrap()
+            .credential
+            .part_id
+            .as_str()
+            .as_ptr(),
         foreign_part
     );
     assert_eq!(
-        manager.receipts[2].credential.part_id.as_str().as_ptr(),
+        manager
+            .receipts
+            .owned(2)
+            .unwrap()
+            .credential
+            .part_id
+            .as_str()
+            .as_ptr(),
         distinct_part
     );
     assert_eq!(
-        manager.receipts[0]
+        manager
+            .receipts
+            .owned(0)
+            .unwrap()
             .credential
             .credential_id
             .as_str()
