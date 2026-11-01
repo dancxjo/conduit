@@ -440,3 +440,6 @@ fn failed_exchange_and_real_cleanup_failure_remain_failure() {
     assert!(error.contains("cancel"));
     drop(client);
 }
+
+#[path = "native_snapshot_payload_tests.rs"]
+mod payload;
