@@ -140,43 +140,6 @@ impl NativeFaceScene {
         Self::prepare_with_input(face, width, height, true)
     }
 
-    pub fn prepare_with_input(
-        face: Face,
-        width: u16,
-        height: u16,
-        interaction_admitted: bool,
-    ) -> Result<Self, FaceSceneError> {
-        face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
-        if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
-            return Err(FaceSceneError::InvalidExtent);
-        }
-        let screen = LayoutRect {
-            x: 0,
-            y: 0,
-            width,
-            height,
-        };
-        let (primary, details) = document::prepare(&face, interaction_admitted)?;
-        Ok(Self {
-            primary: layout::admit(primary, screen)?,
-            details: layout::admit(details, screen)?,
-            graph_reading: graph_reading::GraphReading::prepare(&face)?,
-            face,
-            screen,
-            text_scale_percent: 100,
-            typography: Typography::EDITORIAL,
-            page: 0,
-            focus: None,
-            showing_details: false,
-            showing_diagram: false,
-            input: input::InputState::default(),
-            interaction_admitted,
-            local_input_available: true,
-            local_creche_preferences: false,
-            local_notice: None,
-        })
-    }
-
     /// The selected renderer must use this same scale for rasterization.
     pub fn text_scale_percent(&self) -> u16 {
         self.text_scale_percent
