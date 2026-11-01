@@ -357,3 +357,6 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
 
 #[path = "invited_tests.rs"]
 mod invited_tests;
+
+#[path = "signed_receipt_tests.rs"]
+mod signed_receipt_tests;

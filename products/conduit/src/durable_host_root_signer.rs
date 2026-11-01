@@ -170,3 +170,6 @@ pub(crate) fn commit(root: &Path, binding: &Binding, body: &str, host: &str) -> 
 #[cfg(all(test, unix))]
 #[path = "durable_host_root_signer/tests.rs"]
 mod tests;
+
+#[path = "durable_host_root_signer/receipt.rs"]
+pub(crate) mod receipt;

@@ -102,6 +102,7 @@ pub(super) fn accept_return(
     )?;
     socket
         .send(&BrowserAdmissionEgress::Admitted {
+            signed_membership_receipt: None,
             protocol: BROWSER_ADMISSION_PROTOCOL,
             credential: returned_credential.clone(),
         })

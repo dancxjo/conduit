@@ -20,6 +20,8 @@ struct Transaction {
     schema: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     root_signer: Option<crate::durable_host::root_signer::Binding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    root_receipt: Option<crate::durable_host::root_signer::receipt::Draft>,
     biography: BodyBiographyEvidence,
     installation: Installation,
     #[serde(default)]
@@ -107,6 +109,36 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     {
         return Err("owner transaction would erase selected Root signer".into());
     }
+    if let Some(draft) = &transaction.root_receipt {
+        draft.validate(
+            root,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
+        if crate::durable_host::root_signer::receipt::load(
+            root,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?
+        .is_none()
+        {
+            draft.require_current(
+                &transaction.biography,
+                transaction
+                    .admissions
+                    .as_ref()
+                    .ok_or("new Root receipt lacks committed admission manager")?,
+            )?;
+        }
+    } else if crate::durable_host::root_signer::receipt::load(
+        root,
+        transaction.biography.body_id.as_str(),
+        &transaction.installation.host_id,
+    )?
+    .is_some()
+    {
+        return Err("owner transaction would erase committed admission receipt".into());
+    }
     if let Some(source) = &transaction.source {
         validate_source(&transaction.biography, source)?;
     }
@@ -153,6 +185,14 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
             &transaction.installation.host_id,
         )?;
     }
+    if let Some(draft) = &transaction.root_receipt {
+        crate::durable_host::root_signer::receipt::commit(
+            root,
+            draft,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
+    }
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
 
@@ -193,6 +233,7 @@ pub(super) fn retain_with_archives(
         None,
         archives,
         None,
+        None,
     )
 }
 
@@ -207,6 +248,25 @@ pub(super) fn retain_session(
     source: Option<&[u8]>,
     todo_selection: Option<&super::super::selected_todo::Selection>,
 ) -> Result<(), String> {
+    retain_session_with_receipt(
+        root,
+        session,
+        last_execution,
+        admissions,
+        source,
+        todo_selection,
+        None,
+    )
+}
+pub(super) fn retain_session_with_receipt(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+    root_receipt: Option<&crate::durable_host::root_signer::receipt::Draft>,
+) -> Result<(), String> {
     let head = session
         .pending_archives()
         .last()
@@ -220,6 +280,7 @@ pub(super) fn retain_session(
         todo_selection,
         session.pending_archives(),
         None,
+        root_receipt,
     )?;
     if let Some(head) = head {
         session
@@ -249,6 +310,7 @@ pub(super) fn retain_with_source_and_todo_selection(
         todo_selection,
         &[],
         None,
+        None,
     )
 }
 
@@ -261,6 +323,7 @@ fn retain_inner(
     todo_selection: Option<&super::super::selected_todo::Selection>,
     archives: &[BodyBiographyArchiveSegment],
     establish_signer: Option<crate::durable_host::root_signer::Binding>,
+    proposed_receipt: Option<&crate::durable_host::root_signer::receipt::Draft>,
 ) -> Result<(), String> {
     recover(root)?;
     validate_archive_segments(root, biography, archives)?;
@@ -345,8 +408,28 @@ fn retain_inner(
             &installation.host_id,
         )?;
     }
+    let retained_receipt = crate::durable_host::root_signer::receipt::load(
+        root,
+        biography.body_id.as_str(),
+        &installation.host_id,
+    )?;
+    if retained_receipt
+        .as_ref()
+        .is_some_and(|prior| proposed_receipt.is_some_and(|next| prior != next))
+    {
+        return Err("finite committed admission receipt slot is occupied".into());
+    }
+    let root_receipt = proposed_receipt.cloned().or(retained_receipt);
+    if let Some(draft) = proposed_receipt {
+        draft.validate(root, biography.body_id.as_str(), &installation.host_id)?;
+        draft.require_current(
+            biography,
+            admissions.ok_or("Root receipt lacks admission manager")?,
+        )?;
+    }
     let transaction = Transaction {
         root_signer,
+        root_receipt,
         schema: "conduit.body/owner-transaction@1".into(),
         biography: biography.clone(),
         installation,
@@ -356,7 +439,7 @@ fn retain_inner(
         source: source.map(Vec::from),
         archives: archives.to_vec(),
     };
-    if serde_json::to_vec(&transaction)
+    if serde_json::to_vec_pretty(&transaction)
         .map_err(|e| e.to_string())?
         .len() as u64
         > MAXIMUM_STATE
@@ -532,6 +615,7 @@ pub(super) fn establish_root_signer(
         None,
         &[],
         Some(signer.clone()),
+        None,
     )?;
     Ok(signer)
 }

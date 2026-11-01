@@ -38,6 +38,8 @@ pub(crate) struct BrowserWindowAuthorization {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct BrowserAdmittedSnapshot {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) signed_membership_receipt: Option<conduit_body::PortableMembershipAdmissionReceipt>,
     pub(crate) credential: MembershipCredential,
     pub(crate) biography: Box<BodyBiographyEvidence>,
     pub(crate) offer: Box<HostOfferProjection>,
@@ -108,6 +110,7 @@ impl BrowserAdmittedSnapshot {
         )
         .map_err(debug)?;
         Ok(Self {
+            signed_membership_receipt: None,
             credential,
             biography: Box::new(owner.session.evidence().clone()),
             offer: Box::new(offer),

@@ -202,6 +202,10 @@ pub enum BrowserAdmissionIngress {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BrowserAdmissionEgress {
+    MembershipReceipt {
+        protocol: u16,
+        receipt: Box<conduit_body::PortableMembershipAdmissionReceipt>,
+    },
     SpawnChallenge {
         protocol: u16,
         claim: SpawnInvitationClaim,
@@ -213,6 +217,8 @@ pub enum BrowserAdmissionEgress {
     Admitted {
         protocol: u16,
         credential: MembershipCredential,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        signed_membership_receipt: Option<Box<conduit_body::PortableMembershipAdmissionReceipt>>,
     },
     BiographyEvidence {
         protocol: u16,
@@ -305,6 +311,7 @@ pub enum BrowserAdmissionFrameError {
     WrongProtocol,
     LabelTooLong,
     InvalidVerifyingKey,
+    InvalidMembershipReceipt,
     InvalidNonce,
     InvalidSignature,
     InvalidSequence,

@@ -1281,9 +1281,9 @@ enum Response {
         protocol: u16,
         frame: Box<BrowserAdmissionEgress>,
     },
-    BodyBrowserSnapshot {
+    BodyBrowserCompletion {
         protocol: u16,
-        snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
+        completion: Box<crate::durable_host::owner::BrowserAdmissionCompletion>,
     },
     BodyBrowserOffer {
         protocol: u16,
@@ -2091,9 +2091,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .browser_complete(&window_id, *frame)
-            .map(|snapshot| Response::BodyBrowserSnapshot {
+            .map(|completion| Response::BodyBrowserCompletion {
                 protocol: PROTOCOL,
-                snapshot: Box::new(snapshot),
+                completion: Box::new(completion),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserOffer {

@@ -83,6 +83,7 @@ fn journal_replay_preserves_old_and_new_receipts_after_an_interrupted_archive_wr
             .unwrap();
     let transaction = Transaction {
         root_signer: None,
+        root_receipt: None,
         schema: "conduit.body/owner-transaction@1".into(),
         biography: bio.clone(),
         installation: read_installation(&root.join("installation.json")).unwrap(),
@@ -218,6 +219,7 @@ fn oversized_or_inconsistent_terminal_transaction_refuses_without_replacing_curr
         &root.join("body/owner-transaction.json"),
         &Transaction {
             root_signer: None,
+            root_receipt: None,
             schema: "conduit.body/owner-transaction@1".into(),
             biography: bio.clone(),
             installation: read_installation(&root.join("installation.json")).unwrap(),
