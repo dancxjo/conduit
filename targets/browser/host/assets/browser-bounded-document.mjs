@@ -25,6 +25,7 @@ export function createBoundedDocumentChannel(carrier, documentWorkspace = null) 
   let retainedBytes = 0;
   const reservations = new Set(), buffers = new Set();
   const reserve = length => {
+    if (closed) throw new Error('Document carrier is closed');
     if (documentWorkspace !== null && length > workspaceCapacity - retainedBytes) {
       throw new RangeError('Selected document workspace capacity exceeded');
     }
@@ -36,6 +37,7 @@ export function createBoundedDocumentChannel(carrier, documentWorkspace = null) 
     return release;
   };
   const buffer = (bytes, release) => {
+    if (closed) { bytes.fill(0); release(); throw new Error('Document carrier is closed'); }
     let released = false;
     const record = { bytes, release() { if (!released) { released = true; bytes.fill(0); release(); buffers.delete(record); } } };
     buffers.add(record); return record;
@@ -95,7 +97,9 @@ export function createBoundedDocumentChannel(carrier, documentWorkspace = null) 
     try {
       // WebCrypto may copy its input: reserve that finite transient backing too.
       releaseCopy = reserve(bytes.length);
-      return buffer(new Uint8Array(await until(() => crypto.subtle.digest('SHA-256', bytes), deadline)), releaseDigest);
+      const digest = await until(() => crypto.subtle.digest('SHA-256', bytes), deadline);
+      current();
+      return buffer(new Uint8Array(digest), releaseDigest);
     } catch (error) { releaseDigest(); throw error; }
     finally { releaseCopy(); }
   };
