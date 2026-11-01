@@ -24,6 +24,7 @@ mod borrowed_fore;
 mod durable_state;
 pub use borrowed_fore::{BodyBorrowedForeOutputAdapter, BodyForeDeliveryRef};
 pub use durable_state::BodyDurableStateSelection;
+pub(crate) use durable_state::BodyStateStorageSelection;
 mod fore;
 mod fore_custody;
 pub mod native;
@@ -348,7 +349,7 @@ impl StdHost {
         #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshots: Option<
             BodySnapshotSelection<'a>,
         >,
-        durable_state: Option<BodyDurableStateSelection<'a>>,
+        durable_state: Option<BodyStateStorageSelection<'a>>,
         borrowed_fore: bool,
         mut started: F,
     ) -> Result<BodyRunReport, String>

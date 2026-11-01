@@ -1,7 +1,7 @@
 //! Body State preparation uses the issued partition Play, never a prior or
 //! prospective identity. Residence effects begin only after accepted start.
 use super::*;
-use crate::body_execution::BodyDurableStateSelection;
+use crate::body_execution::BodyStateStorageSelection;
 use crate::state_value::{
     DurableStateBinding, InstalledDurableStateBack, InstalledDurableStateHost,
 };
@@ -16,16 +16,21 @@ pub(super) fn is_operation(contract: &str) -> bool {
 }
 pub(super) struct PreparedBodyState {
     pub(super) node: conduit_kernel::NodeId,
-    root: PathBuf,
+    root: PreparedStateRoot,
     binding: DurableStateBinding,
     host: Option<InstalledDurableStateHost>,
+}
+enum PreparedStateRoot {
+    Legacy(PathBuf),
+    #[cfg(target_os = "linux")]
+    Selected(std::fs::File),
 }
 impl PreparedBodyState {
     pub(super) fn prepare(
         fragment: &PlanFragment,
         _partition: &conduit_plan_lowering::lowering::LoweredPlanFragment,
         state: &conduit_plan_lowering::lowering::LoweredState,
-        selection: &BodyDurableStateSelection<'_>,
+        selection: &BodyStateStorageSelection<'_>,
         play: &conduit_body::BodyPlayIdentity,
         values: &mut HostedValueStore,
     ) -> Result<(InstalledDurableStateBack, Self), String> {
@@ -94,7 +99,18 @@ impl PreparedBodyState {
             driver,
             Self {
                 node: state.node,
-                root: selection.root.to_path_buf(),
+                root: match selection.selected_root {
+                    #[cfg(target_os = "linux")]
+                    Some(root) => PreparedStateRoot::Selected(
+                        root.try_clone()
+                            .map_err(|error| format!("Body State descriptor: {error}"))?,
+                    ),
+                    #[cfg(not(target_os = "linux"))]
+                    Some(_) => {
+                        return Err("selected descriptor State storage requires Linux".into())
+                    }
+                    None => PreparedStateRoot::Legacy(selection.root.to_path_buf()),
+                },
                 binding,
                 host: None,
             },
@@ -111,10 +127,15 @@ impl PreparedBodyState {
             .map_err(|e| format!("Body State input: {e:?}"))?;
         let result = (|| {
             if self.host.is_none() {
-                self.host = Some(InstalledDurableStateHost::open(
-                    &self.root,
-                    self.binding.clone(),
-                )?);
+                self.host = Some(match &self.root {
+                    PreparedStateRoot::Legacy(root) => {
+                        InstalledDurableStateHost::open(root, self.binding.clone())?
+                    }
+                    #[cfg(target_os = "linux")]
+                    PreparedStateRoot::Selected(root) => {
+                        InstalledDurableStateHost::open_selected_root(root, self.binding.clone())?
+                    }
+                });
             }
             let host = self
                 .host
@@ -169,7 +190,7 @@ impl<'a> BodyKernel<'a> {
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
-        selection: &BodyDurableStateSelection<'_>,
+        selection: &BodyStateStorageSelection<'_>,
     ) -> Result<Self, String> {
         let sources = parsec_sources::prepare(partitions, host)?;
         let kernel = Self::prepare_with_storage(

@@ -13,6 +13,18 @@ pub struct BodyDurableStateSelection<'a> {
     pub body_id: &'a conduit_body::BodyId,
     pub plan_id: &'a conduit_core::PlanId,
 }
+/// Internal custody preserves the legacy path API while selected storage carries
+/// its actual retained directory descriptor through preparation.
+pub(crate) struct BodyStateStorageSelection<'a> {
+    pub(crate) selection: BodyDurableStateSelection<'a>,
+    pub(crate) selected_root: Option<&'a std::fs::File>,
+}
+impl<'a> std::ops::Deref for BodyStateStorageSelection<'a> {
+    type Target = BodyDurableStateSelection<'a>;
+    fn deref(&self) -> &Self::Target {
+        &self.selection
+    }
+}
 impl StdHost {
     pub fn run_body_plan_with_durable_state_to_with_start<'a, W: Write, T: TimerAdapter, F>(
         &mut self,
@@ -50,7 +62,10 @@ impl StdHost {
             None,
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             None,
-            Some(selection),
+            Some(BodyStateStorageSelection {
+                selection,
+                selected_root: None,
+            }),
             false,
             started,
         )
@@ -72,6 +87,44 @@ impl StdHost {
         inputs: &'a [ExternalForeInput],
         output_fore: &'a mut dyn BodyBorrowedForeOutputAdapter,
         selection: BodyDurableStateSelection<'a>,
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshot: Option<
+            BodySnapshotSelection<'a>,
+        >,
+        output: &mut W,
+        timer: &mut T,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_with_state_storage_borrowed_to_with_start(
+            request,
+            inputs,
+            output_fore,
+            BodyStateStorageSelection {
+                selection,
+                selected_root: None,
+            },
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            snapshot,
+            output,
+            timer,
+            started,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_body_plan_with_state_storage_borrowed_to_with_start<
+        'a,
+        W: Write,
+        T: TimerAdapter,
+        F,
+    >(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &'a [ExternalForeInput],
+        output_fore: &'a mut dyn BodyBorrowedForeOutputAdapter,
+        selection: BodyStateStorageSelection<'a>,
         #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshot: Option<
             BodySnapshotSelection<'a>,
         >,

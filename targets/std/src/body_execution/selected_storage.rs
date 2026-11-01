@@ -93,16 +93,19 @@ impl StdHost {
         // execution and cleanup, including every error/unwind path. No ambient
         // canonical path is reopened and no second reservation is introduced.
         if let Some(state) = state.as_ref() {
-            self.run_body_plan_with_durable_state_borrowed_to_with_start(
+            self.run_body_plan_with_state_storage_borrowed_to_with_start(
                 request,
                 inputs,
                 output_fore,
-                BodyDurableStateSelection {
-                    root: storage.state_root(),
-                    resource: state,
-                    authorities: state_authorities,
-                    body_id,
-                    plan_id,
+                super::BodyStateStorageSelection {
+                    selected_root: Some(storage.root_descriptor()),
+                    selection: BodyDurableStateSelection {
+                        root: storage.state_root(),
+                        resource: state,
+                        authorities: state_authorities,
+                        body_id,
+                        plan_id,
+                    },
                 },
                 snapshot,
                 output,

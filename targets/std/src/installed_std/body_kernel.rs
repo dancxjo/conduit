@@ -303,7 +303,7 @@ impl<'a> BodyKernel<'a> {
         >,
         native_calls: &[(conduit_core::CapabilityId, conduit_core::Kind)],
         durable: Option<(
-            &crate::body_execution::BodyDurableStateSelection<'_>,
+            &crate::body_execution::BodyStateStorageSelection<'_>,
             &conduit_body::BodyPlayIdentity,
         )>,
     ) -> Result<Self, String> {
