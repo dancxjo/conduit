@@ -48,17 +48,21 @@ impl StdHost {
         }
         // Shared counting encoder checks canonical limits without allocating an
         // encoded program. At minimum the factory retains its hex descriptor.
-        let canonical = programs.iter().try_fold(0u64, |sum, (program, _)| {
-            let bytes = program
-                .canonical_byte_len()
-                .map_err(|e| format!("expression program: {e:?}"))? as u64;
-            sum.checked_add(
-                bytes
-                    .checked_mul(2)
-                    .ok_or("expression descriptor overflow")?,
-            )
-            .ok_or("expression descriptor overflow")
-        })?;
+        let canonical =
+            programs
+                .iter()
+                .try_fold(0u64, |sum, (program, _)| -> Result<u64, String> {
+                    let bytes = program
+                        .canonical_byte_len()
+                        .map_err(|e| format!("expression program: {e:?}"))?
+                        as u64;
+                    sum.checked_add(
+                        bytes
+                            .checked_mul(2)
+                            .ok_or("expression descriptor overflow")?,
+                    )
+                    .ok_or_else(|| "expression descriptor overflow".to_owned())
+                })?;
         if canonical > preparation_limit_bytes || preparation_limit_bytes == 0 {
             return Err("expression descriptor exceeds selected preparation estimate limit".into());
         }
