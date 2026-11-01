@@ -142,3 +142,6 @@ fn exact(class: &str, expected: &[&str], selected: &[String]) -> Result<(), Cond
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;

@@ -49,11 +49,45 @@ fn graphical_closure_refuses_mismatched_or_unbounded_resources_and_drivers() {
                 .resource_budgets
                 .push(manifest.resource_budgets[0].clone()),
         }
-        assert!(
-            lower_aarch64_virt(&manifest)
-                .unwrap_err()
-                .to_string()
-                .contains("aarch64-")
-        );
+        assert!(lower_aarch64_virt(&manifest)
+            .unwrap_err()
+            .to_string()
+            .contains("aarch64-"));
     }
+}
+
+#[test]
+fn graphical_closure_requires_the_scanout_base() {
+    let mut manifest = graphical();
+    manifest
+        .base_selections
+        .retain(|base| base.kind != SCANOUT_BASE);
+    assert!(lower_aarch64_virt(&manifest)
+        .unwrap_err()
+        .to_string()
+        .contains("aarch64-product-closure-mismatch"));
+}
+
+#[test]
+fn graphical_closure_requires_the_framebuffer_driver() {
+    let mut manifest = graphical();
+    manifest
+        .driver_selections
+        .retain(|driver| driver.kind != FRAMEBUFFER_DRIVER);
+    assert!(lower_aarch64_virt(&manifest)
+        .unwrap_err()
+        .to_string()
+        .contains("aarch64-product-closure-mismatch"));
+}
+
+#[test]
+fn graphical_closure_requires_the_native_presenter_with_graphics_resources() {
+    let mut manifest = graphical();
+    manifest
+        .presenters
+        .retain(|presenter| presenter != NATIVE_PRESENTER);
+    assert!(lower_aarch64_virt(&manifest)
+        .unwrap_err()
+        .to_string()
+        .contains("aarch64-product-closure-mismatch"));
 }
