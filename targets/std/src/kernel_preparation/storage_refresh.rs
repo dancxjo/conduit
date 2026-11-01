@@ -11,7 +11,7 @@ pub(crate) struct PreparedStorageLedgerRefresh {
     pub(crate) workspace_bytes: u64,
 }
 impl KernelResourceLedger {
-    pub(crate) fn prepare_storage_refresh(
+    pub(crate) fn prepare_scoped_base_refresh(
         &mut self,
         current: &HostAdvertisement,
         previous: Option<&BaseProviderEntry>,
@@ -160,7 +160,7 @@ impl KernelResourceLedger {
                 + growth) as u64,
         })
     }
-    pub(crate) fn apply_storage_refresh(&mut self, prepared: PreparedStorageLedgerRefresh) {
+    pub(crate) fn apply_scoped_base_refresh(&mut self, prepared: PreparedStorageLedgerRefresh) {
         self.pools
             .retain(|p| !prepared.old_pools.contains(&p.pool_id));
         self.pools.extend(prepared.new_pools);
@@ -168,5 +168,93 @@ impl KernelResourceLedger {
             .retain(|(id, _)| !prepared.old_instances.contains(id));
         self.instances.extend(prepared.new_instances);
         self.identity.2 = prepared.generation;
+    }
+}
+
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+impl KernelResourceLedger {
+    pub(crate) fn prepare_storage_refresh(
+        &mut self,
+        current: &HostAdvertisement,
+        previous: Option<&BaseProviderEntry>,
+        replacement: &BaseProviderEntry,
+        backing: Option<&BaseBackingReservation>,
+    ) -> Result<PreparedStorageLedgerRefresh, String> {
+        self.prepare_scoped_base_refresh(current, previous, replacement, backing)
+    }
+    pub(crate) fn apply_storage_refresh(&mut self, prepared: PreparedStorageLedgerRefresh) {
+        self.apply_scoped_base_refresh(prepared)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn scoped_software_refresh_preserves_exact_reserved_backing_and_refuses_active_child() {
+        let mut host = crate::StdHost::new_with_config(crate::StdHostConfig {
+            host_id: "host/scoped-refresh".into(),
+            boot_id: "boot/scoped-refresh".into(),
+            offer_generation: OfferGeneration(1),
+        });
+        let resource = conduit_core::ResourceOffer {
+            pool_id: "test/source-memory".into(),
+            class_id: conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS.into(),
+            capacity_units: 4096,
+            compute: None,
+            content: None,
+        };
+        let source = BaseProviderEntry {
+            base_id: "test/source".into(),
+            provider_instance_id: "test/source-owner".into(),
+            provider_generation: 1,
+            implementation_id: "test/source@1".into(),
+            mechanism_family: "test/source".into(),
+            enforcement_class: conduit_core::BaseEnforcementClass::Cooperative,
+            lifecycle: conduit_core::BaseLifecycle::Ready,
+            capabilities: Vec::new(),
+            resources: vec![resource.clone()],
+        };
+        host.base_registry.register(source.clone()).unwrap();
+        host.base_registry
+            .project_base_ready_into(&source.base_id, &mut host.advertisement)
+            .unwrap();
+        let mut ledger = KernelResourceLedger::new(&host.advertisement).unwrap();
+        let mut token = ledger
+            .reserve_base_backing(
+                &host.advertisement,
+                &host.base_registry,
+                &source.provider_instance_id,
+                1,
+                &resource.pool_id,
+                1024,
+            )
+            .unwrap();
+        let mut software = source.clone();
+        software.base_id = "test/software".into();
+        software.provider_instance_id = "test/software-owner".into();
+        software.resources.clear();
+        let mut offer = host.advertisement.capabilities[0].clone();
+        offer.capability_id = "test/software-expression".into();
+        software.capabilities.push(offer);
+        ledger.instances[0].1 = 1;
+        assert!(ledger
+            .prepare_scoped_base_refresh(&host.advertisement, None, &software, Some(&token))
+            .is_err());
+        ledger.instances[0].1 = 0;
+        let pools = ledger.pools.as_ptr();
+        let prepared = ledger
+            .prepare_scoped_base_refresh(&host.advertisement, None, &software, Some(&token))
+            .unwrap();
+        ledger.apply_scoped_base_refresh(prepared);
+        token.adopt_refreshed_ledger(&ledger);
+        assert_eq!(ledger.pools.as_ptr(), pools);
+        assert_eq!(token.bytes(), 1024);
+        assert!(ledger.only_base_backing_is_reserved(&token));
+        ledger
+            .release_base_backing(token)
+            .map_err(|(_, error)| error)
+            .unwrap();
+        assert!(ledger.is_idle());
     }
 }

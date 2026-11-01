@@ -117,6 +117,12 @@ impl PortableExpressionProgram {
         Ok(value)
     }
 
+    /// Count the exact canonical encoding without allocating an encoded copy.
+    /// This validates the same encoding bounds as `canonical_bytes`.
+    pub fn canonical_byte_len(&self) -> Result<usize, PortableExpressionProgramRefusal> {
+        self.canonical_size()
+    }
+
     pub(crate) fn canonical_size(&self) -> Result<usize, PortableExpressionProgramRefusal> {
         let mut encoded = ProgramSink {
             storage: ProgramStorage::Count,

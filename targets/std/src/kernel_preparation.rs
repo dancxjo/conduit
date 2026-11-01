@@ -27,7 +27,6 @@ pub use service::{
 mod worker;
 
 mod base_backing;
-#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
 mod storage_refresh;
 pub(crate) use base_backing::BaseBackingReservation;
 mod ledger;
