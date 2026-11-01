@@ -155,6 +155,7 @@ pub(crate) fn prepare_workspace_browser(
     invitation_secret: &[u8; 32],
     selected_image_content_digest: &str,
     selection: super::browser_configuration::BrowserConfigurationSelection,
+    now_millis: u64,
 ) -> Result<PreparedSpore, String> {
     if invitation.body_id != body.body_id {
         return Err("Workspace invitation names a different Body".into());
@@ -164,26 +165,40 @@ pub(crate) fn prepare_workspace_browser(
         _ => return Err("Workspace Body has no exact BIRTH Sign".into()),
     };
     let (browser_review, checked, packages) = super::browser_configuration::review(selection)?;
-    let target = spore_target::prepare_browser(
-        body.body_id.as_str(),
-        invitation.invitation_id.as_str(),
-        checked,
-    )?;
     let catalog = MakeCatalog::canonical().with_packages(&packages);
-    let (image, image_bytes) = build_host_image(
-        target.configuration.profile().clone(),
+    let output = packages
+        .target_descriptor(&checked.profile().target.key())
+        .ok_or("checked browser target is absent from its package")?
+        .default_output
+        .clone();
+    let construction = conduit_body_make::check_joining_host(
+        body,
+        invitation,
+        conduit_body_make::JoiningHostSelection {
+            configuration: &checked,
+            output: output.clone(),
+            deployment: Some(conduit_body_make::DeploymentDescription {
+                destination: "browser/local-sandbox".into(),
+            }),
+        },
+        now_millis,
         &catalog,
         &packages,
-        &target.output,
+    )?;
+    let (image, image_bytes) = build_host_image(
+        checked.profile().clone(),
+        &catalog,
+        &packages,
+        &output,
         &BuildInputs {
-            source_identity: target.source_identity.into(),
+            source_identity: spore_target::BROWSER_RELEASE_SOURCE_ID.into(),
             toolchain_available: true,
         },
     )
     .map_err(|errors| format!("select reviewed prebuilt IMAGE: {errors:?}"))?;
     let spore = seal_prebuilt_body_spore_with_content_digest(
-        &target.body,
-        target.host_name,
+        &construction,
+        &checked.configuration().name,
         birth_sign_id,
         &image,
         SelectedPrebuiltContent {

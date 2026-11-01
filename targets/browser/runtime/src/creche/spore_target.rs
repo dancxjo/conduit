@@ -34,6 +34,7 @@ use conduit_linear_framebuffer_make::LinearFramebufferMakeExtension;
 pub(super) const PICO_W_TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
 pub(super) const STD_COMPUTER_TARGET_ID: &str = HOSTED_TARGET_ID;
 pub(super) const BROWSER_PAGE_TARGET_ID: &str = "browser/wasm32/page";
+pub(super) const BROWSER_RELEASE_SOURCE_ID: &str = "conduit/reviewed-browser-host-release@1";
 pub(super) const CONDUITOS_X86_64_TARGET_ID: &str = "conduitos/x86_64/pc";
 pub(super) const CONDUITOS_AARCH64_TARGET_ID: &str = "conduitos/aarch64/virt";
 pub(super) const CONDUITOS_IA32_TARGET_ID: &str = "conduitos/ia32/pc";
@@ -490,7 +491,7 @@ fn browser_target() -> Result<TargetFacts, String> {
     Ok(TargetFacts {
         configuration_name: "creche-browser-page",
         host_name: "creche-browser-page",
-        source_identity: "conduit/reviewed-browser-host-release@1",
+        source_identity: BROWSER_RELEASE_SOURCE_ID,
         deployment_destination: Some("browser/local-sandbox"),
         output: SporeOutputKind::BrowserBundle,
         configuration: HostConfiguration {
