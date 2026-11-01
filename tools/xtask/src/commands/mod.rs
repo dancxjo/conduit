@@ -55,6 +55,7 @@ pub mod workspace;
 
 pub mod native_speech;
 
+pub mod linux_face_display;
 pub mod model_authoring;
 
 pub mod runtime_performance;

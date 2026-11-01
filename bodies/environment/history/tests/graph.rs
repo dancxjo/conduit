@@ -119,7 +119,23 @@ fn same_face_both_masks_use_actual_boot_time_and_bound_samples() {
     assert_eq!(native.content_id, graph.content_id());
     assert_eq!(native.revision, graph.revision());
     assert!(graph.browser_html().contains("cx=\"88\""));
-    assert_eq!(graph.native_scene().unwrap().commands().len(), 11);
+    let scene = graph.native_scene().unwrap();
+    assert_eq!(scene.commands().len(), 25); // bounded axes, eight grids and two series
+    let lines: Vec<_> = scene
+        .commands()
+        .iter()
+        .filter_map(|c| c.polyline_geometry())
+        .collect();
+    assert_eq!(lines.len(), 2);
+    for line in lines {
+        assert_eq!(
+            line.points()
+                .iter()
+                .map(|point| *point.x())
+                .collect::<Vec<_>>(),
+            vec![84, 136, 612]
+        );
+    }
     let face = face(&(0..64).collect::<Vec<_>>());
     let graph = HistoryGraph::prepare(&face, "body/history").unwrap();
     assert_eq!(graph.samples().len(), 16);
@@ -275,10 +291,70 @@ fn extreme_coordinate_retains_its_axis_and_partial_record_is_refused() {
     assert_eq!(graph.temperature_range(), (i64::MAX - 1000, i64::MAX));
     assert_eq!(graph.y(i64::MAX, false), 40);
     assert!(graph.native_scene().is_ok());
+    let value = input
+        .properties
+        .iter_mut()
+        .find(|p| p.name == "temperature")
+        .unwrap();
+    if let V::TypedValue { bytes, .. } = &mut value.value {
+        *bytes = Quantity::from_decimal(i128::from(i64::MIN), -3, Unit::Celsius)
+            .unwrap()
+            .encode()
+            .to_vec();
+    }
+    input.reseal_prepared().unwrap();
+    let graph = HistoryGraph::prepare(&input, "body/history").unwrap();
+    assert!(graph.native_scene().is_ok());
     input.properties.retain(|p| p.name != "relative-humidity");
     input.reseal_prepared().unwrap();
     assert!(matches!(
         HistoryGraph::prepare(&input, "body/history"),
         Err(GraphRefusal::InvalidProperty)
     ));
+}
+
+#[test]
+fn selected_text_geometry_keeps_the_same_recorded_face_and_sample_coordinates() {
+    let input = face(&[100, 200, 1100]);
+    let original = input.clone();
+    let graph = HistoryGraph::prepare(&input, "body/history").unwrap();
+    let baseline = graph
+        .native_scene_in_unit_at_size(Unit::Fahrenheit, 588, 476)
+        .unwrap();
+    let measured = graph
+        .native_scene_in_unit_at_size_measured(Unit::Fahrenheit, 588, 476, &|text, role, _| {
+            Ok(if text.contains(" · elapsed · ") {
+                72
+            } else if role == conduit_face::GraphicsTextRole::Title {
+                41
+            } else {
+                24
+            })
+        })
+        .unwrap();
+    assert_eq!(measured.commands().len(), baseline.commands().len());
+    let coordinates = |scene: &conduit_face::GraphicsScene| {
+        scene
+            .commands()
+            .iter()
+            .filter_map(|c| c.polyline_geometry())
+            .map(|line| line.points().iter().map(|p| *p.x()).collect::<Vec<_>>())
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(coordinates(&measured), coordinates(&baseline));
+    let footer = measured
+        .commands()
+        .iter()
+        .find(|c| c.payload().starts_with("RECORDED HISTORY · elapsed"))
+        .unwrap();
+    assert_eq!(footer.bounds.height, 72);
+    assert!(i32::from(footer.bounds.y) + i32::from(footer.bounds.height) <= 476);
+    assert_eq!(graph.content_id(), original.identity.as_str());
+    assert_eq!(graph.revision(), original.revision);
+    assert!(graph
+        .native_scene_in_unit_at_size_measured(Unit::Fahrenheit, 588, 476, &|_, _, _| Err(
+            conduit_face::GraphicsError::InvalidGeometry
+        ))
+        .is_err());
+    assert_eq!(input, original);
 }

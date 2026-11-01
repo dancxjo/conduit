@@ -1,10 +1,10 @@
 //! Normal finite GraphicsScene adapter. The caller owns checked Mask/Show admission.
-use crate::graph::HistoryGraph;
-use alloc::format;
-use conduit_face::{
-    GraphicsCommand, GraphicsError, GraphicsPaintRole as Paint, GraphicsScene, GraphicsShapeStyle,
-    LayoutRect,
-};
+use crate::graph::{ChartGeometry, HistoryGraph};
+use conduit_face::{GraphicsError, GraphicsScene};
+/// The selected graphical Host measures bounded text with the same resources
+/// used to paint it. Called only during scene preparation, never per pixel.
+pub type NativeHistoryTextMeasure<'a> =
+    dyn Fn(&str, conduit_face::GraphicsTextRole, u16) -> Result<u16, GraphicsError> + 'a;
 /// Correlation travels beside the native graphical payload, never in renderer state.
 pub struct NativeHistoryShow<'a> {
     pub content_id: &'a str,
@@ -13,113 +13,69 @@ pub struct NativeHistoryShow<'a> {
 }
 impl<'a> HistoryGraph<'a> {
     pub fn native_show(&self) -> Result<NativeHistoryShow<'a>, GraphicsError> {
+        self.native_show_in_unit(conduit_core::Unit::Celsius)
+    }
+    pub fn native_show_in_unit(
+        &self,
+        unit: conduit_core::Unit,
+    ) -> Result<NativeHistoryShow<'a>, GraphicsError> {
+        self.native_show_in_unit_at_size(unit, 640, 360)
+    }
+    /// Prepare finite geometry and typography bounds at native pixel dimensions.
+    pub fn native_show_in_unit_at_size(
+        &self,
+        unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
+    ) -> Result<NativeHistoryShow<'a>, GraphicsError> {
         Ok(NativeHistoryShow {
             content_id: self.content_id,
             revision: self.revision,
-            scene: self.native_scene()?,
+            scene: self.native_scene_in_unit_at_size(unit, width, height)?,
         })
     }
     pub fn native_scene(&self) -> Result<GraphicsScene, GraphicsError> {
-        let mut scene = GraphicsScene::empty();
-        let clip = LayoutRect {
-            x: 0,
-            y: 0,
-            width: 640,
-            height: 360,
-        };
-        // Paper and ink both come from the admitted Look. An empty compositor
-        // buffer alone cannot establish the selected background color.
-        scene.push(GraphicsCommand::rect(
-            clip,
-            clip,
-            Paint::Background,
-            GraphicsShapeStyle::Fill,
-        )?)?;
-        if self.samples.is_empty() {
-            scene.push(GraphicsCommand::text(
-                LayoutRect {
-                    x: 16,
-                    y: 16,
-                    width: 610,
-                    height: 20,
-                },
-                clip,
-                Paint::Foreground,
-                "No recovered samples in this view",
-            )?)?;
-            return Ok(scene);
+        self.native_scene_in_unit(conduit_core::Unit::Celsius)
+    }
+    pub fn native_scene_in_unit(
+        &self,
+        unit: conduit_core::Unit,
+    ) -> Result<GraphicsScene, GraphicsError> {
+        self.native_scene_in_unit_at_size(unit, 640, 360)
+    }
+    /// Prepare a chart using the selected Look's actual text layout. Required
+    /// labels reserve space before graph geometry is published or refuse intact.
+    pub fn native_scene_in_unit_at_size_measured(
+        &self,
+        unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
+        measure: &NativeHistoryTextMeasure<'_>,
+    ) -> Result<GraphicsScene, GraphicsError> {
+        ChartGeometry {
+            samples: &self.samples,
         }
-        let (min, max) = self.temperature_range();
-        let first = self.samples.first().map_or(0, |s| s.boot_ms);
-        let last = self.samples.last().map_or(0, |s| s.boot_ms);
-        for (y, label) in [
-            (
-                4,
-                format!(
-                    "Temperature °C: top {}; bottom {}",
-                    super::graph::milli_label(max),
-                    super::graph::milli_label(min)
-                ),
-            ),
-            (156, "Humidity %: top 100; bottom 0".into()),
-            (
-                306,
-                format!("Boot ms: left {first}; right {last}; observation dots"),
-            ),
-        ] {
-            scene.push(GraphicsCommand::text(
-                LayoutRect {
-                    x: 16,
-                    y,
-                    width: 610,
-                    height: 20,
-                },
-                clip,
-                Paint::Foreground,
-                &label,
-            )?)?;
+        .native_scene_at_size_measured(
+            self.omitted,
+            "RECORDED HISTORY",
+            unit,
+            (width, height),
+            Some(measure),
+        )
+    }
+    /// Nominal text boxes; selected Looks use the measured entrypoint above.
+    /// Refuses viewports smaller than 320×360 or outside signed coordinate bounds.
+    pub fn native_scene_in_unit_at_size(
+        &self,
+        unit: conduit_core::Unit,
+        width: u16,
+        height: u16,
+    ) -> Result<GraphicsScene, GraphicsError> {
+        ChartGeometry {
+            samples: &self.samples,
         }
-        let failures = self.samples.iter().filter(|s| s.failure).count();
-        let gaps = self
-            .samples
-            .iter()
-            .filter(|s| s.gap_before.is_some())
-            .count();
-        let label = format!(
-            "Recovered; outside {}; unavailable {}; gaps {}",
-            self.omitted, failures, gaps
-        );
-        scene.push(GraphicsCommand::text(
-            LayoutRect {
-                x: 16,
-                y: 334,
-                width: 610,
-                height: 20,
-            },
-            clip,
-            Paint::Foreground,
-            &label,
-        )?)?;
-        for sample in &self.samples {
-            for (value, humidity) in [
-                (sample.temperature_milli_c, false),
-                (sample.humidity_milli_percent, true),
-            ] {
-                if let Some(value) = value {
-                    scene.push(GraphicsCommand::rect(
-                        LayoutRect {
-                            x: self.x(sample) as i16,
-                            y: self.y(value, humidity) as i16,
-                            width: 3,
-                            height: 3,
-                        },
-                        clip,
-                        Paint::Foreground,
-                        GraphicsShapeStyle::Fill,
-                    )?)?;
-                }
-            }
-        }
-        Ok(scene)
+        .native_scene_at_size(self.omitted, "RECORDED HISTORY", unit, width, height)
     }
 }
+pub(crate) mod layout;
+mod scene;

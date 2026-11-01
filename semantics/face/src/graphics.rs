@@ -6,7 +6,9 @@ use crate::{
     GraphicsTextRole, GraphicsTextRoleForm, LayoutRect, MAX_LAYOUT_EXTENT,
 };
 mod path;
+mod polyline;
 pub use path::{GraphicsPath, MAX_GRAPHICS_PATH_POINTS};
+pub use polyline::{GraphicsPolyline, MAX_GRAPHICS_POLYLINE_POINTS};
 
 pub const GRAPHICS_SCENE_KIND: &str = "face/graphics-scene@1";
 pub const MAX_GRAPHICS_COMMANDS: usize = 48;
@@ -69,6 +71,27 @@ impl GraphicsCommand {
     pub fn path_geometry(&self) -> Option<GraphicsPath> {
         (self.kind == GraphicsCommandKind::OrthogonalPath)
             .then(|| GraphicsPath::decode(&self.payload[..usize::from(self.payload_len)]).ok())
+            .flatten()
+    }
+
+    pub fn polyline(
+        polyline: GraphicsPolyline,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+    ) -> Result<Self, GraphicsError> {
+        let (bytes, len) = polyline.encode();
+        Self::new(
+            GraphicsCommandKind::Polyline,
+            polyline.bounds()?,
+            clip,
+            paint,
+            GraphicsShapeStyle::Stroke,
+            &bytes[..len],
+        )
+    }
+    pub fn polyline_geometry(&self) -> Option<GraphicsPolyline> {
+        (self.kind == GraphicsCommandKind::Polyline)
+            .then(|| GraphicsPolyline::decode(&self.payload[..usize::from(self.payload_len)]).ok())
             .flatten()
     }
 
@@ -142,6 +165,12 @@ impl GraphicsCommand {
             {
                 return Err(GraphicsError::NonCanonicalEncoding);
             }
+        } else if kind == GraphicsCommandKind::Polyline {
+            if GraphicsPolyline::decode(payload)?.bounds()? != bounds
+                || style != GraphicsShapeStyle::Stroke
+            {
+                return Err(GraphicsError::NonCanonicalEncoding);
+            }
         } else if !payload.is_empty() {
             return Err(GraphicsError::NonCanonicalEncoding);
         }
@@ -166,7 +195,10 @@ impl GraphicsCommand {
 
     /// Textual content only; use `path_geometry` for an orthogonal path.
     pub fn payload(&self) -> &str {
-        if self.kind == GraphicsCommandKind::OrthogonalPath {
+        if matches!(
+            self.kind,
+            GraphicsCommandKind::OrthogonalPath | GraphicsCommandKind::Polyline
+        ) {
             return "";
         }
         core::str::from_utf8(&self.payload[..usize::from(self.payload_len)])

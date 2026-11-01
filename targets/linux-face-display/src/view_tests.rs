@@ -1,0 +1,296 @@
+//! Native presentation behavior and raster geometry proofs.
+use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn complete_info_property_pages_do_not_alternate_with_an_empty_snapshot() {
+        let base = unavailable("unused");
+        let make = |properties| {
+            Face::new(
+                9,
+                base.basis.clone(),
+                vec![FaceSubject {
+                    identity: "instrument".into(),
+                    role: FaceRole::Info,
+                    name: "Room conditions".into(),
+                }],
+                vec![],
+                properties,
+                vec![],
+            )
+            .unwrap()
+        };
+        let property = conduit_face::FaceProperty {
+            subject: "instrument".into(),
+            name: "reading".into(),
+            value: conduit_face::FacePropertyValue::Text("Real value".into()),
+        };
+        let face = make(vec![property.clone()]);
+        for tick in 0..6 {
+            let (scene, page, pages, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
+            assert_eq!((page, pages), (0, 1));
+            assert!(
+                scene
+                    .commands()
+                    .iter()
+                    .any(|c| c.payload() == "reading: Real value")
+            );
+        }
+        let unsupported = conduit_face::FaceProperty {
+            subject: "instrument".into(),
+            name: "count".into(),
+            value: conduit_face::FacePropertyValue::Count(12),
+        };
+        let mixed = make(vec![property, unsupported]);
+        let (_, _, pages, _, _) = frame(mixed, 1024, 600, 0, None).unwrap();
+        assert_eq!(pages, 1, "Count metadata adds no native primary content");
+    }
+    #[test]
+    #[ignore = "requires explicitly selected private actual current Face"]
+    fn actual_info_face_with_metadata_has_no_empty_page_in_any_cycle() {
+        let path =
+            std::env::var_os("CONDUIT_PRIVATE_CURRENT_FACE_TEST").expect("private actual Face");
+        let document: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let face: Face = serde_json::from_value(document["face"].clone()).unwrap();
+        face.validate().unwrap();
+        assert!(
+            face.properties
+                .iter()
+                .any(|p| matches!(p.value, conduit_face::FacePropertyValue::Count(_)))
+        );
+        for tick in 0..8 {
+            let (scene, page, pages, _, _) = frame(
+                face.clone(),
+                1024,
+                600,
+                tick,
+                Some(conduit_core::Unit::Fahrenheit),
+            )
+            .unwrap();
+            assert_eq!((page, pages), (0, 1));
+            assert!(scene.commands().iter().any(|c| c.payload().contains("°F")));
+            assert!(scene.commands().iter().any(|c| c.payload().contains('%')));
+        }
+    }
+    #[test]
+    fn sensor_pages_do_not_hide_transcript_from_the_same_face() {
+        let base = unavailable("Transcript: the greenhouse is quiet");
+        let face = Face::new(
+            9,
+            base.basis,
+            vec![
+                base.subjects[0].clone(),
+                FaceSubject {
+                    identity: "sensor".into(),
+                    role: FaceRole::Info,
+                    name: "Greenhouse".into(),
+                },
+            ],
+            vec![],
+            vec![conduit_face::FaceProperty {
+                subject: "sensor".into(),
+                name: "reading".into(),
+                value: conduit_face::FacePropertyValue::Text("Sensor marker".into()),
+            }],
+            base.text,
+        )
+        .unwrap();
+        let original = face.clone();
+        let (_, _, pages, _, _) = frame(face.clone(), 1024, 600, 0, None).unwrap();
+        assert!(pages >= 2);
+        let mut sensor = false;
+        let mut transcript = false;
+        for tick in 0..pages {
+            let (scene, page, count, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
+            assert_eq!((page, count), (tick, pages));
+            sensor |= scene
+                .commands()
+                .iter()
+                .any(|c| c.payload().contains("Sensor marker"));
+            transcript |= scene
+                .commands()
+                .iter()
+                .any(|c| c.payload().contains("greenhouse is quiet"));
+        }
+        assert!(
+            sensor && transcript,
+            "both contributions must remain perceptible"
+        );
+        assert_eq!(face, original);
+    }
+}
+
+#[cfg(test)]
+mod native_chart_pixel_tests {
+    use super::*;
+    use conduitos::display::{PixelTarget, RetainedPixelTarget};
+    #[test]
+    fn chart_pixel_is_written_once_without_stretching_and_preserves_status_strip() {
+        let mut pixels = vec![0; 1024 * 600];
+        let mut target = ChartViewport {
+            width: 1024,
+            height: 600,
+            pixels: &mut pixels,
+        };
+        assert_eq!(target.format().width, 1024);
+        assert_eq!(target.format().height, 564);
+        target.write_pixel(511, 100, 0xabcdef).unwrap();
+        assert_eq!(target.read_pixel(511, 100).unwrap(), 0xabcdef);
+        assert!(target.write_pixel(1024, 100, 1).is_err());
+        assert_eq!(pixels.iter().filter(|p| **p != 0).count(), 1);
+        assert_eq!(pixels[(100 + 36) * 1024 + 511], 0xabcdef);
+        assert!(pixels[..36 * 1024].iter().all(|p| *p == 0));
+    }
+}
+
+#[test]
+fn missing_visual_facet_uses_the_same_selected_phosphor_metrics_and_pixels() {
+    let face = crate::view::unavailable("Waiting for the actual source");
+    let original = face.clone();
+    let spoken = conduit_face::LookInfo::new(
+        conduit_face::LookGenerativeFacetOption::None,
+        "test/spoken-only".into(),
+        conduit_face::LookSpokenFacetOption::None,
+        2,
+        conduit_face::LookVisualFacetOption::None,
+    )
+    .unwrap();
+    let phosphor = conduit_face::phosphor_look().unwrap();
+    let mut expected = vec![0; 500 * 476];
+    let mut fallback = expected.clone();
+    crate::view::render_with_palette(
+        face.clone(),
+        500,
+        476,
+        0,
+        &mut expected,
+        None,
+        Some(&phosphor),
+    )
+    .unwrap();
+    crate::view::render_with_palette(
+        face.clone(),
+        500,
+        476,
+        0,
+        &mut fallback,
+        None,
+        Some(&spoken),
+    )
+    .unwrap();
+    assert_eq!(fallback, expected);
+    assert_eq!(face, original);
+}
+
+#[test]
+fn authored_look_notices_fit_narrow_unavailable_and_retained_views() {
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        for missing_glyph in [false, true] {
+            let mut face = unavailable("Source unavailable; retained facts are not live readings");
+            if missing_glyph {
+                face.subjects[0].name = "Instrument 🦄".into();
+                face = Face::new(
+                    0,
+                    face.basis,
+                    face.subjects,
+                    face.relationships,
+                    face.properties,
+                    face.text,
+                )
+                .unwrap();
+            }
+            let original = face.clone();
+            for width in [320, 360, 1024] {
+                for details in [false, true] {
+                    for retained in [false, true] {
+                        let (scene, _, _, scale, _) = frame_with_context(
+                            face.clone(),
+                            width,
+                            564,
+                            0,
+                            None,
+                            details,
+                            Some(&look),
+                            retained,
+                            true,
+                        )
+                        .unwrap();
+                        let typography =
+                            crate::raster_target::selected_typography(Some(&look)).unwrap();
+                        for command in scene.commands() {
+                            if command.kind == conduit_face::GraphicsCommandKind::Text {
+                                let height =
+                                    conduitos::display::typography::TextLayout::new_selected(
+                                        command.payload(),
+                                        typography.style(command.text_role().into()),
+                                        command.bounds.width,
+                                        scale,
+                                    )
+                                    .unwrap()
+                                    .finish_height();
+                                assert!(
+                                    height <= u32::from(command.bounds.height),
+                                    "{} at {width}: {height} > {}",
+                                    command.payload(),
+                                    command.bounds.height
+                                );
+                            }
+                        }
+                        assert!(scene.commands().iter().any(|c| if missing_glyph {
+                            c.payload().contains("glyph")
+                                || c.payload().contains("missing characters")
+                        } else {
+                            c.payload().contains("Read only")
+                        }));
+                    }
+                }
+            }
+            assert_eq!(face, original);
+        }
+    }
+}
+
+#[test]
+#[ignore = "requires explicitly selected private actual current Face"]
+fn actual_face_authored_look_remains_readable_in_narrow_retained_and_details_views() {
+    let path = std::env::var_os("CONDUIT_PRIVATE_CURRENT_FACE_TEST").expect("private actual Face");
+    let document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let face: Face = serde_json::from_value(document["face"].clone()).unwrap();
+    face.validate().unwrap();
+    let original = face.clone();
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        for details in [false, true] {
+            for retained in [false, true] {
+                for tick in 0..8 {
+                    let mut pixels = vec![0; 320 * 564];
+                    render_with_details(
+                        face.clone(),
+                        320,
+                        564,
+                        tick,
+                        &mut pixels,
+                        Presentation {
+                            unit: Some(conduit_core::Unit::Fahrenheit),
+                            look: Some(&look),
+                            details,
+                            retained_snapshot: retained,
+                            history_in_primary: true,
+                        },
+                    )
+                    .unwrap();
+                    assert!(pixels.iter().any(|pixel| *pixel != 0));
+                }
+            }
+        }
+    }
+    assert_eq!(face, original);
+}

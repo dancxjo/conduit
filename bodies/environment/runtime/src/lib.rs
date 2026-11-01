@@ -14,6 +14,8 @@ pub mod display_packets;
 #[cfg(feature = "member-receipts")]
 pub mod member_receipts;
 pub mod observation;
+#[cfg(feature = "face-projection")]
+pub mod observed_record;
 pub mod publication;
 #[cfg(feature = "face-projection")]
 pub mod publication_face_custody;
