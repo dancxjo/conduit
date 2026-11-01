@@ -208,6 +208,9 @@ impl KernelResourceLedger {
                     .retain(|r| !base.capabilities.iter().any(|b| b == r));
                 host.bases.retain(|b| b.base_id != base.base_id);
             }
+            host.resources.sort();
+            host.capabilities.sort_by(|a,b|a.capability_id.cmp(&b.capability_id));
+            host.bases.sort_by(|a,b|a.base_id.cmp(&b.base_id));
             host.offer_generation = conduit_core::OfferGeneration(0);
             host
         };

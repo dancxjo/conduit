@@ -192,3 +192,29 @@ fn full_retained_slots_and_storage_preparation_refuse_before_ready() {
     assert_eq!(host.advertisement, before);
     assert_eq!(std::fs::read_dir(root2.path()).unwrap().count(), 0);
 }
+
+#[test]
+fn occupied_state_slot_is_bound_to_exact_authored_body_state_key() {
+    let root = tempfile::tempdir().unwrap();
+    let mut host = host(root.path());
+    let selected = state_request();
+    let binding = selected.state.as_ref().unwrap().binding.clone();
+    let key = crate::state_value::FileDurableStateResidence::storage_key(&binding).unwrap();
+    std::fs::create_dir(root.path().join(&key)).unwrap();
+    host.select_body_storage_generation(selected).unwrap();
+    assert_eq!(
+        host.selected_body_storage_generation()
+            .unwrap()
+            .state_binding(),
+        Some(&binding)
+    );
+    let before = host.advertisement.clone();
+    let mut other = state_request();
+    other.state.as_mut().unwrap().binding.body = "body/other".into();
+    assert!(host
+        .select_body_storage_generation(other)
+        .unwrap_err()
+        .contains("another exact binding"));
+    assert_eq!(host.advertisement, before);
+    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
+}
