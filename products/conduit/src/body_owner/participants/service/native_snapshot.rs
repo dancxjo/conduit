@@ -13,6 +13,11 @@ impl Owner {
             .as_ref()
             .ok_or("native snapshot window unavailable")?;
         window.check(window_id)?;
+        // Browser presence has its own longer lifetime after admission. This
+        // finite one-shot native encounter never inherits that extension.
+        if Instant::now() >= window.deadline {
+            return Err("native snapshot original window expired".into());
+        }
         let WindowState::Active {
             credential,
             observation,

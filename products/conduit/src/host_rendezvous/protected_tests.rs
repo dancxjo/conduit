@@ -152,7 +152,12 @@ pub(crate) fn native_snapshot_lines(
     super::ProtectedDocumentLine<impl ProtectedFrameCarrier + Send>,
     super::ProtectedDocumentLine<impl ProtectedFrameCarrier + Send>,
 ) {
-    let (client, server) = protected_lines_for(chosen, policy());
+    // Explicit finite test selection for the actual complete std inventory.
+    // Ordinary existing protected tests retain their independent 16-frame policy.
+    let mut selected_policy = policy();
+    selected_policy.traffic.maximum_frames_per_direction = 64;
+    selected_policy.traffic.maximum_bytes_per_direction = 65_519 * 64;
+    let (client, server) = protected_lines_for(chosen, selected_policy);
     let workspace = super::DocumentWorkspace {
         maximum_document_bytes,
         capacity_bytes: maximum_document_bytes + 65_519,
