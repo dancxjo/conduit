@@ -584,3 +584,26 @@ adoption work is on hold while complete-workset admission and protected Lines
 are prioritized for live audio (#6606 producer flow remains Victus-owned).
 No NAT trial, exact buffered history over Zenoh, durable commit acknowledgment,
 proper MCU membership or selected recorder admission is claimed.
+
+
+## Root workspace ownership reconciliation — 1 November 2026
+
+The current open #6341 contract is “Serialize native Root setup preparation
+behind admitted appliance workspace custody.” Its acceptance concerns the one
+admitted preparation workspace, not a target allocation count. A retained native
+reservation or prepared execution owns that workspace until actual retirement.
+An acknowledged private network input must remain retained while busy, with no
+consumption, attempt start or second construction; status must report
+`awaiting-native-retirement`. Only actual retirement permits the first autonomous
+setup attempt. The independently installed control Play must remain owned.
+
+Decoded-offer retention and overlapping sampling/Mask preparation are relevant
+residency inputs to that existing custody contract. Borrowed immutable metadata,
+borrowed verified-Plan serialization and smaller preparation frames support the
+instrument delivery without adding another memory epic. Their allocation or
+canonical-parity tests cannot substitute for #6341's same-Boot physical proof:
+sensing and cleanup, verified worker retirement, then one setup attempt/fallback
+while the acknowledged input and control Play retain their proper custody.
+Preserve the original 1,920-byte setup-allocation panic as negative evidence.
+Neither a successful graphics cross-build nor Linux recording recovery proves
+that physical Root transition or the complete autonomous two-Plot MCU workset.
