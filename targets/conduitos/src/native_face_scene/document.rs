@@ -276,14 +276,16 @@ pub(super) fn prepare(
                     && property.name == "current-value")
         }) {
             if let FacePropertyValue::TypedValue { contract, bytes } = &property.value {
-                append(item(
-                    format!(
-                        "{}: {}",
-                        property.name,
-                        conduit_face::display_typed_value(contract, bytes)
-                    ),
-                    GraphicsTextRole::Body,
-                ));
+                let value = conduit_face::display_typed_value(contract, bytes);
+                if subject.role == FaceRole::Info {
+                    append(item(property.name.clone(), GraphicsTextRole::Label));
+                    append(item(value, GraphicsTextRole::Value));
+                } else {
+                    append(item(
+                        format!("{}: {}", property.name, value),
+                        GraphicsTextRole::Body,
+                    ));
+                }
             }
         }
         // Contains already determines indentation. Face text and canonical typed
