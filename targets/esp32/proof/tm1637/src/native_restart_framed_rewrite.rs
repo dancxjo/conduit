@@ -13,11 +13,47 @@ pub(super) fn emit<E>(
     network: Option<&network::Cursor>,
     summary: archive::Summary,
     reuse: Option<frames::Range>,
-    mut read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
     sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
+) -> Result<(archive::Summary, archive::Span, frames::Range), StreamRefusal<E>> {
+    emit_pieces(
+        evidence,
+        pending,
+        admissions,
+        previous_span,
+        prefix,
+        local_count,
+        layouts,
+        network,
+        summary,
+        reuse,
+        read,
+        &mut |piece| sink(piece.bytes()),
+    )
+}
+#[path = "native_restart_frame_recipe.rs"]
+pub(super) mod recipe;
+use recipe::{ChangedPart, EncodedPiece};
+#[allow(clippy::too_many_arguments)]
+#[inline(never)]
+pub(super) fn emit_pieces<E>(
+    evidence: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    admissions: &AdmissionManager,
+    previous_span: archive::Span,
+    prefix: Option<&wire::Receipt>,
+    local_count: u64,
+    layouts: &layout::Layouts,
+    network: Option<&network::Cursor>,
+    summary: archive::Summary,
+    reuse: Option<frames::Range>,
+    mut read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
+    sink: &mut dyn FnMut(EncodedPiece<'_>) -> Result<(), E>,
 ) -> Result<(archive::Summary, archive::Span, frames::Range), StreamRefusal<E>> {
     let encoded = core::cell::Cell::new(0usize);
     let mut failure = None;
+    let part = core::cell::Cell::new(ChangedPart::Prefix);
+    let source_offset = core::cell::Cell::new(None::<usize>);
     let capacity = core::cell::Cell::new(false);
     let mut output = |bytes: &[u8]| -> Result<(), ()> {
         let next = encoded.get().checked_add(bytes.len()).ok_or(())?;
@@ -25,7 +61,20 @@ pub(super) fn emit<E>(
             capacity.set(true);
             return Err(());
         }
-        sink(bytes).map_err(|e| {
+        let piece = match source_offset.get() {
+            Some(at) => {
+                source_offset.set(Some(at.checked_add(bytes.len()).ok_or(())?));
+                EncodedPiece::Reused {
+                    source_offset: at,
+                    bytes,
+                }
+            }
+            None => EncodedPiece::Changed {
+                part: part.get(),
+                bytes,
+            },
+        };
+        sink(piece).map_err(|e| {
             failure = Some(e);
         })?;
         encoded.set(next);
@@ -103,7 +152,10 @@ pub(super) fn emit<E>(
                     let a = at.max(reuse.encoded.start);
                     let z = (at + n).min(reuse.encoded.end);
                     if a < z {
-                        encoder.raw(&buffer[a - at..z - at])?;
+                        source_offset.set(Some(a));
+                        let emitted = encoder.raw(&buffer[a - at..z - at]);
+                        source_offset.set(None);
+                        emitted?;
                     }
                     at = at.checked_add(n).ok_or(())?;
                 }
@@ -166,6 +218,7 @@ pub(super) fn emit<E>(
             buffer.fill(0);
             drained?;
         }
+        part.set(ChangedPart::Append);
         let append = if pending.is_empty() {
             0
         } else {
@@ -190,6 +243,7 @@ pub(super) fn emit<E>(
                 .plain
         };
         let archive_end = encoded.get();
+        part.set(ChangedPart::Suffix);
         let tail = encoder
             .frame(frames::SUFFIX, |plain| {
                 plain(b"],\"admissions\":")?;
