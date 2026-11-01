@@ -3,7 +3,7 @@ use super::structured_diagnostic;
 use crate::prelude::*;
 use crate::{Span, SyntaxCheckDiagnostic};
 
-pub(super) fn canonical_leaf_literal(
+pub(crate) fn canonical_leaf_literal(
     kind: &str,
     literal: &str,
     span: Span,

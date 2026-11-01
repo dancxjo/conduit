@@ -3,11 +3,41 @@ use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-root-startup" => Some(root_startup(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
         [name] if name == "history-preview" => Some(preview(root)),
         _ => None,
     }
+}
+fn root_startup(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "canonical_expansion_tests::",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "check",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "--target",
+        "wasm32-unknown-unknown",
+    ]))
 }
 fn command(root: &Path, operation: &str) -> Command {
     let mut command = Command::new("cargo");
