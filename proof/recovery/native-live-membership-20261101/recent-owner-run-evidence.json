@@ -1,0 +1,91 @@
+{
+  "scope": "raw diagnostic retention correction; product/proof harness unchanged",
+  "raw_output_location": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-recovery-20261101/recent-raw-logs",
+  "retention": "ignored local diagnostic output, not a published archive",
+  "results": {
+    "snapshot_product_catalog": {
+      "passed": 1
+    },
+    "source_publication": {
+      "passed": 2,
+      "initial_compile_refusal_preserved": true
+    },
+    "source_readback": {
+      "passed": 4
+    },
+    "private_readback_witness": {
+      "passed": 4
+    },
+    "combined_source_recording_catalog": {
+      "passed": 11,
+      "initial_queue_admission_refusal_preserved": true
+    },
+    "threebee_adapter": {
+      "passed": 49,
+      "existing_ignored": 7
+    },
+    "threebee_measured_history": {
+      "passed": 2
+    },
+    "integrated_final_source_fore": {
+      "passed": 2
+    }
+  },
+  "raw_logs": [
+    {
+      "original_path": "proof/deployment/threebee-display-20261101/adapter-raster-tests.log",
+      "bytes": 8079,
+      "sha256": "0be2adacaa076f85b9a3edd09742a83ba7c8188174006c22549e561dc12501a4"
+    },
+    {
+      "original_path": "proof/deployment/threebee-display-20261101/history-measure-tests.log",
+      "bytes": 632,
+      "sha256": "6ccc85b1666f1bdef65c05b06353e918e5755b5601b4540236f313c91cbff9c0"
+    },
+    {
+      "original_path": "proof/deployment/threebee-display-20261101/integrated-source-tests.log",
+      "bytes": 8877,
+      "sha256": "9619cfa5a8003455eacc252a8586a1a5744c8ddb62493f5ba64ad56ee9e16d0c"
+    },
+    {
+      "original_path": "proof/recovery/native-live-membership-20261101/installed-snapshot-catalog.log",
+      "bytes": 541,
+      "sha256": "fd330a95b100baa2a4e5b3f43f8315929af10872a460d269c768cfd5267fecb3"
+    },
+    {
+      "original_path": "proof/state/source-catalog-owner-20261101/tests-8d854.log",
+      "bytes": 2531,
+      "sha256": "aef78e11f953de488fdbc63e31b8ce7949cafa0e1988683d5011b5927d5f3909"
+    },
+    {
+      "original_path": "proof/state/source-catalog-owner-20261101/tests-combined.log",
+      "bytes": 2270,
+      "sha256": "a4c2c2acf7775cb440269458b0fade982d4281e6a8159a65ce9b94d15fea9114"
+    },
+    {
+      "original_path": "proof/state/source-catalog-owner-20261101/tests-queues.log",
+      "bytes": 1731,
+      "sha256": "1d8d75a4084e56d09a6924c2b5012c579a5b995949e774a042cb771080bdbbd8"
+    },
+    {
+      "original_path": "proof/state/source-publication-owner-20261101/tests-942155.log",
+      "bytes": 984,
+      "sha256": "a98dff50272aacac7f004341459dddcb56106ccd2b680e750ec110a65fcf913a"
+    },
+    {
+      "original_path": "proof/state/source-publication-owner-20261101/tests-corrected.log",
+      "bytes": 781,
+      "sha256": "12e8a48a4d50caec370a747fb37e3884c918a13014ea87dd5f4db8784e3d87e1"
+    },
+    {
+      "original_path": "proof/state/source-readback-owner-20261101/private-witness-tests.log",
+      "bytes": 1152,
+      "sha256": "0c16a05cb52d6b1322769d03810160c7f3ebbaf25e414198720d559d92b5b52b"
+    },
+    {
+      "original_path": "proof/state/source-readback-owner-20261101/tests.log",
+      "bytes": 1152,
+      "sha256": "014146c285fa6ab215e486c93014a53693597abe49f3bcce960be02948ae8a45"
+    }
+  ]
+}
