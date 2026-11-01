@@ -100,7 +100,7 @@ fn fixture() -> Fixture {
     };
     crate::durable_host::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
     let plot = crate::plot_source::parse(
-        "plot hello { show: face/text(\"Message\") \"Hello.\" >> show }.",
+        "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.",
     )
     .unwrap()
     .expand_entry_for_authoring()
