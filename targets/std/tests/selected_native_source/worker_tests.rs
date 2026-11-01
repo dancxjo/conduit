@@ -408,7 +408,7 @@ fn storage_generation_refresh_retains_actual_source_worker_and_reserved_backing(
                 state_slots: 1,
                 maximum_state_bytes: 4096,
                 total_disk_bytes: 131072,
-                preparation_bytes: 131072,
+                preparation_bytes: 16 * 1024 * 1024,
             },
             None,
         )

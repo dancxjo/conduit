@@ -199,18 +199,63 @@ impl KernelResourceLedger {
         replacement: &conduit_core::BaseProviderEntry,
         backing: Option<&BaseBackingReservation>,
     ) -> Result<Self, String> {
-        let strip = |host: &HostAdvertisement, base: Option<&conduit_core::BaseProviderEntry>| {
-            let mut host = host.clone();
-            if let Some(base) = base {
-                host.resources
-                    .retain(|r| !base.resources.iter().any(|b| b == r));
-                host.capabilities
-                    .retain(|r| !base.capabilities.iter().any(|b| b == r));
-                host.bases.retain(|b| b.base_id != base.base_id);
-            }
-            host.offer_generation = conduit_core::OfferGeneration(0);
-            host
-        };
+        let HostAdvertisement {
+            declared_name: a_name,
+            protocol_version: a_protocol,
+            host_id: a_host,
+            boot_id: a_boot,
+            offer_generation: _,
+            profile: a_profile,
+            bases: _,
+            resources: _,
+            capabilities: _,
+            planner_capabilities: a_planners,
+        } = current;
+        let HostAdvertisement {
+            declared_name: b_name,
+            protocol_version: b_protocol,
+            host_id: b_host,
+            boot_id: b_boot,
+            offer_generation: _,
+            profile: b_profile,
+            bases: _,
+            resources: _,
+            capabilities: _,
+            planner_capabilities: b_planners,
+        } = next;
+        let same_headers = a_name == b_name
+            && a_protocol == b_protocol
+            && a_host == b_host
+            && a_boot == b_boot
+            && a_profile == b_profile
+            && a_planners == b_planners;
+        let same_resources = exact_multiset(
+            current
+                .resources
+                .iter()
+                .filter(|r| previous.is_none_or(|base| !base.resources.contains(r))),
+            next.resources
+                .iter()
+                .filter(|r| !replacement.resources.contains(r)),
+        );
+        let same_capabilities = exact_multiset(
+            current
+                .capabilities
+                .iter()
+                .filter(|r| previous.is_none_or(|base| !base.capabilities.contains(r))),
+            next.capabilities
+                .iter()
+                .filter(|r| !replacement.capabilities.contains(r)),
+        );
+        let same_bases = exact_multiset(
+            current
+                .bases
+                .iter()
+                .filter(|r| previous.is_none_or(|base| r.base_id != base.base_id)),
+            next.bases
+                .iter()
+                .filter(|r| r.base_id != replacement.base_id),
+        );
         if self.identity
             != (
                 current.host_id.clone(),
@@ -223,7 +268,10 @@ impl KernelResourceLedger {
                     .0
                     .checked_add(1)
                     .ok_or("offer generation exhausted")?
-            || strip(current, previous) != strip(next, Some(replacement))
+            || !same_headers
+            || !same_resources
+            || !same_capabilities
+            || !same_bases
             || !match backing {
                 Some(token) => self.only_base_backing_is_reserved(token),
                 None => self.is_idle(),
@@ -246,4 +294,21 @@ impl KernelResourceLedger {
         }
         Ok(staged)
     }
+}
+
+// Borrow payloads throughout; exact multiplicity also rejects a changed entry
+// masked by a duplicate. The public ledger subsequently validates unique IDs.
+fn exact_multiset<'a, T: PartialEq + 'a, L, R>(left: L, right: R) -> bool
+where
+    L: Iterator<Item = &'a T> + Clone,
+    R: Iterator<Item = &'a T> + Clone,
+{
+    left.clone().count() == right.clone().count()
+        && left.clone().all(|value| {
+            left.clone().filter(|candidate| *candidate == value).count()
+                == right
+                    .clone()
+                    .filter(|candidate| *candidate == value)
+                    .count()
+        })
 }

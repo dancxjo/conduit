@@ -12,6 +12,7 @@ use std::{
     sync::Arc,
 };
 mod census;
+mod clone_backing;
 use census::StorageCensus;
 
 pub struct BodyStorageSnapshotRequest {
@@ -120,6 +121,26 @@ impl StdHost {
                 .ok_or("storage offer generation exhausted")?,
         );
         let staged = prepare(storage, &self.advertisement, generation, request)?;
+        let registry_bytes = self.base_registry.entries().iter().try_fold(
+            std::mem::size_of::<c::BaseRegistry>(),
+            |n, entry| {
+                n.checked_add(clone_backing::count(entry)?)
+                    .ok_or_else(|| "storage registry workspace overflow".to_string())
+            },
+        )?;
+        let required = staged
+            .evidence
+            .preparation_bytes
+            .checked_add(registry_bytes as u64)
+            .ok_or("storage workspace overflow")?;
+        if required > storage.bounds().preparation_bytes {
+            return Err(format!(
+                "storage generation preparation requires {required} bytes, selected {}",
+                storage.bounds().preparation_bytes
+            ));
+        }
+        let mut staged = staged;
+        staged.evidence.preparation_bytes = required;
         let mut registry = self.base_registry.clone();
         match old {
             Some(prior) => registry.replace(
@@ -206,6 +227,9 @@ fn prepare(
     generation: c::OfferGeneration,
     request: BodyStorageGenerationRequest,
 ) -> Result<SelectedBodyStorageGeneration, String> {
+    if host.host_id.as_str().is_empty() || host.host_id.as_str().len() > 128 {
+        return Err("snapshot owner exceeds finite record profile".into());
+    }
     if request.snapshot.is_none() && request.state.is_none() {
         return Err("storage generation requires a selected operation".into());
     }
@@ -327,15 +351,13 @@ fn prepare(
         capabilities,
         resources,
     };
-    // Charge actual serialized descriptor storage with a conservative token-node
-    // representation bound, plus concrete backend workspace and census arrays.
-    // This finite operation quote is NOT a whole Body/Plan preparation quote.
-    let descriptor = serde_json::to_vec(&base).map_err(|e| e.to_string())?;
-    let descriptor_tree: serde_json::Value =
-        serde_json::from_slice(&descriptor).map_err(|e| e.to_string())?;
-    let descriptor_bound = json_backing(&descriptor_tree)?
-        + descriptor.capacity()
-        + std::mem::size_of::<c::BaseProviderEntry>();
+    // Base mapping plus staged Base registry/advertisement copies and selected
+    // resource clones coexist. Count descriptor backing without making a JSON
+    // tree or copying immutable capability payloads merely to measure them.
+    let descriptor_bound = clone_backing::count(&base)?
+        .checked_mul(4)
+        .ok_or("storage descriptor workspace overflow")?;
+    let inventory_bound = clone_backing::count(host)?;
     let binding_bytes = binding.as_ref().map_or(0, |binding| {
         binding.body.capacity() + binding.state.as_str().len() + binding.value_kind.as_str().len()
     });
@@ -345,6 +367,7 @@ fn prepare(
             (std::mem::size_of::<SelectedBodyStorageGeneration>()
                 + 2 * std::mem::size_of::<usize>()
                 + descriptor_bound
+                + inventory_bound
                 + binding_bytes) as u64,
         )
         .and_then(|v| v.checked_add(census.workspace_bytes))
@@ -363,7 +386,12 @@ fn prepare(
             })
         })
         .ok_or("storage preparation overflow")?;
-    storage.require_preparation_capacity(preparation)?;
+    if preparation > storage.bounds().preparation_bytes {
+        return Err(format!(
+            "storage generation preparation requires {preparation} bytes, selected {}",
+            storage.bounds().preparation_bytes
+        ));
+    }
     let evidence = BodyStorageGenerationEvidence {
         offer_generation: generation,
         retained_snapshots: census.snapshots,
@@ -396,34 +424,6 @@ fn open_directory(path: &Path) -> Result<File, String> {
         .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
         .open(path)
         .map_err(|e| format!("storage directory: {e}"))
-}
-
-// A canonical descriptor tree upper-bounds the retained typed descriptor's
-// string/sequence nodes; count actual nodes/buffers rather than multiplying
-// every wire byte by an arbitrary allowance.
-fn json_backing(value: &serde_json::Value) -> Result<usize, String> {
-    let own = std::mem::size_of::<serde_json::Value>();
-    let extra = match value {
-        serde_json::Value::String(s) => s.capacity(),
-        serde_json::Value::Array(items) => items.iter().try_fold(
-            items.capacity() * std::mem::size_of::<serde_json::Value>(),
-            |n, v| {
-                n.checked_add(json_backing(v)?)
-                    .ok_or_else(|| "descriptor array footprint overflow".to_string())
-            },
-        )?,
-        serde_json::Value::Object(items) => items.iter().try_fold(
-            items.len() * std::mem::size_of::<(String, serde_json::Value)>(),
-            |n, (k, v)| {
-                n.checked_add(k.capacity())
-                    .and_then(|n| n.checked_add(json_backing(v).ok()?))
-                    .ok_or_else(|| "descriptor object footprint overflow".to_string())
-            },
-        )?,
-        _ => 0,
-    };
-    own.checked_add(extra)
-        .ok_or("descriptor footprint overflow".into())
 }
 
 #[cfg(test)]
