@@ -293,3 +293,6 @@ fn serialize_part(
     serde_json::to_writer(&mut writer, &part).map_err(|_| f::MaskJsonRefusal::Capacity)?;
     Ok(total - writer.len())
 }
+
+#[path = "mask_show_context/verified_native.rs"]
+mod verified_native;
