@@ -45,7 +45,9 @@ export async function assertHandbookInspection(page, state, { requireCord = true
   });
   await expect(inspection).toHaveCount(1);
   if (!(await inspection.evaluate(node => node.open))) await inspection.locator(':scope > summary').click();
-  const facts = inspection.locator('details[data-owner-disclosure]');
+  // Explicit provenance stays in inspection; unhinted subjects remain primary.
+  // Inspect both through their retained Face bindings, independent of placement.
+  const facts = component.locator('details[data-owner-disclosure]');
   const keys = await facts.evaluateAll(nodes => nodes.map(node => JSON.parse(node.dataset.ownerDisclosure)[2]));
   expect(keys).toContain(`plan/${state.planId}`);
   expect(keys).toContain(`play/${state.playId}`);

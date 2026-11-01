@@ -438,3 +438,6 @@ fn failed_or_oversize_return_retires_without_a_value_and_releases_the_reservatio
         }
     }
 }
+
+#[path = "selected_native_source/worker_tests.rs"]
+mod worker_tests;

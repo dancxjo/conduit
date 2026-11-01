@@ -26,6 +26,8 @@ pub use service::{
 };
 mod worker;
 
+mod base_backing;
+pub(crate) use base_backing::BaseBackingReservation;
 mod ledger;
 pub(crate) use ledger::{KernelResourceLedger, KernelResourceReservation};
 mod placement_resources;

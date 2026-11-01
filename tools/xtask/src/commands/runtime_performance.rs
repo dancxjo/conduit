@@ -10,6 +10,8 @@ use std::{
 mod config;
 #[path = "runtime_performance_fargan.rs"]
 mod fargan;
+#[path = "runtime_performance_fargan_replay.rs"]
+mod fargan_replay;
 #[path = "runtime_performance_gpu.rs"]
 mod gpu;
 #[path = "runtime_performance_matrix.rs"]
@@ -33,8 +35,29 @@ fn git(root: &Path, arguments: &[&str]) -> Result<String, Box<dyn std::error::Er
 }
 
 pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error::Error>> {
+    if arguments.first().is_some_and(|a| {
+        matches!(
+            a.as_str(),
+            "--compare-source-cache" | "--check-source-cache-comparison"
+        )
+    }) {
+        return fargan_replay::compare(arguments, dry_run);
+    }
+    if arguments.first().is_some_and(|a| {
+        matches!(
+            a.as_str(),
+            "--verify-fargan-capture"
+                | "--check-fargan-verifier"
+                | "--verify-matrix-projection"
+                | "--check-matrix-projection-verifier"
+                | "--verify-compact-factory-controls"
+                | "--check-compact-factory-verifier"
+        )
+    }) {
+        return fargan_replay::run(arguments, dry_run);
+    }
     if arguments == ["--help"] {
-        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared|prepared-compact-local|prepared-matrix-local|prepared-owned-matrix-local|prepared-matrix-source-cache] uses a private pinned model and oracle; no automatic download.\nReluctant replacement: --reluctant-replan [--output PATH] records measured costs, noisy/steady decisions and actual pure Value replacements; Linux only.\nLocal resource costs: --resource-replacement [--output PATH] [--repetitions 3..20] measures real retained/copy providers and reservation-bound costs; Linux only, no Body migration.\nTwo-Host: --two-host [--output PATH] [--repetitions 1..20] [--rotation 0..2] records actual loopback transfers with both kernels evidence; repeated calls create fresh Plans/Lines. Add --values 1..64 (rotation 0) for an authored Tick Flow transferring all Values on one established Line per trial, with setup/first/steady/shutdown timings.\nMatrix projection: --matrix-projection [--output PATH] [--iterations 1..100000] [--repetitions 3..101] [--case-group all|tiny] compares prior scalar and contiguous traversal over synthetic validated bytes, outside full Back/Plan execution.\nGPU feasibility: --gpu-feasibility --fargan-fixture PATH [--output PATH] [--repetitions 3..101] [--device N] [--quota-mib 1..16] uses actual local CUDA context/buffers/transfers/launches and exact CPU controls. This experiment never admits a GPU Back.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
+        println!("cargo xtask prove runtime-performance [--output PATH] [--values N] [--repetitions N] [--decisions N] [--samples N] [--hosted-pipeline true|false]\nReplay: --verify-fargan-capture CAPTURE --source SHA --worker PATH [--profile matrix-local|compact-local|source-cache] [--output PATH]; --check-fargan-verifier uses the same options and checks corrupted scratch copies. Matrix projection: --verify-matrix-projection CAPTURE --source SHA --worker PATH [--output PATH], or --check-matrix-projection-verifier for semantic corruption controls. Source-cache comparison: --compare-source-cache BEFORE --against AFTER --source BEFORE_SHA --worker BEFORE_WORKER --against-source AFTER_SHA --against-worker AFTER_WORKER [--output PATH]. --check-source-cache-comparison uses the same comparison options for refusals. Factory log replay: --verify-compact-factory-controls LOG --source SHA --worker PATH [--output PATH], or --check-compact-factory-verifier; source/worker are caller provenance annotations, not log authentication.\nRetains release measurements from committed, clean source. Output must be new and outside tracked source (default target/runtime-performance). FARGAN: --fargan-fixture PATH [--output PATH] [--repetitions 2..20] [--fargan-owners fresh|prepared|prepared-compact-local|prepared-matrix-local|prepared-owned-matrix-local|prepared-matrix-source-cache] uses a private pinned model and oracle; no automatic download.\nReluctant replacement: --reluctant-replan [--output PATH] records measured costs, noisy/steady decisions and actual pure Value replacements; Linux only.\nLocal resource costs: --resource-replacement [--output PATH] [--repetitions 3..20] measures real retained/copy providers and reservation-bound costs; Linux only, no Body migration.\nTwo-Host: --two-host [--output PATH] [--repetitions 1..20] [--rotation 0..2] records actual loopback transfers with both kernels evidence; repeated calls create fresh Plans/Lines. Add --values 1..64 (rotation 0) for an authored Tick Flow transferring all Values on one established Line per trial, with setup/first/steady/shutdown timings.\nMatrix projection: --matrix-projection [--output PATH] [--iterations 1..100000] [--repetitions 3..101] [--case-group all|tiny] compares prior scalar and contiguous traversal over synthetic validated bytes, outside full Back/Plan execution.\nGPU feasibility: --gpu-feasibility --fargan-fixture PATH [--output PATH] [--repetitions 3..101] [--device N] [--quota-mib 1..16] uses actual local CUDA context/buffers/transfers/launches and exact CPU controls. This experiment never admits a GPU Back.\nHosted pipeline includes matched unfused, canonical-fused and native-U64 chain trials with bounded retained Sign history. Finite defaults: 1000000 values, 5 repetitions, 10000 decisions, 2000 samples.");
         return Ok(());
     }
     if arguments.iter().any(|a| a == "--gpu-feasibility") {
