@@ -295,6 +295,7 @@ pub enum BluetoothProofRole {
 pub enum ProveTarget {
     BluetoothLine,
     BluetoothPico,
+    BodyRename,
     BodyMembership,
     BodyMembershipHil,
     StdBrowserS4,

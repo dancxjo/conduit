@@ -66,6 +66,7 @@ dependencies = [
 name = "conduit-environment-face"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-face",
  "conduit-seven-segment-mask",

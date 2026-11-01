@@ -170,6 +170,9 @@ pub fn project_body_biography(
                 "No reader was hosted. A compatible reader can project this same durable body evidence later."
                     .into(),
             ),
+            BodyBiographyRecordKind::Renamed { previous_name, new_name, attribution, .. } => {
+                ("Renamed", format!("Renamed {previous_name} to {new_name} by {attribution}"))
+            }
             BodyBiographyRecordKind::EmergencyConfigured { configuration } => {
                 let words = configuration
                     .key

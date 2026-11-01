@@ -300,6 +300,8 @@ pub(crate) struct InstalledTodoCheckpointOptions {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Rename an existing environmental Body through its signed Root transaction.
+    Rename(crate::body_rename::Args),
     /// Write, save and reopen the installed owner's bounded text notebook.
     #[cfg(target_os = "linux")]
     Notebook {
