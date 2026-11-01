@@ -411,8 +411,10 @@ fn ordinary_rendezvous_session_crosses_the_real_user_operated_relay() {
 #[test]
 fn protected_membership_document_preserves_large_complete_bytes_in_both_directions() {
     let (client, server) = protected_lines();
-    let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000).unwrap();
-    let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+    let mut client =
+        super::ProtectedDocumentLine::new(client.inner, 2_000, Some(document_workspace())).unwrap();
+    let mut server =
+        super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace())).unwrap();
     let expected: Vec<u8> = (0..701_632).map(|i| (i % 251) as u8).collect();
     let returned = expected.clone();
     let worker = thread::spawn(move || {
@@ -429,7 +431,9 @@ fn protected_membership_document_preserves_large_complete_bytes_in_both_directio
 fn protected_membership_document_refuses_payload_hash_mismatch_and_retires() {
     let (mut client, server) = protected_lines();
     let worker = thread::spawn(move || {
-        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace()))
+                .unwrap();
         assert!(server.receive().unwrap_err().contains("digest"));
         assert!(server.receive().unwrap_err().contains("retired"));
     });
@@ -456,7 +460,9 @@ fn protected_membership_document_refuses_payload_hash_mismatch_and_retires() {
 fn protected_membership_document_refuses_mixed_raw_control_without_partial_publication() {
     let (mut client, server) = protected_lines();
     let worker = thread::spawn(move || {
-        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace()))
+                .unwrap();
         assert!(server.receive().is_err());
         assert!(server.receive().unwrap_err().contains("retired"));
     });
@@ -479,9 +485,12 @@ fn protected_membership_document_refuses_mixed_raw_control_without_partial_publi
 #[test]
 fn protected_membership_document_preserves_existing_session_frame_quota() {
     let (client, server) = protected_lines();
-    let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000).unwrap();
+    let mut client =
+        super::ProtectedDocumentLine::new(client.inner, 2_000, Some(document_workspace())).unwrap();
     let worker = thread::spawn(move || {
-        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace()))
+                .unwrap();
         assert!(server.receive().is_err());
     });
     // Existing fixture admits sixteen frames, fewer than the 33 needed here.
@@ -494,7 +503,9 @@ fn protected_membership_document_preserves_existing_session_frame_quota() {
 fn protected_membership_document_deadline_is_not_renewed_by_each_chunk() {
     let (mut client, server) = protected_lines();
     let worker = thread::spawn(move || {
-        let mut server = super::ProtectedDocumentLine::new(server.inner, 100).unwrap();
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 100, Some(document_workspace()))
+                .unwrap();
         assert!(
             server.receive().is_err(),
             "late final chunk published a complete document"
@@ -525,4 +536,82 @@ fn protected_membership_document_deadline_is_not_renewed_by_each_chunk() {
         .inner
         .send_with_timeout_millis(&frame[..length], 2_000);
     worker.join().unwrap();
+}
+
+fn document_workspace() -> super::DocumentWorkspace {
+    super::DocumentWorkspace {
+        maximum_document_bytes: MAXIMUM_FRAME_BYTES,
+        capacity_bytes: MAXIMUM_FRAME_BYTES + 65_519,
+    }
+}
+
+#[test]
+fn protected_membership_document_requires_independently_selected_workspace() {
+    for workspace in [
+        None,
+        Some(super::DocumentWorkspace {
+            maximum_document_bytes: MAXIMUM_FRAME_BYTES,
+            capacity_bytes: 1,
+        }),
+    ] {
+        let (client, _) = protected_lines();
+        let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000, workspace).unwrap();
+        assert!(client
+            .send(&vec![1; 70_000])
+            .unwrap_err()
+            .contains("workspace"));
+        assert!(client.send(b"{}").unwrap_err().contains("retired"));
+    }
+}
+
+#[test]
+fn protected_membership_document_workspace_refusal_precedes_large_assembly() {
+    for workspace in [
+        None,
+        Some(super::DocumentWorkspace {
+            maximum_document_bytes: MAXIMUM_FRAME_BYTES,
+            capacity_bytes: 1,
+        }),
+    ] {
+        let (mut client, server) = protected_lines();
+        let worker = thread::spawn(move || {
+            let mut server =
+                super::ProtectedDocumentLine::new(server.inner, 2_000, workspace).unwrap();
+            assert!(server.receive().unwrap_err().contains("workspace"));
+        });
+        let bytes = vec![9; 70_000];
+        let digest: [u8; 32] = Sha256::digest(&bytes).into();
+        let mut frame = vec![0; 65_519];
+        let (length, _) =
+            conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+        client
+            .inner
+            .send_with_timeout_millis(&frame[..length], 2_000)
+            .unwrap();
+        worker.join().unwrap();
+    }
+    // Absence selects no large workspace, but the original raw small path remains.
+    let (client, server) = protected_lines();
+    let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000, None).unwrap();
+    let worker = thread::spawn(move || {
+        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000, None).unwrap();
+        assert_eq!(server.receive().unwrap(), b"{}");
+        server.send(b"CNDS-small").unwrap();
+    });
+    client.send(b"{}").unwrap();
+    assert_eq!(client.receive().unwrap(), b"CNDS-small");
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_initial_receive_uses_the_original_deadline() {
+    let (_client, server) = protected_lines();
+    let mut server =
+        super::ProtectedDocumentLine::new(server.inner, 20, Some(document_workspace())).unwrap();
+    let start = std::time::Instant::now();
+    assert!(server.receive().is_err());
+    assert!(
+        start.elapsed() < Duration::from_secs(1),
+        "initial receive waited for the old idle timeout"
+    );
 }

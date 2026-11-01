@@ -22,7 +22,7 @@ pub(crate) use secure::SecureNetworkOptions;
 mod relay;
 mod protected_document;
 #[allow(unused_imports)] // Owning protected browser service bridge binds this adapter separately.
-pub(crate) use protected_document::ProtectedDocumentLine;
+pub(crate) use protected_document::{DocumentWorkspace, ProtectedDocumentLine};
 #[cfg(test)]
 #[cfg_attr(test, allow(unused_imports))]
 pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_descriptor;
