@@ -41,7 +41,7 @@ fn source_discloses_field_details_and_keeps_filtered_selected_names_available() 
     let selected = face
         .subjects
         .iter()
-        .find(|subject| subject.name == "Starting Plot 1")
+        .find(|subject| subject.role == FaceRole::Item && subject.name == "Clock")
         .unwrap();
     assert!(
         face.disclosures
@@ -59,15 +59,16 @@ fn source_discloses_field_details_and_keeps_filtered_selected_names_available() 
     );
     assert!(
         filtered
-            .text
+            .subjects
             .iter()
-            .any(|text| text.subject == selected.identity && text.text == "Clock")
+            .any(|subject| subject.identity == selected.identity && subject.name == "Clock")
     );
     assert!(
-        !filtered
+        filtered
             .disclosures
             .iter()
-            .any(|disclosure| disclosure.subject == selected.identity)
+            .any(|disclosure| disclosure.subject == selected.identity
+                && disclosure.level == FaceDisclosureLevel::Primary)
     );
 }
 
