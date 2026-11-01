@@ -47,6 +47,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     if arguments == ["display-output"] {
         return environment_output::prove(&root);
     }
+    if arguments == ["source-installed-cpu"] {
+        return environment_source::installed_cpu(&root);
+    }
     if arguments == ["source"] {
         return environment_source::prove(&root);
     }
@@ -339,7 +342,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, body-image, appliance, source, display-output, face-publication, face, recording, network-attempt, mask, display-esp32, native-esp32, native-body-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, body-image, appliance, source, source-installed-cpu, display-output, face-publication, face, recording, network-attempt, mask, display-esp32, native-esp32, native-body-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
