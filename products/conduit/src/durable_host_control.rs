@@ -959,6 +959,13 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyReplacePlot {
+        protocol: u16,
+        token: Vec<u8>,
+        source: String,
+        expected_workload_revision: u64,
+        expected_checked_plot_id: String,
+    },
     BodyEstablishRootSigner {
         protocol: u16,
         token: Vec<u8>,
@@ -1904,6 +1911,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::Notebook { token, .. } => token,
         Request::Status { token, .. }
         | Request::BodyEstablishRootSigner { token, .. }
+        | Request::BodyReplacePlot { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
@@ -2017,6 +2025,23 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             image_content_digest: truth.image_content_digest.clone(),
             advertisement: truth.advertisement.clone(),
         },
+        Request::BodyReplacePlot {
+            protocol,
+            source,
+            expected_workload_revision,
+            expected_checked_plot_id,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .replace_owned_plot(
+                &source,
+                expected_workload_revision,
+                &expected_checked_plot_id,
+            )
+            .map(|truth| Response::BodyTruth {
+                protocol: PROTOCOL,
+                truth,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyEstablishRootSigner {
             protocol, body_id, ..
         } if protocol == PROTOCOL => runtime
@@ -3330,3 +3355,5 @@ pub(crate) fn establish_root_signer(
 ) -> Result<(), String> {
     body::establish_root_signer(state_dir, body_id, authorized)
 }
+
+pub(crate) use body::replace_plot;

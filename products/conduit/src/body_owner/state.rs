@@ -8,6 +8,8 @@ use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence, BodyLifec
 mod archive;
 #[path = "state_execution_custody.rs"]
 mod execution_custody;
+#[path = "state_publication_fence.rs"]
+mod publication_fence;
 #[cfg(test)]
 use archive::archive_path;
 use archive::{retain_archive_segments, validate_archive_segments, verify_retained_archive};
@@ -277,6 +279,7 @@ fn retain_inner(
     biography
         .validate()
         .map_err(|e| format!("invalid biography: {e:?}"))?;
+    publication_fence::require_current(root, biography, archives)?;
     let bytes = serde_json::to_vec_pretty(biography).map_err(|e| e.to_string())?;
     if bytes.len() as u64 > MAXIMUM_STATE / 2 {
         return Err("owner biography storage bound exhausted".into());
@@ -535,3 +538,7 @@ pub(super) fn establish_root_signer(
     )?;
     Ok(signer)
 }
+
+#[cfg(test)]
+#[path = "state_publication_fence_tests.rs"]
+mod publication_fence_tests;
