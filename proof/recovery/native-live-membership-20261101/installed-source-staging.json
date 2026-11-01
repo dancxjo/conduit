@@ -1,0 +1,21 @@
+{
+  "source": "030f5cef8d",
+  "accepted_dev": "e3a8db1b84",
+  "tests": {
+    "staging": 2,
+    "face_regression": 3
+  },
+  "failures": 0,
+  "command": "cargo +stable test --offline -p conduit --bin conduit --features installed-environmental-sources,installed-body-storage <staged_source_fore|environmental_face>",
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/installed-source-staging-qualified-20261101.log",
+      "sha256": "46475483d2e9309dcafc8f4cbe1792dacf66c7fa43717c5e862e0219a142239e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/installed-source-staging-face-regression-20261101.log",
+      "sha256": "abed2f51006cc746154c20e29cbc4bf0e29457059dbc0eae7259b51ef342d0f5"
+    }
+  ],
+  "scope": "Actual installed owner product compiles with selected-storage Source ingress wiring. CPU tests prove bounded16 canonical custody, exact Source/nativePlay, contiguous order, duplicate idempotence, conflict/pressure/scope refusal without mutation and existing environmental projection behavior. Staging remains volatile and provides no durable receipt, checkpoint execution, producer retirement, fresh-process continuity or physical deployment proof."
+}
