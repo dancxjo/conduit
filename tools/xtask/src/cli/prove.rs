@@ -82,6 +82,9 @@ pub struct TodoJourneyArgs {
     /// Prove the existing compact/spacious and flat/grouped browser component selections before Add.
     #[arg(long, requires = "fresh_body_source", conflicts_with_all = ["cross_mask_actions", "count_matrix", "direct_speech"])]
     pub look_replacement: bool,
+    /// Prove admitted required-slot correspondence against one fresh installed Todo owner.
+    #[arg(long, requires = "fresh_body_source", conflicts_with_all = ["cross_mask_actions", "count_matrix", "direct_speech", "look_replacement"])]
+    pub required_component: bool,
     /// Capture acknowledged direct opening and remaining-item WAVs through the selected artifact route.
     #[arg(long, requires = "cross_mask_actions")]
     pub direct_speech: bool,
@@ -89,7 +92,9 @@ pub struct TodoJourneyArgs {
 
 impl TodoJourneyArgs {
     pub(crate) fn browser_scenario(&self) -> &'static str {
-        if self.count_matrix {
+        if self.required_component {
+            "required-component"
+        } else if self.count_matrix {
             "count-matrix"
         } else if self.direct_speech {
             "cross-mask-speech"

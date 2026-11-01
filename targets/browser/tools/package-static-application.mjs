@@ -67,6 +67,9 @@ try {
   }
   const roles = new Set();
   const paths = new Set();
+  const ownerPresentation = template.application_id === 'conduit.application/handbook'
+    && template.resources.find(resource => resource.role === 'owner-face-presentation');
+
   for (const resource of template.resources) {
     if (!safe(resource.path)) throw new Error(`Unsafe application path: ${resource.path}`);
     if (roles.has(resource.role) || paths.has(resource.path) || resource.role === 'runtime'
@@ -79,6 +82,18 @@ try {
     const file = path.join(staging, resource.path);
     await mkdir(path.dirname(file), { recursive: true });
     await copyFile(source, file);
+  }
+  // Optional component bytes are admitted by the runtime descriptor. Keeping
+  // them outside mandatory imports preserves generic rendering if absent.
+  if (ownerPresentation) {
+    const name = 'owner-face-component.mjs';
+    if (paths.has(name)) throw new Error('Optional owner Back collides with a mandatory resource');
+    const presentation = path.resolve(sourceRoot, ownerPresentation.source ?? ownerPresentation.path);
+    const sourcePath = path.join(path.dirname(presentation), name);
+    const source = await regular(path.parse(sourcePath).root, path.relative(path.parse(sourcePath).root, sourcePath));
+    const bytes = (await lstat(source)).size;
+    if (bytes < 1 || bytes > 8192) throw new Error('Optional owner Back exceeds its resource bound');
+    await copyFile(source, path.join(staging, name));
   }
   if (!paths.has('index.html')) throw new Error('Application template must include its index.html shell');
   // The Handbook shell must have the same navigation before its runtime starts.

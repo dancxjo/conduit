@@ -15,11 +15,12 @@ import { startStaticProduct } from './static-product-server.mjs';
 import { observedTodoMutation } from './todo-owner-events.mjs';
 import { captureDirectTodoSpeech } from './todo-owner-spoken.mjs';
 import { retainedTodoDomCompletion, compareRetainedTodoLooks } from './todo-owner-retained-dom.mjs';
+import { captureRequiredTodoComponent } from './todo-owner-required-component.mjs';
 import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'count-matrix', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement', 'retained-dom-completion'].includes(scenario), 'unknown Todo capture scenario');
+assert.ok(['required-component', 'first-add', 'count-matrix', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement', 'retained-dom-completion'].includes(scenario), 'unknown Todo capture scenario');
 const retainedDom = scenario === 'retained-dom-completion';
 const resumeExisting = scenario === 'cross-mask-speech-resume' || retainedDom;
 const captureSpeech = scenario.startsWith('cross-mask-speech');
@@ -197,7 +198,7 @@ try {
       await page.evaluate(({ look, recipe }) =>
         globalThis.__conduitOwnerParticipation.selectFace(look, recipe), { look, recipe });
       await page.waitForFunction(() => {
-        const element = document.querySelector('conduit-owner-face');
+        const element = document.querySelector('[data-owner-face-surface]');
         const view = globalThis.__conduitOwnerParticipation.face();
         return view?.component && element?.dataset.componentColumns ===
           String(view.component.maximum_columns);
@@ -206,7 +207,7 @@ try {
         view: globalThis.__conduitOwnerParticipation.face(),
         canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),
         geometry: (() => {
-          const element = document.querySelector('conduit-owner-face');
+          const element = document.querySelector('[data-owner-face-surface]');
           const grid = element.shadowRoot.querySelector('.owner-face-document');
           return { width: element.getBoundingClientRect().width,
             admitted_columns: Number(element.dataset.componentColumns),
@@ -319,7 +320,7 @@ try {
         document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
     }, null, { timeout: 12_000 });
     const largeText = await page.evaluate(() => {
-      const element = document.querySelector('conduit-owner-face');
+      const element = document.querySelector('[data-owner-face-surface]');
       const button = element.shadowRoot.querySelector('.owner-face-document button');
       return { view: globalThis.__conduitOwnerParticipation.face(),
         canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),
@@ -414,6 +415,12 @@ try {
     return adds.at(-1);
   };
   for (const text of texts) await performAdd(text, Boolean(accessibleBefore));
+  let requiredComponent = null;
+  if (scenario === 'required-component') {
+    requiredComponent = await captureRequiredTodoComponent({ page, face, output, state });
+    after = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+  }
+
   if (accessibleBefore || scenario === 'look-replacement') {
     const accessibleAfter = await captureTodoAccessibility({ page, face, state, output, sourceRecord, stage: 'after-add' });
     const priorAccessible = accessibleBefore ?? before;
@@ -528,7 +535,7 @@ try {
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
-  if (scenario === 'first-add' || scenario === 'look-replacement') await captureArbitraryTodoRefusals({
+  if (scenario === 'first-add' || scenario === 'look-replacement' || scenario === 'required-component') await captureArbitraryTodoRefusals({
     page, face, output, sourceRecord, bodyId, identity, retiredView: before, state,
     acceptCurrent: () => performAdd('Verify recovered current Show'),
   });
@@ -548,7 +555,7 @@ try {
     schema: 'conduit.proof/todo-owner-browser@1',
     ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    item_text: itemText, realization, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
+    item_text: itemText, realization, required_component: requiredComponent, adds, resumed_items: resumedItems, cross_mask: crossMask, inspect_capture: inspectCapture,
     speech_before_completion: speechBeforeCompletion,
     direct_speech: directSpeech, retained_look_selection: retainedLookSelection, retained_dom_completion: domCompletion, before: { face_id: before.face_id, face_revision: before.face_revision,
       show_id: before.show_id }, after: { face_id: after.face_id,
