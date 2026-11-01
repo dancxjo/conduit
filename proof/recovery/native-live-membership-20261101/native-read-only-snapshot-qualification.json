@@ -1,0 +1,54 @@
+{
+  "schema": "conduit.native-read-only-snapshot-qualification@1",
+  "source": "4bd70b9b7a23488b0e90c29603d5f74f4f2e1479",
+  "branch": "work/native-part-return-dispatch-20261101",
+  "features": [
+    "installed-body-storage",
+    "installed-environmental-sources"
+  ],
+  "profile": {
+    "dev_debug": 0,
+    "test_debug": 0,
+    "incremental": false,
+    "jobs": 3
+  },
+  "results": [
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-snapshot-4bd70b9b7a-20261101.log",
+      "sha256": "f27f51ac1bd2de288851c8abaf238f076f3cc5c134d68c58602a53d84f7603ba",
+      "passed": 8,
+      "failed": 0
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-snapshot-4bd-protected-20261101.log",
+      "sha256": "0de2f50b4cc6b8f32696be96229e12e0746734018341c4584f3b4cb61075108f",
+      "passed": 10,
+      "failed": 0
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-snapshot-4bd-return-20261101.log",
+      "sha256": "5971d691127eb2767042f2c2daf2087b6901c91fdbebf1c89b22c68630553674",
+      "passed": 6,
+      "failed": 0
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-snapshot-4bd-custody-20261101.log",
+      "sha256": "ba5ea31d7c3670b1c8718d543af879eddb906a171edc9f6ce84834f34b4ed7b0",
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "claims": [
+    "Existing retained Part canonical Return on actual Noise-protected finite document Line",
+    "Exact authenticated owner selection and original deadline enforced before Face",
+    "Read-only canonical same-Body Face; no Mask/Show/input authority",
+    "Original Part retained offline after reachability cleanup"
+  ],
+  "not_claimed": [
+    "Remote trusted owner-selection conveyance or route renewal",
+    "Durable renewed-credential transaction",
+    "Threebee live Hamm feed or new Host service deployment",
+    "Producer recording acknowledgment"
+  ],
+  "live_effects": false
+}
