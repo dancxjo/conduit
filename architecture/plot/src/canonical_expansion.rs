@@ -19,6 +19,8 @@ pub use connection_contract::{validate_connection_contract, validate_front_contr
 mod configuration_contract;
 pub use configuration_contract::{validate_configuration_value, validate_startup_configuration};
 mod entry;
+mod root_startup;
+pub use root_startup::{PreparedRootStartupInputs, RootStartupRefusal, MAX_ROOT_STARTUP_INPUTS};
 mod graph;
 mod instance;
 mod qualified_front;
@@ -32,7 +34,8 @@ mod structured_selector;
 use crate::checked_syntax::provenance_digest;
 pub use entry::{
     expand_canonical_plot, expand_canonical_plot_for_authoring,
-    expand_canonical_plot_for_authoring_with_backs, expand_canonical_plot_with_backs,
+    expand_canonical_plot_for_authoring_with_backs,
+    expand_canonical_plot_for_authoring_with_startup, expand_canonical_plot_with_backs,
 };
 use graph::*;
 use identity::expanded_identity;
