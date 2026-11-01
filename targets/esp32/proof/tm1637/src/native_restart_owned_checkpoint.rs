@@ -230,6 +230,12 @@ impl<T> Job<T> {
         if self.phase != Phase::Finish {
             return Err("checkpoint-job-phase");
         }
+        // Reserve the mailbox progress ordinal before source verification or
+        // adoption can have effects. Overflow must not publish completion.
+        let Some(next_step) = self.step.checked_add(1) else {
+            self.phase = Phase::Failed;
+            return Err("checkpoint-job-step");
+        };
         let result = (|| {
             let owner = self.owner.as_deref_mut().ok_or("checkpoint-job-owner")?;
             let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
@@ -279,6 +285,7 @@ impl<T> Job<T> {
             Ok(())
         })();
         self.phase = if result.is_ok() {
+            self.step = next_step;
             Phase::Complete
         } else {
             Phase::Failed
