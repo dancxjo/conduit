@@ -116,3 +116,21 @@ it does not retain a Face or its Quantities. The existing two-page
 `PreparedAlternatingShow` and its storage layout are unchanged. These additive
 views do not rewrite legacy observations, grant a Body admission, or issue a
 native output permit.
+
+## Shared quantity rounding
+
+Temperature and humidity presentation use `conduit_face::rounded_quantity_coordinate`.
+It converts through Core's exact unit laws and rounds once, nearest with ties
+away from zero, at a finite requested decimal precision. Very small affine
+inputs use the bounded exact rational path before integer narrowing; display
+coordinates do not replace the source Quantity. Four-digit fitting, suffix
+glyphs, colon selection and hardware mapping remain this Mask's policies.
+
+Run the focused shared quantity tests and strict owning-crate checks with:
+
+```sh
+cargo +stable xtask prove environment quantity-rounding
+```
+
+This validates numerical presentation and the existing seven-segment suite;
+it does not select a new Look contract or establish physical display output.

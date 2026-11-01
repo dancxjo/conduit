@@ -182,6 +182,7 @@ mod owner_face_route;
 mod owner_mask_route;
 pub mod presentation_preferences;
 mod projection;
+mod quantity_format;
 mod readable_choices;
 mod remote_owner_mask_route;
 mod renderer_execution;
@@ -249,6 +250,9 @@ pub use owner_face_plan::*;
 pub use owner_face_route::*;
 pub use owner_mask_route::*;
 pub use projection::*;
+pub use quantity_format::{
+    rounded_quantity_coordinate, QuantityFormatRefusal, MAX_QUANTITY_DISPLAY_DECIMAL_PLACES,
+};
 pub use readable_choices::*;
 pub use remote_owner_mask_route::*;
 pub use renderer_execution::*;
