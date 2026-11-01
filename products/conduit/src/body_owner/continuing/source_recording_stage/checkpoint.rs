@@ -90,6 +90,9 @@ impl SourceRecordingStage {
                 Ok(serde_json::json!({
                     "custody": "prepared-content-not-published-or-recorded",
                     "reference_hex": reference_hex,
+                    "canonical_sha256": prepared.reference.identity.digest().iter().map(|b| format!("{b:02x}")).collect::<String>(),
+                    "canonical_bytes": prepared.snapshot.content().map_err(codec_error)?.len(),
+                    "source_scope": prepared.snapshot.context(),
                     "records": prepared.snapshot.len(),
                     "pending_records": self.len(),
                     "producer_retirement_authorized": false,

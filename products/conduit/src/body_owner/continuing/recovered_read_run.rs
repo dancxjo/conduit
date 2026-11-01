@@ -8,6 +8,8 @@ use conduit_environment_runtime::{
 use conduit_std_host::body_execution::{BodyBorrowedForeOutputAdapter, BodyForeDeliveryRef};
 use sha2::{Digest, Sha256};
 use source_recording_stage::recovered_read::RecoveredSourceReadInput;
+#[path = "recovered_read_run/evidence.rs"]
+mod evidence;
 pub(in super::super) struct RecoveredCatalogContents {
     catalog_reference: c::BoundedResourceRef,
     references: Vec<c::BoundedResourceRef>,

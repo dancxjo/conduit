@@ -353,7 +353,19 @@ impl RunWorker {
         let recovered_content = recording
             .as_ref()
             .map(|r| r.recovered_content(result.as_ref().ok()))
-            .transpose();
+            .transpose()
+            .and_then(|content| {
+                // Bounded observations derive only from verified private results.
+                // retain_finished still validates the issued Play and persists
+                // this evidence with its terminal lifecycle before acceptance.
+                if let Some(value) = content.as_ref().and_then(Option::as_ref) {
+                    let evidence = value.evidence(owner)?;
+                    if let Some(metadata) = publication.as_mut() {
+                        metadata["content_evidence"] = evidence;
+                    }
+                }
+                Ok(content)
+            });
         #[cfg(all(
             feature = "installed-environmental-sources",
             feature = "installed-body-storage",

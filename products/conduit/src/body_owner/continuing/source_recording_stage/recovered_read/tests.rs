@@ -72,20 +72,7 @@ fn missing_private_recovery_refuses_before_generation_or_proposal_change() {
 fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
     if let Some(root) = std::env::var_os(ROOT_ENV) {
         let root = std::path::PathBuf::from(root);
-        let installation = installed::read_installation(&root.join("installation.json")).unwrap();
-        let boot = installed::fresh_identity("boot", "recovered-source-read");
-        let mut host = StdHost::new_with_config(StdHostConfig {
-            host_id: installation.host_id.clone().into(),
-            boot_id: boot.clone().into(),
-            offer_generation: c::OfferGeneration(1),
-        });
-        installation
-            .selected_host_configuration
-            .as_ref()
-            .unwrap()
-            .attach_to_fresh_host(&mut host)
-            .unwrap();
-        let mut owner = installed::owner::resume_service(host, &root).unwrap();
+        let (mut owner, boot) = reopen(&root);
         assert!(owner.source_recording_stage.is_none());
         assert!(owner.recovered_source_catalog.is_none());
         let worker = owner
@@ -120,6 +107,10 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
             .start_service_recovered_source_read(&root, 5000, &grant, None, 1024 * 1024)
             .unwrap();
         finish_worker(&root, &mut owner, worker);
+        let catalog_evidence = owner.last_execution.as_ref().unwrap()["source_recovered_read"]
+            ["content_evidence"]
+            .clone();
+        assert!(!catalog_evidence.is_null());
         let contents = owner.recovered_source_catalog_contents.as_ref().unwrap();
         assert_eq!(contents.catalog_reference(), &reference);
         assert_eq!(contents.references().len(), 1);
@@ -150,12 +141,57 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
             .all_chunks_verified());
         assert_ne!(chunk.snapshot().context().boot_id.as_str(), boot);
         let canonical = chunk.snapshot().content().unwrap();
-        installed::write_json_atomic(&root.join("fresh-source-read-result.json"),&serde_json::json!({"catalog":reference.encode().unwrap(),"chunk":chunk_reference.encode().unwrap(),"content":canonical,"body":owner.session.evidence().body_id,"boot":boot,"stage_absent":owner.source_recording_stage.is_none()})).unwrap();
+        let chunk_evidence = receipt["source_recovered_read"]["content_evidence"].clone();
+        assert!(!chunk_evidence.is_null());
+        installed::write_json_atomic(&root.join("fresh-source-read-result.json"),&serde_json::json!({"catalog":reference.encode().unwrap(),"chunk":chunk_reference.encode().unwrap(),"content":canonical,"body":owner.session.evidence().body_id,"boot":boot,"stage_absent":owner.source_recording_stage.is_none(),"catalog_evidence":catalog_evidence,"chunk_evidence":chunk_evidence})).unwrap();
+        drop(owner);
+        // Genuine fixture corruption of selected snapshot records, after the
+        // successful admitted comparison. State journal directories stay intact.
+        // Direct IO here is fault injection, never proof of admitted readback.
+        let mut corrupted = 0;
+        for entry in std::fs::read_dir(root.join("selected-storage")).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_file() {
+                let mut bytes = std::fs::read(&path).unwrap();
+                *bytes.last_mut().unwrap() ^= 1;
+                std::fs::write(path, bytes).unwrap();
+                corrupted += 1;
+            }
+        }
+        assert_eq!(corrupted, 2);
+        let (mut failed, _) = reopen(&root);
+        let worker = failed
+            .start_service_source_catalog_recovery(&root, 5000, 1024 * 1024)
+            .unwrap();
+        finish_worker(&root, &mut failed, worker);
+        let reference = failed
+            .recovered_source_catalog
+            .as_ref()
+            .unwrap()
+            .reference()
+            .clone();
+        let grant = authorize_read(&mut failed, reference);
+        let worker = failed
+            .start_service_recovered_source_read(&root, 5000, &grant, None, 1024 * 1024)
+            .unwrap();
+        finish_worker(&root, &mut failed, worker);
+        let failed_receipt = failed.last_execution.as_ref().unwrap();
+        assert_eq!(
+            failed_receipt["source_recovered_read"]["read_completed"],
+            false
+        );
+        assert!(failed_receipt["source_recovered_read"]
+            .get("content_evidence")
+            .is_none());
+        assert!(failed.recovered_source_catalog_contents.is_none());
+        assert!(failed.recovered_source_chunk.is_none());
+        assert!(failed.source_recording_stage.is_none());
         return;
     }
     let (root, disk, mut owner, publish) = fixture();
     retain_selection(&root, &disk);
     let stage = owner.source_recording_stage.as_ref().unwrap();
+    let original_evidence = stage.prepared_input_metadata().unwrap().unwrap();
     let prepared = stage.prepared.as_ref().unwrap();
     let expected_content = prepared.snapshot.content().unwrap().to_vec();
     let expected_chunk = prepared.reference.encode().unwrap();
@@ -200,7 +236,7 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
             .unwrap();
     assert_eq!(
         result["catalog"],
-        serde_json::to_value(expected_catalog).unwrap()
+        serde_json::to_value(&expected_catalog).unwrap()
     );
     assert_eq!(
         result["chunk"],
@@ -210,8 +246,66 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
         result["content"],
         serde_json::to_value(expected_content).unwrap()
     );
+    for key in [
+        "canonical_sha256",
+        "canonical_bytes",
+        "records",
+        "source_scope",
+        "reference_hex",
+    ] {
+        assert_eq!(
+            result["chunk_evidence"][key], original_evidence[key],
+            "{key}"
+        );
+    }
+    let catalog_hex: String = expected_catalog
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    assert_eq!(
+        result["catalog_evidence"]["catalog_reference_hex"],
+        catalog_hex
+    );
+    assert_eq!(
+        result["chunk_evidence"]["catalog_reference_hex"],
+        catalog_hex
+    );
+    assert_eq!(result["chunk_evidence"]["index"], 0);
+    assert_eq!(
+        result["catalog_evidence"]["indexed_chunks"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        result["catalog_evidence"]["indexed_chunks"][0]["reference_hex"],
+        original_evidence["reference_hex"]
+    );
+    assert_eq!(
+        result["catalog_evidence"]["indexed_chunks"][0]["canonical_sha256"],
+        original_evidence["canonical_sha256"]
+    );
     assert_eq!(result["body"], body);
     assert_ne!(result["boot"], boot);
     assert_eq!(result["stage_absent"], true);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn reopen(root: &Path) -> (Owner, String) {
+    let installation = installed::read_installation(&root.join("installation.json")).unwrap();
+    let boot = installed::fresh_identity("boot", "recovered-source-read");
+    let mut host = StdHost::new_with_config(StdHostConfig {
+        host_id: installation.host_id.clone().into(),
+        boot_id: boot.clone().into(),
+        offer_generation: c::OfferGeneration(1),
+    });
+    installation
+        .selected_host_configuration
+        .as_ref()
+        .unwrap()
+        .attach_to_fresh_host(&mut host)
+        .unwrap();
+    let owner = installed::owner::resume_service(host, &root).unwrap();
+    (owner, boot)
 }
