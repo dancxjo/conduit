@@ -116,6 +116,37 @@ to source.
 
 ## Face, Mask and Look acceptance
 
+## Checked equipment and programmable composition
+
+Each Host definition must declare its actual physical attachments and selected
+Base implementations: for example a DHT11 data GPIO, or a BME280 I2C bus/address.
+Checked construction must resolve those selections into the appropriate standard
+semantic Gear Kind implementations. A GPIO resource reservation alone is not
+sensor support; a checked declaration alone is not an initialized ready offer.
+Admission still uses actual initialized providers, finite resources and authority.
+
+The retained Yellow definition already records DHT11 GP3 and TM1637 GP7/GP6 in
+typed device declarations. That is useful construction input, not proof that the
+whole checked-definition-to-offer-to-Play path is installed. Do not replace this
+path with a device-name switch in an environmental owner.
+
+An authored Plot selects/composes the standard observation operations and routes
+their typed feeds through admitted Cords/Lines into recording and graph
+operations. Threebee realizes the resulting semantic graph through its Mask;
+its display process must not secretly assemble or poll an independently defined
+environmental application. Feed selection, composition and finite history/window
+bounds must be programmable through ordinary checked source. Reuse existing
+measurement and graph contracts where their meaning fits; illustrative names
+such as `environment/current-temperature` are not new canonical Kind identities.
+
+For each real device, retain the chain: checked Host configuration → selected
+Base/provider implementation → actual ready offer → exact admitted Plan/Play →
+typed observation provenance → authored graph contribution → acknowledged Show.
+Changing equipment configuration must change construction/admission evidence;
+changing a Look must not change this semantic chain.
+
+## Shared presentation conformance
+
 Applications contribute semantic Face content through the shared contracts.
 Masks realize that content for their medium; Looks are independently selected,
 checked expressions reusable by multiple applications and compatible Masks.
