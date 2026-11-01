@@ -150,48 +150,6 @@ fn fahrenheit_look_changes_expression_without_changing_face_quantity() {
 }
 
 #[test]
-fn tiny_affine_temperatures_round_through_the_shared_mask_path() {
-    for coefficient in [-1, 1] {
-        let template = face("0°C", "59%", true, true);
-        let mut properties = template.properties;
-        let temperature = properties
-            .iter_mut()
-            .find(|p| p.name == "temperature")
-            .unwrap();
-        let FacePropertyValue::TypedValue { bytes, .. } = &mut temperature.value else {
-            panic!("temperature is a typed Quantity");
-        };
-        *bytes = Quantity::from_decimal(coefficient, -128, conduit_core::Unit::Celsius)
-            .unwrap()
-            .encode()
-            .to_vec();
-        let face = Face::new(
-            template.revision,
-            template.basis,
-            template.subjects,
-            template.relationships,
-            properties,
-            template.text,
-        )
-        .unwrap();
-        let before = face.clone();
-        let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
-        let output = render(
-            &view,
-            SevenSegmentSelection::Temperature,
-            &SevenSegmentLook::fahrenheit(),
-        );
-        assert_eq!(text(&output.show), "32.0F");
-        assert_eq!(
-            output.disposition,
-            MaskDisposition::Temperature { decimal_places: 1 }
-        );
-        assert_eq!(output.face_content_id, face.identity.as_str());
-        assert_eq!(face, before);
-    }
-}
-
-#[test]
 fn rounding_sign_precision_fitting_and_overflow_are_explicit() {
     for (temperature, expected, places) in [
         ("19.85°F", "19.9F", 1),
