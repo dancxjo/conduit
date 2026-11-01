@@ -48,4 +48,3 @@ export function ownerFacePointerReachable(control, { allowDeferred = false } = {
   }
   return hit === target || target.contains(hit);
 }
-
