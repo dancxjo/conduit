@@ -59,5 +59,22 @@
     "Typed Fore/current semantic Face is not selected durable Recorder commitment",
     "No HDMI deployment or browser joining demonstrated",
     "MCU firmware unchanged; instrument remains a carrier, not execution Host"
-  ]
+  ],
+  "readmission_after_failure": {
+    "terminal_failure": "Body kernel: BackFailed(Failure { code: HostCallDenied, detail: 1 })",
+    "body_state": "Lulled",
+    "members": 2,
+    "current_realization": false,
+    "interpretation": "Retained failed equipment was not silently revived; original cause remains unclassified"
+  },
+  "subsequent_passive_green_health": {
+    "samples": 4624,
+    "attempts": 4625,
+    "display_frames": 69362,
+    "display_acks": 69362,
+    "sensor_error": false,
+    "display_error": false,
+    "firmware_unchanged": true,
+    "body_member": false
+  }
 }
