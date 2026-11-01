@@ -210,6 +210,7 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    &super::creche_back::FACTORY,
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,
     &super::numerical_back::EXACT_FACTORY,
