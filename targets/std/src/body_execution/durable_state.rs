@@ -58,56 +58,6 @@ impl StdHost {
 }
 
 impl StdHost {
-    /// Execute one exact authored checkpoint with both independently selected
-    /// residences, under the same original complete-Plan reservation.
-    #[allow(clippy::too_many_arguments)]
-    pub fn run_body_plan_with_state_and_snapshot_to_with_start<'a, W: Write, T: TimerAdapter, F>(
-        &mut self,
-        request: BodyRunRequest<'_>,
-        fore: BodyForeExchange<'a>,
-        state: BodyDurableStateSelection<'a>,
-        snapshot: BodySnapshotSelection<'a>,
-        output: &mut W,
-        timer: &mut T,
-        started: F,
-    ) -> Result<BodyRunReport, String>
-    where
-        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
-    {
-        if state.body_id != &request.plan.body_id
-            || state.plan_id != &request.plan.plan_id
-            || !self.advertisement.resources.contains(state.resource)
-            || state.authorities.iter().any(|grant| {
-                grant.host_id != self.advertisement.host_id
-                    || grant.boot_id != self.advertisement.boot_id
-            })
-            || snapshot.body_id != &request.plan.body_id
-            || snapshot.plan_id != &request.plan.plan_id
-            || snapshot.authority.host_id != self.advertisement.host_id
-            || snapshot.authority.boot_id != self.advertisement.boot_id
-            || !self.advertisement.resources.contains(snapshot.resource)
-        {
-            return Err("Body storage differs from exact Body/Plan/Host/Boot/resources".into());
-        }
-        self.run_body_plan_to_with_start_and_clock_storage(
-            request,
-            output,
-            timer,
-            None,
-            None,
-            Some((fore.inputs, false, fore.output)),
-            None,
-            None,
-            None,
-            Some(snapshot),
-            Some(state),
-            false,
-            started,
-        )
-    }
-}
-
-impl StdHost {
     /// Borrowed delivery recycles only the original acknowledged kernel slots;
     /// the caller must retain accepted bytes in its own independently finite custody.
     #[allow(clippy::too_many_arguments)]
