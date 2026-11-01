@@ -166,3 +166,100 @@ fn bound_editable_value_is_shown_once_without_hiding_other_typed_content() {
         }
     }
 }
+
+#[test]
+fn info_readout_uses_separate_canonical_label_and_measured_value_without_new_agency() {
+    let mut face = value_face();
+    face.subjects[0].role = FaceRole::Info;
+    let face = reseal(face);
+    let (primary, details) = prepare(&face, false).unwrap();
+    let heading = primary
+        .iter()
+        .find(|row| row.text == "A readable encounter")
+        .unwrap();
+    assert_eq!(heading.role, GraphicsTextRole::Heading);
+    let label = primary
+        .iter()
+        .position(|row| row.text == "Reading")
+        .unwrap();
+    assert_eq!(primary[label].role, GraphicsTextRole::Label);
+    assert_eq!(primary[label + 1].text, "42 °C");
+    assert_eq!(primary[label + 1].role, GraphicsTextRole::Value);
+    assert_eq!(
+        primary[label].subject_index,
+        primary[label + 1].subject_index
+    );
+    assert!(primary.iter().all(|row| row.control.is_none()));
+    assert!(
+        details
+            .iter()
+            .any(|row| row.text.contains("42 degrees Celsius"))
+    );
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        for scale in [100, 200] {
+            let admitted = conduit_face::admit_visual_look(
+                &look,
+                conduit_face::VisualUserConstraints {
+                    forced_colors: false,
+                    reduced_motion: true,
+                    minimum_text_scale_percent: scale,
+                    maximum_supported_text_scale_percent: 200,
+                },
+            )
+            .unwrap();
+            let mut scene =
+                NativeFaceScene::prepare_visual_look(face.clone(), 640, 480, false, &admitted)
+                    .unwrap();
+            let body = scene
+                .typography
+                .style(crate::display::typography::TextRole::Body);
+            let value = scene
+                .typography
+                .style(crate::display::typography::TextRole::Value);
+            let metrics = crate::display::typography::selected_metrics;
+            assert_eq!(metrics(value).em_size, metrics(body).em_size * 2);
+            let heading = scene
+                .typography
+                .style(crate::display::typography::TextRole::Heading);
+            assert_eq!(
+                metrics(heading).em_size,
+                (metrics(body).em_size * 5).div_ceil(4)
+            );
+            let height = |style| {
+                TextLayout::new_selected("42 °C", style, 600, scale)
+                    .unwrap()
+                    .finish_height()
+            };
+            assert!(height(value) > height(body));
+            let mut values = 0;
+            for _ in 0..scene.pages() {
+                let frame = scene.frame().unwrap();
+                assert!(frame.hits.is_empty());
+                for command in frame.scene.commands() {
+                    if command.kind != conduit_face::GraphicsCommandKind::Text {
+                        continue;
+                    }
+                    if command.text_role() == GraphicsTextRole::Value {
+                        values += 1;
+                        assert_eq!(command.payload(), "42 °C");
+                    }
+                    let height = TextLayout::new_selected(
+                        command.payload(),
+                        scene.typography.style(command.text_role().into()),
+                        command.bounds.width,
+                        scale,
+                    )
+                    .unwrap()
+                    .finish_height();
+                    assert!(height <= u32::from(command.bounds.height));
+                }
+                scene.turn_page(true);
+            }
+            assert_eq!(values, 1);
+            assert_eq!(scene.face(), &face);
+        }
+    }
+}

@@ -243,14 +243,7 @@ fn render_command_with_color(
                 GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
             ) =>
         {
-            rounded::render(
-                target,
-                command.bounds,
-                bounds,
-                command.style,
-                color,
-                receipt,
-            )
+            rounded::render(target, command, bounds, color, receipt)
         }
         GraphicsCommandKind::Rect if command.style == GraphicsShapeStyle::Fill => {
             fill(target, bounds, color, receipt)

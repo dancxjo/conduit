@@ -15,7 +15,6 @@ pub enum NativeLocalLookRefusal {
     DuplicateField,
     Visual,
     Contrast,
-    UnsupportedField(&'static str),
 }
 impl NativeLocalLookRefusal {
     pub const fn as_str(self) -> &'static str {
@@ -26,7 +25,6 @@ impl NativeLocalLookRefusal {
             Self::DuplicateField => "native-local-look-duplicate-field",
             Self::Visual => "native-local-look-visual-refused",
             Self::Contrast => "native-local-look-contrast-refused",
-            Self::UnsupportedField(_) => "native-local-look-field-unsupported",
         }
     }
 }
@@ -107,17 +105,6 @@ impl NativeLookPreferences {
         };
         let resolved = resolve_local_visual_look(author, local, constraints, self.minimum_contrast)
             .map_err(|error| NativeFaceMaskError::LocalLook(error.into()))?;
-        // The current native path does not apply selected corner-radius tokens.
-        // Do not acknowledge a personal request as though those fields rendered.
-        if let Some(field) = resolved
-            .overridden_fields()
-            .iter()
-            .find(|field| matches!(**field, "radius_control_px" | "radius_panel_px"))
-        {
-            return Err(NativeFaceMaskError::LocalLook(
-                NativeLocalLookRefusal::UnsupportedField(field),
-            ));
-        }
         Ok(NativeVisualSelection::Local(Box::new(resolved)))
     }
 }

@@ -84,7 +84,13 @@ impl NativeFaceScene {
         )?;
         let mut hits = Vec::with_capacity(layout::MAX_PAGE_ROWS);
         if self.showing_diagram {
-            diagram::append(&mut scene, &self.face, self.screen, self.page)?;
+            diagram::append(
+                &mut scene,
+                &self.face,
+                self.screen,
+                self.page,
+                self.look_corners.map(|c| c.panel),
+            )?;
         }
         let editor_visible = self.interaction_admitted
             && !self.showing_details
@@ -96,11 +102,23 @@ impl NativeFaceScene {
                 self.text_scale_percent,
                 self.typography,
                 &chrome,
+                self.look_corners.map(|c| c.control),
             )?;
         if !editor_visible && !self.showing_diagram && !self.showing_details {
-            layout::append_region_surfaces(&mut scene, self.rows(), self.page, self.screen)?;
+            layout::append_region_surfaces(
+                &mut scene,
+                self.rows(),
+                self.page,
+                self.screen,
+                self.look_corners.map(|c| c.panel),
+            )?;
             for row in self.rows().iter().filter(|row| row.page == self.page) {
-                layout::append_panel_chrome(&mut scene, row, self.screen)?;
+                layout::append_panel_chrome(
+                    &mut scene,
+                    row,
+                    self.screen,
+                    self.look_corners.map(|c| c.panel),
+                )?;
             }
         }
         let mut focus_marked = false;
@@ -131,7 +149,10 @@ impl NativeFaceScene {
                 outline,
                 self.showing_details,
                 focused && !focus_marked,
-                self.focus_marker_width,
+                layout::RowChromeMetrics {
+                    focus_marker_width: self.focus_marker_width,
+                    control_radius: self.look_corners.map(|c| c.control),
+                },
             )?;
             focus_marked |= focused;
             super::boolean_choice::append(&mut scene, row, self.screen)?;

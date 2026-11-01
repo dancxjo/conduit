@@ -221,7 +221,13 @@ impl NativeFaceScene {
         }
         let identity = if self.showing_diagram && (30..=35).contains(&event.usage()) {
             let mut drawing = GraphicsScene::empty();
-            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let hits = diagram::append(
+                &mut drawing,
+                &self.face,
+                self.screen,
+                self.page,
+                self.look_corners.map(|c| c.panel),
+            )?;
             hits.gears[usize::from(event.usage() - 30)].map(|(_, id)| String::from(id))
         } else if event.usage() == 43 {
             let shifted = event.modifiers_after().bits()

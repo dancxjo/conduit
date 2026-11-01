@@ -37,6 +37,7 @@ pub enum TextRole {
     Heading,
     Title,
     Code,
+    Value,
 }
 
 impl From<conduit_face::GraphicsTextRole> for TextRole {
@@ -48,6 +49,7 @@ impl From<conduit_face::GraphicsTextRole> for TextRole {
             GraphicsTextRole::Heading => Self::Heading,
             GraphicsTextRole::Title => Self::Title,
             GraphicsTextRole::Code => Self::Code,
+            GraphicsTextRole::Value => Self::Value,
             GraphicsTextRole::Status | GraphicsTextRole::Warning | GraphicsTextRole::Action => {
                 Self::Label
             }
@@ -117,7 +119,10 @@ pub(super) fn scaled_glyph(
 }
 
 pub const fn metrics(role: TextRole) -> &'static ProfileMetrics {
-    &PROFILES[role as usize]
+    &PROFILES[match role {
+        TextRole::Value => TextRole::Body as usize,
+        _ => role as usize,
+    }]
 }
 
 pub fn glyph(role: TextRole, character: char) -> GlyphRaster {
