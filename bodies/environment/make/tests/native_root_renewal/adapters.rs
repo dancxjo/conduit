@@ -21,6 +21,10 @@ pub struct Stats {
     pub region_stats: [Option<RegionStats>; 3],
 }
 impl Heap {
+    pub fn free(&self) -> usize {
+        let stats = self.stats();
+        stats.size.saturating_sub(stats.current_usage)
+    }
     pub fn stats(&self) -> Stats {
         Stats {
             size: 2 * 1024 * 1024,
@@ -371,5 +375,13 @@ mod native_carrier {
 mod native_control {
     pub async fn write_all(_: &mut super::native_carrier::Carrier<'_>, _: &[u8]) -> Result<(), ()> {
         Err(())
+    }
+}
+
+// No HTTP join provider is installed by this renewal fixture. Its diagnostics
+// honestly report no retained HTTP response; membership is proved separately.
+mod native_body_join_http {
+    pub fn completed_storage_usage() -> Option<[usize; 2]> {
+        None
     }
 }
