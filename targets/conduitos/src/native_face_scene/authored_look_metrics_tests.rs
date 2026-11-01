@@ -66,6 +66,8 @@ fn authored_look_metrics_keep_exact_face_and_measure_all_graphical_text() {
     };
     for look in [
         conduit_face::engineering_look().unwrap(),
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
         metric_proposal(18, 16, 150),
         metric_proposal(20, 18, 160),
     ] {
@@ -116,6 +118,8 @@ fn authored_look_metrics_do_not_change_control_identity_or_reading_order() {
     let mut reference = None;
     for look in [
         conduit_face::engineering_look().unwrap(),
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
         metric_proposal(18, 16, 150),
         metric_proposal(20, 18, 160),
     ] {
@@ -156,7 +160,12 @@ fn selected_metrics_apply_to_checked_recipe_and_mechanical_layout() {
         &face,
     );
     let mut reference = None;
-    for look in [metric_proposal(18, 16, 150), metric_proposal(20, 18, 160)] {
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+        metric_proposal(18, 16, 150),
+        metric_proposal(20, 18, 160),
+    ] {
         for scale in [100, 200] {
             let admitted = conduit_face::admit_visual_look(
                 &look,
