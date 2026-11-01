@@ -134,8 +134,9 @@ pub extern "C" fn conduit_browser_membership_prove(challenge_length: u32) -> i32
     })
 }
 
-/// Signs one canonical return challenge with the same in-memory browser Host
-/// incarnation. It cannot change the host or Boot named by the challenge.
+/// Signs one canonical return challenge for this browser Host incarnation.
+/// A verified selected Part uses its distinct membership signer; ambient
+/// membership keeps the Host signer. Neither path changes Host identity or Boot.
 #[no_mangle]
 pub extern "C" fn conduit_browser_membership_prove_return(challenge_length: u32) -> i32 {
     clear_output();
@@ -155,12 +156,16 @@ pub extern "C" fn conduit_browser_membership_prove_return(challenge_length: u32)
             let Some(identity) = slot.as_ref() else {
                 return ERROR_NOT_INITIALIZED;
             };
-            let proof = match identity.prove_return(&challenge) {
-                Ok(proof) => proof,
-                Err(_) => return ERROR_CHALLENGE,
+            let signature = match portable::return_signature(identity, &challenge) {
+                Ok(Some(signature)) => signature,
+                Ok(None) => match identity.prove_return(&challenge) {
+                    Ok(proof) => proof.signature,
+                    Err(_) => return ERROR_CHALLENGE,
+                },
+                Err(error) => return error,
             };
             OUTPUT.with(|output| {
-                output.borrow_mut()[..ADMISSION_SIGNATURE_BYTES].copy_from_slice(&proof.signature)
+                output.borrow_mut()[..ADMISSION_SIGNATURE_BYTES].copy_from_slice(&signature)
             });
             OUTPUT_LEN.with(|length| *length.borrow_mut() = ADMISSION_SIGNATURE_BYTES);
             STATUS_READY
