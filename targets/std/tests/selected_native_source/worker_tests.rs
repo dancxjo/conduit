@@ -390,9 +390,11 @@ fn storage_generation_refresh_retains_actual_source_worker_and_reserved_backing(
     };
     use std::os::unix::fs::PermissionsExt;
     let signals = Arc::new(Signals::default());
-    let (mut host, _old_plan) = worker_host(signals.clone(), false, false);
-    let initial = host.native_source_worker_inspection().unwrap();
-    let old = host.advertisement().clone();
+    let mut host = StdHost::new_with_config(StdHostConfig {
+        host_id: "test/producing-host".into(),
+        boot_id: "test/actual-host-boot".into(),
+        offer_generation: OfferGeneration(1),
+    });
     let root = tempfile::tempdir().unwrap();
     std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
     host.attach_selected_body_storage(
@@ -415,6 +417,15 @@ fn storage_generation_refresh_retains_actual_source_worker_and_reserved_backing(
         .unwrap(),
     )
     .unwrap();
+    let definition = worker_definition(host.advertisement());
+    // SAFETY: same independently configured CPU worker and admitted backing
+    // used throughout this owning fixture; no received Plan supplies either.
+    unsafe {
+        host.install_native_source_worker(definition, budget(), provider(signals.clone(), false))
+    }
+    .unwrap_or_else(|(_, _, reason)| panic!("{reason}"));
+    let initial = host.native_source_worker_inspection().unwrap();
+    let old = host.advertisement().clone();
     let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
     let value = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
     host.select_body_storage_generation(BodyStorageGenerationRequest {
