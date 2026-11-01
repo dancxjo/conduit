@@ -1,0 +1,10 @@
+{
+  "source": "e440362414",
+  "accepted_dev": "9d85d1b7bdc093bfe0c47c87716cdc1378500fc1",
+  "test": "cargo +stable test --offline -p conduit-std-host --test selected_native_source",
+  "passed": 8,
+  "failed": 0,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/accepted-source-worker-combined-20261101.log",
+  "sha256": "11d0b7b28abf9cb2aee424c7f90bb6bd64494c99036dd457a4cbcb201f3e4937",
+  "scope": "combined integration branch CPU Source worker custody/scheduling; no fleet deployment or durable Recorder claim"
+}

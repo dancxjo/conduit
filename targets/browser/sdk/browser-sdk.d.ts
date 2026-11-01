@@ -109,7 +109,9 @@ export class BrowserHost {
   participate(options: {
     invitation?: string;
     /** Already admitted authenticated single-use carrier; creates no membership authority. */
-    sessionCarrier?: { readonly maximumFrameBytes?: number; sendSessionFrame(frame: Uint8Array): Promise<void>;
+    /** Selected finite transport workspace; sizes confer no authority or admission. */
+    sessionDocumentWorkspace?: { readonly maximumDocumentBytes: number; readonly capacityBytes: number } | null;
+    sessionCarrier?: { readonly maximumFrameBytes?: number; readonly documentTimeoutMillis?: number; sendSessionFrame(frame: Uint8Array): Promise<void>;
       receiveSessionFrame(): Promise<Uint8Array>; close(): void };
     expectedBodyId?: string | null;
     retainedCredential?: Readonly<Record<string, unknown>> | null;

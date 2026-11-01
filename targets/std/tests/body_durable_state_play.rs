@@ -20,25 +20,6 @@ impl BodyBorrowedForeOutputAdapter for BorrowedCapture {
 fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
     let ty = StructuredInfoType::leaf(kind_id(TEXT_INFO_ID)).unwrap();
     let initial = StructuredInfoValue::leaf(ty.clone(), Vec::new()).unwrap();
-    let mut startup = conduit_plot::StartupCatalog::new();
-    let mut profiles = conduit_plot::ProfileCatalog::new();
-    startup
-        .insert_value_kind_alias("Text", kind_id(TEXT_INFO_ID))
-        .unwrap();
-    conduit_semantic_catalog::state_value::install_state_value_kind(
-        "Text",
-        &ty,
-        &initial,
-        &mut startup,
-        &mut profiles,
-    )
-    .unwrap();
-    startup
-        .insert(conduit_plot::KindSignature {
-            kind: "state/latest".into(),
-            startup_parameters: vec![],
-        })
-        .unwrap();
     let mut advertisement = StdHost::new_with_config(StdHostConfig {
         host_id: "state/body-host".into(),
         boot_id: boot.into(),
@@ -67,9 +48,42 @@ fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let host = StdHost::from_advertisement(advertisement).unwrap();
+    let (host, plan) = planned_on(host);
+    (host, plan, resource)
+}
+fn checked_source() -> (
+    conduit_plot::CheckedSyntaxDocument,
+    conduit_plot::ExpandedAuthoringPlot,
+    conduit_plot::ProfileCatalog,
+) {
+    let ty = StructuredInfoType::leaf(kind_id(TEXT_INFO_ID)).unwrap();
+    let initial = StructuredInfoValue::leaf(ty.clone(), Vec::new()).unwrap();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    startup
+        .insert_value_kind_alias("Text", kind_id(TEXT_INFO_ID))
+        .unwrap();
+    conduit_semantic_catalog::state_value::install_state_value_kind(
+        "Text",
+        &ty,
+        &initial,
+        &mut startup,
+        &mut profiles,
+    )
+    .unwrap();
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
     let checked = conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document("plot durable (\n >> write: Text\n current: $Text >>\n) {\n cell: keep Text(\"\") <= 4KiB for life\n write >> cell\n cell >> current\n}\n"), &startup).unwrap();
     let authored =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "durable", &profiles).unwrap();
+    (checked, authored, profiles)
+}
+fn planned_on(host: StdHost) -> (StdHost, Plan) {
+    let (checked, authored, profiles) = checked_source();
     let hosts = [host.advertisement().clone()];
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
@@ -117,7 +131,7 @@ fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
         &boundaries,
     )
     .unwrap();
-    (host, plan, resource)
+    (host, plan)
 }
 fn thread(test: fn()) {
     std::thread::Builder::new()
@@ -307,3 +321,7 @@ fn foreign_selected_resource_refuses_before_start_or_residence_effect() {
         assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
     });
 }
+
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+#[path = "body_durable_state_play/selected_storage.rs"]
+mod selected_storage;

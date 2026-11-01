@@ -13,7 +13,7 @@ pub use crate::host_execution::continuity::StateContinuationRunFailure;
 mod continuity;
 mod durable;
 pub use continuity::{RetainedTypedState, StateContinuityFailure};
-pub(crate) use durable::InstalledDurableStateHost;
+pub(crate) use durable::{durable_record_byte_bound, InstalledDurableStateHost};
 pub use durable::{
     DurableStateBack, DurableStateBinding, DurableStateHost, DurableStateRefusal,
     FileDurableStateResidence, RecoveryDisposition,
@@ -318,4 +318,13 @@ pub(crate) fn durable_refusal_failure(refusal: DurableStateRefusal) -> conduit_k
             DurableStateRefusal::InvalidReceipt => 9,
         },
     }
+}
+
+/// Bounded installed State driver/residence and simultaneously retained record,
+/// decoded value, recovery and commit buffers; excludes whole Body preparation.
+pub(crate) fn durable_preparation_byte_bound(maximum: u32) -> u64 {
+    (std::mem::size_of::<InstalledDurableStateBack>()
+        + std::mem::size_of::<InstalledDurableStateHost>()
+        + 4 * durable_record_byte_bound(maximum).expect("validated durable maximum")
+        + 3 * conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES as usize) as u64
 }

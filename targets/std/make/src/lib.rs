@@ -7,6 +7,10 @@ use std::collections::BTreeMap;
 
 mod builder;
 mod environmental_source_initialization;
+mod storage_initialization;
+pub use storage_initialization::{
+    body_storage_initialization_contract, BODY_STORAGE_BASE_KIND, BODY_STORAGE_IMPLEMENTATION,
+};
 #[cfg(target_os = "linux")]
 mod linux_builder;
 mod microphone_initialization;
@@ -101,6 +105,10 @@ fn package_catalog() -> PackageCatalogContribution {
         .collect();
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                storage_initialization::BODY_STORAGE_IMPLEMENTATION.into(),
+                storage_initialization::body_storage_initialization_contract(),
+            ),
             (
                 environmental_source_initialization::ENVIRONMENTAL_SOURCES_IMPLEMENTATION.into(),
                 environmental_source_initialization::environmental_source_initialization_contract(),
@@ -213,6 +221,7 @@ impl HostMakePackage for HostedMakePackage {
             ],
             offers: vec![
                 environmental_source_initialization::offer(),
+                storage_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
                 microphone_initialization::offer(),

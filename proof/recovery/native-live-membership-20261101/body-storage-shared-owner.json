@@ -1,0 +1,9 @@
+{
+  "source": "c4cb9fcbd4",
+  "tests": 3,
+  "failures": 0,
+  "command": "cargo +stable test --offline -p conduit-std-host --features linux-snapshot --lib body_storage::tests",
+  "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-shared-custody-20261101.log",
+  "sha256": "4cb3efd75a86ff36c125307c5578d5537a6c1c9a0509d81697310d5a06165c8f",
+  "scope": "same descriptor owner across private worker borrowing, root rename/substitution containment and final owner lifetime; no operation selection or installed Recorder"
+}

@@ -308,6 +308,14 @@ impl SecureWebSocketClientLine {
         receive_binary(&mut self.socket, self.maximum_message_bytes, output)
     }
 
+    pub fn set_write_timeout(&self, timeout: Option<Duration>) -> Result<(), SecureWebSocketError> {
+        self.socket
+            .get_ref()
+            .sock
+            .set_write_timeout(timeout)
+            .map_err(|error| SecureWebSocketError::Transport(error.kind()))
+    }
+
     pub fn set_read_timeout(&self, timeout: Option<Duration>) -> Result<(), SecureWebSocketError> {
         self.socket
             .get_ref()

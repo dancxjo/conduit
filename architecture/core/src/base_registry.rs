@@ -11,6 +11,9 @@ use crate::{
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
+mod prepared_update;
+pub use prepared_update::PreparedBaseProviderUpdate;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BaseEnforcementClass {
     Cooperative,

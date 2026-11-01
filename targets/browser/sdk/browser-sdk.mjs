@@ -145,7 +145,7 @@ export class BrowserHost {
    * authorized owner window; it opens no route or window. Root-aware mode retains
    * a runtime-verified Part in this application’s selected storage; current
    * presence and Face authority remain separate. */
-  async participate({ invitation, sessionCarrier = null, expectedBodyId = null, retainedCredential = null, onCredential,
+  async participate({ invitation, sessionCarrier = null, sessionDocumentWorkspace = null, expectedBodyId = null, retainedCredential = null, onCredential,
     onState, onBiographyEvidence, onOfferEvidence, invitedProvision = null, sporeRoot = null, renewPresence = true, reconnectPresence = true } = {}) {
     if (sessionCarrier === null && (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048)) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
@@ -153,6 +153,7 @@ export class BrowserHost {
     const membership = await joinBrowserBody({
       bodyUrl: invitation,
       sessionCarrier,
+      sessionDocumentWorkspace,
       wasmBytes: this.#state.runtimeBytes,
       admittedHost: {
         api: this.#state.api,

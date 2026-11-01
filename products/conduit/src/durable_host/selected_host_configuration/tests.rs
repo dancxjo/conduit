@@ -323,3 +323,143 @@ fn checked_declaration_name_reaches_fresh_installed_offer_without_identity_chang
     assert_eq!(after.resources, before.resources);
     assert_eq!(after.offer_generation.0, before.offer_generation.0 + 1);
 }
+
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+fn storage_source(root: &std::path::Path) -> String {
+    SOURCE.replace(r#"base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}"#,
+        &format!(r#"base = {{kind: "storage/protected-file", implementation: "linux/body-storage-directory@1", initialization: {{root_directory: {:?}, pool_namespace: "body/storage", maximum_snapshot_records: 2, maximum_record_bytes: 4096, generation_slots: 2, publication_slots: 1, reader_leases: 1, state_slots: 1, maximum_state_bytes: 1024, total_disk_bytes: 65536, preparation_bytes: 8192}}}}"#,root.to_str().unwrap()))
+}
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+fn private_storage_root(state: &std::path::Path) -> std::path::PathBuf {
+    use std::os::unix::fs::DirBuilderExt;
+    let root = state.join("selected-storage-root");
+    std::fs::DirBuilder::new()
+        .mode(0o700)
+        .create(&root)
+        .unwrap();
+    root
+}
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+#[test]
+fn storage_check_is_pure_and_failed_explicit_selection_never_persists_half_binding() {
+    let (manifest, state) = super::super::tests::fixture();
+    install(&manifest, &state).unwrap();
+    let missing = state.join("not-created");
+    let source = storage_source(&missing);
+    let checked = check(&source).unwrap();
+    let canonical = canonical_host_configuration_conduit(checked.configuration()).unwrap();
+    assert_eq!(
+        check(&canonical).unwrap().configuration_id(),
+        checked.configuration_id()
+    );
+    assert!(!missing.exists());
+    let source_path = state.join("storage.host.conduit");
+    fs::write(&source_path, &source).unwrap();
+    let before = fs::read(state.join("installation.json")).unwrap();
+    assert!(configure(&state, Some(&source_path), false).is_err());
+    assert_eq!(fs::read(state.join("installation.json")).unwrap(), before);
+    assert!(!missing.exists());
+}
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+#[test]
+fn configured_storage_reopens_same_private_root_and_refuses_substituted_directory() {
+    let (manifest, state) = super::super::tests::fixture();
+    install(&manifest, &state).unwrap();
+    let root = private_storage_root(&state);
+    let source_path = state.join("storage.host.conduit");
+    fs::write(&source_path, storage_source(&root)).unwrap();
+    configure(&state, Some(&source_path), false).unwrap();
+    let installed = read_installation(&state.join("installation.json")).unwrap();
+    let selected = installed.selected_host_configuration.unwrap();
+    assert!(selected.storage_root.is_some());
+    let mut host = StdHost::new();
+    let ad = host.advertisement().clone();
+    selected.attach_to_fresh_host(&mut host).unwrap();
+    assert!(host.selected_body_storage().is_some());
+    assert_eq!(host.advertisement().resources, ad.resources);
+    assert_eq!(host.advertisement().capabilities, ad.capabilities);
+    assert_eq!(host.advertisement().bases, ad.bases);
+    let path = root.clone();
+    let moved = path.with_extension("selected-moved");
+    fs::rename(&path, &moved).unwrap();
+    fs::create_dir(&path).unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+    let mut fresh = StdHost::new();
+    assert!(selected
+        .attach_to_fresh_host(&mut fresh)
+        .unwrap_err()
+        .contains("identity changed"));
+    assert!(fresh.selected_body_storage().is_none());
+    assert_eq!(fs::read_dir(&path).unwrap().count(), 0);
+    drop(host);
+    fs::remove_dir_all(moved).unwrap();
+}
+
+#[cfg(all(
+    feature = "installed-body-storage",
+    feature = "installed-environmental-sources",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+#[test]
+fn storage_and_environmental_intent_coexist_without_network_effect_or_source_offers() {
+    use conduit_host_make::{
+        BaseInitialization, ConfigurationBase, ConfigurationDevice, ConfigurationScalar,
+    };
+    let (manifest, state) = super::super::tests::fixture();
+    install(&manifest, &state).unwrap();
+    let root = private_storage_root(&state);
+    let mut configuration = parse_host_configuration_conduit(&storage_source(&root)).unwrap();
+    configuration.bases.push(ConfigurationBase {kind:"environment/source".into(),implementation:Some("linux/environmental-sources@1".into()),implementations:Vec::new(),initialization:Some(serde_json::from_value::<BaseInitialization>(serde_json::json!({"worker_executable":"/not-opened-by-inert-initialization","worker_sha256":"11".repeat(32),"timeout_milliseconds":31000})).unwrap())});
+    let source_path = state.join("green.host.conduit");
+    fs::copy(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../bodies/environment/host/configurations/green.host.conduit"),
+        &source_path,
+    ).unwrap();
+    configuration.devices.push(ConfigurationDevice::Network {
+        id: "inert-green".into(),
+        authority: "green.environment.invalid:8080".into(),
+        endpoint: "127.0.0.1:9".into(),
+        implementation: "environment/source@1".into(),
+        configuration: std::collections::BTreeMap::from([
+            (
+                "source_configuration".into(),
+                ConfigurationScalar::Text(source_path.to_str().unwrap().into()),
+            ),
+            (
+                "firmware_sha256".into(),
+                ConfigurationScalar::Text("11".repeat(32)),
+            ),
+        ]),
+    });
+    let source = canonical_host_configuration_conduit(&configuration).unwrap();
+    let mut selection = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    selection.storage_root = storage::select_identity(&selection.checked().unwrap()).unwrap();
+    selection.validate().unwrap();
+    let mut host = StdHost::new();
+    let before = host.advertisement().clone();
+    selection.attach_to_fresh_host(&mut host).unwrap();
+    assert!(host.selected_body_storage().is_some());
+    assert_eq!(host.advertisement().resources, before.resources);
+    assert_eq!(host.advertisement().capabilities, before.capabilities);
+    assert_eq!(host.advertisement().bases, before.bases);
+    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 0);
+}

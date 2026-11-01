@@ -1,6 +1,8 @@
+import { createBoundedDocumentChannel, MAXIMUM_MEMBERSHIP_DOCUMENT_BYTES } from "./browser-bounded-document.mjs";
+
 // Frame adaptation only. The supplied carrier must already be admitted and
 // authenticated for its exact endpoints; this module creates no authority.
-export function createBrowserMembershipSession({ url, carrier = null, WebSocketType = globalThis.WebSocket }) {
+export function createBrowserMembershipSession({ url, carrier = null, documentWorkspace = null, WebSocketType = globalThis.WebSocket }) {
   // Preserve the canonical existing WS admission envelope. A supplied
   // protected carrier retains its own smaller admitted payload limit.
   const maximumWebSocketFrameBytes = 2 * 1024 * 1024 + 1024;
@@ -14,21 +16,22 @@ export function createBrowserMembershipSession({ url, carrier = null, WebSocketT
   if (carrier !== null && (!carrier || ['sendSessionFrame','receiveSessionFrame','close'].some(key => typeof carrier[key] !== 'function'))) {
     throw new TypeError('Invalid admitted browser membership session carrier');
   }
-  let socket, handlers, open = false, closed = false, pending = 0;
+  const documents = carrier ? createBoundedDocumentChannel(carrier, documentWorkspace) : null;
+  let socket, handlers, open = false, closed = false, pending = 0, largePending = false;
   let sends = Promise.resolve();
-  const frame = value => {
+  const frame = (value, maximum = maximumFrameBytes, copy = true) => {
     const bytes = typeof value === 'string' ? new TextEncoder().encode(value)
       : value instanceof Uint8Array ? value : value instanceof ArrayBuffer ? new Uint8Array(value) : null;
-    if (!bytes || bytes.length < 1 || bytes.length > maximumFrameBytes) throw new RangeError('Membership session frame exceeds its finite bound');
-    return bytes.slice();
+    if (!bytes || bytes.length < 1 || bytes.length > maximum) throw new RangeError('Membership session frame exceeds its finite bound');
+    return copy ? bytes.slice() : bytes;
   };
   const retainedSends = new Set();
   const finish = (code = 1000, reason = "") => {
     if (closed) return;
     closed = true; open = false;
-    for (const bytes of retainedSends) bytes.fill(0);
+    for (const record of retainedSends) record.release();
     retainedSends.clear();
-    try { carrier ? carrier.close() : socket?.close(typeof code === 'number' ? code : 1000, typeof reason === 'string' ? reason : ''); }
+    try { carrier ? documents.close() : socket?.close(typeof code === 'number' ? code : 1000, typeof reason === 'string' ? reason : ''); }
     catch { /* Closing cannot restore a failed carrier. */ }
     handlers?.close();
   };
@@ -44,11 +47,12 @@ export function createBrowserMembershipSession({ url, carrier = null, WebSocketT
           try {
             await handlers.open();
             while (!closed) {
-              const received = await carrier.receiveSessionFrame();
+              const received = await documents.receive();
               if (!(received instanceof Uint8Array)) throw new TypeError('Admitted carrier must deliver bounded byte frames');
-              const bytes = frame(received);
+              const bytes = received;
               if (closed) break;
-              await handlers.message({ data: bytes });
+              try { await handlers.message({ data: bytes }); }
+              finally { documents.releaseReceived(bytes); }
             }
           } catch { finish(); }
         });
@@ -77,13 +81,18 @@ export function createBrowserMembershipSession({ url, carrier = null, WebSocketT
     },
     send(value) {
       if (!open || closed) throw new Error('Membership session is closed');
-      const bytes = frame(value);
-      if (!carrier) { socket.send(bytes); return; }
-      if (pending >= maximumPendingSends) throw new Error('Membership send pressure');
+      const input = frame(value, carrier ? MAXIMUM_MEMBERSHIP_DOCUMENT_BYTES : maximumFrameBytes, false);
+      if (!carrier) { socket.send(input.slice()); return; }
+      documents.validate(input);
+      const large = input.length > maximumFrameBytes;
+      if (pending >= maximumPendingSends || (large && largePending)) throw new Error('Membership send pressure');
+      const retained = documents.retain(input);
+      const bytes = retained.bytes;
+      if (large) largePending = true;
       pending++;
-      retainedSends.add(bytes);
-      sends = sends.then(() => { if (!closed) return carrier.sendSessionFrame(bytes); })
-        .catch(finish).finally(() => { pending--; retainedSends.delete(bytes); bytes.fill(0); });
+      retainedSends.add(retained);
+      sends = sends.then(() => { if (!closed) return documents.send(bytes); })
+        .catch(finish).finally(() => { pending--; if (large) largePending = false; retainedSends.delete(retained); retained.release(); });
     },
     close: finish,
   });

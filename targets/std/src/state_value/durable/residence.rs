@@ -87,13 +87,18 @@ impl InstalledDurableStateHost {
 }
 
 impl FileDurableStateResidence {
+    /// Exact stable locator shared with Root inventory selection. This grants
+    /// no permission to recover or commit a journal.
+    pub fn storage_key(binding: &DurableStateBinding) -> Result<String, DurableStateRefusal> {
+        binding.validate()?;
+        Ok(hex(&binding_key(binding)))
+    }
     pub fn open(
         root: impl AsRef<Path>,
         binding: DurableStateBinding,
     ) -> Result<Self, DurableStateRefusal> {
         binding.validate()?;
-        let key = binding_key(&binding);
-        let directory = root.as_ref().join(hex(&key));
+        let directory = root.as_ref().join(Self::storage_key(&binding)?);
         fs::create_dir_all(&directory).map_err(|_| DurableStateRefusal::Lost)?;
         Ok(Self { binding, directory })
     }
@@ -431,4 +436,13 @@ mod tests {
         assert_eq!(residence.recover(), Err(DurableStateRefusal::Lost));
         fs::remove_dir_all(&root).unwrap();
     }
+}
+
+pub(crate) fn durable_record_byte_bound(maximum: u32) -> Result<usize, String> {
+    if maximum == 0 || maximum > super::MAXIMUM_DURABLE_STATE_BYTES {
+        return Err("State record byte bound exceeds implementation".into());
+    }
+    HEADER_BYTES
+        .checked_add(maximum as usize)
+        .ok_or("State record byte bound overflow".into())
 }
