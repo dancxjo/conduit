@@ -15,7 +15,7 @@ use conduit_language::{
     parser_punctuation_model::*,
     *,
 };
-use parser_selection_values::{admit_state, dep, profile, revision_with_text};
+use parser_selection_values::{admit_state, profile, revision_with_text};
 use serde_json::{json, Value};
 
 fn slots(beam: &LanguageParserScorerBeam) -> [&LanguageParserScorerHypothesis; 4] {
@@ -265,7 +265,7 @@ fn evaluate(
         let mut contradicted = 0u64;
         let mut first_agreement = None;
         let mut first_commit = None;
-        for observation in &observations {
+        for observation in observations.iter() {
             let prefix = observation["available_tokens"].as_u64().unwrap();
             if prefix <= ordinal as u64 {
                 continue;
