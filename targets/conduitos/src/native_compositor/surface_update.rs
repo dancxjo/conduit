@@ -125,6 +125,9 @@ impl NativeCompositor {
                 return Err(NativeCompositorError::StaleSurfaceRevision);
             }
         }
+        // Refuse unsupported metrics before replacing the retained selection.
+        #[cfg(feature = "native-compositor-core")]
+        super::paint::visual_look_typography(Some(expression), look)?;
         surface.visual_expression = Some(expression.clone());
         surface.visual_look = look.cloned();
         self.raster_surface(
@@ -191,6 +194,11 @@ impl NativeCompositor {
                 return Err(NativeCompositorError::StaleSurfaceRevision);
             }
         }
+        #[cfg(feature = "native-compositor-core")]
+        let typography = super::paint::visual_look_typography(
+            surface.visual_expression.as_ref(),
+            surface.visual_look.as_ref(),
+        )?;
         // A failed raster update must not leave the old revision routable.
         let previous = surface.raster_scene.take().filter(|_| {
             surface.receipt.as_ref().is_some_and(|receipt| {
@@ -214,11 +222,7 @@ impl NativeCompositor {
                     replay,
                     |_, command| command.text_role().into(),
                     expression.map_or(100, |value| value.expression.text_scale_percent),
-                    crate::display::typography::Typography::new(
-                        expression.map_or(conduit_face::VisualTypography::Editorial, |value| {
-                            value.expression.typography
-                        }),
-                    ),
+                    typography,
                     |role| super::paint::visual_look_paint(format, role, expression, look),
                 )
             })?
@@ -314,3 +318,7 @@ use super::paint::visual_paint;
 #[cfg(all(test, feature = "native-compositor-core"))]
 #[path = "surface_update/paint_tests.rs"]
 mod paint_tests;
+
+#[cfg(all(test, feature = "native-compositor-core"))]
+#[path = "surface_update/metric_consumer_tests.rs"]
+mod metric_consumer_tests;
