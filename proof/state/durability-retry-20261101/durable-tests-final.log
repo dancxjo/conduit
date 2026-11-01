@@ -1,0 +1,25 @@
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 22.36s
+     Running unittests src/lib.rs (/tmp/conduit-local-native-provider-check/debug/deps/conduit_std_host-8f4b275686e5a55b)
+
+running 13 tests
+test state_value::durable::tests::durable_binding_refuses_more_than_the_canonical_text_bound ... ok
+test state_value::durable::tests::transition_waits_for_exact_commit_receipt_before_consuming_or_emitting ... ok
+test state_value::durable::tests::incomplete_candidate_is_ignored_and_commit_is_idempotent_but_not_ambiguous ... ok
+test state_value::durable::tests::mismatched_receipt_never_publishes_candidate ... ok
+test state_value::durable::tests::four_kib_recovery_is_bound_to_metadata_and_forwards_the_hosted_value ... ok
+test state_value::durable::residence::tests::commit_is_idempotent_and_conflicts_are_exact ... ok
+test state_value::durable::residence::tests::residence_distinguishes_absent_corrupt_incompatible_and_lost ... ok
+test state_value::durable::residence::tests::selected_root_refuses_symlink_journal ... ok
+test state_value::durable::tests::recovery_distinguishes_absent_corrupt_incompatible_and_lost ... ok
+test state_value::durable::residence::tests::uncertain_publication_retry_requires_current_and_directory_barriers ... ok
+test state_value::durable::residence::tests::selected_root_parent_barrier_is_required_on_creation_and_existing_retry ... ok
+test state_value::durable::residence::tests::exact_recovery_refuses_drift_and_carries_the_full_text_bound ... ok
+
+running 1 test
+
+running 1 test
+test state_value::durable::residence::tests::fresh_process_abrupt_loss_recovers_only_published_generation ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 986 filtered out; finished in 2.17s
+
