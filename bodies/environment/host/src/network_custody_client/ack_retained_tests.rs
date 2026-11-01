@@ -134,3 +134,55 @@ fn historical_reopen_revalidates_every_original_completion_file() {
         Retained::Complete(_)
     ));
 }
+
+#[test]
+fn interrupted_original_session_adopts_obtained_clean_without_new_allowance() {
+    let f = fixture();
+    let token = retained_token(&f);
+    let ack = signed(&f, &token);
+    let cursor = committed_cursor(&f, &token, &ack, 2);
+    let owner = Acknowledgement::open(token, f.credential.clone(), ack).unwrap();
+    let token = retained_token(&f);
+    let before = files(&token);
+    assert!(retain_completion(&token, &receipt_response(&cursor, 7)).is_err());
+    assert_eq!(files(&token), before);
+    drop(owner);
+    let marker = reopen(&token.directory.join(SESSION), 88).unwrap();
+    let original_ack = reopen(&token.directory.join("ack.bin"), REQUEST).unwrap();
+    let response = receipt_response(&cursor, 7);
+    assert_eq!(
+        retain_completion(&token, &response).unwrap().bytes(),
+        &cursor
+    );
+    assert_eq!(reopen(&token.directory.join(SESSION), 88).unwrap(), marker);
+    assert_eq!(
+        reopen(&token.directory.join("ack.bin"), REQUEST).unwrap(),
+        original_ack
+    );
+    let before = files(&token);
+    assert_eq!(
+        retain_completion(&token, &response).unwrap().bytes(),
+        &cursor
+    );
+    assert_eq!(files(&token), before);
+}
+
+#[test]
+fn obtained_completion_requires_original_session_and_valid_clean_signature() {
+    let f = fixture();
+    let token = retained_token(&f);
+    let ack = signed(&f, &token);
+    let clean = committed_cursor(&f, &token, &ack, 2);
+    let before = files(&token);
+    assert!(retain_completion(&token, &receipt_response(&clean, 7)).is_err());
+    assert_eq!(files(&token), before);
+    drop(Acknowledgement::open(token, f.credential.clone(), ack.clone()).unwrap());
+    let token = retained_token(&f);
+    let before = files(&token);
+    let pending = committed_cursor(&f, &token, &ack, 1);
+    assert!(retain_completion(&token, &receipt_response(&pending, 7)).is_err());
+    let mut corrupt = clean;
+    corrupt[408] ^= 1;
+    assert!(retain_completion(&token, &receipt_response(&corrupt, 7)).is_err());
+    assert_eq!(files(&token), before);
+}

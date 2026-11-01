@@ -80,6 +80,17 @@ fn main() -> Result<()> {
         if args.len()!=5 { return Err("expected --publish-face PRIVATE_BINDING HOST:PORT PRIVATE_FACE_FILE".into()); }
         return face_export_client::run(std::path::Path::new(&args[2]),&args[3],std::path::Path::new(&args[4]),args[1]=="--publish-face-once");
     }
+    if args.get(1).is_some_and(|a| a == "--retain-network-completion") {
+        if args.len() != 6 {
+            return Err("expected --retain-network-completion BINDING ORIGINAL_PRODUCER_BOOT PRIVATE_SNAPSHOT_DIRECTORY PRIVATE_RESPONSE_JSON".into());
+        }
+        return network_custody_client::ack::retain_completion_file(
+            std::path::Path::new(&args[2]),
+            &args[3],
+            std::path::Path::new(&args[4]),
+            std::path::Path::new(&args[5]),
+        );
+    }
     if args.get(1).is_some_and(|a| a == "--retain-network-snapshot") {
         if args.len() != 6 {
             return Err("expected --retain-network-snapshot BINDING PEER PRIVATE_RUN PRODUCER_BOOT".into());
