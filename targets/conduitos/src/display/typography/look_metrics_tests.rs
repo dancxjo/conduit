@@ -56,6 +56,17 @@ fn authored_sizes_and_leading_are_exact_and_change_the_same_cursor() {
         selected_metrics(typography.style(TextRole::Title)).em_size,
         27
     );
+    let value_style = typography.style(TextRole::Value);
+    let value_metrics = selected_metrics(value_style);
+    assert_eq!((value_metrics.em_size, value_metrics.line_height), (36, 54));
+    assert_eq!(
+        value_style.profile,
+        typography.style(TextRole::Body).profile
+    );
+    assert_eq!(
+        Typography::EDITORIAL.style(TextRole::Value),
+        Typography::EDITORIAL.style(TextRole::Body)
+    );
     let base = selected_glyph(Typography::EDITORIAL.style(TextRole::Body), 'W');
     let wanted = selected_glyph(style, 'W');
     assert_eq!(
@@ -93,6 +104,7 @@ fn complete_admitted_scale_range_preserves_existing_glyph_work_bound() {
         TextRole::Heading,
         TextRole::Title,
         TextRole::Code,
+        TextRole::Value,
     ] {
         for percent in [100, 125, 200] {
             for item in TextLayout::new_selected(
@@ -183,6 +195,7 @@ fn actual_raster_ink_fits_measured_authored_line_boxes_and_scale_refuses_before_
         TextRole::Heading,
         TextRole::Title,
         TextRole::Code,
+        TextRole::Value,
     ] {
         for percent in [100, 125, 200] {
             let value = "AéJp\u{301}\nAéJp";

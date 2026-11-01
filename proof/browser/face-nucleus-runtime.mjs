@@ -1,3 +1,4 @@
+import { decodeGraphics } from "./graphics-scene-decoder.mjs";
 import { manifestApplicationView } from "../../targets/browser/host/assets/application-face.mjs";
 
 const REQUIRED_EXPORTS = [
@@ -42,36 +43,6 @@ function decodeLayout(encoded) {
   };
 }
 
-function decodeGraphics(encoded) {
-  if (encoded.length < 2 || encoded[0] !== 2) throw new Error("invalid graphics scene");
-  const count = encoded[1];
-  const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
-  const decoder = new TextDecoder();
-  const commands = [];
-  let offset = 2;
-  for (let index = 0; index < count; index += 1) {
-    if (encoded.length - offset < 21) throw new Error("truncated graphics command");
-    const payloadLength = encoded[offset + 19];
-    const textRole = encoded[offset + 20];
-    if (textRole < 1 || textRole > 9 || (encoded[offset] !== 2 && textRole !== 1)) {
-      throw new Error("invalid graphics text role");
-    }
-    const end = offset + 21 + payloadLength;
-    if (end > encoded.length) throw new Error("truncated graphics payload");
-    commands.push({
-      kind: encoded[offset],
-      paint: encoded[offset + 1],
-      style: encoded[offset + 2],
-      textRole: [undefined, "body", "label", "heading", "title", "code", "status", "warning", "action", "muted"][textRole],
-      bounds: rect(view, offset + 3),
-      clip: rect(view, offset + 11),
-      payload: decoder.decode(encoded.slice(offset + 21, end)),
-    });
-    offset = end;
-  }
-  if (offset !== encoded.length) throw new Error("non-canonical graphics scene");
-  return commands;
-}
 
 function decodeStructured(encoded) {
   if (encoded.length < 5 || encoded[0] !== 3) throw new Error("invalid structured face frame");
@@ -146,7 +117,7 @@ export function manifestFaceNucleus(api, root) {
   for (const [index, command] of graphics.entries()) {
     const leaf = document.createElement(command.kind === 2 ? "span" : "div");
     leaf.dataset.graphicsIndex = String(index);
-    leaf.dataset.graphicsKind = ["", "rect", "text", "icon"][command.kind] ?? "unknown";
+    leaf.dataset.graphicsKind = ["", "rect", "text", "icon", "orthogonal-path", "polyline"][command.kind] ?? "unknown";
     if (command.kind === 2) leaf.dataset.graphicsTextRole = command.textRole;
     leaf.dataset.clip = `${command.clip.x},${command.clip.y},${command.clip.width},${command.clip.height}`;
     leaf.textContent = command.payload;

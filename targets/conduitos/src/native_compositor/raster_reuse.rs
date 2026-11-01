@@ -128,3 +128,6 @@ mod tests;
 
 #[cfg(all(test, feature = "native-compositor-core"))]
 mod performance;
+
+#[cfg(all(test, feature = "native-compositor-core"))]
+mod rectangle_metrics;
