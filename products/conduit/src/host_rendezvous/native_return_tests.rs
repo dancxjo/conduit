@@ -1,7 +1,12 @@
 use super::*;
 use conduit_body::*;
 
-fn fixture() -> (NativeReturn, AdmissionManager, BodyMembership) {
+fn fixture() -> (
+    NativeReturn,
+    AdmissionManager,
+    BodyMembership,
+    ControlService,
+) {
     let body = Body::born(
         "source/native-return".into(),
         "checked/native-return".into(),
@@ -72,8 +77,18 @@ fn fixture() -> (NativeReturn, AdmissionManager, BodyMembership) {
         .unwrap();
     ad.boot_id = "boot/native-return-fresh".into();
     ad.offer_generation = conduit_core::OfferGeneration(27);
-    let retained = RetainedPart::from_test_document(&serde_json::to_vec(&document).unwrap(), ad);
-    (NativeReturn::new(retained).unwrap(), manager, membership)
+    let service = ControlService::start(&ad);
+    let retained = RetainedPart::from_test_document(
+        &serde_json::to_vec(&document).unwrap(),
+        ad,
+        &service.root,
+    );
+    (
+        NativeReturn::new(retained).unwrap(),
+        manager,
+        membership,
+        service,
+    )
 }
 fn encoded(out: Out) -> Vec<u8> {
     serde_json::to_vec(&out).unwrap()
@@ -81,7 +96,7 @@ fn encoded(out: Out) -> Vec<u8> {
 
 #[test]
 fn canonical_owner_verifies_retained_signer_for_exact_fresh_boot() {
-    let (mut client, mut manager, mut membership) = fixture();
+    let (mut client, mut manager, mut membership, _service) = fixture();
     let request: In = serde_json::from_slice(&client.advertise().unwrap()).unwrap();
     let In::ReturnAdvertise {
         protocol: PROTOCOL,
@@ -163,7 +178,7 @@ fn canonical_owner_verifies_retained_signer_for_exact_fresh_boot() {
 #[test]
 fn wrong_boot_generation_and_oversize_are_terminal_before_signing() {
     for wrong_generation in [false, true] {
-        let (mut client, mut manager, membership) = fixture();
+        let (mut client, mut manager, membership, _service) = fixture();
         client.advertise().unwrap();
         let mut c = manager
             .begin_return(
@@ -188,7 +203,7 @@ fn wrong_boot_generation_and_oversize_are_terminal_before_signing() {
             .is_err());
         assert!(client.challenge(b"{}").is_err());
     }
-    let (mut client, _, _) = fixture();
+    let (mut client, _, _, _service) = fixture();
     client.advertise().unwrap();
     assert!(client.challenge(&vec![b' '; LIMIT + 1]).is_err());
     assert!(client.challenge(b"{}").is_err());
@@ -197,7 +212,7 @@ fn wrong_boot_generation_and_oversize_are_terminal_before_signing() {
 #[test]
 fn wrong_scope_and_wrong_protocol_never_produce_proof() {
     for field in ["body_id", "part_id", "host_id"] {
-        let (mut client, mut manager, membership) = fixture();
+        let (mut client, mut manager, membership, _service) = fixture();
         let advertisement = client.advertise().unwrap();
         let public: serde_json::Value = serde_json::from_slice(&advertisement).unwrap();
         assert!(public.get("secret").is_none());
@@ -223,9 +238,121 @@ fn wrong_scope_and_wrong_protocol_never_produce_proof() {
             .is_err());
         assert!(client.advertise().is_err());
     }
-    let (mut client, _, _) = fixture();
+    let (mut client, _, _, _service) = fixture();
     client.advertise().unwrap();
     assert!(client
         .challenge(br#"{"kind":"refused","protocol":2,"code":"no"}"#)
         .is_err());
+}
+
+struct ControlService {
+    root: std::path::PathBuf,
+    child: std::process::Child,
+}
+impl ControlService {
+    fn start(ad: &conduit_core::HostAdvertisement) -> Self {
+        let root = std::env::temp_dir().join(format!(
+            "return-control-{}",
+            crate::birth_identity::fresh_uuid().unwrap()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        crate::durable_host_control::ensure_secret(&root).unwrap();
+        let child = Self::spawn(&root, ad);
+        Self { root, child }
+    }
+    fn spawn(root: &std::path::Path, ad: &conduit_core::HostAdvertisement) -> std::process::Child {
+        std::fs::write(
+            root.join("advertisement.json"),
+            serde_json::to_vec(ad).unwrap(),
+        )
+        .unwrap();
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "host_rendezvous::native_return::tests::control_child",
+                "--nocapture",
+            ])
+            .env("CONDUIT_RETURN_TEST_CONTROL", root)
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        let until = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if root.join("control.sock").exists()
+                && crate::durable_host_control::current(root).is_ok()
+            {
+                return child;
+            }
+            assert!(
+                child.try_wait().unwrap().is_none(),
+                "actual control child exited"
+            );
+            assert!(
+                std::time::Instant::now() < until,
+                "actual control child readiness timed out"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
+    fn restart(&mut self, ad: &conduit_core::HostAdvertisement) {
+        self.child.kill().unwrap();
+        self.child.wait().unwrap();
+        std::fs::remove_file(self.root.join("control.sock")).unwrap();
+        self.child = Self::spawn(&self.root, ad);
+    }
+}
+impl Drop for ControlService {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+#[test]
+fn control_child() {
+    let Some(root) = std::env::var_os("CONDUIT_RETURN_TEST_CONTROL") else {
+        return;
+    };
+    let root = std::path::PathBuf::from(root);
+    let ad =
+        serde_json::from_slice(&std::fs::read(root.join("advertisement.json")).unwrap()).unwrap();
+    let host = conduit_std_host::StdHost::from_advertisement(ad).unwrap();
+    let runtime = crate::durable_host_control::DurableHostRuntime::new(
+        "test/native-return".into(),
+        "00".repeat(32),
+        host,
+    );
+    crate::durable_host_control::serve(&root, runtime).unwrap();
+}
+#[test]
+fn actual_control_change_between_open_and_sign_refuses_old_challenge() {
+    for boot_change in [false, true] {
+        let (mut client, mut manager, membership, mut service) = fixture();
+        client.advertise().unwrap();
+        let ad = client.part.advertisement();
+        let c = manager
+            .begin_return(
+                &membership,
+                &client.part.credential().part_id,
+                ad,
+                [9; 32],
+                200,
+                1000,
+            )
+            .unwrap();
+        let mut changed = ad.clone();
+        if boot_change {
+            changed.boot_id = "boot/restarted-after-open".into();
+        } else {
+            changed.offer_generation = conduit_core::OfferGeneration(ad.offer_generation.0 + 1);
+        }
+        service.restart(&changed);
+        assert!(client
+            .challenge(&encoded(Out::ReturnChallenge {
+                protocol: PROTOCOL,
+                challenge: c
+            }))
+            .is_err());
+    }
 }

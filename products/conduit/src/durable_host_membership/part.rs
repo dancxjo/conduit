@@ -38,6 +38,11 @@ impl Record {
         {
             return Err("native Part custody identity mismatch".into());
         }
+        if p.invitation.rendezvous.as_ref().is_some_and(|route| {
+            route.body_id != r.body_id.as_str() || route.invitation_id != r.invitation_id.as_str()
+        }) {
+            return Err("native Part retained route identity mismatch".into());
+        }
         self.receipt
             .validate_against(r)
             .map_err(|_| "native Part receipt mismatch")?;
@@ -165,15 +170,21 @@ pub(super) fn retain(
 
 /// Validated continuity signer. This is neither a current session nor Root authority.
 pub(crate) struct RetainedPart {
+    state: std::path::PathBuf,
     record: Record,
     advertisement: HostAdvertisement,
 }
 impl RetainedPart {
     #[cfg(test)]
-    pub(crate) fn from_test_document(bytes: &[u8], advertisement: HostAdvertisement) -> Self {
+    pub(crate) fn from_test_document(
+        bytes: &[u8],
+        advertisement: HostAdvertisement,
+        state: &Path,
+    ) -> Self {
         let record: Record = serde_json::from_slice(bytes).unwrap();
         record.validate(advertisement.host_id.as_str()).unwrap();
         Self {
+            state: state.to_path_buf(),
             record,
             advertisement,
         }
@@ -206,6 +217,7 @@ impl RetainedPart {
             return Err("private Part custody differs from installed credential".into());
         }
         Ok(Self {
+            state: state.to_path_buf(),
             record,
             advertisement,
         })
@@ -236,6 +248,12 @@ impl RetainedPart {
                 > conduit_body::MAX_ADMISSION_TTL_MILLIS
         {
             return Err("Return challenge differs from retained Part or current Boot".into());
+        }
+        // Recheck actual authenticated control immediately before key use.
+        // A captured advertisement is not a continuing signing entitlement.
+        let current = crate::durable_host_control::current(&self.state)?;
+        if current.advertisement != self.advertisement {
+            return Err("Return signer current Host/Boot/offers changed".into());
         }
         let secret =
             SpawnInvitationSecret::from_csprng_bytes(self.record.pending.invitation.secret)
