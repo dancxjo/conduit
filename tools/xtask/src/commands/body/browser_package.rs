@@ -59,8 +59,30 @@ fn read_owner_response(reader: impl std::io::Read, action: &str) -> Result<Value
     decoder.end()?;
     Ok(value)
 }
+fn installed_product(state: &Path) -> Result<PathBuf> {
+    use std::io::Read;
+    #[derive(serde::Deserialize)]
+    struct Installation {
+        schema: String,
+        product_executable: PathBuf,
+    }
+    let file = fs::File::open(state.join("installation.json"))
+        .map_err(|_| BrowserFabricationRefusal::BodyAuthorityUnavailable)?;
+    let mut decoder =
+        serde_json::Deserializer::from_reader(std::io::BufReader::new(file.take(64 * 1024)));
+    let installation = <Installation as serde::Deserialize>::deserialize(&mut decoder)?;
+    decoder.end()?;
+    if installation.schema != "conduit.install/durable-host@1"
+        || !installation.product_executable.is_absolute()
+    {
+        return Err(BrowserFabricationRefusal::BodyAuthorityUnavailable.into());
+    }
+    Ok(installation.product_executable)
+}
 fn product_json(state: &Path, action: &str) -> Result<Value> {
-    let mut command = Command::new("conduit");
+    // The selected installation owns this Body; a different PATH CLI may have
+    // an older biography decoder or a different product protocol.
+    let mut command = Command::new(installed_product(state)?);
     command.args(["body", action, "--state-dir"]).arg(state);
     if action == "status" {
         command.arg("--json");
@@ -260,6 +282,33 @@ mod tests {
         let oversized = serde_json::to_vec(&serde_json::json!({"host":"x".repeat(super::MAXIMUM_OWNER_STATUS_BYTES as usize),"biography":{"body_id":"body/one"}})).unwrap();
         assert!(super::read_owner_response(oversized.as_slice(), "status").is_err());
         assert!(super::read_owner_response(bytes.as_slice(), "invite").is_err());
+    }
+    #[test]
+    fn fabrication_uses_selected_installation_instead_of_path_product() {
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-browser-installed-product-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        let path = directory.join("installation.json");
+        std::fs::write(&path, br#"{"schema":"conduit.install/durable-host@1","product_executable":"/installed/exact/conduit"}"#).unwrap();
+        assert_eq!(
+            super::installed_product(&directory).unwrap(),
+            std::path::PathBuf::from("/installed/exact/conduit")
+        );
+        for content in [
+            r#"{"schema":"foreign","product_executable":"/installed/exact/conduit"}"#,
+            r#"{"schema":"conduit.install/durable-host@1","product_executable":"relative/conduit"}"#,
+            r#"{"schema":"conduit.install/durable-host@1"}"#,
+        ] {
+            std::fs::write(&path, content).unwrap();
+            assert!(super::installed_product(&directory).is_err());
+        }
+        std::fs::remove_dir_all(directory).unwrap();
     }
     #[test]
     fn artifact_paths_cannot_escape_fabrication_output() {
