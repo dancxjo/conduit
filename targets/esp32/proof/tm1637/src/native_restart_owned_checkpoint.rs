@@ -410,3 +410,7 @@ fn emit<S: crate::native_body_checkpoint::Storage>(
 #[cfg(all(test, feature = "observation-store"))]
 #[path = "native_restart_owned_checkpoint_tests.rs"]
 mod tests;
+
+#[path = "native_restart_checkpoint_probe.rs"]
+mod checkpoint_probe;
+pub(crate) use checkpoint_probe::{probe, ProbeReport};

@@ -100,6 +100,9 @@ impl IncrementalRewrite {
             step: 0,
         })
     }
+    pub(crate) fn output_bytes(&self) -> usize {
+        self.length
+    }
     fn check<S: Storage>(&self, journal: &Checkpoint<S>) -> Result<(), Refusal> {
         if journal.retained != Some(self.previous.retained) || matches!(self.phase, Phase::Failed) {
             Err(Refusal::Generation)

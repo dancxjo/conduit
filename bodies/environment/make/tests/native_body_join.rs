@@ -26,6 +26,10 @@ mod returning;
 mod native_evidence_region {
     use crate::native_body_checkpoint::{Refusal, Storage};
     use std::sync::{Arc, Mutex};
+    std::thread_local! {
+        static WRITES: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    }
+    pub fn writes() -> usize { WRITES.with(|n| n.get()) }
     #[derive(Clone)]
     pub struct BodyRegion(pub Arc<Mutex<(Vec<u8>, bool)>>);
     pub fn test_empty() -> BodyRegion {
@@ -40,6 +44,7 @@ mod native_evidence_region {
             Ok(())
         }
         fn program(&mut self, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
+            WRITES.with(|n| n.set(n.get() + 1));
             let mut state = self.0.lock().unwrap();
             if !state.1 {
                 return Err(Refusal::Storage);
@@ -54,6 +59,7 @@ mod native_evidence_region {
             Ok(())
         }
         fn erase_bank(&mut self, bank: u8) -> Result<(), Refusal> {
+            WRITES.with(|n| n.set(n.get() + 1));
             let mut state = self.0.lock().unwrap();
             if !state.1 {
                 return Err(Refusal::Storage);
