@@ -130,6 +130,7 @@ export async function browser(directory) {
     'tools/ci/thermostat-journey.spec.mjs', 'tools/ci/exact-capture-json.spec.mjs',
     ...readdirSync('targets/browser/sdk').filter(name => name.endsWith('.test.mjs')).map(name => `targets/browser/sdk/${name}`),
     'targets/browser/tools/static-application-csp.test.mjs',
+    'proof/browser/workspace-owner-resource-closure.test.mjs',
     'proof/browser/application-graph-canvas.test.mjs', ...[
     'browser-body-input', 'browser-body-host', 'browser-text-editor', 'workspace-handoff', 'browser-plot-effects',
     'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'installed-host-encounter', 'process-output', 'physical-host-workflow',

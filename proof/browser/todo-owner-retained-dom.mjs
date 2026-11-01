@@ -30,7 +30,7 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
     assert.equal(view.face_revision, owner.face_revision_decimal);
     const identity = item => ({ identity: item.identity, name: item.name, role: item.role });
     assert.deepEqual(owner.face.subjects.filter(subject => subject.role === 'Item').map(identity), items.map(identity));
-    const dom = await page.locator('conduit-owner-face').evaluate(element => {
+    const dom = await page.locator('[data-owner-face-surface]').evaluate(element => {
       const root = element.shadowRoot;
       return {
         count: root.querySelector('.owner-face-collection-count')?.textContent,
@@ -130,7 +130,7 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
     }
     await page.waitForFunction(({ previous, selected }) => {
       const view = globalThis.__conduitOwnerParticipation.face();
-      const element = document.querySelector('conduit-owner-face');
+      const element = document.querySelector('[data-owner-face-surface]');
       const expression = view?.component?.expression?.expression;
       return view?.show_state === 'available' && view.interactions_admitted
         && (!selected || (view.show_id !== previous && expression?.identity
@@ -142,7 +142,7 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
     const view = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     if (!look) {
       assert.equal(Object.hasOwn(view, 'component'), false, 'generic serialized view must omit component evidence');
-      const genericDataset = await page.locator('conduit-owner-face').evaluate(element => ({
+      const genericDataset = await page.locator('[data-owner-face-surface]').evaluate(element => ({
         expression: Object.hasOwn(element.dataset, 'componentExpression'),
         density: Object.hasOwn(element.dataset, 'componentDensity'),
         columns: Object.hasOwn(element.dataset, 'componentColumns'),
@@ -171,12 +171,12 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
     if (observations.length) assert.deepEqual(semantics(view), semantics(observations[0].view),
       'all projected subject/action/relationship identities, order, disclosure and availability must survive');
     // Open disclosure once where necessary, without submitting any domain action.
-    const summaries = page.locator('conduit-owner-face details > summary');
+    const summaries = page.locator('[data-owner-face-surface] details > summary');
     for (let index = 0; index < await summaries.count(); index++) {
       const summary = summaries.nth(index);
       if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
     }
-    const dom = await page.locator('conduit-owner-face').evaluate(element => {
+    const dom = await page.locator('[data-owner-face-surface]').evaluate(element => {
       const root = element.shadowRoot;
       const collection = root.querySelector('.owner-face-collection');
       const style = getComputedStyle(collection);

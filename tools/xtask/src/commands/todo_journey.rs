@@ -124,6 +124,7 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         || args.first_item_text.is_some()
         || args.cross_mask_actions
         || args.count_matrix
+        || args.required_component
         || args.look_replacement
         || args.direct_speech
     {

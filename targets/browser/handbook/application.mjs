@@ -323,6 +323,8 @@ export async function startApplication(application) {
   };
   try {
     host = await application.browser({ root: surface });
+    // Admit optional component bytes before source checking freezes this Host.
+    await host.admitOwnerFaceComponent(application);
     openingStage = 'Packaged source checking';
     checked = await host.plot(bundle).check();
     if (!checked.ok) throw new Error(checked.refusal.message);

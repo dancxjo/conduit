@@ -107,6 +107,16 @@ cargo xtask prove todo-journey \
   --first-item-text 'Buy milk' --cross-mask-actions --direct-speech
 ```
 
+For selected required-slot conformance, use the same fresh installation and
+capture arguments with `--required-component` instead of the other scenario
+flags. This entrance compares the ordinary generic Mask with compact and
+spacious required-item roots against the independent current owner Face,
+checks acknowledged Shows and the exact admitted renderer artifact, then
+exercises keyboard completion, required-slot fallback, pointer reopen and
+binding restoration. It also retains wrong-item/argument and inaccessible
+renderer refusals. This bounded component journey does not produce the full
+spoken publication packet or accessibility certification.
+
 The producer births Groceries, acknowledges its terminal Show, adds the three
 items through ordinary browser controls, and observes the initial list through
 direct speech. It joins in the terminal, completes Buy milk through the exact
