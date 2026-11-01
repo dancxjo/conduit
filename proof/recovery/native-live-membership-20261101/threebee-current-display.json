@@ -1,17 +1,17 @@
 {
   "scope": "physical-display-only-update-not-Hamm-feed-or-Show-admission",
-  "source": "e71bf7c7662ab63081e1f15cd95ec4711771b95f",
-  "artifact_sha256": "a5fa6adb8510e40867238e896993916d0688af10c5b44346eb99828f74dd7b1b",
-  "artifact_bytes": 4695992,
+  "source": "729e9d43a90dc23adff622a7a43fd0f6b05845b3",
+  "artifact_sha256": "1534a184c3587b66eca387707b8f57fb4cc5cd6ec97e73d052730a1542695869",
+  "artifact_bytes": 4696008,
   "qualification": "source-clean; ELF64 AArch64; canonical Linux interpreter; copied SHA256 verified",
-  "display_pid": 2472,
+  "display_pid": 2887,
   "display_restarts_after_install": 0,
   "framebuffer": {
     "width": 1024,
     "height": 600,
     "bits_per_pixel": 16,
-    "before_png_sha256": "fae4c389be2af39654e3c61ba4fd22013ccc04ae16bf98eae0486d5eec508b2c",
-    "after_png_sha256": "545ecd024339f4ff645a577d2cef43d796564e554c1e2fa3c8dd380887cae289"
+    "before_png_sha256": "afb0d7c589ca7cefa4e36dcc1c90e1dbc6dd7193d306f4d5c5f9b832635080d8",
+    "after_png_sha256": "b62f7454670815952c840fc42e6f1b44412a9bb7a1efb708d15d184d475d8577"
   },
   "unchanged_services": {
     "host": 740,
@@ -20,11 +20,13 @@
     "start": "2026-11-01T03:11:04Z"
   },
   "tests": {
-    "adapter_passed": 49,
-    "adapter_existing_ignored": 7,
-    "measured_history_passed": 2
+    "accepted_source_native_raster_check": "passed on exact729 by integrator",
+    "accepted_geometry_admission_test": "1 passed,1404 filtered on exact729 by integrator",
+    "adapter_previous_unchanged_testset": "49 passed,7 existing ignored; owning adapter source unchanged"
   },
   "view": "Retained old Body, last-known feed-delayed, Fahrenheit, history and clock remain perceptible; no fresh Hamm producer or input authority claimed",
-  "rollback": "~/.local/state/conduit-face-display/rollback-e71bf7c766-20261101/rollback.sh",
-  "maintenance_recovered_bytes": 2594062914
+  "rollback": "~/.local/state/conduit-face-display/rollback-729e9d43a9-20261101/rollback.sh",
+  "maintenance_recovered_bytes": 2594062914,
+  "source_delta": "Equivalent DisplayFormat geometry checks extracted into shared helper; no intended visual change",
+  "captured_after_utc": "2026-11-01T20:51:24Z"
 }
