@@ -1,0 +1,74 @@
+{
+  "schema": "conduit.development/native-owned-checkpoint@1",
+  "integration_implementation_head": "ac1269ec732629241040e9fca237c141cb84505e",
+  "proof_checkout_head": "80619bf8e4",
+  "implementation_tree_equal": true,
+  "scope": "CPU-qualified affine live-owner checkpoint primitive, not deployed Root integration",
+  "owned_checkpoint_proof": {
+    "actual_canonical_invitation_mutation": true,
+    "actual_Store_lease_and_original_Body_allocation": true,
+    "all_preparation_and_finish_reads_require_FlashPermit": true,
+    "actual_finite_Mailbox_and_WaitExecutor_used_for_each_phase": true,
+    "successful_phase_ordinals_advance_exactly_once": true,
+    "staged_output_only_released_after_authenticated_source_commit": true,
+    "committed_admissions_decoded_and_compared": true,
+    "failed_physical_operation_retains_unpublished_custody": true,
+    "owning_isolated_test_passed": 1,
+    "compatibility_suite_at_f2281e48bc": {
+      "passed": 59,
+      "ignored": 5
+    },
+    "CPU_fixture_preparation_budget_ms": 1000,
+    "native_preparation_budget_qualified": false
+  },
+  "blue_passive_observation": {
+    "capture_seconds": 45,
+    "capture_sha256": "f84ebd3336e4da92f063656bd93ec6d953edf4803a1a2ea2ddf9d36c6b818dab",
+    "millis": [
+      21372463,
+      21402668
+    ],
+    "samples": [
+      355,
+      356
+    ],
+    "display_acknowledgments": [
+      7119,
+      7129
+    ],
+    "root_arena_used_bytes": 99300,
+    "root_arena_free_bytes": 19468,
+    "root_arena_peak_bytes": 116280,
+    "sampler_and_mask_reported_running": true,
+    "reported_faults": false,
+    "device_writes_resets_or_flashes": false
+  },
+  "signed_prefix_recovery": {
+    "verified_through_sequence": 360,
+    "original_batch_files": 351,
+    "manifest_sha256": "1fe61d688010a43a0164f7250d1ac841bcdb55d1460a97c4af031c1489886b9a",
+    "inspector_sha256": "da3ccb8e8f16075058d7e73b43564e7f6657b9f57fb280d8e2e1373a96100e5a",
+    "independent_original_root_pin_matched": true,
+    "private_files_fsynced_reopened_and_hash_checked_on_threebee_and_forebrain": true,
+    "selected_recorder_commit_or_ACK": false
+  },
+  "remaining_gates": [
+    "Root mutation and renewal fencing before moving live Body into job",
+    "Root finite workspace admission before consuming accepted input",
+    "Separately qualified source preparation/replay budget; SDK flash timing is not that witness",
+    "Typed Domain dispatch and original sampler WaitLane wiring",
+    "Physical continuous sampling/display during checkpoint and interruption/restart recovery",
+    "Actual installed Host membership and selected durable Back commitment"
+  ],
+  "separate_diagnostic_change": {
+    "commit": "39395c964a",
+    "cached_checkpoint_generation_and_length_only": true,
+    "no_storage_IO_or_new_flash_authority": true,
+    "target_deployment_verified": false
+  },
+  "logs": {
+    "owned-checkpoint-build.log": "9918b75521d1dd3873612c3568b2bdd51d078b2f81fd8bf6e4752981e7b5d7cb",
+    "owned-checkpoint-default.log": "324fac70ca6d98d020f80016ee18a6fd8bf4b6014de4a577b9fe7fec640e23c9",
+    "owned-checkpoint-test.log": "a457e64bffef4c45c3b97541a61ed883e9ccaae1800163d69cbb5bc167f94ebf"
+  }
+}
