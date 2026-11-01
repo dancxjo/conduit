@@ -300,6 +300,15 @@ pub(crate) struct InstalledTodoCheckpointOptions {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Explicitly establish this installed owner's durable receipt-signing identity.
+    EstablishRootSigner {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        body_id: String,
+        #[arg(long)]
+        authorize_establish: bool,
+    },
     /// Rename an existing environmental Body through its signed Root transaction.
     Rename(crate::body_rename::Args),
     /// Write, save and reopen the installed owner's bounded text notebook.

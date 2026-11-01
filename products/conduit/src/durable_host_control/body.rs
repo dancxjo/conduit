@@ -448,6 +448,20 @@ impl DurableHostRuntime {
         owner.acknowledge_native_mask_show(request, show)
     }
 
+    pub(super) fn establish_owned_root_signer(
+        &mut self,
+        body_id: &str,
+    ) -> Result<crate::durable_host::root_signer::Binding, String> {
+        match &mut self.host {
+            HostSource::Body {
+                owner,
+                root,
+                running: None,
+            } => crate::durable_host::owner::establish_root_signer(owner, root, body_id),
+            _ => Err("Root signer establishment requires an idle live Body owner".into()),
+        }
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -1052,4 +1066,47 @@ pub(crate) fn select_native_component_mask(
     _recipe: conduit_face::TodoComponentRecipe,
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(unix)]
+pub(crate) fn establish_root_signer(
+    state_dir: &Path,
+    body_id: &str,
+    authorized: bool,
+) -> Result<(), String> {
+    if !authorized {
+        return Err("Root signer establishment requires --authorize-establish".into());
+    }
+    match call(
+        state_dir,
+        Request::BodyEstablishRootSigner {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            body_id: body_id.into(),
+        },
+    )? {
+        Response::BodyRootSignerEstablished {
+            protocol: PROTOCOL,
+            binding,
+        } => {
+            // Public pin only; never serialize the private record through control/status.
+            println!(
+                "{}",
+                serde_json::to_string(&binding).map_err(|e| e.to_string())?
+            );
+            Ok(())
+        }
+        Response::Refused { code, .. } => Err(format!(
+            "Body owner refused Root signer establishment: {code}"
+        )),
+        _ => Err("Body owner returned the wrong Root signer response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn establish_root_signer(
+    _state_dir: &Path,
+    _body_id: &str,
+    _authorized: bool,
+) -> Result<(), String> {
+    Err("no reviewed local durable owner control carrier exists on this platform".into())
 }

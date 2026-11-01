@@ -100,7 +100,8 @@ fn clear_token(request: &mut Request) {
     match request {
         #[cfg(target_os = "linux")]
         Request::Notebook { token, .. } => token.fill(0),
-        Request::BodyInspect { token, .. }
+        Request::BodyEstablishRootSigner { token, .. }
+        | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
