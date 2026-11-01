@@ -2,6 +2,8 @@
 use conduit_plot::rust_binding::{validate_native_contracts, validate_native_invariants};
 use conduit_plot::{CanonicalStartupValue, CheckedSyntaxDocument};
 use std::{env, fs, path::PathBuf};
+#[path = "look_resources_build/components.rs"]
+mod components;
 
 pub fn generate(checked: &CheckedSyntaxDocument) {
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"));
@@ -10,6 +12,7 @@ pub fn generate(checked: &CheckedSyntaxDocument) {
         fs::write(output.join(format!("field-instrument-{name}.look")), bytes)
             .expect("retain exact checked Look value");
     }
+    components::generate(&output);
 }
 
 /// Syntax/shape checking and Native refinement admission are separate gates.
