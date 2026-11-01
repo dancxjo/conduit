@@ -327,14 +327,12 @@ impl NativeRoot {
             // Monitoring may request restoration, never spend an attempt.
             // Cold preparation supplies the actual admitted workspace.
             let workspace = false;
+            let observed_at = embassy_time::Instant::now().as_millis();
+            let available = self.play.observe_attachment_availability(observed_at);
             action = self
                 .network
                 .recovery
-                .poll(
-                    embassy_time::Instant::now().as_millis(),
-                    workspace,
-                    self.play.station_services_available(),
-                )
+                .poll(observed_at, workspace, available)
                 .unwrap_or(Action::None);
         }
         // Recovery emits restoration once. After actual cleanup, storage pressure

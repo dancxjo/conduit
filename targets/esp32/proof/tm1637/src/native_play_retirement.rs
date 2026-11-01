@@ -11,7 +11,7 @@ pub struct RetiredNetworkControl {
     pub(super) provider_generation: u64,
     pub(super) configuration_revision: u64,
     committed: bool,
-    station_outcome: Option<(Result<(), conduit_net::StationAttemptFailure>, u64)>,
+    station_outcome: station_outcome::StationOutcome,
     profile_settled: bool,
 }
 impl RetiredNetworkControl {
@@ -50,8 +50,7 @@ impl RetiredNetworkControl {
                 .ok_or("network-profile-source")?
                 .record_retired_outcome(
                     self.configuration_revision,
-                    self.station_outcome
-                        .map(|(outcome, at)| (outcome.is_ok(), at)),
+                    self.station_outcome.policy_outcome(),
                     now,
                 )?;
             self.profile_settled = true;

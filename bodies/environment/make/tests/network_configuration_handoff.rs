@@ -134,3 +134,6 @@ mod failover;
 
 #[path = "network_configuration_handoff/station_reconfiguration.rs"]
 mod station_reconfiguration;
+
+#[path = "network_configuration_handoff/attachment_loss.rs"]
+mod attachment_loss;

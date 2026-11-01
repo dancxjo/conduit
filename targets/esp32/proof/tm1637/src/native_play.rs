@@ -10,6 +10,8 @@ mod install_gate;
 pub mod journal;
 #[path = "native_play_retirement.rs"]
 mod retirement;
+#[path = "native_station_outcome.rs"]
+mod station_outcome;
 #[path = "native_play_verified.rs"]
 mod verified;
 use crate::native_authority::{Operation, RootIssuer};
