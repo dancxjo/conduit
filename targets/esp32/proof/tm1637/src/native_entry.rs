@@ -219,6 +219,7 @@ async fn main(spawner: Spawner) {
                     }
                     if embassy_time::Instant::now() >= next_report {
                         root.report_local_progress();
+                        root.report_observed_queue();
                         next_report =
                             embassy_time::Instant::now() + embassy_time::Duration::from_secs(15);
                     }

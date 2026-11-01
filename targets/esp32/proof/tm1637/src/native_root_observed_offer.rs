@@ -47,6 +47,15 @@ fn submit(request: Request) -> Reply {
     }
 }
 impl NativeRoot {
+    pub(crate) fn report_observed_queue(&self) {
+        let snapshot = MAILBOX.lock(|cell| cell.borrow().snapshot());
+        esp_println::println!(
+            "{{\"event\":\"observed-custody-queue\",\"submissions\":{},\"cache_hits\":{},\"takes\":{},\"completions\":{},\"pending\":{},\"inflight\":{},\"completed\":{},\"result\":{}}}",
+            snapshot.counts.submissions, snapshot.counts.cache_hits,
+            snapshot.counts.takes, snapshot.counts.completions,
+            snapshot.pending, snapshot.inflight, snapshot.completed, snapshot.result
+        );
+    }
     pub(crate) fn advance_observed_offer(&mut self) {
         if self.membership_busy() {
             return;
@@ -91,8 +100,8 @@ impl NativeRoot {
                 Ok(job) => self.observed_offer = Some(job),
                 Err(reason) => {
                     esp_println::println!(
-                        "{{\"event\":\"observed-custody-refused\",\"stage\":\"start\",\"reason\":\"{}\"}}",
-                        reason
+                        "{{\"event\":\"observed-custody-refused\",\"stage\":\"start\",\"slot\":{},\"reason\":\"{}\"}}",
+                        key.slot, reason
                     );
                     complete(key, Err(()));
                     return;
