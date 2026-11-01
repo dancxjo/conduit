@@ -10,6 +10,30 @@ pub(super) fn prove(
     host: &c::HostAdvertisement,
     signer: &SigningKey,
 ) -> (SealedBodyLifecycleSession, Request) {
+    let evidence_before = owner.evidence().clone();
+    let pending_before = serde_json::to_vec(owner.pending_archives()).unwrap();
+    let manager_before =
+        native_restart::with_admissions(|m| Ok(serde_json::to_vec(m).unwrap())).unwrap();
+    let generation_before = native_restart::generation();
+    let writes_before = native_evidence_region::writes();
+    let owner_pointer = &owner as *const _;
+    let report = native_restart::owned_checkpoint::probe(&owner, root).unwrap();
+    assert_eq!(Some(report.source_generation), generation_before);
+    assert!(report.source_bytes > 0 && report.output_bytes > 0);
+    assert_eq!(&owner as *const _, owner_pointer);
+    assert_eq!(owner.evidence(), &evidence_before);
+    assert_eq!(
+        serde_json::to_vec(owner.pending_archives()).unwrap(),
+        pending_before
+    );
+    assert_eq!(native_restart::generation(), generation_before);
+    assert!(native_restart::publication_ready());
+    assert_eq!(native_evidence_region::writes(), writes_before);
+    native_restart::with_admissions(|m| {
+        assert_eq!(serde_json::to_vec(m).unwrap(), manager_before);
+        Ok(())
+    })
+    .unwrap();
     let secret = conduit_body::SpawnInvitationSecret::from_csprng_bytes([151; 32]).unwrap();
     let bootstrap = native_body_join::issue(
         &mut owner,
