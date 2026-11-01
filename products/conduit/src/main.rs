@@ -377,6 +377,7 @@ fn main() {
             command:
                 Some(cli::BodyCommand::BrowserWindow {
                     state_dir,
+                    invited,
                     expected_host_id,
                     new_host_verifying_key,
                     maximum_millis,
@@ -385,6 +386,17 @@ fn main() {
         }) => {
             if !authorize_window {
                 Err("browser admission window requires --authorize-window".into())
+            } else if invited {
+                durable_host_control::start_invited_browser_window(&state_dir, maximum_millis)
+                    .and_then(|(invitation, authorization, url)| {
+                        let document = serde_json::json!({
+                            "schema":"conduit.body/browser-invitation-window@1",
+                            "invitation":invitation, "authorization":authorization,
+                            "url":url, "remote_execution":false,
+                        });
+                        println!("{}", serde_json::to_string(&document).map_err(|e| e.to_string())?);
+                        Ok(())
+                    })
             } else {
                 let key = new_host_verifying_key
                     .as_deref()
@@ -396,7 +408,7 @@ fn main() {
                 key.and_then(|key| {
                     durable_host_control::start_browser_window(
                         &state_dir,
-                        &expected_host_id,
+                        expected_host_id.as_deref().ok_or("exact browser Host is required outside invitation mode")?,
                         key,
                         maximum_millis,
                     )

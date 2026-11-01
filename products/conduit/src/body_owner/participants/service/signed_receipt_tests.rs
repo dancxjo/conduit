@@ -15,9 +15,24 @@ fn start(
     id: &str,
     boot: &str,
 ) -> (String, PortableInvitation, HostAdvertisement) {
-    let invitation = owner.issue_invitation(root, ttl, None).unwrap();
+    let (invitation, authorization) = owner
+        .browser_authorize_invitation_window(root, ttl * 1000)
+        .unwrap();
     let advertisement = host(id, boot).advertisement().clone();
-    let window = challenge(owner, &invitation, &advertisement, BROWSER_KEY);
+    let window = authorization.window_id;
+    owner
+        .browser_begin(
+            &window,
+            &"line/signed-browser".into(),
+            In::InvitedAdvertise {
+                protocol: PROTOCOL,
+                advertisement: advertisement.clone(),
+                claim: invitation.claim.clone(),
+                verifying_key: BROWSER_KEY.to_vec(),
+            },
+            512,
+        )
+        .unwrap();
     (window, invitation, advertisement)
 }
 fn challenge(

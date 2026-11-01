@@ -123,7 +123,8 @@ impl BrowserAdmittedSnapshot {
 
 pub(crate) struct BrowserWindow {
     id: String,
-    expected: HostId,
+    expected: Option<HostId>,
+    scope: BrowserWindowScope,
     new_key: Option<[u8; 32]>,
     invited_proof_refused: bool,
     clock: Instant,
@@ -134,6 +135,11 @@ pub(crate) struct BrowserWindow {
         conduit_face::ComponentMaskLook,
         conduit_std_host::browser_admission::BrowserComponentRecipe,
     )>,
+}
+
+enum BrowserWindowScope {
+    ExactHost,
+    InvitationScope(conduit_body::SpawnInvitationClaim),
 }
 
 enum WindowState {
@@ -297,6 +303,45 @@ impl BrowserWindow {
 }
 
 impl Owner {
+    /// Issue and durably retain one invitation before publishing its finite
+    /// fresh-endpoint window. No ambient or Return authorization is implied.
+    pub(crate) fn browser_authorize_invitation_window(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+    ) -> Result<(conduit_body::PortableInvitation, BrowserWindowAuthorization), String> {
+        if !(1000..=60_000).contains(&maximum_millis) || maximum_millis % 1000 != 0 {
+            return Err("invited browser window requires whole seconds in 1000..60000 ms".into());
+        }
+        if self.pending_browser.is_some() {
+            return Err("another browser admission window is active".into());
+        }
+        // Prepare fallible entropy before the durable invitation transaction.
+        let id = format!("browser-window/{}", hex(&nonce()?));
+        let invitation = self.issue_invitation(root, maximum_millis / 1000, None)?;
+        let clock = Instant::now();
+        self.pending_browser = Some(BrowserWindow {
+            id: id.clone(),
+            expected: None,
+            new_key: None,
+            scope: BrowserWindowScope::InvitationScope(invitation.claim.clone()),
+            invited_proof_refused: false,
+            clock,
+            deadline: clock + Duration::from_millis(maximum_millis),
+            state: WindowState::Ready,
+            component_mask_selection: None,
+        });
+        Ok((
+            invitation,
+            BrowserWindowAuthorization {
+                window_id: id,
+                body_id: self.session.evidence().body_id.clone(),
+                maximum_millis,
+                presence_maximum_millis: MAX_BROWSER_PRESENCE_MILLIS,
+            },
+        ))
+    }
+
     pub(crate) fn browser_authorize_window(
         &mut self,
         expected_host: &str,
@@ -338,7 +383,8 @@ impl Owner {
         let clock = Instant::now();
         self.pending_browser = Some(BrowserWindow {
             id: id.clone(),
-            expected,
+            expected: Some(expected),
+            scope: BrowserWindowScope::ExactHost,
             new_key,
             invited_proof_refused: false,
             clock,
