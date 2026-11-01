@@ -178,7 +178,7 @@ pub(super) fn reconcile(
     installation: &Installation,
     credential: &MembershipCredential,
 ) -> Result<MembershipCredential, String> {
-    let _lock = Lock::acquire(state)?;
+    let _lock = Lock::prepare(state)?;
     let renewal = reconcile_locked(state, record, installation, credential)?;
     if let Some(prepared) = renewal.prepared {
         // This exact next value was durably prepared by a verified protected
@@ -252,7 +252,7 @@ fn transaction(
     next: &MembershipCredential,
     boundary: impl FnMut(u8) -> Result<(), String>,
 ) -> Result<(), String> {
-    let _lock = Lock::acquire(state)?;
+    let _lock = Lock::prepare(state)?;
     transaction_locked(state, record, previous, next, boundary)
 }
 fn transaction_locked(

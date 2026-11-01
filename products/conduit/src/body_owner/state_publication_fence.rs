@@ -6,7 +6,7 @@ pub(super) fn require_current(
     incoming: &BodyBiographyEvidence,
     archives: &[BodyBiographyArchiveSegment],
 ) -> Result<(), String> {
-    let Some(current) = load(root)? else {
+    let Some(current) = load_current(root)? else {
         return Ok(());
     };
     if incoming.body_id != current.body_id

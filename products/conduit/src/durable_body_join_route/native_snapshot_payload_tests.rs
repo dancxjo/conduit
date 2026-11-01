@@ -4,6 +4,9 @@ use super::*;
 fn real_protected_peer_wrong_schema_or_body_is_refused() {
     for wrong_schema in [false, true] {
         let mut f = fixture();
+        let previous = f.client.as_ref().unwrap().advertisement().clone();
+        let private_before =
+            fs::read(f.client_control.root.join("body/native-part-private.json")).unwrap();
         let verified = control::native_snapshot::start(
             &f.owner.root,
             "host/snapshot-client",
@@ -102,6 +105,16 @@ fn real_protected_peer_wrong_schema_or_body_is_refused() {
             assert!(native_snapshot(f.client.take().unwrap(), &verified, client).is_err());
             worker.join().unwrap();
         });
+        let reopened = RetainedPart::open(&f.client_control.root, previous).unwrap();
+        let original: serde_json::Value = serde_json::from_slice(&private_before).unwrap();
+        assert_ne!(
+            serde_json::json!(reopened.credential().credential_id),
+            original["receipt"]["credential"]["credential_id"]
+        );
+        assert_eq!(
+            fs::read(f.client_control.root.join("body/native-part-private.json")).unwrap(),
+            private_before
+        );
         verify_offline(&f);
     }
 }

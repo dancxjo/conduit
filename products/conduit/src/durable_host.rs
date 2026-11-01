@@ -322,7 +322,7 @@ fn install_with_equipment(
 fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     let _host_ownership = owner_lock::acquire(state_dir)?;
     let _body_ownership = owner_lock::body(state_dir)?;
-    let _installation = installation_lock::InstallationLock::acquire(state_dir)?;
+    let _installation = installation_lock::InstallationLock::prepare(state_dir)?;
     let evidence_bytes = bounded_read(evidence_path, 2 * 1024 * 1024)?;
     let evidence: conduit_body::BodyBiographyEvidence = serde_json::from_slice(&evidence_bytes)
         .map_err(|error| format!("Body biography evidence: {error}"))?;

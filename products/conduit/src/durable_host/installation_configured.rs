@@ -37,7 +37,7 @@ pub(super) fn install_configured_with_todo(
 
     fs::create_dir_all(state_dir).map_err(|error| format!("create state directory: {error}"))?;
     restrict_directory(state_dir)?;
-    let _installation = super::installation_lock::InstallationLock::acquire(state_dir)?;
+    let _installation = super::installation_lock::InstallationLock::prepare(state_dir)?;
     crate::durable_host_control::ensure_secret(state_dir)?;
     let install_path = state_dir.join("installation.json");
     let existing = if install_path.exists() {

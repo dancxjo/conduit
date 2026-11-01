@@ -27,6 +27,12 @@ const MAXIMUM_ADMISSION_REQUEST: u64 = super::MAXIMUM_BODY_ADMISSION_BYTES;
 pub(super) fn recover_retained_state(root: &Path) -> Result<(), String> {
     state::recover(root)
 }
+pub(super) fn recover_retained_state_locked(
+    root: &Path,
+    guard: &super::installation_lock::InstallationLock,
+) -> Result<(), String> {
+    state::recover_locked(root, guard)
+}
 pub(crate) fn resume_service(
     host: conduit_std_host::StdHost,
     root: &Path,
@@ -367,5 +373,6 @@ pub(crate) use browser_completion::BrowserAdmissionCompletion;
     target_os = "linux"
 ))]
 pub(crate) use controller::{
-    source_recording_control_fixture, source_recording_control_multi_fixture, source_recording_control_read_grant,
+    source_recording_control_fixture, source_recording_control_multi_fixture,
+    source_recording_control_read_grant,
 };

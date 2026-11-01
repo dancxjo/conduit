@@ -311,6 +311,19 @@ fn protected_existing_part_returns_and_reads_exact_body_then_retires() {
         assert_eq!(evidence.session, f.selected);
         assert_eq!(evidence.window_id, verified.authorization().window_id);
         assert_eq!(evidence.credential_id, credential.credential_id.as_str());
+        let ad = control::current(&f.client_control.root)
+            .unwrap()
+            .advertisement;
+        let reopened = RetainedPart::open(&f.client_control.root, ad).unwrap();
+        assert_eq!(reopened.credential(), &credential);
+        let private: serde_json::Value = serde_json::from_slice(
+            &fs::read(f.client_control.root.join("body/native-part-private.json")).unwrap(),
+        )
+        .unwrap();
+        assert_ne!(
+            private["receipt"]["credential"]["credential_id"],
+            serde_json::json!(credential.credential_id)
+        );
     });
     verify_offline(&f);
 }

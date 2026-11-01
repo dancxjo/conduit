@@ -74,7 +74,7 @@ pub(super) fn complete_body_join_document(
     if !authorize_membership {
         return Err("retaining admitted body membership requires --authorize-membership".into());
     }
-    let _installation = super::installation_lock::InstallationLock::acquire(state_dir)?;
+    let _installation = super::installation_lock::InstallationLock::prepare(state_dir)?;
     let install_path = state_dir.join("installation.json");
     let mut installation = read_installation(&install_path)?;
     if installation.body_state.is_some() {
@@ -130,7 +130,7 @@ pub(crate) fn retain_rendezvous_membership(
     expected_body_id: &str,
     expected_advertisement: &HostAdvertisement,
 ) -> Result<(), String> {
-    let _installation = super::installation_lock::InstallationLock::acquire(state_dir)?;
+    let _installation = super::installation_lock::InstallationLock::prepare(state_dir)?;
     let mut installation = read_installation(&state_dir.join("installation.json"))?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
         return Err("this installed host already has current body state".into());

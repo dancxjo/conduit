@@ -6,6 +6,11 @@ use std::{
 };
 pub(crate) struct InstallationLock(File);
 impl InstallationLock {
+    pub(crate) fn prepare(root: &Path) -> Result<Self, String> {
+        let guard = Self::acquire(root)?;
+        super::owner::recover_retained_state_locked(root, &guard)?;
+        Ok(guard)
+    }
     pub(crate) fn acquire(root: &Path) -> Result<Self, String> {
         let mut options = OpenOptions::new();
         options.read(true).write(true).create(true).truncate(false);

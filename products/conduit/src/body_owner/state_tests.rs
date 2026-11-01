@@ -197,3 +197,61 @@ fn interrupted_publication_recovers_and_corruption_never_becomes_birth() {
     assert!(raw.body_state.is_some());
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn pending_owner_transaction_recovers_before_new_installation_metadata() {
+    use conduit_body::{Body, BodyBiographyEvidence, BodyMembership};
+    let (manifest, root) = crate::durable_host::tests::fixture();
+    let mut installed = crate::durable_host::install(&manifest, &root).unwrap();
+    let body = Body::born(
+        "source/installation-replay".into(),
+        "checked/installation-replay".into(),
+        1,
+        "sign/installation-replay".into(),
+    )
+    .unwrap();
+    let biography = BodyBiographyEvidence::born(
+        body.clone(),
+        BodyMembership::new(body.body_id.clone()).unwrap(),
+        "Replay".into(),
+    )
+    .unwrap();
+    retain(&root, &biography, None, None).unwrap();
+    installed = read_installation(&root.join("installation.json")).unwrap();
+    let transaction = Transaction {
+        schema: "conduit.body/owner-transaction@1".into(),
+        root_signer: None,
+        root_receipt: None,
+        biography: biography.clone(),
+        installation: installed,
+        last_execution: None,
+        execution_custody: None,
+        admissions: None,
+        source: None,
+        archives: Vec::new(),
+    };
+    write_json_atomic(&root.join("body/owner-transaction.json"), &transaction).unwrap();
+    let mut release: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest).unwrap()).unwrap();
+    release["source_identity"] = serde_json::json!("source/new-installation-metadata");
+    fs::write(&manifest, serde_json::to_vec_pretty(&release).unwrap()).unwrap();
+    crate::durable_host::install(&manifest, &root).unwrap();
+    assert!(!root.join("body/owner-transaction.json").exists());
+    recover(&root).unwrap();
+    let after = read_installation(&root.join("installation.json")).unwrap();
+    assert_eq!(
+        after.release_source_identity,
+        "source/new-installation-metadata"
+    );
+    assert_eq!(load(&root).unwrap().unwrap(), biography);
+    // Corrupt pending recovery refuses before a later installation can publish.
+    fs::write(
+        root.join("body/owner-transaction.json"),
+        b"interrupted-invalid",
+    )
+    .unwrap();
+    let before = fs::read(root.join("installation.json")).unwrap();
+    assert!(crate::durable_host::install(&manifest, &root).is_err());
+    assert_eq!(fs::read(root.join("installation.json")).unwrap(), before);
+    let _ = fs::remove_dir_all(root.parent().unwrap());
+}
