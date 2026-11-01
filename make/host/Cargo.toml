@@ -5,6 +5,7 @@ edition = "2021"
 description = "Bounded PROFILE validation and identity for Conduit Host make"
 
 [dependencies]
+conduit-rp2040-flash-layout = { path = "../../targets/rp2040/flash-layout" }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-face = { path = "../../semantics/face" }

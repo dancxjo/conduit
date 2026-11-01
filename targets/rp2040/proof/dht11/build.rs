@@ -2,11 +2,18 @@
 mod kernel_image;
 fn main() {
     let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
-    std::fs::write(out.join("memory.x"), include_bytes!("memory.x")).unwrap();
+    std::fs::write(
+        out.join("memory.x"),
+        format!(
+            "EXTERN(BOOT2_FIRMWARE)\n{}",
+            conduit_rp2040_flash_layout::LINKER_MEMORY_X
+        ),
+    )
+    .unwrap();
     println!("cargo:rustc-link-search={}", out.display());
     println!("cargo:rustc-link-arg=-Tlink.x");
     println!("cargo:rustc-link-arg=--nmagic");
-    println!("cargo:rerun-if-changed=memory.x");
+    println!("cargo:rerun-if-changed=../../deployment/browser/flash-layout.mjs");
     prepare_source(&out);
     if std::env::var_os("CARGO_FEATURE_KERNEL_EVALUATION").is_some() {
         kernel_image::prepare(&out);
@@ -32,7 +39,11 @@ fn prepare_source(out: &std::path::Path) {
         "Cargo.toml",
         "Cargo.lock",
         "build.rs",
-        "memory.x",
+        "../../deployment/browser/flash-layout.mjs",
+        "../../flash-layout/Cargo.toml",
+        "../../flash-layout/build.rs",
+        "../../flash-layout/build/definition.rs",
+        "../../flash-layout/src/lib.rs",
         "src/main.rs",
         "src/display_probe.rs",
         "src/http_ap.rs",

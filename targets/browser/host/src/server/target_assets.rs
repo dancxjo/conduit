@@ -4,6 +4,8 @@ const RP2040_INDEX: &[u8] = include_bytes!("../../../../rp2040/deployment/browse
 const RP2040_DEPLOYMENT: &[u8] =
     include_bytes!("../../../../rp2040/deployment/browser/deployment.mjs");
 const RP2040_PICOBOOT: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/picoboot.mjs");
+const RP2040_FLASH_LAYOUT: &[u8] =
+    include_bytes!("../../../../rp2040/deployment/browser/flash-layout.mjs");
 const RP2040_UF2: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/uf2.mjs");
 const RP2040_BOOTSEL: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/bootsel.mjs");
 const RP2040_SPAWN: &[u8] = include_bytes!("../../../../rp2040/deployment/browser/spawn.mjs");
@@ -29,6 +31,7 @@ pub(super) fn response(request: Option<&str>) -> Option<(&'static str, &'static 
         "GET /targets/rp2040/browser-deployment/deployment.mjs HTTP/1.1" => RP2040_DEPLOYMENT,
         "GET /targets/rp2040/browser-deployment/picoboot.mjs HTTP/1.1" => RP2040_PICOBOOT,
         "GET /targets/rp2040/browser-deployment/uf2.mjs HTTP/1.1" => RP2040_UF2,
+        "GET /targets/rp2040/browser-deployment/flash-layout.mjs HTTP/1.1" => RP2040_FLASH_LAYOUT,
         "GET /targets/rp2040/browser-deployment/bootsel.mjs HTTP/1.1" => RP2040_BOOTSEL,
         "GET /targets/rp2040/browser-deployment/spawn.mjs HTTP/1.1" => RP2040_SPAWN,
         "GET /targets/rp2040/browser-deployment/make.mjs HTTP/1.1" => RP2040_MAKE,
