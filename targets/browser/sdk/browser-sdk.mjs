@@ -260,6 +260,7 @@ export class BrowserBodyParticipation {
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
     }
+    const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
     const preferences = {
       ...ownerVisualPreferences(this.#state, options),
       forced_colors: mediaMatches('(forced-colors: active)'),
@@ -269,7 +270,6 @@ export class BrowserBodyParticipation {
     return prepareOwnerFaceShow(this.#state, epoch,
       () => this.ownerFaceSnapshot(ownerFaceSnapshotOptions(this.#state, options, preferences)),
       frame => {
-        const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
         const view = this.#state.host.bridge.ownerFacePrepare({
           body_id: bodyId, host_id: hostId, boot_id: bootId,
           visual_constraints: preferences,

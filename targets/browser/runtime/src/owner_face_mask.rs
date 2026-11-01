@@ -193,7 +193,6 @@ struct OwnerBrowserMask {
 }
 
 impl OwnerBrowserMask {
-
     fn acknowledge(&mut self, ack: Acknowledgement) -> Result<(), String> {
         if ack.show_id != self.show.show_id.as_str()
             || ack.face_id != self.face.identity.as_str()

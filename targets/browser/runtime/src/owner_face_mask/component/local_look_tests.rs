@@ -104,6 +104,8 @@ fn local_metrics_change_selected_resource_without_rewriting_planned_author_or_fa
             local_look: Some(proposal(vec![
                 LocalLookVisualOverride::TypeBodyPx(20),
                 LocalLookVisualOverride::SpacePanelPx(0),
+                LocalLookVisualOverride::RadiusControlPx(20),
+                LocalLookVisualOverride::RadiusPanelPx(12),
             ])),
             ..user()
         },
@@ -120,6 +122,8 @@ fn local_metrics_change_selected_resource_without_rewriting_planned_author_or_fa
     };
     assert_eq!(*visual.tokens().type_body_px(), 20);
     assert_eq!(*visual.tokens().space_panel_px(), 0);
+    assert_eq!(*visual.tokens().radius_control_px(), 20);
+    assert_eq!(*visual.tokens().radius_panel_px(), 12);
     assert_ne!(look.identity(), selected(&baseline).identity());
     let view = mask.view();
     assert_eq!(
@@ -139,7 +143,12 @@ fn local_metrics_change_selected_resource_without_rewriting_planned_author_or_fa
     let provenance = serde_json::to_value(&mask.component.as_ref().unwrap().local_look).unwrap();
     assert_eq!(
         provenance["overridden_fields"],
-        serde_json::json!(["type_body_px", "space_panel_px"])
+        serde_json::json!([
+            "type_body_px",
+            "space_panel_px",
+            "radius_control_px",
+            "radius_panel_px"
+        ])
     );
     assert_eq!(provenance["contrast"], "checked-nominal-tokens");
     assert!(
@@ -233,6 +242,16 @@ fn unconfigured_mask_refuses_local_preferences_instead_of_ignoring_them() {
 #[test]
 #[ignore = "requires explicitly supplied retained real environmental and Todo Face exports"]
 fn personal_field_looks_prepare_real_faces_without_changing_planned_author() {
+    qualify_real_faces(false);
+}
+
+#[test]
+#[ignore = "requires explicitly supplied retained real environmental and Todo Face exports"]
+fn personal_corner_looks_prepare_real_faces_without_changing_planned_author() {
+    qualify_real_faces(true);
+}
+
+fn qualify_real_faces(corners: bool) {
     #[derive(serde::Deserialize)]
     struct Export {
         face: Face,
@@ -262,10 +281,19 @@ fn personal_field_looks_prepare_real_faces_without_changing_planned_author() {
                 let mask = prepare_source(
                     &export.face,
                     component::VisualConstraints {
-                        local_look: Some(proposal(vec![
-                            LocalLookVisualOverride::TypeBodyPx(20),
-                            LocalLookVisualOverride::SpacePanelPx(0),
-                        ])),
+                        local_look: Some(proposal(if corners {
+                            vec![
+                                LocalLookVisualOverride::TypeBodyPx(20),
+                                LocalLookVisualOverride::TypeSmallPx(18),
+                                LocalLookVisualOverride::RadiusControlPx(20),
+                                LocalLookVisualOverride::RadiusPanelPx(20),
+                            ]
+                        } else {
+                            vec![
+                                LocalLookVisualOverride::TypeBodyPx(20),
+                                LocalLookVisualOverride::SpacePanelPx(0),
+                            ]
+                        })),
                         ..user()
                     },
                     source,
@@ -287,7 +315,13 @@ fn personal_field_looks_prepare_real_faces_without_changing_planned_author() {
                     panic!("visual")
                 };
                 assert_eq!(*visual.tokens().type_body_px(), 20);
-                assert_eq!(*visual.tokens().space_panel_px(), 0);
+                if corners {
+                    assert_eq!(*visual.tokens().type_small_px(), 18);
+                    assert_eq!(*visual.tokens().radius_control_px(), 20);
+                    assert_eq!(*visual.tokens().radius_panel_px(), 20);
+                } else {
+                    assert_eq!(*visual.tokens().space_panel_px(), 0);
+                }
                 assert!(!mask.view().interactions_admitted);
                 let view = serde_json::to_vec(&mask.view()).unwrap();
                 assert!(
@@ -298,7 +332,14 @@ fn personal_field_looks_prepare_real_faces_without_changing_planned_author() {
                 if let Some(directory) = &capture {
                     let directory = directory.join(name);
                     std::fs::create_dir_all(&directory).unwrap();
-                    std::fs::write(directory.join(format!("{root}-personal.json")), view).unwrap();
+                    std::fs::write(
+                        directory.join(format!(
+                            "{root}-personal{}.json",
+                            if corners { "-corners" } else { "" }
+                        )),
+                        view,
+                    )
+                    .unwrap();
                 }
             }
         }

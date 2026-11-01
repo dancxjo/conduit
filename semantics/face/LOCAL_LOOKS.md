@@ -60,9 +60,16 @@ preparation before a usable Show; an unconfigured Mask cannot silently ignore
 them. Omitting these options retains existing behavior.
 
 This is browser preparation integration, not a claim of live DOM/owner action
-delivery or WCAG conformance. Appearance UI, durable preference storage and the
-native consumer remain separate work; the current Threebee preferences are
+delivery or WCAG conformance. Appearance UI, durable preference storage and physical
+deployment remain separate work; the current Threebee preferences are
 untouched.
+
+Browser preparation requires a full owner snapshot for nondefault user or
+platform constraints and for clearing a previously prepared nondefault context.
+The SDK snapshots text-scale, forced-colors and reduced-motion preferences before
+awaiting the owner response. An unchanged response cannot acknowledge applying
+or clearing those preferences; the ABI preserves the prior available Show and
+requests a full snapshot instead. These local preferences stay off the owner Line.
 
 Concrete startup defaults and explicit arguments must satisfy the same retained
 Source laws, including bounds below a sequence/variant path. The tests keep the
@@ -96,9 +103,3 @@ CPU pixel writes and matched canonical native/browser selections are software
 evidence; physical output, complete accessibility and Host deployment require
 their own qualification. Appearance UI and durable preferences are not added.
 
-Browser preparation requires a full owner snapshot for nondefault user or
-platform constraints and for clearing a previously prepared nondefault context.
-The SDK snapshots text-scale, forced-colors and reduced-motion preferences before
-awaiting the owner response. An unchanged response cannot acknowledge applying
-or clearing those preferences; the ABI preserves the prior available Show and
-requests a full snapshot instead. These local preferences stay off the owner Line.
