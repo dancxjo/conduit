@@ -19,6 +19,7 @@ pub(super) struct Artifacts {
     previous_pixels: Option<String>,
     viewport: Option<super::proof_viewport::Viewport>,
     viewport_focus_seen: bool,
+    serial_observation: Option<super::serial_observation::SerialObservation>,
 }
 impl Artifacts {
     pub(super) fn new(
@@ -30,16 +31,21 @@ impl Artifacts {
         context["visual_contract"] = json!({"mode":"invariant", "width":1280, "height":800,
             "minimum_non_background_pixels":64,"dynamic_identity_pixels":"allowed", "display":"std-vga"});
         context["capture_contract"] = json!({"maximum_checkpoints": DEFAULT_MAX_CHECKPOINTS});
+        let started = Instant::now();
+        context["observer_clock"] = json!({"id":super::observation_clock::ID,
+            "start_ns":0,"origin":"shared journey QMP/frame Instant",
+            "scope":"host observation; QMP acceptance is not guest consumption or first visible paint"});
         let result = Self {
             directory,
             serial,
-            started: Instant::now(),
+            started,
             entries: Vec::with_capacity(DEFAULT_MAX_CHECKPOINTS),
             capture_limit: DEFAULT_MAX_CHECKPOINTS,
             context,
             previous_pixels: None,
             viewport: None,
             viewport_focus_seen: false,
+            serial_observation: None,
         };
         result.write("running", None)?;
         Ok(result)
@@ -68,6 +74,32 @@ impl Artifacts {
 
     pub(super) fn observation_origin(&self) -> Instant {
         self.started
+    }
+
+    /// Admit raw replay observation before the ordinary journey starts.
+    pub(super) fn with_latency_observation(
+        mut self,
+        enabled: bool,
+    ) -> Result<Self, ConduitosError> {
+        if !self.entries.is_empty() || self.serial_observation.is_some() {
+            return Err(ConduitosError::refusal(
+                "qemu-serial-observation-admission",
+                "observation must be admitted once before capture",
+            ));
+        }
+        self.context["host_latency_observation"] = json!(enabled);
+        if enabled {
+            self.serial_observation = Some(super::serial_observation::SerialObservation::start(
+                self.serial.clone(),
+                self.directory.join("serial-observations.jsonl"),
+                self.started,
+            )?);
+            self.context["serial_observation"] = json!({"file":"serial-observations.jsonl",
+                "clock":super::observation_clock::ID,"scope":"host reads of completed raw serial records",
+                "maximum_serial_bytes":16777216,"maximum_records":32768,"poll_millis":1});
+        }
+        self.write("running", None)?;
+        Ok(self)
     }
 
     /// Prepare a finite capture plan before the journey starts. Once any
@@ -102,6 +134,7 @@ impl Artifacts {
             ));
         }
         let observation_start_ns = self.started.elapsed().as_nanos();
+        let capture_started_ns = observation_start_ns;
         let mut serial = Vec::new();
         fs::File::open(&self.serial)
             .map_err(io_error)?
@@ -146,6 +179,7 @@ impl Artifacts {
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
         let frame_response_end_ns = self.started.elapsed().as_nanos();
+        let capture_completed_ns = frame_response_end_ns;
         let health_refusal = health_refusal.or_else(|| {
             if self
                 .viewport
@@ -183,6 +217,7 @@ impl Artifacts {
                 "checkpoint_start":observation_start_ns,"frame_request_start":frame_request_start_ns,
                 "frame_response_end":frame_response_end_ns,
                 "interpretation":"Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance."},
+            "capture_started_ns":capture_started_ns,"capture_completed_ns":capture_completed_ns,
             "guest_record":record,"guest_boot_record":boot,"native_receipts":native,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
             "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
         self.previous_pixels = Some(pixels);
@@ -213,6 +248,12 @@ impl Artifacts {
     }
 
     pub(super) fn finish(&self, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
+        if let Some(observer) = &self.serial_observation {
+            if let Err(error) = observer.finish() {
+                self.write("failed", Some(&error))?;
+                return Err(error);
+            }
+        }
         if failure.is_none() && self.viewport.is_some() && !self.viewport_focus_seen {
             let error = ConduitosError::refusal(
                 "proof-viewport-mismatch",
@@ -220,6 +261,17 @@ impl Artifacts {
             );
             self.write("failed", Some(&error))?;
             return Err(error);
+        }
+        if failure.is_none() && self.serial_observation.is_some() {
+            if let Err(error) = super::journey_latency::retain(
+                &self.directory,
+                &self.serial,
+                &self.context,
+                &self.entries,
+            ) {
+                self.write("failed", Some(&error))?;
+                return Err(error);
+            }
         }
         self.write(
             if failure.is_some() {
@@ -232,10 +284,26 @@ impl Artifacts {
     }
 
     fn write(&self, status: &str, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
+        let serial_observation = if status != "running" && self.serial_observation.is_some() {
+            Some(
+                json!({"file":"serial-observations.jsonl", "sha256":super::report::sha256_file(
+                &self.directory.join("serial-observations.jsonl"))?}),
+            )
+        } else {
+            None
+        };
+        let latency = if status == "complete" && self.serial_observation.is_some() {
+            Some(
+                json!({"file":"latency.json", "sha256":super::report::sha256_file(
+                &self.directory.join("latency.json"))?}),
+            )
+        } else {
+            None
+        };
         let manifest = json!({"schema":"conduit.conduitos/visual-journey@1","proof_class":"freestanding-emulator",
             "status":status,"context":self.context,"checkpoints":self.entries,
             "failure":failure.map(|error|json!({"reason":error.reason,"detail":error.detail})),
-            "serial_path":self.serial});
+            "serial_path":self.serial,"serial_observation":serial_observation,"latency":latency});
         fs::write(
             self.directory.join("manifest.json"),
             serde_json::to_vec_pretty(&manifest).expect("serializable manifest"),
