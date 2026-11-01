@@ -245,3 +245,192 @@ fn source_publication_stale_or_missing_grant_retains_original_prefix() {
     assert_eq!(std::fs::read_dir(&disk).unwrap().count(), 0);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+fn finish_worker(root: &Path, owner: &mut Owner, mut worker: super::super::super::RunWorker) {
+    let until = Instant::now() + Duration::from_secs(10);
+    while !worker.progress(owner, root).unwrap() {
+        assert!(
+            Instant::now() < until,
+            "selected storage worker did not finish"
+        );
+        std::thread::sleep(Duration::from_millis(5));
+    }
+}
+fn independent_read_grant(owner: &mut Owner) -> c::AuthorityGrant {
+    let reference = owner
+        .source_recording_stage
+        .as_ref()
+        .unwrap()
+        .prepared
+        .as_ref()
+        .unwrap()
+        .reference
+        .clone();
+    owner
+        .host
+        .current_mut()
+        .select_body_storage_generation(BodyStorageGenerationRequest {
+            snapshot: Some(BodyStorageSnapshotRequest {
+                reference,
+                access: c::ResourceAccessMode::ReadPublished,
+            }),
+            state: None,
+        })
+        .unwrap();
+    let resource = owner
+        .host
+        .selected_body_storage_generation()
+        .unwrap()
+        .snapshot_resource()
+        .unwrap();
+    let offer = conduit_std_host::linux_snapshot::offer_for_resource(resource).unwrap();
+    assert_eq!(
+        offer.implementation.implementation_id.as_str(),
+        conduit_std_host::linux_snapshot::READ
+    );
+    let requirement = &offer.authority_requirements[0];
+    // Explicit fixture Root read authorization is independent of the prior
+    // publication grant; neither the reference nor helper creates authority.
+    c::AuthorityGrant {
+        grant_id: "fixture/independent-snapshot-read-grant".into(),
+        contract_id: requirement.contract_id.clone(),
+        host_call_contract_id: requirement.host_call_contract_id.clone(),
+        subject_kind: requirement.subject_kind.clone(),
+        host_id: owner.host.advertisement().host_id.clone(),
+        boot_id: owner.host.advertisement().boot_id.clone(),
+        capability_id: offer.capability_id.clone(),
+    }
+}
+#[test]
+fn source_readback_worker_uses_independent_authority_and_retains_original_canonical_bytes() {
+    let (root, disk, mut owner, publish) = fixture();
+    let body = owner.session.evidence().body_id.clone();
+    let boot = owner.host.advertisement().boot_id.clone();
+    let stage = owner.source_recording_stage.as_ref().unwrap();
+    let original = stage.observations().next().unwrap().canonical().to_vec();
+    let content = stage
+        .prepared
+        .as_ref()
+        .unwrap()
+        .snapshot
+        .content()
+        .unwrap()
+        .to_vec();
+    let pointer = stage
+        .prepared
+        .as_ref()
+        .unwrap()
+        .snapshot
+        .content()
+        .unwrap()
+        .as_ptr();
+    let worker = owner
+        .start_service_source_publication(&root, 5000, &publish, 1024 * 1024)
+        .unwrap();
+    finish_worker(&root, &mut owner, worker);
+    assert_eq!(
+        owner.last_execution.as_ref().unwrap()["source_publication"]["publication_completed"],
+        true
+    );
+    assert!(owner
+        .start_service_source_readback(&root, 5000, &publish, 1024 * 1024)
+        .is_err());
+    assert!(owner.session.realization().is_none());
+    assert_eq!(owner.source_recording_stage.as_ref().unwrap().len(), 1);
+    let read = independent_read_grant(&mut owner);
+    assert_ne!(read.host_call_contract_id, publish.host_call_contract_id);
+    assert_ne!(read.capability_id, publish.capability_id);
+    // The admitted file/read authority suffices without a retained publication
+    // reply. Clearing this process-local receipt does not manufacture a file.
+    owner.last_execution = None;
+    owner.persist(&root).unwrap();
+    let worker = owner
+        .start_service_source_readback(&root, 5000, &read, 1024 * 1024)
+        .unwrap();
+    finish_worker(&root, &mut owner, worker);
+    assert!(!owner.host.is_playing());
+    assert!(owner.current_play_id().is_none());
+    assert_eq!(owner.session.evidence().body_id, body);
+    assert_eq!(
+        owner.host.advertisement().host_id.as_str(),
+        "host/publication"
+    );
+    assert_eq!(owner.host.advertisement().boot_id, boot);
+    let stage = owner.source_recording_stage.as_ref().unwrap();
+    assert_eq!(stage.len(), 1);
+    assert_eq!(stage.observations().next().unwrap().canonical(), original);
+    assert_eq!(
+        stage.prepared.as_ref().unwrap().snapshot.content().unwrap(),
+        content
+    );
+    assert_eq!(
+        stage
+            .prepared
+            .as_ref()
+            .unwrap()
+            .snapshot
+            .content()
+            .unwrap()
+            .as_ptr(),
+        pointer
+    );
+    let receipt = owner.last_execution.as_ref().unwrap();
+    assert_eq!(
+        receipt["source_readback"]["snapshot_readback_completed"], true,
+        "{receipt}"
+    );
+    assert_eq!(receipt["source_readback"]["matching_content_fore"], true);
+    assert_eq!(
+        receipt["source_readback"]["producer_retirement_authorized"],
+        false
+    );
+    assert_eq!(receipt["source_recording_pending"]["count"], 1);
+    assert_eq!(std::fs::read_dir(&disk).unwrap().count(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn source_readback_corrupt_snapshot_never_claims_matching_content_or_discards_prefix() {
+    let (root, disk, mut owner, publish) = fixture();
+    let worker = owner
+        .start_service_source_publication(&root, 5000, &publish, 1024 * 1024)
+        .unwrap();
+    finish_worker(&root, &mut owner, worker);
+    assert_eq!(
+        owner.last_execution.as_ref().unwrap()["source_publication"]["publication_completed"],
+        true
+    );
+    let read = independent_read_grant(&mut owner);
+    let file = std::fs::read_dir(&disk)
+        .unwrap()
+        .next()
+        .unwrap()
+        .unwrap()
+        .path();
+    // Deliberate fixture fault only. Success still requires the ordinary
+    // admitted resource/read-json-snapshot Body Play, never this direct IO.
+    std::fs::write(file, b"corrupt snapshot envelope").unwrap();
+    let worker = owner
+        .start_service_source_readback(&root, 5000, &read, 1024 * 1024)
+        .unwrap();
+    finish_worker(&root, &mut owner, worker);
+    assert!(!owner.host.is_playing());
+    assert!(owner.current_play_id().is_none());
+    let receipt = owner.last_execution.as_ref().unwrap();
+    assert_eq!(
+        receipt["source_readback"]["snapshot_readback_completed"], false,
+        "{receipt}"
+    );
+    assert_eq!(receipt["source_readback"]["matching_content_fore"], false);
+    assert_eq!(
+        receipt["source_readback"]["producer_retirement_authorized"],
+        false
+    );
+    assert_eq!(owner.source_recording_stage.as_ref().unwrap().len(), 1);
+    assert!(owner
+        .source_recording_stage
+        .as_ref()
+        .unwrap()
+        .prepared
+        .is_some());
+    std::fs::remove_dir_all(root).unwrap();
+}
