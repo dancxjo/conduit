@@ -136,3 +136,16 @@ impl<'a> BodyKernel<'a> {
         Ok(())
     }
 }
+
+impl BodyKernel<'_> {
+    /// The resource snapshot protocol is also used by the exact prepared Text
+    /// file provider. Contract identity alone cannot select its realization.
+    pub(super) fn requires_snapshot_custody(&self, operation: &LoweredHostCall) -> bool {
+        super::super::linux_snapshot_host::is_operation(operation.contract_id.as_str())
+            && !self.native.contains(operation.node)
+            && !self
+                .data_text_hosts
+                .iter()
+                .any(|host| host.contains_node(operation.node))
+    }
+}

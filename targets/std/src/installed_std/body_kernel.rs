@@ -795,9 +795,11 @@ impl<'a> BodyKernel<'a> {
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
         #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
-        if self.operations.iter().any(|operation| {
-            super::linux_snapshot_host::is_operation(operation.contract_id.as_str())
-        }) && self.snapshot.is_none()
+        if self
+            .operations
+            .iter()
+            .any(|operation| self.requires_snapshot_custody(operation))
+            && self.snapshot.is_none()
         {
             return Err(
                 "planned Body snapshot has no selected directory/resource/grant custody".into(),
@@ -1085,7 +1087,7 @@ impl<'a> BodyKernel<'a> {
                         continue;
                     }
                     #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
-                    if super::linux_snapshot_host::is_operation(operation.contract_id.as_str()) {
+                    if self.requires_snapshot_custody(operation) {
                         self.snapshot
                             .as_mut()
                             .ok_or("Body snapshot custody absent")?
