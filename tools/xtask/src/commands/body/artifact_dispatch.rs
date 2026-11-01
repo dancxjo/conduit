@@ -37,10 +37,15 @@ impl std::error::Error for BatchArtifactRefusal {}
 
 // Selection comes from the checked make package, never a friendly Host name or
 // a guessed board. A packaging class alone does not prove a PROFILE lowerer.
-fn select(output: &SporeOutputKind, builder: &str) -> Result<ArtifactProducer, &'static str> {
+fn select(
+    output: &SporeOutputKind,
+    builder: &str,
+    target: &str,
+    package: &str,
+) -> Result<ArtifactProducer, &'static str> {
     use SporeOutputKind::*;
     match (output, builder) {
-        (BrowserBundle, "conduit-host-browser/bind-prebuilt@1") => Ok(ArtifactProducer::BrowserBundle),
+        (BrowserBundle, "conduit-host-browser/bind-prebuilt@1") if target == "browser/wasm32/page" && package == "browser-wasm@1" => Ok(ArtifactProducer::BrowserBundle),
         (BrowserBundle, _) => Err("the selected browser package has no registered configured-runtime producer"),
         (Uf2, _) => Err("a UF2 Spore binder exists, but this selected PROFILE has no admitted runtime-payload producer in ordinary Body fabrication"),
         (Esp32Image, _) => Err("an ESP32 Spore binder exists, but this selected PROFILE has no admitted runtime-payload producer in ordinary Body fabrication"),
@@ -56,7 +61,12 @@ pub(super) fn plan(spores: &[BuiltSpore]) -> Result<Vec<ArtifactProducer>, Batch
     let mut producers = Vec::with_capacity(spores.len());
     let mut refusals = Vec::new();
     for spore in spores {
-        match select(&spore.manifest.output, &spore.manifest.make.builder_adapter) {
+        match select(
+            &spore.manifest.output,
+            &spore.manifest.make.builder_adapter,
+            &spore.manifest.target,
+            &spore.manifest.make.make_package_id,
+        ) {
             Ok(producer) => producers.push(producer),
             Err(missing) => refusals.push(HostArtifactRefusal {
                 host: spore.manifest.host_entry_name.clone(),
@@ -119,11 +129,19 @@ mod tests {
         assert_eq!(
             select(
                 &SporeOutputKind::BrowserBundle,
-                "conduit-host-browser/bind-prebuilt@1"
+                "conduit-host-browser/bind-prebuilt@1",
+                "browser/wasm32/page",
+                "browser-wasm@1"
             ),
             Ok(ArtifactProducer::BrowserBundle)
         );
-        assert!(select(&SporeOutputKind::BrowserBundle, "unreviewed/browser").is_err());
+        assert!(select(
+            &SporeOutputKind::BrowserBundle,
+            "unreviewed/browser",
+            "browser/wasm32/page",
+            "browser-wasm@1"
+        )
+        .is_err());
         assert!(select(
             &SporeOutputKind::Uf2,
             "conduit-host-browser/bind-prebuilt@1"
@@ -138,7 +156,7 @@ mod tests {
             SporeOutputKind::IntelHex,
             SporeOutputKind::SdImage,
         ] {
-            assert!(select(&output, "descriptor-only").is_err());
+            assert!(select(&output, "descriptor-only", "unknown", "unknown").is_err());
         }
     }
 }
