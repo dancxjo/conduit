@@ -1,4 +1,4 @@
-//! Fixed-radius rectangle rasterization, clipped without inventing new borders.
+//! Resolved rectangle rasterization, clipped without inventing new borders.
 use super::{DisplayError, DisplayReceipt, GraphicsShapeStyle, LayoutRect, PixelTarget, put};
 
 fn contains(x: i32, y: i32, width: i32, height: i32, radius: i32) -> bool {
@@ -11,27 +11,49 @@ fn contains(x: i32, y: i32, width: i32, height: i32, radius: i32) -> bool {
     dx * dx + dy * dy <= radius * radius
 }
 
+// Coordinates use eighth-pixel units. The aliased explicit-metric route samples
+// pixel centers; the retained route uses the same geometry at 16 coverage sites.
+fn contains_subpixel(x: i32, y: i32, width: i32, height: i32, radius: i32) -> bool {
+    if x < 0 || y < 0 || x >= width || y >= height {
+        return false;
+    }
+    let radius = radius.min(width / 2).min(height / 2);
+    let dx = (radius - x).max(x - (width - radius)).max(0);
+    let dy = (radius - y).max(y - (height - radius)).max(0);
+    dx * dx + dy * dy <= radius * radius
+}
+
 pub(super) fn render(
     target: &mut impl PixelTarget,
-    bounds: LayoutRect,
+    command: &conduit_face::GraphicsCommand,
     clip: LayoutRect,
-    shape: GraphicsShapeStyle,
     color: u32,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
-    let radius = i32::from(super::RADIUS);
-    let border = i32::from(super::BORDER);
+    let bounds = command.bounds;
+    let shape = command.style;
+    let (radius, border) = command.rect_metrics().map_or(
+        (i32::from(super::RADIUS), i32::from(super::BORDER)),
+        |(radius, border)| (i32::from(radius), i32::from(border)),
+    );
+    let inside = |x, y, width, height, radius| {
+        if command.rect_metrics().is_some() {
+            contains_subpixel(x * 8 + 4, y * 8 + 4, width * 8, height * 8, radius * 8)
+        } else {
+            contains(x, y, width, height, radius)
+        }
+    };
     let width = i32::from(bounds.width);
     let height = i32::from(bounds.height);
     for y in i32::from(clip.y)..i32::from(clip.y) + i32::from(clip.height) {
         for x in i32::from(clip.x)..i32::from(clip.x) + i32::from(clip.width) {
             let local_x = x - i32::from(bounds.x);
             let local_y = y - i32::from(bounds.y);
-            if !contains(local_x, local_y, width, height, radius) {
+            if !inside(local_x, local_y, width, height, radius) {
                 continue;
             }
             if shape == GraphicsShapeStyle::RoundedStroke
-                && contains(
+                && inside(
                     local_x - border,
                     local_y - border,
                     width - 2 * border,
@@ -50,29 +72,25 @@ pub(super) fn render(
 #[cfg(feature = "native-compositor-core")]
 pub(super) fn render_smooth(
     target: &mut impl super::RetainedPixelTarget,
-    bounds: LayoutRect,
+    command: &conduit_face::GraphicsCommand,
     clip: LayoutRect,
-    shape: GraphicsShapeStyle,
     color: u32,
     receipt: &mut DisplayReceipt,
 ) -> Result<(), DisplayError> {
+    let bounds = command.bounds;
+    let shape = command.style;
+    let (radius, border) = command.rect_metrics().map_or(
+        (i32::from(super::RADIUS), i32::from(super::BORDER)),
+        |(radius, border)| (i32::from(radius), i32::from(border)),
+    );
     let width = i32::from(bounds.width) * 8;
     let height = i32::from(bounds.height) * 8;
-    let radius = i32::from(super::RADIUS) * 8;
-    let border = i32::from(super::BORDER) * 8;
-    let inside = |x: i32, y: i32, w: i32, h: i32, r: i32| {
-        if x < 0 || y < 0 || x >= w || y >= h {
-            return false;
-        }
-        let r = r.min(w / 2).min(h / 2);
-        let dx = (r - x).max(x - (w - r)).max(0);
-        let dy = (r - y).max(y - (h - r)).max(0);
-        dx * dx + dy * dy <= r * r
-    };
+    let radius = radius * 8;
+    let border = border * 8;
     super::coverage::raster(target, bounds, clip, color, receipt, |x, y| {
-        inside(x, y, width, height, radius)
+        contains_subpixel(x, y, width, height, radius)
             && (shape != GraphicsShapeStyle::RoundedStroke
-                || !inside(
+                || !contains_subpixel(
                     x - border,
                     y - border,
                     width - 2 * border,
@@ -121,9 +139,14 @@ mod tests {
         let mut receipt = DisplayReceipt::default();
         render(
             &mut Target,
-            bounds,
+            &conduit_face::GraphicsCommand::rect(
+                bounds,
+                bounds,
+                conduit_face::GraphicsPaintRole::Border,
+                GraphicsShapeStyle::RoundedStroke,
+            )
+            .unwrap(),
             clip,
-            GraphicsShapeStyle::RoundedStroke,
             1,
             &mut receipt,
         )
@@ -147,3 +170,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(all(test, feature = "native-compositor-core"))]
+#[path = "rectangle_metric_tests.rs"]
+mod metric_tests;

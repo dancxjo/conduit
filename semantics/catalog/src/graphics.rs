@@ -30,7 +30,7 @@ pub const PAINT_KEY: &str = "paint";
 pub const STYLE_KEY: &str = "style";
 pub const GRAPHICS_TEXT_KEY: &str = "text";
 pub const GRAPHICS_ICON_KEY: &str = "icon";
-pub const GRAPHICS_SCENE_CONTRACT_REVISION: &str = "conduit.std/graphics-scene@1";
+pub const GRAPHICS_SCENE_CONTRACT_REVISION: &str = "conduit.std/graphics-scene@2";
 
 pub fn graphics_rect_contract() -> StandardKindContract {
     contract(

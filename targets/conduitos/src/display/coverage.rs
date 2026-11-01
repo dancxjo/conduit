@@ -18,7 +18,7 @@ pub(super) fn render_command(
                 GraphicsShapeStyle::RoundedFill | GraphicsShapeStyle::RoundedStroke
             ) =>
         {
-            rounded::render_smooth(target, command.bounds, clip, command.style, color, receipt)
+            rounded::render_smooth(target, command, clip, color, receipt)
         }
         GraphicsCommandKind::Icon => icons::draw_smooth(target, command, clip, color, receipt),
         _ => render_command_with_color(target, format, command, receipt, color),
