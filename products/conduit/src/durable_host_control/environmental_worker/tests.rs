@@ -29,9 +29,17 @@ struct GatedDevice {
     worker: Option<std::thread::JoinHandle<()>>,
 }
 impl GatedDevice {
+    fn listen(endpoint: std::net::SocketAddr) -> TcpListener {
+        let socket =
+            socket2::Socket::new(socket2::Domain::IPV4, socket2::Type::STREAM, None).unwrap();
+        socket.set_reuse_address(true).unwrap();
+        socket.bind(&endpoint.into()).unwrap();
+        socket.listen(8).unwrap();
+        socket.set_nonblocking(true).unwrap();
+        socket.into()
+    }
     fn new(configuration: String) -> Self {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        listener.set_nonblocking(true).unwrap();
+        let listener = Self::listen("127.0.0.1:0".parse().unwrap());
         let endpoint = listener.local_addr().unwrap();
         let armed = Arc::new(AtomicBool::new(false));
         let release = Arc::new(AtomicBool::new(false));
@@ -54,9 +62,7 @@ impl GatedDevice {
                     if s.load(Ordering::SeqCst) {
                         break;
                     }
-                    let restored = TcpListener::bind(endpoint).unwrap();
-                    restored.set_nonblocking(true).unwrap();
-                    listener = Some(restored);
+                    listener = Some(Self::listen(endpoint));
                 }
                 let (mut stream, _) = match listener.as_ref().unwrap().accept() {
                     Ok(value) => value,
