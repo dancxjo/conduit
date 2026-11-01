@@ -1,3 +1,5 @@
+Raw diagnostic logs referenced below are retained in ignored task output; current checksums and compact results are in `proof/recovery/native-live-membership-20261101/recent-owner-run-evidence.json`.
+
 # Ordinary owner catalog checkpoint qualification
 
 Final combined source: `28f79b2d104c0d5dcdbd79514068ccfad31f9ed9`. Root catalog worker: `a1ca7cf72a`; private admitted-readback witness: `5bf4a3e2d3`; initial helper/tests: `8d8542320c`; exact queue configuration: `91122562bd`.

@@ -1,3 +1,5 @@
+Raw diagnostic logs referenced below are retained in ignored task output; current checksums and compact results are in `proof/recovery/native-live-membership-20261101/recent-owner-run-evidence.json`.
+
 # Original owner admitted snapshot readback qualification
 
 Qualified combined source: `988e028daefaf395f53570ab5e94a3ddcb223faf`; production readback extension `7e3d0e8fa0b8ba9da95dff4bf1314ec7603ee8ff`. This change adds owning tests only.

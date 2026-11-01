@@ -1,3 +1,5 @@
+Raw diagnostic logs referenced below are retained in ignored task output; current checksums and compact results are in `proof/recovery/native-live-membership-20261101/recent-owner-run-evidence.json`.
+
 # Ordinary owner Source chunk publication qualification
 
 Qualified combined source: `c39e905943e4c435e2781d874e3516421d1ef3d5`. Helper: `8480976c2b`, original worker wiring: `942155e66e`, canonical snapshot source-loader prerequisite: `c720e82687`. No sidecar Plan or replacement Host advertisement is used by the helper.
