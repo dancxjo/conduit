@@ -126,9 +126,7 @@ fn partial_sector_and_program_cuts_keep_owner_and_select_only_complete_snapshots
             assert_eq!(token.generation, generation);
             // Explicitly aliased CPU media simulates losing RAM and reopening the
             // two banks. It is never a second production physical storage owner.
-            let region = BodyRegion {
-                media: access.media.unwrap(),
-            };
+            let region = access.media.unwrap();
             let mut reopened = Checkpoint::open(region).unwrap();
             let next = reopened.generation().unwrap();
             assert!(next == generation || next == generation + 1);
