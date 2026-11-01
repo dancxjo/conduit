@@ -107,13 +107,30 @@ where
             {
                 return Err(S::Error::custom("configuration differs from verified Plan"));
             }
-            // Only this complete placement exists transiently. The canonical
-            // Serialize implementation preserves every field, tag and omission.
-            let mut complete = metadata.clone();
-            complete.configuration = configuration;
-            seq.serialize_element(&complete)?;
+            // Keep immutable contracts/ports/resources borrowed. The canonical
+            // derive still owns every field's order/tag/omission; only the
+            // required, independently fingerprint-checked configuration changes.
+            seq.serialize_element(&Placement {
+                metadata,
+                configuration: &configuration,
+            })?;
         }
         seq.end()
+    }
+}
+
+struct Placement<'a> {
+    metadata: &'a PlannedGear,
+    configuration: &'a [ConfigurationEntry],
+}
+impl Serialize for Placement<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.metadata.serialize(ReplaceField {
+            serializer,
+            structure: "PlannedGear",
+            field: "configuration",
+            replacement: self.configuration,
+        })
     }
 }
 
