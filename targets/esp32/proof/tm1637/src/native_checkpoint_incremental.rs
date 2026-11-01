@@ -319,3 +319,6 @@ impl IncrementalRewrite {
 #[cfg(test)]
 #[path = "native_checkpoint_incremental_tests.rs"]
 mod tests;
+
+#[path = "native_checkpoint_frozen.rs"]
+pub(crate) mod frozen;
