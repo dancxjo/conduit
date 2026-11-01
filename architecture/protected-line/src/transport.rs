@@ -81,6 +81,10 @@ pub trait ProtectedFrameCarrier {
         timeout_millis: u32,
     ) -> Result<usize, CarrierFailure>;
     fn close(&mut self) -> Result<(), CarrierFailure>;
+    /// Optional bounded retirement; unsupported must not use an untimed fallback.
+    fn close_with_timeout(&mut self, _timeout_millis: u32) -> Option<Result<(), CarrierFailure>> {
+        None
+    }
 }
 
 /// Fixed-capacity admission state. Slots are finite and must be retired exactly
@@ -285,6 +289,23 @@ impl<C: ProtectedFrameCarrier> ProtectedCarrier<C> {
             .close()
             .map_err(|failure| failure.protected(false))?;
         Ok(())
+    }
+
+    pub fn close_with_timeout_millis(
+        &mut self,
+        timeout_millis: u32,
+    ) -> Result<(), ProtectedLineError> {
+        self.session.close();
+        self.send.fill(0);
+        self.receive.fill(0);
+        self.plaintext.fill(0);
+        if timeout_millis == 0 {
+            return Err(ProtectedLineError::InvalidPolicy);
+        }
+        self.carrier
+            .close_with_timeout(timeout_millis)
+            .ok_or(ProtectedLineError::InvalidPolicy)?
+            .map_err(|failure| failure.protected(false))
     }
 
     pub fn session(&self) -> &ProtectedSession {

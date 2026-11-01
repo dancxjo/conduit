@@ -74,6 +74,10 @@ impl ProtectedFrameCarrier for ChannelCarrier {
         Ok(frame.len())
     }
 
+    fn close_with_timeout(&mut self, _: u32) -> Option<Result<(), CarrierFailure>> {
+        Some(self.close())
+    }
+
     fn close(&mut self) -> Result<(), CarrierFailure> {
         self.send = None;
         Ok(())

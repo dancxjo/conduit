@@ -133,9 +133,14 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
         Ok(())
     }
     fn finish<T>(&mut self, result: Result<T, String>) -> Result<T, String> {
-        if result.is_err() {
+        if let Err(error) = result {
             self.failed = true;
-            let _ = self.inner.close();
+            // The operation deadline is exhausted/refused. Bound retirement
+            // rather than waiting for a fresh idle window or reusing the Line.
+            return match self.inner.close_with_timeout_millis(1) {
+                Ok(()) => Err(error),
+                Err(cleanup) => Err(format!("{error}; bounded retirement:{cleanup:?}")),
+            };
         }
         result
     }
@@ -156,10 +161,13 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
         self.finish(result)
     }
     pub(crate) fn close(&mut self) -> Result<(), String> {
+        if self.failed {
+            return Ok(());
+        }
         self.failed = true;
         self.inner
-            .close()
-            .map_err(|error| format!("close document Line:{error:?}"))
+            .close_with_timeout_millis(1)
+            .map_err(|error| format!("bounded close document Line:{error:?}"))
     }
 }
 impl<C: ProtectedFrameCarrier> RendezvousLine for ProtectedDocumentLine<C> {
@@ -175,6 +183,8 @@ impl<C: ProtectedFrameCarrier> RendezvousLine for ProtectedDocumentLine<C> {
 }
 impl<C: ProtectedFrameCarrier> Drop for ProtectedDocumentLine<C> {
     fn drop(&mut self) {
-        let _ = self.inner.close();
+        if !self.failed {
+            let _ = self.close();
+        }
     }
 }

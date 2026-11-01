@@ -8,7 +8,7 @@ const isChunk = bytes => bytes.length >= 4 && magic.every((byte, index) => bytes
 export function createBoundedDocumentChannel(carrier) {
   const maximumFrameBytes = carrier.maximumFrameBytes ?? 65_519;
   const timeoutMillis = carrier.documentTimeoutMillis ?? 30_000;
-  if (!Number.isSafeInteger(maximumFrameBytes) || maximumFrameBytes < 1 || maximumFrameBytes > 65_519 ||
+  if (!Number.isSafeInteger(maximumFrameBytes) || maximumFrameBytes < 1 || maximumFrameBytes > MAXIMUM_MEMBERSHIP_DOCUMENT_BYTES + 1024 ||
       !Number.isSafeInteger(timeoutMillis) || timeoutMillis < 1 || timeoutMillis > 300_000) {
     throw new TypeError('Invalid admitted document carrier bounds');
   }

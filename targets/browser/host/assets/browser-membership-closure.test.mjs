@@ -24,3 +24,15 @@ test('Patchbay registry contains exact reachable membership source module graph'
  }
  for(const role of ['browser-membership-session','browser-bounded-document','browser-spore-membership','browser-part-membership','browser-spore-provision','browser-rendezvous-candidates'])assert(visited.has(role),`${role} unreachable`);
 });
+
+test('workspace candidate API keeps one canonical parser and admits its staged dependency',async()=>{
+ const workspace=await import('../../workspace/creche-rendezvous-candidates.mjs');
+ const shared=await import('./browser-rendezvous-candidates.mjs');
+ assert.equal(workspace.boundedRendezvousCandidates,shared.boundedRendezvousCandidates);
+ const template=JSON.parse(await readFile(new URL('../../workspace/workspace.application.template.json',import.meta.url),'utf8'));
+ const wrapper=template.resources.find(row=>row.role==='creche-rendezvous-candidates');
+ assert.deepEqual(wrapper.dependencies,[{role:'browser-rendezvous-candidates',specifier:'../host/assets/browser-rendezvous-candidates.mjs'}]);
+ assert(template.resources.some(row=>row.role==='browser-rendezvous-candidates'));
+ const stage=await readFile(new URL('../../tools/stage-browser-workspace.sh',import.meta.url),'utf8');
+ assert.match(stage,/for asset in browser-rendezvous-candidates\.mjs /);
+});

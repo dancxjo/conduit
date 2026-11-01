@@ -232,6 +232,23 @@ impl ProtectedFrameCarrier for HostedRelayCarrier {
         Ok(envelope.protected_frame.len())
     }
 
+    fn close_with_timeout(&mut self, timeout_millis: u32) -> Option<Result<(), CarrierFailure>> {
+        Some((|| {
+            if timeout_millis == 0 {
+                return Err(CarrierFailure::TimedOut);
+            }
+            let timeout =
+                Duration::from_millis(u64::from(timeout_millis.min(self.write_timeout_millis)));
+            self.line
+                .set_read_timeout(Some(timeout))
+                .map_err(map_carrier_error)?;
+            self.line
+                .set_write_timeout(Some(timeout))
+                .map_err(map_carrier_error)?;
+            self.close()
+        })())
+    }
+
     fn close(&mut self) -> Result<(), CarrierFailure> {
         let control = serde_json::to_vec(&CloseControl {
             schema: CONTROL_SCHEMA,
