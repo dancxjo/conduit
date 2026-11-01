@@ -31,6 +31,8 @@ pub(crate) mod native;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod snapshot;
 pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod each_route;
 mod scan_route;
@@ -40,6 +42,8 @@ use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
     scheduler: Box<InstalledScheduler>,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    snapshot: Option<snapshot::PreparedBodySnapshot<'a>>,
     native: native::NativeRoute,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
@@ -352,6 +356,7 @@ impl<'a> BodyKernel<'a> {
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
                 && !face(operation)
+                && !super::linux_snapshot_host::is_operation(operation.contract_id.as_str())
             {
                 return Err(format!(
                     "Body Host Call is unsupported: {}",
@@ -524,6 +529,8 @@ impl<'a> BodyKernel<'a> {
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            snapshot: None,
             native,
             face_labels,
             input_origin: None,
@@ -712,6 +719,15 @@ impl<'a> BodyKernel<'a> {
     /// profile have installed Body routes. This admits execution shape only;
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+        if self.operations.iter().any(|operation| {
+            super::linux_snapshot_host::is_operation(operation.contract_id.as_str())
+        }) && self.snapshot.is_none()
+        {
+            return Err(
+                "planned Body snapshot has no selected directory/resource/grant custody".into(),
+            );
+        }
         if !self.native.is_prepared() {
             return Err("Body native work has no prepared provider request slots".into());
         }
@@ -984,6 +1000,14 @@ impl<'a> BodyKernel<'a> {
                         .iter()
                         .find(|op| op.node == request.node && op.call == request.call)
                         .ok_or("Body request has no exact partition operation")?;
+                    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                    if super::linux_snapshot_host::is_operation(operation.contract_id.as_str()) {
+                        self.snapshot
+                            .as_mut()
+                            .ok_or("Body snapshot custody absent")?
+                            .perform(&mut self.scheduler, request)?;
+                        continue;
+                    }
                     let input = self
                         .scheduler
                         .host_value(request.input.value)

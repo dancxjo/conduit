@@ -64,66 +64,72 @@ impl<'a> PreparedSnapshots<'a> {
             .iter_mut()
             .find(|(node, _)| *node == request.node)
             .ok_or("snapshot request has no selected executor")?;
-        let input = kernel
-            .values()
-            .get(request.input.value)
-            .map_err(|error| format!("snapshot input: {error:?}"))?;
-        let mut refusal = None;
-        let failed = |failure| k::HostCallOutcome {
-            disposition: k::HostCallDisposition::Failed,
-            output: None,
-            failure: Some(failure),
-        };
-        let outcome = match files.perform(request, input) {
-            Ok(bytes) => match kernel.store_host_value(bytes) {
-                Ok(value) => k::HostCallOutcome {
-                    disposition: k::HostCallDisposition::Completed,
-                    output: Some(
-                        k::BoundedValueRef::new(value, files.output_bound())
-                            .map_err(|error| format!("snapshot output bound: {error:?}"))?,
-                    ),
-                    failure: None,
-                },
-                Err(error) => {
-                    refusal = Some(format!(
-                        "snapshot effect completed; output custody refused: {error:?}"
-                    ));
-                    failed(k::Failure {
-                        code: k::FailureCode::HostCallFailed,
-                        detail: 217,
-                    })
-                }
+        perform_snapshot(kernel, request, files)
+    }
+}
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub(super) fn perform_snapshot(
+    kernel: &mut InstalledScheduler,
+    request: HostCallRequest,
+    files: &mut PreparedFileSnapshotOperation<'_>,
+) -> Result<(), String> {
+    let input = kernel
+        .values()
+        .get(request.input.value)
+        .map_err(|error| format!("snapshot input: {error:?}"))?;
+    let mut refusal = None;
+    let failed = |failure| k::HostCallOutcome {
+        disposition: k::HostCallDisposition::Failed,
+        output: None,
+        failure: Some(failure),
+    };
+    let outcome = match files.perform(request, input) {
+        Ok(bytes) => match kernel.store_host_value(bytes) {
+            Ok(value) => k::HostCallOutcome {
+                disposition: k::HostCallDisposition::Completed,
+                output: Some(
+                    k::BoundedValueRef::new(value, files.output_bound())
+                        .map_err(|error| format!("snapshot output bound: {error:?}"))?,
+                ),
+                failure: None,
             },
             Err(error) => {
-                let failure = match &error {
-                    conduit_linux_snapshot_store::FileOperationRefusal::Operation(failure) => {
-                        *failure
-                    }
-                    _ => k::Failure {
-                        code: k::FailureCode::HostCallFailed,
-                        detail: 216,
-                    },
-                };
-                refusal = Some(format!("snapshot effect refused: {error:?}"));
-                failed(failure)
+                refusal = Some(format!(
+                    "snapshot effect completed; output custody refused: {error:?}"
+                ));
+                failed(k::Failure {
+                    code: k::FailureCode::HostCallFailed,
+                    detail: 217,
+                })
             }
-        };
-        let output = outcome.output.map(|value| value.value);
-        let completed = kernel.complete_host_call(request.node, request.request, outcome);
-        let finished = files.finish(request);
-        if completed.is_err() {
-            if let Some(value) = output {
-                kernel
-                    .discard_host_value(value)
-                    .map_err(|error| format!("discard snapshot output: {error:?}"))?;
-            }
+        },
+        Err(error) => {
+            let failure = match &error {
+                conduit_linux_snapshot_store::FileOperationRefusal::Operation(failure) => *failure,
+                _ => k::Failure {
+                    code: k::FailureCode::HostCallFailed,
+                    detail: 216,
+                },
+            };
+            refusal = Some(format!("snapshot effect refused: {error:?}"));
+            failed(failure)
         }
-        completed.map_err(|error| format!("complete snapshot request: {error:?}"))?;
-        if let Some(error) = refusal {
-            return Err(format!("{error}; correlation retirement: {finished:?}"));
+    };
+    let output = outcome.output.map(|value| value.value);
+    let completed = kernel.complete_host_call(request.node, request.request, outcome);
+    let finished = files.finish(request);
+    if completed.is_err() {
+        if let Some(value) = output {
+            kernel
+                .discard_host_value(value)
+                .map_err(|error| format!("discard snapshot output: {error:?}"))?;
         }
-        finished.map_err(|error| format!("retire snapshot effect: {error:?}"))
     }
+    completed.map_err(|error| format!("complete snapshot request: {error:?}"))?;
+    if let Some(error) = refusal {
+        return Err(format!("{error}; correlation retirement: {finished:?}"));
+    }
+    finished.map_err(|error| format!("retire snapshot effect: {error:?}"))
 }
 pub(super) fn is_operation(contract: &str) -> bool {
     #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
