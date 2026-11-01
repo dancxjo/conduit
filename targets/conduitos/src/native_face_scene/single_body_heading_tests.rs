@@ -191,3 +191,113 @@ fn look(night: bool, scale: u16) -> conduit_face::AdmittedVisualLook {
     )
     .unwrap()
 }
+
+#[test]
+fn body_heading_respects_explicit_disclosure_without_losing_details() {
+    use conduit_face::{FaceDisclosure, FaceDisclosureLevel};
+    let original = named_bodies(&["Quiet room"]);
+    for level in [
+        FaceDisclosureLevel::CurrentAction,
+        FaceDisclosureLevel::SelectedDetail,
+        FaceDisclosureLevel::ExactProvenance,
+    ] {
+        let mut face = original.clone();
+        face.disclosures.push(FaceDisclosure {
+            subject: face.subjects[0].identity.clone(),
+            level,
+        });
+        let face = reseal(face);
+        for input in [false, true] {
+            for mut scene in [
+                NativeFaceScene::prepare_with_input(face.clone(), 1024, 600, input).unwrap(),
+                NativeFaceScene::prepare_visual_look(
+                    face.clone(),
+                    1024,
+                    600,
+                    input,
+                    &look(false, 100),
+                )
+                .unwrap(),
+                NativeFaceScene::prepare_visual_look(
+                    face.clone(),
+                    1024,
+                    600,
+                    input,
+                    &look(true, 200),
+                )
+                .unwrap(),
+            ] {
+                assert_eq!(heading(&scene), "Overview", "{level:?}");
+                assert!(
+                    !scene
+                        .frame()
+                        .unwrap()
+                        .scene
+                        .commands()
+                        .iter()
+                        .any(|c| c.payload().contains("Quiet room"))
+                );
+                assert!(scene.primary.is_empty());
+                scene.show_details(true);
+                assert_eq!(heading(&scene), "Details");
+                assert!(
+                    scene
+                        .details
+                        .iter()
+                        .map(|r| r.text.as_str())
+                        .collect::<String>()
+                        .contains("Quiet room")
+                );
+                assert_eq!(scene.face(), &face);
+            }
+        }
+    }
+}
+
+#[test]
+fn primary_and_context_body_names_remain_encounter_headings() {
+    use conduit_face::{FaceDisclosure, FaceDisclosureLevel};
+    for level in [FaceDisclosureLevel::Primary, FaceDisclosureLevel::Context] {
+        let mut face = named_bodies(&["Quiet room"]);
+        face.disclosures.push(FaceDisclosure {
+            subject: face.subjects[0].identity.clone(),
+            level,
+        });
+        let face = reseal(face);
+        for input in [false, true] {
+            for scene in [
+                NativeFaceScene::prepare_with_input(face.clone(), 1024, 600, input).unwrap(),
+                NativeFaceScene::prepare_visual_look(
+                    face.clone(),
+                    1024,
+                    600,
+                    input,
+                    &look(false, 100),
+                )
+                .unwrap(),
+                NativeFaceScene::prepare_visual_look(
+                    face.clone(),
+                    1024,
+                    600,
+                    input,
+                    &look(true, 200),
+                )
+                .unwrap(),
+            ] {
+                assert_eq!(heading(&scene), "Quiet room");
+                assert_eq!(
+                    scene
+                        .frame()
+                        .unwrap()
+                        .scene
+                        .commands()
+                        .iter()
+                        .filter(|c| c.payload() == "Quiet room")
+                        .count(),
+                    1
+                );
+                assert_eq!(scene.face(), &face);
+            }
+        }
+    }
+}

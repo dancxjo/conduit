@@ -328,8 +328,19 @@ fn body_subject(face: &conduit_face::Face) -> Option<&conduit_face::FaceSubject>
     let body = bodies.next()?;
     (bodies.next().is_none()
         && !body.name.trim().is_empty()
-        && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES)
-        .then_some(body)
+        && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
+        && face
+            .disclosures
+            .iter()
+            .filter(|d| d.subject == body.identity)
+            .all(|d| {
+                matches!(
+                    d.level,
+                    conduit_face::FaceDisclosureLevel::Primary
+                        | conduit_face::FaceDisclosureLevel::Context
+                )
+            }))
+    .then_some(body)
 }
 
 #[cfg(test)]
