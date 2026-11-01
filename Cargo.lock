@@ -11056,6 +11056,7 @@ dependencies = [
  "conduit-host-conduitos-make",
  "conduit-host-esp32-make",
  "conduit-host-make",
+ "conduit-host-rp2040",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
