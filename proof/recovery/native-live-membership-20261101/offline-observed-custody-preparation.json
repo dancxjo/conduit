@@ -1,0 +1,19 @@
+{
+  "source": "061f01f5d7",
+  "purpose": "Existing admitted recorder verifies actual captured producer offer and reopened durable history, signs on its own Host, and transfers only the ACK through a separate UART carrier.",
+  "tests": {
+    "integrated_focused_passed": 7,
+    "failed": 0,
+    "covers": [
+      "strict actual offer and independent Root pin",
+      "missing or corrupt durable history refuses",
+      "Body and saved continuity identity mismatch refuses",
+      "private file ownership and symlinks",
+      "create-new ACK with fsync and no overwrite"
+    ]
+  },
+  "producer_authority": "Actual producer checks latest admitted credential and immutable epoch when receiving the ACK. Offline preparation does not prove remote freshness or acceptance.",
+  "host_build": "passed",
+  "physical_custody_acceptance": "not yet demonstrated with this offline tool",
+  "selected_recorder_plot_commitment": false
+}
