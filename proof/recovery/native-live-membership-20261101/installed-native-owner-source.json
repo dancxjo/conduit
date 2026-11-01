@@ -1,0 +1,28 @@
+{
+  "schema": "conduit.proof/installed-native-owner-source@1",
+  "source_identity": "98d7b51bb1f92731b2d273571003bca801581484",
+  "source_check": {
+    "command": "cargo +stable check --offline -p conduit --features installed-environmental-sources --tests",
+    "result": "passed",
+    "scope": "product and test-target compilation, not test execution or physical deployment"
+  },
+  "native_runner_tests": {
+    "result": "8 passed",
+    "source_commits": [
+      "048b06bb848beaccbc0387cd77cb6924dc67132e",
+      "21e04843f0dd8065c131a1dc60237a80bec9f995"
+    ],
+    "scope": "cooperative fixture effects, original reservations, typed Fore, cancellation, prepared immutable/input storage reuse"
+  },
+  "native_owner_process_tests": {
+    "result": "not yet executed",
+    "reason": "selected isolated-provider worker and executable test build still active"
+  },
+  "remaining": [
+    "execute installed owner/provider IO and cancellation tests",
+    "deploy actual selected source on existing new Body",
+    "project accepted typed Fore into shared Face",
+    "selected durable Recorder commit and exact recovery",
+    "browser protected carrier and Part-key return continuity"
+  ]
+}
