@@ -168,3 +168,6 @@ fn old_and_union_contracts_plan_only_against_the_matching_installed_offers() {
 
 #[path = "graphics_revision_planning/execution.rs"]
 mod execution;
+
+#[path = "graphics_revision_planning/effect_gate.rs"]
+mod effect_gate;

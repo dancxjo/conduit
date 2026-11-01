@@ -16,7 +16,7 @@ use conduit_std_host::{
 };
 use std::{collections::BTreeMap, time::Duration};
 
-const SOURCE: &str = r#"plot instrument (
+pub(super) const SOURCE: &str = r#"plot instrument (
  >> incoming: GraphicsScene <= 10226B
  transformed: GraphicsScene <= 10226B >>
 ) {
@@ -43,7 +43,7 @@ impl TimerAdapter for NoTimer {
         panic!("graphics Play has no timer operation");
     }
 }
-fn packet() -> Vec<u8> {
+pub(super) fn packet() -> Vec<u8> {
     include_str!("../../../../proof/fixtures/graphics-scene-union.hex")
         .trim()
         .as_bytes()

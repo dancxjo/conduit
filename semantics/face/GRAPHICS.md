@@ -91,3 +91,12 @@ successful rich checked/expanded matrix must not be called a successful plain
 linked-source test. That entrance's refusal scope and compatibility qualification
 remain an integration review obligation. No historical Back is executed merely
 by relabeling a current installed implementation as its old revision.
+
+The [effect-gate test](../../targets/std/tests/graphics_revision_planning/effect_gate.rs)
+uses the same open graphics Plot at default and explicit selection entrances.
+Matching legacy and U domains both plan; only the installed U domain executes.
+Both cross-domain mismatches return from planning before entering the installed
+runtime: no preparation/Play phase, terminal bytes or output delivery is observed.
+Successful U runs prove these observers work and contain three actual kernel
+HostCallRequested events each. A refused Plan has no kernel trace; this test does
+not fabricate a trace full of zero counters or claim historical runtime execution.
