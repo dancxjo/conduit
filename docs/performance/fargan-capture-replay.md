@@ -66,3 +66,41 @@ in 3..101, matching the producer. Corruption controls update outer artifact
 hashes before checking altered output bits, weight digests, allocation
 requests, duplicate/missing trials and invalid metadata/bounds, so digest
 failures cannot mask the underlying semantic refusal.
+
+## Complete source-cache comparison
+
+Compare a matrix-local capture with a matrix-source-cache capture after
+independently verifying both commands and their explicit expected identities:
+
+```sh
+cargo xtask prove runtime-performance --compare-source-cache /captures/matrix --against /captures/cache --source BEFORE_SHA --worker /retained/before-worker --against-source AFTER_SHA --against-worker /retained/after-worker
+cargo xtask prove runtime-performance --check-source-cache-comparison /captures/matrix --against /captures/cache --source BEFORE_SHA --worker /retained/before-worker --against-source AFTER_SHA --against-worker /retained/after-worker
+```
+
+Both accept exclusive `--output PATH`. Complete Plan files, all frame receipts,
+output/event bytes and store/work counters must match; timing is excluded.
+The negative check constructs changes to formatting or otherwise unobserved
+request fields which each capture's semantic replay accepts independently,
+then proves the stricter complete comparison refuses them.
+
+## Retained compact factory control logs
+
+```sh
+cargo xtask prove runtime-performance --verify-compact-factory-controls /retained/serial-controls.log --source CALLER_SOURCE_SHA --worker /retained/caller-worker
+cargo xtask prove runtime-performance --check-compact-factory-verifier /retained/serial-controls.log --source CALLER_SOURCE_SHA --worker /retained/caller-worker
+```
+
+These commands inspect a retained serial diagnostic transcript, including all
+13 schema-2 control rows and successful five-test linear and five-test
+projection suites from the matrix-projection-reference profile. They check
+exact outputs, events, allocation/store counters, resource and arithmetic
+refusal, and factory controls. Concurrent test output can interleave records
+and is not a valid transcript. Historical schema-1 logs are not accepted.
+
+Unlike capture replay, these raw logs have no producer receipt binding the
+transcript to a source or executable. The supplied source and worker hash are
+explicitly **caller provenance annotations**, not log-to-binary authentication
+or independent Source-to-Plan validation. The output uses separate
+`caller_supplied_*` fields. Nine semantic corruption controls check the
+transcript's internal claims; neither command establishes timing or release
+acceptance. Both accept an exclusive `--output PATH`.
