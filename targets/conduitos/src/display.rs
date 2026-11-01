@@ -1,6 +1,12 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
 #[cfg(feature = "native-face-raster")]
+#[path = "native_compositor/paint.rs"]
+pub(crate) mod shared_paint;
+#[cfg(feature = "native-face-raster")]
+pub use shared_paint::visual_look_paint;
+
+#[cfg(feature = "native-face-raster")]
 mod coverage;
 mod font;
 #[cfg(feature = "native-face-raster")]

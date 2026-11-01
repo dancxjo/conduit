@@ -1,5 +1,5 @@
 //! Read-only graph of externally verified retained evidence, never a Body contribution.
-use crate::graph::{quantity_milli, ChartGeometry, GraphRefusal, GraphSample, MAX_GRAPH_SAMPLES};
+use crate::graph::{ChartGeometry, GraphRefusal, GraphSample, MAX_GRAPH_SAMPLES, quantity_milli};
 use alloc::vec::Vec;
 use conduit_core::Unit;
 use conduit_environment_runtime::observed_record::{self, ObservedRecord};
@@ -91,6 +91,26 @@ impl RetainedEvidenceGraph {
             unit,
             width,
             height,
+        )
+    }
+    /// Selected Look measurement changes only chart geometry, never evidence or
+    /// window membership. The existing command/text/sample bounds still apply.
+    pub fn native_scene_in_unit_at_size_with_window_measured(
+        &self,
+        unit: Unit,
+        width: u16,
+        height: u16,
+        window_ms: Option<u64>,
+        measure: &crate::NativeHistoryTextMeasure<'_>,
+    ) -> Result<GraphicsScene, GraphicsError> {
+        let visible = self.samples_in_window(window_ms);
+        let start = self.samples.len() - visible.len();
+        ChartGeometry { samples: visible }.native_scene_at_size_measured(
+            u64::from(self.outside) + start as u64,
+            "RETAINED HISTORY",
+            unit,
+            (width, height),
+            Some(measure),
         )
     }
     pub fn samples_in_window(&self, window_ms: Option<u64>) -> &[GraphSample] {

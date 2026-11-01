@@ -52,7 +52,13 @@ fn resized_columns_and_all_theme_controls_fit_actual_hdmi_extent() {
         let columns = crate::columns::Columns::at_divider(1024, 512, requested).unwrap();
         assert_eq!(columns.report_width, requested);
         assert_eq!(columns.history_width, 1024 - requested - 12);
-        for theme in [Theme::Navy, Theme::Editorial, Theme::Engineering] {
+        for theme in [
+            Theme::Navy,
+            Theme::Editorial,
+            Theme::Engineering,
+            Theme::FieldDay,
+            Theme::FieldNight,
+        ] {
             let p = PresentationPreferences {
                 theme,
                 temperature: conduit_face::presentation_preferences::TemperatureUnit::Fahrenheit,
@@ -88,7 +94,13 @@ fn actual_preferences_preview_preserves_face() {
     face.validate().unwrap();
     let original = face.clone();
     for requested in [320, 368, 692] {
-        for theme in [Theme::Navy, Theme::Editorial, Theme::Engineering] {
+        for theme in [
+            Theme::Navy,
+            Theme::Editorial,
+            Theme::Engineering,
+            Theme::FieldDay,
+            Theme::FieldNight,
+        ] {
             let mut columns = crate::columns::Columns::at_divider(1024, 512, requested).unwrap();
             let look = theme.look().unwrap();
             let mut history = crate::history_input::HistoryInput::new_at_size(
@@ -99,12 +111,13 @@ fn actual_preferences_preview_preserves_face() {
             history
                 .refresh(&folder.join("retained-history.json"))
                 .unwrap();
-            let (_, _, pages) = crate::property_mask::frame(
+            let (_, _, pages) = crate::property_mask::frame_with_look(
                 &face,
                 requested,
                 512,
                 0,
                 Some(conduit_core::Unit::Fahrenheit),
+                Some(&look),
             )
             .expect("actual report fits");
             assert_eq!(pages, 1, "actual report stays visible");
@@ -115,6 +128,9 @@ fn actual_preferences_preview_preserves_face() {
                     history.scene(),
                     0,
                     crate::columns::Presentation {
+                        details: false,
+                        retained_snapshot: false,
+                        history_in_primary: true,
                         unit: Some(conduit_core::Unit::Fahrenheit),
                         look: Some(&look),
                     },

@@ -1,10 +1,7 @@
 //! Fixed spatial composition of the existing report and retained-history Masks.
 use conduit_face::{Face, GraphicsScene};
 
-pub struct Presentation<'a> {
-    pub unit: Option<conduit_core::Unit>,
-    pub look: Option<&'a conduit_face::LookInfo>,
-}
+pub use crate::view::Presentation;
 pub struct Columns {
     pub report_width: u16,
     pub history_width: u16,
@@ -52,6 +49,9 @@ impl Columns {
             tick,
             Presentation {
                 unit: preferred,
+                details: false,
+                retained_snapshot: false,
+                history_in_primary: false,
                 look: None,
             },
             notices,
@@ -72,14 +72,19 @@ impl Columns {
         if pixels.len() != usize::from(self.width) * usize::from(self.height) {
             return Err("column raster extent mismatch".into());
         }
-        crate::view::render_with_palette(
+        crate::view::render_with_details(
             face,
             self.report_width,
             self.height,
             tick,
             &mut self.report,
-            preferred,
-            look,
+            Presentation {
+                unit: preferred,
+                look,
+                details: presentation.details,
+                retained_snapshot: presentation.retained_snapshot,
+                history_in_primary: false,
+            },
         )?;
         if let Some(notice) = notices.report {
             crate::view::render_notice_with_palette(

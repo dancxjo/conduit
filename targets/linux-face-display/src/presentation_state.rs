@@ -14,6 +14,7 @@ use std::{
 };
 pub struct PresentationState {
     pub preferences: Preferences,
+    pub context: mask_controls::Context,
     path: Option<PathBuf>,
     physical_height: u16,
     touch: Option<TouchInput>,
@@ -43,6 +44,7 @@ impl PresentationState {
         }
         Self {
             preferences,
+            context: mask_controls::Context::default(),
             physical_height: height,
             path,
             touch: TouchInput::discover(width, height),
@@ -57,6 +59,7 @@ impl PresentationState {
             self.touch = TouchInput::discover(width, self.physical_height);
             self.gestures = Gestures::default();
         }
+        self.gestures.context = self.context;
         let mut changed = false;
         let divider = mask_controls::divider_position(self.preferences, width);
         if let Some(touch) = &mut self.touch {
@@ -66,7 +69,7 @@ impl PresentationState {
                     width,
                     height,
                     graph_left,
-                    (width >= 652).then_some(divider),
+                    (width >= 652 && self.context.history).then_some(divider),
                 ) {
                     changed |= self.preferences.apply(action);
                 }

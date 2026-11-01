@@ -9,15 +9,29 @@ pub(crate) struct ChartLayout {
 }
 impl ChartLayout {
     pub fn new(width: u16, height: u16) -> Result<Self, GraphicsError> {
+        Self::with_text_heights(width, height, 40, 24)
+    }
+    pub fn with_text_heights(
+        width: u16,
+        height: u16,
+        heading: u16,
+        footer: u16,
+    ) -> Result<Self, GraphicsError> {
         if width < 320 || height < 360 || width > i16::MAX as u16 || height > i16::MAX as u16 {
             return Err(GraphicsError::InvalidGeometry);
         }
-        let panel = (height as i16 - 88) / 2;
+        let panel = (i32::from(height) - 88 - i32::from(footer.saturating_sub(24))) / 2;
+        let top = 58 + i32::from(heading.saturating_sub(40));
+        if panel - 10 <= top || footer > height {
+            return Err(GraphicsError::InvalidGeometry);
+        }
+        let panel = panel as i16;
+        let top = top as i16;
         Ok(Self {
             left: if width >= 900 { 100 } else { 84 },
             right: width as i16 - 28,
             heading: [12, 12 + panel],
-            top: [58, 58 + panel],
+            top: [top, top + panel],
             bottom: [panel - 10, panel * 2 - 10],
         })
     }
