@@ -16,13 +16,25 @@ pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 // The installed kernel's finite inline scratch exceeds the platform default
 // worker stack. This is one service worker per owned Body Play, never a pool.
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
-type WorkerOutcome = (StdHost, Result<BodyRunReport, String>, Vec<u8>);
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "continuing/native.rs"]
+mod native;
+struct WorkerOutcome {
+    host: StdHost,
+    result: Result<BodyRunReport, String>,
+    output: Vec<u8>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    native: Option<native::NativeRun>,
+}
 
 pub(crate) struct RunWorker {
     control: RunControl,
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    returned_equipment:
+        Option<crate::durable_host::selected_environmental_sources::AttachedEquipment>,
 }
 
 impl Owner {
@@ -37,6 +49,38 @@ impl Owner {
         &mut self,
         root: &Path,
         maximum_millis: u64,
+    ) -> Result<RunWorker, String> {
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            &mut None,
+        )
+    }
+
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    pub(crate) fn start_service_native_run(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        equipment: &mut Option<
+            crate::durable_host::selected_environmental_sources::AttachedEquipment,
+        >,
+    ) -> Result<RunWorker, String> {
+        if equipment.is_none() {
+            return Err("selected native equipment is absent".into());
+        }
+        self.start_service_run_inner(root, maximum_millis, equipment)
+    }
+
+    fn start_service_run_inner(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        equipment: &mut Option<
+            crate::durable_host::selected_environmental_sources::AttachedEquipment,
+        >,
     ) -> Result<RunWorker, String> {
         if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
             return Err("service run duration must be 1..900000 milliseconds".into());
@@ -54,6 +98,16 @@ impl Owner {
         if self.resident.as_ref() != Some(&resident) {
             return Err("retained source differs from the Body's resident Plot".into());
         }
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        let mut native = match equipment.as_ref() {
+            Some(equipment) => native::NativeRun::prepare(self, &checked, equipment)?,
+            None => None,
+        };
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        if native.is_none() {
+            self.plan(&checked)?;
+        }
+        #[cfg(not(all(feature = "installed-environmental-sources", target_os = "linux")))]
         self.plan(&checked)?;
         self.persist(root)?;
         state::require_execution_capacity(root)?;
@@ -63,6 +117,10 @@ impl Owner {
             .expect("Plan just committed")
             .clone();
         let host = self.host.take_for_play()?;
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        if let Some(native) = &mut native {
+            native.equipment = equipment.take();
+        }
         let control = RunControl::default();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
@@ -77,7 +135,7 @@ impl Owner {
                     until: Instant::now() + Duration::from_millis(maximum_millis),
                     control: worker_control.clone(),
                 };
-                let result = thread::scope(|scope| {
+                let (host, result) = thread::scope(|scope| {
                     let (finished, receiver) = mpsc::sync_channel::<()>(1);
                     let deadline_control = worker_control.clone();
                     scope.spawn(move || {
@@ -91,28 +149,55 @@ impl Owner {
                             );
                         }
                     });
-                    let result = host.run_body_plan_to_with_start(
-                        BodyRunRequest {
-                            wake: &proposed.wake,
-                            plan: &proposed.plan,
-                            control: &worker_control,
-                            keyboard: None,
-                        },
-                        &mut output,
-                        &mut timer,
-                        |play, wake| {
-                            started_tx.send((play.clone(), wake.clone())).map_err(|_| {
-                                "Body owner start observer disconnected".to_string()
-                            })?;
-                            ack_rx
-                                .recv()
-                                .map_err(|_| "Body owner start acknowledgement lost".to_string())?
-                        },
-                    );
+                    let request = BodyRunRequest {
+                        wake: &proposed.wake,
+                        plan: &proposed.plan,
+                        control: &worker_control,
+                        keyboard: None,
+                    };
+                    let started = |play: &BodyPlayIdentity, wake: &Wake| {
+                        started_tx
+                            .send((play.clone(), wake.clone()))
+                            .map_err(|_| "Body owner start observer disconnected".to_string())?;
+                        ack_rx
+                            .recv()
+                            .map_err(|_| "Body owner start acknowledgement lost".to_string())?
+                    };
+                    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+                    let (host, result) = if let Some(native) = &mut native {
+                        native.execute(host, request, &mut output, &mut timer, started)
+                    } else {
+                        let result = host.run_body_plan_to_with_start(
+                            request,
+                            &mut output,
+                            &mut timer,
+                            started,
+                        );
+                        (host, result)
+                    };
+                    #[cfg(not(all(
+                        feature = "installed-environmental-sources",
+                        target_os = "linux"
+                    )))]
+                    let (host, result) = {
+                        let result = host.run_body_plan_to_with_start(
+                            request,
+                            &mut output,
+                            &mut timer,
+                            started,
+                        );
+                        (host, result)
+                    };
                     let _ = finished.send(());
-                    result
+                    (host, result)
                 });
-                (host, result, output.0)
+                WorkerOutcome {
+                    host,
+                    result,
+                    output: output.0,
+                    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+                    native,
+                }
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
@@ -120,6 +205,8 @@ impl Owner {
             started: started_rx,
             acknowledge: Some(ack_tx),
             thread: Some(thread),
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            returned_equipment: None,
         })
     }
 
@@ -150,6 +237,8 @@ impl Owner {
         root: &Path,
         result: Result<BodyRunReport, String>,
         output: Vec<u8>,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        accepted_fore: Option<conduit_std_host::ExternalForeDelivery>,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
         let proposed = self
@@ -190,6 +279,19 @@ impl Owner {
                 })
             }
         };
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        let receipt = {
+            let mut receipt = receipt;
+            if let Some(value) = accepted_fore {
+                receipt["accepted_source_fore"] = serde_json::json!({
+                    "custody": "accepted-typed-fore-not-durable-recording",
+                    "front_port_id": value.front_port_id, "track": value.track,
+                    "value_kind": value.value_kind, "sequence": value.sequence,
+                    "canonical_bytes": value.bytes.as_slice(),
+                });
+            }
+            receipt
+        };
         self.retain_execution(root, next, receipt)?;
         Ok(())
     }
@@ -210,15 +312,38 @@ impl RunWorker {
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
             return Ok(false);
         }
-        let (host, result, output) = self
+        let WorkerOutcome {
+            host,
+            result,
+            output,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            mut native,
+        } = self
             .thread
             .take()
             .expect("finished worker has a join handle")
             .join()
             .map_err(|_| "Body Play worker panicked; owner service must restart".to_string())?;
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        {
+            self.returned_equipment = native.as_mut().and_then(|run| run.equipment.take());
+        }
         owner.host.restore_after_play(host)?;
-        owner.retain_finished(root, result, output)?;
+        owner.retain_finished(
+            root,
+            result,
+            output,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            native.and_then(|run| run.capture.value),
+        )?;
         Ok(true)
+    }
+
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    pub(crate) fn take_returned_equipment(
+        &mut self,
+    ) -> Option<crate::durable_host::selected_environmental_sources::AttachedEquipment> {
+        self.returned_equipment.take()
     }
 
     pub(crate) fn request_lull(&self) -> Result<(), String> {

@@ -395,7 +395,10 @@ impl Owner {
         let admitted = self.admissions.as_ref().is_some_and(|manager| {
             manager.receipts.iter().any(|receipt| {
                 request.has_exact_basis()
-                    && receipt.credential.credential_id.equals(&request.credential_id)
+                    && receipt
+                        .credential
+                        .credential_id
+                        .equals(&request.credential_id)
                     && request.body_id.as_str() == receipt.credential.body_id
                     && request.part_id.as_str() == receipt.credential.part_id
                     && request.host_id.as_str() == receipt.credential.host_id
@@ -446,8 +449,23 @@ impl Owner {
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
+        self.plan_with_execution_custody(plot, &[], &BTreeMap::new())
+    }
+
+    /// Grants must come from the installed Root's retained native equipment,
+    /// never from the authored Source or a remote offer.
+    pub(super) fn plan_with_execution_custody(
+        &mut self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        grants: &[conduit_core::AuthorityGrant],
+        boundaries: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+    ) -> Result<(), String> {
         let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
-        let partition = self.plan_partition(plot, resident)?;
+        let partition =
+            self.plan_partition_with_authority_grants(plot, resident, grants, boundaries)?;
         let hosts = [self.host.advertisement().clone()];
         self.session
             .propose(vec![partition], &hosts[0].host_id, &hosts[0].boot_id)
@@ -475,7 +493,27 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
-        let hosts = [self.host.advertisement().clone()];
+        self.plan_partition_with_authority_grants(plot, resident, &[], &BTreeMap::new())
+    }
+
+    fn plan_partition_with_authority_grants(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        grants: &[conduit_core::AuthorityGrant],
+        boundaries: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+    ) -> Result<BodyPlotPlan, String> {
+        let advertised = self.host.advertisement();
+        if grants
+            .iter()
+            .any(|grant| grant.host_id != advertised.host_id || grant.boot_id != advertised.boot_id)
+        {
+            return Err("native planning grant differs from the actual installed Host/Boot".into());
+        }
+        let hosts = [advertised.clone()];
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
         if !plot.expanded.activations.is_empty() {
@@ -493,11 +531,11 @@ impl Owner {
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
                 connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: &[],
+                authority_grants: grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &BTreeMap::new(),
+            boundaries,
         )
         .map_err(debug)?;
         Ok(BodyPlotPlan {
