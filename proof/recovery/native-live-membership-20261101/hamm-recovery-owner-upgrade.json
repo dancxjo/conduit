@@ -1,0 +1,22 @@
+{
+  "schema": "conduit.proof/same-body-recovery-owner-upgrade@1",
+  "installed_source": "42febf6af27e4412504d2df151521a5f6437edd2",
+  "product_bytes": 65475736,
+  "unchanged_image_limit_bytes": 67108864,
+  "worker_bytes": 4953768,
+  "worker_sha256": "99ef2fbceeb780332d3e91256d77b5ac655c7bed9d779122806e9e62f27ea06e",
+  "preserved_body_files_at_install": 12,
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "host_id": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+  "new_boot_id": "boot/installed/d662e23aad0a9f9d1ebbae6f11f962d58816d0263c16e191bcf45fd5cfa669b6",
+  "members_preserved": 2,
+  "first_live_face_identity": "fa62ad4f055da80f9504ed65294c02ab9fb6a8615511650e57804b15e7283bfa",
+  "first_canonical_observations": [
+    {
+      "subject": "environment/source-session/0763b0d99539785478ced531c40b65e12cc7cb23a242cfba170b2a168c0f25c8/sample/1",
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:e203831af9c0725bf60eff2897188359d20126aeeda22e6692d0f44e1e8efefa"
+    }
+  ],
+  "scope": "Actual same-Body install/reopen and first physical Green Source observation; finite Play remains running. No physical interruption, complete finite run, durable recorder/ACK, browser join or MCU membership claim."
+}
