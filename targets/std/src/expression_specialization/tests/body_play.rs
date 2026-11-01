@@ -105,7 +105,7 @@ fn install_source(host: &mut StdHost, calls: Arc<AtomicUsize>) -> (c::Kind, c::A
             )],
         },
         grant: grant.clone(),
-        resource_generation: "test/selected-bool-source-resource@1".into(),
+        resource_generation: c::ResourceGenerationId("test/selected-bool-source-resource@1".into()),
         configuration: Vec::new(),
         input_bytes: 1,
         output_bytes: 1,
