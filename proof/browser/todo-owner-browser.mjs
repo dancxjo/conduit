@@ -69,8 +69,12 @@ const expectedPlaywright = JSON.parse(await readFile(new URL('./package.json', i
 const actualPlaywright = JSON.parse(await readFile(path.join(path.dirname(playwrightArg), 'package.json'))).version;
 assert.equal(actualPlaywright, expectedPlaywright, 'use pinned Playwright');
 const { chromium } = await import(pathToFileURL(playwrightArg));
+// Match fresh/command_capture.rs: the installed retained-state envelope is 2 MiB.
+// Terminal transcripts retain their independent smaller bound.
+const MAX_OWNER_COMMAND_OUTPUT = 2 * 1024 * 1024;
 const owner = args => {
-  const result = spawnSync(binary, args, { cwd: ownerCwd, encoding: 'utf8', timeout: 10_000 });
+  const result = spawnSync(binary, args, { cwd: ownerCwd, encoding: 'utf8', timeout: 10_000, maxBuffer: MAX_OWNER_COMMAND_OUTPUT });
+  assert.ifError(result.error);
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 };
@@ -366,7 +370,8 @@ try {
     assert.equal(ownerFace.face.subjects.filter(subject => subject.role === 'Item').length, expected);
     const filename = `owner-count-${expected}.json`;
     const raw = spawnSync(binary, ['body', 'face', '--state-dir', state, '--json'],
-      { cwd: ownerCwd, encoding: 'utf8', timeout: 10_000 });
+      { cwd: ownerCwd, encoding: 'utf8', timeout: 10_000, maxBuffer: MAX_OWNER_COMMAND_OUTPUT });
+    assert.ifError(raw.error);
     assert.equal(raw.status, 0, raw.stderr);
     const exact = JSON.parse(raw.stdout);
     assert.equal(exact.face.identity, ownerFace.face.identity);
