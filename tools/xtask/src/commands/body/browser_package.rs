@@ -29,22 +29,61 @@ impl std::fmt::Display for BrowserFabricationRefusal {
 }
 impl std::error::Error for BrowserFabricationRefusal {}
 
+// The installed owner status has the existing 2 MiB command envelope. Make
+// needs only its Body identity: discard Host catalog fields during decoding.
+const MAXIMUM_OWNER_STATUS_BYTES: u64 = 2 * 1024 * 1024;
+const MAXIMUM_INVITATION_BYTES: u64 = 64 * 1024;
+fn read_owner_response(reader: impl std::io::Read, action: &str) -> Result<Value> {
+    use std::io::Read;
+    let maximum = if action == "status" {
+        MAXIMUM_OWNER_STATUS_BYTES
+    } else {
+        MAXIMUM_INVITATION_BYTES
+    };
+    let mut decoder =
+        serde_json::Deserializer::from_reader(std::io::BufReader::new(reader.take(maximum)));
+    let value = if action == "status" {
+        #[derive(serde::Deserialize, serde::Serialize)]
+        struct Biography {
+            body_id: String,
+        }
+        #[derive(serde::Deserialize, serde::Serialize)]
+        struct Status {
+            biography: Biography,
+        }
+        let status = <Status as serde::Deserialize>::deserialize(&mut decoder)?;
+        serde_json::to_value(status)?
+    } else {
+        <Value as serde::Deserialize>::deserialize(&mut decoder)?
+    };
+    decoder.end()?;
+    Ok(value)
+}
 fn product_json(state: &Path, action: &str) -> Result<Value> {
     let mut command = Command::new("conduit");
     command.args(["body", action, "--state-dir"]).arg(state);
     if action == "status" {
         command.arg("--json");
     }
-    let output = command
-        .output()
+    let mut child = command
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
         .map_err(|_| BrowserFabricationRefusal::BodyAuthorityUnavailable)?;
-    if !output.status.success() {
+    let response = read_owner_response(
+        child
+            .stdout
+            .take()
+            .ok_or(BrowserFabricationRefusal::BodyAuthorityUnavailable)?,
+        action,
+    );
+    // Closing the finite reader precedes wait, including malformed/oversized
+    // output: a producer cannot block while writing beyond the admitted read.
+    let status = child.wait()?;
+    if !status.success() {
         return Err(BrowserFabricationRefusal::BodyAuthorityUnavailable.into());
     }
-    if output.stdout.len() > 64 * 1024 {
-        return Err("BodyAuthorityBound: owner response exceeds its finite bound".into());
-    }
-    Ok(serde_json::from_slice(&output.stdout)?)
+    response
 }
 
 pub(super) fn require_owner(body: &CheckedBodyDescription) -> Result<PathBuf> {
@@ -207,6 +246,21 @@ fn owner_matches(status: &Value, body_id: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn owner_status_discards_catalog_but_keeps_exact_body_and_finite_envelope() {
+        let status = serde_json::json!({"host":{"capabilities":"x".repeat(100_000)},"biography":{"body_id":"body/one","other":"discard"}});
+        let bytes = serde_json::to_vec(&status).unwrap();
+        let parsed = super::read_owner_response(bytes.as_slice(), "status").unwrap();
+        assert_eq!(
+            parsed,
+            serde_json::json!({"biography":{"body_id":"body/one"}})
+        );
+        assert!(super::owner_matches(&parsed, "body/foreign").is_err());
+        assert!(super::read_owner_response(b"{\"biography\":{}}".as_slice(), "status").is_err());
+        let oversized = serde_json::to_vec(&serde_json::json!({"host":"x".repeat(super::MAXIMUM_OWNER_STATUS_BYTES as usize),"biography":{"body_id":"body/one"}})).unwrap();
+        assert!(super::read_owner_response(oversized.as_slice(), "status").is_err());
+        assert!(super::read_owner_response(bytes.as_slice(), "invite").is_err());
+    }
     #[test]
     fn artifact_paths_cannot_escape_fabrication_output() {
         assert!(super::require_artifact_name("web-terminal-1").is_ok());
