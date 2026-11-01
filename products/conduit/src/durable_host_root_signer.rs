@@ -109,7 +109,7 @@ pub(crate) fn public_authority(
     body: &conduit_body::BodyId,
     host: &str,
 ) -> Result<conduit_body::BodyRootAuthority, String> {
-    let binding = selected(root, body, host)?
+    let binding = selected(root, body.as_str(), host)?
         .ok_or("browser Spore preparation requires the selected Body Root signer")?;
     let authority = conduit_body::BodyRootAuthority {
         schema: "conduit.body/root-authority@1".into(),
