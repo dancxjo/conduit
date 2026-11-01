@@ -14,11 +14,15 @@ pub(super) struct RootIdentity {
 fn initialization(
     checked: &CheckedHostConfiguration,
 ) -> Result<Option<&BaseInitialization>, String> {
-    let mut selected = checked
-        .configuration()
-        .bases
-        .iter()
-        .filter(|base| base.implementation.as_deref() == Some(IMPLEMENTATION));
+    let mut selected = checked.configuration().bases.iter().filter(|base| {
+        base.implementation.as_deref().or_else(|| {
+            checked
+                .resolved_bases()
+                .iter()
+                .find(|(kind, _)| kind == &base.kind)
+                .map(|(_, implementation)| implementation.as_str())
+        }) == Some(IMPLEMENTATION)
+    });
     let Some(base) = selected.next() else {
         return Ok(None);
     };
