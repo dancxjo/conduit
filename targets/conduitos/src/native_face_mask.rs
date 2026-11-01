@@ -33,6 +33,8 @@ mod preparation;
 
 #[path = "native_face_mask/encounter.rs"]
 mod encounter;
+#[path = "native_face_mask/plot_owner.rs"]
+mod plot_owner;
 #[path = "native_face_mask/producer.rs"]
 mod producer;
 
@@ -229,7 +231,14 @@ impl NativeFaceMask {
         play_sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
-        self.present_with_input(face, observation_sequence, play_sequence, display, true)
+        self.present_with_input(
+            face,
+            observation_sequence,
+            play_sequence,
+            display,
+            true,
+            None,
+        )
     }
 
     /// A guest can inspect the owner's exact Face without a return route for
@@ -242,7 +251,14 @@ impl NativeFaceMask {
         play_sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
-        self.present_with_input(face, observation_sequence, play_sequence, display, false)
+        self.present_with_input(
+            face,
+            observation_sequence,
+            play_sequence,
+            display,
+            false,
+            None,
+        )
     }
 
     fn present_with_input(
@@ -252,6 +268,7 @@ impl NativeFaceMask {
         play_sequence: u64,
         display: &mut impl PixelTarget,
         interaction_admitted: bool,
+        plot_owner_subject: Option<&str>,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
         let interaction_admitted = interaction_admitted && self.local_input_available;
         self.input_refusal = None;
@@ -284,18 +301,21 @@ impl NativeFaceMask {
         scene.set_local_creche_preferences(self.local_creche_preferences);
         self.restore_pending_encounter(&mut scene)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
-        let front_subject = face
-            .subjects
-            .iter()
-            .find(|subject| subject.role == FaceRole::Host)
-            .or_else(|| {
-                face.subjects
-                    .iter()
-                    .find(|subject| subject.role == FaceRole::Body)
-            })
-            .ok_or(NativeFaceMaskError::Face)?
-            .identity
-            .to_string();
+        let front_subject = if let Some(subject) = plot_owner_subject {
+            subject.to_string()
+        } else {
+            face.subjects
+                .iter()
+                .find(|subject| subject.role == FaceRole::Host)
+                .or_else(|| {
+                    face.subjects
+                        .iter()
+                        .find(|subject| subject.role == FaceRole::Body)
+                })
+                .ok_or(NativeFaceMaskError::Face)?
+                .identity
+                .to_string()
+        };
         if let Some(previous) = self.session.take() {
             previous
                 .close_without_input()
