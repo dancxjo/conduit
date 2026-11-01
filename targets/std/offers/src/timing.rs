@@ -310,3 +310,21 @@ mod tests {
         assert_eq!(audio_render_demand_offer().host_calls.len(), 1);
     }
 }
+
+pub const TICK_TRIGGER_IMPLEMENTATION: &str = "std/kernel-tick-trigger@1";
+pub const TICK_TRIGGER_ARTIFACT: &str = "conduit-std-host/tick-trigger@1";
+pub fn tick_trigger_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_time::tick_trigger_semantic_contract(),
+        Back {
+            capability_id: "tick-trigger-v1".into(),
+            execution_profile_id: TICK_TRIGGER_IMPLEMENTATION.into(),
+            implementation_id: TICK_TRIGGER_IMPLEMENTATION.into(),
+            artifact_id: TICK_TRIGGER_ARTIFACT.into(),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+}

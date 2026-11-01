@@ -78,7 +78,9 @@ pub(super) fn measure(
                     continue;
                 }
                 result.inline_grow = 1;
-                let extra = u32::from(context.padding) * 2
+                let insets = context.spacing.insets(item);
+                let extra = u32::from(insets.inline) * 2
+                    + u32::from(insets.leading)
                     + u32::from(item.indent) * u32::from(INDENT_STEP)
                     + u32::from(super::super::super::semantic_icons::inset(
                         item.icon,
@@ -110,7 +112,12 @@ pub(super) fn measure(
                     .preferred
                     .max(preferred.min(u32::from(context.width)) as u16);
             }
-            result.preferred = result.preferred.max(result.minimum);
+            let edge = context
+                .panel_padding(region)
+                .checked_mul(2)
+                .ok_or(FaceSceneError::InvalidExtent)?;
+            result.minimum = add(result.minimum, edge)?;
+            result.preferred = add(result.preferred, edge)?.max(result.minimum);
             result
         }
         Node::Group(group) => {

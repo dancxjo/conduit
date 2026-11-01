@@ -20,9 +20,11 @@ pub(super) fn inset(icon: Option<FaceIconKey>, size: u16) -> u16 {
 }
 
 fn bounds(row: &layout::Row) -> LayoutRect {
-    let size = row.icon_size.min(row.bounds.height - row.padding * 2);
+    let size = row
+        .icon_size
+        .min(row.bounds.height - row.insets.block() * 2);
     LayoutRect {
-        x: row.bounds.x + row.padding as i16,
+        x: row.bounds.x + row.insets.inline() as i16 + row.insets.leading() as i16,
         y: row.bounds.y + ((row.bounds.height - size) / 2) as i16,
         width: size,
         height: size,

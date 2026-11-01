@@ -1,0 +1,69 @@
+{
+  "schema": "conduit.proof/installed-body-root-signer-reopen@1",
+  "observed_at": "2026-11-01T13:12:24.705939+00:00",
+  "source": "c1f5c7426b1b4aa748724dec35d36b862af85644",
+  "release": {
+    "schema": "conduit.release/host-bundle@1",
+    "source_identity": "c1f5c7426b1b4aa748724dec35d36b862af85644",
+    "bundle_sha256": "sha256:84216d4c9096f0d271c3e891d401aa320f79d939c9d107939442579b980e7b6c",
+    "files": [
+      {
+        "path": "conduit-linux-x86_64",
+        "bytes": 65094144,
+        "sha256": "sha256:cfd7cf942510770cfb912e77dc15c165b3f7b10174d950a6f556f776e7c16f3a"
+      }
+    ]
+  },
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "friendly_name": "Hamm Creek House",
+  "host_id": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+  "boots": [
+    "boot/installed/8e2161f3b564188cc1392ba0af354c4d619293eeb8cd8a65b9e119904b9745e2",
+    "boot/installed/bff2caf370e3891f39eb79763487dfcbf46585080982463712318abba0957c2f"
+  ],
+  "public_key": [
+    0,
+    89,
+    245,
+    134,
+    17,
+    6,
+    112,
+    43,
+    28,
+    72,
+    84,
+    14,
+    98,
+    61,
+    163,
+    175,
+    18,
+    74,
+    234,
+    168,
+    207,
+    21,
+    49,
+    125,
+    137,
+    254,
+    69,
+    57,
+    130,
+    9,
+    9,
+    225
+  ],
+  "private_file_permissions": "0600",
+  "repeated_establishment_preserves_same_binding": true,
+  "scope": "durable receipt signer selected and reopened; no signed admission receipt issued",
+  "unchanged": "MCU firmware, original Blue Body and history",
+  "open": [
+    "explicit checked Plot replacement for current Hamm one-shot resident",
+    "installed continuing Source Face run",
+    "selected Recorder commitment/reopen",
+    "signed browser receipt issuance and usable Spore",
+    "MCU execution Host membership and NAT interruption recovery"
+  ]
+}

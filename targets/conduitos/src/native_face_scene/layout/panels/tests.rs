@@ -13,6 +13,7 @@ pub(super) fn screen(width: u16, height: u16) -> LayoutRect {
 }
 pub(super) fn item(text: &str, region: Option<u8>) -> document::Item {
     document::Item {
+        part: crate::native_face_scene::layout::NativePart::Content,
         text: text.into(),
         role: GraphicsTextRole::Label,
         paint: GraphicsPaintRole::Foreground,
@@ -216,7 +217,16 @@ fn measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outli
             append_panel_chrome(&mut scene, row, screen(1280, 800)).unwrap();
         }
         for row in rows.iter().filter(|row| row.page == page) {
-            append_row_chrome(&mut scene, row, screen(1280, 800), row.paint, false, false).unwrap();
+            append_row_chrome(
+                &mut scene,
+                row,
+                screen(1280, 800),
+                row.paint,
+                false,
+                false,
+                2,
+            )
+            .unwrap();
             crate::native_face_scene::boolean_choice::append(&mut scene, row, screen(1280, 800))
                 .unwrap();
             push(

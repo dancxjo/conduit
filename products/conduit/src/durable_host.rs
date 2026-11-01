@@ -13,6 +13,8 @@ use std::{
 
 #[path = "body_owner/mod.rs"]
 pub(crate) mod owner;
+#[path = "durable_host_root_signer.rs"]
+pub(crate) mod root_signer;
 pub(crate) use owner::run as run_body_owner;
 #[path = "body_owner/lock.rs"]
 mod owner_lock;

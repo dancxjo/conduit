@@ -18,7 +18,9 @@ pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 #[path = "continuing/native.rs"]
-mod native;
+pub(super) mod native;
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+pub(super) use native::SourceSelection;
 struct WorkerOutcome {
     host: StdHost,
     result: Result<BodyRunReport, String>,
@@ -32,6 +34,8 @@ pub(crate) struct RunWorker {
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    live_fore: Option<Receiver<native::LiveFore>>,
     #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
     returned_equipment:
         Option<crate::durable_host::selected_environmental_sources::AttachedEquipment>,
@@ -121,6 +125,11 @@ impl Owner {
         if let Some(native) = &mut native {
             native.equipment = equipment.take();
         }
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        let live_fore = native
+            .as_mut()
+            .and_then(|run| run.live.as_mut())
+            .and_then(|live| live.receiver.take());
         let control = RunControl::default();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
@@ -207,6 +216,8 @@ impl Owner {
             thread: Some(thread),
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             returned_equipment: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            live_fore,
         })
     }
 
@@ -260,6 +271,7 @@ impl Owner {
                     "wake_id":proposed.wake.wake_id, "play":report.play,
                     "wake_at_start":report.wake_at_start, "terminal":report.terminal,
                     "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+                    "native_failure":report.native_failure,
                     "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
                     "terminal_sign":report.terminal_sign,
                     "output_utf8":String::from_utf8_lossy(&output),
@@ -286,7 +298,7 @@ impl Owner {
                 let value = accepted.value;
                 receipt["accepted_source_fore"] = serde_json::json!({
                     "custody": "accepted-typed-fore-not-durable-recording",
-                    "source_selection": accepted.selection, "native_play": accepted.native_play,
+                    "source_selection": &*accepted.selection, "native_play": accepted.native_play,
                     "front_port_id": value.front_port_id, "track": value.track,
                     "value_kind": value.value_kind, "sequence": value.sequence,
                     "canonical_bytes": value.bytes.as_slice(),
@@ -310,6 +322,12 @@ impl RunWorker {
                 result?;
             }
             Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
+        }
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        if let Some(receiver) = &self.live_fore {
+            while let Ok(value) = receiver.try_recv() {
+                owner.accept_live_source_fore(value)?;
+            }
         }
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
             return Ok(false);

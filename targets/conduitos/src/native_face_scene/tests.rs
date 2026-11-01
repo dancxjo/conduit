@@ -1256,8 +1256,8 @@ fn native_density_changes_measured_padding_without_changing_source_geometry() {
             .unwrap(),
         );
     }
-    assert_eq!(scenes[0].primary[0].padding, SPACE_SM);
-    assert_eq!(scenes[1].primary[0].padding, SPACE_SM * 2);
+    assert_eq!(scenes[0].primary[0].insets.block(), SPACE_SM);
+    assert_eq!(scenes[1].primary[0].insets.block(), SPACE_SM * 2);
     assert_eq!(scenes[0].primary[0].bounds.x, scenes[1].primary[0].bounds.x);
     assert_eq!(
         scenes[0].primary[0].bounds.width,

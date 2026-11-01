@@ -468,3 +468,18 @@ mod tests {
         assert_eq!(pulse.limits.max_queue_bytes, crate::TICK_ENCODED_LEN);
     }
 }
+
+/// Register the existing portable Tick-to-Empty projection for authored cadence.
+pub fn install_tick_trigger_catalog(
+    startup: &mut StartupCatalog,
+    profile: &mut ProfileCatalog,
+) -> Result<(), String> {
+    startup.insert(KindSignature {
+        kind: crate::TICK_TRIGGER_KIND.to_string(),
+        startup_parameters: vec![],
+    })?;
+    profile
+        .insert_kind(crate::tick_trigger_semantic_contract())
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}

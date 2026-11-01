@@ -52,11 +52,14 @@ pub(super) fn structure<'a>(
 }
 
 pub(super) fn todo() -> Face {
+    todo_with_items(3)
+}
+pub(super) fn todo_with_items(count: u32) -> Face {
     let state = conduit_todo_plot::TodoState {
         title: "Things".into(),
         revision: 3,
-        next_id: 4,
-        items: (1..=3)
+        next_id: count + 1,
+        items: (1..=count)
             .map(|id| conduit_todo_plot::TodoItem {
                 id: format!("task-{id}"),
                 text: format!("Élan task {id}"),

@@ -4,21 +4,71 @@
 use super::*;
 use conduit_face::{FacePropertyValue, FaceRole};
 
-pub(super) fn append(
-    scene: &mut GraphicsScene,
-    face: &Face,
-    screen: LayoutRect,
-    scale: u16,
-    typography: Typography,
-) -> Result<bool, FaceSceneError> {
-    let Some(subject) = face.subjects.iter().find(|subject| {
+fn active_subject(face: &Face) -> Option<&conduit_face::FaceSubject> {
+    face.subjects.iter().find(|subject| {
         subject.role == FaceRole::Document
             && face.properties.iter().any(|property| {
                 property.subject == subject.identity
                     && property.name == "text-editing-active"
                     && property.value == FacePropertyValue::Flag(true)
             })
-    }) else {
+    })
+}
+
+fn line_height(
+    role: GraphicsTextRole,
+    width: u16,
+    scale: u16,
+    typography: Typography,
+) -> Result<u16, FaceSceneError> {
+    let line = TextLayout::new_selected("", typography.style(role.into()), width, scale)
+        .map_err(|_| FaceSceneError::InvalidExtent)?
+        .finish_height();
+    u16::try_from(line).map_err(|_| FaceSceneError::InvalidExtent)
+}
+
+pub(super) fn minimum_extent(
+    face: &Face,
+    width: u16,
+    scale: u16,
+    typography: Typography,
+) -> Result<Option<u16>, FaceSceneError> {
+    if active_subject(face).is_none() {
+        return Ok(None);
+    }
+    let width = width
+        .checked_sub(SPACE_XL * 2 + 16)
+        .ok_or(FaceSceneError::InvalidExtent)?;
+    let label = line_height(GraphicsTextRole::Label, width, scale, typography)?;
+    let body = line_height(GraphicsTextRole::Body, width, scale, typography)?;
+    label
+        .checked_add(body)
+        .and_then(|sum| sum.checked_add(2))
+        .map(Some)
+        .ok_or(FaceSceneError::InvalidExtent)
+}
+
+#[cfg(test)]
+fn append(
+    scene: &mut GraphicsScene,
+    face: &Face,
+    screen: LayoutRect,
+    scale: u16,
+    typography: Typography,
+) -> Result<bool, FaceSceneError> {
+    let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
+    append_with_chrome(scene, face, screen, scale, typography, &chrome)
+}
+
+pub(super) fn append_with_chrome(
+    scene: &mut GraphicsScene,
+    face: &Face,
+    screen: LayoutRect,
+    scale: u16,
+    typography: Typography,
+    chrome: &chrome::Chrome,
+) -> Result<bool, FaceSceneError> {
+    let Some(subject) = active_subject(face) else {
         return Ok(false);
     };
     let text = face
@@ -35,7 +85,6 @@ pub(super) fn append(
         start += 1;
     }
     let text = &text[start..];
-    let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
     let bounds = LayoutRect {
         x: SPACE_XL as i16,
         y: chrome.top as i16,
@@ -51,22 +100,13 @@ pub(super) fn append(
             GraphicsShapeStyle::Stroke,
         ),
     )?;
-    let label_height = TextLayout::new_selected(
-        "",
-        typography.style(GraphicsTextRole::Label.into()),
+    let label_height = line_height(
+        GraphicsTextRole::Label,
         bounds.width - 16,
         scale,
-    )
-    .map_err(|_| FaceSceneError::InvalidExtent)?
-    .finish_height() as u16;
-    let body_line = TextLayout::new_selected(
-        "",
-        typography.style(GraphicsTextRole::Body.into()),
-        bounds.width - 16,
-        scale,
-    )
-    .map_err(|_| FaceSceneError::InvalidExtent)?
-    .finish_height() as u16;
+        typography,
+    )?;
+    let body_line = line_height(GraphicsTextRole::Body, bounds.width - 16, scale, typography)?;
     // Keep a complete measured caption and at least one text/caret line. Only
     // the old fixed gaps shrink under pressure; the border retains one pixel.
     let gaps = bounds

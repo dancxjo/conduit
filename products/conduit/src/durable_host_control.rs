@@ -959,6 +959,18 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyReplacePlot {
+        protocol: u16,
+        token: Vec<u8>,
+        source: String,
+        expected_workload_revision: u64,
+        expected_checked_plot_id: String,
+    },
+    BodyEstablishRootSigner {
+        protocol: u16,
+        token: Vec<u8>,
+        body_id: String,
+    },
     BodyInspect {
         protocol: u16,
         token: Vec<u8>,
@@ -1249,6 +1261,10 @@ enum Response {
         image_content_digest: String,
         advertisement: HostAdvertisement,
     },
+    BodyRootSignerEstablished {
+        protocol: u16,
+        binding: crate::durable_host::root_signer::Binding,
+    },
     BodyTruth {
         protocol: u16,
         truth: serde_json::Value,
@@ -1272,9 +1288,9 @@ enum Response {
         protocol: u16,
         frame: Box<BrowserAdmissionEgress>,
     },
-    BodyBrowserSnapshot {
+    BodyBrowserCompletion {
         protocol: u16,
-        snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
+        completion: Box<crate::durable_host::owner::BrowserAdmissionCompletion>,
     },
     BodyBrowserOffer {
         protocol: u16,
@@ -1894,6 +1910,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         #[cfg(target_os = "linux")]
         Request::Notebook { token, .. } => token,
         Request::Status { token, .. }
+        | Request::BodyEstablishRootSigner { token, .. }
+        | Request::BodyReplacePlot { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
@@ -2007,6 +2025,32 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             image_content_digest: truth.image_content_digest.clone(),
             advertisement: truth.advertisement.clone(),
         },
+        Request::BodyReplacePlot {
+            protocol,
+            source,
+            expected_workload_revision,
+            expected_checked_plot_id,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .replace_owned_plot(
+                &source,
+                expected_workload_revision,
+                &expected_checked_plot_id,
+            )
+            .map(|truth| Response::BodyTruth {
+                protocol: PROTOCOL,
+                truth,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyEstablishRootSigner {
+            protocol, body_id, ..
+        } if protocol == PROTOCOL => runtime
+            .establish_owned_root_signer(&body_id)
+            .map(|binding| Response::BodyRootSignerEstablished {
+                protocol: PROTOCOL,
+                binding,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyInspect { protocol, .. } if protocol == PROTOCOL => runtime
             .owned_body_truth()
             .map(|truth| Response::BodyTruth {
@@ -2072,9 +2116,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .browser_complete(&window_id, *frame)
-            .map(|snapshot| Response::BodyBrowserSnapshot {
+            .map(|completion| Response::BodyBrowserCompletion {
                 protocol: PROTOCOL,
-                snapshot: Box::new(snapshot),
+                completion: Box::new(completion),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserOffer {
@@ -3303,3 +3347,13 @@ mod tests {
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 #[path = "durable_host_control/environmental_worker.rs"]
 mod environmental_worker;
+
+pub(crate) fn establish_root_signer(
+    state_dir: &Path,
+    body_id: &str,
+    authorized: bool,
+) -> Result<(), String> {
+    body::establish_root_signer(state_dir, body_id, authorized)
+}
+
+pub(crate) use body::replace_plot;

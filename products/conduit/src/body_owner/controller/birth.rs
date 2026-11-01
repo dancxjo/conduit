@@ -118,6 +118,8 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_face: None,
             todo_verified: None,
             notebook: None,
         }

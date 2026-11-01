@@ -1,3 +1,4 @@
+import { createBrowserMembershipSession } from "./browser-membership-session.mjs";
 import { createInvitedBrowserHandshake } from "./browser-spore-membership.mjs";
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
 import { openBrowserHostIdentity } from "./browser-host-identity.mjs";
@@ -144,7 +145,7 @@ function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = 
   return Object.freeze({ ...candidate });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, invitedProvision = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, sessionCarrier = null, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, invitedProvision = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
@@ -300,7 +301,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     onState?.(next);
   };
   const sendWebRtcSignal = ({ targetHostId, targetBootId, signal }) => {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       throw new Error("current browser presence is required for WebRTC signaling");
     }
     if (typeof targetHostId !== "string" || targetHostId.length === 0 ||
@@ -322,7 +323,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     })));
   };
   const requestWebRtcGrant = (generation, index) => {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       throw new Error("current browser presence is required for WebRTC grants");
     }
     if (!Number.isInteger(generation) || generation < 0 || generation >= 2 ||
@@ -348,9 +349,9 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     onState: (next) => onWebRtcState?.(next),
   });
   const openSocket = (returning = false, freshBoot = false) => {
-    socket = new WebSocket(bodyUrl);
-    socket.binaryType = "arraybuffer";
-    socket.addEventListener("open", () => {
+    const session = createBrowserMembershipSession({ url: bodyUrl, carrier: sessionCarrier });
+    socket = session;
+    session.start({ open: () => {
       if (returning) {
         setState(freshBoot ? "returning-fresh-boot" : "returning");
         socket.send(encoder.encode(JSON.stringify({
@@ -375,8 +376,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         verifying_key: Array.from(verifyingKey),
         freshness_sequence: 1,
       })));
-    });
-    socket.addEventListener("message", async (event) => {
+    }, message: async (event) => {
     const frameBytes = typeof event.data === "string"
       ? encoder.encode(event.data)
       : new Uint8Array(event.data);
@@ -549,6 +549,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       offerEvidence = null;
       credentialPersistence = Promise.resolve(onCredential?.(credential));
       await credentialPersistence;
+      if (socket !== session || !session.isOpen()) return;
       setState("admitted");
     } else if (frame.kind === "biography-evidence" && frame.protocol === 1) {
       const evidence = frame.evidence;
@@ -600,6 +601,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       onOfferEvidence?.(offerEvidence);
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
       await credentialPersistence;
+      if (socket !== session || !session.isOpen()) return;
       if (!credential || (!returning && frame.sequence !== renewalSequence)) {
         throw new Error("presence acceptance did not match the current credential sequence");
       }
@@ -685,8 +687,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       webRtcSessions.reset(`body-refused:${frame.code}`);
       setState(`refused:${frame.code}`);
     }
-    });
-    socket.addEventListener("close", () => {
+    }, close: () => {
       invited?.retire();
       clearTimeout(renewalTimer);
       presenceState = "unavailable";
@@ -727,18 +728,18 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingSelectedSpeech = null;
       }
       if (state.startsWith("refused:")) return;
-      if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
+      if (!deliberateClose && presenceEstablished && reconnectPresence && sessionCarrier === null && reconnectAttempts === 0) {
         reconnectAttempts += 1;
         setState("reconnecting");
         queueMicrotask(() => openSocket(true));
       } else {
         setState("offline");
       }
-    });
+    } });
   };
   openSocket(priorCredential !== null, priorCredential !== null);
   function publishMediaResource(mediaEvidence) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current body membership is required for media resource truth"));
     }
     if (pendingMediaPlan) {
@@ -792,13 +793,13 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function requestOfferEvidence({ capabilityIds = [], resourcePoolIds = [] }) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) throw new Error("current body membership is required for offer disclosure");
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) throw new Error("current body membership is required for offer disclosure");
     const canonical = values => Array.isArray(values) && values.length > 0 && values.length <= 16 && values.every((value, index) => typeof value === "string" && value.length > 0 && (index === 0 || values[index - 1] < value));
     if ((!canonical(capabilityIds) && capabilityIds.length !== 0) || (!canonical(resourcePoolIds) && resourcePoolIds.length !== 0) || capabilityIds.length + resourcePoolIds.length === 0) throw new Error("offer disclosure selection must be finite and canonical");
     socket.send(encoder.encode(JSON.stringify({kind:"offer-disclosure-request",protocol:1,credential_id:credential.credential_id,body_id:credential.body_id,part_id:credential.part_id,host_id:hostId,boot_id:bootId,request:{stage:"Planning",capability_ids:capabilityIds,resource_pool_ids:resourcePoolIds}})));
   }
   function requestFaceSnapshot({ lastSeenRevision = null, lastSeenIdentity = null } = {}) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for the owner Face"));
     }
     if (pendingFaceSnapshot) return Promise.reject(new Error("one owner Face request is already pending"));
@@ -838,7 +839,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function submitFaceInteraction(submissionBytes) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for owner interaction"));
     }
     if (pendingFaceInteraction) return Promise.reject(new Error("one owner interaction is already pending"));
@@ -875,7 +876,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function selectComponentMask({ showBytes, look, recipe }) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for component selection"));
     }
     if (pendingComponent) return Promise.reject(new Error("one component selection is already pending"));
@@ -900,7 +901,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function ownerWardrobe({ action = null, ownerPlanId = null, basisRevision = "0" } = {}) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for owner wardrobe"));
     }
     if (pendingWardrobe) return Promise.reject(new Error("one owner wardrobe request is already pending"));
@@ -934,7 +935,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function acknowledgeFaceShow(showBytes) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for owner Show"));
     }
     if (pendingFaceShow) return Promise.reject(new Error("one owner Show acknowledgement is already pending"));
@@ -970,7 +971,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function selectedSpeech(kind, { showBytes = null, operationId = null } = {}) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for selected speech"));
     }
     if (pendingSelectedSpeech) return Promise.reject(new Error("one selected speech request is already pending"));
@@ -1049,7 +1050,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       invited?.retire();
       clearTimeout(renewalTimer);
       webRtcSessions.reset("presence-closed");
-      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      if (!credential || presenceState !== "available" || !socket?.isOpen()) {
         deliberateClose = true;
         socket?.close(1000, "Browser Host leaving");
         return renewalSequence;

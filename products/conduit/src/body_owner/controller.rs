@@ -35,8 +35,13 @@ mod checkpoint_once;
 pub(crate) use checkpoint_once::tests::published_fixture as published_todo_test_fixture;
 #[path = "continuing.rs"]
 mod continuing;
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "environmental_face.rs"]
+mod environmental_face;
 #[path = "execution_retention.rs"]
 mod execution_retention;
+#[path = "replace_plot.rs"]
+mod replace_plot;
 pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
@@ -210,6 +215,8 @@ pub(crate) struct Owner {
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    environmental_face: Option<environmental_face::EnvironmentalFace>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
     /// Bounded display cache from an exact selected read Host Call and both
@@ -315,6 +322,8 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_face: None,
             todo_verified: None,
             notebook: None,
         })
@@ -345,6 +354,8 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_face: None,
             todo_verified: None,
             notebook: None,
         })
@@ -506,6 +517,29 @@ impl Owner {
             conduit_planner::ConnectionQueueLimits,
         >,
     ) -> Result<BodyPlotPlan, String> {
+        self.plan_partition_with_limits(
+            plot,
+            resident,
+            grants,
+            boundaries,
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+                byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+            },
+        )
+    }
+
+    fn plan_partition_with_limits(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        grants: &[conduit_core::AuthorityGrant],
+        boundaries: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+        limits: conduit_planner::ConnectionQueueLimits,
+    ) -> Result<BodyPlotPlan, String> {
         let advertised = self.host.advertisement();
         if grants
             .iter()
@@ -529,8 +563,8 @@ impl Owner {
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
-                connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
-                connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+                connection_item_capacity: limits.item_capacity,
+                connection_byte_capacity: limits.byte_capacity,
                 authority_grants: grants,
                 protected_resource_grants: &[],
                 line_offers: &[],

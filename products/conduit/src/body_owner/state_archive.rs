@@ -193,3 +193,57 @@ pub(super) fn verify_retained_archive(root: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Retrieve canonical record content through the already checked archive chain.
+/// Used for equality at one committed sequence, never as a new authority source.
+pub(super) fn record_at(
+    root: &Path,
+    biography: &BodyBiographyEvidence,
+    pending: &[BodyBiographyArchiveSegment],
+    sequence: u64,
+) -> Result<conduit_body::BodyBiographyRecord, String> {
+    if let Some(record) = biography
+        .records
+        .iter()
+        .find(|record| record.sequence == sequence)
+    {
+        return Ok(record.clone());
+    }
+    if let Some(record) = pending
+        .iter()
+        .flat_map(|segment| &segment.records)
+        .find(|record| record.sequence == sequence)
+    {
+        return Ok(record.clone());
+    }
+    let summary = biography
+        .compaction
+        .as_ref()
+        .ok_or("canonical record is not retained or archived")?;
+    let mut ordinal = summary.sealed_segments;
+    let mut digest = summary.archive_head_digest;
+    while ordinal > 0 {
+        let selected = digest.ok_or("canonical archive predecessor missing")?;
+        let segment = if let Some(segment) = pending
+            .iter()
+            .find(|segment| segment.ordinal == ordinal && segment.digest == selected)
+        {
+            segment.clone()
+        } else {
+            read_archive(root, ordinal, selected)?
+        };
+        if segment.body_id != biography.body_id {
+            return Err("canonical archive belongs to another Body".into());
+        }
+        if let Some(record) = segment
+            .records
+            .iter()
+            .find(|record| record.sequence == sequence)
+        {
+            return Ok(record.clone());
+        }
+        ordinal -= 1;
+        digest = segment.previous_digest;
+    }
+    Err("canonical committed record content is unavailable".into())
+}

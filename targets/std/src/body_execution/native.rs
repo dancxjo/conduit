@@ -7,10 +7,47 @@ use conduit_core::{ActivePlayIdentity, HostAdvertisement, PlacementId, PlanFragm
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 use std::sync::Arc;
 
+/// Finite diagnostic vocabulary. No provider text, endpoint or payload is retained.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum NativeFailureCategory {
+    Unknown,
+    Acquisition,
+    Authorization,
+    Capacity,
+    TransportTimeout,
+    TransportIo,
+    ConnectionRefused,
+    ProviderSpawn,
+    ProviderProtocol,
+    ProviderRefused,
+    MalformedResponse,
+    SourceIdentity,
+    MalformedObservation,
+    SourceContinuity,
+    Retired,
+}
+impl NativeFailureCategory {
+    pub(crate) fn denied(self) -> bool {
+        matches!(self, Self::Unknown | Self::Authorization | Self::Retired)
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+pub struct NativeFailureDiagnostic {
+    pub category: NativeFailureCategory,
+    pub node: u32,
+    pub call: u32,
+    pub request: u32,
+}
+
 /// Cooperative native adapter for one finite admitted effect. Implementations
 /// must return the SAME Host and work, including on provider refusal. Their
 /// independently selected deadlines bound IO; this is not preemptive containment.
 pub trait BodyNativeProvider {
+    /// Category for the immediately returned refusal; never grants execution authority.
+    fn failure_category(&self) -> NativeFailureCategory {
+        NativeFailureCategory::Unknown
+    }
     fn execute(
         &mut self,
         host: StdHost,
@@ -36,6 +73,7 @@ pub(crate) struct NativeExecution<'a> {
     // A mismatched affine return cannot be released as if it were our lease.
     // Preserve it through teardown while the returned Host remains non-idle.
     quarantined: Option<PreparedNativeWork>,
+    pub(crate) last_failure: Option<NativeFailureDiagnostic>,
 }
 impl NativeExecution<'_> {
     #[allow(clippy::too_many_arguments)]
@@ -70,20 +108,35 @@ impl NativeExecution<'_> {
                 descriptor
             }
             Err(refusal) => {
+                self.last_failure = Some(NativeFailureDiagnostic {
+                    category: NativeFailureCategory::Authorization,
+                    node: u32::from(request.node.0),
+                    call: u32::from(request.call.0),
+                    request: request.request.0,
+                });
                 self.quarantined = Some(refusal.work);
                 return Err(refusal.reason);
             }
         };
+        let mut category = self.provider.failure_category();
         let result = if result.is_ok() && !was_started {
+            category = NativeFailureCategory::Authorization;
             Err("native output arrived without the admitted attempt starting".into())
         } else if result
             .as_ref()
             .is_ok_and(|bytes| bytes.len() > maximum as usize)
         {
+            category = NativeFailureCategory::Capacity;
             Err("native output exceeds exact selected bound".into())
         } else {
             result
         };
+        self.last_failure = result.as_ref().err().map(|_| NativeFailureDiagnostic {
+            category,
+            node: u32::from(request.node.0),
+            call: request.call.0 as u32,
+            request: request.request.0,
+        });
         Ok((descriptor, result))
     }
 }
@@ -111,7 +164,38 @@ impl StdHost {
             request,
             inputs,
             false,
+            false,
             fore_output,
+            output,
+            timer,
+            provider,
+            started,
+        )
+    }
+
+    /// Stream typed outputs to a synchronous borrowed consumer. Accepted bytes
+    /// are owned by that consumer's admitted storage; the report retains Signs,
+    /// not an accumulating copy of each output. Queue capacity is unchanged.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_body_plan_owned_native_borrowed_to<W: Write, T: TimerAdapter, F>(
+        self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyBorrowedForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        provider: &mut dyn BodyNativeProvider,
+        started: F,
+    ) -> (Self, Result<BodyRunReport, String>)
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_owned_native_fore_to(
+            request,
+            inputs,
+            false,
+            true,
+            &mut super::borrowed_fore::BorrowedAdapter(fore_output),
             output,
             timer,
             provider,
@@ -125,6 +209,7 @@ impl StdHost {
         request: BodyRunRequest<'_>,
         inputs: &[ExternalForeInput],
         sequential: bool,
+        borrowed_stream: bool,
         fore_output: &mut dyn BodyForeOutputAdapter,
         output: &mut W,
         timer: &mut T,
@@ -168,6 +253,9 @@ impl StdHost {
                 None,
                 &self.retained_native_calls,
             )?;
+            if borrowed_stream {
+                kernel.prepare_borrowed_fore()?;
+            }
             kernel.prepare_native_slots(&self.advertisement, play.play_sequence)?;
             kernel.prepare_input_origin(&self.advertisement, request.plan, &play)?;
             kernel.require_supported_execution()?;
@@ -224,6 +312,7 @@ impl StdHost {
             reservations,
             provider,
             quarantined: None,
+            last_failure: None,
         };
         let result = kernel.run_with_native(
             output,
@@ -266,6 +355,7 @@ fn report_from_kernel(
         terminal: result.terminal,
         failure: result.failure,
         kernel_failure: result.kernel_failure,
+        native_failure: result.native_failure,
         cleanup_failure: result.cleanup_failure,
         terminal_sign,
         partitions: result.partitions,

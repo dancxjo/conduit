@@ -198,6 +198,7 @@ mod text_state_back;
 mod thermostat_combine_back;
 mod tick_backs;
 mod tick_face;
+mod tick_trigger_back;
 mod time_sample_back;
 mod time_window_back;
 mod timed_button_attempt_back;

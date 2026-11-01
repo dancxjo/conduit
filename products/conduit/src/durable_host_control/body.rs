@@ -31,9 +31,9 @@ use std::{
 /// The one local-control round-trip budget, including an action's durable
 /// acknowledgement. Timeout leaves the result unknown to its caller.
 pub(super) const CONTROL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
-/// One Todo action may wait for a bounded write and a second admitted read
-/// before its committed-state Face is safe to return to the caller.
-pub(super) const TODO_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
+/// Durable mutations may wait for bounded persistence and admitted reads.
+/// Expiry still leaves the publication outcome unknown to the caller.
+pub(super) const DURABLE_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
 
 #[path = "body/clock_action.rs"]
 mod clock_action;
@@ -190,9 +190,11 @@ impl DurableHostRuntime {
         &mut self,
         window_id: &str,
         frame: BrowserAdmissionIngress,
-    ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
+    ) -> Result<crate::durable_host::owner::BrowserAdmissionCompletion, String> {
         match &mut self.host {
-            HostSource::Body { owner, root, .. } => owner.browser_complete(root, window_id, frame),
+            HostSource::Body { owner, root, .. } => {
+                owner.browser_complete_outcome(root, window_id, frame)
+            }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
@@ -446,6 +448,20 @@ impl DurableHostRuntime {
             return Err("installed Host does not own a live Body session".into());
         };
         owner.acknowledge_native_mask_show(request, show)
+    }
+
+    pub(super) fn establish_owned_root_signer(
+        &mut self,
+        body_id: &str,
+    ) -> Result<crate::durable_host::root_signer::Binding, String> {
+        match &mut self.host {
+            HostSource::Body {
+                owner,
+                root,
+                running: None,
+            } => crate::durable_host::owner::establish_root_signer(owner, root, body_id),
+            _ => Err("Root signer establishment requires an idle live Body owner".into()),
+        }
     }
 
     pub(super) fn issue_owned_invitation(
@@ -1053,3 +1069,50 @@ pub(crate) fn select_native_component_mask(
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
+
+#[cfg(unix)]
+pub(crate) fn establish_root_signer(
+    state_dir: &Path,
+    body_id: &str,
+    authorized: bool,
+) -> Result<(), String> {
+    if !authorized {
+        return Err("Root signer establishment requires --authorize-establish".into());
+    }
+    match call(
+        state_dir,
+        Request::BodyEstablishRootSigner {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            body_id: body_id.into(),
+        },
+    )? {
+        Response::BodyRootSignerEstablished {
+            protocol: PROTOCOL,
+            binding,
+        } => {
+            // Public pin only; never serialize the private record through control/status.
+            println!(
+                "{}",
+                serde_json::to_string(&binding).map_err(|e| e.to_string())?
+            );
+            Ok(())
+        }
+        Response::Refused { code, .. } => Err(format!(
+            "Body owner refused Root signer establishment: {code}"
+        )),
+        _ => Err("Body owner returned the wrong Root signer response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn establish_root_signer(
+    _state_dir: &Path,
+    _body_id: &str,
+    _authorized: bool,
+) -> Result<(), String> {
+    Err("no reviewed local durable owner control carrier exists on this platform".into())
+}
+
+#[path = "body/replace_plot.rs"]
+mod replace_plot;
+pub(crate) use replace_plot::replace_plot;

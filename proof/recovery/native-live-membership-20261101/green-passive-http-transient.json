@@ -1,0 +1,120 @@
+{
+  "schema": "conduit.proof/passive-carrier-connectivity@1",
+  "method": "eight read-only curl GET /environment requests, two seconds apart, max5s each; no current ownerPlay or network changes",
+  "endpoint": "192.168.1.159:8080",
+  "observations": [
+    {
+      "request": 0,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 26,
+      "decoded": true,
+      "samples": 4643,
+      "attempts": 4644,
+      "frames": 69656,
+      "acks": 69656,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 1,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 18,
+      "decoded": true,
+      "samples": 4643,
+      "attempts": 4644,
+      "frames": 69657,
+      "acks": 69657,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 2,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 16,
+      "decoded": true,
+      "samples": 4643,
+      "attempts": 4644,
+      "frames": 69658,
+      "acks": 69658,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 3,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 17,
+      "decoded": true,
+      "samples": 4643,
+      "attempts": 4644,
+      "frames": 69659,
+      "acks": 69659,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 4,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 19,
+      "decoded": true,
+      "samples": 4643,
+      "attempts": 4644,
+      "frames": 69660,
+      "acks": 69660,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 5,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 237,
+      "decoded": true,
+      "samples": 4644,
+      "attempts": 4645,
+      "frames": 69661,
+      "acks": 69661,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 6,
+      "exit": 0,
+      "http_status": "200",
+      "elapsed_ms": 15,
+      "decoded": true,
+      "samples": 4644,
+      "attempts": 4645,
+      "frames": 69662,
+      "acks": 69662,
+      "sensor_error": false,
+      "display_error": false
+    },
+    {
+      "request": 7,
+      "exit": 7,
+      "http_status": "000",
+      "elapsed_ms": 3048,
+      "decoded": false
+    }
+  ],
+  "later_read": {
+    "http_status": 200,
+    "samples": 4646,
+    "frames": 69691,
+    "acks": 69691,
+    "sensor_error": false,
+    "display_error": false
+  },
+  "classification": "physical endpoint transient independently observed",
+  "limitations": [
+    "Unsigned passive diagnostic, not admitted Source or protected Line evidence",
+    "Does not establish original native Play failure cause",
+    "Later raw HTTP response does not authorize revival of retired equipment",
+    "No NAT/interruption replay or durable Recorder ACK claim"
+  ]
+}

@@ -5,31 +5,40 @@ use crate::durable_host::selected_environmental_sources::AttachedEquipment;
 use conduit_environment_measurement::source_observation::{ObservationContract, MAXIMUM_BYTES};
 use conduit_std_host::{body_execution::BodyForeOutputAdapter, ExternalForeDelivery};
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
+#[path = "native/live.rs"]
+mod live;
+pub(in super::super) use live::{LiveCapture, LiveFore};
 
 pub(super) struct NativeRun {
     pub equipment: Option<AttachedEquipment>,
     pub inputs: Vec<conduit_std_host::ExternalForeInput>,
     pub capture: Capture,
-    selection: SourceSelection,
-    completed: Option<conduit_core::ActivePlayIdentity>,
+    selection: Arc<SourceSelection>,
+    completed: Arc<Mutex<Option<Arc<CompletedScope>>>>,
+    pub live: Option<LiveCapture>,
 }
-#[derive(serde::Serialize)]
-pub(super) struct SourceSelection {
-    attachment_id: String,
-    host_id: conduit_core::HostId,
-    boot_id: conduit_core::BootId,
-    capability_id: conduit_core::CapabilityId,
-    provider_instance_id: conduit_core::BaseInstanceId,
-    provider_generation: u64,
-    plan_id: conduit_core::PlanId,
-    fragment_id: conduit_core::FragmentId,
-    placement_id: conduit_core::PlacementId,
-    configuration_id: String,
-    firmware_sha256: [u8; 32],
+#[derive(Clone, PartialEq, Eq, serde::Serialize)]
+pub(in super::super) struct SourceSelection {
+    pub(in super::super) attachment_id: String,
+    pub(in super::super) host_id: conduit_core::HostId,
+    pub(in super::super) boot_id: conduit_core::BootId,
+    pub(in super::super) capability_id: conduit_core::CapabilityId,
+    pub(in super::super) provider_instance_id: conduit_core::BaseInstanceId,
+    pub(in super::super) provider_generation: u64,
+    pub(in super::super) plan_id: conduit_core::PlanId,
+    pub(in super::super) fragment_id: conduit_core::FragmentId,
+    pub(in super::super) placement_id: conduit_core::PlacementId,
+    pub(in super::super) configuration_id: String,
+    pub(in super::super) firmware_sha256: [u8; 32],
+}
+pub(in super::super) struct CompletedScope {
+    pub selection: Arc<SourceSelection>,
+    pub native_play: conduit_core::ActivePlayIdentity,
 }
 pub(super) struct AcceptedSourceFore {
     pub value: ExternalForeDelivery,
-    pub selection: SourceSelection,
+    pub selection: Arc<SourceSelection>,
     pub native_play: conduit_core::ActivePlayIdentity,
 }
 pub(super) struct Capture {
@@ -71,26 +80,52 @@ impl NativeRun {
         equipment.validate_owner(&owner.host)?;
         let contract = ObservationContract::prepare().map_err(super::super::debug)?;
         let kind = contract.kind(false).map_err(super::super::debug)?;
-        let [input] = checked.front.inputs() else {
-            return Err("selected Source encounter requires one explicit Empty trigger".into());
+        let input = match checked.front.inputs() {
+            [] if checked.input_bindings.is_empty() => None,
+            [input] => Some(input),
+            _ => {
+                return Err(
+                    "selected Source requires an explicit Empty trigger or authored cadence".into(),
+                )
+            }
         };
         let [output] = checked.front.outputs() else {
             return Err("selected Source encounter requires one typed observation Fore".into());
         };
-        if input.value_kind.as_str() != conduit_core::EMPTY_INFO_ID
+        if input.is_some_and(|input| input.value_kind.as_str() != conduit_core::EMPTY_INFO_ID)
             || output.value_kind != kind.outputs[0].value_kind
-            || checked.input_bindings.len() != 1
+            || checked.input_bindings.len() != usize::from(input.is_some())
             || checked.output_bindings.len() != 1
-            || checked.input_bindings[0].track != conduit_core::ConnectionTrack::Payload
+            || checked
+                .input_bindings
+                .first()
+                .is_some_and(|binding| binding.track != conduit_core::ConnectionTrack::Payload)
             || checked.output_bindings[0].track != conduit_core::ConnectionTrack::Payload
-            || checked.input_bindings[0].gear_id != checked.output_bindings[0].gear_id
-            || checked.input_bindings[0].gear_port_id != kind.inputs[0].port_id
+            || checked
+                .input_bindings
+                .first()
+                .is_some_and(|binding| binding.gear_id != checked.output_bindings[0].gear_id)
+            || checked
+                .input_bindings
+                .first()
+                .is_some_and(|binding| binding.gear_port_id != kind.inputs[0].port_id)
             || checked.output_bindings[0].gear_port_id != kind.outputs[0].port_id
         {
             return Err("selected Source encounter has unsupported external Fore contracts".into());
         }
-        let boundaries = BTreeMap::from([
-            (
+        let mut boundaries = BTreeMap::from([(
+            conduit_planner::ForeBoundaryKey {
+                direction: conduit_core::PortDirection::Output,
+                front_port_id: output.port_id.clone(),
+                track: conduit_core::ConnectionTrack::Payload,
+            },
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: MAXIMUM_BYTES as u32,
+            },
+        )]);
+        if let Some(input) = input {
+            boundaries.insert(
                 conduit_planner::ForeBoundaryKey {
                     direction: conduit_core::PortDirection::Input,
                     front_port_id: input.port_id.clone(),
@@ -100,25 +135,18 @@ impl NativeRun {
                     item_capacity: 1,
                     byte_capacity: 1,
                 },
-            ),
-            (
-                conduit_planner::ForeBoundaryKey {
-                    direction: conduit_core::PortDirection::Output,
-                    front_port_id: output.port_id.clone(),
-                    track: conduit_core::ConnectionTrack::Payload,
-                },
-                conduit_planner::ConnectionQueueLimits {
-                    item_capacity: 1,
-                    byte_capacity: MAXIMUM_BYTES as u32,
-                },
-            ),
-        ]);
+            );
+        }
         let resident = owner.resident.as_ref().ok_or("Body has no resident Plot")?;
-        let partition = owner.plan_partition_with_authority_grants(
+        let partition = owner.plan_partition_with_limits(
             checked,
             resident,
             &equipment.authority_grants,
             &boundaries,
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: conduit_time::TICK_ENCODED_LEN,
+            },
         )?;
         let mut matches = partition.plan.fragments.iter().flat_map(|fragment| {
             fragment.placements.iter().filter_map(move |placement| {
@@ -146,7 +174,7 @@ impl NativeRun {
         if instruments.next().is_some() {
             return Err("Source output has multiple equipment associations".into());
         }
-        let selection = SourceSelection {
+        let selection = Arc::new(SourceSelection {
             attachment_id: instrument.attachment_id.clone(),
             host_id: placement.host_id.clone(),
             boot_id: placement.boot_id.clone(),
@@ -158,9 +186,18 @@ impl NativeRun {
             placement_id: placement.placement_id.clone(),
             configuration_id: instrument.source_configuration.configuration_id().into(),
             firmware_sha256: instrument.firmware,
-        };
+        });
         // Do not publish a proposal until its output is associated with the
         // exact independently retained equipment, rather than vector position.
+        if owner.environmental_face.is_none() {
+            owner.environmental_face =
+                Some(super::super::environmental_face::EnvironmentalFace::prepare()?);
+        }
+        owner
+            .environmental_face
+            .as_mut()
+            .expect("prepared Source Face")
+            .select(selection.clone())?;
         let ad = owner.host.advertisement();
         owner
             .session
@@ -169,12 +206,23 @@ impl NativeRun {
         Ok(Some(Self {
             equipment: None,
             selection,
-            completed: None,
-            inputs: vec![conduit_std_host::ExternalForeInput {
-                front_port_id: input.port_id.clone(),
-                track: conduit_core::ConnectionTrack::Payload,
-                bytes: vec![],
-            }],
+            completed: Arc::new(Mutex::new(None)),
+            live: if input.is_none() {
+                Some(LiveCapture::prepare(
+                    output.port_id.clone(),
+                    output.value_kind.clone(),
+                )?)
+            } else {
+                None
+            },
+            inputs: input
+                .into_iter()
+                .map(|input| conduit_std_host::ExternalForeInput {
+                    front_port_id: input.port_id.clone(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                    bytes: vec![],
+                })
+                .collect(),
             capture: Capture {
                 port: output.port_id.clone(),
                 kind: output.value_kind.clone(),
@@ -187,8 +235,9 @@ impl NativeRun {
 
 struct Provider<'a> {
     equipment: &'a mut Option<AttachedEquipment>,
-    selection: &'a SourceSelection,
-    completed: &'a mut Option<conduit_core::ActivePlayIdentity>,
+    selection: &'a Arc<SourceSelection>,
+    completed: &'a Arc<Mutex<Option<Arc<CompletedScope>>>>,
+    failure_category: conduit_std_host::body_execution::native::NativeFailureCategory,
 }
 impl SourceSelection {
     fn matches(
@@ -211,6 +260,10 @@ impl SourceSelection {
     }
 }
 impl conduit_std_host::body_execution::native::BodyNativeProvider for Provider<'_> {
+    fn failure_category(&self) -> conduit_std_host::body_execution::native::NativeFailureCategory {
+        self.failure_category
+    }
+
     fn execute(
         &mut self,
         host: StdHost,
@@ -235,16 +288,40 @@ impl conduit_std_host::body_execution::native::BodyNativeProvider for Provider<'
             instruments,
             authority_grants,
         });
-        let result = result.map_err(|e| format!("selected native Source refused: {e:?}"));
+        self.failure_category =
+            result.as_ref().err().map(category).unwrap_or(
+                conduit_std_host::body_execution::native::NativeFailureCategory::Unknown,
+            );
+        let result = result.map_err(|_| "selected native Source refused".into());
         if selected_source && result.is_ok() {
             if !self.selection.matches(&work.selected()) {
+                self.failure_category =
+                    conduit_std_host::body_execution::native::NativeFailureCategory::Authorization;
                 return (
                     host,
                     work,
                     Err("native Source returned a different selection".into()),
                 );
             }
-            *self.completed = Some(work.selected().active.clone());
+            let mut completed = self.completed.lock().expect("native scope lock");
+            if completed
+                .as_ref()
+                .is_some_and(|scope| &scope.native_play != work.selected().active)
+            {
+                self.failure_category =
+                    conduit_std_host::body_execution::native::NativeFailureCategory::Authorization;
+                return (
+                    host,
+                    work,
+                    Err("Source Play changed inside retained execution".into()),
+                );
+            }
+            if completed.is_none() {
+                *completed = Some(Arc::new(CompletedScope {
+                    selection: self.selection.clone(),
+                    native_play: work.selected().active.clone(),
+                }));
+            }
         }
         (host, work, result)
     }
@@ -259,7 +336,12 @@ impl NativeRun {
                     selection: self.selection,
                     native_play: self
                         .completed
-                        .ok_or("Source Fore has no exact native completion")?,
+                        .lock()
+                        .map_err(|_| "native scope poisoned")?
+                        .as_ref()
+                        .ok_or("Source Fore has no exact native completion")?
+                        .native_play
+                        .clone(),
                 })
             })
             .transpose()
@@ -275,17 +357,32 @@ impl NativeRun {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        let mut provider = Provider {
+            equipment: &mut self.equipment,
+            selection: &self.selection,
+            completed: &self.completed,
+            failure_category:
+                conduit_std_host::body_execution::native::NativeFailureCategory::Unknown,
+        };
+        if let Some(live) = &mut self.live {
+            live.scope = self.completed.clone();
+            return host.run_body_plan_owned_native_borrowed_to(
+                request,
+                &self.inputs,
+                live,
+                output,
+                timer,
+                &mut provider,
+                started,
+            );
+        }
         host.run_body_plan_owned_native_to(
             request,
             &self.inputs,
             &mut self.capture,
             output,
             timer,
-            &mut Provider {
-                equipment: &mut self.equipment,
-                selection: &self.selection,
-                completed: &mut self.completed,
-            },
+            &mut provider,
             started,
         )
     }
@@ -361,5 +458,36 @@ mod tests {
         assert_eq!(capture.value.as_ref(), Some(&delivery));
         assert!(capture.deliver(&delivery).is_err());
         assert_eq!(capture.value.as_ref(), Some(&delivery));
+    }
+}
+
+fn category(
+    error: &conduit_environment_host::source_operator::Refusal,
+) -> conduit_std_host::body_execution::native::NativeFailureCategory {
+    use conduit_environment_host::source_operator::Refusal as R;
+    use conduit_environment_host::source_operator::SourceRefusal as S;
+    use conduit_std_host::body_execution::native::NativeFailureCategory as C;
+    match error {
+        R::Authority | R::Advertisement | R::WrongBoot | R::Plan | R::Planning(_) => {
+            C::Authorization
+        }
+        R::Possession => C::Retired,
+        R::Capacity => C::Capacity,
+        R::Acquisition => C::Acquisition,
+        R::Source(source) => match source {
+            S::Binding(_) | S::Capability(_) | S::Possession | S::Request => C::Authorization,
+            S::Capacity => C::Capacity,
+            S::TransportTimeout => C::TransportTimeout,
+            S::TransportIo => C::TransportIo,
+            S::ConnectionRefused => C::ConnectionRefused,
+            S::ProviderSpawn => C::ProviderSpawn,
+            S::ProviderProtocol => C::ProviderProtocol,
+            S::ProviderRefused => C::ProviderRefused,
+            S::MalformedResponse => C::MalformedResponse,
+            S::Identity => C::SourceIdentity,
+            S::MalformedObservation | S::Encoding(_) => C::MalformedObservation,
+            S::Continuity => C::SourceContinuity,
+            S::Provider => C::Acquisition,
+        },
     }
 }

@@ -8,6 +8,8 @@ use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence, BodyLifec
 mod archive;
 #[path = "state_execution_custody.rs"]
 mod execution_custody;
+#[path = "state_publication_fence.rs"]
+mod publication_fence;
 #[cfg(test)]
 use archive::archive_path;
 use archive::{retain_archive_segments, validate_archive_segments, verify_retained_archive};
@@ -18,6 +20,10 @@ pub(super) const MAXIMUM_STATE: u64 = 2 * 1024 * 1024;
 #[serde(deny_unknown_fields)]
 struct Transaction {
     schema: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    root_signer: Option<crate::durable_host::root_signer::Binding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    root_receipt: Option<crate::durable_host::root_signer::receipt::Draft>,
     biography: BodyBiographyEvidence,
     installation: Installation,
     #[serde(default)]
@@ -89,6 +95,52 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
     {
         return Err("owner transaction biography identity differs".into());
     }
+    if let Some(binding) = &transaction.root_signer {
+        crate::durable_host::root_signer::validate(
+            root,
+            binding,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
+    } else if crate::durable_host::root_signer::selected(
+        root,
+        transaction.biography.body_id.as_str(),
+        &transaction.installation.host_id,
+    )?
+    .is_some()
+    {
+        return Err("owner transaction would erase selected Root signer".into());
+    }
+    if let Some(draft) = &transaction.root_receipt {
+        draft.validate(
+            root,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
+        if crate::durable_host::root_signer::receipt::load(
+            root,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?
+        .is_none()
+        {
+            draft.require_current(
+                &transaction.biography,
+                transaction
+                    .admissions
+                    .as_ref()
+                    .ok_or("new Root receipt lacks committed admission manager")?,
+            )?;
+        }
+    } else if crate::durable_host::root_signer::receipt::load(
+        root,
+        transaction.biography.body_id.as_str(),
+        &transaction.installation.host_id,
+    )?
+    .is_some()
+    {
+        return Err("owner transaction would erase committed admission receipt".into());
+    }
     if let Some(source) = &transaction.source {
         validate_source(&transaction.biography, source)?;
     }
@@ -126,6 +178,22 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
         if legacy.exists() {
             fs::remove_file(legacy).map_err(|error| error.to_string())?;
         }
+    }
+    if let Some(binding) = &transaction.root_signer {
+        crate::durable_host::root_signer::commit(
+            root,
+            binding,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
+    }
+    if let Some(draft) = &transaction.root_receipt {
+        crate::durable_host::root_signer::receipt::commit(
+            root,
+            draft,
+            transaction.biography.body_id.as_str(),
+            &transaction.installation.host_id,
+        )?;
     }
     write_json_atomic(&root.join("installation.json"), &transaction.installation)
 }
@@ -166,6 +234,8 @@ pub(super) fn retain_with_archives(
         None,
         None,
         archives,
+        None,
+        None,
     )
 }
 
@@ -180,6 +250,25 @@ pub(super) fn retain_session(
     source: Option<&[u8]>,
     todo_selection: Option<&super::super::selected_todo::Selection>,
 ) -> Result<(), String> {
+    retain_session_with_receipt(
+        root,
+        session,
+        last_execution,
+        admissions,
+        source,
+        todo_selection,
+        None,
+    )
+}
+pub(super) fn retain_session_with_receipt(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    last_execution: Option<&serde_json::Value>,
+    admissions: Option<&conduit_body::AdmissionManager>,
+    source: Option<&[u8]>,
+    todo_selection: Option<&super::super::selected_todo::Selection>,
+    root_receipt: Option<&crate::durable_host::root_signer::receipt::Draft>,
+) -> Result<(), String> {
     let head = session
         .pending_archives()
         .last()
@@ -192,6 +281,8 @@ pub(super) fn retain_session(
         source,
         todo_selection,
         session.pending_archives(),
+        None,
+        root_receipt,
     )?;
     if let Some(head) = head {
         session
@@ -220,6 +311,8 @@ pub(super) fn retain_with_source_and_todo_selection(
         source,
         todo_selection,
         &[],
+        None,
+        None,
     )
 }
 
@@ -231,6 +324,8 @@ fn retain_inner(
     source: Option<&[u8]>,
     todo_selection: Option<&super::super::selected_todo::Selection>,
     archives: &[BodyBiographyArchiveSegment],
+    establish_signer: Option<crate::durable_host::root_signer::Binding>,
+    proposed_receipt: Option<&crate::durable_host::root_signer::receipt::Draft>,
 ) -> Result<(), String> {
     recover(root)?;
     validate_archive_segments(root, biography, archives)?;
@@ -247,6 +342,7 @@ fn retain_inner(
     biography
         .validate()
         .map_err(|e| format!("invalid biography: {e:?}"))?;
+    publication_fence::require_current(root, biography, archives)?;
     let bytes = serde_json::to_vec_pretty(biography).map_err(|e| e.to_string())?;
     if bytes.len() as u64 > MAXIMUM_STATE / 2 {
         return Err("owner biography storage bound exhausted".into());
@@ -295,7 +391,48 @@ fn retain_inner(
         biography.body_id.as_str(),
         last_execution,
     )?;
+    let selected_signer = crate::durable_host::root_signer::selected(
+        root,
+        biography.body_id.as_str(),
+        &installation.host_id,
+    )?;
+    if selected_signer
+        .as_ref()
+        .is_some_and(|old| establish_signer.as_ref().is_some_and(|new| old != new))
+    {
+        return Err("Root signer replacement refused".into());
+    }
+    let root_signer = establish_signer.or(selected_signer);
+    if let Some(binding) = &root_signer {
+        crate::durable_host::root_signer::validate(
+            root,
+            binding,
+            biography.body_id.as_str(),
+            &installation.host_id,
+        )?;
+    }
+    let retained_receipt = crate::durable_host::root_signer::receipt::load(
+        root,
+        biography.body_id.as_str(),
+        &installation.host_id,
+    )?;
+    if retained_receipt
+        .as_ref()
+        .is_some_and(|prior| proposed_receipt.is_some_and(|next| prior != next))
+    {
+        return Err("finite committed admission receipt slot is occupied".into());
+    }
+    let root_receipt = proposed_receipt.cloned().or(retained_receipt);
+    if let Some(draft) = proposed_receipt {
+        draft.validate(root, biography.body_id.as_str(), &installation.host_id)?;
+        draft.require_current(
+            biography,
+            admissions.ok_or("Root receipt lacks admission manager")?,
+        )?;
+    }
     let transaction = Transaction {
+        root_signer,
+        root_receipt,
         schema: "conduit.body/owner-transaction@1".into(),
         biography: biography.clone(),
         installation,
@@ -305,7 +442,7 @@ fn retain_inner(
         source: source.map(Vec::from),
         archives: archives.to_vec(),
     };
-    if serde_json::to_vec(&transaction)
+    if serde_json::to_vec_pretty(&transaction)
         .map_err(|e| e.to_string())?
         .len() as u64
         > MAXIMUM_STATE
@@ -353,6 +490,11 @@ pub(super) fn load(root: &Path) -> Result<Option<BodyBiographyEvidence>, String>
     if biography.body_id.as_str() != binding.body_id {
         return Err("retained Body identity differs".into());
     }
+    crate::durable_host::root_signer::selected(
+        root,
+        biography.body_id.as_str(),
+        &installation.host_id,
+    )?;
     Ok(Some(biography))
 }
 
@@ -398,6 +540,9 @@ pub(super) fn admissions(
 #[path = "state_archive_tests.rs"]
 mod archive_tests;
 
+#[cfg(all(test, unix))]
+#[path = "state_root_signer_tests.rs"]
+mod root_signer_tests;
 #[cfg(test)]
 #[path = "state_tests.rs"]
 mod tests;
@@ -447,3 +592,37 @@ fn new_play_started(root: &Path, biography: &BodyBiographyEvidence) -> Result<bo
 #[cfg(test)]
 #[path = "state_execution_custody_tests.rs"]
 mod execution_custody_tests;
+
+/// Called only by the authenticated live owner while its ownership lock is held.
+pub(super) fn establish_root_signer(
+    root: &Path,
+    expected_body: &str,
+) -> Result<crate::durable_host::root_signer::Binding, String> {
+    recover(root)?;
+    let biography = load(root)?.ok_or("installed owner has no Body")?;
+    if biography.body_id.as_str() != expected_body {
+        return Err("Root signer establishment differs from exact Body".into());
+    }
+    let installation = read_installation(&root.join("installation.json"))?;
+    if installation.joined_body_state.is_some() {
+        return Err("joined Host cannot establish Root signer".into());
+    }
+    let signer =
+        crate::durable_host::root_signer::prepare(root, expected_body, &installation.host_id)?;
+    retain_inner(
+        root,
+        &biography,
+        execution(root)?.as_ref(),
+        admissions(root, &biography.body_id)?.as_ref(),
+        None,
+        None,
+        &[],
+        Some(signer.clone()),
+        None,
+    )?;
+    Ok(signer)
+}
+
+#[cfg(test)]
+#[path = "state_publication_fence_tests.rs"]
+mod publication_fence_tests;

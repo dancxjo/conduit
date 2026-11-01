@@ -298,6 +298,8 @@ fn main() {
                 relay_descriptor.as_deref(),
             ),
         },
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::EstablishRootSigner { state_dir, body_id, authorize_establish }) }) => durable_host_control::establish_root_signer(&state_dir, &body_id, authorize_establish),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::ReplacePlot { state_dir, source, expected_workload_revision, expected_checked_plot_id }) }) => durable_host_control::replace_plot(&state_dir, &source, expected_workload_revision, &expected_checked_plot_id),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::Rename(args)) }) => body_rename::run(args),
         Some(cli::Command::Body { command: None }) => {
             current_state_dir().and_then(|state_dir| durable_host::body_status(&state_dir, false))

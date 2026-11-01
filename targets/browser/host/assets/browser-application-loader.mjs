@@ -318,7 +318,7 @@ export async function loadBrowserApplication(manifestReference) {
   const faceFor = (scope) => createApplicationFaceHost(scope);
   const context = Object.freeze({
     schema: "conduit.browser/application-context@1", manifest, storage, face, faceFor, bytes, text,
-    admitProfileGatedBrowserBoot, ...(sdk ? { browser: sdk.browser } : {}),
+    admitProfileGatedBrowserBoot, ...(sdk ? { browser: sdk.browser, ...(sdk.importBrowserSpore ? { importBrowserSpore: sdk.importBrowserSpore } : {}) } : {}),
   });
   await module.startApplication(context);
   settleApplicationSuspense("ready");

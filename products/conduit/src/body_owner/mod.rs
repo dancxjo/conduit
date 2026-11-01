@@ -347,3 +347,15 @@ mod service_clock_smoke;
 
 #[cfg(test)]
 mod todo_speech_tests;
+
+pub(crate) fn establish_root_signer(
+    owner: &mut Owner,
+    root: &Path,
+    expected_body: &str,
+) -> Result<crate::durable_host::root_signer::Binding, String> {
+    owner.persist(root)?;
+    state::establish_root_signer(root, expected_body)
+}
+
+mod browser_completion;
+pub(crate) use browser_completion::BrowserAdmissionCompletion;

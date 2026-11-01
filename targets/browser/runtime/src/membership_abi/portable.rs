@@ -7,11 +7,13 @@ use conduit_body::{
 };
 const ERROR_MEMBERSHIP: i32 = -265;
 const ERROR_PENDING: i32 = -266;
+mod part;
+use part::{PartSeed, SecretBytes};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Preparation {
     claim: SpawnInvitationClaim,
-    secret: Vec<u8>,
+    secret: SecretBytes,
     expected_body_id: BodyId,
     expected_root: [u8; 32],
     producer_host: HostId,
@@ -23,6 +25,9 @@ struct Pending {
     producer_host: HostId,
     producer_boot: BootId,
     credential: Option<MembershipCredential>,
+    claim: SpawnInvitationClaim,
+    secret: PartSeed,
+    receipt: Option<PortableMembershipAdmissionReceipt>,
 }
 thread_local! {
     static PENDING: RefCell<Option<Pending>> = const { RefCell::new(None) };
@@ -61,11 +66,11 @@ pub extern "C" fn conduit_browser_membership_prepare_scope(length: u32) -> i32 {
         return ERROR_MEMBERSHIP;
     };
     let secret = <[u8; 32]>::try_from(envelope.secret.as_slice());
-    envelope.secret.fill(0);
+    envelope.secret.erase();
     let Ok(secret) = secret else {
         return ERROR_SPAWN_SECRET;
     };
-    let Ok(secret) = SpawnInvitationSecret::from_csprng_bytes(secret) else {
+    let Ok(secret) = PartSeed::new(secret) else {
         return ERROR_SPAWN_SECRET;
     };
     if envelope.claim.body_id != envelope.expected_body_id
@@ -94,6 +99,7 @@ pub extern "C" fn conduit_browser_membership_prepare_scope(length: u32) -> i32 {
                 identity.boot_id(),
                 OfferGeneration(1),
             ));
+            let claim = envelope.claim.clone();
             let request = PortableMembershipAdmissionRequest {
                 schema: MEMBERSHIP_ADMISSION_REQUEST_SCHEMA.into(),
                 protocol_version: conduit_core::PROTOCOL_VERSION,
@@ -116,6 +122,9 @@ pub extern "C" fn conduit_browser_membership_prepare_scope(length: u32) -> i32 {
                     producer_host: envelope.producer_host,
                     producer_boot: envelope.producer_boot,
                     credential: None,
+                    claim,
+                    secret,
+                    receipt: None,
                 });
             }
             result
@@ -149,7 +158,8 @@ pub extern "C" fn conduit_browser_membership_adopt_scope(length: u32) -> i32 {
         }
         let result = publish(&receipt.credential);
         if result == STATUS_READY {
-            pending.credential = Some(receipt.credential);
+            pending.credential = Some(receipt.credential.clone());
+            pending.receipt = Some(receipt);
         }
         result
     })
@@ -281,3 +291,10 @@ mod tests {
         assert_eq!(adopt(&valid), ERROR_NOT_INITIALIZED);
     }
 }
+
+// Existing Host-key return remains unchanged unless a verified Part scope is
+// selected in this instance. A selected scope never falls back on mismatch.
+pub(super) use part::return_signature;
+
+#[cfg(test)]
+mod part_tests;

@@ -28,17 +28,16 @@ pub(in crate::native_face_scene) fn admit_configured(
     padding: u16,
     groups: Option<[u8; 2]>,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let viewport = Viewport::legacy(screen, text_scale_percent, Typography::EDITORIAL)?;
     admit_configured_selected(
         items,
-        screen,
         ConfiguredColumns {
             gutter,
             columns,
             spacing: RowSpacing::legacy(padding),
             groups,
         },
-        text_scale_percent,
-        Typography::EDITORIAL,
+        &viewport,
     )
 }
 
@@ -52,11 +51,10 @@ pub(in crate::native_face_scene) struct ConfiguredColumns {
 
 pub(in crate::native_face_scene) fn admit_configured_selected(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     geometry: ConfiguredColumns,
-    text_scale_percent: u16,
-    typography: Typography,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let screen = viewport.screen;
     let ConfiguredColumns {
         gutter,
         columns,
@@ -64,31 +62,21 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
         groups,
     } = geometry;
     let spacing = spacing.validate()?;
-    if columns == 2
-        && screen.width >= 640
-        && let Some(groups) = groups
+    if !(1..=2).contains(&columns) {
+        return Err(FaceSceneError::InvalidExtent);
+    }
+    let pair = if columns == 2 && screen.width >= 640 {
+        groups
+    } else {
+        None
+    };
+    if pair.is_some() || (spacing.panel.is_some() && items.iter().any(|item| item.region.is_some()))
     {
-        if groups[0] == groups[1] {
+        if pair.is_some_and(|groups| groups[0] == groups[1]) {
             return Err(FaceSceneError::InvalidExtent);
         }
-        panels::admit(
-            items,
-            screen,
-            gutter,
-            text_scale_percent,
-            spacing,
-            groups,
-            typography,
-        )
+        panels::admit(items, gutter, spacing, pair, viewport)
     } else {
-        admit_with_expression_selected(
-            items,
-            screen,
-            gutter,
-            columns,
-            text_scale_percent,
-            spacing,
-            typography,
-        )
+        admit_with_expression_selected(items, gutter, columns, spacing, viewport)
     }
 }

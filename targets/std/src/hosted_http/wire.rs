@@ -25,7 +25,13 @@ pub(crate) fn encode_request(request: &HttpRequest) -> Result<Vec<u8>, HttpExcha
         out.extend_from_slice(header.value().as_slice());
         out.extend_from_slice(b"\r\n");
     }
-    out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes());
+    // An empty read request has no content framing. In particular, finite
+    // header-only endpoints need not accept an otherwise redundant body field.
+    if body.is_empty() && matches!(request.method, HttpMethod::Get | HttpMethod::Head) {
+        out.extend_from_slice(b"\r\n");
+    } else {
+        out.extend_from_slice(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes());
+    }
     out.extend_from_slice(body);
     Ok(out)
 }
@@ -54,6 +60,7 @@ pub(crate) fn read_response(
         reader,
         HTTP_MAXIMUM_RESPONSE_BODY_BYTES,
         HttpExchangeFailure::ResponseBodyOverflow,
+        false,
     )?;
     let status = start
         .split_ascii_whitespace()
@@ -78,6 +85,7 @@ pub(super) fn read_request(
         reader,
         HTTP_MAXIMUM_REQUEST_BODY_BYTES,
         HttpExchangeFailure::RequestOverflow,
+        true,
     )?;
     let mut fields = start.split_ascii_whitespace();
     let method = parse_method(fields.next().ok_or(HttpExchangeFailure::ProviderLost)?)?;
@@ -117,6 +125,7 @@ fn read_message(
     reader: &mut impl Read,
     maximum_body: usize,
     body_overflow: HttpExchangeFailure,
+    request: bool,
 ) -> Result<(String, Vec<HttpHeader>, Vec<u8>), HttpExchangeFailure> {
     let mut bytes = Vec::with_capacity(MAXIMUM_HEAD_BYTES.min(8_192));
     let head_end = loop {
@@ -175,7 +184,11 @@ fn read_message(
             .map_err(|_| HttpExchangeFailure::ProviderLost)?,
         );
     }
-    let body_length = content_length.ok_or(HttpExchangeFailure::ProviderLost)?;
+    // A request without either framing header has no message body. Responses
+    // retain the finite declared-length requirement; do not infer an EOF body.
+    let body_length = content_length
+        .or(request.then_some(0))
+        .ok_or(HttpExchangeFailure::ProviderLost)?;
     if body_length > maximum_body {
         return Err(body_overflow);
     }
@@ -210,3 +223,7 @@ fn parse_method(method: &str) -> Result<HttpMethod, HttpExchangeFailure> {
         _ => Err(HttpExchangeFailure::ProviderLost),
     }
 }
+
+#[cfg(test)]
+#[path = "wire_tests.rs"]
+mod tests;

@@ -1,0 +1,52 @@
+{
+  "schema": "conduit.proof/native-routed-host-admission@1",
+  "observed_at": "2026-11-01T13:28:54.845401+00:00",
+  "owner_product_source": "c1f5c7426b1b4aa748724dec35d36b862af85644",
+  "body_name": "Hamm Creek House",
+  "guest_name": "threebee",
+  "guest": {
+    "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+    "host_id": "host/installed/9741ac216129a8296654338e04174e8ea2b3ef253a524e5bffdc1b6ad0d335bc",
+    "boot_id": "boot/installed/6d02dcfc1cb211ec6f303cc4239c66d338956a379b47ed0d1581de3c21610337",
+    "part_id": "e8c2918e95568596795cdb5e6899f1e42aa1c1b88de72f3dbaa9d0b6d3075b2b",
+    "offer_generation": 2,
+    "same_host": true,
+    "same_boot": true,
+    "credential_hash_verified": true,
+    "previous_binding_absent": true
+  },
+  "owner_confirmed_part": {
+    "current": {
+      "boot_id": "boot/installed/6d02dcfc1cb211ec6f303cc4239c66d338956a379b47ed0d1581de3c21610337",
+      "host_id": "host/installed/9741ac216129a8296654338e04174e8ea2b3ef253a524e5bffdc1b6ad0d335bc",
+      "offer_generation": 2,
+      "proof_id": "bbea528e240a5d54b43af58f2edd5b4a5f28644d068698314d27f0f668cce5a4",
+      "sequence": 0
+    },
+    "part_id": "e8c2918e95568596795cdb5e6899f1e42aa1c1b88de72f3dbaa9d0b6d3075b2b",
+    "state": "Admitted"
+  },
+  "route": {
+    "invitation_id": "f4b630eff987448a2310bb4a9934759aacf3189dc65afcf5802aaa5e5caad2d8",
+    "lifetime_seconds": 300,
+    "maximum_attempts": 1,
+    "line_family": "AuthenticatedTlsStream",
+    "certificate_sha256": "f9c84c3dee75e9db32ee7cf8dccfedc37b58f4594e6d0266304e232857b01bb2",
+    "pinned_transport_completed": true,
+    "process_terminal_exit": 0
+  },
+  "changed": "canonical invitation admission, private credential and joined Body binding",
+  "preserved": [
+    "installed Host identity",
+    "current guest Boot",
+    "previous private state backup",
+    "running renderer configuration and services",
+    "original Blue Body and history"
+  ],
+  "not_proven": [
+    "fresh-Boot return and Part-key custody for native guest",
+    "current Hamm HDMI Face delivery",
+    "distributed Plan or Play on guest",
+    "durable Recorder commitment or overnight recovery"
+  ]
+}

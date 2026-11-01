@@ -1,0 +1,26 @@
+{
+  "schema": "conduit.proof/installed-owner-build@1",
+  "source_identity": "7a3db69dd8d3afd36cdbf804ea7e175c8cf417d4",
+  "build": "cargo +stable build --release -p conduit --features installed-environmental-sources --bin conduit",
+  "result": "passed",
+  "image": {
+    "path": "conduit-linux-x86_64",
+    "bytes": 65343400,
+    "sha256": "sha256:646c747b491cc59b8239e077e080b61aa5a25a3732630277338b5742a440b8ca"
+  },
+  "unchanged_installer_image_bound_bytes": 67108864,
+  "deployment": "staged only; installed owner remains c1f5c7426b",
+  "preservation_preflight": {
+    "body": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+    "state": "Lulled",
+    "members": 2,
+    "private_rollback_snapshot": "prepared; excludes live control socket",
+    "service_changed": false
+  },
+  "not_proven": [
+    "combined state regression",
+    "live replacement",
+    "selected recorder commitment",
+    "browser joining"
+  ]
+}

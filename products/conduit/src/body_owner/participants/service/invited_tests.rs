@@ -26,7 +26,7 @@ fn begin(
     assert!(matches!(frame, Out::SpawnChallenge { claim, .. } if claim == invitation.claim));
     (authorization.window_id, invitation, advertisement)
 }
-fn proof(invitation: &conduit_body::PortableInvitation, host: &HostAdvertisement) -> In {
+pub(super) fn proof(invitation: &conduit_body::PortableInvitation, host: &HostAdvertisement) -> In {
     let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret).unwrap();
     In::SpawnProof {
         protocol: PROTOCOL,

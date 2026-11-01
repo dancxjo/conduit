@@ -1,7 +1,6 @@
 use super::{
-    HttpBootstrap, RequestFrame, ResponseFrame, CONNECTED_SOCKET_FD, HTTP_CLIENT_OPERATION,
-    HTTP_CLIENT_RESOURCE, ISOLATED_HTTP_ARTIFACT, ISOLATED_HTTP_IMPLEMENTATION,
-    ISOLATED_HTTP_PROFILE, MAX_FRAME_BYTES, PROTOCOL_VERSION,
+    RequestFrame, ResponseFrame, CONNECTED_SOCKET_FD, HTTP_CLIENT_OPERATION, HTTP_CLIENT_RESOURCE,
+    ISOLATED_HTTP_ARTIFACT, ISOLATED_HTTP_IMPLEMENTATION, ISOLATED_HTTP_PROFILE, MAX_FRAME_BYTES,
 };
 use conduit_core::{
     ActivePlayIdentity, AuthorityGrant, BaseCapabilityAuthority, BaseCapabilityScope,
@@ -15,7 +14,6 @@ use std::os::fd::AsRawFd;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct IsolatedHttpBaseConfig {
@@ -393,70 +391,11 @@ pub(super) fn capability_for_installed_base(
 pub(super) fn exchange_provider(
     config: &IsolatedHttpBaseConfig,
     issue: CapabilityIssueRequest,
-    mut claim: BaseOperationClaim,
+    claim: BaseOperationClaim,
     request: &conduit_web::HttpRequest,
 ) -> Result<conduit_web::HttpResponse, String> {
-    let encoded = conduit_web::encode_request(request)
-        .map_err(|_| "encode bounded isolated HTTP request".to_string())?;
-    claim.parameter_bytes = encoded.len() as u32;
-    let stream = TcpStream::connect_timeout(&config.endpoint, Duration::from_secs(2))
-        .map_err(|error| format!("connect exact HTTP endpoint: {error}"))?;
-    if stream.peer_addr().map_err(|error| error.to_string())? != config.endpoint {
-        return Err("connected HTTP descriptor has the wrong exact peer".into());
-    }
-    let mut child = super::child::ProviderChild::new(
-        spawn_provider(&config.executable, &stream).map_err(|error| error.to_string())?,
-    );
-    drop(stream);
-    let mut input = child
-        .stdin
-        .take()
-        .ok_or("isolated HTTP provider stdin missing")?;
-    let mut output = child
-        .stdout
-        .take()
-        .ok_or("isolated HTTP provider stdout missing")?;
-    crate::isolated_base::write_frame_with_limit(
-        &mut input,
-        &RequestFrame::Bootstrap {
-            protocol_version: PROTOCOL_VERSION,
-            bootstrap: Box::new(HttpBootstrap {
-                issue,
-                expected_authority: config.authority.clone(),
-                expected_endpoint: config.endpoint,
-            }),
-        },
-        MAX_FRAME_BYTES,
-    )
-    .map_err(|error| error.to_string())?;
-    match read(&mut output)? {
-        ResponseFrame::Ready { peer, .. } if peer == config.endpoint => {}
-        other => return Err(format!("isolated HTTP provider not ready: {other:?}")),
-    }
-    write(
-        &mut input,
-        &RequestFrame::Exchange {
-            claim: Box::new(claim),
-            request: encoded,
-        },
-    )?;
-    let response = match read(&mut output)? {
-        ResponseFrame::Completed { response } => conduit_web::decode_response(&response)
-            .map_err(|_| "isolated HTTP provider returned malformed response".to_string())?,
-        ResponseFrame::Refused { reason } => {
-            return Err(format!("isolated HTTP refused: {reason}"))
-        }
-        other => return Err(format!("isolated HTTP provider returned {other:?}")),
-    };
-    write(&mut input, &RequestFrame::Shutdown)?;
-    if read(&mut output)? != ResponseFrame::Stopped {
-        return Err("isolated HTTP provider did not stop".into());
-    }
-    drop(input);
-    if !child.wait().map_err(|error| error.to_string())?.success() {
-        return Err("isolated HTTP provider failed".into());
-    }
-    Ok(response)
+    super::provider_exchange::exchange_provider_classified(config, issue, claim, request)
+        .map_err(String::from)
 }
 
 pub(super) fn spawn_provider(

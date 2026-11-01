@@ -24,7 +24,7 @@ pub(super) fn begin(
         encoded_bytes,
     } = request;
     let at = crate::durable_host::current_time_millis()?;
-    claim.inspect(at).map_err(debug)?;
+
     if claim.body_id != owner.session.evidence().body_id
         || advertisement.host_id != window.expected
         || advertisement.host_id == owner.host.advertisement().host_id
@@ -41,13 +41,15 @@ pub(super) fn begin(
         .admissions
         .as_ref()
         .ok_or("owner has no invitation authority")?;
-    if manager
+    let already_known = manager
         .receipts
         .iter()
-        .any(|r| r.credential.host_id == window.expected.as_str())
-    {
-        return Err("admitted browser must present its retained credential".into());
-    }
+        .any(|r| r.credential.host_id == window.expected.as_str());
+    // An expired claim can only recover its exact durable outcome, never admit
+    // again. Complete checks the retained request/key/offer and current Part.
+    claim
+        .inspect(if already_known { 0 } else { at })
+        .map_err(debug)?;
     let observation = CandidateObservation {
         advertisement,
         friendly_label: "Invited browser".into(),
@@ -77,15 +79,24 @@ pub(super) fn begin(
 }
 
 pub(super) fn complete(
+    root: &std::path::Path,
+    browser_host_key: [u8; 32],
     session: &mut conduit_body::BodyLifecycleSession,
     manager: &mut AdmissionManager,
     pending: &Pending,
     claim: &SpawnInvitationClaim,
     proof: SpawnAdmissionProof,
     authority: &HostAdvertisement,
-) -> Result<MembershipCredential, String> {
+) -> Result<
+    (
+        MembershipCredential,
+        Option<crate::durable_host::root_signer::receipt::Draft>,
+        bool,
+    ),
+    String,
+> {
     let at = crate::durable_host::current_time_millis()?;
-    claim.inspect(at).map_err(debug)?;
+
     let observed = &pending.observation.advertisement;
     if proof.invitation_id != claim.invitation_id
         || proof.body_id != claim.body_id
@@ -95,10 +106,57 @@ pub(super) fn complete(
     {
         return Err("invited browser proof differs from retained claim or offer".into());
     }
+    let request = conduit_body::PortableMembershipAdmissionRequest {
+        schema: conduit_body::MEMBERSHIP_ADMISSION_REQUEST_SCHEMA.into(),
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        invitation_id: proof.invitation_id.clone(),
+        body_id: proof.body_id.clone(),
+        host_id: proof.host_id.clone(),
+        boot_id: proof.boot_id.clone(),
+        offer_generation: observed.offer_generation,
+        nonce: proof.nonce,
+        signature: proof.signature,
+    };
+    // A prior local-control timeout may have left consume+draft journaled while
+    // this actor rolled back its cache. Recover first; never consume it again.
+    crate::durable_host::owner::state::recover(root)?;
+    let selected = crate::durable_host::root_signer::selected(
+        root,
+        claim.body_id.as_str(),
+        authority.host_id.as_str(),
+    )?
+    .is_some();
+    if selected {
+        if let Some(draft) = crate::durable_host::root_signer::receipt::reserve(
+            root,
+            claim.body_id.as_str(),
+            authority.host_id.as_str(),
+            &request,
+            claim,
+            observed,
+            &browser_host_key,
+        )? {
+            let recovered = crate::durable_host::owner::state::load(root)?
+                .ok_or("recovered receipt has no Body")?;
+            let recovered_manager =
+                crate::durable_host::owner::state::admissions(root, &claim.body_id)?
+                    .ok_or("recovered receipt has no admission manager")?;
+            draft.require_current(&recovered, &recovered_manager)?;
+            *session = conduit_body::BodyLifecycleSession::resume_here(
+                recovered,
+                &authority.host_id,
+                &authority.boot_id,
+            )
+            .map_err(debug)?;
+            *manager = recovered_manager;
+            return Ok((draft.credential().clone(), Some(draft), true));
+        }
+    }
+    claim.inspect(at).map_err(debug)?;
     // Existing complete_spawn, exact biography changes, and finite receipt
     // policy remain owned by the lifecycle session. Caller persists both before
     // issuing the existing BrowserLineAuthorization or publishing Active state.
-    session
+    let credential = session
         .admit_invited_host(
             manager,
             observed,
@@ -107,5 +165,21 @@ pub(super) fn complete(
             &authority.host_id,
             &authority.boot_id,
         )
-        .map_err(debug)
+        .map_err(debug)?;
+    let draft = if selected {
+        Some(crate::durable_host::root_signer::receipt::prepare(
+            root,
+            session.evidence(),
+            manager,
+            authority,
+            request,
+            claim.clone(),
+            observed,
+            browser_host_key,
+            credential.clone(),
+        )?)
+    } else {
+        None
+    };
+    Ok((credential, draft, false))
 }

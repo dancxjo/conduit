@@ -602,3 +602,6 @@ fn loopback_socket_carries_one_exact_inert_advertisement_and_refusal() {
         }
     );
 }
+
+#[path = "receipt_tests.rs"]
+mod receipt_tests;

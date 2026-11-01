@@ -8,11 +8,14 @@ impl NativeFaceScene {
     }
 
     pub fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
-        let chrome = chrome::Chrome::prepare_selected(
+        let mut chrome = chrome::Chrome::prepare_selected(
             self.screen,
             self.text_scale_percent,
             self.typography,
         )?;
+        if !self.showing_diagram {
+            chrome.reserve_top(self.header_top)?;
+        }
         if self.showing_diagram
             && (chrome.top != layout::HEADER
                 || self.screen.height - chrome.bottom != layout::FOOTER)
@@ -31,27 +34,12 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
-        let heading = if chrome.compact {
-            if self.showing_diagram {
-                "GRAPH"
-            } else if self.showing_details {
-                "DETAILS"
-            } else {
-                "VIEW"
-            }
-        } else if !self.interaction_admitted && self.showing_diagram {
-            "OWNER FACE / PATCHBAY"
-        } else if !self.interaction_admitted && self.showing_details {
-            "OWNER FACE / DETAILS"
-        } else if !self.interaction_admitted {
-            "OWNER FACE / SNAPSHOT"
-        } else if self.showing_diagram {
-            "PATCHBAY"
-        } else if self.showing_details {
-            "DETAILS"
-        } else {
-            "CURRENT VIEW"
-        };
+        let heading = chrome.encounter_heading(
+            &self.face,
+            self.showing_details,
+            self.showing_diagram,
+            self.text_scale_percent,
+        );
         push(
             &mut scene,
             GraphicsCommand::text(
@@ -101,12 +89,13 @@ impl NativeFaceScene {
         let editor_visible = self.interaction_admitted
             && !self.showing_details
             && !self.showing_diagram
-            && text_editor::append(
+            && text_editor::append_with_chrome(
                 &mut scene,
                 &self.face,
                 self.screen,
                 self.text_scale_percent,
                 self.typography,
+                &chrome,
             )?;
         if !editor_visible && !self.showing_diagram && !self.showing_details {
             layout::append_region_surfaces(&mut scene, self.rows(), self.page, self.screen)?;
@@ -142,6 +131,7 @@ impl NativeFaceScene {
                 outline,
                 self.showing_details,
                 focused && !focus_marked,
+                self.focus_marker_width,
             )?;
             focus_marked |= focused;
             super::boolean_choice::append(&mut scene, row, self.screen)?;
