@@ -25,6 +25,9 @@ pub use continuation::LayoutContinuation;
 mod boolean_choice_tests;
 #[path = "native_face_scene/chrome.rs"]
 mod chrome;
+#[cfg(test)]
+#[path = "native_face_scene/completion_fact_tests.rs"]
+mod completion_fact_tests;
 #[path = "native_face_scene/connected_layout.rs"]
 mod connected_layout;
 #[path = "native_face_scene/diagram.rs"]
