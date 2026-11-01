@@ -27,6 +27,16 @@ cargo xtask make body deploy bodies/pete/profiles/pete-r1.body.conduit --host fo
 
 `check` and `show` parse descriptors and reuse host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected host. `--host` selects one named host declaration and its make package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
 
+With no `--host` filter, fabrication selects every declared Host. Before runtime
+builders or invitation minting, it checks each selected package's actual payload
+producer. A descriptor-only target refuses with its Host, target, package,
+builder and missing integration seam. In particular, an existing UF2 or ESP
+Spore binder does not establish that arbitrary authored Host configuration can
+be lowered into that firmware. The command must not label JSON descriptors as
+a successfully fabricated MCU. A `fabrication-batch.json` receipt stays
+incomplete until every selected artifact succeeds; retained partial artifacts
+do not report a completed Body fabrication.
+
 A selected self-joining `browser-bundle` Host also fabricates its reviewed Wasm
 runtime, exact configured BrowserBundle and private `<host-name>.zip` through
 the existing browser Spore packager. The installed owner named by
