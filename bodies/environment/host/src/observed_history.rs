@@ -416,7 +416,23 @@ fn persist_batch(path: &Path, bytes: &[u8]) -> Result<()> {
     result
 }
 fn fetch(address: SocketAddr, after: u32) -> Result<Vec<u8>> {
-    let mut socket = TcpStream::connect_timeout(&address, Duration::from_secs(3))?;
+    // A finite single-socket producer may still be retiring its previous HTTP
+    // connection. Retry only connection refusal within the original connect
+    // budget; response parsing and signed-history validation remain unchanged.
+    let deadline = std::time::Instant::now() + Duration::from_secs(3);
+    let mut socket = loop {
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining.is_zero() {
+            return Err(std::io::Error::from(std::io::ErrorKind::TimedOut).into());
+        }
+        match TcpStream::connect_timeout(&address, remaining) {
+            Ok(socket) => break socket,
+            Err(error) if error.kind() == std::io::ErrorKind::ConnectionRefused => {
+                std::thread::sleep(remaining.min(Duration::from_millis(50)));
+            }
+            Err(error) => return Err(error.into()),
+        }
+    };
     socket.set_read_timeout(Some(Duration::from_secs(3)))?;
     socket.set_write_timeout(Some(Duration::from_secs(3)))?;
     write!(
