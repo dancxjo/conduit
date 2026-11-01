@@ -54,7 +54,6 @@ impl KernelResourceLedger {
 }
 #[cfg(test)]
 mod tests {
-    use super::*;
     #[test]
     fn declared_name_generation_preserves_original_ledger_backing() {
         let mut host = crate::StdHost::new();
