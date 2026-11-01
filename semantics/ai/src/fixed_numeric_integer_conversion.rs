@@ -67,6 +67,17 @@ impl<const N: usize> FixedIntegerConversionBack<N> {
             committed_frames: 0,
         })
     }
+    /// All additional owned codec backing; the worker receipt counts inline state.
+    pub fn worker_owned_heap_bytes(&self) -> usize {
+        self.input
+            .as_ref()
+            .map_or(0, FixedI16VectorCodec::allocation_capacity)
+            + self
+                .raw
+                .as_ref()
+                .map_or(0, FixedF32VectorCodec::allocation_capacity)
+            + self.output.allocation_capacity()
+    }
     pub fn committed_frames(&self) -> u64 {
         self.committed_frames
     }
@@ -150,5 +161,24 @@ impl<const N: usize, const PORTS: usize> StepBack<PORTS> for FixedIntegerConvers
     fn cancel(&mut self) {
         self.cancelled = true;
         self.staged = false;
+    }
+}
+
+// Only a normally committed Value invocation may rearm. Preserve codecs,
+// immutable selection and the cumulative non-wrapping frame counter.
+impl<const N: usize, const PORTS: usize>
+    conduit_kernel::scheduler::prepared_session::ReusableStepBack<PORTS>
+    for FixedIntegerConversionBack<N>
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.finished
+            && !self.staged
+            && !self.cancelled
+            && !self.flow
+            && self.committed_frames < u64::MAX
+    }
+    fn begin_next(&mut self, _: ()) {
+        self.finished = false;
     }
 }

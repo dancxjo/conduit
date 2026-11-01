@@ -59,6 +59,15 @@ impl<const IN: usize, const OUT: usize> FixedDspBack<IN, OUT> {
             committed_frames: 0,
         })
     }
+    /// All additional owned codec backing; the worker receipt counts inline state.
+    pub fn worker_owned_heap_bytes(&self) -> usize {
+        self.input.allocation_capacity()
+            + self
+                .right
+                .as_ref()
+                .map_or(0, FixedF32VectorCodec::allocation_capacity)
+            + self.output.allocation_capacity()
+    }
     pub fn committed_frames(&self) -> u64 {
         self.committed_frames
     }
@@ -176,5 +185,23 @@ impl<const IN: usize, const OUT: usize, const PORTS: usize> StepBack<PORTS>
     fn cancel(&mut self) {
         self.cancelled = true;
         self.staged = false;
+    }
+}
+
+// Only a normally committed Value invocation may rearm. Preserve codecs,
+// immutable selection and the cumulative non-wrapping frame counter.
+impl<const IN: usize, const OUT: usize, const PORTS: usize>
+    conduit_kernel::scheduler::prepared_session::ReusableStepBack<PORTS> for FixedDspBack<IN, OUT>
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.finished
+            && !self.staged
+            && !self.cancelled
+            && !self.flow
+            && self.committed_frames < u64::MAX
+    }
+    fn begin_next(&mut self, _: ()) {
+        self.finished = false;
     }
 }

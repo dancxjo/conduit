@@ -63,6 +63,10 @@ impl<const N: usize> FixedI16VectorCodec<N> {
         }
         &self.output
     }
+    /// Additional owned backing; the inline offsets are part of the Back itself.
+    pub fn allocation_capacity(&self) -> usize {
+        self.template.capacity() + self.output.capacity()
+    }
     pub fn encoded(&self) -> &[u8] {
         &self.output
     }

@@ -1,0 +1,30 @@
+//! Exact fixed numerical backends; no waveform, speech or device policy.
+use crate::process::Step;
+pub const STEPS: &[Step] = &[Step::new(
+    "fixed-numeric-dsp.backends",
+    "Check finite DSP/conversion, real closing Cords, Value reuse and worker backing",
+    "cargo",
+    &[
+        "test",
+        "--locked",
+        "-p",
+        "conduit-ai",
+        "--features",
+        "kernel-operation-owners,hosted-catalog-cache",
+        "--test",
+        "fixed_numeric_dsp",
+        "--test",
+        "fixed_numeric_dsp_back",
+        "--test",
+        "fixed_numeric_dsp_conversion",
+        "--test",
+        "fixed_numeric_dsp_reuse",
+        "--test",
+        "fixed_numeric_dsp_worker_memory",
+        "--test",
+        "fixed_numeric_index_back",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+    ],
+)];

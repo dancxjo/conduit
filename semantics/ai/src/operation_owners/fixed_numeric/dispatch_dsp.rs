@@ -188,3 +188,69 @@ pub(super) fn select(
         _ => return None,
     })
 }
+
+fn dsp_worker<const I: usize, const O: usize>(
+    gear: &PlannedGear,
+    operation: FixedDspOperation,
+    flow: bool,
+) -> Result<conduit_composite::PreparedWorkerBack, String> {
+    let fuel = u16::try_from(gear.inputs.len() + 1).map_err(|_| "DSP worker fuel overflow")?;
+    let back = FixedDspBack::<I, O>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+        gear, fuel, operation, flow,
+    )?;
+    let bytes = back.worker_owned_heap_bytes();
+    conduit_composite::PreparedWorkerBack::new(Box::new(back), bytes)
+}
+fn conversion_worker<const N: usize>(
+    gear: &PlannedGear,
+    operation: IntegerConversion,
+    flow: bool,
+) -> Result<conduit_composite::PreparedWorkerBack, String> {
+    let fuel =
+        u16::try_from(gear.inputs.len() + 1).map_err(|_| "conversion worker fuel overflow")?;
+    let back = FixedIntegerConversionBack::<N>::prepare_planned::<
+        FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+    >(gear, fuel, operation, flow)?;
+    let bytes = back.worker_owned_heap_bytes();
+    conduit_composite::PreparedWorkerBack::new(Box::new(back), bytes)
+}
+pub(super) fn prepare_worker(
+    gear: &PlannedGear,
+) -> Option<Result<conduit_composite::PreparedWorkerBack, String>> {
+    let kind = gear.kind_id.as_str();
+    let (name, flow) = if let Some(name) = kind.strip_prefix("numeric/flow-") {
+        (name, true)
+    } else {
+        (kind.strip_prefix("numeric/")?, false)
+    };
+    Some(match name {
+        "real-dft320" => dsp_worker::<320, 322>(gear, FixedDspOperation::RealDft320, flow),
+        "magnitude-squared161" => {
+            dsp_worker::<322, 161>(gear, FixedDspOperation::MagnitudeSquared161, flow)
+        }
+        "log10-18" => dsp_worker::<18, 18>(gear, FixedDspOperation::Log10_18, flow),
+        "log10-1" => dsp_worker::<1, 1>(gear, FixedDspOperation::Log10_1, flow),
+        "dot160" => dsp_worker::<160, 1>(gear, FixedDspOperation::Dot160, flow),
+        "sqrt1" => dsp_worker::<1, 1>(gear, FixedDspOperation::Sqrt1, flow),
+        "u16-to-f32" => conversion_worker::<1>(gear, IntegerConversion::U16, flow),
+        "i16-to-f32-80" => conversion_worker::<80>(gear, IntegerConversion::I16Vector80, flow),
+        "i16-to-f32-160" => conversion_worker::<160>(gear, IntegerConversion::I16Vector160, flow),
+        "finite-vector1" => conversion_worker::<1>(gear, IntegerConversion::FiniteVector(1), flow),
+        "finite-vector18" => {
+            conversion_worker::<18>(gear, IntegerConversion::FiniteVector(18), flow)
+        }
+        "finite-vector20" => {
+            conversion_worker::<20>(gear, IntegerConversion::FiniteVector(20), flow)
+        }
+        "finite-vector160" => {
+            conversion_worker::<160>(gear, IntegerConversion::FiniteVector(160), flow)
+        }
+        "finite-vector256" => {
+            conversion_worker::<256>(gear, IntegerConversion::FiniteVector(256), flow)
+        }
+        "finite-vector320" => {
+            conversion_worker::<320>(gear, IntegerConversion::FiniteVector(320), flow)
+        }
+        _ => return None,
+    })
+}
