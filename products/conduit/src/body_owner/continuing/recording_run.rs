@@ -29,6 +29,7 @@ impl RecordingRun {
         let mut capture = PublicationCapture {
             expected: &self.input.expected_published,
             matched: false,
+            readback: self.input.readback,
         };
         let result = host.run_body_plan_with_selected_storage_borrowed_to_with_start(
             request,
@@ -51,6 +52,10 @@ impl RecordingRun {
                 && r.native_failure.is_none()
                 && r.cleanup_failure.is_none()
         });
+        if self.input.readback {
+            return serde_json::json!({"custody":"identical-snapshot-readback-not-catalog-commit", "matching_content_fore":self.matched,
+                "snapshot_readback_completed":completed && self.matched,"producer_retirement_authorized":false});
+        }
         serde_json::json!({"custody":"publication-output-not-readback-or-catalog-commit", "matching_publication_fore":self.matched,
             "publication_completed":completed && self.matched,"producer_retirement_authorized":false})
     }
@@ -58,13 +63,24 @@ impl RecordingRun {
 struct PublicationCapture<'a> {
     expected: &'a [u8],
     matched: bool,
+    readback: bool,
 }
 impl BodyBorrowedForeOutputAdapter for PublicationCapture<'_> {
     fn deliver(&mut self, value: BodyForeDeliveryRef<'_>) -> Result<(), String> {
         if self.matched
-            || value.front_port_id.as_str() != "published"
+            || value.front_port_id.as_str()
+                != if self.readback {
+                    "content"
+                } else {
+                    "published"
+                }
             || value.track != c::ConnectionTrack::Payload
-            || value.value_kind.as_str() != c::RESOURCE_REFERENCE_INFO_ID
+            || value.value_kind.as_str()
+                != if self.readback {
+                    "text/json-utf8@1"
+                } else {
+                    c::RESOURCE_REFERENCE_INFO_ID
+                }
             || value.sequence != 0
             || value.bytes != self.expected
         {

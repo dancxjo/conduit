@@ -13,6 +13,7 @@ pub(crate) struct SourcePublicationInput {
     pub(crate) reference: c::BoundedResourceRef,
     pub(crate) authority: c::AuthorityGrant,
     pub(crate) expected_published: Vec<u8>,
+    pub(crate) readback: bool,
 }
 impl Owner {
     /// Select exact storage and install the ordinary same-Body publication
@@ -24,6 +25,26 @@ impl Owner {
         root: &Path,
         publish_grant: &c::AuthorityGrant,
         preparation_limit_bytes: u64,
+    ) -> Result<SourcePublicationInput, String> {
+        self.prepare_source_recording_operation(root, publish_grant, preparation_limit_bytes, false)
+    }
+    /// Read the exact retained chunk with an independent read grant. This also
+    /// permits recovery of a publication whose reply was lost; it proves no
+    /// catalog commitment and does not retire staged records.
+    pub(crate) fn prepare_source_recording_readback(
+        &mut self,
+        root: &Path,
+        read_grant: &c::AuthorityGrant,
+        preparation_limit_bytes: u64,
+    ) -> Result<SourcePublicationInput, String> {
+        self.prepare_source_recording_operation(root, read_grant, preparation_limit_bytes, true)
+    }
+    fn prepare_source_recording_operation(
+        &mut self,
+        root: &Path,
+        publish_grant: &c::AuthorityGrant,
+        preparation_limit_bytes: u64,
+        readback: bool,
     ) -> Result<SourcePublicationInput, String> {
         if self.host.is_playing()
             || self.session.realization().is_some()
@@ -59,10 +80,14 @@ impl Owner {
             .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect();
-        let text = include_str!(
-            "../../../../../../bodies/environment/profiles/recording-publication.conduit"
-        )
-        .replace("@REFERENCE@", &hex);
+        let template = if readback {
+            include_str!("../../../../../../bodies/environment/profiles/recording-readback.conduit")
+        } else {
+            include_str!(
+                "../../../../../../bodies/environment/profiles/recording-publication.conduit"
+            )
+        };
+        let text = template.replace("@REFERENCE@", &hex);
         // Named input/source volume, not an allocator or whole-Root admission.
         let volume = content.len() as u64
             + expected_published.len() as u64
@@ -79,24 +104,38 @@ impl Owner {
         );
         let input = SourcePublicationInput {
             input: conduit_std_host::ExternalForeInput {
-                front_port_id: "chunk".into(),
+                front_port_id: if readback { "reference" } else { "chunk" }.into(),
                 track: c::ConnectionTrack::Payload,
-                bytes: content.to_vec(),
+                bytes: if readback {
+                    expected_published.clone()
+                } else {
+                    content.to_vec()
+                },
             },
             reference: prepared.reference.clone(),
             authority: publish_grant.clone(),
-            expected_published,
+            expected_published: if readback {
+                content.to_vec()
+            } else {
+                expected_published
+            },
+            readback,
         };
         let ad = self.host.advertisement();
         if publish_grant.host_id != ad.host_id || publish_grant.boot_id != ad.boot_id {
             return Err("Source publication grant belongs to another Host/Boot".into());
         }
+        let access = if readback {
+            c::ResourceAccessMode::ReadPublished
+        } else {
+            c::ResourceAccessMode::WriteCandidatePublish
+        };
         self.host
             .current_mut()
             .select_body_storage_generation(BodyStorageGenerationRequest {
                 snapshot: Some(BodyStorageSnapshotRequest {
                     reference: input.reference.clone(),
-                    access: c::ResourceAccessMode::WriteCandidatePublish,
+                    access,
                 }),
                 state: None,
             })?;
@@ -108,9 +147,10 @@ impl Owner {
             .snapshot_resource()
             .ok_or("Source publication selected snapshot is absent")?;
         if selected.snapshot_reference() != Some(&input.reference)
-            || resource.content.as_ref().is_none_or(|content| {
-                content.contract.access != c::ResourceAccessMode::WriteCandidatePublish
-            })
+            || resource
+                .content
+                .as_ref()
+                .is_none_or(|content| content.contract.access != access)
         {
             return Err("Source publication selected reference or access differs".into());
         }
@@ -135,8 +175,16 @@ impl Owner {
         }
         let mut boundaries = BTreeMap::new();
         for (direction, name, bytes) in [
-            (c::PortDirection::Input, "chunk", 4096),
-            (c::PortDirection::Output, "published", 512),
+            (
+                c::PortDirection::Input,
+                if readback { "reference" } else { "chunk" },
+                if readback { 512 } else { 4096 },
+            ),
+            (
+                c::PortDirection::Output,
+                if readback { "content" } else { "published" },
+                if readback { 4096 } else { 512 },
+            ),
         ] {
             boundaries.insert(
                 conduit_planner::ForeBoundaryKey {

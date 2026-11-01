@@ -138,6 +138,26 @@ impl Owner {
         self.start_service_run_inner(root, maximum_millis, &mut None, Some(input))
     }
 
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    pub(crate) fn start_service_source_readback(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        authority: &conduit_core::AuthorityGrant,
+        preparation_limit_bytes: u64,
+    ) -> Result<RunWorker, String> {
+        if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
+            return Err("service run duration must be 1..900000 milliseconds".into());
+        }
+        let input =
+            self.prepare_source_recording_readback(root, authority, preparation_limit_bytes)?;
+        self.start_service_run_inner(root, maximum_millis, &mut None, Some(input))
+    }
+
     fn start_service_run_inner(
         &mut self,
         root: &Path,
@@ -464,7 +484,12 @@ impl Owner {
         let receipt = {
             let mut receipt = receipt;
             if let Some(publication) = publication {
-                receipt["source_publication"] = publication;
+                let field = if publication.get("snapshot_readback_completed").is_some() {
+                    "source_readback"
+                } else {
+                    "source_publication"
+                };
+                receipt[field] = publication;
             }
             receipt
         };
