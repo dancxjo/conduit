@@ -212,6 +212,18 @@ mod tests {
         retain(&root, pending, record.receipt.clone(), &host).unwrap();
         let reopened = load(&root.join("body/native-part-private.json"), &host).unwrap();
         assert_eq!(reopened.receipt.credential, expected);
+        let exact: PendingBodyJoin =
+            serde_json::from_value(serde_json::to_value(&record.pending).unwrap()).unwrap();
+        retain(&root, exact, record.receipt.clone(), &host).unwrap();
+        let conflict: PendingBodyJoin =
+            serde_json::from_value(serde_json::to_value(&record.pending).unwrap()).unwrap();
+        let mut other_receipt = record.receipt.clone();
+        other_receipt.credential.part_id = "08".repeat(32).into();
+        assert!(retain(&root, conflict, other_receipt, &host).is_err());
+        // The public credential remains ordinary credential material only.
+        let public = serde_json::to_value(&record.receipt.credential).unwrap();
+        assert!(public.get("secret").is_none());
+        assert!(public.get("invitation").is_none());
         assert!(load(&root.join("body/native-part-private.json"), "foreign-host").is_err());
         let mut wrong: PendingBodyJoin =
             serde_json::from_value(serde_json::to_value(&record.pending).unwrap()).unwrap();
