@@ -144,6 +144,21 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             {
                 return -6;
             }
+            if mask.requires_full_visual_snapshot
+                || mask
+                    .component
+                    .as_ref()
+                    .is_some_and(|value| value.local_look.is_some())
+                || basis
+                    .visual_constraints
+                    .as_ref()
+                    .is_some_and(|value| value.requires_full_snapshot())
+            {
+                return write_output(&serde_json::json!({
+                    "schema": "conduit.browser/owner-face-refusal@1",
+                    "code": "owner-visual-preferences-require-full-snapshot",
+                }));
+            }
             write_output(&mask.view())
         }),
         OwnerFaceSnapshotResponse::Refused { schema, code }
@@ -266,7 +281,7 @@ mod tests {
     use conduit_core::{CheckedPlotId, SourceDocumentId};
     use conduit_face::{BodyFace, FaceContext, FaceFocus};
 
-    fn send(basis: &serde_json::Value, response: &OwnerFaceSnapshotResponse) -> i32 {
+    pub(super) fn send(basis: &serde_json::Value, response: &OwnerFaceSnapshotResponse) -> i32 {
         let basis = serde_json::to_vec(basis).unwrap();
         let frame = serde_json::to_vec(&serde_json::json!({
             "kind": "face-snapshot-response", "protocol": 1, "response": response,
@@ -342,6 +357,40 @@ mod tests {
         assert_eq!(observed["show_id"], prepared.show_id);
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
         assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
+        // Conditional reuse cannot claim that new Host-local preferences were
+        // applied. The old exact Face/Show remains observable, not restyled.
+        for constraints in [
+            serde_json::json!({"minimum_text_scale_percent":100,"enhanced_contrast":true}),
+            serde_json::json!({"minimum_text_scale_percent":200}),
+            serde_json::json!({"minimum_text_scale_percent":100,"forced_colors":true}),
+            serde_json::json!({"minimum_text_scale_percent":100,"reduced_motion":true}),
+        ] {
+            let basis = serde_json::json!({
+                "body_id": body.body_id, "host_id": "host/canonical-observation",
+                "boot_id": "boot/canonical-observation",
+                "visual_constraints": constraints,
+            });
+            assert_eq!(
+                send(
+                    &basis,
+                    &OwnerFaceSnapshotResponse::Unchanged {
+                        schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                        revision: face.revision,
+                        identity: face.identity.clone(),
+                    }
+                ),
+                0
+            );
+            let refusal: serde_json::Value =
+                OUTPUT.with(|output| serde_json::from_slice(&output.borrow()).unwrap());
+            assert_eq!(refusal["schema"], "conduit.browser/owner-face-refusal@1");
+            assert_eq!(
+                refusal["code"],
+                "owner-visual-preferences-require-full-snapshot"
+            );
+            assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
+            assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
+        }
         conduit_browser_owner_face_clear();
     }
 
@@ -397,3 +446,7 @@ mod tests {
         conduit_browser_owner_face_clear();
     }
 }
+
+#[cfg(test)]
+#[path = "abi/visual_preference_tests.rs"]
+mod visual_preference_tests;

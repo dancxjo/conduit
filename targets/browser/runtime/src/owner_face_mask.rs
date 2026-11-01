@@ -176,6 +176,7 @@ struct RouteView {
 
 struct OwnerBrowserMask {
     component: Option<component::ComponentView>,
+    requires_full_visual_snapshot: bool,
     body_id: BodyId,
     face: Face,
     planned: conduit_face::PlannedMaskPlot,
