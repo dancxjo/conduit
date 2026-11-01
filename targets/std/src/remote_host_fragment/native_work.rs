@@ -185,3 +185,80 @@ impl StdHost {
         })
     }
 }
+
+impl PreparedNativeWork {
+    pub(crate) fn was_started(&self) -> bool {
+        self.started
+    }
+
+    /// Move preallocated, inert preparation into the original affine lease.
+    pub(crate) fn from_local(
+        reservation: KernelResourceReservation,
+        mut descriptor: crate::body_execution::native::LocalNativeDescriptor,
+        request: HostCallRequest,
+        input: &[u8],
+    ) -> Self {
+        // The route checks this before moving any affine owner.
+        assert!(input.len() <= descriptor.input.capacity());
+        descriptor.input.clear();
+        descriptor.input.extend_from_slice(input);
+        Self {
+            reservation: Some(reservation),
+            inventory: descriptor.inventory,
+            fragment: descriptor.fragment,
+            lowered: descriptor.lowered,
+            active: descriptor.active,
+            placement: descriptor.placement,
+            request,
+            input: descriptor.input,
+            maximum_output_bytes: descriptor.maximum_output_bytes,
+            started: false,
+        }
+    }
+
+    #[allow(clippy::result_large_err)]
+    pub(crate) fn reunite_local(
+        mut self,
+        host: &StdHost,
+        fragment: &PlanFragment,
+        active: &ActivePlayIdentity,
+        request: HostCallRequest,
+        placement: &PlacementId,
+    ) -> Result<
+        (
+            KernelResourceReservation,
+            crate::body_execution::native::LocalNativeDescriptor,
+        ),
+        NativeWorkReturnRefusal,
+    > {
+        let checked = host.validate_native_work(&self).and_then(|()| {
+            if &self.fragment != fragment
+                || &self.active != active
+                || self.request != request
+                || &self.placement != placement
+            {
+                return Err("native work returned to a different local Body request".into());
+            }
+            Ok(())
+        });
+        if let Err(reason) = checked {
+            return Err(NativeWorkReturnRefusal { work: self, reason });
+        }
+        let lease = self
+            .reservation
+            .take()
+            .expect("validated original reservation");
+        Ok((
+            lease,
+            crate::body_execution::native::LocalNativeDescriptor {
+                inventory: self.inventory,
+                fragment: self.fragment,
+                lowered: self.lowered,
+                active: self.active,
+                placement: self.placement,
+                input: self.input,
+                maximum_output_bytes: self.maximum_output_bytes,
+            },
+        ))
+    }
+}
