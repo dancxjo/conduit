@@ -1,6 +1,10 @@
 //! Human-readable browser projection of the exact checked Face.
 
 use super::*;
+
+#[cfg(test)]
+#[path = "view/disclosure_tests.rs"]
+mod disclosure_tests;
 use conduit_face::{FaceActionAvailability, FaceProperty, FacePropertyValue, FaceSubject};
 
 impl OwnerBrowserMask {
@@ -122,7 +126,8 @@ fn project_view(
                     .iter()
                     .find(|disclosure| disclosure.subject == subject.identity)
                     .map(|disclosure| format!("{:?}", disclosure.level))
-                    .unwrap_or_else(|| "ExactProvenance".into()),
+                    // An absent source hint retains ordinary primary presentation.
+                    .unwrap_or_else(|| "Primary".into()),
                 text: face
                     .text
                     .iter()
