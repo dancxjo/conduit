@@ -135,27 +135,27 @@ pub(crate) fn begin_owned(
         Ok(j) => j,
         Err((owner, e)) => return Err(OwnedRefusal::Unstaged(owner, e)),
     };
-    if let Err(reason) = job.stage(|owner, manager| {
-        let credential = owner
-            .admit_invited_host_scope(
-                manager,
-                request.host_scope(),
-                &proof,
-                now_millis,
+    if let Err(reason) = job.stage_invited_host_scope(
+        request.host_scope(),
+        &proof,
+        now_millis,
+        authority_host,
+        authority_boot,
+        |owner, credential| {
+            pending(
+                owner,
+                root_key,
                 authority_host,
                 authority_boot,
+                request,
+                credential,
             )
-            .map_err(|_| "body-membership-admission")?;
-        Ok(pending(
-            owner,
-            root_key,
-            authority_host,
-            authority_boot,
-            request,
-            credential,
-        ))
-    }) {
-        return Err(OwnedRefusal::Staged(job, reason));
+        },
+    ) {
+        return match job.release_unstaged() {
+            Ok(owner) => Err(OwnedRefusal::Unstaged(owner, reason)),
+            Err(job) => Err(OwnedRefusal::Staged(job, reason)),
+        };
     }
     Ok(job)
 }
