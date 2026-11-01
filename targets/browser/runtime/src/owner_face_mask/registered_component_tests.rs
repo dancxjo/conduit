@@ -104,6 +104,7 @@ fn registered_patchbay_looks_preserve_node_and_refuse_oversized_domain_face() {
                     forced_colors: forced,
                     reduced_motion: true,
                     minimum_text_scale_percent: if forced { 200 } else { 100 },
+                    ..Default::default()
                 }),
             },
             face.clone(),

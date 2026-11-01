@@ -1,4 +1,51 @@
 // Private SDK participation-state transitions; runtime acknowledgement remains authoritative.
+// Snapshot caller-bound preference data before awaiting an owner response.
+// These fields never cross the owner Line or grant interaction authority.
+export function ownerVisualPreferences(state, options) {
+  const minimum = options?.minimumTextScalePercent ?? state.minimumOwnerTextScalePercent ?? 100;
+  if (!Number.isInteger(minimum) || minimum < 100 || minimum > 200) {
+    throw new Error('minimum text scale must be between 100 and 200 percent');
+  }
+  const enhanced = options?.enhancedContrast === undefined
+    ? state.ownerEnhancedContrast ?? false : options.enhancedContrast;
+  if (typeof enhanced !== 'boolean') throw new Error('enhanced contrast must be Boolean');
+  const input = options?.localLook === undefined ? state.ownerLocalLookBytes : options.localLook;
+  let local = null;
+  if (input !== undefined && input !== null) {
+    const length = input.length;
+    if (!(Array.isArray(input) || input instanceof Uint8Array) || !Number.isInteger(length)
+        || length < 1 || length > 65_536) {
+      throw new Error('local Look must be bounded canonical bytes');
+    }
+    const bytes = [];
+    for (let index = 0; index < length; index++) {
+      const value = input[index];
+      if (!Number.isInteger(value) || value < 0 || value > 255) throw new Error('local Look must be bounded canonical bytes');
+      bytes.push(value);
+    }
+    local = Object.freeze(bytes);
+  }
+  state.minimumOwnerTextScalePercent = minimum;
+  state.ownerEnhancedContrast = enhanced;
+  state.ownerLocalLookBytes = local;
+  return { minimum_text_scale_percent: minimum,
+    ...(local ? { local_look: local } : {}), ...(enhanced ? { enhanced_contrast: true } : {}) };
+}
+
+export function ownerVisualPreferencesRequireFullFrame(preferences) {
+  return Boolean(preferences.local_look || preferences.enhanced_contrast
+    || preferences.forced_colors || preferences.reduced_motion
+    || (preferences.minimum_text_scale_percent ?? 100) !== 100);
+}
+
+export function ownerFaceSnapshotOptions(state, options, preferences) {
+  // A conditional response would reuse the old Mask without applying personal
+  // preferences, including a clear after a previously prepared personal Look.
+  const full = ownerVisualPreferencesRequireFullFrame(preferences) || state.ownerPersonalLookPrepared;
+  return { lastSeenRevision: full ? undefined : options?.lastSeenRevision,
+    lastSeenIdentity: full ? undefined : options?.lastSeenIdentity };
+}
+
 export function clearOwnerFaceShow(state) {
   state.pendingOwnerShow = null;
   state.lastOwnerShow = null;

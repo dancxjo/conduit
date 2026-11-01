@@ -45,9 +45,31 @@ or a usable Show. The contrast requirement also applies to a selected fallback.
 The existing Look version 2, Face grammar and bounds are unchanged. Both input
 resources use the existing Look byte bound. Resolution accepts one author and
 one local proposal, with fixed bounded requested/selected records and at most
-29 supplied fields. This is the shared data-resolution seam. Appearance UI,
-persistence and native/browser consumers are separate integration work; the
-current Threebee preferences are untouched.
+29 supplied fields. The configured browser owner Mask consumes an independently
+supplied local resource through this resolver, leaving its planned author Look
+and complete Face unchanged. Its output carries the selected canonical Look and
+a bounded local-resource digest, overridden fields and contrast outcome.
+
+The browser SDK accepts canonical `LocalLookInfo` bytes with
+`prepareOwnerFaceMask({ localLook: bytes, enhancedContrast: true })`.
+These preferences remain local to that participation across Show refreshes;
+`localLook: null` clears the personal proposal. They are not sent to the owner.
+The independent enhanced-contrast floor cannot be weakened by the proposal.
+Malformed, repeated, insufficient-contrast or unsupported local requests refuse
+preparation before a usable Show; an unconfigured Mask cannot silently ignore
+them. Omitting these options retains existing behavior.
+
+This is browser preparation integration, not a claim of live DOM/owner action
+delivery or WCAG conformance. Appearance UI, durable preference storage and physical
+deployment remain separate work; the current Threebee preferences are
+untouched.
+
+Browser preparation requires a full owner snapshot for nondefault user or
+platform constraints and for clearing a previously prepared nondefault context.
+The SDK snapshots text-scale, forced-colors and reduced-motion preferences before
+awaiting the owner response. An unchanged response cannot acknowledge applying
+or clearing those preferences; the ABI preserves the prior available Show and
+requests a full snapshot instead. These local preferences stay off the owner Line.
 
 Concrete startup defaults and explicit arguments must satisfy the same retained
 Source laws, including bounds below a sequence/variant path. The tests keep the

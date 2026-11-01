@@ -128,6 +128,7 @@ impl OwnerBrowserMask {
         interactions_admitted: bool,
     ) -> Result<Self, String> {
         let MaskHostContext { basis, host } = context;
+        let requires_full_visual_snapshot = component::requires_full_snapshot(&basis);
         let component = component::prepare(&basis, &planned, &face, host)?;
         let terminal = planned.show_placement();
         let play = bind_active_play(
@@ -206,6 +207,7 @@ impl OwnerBrowserMask {
         }
         Ok(Self {
             component,
+            requires_full_visual_snapshot,
             body_id: basis.body_id,
             face,
             planned,

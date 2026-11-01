@@ -186,7 +186,8 @@ fn execute_with_viewport(
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
     .with_capture_limit(if observe { 32 } else { 30 })?
-    .with_viewport(viewport)?;
+    .with_viewport(viewport)?
+    .with_latency_observation(!observe && controls.is_none())?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
