@@ -59,6 +59,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -118,6 +120,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -180,6 +184,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -236,6 +242,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -340,6 +348,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
