@@ -149,10 +149,9 @@ fn compact_context_drops_the_rich_plan_and_preserves_show_states_and_identity() 
         )
         .unwrap();
     let encoder = failing.json(8192).unwrap();
-    drop(failing);
     drop(occurrence);
     drop(face);
-    // The encoder owns all changing metadata; only immutable context remains.
+    // The encoder borrows the changing occurrence and immutable context.
     let mut output = vec![0; encoder.encoded_bytes()];
     let (_, encoding) = allocation_probe::observe(|| {
         for _ in 0..960 {
@@ -161,6 +160,8 @@ fn compact_context_drops_the_rich_plan_and_preserves_show_states_and_identity() 
     });
     assert_eq!((encoding.allocations, encoding.reallocations), (0, 0));
     assert_eq!(output, expected[3]);
+    drop(encoder);
+    drop(failing);
     println!(
         "Compact Show context retained={} peak={}; occurrence retained={} peak={}; encode peak={}",
         context_memory.retained_bytes(),
@@ -247,9 +248,10 @@ fn received_wire_is_bounded_and_fully_validated_without_recompression() {
         )
         .unwrap();
     let encoder = occurrence.json(8192).unwrap();
-    drop(occurrence);
     let mut bytes = vec![0; encoder.encoded_bytes()];
     encoder.encode(&mut bytes).unwrap();
+    drop(encoder);
+    drop(occurrence);
     assert_eq!(bytes, expected);
     let decoded: f::MaskShow = serde_json::from_slice(&bytes).unwrap();
     decoded.validate(&face).unwrap();
