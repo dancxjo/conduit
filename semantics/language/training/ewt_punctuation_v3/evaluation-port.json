@@ -2,7 +2,7 @@
   "schema": "conduit.parser-punctuation-evaluation-port@1",
   "source_commit": "71bcd0cee15ecaa170bfc6646358b1ba3699d751",
   "accepted_base": "3e8702393459a2bb5f0ae433e85786ab70e3f50e",
-  "status": "local evaluation port; focused actual Source evaluation running; no acceptance claim",
+  "status": "rejected unaccepted candidate: actual checked two-track greeting fails original committed prefinal vocative assertion",
   "changes": [
     "Preserve current accepted language module registrations alongside the explicit optional candidate module.",
     "Move unchanged immutable decoder preparation constructors into their own test helper.",
@@ -23,5 +23,22 @@
     "tests/common/parser_selection_driver/preparation.rs": "6dec4a5f1feac2679edf6cae71dda96306ffb29715f4cab3d12d2558ad734d1c"
   },
   "model_sha256": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
-  "training": "No retraining, retuning, new corpus or partition changes. Historical conditional regressions and nonblind evaluation status retained."
+  "training": "No retraining, retuning, new corpus or partition changes. Historical conditional regressions and nonblind evaluation status retained.",
+  "fresh_evaluation": {
+    "source_head": "08d9c9006b242b3e6c7dd3a4f2cd450af93e7ec3",
+    "source_base": "3e8702393459a2bb5f0ae433e85786ab70e3f50e",
+    "exit_code": 101,
+    "duration_seconds": 1286.2,
+    "model_invocations": 160,
+    "numerical_receipts": 160,
+    "tracks": 2,
+    "prefix_observations": 8,
+    "partial_text": "Hello, Travis ",
+    "causal_partial_stable": 1,
+    "causal_partial_committed": 0,
+    "causal_final_period_committed": 3,
+    "acceptance": "No useful prefinal commitment; no adoption, model retuning, survivor pruning or weakened assertion. Full remaining DEV/TEST/reserved evaluation not executed after focused acceptance failure. No full17-case quality claim.",
+    "report_sha256": "b5a83f34fe944346033beae96518bf0cbed82caff438349b71b598f4cb910c9c",
+    "evidence_custody": "Task outputs/punctuation-negative-experiment-receipt.json seals actual ELF and reports outside tracked source. Historical training/preparation evidence unchanged. This status-only update was not a new execution."
+  }
 }
