@@ -1,5 +1,7 @@
 //! Membership-only invitation completion; no equipment description or offer
 //! becomes available through this path. Durable Root custody precedes signing.
+#[path = "native_body_membership_job.rs"]
+pub(crate) mod job;
 use alloc::boxed::Box;
 use conduit_body::{
     PortableMembershipAdmissionReceipt, PortableMembershipAdmissionRequest,

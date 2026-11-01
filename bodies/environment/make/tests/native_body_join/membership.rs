@@ -71,6 +71,18 @@ pub(super) fn prove(
     })
     .unwrap();
     let generation = native_restart::generation().unwrap();
+    let scheduled = reserve_scheduled(Box::new(owner), root, host, &wrong, 101);
+    let original = scheduled.owner() as *const _;
+    let scheduled = run_scheduled(scheduled, true);
+    let (boxed, _) = scheduled.release_refused().ok().unwrap();
+    assert_eq!(&*boxed as *const _, original);
+    assert!(native_restart::publication_ready());
+    let scheduled = reserve_scheduled(boxed, root, host, &request, 101);
+    let scheduled = run_scheduled_at(scheduled, true, 1001);
+    let (boxed, _) = scheduled.release_refused().ok().unwrap();
+    assert_eq!(&*boxed as *const _, original);
+    assert!(native_restart::publication_ready());
+    owner = *boxed;
     let boxed = refuse_owned(Box::new(owner), root, host, &wrong, 101);
     let boxed = refuse_owned(boxed, root, host, &request, 1001);
     let identity = &*boxed as *const _;
@@ -97,27 +109,13 @@ pub(super) fn prove(
             .unwrap()
     });
     let boxed = reserved.release_unstaged().ok().unwrap();
-    let (job, begin_memory) = crate::allocation_probe::observe(|| {
-        native_body_join::membership::begin_owned(
-            boxed,
-            root,
-            &host.host_id,
-            &host.boot_id,
-            &request,
-            101,
-        )
-        .ok()
-        .unwrap()
-    });
-    println!("owned_membership_cpu64: reserve_extra_peak={} reserve_extra_retained={} reserve_stage_extra_peak={} reserve_stage_extra_retained={} body_baseline_excluded=true target_total_or_wcet=false", reserve_memory.peak_bytes, reserve_memory.retained_bytes(), begin_memory.peak_bytes, begin_memory.retained_bytes());
-    let job = native_body_join::membership::finish_owned(job)
-        .err()
-        .unwrap();
-    assert!(!native_restart::publication_ready());
-    let job = run_owned(job, false);
-    let (boxed, draft) = native_body_join::membership::finish_owned(job)
-        .ok()
-        .unwrap();
+    let job = reserve_scheduled(boxed, root, host, &request, 101);
+    assert_eq!(job.phase(), native_body_join::membership::job::Phase::Start);
+    assert!(native_restart::publication_ready());
+    let job = job.finish().err().unwrap();
+    let job = run_scheduled(job, false);
+    let (boxed, draft) = job.finish().ok().unwrap();
+    println!("owned_membership_cpu64: reserve_extra_peak={} reserve_extra_retained={} body_baseline_excluded=true target_total_or_wcet=false", reserve_memory.peak_bytes, reserve_memory.retained_bytes());
     assert_eq!(&*boxed as *const _, identity);
     owner = *boxed;
     assert!(native_restart::publication_ready());
@@ -248,61 +246,6 @@ impl native_body_checkpoint::incremental::SectorStorage<native_evidence_region::
         }
     }
 }
-fn run_owned(
-    mut job: Box<native_body_join::membership::PendingCheckpoint>,
-    fail: bool,
-) -> Box<native_body_join::membership::PendingCheckpoint> {
-    use native_restart::owned_checkpoint::Phase;
-    struct Scheduled(Box<native_body_join::membership::PendingCheckpoint>);
-    impl native_flash_jobs::Job for Scheduled {
-        fn step(&self) -> u32 {
-            self.0.step()
-        }
-    }
-    let gate = native_flash_window::Gate::new(1000, 20, 1000).unwrap();
-    let wait = gate.begin_wait(0, 1000).unwrap();
-    let mut mailbox = native_flash_jobs::Mailbox::<Scheduled, (), &'static str>::new();
-    let (mut submitter, mut executor) = mailbox.split().unwrap();
-    let mut access = Access { fail };
-    let mut peaks = [0usize; 4];
-    loop {
-        // CPU fixture bound only; this does not qualify native replay WCET.
-        let id = submitter.submit(Scheduled(job), 1000).ok().unwrap();
-        assert!(submitter.owner_matches(id, |_| true));
-        let mut phase_index = 0;
-        let (executed, memory) = crate::allocation_probe::observe(|| {
-            executor.execute(&wait, 0, |scheduled, permit| {
-                phase_index = match scheduled.0.phase() {
-                    Phase::Prepare => 0,
-                    Phase::Chunk => 1,
-                    Phase::Finish => 2,
-                    _ => 3,
-                };
-                match scheduled.0.phase() {
-                    Phase::Prepare => scheduled.0.prepare(permit),
-                    Phase::Chunk => scheduled.0.prepare_chunk(permit),
-                    Phase::Physical(_) => scheduled.0.advance(&mut access),
-                    Phase::Finish => scheduled.0.finish_source(permit),
-                    _ => Err("membership-test-phase"),
-                }
-            })
-        });
-        executed.unwrap();
-        peaks[phase_index] = peaks[phase_index].max(memory.peak_bytes);
-        let completed = submitter.take(id).unwrap();
-        job = completed.owner.0;
-        if completed.result.is_err() {
-            assert!(fail);
-            assert_eq!(job.phase(), Phase::Failed);
-            return job;
-        }
-        assert_eq!(completed.progress, native_flash_jobs::Progress::AdvancedOne);
-        if job.phase() == Phase::Complete {
-            println!("owned_membership_cpu64: prepare_extra_peak={} chunk_extra_peak={} finish_extra_peak={} physical_extra_peak={} body_baseline_excluded=true target_total_or_wcet=false",peaks[0],peaks[1],peaks[2],peaks[3]);
-            return job;
-        }
-    }
-}
 pub(super) fn prove_failed_owned(
     owner: SealedBodyLifecycleSession,
     root: &[u8; 32],
@@ -311,27 +254,10 @@ pub(super) fn prove_failed_owned(
 ) {
     let owner = Box::new(owner);
     let identity = &*owner as *const _;
-    let job = match native_body_join::membership::begin_owned(
-        owner,
-        root,
-        &host.host_id,
-        &host.boot_id,
-        request,
-        120,
-    ) {
-        Ok(job) => job,
-        Err(native_body_join::membership::OwnedRefusal::Unstaged(_, reason)) => {
-            panic!("unstaged: {reason}")
-        }
-        Err(native_body_join::membership::OwnedRefusal::Staged(_, reason)) => {
-            panic!("staged: {reason}")
-        }
-    };
-    let job = run_owned(job, true);
+    let job = reserve_scheduled(owner, root, host, request, 120);
+    let job = run_scheduled(job, true);
     assert_eq!(job.owner() as *const _, identity);
-    let job = native_body_join::membership::finish_owned(job)
-        .err()
-        .unwrap();
+    let job = job.finish().err().unwrap();
     assert!(!native_restart::publication_ready());
     assert!(native_restart::with_admissions(|_| Ok(())).is_err());
     // Retain failed custody throughout the checks; no signing input escaped.
@@ -415,4 +341,73 @@ fn refuse_owned(
     })
     .unwrap();
     owner
+}
+
+fn reserve_scheduled(
+    owner: Box<SealedBodyLifecycleSession>,
+    root: &[u8; 32],
+    host: &c::HostAdvertisement,
+    request: &Request,
+    _now: u64,
+) -> Box<native_body_join::membership::job::Job> {
+    native_body_join::membership::job::Job::reserve(
+        owner,
+        *root,
+        host.host_id.clone(),
+        host.boot_id.clone(),
+        request.clone(),
+    )
+    .ok()
+    .unwrap()
+}
+fn run_scheduled(
+    job: Box<native_body_join::membership::job::Job>,
+    failure_expected: bool,
+) -> Box<native_body_join::membership::job::Job> {
+    run_scheduled_at(job, failure_expected, 120)
+}
+fn run_scheduled_at(
+    mut job: Box<native_body_join::membership::job::Job>,
+    failure_expected: bool,
+    now: u64,
+) -> Box<native_body_join::membership::job::Job> {
+    use native_body_join::membership::job::Phase;
+    let gate = native_flash_window::Gate::new(1000, 20, 1000).unwrap();
+    let wait = gate.begin_wait(0, 1000).unwrap();
+    struct Scheduled(Box<native_body_join::membership::job::Job>);
+    impl native_flash_jobs::Job for Scheduled {
+        fn step(&self) -> u32 {
+            self.0.step()
+        }
+    }
+    let mut mailbox = native_flash_jobs::Mailbox::<Scheduled, (), &'static str>::new();
+    let (mut submit, mut execute) = mailbox.split().unwrap();
+    let mut access = Access {
+        fail: failure_expected,
+    };
+    loop {
+        let before = job.step();
+        // CPU fixture only; no target preparation qualification is asserted.
+        let id = submit.submit(Scheduled(job), 1000).ok().unwrap();
+        execute
+            .execute(&wait, 0, |job, permit| {
+                job.0.advance(permit, &mut access, now)
+            })
+            .unwrap();
+        let done = submit.take(id).unwrap();
+        assert_eq!(done.progress, native_flash_jobs::Progress::AdvancedOne);
+        job = done.owner.0;
+        assert_eq!(job.step(), before + 1);
+        if done.result.is_err() {
+            assert!(failure_expected);
+            assert!(matches!(
+                job.phase(),
+                Phase::Refused | Phase::Checkpoint(native_restart::owned_checkpoint::Phase::Failed)
+            ));
+            return job;
+        }
+        if job.phase() == Phase::Checkpoint(native_restart::owned_checkpoint::Phase::Complete) {
+            return job;
+        }
+    }
 }
