@@ -1,4 +1,4 @@
-# Independent FARGAN capture replay
+# Independent numerical capture replay
 
 The retained FARGAN worker compares 24-frame trajectories under fresh
 and prepared compact-local, matrix-local or matrix-source-cache execution. Replay checks exact Plan identities,
@@ -43,6 +43,26 @@ The repetition bound repairs the reproduced matrix-local empty-capture refusal
 gap and applies the same producer bounds to all three profiles. Only canonical
 source-bound commands are supported; historical frozen-repeat controllers are
 not imported. Historical captures,
-private parameters and older timing claims are not imported. The separate
-matrix-projection verifier, repeat controllers and other handoff work remain
-outside this slice.
+private parameters and older timing claims are not imported. Frozen-repeat controllers and other historical handoff work remain outside
+this slice.
+
+## Isolated matrix arithmetic
+
+The projection worker uses deterministic synthetic weights and inputs. Its
+replay independently regenerates the PRNG values and ordered F32 operations,
+checks every output bit, trial coverage/order, weight digest, source/worker
+identity and zero warm allocation requests. It is separate from full
+FARGAN, Back/Plan, hardware traffic or accepted timing proof.
+
+```sh
+cargo xtask prove runtime-performance --matrix-projection --output target/matrix-projection-capture --iterations 1 --repetitions 3 --case-group all
+cargo xtask prove runtime-performance --verify-matrix-projection target/matrix-projection-capture --source FULL_COMMIT_SHA --worker /retained/matrix_projection_performance
+cargo xtask prove runtime-performance --check-matrix-projection-verifier target/matrix-projection-capture --source FULL_COMMIT_SHA --worker /retained/matrix_projection_performance
+```
+
+These replay commands take no FARGAN `--profile`. They accept an exclusive
+`--output PATH`. Iterations must be an integer in 1..100000 and repetitions
+in 3..101, matching the producer. Corruption controls update outer artifact
+hashes before checking altered output bits, weight digests, allocation
+requests, duplicate/missing trials and invalid metadata/bounds, so digest
+failures cannot mask the underlying semantic refusal.

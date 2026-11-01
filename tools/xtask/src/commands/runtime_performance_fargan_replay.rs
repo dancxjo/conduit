@@ -33,16 +33,29 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn Error>> {
         return Err("expected source must be a full lowercase Git commit SHA".into());
     }
     let worker = worker.ok_or("explicit retained --worker required")?;
+    let projection = matches!(
+        mode.as_str(),
+        "--verify-matrix-projection" | "--check-matrix-projection-verifier"
+    );
+    if projection && profile.is_some() {
+        return Err("projection replay does not accept a FARGAN profile".into());
+    }
     let profile = profile.map(String::as_str).unwrap_or("matrix-local");
     if !matches!(profile, "matrix-local" | "compact-local" | "source-cache") {
         return Err("unsupported replay profile".into());
     }
     let check = match mode.as_str() {
-        "--verify-fargan-capture" => false,
-        "--check-fargan-verifier" => true,
+        "--verify-fargan-capture" | "--verify-matrix-projection" => false,
+        "--check-fargan-verifier" | "--check-matrix-projection-verifier" => true,
         _ => return Err("unsupported capture replay mode".into()),
     };
-    let script = if check {
+    let script = if projection {
+        if check {
+            "check-matrix-projection-negatives.py".to_owned()
+        } else {
+            "verify-matrix-projection-capture.py".to_owned()
+        }
+    } else if check {
         "check-fargan-capture-negatives.py".to_owned()
     } else {
         format!("verify-{profile}-public.py")
@@ -61,7 +74,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn Error>> {
         source,
         worker,
         output,
-        check.then_some(profile),
+        (check && !projection).then_some(profile),
     )
 }
 
