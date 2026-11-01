@@ -438,6 +438,7 @@ mod tests {
     }
 }
 
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
 pub(crate) fn durable_record_byte_bound(maximum: u32) -> Result<usize, String> {
     if maximum == 0 || maximum > super::MAXIMUM_DURABLE_STATE_BYTES {
         return Err("State record byte bound exceeds implementation".into());

@@ -143,8 +143,8 @@ fn earlier_text(
     field: usize,
     text: &str,
 ) -> bool {
-    for prior in 0..=index {
-        if !cold[prior] {
+    for (prior, is_cold) in cold.iter().enumerate().take(index + 1) {
+        if !is_cold {
             continue;
         }
         let fields = log.at(prior).texts();
@@ -170,8 +170,8 @@ pub(super) fn prepare(
     let mut text_bytes = 0;
     let mut text_count = 0;
     let mut keep = [false; MAX_ADMISSION_RECEIPTS];
-    for index in 0..log.len() {
-        if !cold[index] {
+    for (index, is_cold) in cold.iter().enumerate().take(log.len()) {
+        if !is_cold {
             // A cold row is never latest: mutable access to historical rows is
             // absent, and appends retain their typed latest credential.
             let source =
@@ -207,8 +207,8 @@ pub(super) fn prepare(
         spans: reserve(text_count)?,
     };
     let mut next_hot = 0;
-    for index in 0..log.len() {
-        if !cold[index] {
+    for (index, is_cold) in cold.iter().enumerate().take(log.len()) {
+        if !is_cold {
             compact.order.push(128 | next_hot);
             next_hot += 1;
         } else {
