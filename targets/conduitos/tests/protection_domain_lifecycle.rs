@@ -112,3 +112,104 @@ fn every_owned_lifecycle_event_fences_the_old_handle() {
         );
     }
 }
+
+#[test]
+fn full_table_retains_revoked_slots_and_never_revives_old_possession_or_leases() {
+    use conduitos::protection_domain::MAXIMUM_DOMAIN_CAPABILITIES;
+    let domain = ProtectionDomainId(1);
+    let exact = scope();
+    let mut table = KernelCapabilityTable::new(123).unwrap();
+    let handles = (0..MAXIMUM_DOMAIN_CAPABILITIES)
+        .map(|_| table.issue(domain, exact).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        table.issue(domain, exact),
+        Err(KernelCapabilityRefusal::TableFull)
+    );
+    let pending = handles
+        .iter()
+        .map(|handle| {
+            table
+                .authorize_current(domain, *handle, &exact, claim(&exact))
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        table
+            .revoke_domain(domain, KernelRevocationCause::ProtectionFault)
+            .revoked_handles as usize,
+        MAXIMUM_DOMAIN_CAPABILITIES
+    );
+    assert_eq!(
+        table
+            .revoke_domain(domain, KernelRevocationCause::ProtectionFault)
+            .revoked_handles,
+        0
+    );
+    for (handle, lease) in handles.into_iter().zip(pending) {
+        assert_eq!(
+            table.complete(lease),
+            Err(KernelCapabilityRefusal::StaleLease)
+        );
+        assert_eq!(
+            table.authorize_current(domain, handle, &exact, claim(&exact)),
+            Err(KernelCapabilityRefusal::Revoked)
+        );
+    }
+    // Retirement does not free a slot or reset issuance within this table.
+    assert_eq!(
+        table.issue(domain, exact),
+        Err(KernelCapabilityRefusal::TableFull)
+    );
+}
+
+#[test]
+fn admitted_operation_limit_and_late_completion_leave_next_lease_and_sibling_intact() {
+    let domain = ProtectionDomainId(1);
+    let sibling = ProtectionDomainId(2);
+    let mut exact = scope();
+    exact.maximum_operations = 2;
+    let other = scope();
+    let mut table = KernelCapabilityTable::new(123).unwrap();
+    let handle = table.issue(domain, exact).unwrap();
+    let sibling_handle = table.issue(sibling, other).unwrap();
+    let first = table
+        .authorize_current(domain, handle, &exact, claim(&exact))
+        .unwrap();
+    assert_eq!(
+        table.authorize_current(domain, handle, &exact, claim(&exact)),
+        Err(KernelCapabilityRefusal::InFlightFull)
+    );
+    table.complete(first).unwrap();
+    let second = table
+        .authorize_current(domain, handle, &exact, claim(&exact))
+        .unwrap();
+    // The copied old receipt must not settle or cancel the actual next operation.
+    assert_eq!(
+        table.complete(first),
+        Err(KernelCapabilityRefusal::StaleLease)
+    );
+    assert_eq!(
+        table.authorize_current(domain, handle, &exact, claim(&exact)),
+        Err(KernelCapabilityRefusal::InFlightFull)
+    );
+    table.complete(second).unwrap();
+    assert_eq!(
+        table.complete(second),
+        Err(KernelCapabilityRefusal::StaleLease)
+    );
+    assert_eq!(
+        table.authorize_current(domain, handle, &exact, claim(&exact)),
+        Err(KernelCapabilityRefusal::Exhausted)
+    );
+    let unaffected = table
+        .authorize_current(sibling, sibling_handle, &other, claim(&other))
+        .unwrap();
+    table.complete(unaffected).unwrap();
+    assert_eq!(
+        table.authorize_current(sibling, sibling_handle, &other, claim(&other)),
+        Err(KernelCapabilityRefusal::Exhausted)
+    );
+    // This proves one table's finite public contract, not uniqueness of a newly
+    // constructed table/Boot whose trusted caller repeats its issuer inputs.
+}
