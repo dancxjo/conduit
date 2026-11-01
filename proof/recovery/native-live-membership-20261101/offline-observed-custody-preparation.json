@@ -14,6 +14,34 @@
   },
   "producer_authority": "Actual producer checks latest admitted credential and immutable epoch when receiving the ACK. Offline preparation does not prove remote freshness or acceptance.",
   "host_build": "passed",
-  "physical_custody_acceptance": "not yet demonstrated with this offline tool",
+  "physical_custody_acceptance": {
+    "producer_source": "35b0510bd559048c144eaf89e3110e06a304736e",
+    "producer_role": "biography-maintenance",
+    "recorder_tool_source": "061f01f5d7",
+    "closed_records": 447,
+    "actual_root_offer_authenticated": true,
+    "durable_files_fsynced_reopened_verified": true,
+    "private_identity_remained_on_forebrain": true,
+    "only_signed_ack_transferred_to_victus": true,
+    "actual_producer_reclaimed_reply_matched_signed_offer": true,
+    "uart_reopen_reset": "First transfer arrived before ready; exact original signed ACK replayed after actual biography-window. No new signature or authority.",
+    "physical_readback": {
+      "origin": "0x368000",
+      "data_sectors_erased": 30,
+      "committed_phases": [
+        "Reclaiming",
+        "Reclaimed"
+      ],
+      "both_416_byte_root_receipt_signatures_independently_verified": true,
+      "all_other_physical_epochs_byte_exact": [
+        0,
+        2,
+        3,
+        4
+      ],
+      "newest_local_readings_preserved": true
+    },
+    "limitation": "Attended cold maintenance. Does not prove automatic running-Play reclaim, interruption recovery across NAT, or selected installed Recorder Plot commitment."
+  },
   "selected_recorder_plot_commitment": false
 }
