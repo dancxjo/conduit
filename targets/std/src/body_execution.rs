@@ -22,6 +22,7 @@ pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservatio
 
 mod fore;
 mod fore_custody;
+pub mod native;
 pub use fore_custody::{
     BodyForeDeliveryStage, BodyForePendingOutput, BodyForePendingOutputMetadata,
 };
@@ -571,3 +572,6 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod native_tests;

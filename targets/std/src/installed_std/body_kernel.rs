@@ -27,6 +27,7 @@ use std::io::Write;
 mod clock_observation;
 mod data_text;
 mod fore_route;
+pub(crate) mod native;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
@@ -39,6 +40,7 @@ use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
     scheduler: Box<InstalledScheduler>,
+    native: native::NativeRoute,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
@@ -182,6 +184,7 @@ impl<'a> BodyKernel<'a> {
             None,
             #[cfg(target_os = "linux")]
             None,
+            &[],
         )
     }
 
@@ -210,6 +213,7 @@ impl<'a> BodyKernel<'a> {
             sources.as_ref(),
             #[cfg(target_os = "linux")]
             selected_file,
+            &[],
         )
     }
 
@@ -242,11 +246,12 @@ impl<'a> BodyKernel<'a> {
             sources.as_ref(),
             #[cfg(target_os = "linux")]
             selected_file,
+            &[],
         )
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn prepare_with_live(
+    pub(crate) fn prepare_with_live(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
@@ -258,6 +263,7 @@ impl<'a> BodyKernel<'a> {
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
+        native_calls: &[(conduit_core::CapabilityId, conduit_core::Kind)],
     ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
@@ -320,6 +326,7 @@ impl<'a> BodyKernel<'a> {
             },
         )
         .map_err(|error| format!("Body fragment lowering: {error:?}"))?;
+        let native = native::NativeRoute::prepare(&fragments, &lowered.partitions, native_calls)?;
         let fore = if let Some(queue) = live {
             BodyForeRoute::prepare_live(&lowered.partitions, queue)?
         } else {
@@ -335,7 +342,8 @@ impl<'a> BodyKernel<'a> {
                 if !has_keyboard {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
-            } else if !timer(&operation.contract_id)
+            } else if !native.contains(operation.node)
+                && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
                 && !text_state(&operation.contract_id)
@@ -370,7 +378,11 @@ impl<'a> BodyKernel<'a> {
                 } else {
                     // Ordinary Backs are budgeted only after exact activation
                     // owners have been consumed by the whole-Plan scan route.
-                    ordinary = preparation::back_budget(placement)?;
+                    ordinary = if native.matches(partition_index, &placement.placement_id) {
+                        native::budget(placement)?
+                    } else {
+                        preparation::back_budget(placement)?
+                    };
                     &ordinary
                 };
                 items = items
@@ -426,6 +438,12 @@ impl<'a> BodyKernel<'a> {
                             .take()
                             .ok_or("installed Each owner was prepared twice")?,
                     ))
+                } else if native.contains(node.node) {
+                    InstalledBack::SelectedNativeSource(
+                        conduit_kernel::scheduler::HostCallBack::new(
+                            native.input_bound(node.node)?,
+                        ),
+                    )
                 } else {
                     preparation::prepare_ordinary_operation(
                         fragment,
@@ -506,6 +524,7 @@ impl<'a> BodyKernel<'a> {
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
+            native,
             face_labels,
             input_origin: None,
             fore,
@@ -535,6 +554,14 @@ impl<'a> BodyKernel<'a> {
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
+    }
+
+    pub(crate) fn prepare_native_slots(
+        &mut self,
+        inventory: &conduit_core::HostAdvertisement,
+        sequence: u64,
+    ) -> Result<(), String> {
+        self.native.install(inventory, sequence)
     }
 
     /// Prepare input origin descriptors without granting issued-Play authority.
@@ -709,6 +736,40 @@ impl<'a> BodyKernel<'a> {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn run<W: Write, T: TimerAdapter>(
+        self,
+        output: &mut W,
+        clock: &mut T,
+        input: Option<&mut dyn HostedKeyboardAdapter>,
+        fore_output: Option<&mut dyn BodyForeOutputAdapter>,
+        control: &RunControl,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+        body_time: Option<(&BodyTimeRequirement, &BodyClockCorrelation)>,
+        execution_bounds: Option<(
+            conduit_core::MonotonicDuration,
+            conduit_core::MonotonicDuration,
+        )>,
+        admitted_clock_quality: Option<BodyTimeQuality>,
+        terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
+    ) -> BodyKernelResult {
+        self.run_with_native(
+            output,
+            clock,
+            input,
+            fore_output,
+            control,
+            host_id,
+            boot_id,
+            body_time,
+            execution_bounds,
+            admitted_clock_quality,
+            terminal,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_with_native<W: Write, T: TimerAdapter>(
         mut self,
         output: &mut W,
         clock: &mut T,
@@ -724,6 +785,7 @@ impl<'a> BodyKernel<'a> {
         )>,
         admitted_clock_quality: Option<BodyTimeQuality>,
         mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
+        mut native_execution: Option<&mut crate::body_execution::native::NativeExecution<'_>>,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -742,7 +804,7 @@ impl<'a> BodyKernel<'a> {
         let mut kernel_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
-            loop {
+            'body: loop {
                 self.fore.drain(
                     &mut self.scheduler,
                     &mut fore_output,
@@ -879,6 +941,18 @@ impl<'a> BodyKernel<'a> {
                                 },
                             )
                             .map_err(|error| format!("Body keyboard cancellation: {error:?}"))?;
+                    } else if self.native.contains(cancellation.node) {
+                        self.scheduler
+                            .complete_host_call(
+                                cancellation.node,
+                                cancellation.request,
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Cancelled,
+                                    output: None,
+                                    failure: None,
+                                },
+                            )
+                            .map_err(|e| format!("Body native cancellation: {e:?}"))?;
                     } else {
                         deadlines.cancel(cancellation, &mut self.scheduler)?;
                     }
@@ -907,6 +981,48 @@ impl<'a> BodyKernel<'a> {
                         .scheduler
                         .host_value(request.input.value)
                         .map_err(|error| format!("Body request value: {error:?}"))?;
+                    if self.native.contains(request.node) {
+                        let execution = native_execution
+                            .as_deref_mut()
+                            .ok_or("Body native provider absent")?;
+                        let bytes = self.native.execute(execution, request, input)?;
+                        if control.stop_requested() {
+                            // Retire the original lease before dropping late bytes. The
+                            // ordinary cancellation path owns the terminal completion.
+                            continue 'body;
+                        }
+                        let outcome = match bytes {
+                            Ok(bytes) => {
+                                let value = self
+                                    .scheduler
+                                    .store_host_value(&bytes)
+                                    .map_err(|e| format!("Body native output: {e:?}"))?;
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Completed,
+                                    output: Some(
+                                        BoundedValueRef::new(
+                                            value,
+                                            operation.binding.maximum_output_bytes,
+                                        )
+                                        .map_err(|e| format!("Body native output bound: {e:?}"))?,
+                                    ),
+                                    failure: None,
+                                }
+                            }
+                            Err(_) => HostCallOutcome {
+                                disposition: HostCallDisposition::Denied,
+                                output: None,
+                                failure: Some(Failure {
+                                    code: FailureCode::HostCallDenied,
+                                    detail: 1,
+                                }),
+                            },
+                        };
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|e| format!("Body native completion: {e:?}"))?;
+                        continue;
+                    }
                     if data_text::is_file(&operation.contract_id) {
                         let source = self
                             .data_text_hosts
