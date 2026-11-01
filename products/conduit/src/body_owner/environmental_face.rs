@@ -277,7 +277,7 @@ fn now() -> Result<u64, String> {
 impl Owner {
     pub(super) fn accept_live_source_fore(
         &mut self,
-        value: continuing::native::LiveFore,
+        value: &continuing::native::LiveFore,
     ) -> Result<(), String> {
         let realization = self
             .session
@@ -315,15 +315,15 @@ impl Owner {
         // Neither finite custody nor Face delivery is a durable receipt.
         #[cfg(feature = "installed-body-storage")]
         if let Some(stage) = self.source_recording_stage.as_ref() {
-            stage.validate(&value).map_err(debug)?;
+            stage.validate(value).map_err(debug)?;
         }
         self.environmental_face
             .as_mut()
             .ok_or("Source Face slots unprepared")?
-            .accept(&value, now()?)?;
+            .accept(value, now()?)?;
         #[cfg(feature = "installed-body-storage")]
         if let Some(stage) = self.source_recording_stage.as_mut() {
-            stage.accept(&value).map_err(debug)?;
+            stage.accept(value).map_err(debug)?;
         }
         Ok(())
     }

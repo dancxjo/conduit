@@ -21,6 +21,9 @@ const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 pub(super) mod native;
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 pub(super) use native::SourceSelection;
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "continuing/fore_refusal.rs"]
+mod fore_refusal;
 #[cfg(all(
     feature = "installed-environmental-sources",
     feature = "installed-body-storage",
@@ -43,6 +46,8 @@ pub(crate) struct RunWorker {
     thread: Option<JoinHandle<WorkerOutcome>>,
     #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
     live_fore: Option<Receiver<native::LiveFore>>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    fore_refusal: Option<fore_refusal::ForeRefusal>,
     #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
     returned_equipment:
         Option<crate::durable_host::selected_environmental_sources::AttachedEquipment>,
@@ -225,6 +230,8 @@ impl Owner {
             returned_equipment: None,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             live_fore,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            fore_refusal: None,
         })
     }
 
@@ -257,6 +264,8 @@ impl Owner {
         output: Vec<u8>,
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         accepted_fore: Option<native::AcceptedSourceFore>,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        fore_refusal: Option<&fore_refusal::ForeRefusal>,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
         let proposed = self
@@ -301,6 +310,9 @@ impl Owner {
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         let receipt = {
             let mut receipt = receipt;
+            if let Some(refusal) = fore_refusal {
+                receipt["source_fore_refusal"] = refusal.diagnostics();
+            }
             #[cfg(feature = "installed-body-storage")]
             if let Some(stage) = self.source_recording_stage.as_ref() {
                 receipt["source_recording_pending"] = serde_json::json!({
@@ -342,9 +354,20 @@ impl RunWorker {
             Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
         }
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
-        if let Some(receiver) = &self.live_fore {
-            while let Ok(value) = receiver.try_recv() {
-                owner.accept_live_source_fore(value)?;
+        if self.fore_refusal.is_none() {
+            if let Some(receiver) = &self.live_fore {
+                while let Ok(value) = receiver.try_recv() {
+                    if let Err(error) = owner.accept_live_source_fore(&value) {
+                        self.fore_refusal = Some(fore_refusal::ForeRefusal::new(value, error));
+                        // Retain the refused Fore and original worker until its
+                        // cancellation and cleanup return the affine Host.
+                        // An existing stop request already provides that path.
+                        let _ = self.control.request_stop(RunControlRequestId::new(
+                            "owner/source-consumer-refused",
+                        )?);
+                        break;
+                    }
+                }
             }
         }
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
@@ -367,6 +390,12 @@ impl RunWorker {
             self.returned_equipment = native.as_mut().and_then(|run| run.equipment.take());
         }
         owner.host.restore_after_play(host)?;
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        if let Some(refusal) = self.fore_refusal.as_mut() {
+            if let Some(receiver) = self.live_fore.as_ref() {
+                refusal.capture_trailing(receiver);
+            }
+        }
         owner.retain_finished(
             root,
             result,
@@ -376,6 +405,8 @@ impl RunWorker {
                 .map(native::NativeRun::accepted)
                 .transpose()?
                 .flatten(),
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            self.fore_refusal.as_ref(),
         )?;
         Ok(true)
     }
