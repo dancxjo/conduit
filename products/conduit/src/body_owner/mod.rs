@@ -356,3 +356,6 @@ pub(crate) fn establish_root_signer(
     owner.persist(root)?;
     state::establish_root_signer(root, expected_body)
 }
+
+mod browser_completion;
+pub(crate) use browser_completion::BrowserAdmissionCompletion;

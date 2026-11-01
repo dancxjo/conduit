@@ -196,6 +196,7 @@ fn main() -> Result<(), String> {
         .map_err(|error| format!("append admission biography: {error:?}"))?;
     socket
         .send(&BrowserAdmissionEgress::Admitted {
+            signed_membership_receipt: None,
             protocol: BROWSER_ADMISSION_PROTOCOL,
             credential: credential.clone(),
         })

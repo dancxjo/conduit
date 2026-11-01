@@ -2,14 +2,38 @@ use super::*;
 
 pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissionFrameError> {
     let protocol = match frame {
+        BrowserAdmissionEgress::MembershipReceipt { protocol, receipt } => {
+            conduit_body::PortableMembershipAdmissionReceipt::decode(
+                &serde_json::to_vec(receipt)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidMembershipReceipt)?,
+            )
+            .map_err(|_| BrowserAdmissionFrameError::InvalidMembershipReceipt)?;
+            protocol
+        }
         BrowserAdmissionEgress::SpawnChallenge { protocol, claim } => {
             claim
                 .inspect(0)
                 .map_err(|_| BrowserAdmissionFrameError::InvalidNonce)?;
             protocol
         }
+        BrowserAdmissionEgress::Admitted {
+            protocol,
+            credential,
+            signed_membership_receipt,
+        } => {
+            if let Some(receipt) = signed_membership_receipt {
+                let encoded = serde_json::to_vec(receipt)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidMembershipReceipt)?;
+                conduit_body::PortableMembershipAdmissionReceipt::decode(&encoded)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidMembershipReceipt)?;
+                if receipt.credential != *credential {
+                    return Err(BrowserAdmissionFrameError::InvalidMembershipReceipt);
+                }
+            }
+            // Structure/correlation only; recipient must verify independent Root pin.
+            protocol
+        }
         BrowserAdmissionEgress::Challenge { protocol, .. }
-        | BrowserAdmissionEgress::Admitted { protocol, .. }
         | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }
         | BrowserAdmissionEgress::ReturnChallenge { protocol, .. }
         | BrowserAdmissionEgress::Refused { protocol, .. } => protocol,

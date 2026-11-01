@@ -190,9 +190,11 @@ impl DurableHostRuntime {
         &mut self,
         window_id: &str,
         frame: BrowserAdmissionIngress,
-    ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
+    ) -> Result<crate::durable_host::owner::BrowserAdmissionCompletion, String> {
         match &mut self.host {
-            HostSource::Body { owner, root, .. } => owner.browser_complete(root, window_id, frame),
+            HostSource::Body { owner, root, .. } => {
+                owner.browser_complete_outcome(root, window_id, frame)
+            }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }

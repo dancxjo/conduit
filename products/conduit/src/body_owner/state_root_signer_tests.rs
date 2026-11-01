@@ -65,6 +65,7 @@ fn interrupted_selection_journal_replays_exact_private_identity_and_refuses_repl
     let transaction = Transaction {
         schema: "conduit.body/owner-transaction@1".into(),
         root_signer: Some(selected.clone()),
+        root_receipt: None,
         biography: biography.clone(),
         installation: read_installation(&root.join("installation.json")).unwrap(),
         last_execution: None,

@@ -189,6 +189,7 @@ fn serve_presence(
         .map_err(debug)?;
     admission::remaining(deadline)?;
     socket.send(&Out::Admitted {
+        signed_membership_receipt: snapshot.signed_membership_receipt.clone().map(Box::new),
         protocol: PROTOCOL,
         credential: credential.clone(),
     })?;

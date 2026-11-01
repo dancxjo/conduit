@@ -85,6 +85,7 @@ fn main() -> Result<(), String> {
         match (attempt, result) {
             (0, Ok(credential)) => socket
                 .send(&BrowserAdmissionEgress::Admitted {
+                    signed_membership_receipt: None,
                     protocol: BROWSER_ADMISSION_PROTOCOL,
                     credential,
                 })

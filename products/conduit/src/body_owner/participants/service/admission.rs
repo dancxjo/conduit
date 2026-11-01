@@ -173,12 +173,28 @@ impl Owner {
         result
     }
 
+    #[cfg(test)]
     pub(crate) fn browser_complete(
         &mut self,
         root: &Path,
         window_id: &str,
         frame: In,
     ) -> Result<BrowserAdmittedSnapshot, String> {
+        match self.browser_complete_outcome(root, window_id, frame)? {
+            crate::durable_host::owner::BrowserAdmissionCompletion::Active { snapshot } => {
+                Ok(*snapshot)
+            }
+            crate::durable_host::owner::BrowserAdmissionCompletion::CustodyOnly { .. } => {
+                Err("membership custody recovered; canonical Return required".into())
+            }
+        }
+    }
+    pub(crate) fn browser_complete_outcome(
+        &mut self,
+        root: &Path,
+        window_id: &str,
+        frame: In,
+    ) -> Result<crate::durable_host::owner::BrowserAdmissionCompletion, String> {
         let mut window = self
             .pending_browser
             .take()
@@ -195,6 +211,8 @@ impl Owner {
             let mut session = self.session.clone();
             let authority = self.host.advertisement().clone();
             retire_invited = matches!(pending.kind, PendingKind::Invited { .. });
+            let mut admission_draft = None;
+            let mut custody_only = false;
             let credential = match (&pending.kind, frame) {
                 (
                     PendingKind::Invited { claim },
@@ -207,23 +225,32 @@ impl Owner {
                         nonce,
                         signature,
                     },
-                ) => invited::complete(
-                    &mut session,
-                    &mut manager,
-                    pending,
-                    claim,
-                    conduit_body::SpawnAdmissionProof {
-                        invitation_id,
-                        body_id,
-                        host_id,
-                        boot_id,
-                        nonce: nonce.try_into().map_err(|_| "invalid invited nonce")?,
-                        signature: signature
-                            .try_into()
-                            .map_err(|_| "invalid invited signature")?,
-                    },
-                    &authority,
-                )?,
+                ) => {
+                    let (credential, draft, recovered) = invited::complete(
+                        root,
+                        window
+                            .new_key
+                            .ok_or("invited window has no exact Host public key")?,
+                        &mut session,
+                        &mut manager,
+                        pending,
+                        claim,
+                        conduit_body::SpawnAdmissionProof {
+                            invitation_id,
+                            body_id,
+                            host_id,
+                            boot_id,
+                            nonce: nonce.try_into().map_err(|_| "invalid invited nonce")?,
+                            signature: signature
+                                .try_into()
+                                .map_err(|_| "invalid invited signature")?,
+                        },
+                        &authority,
+                    )?;
+                    admission_draft = draft;
+                    custody_only = recovered;
+                    credential
+                }
 
                 (
                     PendingKind::Ambient {
@@ -336,29 +363,75 @@ impl Owner {
             // proofs retire this exact window instead of resetting attempt state.
             retire_invited = false;
             remaining(window.deadline)?;
-            let offer = disclose_host_offer(
-                &pending.observation,
-                RemoteProofClass::SelfReported,
-                &OfferDisclosureRequest {
-                    stage: OfferDisclosureStage::AdmittedMembership,
-                    capability_ids: vec![],
-                    resource_pool_ids: vec![],
-                },
-            )
-            .map_err(debug)?;
+            let offer = if custody_only {
+                None
+            } else {
+                Some(
+                    disclose_host_offer(
+                        &pending.observation,
+                        RemoteProofClass::SelfReported,
+                        &OfferDisclosureRequest {
+                            stage: OfferDisclosureStage::AdmittedMembership,
+                            capability_ids: vec![],
+                            resource_pool_ids: vec![],
+                        },
+                    )
+                    .map_err(debug)?,
+                )
+            };
             let before_session = std::mem::replace(&mut self.session, session);
             let before_manager = self.admissions.replace(manager);
-            if let Err(error) = self.persist(root) {
+            let persisted = if let Some(draft) = admission_draft.as_ref() {
+                let result = crate::durable_host::owner::state::retain_session_with_receipt(
+                    root,
+                    &mut self.session,
+                    self.last_execution.as_ref(),
+                    self.admissions.as_ref(),
+                    None,
+                    None,
+                    Some(draft),
+                );
+                self.execution_persistence_pending =
+                    result.is_err() && self.last_execution.is_some();
+                result
+            } else {
+                self.persist(root)
+            };
+            if let Err(error) = persisted {
                 self.session = before_session;
                 self.admissions = before_manager;
                 return Err(error);
             }
+            let signed_membership_receipt = admission_draft
+                .as_ref()
+                .map(|draft| {
+                    crate::durable_host::root_signer::receipt::sign_recovered(
+                        root,
+                        draft,
+                        self.session.evidence(),
+                        self.admissions
+                            .as_ref()
+                            .ok_or("admitted receipt lost its manager")?,
+                    )
+                })
+                .transpose()?;
+            if custody_only {
+                let receipt = signed_membership_receipt
+                    .ok_or("recovered custody has no authenticated receipt")?;
+                window.state = WindowState::Ready;
+                return Ok(
+                    crate::durable_host::owner::BrowserAdmissionCompletion::CustodyOnly {
+                        receipt: Box::new(receipt),
+                    },
+                );
+            }
             let line_authorization =
                 BrowserLineAuthorization::issue(&window.id, &pending.binding, &credential);
             let snapshot = BrowserAdmittedSnapshot {
+                signed_membership_receipt,
                 credential: credential.clone(),
                 biography: Box::new(self.session.evidence().clone()),
-                offer: Box::new(offer),
+                offer: Box::new(offer.ok_or("active admission has no disclosed offer")?),
                 owner_advertisement: Some(Box::new(authority.clone())),
                 browser_advertisement: Some(Box::new(pending.observation.advertisement.clone())),
                 line_authorization: Some(line_authorization.clone()),
@@ -373,7 +446,11 @@ impl Owner {
                 route: None,
                 acknowledged_show: None,
             };
-            Ok(snapshot)
+            Ok(
+                crate::durable_host::owner::BrowserAdmissionCompletion::Active {
+                    snapshot: Box::new(snapshot),
+                },
+            )
         })();
         if retire_invited {
             window.invited_proof_refused = true;

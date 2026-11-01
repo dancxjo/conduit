@@ -106,6 +106,7 @@ pub(super) fn admit(
         .map_err(super::protocol::debug("complete"))?;
     socket
         .send(&BrowserAdmissionEgress::Admitted {
+            signed_membership_receipt: None,
             protocol: BROWSER_ADMISSION_PROTOCOL,
             credential: credential.clone(),
         })
