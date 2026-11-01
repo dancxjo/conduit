@@ -6,6 +6,29 @@ pub(super) fn arrange(
     width: u16,
     height: u16,
 ) -> Result<Vec<Fragment>, FaceSceneError> {
+    if !context.items(region).any(|(_, item)| !item.text.is_empty()) {
+        return Ok(Vec::new());
+    }
+    let panel = context.panel_padding(region);
+    let mut fragments =
+        arrange_content(context, region, inset(width, panel)?, inset(height, panel)?)?;
+    for fragment in &mut fragments {
+        for entry in &mut fragment.entries {
+            entry.row.region_inset = add(entry.row.region_inset, panel)?;
+            entry.outer_padding = add(entry.outer_padding, panel)?;
+        }
+        fragment.translate(panel, panel);
+        fragment.height = add(fragment.height, panel * 2)?;
+    }
+    Ok(fragments)
+}
+
+fn arrange_content(
+    context: &Context<'_>,
+    region: Option<usize>,
+    width: u16,
+    height: u16,
+) -> Result<Vec<Fragment>, FaceSceneError> {
     let mut fragments = Vec::new();
     let mut current = Fragment::empty();
     // One surface cue per authored group replaces its per-region dividers.

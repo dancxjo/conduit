@@ -20,6 +20,7 @@ pub(in crate::native_face_scene) struct RowSpacing {
     pub padding: u16,
     pub gap: u16,
     pub control: Option<RowInsets>,
+    pub panel: Option<u16>,
 }
 impl RowSpacing {
     pub fn legacy(padding: u16) -> Self {
@@ -27,11 +28,13 @@ impl RowSpacing {
             padding,
             gap: SPACE_SM,
             control: None,
+            panel: None,
         }
     }
     pub fn validate(self) -> Result<Self, FaceSceneError> {
         if !(SPACE_SM..=SPACE_SM * 2).contains(&self.padding)
             || self.gap > 32
+            || self.panel.is_some_and(|padding| padding > 64)
             || self
                 .control
                 .is_some_and(|i| i.inline > 64 || i.block > 64 || i.leading != 8)

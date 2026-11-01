@@ -112,7 +112,12 @@ pub(super) fn measure(
                     .preferred
                     .max(preferred.min(u32::from(context.width)) as u16);
             }
-            result.preferred = result.preferred.max(result.minimum);
+            let edge = context
+                .panel_padding(region)
+                .checked_mul(2)
+                .ok_or(FaceSceneError::InvalidExtent)?;
+            result.minimum = add(result.minimum, edge)?;
+            result.preferred = add(result.preferred, edge)?.max(result.minimum);
             result
         }
         Node::Group(group) => {

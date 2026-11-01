@@ -21,6 +21,17 @@ pub(super) fn metric_proposal_with_insets(
     inline: u16,
     block: u16,
 ) -> conduit_face::LookInfo {
+    metric_proposal_with_panel(body, small, leading, gap, inline, block, 12)
+}
+pub(super) fn metric_proposal_with_panel(
+    body: u16,
+    small: u16,
+    leading: u16,
+    gap: u16,
+    inline: u16,
+    block: u16,
+    panel: u16,
+) -> conduit_face::LookInfo {
     use conduit_face::*;
     let base = engineering_look().unwrap();
     let LookVisualFacetOption::Some(visual) = base.visual() else {
@@ -41,7 +52,7 @@ pub(super) fn metric_proposal_with_insets(
         *t.reading_paper(),
         block,
         inline,
-        *t.space_panel_px(),
+        panel,
         gap,
         *t.structure_primary(),
         *t.structure_secondary(),
@@ -55,7 +66,9 @@ pub(super) fn metric_proposal_with_insets(
         *t.workbench_canvas(),
     )
     .unwrap();
-    let id = alloc::format!("test/native-metric-{body}-{small}-{leading}-{gap}-{inline}-{block}");
+    let id = alloc::format!(
+        "test/native-metric-{body}-{small}-{leading}-{gap}-{inline}-{block}-{panel}"
+    );
     let expression = VisualExpressionInfo::new(
         VisualDensityPreference::Compact,
         id.clone(),

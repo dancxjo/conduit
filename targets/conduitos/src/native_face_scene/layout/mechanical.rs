@@ -127,6 +127,13 @@ impl Context<'_> {
         resolve_em_sixteenths(self.typography.style(TextRole::Body), self.scale, units)
             .map_err(|_| FaceSceneError::InvalidExtent)
     }
+    fn panel_padding(&self, region: Option<usize>) -> u16 {
+        if region.is_some() && self.items(region).any(|(_, item)| !item.text.is_empty()) {
+            self.spacing.panel.unwrap_or(0)
+        } else {
+            0
+        }
+    }
     fn items(
         &self,
         region: Option<usize>,

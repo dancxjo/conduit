@@ -5,208 +5,11 @@ use super::*;
 
 #[path = "panels/ordering.rs"]
 mod ordering;
-const EDGE: u16 = SPACE_SM;
+const LEGACY_EDGE: u16 = SPACE_SM;
 
-struct Band {
-    top: u16,
-    next: [u16; 2],
-    first: [Option<usize>; 2],
-}
-
-struct Flow {
-    groups: [u8; 2],
-    gutter: u16,
-    gap: u16,
-    width: u16,
-    column: u16,
-    single_lane: bool,
-    paired_regions: bool,
-    top: u16,
-    bottom: u16,
-    y: u16,
-    band: Option<Band>,
-    page: usize,
-    count: usize,
-    commands: usize,
-    continuation: Option<LayoutContinuation>,
-}
-
-impl Flow {
-    fn new(
-        screen: LayoutRect,
-        gutter: u16,
-        scale: u16,
-        groups: [u8; 2],
-        typography: Typography,
-        paired_regions: bool,
-        gap: u16,
-    ) -> Result<Self, FaceSceneError> {
-        let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
-        let width = screen
-            .width
-            .checked_sub(gutter.checked_mul(2).ok_or(FaceSceneError::InvalidExtent)?)
-            .ok_or(FaceSceneError::InvalidExtent)?;
-        let column = width
-            .checked_sub(gutter)
-            .map(|value| value / 2)
-            .filter(|value| *value > EDGE * 2)
-            .ok_or(FaceSceneError::InvalidExtent)?;
-        Ok(Self {
-            groups,
-            gutter,
-            gap,
-            width,
-            column,
-            single_lane: !paired_regions,
-            paired_regions,
-            top: chrome.top,
-            bottom: chrome.bottom,
-            y: chrome.top,
-            band: None,
-            page: 0,
-            count: 0,
-            commands: chrome::COMMANDS + 1,
-            continuation: None,
-        })
-    }
-
-    fn lane(&self, region: Option<u8>) -> Option<usize> {
-        region.and_then(|region| {
-            self.groups
-                .iter()
-                .position(|group| *group == region)
-                .map(|lane| if self.single_lane { 0 } else { lane })
-        })
-    }
-
-    fn panel_width(&self) -> u16 {
-        if self.single_lane {
-            self.width
-        } else {
-            self.column
-        }
-    }
-
-    fn continuation_width(&self, region: Option<u8>) -> u16 {
-        if region == Some(self.groups[1]) {
-            self.width - EDGE * 2
-        } else {
-            self.width(self.lane(region))
-        }
-    }
-
-    fn finish_band(&mut self, rows: &mut [Row]) {
-        let Some(band) = self.band.take() else {
-            return;
-        };
-        let column = self.panel_width();
-        for lane in 0..2 {
-            if let Some(first) = band.first[lane] {
-                rows[first].panel_bounds = Some(LayoutRect {
-                    x: (self.gutter + lane as u16 * (column + self.gutter)) as i16,
-                    y: band.top as i16,
-                    width: column,
-                    height: band.next[lane] - self.gap + EDGE - band.top,
-                });
-            }
-        }
-        self.y = if band.first.iter().any(Option::is_some) {
-            band.next.into_iter().max().unwrap_or(band.top) + EDGE
-        } else {
-            band.top
-        };
-    }
-
-    fn select(&mut self, lane: Option<usize>, rows: &mut [Row]) {
-        if lane.is_none() {
-            self.finish_band(rows);
-        } else if self.band.is_none() {
-            self.band = Some(Band {
-                top: self.y,
-                next: [self.y + EDGE; 2],
-                first: [None; 2],
-            });
-        }
-    }
-
-    fn y(&self, lane: Option<usize>) -> u16 {
-        lane.map_or(self.y, |lane| self.band.as_ref().unwrap().next[lane])
-    }
-
-    fn width(&self, lane: Option<usize>) -> u16 {
-        if lane.is_some() {
-            self.panel_width() - EDGE * 2
-        } else {
-            self.width
-        }
-    }
-
-    fn new_panel(&self, lane: Option<usize>) -> bool {
-        lane.is_some_and(|lane| self.band.as_ref().unwrap().first[lane].is_none())
-    }
-
-    fn fits(&self, lane: Option<usize>, height: u16, cost: usize) -> bool {
-        self.pressure(lane, height, cost).is_none()
-    }
-
-    fn pressure(
-        &self,
-        lane: Option<usize>,
-        height: u16,
-        cost: usize,
-    ) -> Option<LayoutContinuation> {
-        LayoutContinuation::pressure(
-            u32::from(self.y(lane))
-                + u32::from(height)
-                + if lane.is_some() { u32::from(EDGE) } else { 0 }
-                > u32::from(self.bottom),
-            self.count >= MAX_PAGE_ROWS,
-            self.commands + cost > conduit_face::MAX_GRAPHICS_COMMANDS,
-        )
-    }
-
-    fn next_page(&mut self, region: Option<u8>, rows: &mut [Row], cause: LayoutContinuation) {
-        self.finish_band(rows);
-        // Geometry is fixed before committing the first row of a page. Ordering
-        // exhausts the first region before the second: only the latter remains
-        // when its continuation starts, so it no longer reserves an empty lane.
-        if self.count != 0 {
-            self.page += 1;
-            self.continuation = Some(cause);
-        }
-        self.single_lane = !self.paired_regions || region == Some(self.groups[1]);
-        self.count = 0;
-        self.commands = chrome::COMMANDS + 1;
-        self.y = self.top;
-        self.select(self.lane(region), rows);
-    }
-
-    fn bounds(&self, lane: Option<usize>, inset: u16, width: u16, height: u16) -> LayoutRect {
-        let x = self.gutter
-            + lane.map_or(0, |lane| {
-                lane as u16 * (self.panel_width() + self.gutter) + EDGE
-            })
-            + inset;
-        LayoutRect {
-            x: x as i16,
-            y: self.y(lane) as i16,
-            width,
-            height,
-        }
-    }
-
-    fn commit(&mut self, lane: Option<usize>, row: usize, height: u16, cost: usize) {
-        if let Some(lane) = lane {
-            let band = self.band.as_mut().unwrap();
-            band.first[lane].get_or_insert(row);
-            band.next[lane] += height + self.gap;
-        } else {
-            self.y += height + self.gap;
-        }
-        self.count += 1;
-        self.commands += cost;
-    }
-}
+#[path = "panels/flow.rs"]
+mod flow;
+use flow::Flow;
 
 pub(super) fn admit(
     items: Vec<document::Item>,
@@ -214,19 +17,20 @@ pub(super) fn admit(
     gutter: u16,
     scale: u16,
     spacing: RowSpacing,
-    groups: [u8; 2],
+    groups: Option<[u8; 2]>,
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
     let spacing = spacing.validate()?;
     let padding = spacing.padding;
-    let gap = spacing.gap;
     let items = ordering::prepare(items, groups)?;
     // Empty authored regions do not reserve space. This decision is derived
     // from admitted rows, without changing source subjects or reading order.
-    let paired_regions = groups.iter().all(|group| {
-        items
-            .iter()
-            .any(|(_, item)| item.region == Some(*group) && !item.text.is_empty())
+    let paired_regions = groups.is_some_and(|groups| {
+        groups.iter().all(|group| {
+            items
+                .iter()
+                .any(|(_, item)| item.region == Some(*group) && !item.text.is_empty())
+        })
     });
     let mut flow = Flow::new(
         screen,
@@ -235,11 +39,11 @@ pub(super) fn admit(
         groups,
         typography,
         paired_regions,
-        gap,
+        spacing,
     )?;
     let padding = fit_padding(
         items.iter().map(|(_, item)| item),
-        (flow.bottom - flow.top).saturating_sub(EDGE * 2),
+        (flow.bottom - flow.top).saturating_sub(flow.edge * 2),
         scale,
         padding,
         typography,
@@ -260,12 +64,18 @@ pub(super) fn admit(
             .filter(|value| *value <= MAX_DOCUMENT_BYTES)
             .ok_or(FaceSceneError::DocumentBound)?;
         let lane = flow.lane(item.region);
-        flow.select(lane, &mut rows);
+        flow.select(lane, item.region, &mut rows);
         let inset = u16::from(item.indent) * INDENT_STEP;
         let available_height = flow
             .bottom
             .checked_sub(flow.top)
-            .and_then(|value| value.checked_sub(if lane.is_some() { EDGE * 2 } else { 0 }))
+            .and_then(|value| {
+                value.checked_sub(if lane.is_some() || flow.span.is_some() {
+                    flow.edge * 2
+                } else {
+                    0
+                })
+            })
             .filter(|value| *value > 0)
             .ok_or(FaceSceneError::InvalidExtent)?;
         let maximum_height = available_height
@@ -288,7 +98,11 @@ pub(super) fn admit(
                     region_start,
                 )
             };
-            let edge = if lane.is_some() { EDGE } else { 0 };
+            let edge = if lane.is_some() || flow.span.is_some() {
+                flow.edge
+            } else {
+                0
+            };
             let bottom = flow.bottom - edge;
             let current = match measure(flow.width(lane)) {
                 Err(FaceSceneError::InvalidExtent)
@@ -400,7 +214,7 @@ pub(super) fn admit(
                 control: item.control,
                 subject_index: item.subject_index,
                 region: item.region,
-                region_inset: 0,
+                region_inset: if flow.span.is_some() { flow.edge } else { 0 },
                 page: flow.page,
                 region_start,
                 insets: PackedRowInsets::new(insets)?,
@@ -417,6 +231,7 @@ pub(super) fn admit(
         }
     }
     flow.finish_band(&mut rows);
+    flow.finish_span();
     ordering::restore(&mut rows, &mut reading_order);
     Ok(rows)
 }

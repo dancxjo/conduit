@@ -5,6 +5,7 @@ struct SelectedMetrics {
     typography: Typography,
     row_gap: u16,
     control: Option<layout::RowInsets>,
+    panel: Option<u16>,
 }
 impl SelectedMetrics {
     fn legacy(typography: Typography) -> Self {
@@ -12,6 +13,7 @@ impl SelectedMetrics {
             typography,
             row_gap: SPACE_SM,
             control: None,
+            panel: None,
         }
     }
     fn spacing(&self, expression: &conduit_face::AdmittedVisualExpression) -> layout::RowSpacing {
@@ -22,6 +24,7 @@ impl SelectedMetrics {
             },
             gap: self.row_gap,
             control: self.control,
+            panel: self.panel,
         }
     }
 }
@@ -180,6 +183,7 @@ impl NativeFaceScene {
         Ok(SelectedMetrics {
             typography,
             row_gap,
+            panel: Some(*visual.tokens().space_panel_px()),
             control: Some(layout::RowInsets {
                 inline: *visual.tokens().space_control_inline_px(),
                 block: *visual.tokens().space_control_block_px(),

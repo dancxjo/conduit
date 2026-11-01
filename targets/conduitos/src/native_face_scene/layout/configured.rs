@@ -64,11 +64,17 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
         groups,
     } = geometry;
     let spacing = spacing.validate()?;
-    if columns == 2
-        && screen.width >= 640
-        && let Some(groups) = groups
+    if !(1..=2).contains(&columns) {
+        return Err(FaceSceneError::InvalidExtent);
+    }
+    let pair = if columns == 2 && screen.width >= 640 {
+        groups
+    } else {
+        None
+    };
+    if pair.is_some() || (spacing.panel.is_some() && items.iter().any(|item| item.region.is_some()))
     {
-        if groups[0] == groups[1] {
+        if pair.is_some_and(|groups| groups[0] == groups[1]) {
             return Err(FaceSceneError::InvalidExtent);
         }
         panels::admit(
@@ -77,7 +83,7 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
             gutter,
             text_scale_percent,
             spacing,
-            groups,
+            pair,
             typography,
         )
     } else {

@@ -31,8 +31,8 @@ fn sole_populated_region_keeps_full_width_on_every_page() {
     );
     assert_disjoint(&rows);
     for row in &rows {
-        assert_eq!(row.bounds.width, 1280 - 24 - EDGE * 2);
-        assert_eq!(row.bounds.x, (12 + EDGE) as i16);
+        assert_eq!(row.bounds.width, 1280 - 24 - LEGACY_EDGE * 2);
+        assert_eq!(row.bounds.x, (12 + LEGACY_EDGE) as i16);
     }
 }
 
@@ -77,7 +77,7 @@ fn naming_field_moves_as_one_cluster_to_full_width_continuation() {
     assert!(
         rows[18..]
             .iter()
-            .all(|row| row.bounds.width == 1280 - 24 - EDGE * 2)
+            .all(|row| row.bounds.width == 1280 - 24 - LEGACY_EDGE * 2)
     );
     assert_eq!(rows[19].control, Some(action));
     assert_eq!(rows[20].control, Some(argument));
@@ -106,7 +106,10 @@ fn unfit_narrow_row_remeasures_on_wider_page_and_full_width_still_refuses() {
     let cause = rows[1].continuation.unwrap();
     assert!(cause.measurement_refused());
     assert!(!cause.block_limit() && !cause.row_limit() && !cause.command_limit());
-    assert_eq!(rows[1].bounds.x, (12 + EDGE + 50 * INDENT_STEP) as i16);
+    assert_eq!(
+        rows[1].bounds.x,
+        (12 + LEGACY_EDGE + 50 * INDENT_STEP) as i16
+    );
     assert_eq!(rows[1].panel_bounds.unwrap().width, 1280 - 24);
 
     let mut indented = item("Exact retained label", Some(1));
