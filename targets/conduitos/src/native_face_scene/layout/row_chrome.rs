@@ -28,6 +28,7 @@ pub(in crate::native_face_scene) fn append_row_chrome(
     outline: GraphicsPaintRole,
     showing_details: bool,
     focused: bool,
+    focus_marker_width: u16,
 ) -> Result<(), FaceSceneError> {
     if !showing_details && row.region_start && row.region.is_none() {
         push(
@@ -69,15 +70,33 @@ pub(in crate::native_face_scene) fn append_row_chrome(
     // An inset outline distinguishes focus even with identical paints. Choice
     // indicators remain independent; other controls also have their outer box.
     if focused {
-        push(
-            scene,
-            GraphicsCommand::rect(
+        // Selected control padding may be zero. Keep the non-color marker in
+        // its admitted leading gutter, outside both glyph and choice ink.
+        let (marker, shape) = if row.insets.leading() != 0 {
+            (
+                LayoutRect {
+                    x: row.bounds.x + ((row.insets.leading() - focus_marker_width) / 2) as i16,
+                    y: row.bounds.y + 3,
+                    width: focus_marker_width,
+                    height: row.bounds.height - 6,
+                },
+                GraphicsShapeStyle::Fill,
+            )
+        } else {
+            (
                 LayoutRect {
                     x: row.bounds.x + 3,
                     y: row.bounds.y + 3,
                     width: row.bounds.width - 6,
                     height: row.bounds.height - 6,
                 },
+                GraphicsShapeStyle::Stroke,
+            )
+        };
+        push(
+            scene,
+            GraphicsCommand::rect(
+                marker,
                 screen,
                 // Filled primary actions need an interior contrast against
                 // Accent, including white fills under forced colors. Keep the
@@ -88,7 +107,7 @@ pub(in crate::native_face_scene) fn append_row_chrome(
                 } else {
                     outline
                 },
-                GraphicsShapeStyle::Stroke,
+                shape,
             ),
         )?;
     }

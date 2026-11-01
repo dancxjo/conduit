@@ -56,6 +56,23 @@ fn made_resources_are_exact_ordinary_authored_values_of_the_existing_look_type()
         let authored = authored.try_concrete().unwrap();
         assert_eq!(authored, made.clone().into_structured().unwrap());
         let bytes = made.encode().unwrap();
+        // Named browser-consumer fixtures retain exactly the checked authored
+        // resources, not independently copied CSS colors/geometry or Face data.
+        let browser_hex = match name {
+            "day" => include_str!(
+                "../../../proof/conformance/face-look/field-instrument-day-look-v2.hex"
+            ),
+            "night" => include_str!(
+                "../../../proof/conformance/face-look/field-instrument-night-look-v2.hex"
+            ),
+            _ => unreachable!(),
+        }
+        .trim();
+        let browser_bytes: Vec<u8> = (0..browser_hex.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&browser_hex[offset..offset + 2], 16).unwrap())
+            .collect();
+        assert_eq!(browser_bytes, bytes);
         assert_eq!(authored.canonical_bytes().unwrap(), bytes);
         assert_eq!(make_resources::resource(&checked, name).unwrap(), bytes);
     }

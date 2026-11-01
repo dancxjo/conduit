@@ -3,7 +3,7 @@ use super::*;
 
 pub(super) fn prepare(
     items: Vec<document::Item>,
-    groups: [u8; 2],
+    groups: Option<[u8; 2]>,
 ) -> Result<Vec<(usize, document::Item)>, FaceSceneError> {
     if items.len() > MAX_ROWS {
         return Err(FaceSceneError::DocumentBound);
@@ -17,16 +17,18 @@ pub(super) fn prepare(
     let first = items.iter().position(|item| item.region.is_some());
     // All mandatory preparation work is admitted above; move the owned strings.
     let mut indexed: Vec<_> = items.into_iter().enumerate().collect();
-    indexed.sort_unstable_by_key(|(original, item)| {
-        let section = match item.region {
-            None if first.is_none_or(|first| *original < first) => 0,
-            Some(group) if group == groups[0] => 1,
-            Some(group) if group == groups[1] => 2,
-            Some(_) => 3,
-            None => 4,
-        };
-        (section, item.region_order.unwrap_or(usize::MAX), *original)
-    });
+    if let Some(groups) = groups {
+        indexed.sort_unstable_by_key(|(original, item)| {
+            let section = match item.region {
+                None if first.is_none_or(|first| *original < first) => 0,
+                Some(group) if group == groups[0] => 1,
+                Some(group) if group == groups[1] => 2,
+                Some(_) => 3,
+                None => 4,
+            };
+            (section, item.region_order.unwrap_or(usize::MAX), *original)
+        });
+    }
     Ok(indexed)
 }
 
@@ -53,6 +55,7 @@ mod tests {
 
     fn item(text: &str) -> document::Item {
         document::Item {
+            part: crate::native_face_scene::layout::NativePart::Content,
             text: text.into(),
             role: GraphicsTextRole::Body,
             paint: GraphicsPaintRole::Foreground,
@@ -98,12 +101,12 @@ mod tests {
     fn ordering_refuses_count_and_text_before_permutation_allocation() {
         let too_many = (0..=MAX_ROWS).map(|_| item("")).collect();
         assert!(matches!(
-            prepare(too_many, [0, 1]),
+            prepare(too_many, Some([0, 1])),
             Err(FaceSceneError::DocumentBound)
         ));
         let oversized = vec![item(&"a".repeat(MAX_DOCUMENT_BYTES + 1))];
         assert!(matches!(
-            prepare(oversized, [0, 1]),
+            prepare(oversized, Some([0, 1])),
             Err(FaceSceneError::DocumentBound)
         ));
     }

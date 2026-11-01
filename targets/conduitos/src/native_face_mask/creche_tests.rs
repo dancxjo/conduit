@@ -71,15 +71,38 @@ fn checked_creche_masks_admit_three_fields_and_present_both_column_counts() {
             };
             let mut pixels = Pixels::new(width, height);
             mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
-            assert_eq!(mask.component_fallback(), None);
+            // The checked root reserves 32px on each side at this scale.
+            // At 320×240, selected panel insets leave less than one complete
+            // row. Keep the origin-specific refusal and generic reader rather
+            // than silently discarding Look padding or changing checked Source.
+            assert_eq!(
+                mask.component_fallback(),
+                if width == 320 {
+                    Some("ConfiguredLayout(InvalidExtent)")
+                } else {
+                    None
+                }
+            );
             assert_eq!(mask.show().unwrap().show.face_id, face.identity);
             let pages = mask.scene().unwrap().pages();
             let mut second_column_control = false;
+            let expected_fields: alloc::collections::BTreeSet<_> = face
+                .subjects
+                .iter()
+                .filter(|subject| subject.role == FaceRole::TextEntry)
+                .map(|subject| subject.identity.clone())
+                .collect();
+            let mut visible_fields = alloc::collections::BTreeSet::new();
             for page in 0..pages {
                 let scene = mask.scene().unwrap();
                 assert_eq!(scene.face(), &face);
                 let frame = scene.frame().unwrap();
                 assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
+                for hit in &frame.hits {
+                    if expected_fields.contains(&hit.action.target) {
+                        visible_fields.insert(hit.action.target.clone());
+                    }
+                }
                 second_column_control |= frame
                     .hits
                     .iter()
@@ -94,6 +117,7 @@ fn checked_creche_masks_admit_three_fields_and_present_both_column_counts() {
                 assert!(matches!(result, NativeFaceMaskInput::Redrawn(_)));
             }
             assert_eq!(second_column_control, columns == 2);
+            assert_eq!(visible_fields, expected_fields);
         }
     }
 }
@@ -142,7 +166,10 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
                 "full inventory snapshot needs {encoded_bytes} bytes"
             );
             mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
-            assert_eq!(mask.component_fallback(), None);
+            assert_eq!(
+                mask.component_fallback(),
+                Some("ConfiguredLayout(InvalidExtent)")
+            );
             let mut words = alloc::string::String::new();
             let mut birth_hit = false;
             for page in 0..mask.scene().unwrap().pages() {
