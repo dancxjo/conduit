@@ -661,29 +661,30 @@ export class BrowserPlay {
  * compiles, discovers a CDN, or broadens its implementation selection.
  */
 export const Conduit = Object.freeze({
-  async browser({ root, bundleRoot = new URL("./bundle/", import.meta.url), profileId, durable = true, application } = {}) {
+  async browser({ root, bundleRoot = new URL("./bundle/", import.meta.url), profileId, durable = true, application, assetMap, reviewedRelease } = {}) {
     try {
       if (root !== undefined && !(root instanceof Element || root instanceof ShadowRoot)) {
         refuse("InvalidRoot", "A supplied Browser Host root must be an application-owned DOM element or shadow root");
       }
-      const base = sameOriginDirectory(bundleRoot);
-      const pkg = await readJson(new URL("browser-sdk-package.json", base), MAXIMUM_MANIFEST_BYTES, "SDK package manifest");
-      requirePackage(pkg, profileId);
-
-      const distributionBytes = await fetchAsset(base, "browser-page.json", MAXIMUM_MANIFEST_BYTES);
-      const bundleBytes = await fetchAsset(base, "browser-bundle-release.json", MAXIMUM_MANIFEST_BYTES);
-      const imageBytes = await fetchAsset(base, IMAGE_PATH, MAXIMUM_MANIFEST_BYTES);
-      const distribution = parseJson(distributionBytes, "reviewed browser distribution");
-      const bundle = parseJson(bundleBytes, "BrowserBundle release manifest");
-      const image = parseJson(imageBytes, "BrowserBundle IMAGE");
-      requireRelease(distribution, bundle, pkg, image);
-      if (!Array.isArray(distribution.files) || distribution.files.length > MAXIMUM_FILES
-        || JSON.stringify(distribution.files) !== JSON.stringify(image.files)
-        || await digestFiles(distribution.files) !== distribution.bundle_sha256) {
-        refuse("DistributionDigestMismatch", "reviewed BrowserBundle assets do not match the exact distribution manifest");
+      let pkg, distribution, bundle, image, imageBytes, payloads;
+      if (assetMap !== undefined) {
+        ({ pkg, distribution, bundle, image, imageBytes, payloads } =
+          await admitBrowserAssetMap(assetMap, reviewedRelease, profileId));
+      } else {
+        if (reviewedRelease !== undefined) refuse("AssetMapRequired", "Reviewed in-memory release requires its finite asset map");
+        const base = sameOriginDirectory(bundleRoot);
+        pkg = await readJson(new URL("browser-sdk-package.json", base), MAXIMUM_MANIFEST_BYTES, "SDK package manifest");
+        requirePackage(pkg, profileId);
+        const distributionBytes = await fetchAsset(base, "browser-page.json", MAXIMUM_MANIFEST_BYTES);
+        const bundleBytes = await fetchAsset(base, "browser-bundle-release.json", MAXIMUM_MANIFEST_BYTES);
+        imageBytes = await fetchAsset(base, IMAGE_PATH, MAXIMUM_MANIFEST_BYTES);
+        distribution = parseJson(distributionBytes, "reviewed browser distribution");
+        bundle = parseJson(bundleBytes, "BrowserBundle release manifest");
+        image = parseJson(imageBytes, "BrowserBundle IMAGE");
+        validateBrowserRelease(pkg, distribution, bundle, image, profileId);
+        payloads = await readBundlePayloads((path, maximum) => fetchAsset(base, path, maximum), bundle, image, imageBytes);
       }
-
-      const payloads = await readBundlePayloads(base, bundle, image, imageBytes);
+      if (await digestFiles(distribution.files) !== distribution.bundle_sha256) refuse("DistributionDigestMismatch", "Reviewed distribution inventory digest differs");
       const runtimeBytes = requiredAsset(payloads, "runtime.wasm", MAXIMUM_RUNTIME_BYTES);
       const bootBytes = requiredAsset(payloads, "browser-boot-profile.mjs", MAXIMUM_MODULE_BYTES);
       const bootDigest = image.boot_module?.sha256;
@@ -754,6 +755,49 @@ export const Conduit = Object.freeze({
   },
 });
 
+// Policy is selected independently by the importing Workspace, never taken from
+// the untrusted archive. Copy before awaiting so caller mutation cannot change
+// the exact bytes admitted and subsequently executed.
+export async function admitBrowserAssetMap(assetMap, reviewedRelease, profileId) {
+  if (!(assetMap instanceof Map) || assetMap.size < 1 || assetMap.size > MAXIMUM_FILES
+    || !reviewedRelease) refuse("AssetMapInvalid", "A finite asset map and independently selected reviewed release are required");
+  const policyBytes = new TextEncoder().encode(JSON.stringify(reviewedRelease));
+  if (policyBytes.length > MAXIMUM_MANIFEST_BYTES * 3) refuse("ArtifactBound", "Reviewed release policy exceeds its finite bound");
+  const { package: pkg, distribution, release: bundle } = parseJson(policyBytes, "selected reviewed release");
+  const payloads = new Map();
+  let total = 0;
+  for (const [path, bytes] of assetMap) {
+    if (!safeRelativePath(path) || !(bytes instanceof Uint8Array) || bytes.length < 1
+      || bytes.length > (path === "runtime.wasm" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_MODULE_BYTES)) {
+      refuse("ArtifactBound", "Imported browser asset violates its finite bound");
+    }
+    total += bytes.length;
+    if (total > 48 * 1024 * 1024) refuse("ArtifactBound", "Imported browser asset map exceeds its finite bound");
+    payloads.set(path, bytes.slice());
+  }
+  const imageBytes = requiredAsset(payloads, IMAGE_PATH, MAXIMUM_MANIFEST_BYTES);
+  const image = parseJson(imageBytes, "BrowserBundle IMAGE");
+  validateBrowserRelease(pkg, distribution, bundle, image, profileId);
+  if (!Array.isArray(bundle.files) || payloads.size !== bundle.files.length
+    || bundle.files.some(file => !payloads.has(file.path))) {
+    refuse("UnexpectedAsset", "Imported assets must be the exact reviewed release closure");
+  }
+  if (await digestFiles(distribution.files) !== distribution.bundle_sha256) refuse("DistributionDigestMismatch", "Reviewed distribution inventory digest differs");
+  const checked = await readBundlePayloads(async path => payloads.get(path), bundle, image, imageBytes);
+  return { pkg, distribution, bundle, image, imageBytes, payloads: checked };
+}
+
+function validateBrowserRelease(pkg, distribution, bundle, image, profileId) {
+  requirePackage(pkg, profileId);
+  requireRelease(distribution, bundle, pkg, image);
+  // The ordered inventory digest is checked asynchronously in readBundlePayloads;
+  // requireRelease binds it to the independently selected reviewed distribution.
+  if (!Array.isArray(distribution.files) || distribution.files.length > MAXIMUM_FILES
+    || JSON.stringify(distribution.files) !== JSON.stringify(image.files)) {
+    refuse("DistributionDigestMismatch", "BrowserBundle assets differ from the reviewed distribution");
+  }
+}
+
 function requirePackage(pkg, requestedProfileId) {
   if (pkg?.schema !== PACKAGE_SCHEMA || pkg.runtime_abi !== "conduit.browser/runtime-abi@1"
     || pkg.package_id !== "@conduit/browser" || pkg.package_version !== "0.1.0"
@@ -790,7 +834,7 @@ function requireRelease(distribution, bundle, pkg, image) {
   }
 }
 
-async function readBundlePayloads(base, bundle, image, imageBytes) {
+async function readBundlePayloads(readAsset, bundle, image, imageBytes) {
   let total = 0;
   const declared = new Map(bundle.files.map((file) => [file.path, file]));
   if (declared.size !== bundle.files.length || !declared.has(IMAGE_PATH)) {
@@ -811,7 +855,7 @@ async function readBundlePayloads(base, bundle, image, imageBytes) {
     if (!safeRelativePath(file.path) || !Number.isSafeInteger(file.bytes) || file.bytes < 1
       || file.bytes > (file.path === "runtime.wasm" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_MODULE_BYTES)
       || !digest(file.sha256)) refuse("ArtifactBound", `BrowserBundle asset ${file.path} exceeds its declared finite bound`);
-    const bytes = file.path === IMAGE_PATH ? imageBytes : await fetchAsset(base, file.path, file.bytes);
+    const bytes = file.path === IMAGE_PATH ? imageBytes : await readAsset(file.path, file.bytes);
     if (bytes.byteLength !== file.bytes || await sha256(bytes) !== file.sha256) {
       refuse("ArtifactDigestMismatch", `BrowserBundle asset ${file.path} does not match its admitted identity`);
     }
