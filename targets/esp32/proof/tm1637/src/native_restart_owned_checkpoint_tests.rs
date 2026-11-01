@@ -95,23 +95,48 @@ fn owned_checkpoint_withholds_output_preserves_identity_and_fences_failure() {
     let wait = gate.begin_wait(0, 1000).unwrap();
     let permit = wait.try_flash(0, 1000).unwrap();
     let mut access = Access { fail: false };
+    drop(permit);
+    struct Scheduled(Box<Job<u64>>);
+    impl crate::native_flash_jobs::Job for Scheduled {
+        fn step(&self) -> u32 {
+            self.0.step()
+        }
+    }
+    let mut mailbox = crate::native_flash_jobs::Mailbox::<Scheduled, (), &'static str>::new();
+    let (mut submitter, mut executor) = mailbox.split().unwrap();
     let mut last = job.step();
     loop {
-        match job.phase() {
-            Phase::Prepare => job.prepare(&permit).unwrap(),
-            Phase::Chunk => job.prepare_chunk(&permit).unwrap(),
-            Phase::Physical(_) => job.advance(&mut access).unwrap(),
-            Phase::Finish => job.finish_source(&permit).unwrap(),
-            other => panic!("unexpected phase {other:?}"),
-        }
+        // 1000ms is CPU fixture input, not qualified preparation timing.
+        let id = submitter.submit(Scheduled(job), 1000).ok().unwrap();
+        executor
+            .execute(&wait, 0, |scheduled, permit| {
+                let job = &mut scheduled.0;
+                match job.phase() {
+                    Phase::Prepare => job.prepare(permit),
+                    Phase::Chunk => job.prepare_chunk(permit),
+                    Phase::Physical(_) => job.advance(&mut access),
+                    Phase::Finish => job.finish_source(permit),
+                    _ => Err("test-unexpected-phase"),
+                }
+            })
+            .unwrap();
+        let completed = submitter.take(id).unwrap();
+        assert!(completed.result.is_ok());
+        assert_eq!(
+            completed.progress,
+            crate::native_flash_jobs::Progress::AdvancedOne
+        );
+        job = completed.owner.0;
         assert_eq!(job.step(), last + 1);
         last = job.step();
+        assert_eq!(job.owner() as *const _, identity);
         if job.phase() == Phase::Complete {
-            assert!(job.finish_source(&permit).is_err());
-            assert_eq!(job.step(), last);
             break;
         }
     }
+    let permit = wait.try_flash(0, 1000).unwrap();
+    assert!(job.finish_source(&permit).is_err());
+    assert_eq!(job.step(), last);
     assert!(take_store().is_err());
     let (owner, value) = job.adopt().ok().unwrap();
     assert_eq!(value, 73);
