@@ -184,3 +184,24 @@ fn staged_source_checkpoint_preparation_preserves_all_bytes_and_stable_identity(
         false
     );
 }
+
+#[test]
+fn staged_source_checkpoint_refusal_preserves_original_custody() {
+    let mut selected = selection().as_ref().clone();
+    selected.configuration_id = "x".repeat(257);
+    let selected = Arc::new(selected);
+    let mut stage = SourceRecordingStage::prepare(body_id(1), selected.clone()).unwrap();
+    let original = fore(&selected, 0, 1, 5);
+    stage.accept(&original).unwrap();
+    assert!(stage
+        .prepare_checkpoint_input()
+        .unwrap_err()
+        .contains("Scope"));
+    assert_eq!(stage.len(), 1);
+    assert!(stage.prepared.is_none());
+    assert_eq!(
+        stage.observations().next().unwrap().canonical(),
+        &original.bytes[..original.length]
+    );
+    assert!(stage.prepared_input_metadata().unwrap().is_none());
+}
