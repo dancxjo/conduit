@@ -1,4 +1,4 @@
-//! Recovered CPU cases; original domain worker cases retain separate admission/proof gates.
+//! Recovered immediate and worker CPU cases; physical capture retains its own proof gate.
 //! CPU-only installed environmental Source journey. This is not USB, Body
 //! admission, durable recording, or physical sensor acceptance.
 #![cfg(feature = "installed-source-cpu")]
@@ -492,3 +492,6 @@ fn the_same_installed_source_contract_preserves_dht_unsupported_pressure() {
         ReadingField::Unsupported
     );
 }
+
+#[path = "installed_environment_source/worker_tests.rs"]
+mod worker_tests;

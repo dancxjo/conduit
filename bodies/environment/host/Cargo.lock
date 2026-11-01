@@ -468,6 +468,7 @@ dependencies = [
  "conduit-protected-line",
  "conduit-seven-segment-mask",
  "conduit-std-host",
+ "conduit-time",
  "conduit-web",
  "conduit-wire",
  "ed25519-dalek",

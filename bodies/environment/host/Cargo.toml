@@ -37,6 +37,7 @@ sha2 = { version = "0.10", default-features = false }
 libc = "0.2"
 
 [dev-dependencies]
+conduit-time = { path = "../../../semantics/time" }
 conduit-host-rp2040 = { path = "../../../targets/rp2040/make" }
 conduit-std-host = { path = "../../../targets/std" }
 conduit-environment-runtime = { path = "../runtime", features = ["history-exchange"] }

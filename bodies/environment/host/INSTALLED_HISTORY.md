@@ -54,12 +54,16 @@ protected Line, bounded transport work and the durable collector. Transport
 acceptance and delivery never authorize durable-custody ACK or evidence erasure.
 
 For the related typed environmental immediate Source, run
-`cargo xtask prove environment source-installed-cpu`. Its six recovered CPU
+`cargo xtask prove environment source-installed-cpu`. Its nine recovered CPU
 cases retain the exact 124-byte committed observation, independent admission
 refusals, pre-read cancellation, repeated failed/oversized-result retirement,
 and DHT unsupported-pressure semantics. The explicit installed-source-cpu proof feature selects the environmental
 runtime contract; the CPU fixture uses its own immediate provider, without
 claiming the separate carrier adapters. The current catalogue registers the
 observation type, so the historical fixture's duplicate registration is omitted.
-The original domain worker module is separate and remains to be recovered
-against the admitted worker foundation; these CPU cases do not prove it.
+The separate original worker module now runs against the accepted worker
+foundation. Three additional CPU cases prove actual timed Back progress while
+pending, backing continuity across child Plays and context refresh, late-value
+suppression and stubborn cancellation custody, and insufficient-backing refusal
+before worker startup. This cooperative Linux proof uses CPU fixtures; physical
+capture and whole-process containment still require separate evidence.
