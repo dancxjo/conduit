@@ -2,7 +2,7 @@
 use super::*;
 
 pub(super) fn push_semantic_contract(
-    canonical: &mut Vec<u8>,
+    canonical: &mut impl crate::canonical_bytes::CanonicalSink,
     contract: &crate::KindSemanticContract,
 ) {
     use crate::{KindConfigurationRule as Rule, KindSemanticLaw as Law};

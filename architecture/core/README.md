@@ -28,6 +28,7 @@ depends on semantic, application, target, or proof packages.
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
+| `canonical_bytes.rs` | universal architecture | Shared canonical byte sink for stored encodings and streaming fingerprints, preserving exact field order and identity bytes. |
 | `plan_fingerprint.rs` and children | universal architecture | Canonical fragment and plan commitment encoding; incremental fragment hashing preserves immutable realization identity. |
 | `fore_ports.rs` | universal architecture | Exact external Fore verification, separately accounted typed terminal exports, and admitted Line binding checks. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
