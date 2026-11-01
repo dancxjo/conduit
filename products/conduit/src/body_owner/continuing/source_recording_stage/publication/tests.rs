@@ -15,6 +15,24 @@ pub(crate) fn fixture() -> (
     Owner,
     c::AuthorityGrant,
 ) {
+    fixture_records(false)
+}
+pub(crate) fn fixture_sixteen() -> (
+    std::path::PathBuf,
+    std::path::PathBuf,
+    Owner,
+    c::AuthorityGrant,
+) {
+    fixture_records(true)
+}
+fn fixture_records(
+    sixteen: bool,
+) -> (
+    std::path::PathBuf,
+    std::path::PathBuf,
+    Owner,
+    c::AuthorityGrant,
+) {
     let root = std::env::temp_dir().join(installed::fresh_identity("source-publication", "owner"));
     std::fs::create_dir_all(&root).unwrap();
     let disk = root.join("selected-storage");
@@ -32,7 +50,7 @@ pub(crate) fn fixture() -> (
             &disk,
             "test/publication",
             BodyStorageBounds {
-                maximum_snapshot_records: 2,
+                maximum_snapshot_records: if sixteen { 16 } else { 2 },
                 maximum_record_bytes: 4096,
                 generation_slots: 1,
                 publication_slots: 1,
@@ -65,7 +83,11 @@ pub(crate) fn fixture() -> (
     owner.persist(&root).unwrap();
     std::fs::write(root.join("body/source.conduit"), text).unwrap();
     let selected = Arc::new(SourceSelection {
-        attachment_id: "green".into(),
+        attachment_id: if sixteen {
+            "g".repeat(256)
+        } else {
+            "green".into()
+        },
         host_id: "host/publication".into(),
         boot_id: "boot/publication".into(),
         capability_id: "cap/source".into(),
@@ -84,30 +106,41 @@ pub(crate) fn fixture() -> (
             .unwrap();
     let contract = ObservationContract::prepare().unwrap();
     let mut codec = PreparedObservationCodec::prepare(&contract).unwrap();
-    let value = codec
-        .encode(SourceObservation {
-            observed_at_host_boot_ms: 10,
-            outcome: SourceOutcome::Unavailable(SourceFailure::CaptureTimeout),
-        })
-        .unwrap();
-    let mut bytes = [0; MAXIMUM_BYTES];
-    bytes[..value.len()].copy_from_slice(value);
-    stage
-        .accept(&LiveFore {
-            scope: Arc::new(CompletedScope {
-                native_play: c::bind_active_play(
-                    &selected.plan_id,
-                    &selected.host_id,
-                    &selected.boot_id,
-                    1,
-                ),
-                selection: selected,
-            }),
-            sequence: 0,
-            length: value.len(),
-            bytes,
-        })
-        .unwrap();
+    for sequence in 0..if sixteen { 16 } else { 1 } {
+        let outcome = if sixteen {
+            SourceOutcome::Available(conduit_environment_measurement::source_observation::SourceSample {
+                reading: conduit_environment_measurement::EnvironmentalReading::centi_celsius_centi_pascal(2422, 10_134_081, Some(46535)).unwrap(),
+                source_counter: sequence + 1,
+                reported_source_ms: Some(825388 + sequence),
+            })
+        } else {
+            SourceOutcome::Unavailable(SourceFailure::CaptureTimeout)
+        };
+        let value = codec
+            .encode(SourceObservation {
+                observed_at_host_boot_ms: 10 + sequence,
+                outcome,
+            })
+            .unwrap();
+        let mut bytes = [0; MAXIMUM_BYTES];
+        bytes[..value.len()].copy_from_slice(value);
+        stage
+            .accept(&LiveFore {
+                scope: Arc::new(CompletedScope {
+                    native_play: c::bind_active_play(
+                        &selected.plan_id,
+                        &selected.host_id,
+                        &selected.boot_id,
+                        1,
+                    ),
+                    selection: selected.clone(),
+                }),
+                sequence,
+                length: value.len(),
+                bytes,
+            })
+            .unwrap();
+    }
     stage.prepare_checkpoint_input().unwrap();
     let reference = stage.prepared.as_ref().unwrap().reference.clone();
     owner.source_recording_stage = Some(stage);

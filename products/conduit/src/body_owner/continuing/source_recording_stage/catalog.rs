@@ -37,15 +37,13 @@ impl Owner {
         if stage.body_id != self.session.evidence().body_id {
             return Err("Source catalog belongs to another Body".into());
         }
-        let verified = stage
-            .verified_reference()
-            .ok_or("Source catalog requires actual matching admitted readback")?;
+        let verified = stage.verified_catalog_references()?;
         let storage = self
             .host
             .selected_body_storage()
             .ok_or("Source catalog has no selected directory")?;
         let catalog = conduit_environment_runtime::recording::PreparedRecordingCatalog::prepare(
-            std::slice::from_ref(verified),
+            &verified,
             storage.bounds().maximum_snapshot_records as usize,
             storage.bounds().total_disk_bytes,
         )

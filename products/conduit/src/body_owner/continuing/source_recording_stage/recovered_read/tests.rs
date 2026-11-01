@@ -1,4 +1,6 @@
-use super::super::publication::tests::{finish_worker, fixture, independent_read_grant};
+use super::super::publication::tests::{
+    finish_worker, fixture, fixture_sixteen, independent_read_grant,
+};
 use super::*;
 use crate::durable_host as installed;
 use conduit_std_host::{StdHost, StdHostConfig};
@@ -44,7 +46,7 @@ fn authorize_read(owner: &mut Owner, reference: c::BoundedResourceRef) -> c::Aut
 fn retain_selection(root: &Path, disk: &Path) {
     let source=include_str!("../../../../../../../targets/std/profiles/linux-computer.host.conduit").replace(
         r#"base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}"#,
-        &format!(r#"base = {{kind: "storage/protected-file", implementation: "linux/body-storage-directory@1", initialization: {{root_directory: {:?}, pool_namespace: "test/publication", maximum_snapshot_records: 2, maximum_record_bytes: 4096, generation_slots: 1, publication_slots: 1, reader_leases: 1, state_slots: 1, maximum_state_bytes: 4096, total_disk_bytes: 131072, preparation_bytes: 1048576}}}}"#,disk.to_str().unwrap()));
+        &format!(r#"base = {{kind: "storage/protected-file", implementation: "linux/body-storage-directory@1", initialization: {{root_directory: {:?}, pool_namespace: "test/publication", maximum_snapshot_records: 16, maximum_record_bytes: 4096, generation_slots: 1, publication_slots: 1, reader_leases: 1, state_slots: 1, maximum_state_bytes: 1024, total_disk_bytes: 131072, preparation_bytes: 1048576}}}}"#,disk.to_str().unwrap()));
     let path = root.join("recovered-read.host.conduit");
     std::fs::write(&path, source).unwrap();
     installed::selected_host_configuration::configure(root, Some(&path), false).unwrap();
@@ -113,37 +115,38 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
         assert!(!catalog_evidence.is_null());
         let contents = owner.recovered_source_catalog_contents.as_ref().unwrap();
         assert_eq!(contents.catalog_reference(), &reference);
-        assert_eq!(contents.references().len(), 1);
-        let chunk_reference = contents.references()[0].clone();
+        let references = contents.references().to_vec();
+        assert_eq!(references.len(), 2);
         assert!(owner
-            .prepare_recovered_source_read(&root, &grant, Some(1), 1024 * 1024)
-            .err()
-            .unwrap()
-            .contains("index exceeds"));
-        let grant = authorize_read(&mut owner, chunk_reference.clone());
-        let worker = owner
-            .start_service_recovered_source_read(&root, 5000, &grant, Some(0), 1024 * 1024)
-            .unwrap();
-        finish_worker(&root, &mut owner, worker);
-        let receipt = owner.last_execution.as_ref().unwrap();
-        assert_eq!(receipt["source_recovered_read"]["read_completed"], true);
-        assert_eq!(
-            receipt["source_recovered_read"]["producer_retirement_authorized"],
-            false
-        );
-        let chunk = owner.recovered_source_chunk.as_ref().unwrap();
-        assert_eq!(chunk.index(), 0);
-        assert_eq!(chunk.reference(), &chunk_reference);
+            .prepare_recovered_source_read(&root, &grant, Some(2), 1024 * 1024)
+            .is_err());
+        let mut chunks = Vec::new();
+        for (index, chunk_reference) in references.iter().enumerate() {
+            let grant = authorize_read(&mut owner, chunk_reference.clone());
+            let worker = owner
+                .start_service_recovered_source_read(&root, 5000, &grant, Some(index), 1024 * 1024)
+                .unwrap();
+            finish_worker(&root, &mut owner, worker);
+            let receipt = owner.last_execution.as_ref().unwrap();
+            assert_eq!(receipt["source_recovered_read"]["read_completed"], true);
+            assert_eq!(
+                receipt["source_recovered_read"]["producer_retirement_authorized"],
+                false
+            );
+            let chunk = owner.recovered_source_chunk.as_ref().unwrap();
+            assert_eq!(chunk.index(), index);
+            assert_eq!(chunk.reference(), chunk_reference);
+            assert_ne!(chunk.snapshot().context().boot_id.as_str(), boot);
+            let evidence = receipt["source_recovered_read"]["content_evidence"].clone();
+            assert!(!evidence.is_null());
+            chunks.push(serde_json::json!({"reference":chunk_reference.encode().unwrap(), "content":chunk.snapshot().content().unwrap(), "evidence":evidence}));
+        }
         assert!(owner
             .recovered_source_catalog_contents
             .as_ref()
             .unwrap()
             .all_chunks_verified());
-        assert_ne!(chunk.snapshot().context().boot_id.as_str(), boot);
-        let canonical = chunk.snapshot().content().unwrap();
-        let chunk_evidence = receipt["source_recovered_read"]["content_evidence"].clone();
-        assert!(!chunk_evidence.is_null());
-        installed::write_json_atomic(&root.join("fresh-source-read-result.json"),&serde_json::json!({"catalog":reference.encode().unwrap(),"chunk":chunk_reference.encode().unwrap(),"content":canonical,"body":owner.session.evidence().body_id,"boot":boot,"stage_absent":owner.source_recording_stage.is_none(),"catalog_evidence":catalog_evidence,"chunk_evidence":chunk_evidence})).unwrap();
+        installed::write_json_atomic(&root.join("fresh-source-read-result.json"),&serde_json::json!({"catalog":reference.encode().unwrap(),"chunks":chunks,"body":owner.session.evidence().body_id,"boot":boot,"stage_absent":owner.source_recording_stage.is_none(),"catalog_evidence":catalog_evidence})).unwrap();
         drop(owner);
         // Genuine fixture corruption of selected snapshot records, after the
         // successful admitted comparison. State journal directories stay intact.
@@ -158,7 +161,7 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
                 corrupted += 1;
             }
         }
-        assert_eq!(corrupted, 2);
+        assert_eq!(corrupted, 3);
         let (mut failed, _) = reopen(&root);
         let worker = failed
             .start_service_source_catalog_recovery(&root, 5000, 1024 * 1024)
@@ -188,24 +191,48 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
         assert!(failed.source_recording_stage.is_none());
         return;
     }
-    let (root, disk, mut owner, publish) = fixture();
+    let (root, disk, mut owner, publish) = fixture_sixteen();
     retain_selection(&root, &disk);
-    let stage = owner.source_recording_stage.as_ref().unwrap();
-    let original_evidence = stage.prepared_input_metadata().unwrap().unwrap();
-    let prepared = stage.prepared.as_ref().unwrap();
-    let expected_content = prepared.snapshot.content().unwrap().to_vec();
-    let expected_chunk = prepared.reference.encode().unwrap();
+    let original_slots: Vec<_> = owner
+        .source_recording_stage
+        .as_ref()
+        .unwrap()
+        .observations()
+        .map(|o| (o.sequence(), o.canonical().to_vec()))
+        .collect();
     let body = serde_json::to_value(&owner.session.evidence().body_id).unwrap();
     let boot = owner.host.advertisement().boot_id.as_str().to_owned();
-    let worker = owner
-        .start_service_source_publication(&root, 5000, &publish, 1024 * 1024)
-        .unwrap();
-    finish_worker(&root, &mut owner, worker);
-    let read = independent_read_grant(&mut owner);
-    let worker = owner
-        .start_service_source_readback(&root, 5000, &read, 1024 * 1024)
-        .unwrap();
-    finish_worker(&root, &mut owner, worker);
+    let mut expected = Vec::new();
+    for index in 0..2 {
+        let stage = owner.source_recording_stage.as_ref().unwrap();
+        let prepared = stage.prepared.as_ref().unwrap();
+        let digest = prepared.reference.identity.digest();
+        expected.push(serde_json::json!({"reference":prepared.reference.encode().unwrap(),"content":prepared.snapshot.content().unwrap(),"evidence":stage.prepared_input_metadata().unwrap().unwrap()}));
+        let worker = owner
+            .start_service_source_publication(&root, 5000, &publish, 1048576)
+            .unwrap();
+        finish_worker(&root, &mut owner, worker);
+        let read = independent_read_grant(&mut owner);
+        let worker = owner
+            .start_service_source_readback(&root, 5000, &read, 1048576)
+            .unwrap();
+        finish_worker(&root, &mut owner, worker);
+        if index == 0 {
+            owner
+                .prepare_next_source_recording_chunk(&root, 0, digest, 1048576)
+                .unwrap();
+        }
+    }
+    assert_eq!(
+        owner
+            .source_recording_stage
+            .as_ref()
+            .unwrap()
+            .observations()
+            .map(|o| (o.sequence(), o.canonical().to_vec()))
+            .collect::<Vec<_>>(),
+        original_slots
+    );
     let worker = owner
         .start_service_source_catalog(&root, 5000, &publish, 1024 * 1024)
         .unwrap();
@@ -218,7 +245,7 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
         .unwrap()
         .encode()
         .unwrap();
-    assert_eq!(owner.source_recording_stage.as_ref().unwrap().len(), 1);
+    assert_eq!(owner.source_recording_stage.as_ref().unwrap().len(), 16);
     drop(owner);
     let output = std::process::Command::new(std::env::current_exe().unwrap())
         .args(["--exact", TEST, "--nocapture"])
@@ -238,53 +265,43 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
         result["catalog"],
         serde_json::to_value(&expected_catalog).unwrap()
     );
-    assert_eq!(
-        result["chunk"],
-        serde_json::to_value(expected_chunk).unwrap()
-    );
-    assert_eq!(
-        result["content"],
-        serde_json::to_value(expected_content).unwrap()
-    );
-    for key in [
-        "canonical_sha256",
-        "canonical_bytes",
-        "records",
-        "source_scope",
-        "reference_hex",
-    ] {
+    assert_eq!(result["chunks"].as_array().unwrap().len(), 2);
+    let mut recovered_records = Vec::new();
+    for (index, expected) in expected.iter().enumerate() {
+        let actual = &result["chunks"][index];
+        assert_eq!(actual["reference"], expected["reference"]);
+        assert_eq!(actual["content"], expected["content"]);
+        for key in [
+            "canonical_sha256",
+            "canonical_bytes",
+            "records",
+            "source_scope",
+            "reference_hex",
+        ] {
+            assert_eq!(
+                actual["evidence"][key], expected["evidence"][key],
+                "{index}:{key}"
+            );
+        }
+        let bytes: Vec<u8> = serde_json::from_value(actual["content"].clone()).unwrap();
+        let snapshot = conduit_environment_runtime::source_recording::SourceRecordingSnapshot::decode_candidate(&bytes).unwrap();
+        for ordinal in 0..snapshot.len() {
+            let observation = snapshot.observation(ordinal).unwrap();
+            recovered_records.push((observation.0 - 1, observation.1));
+        }
+        assert_eq!(actual["evidence"]["index"], index);
         assert_eq!(
-            result["chunk_evidence"][key], original_evidence[key],
-            "{key}"
+            result["catalog_evidence"]["indexed_chunks"][index]["reference_hex"],
+            expected["evidence"]["reference_hex"]
         );
     }
-    let catalog_hex: String = expected_catalog
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect();
-    assert_eq!(
-        result["catalog_evidence"]["catalog_reference_hex"],
-        catalog_hex
-    );
-    assert_eq!(
-        result["chunk_evidence"]["catalog_reference_hex"],
-        catalog_hex
-    );
-    assert_eq!(result["chunk_evidence"]["index"], 0);
+    assert_eq!(recovered_records, original_slots);
     assert_eq!(
         result["catalog_evidence"]["indexed_chunks"]
             .as_array()
             .unwrap()
             .len(),
-        1
-    );
-    assert_eq!(
-        result["catalog_evidence"]["indexed_chunks"][0]["reference_hex"],
-        original_evidence["reference_hex"]
-    );
-    assert_eq!(
-        result["catalog_evidence"]["indexed_chunks"][0]["canonical_sha256"],
-        original_evidence["canonical_sha256"]
+        2
     );
     assert_eq!(result["body"], body);
     assert_ne!(result["boot"], boot);

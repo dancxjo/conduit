@@ -43,7 +43,11 @@ pub(in super::super) struct SourceRecordingStage {
     length: usize,
     prepared: Option<checkpoint::PreparedSourceChunk>,
     verified: Option<super::recording_run::VerifiedSourceSnapshot>,
+    frozen_length: Option<usize>,
+    archived: Vec<advance::VerifiedChunk>,
 }
+#[path = "source_recording_stage/advance.rs"]
+pub(crate) mod advance;
 #[path = "source_recording_stage/catalog.rs"]
 pub(crate) mod catalog;
 #[path = "source_recording_stage/checkpoint.rs"]
@@ -68,6 +72,8 @@ impl SourceRecordingStage {
             length: 0,
             prepared: None,
             verified: None,
+            frozen_length: None,
+            archived: Vec::with_capacity(CAPACITY),
         })
     }
     pub(in super::super) fn verified_reference(&self) -> Option<&conduit_core::BoundedResourceRef> {
@@ -165,6 +171,9 @@ impl SourceRecordingStage {
             } else {
                 Err(Refusal::Conflict)
             };
+        }
+        if self.frozen_length.is_some() {
+            return Err(Refusal::Capacity);
         }
         if fore.sequence != self.length as u64 {
             return Err(Refusal::Sequence);
