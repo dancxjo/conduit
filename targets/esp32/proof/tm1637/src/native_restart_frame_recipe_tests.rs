@@ -81,6 +81,11 @@ fn frozen_recipe_matches_shared_encoder_and_refuses_short_budgets() {
         rebuilt.extend_from_slice(parts[2]);
         assert_eq!(rebuilt, expected);
         assert_eq!(recipe.changed_lengths(), dimensions);
+        assert!(recipe
+            .retained_capacities()
+            .into_iter()
+            .zip(dimensions)
+            .all(|(capacity, used)| capacity >= used));
         assert_eq!(recipe.source_range(), Some(reuse.encoded));
         assert_eq!(actual_metadata.1, metadata.1);
         assert_eq!(actual_metadata.2, metadata.2);

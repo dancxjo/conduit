@@ -143,6 +143,13 @@ impl Recipe {
     pub(crate) fn changed_lengths(&self) -> [usize; 3] {
         [self.prefix.len(), self.append.len(), self.suffix.len()]
     }
+    pub(crate) fn retained_capacities(&self) -> [usize; 3] {
+        [
+            self.prefix.capacity(),
+            self.append.capacity(),
+            self.suffix.capacity(),
+        ]
+    }
     pub(crate) fn source_range(&self) -> Option<archive::Span> {
         self.source
     }
