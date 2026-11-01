@@ -6,6 +6,9 @@ mod body;
 #[cfg(feature = "checkpoint-preparation-check")]
 #[path = "native_checkpoint_preparation_check.rs"]
 mod checkpoint_preparation_check;
+#[cfg(feature = "membership-preparation-check")]
+#[path = "native_cold_membership.rs"]
+pub(crate) mod cold_membership;
 #[cfg(feature = "display-physical-check")]
 #[path = "native_display_check.rs"]
 mod display_check;

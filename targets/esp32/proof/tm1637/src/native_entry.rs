@@ -140,6 +140,10 @@ async fn main(spawner: Spawner) {
         root.install_linked_body().expect("linked body biography");
         #[cfg(feature = "checkpoint-preparation-check")]
         root.measure_checkpoint_preparation();
+        #[cfg(feature = "membership-preparation-check")]
+        root.qualify_cold_membership(&mut invitation_uart, flash_timing)
+            .await
+            .expect("attended cold membership qualification");
         root.start_preparation_service(spawner)
             .await
             .expect("Root preparation service must start");

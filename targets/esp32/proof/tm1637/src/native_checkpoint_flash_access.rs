@@ -27,30 +27,42 @@ pub(crate) fn budget_ms(_reviewed: measurement::ReviewedTiming, operation: Opera
         Operation::ReadbackChunk => 100,
     }
 }
+fn erase_body_sector(storage: &mut BodyRegion, bank: u8, sector: u8) -> Result<(), E> {
+    if bank > 1 || sector > 7 {
+        return Err(E::Geometry);
+    }
+    let relative = u32::from(bank) * 0x8000 + u32::from(sector) * 4096;
+    let start = storage.0.bound(relative, 4096).map_err(|_| E::Geometry)?;
+    storage.0.base.lock(|base| {
+        NorFlash::erase(&mut *base.borrow_mut(), start, start + 4096).map_err(|_| E::Storage)
+    })
+}
+fn program_body(storage: &mut BodyRegion, at: u32, bytes: &[u8]) -> Result<(), E> {
+    if bytes.is_empty() || bytes.len() > 128 {
+        return Err(E::Geometry);
+    }
+    storage.program(at, bytes).map_err(|_| E::Storage)
+}
+fn read_body(storage: &mut BodyRegion, at: u32, out: &mut [u8]) -> Result<(), E> {
+    if out.is_empty() || out.len() > 160 {
+        return Err(E::Geometry);
+    }
+    storage.read(at, out).map_err(|_| E::Storage)
+}
 impl SectorStorage<BodyRegion> for Access<'_, '_, '_> {
     fn erase_sector(&mut self, storage: &mut BodyRegion, bank: u8, sector: u8) -> Result<(), E> {
-        if bank > 1 || sector > 7 {
-            return Err(E::Geometry);
-        }
-        let relative = u32::from(bank) * 0x8000 + u32::from(sector) * 4096;
-        let start = storage.0.bound(relative, 4096).map_err(|_| E::Geometry)?;
-        storage.0.base.lock(|base| {
-            NorFlash::erase(&mut *base.borrow_mut(), start, start + 4096).map_err(|_| E::Storage)
-        })
+        erase_body_sector(storage, bank, sector)
     }
     fn program(&mut self, storage: &mut BodyRegion, at: u32, bytes: &[u8]) -> Result<(), E> {
-        if bytes.is_empty() || bytes.len() > 128 {
-            return Err(E::Geometry);
-        }
-        storage.program(at, bytes).map_err(|_| E::Storage)
+        program_body(storage, at, bytes)
     }
     fn read(&mut self, storage: &mut BodyRegion, at: u32, out: &mut [u8]) -> Result<(), E> {
-        if out.is_empty() || out.len() > 160 {
-            return Err(E::Geometry);
-        }
-        storage.read(at, out).map_err(|_| E::Storage)
+        read_body(storage, at, out)
     }
 }
+#[cfg(feature = "membership-preparation-check")]
+#[path = "native_cold_checkpoint_access.rs"]
+pub(crate) mod cold;
 
 impl crate::native_restart::network_pending_job::live::Access for Access<'_, '_, '_> {
     fn erase_network(

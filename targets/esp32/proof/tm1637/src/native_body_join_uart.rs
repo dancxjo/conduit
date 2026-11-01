@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use embassy_time::{with_timeout, Duration, Instant};
 use esp_hal::uart::Uart;
 const MAX_COMMAND: usize = 1024;
-struct Reply(Vec<u8>);
+pub(crate) struct Reply(pub(crate) Vec<u8>);
 impl Drop for Reply {
     fn drop(&mut self) {
         self.0.fill(0);
@@ -79,12 +79,34 @@ impl Bootstrap {
         }
         Ok(())
     }
+    #[cfg(feature = "membership-preparation-check")]
+    pub(crate) fn cold_reply(
+        &mut self,
+        root: &mut NativeRoot,
+        command: Vec<u8>,
+        minted: impl FnMut(&crate::native_body_join::PrivateBodyInvitation),
+    ) -> Result<Reply, &'static str> {
+        if command.len() > MAX_COMMAND {
+            return Err("body-join-request-capacity");
+        }
+        self.command = command;
+        let result = self.prepare_reply_with(root, minted);
+        self.clear();
+        result
+    }
     fn clear(&mut self) {
         self.command.fill(0);
         self.command = Vec::new();
     }
     #[inline(never)]
     fn prepare_reply(&mut self, root: &mut NativeRoot) -> Result<Reply, &'static str> {
+        self.prepare_reply_with(root, |_| {})
+    }
+    fn prepare_reply_with(
+        &mut self,
+        root: &mut NativeRoot,
+        mut minted: impl FnMut(&crate::native_body_join::PrivateBodyInvitation),
+    ) -> Result<Reply, &'static str> {
         let now = Instant::now().as_millis();
         let (host, boot, body, key) = root.body_join_scope()?;
         if self.command == b"JOIN?" {
@@ -141,6 +163,7 @@ impl Bootstrap {
         secret.fill(0);
         nonce.fill(0);
         let mut bootstrap = result?;
+        minted(&bootstrap);
         let result = encode_json(&bootstrap);
         bootstrap.invitation.secret.fill(0);
         result
@@ -153,7 +176,7 @@ pub(crate) fn entropy(bytes: &mut [u8]) -> Result<(), &'static str> {
     Ok(())
 }
 #[inline(never)]
-fn encode_json(value: &impl serde::Serialize) -> Result<Reply, &'static str> {
+pub(crate) fn encode_json(value: &impl serde::Serialize) -> Result<Reply, &'static str> {
     let mut reply = Reply(Vec::new());
     reply
         .0
@@ -166,7 +189,10 @@ fn encode_json(value: &impl serde::Serialize) -> Result<Reply, &'static str> {
     Ok(reply)
 }
 
-async fn write(uart: &mut Uart<'_, esp_hal::Async>, mut bytes: &[u8]) -> Result<(), &'static str> {
+pub(crate) async fn write(
+    uart: &mut Uart<'_, esp_hal::Async>,
+    mut bytes: &[u8],
+) -> Result<(), &'static str> {
     with_timeout(Duration::from_secs(2), async {
         while !bytes.is_empty() {
             let n = uart

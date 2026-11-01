@@ -123,6 +123,23 @@ impl Job {
         storage: &mut impl SectorStorage<BodyRegion>,
         now_millis: u64,
     ) -> Result<(), &'static str> {
+        self.advance_scoped(Scope::Quiet(permit), storage, now_millis)
+    }
+    #[cfg(feature = "membership-preparation-check")]
+    pub(crate) fn advance_cold(
+        &mut self,
+        scope: &crate::native_root::cold_membership::ColdOwnership<'_>,
+        storage: &mut impl SectorStorage<BodyRegion>,
+        now_millis: u64,
+    ) -> Result<(), &'static str> {
+        self.advance_scoped(Scope::Cold(scope), storage, now_millis)
+    }
+    fn advance_scoped(
+        &mut self,
+        scope: Scope<'_, '_, '_>,
+        storage: &mut impl SectorStorage<BodyRegion>,
+        now_millis: u64,
+    ) -> Result<(), &'static str> {
         let next = self.step.checked_add(1).ok_or("membership-job-step")?;
         if matches!(&self.state, State::Start(_)) {
             let State::Start(start) = core::mem::replace(&mut self.state, State::Moving) else {
@@ -158,11 +175,11 @@ impl Job {
         };
         use crate::native_restart::owned_checkpoint::Phase as P;
         let result = match job.phase() {
-            P::Prepare => job.prepare(permit),
-            P::Capture => job.capture(permit),
-            P::FrozenChunk | P::ReplayChunk => job.prepare_chunk(permit),
+            P::Prepare => scope.prepare(job),
+            P::Capture => scope.capture(job),
+            P::FrozenChunk | P::ReplayChunk => scope.prepare_chunk(job),
             P::Physical(_) => job.advance(storage),
-            P::Finish => job.finish_source(permit),
+            P::Finish => scope.finish_source(job),
             _ => return Err("membership-job-phase"),
         };
         // An attempted owned phase is never resubmitted with an old ordinal,
@@ -226,5 +243,48 @@ impl Job {
             unreachable!()
         };
         Ok((owner, reason))
+    }
+}
+
+// Constructors require actual scheduler or actual exclusive cold ownership.
+enum Scope<'a, 'b, 'c> {
+    Quiet(&'a FlashPermit<'b, 'c>),
+    #[cfg(feature = "membership-preparation-check")]
+    Cold(&'a crate::native_root::cold_membership::ColdOwnership<'b>),
+}
+impl Scope<'_, '_, '_> {
+    fn prepare(&self, job: &mut PendingCheckpoint) -> Result<(), &'static str> {
+        match self {
+            Self::Quiet(permit) => job.prepare(permit),
+            #[cfg(feature = "membership-preparation-check")]
+            Self::Cold(scope) => job.prepare_cold(scope),
+        }
+    }
+}
+impl Scope<'_, '_, '_> {
+    fn capture(&self, job: &mut PendingCheckpoint) -> Result<(), &'static str> {
+        match self {
+            Self::Quiet(permit) => job.capture(permit),
+            #[cfg(feature = "membership-preparation-check")]
+            Self::Cold(scope) => job.capture_cold(scope),
+        }
+    }
+}
+impl Scope<'_, '_, '_> {
+    fn prepare_chunk(&self, job: &mut PendingCheckpoint) -> Result<(), &'static str> {
+        match self {
+            Self::Quiet(permit) => job.prepare_chunk(permit),
+            #[cfg(feature = "membership-preparation-check")]
+            Self::Cold(scope) => job.prepare_chunk_cold(scope),
+        }
+    }
+}
+impl Scope<'_, '_, '_> {
+    fn finish_source(&self, job: &mut PendingCheckpoint) -> Result<(), &'static str> {
+        match self {
+            Self::Quiet(permit) => job.finish_source(permit),
+            #[cfg(feature = "membership-preparation-check")]
+            Self::Cold(scope) => job.finish_source_cold(scope),
+        }
     }
 }
