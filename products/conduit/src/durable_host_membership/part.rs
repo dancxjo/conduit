@@ -1,0 +1,249 @@
+//! Private custody of an already admitted native Part; never owner authority.
+use super::*;
+use conduit_body::SpawnInvitationSecret;
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+
+const SCHEMA: &str = "conduit.native/part-custody@1";
+const LIMIT: u64 = MAXIMUM_BODY_ADMISSION_BYTES * 2;
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Record {
+    schema: String,
+    // A raw receipt correlated to the selected TLS invitation route, NOT a
+    // Root-signed receipt. The invitation preserves the original route pins.
+    pending: PendingBodyJoin,
+    receipt: PortableAdmissionReceipt,
+}
+impl Drop for Record {
+    fn drop(&mut self) {
+        self.pending.invitation.secret.fill(0);
+    }
+}
+impl Record {
+    fn validate(&self, host: &str) -> Result<(), String> {
+        let p = &self.pending;
+        let r = &p.request;
+        if self.schema != SCHEMA
+            || p.schema != "conduit.body/pending-join@1"
+            || r.host_advertisement.host_id.as_str() != host
+            || p.invitation.claim.body_id != r.body_id
+            || p.invitation.claim.invitation_id != r.invitation_id
+            || p.invitation.claim.nonce != r.nonce
+            || r.schema != conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA
+            || self.receipt.credential.part_id.as_str().is_empty()
+            || r.membership_admitted
+            || r.plan_created
+            || r.play_created
+        {
+            return Err("native Part custody identity mismatch".into());
+        }
+        self.receipt
+            .validate_against(r)
+            .map_err(|_| "native Part receipt mismatch")?;
+        let secret = SpawnInvitationSecret::from_csprng_bytes(p.invitation.secret)
+            .map_err(|_| "native Part signer missing")?;
+        let transcript = p.invitation.claim.signing_transcript(
+            &r.host_advertisement.host_id,
+            &r.host_advertisement.boot_id,
+            r.host_advertisement.offer_generation,
+        );
+        if r.signature.as_slice() != secret.sign(&transcript) {
+            return Err("native Part signer does not match admitted request".into());
+        }
+        Ok(())
+    }
+}
+
+fn load(path: &Path, host: &str) -> Result<Record, String> {
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+        .map_err(|_| "native Part custody unavailable")?;
+    let meta = file
+        .metadata()
+        .map_err(|_| "native Part custody metadata")?;
+    if !meta.is_file()
+        || meta.uid() != unsafe { libc::geteuid() }
+        || meta.mode() & 0o777 != 0o600
+        || meta.len() == 0
+        || meta.len() > LIMIT
+    {
+        return Err("native Part custody requires a bounded private regular file".into());
+    }
+    use std::io::Read;
+    let mut bytes = Vec::new();
+    file.take(LIMIT + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "native Part custody read")?;
+    let parsed = serde_json::from_slice::<Record>(&bytes);
+    bytes.fill(0);
+    let record = parsed.map_err(|_| "native Part custody encoding")?;
+    record.validate(host)?;
+    Ok(record)
+}
+
+pub(super) fn retain(
+    state: &Path,
+    pending: PendingBodyJoin,
+    receipt: PortableAdmissionReceipt,
+    host: &str,
+) -> Result<(), String> {
+    let record = Record {
+        schema: SCHEMA.into(),
+        pending,
+        receipt,
+    };
+    record.validate(host)?;
+    let path = state.join("body/native-part-private.json");
+    if path.symlink_metadata().is_ok() {
+        let previous = load(&path, host)?;
+        // Compare private documents without exposing them in errors or output.
+        let mut old = serde_json::to_vec(&previous).map_err(|_| "native Part encoding")?;
+        let mut new = serde_json::to_vec(&record).map_err(|_| "native Part encoding")?;
+        let same = old == new;
+        old.fill(0);
+        new.fill(0);
+        return if same {
+            Ok(())
+        } else {
+            Err("conflicting native Part custody".into())
+        };
+    }
+    let staging = state.join("body").join(format!(
+        "part-{}.json",
+        crate::birth_identity::fresh_uuid()?
+    ));
+    let temporary = staging.with_extension("tmp");
+    // Existing fsynced atomic helper writes this securely precreated inode.
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&temporary)
+        .map_err(|_| "native Part private staging unavailable")?;
+    let mut bytes = serde_json::to_vec(&record).map_err(|_| "native Part encoding")?;
+    let written = if bytes.len() as u64 > LIMIT {
+        Err("native Part custody exceeds bound".into())
+    } else {
+        super::super::write_bytes_atomic(&staging, &bytes)
+    };
+    bytes.fill(0);
+    let result = written.and_then(|()| {
+        fs::hard_link(&staging, &path).map_err(|_| "native Part exclusive publication failed")?;
+        fs::File::open(path.parent().unwrap())
+            .and_then(|d| d.sync_all())
+            .map_err(|_| "native Part directory sync failed".to_string())?;
+        load(&path, host).map(|_| ())
+    });
+    let _ = fs::remove_file(staging);
+    let _ = fs::remove_file(temporary);
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn fixture() -> Record {
+        let host = conduit_std_host::StdHost::new();
+        let ad = host.advertisement().clone();
+        let claim: conduit_body::SpawnInvitationClaim = serde_json::from_value(serde_json::json!({
+            "invitation_id":"02".repeat(32), "body_id":"01".repeat(32),
+            "nonce":vec![3;32], "expires_at_millis":300000
+        }))
+        .unwrap();
+        let secret = conduit_body::SpawnInvitationSecret::from_csprng_bytes([5; 32]).unwrap();
+        let signature =
+            secret.sign(&claim.signing_transcript(&ad.host_id, &ad.boot_id, ad.offer_generation));
+        let request = conduit_body::PortableSpawnAdmissionRequest {
+            schema: conduit_body::SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
+            invitation_id: claim.invitation_id.clone(),
+            body_id: claim.body_id.clone(),
+            host_advertisement: ad.clone(),
+            nonce: claim.nonce,
+            signature: signature.to_vec(),
+            membership_admitted: false,
+            plan_created: false,
+            play_created: false,
+        };
+        let credential = serde_json::from_value(serde_json::json!({
+            "credential_id":"06".repeat(32), "body_id":claim.body_id,
+            "part_id":"07".repeat(32), "host_id":ad.host_id,
+            "boot_id":ad.boot_id, "issued_at_millis":100
+        }))
+        .unwrap();
+        Record {
+            schema: SCHEMA.into(),
+            pending: PendingBodyJoin {
+                schema: "conduit.body/pending-join@1".into(),
+                invitation: conduit_body::PortableInvitation {
+                    schema: conduit_body::INVITATION_SCHEMA.into(),
+                    claim,
+                    secret: [5; 32],
+                    rendezvous: None,
+                },
+                request,
+            },
+            receipt: PortableAdmissionReceipt {
+                schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+                credential,
+                current_offers_available: !ad.capabilities.is_empty(),
+                host_advertisement: ad,
+                membership_admitted: true,
+                plan_created: false,
+                play_created: false,
+            },
+        }
+    }
+    #[test]
+    fn native_part_custody_reopens_and_refuses_changed_signer() {
+        let root = std::env::temp_dir().join(format!(
+            "native-part-{}",
+            crate::birth_identity::fresh_uuid().unwrap()
+        ));
+        fs::create_dir_all(root.join("body")).unwrap();
+        super::super::restrict_directory(&root.join("body")).unwrap();
+        let record = fixture();
+        let host = record.receipt.credential.host_id.as_str().to_owned();
+        let expected = record.receipt.credential.clone();
+        let pending: PendingBodyJoin =
+            serde_json::from_value(serde_json::to_value(&record.pending).unwrap()).unwrap();
+        retain(&root, pending, record.receipt.clone(), &host).unwrap();
+        let reopened = load(&root.join("body/native-part-private.json"), &host).unwrap();
+        assert_eq!(reopened.receipt.credential, expected);
+        assert!(load(&root.join("body/native-part-private.json"), "foreign-host").is_err());
+        let mut wrong: PendingBodyJoin =
+            serde_json::from_value(serde_json::to_value(&record.pending).unwrap()).unwrap();
+        wrong.invitation.secret = [8; 32];
+        assert!(retain(&root, wrong, record.receipt.clone(), &host).is_err());
+        assert_eq!(
+            load(&root.join("body/native-part-private.json"), &host)
+                .unwrap()
+                .receipt
+                .credential,
+            expected
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_part_custody_write_failure_preserves_pending() {
+        let root = std::env::temp_dir().join(format!(
+            "native-part-{}",
+            crate::birth_identity::fresh_uuid().unwrap()
+        ));
+        fs::create_dir_all(root.join("body")).unwrap();
+        let record = fixture();
+        let host = record.receipt.credential.host_id.as_str().to_owned();
+        let pending_bytes = serde_json::to_vec(&record.pending).unwrap();
+        fs::write(root.join("body/pending-join.json"), &pending_bytes).unwrap();
+        fs::create_dir(root.join("body/native-part-private.json")).unwrap();
+        let pending = serde_json::from_slice(&pending_bytes).unwrap();
+        assert!(retain(&root, pending, record.receipt.clone(), &host).is_err());
+        assert_eq!(
+            fs::read(root.join("body/pending-join.json")).unwrap(),
+            pending_bytes
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+}

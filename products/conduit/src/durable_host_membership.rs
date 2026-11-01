@@ -2,8 +2,8 @@
 
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
-    bounded_read, digest, observe_current_runtime, read_installation, restrict_directory,
-    write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
+    Installation, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA, RuntimeStatus, bounded_read,
+    digest, observe_current_runtime, read_installation, restrict_directory, write_json_atomic,
 };
 use conduit_body::MembershipCredential;
 use conduit_core::HostAdvertisement;
@@ -12,6 +12,7 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/compact.rs"]
 mod compact;
+mod part;
 pub(crate) use compact::{
     accept as accept_membership_invitation, complete as complete_membership_join,
 };
@@ -70,9 +71,13 @@ pub(super) fn complete_body_join_document(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
     }
+    part::retain(state_dir, pending, receipt.clone(), &installation.host_id)?;
     persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
     fs::remove_file(&pending_path)
         .map_err(|error| format!("consume pending Body join: {error}"))?;
+    fs::File::open(pending_path.parent().ok_or("pending join directory")?)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|_| "sync consumed pending Body join".to_string())?;
     Ok(())
 }
 
