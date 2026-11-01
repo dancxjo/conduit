@@ -708,6 +708,9 @@ impl<'a> BodyKernel<'a> {
     /// profile have installed Body routes. This admits execution shape only;
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        if !self.native.is_prepared() {
+            return Err("Body native work has no prepared provider request slots".into());
+        }
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
         }) && self.todo_checkpoint.is_none()
