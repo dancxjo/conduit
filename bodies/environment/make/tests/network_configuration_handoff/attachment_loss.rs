@@ -9,10 +9,13 @@ mod production;
 #[test]
 fn later_loss_uses_first_loss_clock_within_previous_state_budget() {
     let mut outcome = StationOutcome::attempt(Ok(()), 10);
-    outcome.detached(9);
+    assert!(!outcome.detached(9), "regressed clock cannot emit loss");
     assert_eq!(outcome.policy_outcome(), Some((true, 10)));
-    outcome.detached(20);
-    outcome.detached(30);
+    assert!(
+        outcome.detached(20),
+        "first successful-join loss emits once"
+    );
+    assert!(!outcome.detached(30), "later monitoring cannot emit again");
     assert_eq!(outcome.policy_outcome(), Some((false, 20)));
     assert!(
         core::mem::size_of::<StationOutcome>()
@@ -24,14 +27,14 @@ fn later_loss_uses_first_loss_clock_within_previous_state_budget() {
 #[test]
 fn loss_cannot_invent_an_attempt_or_replace_an_actual_join_failure() {
     let mut absent = StationOutcome::default();
-    absent.detached(50);
+    assert!(!absent.detached(50));
     assert_eq!(absent.policy_outcome(), None);
     let failure = conduit_net::StationAttemptFailure {
         phase: conduit_net::StationPhase::Associate,
         reason: conduit_net::StationFailure::Rejected,
     };
     let mut failed = StationOutcome::attempt(Err(failure), 10);
-    failed.detached(20);
+    assert!(!failed.detached(20), "join failure is not a later loss");
     assert_eq!(failed.policy_outcome(), Some((false, 10)));
 }
 

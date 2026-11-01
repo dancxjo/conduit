@@ -24,12 +24,14 @@ impl StationOutcome {
     }
     /// Caller observes the actual provider and service owner in this Play.
     /// Configuration retirement alone is not evidence of attachment loss.
-    pub(super) fn detached(&mut self, now: u64) {
+    pub(super) fn detached(&mut self, now: u64) -> bool {
         if let Self::Attempt { result: Ok(()), at } = *self {
             if now >= at {
                 *self = Self::Detached { lost_at: now };
+                return true;
             }
         }
+        false
     }
     // The original join Signs remain separately owned and immutable. This is
     // only the selection-policy observation, whose clock advances on loss.
