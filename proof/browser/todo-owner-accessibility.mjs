@@ -13,7 +13,7 @@ export async function captureTodoAccessibility({ page, face, state, output, sour
   assert.equal(view.show_state, 'available');
   assert.equal(view.interactions_admitted, true);
   assert.equal(await page.locator('[data-owner-show-acknowledged]').getAttribute('data-owner-show-acknowledged'), view.show_id);
-  const element = page.locator('conduit-owner-face');
+  const element = page.locator('[data-owner-face-surface]');
   assert.deepEqual(await element.evaluate(node => [node.dataset.faceId, node.dataset.faceRevision, node.dataset.showId]),
     [view.face_id, view.face_revision, view.show_id]);
   const canonical = new Map(owner.face.subjects.map(subject => [subject.identity, subject]));
@@ -104,7 +104,7 @@ export async function captureTodoAccessibility({ page, face, state, output, sour
 // The caller keeps its normal action/receipt path, including when Add changes
 // the Face. Only existing presentation sheets are temporarily disabled.
 export async function withTodoStylesDisabled(page, action) {
-  await page.locator('conduit-owner-face').evaluate(node => {
+  await page.locator('[data-owner-face-surface]').evaluate(node => {
     globalThis.__todoAccessibilityStyles = [...document.styleSheets, ...node.shadowRoot.styleSheets]
       .map(sheet => ({ sheet, disabled: sheet.disabled }));
     for (const { sheet } of globalThis.__todoAccessibilityStyles) sheet.disabled = true;

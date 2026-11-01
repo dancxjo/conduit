@@ -678,7 +678,7 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
       },
       browser: async () => {
         if (!checker) throw new Error('Fixture Host unavailable');
-        return { plot: value => ({ check: async () => value.startsWith('{')
+        return { admitOwnerFaceComponent: async () => null, plot: value => ({ check: async () => value.startsWith('{')
           ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
           : { ok: true, plots: [{ name: "pitch" }] } }) };
       },
@@ -747,7 +747,7 @@ test(`Handbook correction saves retain sibling edits while a write is pending (f
           globalThis.savedCorrections.push({ key, value: structuredClone(value) });
         },
       },
-      browser: async () => ({ plot: value => ({ check: async () => {
+      browser: async () => ({ admitOwnerFaceComponent: async () => null, plot: value => ({ check: async () => {
         globalThis.checkedSources.push(value);
         return value.startsWith('{')
           ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
@@ -828,6 +828,7 @@ test('Handbook retains unsent lesson drafts across startup preferences and selec
     globalThis.pendingHandbook = import('/targets/browser/handbook/application.mjs').then(({ startApplication }) => {
       document.body.innerHTML = '<main><section data-handbook-application></section></main>';
       globalThis.bodyTransitions = [];
+      globalThis.startupStages = [];
       const plots = ['first', 'second'].map(name => ({ name, checkedPlotId: `fixture/${name}`, source: `original ${name}` }));
       const checked = { ok: true, plots };
       const body = {
@@ -846,20 +847,27 @@ test('Handbook retains unsent lesson drafts across startup preferences and selec
         storage: {
           readJson: async key => {
             if (key !== 'selected-example') return null;
+            globalThis.startupStages.push('preference');
             await new Promise(resolve => { globalThis.releasePreferenceRead = resolve; });
             return 'first';
           },
           writeJson: async () => {}, durability: async () => ({ fixture: true }),
         },
-        browser: async () => ({ recover: async () => body, attachEditor: () => ({ render() {}, destroy() {} }),
-          plot: value => ({ check: async () => value.startsWith('{') ? checked
-            : { ok: false, refusal: { code: 'FixtureSyntaxRefused', message: 'Fixture draft refused' }, diagnostics: [] } }) }),
+        browser: async () => ({
+          admitOwnerFaceComponent: async () => { globalThis.startupStages.push('component-admission'); return null; },
+          recover: async () => body, attachEditor: () => ({ render() {}, destroy() {} }),
+          plot: value => ({ check: async () => {
+            globalThis.startupStages.push('check');
+            return value.startsWith('{') ? checked
+              : { ok: false, refusal: { code: 'FixtureSyntaxRefused', message: 'Fixture draft refused' }, diagnostics: [] };
+          } }) }),
       });
     });
   });
   const chooser = page.getByRole('combobox', { name: 'Choose an example' });
   const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
   await expect.poll(() => page.evaluate(() => typeof globalThis.releasePreferenceRead)).toBe('function');
+  expect(await page.evaluate(() => globalThis.startupStages)).toEqual(['component-admission', 'check', 'preference']);
   await editor.fill('unsent first draft');
   await chooser.selectOption('second');
   await editor.fill('unsent second draft');
@@ -887,7 +895,7 @@ test('Handbook recovery refuses a correction that renames the selected Plot', as
       text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['pitch'],
         plots: [{ name: 'pitch', title: 'Pitch', role: 'pitch', lesson: 'Pitch' }] }) : 'plot pitch',
       storage: { readJson: async () => null, writeJson: async (...args) => globalThis.storageWrites.push(args) },
-      browser: async () => ({ plot: value => ({ check: async () => value.startsWith('{')
+      browser: async () => ({ admitOwnerFaceComponent: async () => null, plot: value => ({ check: async () => value.startsWith('{')
         ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
         : { ok: true, plots: [{ name: value === 'plot renamed' ? 'renamed' : 'pitch' }] } }) }),
     });

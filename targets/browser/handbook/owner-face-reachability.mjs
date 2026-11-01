@@ -1,4 +1,4 @@
-import { ownerFacePointerReachable } from "./owner-face-component.mjs";
+import { ownerFacePointerReachable } from "./owner-face-pointer.mjs";
 
 // A conservative admission check for this generic native-control renderer.
 // This does not certify arbitrary CSS or another renderer's accessibility tree.
