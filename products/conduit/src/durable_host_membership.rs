@@ -52,7 +52,7 @@ pub(super) fn complete_body_join_document(
     }
     let install_path = state_dir.join("installation.json");
     let mut installation = read_installation(&install_path)?;
-    if installation.body_state.is_some() || installation.joined_body_state.is_some() {
+    if installation.body_state.is_some() {
         return Err("this installed host already has current body state".into());
     }
     let pending_path = state_dir.join("body/pending-join.json");
@@ -71,10 +71,28 @@ pub(super) fn complete_body_join_document(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
     }
+    if let Some(binding) = &installation.joined_body_state {
+        // Reconcile only the exact completed transaction. This neither admits a
+        // fresh Boot nor rewrites the runtime marker or credential.
+        validate(binding, &installation)?;
+        let credential: MembershipCredential = serde_json::from_slice(&bounded_read(
+            Path::new(&binding.credential_path),
+            64 * 1024,
+        )?)
+        .map_err(|_| "retained membership credential encoding")?;
+        if credential != receipt.credential {
+            return Err("completion retry differs from retained membership".into());
+        }
+        part::verify_exact(state_dir, &pending, &receipt, &installation.host_id)?;
+        return consume_pending(&pending_path);
+    }
     part::retain(state_dir, pending, receipt.clone(), &installation.host_id)?;
     persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
-    fs::remove_file(&pending_path)
-        .map_err(|error| format!("consume pending Body join: {error}"))?;
+    consume_pending(&pending_path)
+}
+
+fn consume_pending(pending_path: &Path) -> Result<(), String> {
+    fs::remove_file(pending_path).map_err(|error| format!("consume pending Body join: {error}"))?;
     fs::File::open(pending_path.parent().ok_or("pending join directory")?)
         .and_then(|directory| directory.sync_all())
         .map_err(|_| "sync consumed pending Body join".to_string())?;

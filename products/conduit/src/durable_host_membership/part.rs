@@ -84,6 +84,27 @@ fn load(path: &Path, host: &str) -> Result<Record, String> {
     Ok(record)
 }
 
+pub(super) fn verify_exact(
+    state: &Path,
+    pending: &PendingBodyJoin,
+    receipt: &PortableAdmissionReceipt,
+    host: &str,
+) -> Result<(), String> {
+    let record = load(&state.join("body/native-part-private.json"), host)?;
+    let mut expected =
+        serde_json::to_vec(&(pending, receipt)).map_err(|_| "native Part encoding")?;
+    let mut actual = serde_json::to_vec(&(&record.pending, &record.receipt))
+        .map_err(|_| "native Part encoding")?;
+    let same = expected == actual;
+    expected.fill(0);
+    actual.fill(0);
+    if same {
+        Ok(())
+    } else {
+        Err("conflicting native Part custody".into())
+    }
+}
+
 pub(super) fn retain(
     state: &Path,
     pending: PendingBodyJoin,
