@@ -248,3 +248,83 @@ fn borrowed_entry_checks_match_ordinary_registration_refusals() {
         );
     }
 }
+
+#[test]
+fn prepared_registry_update_drop_is_inert_and_commit_moves_only_selected_provider() {
+    let mut registry = BaseRegistry::new(limits()).unwrap();
+    registry.register(base("sensor", 1, "sensor/read")).unwrap();
+    let pointer = registry.entries()[0].capabilities[0]
+        .kind_id
+        .as_str()
+        .as_ptr();
+    let before = registry.clone();
+    drop(
+        registry
+            .prepare_update(None, base("storage", 1, "storage/write"))
+            .unwrap(),
+    );
+    assert_eq!(registry, before);
+    registry
+        .prepare_update(None, base("storage", 1, "storage/write"))
+        .unwrap()
+        .commit();
+    assert_eq!(registry.entries().len(), 2);
+    assert_eq!(registry.entries()[0], before.entries()[0]);
+    assert_eq!(
+        registry.entries()[0].capabilities[0]
+            .kind_id
+            .as_str()
+            .as_ptr(),
+        pointer
+    );
+    let prior = registry.entries()[1].clone();
+    let before = registry.clone();
+    drop(
+        registry
+            .prepare_update(
+                Some((&prior.provider_instance_id, prior.provider_generation)),
+                base("storage", 2, "storage/read"),
+            )
+            .unwrap(),
+    );
+    assert_eq!(registry, before);
+    registry
+        .prepare_update(
+            Some((&prior.provider_instance_id, prior.provider_generation)),
+            base("storage", 2, "storage/read"),
+        )
+        .unwrap()
+        .commit();
+    assert_eq!(registry.entries()[1].provider_generation, 2);
+    assert_eq!(
+        registry.entries()[0].capabilities[0]
+            .kind_id
+            .as_str()
+            .as_ptr(),
+        pointer
+    );
+}
+
+#[test]
+fn prepared_registry_update_refuses_stale_or_nonadvancing_provider_before_commit() {
+    let mut registry = BaseRegistry::new(limits()).unwrap();
+    let current = base("storage", 2, "storage/read");
+    registry.register(current.clone()).unwrap();
+    let before = registry.clone();
+    assert!(matches!(
+        registry.prepare_update(
+            Some((&current.provider_instance_id, 1)),
+            base("storage", 3, "storage/write")
+        ),
+        Err(BaseRegistryRefusal::StaleProvider)
+    ));
+    assert_eq!(registry, before);
+    assert!(matches!(
+        registry.prepare_update(
+            Some((&current.provider_instance_id, 2)),
+            base("storage", 2, "storage/write")
+        ),
+        Err(BaseRegistryRefusal::GenerationDidNotAdvance)
+    ));
+    assert_eq!(registry, before);
+}

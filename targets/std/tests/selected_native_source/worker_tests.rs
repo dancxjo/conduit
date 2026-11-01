@@ -380,3 +380,74 @@ fn conversation_context() -> conduit_body::BodyConversationContext {
         recent_sign_ids: vec![],
     }
 }
+
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+#[test]
+fn storage_generation_refresh_retains_actual_source_worker_and_reserved_backing() {
+    use conduit_std_host::{
+        body_storage::{BodyStorageBounds, SelectedBodyStorage},
+        body_storage_generation::{BodyStorageGenerationRequest, BodyStorageStateRequest},
+    };
+    use std::os::unix::fs::PermissionsExt;
+    let signals = Arc::new(Signals::default());
+    let (mut host, _old_plan) = worker_host(signals.clone(), false, false);
+    let initial = host.native_source_worker_inspection().unwrap();
+    let old = host.advertisement().clone();
+    let root = tempfile::tempdir().unwrap();
+    std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    host.attach_selected_body_storage(
+        SelectedBodyStorage::open(
+            root.path(),
+            "test/source-storage",
+            BodyStorageBounds {
+                maximum_snapshot_records: 2,
+                maximum_record_bytes: 4096,
+                generation_slots: 1,
+                publication_slots: 1,
+                reader_leases: 1,
+                state_slots: 1,
+                maximum_state_bytes: 4096,
+                total_disk_bytes: 131072,
+                preparation_bytes: 1024 * 1024,
+            },
+            None,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let ty = StructuredInfoType::leaf(kind_id(BOOL_INFO_ID)).unwrap();
+    let value = StructuredInfoValue::leaf(ty.clone(), InfoBool::FALSE.encode().to_vec()).unwrap();
+    host.select_body_storage_generation(BodyStorageGenerationRequest {
+        snapshot: None,
+        state: Some(BodyStorageStateRequest {
+            binding: conduit_std_host::state_value::DurableStateBinding {
+                body: "body/source-storage-test".into(),
+                state: "state/cell".into(),
+                value_kind: kind_id(BOOL_INFO_ID),
+                maximum_value_bytes: 4096,
+            },
+            type_name: "Cell".into(),
+            value_type: ty,
+            default_value: value,
+        }),
+    })
+    .unwrap();
+    let after = host.native_source_worker_inspection().unwrap();
+    assert_eq!(after.backing.stack_bytes, initial.backing.stack_bytes);
+    assert_eq!(after.backing.guard_bytes, initial.backing.guard_bytes);
+    assert_eq!(after.backing.charged_bytes, initial.backing.charged_bytes);
+    assert_eq!(after.reserved_bytes, initial.reserved_bytes);
+    assert!(after.idle_backing_is_reserved);
+    assert_eq!(signals.calls.load(Ordering::SeqCst), 0);
+    for resource in &old.resources {
+        assert!(host.advertisement().resources.contains(resource));
+    }
+    for base in &old.bases {
+        assert!(host.advertisement().bases.contains(base));
+    }
+    for capability in &old.capabilities {
+        assert!(host.advertisement().capabilities.contains(capability));
+    }
+    assert!(host.advertisement().offer_generation > old.offer_generation);
+    retire(&mut host);
+}

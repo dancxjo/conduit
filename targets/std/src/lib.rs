@@ -25,6 +25,8 @@ pub mod body_coordination;
 pub mod body_execution;
 #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
 pub mod body_storage;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub mod body_storage_generation;
 mod boot_identity;
 pub mod browser_admission;
 pub mod carried_formant;
