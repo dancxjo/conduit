@@ -82,6 +82,7 @@ fn recovered_source_transaction_fences_stale_live_owner_and_older_publication() 
     let transaction = Transaction {
         schema: "conduit.body/owner-transaction@1".into(),
         root_signer: None,
+        root_receipt: None,
         biography: biography.clone(),
         installation,
         last_execution: None,
