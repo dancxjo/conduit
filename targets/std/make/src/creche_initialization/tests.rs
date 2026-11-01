@@ -144,3 +144,33 @@ fn creche_capability_review_resolves_exact_host_call_resource_and_base() {
         CRECHE_IMPLEMENTATION
     );
 }
+
+#[test]
+fn creche_capability_review_refuses_a_base_implementation_resource_cycle() {
+    let packages = MakePackageSet::compose(&[&crate::HostedMakePackage]).unwrap();
+    let mut catalog = MakeCatalog::canonical().with_packages(&packages);
+    catalog.dependencies.insert(
+        PrerequisiteNode::Base(CRECHE_ENCOUNTER_BASE_KIND.into()),
+        vec![PrerequisiteNode::Implementation(
+            CRECHE_IMPLEMENTATION.into(),
+        )],
+    );
+    catalog.dependencies.insert(
+        PrerequisiteNode::Implementation(CRECHE_IMPLEMENTATION.into()),
+        vec![PrerequisiteNode::Resource(CRECHE_RESOURCE.into())],
+    );
+    assert!(matches!(
+        resolve_host_capability_intent(
+            &HostCapabilityIntent {
+                target: crate::HOSTED_TARGET_ID.into(),
+                capabilities: vec![CapabilityIntent {
+                    kind: conduit_body_make::deployment_runtime::CRECHE_KIND.into(),
+                    pinned_implementation: Some(CRECHE_IMPLEMENTATION.into()),
+                }],
+            },
+            &catalog,
+            &packages
+        ),
+        Err(conduit_host_make::CapabilityIntentRefusal::CircularPrerequisite { .. })
+    ));
+}
