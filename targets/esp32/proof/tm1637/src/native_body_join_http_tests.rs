@@ -31,6 +31,7 @@ fn retained_custody_remains_accessible_while_publication_is_unavailable() {
             ticket: 41,
             digest,
             bytes: original.clone(),
+            membership: true,
             response: None,
         });
     });
@@ -109,6 +110,7 @@ fn retained_custody_remains_accessible_while_publication_is_unavailable() {
             ticket: 42,
             digest: Sha256::digest(&other).into(),
             bytes: other.clone(),
+            membership: true,
             response: None,
         });
     });

@@ -10,6 +10,9 @@ struct Pending {
     ticket: u32,
     digest: [u8; 32],
     bytes: Vec<u8>,
+    // Strict submission decoding fixes this scalar; deferred ticks need no
+    // repeated allocation/decoding of the accepted proof to select the gate.
+    membership: bool,
     response: Option<Vec<u8>>,
 }
 struct Completed {
@@ -61,7 +64,10 @@ pub(crate) enum ResultReply {
 }
 pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
     // Strict scalar/empty-array decoder only; no capability metadata visitors.
-    crate::native_body_join::decode_command(bytes)?;
+    let membership = matches!(
+        crate::native_body_join::decode_command(bytes)?,
+        crate::native_body_join::Command::Membership(_)
+    );
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     let mut owned = Vec::new();
     owned
@@ -101,6 +107,7 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
             ticket,
             digest,
             bytes: owned,
+            membership,
             response: None,
         });
         Ok(ticket)
@@ -242,12 +249,11 @@ impl crate::native_root::NativeRoot {
                 feature = "body-persistence",
                 target_os = "none"
             ))]
-            if state.pending.as_ref().is_some_and(|pending| {
-                matches!(
-                    crate::native_body_join::decode_command(&pending.bytes),
-                    Ok(crate::native_body_join::Command::Membership(_))
-                )
-            }) && !self.membership_ready()
+            if state
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.membership)
+                && !self.membership_ready()
             {
                 return None;
             }
