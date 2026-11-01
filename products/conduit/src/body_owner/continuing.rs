@@ -90,6 +90,11 @@ pub(crate) struct RunWorker {
 }
 
 impl Owner {
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
     pub(crate) fn current_body_id(&self) -> &conduit_body::BodyId {
         &self.session.evidence().body_id
     }
