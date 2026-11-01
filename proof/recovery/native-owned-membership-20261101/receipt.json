@@ -1,0 +1,58 @@
+{
+  "schema": "conduit.proof/native-owned-membership@1",
+  "tested_source": "8c1113ecb1000f8441171e36eb6b54885d7912d7",
+  "tested_tree": "ee08a0d8430875ab5bae30af833b163f1b692f4c",
+  "proof_checkout_head": "83885b7301286a1c28247752edc3bb2882377135",
+  "success": {
+    "passed": 1,
+    "filtered": 75
+  },
+  "isolated_storage_failure": {
+    "passed": 1,
+    "filtered": 75
+  },
+  "properties": [
+    "canonical signed invitation admission",
+    "actual finite flash mailbox and shared Gate permits",
+    "opaque pending membership until authenticated checkpoint adoption",
+    "invalid expired and replayed proofs preserve original Body and Store publication",
+    "physical storage refusal retains actual Body Store lease and unsigned output"
+  ],
+  "cpu64_success_extra_bytes": {
+    "reserve_peak": 1168,
+    "reserve_retained": 1168,
+    "reserve_and_stage_peak": 8922,
+    "reserve_and_stage_retained": 4024,
+    "prepare_peak": 352,
+    "chunk_peak": 352,
+    "finish_peak": 352,
+    "physical_peak": 0
+  },
+  "limits": [
+    "CPU simulated flash; not target total RAM or WCET",
+    "existing Body baseline excluded",
+    "actual live Root still uses synchronous membership entrance",
+    "no new MCU deployment or joined installed Host claimed",
+    "no selected durable recorder commitment or recording acknowledgment claimed"
+  ],
+  "next": [
+    "owned Start phase must run canonical crypto and sealing under qualified preparation authority",
+    "Root must fence all mutations exports renewal and new joins while actual Body is leased",
+    "HTTP accepted ticket and response backing retained before taking Body",
+    "failure after staging retains complete job for reconciliation"
+  ],
+  "logs_sha256": {
+    "combined-success.log": "3c81c00d2bb96c026c694227cfbf3aada9e34e0270cbe4830f8c8dea7ff8f812",
+    "combined-storage-failure.log": "07164b4b578069e92a1f48819701cd54f64726f6f352dd15cd040bacb9718168",
+    "mailbox-regression.log": "7b9b8bbd5db94c868e494b975ead0d48dce19de0585d2e22e75a34f0746d4500"
+  },
+  "mailbox_regression": {
+    "source": "0cc7b1c3c3f26dce8768d855e731411e86a49be2",
+    "passed": 58,
+    "ignored": 5,
+    "failed": 0,
+    "seconds": 109,
+    "claim": "response preparation failure preserves accepted request ticket digest and exact allocation; existing actual mailbox and simulated restart interruption suite",
+    "limit": "hardware Root entrances remain panic stubs in this mailbox proof; no actual Root scheduling proof"
+  }
+}
