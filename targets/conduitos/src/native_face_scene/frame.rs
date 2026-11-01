@@ -131,6 +131,7 @@ impl NativeFaceScene {
                 outline,
                 self.showing_details,
                 focused && !focus_marked,
+                self.focus_marker_width,
             )?;
             focus_marked |= focused;
             super::boolean_choice::append(&mut scene, row, self.screen)?;

@@ -116,9 +116,9 @@ fn control_insets_reach_all_layouts_even_when_read_only_or_unavailable() {
                             .find(|row| row.control == Some(focused))
                             .unwrap();
                         let marker = LayoutRect {
-                            x: row.bounds.x + 3,
+                            x: row.bounds.x + ((8 - scene.focus_marker_width) / 2) as i16,
                             y: row.bounds.y + 3,
-                            width: 2,
+                            width: scene.focus_marker_width,
                             height: row.bounds.height - 6,
                         };
                         assert!(marker.x + marker.width as i16 <= row.text_bounds().x);

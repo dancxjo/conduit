@@ -6,6 +6,7 @@ struct SelectedMetrics {
     row_gap: u16,
     control: Option<layout::RowInsets>,
     panel: Option<u16>,
+    focus_marker_width: u16,
 }
 impl SelectedMetrics {
     fn legacy(typography: Typography) -> Self {
@@ -14,6 +15,7 @@ impl SelectedMetrics {
             row_gap: SPACE_SM,
             control: None,
             panel: None,
+            focus_marker_width: 2,
         }
     }
     fn spacing(&self, expression: &conduit_face::AdmittedVisualExpression) -> layout::RowSpacing {
@@ -69,6 +71,7 @@ impl NativeFaceScene {
             screen,
             text_scale_percent: 100,
             header_top: viewport.chrome.top,
+            focus_marker_width: 2,
             typography: Typography::EDITORIAL,
             page: 0,
             focus: None,
@@ -185,6 +188,7 @@ impl NativeFaceScene {
         scene.header_top = viewport.chrome.top;
         scene.text_scale_percent = scale;
         scene.typography = typography;
+        scene.focus_marker_width = metrics.focus_marker_width;
         Ok(scene)
     }
 
@@ -241,6 +245,7 @@ impl NativeFaceScene {
         Ok(SelectedMetrics {
             typography,
             row_gap,
+            focus_marker_width: *visual.tokens().focus_width_px(),
             panel: Some(*visual.tokens().space_panel_px()),
             control: Some(layout::RowInsets {
                 inline: *visual.tokens().space_control_inline_px(),
@@ -279,6 +284,7 @@ impl NativeFaceScene {
         scene.header_top = viewport.chrome.top;
         scene.text_scale_percent = scale;
         scene.typography = typography;
+        scene.focus_marker_width = metrics.focus_marker_width;
         Ok(scene)
     }
 }
@@ -380,6 +386,7 @@ impl NativeFaceScene {
             screen,
             text_scale_percent: scale,
             header_top: viewport.chrome.top,
+            focus_marker_width: metrics.focus_marker_width,
             typography,
             page: 0,
             focus: None,

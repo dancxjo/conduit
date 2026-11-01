@@ -122,6 +122,8 @@ pub struct NativeFaceScene {
     text_scale_percent: u16,
     /// Admitted physical content origin shared by stored rows and frame chrome.
     header_top: u16,
+    /// Selected Look marker width within the fixed eight-pixel control gutter.
+    focus_marker_width: u16,
     typography: Typography,
     primary: Vec<layout::Row>,
     details: Vec<layout::Row>,
@@ -445,6 +447,9 @@ mod row_spacing_tests;
 #[cfg(test)]
 #[path = "native_face_scene/control_spacing_tests.rs"]
 mod control_spacing_tests;
+#[cfg(test)]
+#[path = "native_face_scene/focus_width_tests.rs"]
+mod focus_width_tests;
 
 #[cfg(test)]
 #[path = "native_face_scene/panel_spacing_tests.rs"]

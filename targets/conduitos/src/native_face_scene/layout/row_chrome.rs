@@ -28,6 +28,7 @@ pub(in crate::native_face_scene) fn append_row_chrome(
     outline: GraphicsPaintRole,
     showing_details: bool,
     focused: bool,
+    focus_marker_width: u16,
 ) -> Result<(), FaceSceneError> {
     if !showing_details && row.region_start && row.region.is_none() {
         push(
@@ -74,9 +75,9 @@ pub(in crate::native_face_scene) fn append_row_chrome(
         let (marker, shape) = if row.insets.leading() != 0 {
             (
                 LayoutRect {
-                    x: row.bounds.x + 3,
+                    x: row.bounds.x + ((row.insets.leading() - focus_marker_width) / 2) as i16,
                     y: row.bounds.y + 3,
-                    width: 2,
+                    width: focus_marker_width,
                     height: row.bounds.height - 6,
                 },
                 GraphicsShapeStyle::Fill,
