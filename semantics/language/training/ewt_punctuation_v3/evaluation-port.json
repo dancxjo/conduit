@@ -1,0 +1,25 @@
+{
+  "schema": "conduit.parser-punctuation-evaluation-port@1",
+  "source_commit": "71bcd0cee15ecaa170bfc6646358b1ba3699d751",
+  "accepted_base": "3e8702393459a2bb5f0ae433e85786ab70e3f50e",
+  "status": "local evaluation port; focused actual Source evaluation running; no acceptance claim",
+  "changes": [
+    "Preserve current accepted language module registrations alongside the explicit optional candidate module.",
+    "Move unchanged immutable decoder preparation constructors into their own test helper."
+  ],
+  "historical_custody_correction": {
+    "path": "tests/parser_punctuation_selection.rs",
+    "recorded_sha256": "1badb1fb4aa5edaa10f64e91a41841517e2fb66e1756f316ddcf56bd6d43fe33",
+    "actual_source_sha256": "ffe35f99f29fc36cc73340375039f80b39d3af61502949210b3fe1f1bc4287f4",
+    "note": "Historical custody file retained unchanged; recorded test hash was stale in the source commit."
+  },
+  "evaluation_files_sha256": {
+    "src/parser_punctuation_model.rs": "00110475dbc61496f1dd98eefa41d648570afb4e39750d3afd5909056eef5bb0",
+    "tests/parser_punctuation_selection.rs": "ffe35f99f29fc36cc73340375039f80b39d3af61502949210b3fe1f1bc4287f4",
+    "tests/common/parser_model_kernel.rs": "67d363e76bd99fb7203251236b5dbeb00b40ef7261bca74356bff4c952db05c2",
+    "tests/common/parser_selection_driver.rs": "c98f9319e48cdab9671b200a22867a2bc6c2b75cfbecb52061817d0d42ef59ee",
+    "tests/common/parser_selection_driver/preparation.rs": "6dec4a5f1feac2679edf6cae71dda96306ffb29715f4cab3d12d2558ad734d1c"
+  },
+  "model_sha256": "fcd5baafa388f47410a37ed44b51c2228bdf3c84d9c034c80045f34d90be025c",
+  "training": "No retraining, retuning, new corpus or partition changes. Historical conditional regressions and nonblind evaluation status retained."
+}
