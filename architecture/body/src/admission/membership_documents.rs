@@ -27,6 +27,37 @@ pub enum MembershipAdmissionDocumentRefusal {
     Signature,
 }
 
+/// Public Root identity introduced through a human-selected, owner-produced
+/// Body artifact. Decoding alone does not establish trust or admit membership.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyRootAuthority {
+    pub schema: String,
+    pub body_id: BodyId,
+    pub owner_host_id: HostId,
+    pub public_key: [u8; 32],
+}
+impl BodyRootAuthority {
+    pub fn validate(&self) -> Result<(), MembershipAdmissionDocumentRefusal> {
+        if self.schema != "conduit.body/root-authority@1" {
+            return Err(MembershipAdmissionDocumentRefusal::Schema);
+        }
+        validate_ids(&[self.body_id.as_str(), self.owner_host_id.as_str()])
+            .map_err(|_| MembershipAdmissionDocumentRefusal::Identity)?;
+        if self.public_key == [0; 32] {
+            return Err(MembershipAdmissionDocumentRefusal::RootKey);
+        }
+        Ok(())
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, MembershipAdmissionDocumentRefusal> {
+        bound(bytes, 1024)?;
+        let value: Self = serde_json::from_slice(bytes)
+            .map_err(|_| MembershipAdmissionDocumentRefusal::Encoding)?;
+        value.validate()?;
+        Ok(value)
+    }
+}
+
 /// Identity/proof carrier, never an empty or restricted worker advertisement.
 /// Exact equipment and offer eligibility must be established separately.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -294,5 +325,31 @@ mod signature_bytes {
         }
         // Fixed-size tuple is accepted by ordinary JSON and serde_json_core.
         deserializer.deserialize_tuple(64, Fixed)
+    }
+}
+
+#[cfg(test)]
+mod root_authority_tests {
+    use super::*;
+    #[test]
+    fn public_authority_is_bounded_identity_only_and_rejects_secret_extensions() {
+        let authority = BodyRootAuthority {
+            schema: "conduit.body/root-authority@1".into(),
+            body_id: "body/test".into(),
+            owner_host_id: "host/owner".into(),
+            public_key: [1; 32],
+        };
+        let bytes = serde_json::to_vec(&authority).unwrap();
+        assert_eq!(BodyRootAuthority::decode(&bytes).unwrap(), authority);
+        let mut value = serde_json::to_value(&authority).unwrap();
+        value["seed"] = serde_json::json!([1, 2, 3]);
+        assert!(BodyRootAuthority::decode(&serde_json::to_vec(&value).unwrap()).is_err());
+        let mut invalid = authority.clone();
+        invalid.public_key = [0; 32];
+        assert!(invalid.validate().is_err());
+        invalid = authority.clone();
+        invalid.schema = "foreign".into();
+        assert!(invalid.validate().is_err());
+        assert!(BodyRootAuthority::decode(&[b' '; 1025]).is_err());
     }
 }

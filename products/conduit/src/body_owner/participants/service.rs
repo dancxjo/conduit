@@ -303,6 +303,30 @@ impl BrowserWindow {
 }
 
 impl Owner {
+    /// Authenticated Make preparation: validate selected Root custody before
+    /// issuing the single claim that the finite fresh-endpoint scope awaits.
+    pub(crate) fn browser_prepare_spore_window(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+    ) -> Result<
+        (
+            conduit_body::PortableInvitation,
+            conduit_body::BodyRootAuthority,
+            BrowserWindowAuthorization,
+        ),
+        String,
+    > {
+        let authority = crate::durable_host::root_signer::public_authority(
+            root,
+            self.session.evidence().body_id.as_str(),
+            self.host.advertisement().host_id.as_str(),
+        )?;
+        let (invitation, window) =
+            self.browser_authorize_invitation_window(root, maximum_millis)?;
+        Ok((invitation, authority, window))
+    }
+
     /// Issue and durably retain one invitation before publishing its finite
     /// fresh-endpoint window. No ambient or Return authorization is implied.
     pub(crate) fn browser_authorize_invitation_window(

@@ -388,10 +388,10 @@ fn main() {
                 Err("browser admission window requires --authorize-window".into())
             } else if invited {
                 durable_host_control::start_invited_browser_window(&state_dir, maximum_millis)
-                    .and_then(|(invitation, authorization, url)| {
+                    .and_then(|(invitation, root_authority, authorization, url)| {
                         let document = serde_json::json!({
                             "schema":"conduit.body/browser-invitation-window@1",
-                            "invitation":invitation, "authorization":authorization,
+                            "invitation":invitation, "root_authority":root_authority, "authorization":authorization,
                             "url":url, "remote_execution":false,
                         });
                         println!("{}", serde_json::to_string(&document).map_err(|e| e.to_string())?);
