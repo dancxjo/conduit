@@ -443,11 +443,26 @@ export class BrowserPlay {
   terminate(): Promise<Readonly<Record<string, unknown>> | null>;
 }
 
+/** Independently selected policy; never obtain this trust input from an imported archive. */
+export interface BrowserReviewedRelease {
+  package: Record<string, unknown>;
+  distribution: Record<string, unknown>;
+  release: Record<string, unknown>;
+}
+export function admitBrowserAssetMap(assets: Map<string, Uint8Array>, policy: BrowserReviewedRelease,
+  profileId?: string): Promise<{ payloads: Map<string, Uint8Array>; pkg: Record<string, unknown>;
+    distribution: Record<string, unknown>; bundle: Record<string, unknown>;
+    image: Record<string, unknown>; imageBytes: Uint8Array }>;
+
 export interface BrowserOptions {
   /** An application-owned Element or ShadowRoot used only for face. */
   root?: Element | ShadowRoot;
   /** Same-origin directory containing the exact package-bound BrowserBundle. */
   bundleRoot?: string | URL;
+  /** Exact in-memory release closure; provision/credentials must be excluded. */
+  assetMap?: Map<string, Uint8Array>;
+  /** Required with assetMap, selected by the importing Workspace independently. */
+  reviewedRelease?: BrowserReviewedRelease;
   /** Optional assertion that this package contains the expected checked PROFILE. */
   profileId?: string;
   /** Use a fresh Host identity for an intentionally ephemeral Host. */
