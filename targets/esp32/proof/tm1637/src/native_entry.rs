@@ -141,7 +141,7 @@ async fn main(spawner: Spawner) {
         #[cfg(feature = "checkpoint-preparation-check")]
         root.measure_checkpoint_preparation();
         #[cfg(feature = "membership-preparation-check")]
-        root.qualify_cold_membership(&mut invitation_uart, flash_timing)
+        await_outlined(root.qualify_cold_membership(&mut invitation_uart, flash_timing))
             .await
             .expect("attended cold membership qualification");
         root.start_preparation_service(spawner)
