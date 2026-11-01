@@ -378,3 +378,91 @@ fn exact_receipt_allocation_refusal_preserves_membership_authority_and_invitatio
     assert_eq!(f.manager.receipts.capacity(), 9);
     assert_eq!(complete(&mut f), Err(AdmissionRefusal::Replay));
 }
+
+#[test]
+fn return_receipt_allocation_refusal_retains_exact_challenge_for_valid_retry() {
+    let mut f = fixture();
+    let original = complete(&mut f).unwrap();
+    f.membership
+        .observe_offline(
+            &f.membership.body_id.clone(),
+            f.membership.revision,
+            &original.part_id,
+            &original.boot_id,
+            "sign/receipt-return-offline".into(),
+        )
+        .unwrap();
+    f.advertisement.boot_id = "boot/receipt-returned".into();
+    let challenge = f
+        .manager
+        .begin_return(
+            &f.membership,
+            &original.part_id,
+            &f.advertisement,
+            [44; 32],
+            NOW + 2,
+            EXPIRES,
+        )
+        .unwrap();
+    let proof = PartReturnProof {
+        admission_id: challenge.admission_id.clone(),
+        body_id: challenge.body_id.clone(),
+        part_id: challenge.part_id.clone(),
+        host_id: challenge.host_id.clone(),
+        boot_id: challenge.boot_id.clone(),
+        nonce: challenge.nonce,
+        signature: SpawnInvitationSecret::from_csprng_bytes([11; 32])
+            .unwrap()
+            .sign(&challenge.signing_transcript()),
+    };
+    let before = serde_json::to_vec(&f.manager).unwrap();
+    let membership = f.membership.clone();
+    let pointer = f.manager.receipts.as_ptr();
+    let required = 2 * core::mem::size_of_val(&f.manager.receipts[0]);
+    let refusal = allocation_probe::refuse_next_reallocation(pointer.cast(), required);
+    let result = f.manager.complete_return(
+        &mut f.membership,
+        &f.advertisement,
+        &proof,
+        NOW + 3,
+        "sign/receipt-returned".into(),
+    );
+    drop(refusal);
+    assert_eq!(result, Err(AdmissionRefusal::ReceiptCapacityExhausted));
+    assert_eq!(f.membership, membership);
+    assert_eq!(serde_json::to_vec(&f.manager).unwrap(), before);
+    assert_eq!(f.manager.receipts.as_ptr(), pointer);
+    assert_eq!(
+        f.manager
+            .pending_return_challenge(&f.membership, &original.part_id, &f.advertisement, NOW + 3)
+            .unwrap(),
+        Some(challenge)
+    );
+    let returned = f
+        .manager
+        .complete_return(
+            &mut f.membership,
+            &f.advertisement,
+            &proof,
+            NOW + 3,
+            "sign/receipt-returned".into(),
+        )
+        .unwrap();
+    assert_eq!(returned.part_id, original.part_id);
+    assert_eq!(returned.boot_id, f.advertisement.boot_id);
+    assert_eq!(
+        f.manager.latest_completed_credential(&original.part_id),
+        Some(&returned)
+    );
+    assert_eq!(f.manager.receipts.len(), 2);
+    assert_eq!(
+        f.manager.complete_return(
+            &mut f.membership,
+            &f.advertisement,
+            &proof,
+            NOW + 4,
+            "sign/receipt-return-again".into()
+        ),
+        Err(AdmissionRefusal::UnknownAdmission)
+    );
+}

@@ -215,8 +215,10 @@ impl AdmissionManager {
             boot_id: advertisement.boot_id.clone(),
             issued_at_millis: now_millis,
         };
-        self.pending_returns.remove(index);
+        // Reserve/retain the completed authority evidence before consuming the
+        // challenge. Allocation refusal must permit the identical valid retry.
         self.retain_receipt(challenge.admission_id.clone(), credential.clone())?;
+        self.pending_returns.remove(index);
         *membership = next;
         Ok(credential)
     }
