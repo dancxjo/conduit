@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+serde_json = "1"
+libc = "0.2"
 conduit-host-make = { path = "../../../make/host" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
 conduit-std-offers = { path = "../offers", features = ["speech"] }

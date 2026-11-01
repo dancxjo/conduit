@@ -7,6 +7,8 @@ use std::collections::BTreeMap;
 
 mod builder;
 mod environmental_source_initialization;
+#[cfg(target_os = "linux")]
+mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
@@ -15,6 +17,8 @@ pub use environmental_source_initialization::{
     environmental_source_initialization_contract, ENVIRONMENTAL_SOURCES_IMPLEMENTATION,
     ENVIRONMENTAL_SOURCE_ATTACHMENT_IMPLEMENTATION, ENVIRONMENTAL_SOURCE_BASE_KIND,
 };
+#[cfg(target_os = "linux")]
+pub use linux_builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
 };

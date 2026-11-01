@@ -1774,6 +1774,7 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-host-make",
+ "conduit-kernel",
  "conduit-patchbay-workbench-conformance",
  "conduit-planner",
  "conduit-plot",
@@ -2204,6 +2205,8 @@ dependencies = [
  "conduit-host-make",
  "conduit-semantic-catalog",
  "conduit-std-offers",
+ "libc",
+ "serde_json",
  "sha2 0.10.9",
 ]
 
