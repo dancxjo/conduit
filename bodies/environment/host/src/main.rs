@@ -112,6 +112,9 @@ fn main() -> Result<()> {
             &args[8],
         );
     }
+    if args.get(1).is_some_and(|a| a == "--prepare-observed-custody") {
+        return observed_custody_client::prepare::from_args(&args[2..]);
+    }
     if args.get(1).is_some_and(|a| a == "--ack-observed-live") {
         if args.len() != 7 {
             return Err("expected --ack-observed-live PRIVATE_BINDING CONTINUITY_PRIVATE PEER HISTORY_DIRECTORY SLOT".into());
