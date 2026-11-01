@@ -106,7 +106,7 @@ fn reviewed_static_graph_has_no_unpinned_dependency() {
     assert_eq!(
         dependencies(source(0)),
         [
-            r#"import { OwnerFacePresentation } from "./owner-face-presentation.mjs";"#,
+            r#"import { OwnerFacePresentation, presentedBodySubject } from "./owner-face-presentation.mjs";"#,
             r#"export { ownerFacePointerReachable } from "./owner-face-pointer.mjs";"#,
         ]
     );
