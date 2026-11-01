@@ -1,0 +1,24 @@
+{
+  "source": "7b9ae41489",
+  "focused_tests": 4,
+  "product_source_tests": 42,
+  "failures": 0,
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/source-checkpoint-input-qualified-20261101.log",
+      "sha256": "9f4ab60ef21bd23132d6fcf7ed22cc3ff0b07dfa1adb154045f80d95b66511cd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/source-checkpoint-product-20261101.log",
+      "sha256": "7307065011a1a18a65fb9a1f6198470fb638bcc9e67cf696ec973735689e3d7a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/source-specialization-product-combined-20261101.log",
+      "sha256": "d597afae4a63fcb28d2331588057a928ff66ddf1d278d4694c336bd67725df04"
+    }
+  ],
+  "scope": "Owner prepares shared recording codec input after original worker cleanup. Finite4096-byte prefix, original canonical observations+Body/nativePlay retained, stable content reference, explicit zero-based Fore to one-based recording mapping, encoding capacity/refusal never retires original16 records. CPU product qualification, not immutable publication, installed Recorder, producer journal ACK or live device proof.",
+  "combined_product_source": "69decb007d",
+  "combined_product_tests": 42,
+  "combined_scope": "Combined product run precedes subsequent local-intrinsic consumer correction, whose separate exact Source->BodyPlay proof is in proof/state/expression-specialization-20261101/."
+}
