@@ -471,3 +471,6 @@ mod collection_profiles;
 
 #[path = "collection_profile_controls.rs"]
 mod collection_profile_controls;
+
+#[path = "collection_linear_tests.rs"]
+mod collection_linear;
