@@ -2613,6 +2613,7 @@ dependencies = [
  "conduit-audio",
  "conduit-bluetooth",
  "conduit-body",
+ "conduit-body-make",
  "conduit-browser-runtime",
  "conduit-burn-model",
  "conduit-chat",

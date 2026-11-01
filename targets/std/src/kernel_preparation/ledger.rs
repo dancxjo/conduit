@@ -3,6 +3,9 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct KernelResourceLedger {
+    // Exact charged tokens retained after uncertain platform retirement.
+    // Terminal quarantine: there is deliberately no automatic recovery API.
+    retirement_hold: Option<Vec<KernelResourceReservation>>,
     pub(super) identity: (
         conduit_core::HostId,
         conduit_core::BootId,
@@ -20,8 +23,27 @@ pub(crate) struct KernelResourceReservation {
 }
 
 impl KernelResourceLedger {
+    /// Retain already charged tokens without releasing, cloning or allocating.
+    /// Process drop is not proof that an external provider has quiesced; a
+    /// replacement Host requires its own real provider admission.
+    pub(crate) fn quarantine_retirement(&mut self, reservations: Vec<KernelResourceReservation>) {
+        assert!(
+            self.retirement_hold.is_none(),
+            "Host retirement already quarantined"
+        );
+        self.retirement_hold = Some(reservations);
+    }
+
+    pub(crate) fn require_available(&self) -> Result<(), String> {
+        if self.retirement_hold.is_some() {
+            return Err("Host quarantined: Creche platform retirement is uncertain".into());
+        }
+        Ok(())
+    }
+
     pub(crate) fn is_idle(&self) -> bool {
-        self.pools.iter().all(|pool| pool.used_units == 0)
+        self.retirement_hold.is_none()
+            && self.pools.iter().all(|pool| pool.used_units == 0)
             && self.instances.iter().all(|(_, active)| *active == 0)
     }
 
@@ -50,6 +72,7 @@ impl KernelResourceLedger {
             instances.push((capability.capability_id.clone(), 0));
         }
         Ok(Self {
+            retirement_hold: None,
             identity: (
                 advertisement.host_id.clone(),
                 advertisement.boot_id.clone(),
@@ -121,6 +144,7 @@ impl KernelResourceLedger {
         >,
         sign_ids: &[SignId],
     ) -> Result<Vec<ResourceObservation>, String> {
+        self.require_available()?;
         if pools.len() != sign_ids.len() {
             return Err(
                 "resource observation Sign width does not match the sealed bindings".into(),
@@ -154,5 +178,43 @@ impl KernelResourceLedger {
             });
         }
         Ok(observations)
+    }
+}
+
+#[cfg(test)]
+mod creche_quarantine_tests {
+    use super::*;
+    #[test]
+    fn exact_creche_reservation_hold_moves_without_allocation_or_release() {
+        let mut adapter = crate::hosted_creche::test_support::Adapter::new();
+        let (host, plan, _, _) = crate::hosted_creche::test_support::planned(&adapter);
+        let mut ledger = KernelResourceLedger::new(&host).unwrap();
+        let tokens = ledger
+            .prepare_and_reserve_plans(&host, &[(&plan.plots[0].plan, false)])
+            .unwrap();
+        let token_storage = tokens.as_ptr();
+        let before_pools = ledger.pools.clone();
+        let before_instances = ledger.instances.clone();
+        let allocations = crate::allocation_probe::begin();
+        ledger.quarantine_retirement(tokens);
+        assert_eq!(allocations.finish(), 0);
+        assert_eq!(
+            ledger.retirement_hold.as_ref().unwrap().as_ptr(),
+            token_storage
+        );
+        assert_eq!(
+            ledger.retirement_hold.as_ref().unwrap()[0].plan_id,
+            plan.plots[0].plan.plan_id
+        );
+        assert_eq!(ledger.instances, before_instances);
+        for (actual, before) in ledger.pools.iter().zip(&before_pools) {
+            assert_eq!(actual.used_units, before.used_units);
+        }
+        assert!(ledger
+            .prepare_capability_refresh(&host, &host, None)
+            .is_err());
+        // A private adapter state change cannot clear the charged Host hold.
+        adapter.fail_drain = false;
+        assert!(ledger.require_available().is_err());
     }
 }
