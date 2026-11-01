@@ -428,6 +428,10 @@ mod renewal_tests {
                 Err(CustodyRefusal::Scope)
             ));
             assert!(matches!(
+                stale_reader.project_body_name("body/test", "Stale replacement"),
+                Err(CustodyRefusal::Scope)
+            ));
+            assert!(matches!(
                 stale_publisher.publish(
                     PublicationSnapshot {
                         channel: crate::publication::PublicationChannel::Reading,
