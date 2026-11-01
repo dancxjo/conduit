@@ -22,8 +22,11 @@ impl<'root> ColdOwnership<'root> {
                     current.host_id == root.host && current.boot_id == root.boot
                 })
         });
+        // `foreground` is the selected authored Plot, initialized even by
+        // BodyLifecycleOwner::open before any Plan or Play exists. Selection is
+        // not execution custody. The actual realization and every Root worker
+        // owner below must still be absent before taking exclusive cold access.
         if !current
-            || owner.foreground().is_some()
             || owner.realization().is_some()
             || root.worker.is_some()
             || root.worker_spawner.is_some()
