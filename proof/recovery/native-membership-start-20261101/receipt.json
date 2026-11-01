@@ -1,0 +1,61 @@
+{
+  "schema": "conduit.proof/native-membership-start@1",
+  "source": "fbfe945b2d19343a3f3e9199aba467e80a3a35b8",
+  "tree": "58ceb526db79c24eddda63d4dbbbce8cac833aa1",
+  "equivalent_cpu_checkout": "33d23d443569939a9fe57f47b468b6b81df24256",
+  "accepted_dev": "c67146fcdc",
+  "esp32_check": {
+    "toolchain": "esp-conduit-1.91.1",
+    "target": "xtensa-esp32-none-elf",
+    "profile": "release",
+    "features": "flat-network-appliance",
+    "locked": true,
+    "exit_code": 0,
+    "warnings": 324,
+    "scope": "compile check, not linked flash size, target execution or strict lint"
+  },
+  "canonical_custody_test": {
+    "passed": 1,
+    "filtered": 75,
+    "scope": [
+      "actual finite mailbox Gate and WaitExecutor",
+      "canonical Start admission uses execution-time invitation expiry",
+      "queued cancellation returns identical Body/request/Host/Boot backing",
+      "after execution unstarted release refuses",
+      "success returns signing input only after checkpoint adoption"
+    ]
+  },
+  "isolated_physical_failure_test": {
+    "passed": 1,
+    "filtered": 75,
+    "scope": "simulated storage; retains actual unpublished Body Store lease and unsigned output"
+  },
+  "production_domain": {
+    "membership_variant": "boxed; shares existing Boot-local arbitration domain",
+    "physical_submission": "requires ROM-reviewed operation timing",
+    "preparation_submission": "refused through physical-only entrance; no invented preparation qualification",
+    "execution_clock": "callback reads embassy_time::Instant at execution",
+    "completion_and_cancellation": "typed owner-kind checks retain actual job"
+  },
+  "remaining": [
+    "target stage/replay/chunk/final-verification timing and workspace qualification",
+    "live Root start/poll/adopt integration and full mutation/export/renewal fences",
+    "retained staged-job reconciliation",
+    "actual browser/Pi installed membership and selected recorder commitment",
+    "full physical acceptance of original goal"
+  ],
+  "logs": {
+    "esp-check.log.gz": {
+      "uncompressed_sha256": "23cabfddc0576dc8bae733b8ff8305901f34d477d1f7c215651b316292f04611",
+      "compressed_sha256": "002ef9b5be54faca666530f561acb7f2d1197571893a27ab66e89cac1fbee17e"
+    },
+    "canonical-custody.log.gz": {
+      "uncompressed_sha256": "9204cbb3a054c8a9ef54b00d5a5e50b6a110585b72bdd2ced5decdef67f58d4c",
+      "compressed_sha256": "31f41a1acd92713f007ffd210103b36c8e5fbfea3569782c403f1b15d3c26b83"
+    },
+    "storage-failure.log.gz": {
+      "uncompressed_sha256": "610a7bab7c8d612278668f6d7753a8c54b99a708e70ce3f56d8d6f5ba74b8f96",
+      "compressed_sha256": "a834b756a1a9aa87453c89f3e27292312df70ecb0d8eee8b0be0af753d322db8"
+    }
+  }
+}

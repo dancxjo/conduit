@@ -48,6 +48,12 @@ impl<'de> Deserialize<'de> for Raw {
         d.deserialize_str(V)
     }
 }
+#[cfg(test)]
+impl Layouts {
+    pub(crate) fn backing_identity(&self) -> (*const (), usize) {
+        (self.0.as_ptr().cast(), self.0.capacity())
+    }
+}
 impl Serialize for Layouts {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         self.0.serialize(s)

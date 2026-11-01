@@ -60,7 +60,10 @@ mod membership;
 #[path = "durable_body_join_route.rs"]
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
-pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
+pub(crate) use membership::{
+    accept_membership_invitation, complete_body_join, complete_membership_join,
+    retain_rendezvous_membership,
+};
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]
@@ -1597,3 +1600,7 @@ mod tests {
         fs::remove_dir_all(joining_state.parent().unwrap()).unwrap();
     }
 }
+
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "durable_host/selected_environmental_sources.rs"]
+pub(crate) mod selected_environmental_sources;

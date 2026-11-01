@@ -1,0 +1,129 @@
+warning: constant `BIOGRAPHY_PROFILE` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:116:18
+    |
+116 | pub(crate) const BIOGRAPHY_PROFILE: &str = "conduit.environment/biography-owner-custody@1";
+    |                  ^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `BiographyChallenge` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:119:19
+    |
+119 | pub(crate) struct BiographyChallenge {
+    |                   ^^^^^^^^^^^^^^^^^^
+
+warning: struct `BiographyRequest` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:130:19
+    |
+130 | pub(crate) struct BiographyRequest {
+    |                   ^^^^^^^^^^^^^^^^
+
+warning: method `transcript` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:136:19
+    |
+135 | impl BiographyRequest {
+    | --------------------- method in this implementation
+136 |     pub(crate) fn transcript(&self) -> Result<[u8; 32], &'static str> {
+    |                   ^^^^^^^^^^
+
+warning: struct `AuthorizedOwnerBiography` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:163:19
+    |
+163 | pub(crate) struct AuthorizedOwnerBiography {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `matches`, `owner`, and `acknowledgement` are never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:171:19
+    |
+170 | impl AuthorizedOwnerBiography {
+    | ----------------------------- methods in this implementation
+171 |     pub(crate) fn matches(&self, body: &str, root: &[u8; 32], offer: &[u8; 32]) -> bool {
+    |                   ^^^^^^^
+...
+174 |     pub(crate) fn owner(&self) -> &[u8; 32] {
+    |                   ^^^^^
+...
+177 |     pub(crate) fn acknowledgement(&self) -> &[u8; 32] {
+    |                   ^^^^^^^^^^^^^^^
+
+warning: method `authorize_biography` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:183:19
+    |
+181 | impl Gate {
+    | --------- method in this implementation
+182 |     #[allow(clippy::too_many_arguments)]
+183 |     pub(crate) fn authorize_biography(
+    |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `AcceptedDraft` is never constructed
+ --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:9:12
+  |
+9 | pub struct AcceptedDraft {
+  |            ^^^^^^^^^^^^^
+
+warning: methods `transcript`, `root`, and `signed` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:14:12
+   |
+13 | impl AcceptedDraft {
+   | ------------------ methods in this implementation
+14 |     pub fn transcript(&self) -> [u8; 32] {
+   |            ^^^^^^^^^^
+...
+17 |     pub fn root(&self) -> &[u8; 32] {
+   |            ^^^^
+...
+20 |     pub fn signed(mut self, signature: [u8; 64]) -> Receipt {
+   |            ^^^^^^
+
+warning: function `verify_ack` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:25:8
+   |
+25 | pub fn verify_ack(
+   |        ^^^^^^^^^^
+
+warning: function `accept_owner` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:83:15
+   |
+83 | pub(crate) fn accept_owner(
+   |               ^^^^^^^^^^^^
+
+warning: field `0` is never read
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:101:12
+    |
+101 |     Staged(Box<PendingCheckpoint>, &'static str),
+    |     ------ ^^^^^^^^^^^^^^^^^^^^^^
+    |     |
+    |     field in this variant
+    |
+help: consider changing the field to be of unit type to suppress this warning while preserving the field numbering, or remove the field
+    |
+101 -     Staged(Box<PendingCheckpoint>, &'static str),
+101 +     Staged((), &'static str),
+    |
+
+warning: calls to `std::mem::drop` with a reference instead of an owned value does nothing
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_restart_network_pending_job_tests.rs:177:5
+    |
+177 |     drop(store);
+    |     ^^^^^-----^
+    |          |
+    |          argument has type `&mut native_restart::Store`
+    |
+    = note: `#[warn(dropping_references)]` on by default
+help: use `let _ = ...` to ignore the expression or result
+    |
+177 -     drop(store);
+177 +     let _ = store;
+    |
+
+warning: `conduit-environment-make` (test "native_body_join") generated 13 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running tests/native_body_join.rs (/tmp/conduit-source-series-integration-20261031/debug/deps/native_body_join-32610438b8b70944)
+
+running 1 test
+owned_membership_cpu64: reserve_extra_peak=1168 reserve_extra_retained=1168 reserve_stage_extra_peak=5415 reserve_stage_extra_retained=3740 body_baseline_excluded=true target_total_or_wcet=false
+owned_membership_cpu64: prepare_extra_peak=352 chunk_extra_peak=352 finish_extra_peak=352 physical_extra_peak=0 body_baseline_excluded=true target_total_or_wcet=false
+test membership::owned_membership_physical_failure_retains_unsigned_custody ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 75 filtered out; finished in 0.61s
+

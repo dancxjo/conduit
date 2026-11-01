@@ -22,6 +22,10 @@ pub struct RemoteHostWorkRef<'a> {
 }
 
 impl InstalledRemoteFragment {
+    pub(crate) fn native_request_is_pending(&self, request: HostCallRequest) -> bool {
+        self.scheduler.host_call_is_pending(request)
+    }
+
     pub fn host_request_view(
         &self,
         request: HostCallRequest,

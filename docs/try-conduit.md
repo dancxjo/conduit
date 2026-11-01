@@ -65,7 +65,22 @@ cargo xtask prove journey patchbay --on browser
 ```
 
 This command builds the required browser runtime and serves it locally. Keep
-the terminal process running while using the page. A separate browser host can
+the terminal process running while using the page.
+
+To open your own editable source, add `--plot <LABEL> <PATH>` (repeatable):
+
+```bash
+cargo xtask prove journey patchbay --on browser --plot "My Plot" work/making.conduit
+```
+
+The file must already contain a checked Plot; `plot making { }` is an ordinary
+empty starting point. Open it from Library, place Gears, select a Gear to configure
+it, and drag between compatible Ports or use their connection controls in Inspect.
+**Save Plot** writes the acknowledged source to that file. Relaunch with the same
+command to reopen it. Layouts and notes are saved separately and do not edit source.
+Birth, Wake, Plan and Play are explicit actions; editing alone starts no Body.
+
+A separate browser host can
 be launched with `cargo xtask make host browser`; each launch has its own
 runtime identity. The [body lifecycle guide](self-hosted-biography.md) explains
 how resident Plots, Crèche compatibility, and Patchbay relate.

@@ -55,7 +55,7 @@ impl Selection {
         }
         Ok(())
     }
-    fn checked(&self) -> Result<CheckedHostConfiguration, String> {
+    pub(super) fn checked(&self) -> Result<CheckedHostConfiguration, String> {
         let checked = check(&self.source)?;
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
@@ -116,6 +116,16 @@ impl Selection {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
                 }
+                Some("linux/environmental-sources@1") => {
+                    #[cfg(not(all(
+                        feature = "installed-environmental-sources",
+                        target_os = "linux"
+                    )))]
+                    return Err(
+                        "selected environmental sources require the installed Linux-native feature"
+                            .into(),
+                    );
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -159,6 +169,18 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
+                }
+                Some("linux/environmental-sources@1") => {
+                    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+                    super::selected_environmental_sources::validate(&checked)?;
+                    #[cfg(not(all(
+                        feature = "installed-environmental-sources",
+                        target_os = "linux"
+                    )))]
+                    return Err(
+                        "selected environmental sources require the installed Linux-native feature"
+                            .into(),
+                    );
                 }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }

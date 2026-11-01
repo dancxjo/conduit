@@ -169,6 +169,16 @@ fn main() -> Result<()> {
         );
     }
 
+    if args.get(1).is_some_and(|a| a == "--submit-membership") {
+        if args.len() != 5 {
+            return Err("expected --submit-membership PRIVATE_REQUEST PRIVATE_TRANSPORT_STATE HOST:PORT; this transports evidence only, not membership authority".into());
+        }
+        return body_join::membership_transport::run(
+            std::path::Path::new(&args[2]),
+            std::path::Path::new(&args[3]),
+            &args[4],
+        );
+    }
     if args
         .get(1)
         .is_some_and(|a| a == "--issue-private-invitation" || a == "--join-observer")

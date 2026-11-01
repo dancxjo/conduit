@@ -121,7 +121,7 @@ fn choice_fallback_is_source_disclosed_detail_with_exact_selection_and_action_bi
             .unwrap();
         assert_eq!(subject.role, FaceRole::Plot);
         assert_eq!(subject.name, choice.title);
-        let details_id = format!("{}/selection-details", subject.identity);
+        let details_id = format!("{}/d", subject.identity);
         let details = face
             .subjects
             .iter()

@@ -432,6 +432,12 @@ fn main() {
                 }),
         }) => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
         Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::AcceptMembership { invitation, state_dir, root_key, authorize_join }),
+        }) => durable_host::accept_membership_invitation(&invitation, &state_dir, &root_key, authorize_join),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::CompleteMembership { receipt, state_dir, authorize_membership }),
+        }) => durable_host::complete_membership_join(&receipt, &state_dir, authorize_membership),
+        Some(cli::Command::Body {
             command: Some(command),
         }) => match command {
             #[cfg(target_os = "linux")]

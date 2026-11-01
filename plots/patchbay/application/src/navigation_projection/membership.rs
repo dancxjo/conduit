@@ -183,6 +183,9 @@ fn property_belongs_to_aspect(
     if role == Some(FaceRole::Sign) {
         return aspect == FaceAspect::Signs;
     }
+    if role == Some(FaceRole::Play) {
+        return aspect == FaceAspect::Play;
+    }
     if !matches!(role, Some(FaceRole::Gear | FaceRole::Cord)) {
         return aspect == FaceAspect::Structure;
     }

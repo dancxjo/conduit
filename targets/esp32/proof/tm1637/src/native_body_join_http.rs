@@ -70,9 +70,6 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
     STATE.lock(|state| {
         let mut state = state.borrow_mut();
         prune_completed(&mut state, embassy_time::Instant::now().as_millis());
-        if !state.enabled || !crate::native_restart::publication_ready() {
-            return Err("body-join-unavailable");
-        }
         if let Some(done) = &state.completed {
             if done.digest == digest {
                 return Ok(done.ticket);
@@ -92,6 +89,11 @@ pub(crate) fn submit(bytes: &[u8]) -> Result<u32, &'static str> {
                 Err("body-join-busy")
             };
         }
+        // Retrying retained custody does not start admission or need Store access.
+        // Only a new proof is gated on the current checkpoint owner being ready.
+        if !state.enabled || !crate::native_restart::publication_ready() {
+            return Err("body-join-unavailable");
+        }
         let ticket = state.next.checked_add(1).ok_or("body-join-exhausted")?;
         state.next = ticket;
         state.pending = Some(Pending {
@@ -106,9 +108,6 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
     STATE.lock(|state| {
         let mut state = state.borrow_mut();
         prune_completed(&mut state, embassy_time::Instant::now().as_millis());
-        if !state.enabled {
-            return ResultReply::Unavailable;
-        }
         if let Some(done) = &state.completed {
             if done.ticket == ticket {
                 let mut bytes = Vec::new();
@@ -129,10 +128,32 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
         }
         if let Some((refused, reason)) = state.refused.filter(|(refused, _)| *refused == ticket) {
             ResultReply::Refused(refused, reason)
+        } else if !state.enabled {
+            ResultReply::Unavailable
         } else {
             ResultReply::Unknown
         }
     })
+}
+/// Response storage is admitted before moving accepted input into execution.
+/// Pressure leaves the original request allocation and ticket available to retry.
+fn take_prepared_pending(
+    state: &mut State,
+    prepare_response: impl FnOnce() -> Result<Vec<u8>, &'static str>,
+) -> Option<(Pending, Vec<u8>)> {
+    state.pending.as_ref()?;
+    let bytes = prepare_response().ok()?;
+    let pending = state.pending.take()?;
+    state.inflight = Some((pending.ticket, pending.digest));
+    Some((pending, bytes))
+}
+fn response_backing() -> Result<Vec<u8>, &'static str> {
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(2048)
+        .map_err(|_| "body-join-memory")?;
+    bytes.resize(2048, 0);
+    Ok(bytes)
 }
 fn prune_completed(state: &mut State, now_ms: u64) {
     cache::prune(&mut state.completed, now_ms, |done| done.deadline);
@@ -154,11 +175,9 @@ impl crate::native_root::NativeRoot {
             if !state.enabled {
                 return None;
             }
-            let pending = state.pending.take()?;
-            state.inflight = Some((pending.ticket, pending.digest));
-            Some(pending)
+            take_prepared_pending(&mut state, response_backing)
         });
-        let Some(pending) = pending else {
+        let Some((pending, mut bytes)) = pending else {
             return;
         };
         let ticket = pending.ticket;
@@ -166,12 +185,6 @@ impl crate::native_root::NativeRoot {
         let result = (|| {
             let request = crate::native_body_join::decode_command(&pending.bytes)?;
             drop(pending);
-            // Reserve response custody before mutating the authoritative Body.
-            let mut bytes = Vec::new();
-            bytes
-                .try_reserve_exact(2048)
-                .map_err(|_| "body-join-memory")?;
-            bytes.resize(2048, 0);
             let mut deadline = None;
             let length = match request {
                 crate::native_body_join::Command::ReturnChallenge(request) => {
@@ -238,3 +251,7 @@ fn response(
         },
     }
 }
+
+#[cfg(test)]
+#[path = "native_body_join_http_tests.rs"]
+mod tests;

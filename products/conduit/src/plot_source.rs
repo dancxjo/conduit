@@ -211,6 +211,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     )
     .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    conduit_environment_host::source_operator::install_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profiles)?;
     if include_dsp {

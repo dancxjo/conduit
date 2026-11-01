@@ -32,6 +32,7 @@ pub struct CollectorRoot {
     installed: SharedHost,
     slots: Vec<UsbSourceRoot<Provider>>,
     sealed: bool,
+    standalone_publication: bool,
 }
 impl CollectorRoot {
     pub fn new(installed: conduit_std_host::StdHost) -> Self {
@@ -39,7 +40,14 @@ impl CollectorRoot {
             installed: Arc::new(Mutex::new(Some(installed))),
             slots: Vec::with_capacity(4),
             sealed: false,
+            standalone_publication: true,
         }
+    }
+    /// Installed execution exposes only Backs dispatched by the ordinary kernel.
+    pub fn new_installed(installed: conduit_std_host::StdHost) -> Self {
+        let mut root = Self::new(installed);
+        root.standalone_publication = false;
+        root
     }
     pub fn attach_usb(
         &mut self,
@@ -96,14 +104,43 @@ impl CollectorRoot {
             self.installed.clone(),
             provider,
             realization,
-            |provider, identity, base| match provider {
-                Provider::Usb(_) => Ok(()),
-                Provider::Network(network) => network.register_native(identity, base),
+            |provider, identity, base| {
+                if !self.standalone_publication {
+                    base.capabilities
+                        .retain(|offer| offer.capability_id != identity.publication);
+                }
+                match provider {
+                    Provider::Usb(_) => Ok(()),
+                    Provider::Network(network) => network.register_native(identity, base),
+                }
             },
         )?;
         let id = CollectorSourceId(self.slots.len());
         self.slots.push(root);
         Ok(id)
+    }
+    /// Locally owned planning grants; copying them establishes no remote membership.
+    pub fn source_authority_grants(&self) -> Vec<AuthorityGrant> {
+        self.slots.iter().map(UsbSourceRoot::grant).collect()
+    }
+    pub fn native_authority_grants(&self) -> Result<Vec<AuthorityGrant>, Refusal> {
+        let host = self.advertisement()?;
+        let mut grants = self.source_authority_grants();
+        for slot in &self.slots {
+            if let Some(Provider::Network(network)) = slot.provider.as_ref() {
+                grants.extend(network.authority_grants(&host));
+            }
+        }
+        Ok(grants)
+    }
+    pub fn source_descriptor(
+        &self,
+        id: CollectorSourceId,
+    ) -> Result<SourceSessionDescriptor, Refusal> {
+        self.slots
+            .get(id.0)
+            .map(UsbSourceRoot::source_descriptor)
+            .ok_or(Refusal::Possession)
     }
     pub fn advertisement(&self) -> Result<HostAdvertisement, Refusal> {
         Ok(self
@@ -133,6 +170,9 @@ impl CollectorRoot {
     }
     /// Serial capture is enforced by exclusive access to the same composite owner.
     pub async fn sample(&mut self, id: CollectorSourceId) -> Result<CommittedSample, Refusal> {
+        if !self.standalone_publication {
+            return Err(Refusal::Authority);
+        }
         self.seal_inventory()?;
         self.slots
             .get_mut(id.0)
@@ -267,6 +307,7 @@ mod handoff_tests {
             installed: installed.clone(),
             slots: Vec::new(),
             sealed: false,
+            standalone_publication: true,
         };
         let lease = installed
             .lock()
@@ -321,3 +362,170 @@ const _: fn() = || {
     send::<conduit_std_host::StdHost>();
     send::<DetachedCollectorEquipment>();
 };
+
+impl DetachedCollectorEquipment {
+    /// Compatibility caller: prepare one original-lease work owner, retire native
+    /// IO, then reunite and complete the same ordinary kernel request.
+    pub async fn complete_admitted_request(
+        self,
+        host: conduit_std_host::StdHost,
+        mut admitted: conduit_std_host::AdmittedRemoteFragment,
+        request: conduit_kernel::scheduler::HostCallRequest,
+    ) -> (
+        conduit_std_host::StdHost,
+        Self,
+        conduit_std_host::AdmittedRemoteFragment,
+        Result<bool, Refusal>,
+    ) {
+        let work = match host.prepare_native_work(&mut admitted, request) {
+            Ok(work) => work,
+            Err(_) => return (host, self, admitted, Err(Refusal::Authority)),
+        };
+        let (host, equipment, work, captured) = self.complete_native_work(host, work).await;
+        let returned = match host.return_native_work(&mut admitted, work) {
+            Ok(returned) => returned,
+            Err(_) => return (host, equipment, admitted, Err(Refusal::Authority)),
+        };
+        let completed = returned
+            .complete(&mut admitted, captured.as_ref().ok().map(Vec::as_slice))
+            .map_err(|_| Refusal::Authority);
+        let result = match captured {
+            Ok(_) => completed,
+            Err(reason) => Err(reason),
+        };
+        (host, equipment, admitted, result)
+    }
+    /// Worker owns the actual Host, native equipment and ORIGINAL affine lease.
+    /// The ordinary kernel/session stays on the control thread. No lease is
+    /// copied, released, reconstructed or reserved a second time by this turn.
+    pub async fn complete_native_work(
+        self,
+        host: conduit_std_host::StdHost,
+        mut work: conduit_std_host::PreparedNativeWork,
+    ) -> (
+        conduit_std_host::StdHost,
+        Self,
+        conduit_std_host::PreparedNativeWork,
+        Result<Vec<u8>, Refusal>,
+    ) {
+        if host.advertisement() != &self.inventory
+            || self
+                .collector
+                .installed
+                .lock()
+                .expect("collector Host mutex poisoned")
+                .is_some()
+            || host.validate_native_work(&work).is_err()
+        {
+            return (host, self, work, Err(Refusal::Advertisement));
+        }
+        let selected = work.selected();
+        let Some(operation) = selected.lowered.host_calls.iter().find(|operation| {
+            operation.node == work.request().node && operation.call == work.request().call
+        }) else {
+            return (host, self, work, Err(Refusal::Plan));
+        };
+        let Some(gear) = selected
+            .fragment
+            .placements
+            .iter()
+            .find(|gear| &gear.placement_id == selected.placement_id)
+        else {
+            return (host, self, work, Err(Refusal::Plan));
+        };
+        if operation.contract_id.as_str()
+            == conduit_std_host::isolated_http_base::HTTP_CLIENT_OPERATION
+        {
+            let slot=self.collector.slots.iter().find(|slot|matches!(slot.provider.as_ref(),Some(Provider::Network(network)) if network.matches_capability(&gear.capability_id)));
+            let result = match slot {
+                Some(slot) if !slot.failed => match slot.provider.as_ref() {
+                    Some(Provider::Network(network)) => network.exchange_admitted(&host, &mut work),
+                    _ => Err(Refusal::Possession),
+                },
+                _ => Err(Refusal::Possession),
+            };
+            return (host, self, work, result);
+        }
+        if operation.contract_id.as_str() != HOST_CALL {
+            return (host, self, work, Err(Refusal::Authority));
+        }
+        let Some(index) = self
+            .collector
+            .slots
+            .iter()
+            .position(|slot| slot.identity.capability == gear.capability_id)
+        else {
+            return (host, self, work, Err(Refusal::Possession));
+        };
+        if host.begin_native_work(&mut work).is_err() {
+            return (host, self, work, Err(Refusal::Authority));
+        }
+        *self
+            .collector
+            .installed
+            .lock()
+            .expect("collector Host mutex poisoned") = Some(host);
+        let mut equipment = self;
+        let result = async {
+            let selected = work.selected();
+            let slot = &mut equipment.collector.slots[index];
+            if slot.failed {
+                return Err(Refusal::Possession);
+            }
+            let (table, handle, claim) =
+                slot.issue_for_active(selected.fragment, selected.active)?;
+            let contract = ObservationContract::prepare().map_err(|_| Refusal::Plan)?;
+            let provider = slot.provider.take().ok_or(Refusal::Possession)?;
+            // Actual initialized custody remains retained here; the opaque work
+            // owner carries the original admitted lease and selected request.
+            let binding = unsafe {
+                EnvironmentalSourceHostCall::bind_selected(
+                    table, handle, claim, provider, &contract, selected,
+                )
+            };
+            let mut owner = match binding {
+                Ok(owner) => owner,
+                Err((_, _, _, provider, _)) => {
+                    slot.provider = Some(provider);
+                    return Err(Refusal::Authority);
+                }
+            };
+            let request = work.request();
+            let mut bytes = [0u8; MAXIMUM_BYTES];
+            let captured = owner
+                .invoke(
+                    request.node,
+                    request.call,
+                    request.request,
+                    work.input(),
+                    &mut bytes,
+                )
+                .await
+                .map_err(|_| Refusal::Acquisition);
+            let revoked = owner.revoke().map_err(|_| Refusal::Authority);
+            let mut retained = Some(owner);
+            slot.provider = Some(
+                EnvironmentalSourceHostCall::retire_retained(&mut retained)
+                    .map_err(|_| Refusal::Possession)?,
+            );
+            let length = match captured {
+                Ok(length) => length,
+                Err(reason) => {
+                    slot.failed = true;
+                    return Err(reason);
+                }
+            };
+            revoked?;
+            Ok(bytes[..length].to_vec())
+        }
+        .await;
+        let host = equipment
+            .collector
+            .installed
+            .lock()
+            .expect("collector Host mutex poisoned")
+            .take()
+            .expect("actual owner retained through native turn");
+        (host, equipment, work, result)
+    }
+}
