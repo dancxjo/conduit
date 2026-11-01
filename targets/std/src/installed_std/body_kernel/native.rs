@@ -123,6 +123,9 @@ impl NativeRoute {
         }
         Ok(())
     }
+    pub(super) fn is_prepared(&self) -> bool {
+        self.entries.iter().all(|entry| entry.descriptor.is_some())
+    }
     pub(super) fn contains(&self, node: conduit_kernel::NodeId) -> bool {
         self.entries.iter().any(|entry| entry.global == node)
     }

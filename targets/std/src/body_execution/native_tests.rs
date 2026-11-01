@@ -447,3 +447,64 @@ fn repeated_native_turns_reuse_prepared_metadata_and_input_storage() {
     assert_eq!(provider.calls, 2);
     assert_eq!(capture.0.len(), 2);
 }
+
+#[test]
+fn classic_runner_refuses_native_work_before_start_or_any_output() {
+    let (mut host, plan, wake, inputs) = fixture();
+    let sequence = host.next_kernel_play_sequence;
+    let control = RunControl::default();
+    let mut output = Vec::new();
+    let mut capture = Capture::default();
+    let error = host
+        .run_body_plan_with_fore_to_with_start(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &plan,
+                control: &control,
+                keyboard: None,
+            },
+            &inputs,
+            false,
+            &mut capture,
+            &mut output,
+            &mut Timer,
+            |_, _| panic!("classic runner started without native provider"),
+        )
+        .unwrap_err();
+    assert!(error.contains("unsupported"), "{error}");
+    assert!(output.is_empty());
+    assert!(capture.0.is_empty());
+    assert_eq!(host.next_kernel_play_sequence, sequence);
+    assert!(host.native_resources_idle());
+}
+
+#[test]
+fn unprepared_native_route_refuses_execution_support_before_admission() {
+    let (host, plan, _, inputs) = fixture();
+    let play = BodyPlayIdentity::bind(&plan, host.next_kernel_play_sequence);
+    let mut kernel = BodyKernel::prepare_with_live(
+        &plan.plots,
+        false,
+        &play.active_play_id,
+        &inputs,
+        false,
+        true,
+        None,
+        None,
+        #[cfg(target_os = "linux")]
+        None,
+        &host.retained_native_calls,
+    )
+    .unwrap();
+    assert!(kernel
+        .require_supported_execution()
+        .unwrap_err()
+        .contains("native work has no prepared"));
+    assert!(host.native_resources_idle());
+    kernel
+        .prepare_native_slots(host.advertisement(), play.play_sequence)
+        .unwrap();
+    kernel.require_supported_execution().unwrap();
+    // Preparing descriptive slots still grants no resource possession.
+    assert!(host.native_resources_idle());
+}
