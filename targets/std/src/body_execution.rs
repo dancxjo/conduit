@@ -21,7 +21,9 @@ mod parsec_instruction_effect_observation;
 pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
 
 mod borrowed_fore;
+mod durable_state;
 pub use borrowed_fore::{BodyBorrowedForeOutputAdapter, BodyForeDeliveryRef};
+pub use durable_state::BodyDurableStateSelection;
 mod fore;
 mod fore_custody;
 pub mod native;
@@ -319,6 +321,7 @@ impl StdHost {
             terminal,
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             None,
+            None,
             started,
         )
     }
@@ -342,6 +345,7 @@ impl StdHost {
         #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshots: Option<
             BodySnapshotSelection<'a>,
         >,
+        durable_state: Option<BodyDurableStateSelection<'a>>,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -382,47 +386,73 @@ impl StdHost {
         // a preparation refusal leaves the Host sequence untouched.
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
-        let mut kernel = if let Some((queue, _)) = &live {
-            BodyKernel::prepare_live_on_host(
-                &request.plan.plots,
-                request.keyboard.is_some(),
-                &prospective_play.active_play_id,
-                queue,
-                request.control,
-                &self.advertisement,
-                #[cfg(target_os = "linux")]
-                self.selected_text_file.as_ref(),
-            )?
-        } else {
-            BodyKernel::prepare_on_host(
-                &request.plan.plots,
-                request.keyboard.is_some(),
-                &prospective_play.active_play_id,
-                fore_inputs,
-                sequential_fore,
-                has_fore_output,
-                &self.advertisement,
-                #[cfg(target_os = "linux")]
-                self.selected_text_file.as_ref(),
-            )?
+        let prepare_kernel = |issued: Option<&BodyPlayIdentity>| {
+            if let Some(selection) = durable_state.as_ref() {
+                let issued = issued.ok_or("Body State needs an actually issued Play")?;
+                let mut kernel = BodyKernel::prepare_durable_on_host(
+                    &request.plan.plots,
+                    request.keyboard.is_some(),
+                    issued,
+                    fore_inputs,
+                    sequential_fore,
+                    has_fore_output,
+                    &self.advertisement,
+                    #[cfg(target_os = "linux")]
+                    self.selected_text_file.as_ref(),
+                    selection,
+                )?;
+                kernel.prepare_input_origin(&self.advertisement, request.plan, issued)?;
+                kernel.require_supported_execution()?;
+                return Ok(kernel);
+            }
+            let mut kernel = if let Some((queue, _)) = &live {
+                BodyKernel::prepare_live_on_host(
+                    &request.plan.plots,
+                    request.keyboard.is_some(),
+                    &prospective_play.active_play_id,
+                    queue,
+                    request.control,
+                    &self.advertisement,
+                    #[cfg(target_os = "linux")]
+                    self.selected_text_file.as_ref(),
+                )?
+            } else {
+                BodyKernel::prepare_on_host(
+                    &request.plan.plots,
+                    request.keyboard.is_some(),
+                    &prospective_play.active_play_id,
+                    fore_inputs,
+                    sequential_fore,
+                    has_fore_output,
+                    &self.advertisement,
+                    #[cfg(target_os = "linux")]
+                    self.selected_text_file.as_ref(),
+                )?
+            };
+            kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
+            if let Some(terminal) = &terminal {
+                kernel.attach_parsec_terminal(
+                    request.plan,
+                    &self.advertisement,
+                    terminal.columns,
+                    terminal.rows,
+                )?;
+            }
+            if let Some((root, checkpoint)) = checkpoint {
+                kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
+            }
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            if let Some(selection) = snapshots {
+                kernel.attach_snapshot(&request.plan.plots, selection, &prospective_play)?;
+            }
+            kernel.require_supported_execution()?;
+            Ok::<_, String>(kernel)
         };
-        kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
-        if let Some(terminal) = &terminal {
-            kernel.attach_parsec_terminal(
-                request.plan,
-                &self.advertisement,
-                terminal.columns,
-                terminal.rows,
-            )?;
-        }
-        if let Some((root, checkpoint)) = checkpoint {
-            kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
-        }
-        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
-        if let Some(selection) = snapshots {
-            kernel.attach_snapshot(&request.plan.plots, selection, &prospective_play)?;
-        }
-        kernel.require_supported_execution()?;
+        let mut prepared_kernel = if durable_state.is_none() {
+            Some(prepare_kernel(None)?)
+        } else {
+            None
+        };
         let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,
             &request
@@ -441,6 +471,10 @@ impl StdHost {
             if play.play_sequence != sequence {
                 return Err("Body prospective Play identity changed before start".into());
             }
+            let mut kernel = match prepared_kernel.take() {
+                Some(kernel) => kernel,
+                None => prepare_kernel(Some(&play))?,
+            };
             kernel.confirm_input_play(&self.advertisement, &play)?;
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             kernel.confirm_snapshot_play(&play)?;

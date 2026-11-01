@@ -12,6 +12,7 @@ use std::io::Write;
 /// Root must retain the directory-to-pool mapping and disk capacity separately.
 /// The existing Host ledger admits the complete exact Plan before start; this
 /// selection neither issues a grant nor makes another reservation.
+#[derive(Clone, Copy)]
 pub struct BodySnapshotSelection<'a> {
     pub directory: &'a SnapshotDirectory,
     pub resource: &'a ResourceOffer,
@@ -56,6 +57,7 @@ impl StdHost {
             None,
             None,
             Some(selection),
+            None,
             started,
         )
     }
