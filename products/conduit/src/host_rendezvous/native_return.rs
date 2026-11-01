@@ -176,6 +176,7 @@ pub(crate) fn snapshot<C: conduit_protected_line::ProtectedFrameCarrier>(
         line.restrict_deadline(
             std::time::Instant::now() + std::time::Duration::from_millis(maximum_millis),
         )?;
+        line.require_document_capacity(conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES + 256)?;
         line.send(&client.advertise()?)?;
         let proof = client.challenge(&line.receive()?)?;
         line.send(&proof)?;

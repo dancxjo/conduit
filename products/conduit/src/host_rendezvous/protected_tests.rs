@@ -142,6 +142,30 @@ fn policy() -> ProtectedSessionPolicy {
 }
 
 fn protected_lines() -> (ProtectedMemoryLine, ProtectedMemoryLine) {
+    protected_lines_for(binding(), policy())
+}
+/// Real Noise session over finite one-slot channels; no handshake bypass.
+pub(super) fn native_snapshot_lines(
+    chosen: SessionBinding,
+    maximum_document_bytes: usize,
+) -> (
+    super::ProtectedDocumentLine<impl ProtectedFrameCarrier + Send>,
+    super::ProtectedDocumentLine<impl ProtectedFrameCarrier + Send>,
+) {
+    let (client, server) = protected_lines_for(chosen, policy());
+    let workspace = super::DocumentWorkspace {
+        maximum_document_bytes,
+        capacity_bytes: maximum_document_bytes + 65_519,
+    };
+    (
+        super::ProtectedDocumentLine::new(client.inner, 2000, Some(workspace)).unwrap(),
+        super::ProtectedDocumentLine::new(server.inner, 2000, Some(workspace)).unwrap(),
+    )
+}
+fn protected_lines_for(
+    chosen: SessionBinding,
+    selected_policy: ProtectedSessionPolicy,
+) -> (ProtectedMemoryLine, ProtectedMemoryLine) {
     let (client_send, server_receive) = mpsc::sync_channel(1);
     let (server_send, client_receive) = mpsc::sync_channel(1);
     let mut client_io = ChannelCarrier {
@@ -152,32 +176,33 @@ fn protected_lines() -> (ProtectedMemoryLine, ProtectedMemoryLine) {
         send: Some(server_send),
         receive: server_receive,
     };
+    let responder_binding = chosen.clone();
     let server = std::thread::spawn(move || {
         let session = establish_protected_session(
             &mut server_io,
             Role::Responder,
-            &binding(),
-            policy(),
+            &responder_binding,
+            selected_policy,
             [41; 32],
             [43; 32],
         )
         .unwrap();
         ProtectedMemoryLine {
-            inner: ProtectedCarrier::new(server_io, session, policy()).unwrap(),
+            inner: ProtectedCarrier::new(server_io, session, selected_policy).unwrap(),
         }
     });
     let session = establish_protected_session(
         &mut client_io,
         Role::Initiator,
-        &binding(),
-        policy(),
+        &chosen,
+        selected_policy,
         [41; 32],
         [42; 32],
     )
     .unwrap();
     (
         ProtectedMemoryLine {
-            inner: ProtectedCarrier::new(client_io, session, policy()).unwrap(),
+            inner: ProtectedCarrier::new(client_io, session, selected_policy).unwrap(),
         },
         server.join().unwrap(),
     )

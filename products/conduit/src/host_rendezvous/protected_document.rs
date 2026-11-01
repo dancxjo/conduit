@@ -200,6 +200,43 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
     }
 }
 impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
+    /// Preflight the fixed read-only response profile against actual selected
+    /// document storage and remaining protected send quotas, without enlargement.
+    pub(crate) fn require_document_capacity(&self, bytes: usize) -> Result<(), String> {
+        let payload = self.payload();
+        if self.failed
+            || bytes == 0
+            || bytes > MAXIMUM_FRAME_BYTES
+            || self
+                .workspace
+                .is_some_and(|w| bytes > w.maximum_document_bytes)
+        {
+            return Err("native snapshot document profile not selected".into());
+        }
+        let chunks = if bytes <= payload {
+            1
+        } else {
+            let w = self
+                .workspace
+                .ok_or("native snapshot document workspace missing")?;
+            if payload <= BOUNDED_DOCUMENT_HEADER_BYTES || w.capacity_bytes < bytes + payload {
+                return Err("native snapshot document workspace insufficient".into());
+            }
+            bytes.div_ceil(payload - BOUNDED_DOCUMENT_HEADER_BYTES)
+        };
+        let overhead = if chunks > 1 {
+            chunks * BOUNDED_DOCUMENT_HEADER_BYTES
+        } else {
+            0
+        };
+        let e = self.evidence();
+        if e.sent_frames + chunks as u64 > e.limits.maximum_frames_per_direction
+            || e.sent_bytes + (bytes + overhead) as u64 > e.limits.maximum_bytes_per_direction
+        {
+            return Err("native snapshot protected traffic profile insufficient".into());
+        }
+        Ok(())
+    }
     pub(crate) fn evidence(&self) -> conduit_protected_line::SessionEvidence<'_> {
         self.inner.session().evidence()
     }

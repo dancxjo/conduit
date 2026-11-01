@@ -25,6 +25,8 @@ mod secure;
 pub(crate) use secure::SecureNetworkOptions;
 mod protected_document;
 mod relay;
+#[cfg(unix)]
+pub(crate) use relay::{connect_native_snapshot,serve_native_snapshot};
 #[allow(unused_imports)]
 // Owning protected browser service bridge binds this adapter separately.
 pub(crate) use protected_document::{DocumentWorkspace, ProtectedDocumentLine};
@@ -735,6 +737,8 @@ fn debug<T: core::fmt::Debug>(context: &'static str) -> impl FnOnce(T) -> String
 #[cfg(test)]
 #[path = "host_rendezvous/protected_tests.rs"]
 mod protected_tests;
+#[cfg(test)]
+pub(crate) use protected_tests::native_snapshot_lines;
 
 #[cfg(test)]
 mod tests {

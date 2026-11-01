@@ -60,6 +60,7 @@ pub(crate) fn serve<C: ProtectedFrameCarrier>(
         {
             return Err("native snapshot owner Boot changed".into());
         }
+        line.require_document_capacity(MAX_OWNER_FACE_RESPONSE_BYTES + 256)?;
         let first = line.receive()?;
         let frame = decode(&first)?;
         let In::ReturnAdvertise {
@@ -213,3 +214,7 @@ fn encode(frame: &Out) -> Result<Vec<u8>, String> {
     }
     Ok(bytes)
 }
+
+#[cfg(test)]
+#[path = "native_snapshot_tests.rs"]
+mod tests;

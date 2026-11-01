@@ -87,6 +87,7 @@ impl DurableHostRuntime {
             .map_err(|_| "native snapshot response encoding")?
             .len()
             > conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES
+                .min(owner.native_face_response_bytes(request))
         {
             return Err("native snapshot exceeds canonical response profile".into());
         }
