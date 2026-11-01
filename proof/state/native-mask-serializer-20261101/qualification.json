@@ -1,0 +1,73 @@
+{
+  "baseline_source": "5c2c835a786870769e114ca89ff4eeb1c2500cf9",
+  "borrowed_source": "d040b7e017d4e1c6a34b974eed941823a20a5366",
+  "initial_compile_refusal_source": "ddc54cdc8cb5026b2b5caa5faebd2eb64f51d926",
+  "rustc": "1.98.1 (48a229cea 2026-09-01)",
+  "command": "cargo +stable test --locked --manifest-path bodies/environment/make/Cargo.toml --test mask_show_context actual_native_verified_context -- --nocapture",
+  "owning_command": "cargo +stable test --locked --manifest-path bodies/environment/make/Cargo.toml --test mask_show_context -- --nocapture",
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "baseline": {
+    "passed": 1,
+    "allocations": 414,
+    "reallocations": 18,
+    "requested_bytes": 79311,
+    "peak_bytes": 15412,
+    "retained_bytes": 3873,
+    "wire_bytes": 3451,
+    "test_seconds": 0.14
+  },
+  "borrowed": {
+    "passed": 1,
+    "allocations": 266,
+    "reallocations": 18,
+    "requested_bytes": 73801,
+    "peak_bytes": 15412,
+    "retained_bytes": 3873,
+    "wire_bytes": 3451,
+    "test_seconds": 0.14
+  },
+  "owning_target": {
+    "passed": 4,
+    "test_seconds": 0.19
+  },
+  "plan_id": "a054619ca3806f5ec0e3c27e61572db3d507164d781b875c7eb3ba68117f3684",
+  "bounds": {
+    "renderer_resource_bytes": 64,
+    "renderer_face_bytes": 8192,
+    "renderer_show_bytes": 8192,
+    "context_output_bytes": 4096,
+    "borrowed_scratch_bytes": [
+      8192,
+      8192
+    ]
+  },
+  "raw_logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/native-mask-serializer-20261101/baseline-ddc54cdc8c.log",
+      "bytes": 9816,
+      "sha256": "dd8cc67d7bf12848e31d2b66860727a1e56e42e4f0a91e1a58519ffbe03abd5c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/native-mask-serializer-20261101/baseline-locked.log",
+      "bytes": 780,
+      "sha256": "4d613b54c390d8be09ae23c1bb7c7b990aa14ee8bd13bfc106442dc6fd106946"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/native-mask-serializer-20261101/borrowed-d040b7e017.log",
+      "bytes": 8204,
+      "sha256": "a9ea687967d83e918f2c56f2b1275d2161f0d286d6639eaa3d29e981cdc0a5f9"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/native-mask-serializer-20261101/owning-d040b7e017.log",
+      "bytes": 1013,
+      "sha256": "10df0ceb41c7fc3009a91c8715a81987db984752d0f591dd809fd262e77e3ac9"
+    }
+  ],
+  "boundary": "CPU fixture allocation/copy work only; peak unchanged; no MCU heap, stack, flash, sampling or physical workspace admission claim"
+}
