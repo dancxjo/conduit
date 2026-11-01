@@ -46,14 +46,15 @@ fn fore(selection: &Arc<SourceSelection>, sequence: u64, play: u64, time: u64) -
 #[test]
 fn staged_source_fore_is_bounded_ordered_and_duplicate_idempotent() {
     let selection = selection();
-    let body: conduit_body::BodyId = "body/stage".into();
+    let body: conduit_body::BodyId = conduit_body::BodyId::bound("body/stage".into());
     let mut stage = SourceRecordingStage::prepare(body.clone(), Arc::clone(&selection)).unwrap();
     stage.check_selection(&body, &selection).unwrap();
-    assert!(
-        stage
-            .check_selection(&"body/other".into(), &selection)
-            .is_err()
-    );
+    assert!(stage
+        .check_selection(
+            &conduit_body::BodyId::bound("body/other".into()),
+            &selection
+        )
+        .is_err());
     assert_eq!(
         stage.validate(&fore(&selection, 1, 1, 10)),
         Err(Refusal::Sequence)
@@ -93,8 +94,11 @@ fn staged_source_fore_is_bounded_ordered_and_duplicate_idempotent() {
 #[test]
 fn staged_source_fore_invalid_scope_or_bytes_do_not_adopt_play() {
     let selection = selection();
-    let mut stage =
-        SourceRecordingStage::prepare("body/stage".into(), Arc::clone(&selection)).unwrap();
+    let mut stage = SourceRecordingStage::prepare(
+        conduit_body::BodyId::bound("body/stage".into()),
+        Arc::clone(&selection),
+    )
+    .unwrap();
     let mut invalid = fore(&selection, 0, 1, 10);
     invalid.length = MAXIMUM_BYTES + 1;
     assert_eq!(stage.accept(&invalid), Err(Refusal::Observation));
