@@ -1,0 +1,173 @@
+{
+  "schema": "conduit.proof/physical-finite-source-play@1",
+  "installed_source": "2290f87f800cfd6e001863c4bb34653694b43a3f",
+  "product_bytes": 65451256,
+  "unchanged_image_limit_bytes": 67108864,
+  "worker_bytes": 4955336,
+  "worker_sha256": "8fbe7f9809d60e9f2b09fae5b6e77f5099e9b18851ee219ed04f8e1d85453221",
+  "preserved_body_files_at_install": 10,
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "collector_host": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+  "collector_boot": "boot/installed/d8eccab4d73b8cfc59c5a63ae148038189bf28bf568e6406e60ef9dc17a3366c",
+  "play": {
+    "active_play_id": "body-play/sha256:276da3f034654b4532e041d57a3170ede08d48f049b17c62afec8c2353ecec38",
+    "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+    "plan_id": "body-plan/sha256:b6829f7b2e60223ae5f0fe48ecf8ebb5a6cab6ea2fdd027f059808d1d4956b07",
+    "play_sequence": 1,
+    "wake_id": "ac6b56bd61b56a555ac46b805a7ed79cc462264aed3201df6020b7dd8f512e37"
+  },
+  "terminal": "Completed",
+  "failure": null,
+  "cleanup_failure": null,
+  "native_failure": null,
+  "same_source_session_subject": "environment/source-session/af5829fbc636095a71cc7fe526bdad3875480a4ab0f955e0a6306e26b4dfe541",
+  "physical_observations": [
+    {
+      "sequence": 1,
+      "canonical_sha256": "sha256:e38dd6a65dccc1f76e2855ea38db2390ad853b897ee4e7d75de4dd35d47b606c",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75433274,
+      "reported_source_counter": 4678,
+      "reported_source_ms": 142330195
+    },
+    {
+      "sequence": 2,
+      "canonical_sha256": "sha256:31cefeb6a18af3db225701ad00391c48dae07f234afc07c525fec4478b820454",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75463790,
+      "reported_source_counter": 4679,
+      "reported_source_ms": 142360648
+    },
+    {
+      "sequence": 3,
+      "canonical_sha256": "sha256:f1715beddf91afa769870e546bd28df84e5dd00251c6939b4a5184bdd25a08df",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75494164,
+      "reported_source_counter": 4680,
+      "reported_source_ms": 142391135
+    },
+    {
+      "sequence": 4,
+      "canonical_sha256": "sha256:09521bb3eabfff969b5c5d3127a6716ebfefde233c1313517cf768e6bb218d91",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75524713,
+      "reported_source_counter": 4681,
+      "reported_source_ms": 142421543
+    },
+    {
+      "sequence": 5,
+      "canonical_sha256": "sha256:29a46abf271263761d10ec3118efa9bb2ab678b3afbcdb028ad634ddb8cf06bf",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75555125,
+      "reported_source_counter": 4682,
+      "reported_source_ms": 142452010
+    },
+    {
+      "sequence": 6,
+      "canonical_sha256": "sha256:e40cc5caf205736f070bd31334c892943efe564e79466d4088b0a3b6dfa8d93f",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75585642,
+      "reported_source_counter": 4683,
+      "reported_source_ms": 142482481
+    },
+    {
+      "sequence": 7,
+      "canonical_sha256": "sha256:12aaab99211e4f88164089b2a94998cb29d5401c7dc21f6481a450e54c31915f",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75616153,
+      "reported_source_counter": 4684,
+      "reported_source_ms": 142512991
+    },
+    {
+      "sequence": 8,
+      "canonical_sha256": "sha256:9f4086f15cd936edde68d05b799306df00df8f29058a446fda0e70205006bb50",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75646634,
+      "reported_source_counter": 4685,
+      "reported_source_ms": 142543517
+    },
+    {
+      "sequence": 9,
+      "canonical_sha256": "sha256:fb1253773dc601b3e6865a53706728c8e4930d6d4a835c3831815621b83b3181",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75677183,
+      "reported_source_counter": 4686,
+      "reported_source_ms": 142574018
+    },
+    {
+      "sequence": 10,
+      "canonical_sha256": "sha256:0b7959e9501f34964b44288f0cc78ce67d7f9cea3d73d3c1f9f2b9202c579c63",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75707540,
+      "reported_source_counter": 4687,
+      "reported_source_ms": 142604481
+    },
+    {
+      "sequence": 11,
+      "canonical_sha256": "sha256:b3bb98b36f60a6fa673fcfdc14b64d71db55417a5e65e358d0f03fcb987d47a7",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75737980,
+      "reported_source_counter": 4688,
+      "reported_source_ms": 142634917
+    },
+    {
+      "sequence": 12,
+      "canonical_sha256": "sha256:34fbfb4f72ad41bb49dfe1f8c4f74562742d6c602997c1ceeb584b53324cc346",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75768529,
+      "reported_source_counter": 4689,
+      "reported_source_ms": 142665363
+    },
+    {
+      "sequence": 13,
+      "canonical_sha256": "sha256:b4954f4235ec7ca31efe71aee3f191f41f6ee1b930c059e8457a76b59b94308d",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75798982,
+      "reported_source_counter": 4690,
+      "reported_source_ms": 142695844
+    },
+    {
+      "sequence": 14,
+      "canonical_sha256": "sha256:7095014f6945fbd54a47187b4e76da810c26a7c3840b7bf4bca4fc90f8d0677e",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75829443,
+      "reported_source_counter": 4691,
+      "reported_source_ms": 142726364
+    },
+    {
+      "sequence": 15,
+      "canonical_sha256": "sha256:191019e34af574ca023fe07a663f5dce334b74d664e430dcbc0f993cf88ecdd6",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75859897,
+      "reported_source_counter": 4692,
+      "reported_source_ms": 142756834
+    },
+    {
+      "sequence": 16,
+      "canonical_sha256": "sha256:e765580bc57a5ac5caeda8a0c3a8907aeed9514a9c11415087d64f49a479e3a6",
+      "canonical_bytes": 124,
+      "host_boot_ms": 75890374,
+      "reported_source_counter": 4693,
+      "reported_source_ms": 142787277
+    }
+  ],
+  "retained_view_after_readmission": {
+    "records": 15,
+    "sequence_min": 2,
+    "sequence_max": 16,
+    "same_session": true,
+    "no_new_sample_needed_to_retain_prior_rows": true
+  },
+  "qualification": {
+    "actual_native_process_cases_on_delivery_source": 7,
+    "healthy_process_reads_before_lull": 8,
+    "additional_read_after_readmission": 1
+  },
+  "limitations": [
+    "Finite16-turn run, not indefinite/overnight capacity proof",
+    "Original earlier physicalfailurecause remains unclassified",
+    "Typed currentFace and retainedRoot evidence are not selected durableRecorder commitment or ACK",
+    "No MCU executionHost membership/browser join/HDMI delivery/NAT test claimed",
+    "Source transportUnavailable fix remains separate unqualified sourcebranch"
+  ]
+}
