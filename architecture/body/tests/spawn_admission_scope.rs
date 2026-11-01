@@ -1,6 +1,11 @@
 //! Membership parity only: identity completion grants no equipment or Play.
 use conduit_body::*;
 use conduit_core as c;
+#[allow(dead_code)]
+#[path = "common/admission_allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 const NOW: u64 = 10_000;
 const EXPIRES: u64 = 20_000;
 struct Fixture {
@@ -291,4 +296,85 @@ fn late_membership_refusal_and_receipt_capacity_preserve_atomicity_and_invitatio
         compare(&full, NOW + 1),
         Err(AdmissionRefusal::ReceiptCapacityExhausted)
     );
+}
+
+fn next_signed_admission(f: &mut Fixture, sequence: u8) {
+    let invitation = f
+        .manager
+        .issue_spawn_invitation(
+            SpawnInvitationSecret::from_csprng_bytes([sequence; 32]).unwrap(),
+            [sequence + 1; 32],
+            NOW,
+            EXPIRES,
+        )
+        .unwrap();
+    f.advertisement.host_id = format!("host/worker/{sequence}").into();
+    f.advertisement.boot_id = format!("boot/worker/{sequence}").into();
+    f.proof = SpawnAdmissionProof {
+        invitation_id: invitation.invitation_id.clone(),
+        body_id: invitation.body_id.clone(),
+        host_id: f.advertisement.host_id.clone(),
+        boot_id: f.advertisement.boot_id.clone(),
+        nonce: invitation.nonce,
+        signature: invitation.secret.sign(&invitation.signing_transcript(
+            &f.advertisement.host_id,
+            &f.advertisement.boot_id,
+            f.advertisement.offer_generation,
+        )),
+    };
+}
+fn complete(f: &mut Fixture) -> Result<MembershipCredential, AdmissionRefusal> {
+    let sequence = f.manager.receipts.len();
+    f.manager.complete_spawn_for_host(
+        &mut f.membership,
+        SpawnAdmissionHostScope::from(&f.advertisement),
+        &f.proof,
+        NOW + 1,
+        AdmissionSigns {
+            part_admitted: format!("sign/part/{sequence}").into(),
+            host_attached: format!("sign/host/{sequence}").into(),
+            candidate_admitted: format!("sign/candidate/{sequence}").into(),
+        },
+    )
+}
+
+#[test]
+fn signed_admissions_retain_exact_receipt_capacity_instead_of_geometric_growth() {
+    let mut f = fixture();
+    for sequence in 1..=8 {
+        if sequence != 1 {
+            next_signed_admission(&mut f, sequence);
+        }
+        complete(&mut f).unwrap();
+        assert_eq!(f.manager.receipts.len(), sequence as usize);
+        assert_eq!(f.manager.receipts.capacity(), sequence as usize);
+    }
+}
+#[test]
+fn exact_receipt_allocation_refusal_preserves_membership_authority_and_invitation() {
+    let mut f = fixture();
+    for sequence in 1..=8 {
+        if sequence != 1 {
+            next_signed_admission(&mut f, sequence);
+        }
+        complete(&mut f).unwrap();
+    }
+    next_signed_admission(&mut f, 9);
+    let before = serde_json::to_vec(&f.manager).unwrap();
+    let membership = f.membership.clone();
+    let pointer = f.manager.receipts.as_ptr();
+    let required = (f.manager.receipts.len() + 1) * core::mem::size_of_val(&f.manager.receipts[0]);
+    let refusal = allocation_probe::refuse_next_reallocation(pointer.cast(), required);
+    let result = complete(&mut f);
+    drop(refusal);
+    assert_eq!(result, Err(AdmissionRefusal::ReceiptCapacityExhausted));
+    assert_eq!(f.membership, membership);
+    assert_eq!(serde_json::to_vec(&f.manager).unwrap(), before);
+    assert_eq!(f.manager.receipts.as_ptr(), pointer);
+    assert_eq!(f.manager.receipts.capacity(), 8);
+    let credential = complete(&mut f).unwrap();
+    assert_eq!(credential.host_id, f.advertisement.host_id);
+    assert_eq!(f.manager.receipts.len(), 9);
+    assert_eq!(f.manager.receipts.capacity(), 9);
+    assert_eq!(complete(&mut f), Err(AdmissionRefusal::Replay));
 }

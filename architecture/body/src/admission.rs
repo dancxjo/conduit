@@ -425,6 +425,11 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
+        // This is retained authority evidence, so reserve only the next record.
+        // Refusal precedes membership publication and invitation consumption.
+        self.receipts
+            .try_reserve_exact(1)
+            .map_err(|_| AdmissionRefusal::ReceiptCapacityExhausted)?;
         self.receipts.push(AdmissionReceipt {
             admission_id,
             credential,
