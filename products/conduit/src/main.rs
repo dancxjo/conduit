@@ -5,6 +5,7 @@ mod mask_test_common;
 mod birth_identity;
 mod body_face_json;
 mod body_product;
+mod body_rename;
 mod body_terminal;
 #[cfg(unix)]
 mod body_terminal_owner;
@@ -297,6 +298,7 @@ fn main() {
                 relay_descriptor.as_deref(),
             ),
         },
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::Rename(args)) }) => body_rename::run(args),
         Some(cli::Command::Body { command: None }) => {
             current_state_dir().and_then(|state_dir| durable_host::body_status(&state_dir, false))
         }

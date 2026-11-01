@@ -24,6 +24,10 @@ pub use storage_usage::VecStorageUsage;
 
 mod administration;
 #[cfg(feature = "authenticated-admission")]
+mod rename;
+#[cfg(feature = "authenticated-admission")]
+pub use rename::*;
+#[cfg(feature = "authenticated-admission")]
 mod admission;
 #[cfg(feature = "authenticated-admission")]
 pub mod admission_advertisement_wire;
