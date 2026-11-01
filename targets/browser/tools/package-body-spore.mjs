@@ -10,6 +10,8 @@ const byteArray = value => Array.isArray(value) && value.length === 32
   && value.some(byte => byte !== 0);
 
 export async function packageBrowserBodySpore({ manifest, prepared, releaseUrl, fetcher, filename, nowMillis = Date.now() }) {
+  manifest = structuredClone(manifest);
+  prepared = structuredClone(prepared);
   if (manifest?.schema !== 'conduit.body/spore-manifest@2'
     || manifest.target !== 'browser/wasm32/page'
     || manifest.output !== 'browser-bundle' || manifest.binding?.mode !== 'self-joining'
@@ -35,6 +37,11 @@ export async function packageBrowserBodySpore({ manifest, prepared, releaseUrl, 
   }, undefined, { manifestUrl: releaseUrl, fetcher });
   if (release.manifest.bundle_sha256 !== manifest.image_content_digest) {
     throw new TypeError('The checked Spore does not bind the exact reviewed browser release');
+  }
+  if (typeof release.manifest.browser_image_id !== 'string'
+    || release.manifest.browser_profile_id !== manifest.profile_id
+    || !['runtime.wasm', 'conduit-browser-image.json', 'browser-boot-profile.mjs'].every(name => release.payloads.some(file => file.path === name))) {
+    throw new TypeError('A configured BrowserBundle with the exact IMAGE and Profile is required');
   }
   const artifact = await createBodyBoundZip({ prepared, release, filename });
   // Apply the existing consumer's checks before publishing any artifact.
