@@ -44,6 +44,8 @@ pub(in super::super) struct SourceRecordingStage {
     prepared: Option<checkpoint::PreparedSourceChunk>,
     verified: Option<super::recording_run::VerifiedSourceSnapshot>,
 }
+#[path = "source_recording_stage/catalog.rs"]
+pub(crate) mod catalog;
 #[path = "source_recording_stage/checkpoint.rs"]
 mod checkpoint;
 #[path = "source_recording_stage/publication.rs"]

@@ -246,7 +246,11 @@ fn source_publication_stale_or_missing_grant_retains_original_prefix() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
-fn finish_worker(root: &Path, owner: &mut Owner, mut worker: super::super::super::RunWorker) {
+pub(crate) fn finish_worker(
+    root: &Path,
+    owner: &mut Owner,
+    mut worker: super::super::super::RunWorker,
+) {
     let until = Instant::now() + Duration::from_secs(10);
     while !worker.progress(owner, root).unwrap() {
         assert!(
@@ -256,7 +260,7 @@ fn finish_worker(root: &Path, owner: &mut Owner, mut worker: super::super::super
         std::thread::sleep(Duration::from_millis(5));
     }
 }
-fn independent_read_grant(owner: &mut Owner) -> c::AuthorityGrant {
+pub(crate) fn independent_read_grant(owner: &mut Owner) -> c::AuthorityGrant {
     let reference = owner
         .source_recording_stage
         .as_ref()
