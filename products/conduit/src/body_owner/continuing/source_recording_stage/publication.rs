@@ -12,7 +12,7 @@ pub(crate) struct SourcePublicationInput {
     pub(crate) input: conduit_std_host::ExternalForeInput,
     pub(crate) reference: c::BoundedResourceRef,
     pub(crate) authority: c::AuthorityGrant,
-    pub(crate) expected_published: Vec<u8>,
+    pub(crate) expected_output: Vec<u8>,
     pub(crate) readback: bool,
 }
 impl Owner {
@@ -114,7 +114,7 @@ impl Owner {
             },
             reference: prepared.reference.clone(),
             authority: publish_grant.clone(),
-            expected_published: if readback {
+            expected_output: if readback {
                 content.to_vec()
             } else {
                 expected_published

@@ -1,4 +1,4 @@
-//! One exact publication through the original selected-storage Body kernel.
+//! Exact publication/readback through the original selected-storage Body kernel.
 //! Matching publication output is not independent readback or catalog custody.
 use super::*;
 use conduit_core as c;
@@ -26,8 +26,8 @@ impl RecordingRun {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
-        let mut capture = PublicationCapture {
-            expected: &self.input.expected_published,
+        let mut capture = SnapshotCapture {
+            expected: &self.input.expected_output,
             matched: false,
             readback: self.input.readback,
         };
@@ -60,12 +60,12 @@ impl RecordingRun {
             "publication_completed":completed && self.matched,"producer_retirement_authorized":false})
     }
 }
-struct PublicationCapture<'a> {
+struct SnapshotCapture<'a> {
     expected: &'a [u8],
     matched: bool,
     readback: bool,
 }
-impl BodyBorrowedForeOutputAdapter for PublicationCapture<'_> {
+impl BodyBorrowedForeOutputAdapter for SnapshotCapture<'_> {
     fn deliver(&mut self, value: BodyForeDeliveryRef<'_>) -> Result<(), String> {
         if self.matched
             || value.front_port_id.as_str()
@@ -84,9 +84,7 @@ impl BodyBorrowedForeOutputAdapter for PublicationCapture<'_> {
             || value.sequence != 0
             || value.bytes != self.expected
         {
-            return Err(
-                "Source publication returned an unexpected or repeated reference Fore".into(),
-            );
+            return Err("Source snapshot operation returned unexpected or repeated Fore".into());
         }
         self.matched = true;
         Ok(())
