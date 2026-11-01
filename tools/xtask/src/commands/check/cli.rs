@@ -44,6 +44,8 @@ pub enum CheckSuite {
     PlotS3,
     /// Admit exact checked Native laws over bounded actual canonical occurrences.
     NativeSourceLaws,
+    /// Check fixed-profile DSP, conversion, closing-Flow and owned-memory contracts.
+    FixedNumericDsp,
     /// Recheck bounded Native declaration and law custody across actual package/family boundaries.
     NativeLawCustody,
     /// Prove exact portable ResourceRef equality, refusals and installed kernel execution.
