@@ -103,3 +103,66 @@ fn selected_detail_values_do_not_leak_into_the_primary_reading() {
             .any(|row| row.text.contains("42 degrees Celsius"))
     );
 }
+
+#[test]
+fn bound_editable_value_is_shown_once_without_hiding_other_typed_content() {
+    let mut face = value_face();
+    let action = face.actions[0].clone();
+    face.properties.extend([
+        FaceProperty {
+            subject: action.target.clone(),
+            name: "current-value".into(),
+            value: FacePropertyValue::TypedValue {
+                contract: action.arguments[0].contract.clone(),
+                bytes: "Éléonore 雪".as_bytes().to_vec(),
+            },
+        },
+        FaceProperty {
+            subject: action.target.clone(),
+            name: "value-change-action".into(),
+            value: FacePropertyValue::Identity(action.identity.clone()),
+        },
+        FaceProperty {
+            subject: action.target.clone(),
+            name: "Auxiliary".into(),
+            value: face.properties.last().unwrap().value.clone(),
+        },
+    ]);
+    for available in [true, false] {
+        let mut proposed = face.clone();
+        if !available {
+            proposed.actions[0].availability = FaceActionAvailability::Unavailable {
+                reason_code: "test/source-unavailable".into(),
+                explanation: "Source unavailable".into(),
+            };
+        }
+        let face = reseal(proposed);
+        for interaction in [true, false] {
+            let (primary, _) = prepare(&face, interaction).unwrap();
+            assert_eq!(
+                primary
+                    .iter()
+                    .filter(|row| row.text.starts_with("Friendly name: Éléonore 雪"))
+                    .count(),
+                1
+            );
+            assert_eq!(
+                primary
+                    .iter()
+                    .filter(|row| row.text == "Auxiliary: 42 °C")
+                    .count(),
+                1
+            );
+            assert!(
+                !primary
+                    .iter()
+                    .any(|row| row.text.starts_with("current-value:"))
+            );
+            let field = primary
+                .iter()
+                .find(|row| row.text.starts_with("Friendly name: Éléonore 雪"))
+                .unwrap();
+            assert_eq!(field.control.is_some(), available && interaction);
+        }
+    }
+}
