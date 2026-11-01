@@ -472,3 +472,7 @@ mod local_look_hint_tests;
 #[cfg(test)]
 #[path = "native_face_scene/authored_look_metrics_tests.rs"]
 mod authored_look_metrics_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/row_spacing_tests.rs"]
+mod row_spacing_tests;

@@ -1,6 +1,28 @@
 //! Admit selected visual metrics before publishing native geometry or hits.
 use super::*;
 
+struct SelectedMetrics {
+    typography: Typography,
+    row_gap: u16,
+}
+impl SelectedMetrics {
+    fn legacy(typography: Typography) -> Self {
+        Self {
+            typography,
+            row_gap: SPACE_SM,
+        }
+    }
+    fn spacing(&self, expression: &conduit_face::AdmittedVisualExpression) -> layout::RowSpacing {
+        layout::RowSpacing {
+            padding: match expression.expression.density {
+                conduit_face::VisualDensity::Compact => SPACE_SM,
+                conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
+            },
+            gap: self.row_gap,
+        }
+    }
+}
+
 impl NativeFaceScene {
     /// Realize source-owned structural geometry and the admitted visual facet
     /// over this exact Face. Layout retains all original control references.
@@ -18,7 +40,7 @@ impl NativeFaceScene {
             interaction_admitted,
             recipe,
             expression,
-            Typography::new(expression.expression.typography),
+            SelectedMetrics::legacy(Typography::new(expression.expression.typography)),
         )
     }
 
@@ -37,7 +59,7 @@ impl NativeFaceScene {
             interaction_admitted,
             recipe,
             &look.visual,
-            Self::look_typography(look)?,
+            Self::look_metrics(look)?,
         )
     }
 
@@ -47,8 +69,9 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         recipe: &conduit_face::PreparedComponentRecipe,
         expression: &conduit_face::AdmittedVisualExpression,
-        typography: Typography,
+        metrics: SelectedMetrics,
     ) -> Result<Self, FaceSceneError> {
+        let typography = metrics.typography;
         let (width, height) = extent;
         if recipe.reading.source_face_identity != face.identity.as_str()
             || recipe.reading.source_face_revision != face.revision
@@ -71,10 +94,7 @@ impl NativeFaceScene {
                 .map(|region| *region.group());
         }
         let scale = expression.expression.text_scale_percent;
-        let padding = match expression.expression.density {
-            conduit_face::VisualDensity::Compact => SPACE_SM,
-            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
-        };
+        let spacing = metrics.spacing(expression);
         let panel_groups = layout::authored_panel_groups(
             recipe.recipe.regions().iter().map(|region| *region.group()),
         );
@@ -84,7 +104,7 @@ impl NativeFaceScene {
             layout::ConfiguredColumns {
                 gutter: geometry.gutter,
                 columns: geometry.columns,
-                padding,
+                spacing,
                 groups: panel_groups,
             },
             scale,
@@ -96,7 +116,7 @@ impl NativeFaceScene {
             geometry.gutter,
             geometry.columns,
             scale,
-            padding,
+            spacing,
             typography,
         )?;
         scene.text_scale_percent = scale;
@@ -119,7 +139,7 @@ impl NativeFaceScene {
             height,
             interaction_admitted,
             expression,
-            Typography::new(expression.expression.typography),
+            SelectedMetrics::legacy(Typography::new(expression.expression.typography)),
         )
     }
     /// Realize the selected immutable Look's existing typed size/leading tokens.
@@ -131,21 +151,33 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         look: &conduit_face::AdmittedVisualLook,
     ) -> Result<Self, FaceSceneError> {
-        let typography = Self::look_typography(look)?;
+        let metrics = Self::look_metrics(look)?;
         Self::prepare_visual_typography(
             face,
             width,
             height,
             interaction_admitted,
             &look.visual,
-            typography,
+            metrics,
         )
     }
-    fn look_typography(
+    fn look_metrics(
         look: &conduit_face::AdmittedVisualLook,
-    ) -> Result<Typography, FaceSceneError> {
-        Typography::with_visual_look(look.visual.expression.typography, &look.selected, 200)
-            .map_err(FaceSceneError::LookTypography)
+    ) -> Result<SelectedMetrics, FaceSceneError> {
+        let typography =
+            Typography::with_visual_look(look.visual.expression.typography, &look.selected, 200)
+                .map_err(FaceSceneError::LookTypography)?;
+        let conduit_face::LookVisualFacetOption::Some(visual) = look.selected.visual() else {
+            return Err(FaceSceneError::InvalidExtent);
+        };
+        let row_gap = *visual.tokens().space_unit_px();
+        if row_gap > 32 {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        Ok(SelectedMetrics {
+            typography,
+            row_gap,
+        })
     }
 
     fn prepare_visual_typography(
@@ -154,22 +186,20 @@ impl NativeFaceScene {
         height: u16,
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
-        typography: Typography,
+        metrics: SelectedMetrics,
     ) -> Result<Self, FaceSceneError> {
+        let typography = metrics.typography;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
         let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
         let scale = expression.expression.text_scale_percent;
-        let padding = match expression.expression.density {
-            conduit_face::VisualDensity::Compact => SPACE_SM,
-            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
-        };
+        let spacing = metrics.spacing(expression);
         scene.primary = layout::admit_with_expression_selected(
             primary,
             scene.screen,
             SPACE_XL,
             1,
             scale,
-            padding,
+            spacing,
             typography,
         )?;
         scene.details = layout::admit_with_expression_selected(
@@ -178,7 +208,7 @@ impl NativeFaceScene {
             SPACE_XL,
             1,
             scale,
-            padding,
+            spacing,
             typography,
         )?;
         scene.text_scale_percent = scale;
@@ -203,7 +233,7 @@ impl NativeFaceScene {
             height,
             interaction_admitted,
             expression,
-            Typography::new(expression.expression.typography),
+            SelectedMetrics::legacy(Typography::new(expression.expression.typography)),
         )
     }
 
@@ -221,7 +251,7 @@ impl NativeFaceScene {
             height,
             interaction_admitted,
             &look.visual,
-            Self::look_typography(look)?,
+            Self::look_metrics(look)?,
         )
     }
 
@@ -231,8 +261,9 @@ impl NativeFaceScene {
         height: u16,
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
-        typography: Typography,
+        metrics: SelectedMetrics,
     ) -> Result<Self, FaceSceneError> {
+        let typography = metrics.typography;
         let face = structure.face();
         face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
         if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
@@ -262,14 +293,11 @@ impl NativeFaceScene {
                 .map(|region| *region.group());
         }
         let scale = expression.expression.text_scale_percent;
-        let padding = match expression.expression.density {
-            conduit_face::VisualDensity::Compact => SPACE_SM,
-            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
-        };
+        let spacing = metrics.spacing(expression);
         let primary =
-            layout::admit_mechanical(primary, screen, structure, scale, padding, typography)?;
+            layout::admit_mechanical(primary, screen, structure, scale, spacing, typography)?;
         let details = layout::admit_with_expression_selected(
-            details, screen, SPACE_XL, 1, scale, padding, typography,
+            details, screen, SPACE_XL, 1, scale, spacing, typography,
         )?;
         Ok(Self {
             primary,

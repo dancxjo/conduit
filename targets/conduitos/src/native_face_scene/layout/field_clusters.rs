@@ -66,6 +66,7 @@ pub(super) struct Metrics {
     pub scale: u16,
     pub typography: Typography,
     pub padding: u16,
+    pub gap: u16,
 }
 
 pub(super) struct Demand {
@@ -162,7 +163,7 @@ fn measure_cluster<'a>(
                 metrics.scale,
                 metrics.typography,
             )?;
-            demand.height += u32::from(height + metrics.padding * 2 + SPACE_SM);
+            demand.height += u32::from(height + metrics.padding * 2 + metrics.gap);
             demand.rows += 1;
             demand.commands += row_commands(item, marker);
             marker = false;
@@ -171,7 +172,7 @@ fn measure_cluster<'a>(
             // empty-page advance or repeated suffix measurement.
             if demand.rows > MAX_PAGE_ROWS
                 || demand.commands + chrome::COMMANDS + 1 > conduit_face::MAX_GRAPHICS_COMMANDS
-                || demand.height - u32::from(SPACE_SM)
+                || demand.height - u32::from(metrics.gap)
                     > u32::from(metrics.maximum_height + metrics.padding * 2)
             {
                 return Ok(None);
@@ -182,6 +183,6 @@ fn measure_cluster<'a>(
     if item_count < 2 || demand.rows == 0 {
         return Ok(None);
     }
-    demand.height -= u32::from(SPACE_SM);
+    demand.height -= u32::from(metrics.gap);
     Ok(Some(demand))
 }

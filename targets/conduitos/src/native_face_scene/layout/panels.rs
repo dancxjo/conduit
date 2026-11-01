@@ -16,6 +16,7 @@ struct Band {
 struct Flow {
     groups: [u8; 2],
     gutter: u16,
+    gap: u16,
     width: u16,
     column: u16,
     single_lane: bool,
@@ -38,6 +39,7 @@ impl Flow {
         groups: [u8; 2],
         typography: Typography,
         paired_regions: bool,
+        gap: u16,
     ) -> Result<Self, FaceSceneError> {
         let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
         let width = screen
@@ -52,6 +54,7 @@ impl Flow {
         Ok(Self {
             groups,
             gutter,
+            gap,
             width,
             column,
             single_lane: !paired_regions,
@@ -103,7 +106,7 @@ impl Flow {
                     x: (self.gutter + lane as u16 * (column + self.gutter)) as i16,
                     y: band.top as i16,
                     width: column,
-                    height: band.next[lane] - SPACE_SM + EDGE - band.top,
+                    height: band.next[lane] - self.gap + EDGE - band.top,
                 });
             }
         }
@@ -196,9 +199,9 @@ impl Flow {
         if let Some(lane) = lane {
             let band = self.band.as_mut().unwrap();
             band.first[lane].get_or_insert(row);
-            band.next[lane] += height + SPACE_SM;
+            band.next[lane] += height + self.gap;
         } else {
-            self.y += height + SPACE_SM;
+            self.y += height + self.gap;
         }
         self.count += 1;
         self.commands += cost;
@@ -210,10 +213,11 @@ pub(super) fn admit(
     screen: LayoutRect,
     gutter: u16,
     scale: u16,
-    padding: u16,
+    spacing: RowSpacing,
     groups: [u8; 2],
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let RowSpacing { padding, gap } = spacing.validate()?;
     let items = ordering::prepare(items, groups)?;
     // Empty authored regions do not reserve space. This decision is derived
     // from admitted rows, without changing source subjects or reading order.
@@ -222,7 +226,15 @@ pub(super) fn admit(
             .iter()
             .any(|(_, item)| item.region == Some(*group) && !item.text.is_empty())
     });
-    let mut flow = Flow::new(screen, gutter, scale, groups, typography, paired_regions)?;
+    let mut flow = Flow::new(
+        screen,
+        gutter,
+        scale,
+        groups,
+        typography,
+        paired_regions,
+        gap,
+    )?;
     let padding = fit_padding(
         items.iter().map(|(_, item)| item),
         (flow.bottom - flow.top).saturating_sub(EDGE * 2),
@@ -266,6 +278,7 @@ pub(super) fn admit(
                         scale,
                         typography,
                         padding,
+                        gap,
                     },
                     region_start,
                 )
