@@ -220,11 +220,15 @@ impl Owner {
             )
         })
         .collect::<BTreeMap<_, _>>();
-        let partition = self.plan_partition_with_authority_grants(
+        let partition = self.plan_partition_with_limits(
             &plot,
             &resident,
             std::slice::from_ref(&input.authority),
             &boundaries,
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: input.binding.maximum_value_bytes,
+            },
         )?;
         let states: Vec<_> = partition
             .plan
