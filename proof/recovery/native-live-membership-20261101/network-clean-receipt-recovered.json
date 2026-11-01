@@ -1,0 +1,37 @@
+{
+  "status": 200,
+  "original_ack_sha256": "07ab5f2d999829e23eceaea81eb0f1167956fa7722479f25fee0791589fbe420",
+  "age_at_start_seconds": 856.2779235839844,
+  "extra_attempts": 1,
+  "total_original_paced_attempt_upper_bound_plus_replay": 451,
+  "original_deadline_extended": false,
+  "original_ack_changed": false,
+  "response_bytes": 1051,
+  "response_profile": "network-retirement-committed@1",
+  "response_reclaimed": true,
+  "receipt_canonical_verification_pending": false,
+  "canonical_receipt_verified_and_reopened": true,
+  "local_verifier_has_signer": false,
+  "local_verifier_has_transport": false,
+  "clean_cursor_sha256": "01b2ef4da461d6cb68f9209c924f2fd5f94e3b3aa763f4acdcd8e584b3083129",
+  "snapshot_sha256": "ac1f776bc3e5c664d9bb549ce2ca657b19fdbe7a3dc6b3dd38d43733f8d0e804",
+  "receipt_generation": 941,
+  "original_session_marker_unchanged": true,
+  "network_client_tests_passed": 41,
+  "ack_tests_passed": 13,
+  "integrated_frozen_tests": {
+    "source": "a26d19b656ce94b474eaaee4623fee1f6e100f07",
+    "passed": 5
+  },
+  "restarted_peers": [
+    "10.0.0.210:80",
+    "192.168.4.1:80"
+  ],
+  "restarted_original_completion_reopened": true,
+  "limits": [
+    "Observation epochs remain full; reclamation not yet verified.",
+    "No new ESP32 image flashed for frozen Pending/Clean optimization.",
+    "Initial frozen preparation remains bundled and unqualified for coexistence.",
+    "No selected durable recorder Plot commitment claimed."
+  ]
+}
