@@ -354,3 +354,6 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
         .is_none_or(|manager| manager.receipts.is_empty()));
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "invited_tests.rs"]
+mod invited_tests;
