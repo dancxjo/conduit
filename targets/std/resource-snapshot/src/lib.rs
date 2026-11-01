@@ -19,3 +19,11 @@ pub use conduit_resource_snapshot::{
 };
 #[cfg(target_os = "linux")]
 pub use operation::{FileOperationRefusal, PreparedFileSnapshotOperation};
+
+/// Fixed snapshot operation and record backing plus bounded canonical names,
+/// reference and owner-prefix allocations. This excludes whole Body preparation.
+pub fn preparation_byte_bound(owner: &conduit_core::HostId) -> u64 {
+    (std::mem::size_of::<PreparedFileSnapshotOperation<'static>>()
+        + 2 * (owner.as_str().len() + 8 + 2 + 2 + 512 + 73)
+        + 512) as u64
+}

@@ -187,3 +187,40 @@ impl KernelResourceLedger {
         Ok(())
     }
 }
+
+impl KernelResourceLedger {
+    /// Replace only one independently selected storage Base while preserving
+    /// all unrelated inventory and the same existing native Source backing.
+    pub(crate) fn prepare_storage_refresh(
+        &self,
+        current: &HostAdvertisement,
+        next: &HostAdvertisement,
+        previous: Option<&conduit_core::BaseProviderEntry>,
+        replacement: &conduit_core::BaseProviderEntry,
+        backing: Option<&BaseBackingReservation>,
+    ) -> Result<Self, String> {
+        let strip = |host: &HostAdvertisement, base: Option<&conduit_core::BaseProviderEntry>| {
+            let mut host = host.clone();
+            if let Some(base) = base {
+                host.resources.retain(|r| !base.resources.iter().any(|b| b == r));
+                host.capabilities.retain(|r| !base.capabilities.iter().any(|b| b == r));
+                host.bases.retain(|b| b.base_id != base.base_id);
+            }
+            host.offer_generation = conduit_core::OfferGeneration(0);
+            host
+        };
+        if self.identity != (current.host_id.clone(), current.boot_id.clone(), current.offer_generation)
+            || next.offer_generation.0 != current.offer_generation.0.checked_add(1).ok_or("offer generation exhausted")?
+            || strip(current, previous) != strip(next, Some(replacement))
+            || !match backing {Some(token) => self.only_base_backing_is_reserved(token), None => self.is_idle()}
+        {return Err("storage refresh requires exact scoped inventory and quiescent child Plays".into());}
+        let mut staged = Self::new(next)?;
+        if let Some(token) = backing {
+            if !current.resources.iter().any(|r| r.pool_id == token.binding.pool_id && next.resources.contains(r)) {
+                return Err("storage refresh changed retained Source backing pool".into());
+            }
+            PoolUsage::reserve_all(&mut staged.pools, core::slice::from_ref(&token.binding))?;
+        }
+        Ok(staged)
+    }
+}

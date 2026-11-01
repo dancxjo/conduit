@@ -80,6 +80,7 @@ pub struct SelectedBodyStorage {
     pool_namespace: String,
     bounds: BodyStorageBounds,
     state_path: PathBuf,
+    pub(crate) generation: Option<super::body_storage_generation::SelectedBodyStorageGeneration>,
 }
 impl SelectedBodyStorage {
     /// Effectful trusted selection, separate from checking host.conduit.
@@ -141,6 +142,7 @@ impl SelectedBodyStorage {
             pool_namespace: pool_namespace.into(),
             bounds,
             state_path,
+            generation: None,
         };
         selected.require_preparation_capacity(selected.custody_preparation_bytes())?;
         Ok(selected)
