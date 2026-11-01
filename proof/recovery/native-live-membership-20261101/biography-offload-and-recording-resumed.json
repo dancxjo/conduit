@@ -1,0 +1,55 @@
+{
+  "schema": "conduit.environment/physical-biography-offload-and-recording-resume@1",
+  "before_generation": 950,
+  "after_generation": 951,
+  "before_encoded_bytes": 26802,
+  "after_encoded_bytes": 8916,
+  "reclaimed_encoded_bytes": 17886,
+  "after_payload_sha256": "449fc1323c7f9988e7153fe6f6617dffa66e038356fc81c19247f14ece09b4ef",
+  "after_codec_magic": "BDYLZ004",
+  "exact_semantic_equality": {
+    "evidence": true,
+    "admissions": true,
+    "observation_layouts": true,
+    "network_cursor": true
+  },
+  "original_body_bank_exact": true,
+  "nonapp_nonbody_exact": true,
+  "region_sha256_equal": {
+    "bootloader_partition_table": true,
+    "display_evidence": true,
+    "observation_epochs": true,
+    "network_recovery": true
+  },
+  "prefix_before_count": 333,
+  "prefix_after_count": 352,
+  "prefix_after_head": "ac46cc314a8517a6922581b11813aba7a184a1719427686ae04340acda8eb500",
+  "local_archives_before": 19,
+  "local_archives_after": 0,
+  "copied_predecessor_segment_count": 352,
+  "copied_predecessor_no_gaps": true,
+  "copied_predecessor_adjacent_digest_fields_match": true,
+  "copied_original333_files_byte_exact": true,
+  "copied_final_segment_matches_prefix_head": true,
+  "independent_local_copy_files_fsynced": 365,
+  "independent_local_copy_directory_and_parent_fsynced": true,
+  "files_unchanged_during_fsync": true,
+  "proof_scope": "Offline production-codec/SHA256/semantic comparison and structural copied-file checks. Production owner retained and fsynced the complete352-segment chain on Victus before BIOACK as separately verified by integrator. Local fsync creates no canonical receiver token or new acknowledgment. Normal new-Boot/Play/recording proof is separate.",
+  "firmware_source": "35b0510bd559048c144eaf89e3110e06a304736e",
+  "owner_cli_exit": 0,
+  "normal_app_readback_and_nonapp_preservation_verified": true,
+  "normal_boot_observed": {
+    "sequence": 1,
+    "mask_updates": 35,
+    "archive_committed": 1,
+    "archive_maximum_records": 960,
+    "sampler_or_mask_failed": false,
+    "network_service": "access-point-ready",
+    "station_address": null
+  },
+  "limits": [
+    "Owner-gated cold maintenance; autonomous biography offload not proved.",
+    "Station preparation currently refuses and AP remains available; Wi-Fi recovery remains unfinished.",
+    "Private files are authenticated durable evidence, not proof of a selected installed durable Recorder Plot."
+  ]
+}
