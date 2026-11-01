@@ -162,7 +162,14 @@ fn prove_private_membership(pressure: bool) {
             job::Phase::Start => 0,
             job::Phase::Checkpoint(CheckpointPhase::Prepare) => 1,
             job::Phase::Checkpoint(CheckpointPhase::Capture) => 2,
-            job::Phase::Checkpoint(CheckpointPhase::Chunk) => 3,
+            job::Phase::Checkpoint(CheckpointPhase::FrozenChunk) => {
+                assert!(!pressure, "refused cache must not claim frozen chunk work");
+                3
+            }
+            job::Phase::Checkpoint(CheckpointPhase::ReplayChunk) => {
+                assert!(pressure, "available cache must select frozen chunk work");
+                3
+            }
             job::Phase::Checkpoint(CheckpointPhase::Physical(_)) => 4,
             job::Phase::Checkpoint(CheckpointPhase::Finish) => 5,
             _ => panic!("unexpected membership phase"),

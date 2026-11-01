@@ -21,7 +21,8 @@ impl ReviewedPreparation {
         let budget = match phase {
             Membership::Start => self.start_ms,
             Membership::Checkpoint(Phase::Prepare | Phase::Capture) => self.replay_ms,
-            Membership::Checkpoint(Phase::Chunk) => self.chunk_ms,
+            Membership::Checkpoint(Phase::FrozenChunk) => self.chunk_ms,
+            Membership::Checkpoint(Phase::ReplayChunk) => self.replay_ms,
             Membership::Checkpoint(Phase::Finish) => self.finish_ms,
             _ => return None,
         };

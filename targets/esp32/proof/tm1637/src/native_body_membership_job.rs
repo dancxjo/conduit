@@ -160,7 +160,7 @@ impl Job {
         let result = match job.phase() {
             P::Prepare => job.prepare(permit),
             P::Capture => job.capture(permit),
-            P::Chunk => job.prepare_chunk(permit),
+            P::FrozenChunk | P::ReplayChunk => job.prepare_chunk(permit),
             P::Physical(_) => job.advance(storage),
             P::Finish => job.finish_source(permit),
             _ => return Err("membership-job-phase"),

@@ -2,22 +2,14 @@
 //! the caller; no phase grants flash authority or claims a replay time bound.
 use super::*;
 use crate::native_body_checkpoint::{
-    incremental::{IncrementalRewrite, Operation, SectorStorage},
+    incremental::{IncrementalRewrite, SectorStorage},
     PayloadReader,
 };
 use conduit_monotonic_wait::flash_window::FlashPermit;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Phase {
-    Staging,
-    Prepare,
-    Capture,
-    Chunk,
-    Physical(Operation),
-    Finish,
-    Complete,
-    Failed,
-}
+#[path = "native_restart_checkpoint_phase.rs"]
+mod phase;
+pub(crate) use phase::Phase;
 #[must_use = "retain the actual mutated owner and Store lease until adoption or reconciliation"]
 pub(crate) struct Job<T> {
     pending_output: Option<T>,
@@ -283,7 +275,7 @@ impl<T> Job<T> {
         &mut self,
         _permit: &FlashPermit<'_, '_>,
     ) -> Result<(), &'static str> {
-        if self.phase != Phase::Chunk {
+        if self.phase != self.chunk_phase() {
             return Err("checkpoint-job-phase");
         }
         let result = (|| {
@@ -342,11 +334,18 @@ impl<T> Job<T> {
         self.phase = if writer.is_complete() {
             Phase::Finish
         } else if writer.needs_chunk() {
-            Phase::Chunk
+            self.chunk_phase()
         } else {
             Phase::Physical(writer.operation().ok_or("checkpoint-job-operation")?)
         };
         Ok(())
+    }
+    fn chunk_phase(&self) -> Phase {
+        if self.frozen.is_some() {
+            Phase::FrozenChunk
+        } else {
+            Phase::ReplayChunk
+        }
     }
     pub(crate) fn finish_source(
         &mut self,
