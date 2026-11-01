@@ -1,0 +1,23 @@
+{
+  "scope": "Passive target UART observation; installed firmware source not reverified by readback",
+  "capture_sha256": "0dbf5723b6de72388c78e9933b6c7041737aae3503cdd14e5392a4b70696e693",
+  "target_elapsed_ms": 331178,
+  "root_free_bytes": 22580,
+  "unchanged_network_construction_required_bytes": 24576,
+  "shortfall_bytes": 1996,
+  "sampler": {
+    "phase": "running",
+    "sequence": 5,
+    "failure": null
+  },
+  "mask": {
+    "phase": "running",
+    "consumed": 105,
+    "failure": null
+  },
+  "network_control": "retry-backoff",
+  "station_address": null,
+  "capacity_refusal_events": 12,
+  "history_scope": "Target local journal commitment is not independently selected durable-recorder commitment",
+  "no_target_grant_changed": true
+}
