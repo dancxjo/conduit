@@ -4,6 +4,7 @@ use super::*;
 impl NativeFaceMask {
     // Private shared preparation boundary: callers retain exact source/Plan custody.
     // Tests use actual checked Host configuration, not a fabricated config record.
+    #[cfg(test)]
     pub(super) fn prepare_component_scene(
         configuration: &conduit_face::ConfiguredMaskConfiguration,
         face: &Face,
@@ -19,12 +20,40 @@ impl NativeFaceMask {
         ),
         NativeFaceMaskError,
     > {
+        let (scene, selection, fallback) = Self::prepare_component_scene_with_preferences(
+            configuration,
+            face,
+            width,
+            height,
+            interaction_admitted,
+            constraints,
+            &preferences::NativeLookPreferences::default(),
+        )?;
+        Ok((scene, selection.into_admitted(), fallback))
+    }
+
+    pub(super) fn prepare_component_scene_with_preferences(
+        configuration: &conduit_face::ConfiguredMaskConfiguration,
+        face: &Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        constraints: conduit_face::VisualUserConstraints,
+        preferences: &preferences::NativeLookPreferences,
+    ) -> Result<
+        (
+            NativeFaceScene,
+            preferences::NativeVisualSelection,
+            Option<String>,
+        ),
+        NativeFaceMaskError,
+    > {
         let mut fallback = None;
         let requested = configuration
             .requested_look()
             .map_err(|_| NativeFaceMaskError::Plan)?;
-        let admitted = conduit_face::admit_visual_look(&requested, constraints)
-            .map_err(|_| NativeFaceMaskError::Face)?;
+        let selection = preferences.select(&requested, constraints)?;
+        let admitted = selection.admitted();
         let recipe = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.recipe.canonical_value(),
         )
@@ -42,7 +71,7 @@ impl NativeFaceMask {
                         width,
                         height,
                         interaction_admitted,
-                        &admitted,
+                        admitted,
                     )
                 })
                 .map_err(|error| alloc::format!("LayoutPreparation({error:?})"))
@@ -55,7 +84,7 @@ impl NativeFaceMask {
                         height,
                         interaction_admitted,
                         &prepared,
-                        &admitted,
+                        admitted,
                     )
                 })
                 .map_err(|error| alloc::format!("{error:?}"))
@@ -74,7 +103,7 @@ impl NativeFaceMask {
                     width,
                     height,
                     interaction_admitted,
-                    &admitted,
+                    admitted,
                 )
             }
             Ok(Err(error)) => Err(error),
@@ -85,12 +114,12 @@ impl NativeFaceMask {
                     width,
                     height,
                     interaction_admitted,
-                    &admitted,
+                    admitted,
                 )
             }
         }
         .map_err(NativeFaceMaskError::Scene)?;
-        Ok((scene, admitted, fallback))
+        Ok((scene, selection, fallback))
     }
 }
 
@@ -100,4 +129,4 @@ mod metric_consumer_tests;
 
 #[cfg(test)]
 #[path = "field_look_reuse_tests.rs"]
-mod field_look_reuse_tests;
+pub(super) mod field_look_reuse_tests;

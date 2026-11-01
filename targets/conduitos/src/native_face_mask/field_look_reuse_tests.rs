@@ -12,7 +12,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 
 // Bind the exact authored expression, rather than independently reconstructing
 // its tokens. All roots share one Source document; no renderer config is forged.
-fn source() -> String {
+pub(in crate::native_face_mask) fn source() -> String {
     let authored = conduit_plot::parse_syntax_document(FIELD_INSTRUMENT_LOOKS_SOURCE);
     let mut source = format!("{TODO_LAYOUT_MASK_SOURCE}\n{CRECHE_LAYOUT_MASK_SOURCE}\n");
     for theme in ["day", "night"] {
