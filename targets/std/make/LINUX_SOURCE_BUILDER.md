@@ -83,6 +83,13 @@ adapter. Build scripts retain the builder user's authority. The owning installed
 operation must retain canonical receipts and drain effects before reporting
 terminal cancellation.
 
-Focused tests exercise these contracts. No actual source-to-image build, native
-Crèche encounter, emulator boot, physical deployment or Body join has yet been
-proved through this backend.
+Run the preparation contract, actual kernel, Linux supervision and product Source checks through the supported repository entrance:
+
+```sh
+cargo +stable xtask check creche-preparation
+```
+
+These tests do not establish fresh source-to-image manufacture, installed native
+Crèche execution, emulator boot, physical deployment or Body join. Issue #6466
+retains the separate historical source-bound manufacture receipt; it is not
+acceptance evidence for this current source.
