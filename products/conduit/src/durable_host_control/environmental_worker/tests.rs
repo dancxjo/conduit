@@ -299,6 +299,15 @@ fn ordinary_actor_dispatches_selected_http_through_original_native_lease() {
 }
 
 fn exercise_actor(cancel: bool, resume_body: bool, http: bool, owned_local: bool) {
+    exercise_actor_mode(cancel, resume_body, http, owned_local, false)
+}
+fn exercise_actor_mode(
+    cancel: bool,
+    resume_body: bool,
+    http: bool,
+    owned_local: bool,
+    cadence: bool,
+) {
     let Some(worker) = std::env::var_os("CONDUIT_ENVIRONMENT_TEST_WORKER") else {
         eprintln!(
             "native actor process proof skipped: explicitly set CONDUIT_ENVIRONMENT_TEST_WORKER"
@@ -383,7 +392,11 @@ fn exercise_actor(cancel: bool, resume_body: bool, http: bool, owned_local: bool
     )
     .with_selected_environmental_equipment(Some(equipment));
     if owned_local {
-        owned_run::exercise_owned_source(runtime, device, cancel);
+        if cadence {
+            owned_run::exercise_continuing_source(runtime, device);
+        } else {
+            owned_run::exercise_owned_source(runtime, device, cancel);
+        }
         return;
     }
     let body_root = if resume_body {
@@ -626,4 +639,9 @@ fn owned_body_executes_retained_source_through_typed_fore_and_reuses_equipment()
 #[test]
 fn owned_body_cancels_delayed_source_without_publishing_late_fore() {
     exercise_actor(true, false, false, true);
+}
+
+#[test]
+fn owned_source_cadence_projects_current_face_then_lull_and_readmission() {
+    exercise_actor_mode(false, false, false, true, true);
 }

@@ -232,6 +232,17 @@ impl Owner {
             })
             .transpose()?
             .unwrap_or_default();
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        let contributions = {
+            let mut contributions = contributions;
+            if let Some(fragment) = self.environmental_contribution()? {
+                contributions.push(FaceContribution::from_face(
+                    FaceContributionRole::Foreground,
+                    fragment,
+                ));
+            }
+            contributions
+        };
         let face = BodyFace::project_with_names(
             &self.session.evidence().body,
             self.session
