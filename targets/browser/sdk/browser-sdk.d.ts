@@ -107,7 +107,10 @@ export class BrowserHost {
   review(plots: readonly (BrowserPlot | CheckedPlot | CheckedSource)[]): Promise<PlotWorkloadReview>;
   /** Participate in one externally owned Body without creating a second Host or Boot. */
   participate(options: {
-    invitation: string;
+    invitation?: string;
+    /** Already admitted authenticated single-use carrier; creates no membership authority. */
+    sessionCarrier?: { sendSessionFrame(frame: Uint8Array): Promise<void>;
+      receiveSessionFrame(): Promise<Uint8Array>; close(): void };
     expectedBodyId?: string | null;
     retainedCredential?: Readonly<Record<string, unknown>> | null;
     onCredential?: (credential: Readonly<Record<string, unknown>>) => void | Promise<void>;
