@@ -282,6 +282,17 @@ pub(super) fn select(
                 FixedElementwiseOperation::ReciprocalOffset
             )
         )),
+        "numeric/slice320x40" => Some(run!(
+            planned,
+            gear,
+            fuel,
+            fixed_index_offer::<320, 40>(FixedIndexOperation::Slice),
+            FixedIndexBack::<320, 40>::prepare_planned::<FIXED_KERNEL_STORAGE_PORTS_PER_NODE>(
+                gear,
+                fuel,
+                FixedIndexOperation::Slice
+            )
+        )),
         "numeric/slice320x80" => Some(run!(
             planned,
             gear,
