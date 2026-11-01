@@ -337,6 +337,12 @@ fn source_readback_worker_uses_independent_authority_and_retains_original_canoni
         .is_err());
     assert!(owner.session.realization().is_none());
     assert_eq!(owner.source_recording_stage.as_ref().unwrap().len(), 1);
+    assert!(owner
+        .source_recording_stage
+        .as_ref()
+        .unwrap()
+        .verified_reference()
+        .is_none());
     let read = independent_read_grant(&mut owner);
     assert_ne!(read.host_call_contract_id, publish.host_call_contract_id);
     assert_ne!(read.capability_id, publish.capability_id);
@@ -357,6 +363,10 @@ fn source_readback_worker_uses_independent_authority_and_retains_original_canoni
     );
     assert_eq!(owner.host.advertisement().boot_id, boot);
     let stage = owner.source_recording_stage.as_ref().unwrap();
+    assert_eq!(
+        stage.verified_reference(),
+        Some(&stage.prepared.as_ref().unwrap().reference)
+    );
     assert_eq!(stage.len(), 1);
     assert_eq!(stage.observations().next().unwrap().canonical(), original);
     assert_eq!(
@@ -415,6 +425,12 @@ fn source_readback_corrupt_snapshot_never_claims_matching_content_or_discards_pr
     finish_worker(&root, &mut owner, worker);
     assert!(!owner.host.is_playing());
     assert!(owner.current_play_id().is_none());
+    assert!(owner
+        .source_recording_stage
+        .as_ref()
+        .unwrap()
+        .verified_reference()
+        .is_none());
     let receipt = owner.last_execution.as_ref().unwrap();
     assert_eq!(
         receipt["source_readback"]["snapshot_readback_completed"], false,

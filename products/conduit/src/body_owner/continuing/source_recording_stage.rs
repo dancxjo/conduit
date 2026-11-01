@@ -42,6 +42,7 @@ pub(in super::super) struct SourceRecordingStage {
     slots: [Option<StagedObservation>; CAPACITY],
     length: usize,
     prepared: Option<checkpoint::PreparedSourceChunk>,
+    verified: Option<super::recording_run::VerifiedSourceSnapshot>,
 }
 #[path = "source_recording_stage/checkpoint.rs"]
 mod checkpoint;
@@ -60,7 +61,29 @@ impl SourceRecordingStage {
             slots: std::array::from_fn(|_| None),
             length: 0,
             prepared: None,
+            verified: None,
         })
+    }
+    pub(in super::super) fn verified_reference(&self) -> Option<&conduit_core::BoundedResourceRef> {
+        let verified = self.verified.as_ref()?;
+        self.prepared
+            .as_ref()
+            .filter(|p| &p.reference == verified.reference())
+            .map(|p| &p.reference)
+    }
+    pub(super) fn accept_verified_snapshot(
+        &mut self,
+        witness: super::recording_run::VerifiedSourceSnapshot,
+    ) -> Result<(), String> {
+        if self
+            .prepared
+            .as_ref()
+            .is_none_or(|p| &p.reference != witness.reference())
+        {
+            return Err("verified snapshot differs from retained Source prefix".into());
+        }
+        self.verified = Some(witness);
+        Ok(())
     }
     pub(in super::super) fn len(&self) -> usize {
         self.length

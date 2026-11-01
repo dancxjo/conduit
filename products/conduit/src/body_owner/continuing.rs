@@ -590,6 +590,14 @@ impl RunWorker {
             target_os = "linux"
         ))]
         let publication = recording.as_ref().map(|r| r.metadata(result.as_ref().ok()));
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        let verified = recording
+            .as_ref()
+            .and_then(|r| r.verified_snapshot(result.as_ref().ok()));
         owner.retain_finished(
             root,
             result,
@@ -608,6 +616,21 @@ impl RunWorker {
             ))]
             publication,
         )?;
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        if let Some(verified) = verified {
+            // retain_finished first checks the exact issued Play and durably
+            // records its terminal lifecycle. Only then can readback be used
+            // as private input custody for a later catalog checkpoint.
+            owner
+                .source_recording_stage
+                .as_mut()
+                .ok_or("verified Source stage vanished")?
+                .accept_verified_snapshot(verified)?;
+        }
         Ok(true)
     }
 

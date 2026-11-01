@@ -4,6 +4,16 @@ use super::*;
 use conduit_core as c;
 use conduit_std_host::body_execution::{BodyBorrowedForeOutputAdapter, BodyForeDeliveryRef};
 use source_recording_stage::publication::SourcePublicationInput;
+/// Constructible only from this worker's matching admitted readback and clean
+/// terminal report. It is volatile input custody, never a catalog/erase receipt.
+pub(super) struct VerifiedSourceSnapshot {
+    reference: c::BoundedResourceRef,
+}
+impl VerifiedSourceSnapshot {
+    pub(super) fn reference(&self) -> &c::BoundedResourceRef {
+        &self.reference
+    }
+}
 pub(super) struct RecordingRun {
     input: SourcePublicationInput,
     matched: bool,
@@ -44,14 +54,18 @@ impl RecordingRun {
         self.matched = capture.matched;
         (host, result)
     }
+    pub(super) fn verified_snapshot(
+        &self,
+        report: Option<&BodyRunReport>,
+    ) -> Option<VerifiedSourceSnapshot> {
+        (self.input.readback && self.matched && report.is_some_and(clean_completed)).then(|| {
+            VerifiedSourceSnapshot {
+                reference: self.input.reference.clone(),
+            }
+        })
+    }
     pub(super) fn metadata(&self, report: Option<&BodyRunReport>) -> serde_json::Value {
-        let completed = report.is_some_and(|r| {
-            matches!(r.terminal, c::TerminalDisposition::Completed)
-                && r.failure.is_none()
-                && r.kernel_failure.is_none()
-                && r.native_failure.is_none()
-                && r.cleanup_failure.is_none()
-        });
+        let completed = report.is_some_and(clean_completed);
         if self.input.readback {
             return serde_json::json!({"custody":"identical-snapshot-readback-not-catalog-commit", "matching_content_fore":self.matched,
                 "snapshot_readback_completed":completed && self.matched,"producer_retirement_authorized":false});
@@ -89,4 +103,12 @@ impl BodyBorrowedForeOutputAdapter for SnapshotCapture<'_> {
         self.matched = true;
         Ok(())
     }
+}
+
+fn clean_completed(r: &BodyRunReport) -> bool {
+    matches!(r.terminal, c::TerminalDisposition::Completed)
+        && r.failure.is_none()
+        && r.kernel_failure.is_none()
+        && r.native_failure.is_none()
+        && r.cleanup_failure.is_none()
 }
