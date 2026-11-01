@@ -125,6 +125,35 @@ mod tests {
         assert_eq!(plan(&browser).unwrap(), [ArtifactProducer::BrowserBundle]);
     }
     #[test]
+    fn an_interrupted_batch_cannot_replace_a_completed_fabrication_receipt() {
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-fabrication-batch-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let spores = Vec::new();
+        record_batch(&directory, &spores, false).unwrap();
+        let read = || {
+            serde_json::from_slice::<serde_json::Value>(
+                &std::fs::read(directory.join("fabrication-batch.json")).unwrap(),
+            )
+            .unwrap()
+        };
+        assert_eq!(read()["all_hosts_fabricated"], false);
+        record_batch(&directory, &spores, true).unwrap();
+        let committed = std::fs::read(directory.join("fabrication-batch.json")).unwrap();
+        assert_eq!(read()["all_hosts_fabricated"], true);
+        assert!(record_batch(&directory, &spores, false).is_err());
+        assert_eq!(
+            std::fs::read(directory.join("fabrication-batch.json")).unwrap(),
+            committed
+        );
+        std::fs::remove_dir_all(directory).unwrap();
+    }
+    #[test]
     fn a_filename_or_output_class_cannot_substitute_for_the_selected_runtime_producer() {
         assert_eq!(
             select(
