@@ -2032,6 +2032,7 @@ version = "0.1.0"
 name = "conduit-environment-face"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-environment-measurement",
  "conduit-face",
