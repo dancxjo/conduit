@@ -13,6 +13,7 @@ function fixture() {
   const make = {make_package_id:'browser-wasm@1', output:'browser-bundle', builder_adapter:'conduit-host-browser/build-wasm@1', deployment_adapter:'conduit-host-browser/load@1'};
   const manifest = {schema:'conduit.body/spore-manifest@2',spore_id:'spore/test',image_id:'image/test',profile_id:'profile/test',body_id:'body/test',target:'browser/wasm32/page',output:'browser-bundle',binding:{mode:'self-joining',invitation_id:'invitation/test'},make,image_content_digest:bundle};
   const prepared = {spore_manifest:structuredClone(manifest),spore_id:manifest.spore_id,body_id:manifest.body_id,image_content_digest:bundle,invitation_id:'invitation/test',invitation_nonce:Array(32).fill(1),invitation_secret:Array(32).fill(2),invitation_expires_at_millis:2000};
+  prepared.root_producer={host_id:'host/owner',boot_id:'boot/owner'};
   prepared.root_authority={schema:'conduit.body/root-authority@1',body_id:manifest.body_id,owner_host_id:'host/owner',public_key:Array(32).fill(3)};
   const release = {schema:'conduit.release/host-bundle@1',target_id:manifest.target,make_package_id:make.make_package_id,output:make.output,builder_adapter:make.builder_adapter,deployment_adapter:make.deployment_adapter,source_identity:'fixture-only',bundle_sha256:bundle,browser_image_id:'image/test',browser_profile_id:'profile/test',files};
   let requests = 0;
@@ -79,7 +80,7 @@ test('release acquisition cannot replace the retained Spore or invitation',async
 });
 
 test('missing, foreign or secret-bearing Root provenance refuses before acquiring release',async()=>{
-  for(const change of [p=>delete p.root_authority,p=>p.root_authority.body_id='foreign',p=>p.root_authority.public_key.fill(0),p=>p.root_authority.seed=Array(32).fill(9)]){
+  for(const change of [p=>delete p.root_authority,p=>delete p.root_producer,p=>p.root_producer.host_id='foreign',p=>p.root_authority.body_id='foreign',p=>p.root_authority.public_key.fill(0),p=>p.root_authority.seed=Array(32).fill(9)]){
     const f=fixture();change(f.options.prepared);await assert.rejects(packageBrowserBodySpore(f.options));assert.equal(f.requests(),0);
   }
   const f=fixture(),artifact=await packageBrowserBodySpore(f.options);

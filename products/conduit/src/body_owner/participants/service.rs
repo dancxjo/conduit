@@ -32,6 +32,8 @@ use std::{
 pub(crate) struct BrowserWindowAuthorization {
     pub(crate) window_id: String,
     pub(crate) body_id: BodyId,
+    pub(crate) owner_host_id: HostId,
+    pub(crate) owner_boot_id: conduit_core::BootId,
     pub(crate) maximum_millis: u64,
     pub(crate) presence_maximum_millis: u64,
 }
@@ -360,6 +362,8 @@ impl Owner {
             BrowserWindowAuthorization {
                 window_id: id,
                 body_id: self.session.evidence().body_id.clone(),
+                owner_host_id: self.host.advertisement().host_id.clone(),
+                owner_boot_id: self.host.advertisement().boot_id.clone(),
                 maximum_millis,
                 presence_maximum_millis: MAX_BROWSER_PRESENCE_MILLIS,
             },
@@ -419,6 +423,8 @@ impl Owner {
         Ok(BrowserWindowAuthorization {
             window_id: id,
             body_id: self.session.evidence().body_id.clone(),
+            owner_host_id: self.host.advertisement().host_id.clone(),
+            owner_boot_id: self.host.advertisement().boot_id.clone(),
             maximum_millis,
             presence_maximum_millis: MAX_BROWSER_PRESENCE_MILLIS,
         })

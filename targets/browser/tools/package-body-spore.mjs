@@ -3,7 +3,7 @@
 import { isDeepStrictEqual } from 'node:util';
 import { acquireHostRelease } from '../workspace/creche-release-bundle.mjs';
 import { createBodyBoundZip, readBodyBoundZip } from '../workspace/creche-native-zip.mjs';
-import { parseBodyRootAuthority } from '../host/assets/browser-spore-provision.mjs';
+import { parseBodyRootAuthority, parseBodyRootProducer } from '../host/assets/browser-spore-provision.mjs';
 
 const digest = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 const byteArray = value => Array.isArray(value) && value.length === 32
@@ -31,7 +31,7 @@ export async function packageBrowserBodySpore({ manifest, prepared, releaseUrl, 
     || prepared.invitation_expires_at_millis <= nowMillis) {
     throw new TypeError('The owner-prepared invitation must match the exact checked Spore');
   }
-  parseBodyRootAuthority(prepared.root_authority, manifest.body_id);
+  parseBodyRootProducer(prepared.root_producer, parseBodyRootAuthority(prepared.root_authority, manifest.body_id));
   const release = await acquireHostRelease({
     target_id: 'browser/wasm32/page', package_id: manifest.make.make_package_id,
     output: manifest.output, builder_adapter: manifest.make.builder_adapter,
