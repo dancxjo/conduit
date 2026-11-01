@@ -104,8 +104,7 @@ fn track_contributions_support_zero_single_and_spanning_demands_without_empty_mi
         items: &items,
         width: 1000,
         scale: 100,
-        padding: SPACE_SM,
-        gap: SPACE_SM,
+        spacing: RowSpacing::legacy(SPACE_SM),
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };

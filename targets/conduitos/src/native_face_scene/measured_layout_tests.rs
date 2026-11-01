@@ -101,8 +101,8 @@ fn assert_frame(scene: &NativeFaceScene) -> usize {
             assert!(frame.scene.commands().iter().any(|command| {
                 command.bounds
                     == LayoutRect {
-                        x: hit.bounds.x + row.padding as i16,
-                        y: hit.bounds.y + row.padding as i16,
+                        x: hit.bounds.x + row.insets.block() as i16,
+                        y: hit.bounds.y + row.insets.block() as i16,
                         width: 18,
                         height: 18,
                     }

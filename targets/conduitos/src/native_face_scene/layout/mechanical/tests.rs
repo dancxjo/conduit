@@ -101,6 +101,7 @@ pub(super) fn prepared<'a>(
 }
 pub(super) fn item(text: &str, region: Option<usize>, control: bool) -> document::Item {
     document::Item {
+        part: crate::native_face_scene::layout::NativePart::Content,
         text: text.into(),
         role: GraphicsTextRole::Label,
         paint: GraphicsPaintRole::Foreground,
@@ -365,8 +366,7 @@ fn allocation_weights_alignment_and_preferred_sum_have_finite_native_bounds() {
         items: &items,
         width: 60000,
         scale: 200,
-        padding: SPACE_SM,
-        gap: SPACE_SM,
+        spacing: RowSpacing::legacy(SPACE_SM),
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };
@@ -411,8 +411,7 @@ fn allocation_weights_alignment_and_preferred_sum_have_finite_native_bounds() {
         items: &items,
         width: 8000,
         scale: 200,
-        padding: SPACE_SM,
-        gap: SPACE_SM,
+        spacing: RowSpacing::legacy(SPACE_SM),
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };
@@ -435,8 +434,7 @@ fn retained_row_capacity_is_refused_before_the_next_entry() {
         items: &items,
         width: 600,
         scale: 100,
-        padding: SPACE_SM,
-        gap: SPACE_SM,
+        spacing: RowSpacing::legacy(SPACE_SM),
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(MAX_ROWS - 1),
     };

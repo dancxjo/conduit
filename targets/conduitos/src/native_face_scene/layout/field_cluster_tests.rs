@@ -3,6 +3,7 @@ use super::*;
 
 fn item(text: &str, subject: Option<usize>, control: Option<FaceControl>) -> document::Item {
     document::Item {
+        part: crate::native_face_scene::layout::NativePart::Content,
         text: text.into(),
         role: GraphicsTextRole::Label,
         paint: GraphicsPaintRole::Foreground,
