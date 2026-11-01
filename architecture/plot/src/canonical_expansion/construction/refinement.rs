@@ -123,7 +123,7 @@ fn proves_at(
     let Some(mut path) = input_path(value).or_else(|| {
         // Element-wide declaration metadata is separate from branch-local
         // projection facts: a guard on one index must never narrow another.
-        sequence_contract_path::bytes_path(value, required)
+        sequence_contract_path::declared_path(value, required)
     }) else {
         return false;
     };
@@ -147,8 +147,13 @@ fn retained_contract(
     }) {
         return true;
     }
+    // Metadata is looked up against the exact nominal identity above first.
+    // Representation traversal only locates members; it creates no law evidence.
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = input.shape() {
+        return retained_contract(representation, path, required, types);
+    }
     if let Some(rest) = path.strip_prefix("[]") {
-        if required.value_kind.as_str() != "value/bytes" {
+        if !sequence_contract_path::supported(required) {
             return false;
         }
         let element = match input.shape() {
