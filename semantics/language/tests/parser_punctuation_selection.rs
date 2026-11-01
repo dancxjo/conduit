@@ -179,7 +179,9 @@ fn evaluate(
             &format!("{text_id}/source/{count}"),
             if causal { count as u64 - 1 } else { 0 },
             previous.as_ref().map(|p| &p.0),
-            Some(text.chars().count() as u32),
+            // The next revision may replace the trailing space with punctuation.
+            // Declared stable text excludes that still-revisable separator.
+            Some(text.trim_end_matches(' ').chars().count() as u32),
             LanguageTextFinality::Partial,
         );
         let analysis = format!("{text_id}/analysis/{count}");

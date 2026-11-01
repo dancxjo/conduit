@@ -6,7 +6,8 @@
   "changes": [
     "Preserve current accepted language module registrations alongside the explicit optional candidate module.",
     "Move unchanged immutable decoder preparation constructors into their own test helper.",
-    "Fix the unbuilt historical test iteration over &mut Vec by borrowing its iterator; remove an unused import. Cases, scoring, commitments and acceptance assertions are unchanged."
+    "Fix the unbuilt historical test iteration over &mut Vec by borrowing its iterator; remove an unused import. Cases, scoring, commitments and acceptance assertions are unchanged.",
+    "Correct producer text stability: exclude trailing revisable spaces that the fixed schedule replaces with comma/period. Preserve identical texts, model, beam/commit laws and acceptance assertions. Prior invalid-stability failure retained separately."
   ],
   "historical_custody_correction": {
     "path": "tests/parser_punctuation_selection.rs",
@@ -16,7 +17,7 @@
   },
   "evaluation_files_sha256": {
     "src/parser_punctuation_model.rs": "00110475dbc61496f1dd98eefa41d648570afb4e39750d3afd5909056eef5bb0",
-    "tests/parser_punctuation_selection.rs": "1cedc211d3db81fd66d2ddcd5505a45cb32f03580bd19ae1ae0885d28bf6df14",
+    "tests/parser_punctuation_selection.rs": "8aedc8ea7d9d8d244bbc636df04abb73c39a34e06d53344649d9492de1c02321",
     "tests/common/parser_model_kernel.rs": "67d363e76bd99fb7203251236b5dbeb00b40ef7261bca74356bff4c952db05c2",
     "tests/common/parser_selection_driver.rs": "c98f9319e48cdab9671b200a22867a2bc6c2b75cfbecb52061817d0d42ef59ee",
     "tests/common/parser_selection_driver/preparation.rs": "6dec4a5f1feac2679edf6cae71dda96306ffb29715f4cab3d12d2558ad734d1c"
