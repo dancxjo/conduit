@@ -120,12 +120,15 @@ mod owned {
         let host = owner.host.take_for_play().unwrap();
         let mut runtime =
             DurableHostRuntime::new("std/x86_64/computer".into(), "fixture-image".into(), host);
-        let HostSource::Bare(host) =
+        let HostSource::Bare(mut held) =
             std::mem::replace(&mut runtime.host, HostSource::Transitioning)
         else {
             panic!("original Host absent")
         };
-        owner.host.restore_after_play(host).unwrap();
+        owner
+            .host
+            .restore_after_play(held.take_for_play().unwrap())
+            .unwrap();
         let stage = owner.truth()["source_recording_stage"].clone();
         let text = stage["canonical_sha256"].as_str().unwrap();
         let digest =
