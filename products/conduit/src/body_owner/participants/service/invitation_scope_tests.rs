@@ -129,3 +129,39 @@ fn scope_expiry_invalid_observation_and_failed_persistence_publish_no_fresh_bind
     assert!(owner.pending_browser.as_ref().unwrap().expected.is_none());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn make_preparation_checks_selected_root_before_issue_and_exports_public_fields_only() {
+    let (mut owner, root, _) = setup();
+    let before = owner.admissions.clone();
+    assert!(owner.browser_prepare_spore_window(&root, 10_000).is_err());
+    assert_eq!(owner.admissions, before);
+    assert!(owner.pending_browser.is_none());
+    let body = owner.session.evidence().body_id.clone();
+    let selected =
+        crate::durable_host::owner::establish_root_signer(&mut owner, &root, body.as_str())
+            .unwrap();
+    let (invitation, authority, window) =
+        owner.browser_prepare_spore_window(&root, 10_000).unwrap();
+    assert_eq!(authority.public_key, selected.public_key);
+    assert_eq!(authority.body_id, invitation.claim.body_id);
+    assert_eq!(window.body_id, invitation.claim.body_id);
+    let BrowserWindowScope::InvitationScope(claim) = &owner.pending_browser.as_ref().unwrap().scope
+    else {
+        panic!("missing scope")
+    };
+    assert_eq!(claim, &invitation.claim);
+    let encoded = serde_json::to_value(&authority).unwrap();
+    assert_eq!(encoded.as_object().unwrap().len(), 4);
+    assert!(encoded.get("seed").is_none());
+    assert!(encoded.get("private_record_sha256").is_none());
+    owner
+        .browser_cancel_window(&root, &window.window_id)
+        .unwrap();
+    std::fs::remove_file(root.join("body/root-signer-private.json")).unwrap();
+    let before = owner.admissions.clone();
+    assert!(owner.browser_prepare_spore_window(&root, 10_000).is_err());
+    assert_eq!(owner.admissions, before);
+    assert!(owner.pending_browser.is_none());
+    std::fs::remove_dir_all(root).unwrap();
+}

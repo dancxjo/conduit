@@ -1285,6 +1285,7 @@ enum Response {
     BodyBrowserInvitationWindow {
         protocol: u16,
         invitation: Box<PortableInvitation>,
+        root_authority: conduit_body::BodyRootAuthority,
         authorization: crate::durable_host::owner::BrowserWindowAuthorization,
         url: String,
     },
@@ -2097,14 +2098,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .start_invited_browser_window(maximum_millis)
-            .map(
-                |(invitation, authorization, url)| Response::BodyBrowserInvitationWindow {
+            .map(|(invitation, root_authority, authorization, url)| {
+                Response::BodyBrowserInvitationWindow {
                     protocol: PROTOCOL,
                     invitation: Box::new(invitation),
+                    root_authority,
                     authorization,
                     url,
-                },
-            )
+                }
+            })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserStart {
             protocol,

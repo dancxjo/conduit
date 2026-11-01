@@ -85,6 +85,8 @@ fn product_json(state: &Path, action: &str) -> Result<Value> {
     command.args(["body", action, "--state-dir"]).arg(state);
     if action == "status" {
         command.arg("--json");
+    } else if action == "browser-window" {
+        command.args(["--invited", "--authorize-window"]);
     }
     let mut child = command
         .stdout(std::process::Stdio::piped())
@@ -133,6 +135,27 @@ fn node(action: &str, input: &Path, source: &Path, destination: &Path) -> Result
     Ok(())
 }
 
+fn checked_browser_preparation(
+    value: &Value,
+    expected_body: &str,
+) -> Result<(PortableInvitation, conduit_body::BodyRootAuthority)> {
+    if value["schema"] != "conduit.body/browser-invitation-window@1"
+        || value["authorization"]["body_id"] != expected_body
+        || value["remote_execution"] != false
+    {
+        return Err(BrowserFabricationRefusal::BodyAuthorityMismatch.into());
+    }
+    let root_bytes = serde_json::to_vec(&value["root_authority"])?;
+    let root = conduit_body::BodyRootAuthority::decode(&root_bytes)
+        .map_err(|e| format!("BodyRootAuthorityRefused: {e:?}"))?;
+    let invitation: PortableInvitation = serde_json::from_value(value["invitation"].clone())?;
+    if root.body_id.as_str() != expected_body || invitation.claim.body_id.as_str() != expected_body
+    {
+        return Err(BrowserFabricationRefusal::BodyAuthorityMismatch.into());
+    }
+    Ok((invitation, root))
+}
+
 /// Build inert reviewed bytes before minting the short-lived invitation.
 pub(super) fn fabricate(
     body: &CheckedBodyDescription,
@@ -174,8 +197,11 @@ pub(super) fn fabricate(
         .ok_or("Browser bundle lost digest")?;
     // Recheck the live owner immediately before asking it to mint authority.
     require_owner(body)?;
-    let invitation_value = product_json(state, "invite")?;
-    let mut invitation: PortableInvitation = serde_json::from_value(invitation_value)?;
+    // The same serialized owner operation issues the claim AND awaits that
+    // exact claim. Never issue a second unrelated invitation for the Spore.
+    let preparation = product_json(state, "browser-window")?;
+    let (mut invitation, root_authority) =
+        checked_browser_preparation(&preparation, &body.description().body.id)?;
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_millis() as u64;
@@ -225,7 +251,7 @@ pub(super) fn fabricate(
         &manifest_path,
         serde_json::to_vec_pretty(&bound_spore.manifest)?,
     )?;
-    let prepared = json!({"spore_manifest":bound_spore.manifest,"spore_id":bound_spore.manifest.spore_id,"body_id":bound_spore.manifest.body_id,"image_content_digest":digest,"invitation_id":invitation.claim.invitation_id,"invitation_nonce":invitation.claim.nonce,"invitation_secret":invitation.secret,"invitation_expires_at_millis":invitation.claim.expires_at_millis,"rendezvous":invitation.rendezvous});
+    let prepared = json!({"spore_manifest":bound_spore.manifest,"spore_id":bound_spore.manifest.spore_id,"body_id":bound_spore.manifest.body_id,"image_content_digest":digest,"invitation_id":invitation.claim.invitation_id,"invitation_nonce":invitation.claim.nonce,"invitation_secret":invitation.secret,"invitation_expires_at_millis":invitation.claim.expires_at_millis,"rendezvous":invitation.rendezvous,"root_authority":root_authority});
     let private = root.join(".prepared-spore.json");
     write_private(&private, &serde_json::to_vec(&prepared)?)?;
     invitation.secret.fill(0);
@@ -267,6 +293,31 @@ fn owner_matches(status: &Value, body_id: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn preparation_keeps_one_owner_claim_and_exact_public_root_scope() {
+        let value = serde_json::json!({
+            "schema":"conduit.body/browser-invitation-window@1", "remote_execution":false,
+            "authorization":{"body_id":"body/one","window_id":"window/one","maximum_millis":60000},
+            "invitation":{"schema":"conduit.body/spawn-invitation@1","claim":{
+                "invitation_id":"invitation/one","body_id":"body/one","nonce":vec![1;32],"expires_at_millis":1234},"secret":vec![2;32]},
+            "root_authority":{"schema":"conduit.body/root-authority@1","body_id":"body/one","owner_host_id":"host/owner","public_key":vec![3;32]}
+        });
+        let (invitation, root) = super::checked_browser_preparation(&value, "body/one").unwrap();
+        assert_eq!(invitation.claim.invitation_id.as_str(), "invitation/one");
+        assert_eq!(root.body_id, invitation.claim.body_id);
+        for field in ["schema", "root_authority", "authorization"] {
+            let mut invalid = value.clone();
+            invalid.as_object_mut().unwrap().remove(field);
+            assert!(super::checked_browser_preparation(&invalid, "body/one").is_err());
+        }
+        let mut invalid = value.clone();
+        invalid["root_authority"]["body_id"] = "body/foreign".into();
+        assert!(super::checked_browser_preparation(&invalid, "body/one").is_err());
+        invalid = value.clone();
+        invalid["root_authority"]["seed"] = serde_json::json!([1, 2]);
+        assert!(super::checked_browser_preparation(&invalid, "body/one").is_err());
+    }
+
     #[test]
     fn owner_status_discards_catalog_but_keeps_exact_body_and_finite_envelope() {
         let status = serde_json::json!({"host":{"capabilities":"x".repeat(100_000)},"biography":{"body_id":"body/one","other":"discard"}});

@@ -137,6 +137,7 @@ impl DurableHostRuntime {
     ) -> Result<
         (
             PortableInvitation,
+            conduit_body::BodyRootAuthority,
             crate::durable_host::owner::BrowserWindowAuthorization,
             String,
         ),
@@ -145,12 +146,12 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, root, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        let (invitation, authorization) =
-            owner.browser_authorize_invitation_window(root, maximum_millis)?;
+        let (invitation, root_authority, authorization) =
+            owner.browser_prepare_spore_window(root, maximum_millis)?;
         #[cfg(unix)]
         {
             match super::browser::spawn_window(root, authorization.clone()) {
-                Ok(url) => Ok((invitation, authorization, url)),
+                Ok(url) => Ok((invitation, root_authority, authorization, url)),
                 Err(error) => {
                     let _ = owner.browser_cancel_window(root, &authorization.window_id);
                     Err(error)
@@ -538,6 +539,7 @@ pub(crate) fn start_invited_browser_window(
 ) -> Result<
     (
         PortableInvitation,
+        conduit_body::BodyRootAuthority,
         crate::durable_host::owner::BrowserWindowAuthorization,
         String,
     ),
@@ -554,9 +556,10 @@ pub(crate) fn start_invited_browser_window(
         Response::BodyBrowserInvitationWindow {
             protocol: PROTOCOL,
             invitation,
+            root_authority,
             authorization,
             url,
-        } => Ok((*invitation, authorization, url)),
+        } => Ok((*invitation, root_authority, authorization, url)),
         Response::Refused { code, .. } => Err(code),
         _ => Err("Body owner returned the wrong invited browser-window response".into()),
     }
@@ -569,6 +572,7 @@ pub(crate) fn start_invited_browser_window(
 ) -> Result<
     (
         PortableInvitation,
+        conduit_body::BodyRootAuthority,
         crate::durable_host::owner::BrowserWindowAuthorization,
         String,
     ),

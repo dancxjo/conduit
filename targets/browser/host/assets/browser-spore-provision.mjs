@@ -13,6 +13,18 @@ const bytes32 = value => Array.isArray(value) && value.length === 32
   && value.some(byte => byte !== 0);
 const digest = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 
+// Inert public provenance from the human-selected owner-produced artifact.
+// It is never a substitute for independently reviewed executable policy.
+export function parseBodyRootAuthority(value, expectedBodyId) {
+  if (!value || value.schema !== 'conduit.body/root-authority@1'
+    || Object.keys(value).sort().join(',') !== 'body_id,owner_host_id,public_key,schema'
+    || !text(value.body_id) || value.body_id !== expectedBodyId
+    || !text(value.owner_host_id) || !bytes32(value.public_key)
+    || encoder.encode(JSON.stringify(value)).length > 1024) fail();
+  return Object.freeze({ schema: value.schema, body_id: value.body_id,
+    owner_host_id: value.owner_host_id, public_key: Object.freeze([...value.public_key]) });
+}
+
 // Accept bytes from the caller's bounded package reader, never an ambient URL.
 // Reparse to detach all retained fields from caller-owned mutable objects.
 export function parseBrowserSporeProvision(bytes, { nowMillis, expectedBodyId } = {}) {
@@ -53,6 +65,8 @@ export function parseBrowserSporeProvision(bytes, { nowMillis, expectedBodyId } 
   });
   return Object.freeze({
     manifest: freeze(manifest),
+    rootAuthority: invitation.root_authority === undefined ? null
+      : parseBodyRootAuthority(invitation.root_authority, manifest.body_id),
     claim: Object.freeze({ invitation_id: invitation.invitation_id,
       body_id: manifest.body_id, nonce: Object.freeze(invitation.nonce),
       expires_at_millis: invitation.expires_at_millis }),
