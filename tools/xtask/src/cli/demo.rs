@@ -91,6 +91,9 @@ pub struct PatchbayDemoArgs {
     /// Run the finite first-run authoring-to-Play acceptance journey.
     #[arg(long)]
     pub first_run_proof: bool,
+    /// Add an editable canonical Plot file to the browser Library (repeatable).
+    #[arg(long, num_args = 2, value_names = ["LABEL", "PATH"], conflicts_with = "first_run_proof")]
+    pub plot: Vec<String>,
 }
 
 #[derive(ValueEnum, Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -121,4 +124,59 @@ pub struct ThermostatDemoArgs {
     /// Check semantic, kernel, and installed Body Owner contracts.
     #[arg(long)]
     pub verify: bool,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cli::{Cli, Command, ProveCommand};
+    use clap::Parser;
+
+    #[test]
+    fn browser_patchbay_admits_repeatable_canonical_source_files() {
+        let patchbay = Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "journey",
+            "patchbay",
+            "--on",
+            "browser",
+            "--plot",
+            "My Plot",
+            "work/my-plot.conduit",
+            "--plot",
+            "Another",
+            "work/another.conduit",
+        ])
+        .expect("browser Patchbay admits explicitly selected editable sources");
+        let Command::Prove(args) = patchbay.command else {
+            panic!("expected prove");
+        };
+        let Some(ProveCommand::Journey(DemoArgs {
+            command: DemoCommand::Patchbay(PatchbayDemoArgs { plot, .. }),
+        })) = args.command
+        else {
+            panic!("expected Patchbay journey");
+        };
+        assert_eq!(
+            plot,
+            [
+                "My Plot",
+                "work/my-plot.conduit",
+                "Another",
+                "work/another.conduit"
+            ]
+        );
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "prove",
+            "journey",
+            "patchbay",
+            "--on",
+            "browser",
+            "--plot",
+            "Missing path"
+        ])
+        .is_err());
+    }
 }

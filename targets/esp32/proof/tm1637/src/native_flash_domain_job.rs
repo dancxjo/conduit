@@ -8,6 +8,8 @@ pub(crate) enum DomainJob {
     Pending(Box<crate::native_restart::network_pending_job::PendingJob>),
     #[cfg(feature = "body-persistence")]
     Biography(Box<crate::native_restart::biography::hot::Custody>),
+    #[cfg(feature = "body-persistence")]
+    Membership(Box<crate::native_body_join::membership::job::Job>),
 }
 pub(crate) enum DomainError {
     Observed(Error),
@@ -15,6 +17,8 @@ pub(crate) enum DomainError {
     Pending(&'static str),
     #[cfg(feature = "body-persistence")]
     Biography(&'static str),
+    #[cfg(feature = "body-persistence")]
+    Membership(&'static str),
 }
 impl crate::native_flash_jobs::Job for DomainJob {
     fn step(&self) -> u32 {
@@ -24,6 +28,8 @@ impl crate::native_flash_jobs::Job for DomainJob {
             Self::Pending(job) => job.step(),
             #[cfg(feature = "body-persistence")]
             Self::Biography(job) => job.step(),
+            #[cfg(feature = "body-persistence")]
+            Self::Membership(job) => job.step(),
         }
     }
 }
@@ -41,6 +47,14 @@ pub(crate) fn advance(
             .advance(&mut crate::native_evidence_region::checkpoint_access::Access::new(permit))
             .map(|_| ())
             .map_err(DomainError::Pending),
+        #[cfg(feature = "body-persistence")]
+        DomainJob::Membership(job) => job
+            .advance(
+                permit,
+                &mut crate::native_evidence_region::checkpoint_access::Access::new(permit),
+                embassy_time::Instant::now().as_millis(),
+            )
+            .map_err(DomainError::Membership),
         #[cfg(feature = "body-persistence")]
         DomainJob::Biography(job) => job
             .advance(&mut crate::native_evidence_region::checkpoint_access::Access::new(permit))
