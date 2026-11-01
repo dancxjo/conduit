@@ -5,7 +5,7 @@ use crate::native_body_checkpoint::{
     incremental::{IncrementalRewrite, Operation, SectorStorage},
     PayloadReader,
 };
-use crate::native_flash_window::FlashPermit;
+use conduit_monotonic_wait::flash_window::FlashPermit;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Phase {
@@ -354,6 +354,6 @@ fn emit<S: crate::native_body_checkpoint::Storage>(
         .map_err(|e| refused.unwrap_or_else(|| stream_refusal(e)))
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "observation-store"))]
 #[path = "native_restart_owned_checkpoint_tests.rs"]
 mod tests;
