@@ -74,6 +74,26 @@ fn planned_checkpoint(
 ) {
     let source = RecordingCatalogSeedSource::compile_checkpoint(reference).unwrap();
     let mut advertisement = catalog_host::configured(&source, boot);
+    let present = source
+        .plot
+        .expanded
+        .gears
+        .iter()
+        .find(|gear| {
+            gear.kind_id.as_str() != c::STATE_VALUE_KIND
+                && gear.kind_id.as_str() != conduit_semantic_catalog::SNAPSHOT_PUBLISH_KIND
+        })
+        .unwrap();
+    let c::ConfigurationValue::Text(program) = &present.configuration[0].value else {
+        panic!("checked some program")
+    };
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(program).unwrap();
+    // Select the existing finite kernel-local evaluator explicitly; no new
+    // platform Host Call or special-case optional-reference conversion.
+    advertisement
+        .capabilities
+        .push(conduit_std_offers::pure_expression_local_offer(&program).unwrap());
+
     let snapshot = resource(reference, &advertisement);
     let offer = host::linux_snapshot::offer_for_resource(&snapshot).unwrap();
     let requirement = &offer.authority_requirements[0];
@@ -226,8 +246,8 @@ impl BodyBorrowedForeOutputAdapter for Capture {
                 return Err("fixture State residence not opened exactly once".into());
             }
             // Effect fault injection after recovery/current delivery: publication
-            // remains an independent effect, but the later State rename fails.
-            std::fs::create_dir(entries[0].join("current")).map_err(|e| e.to_string())?;
+            // remains an independent effect, but the later State candidate write fails.
+            std::fs::create_dir(entries[0].join("candidate")).map_err(|e| e.to_string())?;
         }
         self.values.push(value.bytes.to_vec());
         Ok(())
@@ -400,13 +420,8 @@ fn run(fail_state: bool) {
             c::TerminalDisposition::Failed { .. }
         ));
         assert_eq!(capture.values.len(), 1);
-        let key = std::fs::read_dir(state_root.path())
-            .unwrap()
-            .next()
-            .unwrap()
-            .unwrap()
-            .path();
-        std::fs::remove_dir(key.join("current")).unwrap();
+        // The deliberately obstructed candidate is not a committed generation;
+        // fresh recovery must ignore it without any repair or promotion.
     } else {
         assert_eq!(
             report.terminal,
