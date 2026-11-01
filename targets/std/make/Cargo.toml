@@ -10,3 +10,4 @@ conduit-host-make = { path = "../../../make/host" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog" }
 conduit-std-offers = { path = "../offers", features = ["speech"] }
 sha2 = "0.10"
+conduit-body-make = { path = "../../../make/body" }
