@@ -1,9 +1,16 @@
-//! Physical membership checkpoint steps use the existing finite flash domain.
-//! Start/codec/replay/final verification require separate preparation qualification;
-//! the ROM timing witness cannot admit those phases through this entrance.
+//! Membership custody shares the existing finite flash domain. Start/codec/
+//! replay/final verification require their own preparation evidence; the ROM
+//! flash-operation witness cannot qualify them.
 use super::*;
 type Membership = Box<crate::native_body_join::membership::job::Job>;
 impl Submitter {
+    /// Check before moving an accepted request or taking the Root's Body.
+    pub(crate) fn membership_ready(&self) -> bool {
+        self.membership_preparation_qualified() && self.available()
+    }
+    pub(crate) fn membership_preparation_qualified(&self) -> bool {
+        self.preparation.is_some()
+    }
     pub(crate) fn submit_membership(
         &mut self,
         owner: Membership,
@@ -13,17 +20,24 @@ impl Submitter {
         };
         use crate::native_body_join::membership::job::Phase;
         use crate::native_restart::owned_checkpoint::Phase as CheckpointPhase;
-        let operation = match owner.phase() {
-            Phase::Checkpoint(CheckpointPhase::Physical(operation)) => operation,
-            Phase::Start
+        let budget = match owner.phase() {
+            Phase::Checkpoint(CheckpointPhase::Physical(operation)) => {
+                crate::native_evidence_region::checkpoint_access::budget_ms(timing, operation)
+            }
+            phase @ (Phase::Start
             | Phase::Checkpoint(
                 CheckpointPhase::Prepare | CheckpointPhase::Chunk | CheckpointPhase::Finish,
-            ) => {
-                return Err((SubmissionRefusal::Unprepared, owner));
+            )) => {
+                let Some(budget) = self
+                    .preparation
+                    .and_then(|profile| profile.budget_ms(phase))
+                else {
+                    return Err((SubmissionRefusal::Unprepared, owner));
+                };
+                budget
             }
             _ => return Err((SubmissionRefusal::Terminal, owner)),
         };
-        let budget = crate::native_evidence_region::checkpoint_access::budget_ms(timing, operation);
         match self.inner.submit(DomainJob::Membership(owner), budget) {
             Ok(id) => Ok(id),
             Err((error, DomainJob::Membership(owner))) => {

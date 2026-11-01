@@ -34,6 +34,8 @@ pub(crate) enum SubmissionRefusal {
 pub(crate) struct Submitter {
     inner: RootSubmitter<'static, DomainJob, (), DomainError>,
     timing: Option<ReviewedTiming>,
+    #[cfg(feature = "body-persistence")]
+    preparation: Option<preparation::ReviewedPreparation>,
 }
 impl Submitter {
     pub(crate) fn available(&self) -> bool {
@@ -235,6 +237,8 @@ pub(crate) fn prepare(
         Submitter {
             inner: submitter,
             timing,
+            #[cfg(feature = "body-persistence")]
+            preparation: preparation::reviewed_for_boot(),
         },
         WaitLane::new(gate, executor),
         gate,
@@ -248,3 +252,7 @@ mod biography;
 #[cfg(feature = "body-persistence")]
 #[path = "native_flash_domain_membership.rs"]
 mod membership;
+
+#[cfg(feature = "body-persistence")]
+#[path = "native_checkpoint_preparation_policy.rs"]
+mod preparation;
