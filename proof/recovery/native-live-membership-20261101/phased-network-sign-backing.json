@@ -34,7 +34,51 @@
     "partition_bytes": 3371008,
     "stack_bytes": 37372,
     "stack_floor_bytes": 36864,
-    "flashed": false
+    "flashed": true
   },
-  "target_retry_acceptance": "Not yet proved. Guarded device deployment is in progress; current local history is preserved before any application write."
+  "target_retry_acceptance": "Not achieved: physical floor reservation succeeds, but later contiguous Sign allocation refuses before admission or issuance. CPU peak improvement is not target retry proof.",
+  "physical_deployment": {
+    "application_readback_exact": true,
+    "all_non_application_bytes_exact": true,
+    "retained_body_resumed": true,
+    "membership_revision": 454,
+    "boot": "boot/f8186c5bf9376018e1f34eb5f23ad961",
+    "closed_epoch_reclaimed_first": {
+      "records": 16,
+      "physical_origin": "0x388000",
+      "all30_data_sectors_erased": true,
+      "both_root_receipt_signatures_verified": true,
+      "other_physical_epochs_byte_exact": [
+        0,
+        1,
+        3,
+        4
+      ]
+    },
+    "local_progress": {
+      "boot_ms": 119884,
+      "samples": 1,
+      "archive_committed": 1,
+      "mask_updates": 35,
+      "sampler_failure": null,
+      "mask_failure": null,
+      "archive_failed": false
+    },
+    "actual_refusal": {
+      "stage": 117,
+      "phase": "signs",
+      "requested_bytes": 1792,
+      "alignment": 1,
+      "aggregate_free_bytes": 7028,
+      "bank_free_bytes": [
+        2140,
+        88,
+        4800
+      ],
+      "admitted": false,
+      "issued_custody": 0,
+      "active_reserved": false
+    }
+  },
+  "next_action": "Keep same affine construction WorkspacePermit held synchronously. After descriptions retire, release synthetic initial floor; allocate full execution and issuance storage; physically reserve the complete16KiB again before admission, attempt or sequence spending; retain final guard until ordinary release. Implementation/testing pending; no weaker grant or scalar-only capacity check authorized."
 }
