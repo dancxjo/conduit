@@ -1,4 +1,5 @@
-import { OwnerFacePresentation } from "./owner-face-presentation.mjs";
+import { OwnerFacePresentation, presentedBodySubject } from "./owner-face-presentation.mjs";
+export { presentedBodySubject };
 export { ownerFacePointerReachable } from "./owner-face-pointer.mjs";
 
 let admittedStyle;

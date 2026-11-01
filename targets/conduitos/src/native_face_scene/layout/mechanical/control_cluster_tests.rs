@@ -32,7 +32,7 @@ fn oversized_subject_help_keeps_fitting_action_and_argument_on_one_page() {
             },
             &profile,
             200,
-            SPACE_SM * 2,
+            RowSpacing::legacy(SPACE_SM * 2),
             Typography::new(typography),
         )
         .unwrap();

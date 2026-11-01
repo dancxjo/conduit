@@ -3,6 +3,14 @@ use super::*;
 // Ordinary typed author proposals exercise arbitrary sizes independently of
 // Field resource registration; these are test values, never physical proof.
 fn metric_proposal(body: u16, small: u16, leading: u16) -> conduit_face::LookInfo {
+    metric_proposal_with_gap(body, small, leading, 4)
+}
+pub(super) fn metric_proposal_with_gap(
+    body: u16,
+    small: u16,
+    leading: u16,
+    gap: u16,
+) -> conduit_face::LookInfo {
     use conduit_face::*;
     let base = engineering_look().unwrap();
     let LookVisualFacetOption::Some(visual) = base.visual() else {
@@ -24,7 +32,7 @@ fn metric_proposal(body: u16, small: u16, leading: u16) -> conduit_face::LookInf
         *t.space_control_block_px(),
         *t.space_control_inline_px(),
         *t.space_panel_px(),
-        *t.space_unit_px(),
+        gap,
         *t.structure_primary(),
         *t.structure_secondary(),
         *t.success(),
@@ -37,7 +45,7 @@ fn metric_proposal(body: u16, small: u16, leading: u16) -> conduit_face::LookInf
         *t.workbench_canvas(),
     )
     .unwrap();
-    let id = alloc::format!("test/native-metric-{body}-{small}-{leading}");
+    let id = alloc::format!("test/native-metric-{body}-{small}-{leading}-{gap}");
     let expression = VisualExpressionInfo::new(
         VisualDensityPreference::Compact,
         id.clone(),

@@ -40,6 +40,7 @@ pub(super) fn arrange(
             scale: context.scale,
             typography: context.typography,
             padding: context.padding,
+            gap: context.gap,
         };
         let mut demand = None;
         if starts {
@@ -79,7 +80,7 @@ pub(super) fn arrange(
                     + if current.entries.is_empty() {
                         0
                     } else {
-                        SPACE_SM
+                        context.gap
                     },
                 height,
                 current.entries.len(),
@@ -95,7 +96,7 @@ pub(super) fn arrange(
                             + if current.entries.is_empty() {
                                 0
                             } else {
-                                SPACE_SM
+                                context.gap
                             },
                         height,
                         current.entries.len(),
@@ -134,7 +135,7 @@ pub(super) fn arrange(
             let gap = if current.entries.is_empty() {
                 0
             } else {
-                SPACE_SM
+                context.gap
             };
             let y = add(current.height, gap)?;
             let bottom = add(y, box_height)?;
@@ -155,7 +156,7 @@ pub(super) fn arrange(
             let y = if current.entries.is_empty() {
                 0
             } else {
-                add(current.height, SPACE_SM)?
+                add(current.height, context.gap)?
             };
             current.height = add(y, box_height)?;
             current.cost += cost;

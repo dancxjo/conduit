@@ -18,6 +18,16 @@ const faceNode = (tag, text, className) => {
 
 import { ownerFacePointerReachable } from "./owner-face-pointer.mjs";
 
+// Project supplied wording; never look up membership or choose between Bodies.
+export function presentedBodySubject(subjects) {
+  const bodies = subjects.filter(subject => subject.role === 'Body');
+  if (bodies.length !== 1) return;
+  const body = bodies[0];
+  if (typeof body.name !== 'string' || !body.name.trim()
+    || ![undefined, 'Primary', 'Context'].includes(body.disclosure)) return;
+  return body;
+}
+
 export class OwnerFacePresentation {
   #element;
   #surface;
@@ -261,7 +271,10 @@ export class OwnerFacePresentation {
       control.append(button);
       if (button.disabled) control.append(faceNode('p', !this.#supportsAction(action)
         ? 'This action is unavailable in this view.' : action.explanation ??
-        (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
+        (supported && inputs.length === argumentCount
+          ? action.availability === 'available' ? 'View only. Actions are not enabled in this view.'
+            : 'This owner action is unavailable.'
+          : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
         if (!this.#canActivate(button) || !this.#ready(view, action, render) || !this.#invoke
@@ -288,7 +301,10 @@ export class OwnerFacePresentation {
       node.setAttribute('part', 'subject');
       node.dataset.faceRole = subject.role;
       bindRegion(node, subject);
-      node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
+      const roleLabel = faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role');
+      roleLabel.hidden = Boolean(component?.selected_look) && !subject.semantic_role
+        && ['Info', 'Collection', 'Status', 'Item'].includes(subject.role);
+      node.append(roleLabel);
       const heading = decorate(faceNode('h4', subject.name), iconForRole(subject.role));
       heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
       node.append(heading);
@@ -488,7 +504,13 @@ export class OwnerFacePresentation {
         run.append(node);
       }
     }
-    this.#surface.replaceChildren(documentNode);
+    const body = hasApplication && presentedBodySubject(view.subjects);
+    const heading = body && faceNode('h4', body.name);
+    if (heading) {
+      heading.dataset.textPurpose = 'Heading';
+      heading.dataset.faceHeading = body.identity;
+    }
+    this.#surface.replaceChildren(...(heading ? [heading] : []), documentNode);
     this.#element.dataset.faceId = view.face_id;
     this.#element.dataset.faceRevision = view.face_revision;
     this.#element.dataset.showId = view.show_id;
