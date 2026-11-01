@@ -5,6 +5,7 @@ edition = "2021"
 default-run = "conduit"
 
 [features]
+installed-body-storage = ["conduit-std-host/linux-snapshot"]
 installed-environmental-sources = ["dep:conduit-environment-host", "dep:conduit-environment-measurement", "dep:conduit-environment-history", "dep:libc"]
 
 [target.'cfg(target_os = "linux")'.dependencies]

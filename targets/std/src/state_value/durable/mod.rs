@@ -242,7 +242,7 @@ mod back;
 pub use back::DurableStateBack;
 mod residence;
 pub use residence::FileDurableStateResidence;
-pub(crate) use residence::InstalledDurableStateHost;
+pub(crate) use residence::{durable_record_byte_bound, InstalledDurableStateHost};
 
 #[cfg(test)]
 mod tests {

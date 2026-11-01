@@ -14,8 +14,8 @@ pub use snapshot::{FileSnapshotRefusal, IoStage, PreparedFileSnapshot};
 #[cfg(target_os = "linux")]
 mod operation;
 pub use conduit_resource_snapshot::{
-    snapshot_reference, PreparedSnapshotOperation, AUTHORITY_CONTRACT, PUBLISH_OPERATION,
-    READ_OPERATION,
+    snapshot_reference, PreparedSnapshotOperation, AUTHORITY_CONTRACT, MAXIMUM_RECORD_BYTES,
+    PUBLISH_OPERATION, READ_OPERATION,
 };
 #[cfg(target_os = "linux")]
 pub use operation::{FileOperationRefusal, PreparedFileSnapshotOperation};

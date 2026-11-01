@@ -19,6 +19,8 @@ pub mod body_causal_evidence;
 pub mod body_clock_line;
 pub mod body_coordination;
 pub mod body_execution;
+#[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+pub mod body_storage;
 mod boot_identity;
 pub mod browser_admission;
 pub mod carried_formant;
@@ -604,6 +606,8 @@ pub struct StdHost {
     todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
     #[cfg(target_os = "linux")]
     selected_text_file: Option<text_file::SelectedTextFileResidence>,
+    #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+    selected_body_storage: Option<body_storage::SelectedBodyStorage>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -950,6 +954,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1026,6 +1032,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1078,6 +1086,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1129,6 +1139,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1180,6 +1192,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1231,6 +1245,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1267,6 +1283,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1327,6 +1345,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1382,6 +1402,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1426,6 +1448,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1483,6 +1507,8 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]

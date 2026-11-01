@@ -432,3 +432,12 @@ mod tests {
         fs::remove_dir_all(&root).unwrap();
     }
 }
+
+pub(crate) fn durable_record_byte_bound(maximum: u32) -> Result<usize, String> {
+    if maximum == 0 || maximum > super::MAXIMUM_DURABLE_STATE_BYTES {
+        return Err("State record byte bound exceeds implementation".into());
+    }
+    HEADER_BYTES
+        .checked_add(maximum as usize)
+        .ok_or("State record byte bound overflow".into())
+}

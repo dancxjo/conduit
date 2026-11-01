@@ -323,3 +323,77 @@ fn checked_declaration_name_reaches_fresh_installed_offer_without_identity_chang
     assert_eq!(after.resources, before.resources);
     assert_eq!(after.offer_generation.0, before.offer_generation.0 + 1);
 }
+
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+fn storage_source(root: &std::path::Path) -> String {
+    SOURCE.replace(r#"base = {kind: "storage/protected-file", implementation: "hosted/protected-file@1"}"#,
+        &format!(r#"base = {{kind: "storage/protected-file", implementation: "linux/body-storage-directory@1", initialization: {{root_directory: {:?}, pool_namespace: "body/storage", maximum_snapshot_records: 2, maximum_record_bytes: 4096, generation_slots: 2, publication_slots: 1, reader_leases: 1, state_slots: 1, maximum_state_bytes: 1024, total_disk_bytes: 65536, preparation_bytes: 8192}}}}"#,root.to_str().unwrap()))
+}
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+#[test]
+fn storage_check_is_pure_and_failed_explicit_selection_never_persists_half_binding() {
+    let (manifest, state) = super::super::tests::fixture();
+    install(&manifest, &state).unwrap();
+    let missing = state.join("not-created");
+    let source = storage_source(&missing);
+    let checked = check(&source).unwrap();
+    let canonical = canonical_host_configuration_conduit(checked.configuration()).unwrap();
+    assert_eq!(
+        check(&canonical).unwrap().configuration_id(),
+        checked.configuration_id()
+    );
+    assert!(!missing.exists());
+    let source_path = state.join("storage.host.conduit");
+    fs::write(&source_path, &source).unwrap();
+    let before = fs::read(state.join("installation.json")).unwrap();
+    assert!(configure(&state, Some(&source_path), false).is_err());
+    assert_eq!(fs::read(state.join("installation.json")).unwrap(), before);
+    assert!(!missing.exists());
+}
+#[cfg(all(
+    feature = "installed-body-storage",
+    target_os = "linux",
+    target_arch = "x86_64"
+))]
+#[test]
+fn configured_storage_reopens_same_private_root_and_refuses_substituted_directory() {
+    let (manifest, state) = super::super::tests::fixture();
+    install(&manifest, &state).unwrap();
+    let root = tempfile::tempdir().unwrap();
+    let source_path = state.join("storage.host.conduit");
+    fs::write(&source_path, storage_source(root.path())).unwrap();
+    configure(&state, Some(&source_path), false).unwrap();
+    let installed = read_installation(&state.join("installation.json")).unwrap();
+    let selected = installed.selected_host_configuration.unwrap();
+    assert!(selected.storage_root.is_some());
+    let mut host = StdHost::new();
+    let ad = host.advertisement().clone();
+    selected.attach_to_fresh_host(&mut host).unwrap();
+    assert!(host.selected_body_storage().is_some());
+    assert_eq!(host.advertisement().resources, ad.resources);
+    assert_eq!(host.advertisement().capabilities, ad.capabilities);
+    assert_eq!(host.advertisement().bases, ad.bases);
+    let path = root.path().to_path_buf();
+    let moved = path.with_extension("selected-moved");
+    fs::rename(&path, &moved).unwrap();
+    fs::create_dir(&path).unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o700)).unwrap();
+    let mut fresh = StdHost::new();
+    assert!(selected
+        .attach_to_fresh_host(&mut fresh)
+        .unwrap_err()
+        .contains("identity changed"));
+    assert!(fresh.selected_body_storage().is_none());
+    assert_eq!(fs::read_dir(&path).unwrap().count(), 0);
+    drop(host);
+    fs::remove_dir_all(moved).unwrap();
+}
