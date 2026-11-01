@@ -123,7 +123,7 @@ try {
     await writeFile(destination, manifests[index].bytes);
     await chmod(destination, manifests[index].mode);
   }
-  for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-plots.mjs", "browser-sdk-continuity.mjs", "browser-sdk-syntax.mjs", "browser-sdk-events.mjs", "browser-sdk-face.mjs", "browser-sdk-face-actions.mjs", "browser-sdk-owner-show-state.mjs", "browser-sdk-wardrobe.mjs", "browser-sdk-patchbay.mjs", "browser-sdk-body-face.mjs", "browser-sdk.d.ts", "README.md"]) {
+  for (const name of ["package.json", "browser-sdk.mjs", "browser-sdk-plots.mjs", "browser-sdk-continuity.mjs", "browser-sdk-syntax.mjs", "browser-sdk-events.mjs", "browser-sdk-face.mjs", "browser-sdk-face-actions.mjs", "browser-sdk-owner-show-state.mjs", "browser-sdk-owner-component.mjs", "browser-sdk-wardrobe.mjs", "browser-sdk-patchbay.mjs", "browser-sdk-body-face.mjs", "browser-sdk.d.ts", "README.md"]) {
     await copyFile(path.join(ROOT, name), path.join(stageRoot, name));
   }
   for (const name of ["browser-body-host.mjs", "browser-saved-choice.mjs", "browser-text-editor.mjs", "browser-resource-storage.mjs", "browser-monotonic-timer.mjs", "browser-body-input.mjs", "browser-human-input.mjs", "browser-audio-cue.mjs", "browser-pcm-audio.mjs", "browser-plot-effects.mjs", "application-face.mjs", "application-graph-canvas.mjs", "application-syntax-face.mjs", "application-look.mjs", "browser-body-continuity.mjs", "browser-runtime-bridge.mjs", "browser-application-storage.mjs", "browser-membership.js", "browser-host-identity.mjs", "body-webrtc-sessions.mjs", "body-webrtc-session.mjs", "webrtc-datachannel-line.mjs", "webrtc-session-runtime.mjs"]) {
@@ -133,10 +133,10 @@ try {
     await copyFile(source, destination);
   }
   // One component implementation serves the application and the SDK default.
-  for (const name of ["owner-face-component.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
+  for (const name of ["owner-face-component.mjs", "owner-face-presentation.mjs", "owner-face-pointer.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
     await copyFile(path.resolve(ROOT, "../handbook", name), path.join(stageRoot, name));
   }
-  const componentPath = path.join(stageRoot, "owner-face-component.mjs");
+  const componentPath = path.join(stageRoot, "owner-face-presentation.mjs");
   await writeFile(componentPath, (await readFile(componentPath, "utf8"))
     .replaceAll('"../host/assets/application-look.mjs"', '"./host/assets/application-look.mjs"'));
   for (const name of ["browser-sdk-patchbay.mjs", "browser-sdk-body-face.mjs"]) {

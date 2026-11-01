@@ -35,14 +35,19 @@ mod preparation;
 mod encounter;
 #[path = "native_face_mask/plot_owner.rs"]
 mod plot_owner;
+#[path = "native_face_mask/preferences.rs"]
+mod preferences;
 #[path = "native_face_mask/producer.rs"]
 mod producer;
+pub use preferences::NativeLocalLookRefusal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeFaceMaskError {
     Plan,
     Face,
     InputUnavailable,
+    LocalLook(NativeLocalLookRefusal),
+    LocalLookUnsupported,
     Producer(FaceSnapshotRefusal),
     Scene(FaceSceneError),
     Mask(NativeMaskPlayError),
@@ -55,6 +60,8 @@ impl NativeFaceMaskError {
             Self::Plan => "native-face-mask-plan-refused",
             Self::Face => "native-face-mask-face-refused",
             Self::InputUnavailable => "native-face-mask-input-unavailable",
+            Self::LocalLook(error) => error.as_str(),
+            Self::LocalLookUnsupported => "native-local-look-requires-configured-mask",
             Self::Producer(error) => match error {
                 FaceSnapshotRefusal::HostIdentity => "native-face-mask-producer-host-identity",
                 FaceSnapshotRefusal::Catalog => "native-face-mask-producer-catalog",
@@ -109,7 +116,8 @@ pub struct NativeFaceMask {
     local_input_available: bool,
     local_creche_preferences: bool,
     component_configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
-    visual_look: Option<conduit_face::AdmittedVisualLook>,
+    visual_look: Option<preferences::NativeVisualSelection>,
+    look_preferences: preferences::NativeLookPreferences,
     visual_constraints: conduit_face::VisualUserConstraints,
     component_fallback: Option<String>,
     encounter_pending: bool,
@@ -142,7 +150,9 @@ impl NativeFaceMask {
         self.component_configuration.as_ref()
     }
     pub fn visual_expression(&self) -> Option<&conduit_face::AdmittedVisualExpression> {
-        self.visual_look.as_ref().map(|look| &look.visual)
+        self.visual_look
+            .as_ref()
+            .map(|look| &look.admitted().visual)
     }
     pub fn component_fallback(&self) -> Option<&str> {
         self.component_fallback.as_deref()
@@ -280,18 +290,22 @@ impl NativeFaceMask {
         let width = u16::try_from(format.width).map_err(|_| NativeFaceMaskError::Face)?;
         let height = u16::try_from(format.height).map_err(|_| NativeFaceMaskError::Face)?;
         let mut scene = if let Some(configuration) = &self.component_configuration {
-            let (scene, expression, fallback) = Self::prepare_component_scene(
+            let (scene, expression, fallback) = Self::prepare_component_scene_with_preferences(
                 configuration,
                 &face,
                 width,
                 height,
                 interaction_admitted,
                 self.visual_constraints,
+                &self.look_preferences,
             )?;
             self.visual_look = Some(expression);
             self.component_fallback = fallback;
             scene
         } else {
+            if self.look_preferences.is_requested() {
+                return Err(NativeFaceMaskError::LocalLookUnsupported);
+            }
             NativeFaceScene::prepare_with_input(face.clone(), width, height, interaction_admitted)
                 .map_err(NativeFaceMaskError::Scene)?
         };
@@ -363,7 +377,7 @@ impl NativeFaceMask {
                 request.prepared_show(),
                 request.display_base_id(),
                 &frame.scene,
-                expression,
+                expression.admitted(),
             )
         } else {
             self.compositor.update_pending_mask_surface(

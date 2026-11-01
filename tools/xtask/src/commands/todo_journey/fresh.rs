@@ -306,7 +306,7 @@ pub(super) fn run(
             .arg(&state);
         // Completed items stay subordinate in the default checklist. Request
         // the existing precise inspection when this chapter completes one.
-        let terminal_keys: &[u8] = if args.cross_mask_actions {
+        let terminal_keys: &[u8] = if args.cross_mask_actions || args.required_component {
             b"inspect\npage down\npage down\npage down\nquit\n"
         } else {
             b"quit\n"

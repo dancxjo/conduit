@@ -56,3 +56,32 @@ fn look_replacement_cannot_mix_mutation_matrix_or_speech_scenarios() {
     assert!(parse(&["--direct-speech"]).is_err());
     assert!(parse(&["--count-matrix", "--cross-mask-actions"]).is_err());
 }
+
+#[test]
+fn required_component_is_a_fresh_exclusive_installed_scenario() {
+    assert!(parse(&["--required-component"]).is_err());
+    let flags = [
+        "--fresh-body-source",
+        "todo.conduit",
+        "--required-component",
+    ];
+    assert_eq!(
+        parse(&flags).unwrap().browser_scenario(),
+        "required-component"
+    );
+    for other in [
+        "--cross-mask-actions",
+        "--count-matrix",
+        "--direct-speech",
+        "--look-replacement",
+    ] {
+        for pair in [
+            ["--required-component", other],
+            [other, "--required-component"],
+        ] {
+            let mut flags = vec!["--fresh-body-source", "todo.conduit"];
+            flags.extend(pair);
+            assert!(parse(&flags).is_err(), "ambiguous scenarios: {flags:?}");
+        }
+    }
+}
