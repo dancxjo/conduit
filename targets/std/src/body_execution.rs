@@ -30,9 +30,13 @@ pub use fore_custody::{
 };
 
 mod parsec_terminal;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod snapshot;
 mod todo_checkpoint;
 pub(crate) use parsec_terminal::ParsecTerminalAttachment;
 pub use parsec_terminal::{BodyParsecShowObserver, BodyParsecTerminalRoute};
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub use snapshot::BodySnapshotSelection;
 
 #[derive(Debug, Clone)]
 pub struct ObservedKernelEvent {
@@ -298,6 +302,46 @@ impl StdHost {
         live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
         checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_to_with_start_and_clock_storage(
+            request,
+            output,
+            timer,
+            correlation,
+            execution_bounds,
+            fore,
+            live,
+            checkpoint,
+            terminal,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            None,
+            started,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn run_body_plan_to_with_start_and_clock_storage<'a, W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        correlation: Option<&BodyClockCorrelation>,
+        execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+        fore: Option<(
+            &[ExternalForeInput],
+            bool,
+            &'a mut dyn BodyForeOutputAdapter,
+        )>,
+        live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
+        checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
+        terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshots: Option<
+            BodySnapshotSelection<'a>,
+        >,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -374,6 +418,10 @@ impl StdHost {
         if let Some((root, checkpoint)) = checkpoint {
             kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
         }
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+        if let Some(selection) = snapshots {
+            kernel.attach_snapshot(&request.plan.plots, selection, &prospective_play)?;
+        }
         kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,
@@ -394,6 +442,8 @@ impl StdHost {
                 return Err("Body prospective Play identity changed before start".into());
             }
             kernel.confirm_input_play(&self.advertisement, &play)?;
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            kernel.confirm_snapshot_play(&play)?;
             // Body lifecycle signs are scoped by this unique admitted Play.
             // The shared lifecycle session and browser producer use 0/1/2;
             // reusing the Host-wide cursor would make a second genuine start
