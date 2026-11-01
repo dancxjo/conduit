@@ -288,12 +288,18 @@ export async function startOwnerParticipation(application, root) {
       shadow.append(look, surface);
       const presentation = new OwnerFacePresentation(element, surface);
       Object.defineProperty(element, 'disabled', { set: value => { presentation.disabled = value; } });
-      element.show = (view, options) => presentation.show(view, options);
-      const removal = new MutationObserver(records => {
+      const retireRemoved = records => {
         if (records.some(record => [...record.removedNodes].some(node => node === element || node.contains?.(element)))) {
           presentation.retire();
         }
-      });
+      };
+      const removal = new MutationObserver(retireRemoved);
+      element.show = (view, options) => {
+        // Retire the removed encounter before installing its replacement, even
+        // when detach, reattach, and Show happen in the same JavaScript task.
+        retireRemoved(removal.takeRecords());
+        return presentation.show(view, options);
+      };
       removal.observe(document.documentElement, { childList: true, subtree: true });
       element.retireOwnerFace = () => { removal.disconnect(); presentation.retire(); };
     }

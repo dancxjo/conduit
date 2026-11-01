@@ -713,7 +713,7 @@ for (const hidden of ['attribute', 'owner-attribute', 'visibility', 'opacity', '
 }
 
 // Production Handbook orchestration with a fixture SDK, not a real owner Body.
-for (const interruption of [null, 'prepare', 'acknowledge', 'inaccessible', 'detach-reattach']) {
+for (const interruption of [null, 'prepare', 'acknowledge', 'inaccessible', 'detach-reattach', 'same-task-show']) {
 test(`Handbook refresh preserves current controls and refuses interrupted ${interruption ?? 'none'} routes`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   await page.evaluate(async ({ view, interruption }) => {
@@ -799,6 +799,21 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
     });
     observer.observe(node.parentNode, { childList: true });
   });
+  if (interruption === 'same-task-show') {
+    await owner.evaluate((node, view) => {
+      const parent = node.parentNode;
+      node.remove(); parent.append(node);
+      const replacement = { ...view, show_id: 'fixture/show/replacement',
+        show_state: 'available', interactions_admitted: true };
+      node.show(replacement, { invoke: async call => { globalThis.calls.push(call); } });
+    }, view);
+    await expect(button).toBeEnabled();
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.map(call => call.view.show_id)))
+      .toEqual(['fixture/show/replacement']);
+    return;
+  }
   if (interruption === 'detach-reattach') {
     for (const cycle of [1, 2]) {
       await owner.evaluate(node => {
