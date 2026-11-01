@@ -223,7 +223,11 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
 }
 
 async function finishExternalBody(page, journey) {
-  await page.locator('#body-owner-face').getByRole('button', { name: 'Lull', exact: true }).click();
+  const ownerFace = page.locator('#body-owner-face');
+  const menu = ownerFace.locator('details[data-body-menu]');
+  await expect(menu).toHaveCount(1);
+  if (!(await menu.evaluate(node => node.open))) await menu.locator(':scope > summary').click();
+  await menu.getByRole('button', { name: 'Lull', exact: true }).click();
   await expect(page.locator('#body-owner-face')).toHaveAttribute('data-body-face-disposition', 'lulled');
   const receipt = await page.evaluate(() => globalThis.__conduitSdkParticipation.cancel());
   const terminal = await get(page, journey.api('snapshot'));
