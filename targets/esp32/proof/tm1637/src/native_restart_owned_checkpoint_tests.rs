@@ -101,14 +101,16 @@ fn owned_checkpoint_withholds_output_preserves_identity_and_fences_failure() {
             Phase::Prepare => job.prepare(&permit).unwrap(),
             Phase::Chunk => job.prepare_chunk(&permit).unwrap(),
             Phase::Physical(_) => job.advance(&mut access).unwrap(),
-            Phase::Finish => {
-                job.finish_source(&permit).unwrap();
-                break;
-            }
+            Phase::Finish => job.finish_source(&permit).unwrap(),
             other => panic!("unexpected phase {other:?}"),
         }
-        assert!(job.step() > last);
+        assert_eq!(job.step(), last + 1);
         last = job.step();
+        if job.phase() == Phase::Complete {
+            assert!(job.finish_source(&permit).is_err());
+            assert_eq!(job.step(), last);
+            break;
+        }
     }
     assert!(take_store().is_err());
     let (owner, value) = job.adopt().ok().unwrap();
