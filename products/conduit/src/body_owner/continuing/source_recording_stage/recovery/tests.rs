@@ -32,7 +32,7 @@ fn fresh_process_recovers_unknown_catalog_reference_from_body_state() {
         installed::write_json_atomic(
             &root.join("fresh-recovery-result.json"),
             &serde_json::json!({
-                "reference":token.reference().encode().unwrap(), "binding":token.binding(),
+                "reference":token.reference().encode().unwrap(), "binding":binding_json(token.binding()),
                 "body":owner.session.evidence().body_id, "boot":boot,
                 "stage_absent":owner.source_recording_stage.is_none(),
             }),
@@ -64,7 +64,7 @@ fn fresh_process_recovers_unknown_catalog_reference_from_body_state() {
     finish_worker(&root, &mut owner, worker);
     let selected = owner.host.selected_body_storage_generation().unwrap();
     let reference = selected.snapshot_reference().unwrap().encode().unwrap();
-    let binding = serde_json::to_value(selected.state_binding().unwrap()).unwrap();
+    let binding = binding_json(selected.state_binding().unwrap());
     let body = serde_json::to_value(&owner.session.evidence().body_id).unwrap();
     let old_boot = owner.host.advertisement().boot_id.as_str().to_owned();
     drop(owner);
@@ -82,10 +82,17 @@ fn fresh_process_recovers_unknown_catalog_reference_from_body_state() {
     let result: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root.join("fresh-recovery-result.json")).unwrap())
             .unwrap();
-    assert_eq!(result["reference"], reference);
+    assert_eq!(
+        result["reference"],
+        serde_json::to_value(reference).unwrap()
+    );
     assert_eq!(result["binding"], binding);
     assert_eq!(result["body"], body);
     assert_ne!(result["boot"], old_boot);
     assert_eq!(result["stage_absent"], true);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn binding_json(binding: &conduit_std_host::state_value::DurableStateBinding) -> serde_json::Value {
+    serde_json::json!({"body":binding.body,"state":binding.state,"value_kind":binding.value_kind,"maximum_value_bytes":binding.maximum_value_bytes})
 }
