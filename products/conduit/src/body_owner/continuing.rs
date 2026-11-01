@@ -385,23 +385,48 @@ impl RunWorker {
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
             return Ok(false);
         }
+        let outcome = self
+            .thread
+            .take()
+            .expect("finished worker has a join handle")
+            .join()
+            .map_err(|_| "Body Play worker panicked; owner service must restart".to_string())?;
+        self.finish_joined(owner, root, outcome)
+    }
+
+    // Called only after join has established producer quiescence. The final
+    // one-slot Fore may have arrived after the pre-join poll observed Empty.
+    fn finish_joined(
+        &mut self,
+        owner: &mut Owner,
+        root: &Path,
+        outcome: WorkerOutcome,
+    ) -> Result<bool, String> {
         let WorkerOutcome {
             host,
             result,
             output,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             mut native,
-        } = self
-            .thread
-            .take()
-            .expect("finished worker has a join handle")
-            .join()
-            .map_err(|_| "Body Play worker panicked; owner service must restart".to_string())?;
+        } = outcome;
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         {
             self.returned_equipment = native.as_mut().and_then(|run| run.equipment.take());
         }
         owner.host.restore_after_play(host)?;
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        if self.fore_refusal.is_none() {
+            if let Some(receiver) = self.live_fore.as_ref() {
+                while let Ok(value) = receiver.try_recv() {
+                    if let Err(error) = owner.accept_live_source_fore(&value) {
+                        self.fore_refusal = Some(fore_refusal::ForeRefusal::new(value, error));
+                        // The producer has joined: retain refusal without
+                        // inventing another cancellation/stop request.
+                        break;
+                    }
+                }
+            }
+        }
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         if let Some(refusal) = self.fore_refusal.as_mut() {
             if let Some(receiver) = self.live_fore.as_ref() {
@@ -440,3 +465,7 @@ impl RunWorker {
 #[cfg(all(test, feature = "installed-environmental-sources", target_os = "linux"))]
 #[path = "continuing/fore_refusal_worker_tests.rs"]
 mod fore_refusal_worker_tests;
+
+#[cfg(all(test, feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "continuing/final_fore_tests.rs"]
+mod final_fore_tests;
