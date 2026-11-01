@@ -173,6 +173,11 @@ fn info_readout_uses_separate_canonical_label_and_measured_value_without_new_age
     face.subjects[0].role = FaceRole::Info;
     let face = reseal(face);
     let (primary, details) = prepare(&face, false).unwrap();
+    let heading = primary
+        .iter()
+        .find(|row| row.text == "A readable encounter")
+        .unwrap();
+    assert_eq!(heading.role, GraphicsTextRole::Heading);
     let label = primary
         .iter()
         .position(|row| row.text == "Reading")
@@ -214,6 +219,15 @@ fn info_readout_uses_separate_canonical_label_and_measured_value_without_new_age
             let value = scene
                 .typography
                 .style(crate::display::typography::TextRole::Value);
+            let metrics = crate::display::typography::selected_metrics;
+            assert_eq!(metrics(value).em_size, metrics(body).em_size * 2);
+            let heading = scene
+                .typography
+                .style(crate::display::typography::TextRole::Heading);
+            assert_eq!(
+                metrics(heading).em_size,
+                (metrics(body).em_size * 5).div_ceil(4)
+            );
             let height = |style| {
                 TextLayout::new_selected("42 °C", style, 600, scale)
                     .unwrap()

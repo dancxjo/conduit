@@ -185,7 +185,7 @@ pub(super) fn prepare(
         }
         let role = match subject.role {
             FaceRole::Document | FaceRole::Body | FaceRole::Host => GraphicsTextRole::Title,
-            FaceRole::Region | FaceRole::Collection => GraphicsTextRole::Heading,
+            FaceRole::Region | FaceRole::Collection | FaceRole::Info => GraphicsTextRole::Heading,
             FaceRole::Status => GraphicsTextRole::Status,
             FaceRole::Diagnostic => GraphicsTextRole::Warning,
             _ => GraphicsTextRole::Label,
