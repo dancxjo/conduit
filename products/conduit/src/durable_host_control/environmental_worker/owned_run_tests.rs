@@ -206,7 +206,9 @@ pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: Ga
         include_str!("../../../../../bodies/environment/profiles/continuing-observation.conduit")
             .replace("count: Count = 16", "count: Count = 8")
             .replace("period-ms: Count = 30000", "period-ms: Count = 100");
-    let checked = crate::plot_source::parse(&source)
+    let original =
+        include_str!("../../../../../bodies/environment/profiles/source-observation.conduit");
+    let checked = crate::plot_source::parse(original)
         .unwrap()
         .expand_entry_for_authoring()
         .unwrap();
@@ -232,11 +234,47 @@ pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: Ga
     let mut owner =
         crate::durable_host::owner::Owner::open(prior, resident, None, "Owned Source").unwrap();
     owner.persist(&root).unwrap();
-    fs::write(root.join("body/source.conduit"), &source).unwrap();
+    fs::write(root.join("body/source.conduit"), original).unwrap();
     drop(owner);
     let inventory = runtime.truth().advertisement;
-    let mut runtime = runtime.with_owned_body(&root).unwrap();
+    let mut runtime = Box::new(runtime.with_owned_body(&root).unwrap());
 
+    let before = owner_truth(&runtime)["biography"].clone();
+    // Obtain the exact checked identity from the installed original Source,
+    // not a display name or a host-specific route.
+    let old_checked = crate::plot_source::parse(original)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap()
+        .expanded
+        .checked_plot_id;
+    runtime.issue_owned_invitation(60, None).unwrap();
+    runtime
+        .establish_owned_root_signer(before["body_id"].as_str().unwrap())
+        .unwrap();
+    let manager = fs::read(root.join("body/admission.json")).unwrap();
+    let signer = fs::read(root.join("body/root-signer.json")).unwrap();
+    let candidate = root.join("candidate.conduit");
+    fs::write(&candidate, &source).unwrap();
+    replace_through_service(&mut runtime, &root, &candidate, 0, old_checked.as_str()).unwrap();
+    let after = owner_truth(&runtime);
+    assert_eq!(after["biography"]["body_id"], before["body_id"]);
+    assert_eq!(after["biography"]["friendly_name"], before["friendly_name"]);
+    assert_eq!(after["biography"]["membership"], before["membership"]);
+    assert_eq!(after["biography"]["body"]["workload_revision"], 2);
+    assert!(after["realization"].is_null(), "replacement auto-started");
+    assert!(
+        fs::read(root.join("body/admission.json")).unwrap() == manager,
+        "admission manager changed"
+    );
+    assert_eq!(
+        fs::read(root.join("body/root-signer.json")).unwrap(),
+        signer
+    );
+    assert!(
+        replace_through_service(&mut runtime, &root, &candidate, 0, old_checked.as_str()).is_err(),
+        "stale replacement replayed"
+    );
     device.release.store(true, Ordering::SeqCst);
     runtime.start_owned_body(5_000, None).unwrap();
     let graph = wait_for_graph(&mut runtime, 3);
@@ -281,6 +319,38 @@ pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: Ga
     assert!(!host_is_out(&runtime));
     assert_eq!(runtime.truth().advertisement, inventory);
     drop(runtime);
+    // A service restart has a fresh Host Boot. The installed checked Source,
+    // Body identity/name and admission manager survive; no same-Boot resume.
+    let restarted = DurableHostRuntime::new(
+        "std/x86_64/computer".into(),
+        format!("sha256:{}", "a".repeat(64)),
+        StdHost::new_with_config(StdHostConfig {
+            host_id: "actor/native-host".into(),
+            boot_id: "actor/restarted-boot".into(),
+            offer_generation: OfferGeneration(1),
+        }),
+    )
+    .with_owned_body(&root)
+    .unwrap();
+    let recovered = owner_truth(&restarted);
+    assert_eq!(recovered["biography"]["body_id"], before["body_id"]);
+    assert_eq!(
+        recovered["biography"]["friendly_name"],
+        before["friendly_name"]
+    );
+    assert_eq!(
+        recovered["biography"]["body"]["workset"],
+        after["biography"]["body"]["workset"]
+    );
+    assert!(
+        fs::read(root.join("body/admission.json")).unwrap() == manager,
+        "restart changed manager"
+    );
+    assert_eq!(
+        fs::read(root.join("body/root-signer.json")).unwrap(),
+        signer
+    );
+    drop(restarted);
     fs::remove_dir_all(root).unwrap();
 }
 fn wait_for_graph(
@@ -304,8 +374,45 @@ fn wait_for_graph(
         }
         assert!(
             Instant::now() < deadline,
-            "current admitted Source Face did not acquire {count} samples; receipt={}; current={}", owner_truth(runtime)["last_execution"], owner_truth(runtime)["realization"].get("play").unwrap_or(&serde_json::Value::Null)
+            "current admitted Source Face did not acquire {count} samples; receipt={}; current={}",
+            owner_truth(runtime)["last_execution"],
+            owner_truth(runtime)["realization"]
+                .get("play")
+                .unwrap_or(&serde_json::Value::Null)
         );
         std::thread::sleep(Duration::from_millis(2));
     }
+}
+
+#[cfg(unix)]
+fn replace_through_service(
+    runtime: &mut DurableHostRuntime,
+    root: &Path,
+    source: &Path,
+    revision: u64,
+    checked: &str,
+) -> Result<(), String> {
+    use std::os::unix::net::UnixListener;
+    let token = [7u8; 32];
+    fs::write(root.join("control.token"), token).unwrap();
+    let socket = root.join("control.sock");
+    if socket.exists() {
+        fs::remove_file(&socket).unwrap();
+    }
+    let listener = UnixListener::bind(&socket).unwrap();
+    std::thread::scope(|scope| {
+        let server = scope.spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            crate::durable_host_control::client_frame::serve_client(
+                root,
+                &mut stream,
+                runtime,
+                &token,
+            )
+            .unwrap();
+        });
+        let result = crate::durable_host_control::replace_plot(root, source, revision, checked);
+        server.join().unwrap();
+        result
+    })
 }

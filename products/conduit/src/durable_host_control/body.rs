@@ -31,9 +31,9 @@ use std::{
 /// The one local-control round-trip budget, including an action's durable
 /// acknowledgement. Timeout leaves the result unknown to its caller.
 pub(super) const CONTROL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
-/// One Todo action may wait for a bounded write and a second admitted read
-/// before its committed-state Face is safe to return to the caller.
-pub(super) const TODO_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
+/// Durable mutations may wait for bounded persistence and admitted reads.
+/// Expiry still leaves the publication outcome unknown to the caller.
+pub(super) const DURABLE_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
 
 #[path = "body/clock_action.rs"]
 mod clock_action;
@@ -1112,3 +1112,7 @@ pub(crate) fn establish_root_signer(
 ) -> Result<(), String> {
     Err("no reviewed local durable owner control carrier exists on this platform".into())
 }
+
+#[path = "body/replace_plot.rs"]
+mod replace_plot;
+pub(crate) use replace_plot::replace_plot;

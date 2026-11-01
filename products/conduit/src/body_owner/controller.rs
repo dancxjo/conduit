@@ -40,6 +40,8 @@ mod continuing;
 mod environmental_face;
 #[path = "execution_retention.rs"]
 mod execution_retention;
+#[path = "replace_plot.rs"]
+mod replace_plot;
 pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]

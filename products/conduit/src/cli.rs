@@ -300,6 +300,17 @@ pub(crate) struct InstalledTodoCheckpointOptions {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Replace one exact resident Plot while retaining the same lulled Body.
+    ReplacePlot {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        expected_workload_revision: u64,
+        #[arg(long)]
+        expected_checked_plot_id: String,
+    },
     /// Explicitly establish this installed owner's durable receipt-signing identity.
     EstablishRootSigner {
         #[arg(long)]
