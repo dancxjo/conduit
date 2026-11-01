@@ -13,7 +13,8 @@ enum Driver {
         next: usize,
         staged: bool,
     },
-    Conversion(FixedIntegerConversionBack<256>),
+    // Allocate owner storage before Play; keep the fixture routing enum small.
+    Conversion(Box<FixedIntegerConversionBack<256>>),
     Sink {
         seen: Rc<RefCell<Vec<Vec<u8>>>>,
         staged: Option<Vec<u8>>,
@@ -120,7 +121,7 @@ fn run(count: usize, pressure: bool, cancel_before_conversion: bool) {
                 seen: seen.clone(),
                 staged: None,
             },
-            _ => Driver::Conversion(
+            _ => Driver::Conversion(Box::new(
                 FixedIntegerConversionBack::<256>::prepare_planned::<PORTS>(
                     gear,
                     lowered.node_specs[i].maximum_step_fuel,
@@ -128,7 +129,7 @@ fn run(count: usize, pressure: bool, cancel_before_conversion: bool) {
                     true,
                 )
                 .unwrap(),
-            ),
+            )),
         })
         .collect();
     let mut routes = FixedRoutes::<3, 2>::new(1);

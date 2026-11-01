@@ -12,7 +12,8 @@ enum Driver {
         next: usize,
         staged: bool,
     },
-    Dsp(FixedDspBack<160, 1>),
+    // Allocate owner storage before Play; keep the fixture routing enum small.
+    Dsp(Box<FixedDspBack<160, 1>>),
     Sink {
         seen: Rc<RefCell<Vec<Vec<u8>>>>,
         staged: Option<Vec<u8>>,
@@ -118,7 +119,7 @@ fn run(left: usize, right: usize, expected_outputs: usize, mismatch: bool) {
                 seen: seen.clone(),
                 staged: None,
             },
-            _ => Driver::Dsp(
+            _ => Driver::Dsp(Box::new(
                 FixedDspBack::<160, 1>::prepare_planned::<PORTS>(
                     gear,
                     lowered.node_specs[i].maximum_step_fuel,
@@ -126,7 +127,7 @@ fn run(left: usize, right: usize, expected_outputs: usize, mismatch: bool) {
                     true,
                 )
                 .unwrap(),
-            ),
+            )),
         })
         .collect();
     let mut routes = FixedRoutes::<4, 3>::new(1);
