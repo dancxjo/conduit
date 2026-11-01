@@ -25,7 +25,6 @@ impl NativeFaceMask {
             .map_err(|_| NativeFaceMaskError::Plan)?;
         let admitted = conduit_face::admit_visual_look(&requested, constraints)
             .map_err(|_| NativeFaceMaskError::Face)?;
-        let expression = &admitted.visual;
         let recipe = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.recipe.canonical_value(),
         )
@@ -38,25 +37,25 @@ impl NativeFaceMask {
                     .map_err(|_| NativeFaceMaskError::Plan)?;
             conduit_face::prepare_component_layout(layout, recipe, face)
                 .map(|prepared| {
-                    NativeFaceScene::prepare_structured(
+                    NativeFaceScene::prepare_structured_look(
                         &prepared,
                         width,
                         height,
                         interaction_admitted,
-                        expression,
+                        &admitted,
                     )
                 })
                 .map_err(|error| alloc::format!("LayoutPreparation({error:?})"))
         } else {
             conduit_face::prepare_component_recipe(recipe, face)
                 .map(|prepared| {
-                    NativeFaceScene::prepare_configured(
+                    NativeFaceScene::prepare_configured_look(
                         face.clone(),
                         width,
                         height,
                         interaction_admitted,
                         &prepared,
-                        expression,
+                        &admitted,
                     )
                 })
                 .map_err(|error| alloc::format!("{error:?}"))
@@ -70,23 +69,23 @@ impl NativeFaceMask {
                 | FaceSceneError::UnsupportedStructure),
             )) => {
                 fallback = Some(alloc::format!("ConfiguredLayout({error:?})"));
-                NativeFaceScene::prepare_visual_fallback(
+                NativeFaceScene::prepare_visual_look(
                     face.clone(),
                     width,
                     height,
                     interaction_admitted,
-                    expression,
+                    &admitted,
                 )
             }
             Ok(Err(error)) => Err(error),
             Err(reason) => {
                 fallback = Some(reason);
-                NativeFaceScene::prepare_visual_fallback(
+                NativeFaceScene::prepare_visual_look(
                     face.clone(),
                     width,
                     height,
                     interaction_admitted,
-                    expression,
+                    &admitted,
                 )
             }
         }
@@ -94,3 +93,7 @@ impl NativeFaceMask {
         Ok((scene, admitted, fallback))
     }
 }
+
+#[cfg(test)]
+#[path = "metric_consumer_tests.rs"]
+mod metric_consumer_tests;

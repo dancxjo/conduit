@@ -151,7 +151,7 @@ pub(super) fn project(
                 },
                 &["release", "build"],
             )?;
-            base.text.push(FaceText { subject: article.clone(), text: "Reviewed release: obtain verified matching artifacts. Source build: request the selected profile from an admitted builder. Source, toolchain and carrier authority must be reviewed by the owning Host operation.".into() });
+            base.text.push(FaceText { subject: article.clone(), text: "Reviewed release: obtain verified matching artifacts. Source build: request the selected profile from an admitted builder. Source, toolchain and carrier authority must be reviewed by the owning Host.".into() });
             base.text.push(FaceText { subject: article.clone(), text: format!("First Host: {}. Output scope: {:?}. No image, boot or joined Host has been observed by this review.", e.draft.first_host(), e.draft.scope()) });
         }
     }
