@@ -81,7 +81,7 @@ impl Owner {
             input: conduit_std_host::ExternalForeInput {
                 front_port_id: "chunk".into(),
                 track: c::ConnectionTrack::Payload,
-                bytes: content.as_bytes().to_vec(),
+                bytes: content.to_vec(),
             },
             reference: prepared.reference.clone(),
             authority: publish_grant.clone(),
@@ -177,4 +177,4 @@ impl Owner {
 }
 #[cfg(test)]
 #[path = "publication/tests.rs"]
-mod tests;
+pub(crate) mod tests;

@@ -9,7 +9,7 @@ use std::{
     os::unix::fs::PermissionsExt,
     time::{Duration, Instant},
 };
-fn fixture() -> (
+pub(crate) fn fixture() -> (
     std::path::PathBuf,
     std::path::PathBuf,
     Owner,
