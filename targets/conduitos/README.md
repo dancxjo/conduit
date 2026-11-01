@@ -194,6 +194,14 @@ The journey writes PNGs and `manifest.json` under
 `target/conduitos/x86_64/journey-frames/`. The [visual evidence guide](../../docs/visual-evidence.md)
 explains publication and how images correlate with semantic assertions.
 
+The ordinary journey also retains bounded `serial-observations.jsonl` and
+`latency.json` evidence. Serial read windows, QMP input and frame captures share
+one host monotonic clock origin. Reconstruction requires exact raw serial
+coverage and fresh rendered receipts for both pointer gestures and all six
+Memory Lantern edits. Reported intervals are host-observed upper bounds; they
+do not measure guest execution time, scanout or sustained throughput. Extended
+latency/control modes retain their separate existing observation contracts.
+
 The initial Crèche offers Keyboard canvas and Memory Lantern through the same
 shared naming and selection model as the browser. Birth wakes the selected
 workset; Tab foregrounds another resident plot and F7 lulls the body. The
