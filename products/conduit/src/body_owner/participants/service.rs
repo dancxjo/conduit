@@ -321,7 +321,7 @@ impl Owner {
     > {
         let authority = crate::durable_host::root_signer::public_authority(
             root,
-            self.session.evidence().body_id.as_str(),
+            &self.session.evidence().body_id,
             self.host.advertisement().host_id.as_str(),
         )?;
         let (invitation, window) =

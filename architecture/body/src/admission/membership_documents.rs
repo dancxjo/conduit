@@ -335,7 +335,7 @@ mod root_authority_tests {
     fn public_authority_is_bounded_identity_only_and_rejects_secret_extensions() {
         let authority = BodyRootAuthority {
             schema: "conduit.body/root-authority@1".into(),
-            body_id: "body/test".into(),
+            body_id: BodyId::bound("body/test".into()),
             owner_host_id: "host/owner".into(),
             public_key: [1; 32],
         };
