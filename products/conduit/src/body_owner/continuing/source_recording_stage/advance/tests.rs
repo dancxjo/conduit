@@ -1,5 +1,4 @@
 use super::super::publication::tests::{finish_worker, fixture_sixteen, independent_read_grant};
-use super::*;
 #[test]
 fn whole_sixteen_retains_slots_and_requires_verified_contiguous_chunks() {
     let (root, _, mut owner, publish) = fixture_sixteen();
