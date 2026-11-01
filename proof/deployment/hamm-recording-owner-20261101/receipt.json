@@ -1,0 +1,27 @@
+{
+  "source": "7b2b60198eccf3de272fd3c820b38053974e89ee",
+  "product_bytes": 66208896,
+  "product_sha256": "sha256:68e72ba78c2432477d58adea5ff5a40ecfc96c14684558d8092800bdcb809e37",
+  "body_files_preserved": 17,
+  "membership_parts_preserved": 3,
+  "host_identity_preserved": true,
+  "service_started": true,
+  "schema": "conduit.development/installed-recording-owner-rollout@1",
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "new_boot_id": "boot/installed/14319575d52e0239b300c9d9030df6e6da49da24a18e4b405cdf4d69d13a7db9",
+  "maximum_product_bytes": 67108864,
+  "native_source_play": "body-play/sha256:bfb60c0576d63a4c2826185a12497d5fa0b503eb67f218585983d41966052b46",
+  "native_source_terminal_verified": false,
+  "physical_durable_publication_verified": false,
+  "fresh_process_recovery_verified": false,
+  "producer_retirement_authorized": false,
+  "mcu_firmware_changed": false,
+  "selected_storage": {
+    "maximum_snapshot_records": 16,
+    "maximum_record_bytes": 4096,
+    "total_disk_bytes": 131072,
+    "maximum_state_bytes": 1024,
+    "preparation_bytes": 1048576
+  },
+  "raw_logs_ignored": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-live-20261101"
+}
