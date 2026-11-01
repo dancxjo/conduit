@@ -33,6 +33,18 @@ fn retained_custody_remains_accessible_while_publication_is_unavailable() {
             bytes: original.clone(),
         });
     });
+    STATE.lock(|slot| {
+        let mut state = slot.borrow_mut();
+        let original_backing = state.pending.as_ref().unwrap().bytes.as_ptr();
+        assert!(take_prepared_pending(&mut state, || Err("body-join-memory")).is_none());
+        let retained = state.pending.as_ref().unwrap();
+        assert_eq!(retained.ticket, 41);
+        assert_eq!(retained.digest, digest);
+        assert_eq!(retained.bytes.as_ptr(), original_backing);
+        assert_eq!(retained.bytes, original);
+        assert!(state.inflight.is_none());
+        assert!(state.refused.is_none());
+    });
     assert_eq!(submit(&original), Ok(41));
     assert!(matches!(result(41), ResultReply::Pending(41)));
     assert_eq!(submit(&other), Err("body-join-busy"));
