@@ -109,7 +109,7 @@ export class BrowserHost {
   participate(options: {
     invitation?: string;
     /** Already admitted authenticated single-use carrier; creates no membership authority. */
-    sessionCarrier?: { sendSessionFrame(frame: Uint8Array): Promise<void>;
+    sessionCarrier?: { readonly maximumFrameBytes?: number; sendSessionFrame(frame: Uint8Array): Promise<void>;
       receiveSessionFrame(): Promise<Uint8Array>; close(): void };
     expectedBodyId?: string | null;
     retainedCredential?: Readonly<Record<string, unknown>> | null;

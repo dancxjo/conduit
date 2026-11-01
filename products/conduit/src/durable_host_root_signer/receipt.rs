@@ -8,7 +8,7 @@ use conduit_body::{
 use conduit_core::HostAdvertisement;
 use ed25519_dalek::Signer;
 use sha2::{Digest, Sha256};
-use std::io::Read;
+use std::io::{Read, Write};
 const PATH: &str = "body/root-admission-receipt.json";
 const MAXIMUM_DRAFT: usize = 4096;
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -21,11 +21,39 @@ pub(crate) struct Draft {
     browser_host_key: [u8; 32],
     receipt: PortableMembershipAdmissionReceipt,
 }
-fn offered_digest(advertisement: &HostAdvertisement) -> Result<String, String> {
-    serde_json::to_vec(advertisement)
-        .map(|v| crate::durable_host::digest(&v))
-        .map_err(|e| e.to_string())
+pub(crate) fn offered_digest(advertisement: &HostAdvertisement) -> Result<String, String> {
+    struct Writer {
+        hash: Sha256,
+        bytes: usize,
+    }
+    impl Write for Writer {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            let total = self
+                .bytes
+                .checked_add(bytes.len())
+                .filter(|n| *n <= conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize)
+                .ok_or_else(|| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "offered snapshot exceeds finite bound",
+                    )
+                })?;
+            self.hash.update(bytes);
+            self.bytes = total;
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut writer = Writer {
+        hash: Sha256::new(),
+        bytes: 0,
+    };
+    serde_json::to_writer(&mut writer, advertisement).map_err(|e| e.to_string())?;
+    Ok(format!("sha256:{:x}", writer.hash.finalize()))
 }
+
 impl Draft {
     pub(crate) fn credential(&self) -> &MembershipCredential {
         &self.receipt.credential

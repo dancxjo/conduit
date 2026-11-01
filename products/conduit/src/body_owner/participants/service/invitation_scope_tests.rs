@@ -146,7 +146,8 @@ fn make_preparation_checks_selected_root_before_issue_and_exports_public_fields_
     assert_eq!(authority.public_key, selected.public_key);
     assert_eq!(authority.body_id, invitation.claim.body_id);
     assert_eq!(window.body_id, invitation.claim.body_id);
-    let BrowserWindowScope::InvitationScope(claim) = &owner.pending_browser.as_ref().unwrap().scope
+    let BrowserWindowScope::InvitationScope { claim, .. } =
+        &owner.pending_browser.as_ref().unwrap().scope
     else {
         panic!("missing scope")
     };
@@ -163,5 +164,80 @@ fn make_preparation_checks_selected_root_before_issue_and_exports_public_fields_
     assert!(owner.browser_prepare_spore_window(&root, 10_000).is_err());
     assert_eq!(owner.admissions, before);
     assert!(owner.pending_browser.is_none());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn transport_abort_retries_only_original_frozen_boot_generation_offer_and_deadline() {
+    let (mut owner, root, _) = setup();
+    let (invitation, authorization) = owner
+        .browser_authorize_invitation_window(&root, 10_000)
+        .unwrap();
+    let ad = host("host/fresh-retry", "boot/fresh-retry")
+        .advertisement()
+        .clone();
+    owner
+        .browser_begin(
+            &authorization.window_id,
+            &"line/first".into(),
+            frame(&invitation, ad.clone()),
+            512,
+        )
+        .unwrap();
+    let deadline = owner.pending_browser.as_ref().unwrap().deadline;
+    owner.browser_abort(&authorization.window_id).unwrap();
+    let mut changed = ad.clone();
+    changed.boot_id = "boot/changed".into();
+    assert!(owner
+        .browser_begin(
+            &authorization.window_id,
+            &"line/changed".into(),
+            frame(&invitation, changed),
+            512
+        )
+        .is_err());
+    let mut changed = ad.clone();
+    changed.offer_generation.0 += 1;
+    assert!(owner
+        .browser_begin(
+            &authorization.window_id,
+            &"line/changed".into(),
+            frame(&invitation, changed),
+            512
+        )
+        .is_err());
+    let mut changed = ad.clone();
+    changed.capabilities.pop();
+    assert!(owner
+        .browser_begin(
+            &authorization.window_id,
+            &"line/changed".into(),
+            frame(&invitation, changed),
+            512
+        )
+        .is_err());
+    owner
+        .browser_begin(
+            &authorization.window_id,
+            &"line/retry".into(),
+            frame(&invitation, ad.clone()),
+            512,
+        )
+        .unwrap();
+    assert_eq!(owner.pending_browser.as_ref().unwrap().deadline, deadline);
+    assert_eq!(
+        crate::durable_host::root_signer::receipt::offered_digest(&ad).unwrap(),
+        crate::durable_host::digest(&serde_json::to_vec(&ad).unwrap())
+    );
+    owner.browser_abort(&authorization.window_id).unwrap();
+    owner.pending_browser.as_mut().unwrap().deadline = Instant::now();
+    assert!(owner
+        .browser_begin(
+            &authorization.window_id,
+            &"line/late".into(),
+            frame(&invitation, ad),
+            512
+        )
+        .is_err());
     std::fs::remove_dir_all(root).unwrap();
 }
