@@ -111,7 +111,38 @@ impl StdHost {
             request,
             inputs,
             false,
+            false,
             fore_output,
+            output,
+            timer,
+            provider,
+            started,
+        )
+    }
+
+    /// Stream typed outputs to a synchronous borrowed consumer. Accepted bytes
+    /// are owned by that consumer's admitted storage; the report retains Signs,
+    /// not an accumulating copy of each output. Queue capacity is unchanged.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_body_plan_owned_native_borrowed_to<W: Write, T: TimerAdapter, F>(
+        self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        fore_output: &mut dyn BodyBorrowedForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        provider: &mut dyn BodyNativeProvider,
+        started: F,
+    ) -> (Self, Result<BodyRunReport, String>)
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_owned_native_fore_to(
+            request,
+            inputs,
+            false,
+            true,
+            &mut super::borrowed_fore::BorrowedAdapter(fore_output),
             output,
             timer,
             provider,
@@ -125,6 +156,7 @@ impl StdHost {
         request: BodyRunRequest<'_>,
         inputs: &[ExternalForeInput],
         sequential: bool,
+        borrowed_stream: bool,
         fore_output: &mut dyn BodyForeOutputAdapter,
         output: &mut W,
         timer: &mut T,
@@ -168,6 +200,9 @@ impl StdHost {
                 None,
                 &self.retained_native_calls,
             )?;
+            if borrowed_stream {
+                kernel.prepare_borrowed_fore()?;
+            }
             kernel.prepare_native_slots(&self.advertisement, play.play_sequence)?;
             kernel.prepare_input_origin(&self.advertisement, request.plan, &play)?;
             kernel.require_supported_execution()?;

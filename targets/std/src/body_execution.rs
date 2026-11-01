@@ -20,6 +20,8 @@ pub use parsec_instruction_observation::ParsecInputInstructionObservation;
 mod parsec_instruction_effect_observation;
 pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
 
+mod borrowed_fore;
+pub use borrowed_fore::{BodyBorrowedForeOutputAdapter, BodyForeDeliveryRef};
 mod fore;
 mod fore_custody;
 pub mod native;
@@ -575,3 +577,6 @@ mod tests {
 
 #[cfg(test)]
 mod native_tests;
+
+#[cfg(test)]
+mod native_stream_tests;

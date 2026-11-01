@@ -429,6 +429,7 @@ fn repeated_native_turns_reuse_prepared_metadata_and_input_storage() {
         },
         &inputs,
         true,
+        false,
         &mut capture,
         &mut Vec::new(),
         &mut Timer,

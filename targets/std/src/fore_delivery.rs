@@ -128,6 +128,9 @@ impl ExternalForeDelivery {
     pub(crate) fn prepared(identity: Arc<ExternalForeIdentity>, capacity: usize) -> Self {
         Self::with_identity(identity, 0, ExternalForeBytes::prepared(capacity))
     }
+    pub(crate) fn prepared_storage_is_unique(&self) -> bool {
+        Arc::strong_count(&self.bytes.storage) == 1
+    }
     pub(crate) fn fill_prepared(&mut self, sequence: u64, bytes: &[u8]) -> Result<(), String> {
         self.bytes.fill(bytes)?;
         self.sequence = sequence;
