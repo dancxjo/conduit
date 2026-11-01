@@ -222,6 +222,23 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     println!("IMAGE: {}", output.join(&target.image.file).display());
                     println!("manifest: {}", output.join("build-manifest.json").display());
                 }
+            } else if crate::commands::body::pico_payload::try_build(
+                &profile_path,
+                &image,
+                &bytes,
+                &output,
+                opts.dry_run,
+            )? {
+                if !opts.dry_run {
+                    if opts.json {
+                        println!(
+                            "{}",
+                            fs::read_to_string(output.join("payload-receipt.json"))?
+                        );
+                    } else if !opts.quiet {
+                        println!("BUILT exact Pico environmental payload at {}; Body Spore bootstrap remains unavailable", output.display());
+                    }
+                }
             } else if !opts.dry_run {
                 fs::create_dir_all(&output)?;
                 fs::write(output.join("image.json"), &bytes)?;
