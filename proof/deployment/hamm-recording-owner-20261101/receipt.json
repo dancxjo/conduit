@@ -11,7 +11,7 @@
   "new_boot_id": "boot/installed/14319575d52e0239b300c9d9030df6e6da49da24a18e4b405cdf4d69d13a7db9",
   "maximum_product_bytes": 67108864,
   "native_source_play": "body-play/sha256:bfb60c0576d63a4c2826185a12497d5fa0b503eb67f218585983d41966052b46",
-  "native_source_terminal_verified": false,
+  "native_source_terminal_verified": true,
   "physical_durable_publication_verified": false,
   "fresh_process_recovery_verified": false,
   "producer_retirement_authorized": false,
@@ -23,5 +23,15 @@
     "maximum_state_bytes": 1024,
     "preparation_bytes": 1048576
   },
-  "raw_logs_ignored": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-live-20261101"
+  "raw_logs_ignored": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-live-20261101",
+  "native_source_terminal": "Completed",
+  "accepted_observations": 16,
+  "published_verified_prefix_records": 9,
+  "published_verified_prefix_bytes": 3888,
+  "published_verified_prefix_sha256": "45571a2e810677b88356fc9ac293cb01ca22afcf9f023fc101dabd8b5511db78",
+  "physical_snapshot_publication_and_readback_verified": true,
+  "durable_catalog_checkpoint_verified": false,
+  "catalog_pre_execution_refusal": "selected State bound cannot cover advertised durable implementation",
+  "volatile_observations_still_retained": 16,
+  "owner_restarted_after_sampling": false
 }

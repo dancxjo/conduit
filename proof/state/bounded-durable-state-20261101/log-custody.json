@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "local_ignored_logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/bounded-state-20261101/control-68a0fbd1ca.log",
+      "bytes": 1042,
+      "sha256": "b3a5311d72adc57758620911322c77ac0150f9f981f001fe7442b8a400d618ca"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/bounded-state-20261101/evidence-retention-68a0fbd1ca.log",
+      "bytes": 176,
+      "sha256": "8cd0a024b40217b80ba9dd6a16ce836e44217ab3f307d7b0e24c9fca3416dfb1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/bounded-state-20261101/generation-68a0fbd1ca.log",
+      "bytes": 2396,
+      "sha256": "4924812b25af3208273a3bf27e3a25c2196dc2e15ff1fb672f1fbcc0a76e8304"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/bounded-state-20261101/offers-initial.log",
+      "bytes": 5191,
+      "sha256": "6b63d639ef62f9ed8b58805087103a649876dcaead3a4432d8653597714e34a9"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/bounded-state-20261101/stage-68a0fbd1ca.log",
+      "bytes": 5227,
+      "sha256": "b4d617375ff72229828e1e1f044b87569f2dc91d0cf6dd9d16639eab8a19fdfa"
+    }
+  ]
+}
