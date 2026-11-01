@@ -50,8 +50,7 @@ fn specialization_preserves_unrelated_payload_and_retires_only_owned_base() {
             .as_ptr(),
         payload
     );
-    let offer =
-        conduit_std_offers::pure_expression_std_offer(&requested[0].0, requested[0].1).unwrap();
+    let offer = conduit_std_offers::pure_expression_local_offer(&requested[0].0).unwrap();
     assert!(host.advertisement.capabilities.contains(&offer));
     host.select_expression_programs(&[], 1_048_576).unwrap();
     assert_eq!(
@@ -144,3 +143,20 @@ fn unknown_program_refuses_without_inventory_change() {
         .is_err());
     assert_eq!(host.advertisement, before);
 }
+
+#[test]
+fn unsupported_temporal_profiles_refuse_without_mutation() {
+    let mut host = host();
+    let before = host.advertisement.clone();
+    for temporal in [
+        c::PortTemporal::Current,
+        c::PortTemporal::Flow { closes: false },
+    ] {
+        assert!(host
+            .select_expression_programs(&[(program(), temporal)], 1_048_576)
+            .unwrap_err()
+            .contains("Value or closing Flow"));
+        assert_eq!(host.advertisement, before);
+    }
+}
+mod body_play;

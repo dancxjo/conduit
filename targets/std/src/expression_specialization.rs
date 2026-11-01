@@ -1,4 +1,4 @@
-//! Quiescent, exact std software expression selection on the retained Host.
+//! Quiescent Root Body kernel-local expression selection on the retained Host.
 //! The descriptor preparation estimate is an explicit operation quote, not an
 //! allocator admission, whole-Root workspace proof, authority, or grant.
 use crate::StdHost;
@@ -15,6 +15,7 @@ pub struct ExpressionProgramSelectionEvidence {
     pub descriptor_preparation_estimate_bytes: u64,
 }
 impl StdHost {
+    /// Select the existing Root Body local Value/closing-Flow profiles only.
     /// Replace only this Host's selected software expression Base. Empty input
     /// retires it. Programs are source-bound canonical descriptions; callers
     /// cannot inject arbitrary offers. Old Plans retain their old generation.
@@ -25,6 +26,14 @@ impl StdHost {
     ) -> Result<ExpressionProgramSelectionEvidence, String> {
         if programs.len() > MAXIMUM_SELECTED_EXPRESSION_PROGRAMS {
             return Err("selected expression profile exceeds sixteen programs".into());
+        }
+        if programs.iter().any(|(_, temporal)| {
+            !matches!(
+                temporal,
+                c::PortTemporal::Value | c::PortTemporal::Flow { closes: true }
+            )
+        }) {
+            return Err("Root Body local expression requires Value or closing Flow".into());
         }
         let generation = c::OfferGeneration(
             self.advertisement
@@ -96,8 +105,14 @@ impl StdHost {
             // advertising a syntactically encodable semantic description.
             conduit_plot::PreparedPortableExpressionEvaluator::new(program)
                 .map_err(|e| format!("unsupported expression program: {e:?}"))?;
-            let offer = conduit_std_offers::pure_expression_std_offer(program, *temporal)
-                .map_err(|e| format!("expression factory: {e:?}"))?;
+            let offer = match temporal {
+                c::PortTemporal::Value => conduit_std_offers::pure_expression_local_offer(program),
+                c::PortTemporal::Flow { closes: true } => {
+                    conduit_std_offers::pure_expression_local_flow_offer(program)
+                }
+                _ => return Err("Root Body local expression requires Value or closing Flow".into()),
+            }
+            .map_err(|e| format!("expression factory: {e:?}"))?;
             if !offer.resource_requirements.is_empty() || !offer.authority_requirements.is_empty() {
                 return Err("expression factory cannot add resources or authority".into());
             }
@@ -299,3 +314,14 @@ fn growth(before: usize, after: usize, item: usize) -> Result<u64, String> {
 mod preparation;
 #[cfg(test)]
 mod tests;
+
+/// Descriptive local ownership profile only. Complete Plan validation separately
+/// checks this binding against the original Host's current exact provider.
+pub(crate) fn is_local_expression_base(binding: &c::BaseProviderBinding) -> bool {
+    binding.base_id.as_str() == "std/selected-expression-programs"
+        && binding.provider_instance_id.as_str() == "std/selected-expression-programs/owner"
+        && binding.provider_generation > 0
+        && binding.implementation_id.as_str() == "std/selected-expression-programs@1"
+        && binding.mechanism_family.as_str() == "software/pure-expression"
+        && binding.enforcement_class == c::BaseEnforcementClass::Cooperative
+}
