@@ -132,10 +132,18 @@ impl NativeProductBases {
 
     /// Observe only the discovered framebuffer; no input or transport Base is
     /// manufactured for a Host whose product has not admitted those devices.
-    /// The caller owns firmware discovery and validation of the mapped scanout.
+    /// Geometry refuses before registration; the caller owns firmware discovery
+    /// and validation of the mapped scanout.
     pub fn observe_framebuffer(
         framebuffer: &conduit_observatory::FramebufferBasis,
     ) -> Result<Self, EffectBaseRefusal> {
+        crate::display::validate_framebuffer_geometry(
+            framebuffer.width,
+            framebuffer.height,
+            framebuffer.pitch_bytes,
+            framebuffer.bits_per_pixel,
+        )
+        .map_err(|_| EffectBaseRefusal::InvalidProvider)?;
         let (mut registry, mut effects) = empty_registry()?;
         register_framebuffer(&mut registry, &mut effects, framebuffer)?;
         Ok(Self { registry, effects })
@@ -323,6 +331,9 @@ const fn family_kind(family: EffectFamily) -> &'static str {
         EffectFamily::Network => "conduitos.base/network@1",
     }
 }
+
+#[cfg(test)]
+mod framebuffer_tests;
 
 #[cfg(test)]
 mod tests {

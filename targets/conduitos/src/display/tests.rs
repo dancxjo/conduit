@@ -396,3 +396,22 @@ fn portable_gray8_bitmap_reaches_exact_framebuffer_pixels() {
         ]
     );
 }
+
+#[test]
+fn format_admission_preserves_geometry_and_channel_refusals() {
+    for (red_shift, green_shift, blue_shift) in [(16, 16, 0), (16, 7, 0), (32, 8, 0)] {
+        let invalid = DisplayFormat {
+            red_shift,
+            green_shift,
+            blue_shift,
+            ..format()
+        };
+        assert_eq!(invalid.validate(), Err(DisplayError::UnsupportedFormat));
+    }
+    let invalid = DisplayFormat {
+        width: u32::MAX,
+        bits_per_pixel: 24,
+        ..format()
+    };
+    assert_eq!(invalid.validate(), Err(DisplayError::InvalidExtent));
+}
