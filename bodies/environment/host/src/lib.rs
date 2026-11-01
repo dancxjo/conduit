@@ -11,3 +11,6 @@ pub mod source_operator;
 pub mod source_history_store;
 
 pub mod signed_face_export;
+
+#[cfg(feature = "history-source")]
+pub mod installed_history_source;

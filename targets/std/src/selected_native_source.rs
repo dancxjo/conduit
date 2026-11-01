@@ -22,6 +22,7 @@ pub struct NativeSourceDefinition {
     pub base: BaseProviderEntry,
     pub grant: AuthorityGrant,
     pub resource_generation: ResourceGenerationId,
+    pub envelope_id: CapabilityEnvelopeId,
     pub configuration: Vec<ConfigurationEntry>,
     pub input_bytes: u32,
     pub output_bytes: u32,
@@ -167,7 +168,7 @@ impl InitializedNativeSource {
                 "native Source Plan does not possess the independently installed grant".into(),
             );
         }
-        let envelope: CapabilityEnvelopeId = "std/native-source/exact@1".into();
+        let envelope = d.envelope_id.clone();
         let scope = BaseCapabilityScope {
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),

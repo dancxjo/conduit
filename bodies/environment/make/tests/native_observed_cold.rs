@@ -62,6 +62,10 @@ impl<T> Lock<T> {
 }
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_checkpoint.rs"]
 mod native_body_checkpoint;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_body_join.rs"]
+mod native_body_join;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs"]
+mod native_joined_host_wire;
 // Per-thread read faults affect only explicit receipt-proof minting tests.
 std::thread_local! {
     static CHECKPOINT_DECODE_FAULT: std::cell::Cell<(u8,usize,usize)> = const { std::cell::Cell::new((0,0,0)) };
@@ -76,6 +80,7 @@ mod native_evidence_region {
         }
     }
     use super::*;
+    #[derive(Clone)]
     pub struct BodyRegion {
         pub media: Arc<StdMutex<(Vec<u8>, bool)>>,
     }

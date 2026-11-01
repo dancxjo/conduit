@@ -11,7 +11,15 @@ fn private_pinned_body_has_no_network_reclaim_cursor() {
 fn private_pinned_body_has_exact_clean_network_cursor() {
     preflight(true);
 }
+#[test]
+#[ignore = "requires private pinned Body and independently retained committed Clean receipt"]
+fn private_pinned_body_has_exact_committed_clean_network_cursor() {
+    preflight_with_committed_receipt(true, true);
+}
 fn preflight(require_clean: bool) {
+    preflight_with_committed_receipt(require_clean, false);
+}
+fn preflight_with_committed_receipt(require_clean: bool, committed: bool) {
     use sha2::{Digest, Sha256};
     let path = std::env::var("CONDUIT_PRIVATE_BODY").unwrap();
     let pin_path = std::env::var("CONDUIT_PRIVATE_ROOT_PIN").unwrap();
@@ -51,24 +59,48 @@ fn preflight(require_clean: bool) {
         "actual retained Root must match independently pinned Root"
     );
     if require_clean {
-        let pending = std::fs::read(
-            std::env::var("CONDUIT_PRIVATE_NETWORK_PENDING_RECEIPT").unwrap(),
-        )
-        .unwrap();
-        assert_eq!(pending.len(), 480);
-        assert_eq!(pending[8], 1);
-        let cursor = resident.network.as_ref().expect("authenticated Clean cursor");
-        cursor
-            .validate(&body, &ed25519_dalek::VerifyingKey::from_bytes(&expected).unwrap())
-            .unwrap();
-        assert_eq!(cursor.bytes()[8], 2);
-        assert_eq!(
-            u64::from_le_bytes(cursor.bytes()[16..24].try_into().unwrap()),
-            u64::from_le_bytes(pending[16..24].try_into().unwrap())
-                .checked_add(1)
-                .unwrap()
-        );
-        assert_eq!(cursor.bytes()[24..408], pending[24..408]);
+        if committed {
+            let bytes: [u8; 480] =
+                std::fs::read(std::env::var("CONDUIT_PRIVATE_NETWORK_CLEAN_RECEIPT").unwrap())
+                    .unwrap()
+                    .try_into()
+                    .unwrap();
+            let expected_cursor =
+                crate::native_restart::payload::network::Cursor::decode(bytes).unwrap();
+            let root = ed25519_dalek::VerifyingKey::from_bytes(&expected).unwrap();
+            expected_cursor.validate(&body, &root).unwrap();
+            assert_eq!(expected_cursor.bytes()[8], 2);
+            let cursor = resident
+                .network
+                .as_ref()
+                .expect("authenticated Clean cursor");
+            cursor.validate(&body, &root).unwrap();
+            assert_eq!(cursor.bytes(), expected_cursor.bytes());
+        } else {
+            let pending =
+                std::fs::read(std::env::var("CONDUIT_PRIVATE_NETWORK_PENDING_RECEIPT").unwrap())
+                    .unwrap();
+            assert_eq!(pending.len(), 480);
+            assert_eq!(pending[8], 1);
+            let cursor = resident
+                .network
+                .as_ref()
+                .expect("authenticated Clean cursor");
+            cursor
+                .validate(
+                    &body,
+                    &ed25519_dalek::VerifyingKey::from_bytes(&expected).unwrap(),
+                )
+                .unwrap();
+            assert_eq!(cursor.bytes()[8], 2);
+            assert_eq!(
+                u64::from_le_bytes(cursor.bytes()[16..24].try_into().unwrap()),
+                u64::from_le_bytes(pending[16..24].try_into().unwrap())
+                    .checked_add(1)
+                    .unwrap()
+            );
+            assert_eq!(cursor.bytes()[24..408], pending[24..408]);
+        }
     } else {
         assert!(
             resident.network.is_none(),
@@ -81,9 +113,48 @@ fn preflight(require_clean: bool) {
         "generation": source.generation(),
         "schema": resident.retained.schema,
         "network_cursor_absent": !require_clean,
-        "exact_original_receipt_clean_cursor": require_clean,
+        "exact_original_receipt_clean_cursor": require_clean && !committed,
+        "exact_independently_retained_committed_clean_cursor": committed,
         "archives": resident.summary.count,
         "owner_restored_or_effects_started": false,
     });
     std::fs::write(proof_path, serde_json::to_vec_pretty(&proof).unwrap()).unwrap();
+}
+
+#[test]
+#[ignore = "requires immutable actual 32768-byte physical network snapshot"]
+fn private_current_network_journal_opens_without_programming() {
+    use conduit_network_join_call::recovery_evidence as journal;
+    struct Immutable<'a>(&'a [u8]);
+    impl journal::Storage for Immutable<'_> {
+        fn capacity(&self) -> u32 {
+            self.0.len().try_into().unwrap()
+        }
+        fn read(&mut self, at: u32, out: &mut [u8]) -> Result<(), journal::Refusal> {
+            let at = at as usize;
+            out.copy_from_slice(
+                self.0
+                    .get(at..at + out.len())
+                    .ok_or(journal::Refusal::Geometry)?,
+            );
+            Ok(())
+        }
+        fn program(&mut self, _: u32, _: &[u8]) -> Result<(), journal::Refusal> {
+            panic!("read-only actual snapshot must never program");
+        }
+    }
+    let bytes = std::fs::read(std::env::var("CONDUIT_PRIVATE_NETWORK_SNAPSHOT").unwrap()).unwrap();
+    assert_eq!(bytes.len(), journal::CAPACITY as usize);
+    assert!(
+        bytes.iter().any(|b| *b != 255),
+        "require actual nonblank evidence"
+    );
+    let mut scratch = [0; journal::MAXIMUM_BYTES];
+    let opened = journal::Journal::open(Immutable(&bytes), &mut scratch)
+        .map_err(|(_, refusal)| refusal)
+        .unwrap();
+    assert!(opened.committed_count() > 0);
+    opened
+        .freeze()
+        .inspect_storage(|storage| assert_eq!(storage.0, bytes.as_slice()));
 }

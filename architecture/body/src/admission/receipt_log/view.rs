@@ -14,7 +14,13 @@ pub(super) fn packed(text: &str) -> Option<[u8; 32]> {
         _ => None,
     };
     let mut out = [0; 32];
-    for (pair, byte) in text.as_bytes().chunks_exact(2).zip(out.iter_mut()) {
+    for (pair, byte) in text
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .zip(out.iter_mut())
+    {
         *byte = digit(pair[0])? * 16 + digit(pair[1])?;
     }
     Some(out)
@@ -45,7 +51,7 @@ impl Serialize for ReceiptIdentityRef<'_> {
             Self::Hex(bytes) => {
                 let mut text = [0; 64];
                 let digits = b"0123456789abcdef";
-                for (pair, byte) in text.chunks_exact_mut(2).zip(bytes.iter()) {
+                for (pair, byte) in text.as_chunks_mut::<2>().0.iter_mut().zip(bytes.iter()) {
                     pair[0] = digits[usize::from(byte >> 4)];
                     pair[1] = digits[usize::from(byte & 15)];
                 }

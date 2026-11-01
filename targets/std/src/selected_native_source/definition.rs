@@ -13,6 +13,7 @@ pub(super) fn validate_definition(
         || d.base.capabilities.len() != 1
         || d.base.resources.len() != if worker_bytes.is_some() { 2 } else { 1 }
         || d.base.provider_generation == 0
+        || d.envelope_id.as_str().is_empty()
         || d.resource_generation.0.is_empty()
         || d.input_bytes == 0
         || d.output_bytes == 0

@@ -1,9 +1,11 @@
-//! Pure recorded-history Face and Mask preparation; no live Host claim.
+//! Recorded-history proof routes with explicit preparation or installed CPU scope.
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
         [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
+        [name] if name == "history-installed-cpu" => Some(installed_cpu(root)),
+        [name] if name == "history-native" => Some(native(root)),
         [name] if name == "history-root-startup" => Some(root_startup(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
@@ -137,6 +139,41 @@ fn quantity_rounding(root: &Path) -> Result<(), Box<dyn Error>> {
         ]);
         if operation == "clippy" {
             command.args(["--all-targets", "--", "-D", "warnings"]);
+        }
+        super::execute(&mut command)?;
+    }
+    Ok(())
+}
+
+fn native(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_mask_play::history_tests",
+    ]))
+}
+
+// Actual Std registration/Plan/Play; invented archive, no Body or physical proof.
+fn installed_cpu(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(root).args([
+            operation,
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/host/Cargo.toml",
+            "--features",
+            "history-source",
+            "--test",
+            "installed_history_source",
+        ]);
+        if operation == "clippy" {
+            command.args(["--lib", "--", "-D", "warnings"]);
         }
         super::execute(&mut command)?;
     }

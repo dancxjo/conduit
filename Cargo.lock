@@ -3071,6 +3071,8 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-environment-history",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-home-model",
  "conduit-human",

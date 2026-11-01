@@ -7,10 +7,10 @@ mod environment_body_image;
 mod environment_esp32;
 #[path = "environment_face_publication.rs"]
 mod environment_face_publication;
-#[path = "environment_host_owned.rs"]
-mod environment_host_owned;
 #[path = "environment_history.rs"]
 mod environment_history;
+#[path = "environment_host_owned.rs"]
+mod environment_host_owned;
 #[path = "environment_output.rs"]
 mod environment_output;
 #[path = "environment_source.rs"]
@@ -47,6 +47,9 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     if arguments == ["display-output"] {
         return environment_output::prove(&root);
     }
+    if arguments == ["source-installed-cpu"] {
+        return environment_source::installed_cpu(&root);
+    }
     if arguments == ["source"] {
         return environment_source::prove(&root);
     }
@@ -78,6 +81,16 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                         .unwrap_or_else(|| root.join("target")),
                 ),
         );
+    }
+    if arguments == ["network-attempt"] {
+        return execute(Command::new("cargo").current_dir(&root).args([
+            "test",
+            "--locked",
+            "-p",
+            "conduit-net",
+            "--test",
+            "station_attempt",
+        ]));
     }
     if arguments == ["http"] {
         return execute(
@@ -329,7 +342,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, body-image, appliance, source, display-output, face-publication, face, recording, mask, display-esp32, native-esp32, native-body-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, body-image, appliance, source, source-installed-cpu, display-output, face-publication, face, recording, network-attempt, mask, display-esp32, native-esp32, native-body-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

@@ -127,6 +127,7 @@ fn definition(host: &HostAdvertisement) -> NativeSourceDefinition {
         },
         grant,
         resource_generation: ResourceGenerationId("test/source-session-generation-1".into()),
+        envelope_id: "test/independent-source-envelope".into(),
         configuration: vec![],
         input_bytes: 1,
         output_bytes: MAXIMUM_BYTES as u32,

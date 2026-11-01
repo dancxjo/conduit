@@ -150,7 +150,9 @@ fn parse(
     };
     let face_export = if readings {
         crate::face_export::parse(line).map_err(|_| E::Malformed)?
-    } else { None };
+    } else {
+        None
+    };
     let network_snapshot = if readings {
         crate::network_custody::parse(line).map_err(|_| E::Malformed)?
     } else {

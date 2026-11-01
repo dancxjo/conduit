@@ -30,3 +30,25 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     }
     Ok(())
 }
+
+// Exact environmental Info through actual installed Std/kernel execution.
+pub(super) fn installed_cpu(root: &Path) -> Result<(), Box<dyn Error>> {
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(root).args([
+            operation,
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/host/Cargo.toml",
+            "--features",
+            "installed-source-cpu",
+            "--test",
+            "installed_environment_source_cpu",
+        ]);
+        if operation == "clippy" {
+            command.args(["--lib", "--", "-D", "warnings"]);
+        }
+        super::execute(&mut command)?;
+    }
+    Ok(())
+}

@@ -107,9 +107,13 @@ async fn start(
         .await
         .expect("AP startup timeout");
         crate::http_view::set_ap_ready();
-        crate::http_ap::serve_acknowledged(stack, None, false, |_| {})
+        if crate::http_ap::serve_acknowledged(stack, None, false, |_| {})
             .await
-            .expect("AP sockets must remain available");
+            .is_err()
+        {
+            // A live AP beacon does not prove that its HTTP sockets still serve.
+            crate::http_view::set_ap_unavailable();
+        }
     })
     .await;
 }

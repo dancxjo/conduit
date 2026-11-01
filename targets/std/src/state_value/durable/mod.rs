@@ -241,8 +241,10 @@ fn encode_absent() -> Vec<u8> {
 mod back;
 pub use back::DurableStateBack;
 mod residence;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub(crate) use residence::durable_record_byte_bound;
 pub use residence::FileDurableStateResidence;
-pub(crate) use residence::{durable_record_byte_bound, InstalledDurableStateHost};
+pub(crate) use residence::InstalledDurableStateHost;
 
 #[cfg(test)]
 mod tests {
