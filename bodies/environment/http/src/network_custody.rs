@@ -69,7 +69,7 @@ pub(crate) fn parse(line: &str) -> Result<Option<Request>, ()> {
             _ => Err(()),
         }
     }
-    for (out, pair) in snapshot.iter_mut().zip(hex.as_bytes().chunks_exact(2)) {
+    for (out, pair) in snapshot.iter_mut().zip(hex.as_bytes().as_chunks::<2>().0) {
         *out = (digit(pair[0])? << 4) | digit(pair[1])?;
     }
     let offset = number.parse::<u32>().map_err(|_| ())?;

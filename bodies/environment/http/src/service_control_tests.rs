@@ -109,5 +109,8 @@ fn service_failure_after_readiness_recovers_only_with_remaining_original_command
         Poll::Ready(Err(ServiceControlRefusal::Exhausted))
     );
     let mut next = Box::pin(mailbox.next_command());
-    assert!(poll(next.as_mut()).is_pending(), "no replacement grant issued");
+    assert!(
+        poll(next.as_mut()).is_pending(),
+        "no replacement grant issued"
+    );
 }

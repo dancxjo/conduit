@@ -9,11 +9,11 @@ use critical_section::Mutex;
 mod mask;
 pub use mask::{face_response, HttpShowTime, PreparedHttpShow};
 pub mod body_join;
-pub mod face_export;
 pub mod exchange;
+pub mod face_export;
+pub mod network_custody;
 pub mod network_setup;
 pub mod observed_custody;
-pub mod network_custody;
 pub mod service_control;
 mod seven_segment;
 pub mod show_mailbox;
@@ -42,8 +42,14 @@ pub fn initialize(basis: FaceBasis) {
 pub fn set_ap_ready() {
     set_ap_state(true);
 }
+/// Retire service readiness without changing the retained measurement or Face.
+/// Cleanup before publication preparation is inert.
 pub fn set_ap_unavailable() {
-    set_ap_state(false);
+    critical_section::with(|cs| {
+        if let Some(publication) = PUBLICATION.borrow(cs).borrow_mut().as_deref_mut() {
+            publication.ap_ready = false;
+        }
+    });
 }
 fn set_ap_state(ready: bool) {
     critical_section::with(|cs| {

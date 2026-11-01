@@ -59,6 +59,17 @@ fn observation() -> Vec<u8> {
 }
 #[test]
 fn retiring_ap_changes_only_readiness_without_allocating_or_losing_measurement() {
+    // This integration binary owns its fresh publication singleton. Early or
+    // repeated cleanup must not manufacture readiness or require initialization.
+    let (_, early_memory) = allocation_probe::observe(|| {
+        set_ap_unavailable();
+        set_ap_unavailable();
+        assert!(!ap_ready());
+    });
+    assert_eq!(
+        (early_memory.allocations, early_memory.reallocations),
+        (0, 0)
+    );
     initialize(FaceBasis {
         body_id: None,
         wake_id: None,
