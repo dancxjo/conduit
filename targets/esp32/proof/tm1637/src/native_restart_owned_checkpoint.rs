@@ -495,3 +495,6 @@ mod tests;
 #[path = "native_restart_checkpoint_probe.rs"]
 mod checkpoint_probe;
 pub(crate) use checkpoint_probe::{probe, ProbeReport};
+
+#[cfg(any(test, feature = "checkpoint-preparation-check"))]
+pub(crate) use checkpoint_probe::{probe_frozen, FrozenProbeReport};

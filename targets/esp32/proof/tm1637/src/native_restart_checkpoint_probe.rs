@@ -63,3 +63,9 @@ pub(crate) fn probe(
         output_bytes: writer.output_bytes(),
     })
 }
+
+#[cfg(any(test, feature = "checkpoint-preparation-check"))]
+#[path = "native_restart_frozen_probe.rs"]
+mod frozen;
+#[cfg(any(test, feature = "checkpoint-preparation-check"))]
+pub(crate) use frozen::{probe_frozen, FrozenProbeReport};
