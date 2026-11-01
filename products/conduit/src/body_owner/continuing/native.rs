@@ -191,8 +191,10 @@ impl NativeRun {
         if owner.host.selected_body_storage().is_some() {
             let body_id = &owner.session.evidence().body_id;
             match owner.source_recording_stage.as_ref() {
-                Some(stage) => stage.check_selection(body_id, &selection).map_err(debug)?,
-                None => {
+                Some(stage) if stage.len() > 0 => {
+                    stage.check_selection(body_id, &selection).map_err(debug)?
+                }
+                _ => {
                     owner.source_recording_stage = Some(
                         super::source_recording_stage::SourceRecordingStage::prepare(
                             body_id.clone(),
