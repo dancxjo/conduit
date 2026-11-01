@@ -45,6 +45,8 @@ pub(in super::super) struct SourceRecordingStage {
 }
 #[path = "source_recording_stage/checkpoint.rs"]
 mod checkpoint;
+#[path = "source_recording_stage/publication.rs"]
+pub(crate) mod publication;
 impl SourceRecordingStage {
     pub(in super::super) fn prepare(
         body_id: conduit_body::BodyId,
