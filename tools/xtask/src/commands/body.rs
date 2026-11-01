@@ -15,6 +15,7 @@ use serde::Serialize;
 use crate::cli::GlobalOpts;
 
 mod browser_admission;
+mod browser_package;
 mod environment_image;
 #[cfg(unix)]
 mod provision_conduitos;
@@ -295,7 +296,7 @@ fn build(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let source_identity = command_identity()?;
-    let spores = build_body_spores(
+    let mut spores = build_body_spores(
         body,
         selected,
         &source_identity,
@@ -321,6 +322,18 @@ fn build(
             }
         }
         return Ok(());
+    }
+    if spores
+        .iter()
+        .any(|spore| spore.manifest.output == SporeOutputKind::BrowserBundle)
+    {
+        let state = browser_package::require_owner(body)?;
+        let distribution = browser_package::build_distribution(output)?;
+        for spore in &mut spores {
+            if spore.manifest.output == SporeOutputKind::BrowserBundle {
+                *spore = browser_package::fabricate(body, spore, output, &state, &distribution)?;
+            }
+        }
     }
     let receipts = if deploy {
         spores
