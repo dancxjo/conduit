@@ -29,9 +29,22 @@ mod fore_refusal;
     feature = "installed-body-storage",
     target_os = "linux"
 ))]
+#[path = "continuing/recording_run.rs"]
+mod recording_run;
+#[cfg(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
 #[path = "continuing/source_recording_stage.rs"]
 pub(super) mod source_recording_stage;
 struct WorkerOutcome {
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recording: Option<recording_run::RecordingRun>,
     host: StdHost,
     result: Result<BodyRunReport, String>,
     output: Vec<u8>,
@@ -71,6 +84,12 @@ impl Owner {
             maximum_millis,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             &mut None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            None,
         )
     }
 
@@ -86,7 +105,37 @@ impl Owner {
         if equipment.is_none() {
             return Err("selected native equipment is absent".into());
         }
-        self.start_service_run_inner(root, maximum_millis, equipment)
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            equipment,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            None,
+        )
+    }
+
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    pub(crate) fn start_service_source_publication(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        authority: &conduit_core::AuthorityGrant,
+        preparation_limit_bytes: u64,
+    ) -> Result<RunWorker, String> {
+        if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
+            return Err("service run duration must be 1..900000 milliseconds".into());
+        }
+        let input =
+            self.prepare_source_recording_publication(root, authority, preparation_limit_bytes)?;
+        self.start_service_run_inner(root, maximum_millis, &mut None, Some(input))
     }
 
     fn start_service_run_inner(
@@ -97,11 +146,29 @@ impl Owner {
         equipment: &mut Option<
             crate::durable_host::selected_environmental_sources::AttachedEquipment,
         >,
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        publication: Option<source_recording_stage::publication::SourcePublicationInput>,
     ) -> Result<RunWorker, String> {
         if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
             return Err("service run duration must be 1..900000 milliseconds".into());
         }
-        if self.host.is_playing() || self.session.realization().is_some() {
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        let has_publication = publication.is_some();
+        #[cfg(not(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        )))]
+        let has_publication = false;
+        if self.host.is_playing() || (self.session.realization().is_some() && !has_publication) {
             return Err("Body already has a current proposal or Play".into());
         }
         self.ensure_execution_retained(root)?;
@@ -120,7 +187,7 @@ impl Owner {
             None => None,
         };
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
-        if native.is_none() {
+        if native.is_none() && !has_publication {
             self.plan(&checked)?;
         }
         #[cfg(not(all(feature = "installed-environmental-sources", target_os = "linux")))]
@@ -142,6 +209,12 @@ impl Owner {
             .as_mut()
             .and_then(|run| run.live.as_mut())
             .and_then(|live| live.receiver.take());
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        let mut recording = publication.map(recording_run::RecordingRun::new);
         let control = RunControl::default();
         let worker_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
@@ -185,16 +258,39 @@ impl Owner {
                             .map_err(|_| "Body owner start acknowledgement lost".to_string())?
                     };
                     #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
-                    let (host, result) = if let Some(native) = &mut native {
-                        native.execute(host, request, &mut output, &mut timer, started)
-                    } else {
-                        let result = host.run_body_plan_to_with_start(
-                            request,
-                            &mut output,
-                            &mut timer,
-                            started,
-                        );
-                        (host, result)
+                    let (host, result) = {
+                        #[cfg(all(
+                            feature = "installed-environmental-sources",
+                            feature = "installed-body-storage",
+                            target_os = "linux"
+                        ))]
+                        if let Some(recording) = &mut recording {
+                            recording.execute(host, request, &mut output, &mut timer, started)
+                        } else {
+                            if let Some(native) = &mut native {
+                                native.execute(host, request, &mut output, &mut timer, started)
+                            } else {
+                                let result = host.run_body_plan_to_with_start(
+                                    request,
+                                    &mut output,
+                                    &mut timer,
+                                    started,
+                                );
+                                (host, result)
+                            }
+                        }
+                        #[cfg(not(feature = "installed-body-storage"))]
+                        if let Some(native) = &mut native {
+                            native.execute(host, request, &mut output, &mut timer, started)
+                        } else {
+                            let result = host.run_body_plan_to_with_start(
+                                request,
+                                &mut output,
+                                &mut timer,
+                                started,
+                            );
+                            (host, result)
+                        }
                     };
                     #[cfg(not(all(
                         feature = "installed-environmental-sources",
@@ -213,6 +309,12 @@ impl Owner {
                     (host, result)
                 });
                 WorkerOutcome {
+                    #[cfg(all(
+                        feature = "installed-environmental-sources",
+                        feature = "installed-body-storage",
+                        target_os = "linux"
+                    ))]
+                    recording,
                     host,
                     result,
                     output: output.0,
@@ -266,6 +368,12 @@ impl Owner {
         accepted_fore: Option<native::AcceptedSourceFore>,
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         fore_refusal: Option<&fore_refusal::ForeRefusal>,
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        publication: Option<serde_json::Value>,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
         let proposed = self
@@ -348,6 +456,18 @@ impl Owner {
             }
             receipt
         };
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        let receipt = {
+            let mut receipt = receipt;
+            if let Some(publication) = publication {
+                receipt["source_publication"] = publication;
+            }
+            receipt
+        };
         self.retain_execution(root, next, receipt)?;
         Ok(())
     }
@@ -403,6 +523,12 @@ impl RunWorker {
         outcome: WorkerOutcome,
     ) -> Result<bool, String> {
         let WorkerOutcome {
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recording,
             host,
             result,
             output,
@@ -433,6 +559,12 @@ impl RunWorker {
                 refusal.capture_trailing(receiver);
             }
         }
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        let publication = recording.as_ref().map(|r| r.metadata(result.as_ref().ok()));
         owner.retain_finished(
             root,
             result,
@@ -444,6 +576,12 @@ impl RunWorker {
                 .flatten(),
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             self.fore_refusal.as_ref(),
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            publication,
         )?;
         Ok(true)
     }
