@@ -267,7 +267,8 @@
         { "role": "creche-rendezvous", "specifier": "./creche-rendezvous.mjs" }
       ]
     },
-    { "role": "creche-rendezvous-candidates", "kind": "module", "path": "creche-rendezvous-candidates.mjs", "maximum_bytes": 8192, "dependencies": [] },
+    { "role": "creche-rendezvous-candidates", "kind": "module", "path": "creche-rendezvous-candidates.mjs", "maximum_bytes": 8192, "dependencies": [{"role":"browser-rendezvous-candidates","specifier":"../host/assets/browser-rendezvous-candidates.mjs"}] },
+    { "role": "browser-rendezvous-candidates", "kind": "module", "path": "browser-rendezvous-candidates.mjs", "maximum_bytes": 8192, "dependencies": [] },
     { "role": "creche-release-bundle", "kind": "module", "path": "creche-release-bundle.mjs", "maximum_bytes": 8192, "dependencies": [] },
     {
       "role": "creche-release-catalog",

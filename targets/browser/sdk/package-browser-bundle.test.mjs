@@ -90,6 +90,7 @@ try {
   assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
   assert(listing.includes("host/assets/browser-spore-membership.mjs"));
+  assert(listing.includes("host/assets/browser-bounded-document.mjs"));
   assert(listing.includes("host/assets/browser-part-membership.mjs"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
   assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));

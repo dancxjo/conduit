@@ -31,6 +31,30 @@ impl ProtectedFrameCarrier for ChannelCarrier {
             })
     }
 
+    fn send_frame_with_timeout(
+        &mut self,
+        frame: &[u8],
+        timeout_millis: u32,
+    ) -> Option<Result<(), CarrierFailure>> {
+        Some((|| {
+            let deadline =
+                std::time::Instant::now() + Duration::from_millis(u64::from(timeout_millis));
+            let sender = self.send.as_ref().ok_or(CarrierFailure::Lost)?;
+            let mut pending = frame.to_vec();
+            loop {
+                match sender.try_send(pending) {
+                    Ok(()) => return Ok(()),
+                    Err(mpsc::TrySendError::Disconnected(_)) => return Err(CarrierFailure::Lost),
+                    Err(mpsc::TrySendError::Full(frame)) => pending = frame,
+                }
+                if std::time::Instant::now() >= deadline {
+                    return Err(CarrierFailure::TimedOut);
+                }
+                std::thread::yield_now();
+            }
+        })())
+    }
+
     fn receive_frame(
         &mut self,
         output: &mut [u8],
@@ -378,4 +402,123 @@ fn ordinary_rendezvous_session_crosses_the_real_user_operated_relay() {
     );
     assert_eq!(relay_server.join().unwrap(), Ok(()));
     fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn protected_membership_document_preserves_large_complete_bytes_in_both_directions() {
+    let (client, server) = protected_lines();
+    let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000).unwrap();
+    let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+    let expected: Vec<u8> = (0..701_632).map(|i| (i % 251) as u8).collect();
+    let returned = expected.clone();
+    let worker = thread::spawn(move || {
+        let received = server.receive().unwrap();
+        assert_eq!(received, returned);
+        server.send(&received).unwrap();
+    });
+    client.send(&expected).unwrap();
+    assert_eq!(client.receive().unwrap(), expected);
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_refuses_payload_hash_mismatch_and_retires() {
+    let (mut client, server) = protected_lines();
+    let worker = thread::spawn(move || {
+        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+        assert!(server.receive().unwrap_err().contains("digest"));
+        assert!(server.receive().unwrap_err().contains("retired"));
+    });
+    let bytes = vec![9; 70_000];
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    let mut frame = vec![0; 65_519];
+    let (length, next) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    let (length, _) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, next, &digest).unwrap();
+    frame[44] ^= 1;
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_refuses_mixed_raw_control_without_partial_publication() {
+    let (mut client, server) = protected_lines();
+    let worker = thread::spawn(move || {
+        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+        assert!(server.receive().is_err());
+        assert!(server.receive().unwrap_err().contains("retired"));
+    });
+    let bytes = vec![9; 70_000];
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    let mut frame = vec![0; 65_519];
+    let (length, _) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(b"{\"kind\":\"close\",\"protocol\":1}", 2_000)
+        .unwrap();
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_preserves_existing_session_frame_quota() {
+    let (client, server) = protected_lines();
+    let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000).unwrap();
+    let worker = thread::spawn(move || {
+        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000).unwrap();
+        assert!(server.receive().is_err());
+    });
+    // Existing fixture admits sixteen frames, fewer than the 33 needed here.
+    assert!(client.send(&vec![1; MAXIMUM_FRAME_BYTES]).is_err());
+    assert!(client.send(b"{}").unwrap_err().contains("retired"));
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_deadline_is_not_renewed_by_each_chunk() {
+    let (mut client, server) = protected_lines();
+    let worker = thread::spawn(move || {
+        let mut server = super::ProtectedDocumentLine::new(server.inner, 100).unwrap();
+        assert!(
+            server.receive().is_err(),
+            "late final chunk published a complete document"
+        );
+        assert!(server.receive().unwrap_err().contains("retired"));
+    });
+    let bytes = vec![9; 150_000];
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    let mut frame = vec![0; 65_519];
+    let (length, mut next) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    std::thread::sleep(Duration::from_millis(60));
+    let (length, following) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, next, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    next = following;
+    std::thread::sleep(Duration::from_millis(60));
+    let (length, _) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, next, &digest).unwrap();
+    let _ = client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000);
+    worker.join().unwrap();
 }

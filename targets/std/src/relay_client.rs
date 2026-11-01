@@ -104,6 +104,7 @@ pub struct HostedRelayCarrier {
     route_id: String,
     outer: Vec<u8>,
     maximum_protected_frame_bytes: usize,
+    write_timeout_millis: u32,
 }
 
 impl HostedRelayCarrier {
@@ -154,6 +155,7 @@ impl HostedRelayCarrier {
                         route_id: descriptor.route_id.clone(),
                         outer,
                         maximum_protected_frame_bytes,
+                        write_timeout_millis: descriptor.timeout_millis,
                     });
                 }
                 OutcomeStatus::Pressure => return Err(RelayClientError::Pressure),
@@ -177,6 +179,32 @@ impl ProtectedFrameCarrier for HostedRelayCarrier {
         self.line
             .send_binary(&self.outer[..length])
             .map_err(map_carrier_error)
+    }
+
+    fn send_frame_with_timeout(
+        &mut self,
+        frame: &[u8],
+        timeout_millis: u32,
+    ) -> Option<Result<(), CarrierFailure>> {
+        Some((|| {
+            if timeout_millis == 0 {
+                return Err(CarrierFailure::TimedOut);
+            }
+            self.line
+                .set_write_timeout(Some(Duration::from_millis(u64::from(
+                    timeout_millis.min(self.write_timeout_millis),
+                ))))
+                .map_err(map_carrier_error)?;
+            let result = self.send_frame(frame);
+            let restore = self
+                .line
+                .set_write_timeout(Some(Duration::from_millis(u64::from(
+                    self.write_timeout_millis,
+                ))))
+                .map_err(map_carrier_error);
+            restore?;
+            result
+        })())
     }
 
     fn receive_frame(
