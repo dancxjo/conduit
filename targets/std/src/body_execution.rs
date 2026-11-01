@@ -438,8 +438,8 @@ impl StdHost {
                     terminal.rows,
                 )?;
             }
-            if let Some((root, checkpoint)) = checkpoint {
-                kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
+            if let Some((root, checkpoint)) = &checkpoint {
+                kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint.clone())?;
             }
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             if let Some(selection) = snapshots {
@@ -467,8 +467,8 @@ impl StdHost {
             self.next_kernel_play_sequence = sequence
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
-            let play = prospective_play;
-            if play.play_sequence != sequence {
+            let play = BodyPlayIdentity::bind(request.plan, sequence);
+            if play != prospective_play {
                 return Err("Body prospective Play identity changed before start".into());
             }
             let mut kernel = match prepared_kernel.take() {
