@@ -106,14 +106,14 @@ pub(crate) fn selected(root: &Path, body: &str, host: &str) -> Result<Option<Bin
 /// private-record digest, seed, or private path. Never establish implicitly.
 pub(crate) fn public_authority(
     root: &Path,
-    body: &str,
+    body: &conduit_body::BodyId,
     host: &str,
 ) -> Result<conduit_body::BodyRootAuthority, String> {
     let binding = selected(root, body, host)?
         .ok_or("browser Spore preparation requires the selected Body Root signer")?;
     let authority = conduit_body::BodyRootAuthority {
         schema: "conduit.body/root-authority@1".into(),
-        body_id: binding.body_id.as_str().into(),
+        body_id: body.clone(),
         owner_host_id: binding.owner_host_id.as_str().into(),
         public_key: binding.public_key,
     };
