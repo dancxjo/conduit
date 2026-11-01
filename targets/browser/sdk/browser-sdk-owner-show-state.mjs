@@ -32,10 +32,16 @@ export function ownerVisualPreferences(state, options) {
     ...(local ? { local_look: local } : {}), ...(enhanced ? { enhanced_contrast: true } : {}) };
 }
 
+export function ownerVisualPreferencesRequireFullFrame(preferences) {
+  return Boolean(preferences.local_look || preferences.enhanced_contrast
+    || preferences.forced_colors || preferences.reduced_motion
+    || (preferences.minimum_text_scale_percent ?? 100) !== 100);
+}
+
 export function ownerFaceSnapshotOptions(state, options, preferences) {
   // A conditional response would reuse the old Mask without applying personal
   // preferences, including a clear after a previously prepared personal Look.
-  const full = preferences.local_look || preferences.enhanced_contrast || state.ownerPersonalLookPrepared;
+  const full = ownerVisualPreferencesRequireFullFrame(preferences) || state.ownerPersonalLookPrepared;
   return { lastSeenRevision: full ? undefined : options?.lastSeenRevision,
     lastSeenIdentity: full ? undefined : options?.lastSeenIdentity };
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions } from './browser-sdk-owner-show-state.mjs';
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions, ownerVisualPreferencesRequireFullFrame } from './browser-sdk-owner-show-state.mjs';
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -39,6 +39,20 @@ test('personal preference preparation and clearing require a full frame without 
     [{ ownerPersonalLookPrepared: true }, {}]]) {
     assert.deepEqual(ownerFaceSnapshotOptions(state, prior, preferences),
       { lastSeenRevision: undefined, lastSeenIdentity: undefined });
+  }
+});
+
+test('scale and platform preference changes and clears cannot reuse the old rendering', () => {
+  const prior = { lastSeenRevision: '9', lastSeenIdentity: 'face/9' };
+  for (const preferences of [{minimum_text_scale_percent:200}, {forced_colors:true}, {reduced_motion:true}]) {
+    const state = {};
+    assert.equal(ownerVisualPreferencesRequireFullFrame(preferences),true);
+    assert.deepEqual(ownerFaceSnapshotOptions(state,prior,preferences),{lastSeenRevision:undefined,lastSeenIdentity:undefined});
+    // The SDK records this only after an exact new Mask was prepared.
+    state.ownerPersonalLookPrepared = ownerVisualPreferencesRequireFullFrame(preferences);
+    assert.deepEqual(ownerFaceSnapshotOptions(state,prior,{minimum_text_scale_percent:100}),{lastSeenRevision:undefined,lastSeenIdentity:undefined});
+    state.ownerPersonalLookPrepared = ownerVisualPreferencesRequireFullFrame({minimum_text_scale_percent:100});
+    assert.deepEqual(ownerFaceSnapshotOptions(state,prior,{minimum_text_scale_percent:100}),prior);
   }
 });
 

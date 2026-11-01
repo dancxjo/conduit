@@ -176,6 +176,7 @@ struct RouteView {
 
 struct OwnerBrowserMask {
     component: Option<component::ComponentView>,
+    requires_full_visual_snapshot: bool,
     body_id: BodyId,
     face: Face,
     planned: conduit_face::PlannedMaskPlot,
@@ -192,6 +193,7 @@ struct OwnerBrowserMask {
 }
 
 impl OwnerBrowserMask {
+
     fn acknowledge(&mut self, ack: Acknowledgement) -> Result<(), String> {
         if ack.show_id != self.show.show_id.as_str()
             || ack.face_id != self.face.identity.as_str()

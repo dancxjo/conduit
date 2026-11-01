@@ -1,5 +1,5 @@
 import { admitOwnerFaceComponentBack } from "./browser-sdk-owner-component.mjs";
-import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions } from "./browser-sdk-owner-show-state.mjs";
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow, ownerVisualPreferences, ownerFaceSnapshotOptions, ownerVisualPreferencesRequireFullFrame } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedAcknowledgedOwnerFaceArguments, checkedPatchbayFaceArguments } from "./browser-sdk-face-actions.mjs";
@@ -260,7 +260,11 @@ export class BrowserBodyParticipation {
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
     }
-    const preferences = ownerVisualPreferences(this.#state, options);
+    const preferences = {
+      ...ownerVisualPreferences(this.#state, options),
+      forced_colors: mediaMatches('(forced-colors: active)'),
+      reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
+    };
     const hostId = this.hostId, bootId = this.bootId, bodyId = credential.body_id;
     return prepareOwnerFaceShow(this.#state, epoch,
       () => this.ownerFaceSnapshot(ownerFaceSnapshotOptions(this.#state, options, preferences)),
@@ -268,11 +272,7 @@ export class BrowserBodyParticipation {
         const mediaMatches = query => globalThis.matchMedia?.(query)?.matches === true;
         const view = this.#state.host.bridge.ownerFacePrepare({
           body_id: bodyId, host_id: hostId, boot_id: bootId,
-          visual_constraints: {
-            ...preferences,
-            forced_colors: mediaMatches('(forced-colors: active)'),
-            reduced_motion: mediaMatches('(prefers-reduced-motion: reduce)'),
-          },
+          visual_constraints: preferences,
         }, frame);
         if (view?.schema === "conduit.browser/owner-face-refusal@1") {
           throw new Error(`owner Face refused: ${view.code}`);
@@ -282,7 +282,7 @@ export class BrowserBodyParticipation {
             typeof view.interactions_admitted !== "boolean") {
           throw new Error("owner Face Mask did not prepare one exact Show");
         }
-        this.#state.ownerPersonalLookPrepared = Boolean(preferences.local_look || preferences.enhanced_contrast);
+        this.#state.ownerPersonalLookPrepared = ownerVisualPreferencesRequireFullFrame(preferences);
         return view;
       },
       () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId

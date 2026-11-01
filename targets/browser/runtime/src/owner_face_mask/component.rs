@@ -22,6 +22,23 @@ pub(super) struct VisualConstraints {
     pub enhanced_contrast: bool,
 }
 
+impl VisualConstraints {
+    pub(super) fn requires_full_snapshot(&self) -> bool {
+        self.local_look.is_some()
+            || self.enhanced_contrast
+            || self.forced_colors
+            || self.reduced_motion
+            || self.minimum_text_scale_percent != 100
+    }
+}
+
+pub(super) fn requires_full_snapshot(basis: &HostBasis) -> bool {
+    basis
+        .visual_constraints
+        .as_ref()
+        .is_some_and(VisualConstraints::requires_full_snapshot)
+}
+
 #[derive(Clone, Serialize)]
 pub(super) struct ComponentView {
     #[serde(serialize_with = "super::component_wire::configuration")]
