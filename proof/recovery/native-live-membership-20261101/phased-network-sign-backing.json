@@ -1,0 +1,40 @@
+{
+  "schema": "conduit.environment/phased-network-backing@1",
+  "source": "cf93d539d074baa62de43f1f5f218fa330a0292a",
+  "change": "Reserve kernel backing before checked planning; allocate the unchanged complete Sign backing after preparation descriptions retire and before admission or issuance.",
+  "unchanged": {
+    "logical_sign_event_grant": 128,
+    "complete_workspace_minimum_bytes": 24576,
+    "physically_held_release_floor_bytes": 16384,
+    "final_release_floor_bytes": 16384,
+    "existing_complete_storage_api": true
+  },
+  "focused_cpu_tests": {
+    "passed": 27,
+    "ignored_intentional_child_tests": 2,
+    "actual_installer_failure_points": 86,
+    "single_and_persistent_refusals": true,
+    "planner_refusal_points": 26,
+    "original_ready_identities_returned": true,
+    "issuer_sequence_unspent_on_late_sign_refusal": true,
+    "same_kernel_pointer_reused": true,
+    "no_allocation_after_admission": true
+  },
+  "cpu64_fixture": {
+    "old_complete_storage_peak_bytes": 8060,
+    "delayed_sign_peak_bytes": 7243,
+    "retained_bytes_both": 5933,
+    "kernel_backing_bytes": 2480,
+    "sign_backing_bytes": 1792,
+    "limit": "CPU fixture only; not target RAM or timing qualification."
+  },
+  "esp32_offline_qualification": {
+    "qualified": true,
+    "application_bytes": 3342960,
+    "partition_bytes": 3371008,
+    "stack_bytes": 37372,
+    "stack_floor_bytes": 36864,
+    "flashed": false
+  },
+  "target_retry_acceptance": "Not yet proved. Guarded device deployment is in progress; current local history is preserved before any application write."
+}
