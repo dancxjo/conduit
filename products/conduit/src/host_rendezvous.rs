@@ -17,6 +17,8 @@ use std::time::Duration;
 
 use crate::cli::RendezvousCarrier;
 
+#[cfg(unix)]
+mod native_return;
 mod secure;
 pub(crate) use secure::SecureNetworkOptions;
 mod relay;
