@@ -2,7 +2,7 @@
 use super::{
     contract::{HistoryReadContract, HISTORY_CALL, HISTORY_MAXIMUM_BYTES},
     owner::{HistoryAttachment, HistoryCallRefusal, HistoryCallSelection, HistoryHostCall},
-    HistoryProvider,
+    HistoryProvider, MAXIMUM_SIGNED_BATCH_BYTES,
 };
 use alloc::vec;
 use conduit_core::*;
@@ -101,6 +101,40 @@ impl<P: HistoryProvider> ReadyHistoryBase<P> {
         {
             return Err(HistoryInstallationRefusal::Advertisement);
         }
+        let capability_capacity = u16::try_from(advertisement.capabilities.len().saturating_add(1))
+            .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
+        let resource_capacity = u16::try_from(advertisement.resources.len().saturating_add(1))
+            .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
+        let mut registry = BaseRegistry::new(BaseRegistryLimits {
+            maximum_bases: 1,
+            maximum_capabilities_per_base: 1,
+            maximum_resources_per_base: 1,
+            maximum_advertised_capabilities: capability_capacity,
+            maximum_advertised_resources: resource_capacity,
+        })
+        .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
+        registry
+            .register(self.provider_entry(contract))
+            .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
+        registry
+            .project_ready_into(advertisement)
+            .map_err(|_| HistoryInstallationRefusal::Advertisement)
+    }
+
+    /// Native ownership metadata for another existing selected Host executor.
+    /// This does not issue possession or execute a read.
+    pub fn native_registration(
+        &self,
+        contract: &HistoryReadContract,
+    ) -> (HistoryNativeIdentity, HistoryAttachment, BaseProviderEntry) {
+        (
+            self.identity.clone(),
+            self.attachment,
+            self.provider_entry(contract),
+        )
+    }
+
+    fn provider_entry(&self, contract: &HistoryReadContract) -> BaseProviderEntry {
         let kind = contract.kind();
         let capability = conduit_core::capability_offer_from_parts! {
             semantic_contract: kind.semantic_contract(),
@@ -136,34 +170,31 @@ impl<P: HistoryProvider> ReadyHistoryBase<P> {
             HISTORY_ATTACHMENT_CLASS,
             1,
         );
-        let capability_capacity = u16::try_from(advertisement.capabilities.len().saturating_add(1))
-            .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
-        let resource_capacity = u16::try_from(advertisement.resources.len().saturating_add(1))
-            .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
-        let mut registry = BaseRegistry::new(BaseRegistryLimits {
-            maximum_bases: 1,
-            maximum_capabilities_per_base: 1,
-            maximum_resources_per_base: 1,
-            maximum_advertised_capabilities: capability_capacity,
-            maximum_advertised_resources: resource_capacity,
-        })
-        .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
-        registry
-            .register(BaseProviderEntry {
-                base_id: self.identity.base_id.clone(),
-                provider_instance_id: self.identity.provider_instance_id.clone(),
-                provider_generation: self.identity.provider_generation,
-                implementation_id: BaseImplementationId::from("environment.base/signed-history@1"),
-                mechanism_family: HostBaseKindId::from(HISTORY_ATTACHMENT_CLASS),
-                enforcement_class: BaseEnforcementClass::Cooperative,
-                lifecycle: BaseLifecycle::Ready,
-                capabilities: vec![capability],
-                resources: vec![resource],
-            })
-            .map_err(|_| HistoryInstallationRefusal::Advertisement)?;
-        registry
-            .project_ready_into(advertisement)
-            .map_err(|_| HistoryInstallationRefusal::Advertisement)
+        BaseProviderEntry {
+            base_id: self.identity.base_id.clone(),
+            provider_instance_id: self.identity.provider_instance_id.clone(),
+            provider_generation: self.identity.provider_generation,
+            implementation_id: BaseImplementationId::from("environment.base/signed-history@1"),
+            mechanism_family: HostBaseKindId::from(HISTORY_ATTACHMENT_CLASS),
+            enforcement_class: BaseEnforcementClass::Cooperative,
+            lifecycle: BaseLifecycle::Ready,
+            capabilities: vec![capability],
+            resources: vec![resource],
+        }
+    }
+
+    /// Perform only the raw native read after an independently selected executor
+    /// has validated the canonical request and authorized its exact operation.
+    /// # Safety
+    /// Caller must hold that actual current scoped operation authorization and
+    /// retain this owner for its full lifetime. Metadata or an observer receipt
+    /// cannot establish authorization. This method creates no capability.
+    pub unsafe fn read_after_native_authorization(
+        &mut self,
+        cursor: u32,
+        output: &mut [u8; MAXIMUM_SIGNED_BATCH_BYTES],
+    ) -> Result<usize, super::HistoryProviderRefusal> {
+        self.provider.read_signed_batch(cursor, output)
     }
 
     /// Consume native ownership into the exact selected Host Call.

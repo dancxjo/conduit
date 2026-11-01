@@ -14,6 +14,7 @@ pub struct NativeSourceDefinition {
     pub base: BaseProviderEntry,
     pub grant: AuthorityGrant,
     pub resource_generation: ResourceGenerationId,
+    pub envelope_id: CapabilityEnvelopeId,
     pub configuration: Vec<ConfigurationEntry>,
     pub input_bytes: u32,
     pub output_bytes: u32,
@@ -81,6 +82,9 @@ impl crate::StdHost {
             registry
                 .project_base_ready_into(&definition.base.base_id, &mut advertisement)
                 .map_err(|error| format!("native Source advertisement: {error:?}"))?;
+            advertisement
+                .resources
+                .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
             let ledger = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
             Ok((registry, advertisement, ledger))
         })();
@@ -108,6 +112,7 @@ fn validate_definition(d: &NativeSourceDefinition, host: &HostAdvertisement) -> 
         || d.base.capabilities.len() != 1
         || d.base.resources.len() != 1
         || d.base.provider_generation == 0
+        || d.envelope_id.as_str().is_empty()
         || d.resource_generation.0.is_empty()
         || d.input_bytes == 0
         || d.output_bytes == 0
@@ -230,7 +235,7 @@ impl InitializedNativeSource {
                 "native Source Plan does not possess the independently installed grant".into(),
             );
         }
-        let envelope: CapabilityEnvelopeId = "std/native-source/exact@1".into();
+        let envelope = d.envelope_id.clone();
         let scope = BaseCapabilityScope {
             host_id: host.host_id.clone(),
             boot_id: host.boot_id.clone(),

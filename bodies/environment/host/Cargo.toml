@@ -9,6 +9,7 @@ publish = false
 
 [features]
 default = []
+history-source = ["dep:conduit-std-host", "conduit-environment-runtime/history-exchange"]
 retained-history-provider = ["conduit-environment-runtime/history-exchange"]
 carrier-source = ["dep:conduit-std-host", "dep:conduit-host-make", "conduit-environment-runtime/environmental-source", "dep:conduit-plot", "dep:conduit-planner", "dep:conduit-web", "conduit-std-host/isolated-http-base"]
 
