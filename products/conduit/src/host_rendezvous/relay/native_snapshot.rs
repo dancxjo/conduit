@@ -18,6 +18,7 @@ pub(crate) fn connect_native_snapshot(
     let part = crate::durable_host::RetainedPart::open(state, current)?;
     let client = crate::host_rendezvous::NativeReturn::new(part)?;
     let now = relay_now()?;
+    client.validate_selection(verified, now)?;
     let (_document, candidate, role, binding, policy) = load_endpoint_descriptor(descriptor, now)?;
     validate_snapshot_candidate(&candidate, role, Role::Initiator, &binding, verified)?;
     let (carrier, _journal) =

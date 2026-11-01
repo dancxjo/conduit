@@ -49,6 +49,29 @@ impl NativeReturn {
             .rendezvous()
             .expect("constructor required retained route")
     }
+    /// Must run before a connector performs any network effect. Discovery or a
+    /// fresh local selection cannot enlarge the retained route's finite scope.
+    pub(crate) fn validate_selection(
+        &self,
+        verified: &crate::durable_host_control::native_snapshot::VerifiedSelection,
+        now_millis: u64,
+    ) -> Result<(), String> {
+        let authorization = verified.authorization();
+        let selected = verified.binding();
+        self.rendezvous()
+            .validate(now_millis)
+            .map_err(|_| "native snapshot retained route expired or refused")?;
+        if authorization.body_id != self.part.credential().body_id
+            || !self.rendezvous().candidates.contains(verified.route())
+            || selected.initiator.host_id != self.advertisement().host_id.as_str()
+            || selected.initiator.boot_id != self.advertisement().boot_id.as_str()
+            || selected.responder.host_id != authorization.owner_host_id.as_str()
+            || selected.responder.boot_id != authorization.owner_boot_id.as_str()
+        {
+            return Err("native snapshot verified owner or retained route mismatch".into());
+        }
+        Ok(())
+    }
     pub(crate) fn advertise(&mut self) -> Result<Vec<u8>, String> {
         if self.phase != Phase::Ready {
             return Err("Return advertisement out of order".into());
@@ -148,20 +171,11 @@ pub(crate) fn snapshot<C: conduit_protected_line::ProtectedFrameCarrier>(
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|_| "native snapshot clock precedes epoch")?
             .as_millis();
-        client
-            .rendezvous()
-            .validate(
-                now.try_into()
-                    .map_err(|_| "native snapshot clock overflow")?,
-            )
-            .map_err(|_| "native snapshot retained route expired or refused")?;
-        if authorization.body_id != client.part.credential().body_id
-            || !client.rendezvous().candidates.contains(verified.route())
-            || selected.responder.host_id != authorization.owner_host_id.as_str()
-            || selected.responder.boot_id != authorization.owner_boot_id.as_str()
-        {
-            return Err("native snapshot verified owner or retained route mismatch".into());
-        }
+        client.validate_selection(
+            verified,
+            now.try_into()
+                .map_err(|_| "native snapshot clock overflow")?,
+        )?;
         let evidence = line.evidence();
         let ad = client.advertisement();
         if evidence.role != Role::Initiator

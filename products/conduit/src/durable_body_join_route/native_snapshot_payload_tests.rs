@@ -105,3 +105,42 @@ fn real_protected_peer_wrong_schema_or_body_is_refused() {
         verify_offline(&f);
     }
 }
+
+#[test]
+fn changed_original_route_pin_and_expired_selection_refuse_before_connect() {
+    let f = fixture();
+    let mut changed = f.route.clone();
+    changed.authentication.transport_binding_sha256 = [99; 32];
+    let verified = control::native_snapshot::start(
+        &f.owner.root,
+        "host/snapshot-client",
+        10_000,
+        &f.selected,
+        &changed,
+    )
+    .unwrap();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+    let client = f.client.as_ref().unwrap();
+    assert!(client
+        .validate_selection(&verified, now)
+        .unwrap_err()
+        .contains("retained route mismatch"));
+    browser::cancel(&f.owner.root, &verified.authorization().window_id).unwrap();
+    let verified = control::native_snapshot::start(
+        &f.owner.root,
+        "host/snapshot-client",
+        10_000,
+        &f.selected,
+        &f.route,
+    )
+    .unwrap();
+    assert!(client
+        .validate_selection(&verified, f.route.expires_at_millis)
+        .unwrap_err()
+        .contains("expired"));
+    browser::cancel(&f.owner.root, &verified.authorization().window_id).unwrap();
+    verify_offline(&f);
+}
