@@ -222,7 +222,14 @@ pub(super) fn prepare(
                     FacePropertyValue::Flag(complete) => Some(*complete),
                     _ => None,
                 })
-                .map(|complete| format!("[{}] {}", if complete { 'x' } else { ' ' }, subject.name))
+                // Completion is a fact, independent of Boolean input bindings.
+                .map(|complete| {
+                    format!(
+                        "{} · {}",
+                        if complete { "Complete" } else { "Incomplete" },
+                        subject.name
+                    )
+                })
                 .unwrap_or_else(|| subject.name.clone())
         } else {
             subject.name.clone()
