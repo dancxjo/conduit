@@ -1,0 +1,73 @@
+{
+  "source": "ab1a26eaf6b42bbc003cbd5a9fd748c6f6e8a162",
+  "tree": "375ea7d35ce1c15b0a4402fc0a157b9368da3cc5",
+  "build": {
+    "source": "ab1a26eaf6b42bbc003cbd5a9fd748c6f6e8a162",
+    "command": [
+      "cargo",
+      "+stable",
+      "build",
+      "--locked",
+      "--release",
+      "-p",
+      "conduit-browser-runtime",
+      "--no-default-features",
+      "--features",
+      "plot-runner,creche-surface",
+      "--target",
+      "wasm32-unknown-unknown"
+    ],
+    "minimum_free_bytes": 6442450944,
+    "state": "linked",
+    "exit_code": 0,
+    "linked_bytes": 19290902,
+    "linked_sha256": "233e1dd993c27c7a9bbff6e37fd729f9e56e3fefcab07547ea77aab1ca3091de"
+  },
+  "optimized": {
+    "source": "ab1a26eaf6b42bbc003cbd5a9fd748c6f6e8a162",
+    "bytes": 16645029,
+    "sha256": "d31cffe683e7fd994535c00b51d45c4ab42cd0171f78c7f4941bcb277142c3e7",
+    "webassembly_module_validated": true,
+    "required_membership_and_owner_mask_exports": true,
+    "imports": [],
+    "actual_wasm_identity_smoke": true,
+    "live_body_admission": false,
+    "invitation_minted": false,
+    "smoke_scope": "Ephemeral local test Host/Boot; initializer clears seed input, invalid empty membership requests refuse. No invitation or Body operation."
+  },
+  "optimizer": {
+    "version": "wasm-opt version 133",
+    "command": [
+      "wasm-opt",
+      "-Oz",
+      "--enable-bulk-memory",
+      "--enable-sign-ext",
+      "runtime-linked.wasm",
+      "-o",
+      "runtime.optimizing.wasm"
+    ],
+    "BINARYEN_CORES": 2,
+    "exit_code": 0
+  },
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "node": "v25.9.0",
+  "cpu_tests": {
+    "portable_membership": {
+      "passed": 2,
+      "filtered": 490
+    },
+    "typed_face_graphics": {
+      "passed": 1,
+      "filtered": 491
+    }
+  },
+  "cpu_logs_sha256": {
+    "portable-membership-cpu.log": "eebb1f4d431a6a2f31b37c22682a100483918ebb2ed5f7a226ffdb04f27b8c85",
+    "typed-face-graphics-cpu.log": "8a37d3237339f7e207f260977a9500e6d25a112407bca8ce64aee6a26147826d"
+  },
+  "limits": [
+    "No invitation minted or live Body modified.",
+    "Actual Wasm module/exports/ephemeral identity smoke; live owner Face route, Body admission and network interruption/recovery not claimed.",
+    "Wasm uses existing release features plot-runner,creche-surface; protected-line optional feature is not selected by this release recipe."
+  ]
+}
