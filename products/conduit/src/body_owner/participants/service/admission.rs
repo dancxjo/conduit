@@ -46,7 +46,16 @@ impl Owner {
                     verifying_key,
                     freshness_sequence,
                 } => {
-                    if advertisement.host_id != window.expected {
+                    if !matches!(window.scope, BrowserWindowScope::ExactHost) {
+                        return Err(
+                            "invitation window accepts only its exact invited advertisement".into(),
+                        );
+                    }
+                    let expected = window
+                        .expected
+                        .as_ref()
+                        .ok_or("missing exact browser Host")?;
+                    if &advertisement.host_id != expected {
                         return Err(
                             "browser Host differs from explicit admission authorization".into()
                         );
@@ -54,14 +63,14 @@ impl Owner {
                     if self.session.evidence().membership.parts.iter().any(|part| {
                         part.current
                             .as_ref()
-                            .is_some_and(|current| current.host_id == window.expected)
+                            .is_some_and(|current| &current.host_id == expected)
                     }) {
                         return Err("browser Host already has current membership".into());
                     }
                     if manager
                         .receipts
                         .iter()
-                        .any(|receipt| receipt.credential.host_id == window.expected.as_str())
+                        .any(|receipt| receipt.credential.host_id == expected.as_str())
                     {
                         return Err("admitted browser must present its retained credential".into());
                     }
@@ -117,9 +126,14 @@ impl Owner {
                     credential,
                     advertisement,
                 } => {
-                    if advertisement.host_id != window.expected
-                        || credential.host_id != window.expected
-                    {
+                    if !matches!(window.scope, BrowserWindowScope::ExactHost) {
+                        return Err("invitation window cannot authorize Return".into());
+                    }
+                    let expected = window
+                        .expected
+                        .as_ref()
+                        .ok_or("missing exact browser Host")?;
+                    if &advertisement.host_id != expected || &credential.host_id != expected {
                         return Err(
                             "returning browser Host differs from explicit authorization".into()
                         );

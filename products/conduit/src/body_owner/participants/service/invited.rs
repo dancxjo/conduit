@@ -1,6 +1,6 @@
 //! Invitation-backed proof inside an explicitly authorized browser window.
 //! This adds no listener or route authority. The existing carrier/window and
-//! exact expected Host/key remain independently authorized by the owner.
+//! exact expected Host/key or retained invitation scope are authorized by the owner.
 use super::*;
 use conduit_body::{SpawnAdmissionProof, SpawnInvitationClaim};
 
@@ -26,7 +26,6 @@ pub(super) fn begin(
     let at = crate::durable_host::current_time_millis()?;
 
     if claim.body_id != owner.session.evidence().body_id
-        || advertisement.host_id != window.expected
         || advertisement.host_id == owner.host.advertisement().host_id
     {
         return Err("invited browser differs from authorized Body or Host".into());
@@ -34,9 +33,37 @@ pub(super) fn begin(
     let key: [u8; 32] = verifying_key
         .try_into()
         .map_err(|_| "invalid browser verifying key")?;
-    if window.new_key != Some(key) {
-        return Err("invited browser key differs from explicit authorization".into());
-    }
+    let fresh_scope = match &window.scope {
+        BrowserWindowScope::ExactHost => {
+            if window.expected.as_ref() != Some(&advertisement.host_id)
+                || window.new_key != Some(key)
+            {
+                return Err("invited browser Host/key differs from explicit authorization".into());
+            }
+            false
+        }
+        BrowserWindowScope::InvitationScope {
+            claim: expected_claim,
+            observed_sha256,
+        } => {
+            if expected_claim != &claim {
+                return Err("invited browser differs from exact retained invitation scope".into());
+            }
+            if observed_sha256.is_some() {
+                if window.expected.as_ref() != Some(&advertisement.host_id)
+                    || window.new_key != Some(key)
+                {
+                    return Err("invited retry differs from frozen Host/key".into());
+                }
+                false
+            } else {
+                if window.expected.is_some() || window.new_key.is_some() {
+                    return Err("invited browser scope has inconsistent frozen identity".into());
+                }
+                true
+            }
+        }
+    };
     let manager = owner
         .admissions
         .as_ref()
@@ -44,11 +71,11 @@ pub(super) fn begin(
     let already_known = manager
         .receipts
         .iter()
-        .any(|r| r.credential.host_id == window.expected.as_str());
+        .any(|r| r.credential.host_id == advertisement.host_id.as_str());
     // An expired claim can only recover its exact durable outcome, never admit
     // again. Complete checks the retained request/key/offer and current Part.
     claim
-        .inspect(if already_known { 0 } else { at })
+        .inspect(if already_known && !fresh_scope { 0 } else { at })
         .map_err(debug)?;
     let observation = CandidateObservation {
         advertisement,
@@ -65,6 +92,27 @@ pub(super) fn begin(
         .map_err(debug)?
         .observe(observation.clone())
         .map_err(debug)?;
+    // Freeze only after exact claim, finite observation and deadline validation.
+    // Pending retains the full immutable observed Host/Boot/offer; later proofs
+    // cannot replace it with a competing endpoint.
+    if let BrowserWindowScope::InvitationScope {
+        observed_sha256, ..
+    } = &mut window.scope
+    {
+        let digest =
+            crate::durable_host::root_signer::receipt::offered_digest(&observation.advertisement)?;
+        if observed_sha256
+            .as_ref()
+            .is_some_and(|frozen| frozen != &digest)
+        {
+            return Err("invited retry differs from frozen Boot/generation/offer".into());
+        }
+        if fresh_scope {
+            window.expected = Some(observation.advertisement.host_id.clone());
+            window.new_key = Some(key);
+            *observed_sha256 = Some(digest);
+        }
+    }
     window.state = WindowState::Pending(Box::new(Pending {
         binding: binding.clone(),
         observation,

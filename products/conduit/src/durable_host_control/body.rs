@@ -131,6 +131,40 @@ impl DurableHostRuntime {
         Ok((report, reading))
     }
 
+    pub(super) fn start_invited_browser_window(
+        &mut self,
+        maximum_millis: u64,
+    ) -> Result<
+        (
+            PortableInvitation,
+            conduit_body::BodyRootAuthority,
+            crate::durable_host::owner::BrowserWindowAuthorization,
+            String,
+        ),
+        String,
+    > {
+        let HostSource::Body { owner, root, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let (invitation, root_authority, authorization) =
+            owner.browser_prepare_spore_window(root, maximum_millis)?;
+        #[cfg(unix)]
+        {
+            match super::browser::spawn_window(root, authorization.clone()) {
+                Ok(url) => Ok((invitation, root_authority, authorization, url)),
+                Err(error) => {
+                    let _ = owner.browser_cancel_window(root, &authorization.window_id);
+                    Err(error)
+                }
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = owner.browser_cancel_window(root, &authorization.window_id);
+            Err("browser admission worker requires local Unix control".into())
+        }
+    }
+
     pub(super) fn start_browser_window(
         &mut self,
         expected_host_id: &str,
@@ -496,6 +530,55 @@ impl DurableHostRuntime {
             }
         }
     }
+}
+
+#[cfg(unix)]
+pub(crate) fn start_invited_browser_window(
+    state_dir: &Path,
+    maximum_millis: u64,
+) -> Result<
+    (
+        PortableInvitation,
+        conduit_body::BodyRootAuthority,
+        crate::durable_host::owner::BrowserWindowAuthorization,
+        String,
+    ),
+    String,
+> {
+    match call(
+        state_dir,
+        Request::BodyBrowserInviteStart {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            maximum_millis,
+        },
+    )? {
+        Response::BodyBrowserInvitationWindow {
+            protocol: PROTOCOL,
+            invitation,
+            root_authority,
+            authorization,
+            url,
+        } => Ok((*invitation, root_authority, authorization, url)),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong invited browser-window response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn start_invited_browser_window(
+    _: &Path,
+    _: u64,
+) -> Result<
+    (
+        PortableInvitation,
+        conduit_body::BodyRootAuthority,
+        crate::durable_host::owner::BrowserWindowAuthorization,
+        String,
+    ),
+    String,
+> {
+    Err("browser invitation window requires local Unix control".into())
 }
 
 #[cfg(unix)]

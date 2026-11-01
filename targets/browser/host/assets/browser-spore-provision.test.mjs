@@ -91,3 +91,12 @@ test('consumes the existing Body-bound ZIP producer provision unchanged', async 
   assert.equal(result.manifest.body_id, p.spore.body_id);
   assert.deepEqual(result.secret, invitation.secret);
 });
+
+test('returns bounded exact Body Root provenance inertly and rejects secret extensions',()=>{
+  const p=fixture();p.invitation_provision.root_producer={host_id:'host/owner',boot_id:'boot/owner'};p.invitation_provision.root_authority={schema:'conduit.body/root-authority@1',body_id:'body/test',owner_host_id:'host/owner',public_key:Array(32).fill(3)};
+  assert.deepEqual(parse(p).rootAuthority,p.invitation_provision.root_authority);
+  assert.deepEqual(parse(p).rootProducer,p.invitation_provision.root_producer);
+  for(const change of [r=>r.body_id='foreign',r=>r.public_key.fill(0),r=>r.seed=[1],r=>r.private_record_sha256='forbidden']){
+    const copy=structuredClone(p);change(copy.invitation_provision.root_authority);assert.throws(()=>parse(copy));
+  }
+});

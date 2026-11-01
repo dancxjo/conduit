@@ -15,6 +15,10 @@ installed-recording-proof = ["installed-seed-proof", "conduit-std-host/linux-sna
 installed-seed-proof = ["dep:conduit-std-host", "dep:conduit-std-offers", "dep:tempfile", "conduit-environment-linux/installed-seed"]
 
 [[test]]
+name = "catalog_body_checkpoint"
+required-features = ["installed-recording-proof"]
+
+[[test]]
 name = "catalog_restart"
 required-features = ["installed-seed-proof"]
 

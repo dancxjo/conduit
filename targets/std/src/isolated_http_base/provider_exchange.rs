@@ -24,47 +24,61 @@ pub(super) fn exchange_provider_classified(
         spawn_provider(&config.executable, &stream).map_err(|_| F::ProviderSpawn)?,
     );
     drop(stream);
-    let mut input = child.stdin.take().ok_or(F::ProviderProtocol)?;
-    let mut output = child.stdout.take().ok_or(F::ProviderProtocol)?;
-    crate::isolated_base::write_frame_with_limit(
-        &mut input,
-        &RequestFrame::Bootstrap {
-            protocol_version: PROTOCOL_VERSION,
-            bootstrap: Box::new(HttpBootstrap {
-                issue,
-                expected_authority: config.authority.clone(),
-                expected_endpoint: config.endpoint,
-            }),
-        },
-        MAX_FRAME_BYTES,
-    )
-    .map_err(|_| F::ProviderProtocol)?;
-    match read(&mut output).map_err(|_| F::ProviderProtocol)? {
-        ResponseFrame::Ready { peer, .. } if peer == config.endpoint => {}
-        _ => return Err(F::ProviderProtocol),
-    }
-    write(
-        &mut input,
-        &RequestFrame::Exchange {
-            claim: Box::new(claim),
-            request: encoded,
-        },
-    )
-    .map_err(|_| F::ProviderProtocol)?;
-    let response = match read(&mut output).map_err(|_| F::ProviderProtocol)? {
-        ResponseFrame::Completed { response } => {
-            conduit_web::decode_response(&response).map_err(|_| F::MalformedResponse)?
+    let result = (|| {
+        let mut input = child.stdin.take().ok_or(F::ProviderProtocol)?;
+        let mut output = child.stdout.take().ok_or(F::ProviderProtocol)?;
+        crate::isolated_base::write_frame_with_limit(
+            &mut input,
+            &RequestFrame::Bootstrap {
+                protocol_version: PROTOCOL_VERSION,
+                bootstrap: Box::new(HttpBootstrap {
+                    issue,
+                    expected_authority: config.authority.clone(),
+                    expected_endpoint: config.endpoint,
+                }),
+            },
+            MAX_FRAME_BYTES,
+        )
+        .map_err(|_| F::ProviderProtocol)?;
+        match read(&mut output).map_err(|_| F::ProviderProtocol)? {
+            ResponseFrame::Ready { peer, .. } if peer == config.endpoint => {}
+            _ => return Err(F::ProviderProtocol),
         }
-        ResponseFrame::Refused { reason } => return Err(F::provider(&reason)),
-        _ => return Err(F::ProviderProtocol),
-    };
-    write(&mut input, &RequestFrame::Shutdown).map_err(|_| F::ProviderProtocol)?;
-    if read(&mut output).map_err(|_| F::ProviderProtocol)? != ResponseFrame::Stopped {
-        return Err(F::ProviderProtocol);
+        write(
+            &mut input,
+            &RequestFrame::Exchange {
+                claim: Box::new(claim),
+                request: encoded,
+            },
+        )
+        .map_err(|_| F::ProviderProtocol)?;
+        let response = match read(&mut output).map_err(|_| F::ProviderProtocol)? {
+            ResponseFrame::Completed { response } => {
+                conduit_web::decode_response(&response).map_err(|_| F::MalformedResponse)?
+            }
+            ResponseFrame::Refused { reason } => return Err(F::provider(&reason)),
+            _ => return Err(F::ProviderProtocol),
+        };
+        write(&mut input, &RequestFrame::Shutdown).map_err(|_| F::ProviderProtocol)?;
+        if read(&mut output).map_err(|_| F::ProviderProtocol)? != ResponseFrame::Stopped {
+            return Err(F::ProviderProtocol);
+        }
+        drop(input);
+        if !child.wait().map_err(|_| F::ProviderProtocol)?.success() {
+            return Err(F::ProviderProtocol);
+        }
+        Ok(response)
+    })();
+    if matches!(
+        result,
+        Err(F::TransportTimeout | F::TransportIo | F::ConnectionRefused)
+    ) {
+        // A transport observation may retain its Source session only after this
+        // exact per-request worker is known to have exited and been reaped.
+        // A failed kill alone is inconclusive (the child may already have exited);
+        // checked wait is the gate. Cleanup uncertainty remains terminal.
+        let _ = child.kill();
+        child.wait().map_err(|_| F::ProviderProtocol)?;
     }
-    drop(input);
-    if !child.wait().map_err(|_| F::ProviderProtocol)?.success() {
-        return Err(F::ProviderProtocol);
-    }
-    Ok(response)
+    result
 }

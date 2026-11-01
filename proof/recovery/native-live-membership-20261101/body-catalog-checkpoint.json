@@ -1,0 +1,45 @@
+{
+  "schema": "conduit.body-catalog-checkpoint-proof@1",
+  "tested_source": "9d84549ae2",
+  "command": "cargo +stable test --offline --manifest-path bodies/environment/make/Cargo.toml --features installed-recording-proof --test catalog_body_checkpoint -- --test-threads=1",
+  "result": {
+    "passed": 2,
+    "failed": 0,
+    "exit_code": 0,
+    "log_sha256": "8975865f1f0320c5ae5b7b30c67b8b3e6fb190df697f345d852e41ca9b39ea24"
+  },
+  "scope": "actual fixture-admitted composed Body kernel, selected Linux immutable snapshot and Body-lived State effects; not installed owner admission or history ACK",
+  "proved": [
+    "Original complete sealed Plan retains one snapshot unit and one durable State unit under one existing Host ledger reservation and actual issued Body Play",
+    "Existing checked recorder-catalog Source routes only successful publication ResourceRef through authored some expression into Body seed State; input is catalog JSON, not a claimed commit/ref/observer",
+    "Publication succeeded, independent newly admitted read under same owner Host and fresh Boot/grant returned byte-identical catalog JSON",
+    "Ordinary Body lull and resident admit/remove transition preserves original Body; read view retains exact State identity, fresh Host Boot first value recovers committed catalog ResourceRef",
+    "Injected State candidate-open failure after initial recovery/current delivery leaves snapshot independently readable but yields exact original request Failed HostCallFailed detail7, cleanupNone, no Some State output",
+    "After failed State update, fresh Boot read recovers None without repairing/promoting obstructed candidate",
+    "Read-only current view is bounded by attributed requested cancellation after first delivery, and cleanupNone; it is not reported as naturally Completed"
+  ],
+  "finite_fixture": {
+    "catalog_payload_maximum_bytes": 4096,
+    "state_maximum_value_bytes": 1024,
+    "snapshot_resource_units": 1,
+    "state_resource_units": 1,
+    "copied_output_capacity": 2,
+    "snapshot_generation_slots": 1,
+    "snapshot_publication_slots": 1,
+    "snapshot_reader_leases": 1,
+    "state_candidate_current_generations": 2,
+    "state_disk_byte_constraint": 2304,
+    "snapshot_disk_byte_constraint": "conduit_resource_snapshot::MAXIMUM_RECORD_BYTES",
+    "total_regular_file_constraint": 3,
+    "lowering_value_byte_bound": 16777216,
+    "lowering_sign_byte_bound": 4194304,
+    "note": "Root-selected temporary filesystem/directory mapping and finite constraints are explicit fixture admission, not OS quota enforcement or measured full preparation/RAM peak"
+  },
+  "source_catalog_scope": "Catalog contains opaque fixture generation references, not fabricated legacy commit observers; this test does not establish prior environmental chunk recording",
+  "not_proved": [
+    "Installed Hamm recorder/catalog selection",
+    "OS process or power-cycle recovery",
+    "Physical sensor history transport recovery or durable-history ACK",
+    "Peak total preparation/RAM and target-wide capacity proof"
+  ]
+}

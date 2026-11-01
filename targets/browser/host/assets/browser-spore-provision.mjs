@@ -13,6 +13,24 @@ const bytes32 = value => Array.isArray(value) && value.length === 32
   && value.some(byte => byte !== 0);
 const digest = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/.test(value);
 
+// Inert public provenance from the human-selected owner-produced artifact.
+// It is never a substitute for independently reviewed executable policy.
+export function parseBodyRootAuthority(value, expectedBodyId) {
+  if (!value || value.schema !== 'conduit.body/root-authority@1'
+    || Object.keys(value).sort().join(',') !== 'body_id,owner_host_id,public_key,schema'
+    || !text(value.body_id) || value.body_id !== expectedBodyId
+    || !text(value.owner_host_id) || !bytes32(value.public_key)
+    || encoder.encode(JSON.stringify(value)).length > 1024) fail();
+  return Object.freeze({ schema: value.schema, body_id: value.body_id,
+    owner_host_id: value.owner_host_id, public_key: Object.freeze([...value.public_key]) });
+}
+
+export function parseBodyRootProducer(value, authority) {
+  if (!authority || !value || Object.keys(value).sort().join(',') !== 'boot_id,host_id'
+    || value.host_id !== authority.owner_host_id || !text(value.boot_id)) fail();
+  return Object.freeze({ host_id: value.host_id, boot_id: value.boot_id });
+}
+
 // Accept bytes from the caller's bounded package reader, never an ambient URL.
 // Reparse to detach all retained fields from caller-owned mutable objects.
 export function parseBrowserSporeProvision(bytes, { nowMillis, expectedBodyId } = {}) {
@@ -51,8 +69,13 @@ export function parseBrowserSporeProvision(bytes, { nowMillis, expectedBodyId } 
   const candidates = boundedRendezvousCandidates(invitation.rendezvous_candidates, {
     bodyId: manifest.body_id, invitationExpiresAtMillis: invitation.expires_at_millis,
   });
+  const rootAuthority = invitation.root_authority === undefined ? null
+    : parseBodyRootAuthority(invitation.root_authority, manifest.body_id);
   return Object.freeze({
     manifest: freeze(manifest),
+    rootAuthority,
+    rootProducer: rootAuthority === null ? null
+      : parseBodyRootProducer(invitation.root_producer, rootAuthority),
     claim: Object.freeze({ invitation_id: invitation.invitation_id,
       body_id: manifest.body_id, nonce: Object.freeze(invitation.nonce),
       expires_at_millis: invitation.expires_at_millis }),

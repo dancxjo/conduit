@@ -1,7 +1,15 @@
 // Frame adaptation only. The supplied carrier must already be admitted and
 // authenticated for its exact endpoints; this module creates no authority.
 export function createBrowserMembershipSession({ url, carrier = null, WebSocketType = globalThis.WebSocket }) {
-  const maximumFrameBytes = 65 * 1024;
+  // Preserve the canonical existing WS admission envelope. A supplied
+  // protected carrier retains its own smaller admitted payload limit.
+  const maximumWebSocketFrameBytes = 2 * 1024 * 1024 + 1024;
+  const maximumFrameBytes = carrier === null ? maximumWebSocketFrameBytes
+    : carrier.maximumFrameBytes ?? 65_519;
+  if (!Number.isSafeInteger(maximumFrameBytes) || maximumFrameBytes < 1
+    || maximumFrameBytes > maximumWebSocketFrameBytes) {
+    throw new TypeError('Invalid admitted membership frame bound');
+  }
   const maximumPendingSends = 4;
   if (carrier !== null && (!carrier || ['sendSessionFrame','receiveSessionFrame','close'].some(key => typeof carrier[key] !== 'function'))) {
     throw new TypeError('Invalid admitted browser membership session carrier');

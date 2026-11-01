@@ -109,10 +109,14 @@ export class BrowserHost {
   participate(options: {
     invitation?: string;
     /** Already admitted authenticated single-use carrier; creates no membership authority. */
-    sessionCarrier?: { sendSessionFrame(frame: Uint8Array): Promise<void>;
+    sessionCarrier?: { readonly maximumFrameBytes?: number; sendSessionFrame(frame: Uint8Array): Promise<void>;
       receiveSessionFrame(): Promise<Uint8Array>; close(): void };
     expectedBodyId?: string | null;
     retainedCredential?: Readonly<Record<string, unknown>> | null;
+    invitedProvision?: { claim: Readonly<Record<string, unknown>>; secret: number[] } | null;
+    /** Explicit human-selected owner Spore provenance; first admission requires its signed Root receipt. */
+    sporeRoot?: { rootAuthority: Readonly<Record<string, unknown>>;
+      rootProducer: Readonly<Record<string, unknown>> } | null;
     onCredential?: (credential: Readonly<Record<string, unknown>>) => void | Promise<void>;
     onState?: (state: string) => void;
     onBiographyEvidence?: (evidence: Readonly<Record<string, unknown>>) => void;

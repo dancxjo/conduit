@@ -107,6 +107,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
+        | Request::BodyBrowserInviteStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }

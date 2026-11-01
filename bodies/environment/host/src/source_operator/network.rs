@@ -252,6 +252,16 @@ impl EnvironmentalSourceProvider for NetworkSource {
             let bytes = match self.read() {
                 Ok(bytes) => bytes,
                 Err(error) => {
+                    // The confined exchange has ended and released its request
+                    // resources. A transport gap is an observation outcome, not
+                    // loss of this initialized Source session. Never retry the
+                    // failed exchange here; a later authored tick may read again.
+                    if let Some(reason) = transport_unavailable(&error) {
+                        return Ok(SourceObservation {
+                            observed_at_host_boot_ms: boot_ms()?,
+                            outcome: SourceOutcome::Unavailable(reason),
+                        });
+                    }
                     self.failed = true;
                     return Err(error);
                 }
@@ -418,5 +428,52 @@ fn http_refusal(error: conduit_std_host::isolated_http_base::HttpExchangeRefusal
         H::ProviderProtocol => SourceRefusal::ProviderProtocol,
         H::ProviderRefused => SourceRefusal::ProviderRefused,
         H::MalformedResponse => SourceRefusal::MalformedResponse,
+    }
+}
+
+fn transport_unavailable(
+    error: &SourceRefusal,
+) -> Option<conduit_environment_runtime::environmental_publication::SourceFailure> {
+    use conduit_environment_runtime::environmental_publication::SourceFailure;
+    match error {
+        SourceRefusal::TransportTimeout => Some(SourceFailure::CaptureTimeout),
+        SourceRefusal::ConnectionRefused | SourceRefusal::TransportIo => {
+            Some(SourceFailure::ProviderFailed)
+        }
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod availability_tests {
+    use super::*;
+    #[test]
+    fn only_transport_refusals_are_observation_unavailability() {
+        use conduit_environment_runtime::environmental_publication::SourceFailure;
+        assert_eq!(
+            transport_unavailable(&SourceRefusal::TransportTimeout),
+            Some(SourceFailure::CaptureTimeout)
+        );
+        for error in [SourceRefusal::ConnectionRefused, SourceRefusal::TransportIo] {
+            assert_eq!(
+                transport_unavailable(&error),
+                Some(SourceFailure::ProviderFailed)
+            );
+        }
+        for error in [
+            SourceRefusal::Possession,
+            SourceRefusal::Request,
+            SourceRefusal::Capacity,
+            SourceRefusal::Provider,
+            SourceRefusal::ProviderSpawn,
+            SourceRefusal::ProviderProtocol,
+            SourceRefusal::ProviderRefused,
+            SourceRefusal::MalformedResponse,
+            SourceRefusal::Identity,
+            SourceRefusal::MalformedObservation,
+            SourceRefusal::Continuity,
+        ] {
+            assert_eq!(transport_unavailable(&error), None);
+        }
     }
 }

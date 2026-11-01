@@ -2,7 +2,8 @@
 use super::continuing::SourceSelection;
 use super::*;
 use conduit_environment_history::source_series::{
-    SourceSeries, SourceSeriesCollection, SourceSeriesRecord,
+    valid_source_placement, SourcePlacement, SourceSeries, SourceSeriesCollection,
+    SourceSeriesRecord,
 };
 use conduit_environment_measurement::source_observation::{
     ObservationContract, SourceOutcome, MAXIMUM_BYTES,
@@ -13,6 +14,7 @@ use std::sync::Arc;
 struct Source {
     selection: Option<Arc<SourceSelection>>,
     subject: String,
+    placement: Option<String>,
     bytes: [[u8; MAXIMUM_BYTES]; 16],
     lengths: [usize; 16],
     sequences: [u64; 16],
@@ -28,6 +30,7 @@ impl Source {
         Self {
             selection: None,
             subject: String::new(),
+            placement: None,
             bytes: [[0; MAXIMUM_BYTES]; 16],
             lengths: [0; 16],
             sequences: [0; 16],
@@ -86,7 +89,17 @@ impl EnvironmentalFace {
     }
     /// Called during preparation, not from per-sample execution. A new child
     /// Play resets Fore order, while the retained provider session keeps counters.
-    pub(super) fn select(&mut self, selection: Arc<SourceSelection>) -> Result<(), String> {
+    pub(super) fn select(
+        &mut self,
+        selection: Arc<SourceSelection>,
+        placement: Option<String>,
+    ) -> Result<(), String> {
+        if placement
+            .as_deref()
+            .is_some_and(|value| !valid_source_placement(value))
+        {
+            return Err("Source placement exceeds the shared Face contract".into());
+        }
         if selection.attachment_id.trim().is_empty()
             || selection.attachment_id.len() > 64
             || selection.attachment_id.chars().any(char::is_control)
@@ -119,6 +132,8 @@ impl EnvironmentalFace {
                 sha2::Sha256::digest(coordinates)
             );
         }
+        // Presentation is deliberately outside exact execution selection and session identity.
+        self.sources[index].placement = placement;
         self.sources[index].selection = Some(selection);
         self.sources[index].next_fore = 0;
         Ok(())
@@ -217,6 +232,18 @@ impl EnvironmentalFace {
                 }
             })
             .collect();
+        let placements: Vec<_> = sources
+            .iter()
+            .filter_map(|source| {
+                source
+                    .placement
+                    .as_deref()
+                    .map(|placement| SourcePlacement {
+                        source: &source.subject,
+                        placement,
+                    })
+            })
+            .collect();
         SourceSeriesCollection {
             subject: "environmental-observations",
             collector_host: host,
@@ -224,7 +251,7 @@ impl EnvironmentalFace {
             observed_through_boot_ms: now,
             series: &series,
         }
-        .contribution(basis)
+        .contribution_with_placements(basis, &placements)
         .map(Some)
         .map_err(debug)
     }

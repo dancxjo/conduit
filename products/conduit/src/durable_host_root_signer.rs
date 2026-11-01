@@ -102,6 +102,27 @@ pub(crate) fn selected(root: &Path, body: &str, host: &str) -> Result<Option<Bin
     validate(root, &binding, body, host)?;
     Ok(Some(binding))
 }
+/// Public provenance only; selected custody is verified without exporting its
+/// private-record digest, seed, or private path. Never establish implicitly.
+pub(crate) fn public_authority(
+    root: &Path,
+    body: &conduit_body::BodyId,
+    host: &str,
+) -> Result<conduit_body::BodyRootAuthority, String> {
+    let binding = selected(root, body.as_str(), host)?
+        .ok_or("browser Spore preparation requires the selected Body Root signer")?;
+    let authority = conduit_body::BodyRootAuthority {
+        schema: "conduit.body/root-authority@1".into(),
+        body_id: body.clone(),
+        owner_host_id: binding.owner_host_id.as_str().into(),
+        public_key: binding.public_key,
+    };
+    authority
+        .validate()
+        .map_err(|e| format!("invalid selected Root authority: {e:?}"))?;
+    Ok(authority)
+}
+
 /// Prepare private custody only. Caller must publish selection through the owner journal.
 /// An interrupted unselected private file is reused only after exact scope validation.
 pub(crate) fn prepare(root: &Path, body: &str, host: &str) -> Result<Binding, String> {

@@ -197,7 +197,15 @@ impl NativeRun {
             .environmental_face
             .as_mut()
             .expect("prepared Source Face")
-            .select(selection.clone())?;
+            .select(
+                selection.clone(),
+                instrument
+                    .source_configuration
+                    .configuration()
+                    .metadata
+                    .as_ref()
+                    .map(|metadata| metadata.placement.clone()),
+            )?;
         let ad = owner.host.advertisement();
         owner
             .session

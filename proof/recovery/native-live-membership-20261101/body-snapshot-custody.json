@@ -1,0 +1,39 @@
+{
+  "schema": "conduit.proof/body-snapshot-custody@1",
+  "source_commit": "5d094dff011ab9d76b55021851eee82308c59e53",
+  "source_base": "9288de8616853a1bf67114c603b0adf92ea0489d",
+  "qualification": "3 focused integration tests passed; fixture admission, actual Body kernel and synced Linux snapshot effects",
+  "command": "cargo +stable test --offline -p conduit-std-host --features linux-snapshot --test body_snapshot_play",
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "2"
+  },
+  "tests": [
+    "selected_body_back_publishes_then_independently_reads_exact_bytes",
+    "refused_start_and_missing_custody_never_write_or_deliver",
+    "foreign_grant_refuses_before_start"
+  ],
+  "effects": [
+    "original selected snapshot Host Call executed under issued Body Play after accepted start",
+    "exact reference Fore committed/delivered, independently admitted read returns exact original bytes",
+    "missing custody and foreign Boot/grant ID refuse before start",
+    "refused started callback writes/delivers nothing and releases original one-unit pool for successful re-admission"
+  ],
+  "bounds": {
+    "selected_operations": 1,
+    "snapshot_content_bytes": 4096,
+    "resource_reference_fore_bytes": 512,
+    "queue_items": 1
+  },
+  "log_sha256": "7e3783f558a34ac1058bab34fb19b063c7bbd8239994414af2c7e02ff7f58d26",
+  "not_proven": [
+    "installed Root recorder configuration/admission",
+    "live Hamm Creek House snapshot commit",
+    "complete live Root preparation workspace custody",
+    "Body-lived catalog State commitment/reopen",
+    "durable history acknowledgment",
+    "overnight operation"
+  ]
+}

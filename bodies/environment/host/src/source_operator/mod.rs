@@ -5,7 +5,9 @@
 //! Run `sample().await` on the Root-owned capture worker, never a display loop:
 //! the existing USB adapter performs synchronous, bounded native IO (31-45s).
 //! Successful samples retain the same physical session across child Plays;
-//! failures or cancellation retire it. Each new acquisition has a fresh session
+//! operation refusals or cancellation retire it. Typed observation unavailability
+//! retains the initialized session; a later authored tick may read again without
+//! retrying a failed transport exchange. Each new acquisition has a fresh session
 //! identifier and collector sequence; no continuity across reacquisition is claimed.
 //! This local execution has no remote Body membership and signs no MCU evidence.
 use crate::device_carrier_source::DeviceEnvironmentalSource;
