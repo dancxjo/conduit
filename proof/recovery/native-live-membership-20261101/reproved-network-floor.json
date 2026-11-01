@@ -1,0 +1,74 @@
+{
+  "source": "eb9ac6b6531d1899c5e9c77cdd43483e8eb99085",
+  "dev_baseline": "4d5e1bf774",
+  "qualification": {
+    "app_bytes": 3343392,
+    "app_capacity_bytes": 3371008,
+    "stack_headroom_bytes": 37372,
+    "minimum_stack_headroom_bytes": 36864,
+    "focused_tests_passed": 42,
+    "focused_tests_ignored": 2
+  },
+  "physical": {
+    "flashed": true,
+    "startup_full_floor_reproof_and_station_join": true,
+    "required_floor_bytes": 16384,
+    "retry_reproofs": [
+      14592,
+      14592,
+      14336,
+      14592,
+      15360
+    ],
+    "last_local_progress": {
+      "event": "local-appliance-progress",
+      "millis": 120675,
+      "root_used": 93656,
+      "root_free": 25112,
+      "root_peak": 115268,
+      "sampler_phase": "running",
+      "source_sequence": 1,
+      "sampler_failure": null,
+      "mask_phase": "running",
+      "mask_consumed": 35,
+      "mask_failure": null,
+      "mask_cleanup_refusal": null,
+      "network": {
+        "runner_polls": [
+          6,
+          6046
+        ],
+        "observed_services": "access-point-ready",
+        "ap_link": null,
+        "station_link": null,
+        "ap_configured": null,
+        "station_configured": null,
+        "ap_mac": null,
+        "channel": null
+      },
+      "station_address": null,
+      "network_control": "retry-backoff",
+      "archive": {
+        "committed": 1,
+        "retained_bytes": 640,
+        "last_sequence": 1,
+        "scope_ready": true,
+        "failed": false,
+        "recovered_read_only": false,
+        "maximum_records": 960
+      },
+      "face_available": true,
+      "face_fresh": true,
+      "renewal_phase": null,
+      "renewal_failure": null,
+      "renewal_archive_refusal": null
+    },
+    "refusals_before_authority": true
+  },
+  "history": {
+    "cold_reclaimed_records": 40,
+    "other_physical_epochs_unchanged": true,
+    "selected_recorder_commit_proved": false
+  },
+  "result": "Startup admission passed; recovery after station loss remains memory-blocked. Local sampling and Mask continued. No general recovery completion claimed."
+}
