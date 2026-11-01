@@ -1,0 +1,63 @@
+{
+  "linux_source": "fecfc347cf53c74ec55a3b70041a228f522e1052",
+  "dev_baseline": "6423650d6b61020d4d003fd45eb4d63b533ce92b",
+  "linux_binary_sha256": "01c19cff4406882e41f6c3d2fe690da38d2752fbf384f3ab33d9079af40c30a5",
+  "esp32_firmware_source_unchanged": "c201aa5006d46bcb2f25c88e824e3f47d923af48",
+  "change": "One-second retry for pending observed offers and ready/pending signed ACKs; idle scan remains thirty seconds; collection remains first.",
+  "mcu_retained_memory_added": 0,
+  "owning_tests_passed": 14,
+  "collection_priority_tests_passed": 3,
+  "automatic_custody": {
+    "signed_receipts_verified": 3,
+    "records": 93,
+    "records_by_slot": {
+      "2": 17,
+      "3": 13,
+      "4": 63
+    },
+    "ack_transmissions": {
+      "2": 3,
+      "3": 3,
+      "4": 7
+    },
+    "ack_bytes_identical_per_slot": {
+      "2": true,
+      "3": true,
+      "4": true
+    },
+    "manual_custody_commands_during_trial": 0,
+    "previous_batch_files_byte_identical": 204,
+    "root_reclaimed_verified_reusable_events_captured": 2
+  },
+  "continued_local_work": {
+    "progress_rows": 12,
+    "first_sequence": 66,
+    "last_sequence": 70,
+    "first_mask_updates": 1327,
+    "last_mask_updates": 1407,
+    "all_sampler_and_mask_faults_absent": true,
+    "station_attached_at_all_samples": true
+  },
+  "post_custody_fixed_directory_cut": {
+    "directory_signature_verified": true,
+    "batch_signatures_order_and_clocks_verified": true,
+    "epochs": [
+      {
+        "slot": 0,
+        "advertised_records": 70,
+        "recovered_records": 70,
+        "batch_files": 57,
+        "complete_at_snapshot": true
+      }
+    ],
+    "all_advertised_recovered": true,
+    "records_recovered": 70,
+    "recording_ack_sent": false,
+    "limit": "Durable authenticated projection files; not a selected installed recorder commitment."
+  },
+  "limits": [
+    "Three automatic signed acceptances; two runtime reclamation events captured. Third reclamation event fell outside the UART capture; no independent full-flash erase readback for this trial.",
+    "Signed directory subsequently advertises only the continuing active epoch; complete fixed-cut current history is durably retained.",
+    "Selected installed Recorder commitment, radio/NAT interruption, full restart/join acceptance and overnight run remain separate."
+  ]
+}
