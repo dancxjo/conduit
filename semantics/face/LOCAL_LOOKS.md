@@ -85,10 +85,12 @@ Plan and complete Face remain unchanged. `local_visual_look_resolution` exposes
 the prepared resolution and field origins. It does not prove an available Show.
 `NativeLocalLookRefusal` distinguishes native-value, resource-bound,
 missing-visual-facet, duplicate-field, visual-admission and contrast failures.
-An unconfigured Mask explicitly refuses personal preferences. The current native
-scene contract cannot express selected control/panel corner radii, so personal
-overrides of either field refuse with the field name, rather than pretending
-those overrides rendered. Shared graphics evolution remains separate work.
+An unconfigured Mask explicitly refuses personal preferences. Configured native
+Masks resolve control and panel radii into explicit graphics-scene@2 rectangle
+metrics before Show presentation. The same fields reach row controls, grouped
+surfaces, diagram panels and the active document editor. Radius zero is explicitly
+square. Geometry changes neither semantic Face nor measured rows and hit regions;
+legacy scenes without a selected Look retain their original rectangle encoding.
 
 A Look-only change over the same immutable Face uses the existing fresh-Mask
 replacement: prepare a replacement, bind its personal data, transfer the local
@@ -102,3 +104,13 @@ selection. Invalid local resolution cannot draw or acknowledge a usable Show.
 CPU pixel writes and matched canonical native/browser selections are software
 evidence; physical output, complete accessibility and Host deployment require
 their own qualification. Appearance UI and durable preferences are not added.
+
+The opt-in [paired preparation tests](../../targets/conduitos/src/native_face_mask/preferences_tests.rs)
+consume explicitly supplied retained environmental and Todo Faces, checked native
+layouts, and checked browser views. Readable and rounded personal proposals each
+prepare eight native encounters and compare their canonical selected Look bytes
+with sixteen browser counterparts. Every primary and Details frame round-trips
+through the graphical codec; the rounded profile also checks actual explicit
+rectangle metrics. The complete Face and read-only input boundary are retained.
+These observations qualify software preparation, not current owner delivery,
+physical output or an acknowledged browser Show.

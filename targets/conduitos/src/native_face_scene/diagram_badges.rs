@@ -181,7 +181,7 @@ mod tests {
             height: 900,
         };
         let mut graphics = GraphicsScene::empty();
-        let hits = super::super::append(&mut graphics, &face, screen, 0).unwrap();
+        let hits = super::super::append(&mut graphics, &face, screen, 0, None).unwrap();
         assert_eq!(hits.gears.iter().flatten().count(), 6);
         assert_eq!(hits.ports.iter().flatten().count(), 24);
         assert_eq!(

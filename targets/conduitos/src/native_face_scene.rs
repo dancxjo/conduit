@@ -27,6 +27,8 @@ mod boolean_choice_tests;
 mod chrome;
 #[path = "native_face_scene/connected_layout.rs"]
 mod connected_layout;
+#[path = "native_face_scene/corners.rs"]
+mod corners;
 #[path = "native_face_scene/diagram.rs"]
 mod diagram;
 #[path = "native_face_scene/document.rs"]
@@ -124,6 +126,7 @@ pub struct NativeFaceScene {
     header_top: u16,
     /// Selected Look marker width within the fixed eight-pixel control gutter.
     focus_marker_width: u16,
+    look_corners: Option<corners::LookCorners>,
     typography: Typography,
     primary: Vec<layout::Row>,
     details: Vec<layout::Row>,
@@ -458,3 +461,7 @@ mod panel_spacing_tests;
 #[cfg(test)]
 #[path = "native_face_scene/heading_tests.rs"]
 mod heading_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/corner_tests.rs"]
+mod corner_tests;

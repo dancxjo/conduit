@@ -57,7 +57,7 @@ fn append(
     typography: Typography,
 ) -> Result<bool, FaceSceneError> {
     let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
-    append_with_chrome(scene, face, screen, scale, typography, &chrome)
+    append_with_chrome(scene, face, screen, scale, typography, &chrome, None)
 }
 
 pub(super) fn append_with_chrome(
@@ -67,6 +67,7 @@ pub(super) fn append_with_chrome(
     scale: u16,
     typography: Typography,
     chrome: &chrome::Chrome,
+    radius: Option<u8>,
 ) -> Result<bool, FaceSceneError> {
     let Some(subject) = active_subject(face) else {
         return Ok(false);
@@ -97,8 +98,13 @@ pub(super) fn append_with_chrome(
             bounds,
             screen,
             GraphicsPaintRole::Focus,
-            GraphicsShapeStyle::Stroke,
-        ),
+            if radius.is_some() {
+                GraphicsShapeStyle::RoundedStroke
+            } else {
+                GraphicsShapeStyle::Stroke
+            },
+        )
+        .and_then(|command| corners::apply(command, radius)),
     )?;
     let label_height = line_height(
         GraphicsTextRole::Label,
