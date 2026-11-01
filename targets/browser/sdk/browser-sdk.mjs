@@ -94,6 +94,16 @@ export class BrowserHost {
     return Object.freeze({ hostId: this.id, bootId: this.bootId,
       verifyingKey: Object.freeze([...this.#state.membership.verifyingKey]) });
   }
+  /** Prepare membership proof from an invitation and independently pinned Body Root.
+   * This uses this admitted Host/Boot; it does not install equipment or start Play. */
+  prepareMembershipScope(options) {
+    return this.#state.membership.prepareMembershipScope(options);
+  }
+
+  /** Release a membership credential only after this runtime verifies the exact Root receipt. */
+  adoptMembershipScope(receipt) {
+    return this.#state.membership.adoptMembershipScope(receipt);
+  }
   get offers() { return this.#state.offers; }
   get state() { return Object.freeze({ schema: "conduit.browser/boot-truth@1", generation: this.#state.boot.offer_generation }); }
 
