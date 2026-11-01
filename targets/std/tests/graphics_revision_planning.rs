@@ -171,3 +171,6 @@ mod execution;
 
 #[path = "graphics_revision_planning/effect_gate.rs"]
 mod effect_gate;
+
+#[path = "graphics_revision_planning/browser_offers.rs"]
+mod browser_offers;

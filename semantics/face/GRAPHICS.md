@@ -85,6 +85,21 @@ the Play completes, and three Host Calls are requested and completed. The input
 and output Fore explicitly declare the unchanged 10,226-byte envelope; accepting
 an unbounded alias is not a compatibility relaxation.
 
+At accepted base `8bbd412f80`, checked and expanded canonical entrances assemble Plans using
+borrowed `PlanningInput` through `validated_planning::plan_borrowed_plot_with_connection_limits`.
+The expanded authoring Fore entrance delegates through that same path. The matrix
+and execution tests therefore cover current dev's borrowed assembly without
+copying away configuration or laws. This differs from the integration owner's
+new linked-source entrance, which is absent in this accepted base.
+
+The [browser offer matrix](../../targets/std/tests/graphics_revision_planning/browser_offers.rs)
+uses actual browser transform offers on a synthetic planning-only carrier. It
+checks all three installed graphics transform Kinds in both revision directions,
+at default and explicit checked/expanded entrances. Browser's offer factory has
+no `face/graphics` terminal; the test does not invent one. The standard matrix
+qualifies the real standard terminal. This is registry/planning evidence, not
+installed browser membership or browser execution evidence.
+
 The integration owner's plain linked-source planning entrance excludes configured
 Kinds and semantic laws before selection. These graphics Kinds have both; the
 successful rich checked/expanded matrix must not be called a successful plain
