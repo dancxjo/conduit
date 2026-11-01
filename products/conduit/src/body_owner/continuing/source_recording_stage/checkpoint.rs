@@ -76,16 +76,26 @@ impl SourceRecordingStage {
         });
         Ok(())
     }
-    pub(in super::super::super) fn prepared_input_metadata(&self) -> Option<serde_json::Value> {
-        self.prepared.as_ref().map(|prepared| {
-            serde_json::json!({
-                "custody": "prepared-content-not-published-or-recorded",
-                "reference": prepared.reference,
-                "records": prepared.snapshot.len(),
-                "pending_records": self.len(),
-                "producer_retirement_authorized": false,
+    pub(in super::super::super) fn prepared_input_metadata(
+        &self,
+    ) -> Result<Option<serde_json::Value>, String> {
+        self.prepared
+            .as_ref()
+            .map(|prepared| {
+                let encoded = prepared
+                    .reference
+                    .encode()
+                    .map_err(|e| format!("recording reference: {e:?}"))?;
+                let reference_hex: String = encoded.iter().map(|b| format!("{b:02x}")).collect();
+                Ok(serde_json::json!({
+                    "custody": "prepared-content-not-published-or-recorded",
+                    "reference_hex": reference_hex,
+                    "records": prepared.snapshot.len(),
+                    "pending_records": self.len(),
+                    "producer_retirement_authorized": false,
+                }))
             })
-        })
+            .transpose()
     }
 }
 fn codec_error(error: CodecRefusal) -> String {

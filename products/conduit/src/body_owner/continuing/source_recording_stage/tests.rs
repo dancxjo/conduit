@@ -180,7 +180,7 @@ fn staged_source_checkpoint_preparation_preserves_all_bytes_and_stable_identity(
         original
     );
     assert_eq!(
-        stage.prepared_input_metadata().unwrap()["producer_retirement_authorized"],
+        stage.prepared_input_metadata().unwrap().unwrap()["producer_retirement_authorized"],
         false
     );
 }

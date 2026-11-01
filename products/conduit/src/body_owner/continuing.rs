@@ -317,11 +317,13 @@ impl Owner {
             if let Some(stage) = self.source_recording_stage.as_mut() {
                 // Worker cleanup has returned its Host before encoding begins.
                 // A codec refusal retains all original accepted bytes.
-                match stage.prepare_checkpoint_input() {
-                    Ok(()) => {
-                        receipt["source_recording_prepared"] = stage
-                            .prepared_input_metadata()
-                            .unwrap_or(serde_json::Value::Null)
+                match stage
+                    .prepare_checkpoint_input()
+                    .and_then(|()| stage.prepared_input_metadata())
+                {
+                    Ok(metadata) => {
+                        receipt["source_recording_prepared"] =
+                            metadata.unwrap_or(serde_json::Value::Null)
                     }
                     Err(error) => receipt["source_recording_preparation_refusal"] = error.into(),
                 }
