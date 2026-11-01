@@ -1,5 +1,9 @@
 //! Generic kernel evidence, with fixture retained evidence digests. This does
 //! not manufacture canonical build receipts or prove an installed native UI.
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_body_make::{deployment_runtime::*, deployment_runtime_catalog::*};
 use conduit_kernel::{scheduler::*, *};
 type TestKernel<D> =
@@ -74,49 +78,59 @@ fn kernel(request: CrecheRequest) -> Kernel {
 fn exact_request_crosses_one_host_call_and_output_retains_exact_evidence() {
     let request = CrecheRequest([5; 32]);
     let mut kernel = kernel(request);
-    kernel.step().unwrap();
-    let call = kernel.next_host_request().unwrap();
-    assert_eq!(kernel.values().get(call.input.value).unwrap(), request.0);
-    assert!(kernel.next_host_request().is_none());
-    let outcome = CrecheOutcome {
-        request,
-        disposition: CrecheDisposition::Prepared,
-        evidence_digest: [9; 32],
-    };
-    let value = kernel.store_host_value(&outcome.encode()).unwrap();
-    kernel
-        .complete_host_call(
-            call.node,
-            call.request,
-            HostCallOutcome {
-                disposition: HostCallDisposition::Completed,
-                output: Some(BoundedValueRef::new(value, 65).unwrap()),
-                failure: None,
-            },
-        )
-        .unwrap();
-    kernel.step().unwrap();
-    let offered = kernel
-        .remote_egress_offer(RemoteEndpointId(1), CordId(1))
-        .unwrap()
-        .unwrap();
-    assert_eq!(
-        CrecheOutcome::decode(kernel.values().get(offered.value).unwrap()),
-        Some(outcome)
-    );
-    // Unaccepted remote output remains retained; no retry or second make effect.
-    for _ in 0..4 {
+    let (_, memory) = allocation_probe::observe(|| {
         kernel.step().unwrap();
-        assert_eq!(
-            kernel
-                .remote_egress_offer(RemoteEndpointId(1), CordId(1))
-                .unwrap()
-                .unwrap()
-                .value,
-            offered.value
-        );
+        let call = kernel.next_host_request().unwrap();
+        assert_eq!(kernel.values().get(call.input.value).unwrap(), request.0);
         assert!(kernel.next_host_request().is_none());
-    }
+        let outcome = CrecheOutcome {
+            request,
+            disposition: CrecheDisposition::Prepared,
+            evidence_digest: [9; 32],
+        };
+        let value = kernel.store_host_value(&outcome.encode()).unwrap();
+        kernel
+            .complete_host_call(
+                call.node,
+                call.request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Completed,
+                    output: Some(BoundedValueRef::new(value, 65).unwrap()),
+                    failure: None,
+                },
+            )
+            .unwrap();
+        kernel.step().unwrap();
+        let offered = kernel
+            .remote_egress_offer(RemoteEndpointId(1), CordId(1))
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            CrecheOutcome::decode(kernel.values().get(offered.value).unwrap()),
+            Some(outcome)
+        );
+        // Unaccepted remote output remains retained; no retry or second make effect.
+        for _ in 0..4 {
+            kernel.step().unwrap();
+            assert_eq!(
+                kernel
+                    .remote_egress_offer(RemoteEndpointId(1), CordId(1))
+                    .unwrap()
+                    .unwrap()
+                    .value,
+                offered.value
+            );
+            assert!(kernel.next_host_request().is_none());
+        }
+    });
+    assert_eq!(
+        (
+            memory.allocations,
+            memory.reallocations,
+            memory.deallocations
+        ),
+        (0, 0, 0)
+    );
 }
 #[test]
 fn denied_and_cancelled_host_work_cannot_become_prepared_output() {
@@ -155,32 +169,42 @@ fn denied_and_cancelled_host_work_cannot_become_prepared_output() {
 #[test]
 fn hard_kernel_cancellation_rejects_late_completion_and_releases_request_ownership() {
     let mut kernel = kernel(CrecheRequest([5; 32]));
-    kernel.step().unwrap();
-    let call = kernel.next_host_request().unwrap();
-    // Hard cancellation revokes kernel ownership. The installed execution owner
-    // must cancel/drain platform effects before taking this terminal step;
-    // cancel() does not dispatch an adapter cancellation on its own.
-    kernel.cancel().unwrap();
-    assert_eq!(kernel.pending_host_call_count(), 0);
-    assert_eq!(kernel.values().used_items(), 0);
-    assert_eq!(kernel.step(), Ok(SchedulerStatus::Cancelled));
+    let (_, memory) = allocation_probe::observe(|| {
+        kernel.step().unwrap();
+        let call = kernel.next_host_request().unwrap();
+        // Hard cancellation revokes kernel ownership. The installed execution owner
+        // must cancel/drain platform effects before taking this terminal step;
+        // cancel() does not dispatch an adapter cancellation on its own.
+        kernel.cancel().unwrap();
+        assert_eq!(kernel.pending_host_call_count(), 0);
+        assert_eq!(kernel.values().used_items(), 0);
+        assert_eq!(kernel.step(), Ok(SchedulerStatus::Cancelled));
+        assert_eq!(
+            kernel.remote_egress_offer(RemoteEndpointId(1), CordId(1)),
+            Err(SchedulerError::Cancelled)
+        );
+        assert_eq!(
+            kernel.complete_host_call(
+                call.node,
+                call.request,
+                HostCallOutcome {
+                    disposition: HostCallDisposition::Cancelled,
+                    output: None,
+                    failure: None,
+                }
+            ),
+            Err(SchedulerError::HostCallCompletionRejected)
+        );
+        assert!(kernel.next_host_request().is_none());
+    });
     assert_eq!(
-        kernel.remote_egress_offer(RemoteEndpointId(1), CordId(1)),
-        Err(SchedulerError::Cancelled)
-    );
-    assert_eq!(
-        kernel.complete_host_call(
-            call.node,
-            call.request,
-            HostCallOutcome {
-                disposition: HostCallDisposition::Cancelled,
-                output: None,
-                failure: None,
-            }
+        (
+            memory.allocations,
+            memory.reallocations,
+            memory.deallocations
         ),
-        Err(SchedulerError::HostCallCompletionRejected)
+        (0, 0, 0)
     );
-    assert!(kernel.next_host_request().is_none());
 }
 
 #[test]
