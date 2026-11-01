@@ -1,0 +1,84 @@
+{
+  "schema": "conduit.proof/actual-browser-membership-return@1",
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "root_public_key": [
+    0,
+    89,
+    245,
+    134,
+    17,
+    6,
+    112,
+    43,
+    28,
+    72,
+    84,
+    14,
+    98,
+    61,
+    163,
+    175,
+    18,
+    74,
+    234,
+    168,
+    207,
+    21,
+    49,
+    125,
+    137,
+    254,
+    69,
+    57,
+    130,
+    9,
+    9,
+    225
+  ],
+  "wasm_sha256": "sha256:6733cd3a8c71b2620196355f7d5e720cd413e3b4a554bde853a7fbda5444cc71",
+  "boots": [
+    {
+      "host_id": "browser/66988af1-1b21-4154-9d76-550ae3be3696",
+      "boot_id": "browser-boot/5c23fd3b-9337-4fe8-885f-c63904313921",
+      "advertisement_bytes": 701663,
+      "credential": {
+        "credential_id": "506b4a3b335294eae67f02530b091e8d54e45e48b7a3e39846b19b6daa3189c3",
+        "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+        "part_id": "5794773e95c5c91ea45db16eb22cdc58d5ac7a47b3a9508e8665fbe38cda398f",
+        "host_id": "browser/66988af1-1b21-4154-9d76-550ae3be3696",
+        "boot_id": "browser-boot/5c23fd3b-9337-4fe8-885f-c63904313921",
+        "issued_at_millis": 1793548932975
+      },
+      "states": [
+        "wants-to-join",
+        "proof-sent",
+        "admitted",
+        "admitted"
+      ]
+    },
+    {
+      "host_id": "browser/66988af1-1b21-4154-9d76-550ae3be3696",
+      "boot_id": "browser-boot/7183ebad-a31c-4162-a963-b3ce2bd08e08",
+      "advertisement_bytes": 701663,
+      "credential": {
+        "credential_id": "9f52677e0c87ba78e5e1cc5306cb4c327782840078ad1af76c4e7c560f301c96",
+        "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+        "part_id": "5794773e95c5c91ea45db16eb22cdc58d5ac7a47b3a9508e8665fbe38cda398f",
+        "host_id": "browser/66988af1-1b21-4154-9d76-550ae3be3696",
+        "boot_id": "browser-boot/7183ebad-a31c-4162-a963-b3ce2bd08e08",
+        "issued_at_millis": 123
+      },
+      "states": [
+        "returning-fresh-boot",
+        "admitted",
+        "admitted"
+      ]
+    }
+  ],
+  "scope": "Actual Chromium/current WASM selected Root signed first admission, selected IndexedDB private Part retention, browser-process restart and canonical fresh-Boot Return on existing loopback service. No remote protected relay/HTTPS/browser package or device membership claim.",
+  "consumer_source_commit": "d5dce37a76d089f9a94e1dc2675383f96883594b",
+  "wasm_source_commit": "2cc9b8b133c65e5ba1bbbd150a2ef27a2d9813d7",
+  "installed_owner_source": "42febf6af27e4412504d2df151521a5f6437edd2",
+  "proof_driver_sha256": "sha256:9d2a3284177374f6fd71c707dbb90a05ff20cd8d0d7ecd22df05abc6c13a40fb",
+  "credential_clock_scope": "Invited issuance and Return window use their existing issuer coordinates; issued_at_millis is not claimed as synchronized UTC."
+}
