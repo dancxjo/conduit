@@ -64,6 +64,15 @@ pub const fn selected_metrics(style: TextStyle) -> ProfileMetrics {
     }
 }
 
+impl TextStyle {
+    pub(super) fn admit_scale(self, percent: u16) -> Result<(), crate::display::DisplayError> {
+        if percent > self.maximum_scale {
+            return Err(crate::display::DisplayError::InvalidExtent);
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,14 +117,5 @@ mod tests {
                 }
             }
         }
-    }
-}
-
-impl TextStyle {
-    pub(super) fn admit_scale(self, percent: u16) -> Result<(), crate::display::DisplayError> {
-        if percent > self.maximum_scale {
-            return Err(crate::display::DisplayError::InvalidExtent);
-        }
-        Ok(())
     }
 }
