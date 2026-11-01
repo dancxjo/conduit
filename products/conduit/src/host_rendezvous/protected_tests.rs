@@ -145,7 +145,7 @@ fn protected_lines() -> (ProtectedMemoryLine, ProtectedMemoryLine) {
     protected_lines_for(binding(), policy())
 }
 /// Real Noise session over finite one-slot channels; no handshake bypass.
-pub(super) fn native_snapshot_lines(
+pub(crate) fn native_snapshot_lines(
     chosen: SessionBinding,
     maximum_document_bytes: usize,
 ) -> (

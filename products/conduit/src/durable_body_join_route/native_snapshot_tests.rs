@@ -2,7 +2,7 @@ use super::*;
 use crate::durable_host::{owner::Owner, RetainedPart};
 use crate::host_rendezvous::{native_snapshot, native_snapshot_lines, NativeReturn};
 use conduit_body::*;
-use conduit_core::{HostAdvertisement, OfferGeneration};
+use conduit_core::OfferGeneration;
 use conduit_std_host::{StdHost, StdHostConfig};
 use std::{
     fs,
