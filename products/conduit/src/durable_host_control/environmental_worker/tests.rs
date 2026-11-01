@@ -12,7 +12,7 @@ use std::{
     collections::BTreeMap,
     net::TcpListener,
     sync::{
-        atomic::{AtomicBool, AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering},
         mpsc, Arc,
     },
     time::{Duration, Instant},
@@ -24,6 +24,7 @@ struct GatedDevice {
     release: Arc<AtomicBool>,
     stop: Arc<AtomicBool>,
     count: Arc<AtomicU64>,
+    fault: Arc<AtomicU8>,
     entered: mpsc::Receiver<()>,
     worker: Option<std::thread::JoinHandle<()>>,
 }
@@ -36,6 +37,8 @@ impl GatedDevice {
         let release = Arc::new(AtomicBool::new(false));
         let stop = Arc::new(AtomicBool::new(false));
         let count = Arc::new(AtomicU64::new(0));
+        let fault = Arc::new(AtomicU8::new(0));
+        let f = fault.clone();
         let (tx, entered) = mpsc::channel();
         let (a, r, s, c) = (armed.clone(), release.clone(), stop.clone(), count.clone());
         let worker = std::thread::spawn(move || {
@@ -70,14 +73,30 @@ impl GatedDevice {
                         std::thread::sleep(Duration::from_millis(2));
                     }
                 }
-                let body = serde_json::json!({"role":"conduit.environment-wifi-carrier@1", "build":"01".repeat(32), "configuration":configuration, "body_member":false, "samples":sequence, "attempts":sequence, "sensor_error":false, "temperature_centi_celsius":2150, "pressure_centi_pascal":10000000, "humidity_percent_q10":null, "sampled_at_boot_ms":123}).to_string();
+                let mode = f.load(Ordering::SeqCst);
+                if mode == 1 {
+                    // Existing provider timeout is two seconds; exceed it without
+                    // changing production deadlines or resuming the failed worker.
+                    let deadline = Instant::now() + Duration::from_millis(2300);
+                    while Instant::now() < deadline && !s.load(Ordering::SeqCst) {
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
+                    continue;
+                }
+                let configuration = if mode == 2 {
+                    "private-config-must-not-leak"
+                } else {
+                    &configuration
+                };
+                let sequence = if mode == 3 { 1 } else { sequence };
+                let body = serde_json::json!({"role":"conduit.environment-wifi-carrier@1", "build":"01".repeat(32), "configuration":configuration, "body_member":false, "samples":sequence, "attempts":sequence, "sensor_error":false, "temperature_centi_celsius": if mode == 4 { serde_json::json!("private-payload-must-not-leak") } else { serde_json::json!(2150) }, "pressure_centi_pascal":10000000, "humidity_percent_q10":null, "sampled_at_boot_ms":123}).to_string();
                 write!(
                     stream,
                     "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                     body.len(),
                     body
                 )
-                .unwrap();
+                .ok();
             }
         });
         Self {
@@ -86,6 +105,7 @@ impl GatedDevice {
             release,
             stop,
             count,
+            fault,
             entered,
             worker: Some(worker),
         }
@@ -308,6 +328,16 @@ fn exercise_actor_mode(
     owned_local: bool,
     cadence: bool,
 ) {
+    exercise_actor_fault(cancel, resume_body, http, owned_local, cadence, 0)
+}
+fn exercise_actor_fault(
+    cancel: bool,
+    resume_body: bool,
+    http: bool,
+    owned_local: bool,
+    cadence: bool,
+    fault: u8,
+) {
     let Some(worker) = std::env::var_os("CONDUIT_ENVIRONMENT_TEST_WORKER") else {
         eprintln!(
             "native actor process proof skipped: explicitly set CONDUIT_ENVIRONMENT_TEST_WORKER"
@@ -392,7 +422,9 @@ fn exercise_actor_mode(
     )
     .with_selected_environmental_equipment(Some(equipment));
     if owned_local {
-        if cadence {
+        if fault != 0 {
+            owned_run::exercise_refusal(runtime, device, fault);
+        } else if cadence {
             owned_run::exercise_continuing_source(runtime, device);
         } else {
             owned_run::exercise_owned_source(runtime, device, cancel);
@@ -644,4 +676,22 @@ fn owned_body_cancels_delayed_source_without_publishing_late_fore() {
 #[test]
 fn owned_source_cadence_projects_current_face_then_lull_and_readmission() {
     exercise_actor_mode(false, false, false, true, true);
+}
+
+#[test]
+fn owned_source_reports_transport_timeout_without_late_fore_or_reuse() {
+    exercise_actor_fault(false, false, false, true, false, 1)
+}
+#[test]
+fn owned_source_reports_checked_configuration_mismatch_without_payload() {
+    exercise_actor_fault(false, false, false, true, false, 2)
+}
+#[test]
+fn owned_source_reports_semantic_counter_rollback_without_reopening_equipment() {
+    exercise_actor_fault(false, false, false, true, false, 3)
+}
+
+#[test]
+fn owned_source_reports_malformed_observation_without_payload_or_reuse() {
+    exercise_actor_fault(false, false, false, true, false, 4)
 }

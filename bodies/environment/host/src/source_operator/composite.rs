@@ -507,7 +507,7 @@ impl DetachedCollectorEquipment {
                     &mut bytes,
                 )
                 .await
-                .map_err(|_| Refusal::Acquisition);
+                .map_err(Refusal::Source);
             let revoked = owner.revoke().map_err(|_| Refusal::Authority);
             let mut retained = Some(owner);
             slot.provider = Some(

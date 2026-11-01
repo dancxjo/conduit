@@ -21,23 +21,45 @@ pub(super) fn exchange_with_registry(
     fragment: &conduit_core::PlanFragment,
     request: &conduit_web::HttpRequest,
 ) -> Result<(IsolatedHttpExchangeReceipt, conduit_web::HttpResponse), String> {
+    exchange_with_registry_classified(host, registry, provider, play, fragment, request)
+        .map_err(String::from)
+}
+
+pub fn exchange_selected_response_classified(
+    host: &mut crate::StdHost,
+    provider: &IsolatedHttpBaseConfig,
+    play: crate::IssuedKernelPlay,
+    fragment: &conduit_core::PlanFragment,
+    request: &conduit_web::HttpRequest,
+) -> Result<(IsolatedHttpExchangeReceipt, conduit_web::HttpResponse), super::HttpExchangeRefusal> {
+    let registry = host.base_registry.clone();
+    exchange_with_registry_classified(host, &registry, provider, play, fragment, request)
+}
+
+pub(super) fn exchange_with_registry_classified(
+    host: &mut crate::StdHost,
+    registry: &conduit_core::BaseRegistry,
+    provider: &IsolatedHttpBaseConfig,
+    play: crate::IssuedKernelPlay,
+    fragment: &conduit_core::PlanFragment,
+    request: &conduit_web::HttpRequest,
+) -> Result<(IsolatedHttpExchangeReceipt, conduit_web::HttpResponse), super::HttpExchangeRefusal> {
+    use super::HttpExchangeRefusal as F;
     let active_play = play.identity();
     if active_play.plan_id != fragment.plan_id
         || active_play.host_id != fragment.host_id
         || active_play.boot_id != fragment.boot_id
     {
-        return Err("HTTP Play identity does not match its immutable Plan fragment".into());
+        return Err(F::Authorization);
     }
-    request
-        .validate()
-        .map_err(|_| "isolated HTTP request exceeds its semantic bounds".to_string())?;
+    request.validate().map_err(|_| F::Capacity)?;
     if request.target.scheme() != &conduit_web::HttpScheme::Http
         || request.target.authority() != &provider.authority
     {
-        return Err("isolated HTTP request is outside the selected exact endpoint".into());
+        return Err(F::Authorization);
     }
-    let placement = exact_http_placement(fragment)?;
-    let binding = placement.base.as_ref().ok_or("HTTP Base binding missing")?;
+    let placement = exact_http_placement(fragment).map_err(|_| F::Authorization)?;
+    let binding = placement.base.as_ref().ok_or(F::Authorization)?;
     let installed = registry
         .entries()
         .iter()
@@ -58,27 +80,30 @@ pub(super) fn exchange_with_registry(
                     .iter()
                     .any(|resource| resource.pool_id == placement.resources[0].pool_id)
         })
-        .ok_or("HTTP Base is not the actual installed native provider")?;
+        .ok_or(F::Authorization)?;
     let (issue, claim) = capability_for_installed_base(
         fragment,
         placement,
         active_play,
         provider,
         installed.implementation_id.as_str(),
-    )?;
+    )
+    .map_err(|_| F::Authorization)?;
     let reservation = host
         .kernel_resources
-        .prepare_and_reserve(&host.advertisement, fragment)?;
-    let result = exchange_provider(provider, issue, claim, request);
+        .prepare_and_reserve(&host.advertisement, fragment)
+        .map_err(|_| F::Capacity)?;
+    let result =
+        super::provider_exchange::exchange_provider_classified(provider, issue, claim, request);
     let release = host.kernel_resources.release(reservation);
-    release?;
+    release.map_err(|_| F::Authorization)?;
     let response = result?;
     Ok((
         IsolatedHttpExchangeReceipt {
             active_play_id: active_play.active_play_id.clone(),
             status: response.status,
             response_bytes: conduit_web::encode_response(&response)
-                .map_err(|_| "isolated HTTP response exceeds semantic bounds")?
+                .map_err(|_| F::Capacity)?
                 .len() as u32,
         },
         response,

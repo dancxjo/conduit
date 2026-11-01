@@ -26,11 +26,13 @@ use std::{
     time::Duration,
 };
 pub(super) type SharedHost = Arc<Mutex<Option<conduit_std_host::StdHost>>>;
+pub use conduit_environment_runtime::environmental_source::Refusal as SourceRefusal;
 pub const CAPABILITY: &str = "linux/environmental-source@1";
 pub const PROFILE: &str = "linux/environmental-source-bounded@1";
 #[derive(Debug, PartialEq, Eq)]
 pub enum Refusal {
     Acquisition,
+    Source(conduit_environment_runtime::environmental_source::Refusal),
     Possession,
     Advertisement,
     WrongBoot,
