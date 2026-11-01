@@ -11,3 +11,7 @@ conduit-planner = { path = "../../../architecture/planner" }
 conduit-host-browser-make = { path = "../make" }
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
+
+[dev-dependencies]
+conduit-todo-face = { path = "../../../plots/todo/face" }
+conduit-todo-plot = { path = "../../../plots/todo/model" }

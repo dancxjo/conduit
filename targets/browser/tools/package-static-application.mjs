@@ -153,7 +153,7 @@ try {
   const byPath = new Map(sdkResources.map(resource => [resource.path, resource]));
   for (const resource of sdkResources.filter(resource => /\.(mjs|js)$/.test(resource.path))) {
     const text = await readFile(path.join(staging, resource.path), 'utf8');
-    const specifiers = [...text.matchAll(/(?:\bfrom\s*|\bimport\s*)["']([^"']+)["']/g)].map(match => match[1]);
+    const specifiers = [...text.matchAll(/(?:\bfrom\s*|\bimport\s*(?:\(\s*)?)["']([^"']+)["']/g)].map(match => match[1]);
     for (const specifier of [...new Set(specifiers)]) {
       if (!specifier.startsWith('.')) throw new Error(`SDK has nonlocal dependency: ${specifier}`);
       const dependency = byPath.get(path.posix.normalize(path.posix.join(path.posix.dirname(resource.path), specifier)));
