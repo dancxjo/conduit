@@ -1,7 +1,6 @@
 //! Ordinary same-Body catalog proposal, gated by actual admitted chunk readback.
 //! Preparation is neither catalog commitment nor acknowledgement of the prefix.
 use super::super::super::{debug, Owner};
-use super::*;
 use conduit_core as c;
 use conduit_std_host::body_storage_generation::{
     BodyStorageGenerationRequest, BodyStorageSnapshotRequest, BodyStorageStateRequest,
@@ -14,7 +13,6 @@ pub(crate) struct SourceCatalogInput {
     pub(crate) reference: c::BoundedResourceRef,
     pub(crate) authority: c::AuthorityGrant,
     pub(crate) expected_current: Vec<u8>,
-    pub(crate) initial_current: Vec<u8>,
     pub(crate) binding: conduit_std_host::state_value::DurableStateBinding,
 }
 impl Owner {
@@ -127,11 +125,6 @@ impl Owner {
                 .map_err(debug)?
                 .canonical_bytes()
                 .map_err(debug)?;
-        let initial_current = seed
-            .request
-            .default_value
-            .canonical_bytes()
-            .map_err(debug)?;
         let binding = seed.request.binding.clone();
         let ad = self.host.advertisement();
         if snapshot_authority.host_id != ad.host_id || snapshot_authority.boot_id != ad.boot_id {
@@ -146,7 +139,6 @@ impl Owner {
             reference,
             authority: snapshot_authority.clone(),
             expected_current,
-            initial_current,
             binding,
         };
         // Expression refresh precedes storage selection so the selected storage
