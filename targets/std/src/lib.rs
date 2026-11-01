@@ -42,6 +42,7 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+pub mod expression_specialization;
 pub mod numerical_fore;
 mod numerical_host;
 pub mod relay_client;
@@ -614,6 +615,7 @@ pub struct StdHost {
     selected_text_file: Option<text_file::SelectedTextFileResidence>,
     #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
     selected_body_storage: Option<std::sync::Arc<body_storage::SelectedBodyStorage>>,
+    expression_program_base: Option<conduit_core::BaseInstanceId>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -982,6 +984,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1060,6 +1063,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1114,6 +1118,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1167,6 +1172,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1220,6 +1226,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1273,6 +1280,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1311,6 +1319,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1373,6 +1382,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1430,6 +1440,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1476,6 +1487,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1535,6 +1547,7 @@ impl StdHost {
             selected_text_file: None,
             #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
             selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
