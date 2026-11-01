@@ -304,3 +304,6 @@ fn authenticated_transition_replay_rejects_changed_inputs_without_crypto_or_effe
     assert!(store.ready && !store.failed);
     assert_eq!(store.journal.generation(), Some(1));
 }
+
+#[path = "native_restart_network_pending_frozen_tests.rs"]
+mod frozen_tests;
