@@ -173,6 +173,34 @@ impl Job {
             }
         }
     }
+    /// Cancel only an unexecuted Start, recovering original request backing.
+    /// No canonical admission, Store lease, or mutation has happened here.
+    pub(crate) fn release_unstarted(
+        mut self: Box<Self>,
+    ) -> Result<
+        (
+            Box<SealedBodyLifecycleSession>,
+            HostId,
+            BootId,
+            PortableMembershipAdmissionRequest,
+        ),
+        Box<Self>,
+    > {
+        if !matches!(&self.state, State::Start(_)) {
+            return Err(self);
+        }
+        let State::Start(start) = core::mem::replace(&mut self.state, State::Moving) else {
+            unreachable!()
+        };
+        let Start {
+            owner,
+            host,
+            boot,
+            request,
+            ..
+        } = *start;
+        Ok((owner, host, boot, request))
+    }
     pub(crate) fn release_refused(
         mut self: Box<Self>,
     ) -> Result<(Box<SealedBodyLifecycleSession>, &'static str), Box<Self>> {
