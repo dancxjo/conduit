@@ -9,7 +9,7 @@ mod frame_composition;
 mod input_routing;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod interaction_affordance;
-mod paint;
+use crate::display::shared_paint as paint;
 #[cfg(feature = "native-compositor-core")]
 pub use paint::visual_look_paint;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]

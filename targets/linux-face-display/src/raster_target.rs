@@ -87,7 +87,7 @@ pub fn paint_scene(
         |_, command| command.text_role().into(),
         scale,
         selected_typography(look).map_err(|_| DisplayError::InvalidExtent)?,
-        |role| conduitos::native_compositor::visual_look_paint(format, role, None, look),
+        |role| conduitos::display::visual_look_paint(format, role, None, look),
     )
 }
 pub fn panel(
