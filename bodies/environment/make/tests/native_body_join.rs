@@ -8,6 +8,11 @@ extern crate alloc;
 mod native_body_checkpoint;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_body_join.rs"]
 mod native_body_join;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_flash_jobs.rs"]
+#[allow(dead_code)]
+mod native_flash_jobs;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_flash_window.rs"]
+mod native_flash_window;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs"]
 mod native_joined_host_wire;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_restart.rs"]
