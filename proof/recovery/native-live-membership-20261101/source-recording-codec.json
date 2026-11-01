@@ -1,0 +1,36 @@
+{
+  "schema": "conduit.proof/source-recording-codec@1",
+  "codec_commit": "ab46b29e56",
+  "base": "7a3db69dd8",
+  "bounds": {
+    "content_bytes": 4096,
+    "samples": 16,
+    "canonical_observation_maximum_bytes": 128,
+    "source_form_bytes": 82
+  },
+  "runtime_tests": {
+    "passed": 4,
+    "command": "cargo +stable test --offline --manifest-path bodies/environment/runtime/Cargo.toml --features source-recording --test source_recording"
+  },
+  "linux_tests": {
+    "passed_parent": 1,
+    "passed_fresh_child": 1,
+    "command": "cargo +stable test --offline --manifest-path bodies/environment/linux/Cargo.toml --features source-recording --test source_recording_snapshot",
+    "effects": "actual synced immutable Linux snapshot publication and descriptor reopen in fresh child",
+    "admission": "explicit fixture grants and resource binding",
+    "catalog": "existing generic catalog reference encode/read only"
+  },
+  "log_sha256": {
+    "runtime": "3fca67cc33372da76e0014d9b350ee15bfafabe9a7dfeaa2329c0c49638a49b4",
+    "linux": "f7bf10065336c296d4c9243f4df4a48b31ca7b31a558d2ee7934c868e5338f70"
+  },
+  "not_proven": [
+    "installed Root recorder admission",
+    "Body kernel selected recording output commit",
+    "Body-lived catalog State commitment",
+    "durable history acknowledgment",
+    "MCU Body membership",
+    "live Green hardware recording",
+    "overnight operation"
+  ]
+}
