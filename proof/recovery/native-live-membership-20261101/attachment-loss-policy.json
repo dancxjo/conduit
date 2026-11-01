@@ -1,0 +1,26 @@
+{
+  "source": "f98baf9508a347f52008aa3f5d35caec31c82266",
+  "contract": {
+    "actual_play_provider_and_service_observation": true,
+    "original_join_signs_unchanged": true,
+    "configuration_retirement_is_not_loss": true,
+    "first_loss_clock_used_for_saved_profile_outcome": true,
+    "generation_and_configuration_settlement_checks_unchanged": true,
+    "retained_outcome_size_not_increased": "compile-time assertion on hosted and ESP32 targets"
+  },
+  "qualification": {
+    "focused_handoff_tests_passed": 34,
+    "esp32_app_bytes": 3343488,
+    "app_partition_bytes": 3371008,
+    "app_change_bytes": 96,
+    "stack_bytes": 37372,
+    "stack_minimum_bytes": 36864,
+    "qualified": true,
+    "flashed": false
+  },
+  "limits": [
+    "CPU policy proof and pinned ESP32 build only; no physical failover claim.",
+    "Current installed eb9 firmware still refuses network recovery workspace.",
+    "No attempts, grants, authority, quotas or transport acknowledgments are created by this observation."
+  ]
+}
