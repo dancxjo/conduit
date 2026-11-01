@@ -84,12 +84,18 @@ function createMembershipClient(api, hostId, bootId, verifyingKey) {
   function invokeJson(operation, value) {
     const encoded = encoder.encode(JSON.stringify(value));
     if (encoded.length === 0 || encoded.length > INPUT_CAPACITY) {
+      encoded.fill(0);
       throw new Error("browser Host membership request exceeds its admitted bound");
     }
-    new Uint8Array(api.memory.buffer, api.conduit_browser_membership_input_ptr(), encoded.length).set(encoded);
-    const code = api[operation](encoded.length);
-    if (code < 0) throw new Error(`browser Host membership request refused (${code})`);
-    return outputBytes();
+    try {
+      new Uint8Array(api.memory.buffer, api.conduit_browser_membership_input_ptr(), encoded.length).set(encoded);
+      const code = api[operation](encoded.length);
+      if (code < 0) throw new Error(`browser Host membership request refused (${code})`);
+      return outputBytes();
+    } finally {
+      encoded.fill(0);
+      new Uint8Array(api.memory.buffer, api.conduit_browser_membership_input_ptr(), encoded.length).fill(0);
+    }
   }
 
   return Object.freeze({
@@ -124,6 +130,35 @@ function createMembershipClient(api, hostId, bootId, verifyingKey) {
         throw new Error("browser Host runtime lacks membership-only receipt verification");
       }
       return JSON.parse(decoder.decode(invokeJson("conduit_browser_membership_adopt_scope", receipt)));
+    },
+    exportPartMembership({ expectedBodyId, expectedRoot }) {
+      if (typeof api.conduit_browser_membership_export_part !== "function") {
+        throw new Error("browser runtime lacks verified Part membership retention");
+      }
+      const bytes = invokeJson("conduit_browser_membership_export_part", {
+        expected_body_id: expectedBodyId, expected_root: expectedRoot,
+      });
+      new Uint8Array(api.memory.buffer, api.conduit_browser_membership_output_ptr(), bytes.length).fill(0);
+      if (bytes.length < 1 || bytes.length > 3072) { bytes.fill(0); throw new Error("Part record exceeds its admitted bound"); }
+      return bytes;
+    },
+    importPartMembership(bytes, { expectedBodyId, expectedRoot }) {
+      if (typeof api.conduit_browser_membership_import_part !== "function"
+        || !(bytes instanceof Uint8Array) || bytes.length < 1 || bytes.length > 3072) {
+        throw new Error("browser runtime cannot import this bounded Part record");
+      }
+      const record = JSON.parse(decoder.decode(bytes));
+      try {
+        return JSON.parse(decoder.decode(invokeJson("conduit_browser_membership_import_part", {
+          record, expected_body_id: expectedBodyId, expected_root: expectedRoot,
+        })));
+      } finally { record?.secret?.fill?.(0); }
+    },
+    retireMembershipScope({ expectedBodyId, partId = null }) {
+      if (typeof api.conduit_browser_membership_retire_scope !== "function") {
+        throw new Error("browser runtime lacks exact Part scope retirement");
+      }
+      invokeJson("conduit_browser_membership_retire_scope", { body_id: expectedBodyId, part_id: partId });
     },
     proveSpawn(claim, secret) {
       return Object.freeze({ hostId, bootId, signature: Array.from(invokeJson("conduit_browser_membership_prove_spawn", { claim, secret })) });

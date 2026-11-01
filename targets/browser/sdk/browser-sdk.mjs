@@ -1,3 +1,4 @@
+import { openBrowserPartMembershipStore } from "../host/assets/browser-part-membership.mjs";
 import { showBodyFace } from "./browser-sdk-body-face.mjs";
 import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
@@ -103,6 +104,12 @@ export class BrowserHost {
   /** Release a membership credential only after this runtime verifies the exact Root receipt. */
   adoptMembershipScope(receipt) {
     return this.#state.membership.adoptMembershipScope(receipt);
+  }
+  /** Private Part signing state uses the already selected application store;
+   * it preserves this Host's own identity and never supplies a missing seed. */
+  partMembershipStore(options) {
+    return openBrowserPartMembershipStore({ ...options,
+      membership: this.#state.membership, storage: this.#state.storage });
   }
   get offers() { return this.#state.offers; }
   get state() { return Object.freeze({ schema: "conduit.browser/boot-truth@1", generation: this.#state.boot.offer_generation }); }
