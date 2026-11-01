@@ -1,0 +1,114 @@
+{
+  "running_source": "60cfc304db9ddbd43ff0370ddd3aee5ad7147128",
+  "network_checkpoint_algorithm": "legacy canonical replay for each prepared chunk",
+  "chunk_measurements": 37,
+  "chunk_elapsed_us_min": 861888,
+  "chunk_elapsed_us_max": 872389,
+  "chunk_elapsed_us_mean": 865133,
+  "first_progress": {
+    "event": "local-appliance-progress",
+    "millis": 480978,
+    "root_used": 92796,
+    "root_free": 25972,
+    "root_peak": 99456,
+    "sampler_phase": "running",
+    "source_sequence": 7,
+    "sampler_failure": null,
+    "mask_phase": "running",
+    "mask_consumed": 155,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network": {
+      "runner_polls": [
+        18232,
+        1
+      ],
+      "observed_services": "failed",
+      "ap_link": true,
+      "station_link": false,
+      "ap_configured": true,
+      "station_configured": false,
+      "ap_mac": [
+        178,
+        167,
+        50,
+        40,
+        97,
+        120
+      ],
+      "channel": 1
+    },
+    "station_address": null,
+    "network_control": "uninstalled",
+    "archive": {
+      "committed": 0,
+      "retained_bytes": 0,
+      "last_sequence": 0,
+      "scope_ready": false,
+      "failed": true,
+      "recovered_read_only": false,
+      "maximum_records": 0
+    },
+    "face_available": true,
+    "face_fresh": true,
+    "renewal_phase": null,
+    "renewal_failure": null,
+    "renewal_archive_refusal": null
+  },
+  "last_progress": {
+    "event": "local-appliance-progress",
+    "millis": 511684,
+    "root_used": 92796,
+    "root_free": 25972,
+    "root_peak": 99456,
+    "sampler_phase": "running",
+    "source_sequence": 8,
+    "sampler_failure": null,
+    "mask_phase": "running",
+    "mask_consumed": 166,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network": {
+      "runner_polls": [
+        18300,
+        1
+      ],
+      "observed_services": "failed",
+      "ap_link": true,
+      "station_link": false,
+      "ap_configured": true,
+      "station_configured": false,
+      "ap_mac": [
+        178,
+        167,
+        50,
+        40,
+        97,
+        120
+      ],
+      "channel": 1
+    },
+    "station_address": null,
+    "network_control": "uninstalled",
+    "archive": {
+      "committed": 0,
+      "retained_bytes": 0,
+      "last_sequence": 0,
+      "scope_ready": false,
+      "failed": true,
+      "recovered_read_only": false,
+      "maximum_records": 0
+    },
+    "face_available": true,
+    "face_fresh": true,
+    "renewal_phase": null,
+    "renewal_failure": null,
+    "renewal_archive_refusal": null
+  },
+  "snapshot_bytes_retained": 32768,
+  "limits": [
+    "Snapshot retention is not a completed Clean receipt.",
+    "Flash/radio contention causality requires qualified follow-up; preparation and service failure observed together.",
+    "No new memory grant, timing profile or retry allowance."
+  ]
+}
