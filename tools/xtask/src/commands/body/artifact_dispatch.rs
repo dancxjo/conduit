@@ -116,7 +116,7 @@ mod tests {
                 .iter()
                 .map(|item| item.host.as_str())
                 .collect::<Vec<_>>(),
-            ["forebrain", "brainstem"]
+            ["brainstem", "forebrain"]
         );
         let browser = spores
             .into_iter()
