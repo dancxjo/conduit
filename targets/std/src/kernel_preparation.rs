@@ -244,3 +244,6 @@ mod partition_tests;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod creche_quarantine_tests;
