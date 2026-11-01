@@ -9,12 +9,18 @@ use std::{
     },
 };
 struct Source(Arc<AtomicUsize>);
-// SAFETY: one immediate Bool inversion, bounded caller buffers, no IO/allocation.
-unsafe impl crate::ImmediateNativeSource for Source {
-    fn read(&mut self, input: &[u8], output: &mut [u8]) -> Result<usize, String> {
+impl crate::body_execution::native::BodyNativeProvider for Source {
+    fn execute(
+        &mut self,
+        host: StdHost,
+        mut work: crate::PreparedNativeWork,
+    ) -> (StdHost, crate::PreparedNativeWork, Result<Vec<u8>, String>) {
+        if let Err(why) = host.begin_native_work(&mut work) {
+            return (host, work, Err(why));
+        }
         self.0.fetch_add(1, Ordering::SeqCst);
-        output[0] = 1 - input[0];
-        Ok(1)
+        let output = vec![1 - work.input()[0]];
+        (host, work, Ok(output))
     }
 }
 struct Timer;
@@ -29,11 +35,7 @@ impl BodyForeOutputAdapter for Capture {
         Ok(())
     }
 }
-fn install_source(
-    host: &mut StdHost,
-    calls: Arc<AtomicUsize>,
-    temporal: c::PortTemporal,
-) -> (c::Kind, c::AuthorityGrant) {
+fn install_source(host: &mut StdHost, temporal: c::PortTemporal) -> (c::Kind, c::AuthorityGrant) {
     let port = |id: &str, direction| c::PortDescriptor {
         port_id: id.into(),
         value_kind: c::kind_id(c::BOOL_INFO_ID),
@@ -91,42 +93,44 @@ fn install_source(
         boot_id: host.advertisement.boot_id.clone(),
         capability_id: offer.capability_id.clone(),
     };
-    let definition = crate::NativeSourceDefinition {
-        kind: kind.clone(),
-        base: c::BaseProviderEntry {
-            base_id: "test/selected-bool-source-base".into(),
-            provider_instance_id: "test/selected-bool-source-owner".into(),
-            provider_generation: 1,
-            implementation_id: "test/selected-bool-source-base@1".into(),
-            mechanism_family: "test/bounded-cpu-source".into(),
-            enforcement_class: c::BaseEnforcementClass::Cooperative,
-            lifecycle: c::BaseLifecycle::Ready,
-            capabilities: vec![offer],
-            resources: vec![c::resource_offer(
-                "test/selected-bool-source-pool",
-                "test/selected-bool-source-slot",
-                1,
-            )],
-        },
-        grant: grant.clone(),
-        resource_generation: c::ResourceGenerationId("test/selected-bool-source-resource@1".into()),
-        configuration: Vec::new(),
-        input_bytes: 1,
-        output_bytes: 1,
-        resource_bytes: 1,
+    let base = c::BaseProviderEntry {
+        base_id: "test/selected-bool-source-base".into(),
+        provider_instance_id: "test/selected-bool-source-owner".into(),
+        provider_generation: 1,
+        implementation_id: "test/selected-bool-source-base@1".into(),
+        mechanism_family: "test/bounded-cpu-source".into(),
+        enforcement_class: c::BaseEnforcementClass::Cooperative,
+        lifecycle: c::BaseLifecycle::Ready,
+        capabilities: vec![offer],
+        resources: vec![c::resource_offer(
+            "test/selected-bool-source-pool",
+            "test/selected-bool-source-slot",
+            1,
+        )],
     };
-    // SAFETY: the fixture owns the matching finite immediate provider and grant;
-    // this is actual Source installation, not an advertised callback or Plan grant.
-    unsafe { host.install_immediate_native_source(definition, Box::new(Source(calls))) }
-        .map_err(|(_, _, why)| why)
+    // SAFETY: the fixture independently retains the matching finite CPU Source
+    // provider and grant; installation is not derived from an incoming Plan.
+    unsafe { host.install_retained_native_base(base, vec![kind.clone()]) }
+        .map_err(|(_, why)| why)
         .unwrap();
     (kind, grant)
 }
 fn execute_selected_program(temporal: c::PortTemporal) {
     let mut host = host();
     let calls = Arc::new(AtomicUsize::new(0));
-    let (kind, grant) = install_source(&mut host, calls.clone(), temporal);
-    let provider = host.native_source.as_ref().unwrap() as *const _;
+    let mut provider_owner = Source(calls.clone());
+    let (kind, grant) = install_source(&mut host, temporal);
+    let source_payload = |host: &StdHost| {
+        host.base_registry
+            .entries()
+            .iter()
+            .find(|entry| entry.base_id.as_str() == "test/selected-bool-source-base")
+            .unwrap()
+            .capabilities[0]
+            .inputs
+            .as_ptr()
+    };
+    let provider = source_payload(&host);
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     startup
@@ -169,7 +173,7 @@ fn execute_selected_program(temporal: c::PortTemporal) {
     .unwrap();
     host.select_expression_programs(&[(program, temporal)], 1_048_576)
         .unwrap();
-    assert_eq!(host.native_source.as_ref().unwrap() as *const _, provider);
+    assert_eq!(source_payload(&host), provider);
     assert!(selected.host_calls.is_empty());
     let choices = conduit_planner::PlacementChoices {
         by_gear: expanded
@@ -260,25 +264,25 @@ fn execute_selected_program(temporal: c::PortTemporal) {
     )
     .unwrap();
     let mut capture = Capture::default();
-    let report = host
-        .run_body_plan_with_fore_to(
-            BodyRunRequest {
-                wake: &wake,
-                plan: &sealed,
-                control: &crate::RunControl::default(),
-                keyboard: None,
-            },
-            &[crate::ExternalForeInput {
-                front_port_id: "begin".into(),
-                track: c::ConnectionTrack::Payload,
-                bytes: vec![0],
-            }],
-            temporal != c::PortTemporal::Value,
-            &mut capture,
-            &mut Vec::new(),
-            &mut Timer,
-        )
-        .unwrap();
+    let (host, report) = host.run_body_plan_owned_native_to(
+        BodyRunRequest {
+            wake: &wake,
+            plan: &sealed,
+            control: &crate::RunControl::default(),
+            keyboard: None,
+        },
+        &[crate::ExternalForeInput {
+            front_port_id: "begin".into(),
+            track: c::ConnectionTrack::Payload,
+            bytes: vec![0],
+        }],
+        &mut capture,
+        &mut Vec::new(),
+        &mut Timer,
+        &mut provider_owner,
+        |_, _| Ok(()),
+    );
+    let report = report.unwrap();
     assert_eq!(
         report.terminal,
         c::TerminalDisposition::Completed,
@@ -289,7 +293,7 @@ fn execute_selected_program(temporal: c::PortTemporal) {
     assert!(report.cleanup_failure.is_none());
     assert_eq!(capture.0, vec![vec![1]]);
     assert_eq!(calls.load(Ordering::SeqCst), 1);
-    assert_eq!(host.native_source.as_ref().unwrap() as *const _, provider);
+    assert_eq!(source_payload(&host), provider);
     assert!(host.native_resources_idle());
 }
 
