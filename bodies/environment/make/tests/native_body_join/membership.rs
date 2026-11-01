@@ -109,6 +109,7 @@ pub(super) fn prove(
             .unwrap()
     });
     let boxed = reserved.release_unstaged().ok().unwrap();
+    let boxed = prove_cancel_unstarted(boxed, root, host, &request);
     let job = reserve_scheduled(boxed, root, host, &request, 101);
     assert_eq!(job.phase(), native_body_join::membership::job::Phase::Start);
     assert!(native_restart::publication_ready());
@@ -398,6 +399,9 @@ fn run_scheduled_at(
         assert_eq!(done.progress, native_flash_jobs::Progress::AdvancedOne);
         job = done.owner.0;
         assert_eq!(job.step(), before + 1);
+        // Once Start executed, cancellation cannot recover a superficially
+        // unmodified owner or lose a staged membership/output.
+        job = job.release_unstarted().err().unwrap();
         if done.result.is_err() {
             assert!(failure_expected);
             assert!(matches!(
@@ -410,4 +414,51 @@ fn run_scheduled_at(
             return job;
         }
     }
+}
+
+fn prove_cancel_unstarted(
+    owner: Box<SealedBodyLifecycleSession>,
+    root: &[u8; 32],
+    host: &c::HostAdvertisement,
+    request: &Request,
+) -> Box<SealedBodyLifecycleSession> {
+    struct Scheduled(Box<native_body_join::membership::job::Job>);
+    impl native_flash_jobs::Job for Scheduled {
+        fn step(&self) -> u32 {
+            self.0.step()
+        }
+    }
+    let identity = &*owner as *const _;
+    let before = owner.evidence().clone();
+    let generation = native_restart::generation().unwrap();
+    let manager = native_restart::with_admissions(|m| Ok(serde_json::to_vec(m).unwrap())).unwrap();
+    let moved = request.clone();
+    let request_backing = moved.host_id.as_str().as_ptr();
+    let authority = host.host_id.clone();
+    let authority_backing = authority.as_str().as_ptr();
+    let boot = host.boot_id.clone();
+    let boot_backing = boot.as_str().as_ptr();
+    let job = native_body_join::membership::job::Job::reserve(owner, *root, authority, boot, moved)
+        .ok()
+        .unwrap();
+    let mut mailbox = native_flash_jobs::Mailbox::<Scheduled, (), &'static str>::new();
+    let (mut submit, _execute) = mailbox.split().unwrap();
+    let id = submit.submit(Scheduled(job), 1000).ok().unwrap();
+    let job = submit.cancel(id).unwrap().0;
+    assert_eq!(job.step(), 0);
+    let (owner, authority, boot, recovered) = job.release_unstarted().ok().unwrap();
+    assert_eq!(&*owner as *const _, identity);
+    assert_eq!(owner.evidence(), &before);
+    assert_eq!(recovered, *request);
+    assert_eq!(recovered.host_id.as_str().as_ptr(), request_backing);
+    assert_eq!(authority.as_str().as_ptr(), authority_backing);
+    assert_eq!(boot.as_str().as_ptr(), boot_backing);
+    assert_eq!(native_restart::generation().unwrap(), generation);
+    assert!(native_restart::publication_ready());
+    native_restart::with_admissions(|m| {
+        assert_eq!(serde_json::to_vec(m).unwrap(), manager);
+        Ok(())
+    })
+    .unwrap();
+    owner
 }
