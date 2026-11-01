@@ -34,3 +34,22 @@ test('stale bytes and a different reviewed release cannot replace the bound imag
   const g=fixture();g.options.manifest.image_content_digest=sha('other');g.options.prepared.image_content_digest=g.options.manifest.image_content_digest;g.options.prepared.spore_manifest=structuredClone(g.options.manifest);
   await assert.rejects(packageBrowserBodySpore(g.options),/exact reviewed browser release/);
 });
+test('filesystem publication is private and cannot overwrite an existing package',async()=>{
+  const {mkdtemp,writeFile,readFile,stat,rm}=await import('node:fs/promises');
+  const {tmpdir}=await import('node:os');
+  const path=await import('node:path');
+  const {publishBrowserBodySpore}=await import('./package-body-spore.mjs');
+  const dir=await mkdtemp(path.join(tmpdir(),'conduit-browser-spore-'));
+  try {
+    const f=fixture();
+    for(const [name,value] of [['manifest.json',f.options.manifest],['prepared.json',f.options.prepared],['browser-page.json',f.release]]) await writeFile(path.join(dir,name),JSON.stringify(value),{mode:0o600});
+    await writeFile(path.join(dir,'runtime.wasm'),f.runtime);
+    const options={manifestPath:path.join(dir,'manifest.json'),preparedPath:path.join(dir,'prepared.json'),releasePath:path.join(dir,'browser-page.json'),outputPath:path.join(dir,'browser.zip'),nowMillis:1000};
+    const result=await publishBrowserBodySpore(options);
+    assert.equal(result.membership_admitted,false);
+    assert.equal((await stat(options.outputPath)).mode&0o777,0o600);
+    const original=await readFile(options.outputPath);
+    await assert.rejects(publishBrowserBodySpore(options),{code:'EEXIST'});
+    assert.deepEqual(await readFile(options.outputPath),original);
+  } finally {await rm(dir,{recursive:true,force:true});}
+});

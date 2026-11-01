@@ -41,3 +41,41 @@ export async function packageBrowserBodySpore({ manifest, prepared, releaseUrl, 
   readBodyBoundZip(artifact.bytes);
   return artifact;
 }
+
+// Filesystem adapter for the ordinary make command. Inputs remain private;
+// publication is exclusive and contains no secret-bearing diagnostic output.
+export async function publishBrowserBodySpore({ manifestPath, preparedPath, releasePath, outputPath, nowMillis }) {
+  const { readFile, lstat, open, link, unlink } = await import('node:fs/promises');
+  const path = await import('node:path');
+  const { pathToFileURL, fileURLToPath } = await import('node:url');
+  const readBounded = async (file, maximum) => {
+    const stat = await lstat(file);
+    if (!stat.isFile() || stat.size < 1 || stat.size > maximum) throw new TypeError('Package input exceeds its finite regular-file bound');
+    return new Uint8Array(await readFile(file));
+  };
+  const parse = async file => JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await readBounded(file, 256 * 1024)));
+  const releaseRoot = path.dirname(path.resolve(releasePath));
+  const releaseUrl = pathToFileURL(path.resolve(releasePath));
+  const artifact = await packageBrowserBodySpore({
+    manifest: await parse(manifestPath), prepared: await parse(preparedPath), releaseUrl,
+    filename: path.basename(outputPath), nowMillis,
+    fetcher: async url => {
+      const file = fileURLToPath(url);
+      if (path.dirname(file) !== releaseRoot) throw new TypeError('Reviewed release escaped its selected directory');
+      return new Response(await readBounded(file, String(url) === String(releaseUrl) ? 256 * 1024 : 32 * 1024 * 1024));
+    },
+  });
+  const staged = `${outputPath}.staging-${process.pid}`;
+  const handle = await open(staged, 'wx', 0o600);
+  try {
+    await handle.writeFile(artifact.bytes);
+    await handle.sync();
+    await handle.close();
+    await link(staged, outputPath); // never replace an existing private package
+  } finally {
+    await handle.close();
+    await unlink(staged);
+  }
+  return { content_digest: artifact.content_digest, bytes: artifact.bytes.length,
+    membership_admitted: false, host_boot_observed: false };
+}
