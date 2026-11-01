@@ -134,6 +134,12 @@ test('disabled controls retain selected Look ink without fading', async ({ page 
   for (const forcedColors of ['none', 'active']) {
     await page.emulateMedia({ forcedColors });
     const before = await read();
+    if (forcedColors === 'none') {
+      for (const style of before) {
+        expect(style.color).toBe('rgb(147, 210, 247)');
+        expect(style.background).toBe('rgb(9, 13, 22)');
+      }
+    }
     await element.evaluate(element => { element.disabled = true; });
     await expect(element.getByRole('button', { name: 'Complete task', exact: true })).toBeDisabled();
     await expect(element.locator('.owner-face-choice input')).toHaveCSS('opacity', '0');
@@ -152,6 +158,28 @@ test('disabled controls retain selected Look ink without fading', async ({ page 
     await element.evaluate(element => { element.disabled = false; });
     await expect(element.getByRole('button', { name: 'Complete task', exact: true })).toBeEnabled();
   }
+  const choice = element.locator('.owner-face-choice');
+  await expect(choice).toHaveCSS('min-height', '44px');
+  await expect(choice).toHaveCSS('padding-top', '7px');
+  await expect(choice).toHaveCSS('padding-left', '10px');
+  await expect(choice).toHaveCSS('border-radius', '6px');
+  expect(await choice.evaluate(node => parseFloat(getComputedStyle(node, '::before').borderTopWidth))).toBeGreaterThan(1);
+  // Ordinary keyboard traversal reaches the hidden native radio, whose visible
+  // label carries the selected Look's focus stroke and preserves selection.
+  await page.emulateMedia({ forcedColors: 'none' });
+  for (const control of [
+    element.getByRole('button', { name: 'Complete task', exact: true }),
+    element.getByRole('textbox', { name: 'Title', exact: true }),
+    element.getByRole('textbox', { name: 'Notes', exact: true }),
+    element.getByRole('combobox', { name: 'Priority', exact: true }),
+    element.getByRole('button', { name: 'Edit task', exact: true }),
+    choice.locator('input'),
+  ]) {
+    await page.keyboard.press('Tab');
+    await expect(control).toBeFocused();
+  }
+  await expect(choice).toHaveCSS('outline-width', '3px');
+  await expect(choice).toHaveCSS('outline-color', 'rgb(244, 196, 0)');
   expect(await page.evaluate(() => JSON.stringify(window.lookView))).toBe(await page.evaluate(() => window.lookOriginal));
   expect(await page.evaluate(() => window.lookInvocations)).toBe(0);
 });

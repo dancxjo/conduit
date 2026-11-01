@@ -89,3 +89,12 @@ textarea:focus-visible{outline:3px solid var(--face-focus,#247c85);outline-offse
 /* Keep resolved Look ink readable in inactive controls. Native disabled state
    and a dashed border supply the state cue; forced system colors stay in charge. */
 :host([data-component-look]) button:disabled,:host([data-component-look]) input:not([type=radio]):disabled,:host([data-component-look]) select:disabled,:host([data-component-look]) textarea:disabled,:host([data-component-look]) .owner-face-choice:has(input:disabled){opacity:1;border-style:dashed;cursor:not-allowed}
+/* Registered control/choice components use the same selected tokens in every state. */
+:host([data-component-look]) button,:host([data-component-look]) .owner-face-choice{background:var(--face-card);color:var(--face-ink);border-color:var(--face-control)}
+:host([data-component-look]) button:hover:not(:disabled){background:var(--face-paper);border-color:var(--face-accent)}
+:host([data-component-look]) .owner-face-choice{flex-direction:row;flex-wrap:wrap;min-height:44px;gap:var(--look-space-unit);padding:var(--look-space-control-block) var(--look-space-control-inline);border-radius:var(--look-radius-control)}
+:host([data-component-look]) .owner-face-choice:has(input:checked){background:var(--face-card);color:var(--face-ink);border-color:var(--face-accent)}
+:host([data-component-look]) .owner-face-choice::before{content:"";box-sizing:border-box;flex:none;inline-size:.9em;block-size:.9em;border:1px solid currentColor;border-radius:50%}
+:host([data-component-look]) .owner-face-choice:has(input:checked)::before{border-width:.3em}
+:host([data-component-look]) .owner-face-choice:has(input:focus-visible){outline:var(--look-focus-width) solid var(--face-focus);outline-offset:3px}
+:host([data-component-look]) .owner-face-choice>span{min-width:0;overflow-wrap:anywhere}:host([data-component-look]) .owner-face-choice>small{flex-basis:100%}
