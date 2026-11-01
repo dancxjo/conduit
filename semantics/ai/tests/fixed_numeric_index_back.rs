@@ -286,6 +286,16 @@ fn exercise_owner<const I: usize, const O: usize, const N: usize, const C: usize
             } else if let Some(index) = gear.kind_id.as_str().strip_prefix("numeric-test/source") {
                 Driver::Source(references[index.parse::<usize>().unwrap()], false)
             } else {
+                if I == 320 && O == 40 {
+                    let mut foreign = gear.clone();
+                    foreign.artifact_id = ArtifactId::from("foreign/numeric-artifact");
+                    assert!(FixedIndexBack::<I, O>::prepare_planned::<PORTS>(
+                        &foreign,
+                        lowered.node_specs[i].maximum_step_fuel,
+                        operation,
+                    )
+                    .is_err());
+                }
                 let owner = FixedIndexBack::prepare_planned::<PORTS>(
                     gear,
                     lowered.node_specs[i].maximum_step_fuel,
@@ -468,3 +478,5 @@ fn ordinary_gather640x160_retains_explicit_indices_and_refuses_overflow_or_press
 
 #[path = "fixed_numeric_index_back/compact.rs"]
 mod compact_tests;
+#[path = "fixed_numeric_index_back/slice320x40.rs"]
+mod slice320x40;
