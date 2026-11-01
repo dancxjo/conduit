@@ -27,6 +27,7 @@ struct Flow {
     page: usize,
     count: usize,
     commands: usize,
+    continuation: Option<LayoutContinuation>,
 }
 
 impl Flow {
@@ -62,6 +63,7 @@ impl Flow {
             page: 0,
             count: 0,
             commands: chrome::COMMANDS + 1,
+            continuation: None,
         })
     }
 
@@ -141,20 +143,34 @@ impl Flow {
     }
 
     fn fits(&self, lane: Option<usize>, height: u16, cost: usize) -> bool {
-        u32::from(self.y(lane))
-            + u32::from(height)
-            + if lane.is_some() { u32::from(EDGE) } else { 0 }
-            <= u32::from(self.bottom)
-            && self.count < MAX_PAGE_ROWS
-            && self.commands + cost <= conduit_face::MAX_GRAPHICS_COMMANDS
+        self.pressure(lane, height, cost).is_none()
     }
 
-    fn next_page(&mut self, region: Option<u8>, rows: &mut [Row]) {
+    fn pressure(
+        &self,
+        lane: Option<usize>,
+        height: u16,
+        cost: usize,
+    ) -> Option<LayoutContinuation> {
+        LayoutContinuation::pressure(
+            u32::from(self.y(lane))
+                + u32::from(height)
+                + if lane.is_some() { u32::from(EDGE) } else { 0 }
+                > u32::from(self.bottom),
+            self.count >= MAX_PAGE_ROWS,
+            self.commands + cost > conduit_face::MAX_GRAPHICS_COMMANDS,
+        )
+    }
+
+    fn next_page(&mut self, region: Option<u8>, rows: &mut [Row], cause: LayoutContinuation) {
         self.finish_band(rows);
         // Geometry is fixed before committing the first row of a page. Ordering
         // exhausts the first region before the second: only the latter remains
         // when its continuation starts, so it no longer reserves an empty lane.
-        self.page += usize::from(self.count != 0);
+        if self.count != 0 {
+            self.page += 1;
+            self.continuation = Some(cause);
+        }
         self.single_lane = !self.paired_regions || region == Some(self.groups[1]);
         self.count = 0;
         self.commands = chrome::COMMANDS + 1;
@@ -264,7 +280,7 @@ pub(super) fn admit(
                 }
                 result => result?,
             };
-            let current_fits = current.is_some_and(|demand| {
+            let current_fits = current.as_ref().is_some_and(|demand| {
                 demand.fits(
                     flow.y(lane),
                     bottom,
@@ -281,7 +297,18 @@ pub(super) fn admit(
                     chrome::COMMANDS + 1 + 2 * usize::from(lane.is_some()),
                 )
             {
-                flow.next_page(item.region, &mut rows);
+                let cause = current
+                    .and_then(|demand| {
+                        demand.pressure(
+                            flow.y(lane),
+                            bottom,
+                            flow.count,
+                            flow.commands + 2 * usize::from(flow.new_panel(lane)),
+                        )
+                    })
+                    .unwrap_or_else(LayoutContinuation::measurement_refusal)
+                    .keeping_group();
+                flow.next_page(item.region, &mut rows, cause);
             }
         }
 
@@ -313,7 +340,11 @@ pub(super) fn admit(
                     Err(FaceSceneError::InvalidExtent)
                         if !advanced && flow.continuation_width(item.region) > flow.width(lane) =>
                     {
-                        flow.next_page(item.region, &mut rows);
+                        flow.next_page(
+                            item.region,
+                            &mut rows,
+                            LayoutContinuation::measurement_refusal(),
+                        );
                         advanced = true;
                         continue;
                     }
@@ -328,7 +359,10 @@ pub(super) fn admit(
                 if advanced {
                     return Err(FaceSceneError::InvalidExtent);
                 }
-                flow.next_page(item.region, &mut rows);
+                let cause = flow
+                    .pressure(lane, height, cost)
+                    .ok_or(FaceSceneError::InvalidExtent)?;
+                flow.next_page(item.region, &mut rows, cause);
                 advanced = true;
             };
             if rows.len() == MAX_ROWS {
@@ -338,6 +372,7 @@ pub(super) fn admit(
             let index = rows.len();
             reading_order.push((original, chunk, index));
             rows.push(Row {
+                continuation: flow.continuation.take(),
                 text: remaining[..end].into(),
                 role: item.role,
                 paint: item.paint,

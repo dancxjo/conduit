@@ -72,7 +72,15 @@ pub(in crate::native_face_scene) fn admit(
     )?;
     let mut entries = Vec::new();
     for (page, fragment) in fragments.into_iter().enumerate() {
+        // Metadata follows the final page through the existing reading-order
+        // sort; frame reporting already visits every row on that page.
+        let mut continuation = if page == 0 {
+            None
+        } else {
+            fragment.continuation
+        };
         for mut entry in fragment.entries {
+            entry.row.continuation = continuation.take();
             entry.row.page = page;
             entry.row.bounds.y += chrome.top as i16;
             entries.push(entry);

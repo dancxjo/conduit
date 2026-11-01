@@ -376,3 +376,41 @@ fn panel_preflight_respects_global_row_and_command_caps_not_only_lane_height() {
         assert_eq!(rows[count].page, 1);
     }
 }
+
+#[test]
+fn associated_field_retains_simultaneous_row_and_command_pressure() {
+    let mut items: Vec<_> = (0..19)
+        .map(|action| {
+            item(
+                "Prefix",
+                None,
+                Some(FaceControl {
+                    action,
+                    argument: None,
+                }),
+            )
+        })
+        .collect();
+    items.extend(field());
+    let rows = admit_with_expression(
+        items,
+        LayoutRect {
+            x: 0,
+            y: 0,
+            width: 1280,
+            height: 2000,
+        },
+        12,
+        1,
+        100,
+        SPACE_SM,
+    )
+    .unwrap();
+    assert_eq!(rows.len(), 22);
+    assert!(rows[..19].iter().all(|row| row.page == 0));
+    assert!(rows[19..].iter().all(|row| row.page == 1));
+    let cause = rows[19].continuation.unwrap();
+    assert!(cause.row_limit() && cause.command_limit() && cause.kept_group());
+    assert!(!cause.block_limit() && !cause.measurement_refused());
+    check_field(&rows, 19);
+}

@@ -115,11 +115,13 @@ impl NativeFaceScene {
             }
         }
         let mut focus_marked = false;
+        let mut continuation = None;
         for row in self
             .rows()
             .iter()
             .filter(|row| !editor_visible && !self.showing_diagram && row.page == self.page)
         {
+            continuation = LayoutContinuation::merge(continuation, row.continuation);
             let available = self.interaction_admitted
                 && row.control.is_some_and(|control| {
                     self.face.actions[control.action]
@@ -248,6 +250,7 @@ impl NativeFaceScene {
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
         )?;
         Ok(FaceFrame {
+            continuation,
             scene,
             face_id: &self.face.identity,
             revision: self.face.revision,
