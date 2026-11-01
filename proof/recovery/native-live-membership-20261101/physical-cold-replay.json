@@ -1,0 +1,135 @@
+{
+  "source_commit": "c63db3c7cf06f5046c20e629ade56e997a25bbd9",
+  "maintenance_source": "66825793c917f5eee2023ab56d13c915a6cc5169",
+  "normal_app_sha256": "0d52b52901e61f7038a4ec9974ad40c5e04404ae3bc7107cef5aae6136e8c737",
+  "backup": {
+    "full_flash_sha256": "1cf1366aaba690fdff63efdc684c11c5f48e0c4f216f6823b8626e32a8d99623",
+    "bytes": 4194304,
+    "same_body_root_pins": true,
+    "installed_source": "ac3ac678ea5b3ab649eebe92235d54113a63f2f1",
+    "banks": [
+      {
+        "bank": 0,
+        "generation": 895,
+        "encoded_bytes": 31190
+      },
+      {
+        "bank": 1,
+        "generation": 896,
+        "encoded_bytes": 32086
+      }
+    ],
+    "non_app_sha256": "7cbcf2e57e1d8110dbc2df50b0aae7d12823076085f464eeb12d9ddb9fbf53a8",
+    "application_written": false,
+    "normal_boot_started": false,
+    "rom_mode": true
+  },
+  "actual_custody": {
+    "full_flash_sha256": "2e3a50c4159933302d06ede3ef55ca7fdf000011494c264a54f71716e2830e6f",
+    "banks": [
+      {
+        "bank": 0,
+        "generation": 897,
+        "encoded_bytes": 7970
+      },
+      {
+        "bank": 1,
+        "generation": 896,
+        "encoded_bytes": 32086
+      }
+    ],
+    "latest": {
+      "bank": 0,
+      "generation": 897,
+      "encoded_bytes": 7970
+    },
+    "non_body_bytes_unchanged": true,
+    "normal_boot_started": false
+  },
+  "restart": {
+    "event": "body-image-loaded",
+    "body_id": "71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57",
+    "friendly_name": "Malo Lef\u00e8vre Laurent",
+    "host_id": "esp32/b0a732286178",
+    "boot_id": "boot/327d43664f28d43790bb709c4a26fb7f",
+    "offer_generation": 1,
+    "membership_revision": 424,
+    "member_admitted": true,
+    "linked_source_gears": 15,
+    "root_heap_size_bytes": 118768,
+    "root_heap_used_bytes": 25552,
+    "root_heap_peak_bytes": 50964,
+    "play_started": false,
+    "restart_resumed": true,
+    "checkpoint_generation": 899
+  },
+  "cold_replay": {
+    "event": "checkpoint-preparation-probe",
+    "phase": "cold-replay",
+    "source_generation": 899,
+    "source_bytes": 9364,
+    "output_bytes": 9364,
+    "elapsed_us": 713047,
+    "root_used_before": 25552,
+    "root_used_after": 25552,
+    "root_lifetime_peak_before": 50964,
+    "root_lifetime_peak_after": 50964,
+    "phase_peak_measured": false,
+    "timing_qualified": false
+  },
+  "normal_progress": {
+    "event": "local-appliance-progress",
+    "millis": 89082,
+    "root_used": 98124,
+    "root_free": 20644,
+    "root_peak": 116588,
+    "sampler_phase": "running",
+    "source_sequence": 1,
+    "sampler_failure": null,
+    "mask_phase": "running",
+    "mask_consumed": 25,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network": {
+      "runner_polls": [
+        4,
+        2843
+      ],
+      "observed_services": "station-ready",
+      "ap_link": null,
+      "station_link": null,
+      "ap_configured": null,
+      "station_configured": null,
+      "ap_mac": null,
+      "channel": null
+    },
+    "station_address": [
+      10,
+      0,
+      0,
+      210
+    ],
+    "network_control": "attached",
+    "archive": {
+      "committed": 1,
+      "retained_bytes": 640,
+      "last_sequence": 1,
+      "scope_ready": true,
+      "failed": false,
+      "recovered_read_only": false,
+      "maximum_records": 960
+    },
+    "face_available": true,
+    "face_fresh": true,
+    "renewal_phase": null,
+    "renewal_failure": null,
+    "renewal_archive_refusal": null
+  },
+  "raw_log_sha256": "2d7a5a0ba67de00ca1ccea73791ff1efb425dfde85f9d13d9e6b95cb87b76512",
+  "limits": [
+    "Actual biography durable custody is not selected observation recorder commitment.",
+    "Cold replay is one source observation; no phase peak measurement or reviewed Start/Finish/WCET profile.",
+    "HTTP membership remains deferred until preparation qualification.",
+    "Physical display appearance was not human-verified in this run."
+  ]
+}
