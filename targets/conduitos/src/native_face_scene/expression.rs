@@ -48,7 +48,7 @@ impl NativeFaceScene {
             width,
             height,
         };
-        let (primary, details) = document::prepare(&face, interaction_admitted)?;
+        let (mut primary, details) = document::prepare(&face, interaction_admitted)?;
         let spacing = layout::RowSpacing::legacy(SPACE_SM);
         let viewport = layout::Viewport::for_face(
             screen,
@@ -59,6 +59,7 @@ impl NativeFaceScene {
             interaction_admitted,
             [&primary, &details],
         )?;
+        document::omit_encounter_heading(&mut primary, &face, &viewport.chrome, 100);
         Ok(Self {
             primary: layout::admit_with_expression_selected(
                 primary, SPACE_XL, 1, spacing, &viewport,
@@ -165,6 +166,7 @@ impl NativeFaceScene {
             interaction_admitted,
             [&primary, &details],
         )?;
+        document::omit_encounter_heading(&mut primary, &scene.face, &viewport.chrome, scale);
         let panel_groups = layout::authored_panel_groups(
             recipe.recipe.regions().iter().map(|region| *region.group()),
         );
@@ -265,7 +267,7 @@ impl NativeFaceScene {
     ) -> Result<Self, FaceSceneError> {
         let typography = metrics.typography;
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
         let viewport = layout::Viewport::for_face(
@@ -277,6 +279,7 @@ impl NativeFaceScene {
             interaction_admitted,
             [&primary, &details],
         )?;
+        document::omit_encounter_heading(&mut primary, &scene.face, &viewport.chrome, scale);
         scene.primary =
             layout::admit_with_expression_selected(primary, SPACE_XL, 1, spacing, &viewport)?;
         scene.details =
@@ -375,6 +378,7 @@ impl NativeFaceScene {
             interaction_admitted,
             [&primary, &details],
         )?;
+        document::omit_encounter_heading(&mut primary, face, &viewport.chrome, scale);
         let primary = layout::admit_mechanical(primary, structure, spacing, &viewport)?;
         let details =
             layout::admit_with_expression_selected(details, SPACE_XL, 1, spacing, &viewport)?;

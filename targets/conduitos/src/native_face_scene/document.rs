@@ -38,6 +38,30 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
     }
 }
 
+/// A complete admitted encounter heading already names this exact Body.
+/// Keep all source text, values, actions and Details; remove only its second
+/// primary heading. Ambiguous or unfit names have no such header association.
+pub(super) fn omit_encounter_heading(
+    primary: &mut Vec<Item>,
+    face: &Face,
+    chrome: &chrome::Chrome,
+    scale: u16,
+) {
+    let Some(body) = chrome.named_body(face, scale) else {
+        return;
+    };
+    primary.retain(|item| {
+        !(item.part == layout::NativePart::Content
+            && item.role == GraphicsTextRole::Title
+            && item.control.is_none()
+            && item.text == body.name
+            && item
+                .subject_index
+                .and_then(|index| face.subjects.get(index))
+                .is_some_and(|subject| subject.identity == body.identity))
+    });
+}
+
 pub(super) fn prepare(
     face: &Face,
     interaction_admitted: bool,

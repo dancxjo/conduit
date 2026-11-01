@@ -297,3 +297,6 @@ fn active_editor_uses_the_same_admitted_heading_extent() {
     );
     assert_eq!(scene.face(), &face);
 }
+
+#[path = "single_body_heading_tests.rs"]
+mod single_body_heading_tests;

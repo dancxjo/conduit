@@ -179,17 +179,8 @@ impl Chrome {
         diagram: bool,
         scale: u16,
     ) -> &'a str {
-        if let Some(name) = body_name(face)
-            && height(
-                name,
-                self.heading_role,
-                self.heading.width,
-                scale,
-                self.typography,
-            )
-            .is_ok_and(|height| height <= self.heading.height)
-        {
-            return name;
+        if let Some(body) = self.named_body(face, scale) {
+            return &body.name;
         }
         if diagram && self.compact {
             "Graph"
@@ -204,6 +195,25 @@ impl Chrome {
         }
     }
 
+    /// Exact subject whose complete name is actually admitted in this header.
+    /// Primary disclosure may omit only that duplicate heading, never its facts.
+    pub fn named_body<'a>(
+        &self,
+        face: &'a conduit_face::Face,
+        scale: u16,
+    ) -> Option<&'a conduit_face::FaceSubject> {
+        let body = body_subject(face)?;
+        height(
+            &body.name,
+            self.heading_role,
+            self.heading.width,
+            scale,
+            self.typography,
+        )
+        .is_ok_and(|height| height <= self.heading.height)
+        .then_some(body)
+    }
+
     /// Reserve complete wording only while every actual content row can still
     /// admit a full line. Oversized names stay intact in the paged document.
     pub fn reserve_body_name(
@@ -212,9 +222,9 @@ impl Chrome {
         scale: u16,
         minimum_row: u16,
     ) -> Result<(), FaceSceneError> {
-        if let Some(name) = body_name(face)
+        if let Some(body) = body_subject(face)
             && let Ok(needed) = height(
-                name,
+                &body.name,
                 self.heading_role,
                 self.heading.width,
                 scale,
@@ -310,7 +320,7 @@ impl Chrome {
     }
 }
 
-fn body_name(face: &conduit_face::Face) -> Option<&str> {
+fn body_subject(face: &conduit_face::Face) -> Option<&conduit_face::FaceSubject> {
     let mut bodies = face
         .subjects
         .iter()
@@ -319,7 +329,7 @@ fn body_name(face: &conduit_face::Face) -> Option<&str> {
     (bodies.next().is_none()
         && !body.name.trim().is_empty()
         && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES)
-        .then_some(body.name.as_str())
+        .then_some(body)
 }
 
 #[cfg(test)]
