@@ -1,0 +1,16 @@
+{
+  "schema": "conduit.proof/browser-image-build@1",
+  "source_identity": "eb464d272545d1e4dbbbe2b39751aeaa7c012412",
+  "target_id": "browser/wasm32/page",
+  "bundle_sha256": "sha256:6cbc9df7e810000913db41c2403a4fe94a36d6936ce639aa927e4e9d46e129fb",
+  "runtime_bytes": 16664244,
+  "all_manifest_files_hash_verified": true,
+  "file_count": 12,
+  "evidence_scope": "image-only optimized browser Host release; no invitation minted, no standalone boot/join/Face or delivered package claimed",
+  "remaining": [
+    "standalone provision consumer and authorized browser ingress",
+    "selected protected reachable carrier",
+    "Part continuity key across browser restart",
+    "shared live environmental Face"
+  ]
+}
