@@ -280,6 +280,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::keyboard_input_back::button::indicator::INDICATOR,
     &super::keyboard_input_back::button::indicator::RESOURCE_INDICATOR,
     &TICK_FACTORY,
+    &super::tick_trigger_back::FACTORY,
     &super::pulse_observation_back::FACTORY,
     #[cfg(test)]
     &super::pulse_observation_sink::FACTORY,

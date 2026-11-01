@@ -1,0 +1,13 @@
+# Finite continuing encounter: cadence is authored work, not a polling adapter.
+plot continuing-sample (
+    count: Count = 16
+    period-ms: Count = 30000
+    observation: EnvironmentalObservation...| >>
+) {
+    cadence: time/tick(count, period-ms)
+    trigger: time/tick-trigger
+    source: environment/read-environmental-source()
+    cadence.tick >> trigger.tick
+    trigger.begin >> source.request
+    source.observation >> observation
+}

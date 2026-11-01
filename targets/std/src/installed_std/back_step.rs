@@ -244,6 +244,7 @@ installed_step_dispatch!(
     KeyboardInput,
     ButtonInput,
     Tick,
+    TickTrigger,
     PulseObserve,
     #[cfg(test)]
     TestPulseSink,

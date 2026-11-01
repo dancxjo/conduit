@@ -556,6 +556,10 @@ impl<'a> BodyKernel<'a> {
         })
     }
 
+    pub(crate) fn prepare_borrowed_fore(&mut self) -> Result<(), String> {
+        self.fore.prepare_borrowed_stream()
+    }
+
     pub(crate) fn prepare_native_slots(
         &mut self,
         inventory: &conduit_core::HostAdvertisement,
