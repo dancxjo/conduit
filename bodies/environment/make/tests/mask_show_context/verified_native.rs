@@ -25,7 +25,7 @@ fn actual_native_verified_context_uses_bounded_workspace_and_preserves_full_wire
     }
     .unwrap();
     let pins = Rc::new(native::Pins::default());
-    let ready = native::ready(pins.clone());
+    let ready = native::ready_with_resource_bytes(pins.clone(), 64);
     let mut host = fixture::host();
     host.capabilities
         .retain(|offer| offer.kind_id.as_str() != f::RENDERER_KIND);
