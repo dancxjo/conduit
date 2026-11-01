@@ -10,7 +10,7 @@ use conduit_std_host::browser_admission::{
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES as LIMIT,
 };
 
-pub(super) struct NativeReturn {
+pub(crate) struct NativeReturn {
     part: RetainedPart,
     phase: Phase,
 }
@@ -23,7 +23,7 @@ enum Phase {
     Failed,
 }
 impl NativeReturn {
-    pub(super) fn new(part: RetainedPart) -> Result<Self, String> {
+    pub(crate) fn new(part: RetainedPart) -> Result<Self, String> {
         let route = part
             .rendezvous()
             .ok_or("retained Part has no pinned rendezvous route")?;
@@ -41,12 +41,15 @@ impl NativeReturn {
         })
     }
     /// Exact original route, not a newly supplied invitation or discovered pin.
-    pub(super) fn rendezvous(&self) -> &conduit_body::SpawnRendezvousDescriptor {
+    pub(crate) fn advertisement(&self) -> &conduit_core::HostAdvertisement {
+        self.part.advertisement()
+    }
+    pub(crate) fn rendezvous(&self) -> &conduit_body::SpawnRendezvousDescriptor {
         self.part
             .rendezvous()
             .expect("constructor required retained route")
     }
-    pub(super) fn advertise(&mut self) -> Result<Vec<u8>, String> {
+    pub(crate) fn advertise(&mut self) -> Result<Vec<u8>, String> {
         if self.phase != Phase::Ready {
             return Err("Return advertisement out of order".into());
         }
@@ -63,7 +66,7 @@ impl NativeReturn {
         result
     }
     /// One canonical challenge, bounded before decoding; refusal is terminal.
-    pub(super) fn challenge(&mut self, bytes: &[u8]) -> Result<Vec<u8>, String> {
+    pub(crate) fn challenge(&mut self, bytes: &[u8]) -> Result<Vec<u8>, String> {
         if self.phase != Phase::Challenge {
             return Err("Return challenge out of order".into());
         }
@@ -91,7 +94,7 @@ impl NativeReturn {
     }
     /// Correlate the response only. Authentication belongs to the protected
     /// connector; this method neither persists nor grants anything.
-    pub(super) fn admitted(&mut self, bytes: &[u8]) -> Result<MembershipCredential, String> {
+    pub(crate) fn admitted(&mut self, bytes: &[u8]) -> Result<MembershipCredential, String> {
         if self.phase != Phase::Admission {
             return Err("Return admission out of order".into());
         }
@@ -122,6 +125,111 @@ impl NativeReturn {
         Ok(credential)
     }
 }
+/// One read-only encounter on the exact already selected protected session.
+/// The caller retains the returned credential until reviewed durable renewal;
+/// this function cannot persist membership or claim a remote Mask route.
+pub(crate) fn snapshot<C: conduit_protected_line::ProtectedFrameCarrier>(
+    mut client: NativeReturn,
+    verified: &crate::durable_host_control::native_snapshot::VerifiedSelection,
+    mut line: super::ProtectedDocumentLine<C>,
+) -> Result<
+    (
+        MembershipCredential,
+        conduit_face::OwnerFaceSnapshotResponse,
+    ),
+    String,
+> {
+    use conduit_protected_line::{Role, SessionDisposition};
+    let selected = verified.binding();
+    let authorization = verified.authorization();
+    let maximum_millis = authorization.maximum_millis;
+    let result = (|| {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| "native snapshot clock precedes epoch")?
+            .as_millis();
+        client
+            .rendezvous()
+            .validate(
+                now.try_into()
+                    .map_err(|_| "native snapshot clock overflow")?,
+            )
+            .map_err(|_| "native snapshot retained route expired or refused")?;
+        if authorization.body_id != client.part.credential().body_id
+            || !client.rendezvous().candidates.contains(verified.route())
+            || selected.responder.host_id != authorization.owner_host_id.as_str()
+            || selected.responder.boot_id != authorization.owner_boot_id.as_str()
+        {
+            return Err("native snapshot verified owner or retained route mismatch".into());
+        }
+        let evidence = line.evidence();
+        let ad = client.advertisement();
+        if evidence.role != Role::Initiator
+            || evidence.disposition != SessionDisposition::Open
+            || evidence.binding != selected
+            || selected.initiator.host_id != ad.host_id.as_str()
+            || selected.initiator.boot_id != ad.boot_id.as_str()
+            || !(1000..=60_000).contains(&maximum_millis)
+        {
+            return Err("native snapshot selected protected initiator mismatch".into());
+        }
+        line.restrict_deadline(
+            std::time::Instant::now() + std::time::Duration::from_millis(maximum_millis),
+        )?;
+        line.send(&client.advertise()?)?;
+        let proof = client.challenge(&line.receive()?)?;
+        line.send(&proof)?;
+        let credential = client.admitted(&line.receive()?)?;
+        let request = conduit_face::OwnerFaceSnapshotRequest {
+            schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
+            credential_id: credential.credential_id.as_str().into(),
+            body_id: credential.body_id.clone(),
+            part_id: credential.part_id.clone(),
+            host_id: credential.host_id.clone(),
+            boot_id: credential.boot_id.clone(),
+            last_seen_revision: None,
+            last_seen_identity: None,
+        };
+        line.send(&encode(&In::FaceSnapshotRequest {
+            protocol: PROTOCOL,
+            request,
+        })?)?;
+        let Out::FaceSnapshotResponse {
+            protocol: PROTOCOL,
+            response,
+        } = decode(&line.receive()?)?
+        else {
+            return Err("native snapshot expected canonical Face response".into());
+        };
+        if let conduit_face::OwnerFaceSnapshotResponse::Snapshot {
+            schema,
+            face,
+            interactions_admitted,
+            route,
+        } = &response
+        {
+            if schema != conduit_face::OWNER_FACE_RESPONSE_SCHEMA
+                || face.basis.body_id.as_ref() != Some(&credential.body_id)
+                || face.validate().is_err()
+                || *interactions_admitted
+                || route.is_some()
+            {
+                return Err("read-only snapshot cannot grant Show or input".into());
+            }
+        }
+        Ok((credential, response))
+    })();
+    let close = line.close();
+    match (result, close) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), Ok(())) => Err(error),
+        (result, Err(close)) => Err(format!(
+            "{};retirement:{close}",
+            result.err().unwrap_or_else(|| "snapshot received".into())
+        )),
+    }
+}
+
 fn encode(value: &In) -> Result<Vec<u8>, String> {
     let bytes = serde_json::to_vec(value).map_err(|_| "Return request encoding")?;
     if bytes.len() > LIMIT {

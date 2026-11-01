@@ -19,11 +19,14 @@ use crate::cli::RendezvousCarrier;
 
 #[cfg(unix)]
 mod native_return;
+#[cfg(unix)]
+pub(crate) use native_return::{snapshot as native_snapshot, NativeReturn};
 mod secure;
 pub(crate) use secure::SecureNetworkOptions;
-mod relay;
 mod protected_document;
-#[allow(unused_imports)] // Owning protected browser service bridge binds this adapter separately.
+mod relay;
+#[allow(unused_imports)]
+// Owning protected browser service bridge binds this adapter separately.
 pub(crate) use protected_document::{DocumentWorkspace, ProtectedDocumentLine};
 #[cfg(test)]
 #[cfg_attr(test, allow(unused_imports))]

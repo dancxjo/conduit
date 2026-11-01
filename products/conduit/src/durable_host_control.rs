@@ -96,6 +96,8 @@ mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
+#[path = "durable_host_control/native_snapshot.rs"]
+pub(crate) mod native_snapshot;
 #[cfg(target_os = "linux")]
 #[path = "durable_host_control/notebook.rs"]
 pub(crate) mod notebook;
@@ -993,6 +995,19 @@ enum Request {
         token: Vec<u8>,
         maximum_millis: u64,
     },
+    BodyNativeSnapshotFace {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+    },
+    BodyNativeSnapshotStart {
+        protocol: u16,
+        token: Vec<u8>,
+        expected_host_id: String,
+        maximum_millis: u64,
+    },
     BodyBrowserStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1295,6 +1310,10 @@ enum Response {
         root_authority: conduit_body::BodyRootAuthority,
         authorization: crate::durable_host::owner::BrowserWindowAuthorization,
         url: String,
+    },
+    BodyNativeSnapshotWindow {
+        protocol: u16,
+        authorization: crate::durable_host::owner::BrowserWindowAuthorization,
     },
     BodyBrowserWindow {
         protocol: u16,
@@ -1939,6 +1958,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
+        | Request::BodyNativeSnapshotStart { token, .. }
+        | Request::BodyNativeSnapshotFace { token, .. }
         | Request::BodyBrowserInviteStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
@@ -2118,6 +2139,31 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                     authorization,
                     url,
                 }
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeSnapshotFace {
+            protocol,
+            window_id,
+            binding,
+            request,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .native_snapshot_face(&window_id, &binding, &request)
+            .map(|response| Response::Face {
+                protocol: PROTOCOL,
+                response: Box::new(response),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeSnapshotStart {
+            protocol,
+            expected_host_id,
+            maximum_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .authorize_native_snapshot_window(&expected_host_id, maximum_millis)
+            .map(|authorization| Response::BodyNativeSnapshotWindow {
+                protocol: PROTOCOL,
+                authorization,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserStart {
@@ -2522,10 +2568,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 truth,
             })
             .unwrap_or_else(|code| refused(&code)),
-        Request::BodyRecording { protocol, request, .. } if protocol == PROTOCOL => {
-            runtime.start_owned_recording(*request)
-                .unwrap_or_else(|code|refused(&code))
-        },
+        Request::BodyRecording {
+            protocol, request, ..
+        } if protocol == PROTOCOL => runtime
+            .start_owned_recording(*request)
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyStart {
             protocol,
             maximum_millis,

@@ -68,6 +68,8 @@ pub(crate) use membership::{
 };
 #[cfg(unix)]
 pub(crate) use membership::RetainedPart;
+#[cfg(unix)]
+pub(crate) use routed_join::native_snapshot_encounter;
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]

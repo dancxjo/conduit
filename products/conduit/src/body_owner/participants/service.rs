@@ -2,6 +2,7 @@
 //! truth: every challenge and completion is applied on the serialized owner actor.
 mod admission;
 mod invited;
+mod native_snapshot;
 mod route;
 #[cfg(test)]
 mod tests;

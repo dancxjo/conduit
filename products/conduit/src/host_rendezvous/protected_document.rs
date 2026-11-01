@@ -13,6 +13,7 @@ pub(crate) struct ProtectedDocumentLine<C: ProtectedFrameCarrier> {
     timeout: Duration,
     failed: bool,
     workspace: Option<DocumentWorkspace>,
+    encounter_deadline: Option<Instant>,
 }
 /// Local finite storage selection, not authority. The owning bridge must derive
 /// it independently from its actual admitted workspace, never traffic quotas.
@@ -49,12 +50,16 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
             timeout: Duration::from_millis(u64::from(timeout_millis)),
             failed: false,
             workspace,
+            encounter_deadline: None,
         })
     }
     fn deadline(&self) -> Result<Instant, String> {
-        Instant::now()
+        let operation = Instant::now()
             .checked_add(self.timeout)
-            .ok_or_else(|| "document deadline overflow".into())
+            .ok_or("document deadline overflow")?;
+        Ok(self
+            .encounter_deadline
+            .map_or(operation, |end| end.min(operation)))
     }
     fn remaining(deadline: Instant) -> Result<u32, String> {
         let remaining = deadline
@@ -195,6 +200,20 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
     }
 }
 impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
+    pub(crate) fn evidence(&self) -> conduit_protected_line::SessionEvidence<'_> {
+        self.inner.session().evidence()
+    }
+    /// Tighten the whole encounter; individual document deadlines cannot reset it.
+    pub(crate) fn restrict_deadline(&mut self, deadline: Instant) -> Result<(), String> {
+        if deadline <= Instant::now() {
+            return Err("encounter deadline elapsed".into());
+        }
+        self.encounter_deadline = Some(
+            self.encounter_deadline
+                .map_or(deadline, |old| old.min(deadline)),
+        );
+        Ok(())
+    }
     pub(crate) fn receive(&mut self) -> Result<Vec<u8>, String> {
         if self.failed {
             return Err("document Line is retired".into());
