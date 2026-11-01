@@ -15,22 +15,67 @@ pub(crate) struct RecordingRequest {
 #[serde(tag = "operation", rename_all = "snake_case", deny_unknown_fields)]
 pub(crate) enum RecordingOperation {
     Publish {
+        #[serde(deserialize_with = "deserialize_authority")]
         authority: conduit_core::AuthorityGrant,
     },
     Readback {
+        #[serde(deserialize_with = "deserialize_authority")]
         authority: conduit_core::AuthorityGrant,
     },
     Catalog {
+        #[serde(deserialize_with = "deserialize_authority")]
         authority: conduit_core::AuthorityGrant,
     },
     RecoverCatalog {},
     ReadRecoveredCatalog {
+        #[serde(deserialize_with = "deserialize_authority")]
         authority: conduit_core::AuthorityGrant,
     },
     ReadRecoveredChunk {
+        #[serde(deserialize_with = "deserialize_authority")]
         authority: conduit_core::AuthorityGrant,
         index: usize,
     },
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SelectedAuthority {
+    grant_id: conduit_core::AuthorityGrantId,
+    contract_id: conduit_core::AuthorityContractId,
+    host_call_contract_id: conduit_core::HostCallContractId,
+    subject_kind: conduit_core::KindId,
+    host_id: conduit_core::HostId,
+    boot_id: conduit_core::BootId,
+    capability_id: conduit_core::CapabilityId,
+}
+impl From<SelectedAuthority> for conduit_core::AuthorityGrant {
+    fn from(value: SelectedAuthority) -> Self {
+        Self {
+            grant_id: value.grant_id,
+            contract_id: value.contract_id,
+            host_call_contract_id: value.host_call_contract_id,
+            subject_kind: value.subject_kind,
+            host_id: value.host_id,
+            boot_id: value.boot_id,
+            capability_id: value.capability_id,
+        }
+    }
+}
+fn deserialize_authority<'de, D: serde::Deserializer<'de>>(
+    decoder: D,
+) -> Result<conduit_core::AuthorityGrant, D::Error> {
+    SelectedAuthority::deserialize(decoder).map(Into::into)
+}
+/// Decode only an explicitly selected finite grant, never issue authority.
+pub(crate) fn decode_selected_authority(
+    bytes: &[u8],
+) -> Result<conduit_core::AuthorityGrant, String> {
+    if bytes.is_empty() || bytes.len() > 16 * 1024 {
+        return Err("selected recording authority exceeds its finite byte bound".into());
+    }
+    serde_json::from_slice::<SelectedAuthority>(bytes)
+        .map(Into::into)
+        .map_err(|e| format!("selected recording authority: {e}"))
 }
 impl DurableHostRuntime {
     #[cfg(all(

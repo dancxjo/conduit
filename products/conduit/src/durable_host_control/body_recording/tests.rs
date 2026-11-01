@@ -254,3 +254,72 @@ mod owned {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[test]
+fn recording_wire_and_file_share_strict_selected_grant_decoding() {
+    let value = serde_json::json!({"grant_id":"fixture","contract_id":"contract/read","host_call_contract_id":"call/read","subject_kind":"resource/snapshot@1","host_id":"host/test","boot_id":"boot/test","capability_id":"read/test"});
+    let grant: conduit_core::AuthorityGrant = serde_json::from_value(value.clone()).unwrap();
+    assert_eq!(
+        decode_selected_authority(&serde_json::to_vec(&value).unwrap()).unwrap(),
+        grant
+    );
+    for operation in [
+        RecordingOperation::Publish {
+            authority: grant.clone(),
+        },
+        RecordingOperation::Readback {
+            authority: grant.clone(),
+        },
+        RecordingOperation::Catalog {
+            authority: grant.clone(),
+        },
+        RecordingOperation::ReadRecoveredCatalog {
+            authority: grant.clone(),
+        },
+        RecordingOperation::ReadRecoveredChunk {
+            authority: grant.clone(),
+            index: 0,
+        },
+    ] {
+        let req = request(operation);
+        let mut extra = serde_json::to_value(&req).unwrap();
+        extra["operation"]["authority"]["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<RecordingRequest>(extra).is_err());
+        let duplicate = serde_json::to_string(&req).unwrap().replacen(
+            "\"grant_id\":\"fixture\"",
+            "\"grant_id\":\"fixture\",\"grant_id\":\"duplicate\"",
+            1,
+        );
+        assert!(serde_json::from_str::<RecordingRequest>(&duplicate).is_err());
+    }
+    let mut extra = value.clone();
+    extra["unexpected"] = serde_json::json!(true);
+    assert!(decode_selected_authority(&serde_json::to_vec(&extra).unwrap()).is_err());
+    let duplicate = serde_json::to_string(&value).unwrap().replacen(
+        "\"grant_id\":\"fixture\"",
+        "\"grant_id\":\"fixture\",\"grant_id\":\"duplicate\"",
+        1,
+    );
+    assert!(decode_selected_authority(duplicate.as_bytes()).is_err());
+    assert!(decode_selected_authority(&vec![b' '; 16 * 1024 + 1]).is_err());
+}
+
+#[cfg(not(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+)))]
+#[test]
+fn unavailable_recording_profile_explicitly_refuses_without_host_mutation() {
+    let mut runtime = DurableHostRuntime::new(
+        "fixture".into(),
+        "fixture".into(),
+        conduit_std_host::StdHost::new(),
+    );
+    let before = runtime.truth().advertisement;
+    assert!(runtime
+        .start_owned_recording(request(RecordingOperation::RecoverCatalog {}))
+        .unwrap_err()
+        .contains("requires installed-environmental-sources and installed-body-storage on Linux"));
+    assert_eq!(runtime.truth().advertisement, before);
+}
