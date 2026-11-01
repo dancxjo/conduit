@@ -6,14 +6,15 @@ if not __debug__:
 import argparse
 parser=argparse.ArgumentParser()
 parser.add_argument('capture',type=Path)
+parser.add_argument('--profile',choices=['matrix-local','compact-local','source-cache'],default='matrix-local')
 parser.add_argument('--source',required=True)
 parser.add_argument('--worker',required=True,type=Path)
 parser.add_argument('--output',type=Path)
 args=parser.parse_args()
 capture=args.capture.resolve()
-script=Path(__file__).with_name('verify-matrix-local-capture.py')
+script=Path(__file__).with_name(f'verify-{args.profile}-capture.py')
 spec=importlib.util.spec_from_file_location('candidate',script);verifier=importlib.util.module_from_spec(spec);spec.loader.exec_module(verifier)
-public_spec=importlib.util.spec_from_file_location('public',Path(__file__).with_name('verify-matrix-local-public.py'))
+public_spec=importlib.util.spec_from_file_location('public',Path(__file__).with_name(f'verify-{args.profile}-public.py'))
 public=importlib.util.module_from_spec(public_spec);public_spec.loader.exec_module(public)
 positive=public.verify(capture,args.source,args.worker)
 assert positive['paired_frames'] >= 48
@@ -34,7 +35,7 @@ for name,mutate in cases:
   try:verifier.verify(root)
   except (AssertionError,KeyError,ValueError,FileNotFoundError) as error:results.append({'case':name,'refused':True,'error_class':type(error).__name__})
   else:raise AssertionError('corruption admitted: '+name)
-report={'positive':positive,'refusals':results,'verifier_sha256':hashlib.sha256(script.read_bytes()).hexdigest(),'source':args.source,'scope':'Actual current capture replay and scratch mutation controls; no timing/release acceptance'}
+report={'positive':positive,'refusals':results,'verifier_sha256':hashlib.sha256(script.read_bytes()).hexdigest(),'source':args.source,'profile':args.profile,'scope':'Independent source-bound capture replay and scratch mutation controls; no timing/release acceptance'}
 if args.output:
  with args.output.open('x') as output: output.write(json.dumps(report,indent=2)+'\n')
 else: print(json.dumps(report,indent=2))

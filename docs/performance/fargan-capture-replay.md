@@ -1,7 +1,7 @@
-# Independent matrix-local capture replay
+# Independent FARGAN capture replay
 
-The retained matrix-local worker compares 24-frame trajectories under fresh
-and prepared matrix-local execution. Replay checks exact Plan identities,
+The retained FARGAN worker compares 24-frame trajectories under fresh
+and prepared compact-local, matrix-local or matrix-source-cache execution. Replay checks exact Plan identities,
 framed artifact hashes, final outputs, per-node ordered Value transactions,
 finite fusion membership, and zero Play allocation requests. It does not
 establish quiet timing, a speedup, ordinary Body integration or release acceptance.
@@ -17,11 +17,13 @@ Retain the actual worker executable alongside the capture. Supply the full
 expected source commit and that worker when independently verifying:
 
 ```sh
-cargo xtask prove runtime-performance --verify-matrix-local target/matrix-local-capture --source FULL_COMMIT_SHA --worker /retained/fargan_performance
-cargo xtask prove runtime-performance --check-matrix-local-verifier target/matrix-local-capture --source FULL_COMMIT_SHA --worker /retained/fargan_performance
+cargo xtask prove runtime-performance --verify-fargan-capture target/matrix-local-capture --source FULL_COMMIT_SHA --worker /retained/fargan_performance
+cargo xtask prove runtime-performance --check-fargan-verifier target/matrix-local-capture --source FULL_COMMIT_SHA --worker /retained/fargan_performance
 ```
 
-Both commands accept `--output PATH`, created exclusively. The second first
+Both commands accept `--profile matrix-local|compact-local|source-cache`
+(default `matrix-local`) and `--output PATH`, created exclusively. Match the
+profile to the captured worker owners; an unrelated profile refuses. The second first
 verifies the original capture, then checks independently corrupted scratch
 copies without modifying it. The capture directory must support hard links.
 These Python diagnostic checks refuse optimized Python execution that disables
@@ -34,10 +36,13 @@ match the source-bound command receipt. The worker's ignored fixture tests are
 not counted as passing: explicit conformance logs and actual trajectory
 artifacts are checked separately.
 
-The two validators were recovered from `perf/audit-issue-handoff` at immutable
+The three capture/public validator pairs were recovered from `perf/audit-issue-handoff` at immutable
 commit `76069eba0f0376ddb619b375805ff0cf10447376`, under
 `docs/audits/evidence/performance-handoff-20261019/verifiers/`.
-The repetition bound repairs a reproduced refusal gap in the historical
-validator, which accepted an empty zero-repetition capture. Historical captures,
+The repetition bound repairs the reproduced matrix-local empty-capture refusal
+gap and applies the same producer bounds to all three profiles. Only canonical
+source-bound commands are supported; historical frozen-repeat controllers are
+not imported. Historical captures,
 private parameters and older timing claims are not imported. The separate
-matrix-projection verifier and other handoff work remain outside this slice.
+matrix-projection verifier, repeat controllers and other handoff work remain
+outside this slice.
