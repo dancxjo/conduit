@@ -428,10 +428,12 @@ fn storage_and_environmental_intent_coexist_without_network_effect_or_source_off
     let root = private_storage_root(&state);
     let mut configuration = parse_host_configuration_conduit(&storage_source(&root)).unwrap();
     configuration.bases.push(ConfigurationBase {kind:"environment/source".into(),implementation:Some("linux/environmental-sources@1".into()),implementations:Vec::new(),initialization:Some(serde_json::from_value::<BaseInitialization>(serde_json::json!({"worker_executable":"/not-opened-by-inert-initialization","worker_sha256":"11".repeat(32),"timeout_milliseconds":31000})).unwrap())});
-    let source_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../bodies/environment/host/configurations/green.host.conduit")
-        .canonicalize()
-        .unwrap();
+    let source_path = state.join("green.host.conduit");
+    fs::copy(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../bodies/environment/host/configurations/green.host.conduit"),
+        &source_path,
+    ).unwrap();
     configuration.devices.push(ConfigurationDevice::Network {
         id: "inert-green".into(),
         authority: "green.environment.invalid:8080".into(),
