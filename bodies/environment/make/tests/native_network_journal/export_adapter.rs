@@ -41,6 +41,9 @@ struct NativeRoot {
     key: ed25519_dalek::SigningKey,
 }
 impl NativeRoot {
+    pub(crate) fn membership_busy(&self) -> bool {
+        false
+    }
     fn local_renewal_pending(&self) -> bool {
         self.pending
     }

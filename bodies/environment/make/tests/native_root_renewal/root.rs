@@ -504,6 +504,9 @@ pub(super) fn prove_fresh_journal_failure_latches() {
 mod display_offers;
 
 impl NativeRoot {
+    pub(crate) fn membership_busy(&self) -> bool {
+        false
+    }
     fn control_status(&self) -> &'static str {
         "cpu-network-uninstalled"
     }
