@@ -9,6 +9,8 @@ pub use shared_paint::visual_look_paint;
 #[cfg(feature = "native-face-raster")]
 mod coverage;
 mod font;
+mod geometry;
+pub(crate) use geometry::validate_framebuffer_geometry;
 #[cfg(feature = "native-face-raster")]
 mod icons;
 mod polyline;
@@ -65,17 +67,10 @@ impl DisplayError {
 
 impl DisplayFormat {
     pub fn validate(self) -> Result<Self, DisplayError> {
-        let row_bytes = self
-            .width
-            .checked_mul(4)
-            .ok_or(DisplayError::InvalidExtent)?;
-        if self.width == 0 || self.height == 0 || self.pitch < row_bytes {
-            return Err(DisplayError::InvalidExtent);
-        }
-        if self.bits_per_pixel != 32
-            || [self.red_shift, self.green_shift, self.blue_shift]
-                .into_iter()
-                .any(|shift| shift > 24 || shift % 8 != 0)
+        validate_framebuffer_geometry(self.width, self.height, self.pitch, self.bits_per_pixel)?;
+        if [self.red_shift, self.green_shift, self.blue_shift]
+            .into_iter()
+            .any(|shift| shift > 24 || shift % 8 != 0)
             || self.red_shift == self.green_shift
             || self.red_shift == self.blue_shift
             || self.green_shift == self.blue_shift
