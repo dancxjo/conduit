@@ -135,6 +135,26 @@ pub(crate) fn result(ticket: u32) -> ResultReply {
         }
     })
 }
+/// Response storage is admitted before moving accepted input into execution.
+/// Pressure leaves the original request allocation and ticket available to retry.
+fn take_prepared_pending(
+    state: &mut State,
+    prepare_response: impl FnOnce() -> Result<Vec<u8>, &'static str>,
+) -> Option<(Pending, Vec<u8>)> {
+    state.pending.as_ref()?;
+    let bytes = prepare_response().ok()?;
+    let pending = state.pending.take()?;
+    state.inflight = Some((pending.ticket, pending.digest));
+    Some((pending, bytes))
+}
+fn response_backing() -> Result<Vec<u8>, &'static str> {
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(2048)
+        .map_err(|_| "body-join-memory")?;
+    bytes.resize(2048, 0);
+    Ok(bytes)
+}
 fn prune_completed(state: &mut State, now_ms: u64) {
     cache::prune(&mut state.completed, now_ms, |done| done.deadline);
 }
@@ -155,11 +175,9 @@ impl crate::native_root::NativeRoot {
             if !state.enabled {
                 return None;
             }
-            let pending = state.pending.take()?;
-            state.inflight = Some((pending.ticket, pending.digest));
-            Some(pending)
+            take_prepared_pending(&mut state, response_backing)
         });
-        let Some(pending) = pending else {
+        let Some((pending, mut bytes)) = pending else {
             return;
         };
         let ticket = pending.ticket;
@@ -167,12 +185,6 @@ impl crate::native_root::NativeRoot {
         let result = (|| {
             let request = crate::native_body_join::decode_command(&pending.bytes)?;
             drop(pending);
-            // Reserve response custody before mutating the authoritative Body.
-            let mut bytes = Vec::new();
-            bytes
-                .try_reserve_exact(2048)
-                .map_err(|_| "body-join-memory")?;
-            bytes.resize(2048, 0);
             let mut deadline = None;
             let length = match request {
                 crate::native_body_join::Command::ReturnChallenge(request) => {
