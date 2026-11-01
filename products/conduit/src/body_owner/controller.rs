@@ -39,10 +39,10 @@ mod continuing;
 mod execution_retention;
 pub(crate) use continuing::RunWorker;
 mod birth;
-#[path = "creche_planning.rs"]
-mod creche_planning;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[path = "creche_planning.rs"]
+mod creche_planning;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
 pub(crate) use direct_spoken_route::DirectSpokenStart;

@@ -104,6 +104,25 @@ refusal of a same-name Plot with different Source identity. Those are software
 preparation/execution proofs; actual checked Crèche provider selection and the
 production encounter owner remain the next installed gates under #6468.
 
+### Checked authoring-Host selection
+
+The hosted Make package now checks an explicit Linux x86_64 `creche/encounter`
+Base selection pinned to the existing `std/kernel-creche-prepare@1`
+implementation. Required initialization declares the slot identity, evidence
+ceiling, poll count and minimum poll interval through the ordinary finite Base
+initialization schema. All23 package tests passed, including canonical roundtrip,
+identity changes, malformed/missing/duplicate fields, unsupported targets, exact
+Host Call/resource/Base prerequisites and dependency-cycle refusal. The slot is
+not a byte reservation, build grant, initialized provider or Ready advertisement.
+
+The product planning slice passed its two focused tests and strict binary Clippy;
+the combined checked-selection dependency also passed strict binary Clippy.
+PR #6706 retains the separate Std execution slice. Its initial quick check found
+module ordering; that formatting-only fault was corrected without changing the
+qualified execution behavior. The accepted projection-evidence changes from
+dev1e1456e4af were then integrated. No new release containing these additions has
+been installed yet: the live entrance above remains the pinned dc2e85c6e2 build.
+
 ## 3. Source gates to address at the real encounter
 
 On the inspected source, the installed Birth encounter offers reviewed Morse,
