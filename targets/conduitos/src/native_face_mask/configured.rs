@@ -97,3 +97,7 @@ impl NativeFaceMask {
 #[cfg(test)]
 #[path = "metric_consumer_tests.rs"]
 mod metric_consumer_tests;
+
+#[cfg(test)]
+#[path = "field_look_reuse_tests.rs"]
+mod field_look_reuse_tests;
