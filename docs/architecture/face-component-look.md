@@ -81,8 +81,15 @@ new domain actions. Optional detail must remain genuinely reachable.
 `LookInfo`, checked from `semantics/face/look.conduit`, is the finite common
 contract with separately typed optional visual, spoken and generative facets.
 The built-in Phosphor resource has identity `conduit.look/phosphor@1` and version
-1. The visual facet carries bounded RGB/metric tokens and a checked expression;
+2. The visual facet carries bounded RGB/metric tokens and a checked expression;
 structural breakpoint/grid selection stays with the component/Mask.
+
+[Personal visual proposals](../../semantics/face/LOCAL_LOOKS.md) provide a bounded
+shared data-resolution seam over an authored Look. Omitted expression values
+inherit, repeated keys refuse, and independent accessibility requirements take
+precedence. The caller retains author/local/selected provenance. This seam does
+not select a Host Back, alter Face truth, or establish Appearance UI, actual
+rendering or a Show acknowledgement.
 
 The former `ApplicationTheme` binary versions and Phosphor identities are
 retired. There is no old reader or alias. Canonical admission rejects retired

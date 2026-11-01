@@ -683,3 +683,28 @@ test("wrong IMAGE family and stale command status refuse without deployment succ
   expect(result.secondEvidence).toMatchObject({ phase: "terminal", terminal: "StaleStatus", reboot_requested: false });
   expect(result.commands).toHaveLength(1);
 });
+
+
+test("browser deployment consumes the shared layout and refuses credential pages", async ({ page }) => {
+  await page.goto(await startEntrance());
+  const result = await page.evaluate(async () => {
+    const response = await fetch("/targets/rp2040/browser-deployment/flash-layout.mjs");
+    const contentType = response.headers.get("content-type");
+    const { default: layout } = await import("/targets/rp2040/browser-deployment/flash-layout.mjs");
+    const { parseRp2040Uf2, RP2040_UF2 } = await import("/targets/rp2040/browser-deployment/uf2.mjs");
+    const bytes = new Uint8Array(512);
+    const view = new DataView(bytes.buffer);
+    for (const [at, value] of [[0, 0x0a324655], [4, 0x9e5d5157], [8, 0x2000],
+      [12, RP2040_UF2.credentialsAddress], [16, 256], [20, 0], [24, 1],
+      [28, 0xe48bff56], [508, 0x0ab16f30]]) view.setUint32(at, value, true);
+    let refusal;
+    try { parseRp2040Uf2(bytes, 4096); } catch (error) { refusal = error.code; }
+    return { contentType, layout, geometry: RP2040_UF2, refusal };
+  });
+  expect(result.contentType).toContain("text/javascript");
+  expect(result.layout.schema).toBe("conduit.rp2040/flash-layout@1");
+  expect(result.geometry.credentialsBytes).toBe(result.layout.credentials_bytes);
+  expect(result.geometry.sporeSectorAddress).toBe(0x101ff000);
+  expect(result.geometry.firmwareEnd + result.geometry.credentialsBytes).toBe(result.geometry.sporeSectorAddress);
+  expect(result.refusal).toBe("ReservedFlash");
+});

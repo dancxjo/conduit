@@ -135,6 +135,9 @@ fn column(
                 if let Some(mut prefix) =
                     fragment.take_prefix(remaining_height, remaining_rows, remaining_cost)
                 {
+                    if current.entries.is_empty() {
+                        current.continuation = prefix.continuation;
+                    }
                     prefix.translate(x, y);
                     current.height = add(y, prefix.height)?;
                     current.cost += prefix.cost;
@@ -211,6 +214,8 @@ fn row(
             let remaining_cost =
                 conduit_face::MAX_GRAPHICS_COMMANDS - chrome::COMMANDS - 1 - current.cost;
             if let Some(mut prefix) = fragment.take_prefix(height, remaining_rows, remaining_cost) {
+                current.continuation =
+                    LayoutContinuation::merge(current.continuation, prefix.continuation);
                 let marker = prefix.height;
                 for entry in &mut prefix.entries {
                     entry.cross_extent = marker;

@@ -4,12 +4,17 @@ use conduit_plot::rust_binding::{
 };
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
+mod local_look_build;
+mod look_resources_build;
 mod parsec_map_build;
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=look.conduit");
+    println!("cargo:rerun-if-changed=field-instrument-looks.conduit");
     println!("cargo:rerun-if-changed=component-layout.conduit");
+    println!("cargo:rerun-if-changed=local-look.conduit");
+    local_look_build::generate();
     let mut catalog = StartupCatalog::new();
     catalog
         .insert_value_kind_alias(
@@ -42,13 +47,16 @@ fn main() {
             &[
                 include_str!("types.conduit"),
                 include_str!("look.conduit"),
+                include_str!("field-instrument-looks.conduit"),
                 include_str!("component-layout.conduit"),
+                include_str!("local-look.conduit"),
             ]
             .join("\n"),
         ),
         &catalog,
     )
     .expect("face semantic Types must check");
+    look_resources_build::generate(&checked);
     for name in [
         "GeneratedActionAffordance",
         "ActionInputBindingProposalInfo",
@@ -111,6 +119,7 @@ fn main() {
                 "LookVisualFacetOption".into(),
                 "LookSpokenFacetOption".into(),
                 "LookGenerativeFacetOption".into(),
+                "LocalLookVisualOverride".into(),
                 "FaceUtteranceProvenance".into(),
                 "FaceCompositionKind".into(),
                 "VisionColorSample".into(),

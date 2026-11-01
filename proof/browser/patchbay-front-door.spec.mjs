@@ -141,7 +141,7 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
       navigation_id: initial.navigation.navigation.identity,
       operation: { kind: "show", aspect: "Plan" },
     }, "UnknownAspect");
-    await expect(page.getByRole("heading", { name: "Entrance choices" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Make the system you mean" })).toBeVisible();
     await expect(page.locator("body")).toHaveAttribute("data-place", "Entrance");
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Manifestation Available");
     expect(await page.evaluate(() => globalThis.__patchbayMembership)).toBeUndefined();
@@ -162,31 +162,24 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     await page.evaluate(() => window.patchbayReload());
     await expect(formButton).toBeFocused();
     const openResponses = [];
-    let resolveOpenSequence;
-    const openSequence = new Promise((resolve) => { resolveOpenSequence = resolve; });
-    page.on("response", (response) => {
-      if(["/api/navigation", "/api/interaction"].some(path => response.url().endsWith(path)) && response.request().method() === "POST") {
-        openResponses.push(response);
-        if(openResponses.length === 2) resolveOpenSequence();
-      }
+    page.on("response", response => {
+      if (["/api/navigation", "/api/interaction"].some(path => response.url().endsWith(path)) && response.request().method() === "POST") openResponses.push(response);
     });
-    await Promise.all([openSequence, formButton.press("Enter")]);
-    expect(openResponses).toHaveLength(2);
-    expect(openResponses.map(response => new URL(response.url()).pathname).sort()).toEqual([
-      "/api/interaction",
-      "/api/navigation",
-    ]);
-    await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "true");
-    const birthButton = page.getByRole("button", { name: "BIRTH" });
+    const openedDelivery = page.waitForResponse(response => response.url().endsWith("/api/interaction") && response.request().method() === "POST");
+    await formButton.press("Enter");
+    expect((await openedDelivery).ok()).toBe(true);
+    await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(3);
+    expect(openResponses).toHaveLength(1);
+    expect(new URL(openResponses[0].url()).pathname).toBe("/api/interaction");
+    await expect(page.locator("body")).toHaveAttribute("data-inspector-open", "false");
+    const birthButton = page.getByRole("button", { name: "Birth Body", exact: true });
     await expect(birthButton).toBeVisible();
     await expect(birthButton).toBeEnabled();
-    expect(openResponses.every((response) => response.ok())).toBe(true);
-    await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
     const openAction = initial.face.actions.find(
       ({ intent, target }) => intent === "conduit.intent/open@1" && target === plot.identity,
     );
     const opened = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(opened.interaction.last_request_id).toMatch(/^navigation\//);
+    expect(opened.interaction.last_request_id).toMatch(/^patchbay\/interaction\/invoke\//);
     expect(opened.interaction.last_disposition).toBe("Succeeded");
     expect(openAction.identity).toMatch(/^action\/open\//);
     expect(opened.revision).toBe(initial.revision + 1);
@@ -209,6 +202,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     );
     expect(birthAction.identity).toMatch(/^action\/birth\//);
 
+    await page.getByRole("button", { name: "Inspect Plot", exact: true }).click();
+    await expect(page.getByRole("button", { name: "OPEN", exact: true })).toBeEnabled();
     const exact = page.locator("#inspector .exact-selection");
     await expect(exact).not.toHaveAttribute("open", "");
     await exact.locator("summary").click();
@@ -232,8 +227,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(birthResponse, server.errors.join("")).not.toBeNull();
     expect(birthResponse.ok()).toBe(true);
     await expect(page.getByRole("heading", { name: "Body topology" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Body", exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Plot", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Inspect Body", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Show Plot", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Program structure" })).toBeVisible();
     const born = await (await fetch(`${url}/api/snapshot`)).json();
     expect(born.interaction.last_request_id).toMatch(/^navigation\//);
@@ -281,13 +276,13 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
     expect(awakened.face.basis.wake_id).toBeTruthy();
     expect(awakened.face.basis.plan_id).toBeNull();
 
-    await page.getByRole("button", { name: "Plan current plot" }).click();
-    await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
+    await page.getByRole("button", { name: "Plan Plot" }).click();
+    await expect(page.locator("#maker-status")).toContainText("Plan ready");
     const planned = await (await fetch(`${url}/api/snapshot`)).json();
     expect(planned.face.basis.plan_id).toBeTruthy();
     expect(planned.face.basis.active_play_id).toBeNull();
-    await page.getByRole("button", { name: "Play current plan" }).click();
-    await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
+    await page.getByRole("button", { name: "Play Plot" }).click();
+    await expect(page.locator("#maker-status")).toContainText("Play completed");
     const playing = await (await fetch(`${url}/api/snapshot`)).json();
     expect(playing.face.basis.active_play_id).toBeTruthy();
     expect(playing.parts.parts[0].in_plan).toBe(true);
@@ -295,7 +290,8 @@ test("public browser entrance stays unbodied until OPEN then explicit BIRTH", as
 
     const navigationSteps = [];
     expect(playing.navigation.cursor).toMatchObject({ place: "Body", aspect: "Structure" });
-    await page.getByRole("button", { name: "Plot", exact: true }).click();
+    await page.getByRole("button", { name: "Show Plot", exact: true }).click();
+    await page.locator("#maker-views > summary").click();
     const journeyStartCursor = (await (await fetch(`${url}/api/snapshot`)).json()).navigation.cursor;
     expect(journeyStartCursor).toMatchObject({ place: "Program", aspect: "Structure" });
     await page.locator("#structured-navigator").evaluate(element=>{element.closest("details").open=true;});

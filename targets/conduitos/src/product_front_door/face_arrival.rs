@@ -389,6 +389,7 @@ impl FaceArrival {
             scene.page(),
             scene.pages(),
             super::native_action_evidence::FrameEvidence {
+                continuation: frame.continuation,
                 scene: &frame.scene,
                 hit_bounds: frame
                     .hits

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { webcrypto } from "node:crypto";
+import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { parseRp2040Uf2, RP2040_UF2, sha256ContentId } from "../../targets/rp2040/deployment/browser/uf2.mjs";
 import { requiredPicobootTransfers } from "../../targets/rp2040/deployment/browser/picoboot.mjs";
 import { createRp2040BrowserDeploymentAdapter } from "../../targets/rp2040/deployment/browser/deployment.mjs";
@@ -138,5 +142,49 @@ test("erase ranges do not widen the accepted sparse-image or command bounds", ()
   assert.throws(() => parseRp2040Uf2(image([start, start + 8192]), 4096), { code: "SparseImage" });
   for (const count of [0, 3, 1.5, undefined]) {
     assert.throws(() => requiredPicobootTransfers(1, count), { code: "EraseRangeBound" });
+  }
+});
+
+
+test("credential payloads refuse even when contiguous with the firmware image", () => {
+  const credentials = RP2040_UF2.credentialsAddress;
+  assert.equal(RP2040_UF2.credentialsBytes, 8192);
+  for (const address of [credentials, spore - 256]) {
+    assert.throws(() => parseRp2040Uf2(image([address]), 4096), { code: "ReservedFlash" });
+  }
+  const lastSector = credentials - 4096;
+  assert.throws(() => parseRp2040Uf2(image(Array.from({ length: 17 }, (_, i) => lastSector + i * 256)), 4096),
+    { code: "ReservedFlash" });
+});
+
+test("Workspace seals the UF2 parser and its exact shared layout dependency", async () => {
+  const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
+  const resources = template.resources.filter(({ role }) => ["rp2040-uf2", "rp2040-flash-layout"].includes(role));
+  assert.equal(resources.length, 2);
+  const scratch = await mkdtemp(path.join(tmpdir(), "conduit-pico-layout-package-"));
+  try {
+    for (const resource of resources) {
+      const bytes = await readFile(resource.path.replace("/browser-deployment/", "/deployment/browser/"));
+      const destination = path.join(scratch, resource.path);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await writeFile(destination, bytes);
+    }
+    const input = path.join(scratch, "template.json");
+    await writeFile(input, JSON.stringify({ ...template, resources }));
+    const producer = path.resolve("targets/browser/tools/build-browser-application-package.mjs");
+    const built = spawnSync(process.execPath, [producer, input, scratch, "layout.application.json"], { encoding: "utf8" });
+    assert.equal(built.status, 0, built.stderr);
+    const manifest = JSON.parse(await readFile(path.join(scratch, "layout.application.json"), "utf8"));
+    const data = manifest.resources.find(({ role }) => role === "rp2040-flash-layout");
+    const bytes = await readFile("targets/rp2040/deployment/browser/flash-layout.mjs");
+    assert.equal(data.sha256, await sha256ContentId(bytes, webcrypto));
+    assert.equal(data.maximum_bytes, 1024);
+    const missing = resources.map((resource) => resource.role === "rp2040-uf2" ? { ...resource, dependencies: [] } : resource);
+    await writeFile(input, JSON.stringify({ ...template, resources: missing }));
+    const refused = spawnSync(process.execPath, [producer, input, scratch, "refused.application.json"], { encoding: "utf8" });
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /imports undeclared module/);
+  } finally {
+    await rm(scratch, { recursive: true, force: true });
   }
 });

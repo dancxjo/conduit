@@ -44,6 +44,19 @@ impl PatchbayHtmlServer {
             let session = session
                 .lock()
                 .map_err(|_| ServerError::Interaction("front-door session lock failed".into()))?;
+            // Every canonical front-door mutation advances this revision.
+            // Polling unchanged truth must not rebuild the checked graph and
+            // catalog ahead of queued human interactions.
+            let host = session.advertisement();
+            let host_subject = format!("host/{}/{}", host.host_id.as_str(), host.boot_id.as_str());
+            if self.snapshot.face.basis.body_id.is_none()
+                && self.snapshot.face.subjects.iter().any(|subject| {
+                    subject.role == conduit_face::FaceRole::Host && subject.identity == host_subject
+                })
+                && session.revision() == self.snapshot.face.revision
+            {
+                return Ok(());
+            }
             let projection = session.project().map_err(ServerError::Interaction)?;
             if projection.face.revision == self.snapshot.face.revision
                 && projection.face.identity == self.snapshot.face.identity
@@ -77,6 +90,13 @@ impl PatchbayHtmlServer {
             .ok_or_else(|| ServerError::Interaction("front-door session is absent".into()))?
             .lock()
             .map_err(|_| ServerError::Interaction("front-door session lock failed".into()))?;
+        // Birth/Join can replace the owner with an equal revision. Fence this
+        // shortcut by Body identity as well as the owner's revision.
+        if self.snapshot.face.basis.body_id.as_ref() == Some(&session.body().body_id)
+            && session.revision() == self.snapshot.face.revision
+        {
+            return Ok(());
+        }
         let projection = session.project().map_err(ServerError::Interaction)?;
         if projection.face.revision == self.snapshot.face.revision
             && projection.face.identity == self.snapshot.face.identity

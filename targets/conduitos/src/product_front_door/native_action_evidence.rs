@@ -132,6 +132,7 @@ pub(super) fn creche_change(
 
 /// Borrow only the current prepared Mask frame; this is not scanout history.
 pub(super) struct FrameEvidence<'a> {
+    pub continuation: Option<crate::native_face_scene::LayoutContinuation>,
     pub scene: &'a conduit_face::GraphicsScene,
     pub hit_bounds: Option<conduit_face::LayoutRect>,
     pub display_bounds: conduit_face::LayoutRect,
@@ -178,6 +179,11 @@ pub(super) fn focus(
             "page": page + 1, "pages": pages, "showing_details": frame.showing_details,
             "hit_bounds": frame.hit_bounds.map(rectangle), "display_bounds": rectangle(frame.display_bounds),
             "prepared_frame_budget":frame_budget(frame.scene),
+            "layout_continuation":frame.continuation.map(|cause| json!({
+                "block_limit":cause.block_limit(), "row_limit":cause.row_limit(),
+                "command_limit":cause.command_limit(), "measurement_refused":cause.measurement_refused(),
+                "kept_group":cause.kept_group(),
+            })),
         }),
     )
 }

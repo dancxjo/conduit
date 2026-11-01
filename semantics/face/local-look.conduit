@@ -1,0 +1,43 @@
+# Personal appearance proposals. Omission inherits; duplicates refuse at resolution.
+# Closed typed values only: no selectors, topology, actions, bindings or equipment.
+type LocalLookVisualOverride =
+    background ThemeColor
+    | reading_paper ThemeColor
+    | workbench_canvas ThemeColor
+    | bootstrap_surface ThemeColor
+    | surface ThemeColor
+    | structure_primary ThemeColor
+    | structure_secondary ThemeColor
+    | text_primary ThemeColor
+    | text_secondary ThemeColor
+    | emphasis ThemeColor
+    | focus ThemeColor
+    | warning ThemeColor
+    | failure ThemeColor
+    | success ThemeColor
+    | muted ThemeColor
+    | type_body_px U16 in 8..=64
+    | type_small_px U16 in 8..=64
+    | line_height_percent U16 in 100..=250
+    | space_unit_px U16 in 0..=32
+    | space_control_inline_px U16 in 0..=64
+    | space_control_block_px U16 in 0..=64
+    | space_panel_px U16 in 0..=64
+    | radius_control_px U16 in 0..=32
+    | radius_panel_px U16 in 0..=32
+    | focus_width_px U16 in 1..=8
+    | text_scale_percent U16 in 100..=200
+    | density VisualDensityPreference
+    | typography VisualTypographyPreference
+    | motion VisualMotionPreference
+
+type LocalLookContrast =
+    standard
+    | enhanced
+
+type LocalLookInfo = {
+    identity: Text <= 128B not in [""]
+    version: U16 in 1..=1
+    contrast: LocalLookContrast
+    visual: sequence LocalLookVisualOverride <= 29
+}

@@ -103,6 +103,9 @@ fn unfit_narrow_row_remeasures_on_wider_page_and_full_width_still_refuses() {
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[1].text, expected);
     assert_eq!(rows[1].page, 1);
+    let cause = rows[1].continuation.unwrap();
+    assert!(cause.measurement_refused());
+    assert!(!cause.block_limit() && !cause.row_limit() && !cause.command_limit());
     assert_eq!(rows[1].bounds.x, (12 + EDGE + 50 * INDENT_STEP) as i16);
     assert_eq!(rows[1].panel_bounds.unwrap().width, 1280 - 24);
 

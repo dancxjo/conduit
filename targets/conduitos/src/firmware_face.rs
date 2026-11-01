@@ -176,3 +176,6 @@ impl<D: PixelTarget> FirmwareFace<D> {
         &self.evidence
     }
 }
+
+#[cfg(test)]
+mod tests;

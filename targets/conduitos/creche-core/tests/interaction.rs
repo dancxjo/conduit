@@ -73,8 +73,23 @@ fn wire_roundtrip(input: &InteractionRequest) -> InteractionRequest {
 #[test]
 fn deployed_transfer_matches_the_complete_reference_plan_and_canonical_checks() {
     let (_, input) = fixture();
+    // Keep the previous outer schema independent of InteractionRequest's
+    // current derive, so a field/order change cannot rewrite its own oracle.
+    #[derive(serde::Serialize)]
+    struct PreviousRequest<'a> {
+        revision: u32,
+        basis: &'a BirthFaceBasis,
+        show: &'a conduit_face::MaskShow,
+        input: &'a FaceInteraction,
+    }
+    let previous = PreviousRequest {
+        revision: input.revision,
+        basis: &input.basis,
+        show: &input.show,
+        input: &input.input,
+    };
     let mut original = b"CDCI\x01".to_vec();
-    ciborium::ser::into_writer(&input, &mut original).unwrap();
+    ciborium::ser::into_writer(&previous, &mut original).unwrap();
     let mut remaining = &original[5..];
     let reference: InteractionRequest =
         ciborium::de::from_reader_with_recursion_limit(&mut remaining, 64).unwrap();

@@ -17,6 +17,9 @@ use crate::display::{
 
 #[path = "native_face_scene/boolean_choice.rs"]
 mod boolean_choice;
+#[path = "native_face_scene/continuation.rs"]
+mod continuation;
+pub use continuation::LayoutContinuation;
 #[cfg(test)]
 #[path = "native_face_scene/boolean_choice_tests.rs"]
 mod boolean_choice_tests;
@@ -59,6 +62,7 @@ pub enum FaceSceneError {
     InvalidFace,
     DocumentBound,
     InvalidExtent,
+    LookTypography(crate::display::typography::LookTypographyRefusal),
     UnsupportedStructure,
     SceneBound,
     StaleFace,
@@ -88,6 +92,8 @@ pub struct FaceHit<'a> {
 }
 
 pub struct FaceFrame<'a> {
+    /// Why this admitted page continues the preceding one; diagram/editor paths are separate.
+    pub continuation: Option<LayoutContinuation>,
     pub scene: GraphicsScene,
     pub face_id: &'a FaceContentId,
     pub revision: u64,
@@ -462,3 +468,7 @@ mod structured_source_tests;
 #[cfg(test)]
 #[path = "native_face_scene/local_look_hint_tests.rs"]
 mod local_look_hint_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/authored_look_metrics_tests.rs"]
+mod authored_look_metrics_tests;

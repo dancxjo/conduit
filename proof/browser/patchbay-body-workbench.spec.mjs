@@ -23,7 +23,9 @@ test("Body truth is contextual Inspect content, not a nested application", async
     await expect(page.locator("#body-workbench")).toHaveCount(0);
     await expect(page.locator("[data-workbench-destination]")).toHaveCount(0);
     const bodyStatus = page.locator("#body-summary");
-    await expect(bodyStatus).toHaveText(/^(?:No Body|Body: .+)/);
+    const initial = await (await page.request.get(new URL("/api/snapshot", page.url()).href)).json();
+    expect(initial.face.basis.body_id).toBeTruthy();
+    await expect(bodyStatus).toHaveText("Inspect Body");
     await bodyStatus.click();
     await expect(page.locator("#inspector")).toBeVisible();
     if (await page.locator("#body-inspect").isVisible()) await expect(page.locator("#body-workbench-title")).toBeFocused();

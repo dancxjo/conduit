@@ -22,7 +22,7 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
           <script src="/targets/browser/host/assets/vendor/react-flow/react-flow.min.js"></script>
           <div id="flow-root" style="width:1300px;height:700px"></div>` });
       } else {
-        await route.fulfill({ contentType: path.endsWith(".css") ? "text/css" : "text/javascript", body: await readFile(new URL(path, root)) });
+        await route.fulfill({ contentType: path.endsWith(".css") ? "text/css" : "text/javascript", body: await readFile(new URL(path === "plots/patchbay/workbench/browser/gui-icons.mjs" ? "targets/browser/handbook/owner-face-icons.mjs" : path, root)) });
       }
     });
     await page.goto("http://workspace.test/");
