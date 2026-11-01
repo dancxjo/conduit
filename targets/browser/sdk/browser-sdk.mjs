@@ -144,13 +144,14 @@ export class BrowserHost {
    * invitedProvision supplies first-admission proof inside an independently
    * authorized owner window; it opens no route or window. Portable Part-key
    * return is not implemented by the current browser membership ABI. */
-  async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
+  async participate({ invitation, sessionCarrier = null, expectedBodyId = null, retainedCredential = null, onCredential,
     onState, onBiographyEvidence, onOfferEvidence, invitedProvision = null, renewPresence = true, reconnectPresence = true } = {}) {
-    if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
+    if (sessionCarrier === null && (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048)) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
     }
     const membership = await joinBrowserBody({
       bodyUrl: invitation,
+      sessionCarrier,
       wasmBytes: this.#state.runtimeBytes,
       admittedHost: {
         api: this.#state.api,
