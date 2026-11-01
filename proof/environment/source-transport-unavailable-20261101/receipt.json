@@ -1,0 +1,20 @@
+{
+  "source_commit": "06f1a93124db11b3234e55db3944012ba1001ccc",
+  "worker_sha256": "75ffe1b31b9b4dac1783cd2eb4c25b988c9dbf7d523c5827130a4cd3da704059",
+  "worker_source": "a5fb91510c (provider/wire/classification unchanged through tested source)",
+  "cache": "/tmp/conduit-local-native-provider-check",
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "2"
+  },
+  "tests": {
+    "product_process": 7,
+    "cancellation_process": 1,
+    "transport_allowlist": 1,
+    "source_authority": 8
+  },
+  "standalone_host_test_lock_sha256": "6b10cd72f82c27d6bf2b5a63846ce533b4425ef6f0b2be7fd7c6be3bf4a7244b",
+  "scope": "Local controlled process and unit proof; no original physical fault cause, combined integration, hosted or physical acceptance claim."
+}
