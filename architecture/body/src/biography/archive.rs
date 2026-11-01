@@ -76,11 +76,23 @@ impl BodyBiographyArchiveSegment {
             .map_or(1, |summary| summary.sealed_segments.saturating_add(1));
         if ordinal == 0
             || records.is_empty()
-            || (wakes.is_empty() && body_events.is_empty() && membership_events.is_empty())
+            || (wakes.is_empty()
+                && body_events.is_empty()
+                && membership_events.is_empty()
+                && !records.iter().all(|record| {
+                    matches!(record.kind, super::BodyBiographyRecordKind::Renamed { .. })
+                }))
         {
             return Err(BodyBiographyError::InvalidEvidence);
         }
-        let schema = "conduit.body/biography-archive-segment@2";
+        let schema = if records
+            .iter()
+            .any(|record| matches!(record.kind, super::BodyBiographyRecordKind::Renamed { .. }))
+        {
+            "conduit.body/biography-archive-segment@3"
+        } else {
+            "conduit.body/biography-archive-segment@2"
+        };
         let digest = digest(&ArchivePayload {
             schema,
             body_id: &evidence.body_id,
@@ -106,7 +118,12 @@ impl BodyBiographyArchiveSegment {
 
     pub fn validate(&self) -> Result<(), BodyBiographyError> {
         let legacy = self.schema == "conduit.body/biography-archive-segment@1";
-        if (!legacy && self.schema != "conduit.body/biography-archive-segment@2")
+        if (!legacy
+            && !matches!(
+                self.schema.as_str(),
+                "conduit.body/biography-archive-segment@2"
+                    | "conduit.body/biography-archive-segment@3"
+            ))
             || self.ordinal == 0
             || self.records.is_empty()
             || self.records.len() > super::MAX_BODY_BIOGRAPHY_RECORDS
@@ -115,7 +132,11 @@ impl BodyBiographyArchiveSegment {
             || self.membership_events.len() > crate::MAX_MEMBERSHIP_EVENTS
             || (self.wakes.is_empty()
                 && self.body_events.is_empty()
-                && self.membership_events.is_empty())
+                && self.membership_events.is_empty()
+                && !(self.schema == "conduit.body/biography-archive-segment@3"
+                    && self.records.iter().all(|record| {
+                        matches!(record.kind, super::BodyBiographyRecordKind::Renamed { .. })
+                    })))
             || (legacy && (!self.body_events.is_empty() || !self.membership_events.is_empty()))
             || self
                 .records
@@ -416,7 +437,7 @@ impl BodyBiographyEvidence {
         Ok(transaction.segment.take())
     }
 
-    fn advance_compaction(
+    pub(super) fn advance_compaction(
         &mut self,
         segment: &BodyBiographyArchiveSegment,
         records: &[BodyBiographyRecord],

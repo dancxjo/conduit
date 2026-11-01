@@ -169,6 +169,19 @@ impl Drop for Publisher<'_> {
         }
     }
 }
+impl Reader<'_> {
+    /// Root projects its committed name without changing observation custody.
+    /// This projection conveys no administrative authority.
+    pub fn project_body_name(&self, body_id: &str, name: &str) -> Result<(), CustodyRefusal> {
+        self.lease().check()?;
+        self.owner
+            .face
+            .try_borrow_mut()
+            .map_err(|_| CustodyRefusal::Busy)?
+            .project_body_name(body_id, name)
+            .map_err(CustodyRefusal::Publication)
+    }
+}
 impl ReadLease<'_> {
     /// Borrow the exact retained revision without advancing its freshness clock.
     /// Mask-local paging may read the same truth repeatedly; the owner advances

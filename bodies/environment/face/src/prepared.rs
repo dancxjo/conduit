@@ -94,10 +94,18 @@ impl PreparedObservationFace {
             if name.trim().is_empty() || name.len() > conduit_face::MAX_FACE_TEXT_BYTES {
                 return Err(PublicationRefusal::InvalidFace);
             }
+            let mut wording = String::new();
+            wording
+                .try_reserve_exact(conduit_body::MAX_BODY_FRIENDLY_NAME_BYTES)
+                .map_err(|_| PublicationRefusal::Exhausted)?;
+            if name.len() > conduit_body::MAX_BODY_FRIENDLY_NAME_BYTES {
+                return Err(PublicationRefusal::InvalidFace);
+            }
+            wording.push_str(name);
             subjects.push(FaceSubject {
                 identity: alloc::format!("body/{}", body.as_str()),
                 role: FaceRole::Body,
-                name: name.into(),
+                name: wording,
             });
         }
         subjects.push(FaceSubject {
@@ -277,6 +285,37 @@ impl PreparedObservationFace {
         self.last_observed_ms = now;
         Ok(&self.face)
     }
+    /// Project committed owner metadata into preparation-reserved wording.
+    /// This changes no observation or execution basis and grants no authority.
+    pub fn project_body_name(
+        &mut self,
+        body_id: &str,
+        name: &str,
+    ) -> Result<(), PublicationRefusal> {
+        if self.face.basis.body_id.as_ref().map(|id| id.as_str()) != Some(body_id)
+            || name.trim().is_empty()
+            || name.len() > conduit_body::MAX_BODY_FRIENDLY_NAME_BYTES
+            || name.chars().any(char::is_control)
+        {
+            return Err(PublicationRefusal::InvalidBasis);
+        }
+        let subject = self
+            .face
+            .subjects
+            .iter_mut()
+            .find(|subject| subject.role == FaceRole::Body)
+            .ok_or(PublicationRefusal::InvalidBasis)?;
+        if subject.name == name {
+            return Ok(());
+        }
+        if name.len() > subject.name.capacity() || self.face.revision == u64::MAX {
+            return Err(PublicationRefusal::Exhausted);
+        }
+        subject.name.clear();
+        subject.name.push_str(name);
+        self.seal()
+    }
+
     pub fn current(&self) -> &Face {
         &self.face
     }
