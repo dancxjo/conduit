@@ -70,7 +70,16 @@ fn real_protected_peer_wrong_schema_or_body_is_refused() {
                 if wrong_schema {
                     *schema = "foreign/snapshot-schema".into();
                 } else {
-                    face.basis.body_id = Some(BodyId::from("body/not-selected"));
+                    face.basis.body_id = Some(
+                        Body::born(
+                            "source/other-body".into(),
+                            "checked/other-body".into(),
+                            1,
+                            "sign/other-body".into(),
+                        )
+                        .unwrap()
+                        .body_id,
+                    );
                 }
                 server
                     .send(
