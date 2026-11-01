@@ -59,6 +59,7 @@ fn associated_field_cluster_that_fits_fresh_page_has_no_internal_cut() {
         width: 500,
         scale: 100,
         padding: SPACE_SM,
+        gap: SPACE_SM,
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };

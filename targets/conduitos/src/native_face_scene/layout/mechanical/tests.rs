@@ -135,7 +135,7 @@ pub(super) fn run(
         screen(width, height),
         profile,
         100,
-        SPACE_SM,
+        RowSpacing::legacy(SPACE_SM),
         Typography::EDITORIAL,
     )
 }
@@ -341,7 +341,7 @@ fn unicode_chunks_large_text_and_selected_scale_preserve_complete_payload() {
         screen(350, 420),
         &profile,
         200,
-        SPACE_SM,
+        RowSpacing::legacy(SPACE_SM),
         Typography::EDITORIAL,
     )
     .unwrap();
@@ -366,6 +366,7 @@ fn allocation_weights_alignment_and_preferred_sum_have_finite_native_bounds() {
         width: 60000,
         scale: 200,
         padding: SPACE_SM,
+        gap: SPACE_SM,
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };
@@ -411,6 +412,7 @@ fn allocation_weights_alignment_and_preferred_sum_have_finite_native_bounds() {
         width: 8000,
         scale: 200,
         padding: SPACE_SM,
+        gap: SPACE_SM,
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(0),
     };
@@ -434,6 +436,7 @@ fn retained_row_capacity_is_refused_before_the_next_entry() {
         width: 600,
         scale: 100,
         padding: SPACE_SM,
+        gap: SPACE_SM,
         typography: Typography::EDITORIAL,
         rows: core::cell::Cell::new(MAX_ROWS - 1),
     };

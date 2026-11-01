@@ -16,6 +16,10 @@ mod configured;
 pub(super) use configured::admit_configured;
 pub(super) use configured::{ConfiguredColumns, admit_configured_selected, authored_panel_groups};
 
+#[path = "layout/spacing.rs"]
+mod spacing;
+pub(super) use spacing::RowSpacing;
+
 #[path = "layout/field_clusters.rs"]
 mod field_clusters;
 #[path = "layout/panels.rs"]
@@ -235,7 +239,7 @@ pub(super) fn admit_with_expression(
         gutter,
         columns,
         text_scale_percent,
-        padding,
+        RowSpacing::legacy(padding),
         Typography::EDITORIAL,
     )
 }
@@ -246,11 +250,12 @@ pub(super) fn admit_with_expression_selected(
     gutter: u16,
     columns: u16,
     text_scale_percent: u16,
-    padding: u16,
+    spacing: RowSpacing,
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
     field_clusters::validate(&items)?;
-    if !(1..=2).contains(&columns) || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
+    let RowSpacing { padding, gap } = spacing.validate()?;
+    if !(1..=2).contains(&columns) {
         return Err(FaceSceneError::InvalidExtent);
     }
     // A recipe permits columns; the narrow encounter admits one measured
@@ -306,6 +311,7 @@ pub(super) fn admit_with_expression_selected(
                     scale: text_scale_percent,
                     typography,
                     padding,
+                    gap,
                 },
                 region_start,
             )?
@@ -385,7 +391,7 @@ pub(super) fn admit_with_expression_selected(
                 },
             });
             region_start = false;
-            y += box_height + SPACE_SM;
+            y += box_height + gap;
             count += 1;
             commands += cost;
             remaining = &remaining[end..];

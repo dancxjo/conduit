@@ -34,7 +34,7 @@ pub(in crate::native_face_scene) fn admit_configured(
         ConfiguredColumns {
             gutter,
             columns,
-            padding,
+            spacing: RowSpacing::legacy(padding),
             groups,
         },
         text_scale_percent,
@@ -46,7 +46,7 @@ pub(in crate::native_face_scene) fn admit_configured(
 pub(in crate::native_face_scene) struct ConfiguredColumns {
     pub gutter: u16,
     pub columns: u16,
-    pub padding: u16,
+    pub spacing: RowSpacing,
     pub groups: Option<[u8; 2]>,
 }
 
@@ -60,14 +60,15 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
     let ConfiguredColumns {
         gutter,
         columns,
-        padding,
+        spacing,
         groups,
     } = geometry;
+    let spacing = spacing.validate()?;
     if columns == 2
         && screen.width >= 640
         && let Some(groups) = groups
     {
-        if groups[0] == groups[1] || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
+        if groups[0] == groups[1] {
             return Err(FaceSceneError::InvalidExtent);
         }
         panels::admit(
@@ -75,7 +76,7 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
             screen,
             gutter,
             text_scale_percent,
-            padding,
+            spacing,
             groups,
             typography,
         )
@@ -86,7 +87,7 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
             gutter,
             columns,
             text_scale_percent,
-            padding,
+            spacing,
             typography,
         )
     }
