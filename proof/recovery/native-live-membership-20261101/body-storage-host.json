@@ -1,0 +1,42 @@
+{
+  "scope": "selected Linux Body storage Host configuration and descriptor custody; no installed operation",
+  "source": "c7fa66c44101dfd878e4f86c7500824aac35be58",
+  "base": "2cc9b8b133c65e5ba1bbbd150a2ef27a2d9813d7",
+  "checks": [
+    {
+      "name": "std custody",
+      "source": "c096f93f34",
+      "passed": 2,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-std-tests-20261101-qualified.log",
+      "sha256": "d5259e2e509139a4a2ee9f4e78da141e34b1e9d2a60e80f1e030bb14608f9166"
+    },
+    {
+      "name": "independent product purity",
+      "source": "7e41eb6c54",
+      "passed": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-product-purity-test-20261101-qualified.log",
+      "sha256": "42c8b5fe93836e95ecb6dc989d7245b71166d94d944d1f7b45821f23d50e2111"
+    },
+    {
+      "name": "independent product restart identity",
+      "source": "7e41eb6c54",
+      "passed": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-product-reopen-test-20261101-qualified.log",
+      "sha256": "a8f40b231ee6901bf2541ec2fdbfd693c6495795f7790044804b98db2ceb75ed"
+    },
+    {
+      "name": "combined feature declarations",
+      "source": "c7fa66c44101dfd878e4f86c7500824aac35be58",
+      "passed": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-product-overlap-test-20261101-qualified.log",
+      "sha256": "b068f1fea288bd60ea97776077b050d09926ce37e3a5eb0b58b0c6000b88b549"
+    }
+  ],
+  "non_claims": [
+    "No installed recorder or durable recording acknowledgment",
+    "No actual generation ResourceRef publication or Body reservation from root selection",
+    "No OS quota or filesystem-block reservation",
+    "No live Source equipment continuity; coexistence test only checks inert declarations and root attachment",
+    "No live service/device mutations"
+  ]
+}
