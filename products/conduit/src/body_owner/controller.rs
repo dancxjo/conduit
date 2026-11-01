@@ -39,6 +39,8 @@ mod continuing;
 mod execution_retention;
 pub(crate) use continuing::RunWorker;
 mod birth;
+#[path = "creche_planning.rs"]
+mod creche_planning;
 #[path = "clock_interval.rs"]
 mod clock_interval;
 #[path = "direct_spoken_route.rs"]
@@ -475,6 +477,9 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
+        if let Some(partition) = self.shipped_creche_partition(plot, resident)? {
+            return Ok(partition);
+        }
         let hosts = [self.host.advertisement().clone()];
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
