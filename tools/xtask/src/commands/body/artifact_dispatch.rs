@@ -1,5 +1,5 @@
 //! Runtime-payload admission for all checked Host selections, before effects.
-use conduit_body_make::BuiltSpore;
+use conduit_body_make::{BuiltSpore, CheckedBodyDescription};
 use conduit_host_make::SporeOutputKind;
 use serde::Serialize;
 
@@ -16,7 +16,7 @@ pub(super) struct HostArtifactRefusal {
     builder: String,
     output: SporeOutputKind,
     code: &'static str,
-    missing: &'static str,
+    missing: String,
 }
 #[derive(Debug, Serialize)]
 pub(super) struct BatchArtifactRefusal {
@@ -57,10 +57,35 @@ fn select(
     }
 }
 
-pub(super) fn plan(spores: &[BuiltSpore]) -> Result<Vec<ArtifactProducer>, BatchArtifactRefusal> {
+pub(super) fn plan(
+    body: &CheckedBodyDescription,
+    spores: &[BuiltSpore],
+) -> Result<Vec<ArtifactProducer>, BatchArtifactRefusal> {
     let mut producers = Vec::with_capacity(spores.len());
     let mut refusals = Vec::new();
     for spore in spores {
+        if spore.manifest.output == SporeOutputKind::Uf2 {
+            if let Some(host) = body
+                .hosts()
+                .iter()
+                .find(|host| host.description.name == spore.manifest.host_entry_name)
+            {
+                if let Ok(Some(recipe)) = super::pico_payload::recipe(&host.configuration) {
+                    if let Err(refusal) = super::pico_payload::require_body_bootstrap(&recipe) {
+                        refusals.push(HostArtifactRefusal {
+                            host: spore.manifest.host_entry_name.clone(),
+                            target: spore.manifest.target.clone(),
+                            package: spore.manifest.make.make_package_id.clone(),
+                            builder: spore.manifest.make.builder_adapter.clone(),
+                            output: spore.manifest.output.clone(),
+                            code: "BodyBootstrapUnavailable",
+                            missing: refusal.to_string(),
+                        });
+                        continue;
+                    }
+                }
+            }
+        }
         match select(
             &spore.manifest.output,
             &spore.manifest.make.builder_adapter,
@@ -75,7 +100,7 @@ pub(super) fn plan(spores: &[BuiltSpore]) -> Result<Vec<ArtifactProducer>, Batch
                 builder: spore.manifest.make.builder_adapter.clone(),
                 output: spore.manifest.output.clone(),
                 code: "BodyArtifactProducerUnavailable",
-                missing,
+                missing: missing.into(),
             }),
         }
     }
@@ -94,6 +119,40 @@ pub(super) fn plan(spores: &[BuiltSpore]) -> Result<Vec<ArtifactProducer>, Batch
 mod tests {
     use super::*;
     #[test]
+    fn exact_environment_payload_is_not_misreported_as_a_body_capable_spore() {
+        let source = r#"body experiment {
+  schema = 2
+  id = "body:experiment"
+  host = {name: "sensor", configuration: "sensor.host.conduit", spore: {join_mode: "self-joining", invitation: "request:binding", output: "uf2"}}
+}"#;
+        let description = conduit_body_make::parse_body_description_conduit(source).unwrap();
+        let configuration = conduit_host_make::parse_host_configuration_conduit(include_str!(
+            "../../../../../targets/rp2040/profiles/pico-w-dht11-tm1637.host.conduit"
+        ))
+        .unwrap();
+        let configurations =
+            std::collections::BTreeMap::from([("sensor.host.conduit".into(), configuration)]);
+        let body = conduit_body_make::check_body_description(
+            description,
+            &configurations,
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+        )
+        .unwrap();
+        let spores = conduit_body_make::build_body_spores(
+            &body,
+            None,
+            "test:payload",
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+        )
+        .unwrap();
+        let refused = plan(&body, &spores).unwrap_err();
+        assert_eq!(refused.refusals.len(), 1);
+        assert_eq!(refused.refusals[0].code, "BodyBootstrapUnavailable");
+        assert!(!refused.all_hosts_fabricated);
+    }
+    #[test]
     fn mixed_host_selection_reports_every_missing_producer_before_publication() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
         let body =
@@ -107,7 +166,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(spores.len(), 3);
-        let refusal = plan(&spores).unwrap_err();
+        let refusal = plan(&body, &spores).unwrap_err();
         assert!(!refusal.all_hosts_fabricated);
         assert_eq!(refusal.refusals.len(), 2);
         assert_eq!(
@@ -122,7 +181,10 @@ mod tests {
             .into_iter()
             .filter(|spore| spore.manifest.output == SporeOutputKind::BrowserBundle)
             .collect::<Vec<_>>();
-        assert_eq!(plan(&browser).unwrap(), [ArtifactProducer::BrowserBundle]);
+        assert_eq!(
+            plan(&body, &browser).unwrap(),
+            [ArtifactProducer::BrowserBundle]
+        );
     }
     #[test]
     fn an_interrupted_batch_cannot_replace_a_completed_fabrication_receipt() {

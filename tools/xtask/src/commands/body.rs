@@ -18,6 +18,7 @@ mod artifact_dispatch;
 mod browser_admission;
 mod browser_package;
 mod environment_image;
+pub(crate) mod pico_payload;
 #[cfg(unix)]
 mod provision_conduitos;
 mod scaffold;
@@ -324,7 +325,7 @@ fn build(
         }
         return Ok(());
     }
-    let producers = artifact_dispatch::plan(&spores)?;
+    let producers = artifact_dispatch::plan(body, &spores)?;
     artifact_dispatch::record_batch(output, &spores, false)?;
     if !producers.is_empty() {
         let state = browser_package::require_owner(body)?;

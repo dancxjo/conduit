@@ -37,6 +37,22 @@ a successfully fabricated MCU. A `fabrication-batch.json` receipt stays
 incomplete until every selected artifact succeeds; retained partial artifacts
 do not report a completed Body fabrication.
 
+The existing developer payload entrance can build the checked Pico environmental
+profiles without substituting the signal template:
+
+```sh
+cargo xtask make host build targets/rp2040/profiles/pico-w-dht11-tm1637.host.conduit --output target/yellow-payload
+```
+
+It selects physical bindings through the RP2040 package's canonical lowerer,
+builds the exact environmental runtime, and emits ELF, UF2 and a payload receipt.
+It requires the package-selected Rust toolchain and official `picotool`; it
+never opens USB, provisions Wi-Fi, flashes, or mints a Body invitation. Output
+must be new. The receipt explicitly says `body_spore_created: false`: the
+current environmental runtime still lacks the canonical Spore bootstrap
+consumer. Ordinary Body fabrication reports `BodyBootstrapUnavailable` for
+these exact profiles before requesting any invitation.
+
 A selected self-joining `browser-bundle` Host also fabricates its reviewed Wasm
 runtime, exact configured BrowserBundle and private `<host-name>.zip` through
 the existing browser Spore packager. The installed owner named by

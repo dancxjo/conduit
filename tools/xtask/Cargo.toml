@@ -14,6 +14,7 @@ conduit-host-avr-make = { path = "../../targets/avr/make" }
 conduit-host-esp32-make = { path = "../../targets/esp32/make" }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
+conduit-host-rp2040 = { path = "../../targets/rp2040/make" }
 conduit-rp2040-network-realization = { path = "../../targets/rp2040/network-realization" }
 conduit-host-conduitos-make = { path = "../../targets/conduitos/make" }
 conduit-host-browser-make = { path = "../../targets/browser/make" }
