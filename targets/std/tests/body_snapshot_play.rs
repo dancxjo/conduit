@@ -86,6 +86,9 @@ fn planned(
     });
     advertisement.capabilities.push(offer);
     advertisement.resources.push(resource.clone());
+    advertisement
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let host = StdHost::from_advertisement(advertisement).unwrap();
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
@@ -123,6 +126,7 @@ fn planned(
     let hosts = [host.advertisement().clone()];
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
+    let (input_bytes, output_bytes) = if write { (4096, 512) } else { (512, 4096) };
     let boundaries = BTreeMap::from([
         (
             conduit_planner::ForeBoundaryKey {
@@ -132,7 +136,7 @@ fn planned(
             },
             conduit_planner::ConnectionQueueLimits {
                 item_capacity: 1,
-                byte_capacity: 4096,
+                byte_capacity: input_bytes,
             },
         ),
         (
@@ -143,7 +147,7 @@ fn planned(
             },
             conduit_planner::ConnectionQueueLimits {
                 item_capacity: 1,
-                byte_capacity: 4096,
+                byte_capacity: output_bytes,
             },
         ),
     ]);
