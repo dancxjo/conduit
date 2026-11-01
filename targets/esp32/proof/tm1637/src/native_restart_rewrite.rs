@@ -445,3 +445,15 @@ mod frame_tests;
 #[path = "native_restart_rewrite_network.rs"]
 mod network_transition;
 pub(crate) use network_transition::AuthenticatedNetworkTransition;
+
+#[cfg(all(test, feature = "observation-store"))]
+#[path = "native_restart_recipe_probe.rs"]
+mod recipe_probe;
+#[cfg(all(test, feature = "observation-store"))]
+pub(crate) use recipe_probe::probe as probe_frozen_recipe;
+#[cfg(test)]
+impl AuthenticatedReceipts {
+    pub(super) fn checked_frame_range_for_test(&self) -> Option<frames::Range> {
+        self.frames.map(|(range, _)| range)
+    }
+}

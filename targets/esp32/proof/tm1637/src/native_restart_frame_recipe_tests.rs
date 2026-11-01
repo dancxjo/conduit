@@ -22,7 +22,12 @@ fn frozen_recipe_matches_shared_encoder_and_refuses_short_budgets() {
             Ok(result)
         })
         .unwrap();
-    let reuse = previous.proof.as_ref().unwrap().frames.unwrap().0;
+    let reuse = previous
+        .proof
+        .as_ref()
+        .unwrap()
+        .checked_frame_range_for_test()
+        .unwrap();
     for pending in [&[][..], append.as_slice()] {
         let encode = |sink: &mut dyn FnMut(EncodedPiece<'_>) -> Result<(), CaptureRefusal>| {
             let mut at = 0;
