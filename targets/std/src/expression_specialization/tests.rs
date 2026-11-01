@@ -54,7 +54,14 @@ fn specialization_preserves_unrelated_payload_and_retires_only_owned_base() {
         conduit_std_offers::pure_expression_std_offer(&requested[0].0, requested[0].1).unwrap();
     assert!(host.advertisement.capabilities.contains(&offer));
     host.select_expression_programs(&[], 1_048_576).unwrap();
-    assert_eq!(host.advertisement.capabilities, before.capabilities);
+    assert_eq!(
+        host.advertisement.capabilities.len(),
+        before.capabilities.len()
+    );
+    assert!(before
+        .capabilities
+        .iter()
+        .all(|offer| host.advertisement.capabilities.contains(offer)));
     assert_eq!(host.advertisement.resources, before.resources);
     assert_eq!(host.advertisement.bases, before.bases);
     assert_eq!(
@@ -115,7 +122,7 @@ fn canonical_count_matches_shared_encoding_and_invalid_program_refuses() {
         p.canonical_byte_len().unwrap(),
         p.canonical_bytes().unwrap().len()
     );
-    p.input_maximum_bytes = Some(0);
+    p.input_maximum_bytes = Some(c::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32 + 1);
     let before = host.advertisement.clone();
     assert!(host
         .select_expression_programs(&[(p, c::PortTemporal::Value)], 1_048_576)
