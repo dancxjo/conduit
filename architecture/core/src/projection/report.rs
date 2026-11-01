@@ -23,6 +23,7 @@ pub struct ProjectionReport<'a, D: ProjectionDomain> {
     source_contract: ProjectionText<'a>,
     target_contract: ProjectionText<'a>,
     policy: ProjectionText<'a>,
+    policy_configuration_digest: Option<[u8; 32]>,
     summary: ProjectionSummary,
     policy_permitted: bool,
 }
@@ -231,6 +232,7 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
             source_contract: domain.source_contract(),
             target_contract: domain.target_contract(),
             policy: policy.identity(),
+            policy_configuration_digest: policy.configuration_digest(),
             input,
             summary,
             policy_permitted,
@@ -247,6 +249,16 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
     }
     pub fn policy(&self) -> ProjectionText<'a> {
         self.policy
+    }
+    /// Exact configuration frozen at report admission, independent of later
+    /// policy state. This identity does not grant authority or prove execution.
+    pub fn policy_configuration_digest(&self) -> Option<[u8; 32]> {
+        self.policy_configuration_digest
+    }
+    /// Complete immutable admission input for inspection and faithful transport.
+    /// Domain validity, target consumption and execution evidence stay separate.
+    pub fn input(&self) -> &ProjectionInput<'a, D> {
+        &self.input
     }
     pub fn summary(&self) -> ProjectionSummary {
         self.summary
@@ -285,6 +297,21 @@ impl<'a, D: ProjectionDomain> ProjectionReport<'a, D> {
         self.input
             .target
             .ok_or(ProjectionRefusal::ConsumerRequiresExact)
+    }
+    /// Require the selected policy's frozen permission and exact configuration.
+    pub fn require_bound_policy(
+        &self,
+        policy: ProjectionText<'_>,
+        configuration_digest: [u8; 32],
+    ) -> Result<&'a D::Target, ProjectionRefusal> {
+        let target = self.require_policy(policy)?;
+        let admitted = self
+            .policy_configuration_digest
+            .ok_or(ProjectionRefusal::PolicyConfigurationUnavailable)?;
+        if admitted != configuration_digest {
+            return Err(ProjectionRefusal::PolicyMismatch);
+        }
+        Ok(target)
     }
     pub fn facts(&self) -> &'a [ProjectionFact<'a, D>] {
         self.input.facts
