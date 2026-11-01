@@ -690,13 +690,13 @@ fn checkpoint_store_timed(
         };
         ArchiveCustody {
             proof,
-            layouts: previous.layouts.clone(),
-            // The existing validated Box moves only after readback succeeds.
+            // Retain the original immutable owners until readback succeeds.
+            layouts: payload::layout::Layouts::default(),
             network: None,
             source,
             summary,
             span,
-            prefix: previous.prefix.clone(),
+            prefix: None,
             local_count: previous
                 .local_count
                 .checked_add(
@@ -752,6 +752,11 @@ fn checkpoint_store_timed(
     };
     timings.enter(TimingStage::Acknowledge);
     if let Some(previous) = store.custody.as_mut() {
+        // The authenticated successor carries these exact immutable receipts.
+        // Move their original backing only after all fallible readback checks;
+        // a failed rewrite leaves every original owner available for retry.
+        next_custody.layouts = core::mem::take(&mut previous.layouts);
+        next_custody.prefix = previous.prefix.take();
         next_custody.network = previous.network.take();
     }
     store.custody = Some(next_custody);
