@@ -1,10 +1,12 @@
 {
   "source_commit": "688970ceb9",
   "tests": {
-    "actual_owned_source_process": 7
+    "actual_owned_source_process": 7,
+    "actual_body_snapshot_play": 3
   },
   "result": "passed",
   "worker_sha256": "75ffe1b31b9b4dac1783cd2eb4c25b988c9dbf7d523c5827130a4cd3da704059",
   "scope": "Combined dev/browser/snapshot integration; local process tests only. No installation or physical interruption acceptance.",
-  "cache_note": "Initial stale conduit-body artifact failed type resolution; narrow package clean followed by successful full test compile. Initial invocation was cancelled before tests to correct worker path."
+  "cache_note": "Initial stale conduit-body artifact failed type resolution; narrow package clean followed by successful full test compile. Initial invocation was cancelled before tests to correct worker path.",
+  "snapshot_scope": "Actual kernel fixture: publication/readback, refused-start resource release/no effects, foreign Boot/grant refusal. Not installed recorder or ACK."
 }
