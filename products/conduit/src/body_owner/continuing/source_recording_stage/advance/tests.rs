@@ -104,3 +104,47 @@ fn whole_sixteen_retains_slots_and_requires_verified_contiguous_chunks() {
     assert_eq!(owner.source_recording_stage.as_ref().unwrap().len(), 16);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn source_chunk_boundary_cannot_reset_prefix_counter_or_clock() {
+    use conduit_environment_measurement::source_observation::{
+        PreparedObservationCodec, SourceObservation, SourceOutcome, SourceSample,
+    };
+    let (root, _, mut owner, _) = fixture_sixteen();
+    let stage = owner.source_recording_stage.as_mut().unwrap();
+    let first = stage.prepared.as_ref().unwrap().end;
+    let old = stage
+        .contract
+        .decode(stage.slots[first].as_ref().unwrap().canonical())
+        .unwrap();
+    let SourceOutcome::Available(sample) = old.outcome else {
+        panic!("fixture Available")
+    };
+    let mut codec = PreparedObservationCodec::prepare(&stage.contract).unwrap();
+    for (clock, counter, message) in [
+        (old.observed_at_host_boot_ms, 1, "counter"),
+        (0, sample.source_counter, "clock"),
+    ] {
+        let encoded = codec
+            .encode(SourceObservation {
+                observed_at_host_boot_ms: clock,
+                outcome: SourceOutcome::Available(SourceSample {
+                    source_counter: counter,
+                    ..sample
+                }),
+            })
+            .unwrap();
+        let slot = stage.slots[first].as_mut().unwrap();
+        slot.bytes[..encoded.len()].copy_from_slice(encoded);
+        slot.length = encoded.len();
+        assert!(stage
+            .prepare_chunk(first, 1)
+            .err()
+            .unwrap()
+            .contains(message));
+        assert_eq!(stage.len(), 16);
+        assert_eq!(stage.prepared.as_ref().unwrap().index, 0);
+        assert!(stage.archived.is_empty());
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}

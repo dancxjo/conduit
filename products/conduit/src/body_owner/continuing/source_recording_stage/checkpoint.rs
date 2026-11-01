@@ -35,6 +35,32 @@ impl SourceRecordingStage {
         if first >= self.length {
             return Err("Source chunk has no remaining records".into());
         }
+        // Chunk boundaries do not reset the one Source prefix's continuity.
+        // Validate the retained finite prefix without allocating another codec
+        // document; the general catalog reader may contain unrelated contexts.
+        let mut last_clock = None;
+        let mut last_counter = None;
+        for observation in self.observations() {
+            let value = self
+                .contract
+                .decode(observation.canonical())
+                .map_err(|_| "Source prefix observation is invalid")?;
+            if last_clock.is_some_and(|clock| value.observed_at_host_boot_ms < clock) {
+                return Err("Source prefix clock regressed across retained records".into());
+            }
+            last_clock = Some(value.observed_at_host_boot_ms);
+            if let conduit_environment_measurement::source_observation::SourceOutcome::Available(
+                sample,
+            ) = value.outcome
+            {
+                if last_counter.is_some_and(|counter| sample.source_counter <= counter) {
+                    return Err(
+                        "Source prefix counter did not advance across retained records".into(),
+                    );
+                }
+                last_counter = Some(sample.source_counter);
+            }
+        }
         let scope = self
             .scope()
             .ok_or("staged Source lacks actual Play scope")?;
