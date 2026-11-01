@@ -1,0 +1,6 @@
+# A personal proposal over an author's visual Look. Other values inherit.
+# Zero is an explicit value; it does not mean omission.
+plot personal/readable (
+    proposal: LocalLookInfo = { identity: "personal/readable@1", version: 1, contrast: standard(empty), visual: [type_body_px(18), space_panel_px(0)] }
+) {
+}
