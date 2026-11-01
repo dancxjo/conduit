@@ -44,6 +44,28 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
     catalog: &ProfileCatalog,
     backs: &CanonicalBackCatalog,
 ) -> Result<ExpandedAuthoringPlot, CanonicalExpansionDiagnostic> {
+    expand_with_environment(document, plot_name, catalog, backs, None)
+}
+
+/// Expand using independently prepared, exact checked Root startup inputs.
+pub fn expand_canonical_plot_for_authoring_with_startup(
+    document: &CheckedSyntaxDocument,
+    plot_name: &str,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    inputs: &super::root_startup::PreparedRootStartupInputs,
+) -> Result<ExpandedAuthoringPlot, CanonicalExpansionDiagnostic> {
+    inputs.require_source(document, plot_name)?;
+    expand_with_environment(document, plot_name, catalog, backs, Some(inputs))
+}
+
+fn expand_with_environment(
+    document: &CheckedSyntaxDocument,
+    plot_name: &str,
+    catalog: &ProfileCatalog,
+    backs: &CanonicalBackCatalog,
+    inputs: Option<&super::root_startup::PreparedRootStartupInputs>,
+) -> Result<ExpandedAuthoringPlot, CanonicalExpansionDiagnostic> {
     let plots = document
         .plots
         .iter()
@@ -64,15 +86,19 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
     }
     let mut environment = BTreeMap::new();
     for parameter in &plot.startup_parameters {
-        let value = parameter.default.clone().ok_or_else(|| {
-            CanonicalExpansionDiagnostic::new(
-                "CND-FRM-032",
-                format!(
-                    "root plot '{plot_name}' requires startup parameter '{}'",
-                    parameter.name
-                ),
-            )
-        })?;
+        let value = inputs
+            .and_then(|inputs| inputs.value(&parameter.name))
+            .cloned()
+            .or_else(|| parameter.default.clone())
+            .ok_or_else(|| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-032",
+                    format!(
+                        "root plot '{plot_name}' requires startup parameter '{}'",
+                        parameter.name
+                    ),
+                )
+            })?;
         environment.insert(parameter.name.clone(), value);
     }
     let mut stack = Vec::new();
