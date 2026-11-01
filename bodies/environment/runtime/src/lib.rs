@@ -1,6 +1,8 @@
 #![no_std]
 //! Shared kernel Backs for the environmental Source composition.
 extern crate alloc;
+#[cfg(feature = "source-recording")]
+pub mod source_recording;
 #[cfg(feature = "appliance")]
 pub mod appliance;
 pub mod assigned;
