@@ -6,6 +6,9 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 const SCHEMA: &str = "conduit.native/part-custody@1";
 const LIMIT: u64 = MAXIMUM_BODY_ADMISSION_BYTES * 2;
 
+#[path = "part/renewal.rs"]
+mod renewal;
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Record {
@@ -173,6 +176,7 @@ pub(crate) struct RetainedPart {
     state: std::path::PathBuf,
     record: Record,
     advertisement: HostAdvertisement,
+    current: MembershipCredential,
 }
 impl RetainedPart {
     #[cfg(test)]
@@ -183,8 +187,10 @@ impl RetainedPart {
     ) -> Self {
         let record: Record = serde_json::from_slice(bytes).unwrap();
         record.validate(advertisement.host_id.as_str()).unwrap();
+        let current = record.receipt.credential.clone();
         Self {
             state: state.to_path_buf(),
+            current,
             record,
             advertisement,
         }
@@ -208,22 +214,25 @@ impl RetainedPart {
             &state.join("body/native-part-private.json"),
             &installation.host_id,
         )?;
-        let credential: MembershipCredential = serde_json::from_slice(&bounded_read(
-            Path::new(&binding.credential_path),
-            64 * 1024,
-        )?)
-        .map_err(|_| "retained Part credential encoding")?;
-        if credential != record.receipt.credential {
-            return Err("private Part custody differs from installed credential".into());
-        }
+        let credential = renewal::public_credential(Path::new(&binding.credential_path))?;
+        let credential = renewal::reconcile(state, &record, &installation, &credential)?;
         Ok(Self {
             state: state.to_path_buf(),
+            current: credential,
             record,
             advertisement,
         })
     }
     pub(crate) fn credential(&self) -> &MembershipCredential {
-        &self.record.receipt.credential
+        &self.current
+    }
+    pub(crate) fn commit_return(
+        &mut self,
+        proof: &crate::host_rendezvous::VerifiedReturn,
+    ) -> Result<(), String> {
+        renewal::commit(self, proof)?;
+        self.current = proof.credential().clone();
+        Ok(())
     }
     pub(crate) fn advertisement(&self) -> &HostAdvertisement {
         &self.advertisement
@@ -273,7 +282,7 @@ impl RetainedPart {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn fixture() -> Record {
+    pub(super) fn fixture() -> Record {
         let host = conduit_std_host::StdHost::new();
         let ad = host.advertisement().clone();
         let claim: conduit_body::SpawnInvitationClaim = serde_json::from_value(serde_json::json!({

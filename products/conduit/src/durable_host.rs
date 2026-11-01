@@ -16,6 +16,8 @@ pub(crate) mod owner;
 #[path = "durable_host_root_signer.rs"]
 pub(crate) mod root_signer;
 pub(crate) use owner::run as run_body_owner;
+#[path = "durable_host/installation_lock.rs"]
+pub(crate) mod installation_lock;
 #[path = "body_owner/lock.rs"]
 mod owner_lock;
 #[cfg(unix)]
@@ -62,12 +64,12 @@ mod membership;
 #[path = "durable_body_join_route.rs"]
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
+#[cfg(unix)]
+pub(crate) use membership::RetainedPart;
 pub(crate) use membership::{
     accept_membership_invitation, complete_body_join, complete_membership_join,
     retain_rendezvous_membership,
 };
-#[cfg(unix)]
-pub(crate) use membership::RetainedPart;
 #[cfg(unix)]
 pub(crate) use routed_join::native_snapshot_encounter;
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
@@ -320,6 +322,7 @@ fn install_with_equipment(
 fn own_body(evidence_path: &Path, state_dir: &Path) -> Result<(), String> {
     let _host_ownership = owner_lock::acquire(state_dir)?;
     let _body_ownership = owner_lock::body(state_dir)?;
+    let _installation = installation_lock::InstallationLock::acquire(state_dir)?;
     let evidence_bytes = bounded_read(evidence_path, 2 * 1024 * 1024)?;
     let evidence: conduit_body::BodyBiographyEvidence = serde_json::from_slice(&evidence_bytes)
         .map_err(|error| format!("Body biography evidence: {error}"))?;

@@ -20,19 +20,19 @@ use crate::cli::RendezvousCarrier;
 #[cfg(unix)]
 mod native_return;
 #[cfg(unix)]
-pub(crate) use native_return::{snapshot as native_snapshot, NativeReturn};
+pub(crate) use native_return::{snapshot as native_snapshot, NativeReturn, VerifiedReturn};
 mod secure;
 pub(crate) use secure::SecureNetworkOptions;
 mod protected_document;
 mod relay;
-#[cfg(unix)]
-pub(crate) use relay::{connect_native_snapshot,serve_native_snapshot};
 #[allow(unused_imports)]
 // Owning protected browser service bridge binds this adapter separately.
 pub(crate) use protected_document::{DocumentWorkspace, ProtectedDocumentLine};
 #[cfg(test)]
 #[cfg_attr(test, allow(unused_imports))]
 pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_descriptor;
+#[cfg(unix)]
+pub(crate) use relay::{connect_native_snapshot, serve_native_snapshot};
 
 const PROTOCOL: u16 = 1;
 // Rendezvous carries the exact standard Host inventory, including complete

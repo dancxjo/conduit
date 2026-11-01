@@ -41,6 +41,10 @@ struct Transaction {
 }
 
 pub(super) fn recover(root: &Path) -> Result<(), String> {
+    let _installation = super::super::installation_lock::InstallationLock::acquire(root)?;
+    recover_locked(root)
+}
+fn recover_locked(root: &Path) -> Result<(), String> {
     let file = root.join("body/owner-transaction.json");
     if !file.exists() {
         return verify_retained_archive(root);
@@ -327,7 +331,8 @@ fn retain_inner(
     establish_signer: Option<crate::durable_host::root_signer::Binding>,
     proposed_receipt: Option<&crate::durable_host::root_signer::receipt::Draft>,
 ) -> Result<(), String> {
-    recover(root)?;
+    let _installation = super::super::installation_lock::InstallationLock::acquire(root)?;
+    recover_locked(root)?;
     validate_archive_segments(root, biography, archives)?;
     if let Some(source) = source {
         validate_source(biography, source)?;
@@ -450,7 +455,7 @@ fn retain_inner(
         return Err("owner transaction storage bound exhausted".into());
     }
     write_json_atomic(&directory.join("owner-transaction.json"), &transaction)?;
-    recover(root)
+    recover_locked(root)
 }
 
 fn validate_source(biography: &BodyBiographyEvidence, source: &[u8]) -> Result<(), String> {

@@ -188,6 +188,7 @@ pub(crate) fn complete(receipt_path: &Path, state: &Path, authorized: bool) -> R
     if !authorized {
         return Err("retaining membership requires --authorize-membership".into());
     }
+    let _installation = super::super::installation_lock::InstallationLock::acquire(state)?;
     let mut installation = read_installation(&state.join("installation.json"))?;
     if installation.body_state.is_some() {
         return Err("this installed Host already owns a Body".into());

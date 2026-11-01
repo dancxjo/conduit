@@ -200,11 +200,42 @@ fn fixture() -> Fixture {
     let ad = control::current(&client_control.root)
         .unwrap()
         .advertisement;
-    let retained = RetainedPart::from_test_document(
-        &serde_json::to_vec(&doc).unwrap(),
-        ad,
-        &client_control.root,
-    );
+    // Exercise the actual installed private custody entrance, not a test-only
+    // protocol constructor: original signer/receipt and public binding agree.
+    let body_dir = client_control.root.join("body");
+    fs::create_dir(&body_dir).unwrap();
+    crate::durable_host::restrict_directory(&body_dir).unwrap();
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut private = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(body_dir.join("native-part-private.json"))
+        .unwrap();
+    private
+        .write_all(&serde_json::to_vec(&doc).unwrap())
+        .unwrap();
+    private.sync_all().unwrap();
+    let credential_path = body_dir.join("membership-credential.json");
+    crate::durable_host::write_json_atomic(&credential_path, &credential).unwrap();
+    let mut client_installation = installation.clone();
+    client_installation.host_id = ad.host_id.as_str().into();
+    client_installation.joined_body_state =
+        Some(crate::durable_host::membership::JoinedBodyBinding {
+            body_id: credential.body_id.as_str().into(),
+            part_id: credential.part_id.as_str().into(),
+            credential_path: credential_path.display().to_string(),
+            credential_sha256: crate::durable_host::digest(
+                &serde_json::to_vec_pretty(&credential).unwrap(),
+            ),
+        });
+    crate::durable_host::write_json_atomic(
+        &client_control.root.join("installation.json"),
+        &client_installation,
+    )
+    .unwrap();
+    let retained = RetainedPart::open(&client_control.root, ad).unwrap();
     let owner_ad = control::current(&owner.root).unwrap().advertisement;
     let selected = SessionBinding {
         initiator: conduit_protected_line::EndpointBinding {

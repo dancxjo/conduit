@@ -63,6 +63,7 @@ pub(super) fn issue_body_invitation_document(
 ) -> Result<PortableInvitation, String> {
     let _body_ownership = super::owner_lock::body(state_dir)?;
     super::owner::recover_retained_state(state_dir)?;
+    let _installation = super::installation_lock::InstallationLock::acquire(state_dir)?;
     if !(1..=600).contains(&ttl_seconds) {
         return Err("invitation lifetime must be between 1 and 600 seconds".into());
     }
@@ -188,6 +189,7 @@ pub(super) fn admit_body_request_document(
 ) -> Result<PortableAdmissionReceipt, String> {
     let _body_ownership = super::owner_lock::body(state_dir)?;
     super::owner::recover_retained_state(state_dir)?;
+    let _installation = super::installation_lock::InstallationLock::acquire(state_dir)?;
     if !authorize_admission {
         return Err("admitting a host into this body requires --authorize-admission".into());
     }

@@ -215,6 +215,7 @@ pub(super) fn configure(
     }
     let _host = owner_lock::acquire(state_dir)?;
     let _body = owner_lock::body(state_dir)?;
+    let _installation = super::installation_lock::InstallationLock::acquire(state_dir)?;
     let path = state_dir.join("installation.json");
     let mut installation = installation_read::read_for_configuration_change(&path)?;
     let selection = if let Some(path) = source {

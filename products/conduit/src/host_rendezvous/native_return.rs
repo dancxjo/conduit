@@ -10,6 +10,24 @@ use conduit_std_host::browser_admission::{
     BROWSER_ADMISSION_PROTOCOL as PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES as LIMIT,
 };
 
+/// Non-serializable evidence produced only by the verified protected exchange.
+/// A decoded credential or protocol-only admission cannot construct this value.
+pub(crate) struct VerifiedReturn {
+    previous: MembershipCredential,
+    credential: MembershipCredential,
+    advertisement: conduit_core::HostAdvertisement,
+}
+impl VerifiedReturn {
+    pub(crate) fn previous(&self) -> &MembershipCredential {
+        &self.previous
+    }
+    pub(crate) fn credential(&self) -> &MembershipCredential {
+        &self.credential
+    }
+    pub(crate) fn advertisement(&self) -> &conduit_core::HostAdvertisement {
+        &self.advertisement
+    }
+}
 pub(crate) struct NativeReturn {
     part: RetainedPart,
     phase: Phase,
@@ -149,8 +167,8 @@ impl NativeReturn {
     }
 }
 /// One read-only encounter on the exact already selected protected session.
-/// The caller retains the returned credential until reviewed durable renewal;
-/// this function cannot persist membership or claim a remote Mask route.
+/// Authenticated Return is durably retained before Face retrieval. This does
+/// not grant a remote Mask route or alter immutable Spawn provenance.
 pub(crate) fn snapshot<C: conduit_protected_line::ProtectedFrameCarrier>(
     mut client: NativeReturn,
     verified: &crate::durable_host_control::native_snapshot::VerifiedSelection,
@@ -196,7 +214,17 @@ pub(crate) fn snapshot<C: conduit_protected_line::ProtectedFrameCarrier>(
         line.send(&advertisement)?;
         let proof = client.challenge(&line.receive()?)?;
         line.send(&proof)?;
+        let previous = client.part.credential().clone();
         let credential = client.admitted(&line.receive()?)?;
+        // Persist Return before requesting a Face. The owner may already have
+        // retired the prior credential; later payload/cleanup failure must not
+        // discard this authenticated continuity result.
+        let returned = VerifiedReturn {
+            previous,
+            credential: credential.clone(),
+            advertisement: client.part.advertisement().clone(),
+        };
+        client.part.commit_return(&returned)?;
         let request = conduit_face::OwnerFaceSnapshotRequest {
             schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
             credential_id: credential.credential_id.as_str().into(),
