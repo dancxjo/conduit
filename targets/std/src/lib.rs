@@ -6,7 +6,11 @@ use conduit_core::{
 use conduit_planner::{default_placements, parse_placements, plan, PlacementChoices};
 use conduit_plot::CheckedPlot;
 use conduit_signal::{PULSE_KIND, SHOW_KIND};
-pub use selected_native_source::{ImmediateNativeSource, NativeSourceDefinition};
+pub use selected_native_source::{
+    ImmediateNativeSource, NativeReadContext, NativeSourceDefinition, NativeSourceWorkerProvider,
+    NativeWorkerBudget, NativeWorkerInspection, RetiredNativeSource, WorkerBackingObservation,
+    WorkerFailure, NATIVE_SOURCE_WORKER_PROFILE,
+};
 use std::fs;
 use std::io::Write;
 use std::thread;
@@ -696,12 +700,30 @@ impl StdHost {
             .capabilities
             .iter()
             .any(|installed| installed.capability_id == offer.capability_id);
-        if newly_offered {
-            self.advertisement.capabilities.push(offer);
-            self.advertisement
-                .capabilities
+        let refresh = if newly_offered {
+            let mut next = self.advertisement.clone();
+            next.capabilities.push(offer);
+            next.capabilities
                 .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-        }
+            next.offer_generation = OfferGeneration(
+                next.offer_generation
+                    .0
+                    .checked_add(1)
+                    .ok_or_else(|| "Body context offer generation exhausted".to_string())?,
+            );
+            let backing = self
+                .native_source
+                .as_ref()
+                .and_then(|source| source.backing.as_ref());
+            let ledger = self.kernel_resources.prepare_capability_refresh(
+                &self.advertisement,
+                &next,
+                backing,
+            )?;
+            Some((next, ledger))
+        } else {
+            None
+        };
         if let Some(source) = &self.body_conversation_context {
             source
                 .replace(context)
@@ -709,14 +731,16 @@ impl StdHost {
         } else {
             self.body_conversation_context = Some(BodyConversationContextSource::new(context)?);
         }
-        if newly_offered {
-            self.advertisement.offer_generation = OfferGeneration(
-                self.advertisement
-                    .offer_generation
-                    .0
-                    .checked_add(1)
-                    .ok_or_else(|| "Body context offer generation exhausted".to_string())?,
-            );
+        if let Some((advertisement, ledger)) = refresh {
+            if let Some(backing) = self
+                .native_source
+                .as_mut()
+                .and_then(|source| source.backing.as_mut())
+            {
+                backing.adopt_refreshed_ledger(&ledger);
+            }
+            self.kernel_resources = ledger;
+            self.advertisement = advertisement;
         }
         Ok(())
     }
