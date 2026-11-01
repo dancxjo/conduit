@@ -6,7 +6,7 @@
   "partition_bytes": 3371008,
   "stack_bytes": 37372,
   "stack_floor_bytes": 36864,
-  "diagnostic_image_flashed": false,
+  "diagnostic_image_flashed": true,
   "new_queue_counter_bytes_per_queue": 16,
   "queue_behavior_and_authority_unchanged": true,
   "credential_refusal_codes_preserved_without_private_values": true,
@@ -17,15 +17,45 @@
     "all_profiles_freeze_request_and_retirement_verified": true,
     "radio_join_or_current_authentication_proved": false
   },
-  "currently_installed_source": "35b0510bd559048c144eaf89e3110e06a304736e",
+  "currently_installed_source": "7e0dd0bff6f47fe2e4cd523fdf4617a955003e09",
   "continued_local_observation": {
-    "millis": 875048,
-    "sampler_sequence": 14,
-    "archive_committed": 14,
-    "mask_updates": 287,
+    "millis": 179583,
+    "sampler_sequence": 2,
+    "archive_committed": 2,
+    "mask_updates": 55,
     "sampler_failure": null,
     "mask_failure": null,
-    "archive_failed": false
+    "archive_failed": false,
+    "root_free_bytes": 22064,
+    "root_peak_bytes": 115168
   },
-  "current_limit": "Blue remains in AP mode; live history route needs protected spare-adapter activation. Diagnostic image is held to preserve active local recording until another safely retained epoch can be reclaimed."
+  "current_limit": "Observed one history timeout followed by canonical reader reconnection. Sustained recovery, automatic running-Play custody, NAT interruption acceptance, browser/Pi joining and ordinary preparation CPU qualification remain unproved. Cold maintenance reclamation and this diagnostic boot do not prove those outcomes.",
+  "boot": "boot/21e01d2f483bff874eb1e9a7f71b4a11",
+  "guarded_install": {
+    "fresh_full_backup": true,
+    "independent_body_root_pins_verified": true,
+    "application_readback_exact": true,
+    "all_non_application_bytes_exact": true,
+    "safely_retained_closed_epoch_reclaimed_before_next_boot": 447
+  },
+  "network_observation": {
+    "station_address": "10.0.0.210",
+    "observed_services": "station-ready",
+    "control": "attached",
+    "runner_polls": [
+      4,
+      7629
+    ],
+    "network_preparation_peak_used_bytes": 115168,
+    "ordinary_preparation_cpu_qualification": null
+  },
+  "history_readback": {
+    "all_current_directory_and_batch_signatures_verified": true,
+    "all_current_sequences_and_clocks_verified": true,
+    "advertised_records_recovered_at_snapshot": 104,
+    "previous_boot_records_recovered": 28,
+    "new_boot_records_recovered": 2,
+    "recording_ack_sent": false,
+    "selected_installed_recorder_commitment": false
+  }
 }
