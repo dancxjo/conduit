@@ -214,16 +214,17 @@ fn perform(
         headers: Default::default(),
         body: conduit_web::HttpBody::inline([]),
     };
-    let (_, response) = conduit_std_host::isolated_http_base::exchange_selected_response(
-        host,
-        configuration,
-        play,
-        fragment,
-        &request,
-    )
-    .map_err(|_| SourceRefusal::Provider)?;
+    let (_, response) =
+        conduit_std_host::isolated_http_base::exchange_selected_response_classified(
+            host,
+            configuration,
+            play,
+            fragment,
+            &request,
+        )
+        .map_err(http_refusal)?;
     if response.status != 200 {
-        return Err(SourceRefusal::Provider);
+        return Err(SourceRefusal::MalformedResponse);
     }
     response
         .body
@@ -258,7 +259,7 @@ impl EnvironmentalSourceProvider for NetworkSource {
             let at = boot_ms()?;
             let outcome = decode(&bytes, self.encoding).map_err(|_| {
                 self.failed = true;
-                SourceRefusal::Provider
+                SourceRefusal::MalformedObservation
             })?;
             match outcome {
                 SourceOutcome::Unavailable(_) => {
@@ -277,7 +278,7 @@ impl EnvironmentalSourceProvider for NetworkSource {
                     Err(SourceContinuityRefusal::NoNewObservation) => {}
                     Err(_) => {
                         self.failed = true;
-                        return Err(SourceRefusal::Provider);
+                        return Err(SourceRefusal::Continuity);
                     }
                 },
             }
@@ -303,7 +304,7 @@ fn verify_identity(
         configuration: &'a str,
     }
     let identity: Identity<'_> =
-        serde_json::from_slice(bytes).map_err(|_| SourceRefusal::Provider)?;
+        serde_json::from_slice(bytes).map_err(|_| SourceRefusal::Identity)?;
     let expected = firmware
         .iter()
         .map(|v| format!("{v:02x}"))
@@ -312,7 +313,7 @@ fn verify_identity(
         || identity.build != expected
         || identity.configuration != configuration
     {
-        return Err(SourceRefusal::Possession);
+        return Err(SourceRefusal::Identity);
     }
     Ok(())
 }
@@ -403,4 +404,19 @@ fn http_plan(host: &HostAdvertisement, selected: Option<&CapabilityId>) -> Resul
         },
     )
     .map_err(|e| format!("{e:?}"))
+}
+
+fn http_refusal(error: conduit_std_host::isolated_http_base::HttpExchangeRefusal) -> SourceRefusal {
+    use conduit_std_host::isolated_http_base::HttpExchangeRefusal as H;
+    match error {
+        H::Authorization => SourceRefusal::Possession,
+        H::Capacity => SourceRefusal::Capacity,
+        H::TransportTimeout => SourceRefusal::TransportTimeout,
+        H::TransportIo => SourceRefusal::TransportIo,
+        H::ConnectionRefused => SourceRefusal::ConnectionRefused,
+        H::ProviderSpawn => SourceRefusal::ProviderSpawn,
+        H::ProviderProtocol => SourceRefusal::ProviderProtocol,
+        H::ProviderRefused => SourceRefusal::ProviderRefused,
+        H::MalformedResponse => SourceRefusal::MalformedResponse,
+    }
 }

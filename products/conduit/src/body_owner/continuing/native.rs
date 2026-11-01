@@ -237,6 +237,7 @@ struct Provider<'a> {
     equipment: &'a mut Option<AttachedEquipment>,
     selection: &'a Arc<SourceSelection>,
     completed: &'a Arc<Mutex<Option<Arc<CompletedScope>>>>,
+    failure_category: conduit_std_host::body_execution::native::NativeFailureCategory,
 }
 impl SourceSelection {
     fn matches(
@@ -259,6 +260,10 @@ impl SourceSelection {
     }
 }
 impl conduit_std_host::body_execution::native::BodyNativeProvider for Provider<'_> {
+    fn failure_category(&self) -> conduit_std_host::body_execution::native::NativeFailureCategory {
+        self.failure_category
+    }
+
     fn execute(
         &mut self,
         host: StdHost,
@@ -283,9 +288,15 @@ impl conduit_std_host::body_execution::native::BodyNativeProvider for Provider<'
             instruments,
             authority_grants,
         });
-        let result = result.map_err(|e| format!("selected native Source refused: {e:?}"));
+        self.failure_category =
+            result.as_ref().err().map(category).unwrap_or(
+                conduit_std_host::body_execution::native::NativeFailureCategory::Unknown,
+            );
+        let result = result.map_err(|_| "selected native Source refused".into());
         if selected_source && result.is_ok() {
             if !self.selection.matches(&work.selected()) {
+                self.failure_category =
+                    conduit_std_host::body_execution::native::NativeFailureCategory::Authorization;
                 return (
                     host,
                     work,
@@ -297,6 +308,8 @@ impl conduit_std_host::body_execution::native::BodyNativeProvider for Provider<'
                 .as_ref()
                 .is_some_and(|scope| &scope.native_play != work.selected().active)
             {
+                self.failure_category =
+                    conduit_std_host::body_execution::native::NativeFailureCategory::Authorization;
                 return (
                     host,
                     work,
@@ -348,6 +361,8 @@ impl NativeRun {
             equipment: &mut self.equipment,
             selection: &self.selection,
             completed: &self.completed,
+            failure_category:
+                conduit_std_host::body_execution::native::NativeFailureCategory::Unknown,
         };
         if let Some(live) = &mut self.live {
             live.scope = self.completed.clone();
@@ -443,5 +458,36 @@ mod tests {
         assert_eq!(capture.value.as_ref(), Some(&delivery));
         assert!(capture.deliver(&delivery).is_err());
         assert_eq!(capture.value.as_ref(), Some(&delivery));
+    }
+}
+
+fn category(
+    error: &conduit_environment_host::source_operator::Refusal,
+) -> conduit_std_host::body_execution::native::NativeFailureCategory {
+    use conduit_environment_host::source_operator::Refusal as R;
+    use conduit_environment_host::source_operator::SourceRefusal as S;
+    use conduit_std_host::body_execution::native::NativeFailureCategory as C;
+    match error {
+        R::Authority | R::Advertisement | R::WrongBoot | R::Plan | R::Planning(_) => {
+            C::Authorization
+        }
+        R::Possession => C::Retired,
+        R::Capacity => C::Capacity,
+        R::Acquisition => C::Acquisition,
+        R::Source(source) => match source {
+            S::Binding(_) | S::Capability(_) | S::Possession | S::Request => C::Authorization,
+            S::Capacity => C::Capacity,
+            S::TransportTimeout => C::TransportTimeout,
+            S::TransportIo => C::TransportIo,
+            S::ConnectionRefused => C::ConnectionRefused,
+            S::ProviderSpawn => C::ProviderSpawn,
+            S::ProviderProtocol => C::ProviderProtocol,
+            S::ProviderRefused => C::ProviderRefused,
+            S::MalformedResponse => C::MalformedResponse,
+            S::Identity => C::SourceIdentity,
+            S::MalformedObservation | S::Encoding(_) => C::MalformedObservation,
+            S::Continuity => C::SourceContinuity,
+            S::Provider => C::Acquisition,
+        },
     }
 }

@@ -10,7 +10,13 @@ use serde::{Deserialize, Serialize};
 mod adversarial;
 mod child;
 mod exchange;
-pub use exchange::{exchange_native_work_response, exchange_selected_response};
+mod failure;
+mod provider_exchange;
+pub use exchange::{
+    exchange_native_work_response, exchange_selected_response,
+    exchange_selected_response_classified,
+};
+pub use failure::HttpExchangeRefusal;
 mod host;
 mod provider;
 

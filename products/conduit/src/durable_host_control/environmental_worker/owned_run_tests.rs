@@ -129,6 +129,10 @@ pub(super) fn exercise_owned_source(
     }
     if cancel {
         assert!(
+            receipt["native_failure"].is_null(),
+            "late failure escaped cancellation"
+        );
+        assert!(
             receipt.get("accepted_source_fore").is_none(),
             "late cancelled output was published"
         );
@@ -204,7 +208,7 @@ fn observation(
 pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: GatedDevice) {
     let source =
         include_str!("../../../../../bodies/environment/profiles/continuing-observation.conduit")
-            .replace("count: Count = 16", "count: Count = 8")
+            .replace("count: Count = 16", "count: Count = 12")
             .replace("period-ms: Count = 30000", "period-ms: Count = 100");
     let original =
         include_str!("../../../../../bodies/environment/profiles/source-observation.conduit");
@@ -277,7 +281,7 @@ pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: Ga
     );
     device.release.store(true, Ordering::SeqCst);
     runtime.start_owned_body(5_000, None).unwrap();
-    let graph = wait_for_graph(&mut runtime, 3);
+    let graph = wait_for_graph(&mut runtime, 8);
     assert_eq!(graph.collector_host(), inventory.host_id.as_str());
     assert_eq!(graph.collector_boot(), inventory.boot_id.as_str());
     assert_eq!(graph.series().len(), 1);
@@ -294,7 +298,7 @@ pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: Ga
         graph.series()[0].state_at(last_time + 90_001).unwrap(),
         conduit_environment_history::source_series::SourceSeriesState::Stale { .. }
     ));
-    assert!(graph.series()[0].points.len() >= 3, "staleness erased view");
+    assert!(graph.series()[0].points.len() >= 8, "staleness erased view");
     runtime.request_owned_body_lull().unwrap();
     finish(&mut runtime);
     let idle = match &runtime.host {
@@ -311,7 +315,7 @@ pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: Ga
     );
     // Re-admission keeps the same provider session and earlier canonical rows.
     runtime.start_owned_body(5_000, None).unwrap();
-    let next = wait_for_graph(&mut runtime, 4);
+    let next = wait_for_graph(&mut runtime, 9);
     assert!(next.series()[0].points.last().unwrap().sequence > first_counter);
     assert_eq!(next.series()[0].points[0], graph.series()[0].points[0]);
     runtime.request_owned_body_lull().unwrap();
@@ -416,3 +420,7 @@ fn replace_through_service(
         result
     })
 }
+
+#[path = "refusal_tests.rs"]
+mod refusal;
+pub(super) use refusal::exercise_refusal;

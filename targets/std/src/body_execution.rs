@@ -93,6 +93,8 @@ pub struct BodyRunReport {
     pub failure: Option<String>,
     /// Exact kernel Back failure, preserved independently of human diagnostics.
     pub kernel_failure: Option<conduit_kernel::Failure>,
+    /// One terminal native refusal, correlated to the original kernel request.
+    pub native_failure: Option<native::NativeFailureDiagnostic>,
     pub cleanup_failure: Option<String>,
     pub terminal_sign: SignIdentity,
     pub partitions: Vec<KernelIdentityMap>,
@@ -446,6 +448,7 @@ impl StdHost {
                 terminal: result.terminal,
                 failure: result.failure,
                 kernel_failure: result.kernel_failure,
+                native_failure: result.native_failure,
                 cleanup_failure: result.cleanup_failure,
                 terminal_sign,
                 partitions: result.partitions,

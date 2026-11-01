@@ -67,6 +67,7 @@ pub(crate) struct BodyKernelResult {
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
     pub kernel_failure: Option<Failure>,
+    pub native_failure: Option<crate::body_execution::native::NativeFailureDiagnostic>,
     pub cleanup_failure: Option<String>,
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
@@ -809,6 +810,7 @@ impl<'a> BodyKernel<'a> {
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let mut clock_quality = admitted_clock_quality;
         let mut kernel_failure = None;
+        let mut native_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             'body: loop {
@@ -992,7 +994,13 @@ impl<'a> BodyKernel<'a> {
                         let execution = native_execution
                             .as_deref_mut()
                             .ok_or("Body native provider absent")?;
-                        let bytes = self.native.execute(execution, request, input)?;
+                        let bytes = match self.native.execute(execution, request, input) {
+                            Ok(bytes) => bytes,
+                            Err(error) => {
+                                native_failure = execution.last_failure;
+                                return Err(error);
+                            }
+                        };
                         if control.stop_requested() {
                             // Retire the original lease before dropping late bytes. The
                             // ordinary cancellation path owns the terminal completion.
@@ -1016,14 +1024,31 @@ impl<'a> BodyKernel<'a> {
                                     failure: None,
                                 }
                             }
-                            Err(_) => HostCallOutcome {
-                                disposition: HostCallDisposition::Denied,
-                                output: None,
-                                failure: Some(Failure {
-                                    code: FailureCode::HostCallDenied,
-                                    detail: 1,
-                                }),
-                            },
+                            Err(_) => {
+                                if native_failure.is_none() {
+                                    native_failure = execution.last_failure;
+                                }
+                                // Outcome classification belongs to THIS request even
+                                // when the report retains an earlier terminal refusal.
+                                let denied =
+                                    execution.last_failure.is_some_and(|d| d.category.denied());
+                                HostCallOutcome {
+                                    disposition: if denied {
+                                        HostCallDisposition::Denied
+                                    } else {
+                                        HostCallDisposition::Failed
+                                    },
+                                    output: None,
+                                    failure: Some(Failure {
+                                        code: if denied {
+                                            FailureCode::HostCallDenied
+                                        } else {
+                                            FailureCode::HostCallFailed
+                                        },
+                                        detail: 1,
+                                    }),
+                                }
+                            }
                         };
                         self.scheduler
                             .complete_host_call(request.node, request.request, outcome)
@@ -1564,6 +1589,7 @@ impl<'a> BodyKernel<'a> {
             terminal,
             failure,
             kernel_failure,
+            native_failure,
             cleanup_failure,
             partitions: self.partitions,
             requests: self.requests,
