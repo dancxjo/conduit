@@ -17,6 +17,8 @@ mod microphone;
 mod playback;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
+#[path = "selected_host_configuration/storage.rs"]
+mod storage;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,6 +26,8 @@ const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 pub(super) struct Selection {
     source: String,
     configuration_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    storage_root: Option<storage::RootIdentity>,
 }
 impl Selection {
     fn from_source(source: &str, target: &str) -> Result<Self, String> {
@@ -37,6 +41,7 @@ impl Selection {
         Ok(Self {
             source,
             configuration_id: checked.configuration_id().into(),
+            storage_root: None,
         })
     }
     pub(super) fn validate_speech_overlap(
@@ -63,7 +68,8 @@ impl Selection {
         Ok(checked)
     }
     pub(super) fn validate(&self) -> Result<(), String> {
-        self.checked().map(|_| ())
+        let checked = self.checked()?;
+        storage::validate_binding(&checked, self.storage_root.as_ref())
     }
     /// Choose software before constructing advertisement, ledger or providers.
     /// An absent purpose preserves the caller's existing composition. An explicit
@@ -115,6 +121,9 @@ impl Selection {
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
+                }
+                Some(storage::IMPLEMENTATION) => {
+                    storage::attach(initialization, self.storage_root.as_ref(), host)?;
                 }
                 Some("linux/environmental-sources@1") => {
                     #[cfg(not(all(
@@ -170,6 +179,7 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
                 }
+                Some(storage::IMPLEMENTATION) => storage::validate(initialization)?,
                 Some("linux/environmental-sources@1") => {
                     #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
                     super::selected_environmental_sources::validate(&checked)?;
@@ -217,7 +227,11 @@ pub(super) fn configure(
         }
         let bytes = bounded_read(path, MAXIMUM_SOURCE_BYTES)?;
         let source = std::str::from_utf8(&bytes).map_err(|_| "Host configuration must be UTF-8")?;
-        let selection = Selection::from_source(source, running_target_id()?)?;
+        let mut selection = Selection::from_source(source, running_target_id()?)?;
+        // Explicit effectful selection follows pure checking and completes
+        // before persisting any part of this configuration.
+        selection.storage_root = storage::select_identity(&selection.checked()?)?;
+        selection.validate()?;
         if installation.selected_todo_checkpoint.is_some() {
             return Err(
                 "scoped Todo checkpoint Host cannot initialize additional checked equipment".into(),

@@ -13,7 +13,7 @@ pub use crate::host_execution::continuity::StateContinuationRunFailure;
 mod continuity;
 mod durable;
 pub use continuity::{RetainedTypedState, StateContinuityFailure};
-pub(crate) use durable::InstalledDurableStateHost;
+pub(crate) use durable::{durable_record_byte_bound, InstalledDurableStateHost};
 pub use durable::{
     DurableStateBack, DurableStateBinding, DurableStateHost, DurableStateRefusal,
     FileDurableStateResidence, RecoveryDisposition,
