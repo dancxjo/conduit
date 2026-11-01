@@ -215,10 +215,17 @@ impl IncrementalRewrite {
                         &self.block.0[..(n + 3) & !3],
                     )?;
                     self.whole.update(&self.block.0[..n]);
+                    // Reuse the otherwise idle readback hasher to bind the
+                    // programmed payload to the immutable preparation result.
+                    self.readback.update(&self.block.0[..n]);
                     self.at += n as u32;
                     self.block.0.fill(0);
                     self.staged = false;
                     if self.at as usize == self.length {
+                        if <[u8; 32]>::from(self.readback.clone().finalize()) != self.expected {
+                            return Err(Refusal::Corrupt);
+                        }
+                        self.readback = Sha256::new();
                         self.header.0[120..152].copy_from_slice(&self.whole.clone().finalize());
                         self.phase = Phase::Digest;
                     }

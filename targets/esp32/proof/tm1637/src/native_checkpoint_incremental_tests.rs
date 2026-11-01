@@ -138,6 +138,47 @@ fn exact_completion_and_one_call_per_step() {
     assert_eq!(j.generation(), Some(2));
 }
 #[test]
+fn changed_staging_cannot_commit_a_self_consistent_different_payload() {
+    // Exercise both an early block and the final short block. Readback alone
+    // would accept either if its header digest were derived from changed data.
+    for changed_block in [0, 2] {
+        let (mut j, s, media) = setup();
+        let old = media.0.borrow()[..32768].to_vec();
+        let mut t = IncrementalRewrite::prepare(&mut j, &s, &[1; 32], &[2; 32], emit).unwrap();
+        let mut a = Access {
+            calls: 0,
+            cut: None,
+        };
+        for _ in 0..9 {
+            t.advance(&mut j, &mut a).unwrap();
+        }
+        for block in 0..3 {
+            t.prepare_chunk(&mut j, emit).unwrap();
+            if block == changed_block {
+                t.block.0[0] ^= 1;
+            }
+            let result = t.advance(&mut j, &mut a);
+            if block == 2 {
+                assert_eq!(result, Err(Refusal::Corrupt));
+            } else {
+                assert_eq!(result, Ok(false));
+            }
+        }
+        assert!(t.finish(&mut j).is_err());
+        let bytes = media.0.borrow();
+        assert_eq!(&bytes[..32768], old.as_slice());
+        assert_eq!(&bytes[32768 + 152..32768 + 156], &[255; 4]);
+        drop(bytes);
+        let mut reopened = Checkpoint::open(media).unwrap();
+        let mut bytes = [0; 300];
+        assert_eq!(
+            reopened.load(&[1; 32], &mut [0; 32], &mut bytes).unwrap(),
+            Some(257)
+        );
+        assert_eq!(&bytes[..257], &[42; 257]);
+    }
+}
+#[test]
 fn every_physical_cut_reopens_old_or_exact_successor() {
     let (mut j, s, _) = setup();
     let mut t = IncrementalRewrite::prepare(&mut j, &s, &[1; 32], &[2; 32], emit).unwrap();
