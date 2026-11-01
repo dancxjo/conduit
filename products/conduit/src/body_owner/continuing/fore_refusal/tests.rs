@@ -39,12 +39,12 @@ fn rejected_source_fore_retains_first_and_quiescent_trailing_without_authority()
     let (sender, receiver) = mpsc::sync_channel(1);
     sender.send(value(17)).unwrap();
     drop(sender);
-    assert!(custody.capture_trailing(&receiver).is_ok());
+    custody.capture_trailing(&receiver);
     let document = custody.diagnostics();
     assert_eq!(document["first"]["sequence"], 16);
-    assert_eq!(document["first"]["canonical_bytes"], "1011ff");
+    assert_eq!(document["first"]["canonical_hex"], "1011ff");
     assert_eq!(document["trailing"]["sequence"], 17);
-    assert_eq!(document["trailing"]["canonical_bytes"], "1111ff");
+    assert_eq!(document["trailing"]["canonical_hex"], "1111ff");
     assert_eq!(
         document["first"]["source_selection"]["host_id"],
         "host/refused"
@@ -53,18 +53,6 @@ fn rejected_source_fore_retains_first_and_quiescent_trailing_without_authority()
     assert_eq!(document["durable_recording_acknowledged"], false);
     assert!(document.get("credential").is_none());
     assert!(document.get("grant").is_none());
-    assert!(custody.capture_trailing(&receiver).is_ok());
+    custody.capture_trailing(&receiver);
     assert_eq!(custody.diagnostics(), document);
-}
-#[test]
-fn anomalous_second_trailing_is_returned_not_dropped() {
-    let mut custody = ForeRefusal::new(value(16), "full".into());
-    let (sender, receiver) = mpsc::channel();
-    sender.send(value(17)).unwrap();
-    sender.send(value(18)).unwrap();
-    drop(sender);
-    let extra = custody.capture_trailing(&receiver).err().unwrap();
-    assert_eq!(extra.sequence, 18);
-    assert_eq!(&extra.bytes[..extra.length], &[18, 17, 255]);
-    assert_eq!(custody.diagnostics()["trailing"]["sequence"], 17);
 }

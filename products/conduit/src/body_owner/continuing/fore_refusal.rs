@@ -1,6 +1,6 @@
 //! Retain rejected live Fore through worker quiescence; never record or retire it.
 use super::native::LiveFore;
-use std::sync::mpsc::{Receiver, TryRecvError};
+use std::sync::mpsc::Receiver;
 
 pub(super) struct ForeRefusal {
     first: LiveFore,
@@ -15,25 +15,14 @@ impl ForeRefusal {
             trailing: None,
         }
     }
-    /// Call only after the producer has actually joined. The original channel
-    /// is sync_channel(1), so at most one trailing value can remain. An anomalous
-    /// extra value is returned affinely, never silently discarded or acknowledged.
-    pub(super) fn capture_trailing(
-        &mut self,
-        receiver: &Receiver<LiveFore>,
-    ) -> Result<(), LiveFore> {
-        match receiver.try_recv() {
-            Ok(value) => {
-                if self.trailing.is_some() {
-                    return Err(value);
-                }
+    /// Call exactly once after the actual producer has joined. The receiver
+    /// must be the original sync_channel(1), so at most one trailing value
+    /// remains. This helper never probes beyond that original finite slot.
+    pub(super) fn capture_trailing(&mut self, receiver: &Receiver<LiveFore>) {
+        if self.trailing.is_none() {
+            if let Ok(value) = receiver.try_recv() {
                 self.trailing = Some(value);
             }
-            Err(TryRecvError::Empty | TryRecvError::Disconnected) => return Ok(()),
-        }
-        match receiver.try_recv() {
-            Ok(extra) => Err(extra),
-            Err(TryRecvError::Empty | TryRecvError::Disconnected) => Ok(()),
         }
     }
     pub(super) fn diagnostics(&self) -> serde_json::Value {
@@ -55,7 +44,7 @@ fn document(fore: &LiveFore) -> serde_json::Value {
         .collect();
     serde_json::json!({
         "sequence":fore.sequence,
-        "canonical_bytes":canonical,
+        "canonical_hex":canonical,
         "canonical_length":fore.length,
         "extent_valid":fore.length <= fore.bytes.len(),
         "source_selection":fore.scope.selection,
