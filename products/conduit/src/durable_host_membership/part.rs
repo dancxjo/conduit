@@ -239,7 +239,8 @@ mod tests {
         let conflict: PendingBodyJoin =
             serde_json::from_value(serde_json::to_value(&record.pending).unwrap()).unwrap();
         let mut other_receipt = record.receipt.clone();
-        other_receipt.credential.part_id = "08".repeat(32).into();
+        other_receipt.credential.part_id =
+            serde_json::from_value(serde_json::json!("08".repeat(32))).unwrap();
         assert!(retain(&root, conflict, other_receipt, &host).is_err());
         // The public credential remains ordinary credential material only.
         let public = serde_json::to_value(&record.receipt.credential).unwrap();

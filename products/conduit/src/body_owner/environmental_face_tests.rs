@@ -141,10 +141,7 @@ fn descriptive_placement_changes_without_rewriting_source_or_observations() {
         .unwrap();
     assert_eq!(cache.sources[0].subject, subject);
     assert_eq!(cache.sources[0].bytes, canonical);
-    assert_eq!(
-        cache.sources[0].selection.as_deref(),
-        Some(selected.as_ref())
-    );
+    assert!(cache.sources[0].selection.as_deref() == Some(selected.as_ref()));
     let fragment = cache
         .contribution(
             "host/collector",

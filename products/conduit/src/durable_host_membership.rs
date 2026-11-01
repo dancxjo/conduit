@@ -2,8 +2,8 @@
 
 use super::invitation::{PendingBodyJoin, PortableAdmissionReceipt};
 use super::{
-    Installation, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA, RuntimeStatus, bounded_read,
-    digest, observe_current_runtime, read_installation, restrict_directory, write_json_atomic,
+    bounded_read, digest, observe_current_runtime, read_installation, restrict_directory,
+    write_json_atomic, Installation, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES, RUNTIME_SCHEMA,
 };
 use conduit_body::MembershipCredential;
 use conduit_core::HostAdvertisement;
@@ -12,7 +12,29 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/compact.rs"]
 mod compact;
+#[cfg(unix)]
+#[path = "durable_host_membership/part.rs"]
 mod part;
+#[cfg(not(unix))]
+mod part {
+    use super::*;
+    pub(super) fn retain(
+        _: &Path,
+        _: PendingBodyJoin,
+        _: PortableAdmissionReceipt,
+        _: &str,
+    ) -> Result<(), String> {
+        Err("native Part private custody is unavailable on this platform".into())
+    }
+    pub(super) fn verify_exact(
+        _: &Path,
+        _: &PendingBodyJoin,
+        _: &PortableAdmissionReceipt,
+        _: &str,
+    ) -> Result<(), String> {
+        Err("native Part private custody is unavailable on this platform".into())
+    }
+}
 pub(crate) use compact::{
     accept as accept_membership_invitation, complete as complete_membership_join,
 };
