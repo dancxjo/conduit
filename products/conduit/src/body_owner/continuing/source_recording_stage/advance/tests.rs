@@ -45,7 +45,8 @@ fn whole_sixteen_retains_slots_and_requires_verified_contiguous_chunks() {
     finish_worker(&root, &mut owner, worker);
     assert!(owner
         .prepare_source_recording_catalog(&root, &publish, 1048576)
-        .unwrap_err()
+        .err()
+        .unwrap()
         .contains("whole frozen prefix"));
     assert!(owner
         .prepare_next_source_recording_chunk(&root, 0, [0; 32], 1048576)
