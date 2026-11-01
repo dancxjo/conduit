@@ -183,11 +183,23 @@ impl StdHost {
             self.advertisement.bases.capacity(),
             std::mem::size_of::<c::BaseProviderAdvertisement>(),
         )?;
+        let registry_growth = if old.is_none() {
+            self.base_registry
+                .entries()
+                .len()
+                .checked_mul(2)
+                .and_then(|n| n.checked_add(1))
+                .and_then(|n| n.checked_mul(std::mem::size_of::<c::BaseProviderEntry>()))
+                .ok_or("registry vector growth overflow")? as u64
+        } else {
+            0
+        };
         staged.evidence.preparation_bytes = staged
             .evidence
             .preparation_bytes
             .checked_add(ledger.workspace_bytes)
             .and_then(|n| n.checked_add(growth))
+            .and_then(|n| n.checked_add(registry_growth))
             .ok_or("storage metadata workspace overflow")?;
         if staged.evidence.preparation_bytes > storage.bounds().preparation_bytes {
             return Err(format!(

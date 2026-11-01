@@ -93,23 +93,18 @@ impl StorageCensus {
         let mut entries = 0u64;
         // /proc/self/fd is derived only from the still-held descriptor, never
         // from the original ambient canonical path.
-        for entry in std::fs::read_dir(root).map_err(|e| e.to_string())? {
+        entries_in(&directory, entry_limit as usize, |name| {
             entries += 1;
-            if entries > entry_limit {
-                return Err("selected storage entry capacity exhausted".into());
-            }
-            let entry = entry.map_err(|e| e.to_string())?;
-            let name = entry.file_name();
-            let name = name.to_str().ok_or("noncanonical storage entry")?;
             if name.starts_with(".pending-") {
                 return Err("unreconciled snapshot candidate prevents new generation".into());
             }
             if !hex(name) {
                 return Err("unknown storage entry prevents bounded generation selection".into());
             }
-            let metadata = std::fs::symlink_metadata(entry.path()).map_err(|e| e.to_string())?;
+            let path = root.join(name);
+            let metadata = std::fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
             if metadata.is_file() {
-                let opened = file(&entry.path(), MAXIMUM_RECORD_BYTES as u64, &mut usage)?;
+                let opened = file(&path, MAXIMUM_RECORD_BYTES as u64, &mut usage)?;
                 if opened.dev() != metadata.dev() || opened.ino() != metadata.ino() {
                     return Err("storage entry changed during census".into());
                 }
@@ -128,7 +123,7 @@ impl StorageCensus {
                 if states > u32::from(bounds.state_slots) {
                     return Err("State retained slot capacity exceeded".into());
                 }
-                let fd = open_directory(&entry.path())?;
+                let fd = open_directory(&path)?;
                 let actual = fd.metadata().map_err(|e| e.to_string())?;
                 if actual.dev() != metadata.dev()
                     || actual.ino() != metadata.ino()
@@ -138,29 +133,25 @@ impl StorageCensus {
                 }
                 usage.add(&actual)?;
                 let nested = std::path::PathBuf::from(format!("/proc/self/fd/{}", fd.as_raw_fd()));
-                let mut children = 0;
-                for child in std::fs::read_dir(nested).map_err(|e| e.to_string())? {
-                    children += 1;
-                    if children > 2 {
-                        return Err("State file capacity exceeded".into());
-                    }
-                    let child = child.map_err(|e| e.to_string())?;
-                    if child.file_name() != "current" {
+                entries_in(&fd, 2, |child| {
+                    if child != "current" {
                         return Err(
                             "unreconciled or unknown State candidate prevents selection".into()
                         );
                     }
                     file(
-                        &child.path(),
+                        &nested.join(child),
                         crate::state_value::durable_record_byte_bound(bounds.maximum_state_bytes)?
                             as u64,
                         &mut usage,
                     )?;
-                }
+                    Ok(())
+                })?;
             } else {
                 return Err("nonregular storage entry prevents generation selection".into());
             }
-        }
+            Ok(())
+        })?;
         if expected.is_some() && ((publish && found) || (!publish && !found)) {
             return Err("exact snapshot publication/read residence is unavailable".into());
         }
@@ -232,7 +223,10 @@ impl StorageCensus {
         let workspace_bytes = (usage.inodes.capacity() * std::mem::size_of::<(u64, u64)>()
             + std::mem::size_of::<Self>()
             + std::mem::size_of::<Usage>()
-            + std::mem::size_of::<libc::statvfs>()) as u64;
+            + std::mem::size_of::<libc::statvfs>()
+            + 2 * DIRECTORY_BUFFER_BYTES
+            + 4 * (std::mem::size_of::<std::path::PathBuf>() + 128))
+            as u64;
         Ok(Self {
             snapshots,
             states,
@@ -242,4 +236,80 @@ impl StorageCensus {
             workspace_bytes,
         })
     }
+}
+
+const DIRECTORY_BUFFER_BYTES: usize = 4096;
+/// Linux dirent64 traversal with caller-owned bounded storage. std read_dir
+/// would hide a libc directory-buffer allocation outside this profile's quote.
+fn entries_in(
+    directory: &File,
+    maximum: usize,
+    mut visit: impl FnMut(&str) -> Result<(), String>,
+) -> Result<(), String> {
+    if unsafe { libc::lseek(directory.as_raw_fd(), 0, libc::SEEK_SET) } < 0 {
+        return Err(format!(
+            "storage census seek: {}",
+            std::io::Error::last_os_error()
+        ));
+    }
+    let mut buffer = [0u8; DIRECTORY_BUFFER_BYTES];
+    let mut entries = 0usize;
+    for _ in 0..maximum
+        .checked_add(3)
+        .ok_or("storage census work overflow")?
+    {
+        let count = unsafe {
+            libc::syscall(
+                libc::SYS_getdents64,
+                directory.as_raw_fd(),
+                buffer.as_mut_ptr(),
+                buffer.len(),
+            )
+        };
+        if count < 0 {
+            return Err(format!(
+                "storage census read: {}",
+                std::io::Error::last_os_error()
+            ));
+        }
+        if count == 0 {
+            return Ok(());
+        }
+        let count = usize::try_from(count).map_err(|_| "invalid directory read count")?;
+        if count > buffer.len() {
+            return Err("directory read exceeds supplied buffer".into());
+        }
+        let mut offset = 0usize;
+        while offset < count {
+            if count - offset < 20 {
+                return Err("truncated directory entry".into());
+            }
+            let length = u16::from_ne_bytes([buffer[offset + 16], buffer[offset + 17]]) as usize;
+            let end = offset
+                .checked_add(length)
+                .ok_or("directory record overflow")?;
+            if length < 20 || end > count {
+                return Err("invalid directory record length".into());
+            }
+            let bytes = &buffer[offset + 19..end];
+            let name_length = bytes
+                .iter()
+                .position(|b| *b == 0)
+                .ok_or("unterminated directory name")?;
+            if name_length > 80 {
+                return Err("storage name exceeds finite profile".into());
+            }
+            let name = std::str::from_utf8(&bytes[..name_length])
+                .map_err(|_| "noncanonical storage name")?;
+            if name != "." && name != ".." {
+                entries += 1;
+                if entries > maximum {
+                    return Err("selected storage entry capacity exhausted".into());
+                }
+                visit(name)?;
+            }
+            offset = end;
+        }
+    }
+    Err("storage census syscall work exhausted".into())
 }

@@ -14,7 +14,7 @@ fn bounds() -> BodyStorageBounds {
         state_slots: 1,
         maximum_state_bytes: 4096,
         total_disk_bytes: 131072,
-        preparation_bytes: 16 * 1024 * 1024,
+        preparation_bytes: 1024 * 1024,
     }
 }
 fn host(root: &Path) -> StdHost {
@@ -84,6 +84,10 @@ fn exact_snapshot_generation_refresh_preserves_unrelated_inventory_and_cursors()
         .select_body_storage_generation(request(2, c::ResourceAccessMode::WriteCandidatePublish))
         .unwrap();
     assert_eq!(evidence.retained_snapshots, 0);
+    eprintln!(
+        "snapshot storage preparation: {} bytes",
+        evidence.preparation_bytes
+    );
     assert!(evidence.preparation_bytes <= bounds().preparation_bytes);
     let selected = host.selected_body_storage_generation().unwrap();
     assert_eq!(selected.snapshot_reference(), Some(&reference(2)));
@@ -135,8 +139,13 @@ fn exact_snapshot_generation_refresh_preserves_unrelated_inventory_and_cursors()
 fn state_offer_on_default_host_and_finite_refusals_leave_previous_selection() {
     let root = tempfile::tempdir().unwrap();
     let mut host = host(root.path());
-    host.select_body_storage_generation(state_request())
+    let evidence = host
+        .select_body_storage_generation(state_request())
         .unwrap();
+    eprintln!(
+        "State storage preparation: {} bytes",
+        evidence.preparation_bytes
+    );
     assert!(host
         .selected_body_storage_generation()
         .unwrap()
