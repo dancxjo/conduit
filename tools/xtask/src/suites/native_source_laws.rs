@@ -19,7 +19,7 @@ pub const STEPS: &[Step] = &[
     ),
     Step::new(
         "native-source-laws.occurrences",
-        "Check opaque ownership, nested actual laws and no-growth admission/materialization",
+        "Check exact law forwarding, nested actual laws and no-growth admission/materialization",
         "cargo",
         &[
             "test",
@@ -36,6 +36,8 @@ pub const STEPS: &[Step] = &[
             "prepared_native_decode",
             "--test",
             "prepared_native_decode_variants",
+            "--test",
+            "checked_sequence_finite_refinement",
             "--",
             "--nocapture",
             "--test-threads=1",
