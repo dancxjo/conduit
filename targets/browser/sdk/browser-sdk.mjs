@@ -1,6 +1,4 @@
 import { admitOwnerFaceComponentBack } from "./browser-sdk-owner-component.mjs";
-import { showBodyFace } from "./browser-sdk-body-face.mjs";
-import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
@@ -425,7 +423,11 @@ export class BrowserBodyParticipation {
     const preparation = { proposal, owner: null, play: null, bridge: this.#state.host.bridge,
       current: () => this.presenceState() === 'available' && this.hostId === selectedHost && this.bootId === selectedBoot
         && this.membershipCredential()?.body_id === proposal.plan.body_id };
-    const renderPatchbay = request => (onPatchbayPublication ?? renderPatchbayPublication)({ ...request, play: preparation.play });
+    const renderPatchbay = async request => {
+      const render = onPatchbayPublication
+        ?? (await import("./browser-sdk-patchbay.mjs")).renderPatchbayPublication;
+      return render({ ...request, play: preparation.play });
+    };
     const owner = acquireBrowserBodyHost({
       api: this.#state.host.api,
       hostId: this.hostId,
@@ -460,7 +462,9 @@ export class BrowserBodyPreparation {
 
   /** Publish the fresh post-Started canonical Body Face through its selected Mask. */
   showBodyFace({ coordinator, root, transport }) {
-    return showBodyFace({ coordinator, root, transport, bridge: this.#state.bridge, play: this.#state.play, current: this.#state.current });
+    const request = { coordinator, root, transport, bridge: this.#state.bridge,
+      play: this.#state.play, current: this.#state.current };
+    return import("./browser-sdk-body-face.mjs").then(({ showBodyFace }) => showBodyFace(request));
   }
   observations() { return Object.freeze(this.#state.owner.observations().map(item => Object.freeze({ ...item }))); }
   evidence() { return this.#state.owner.evidence(); }

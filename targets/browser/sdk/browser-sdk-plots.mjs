@@ -1,4 +1,3 @@
-import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
 import { createBodyEventStream, maximumBodyEventSubscriptions, projectBodySnapshot } from "./browser-sdk-events.mjs";
 
 const SOURCE_SCHEMA = "conduit.browser/plot-source@1";
@@ -226,7 +225,11 @@ export class BrowserBody {
     let playStarted = false;
     try {
       let renderingPlay;
-      const renderPatchbay = request => (onPatchbayPublication ?? renderPatchbayPublication)({ ...request, play: renderingPlay });
+      const renderPatchbay = async request => {
+        const render = onPatchbayPublication
+          ?? (await import("./browser-sdk-patchbay.mjs")).renderPatchbayPublication;
+        return render({ ...request, play: renderingPlay });
+      };
       adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         storage: this.#storage,
