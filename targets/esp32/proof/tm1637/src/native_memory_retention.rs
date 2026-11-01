@@ -16,6 +16,9 @@ pub(super) fn report(body: Option<&SealedBodyLifecycleSession>) {
         pending_archives: Option<[usize; 3]>,
         // The exact completed signed response's [length, capacity].
         join_response: Option<[usize; 2]>,
+        // Cached authenticated [journal generation, encoded payload bytes].
+        // None while the actual Store is leased, stale or unavailable.
+        checkpoint: Option<(u64, usize)>,
     }
     let admissions = crate::native_restart::with_admissions(|manager| {
         let usage = manager.storage_usage();
@@ -33,6 +36,7 @@ pub(super) fn report(body: Option<&SealedBodyLifecycleSession>) {
         admissions,
         pending_archives: body.map(|owner| row(owner.pending_archive_storage_usage())),
         join_response: crate::native_body_join_http::completed_storage_usage(),
+        checkpoint: crate::native_restart::checkpoint_extent().ok(),
     };
     let mut bytes = [0; 512];
     if let Ok(length) = serde_json_core::to_slice(&report, &mut bytes) {
