@@ -12,6 +12,8 @@ mod canonical_export;
 mod categorical_runtime;
 #[path = "../suites/committed_vocative.rs"]
 mod committed_vocative;
+#[path = "../suites/creche_preparation.rs"]
+mod creche_preparation;
 #[path = "../suites/dsp_shared_compositions.rs"]
 mod dsp_shared_compositions;
 #[path = "../suites/expression_baseline.rs"]
@@ -116,6 +118,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
         CheckSuite::FixedNumericDsp => run_suite(fixed_numeric_dsp::STEPS, &root, opts),
+        CheckSuite::CrechePreparation => run_suite(creche_preparation::STEPS, &root, opts),
         CheckSuite::NativeSourceLaws => run_suite(native_source_laws::STEPS, &root, opts),
         CheckSuite::NativeLawCustody => run_suite(native_law_custody::STEPS, &root, opts),
         CheckSuite::ResourceReferenceEquality => {

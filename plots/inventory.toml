@@ -661,3 +661,10 @@ title = "Seven-segment Mask"
 entry = "seven-segment"
 deterministic = { package = "conduit-face", features = ["plot-catalog"], test = "mask_plot", case = "seven_segment_source_is_an_ordinary_mask_with_one_role_boundary" }
 browser_safe_not_applicable = "the finite seven-segment Show needs a selected device display realization; Source checking does not establish physical manifestation"
+
+[[plots]]
+slug = "creche"
+title = "Crèche preparation"
+entry = "creche/main"
+deterministic = { package = "conduit", test = "lib", case = "plot_source::creche_tests::shipped_creche_is_an_ordinary_checked_product_plot" }
+browser_safe_not_applicable = "preparing another Body requires an admitted Host Call and exact owner-bound deployment authority; this oracle checks ordinary Source, not browser realization"

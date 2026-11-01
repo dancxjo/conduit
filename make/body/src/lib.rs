@@ -10,6 +10,8 @@ mod construction_source;
 mod current_frame;
 mod deployment_draft;
 mod deployment_encounter;
+pub mod deployment_runtime;
+pub mod deployment_runtime_catalog;
 mod evidence_attachment;
 mod planning;
 mod prepared_birth;
