@@ -87,13 +87,18 @@ impl InstalledDurableStateHost {
 }
 
 impl FileDurableStateResidence {
+    /// Exact stable locator shared with Root inventory selection. This grants
+    /// no permission to recover or commit a journal.
+    pub fn storage_key(binding: &DurableStateBinding) -> Result<String, DurableStateRefusal> {
+        binding.validate()?;
+        Ok(hex(&binding_key(binding)))
+    }
     pub fn open(
         root: impl AsRef<Path>,
         binding: DurableStateBinding,
     ) -> Result<Self, DurableStateRefusal> {
         binding.validate()?;
-        let key = binding_key(&binding);
-        let directory = root.as_ref().join(hex(&key));
+        let directory = root.as_ref().join(Self::storage_key(&binding)?);
         fs::create_dir_all(&directory).map_err(|_| DurableStateRefusal::Lost)?;
         Ok(Self { binding, directory })
     }

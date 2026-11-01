@@ -174,6 +174,9 @@ impl SelectedBodyStorage {
             Ok(())
         }
     }
+    pub(crate) fn root_descriptor(&self) -> &File {
+        &self.state_root
+    }
     pub(crate) fn snapshot_directory(&self) -> &SnapshotDirectory {
         &self.directory
     }
