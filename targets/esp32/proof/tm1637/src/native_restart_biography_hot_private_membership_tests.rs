@@ -71,6 +71,10 @@ fn private_committed_prefix_owned_membership_survives_reopen() {
         &request.boot_id,
         request.offer_generation,
     ));
+    let before_recipe = crate::native_restart::with_store(|store| {
+        payload::rewrite::probe_frozen_recipe(store, &owner, &root)
+    })
+    .unwrap();
     let owner = Box::new(owner);
     let owner_pointer = &*owner as *const _;
     let (mut job, reserve) = crate::allocation_probe::observe(|| {
@@ -124,6 +128,11 @@ fn private_committed_prefix_owned_membership_survives_reopen() {
             && !receipt.plan_created
             && !receipt.play_created
     );
+    let after_recipe = crate::native_restart::with_store(|store| {
+        payload::rewrite::probe_frozen_recipe(store, &owner, &root)
+    })
+    .unwrap();
+    println!("private_actual_source_frozen_recipe_dimensions: prefix_append_suffix_reused_source_output_before={before_recipe:?} after={after_recipe:?} canonical_and_recipe_hashes_equal=true exact_measured_fixture_limits_only=true target_admission=false");
     let mut reopened = Checkpoint::open(region).unwrap();
     let (after, _) = decode_checkpoint(&mut reopened, &binding, &body, &mut seed.0, None).unwrap();
     assert!(after.retained.evidence == *owner.evidence());
