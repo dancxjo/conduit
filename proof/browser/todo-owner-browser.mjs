@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { captureTodoAccessibility, withTodoStylesDisabled } from './todo-owner-accessibility.mjs';
 import { captureArbitraryTodoRefusals } from './todo-owner-arbitrary-action.mjs';
-import { inspectTodoRealization, activateTodoAdd } from './todo-owner-realization.mjs';
+import { inspectTodoRealization, activateTodoAdd, inspectCompletedTodo } from './todo-owner-realization.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -496,7 +496,7 @@ try {
     assert.ok(terminal.stdout.includes(completion.initiating_show_id),
       'checkpoint completion must name a Show actually acknowledged by this terminal');
     const staleView = after;
-    const staleButton = page.getByRole('button', { name: `complete ${itemText}`, exact: true });
+    const staleButton = page.locator(`[data-owner-action=${JSON.stringify(action.identity)}]`).getByRole('button');
     assert.ok(await staleButton.isEnabled(), 'the previously displayed action must still be offered for this stale-Show test');
     await staleButton.click();
     await page.waitForFunction(() => document.querySelector('[data-owner-action-result]')?.dataset.refused === 'true',
@@ -529,9 +529,7 @@ try {
     }, item.identity, { timeout: 12_000 });
     after = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     assert.equal(after.body_id, bodyId);
-    assert.equal(await page.locator('.owner-face-collection-count').textContent(), '2 things left · 1 completed');
-    assert.equal(await page.locator('.owner-face-completed').getAttribute('open'), null,
-      'completed items must remain subordinate in the checklist');
+    await inspectCompletedTodo({page,view:after,item});
     const completedEvidence = terminalEvidence(terminal.stdout).at(-1);
     assert.equal(completedEvidence.body_id, bodyId);
     assert.equal(completedEvidence.owner_selected_show_current, true);

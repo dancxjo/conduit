@@ -950,3 +950,51 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
         &[],
     ),
 ];
+
+/// Focused administrative-name contract, projection, and public CLI proof.
+pub const PROVE_BODY_RENAME_STEPS: &[Step] = &[
+    Step::new(
+        "prove.body-rename.face",
+        "Prove allocation-free committed name projection",
+        "cargo",
+        &[
+            "test",
+            "--manifest-path",
+            "bodies/environment/face/Cargo.toml",
+            "--target-dir",
+            "target",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "prove.body-rename.core",
+        "Prove signed rename, identity continuity, replay and archive custody",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-body",
+            "--test",
+            "body_rename",
+            "--locked",
+        ],
+    ),
+    Step::new(
+        "prove.body-rename.body-regression",
+        "Prove shared Body lifecycle and biography compatibility",
+        "cargo",
+        &["test", "-p", "conduit-body", "--locked"],
+    ),
+    Step::new(
+        "prove.body-rename.projection",
+        "Check readable biography projection",
+        "cargo",
+        &["test", "-p", "conduit-body-make", "--locked"],
+    ),
+    Step::new(
+        "prove.body-rename.cli",
+        "Prove the supported administrative client",
+        "cargo",
+        &["test", "-p", "conduit", "body_rename", "--locked"],
+    ),
+];

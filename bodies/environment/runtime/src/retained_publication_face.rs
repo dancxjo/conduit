@@ -114,6 +114,15 @@ impl RetainedPublicationFace {
     pub fn last_source_sequence(&self) -> u64 {
         self.last_sequence
     }
+    pub fn project_body_name(
+        &mut self,
+        body_id: &str,
+        name: &str,
+    ) -> Result<(), RetainedPublicationRefusal> {
+        self.face
+            .project_body_name(body_id, name)
+            .map_err(RetainedPublicationRefusal::Publication)
+    }
     pub fn current(&self) -> &Face {
         self.face.current()
     }

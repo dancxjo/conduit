@@ -18,6 +18,7 @@ pub enum BodyAdministrativeIntent {
     Inspect,
     RecoverContinuity,
     Fulfill,
+    Rename,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BodyAdministrativeRequest {

@@ -25,7 +25,8 @@ export async function inspectTodoRealization({page,view,face,state}) {
   assert.ok(collection.properties.length>0,'generic fallback specimen must retain actual extra source facts');
   const generic=page.locator('[data-owner-face-document] [data-face-role="Collection"]');
   assert.equal(await generic.count(),1);
-  assert.equal(await generic.locator('h4').textContent(),collection.name);
+  // Decorative SVG whitespace is not part of the user's heading name.
+  assert.equal(await generic.getByRole('heading',{name:collection.name,exact:true}).isVisible(),true);
   const facts=generic.locator('details[data-owner-disclosure]');
   assert.equal(await facts.count(),1);
   assert.deepEqual(await facts.evaluate(node=>JSON.parse(node.dataset.ownerDisclosure)),
@@ -62,4 +63,25 @@ export async function activateTodoAdd({page,form,text,realization,scenario}) {
     return 'native-keyboard-tab-enter';
   }
   await button.click();return 'native-pointer-click';
+}
+
+// The same committed Face may select a checklist or the generic facts reader.
+// Extra producer facts must not be discarded merely to satisfy checklist CSS.
+export async function inspectCompletedTodo({page,view,item}) {
+  if(await page.locator('.owner-face-collection-count').count()) {
+    assert.equal(await page.locator('.owner-face-collection-count').textContent(),'2 things left · 1 completed');
+    assert.equal(await page.locator('.owner-face-completed').getAttribute('open'),null,
+      'completed items must remain subordinate in the checklist');
+    return;
+  }
+  const status=view.subjects.find(subject=>subject.identity==='todo/status');
+  assert.deepEqual(status?.text,['2 things left · 1 completed']);
+  const shown=page.locator('[data-owner-face-document] [data-face-role="Status"]');
+  assert.equal(await shown.getByText(status.text[0],{exact:true}).isVisible(),true);
+  const complete=view.subjects.find(subject=>subject.identity===item.identity);
+  assert.equal(complete?.disclosure,'SelectedDetail');
+  assert.ok(complete.flags.some(flag=>flag.name==='complete' && flag.value===true));
+  const heading=page.getByRole('heading',{name:item.name,exact:true,includeHidden:true});
+  assert.equal(await heading.count(),1,'completed item must remain reachable');
+  assert.equal(await heading.isVisible(),false,'completed item must remain subordinate');
 }
