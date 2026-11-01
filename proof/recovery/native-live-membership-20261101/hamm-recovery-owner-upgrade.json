@@ -18,5 +18,98 @@
       "canonical_sha256": "sha256:e203831af9c0725bf60eff2897188359d20126aeeda22e6692d0f44e1e8efefa"
     }
   ],
-  "scope": "Actual same-Body install/reopen and first physical Green Source observation; finite Play remains running. No physical interruption, complete finite run, durable recorder/ACK, browser join or MCU membership claim."
+  "scope": "Actual same-Body install/reopen and completed 16-turn physical Green Source Play, union of first live observation and same-session retained rows2\u201316 after readmission. No injected physical interruption, selected recorder/ACK, browser join or MCU membership claim.",
+  "completed_finite_play": {
+    "active_play_id": "body-play/sha256:1a0449ac193b806013acd38fa1674c53c102d8c5d249e23db6eb84a95c38e54e",
+    "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+    "plan_id": "body-plan/sha256:242f554321a9b1f9a80360757a96ae977962c0b6e5932396eb909235d1055f63",
+    "play_sequence": 1,
+    "wake_id": "a778f7acd5b24f4e10218088df8c20124ab0bbdaa737c28c13796e15104204ba"
+  },
+  "terminal": "Completed",
+  "failure": null,
+  "cleanup_failure": null,
+  "native_failure": null,
+  "physical_observations": [
+    {
+      "sequence": 1,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:e203831af9c0725bf60eff2897188359d20126aeeda22e6692d0f44e1e8efefa"
+    },
+    {
+      "sequence": 2,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:26aaf158b3c79c3cc77693379ca8d220330fd0a696271da2b3971244e86c828e"
+    },
+    {
+      "sequence": 3,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:bee4efbdaba9450880d93b4436a47020387858f196e6f8a54e3498cb1144b892"
+    },
+    {
+      "sequence": 4,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:2cadf6eac90961997d14cc6e79a31f1b380c5ad3fdbcf01ac38154269f910811"
+    },
+    {
+      "sequence": 5,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:ab7bc3f6be165b9a10a3d784c19e579faf9a0a7dc3badee8527d30b757d394d7"
+    },
+    {
+      "sequence": 6,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:eb0f8bf1f92e0607c5a5a51d080dc5dcd4acedb606fb0083f7566ff5473c6f39"
+    },
+    {
+      "sequence": 7,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:74107f65c431fe79233071019cdf214cffa704c50741568c8f7387660048bd5c"
+    },
+    {
+      "sequence": 8,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:640bea9f24a4d79fe732834ede96261dcbff871389e3b9518b5341062b5f5025"
+    },
+    {
+      "sequence": 9,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:66a419c885c3325036ec3bbbe7c7f18835b1ad08e6c1b8ed9f5b066aa504caad"
+    },
+    {
+      "sequence": 10,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:747c18112d33b6a2abbae648a19ac887024281e7111918a184e3d51d4d8257c5"
+    },
+    {
+      "sequence": 11,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:e6d7e168244c24bf9ba92fdd1106c222c00ab6c5e595aca893059809133d7e5a"
+    },
+    {
+      "sequence": 12,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:40fc85213e68229cf93f235dcf98d0a56474f20365b2b7c34e8e09f18c47ab5d"
+    },
+    {
+      "sequence": 13,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:186d45eb7cd3449fca2d1f26cf2657ef416444de0896be70d7d32c44cf69f6c3"
+    },
+    {
+      "sequence": 14,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:61012ab9415c1b398a08f2935215aad51ddc35878216b4238f52c5b08d79d0fb"
+    },
+    {
+      "sequence": 15,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:ad2caf03f65035beef7aefc91395378918ff3aa547eaaa5ea1ff97ff56fa8916"
+    },
+    {
+      "sequence": 16,
+      "canonical_bytes": 124,
+      "canonical_sha256": "sha256:8b70ba16aaf76a2bb6ecdfc9036343842f58a196e5999947db38dfbf6fc86cd7"
+    }
+  ]
 }
