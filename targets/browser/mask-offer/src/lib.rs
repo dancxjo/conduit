@@ -18,6 +18,7 @@ use conduit_face::{
 };
 
 mod configured_sources;
+pub mod owner_component;
 mod remote;
 pub use remote::{planned_owner_face_show_interaction_mask, planned_owner_face_show_mask};
 
