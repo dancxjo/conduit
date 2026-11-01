@@ -1,0 +1,10 @@
+   Compiling conduit-environment-history v0.1.0 (/tmp/threebee-current-adapter-20261101/bodies/environment/history)
+    Finished `test` profile [unoptimized] target(s) in 0.37s
+     Running unittests src/lib.rs (/tmp/threebee-adapter-target-20261101/debug/deps/conduit_environment_history-1f320807ff35de09)
+
+running 2 tests
+test native::scene::selected_measurement_tests::oversized_selected_label_refuses_without_scene ... ok
+test native::scene::selected_measurement_tests::unmeasured_empty_graph_retains_original_label_geometry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

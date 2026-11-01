@@ -1,0 +1,18 @@
+{
+  "artifact_bytes": 4695992,
+  "artifact_sha256": "a5fa6adb8510e40867238e896993916d0688af10c5b44346eb99828f74dd7b1b",
+  "dry_run": false,
+  "hardware_acceptance": false,
+  "host_release": false,
+  "linker": "/home/dancxjo/Documents/Codex/2026-10-28/there-is-now-an-rpib-running/work/victus-aarch64-sdk/bin/aarch64-linux-gnu-gcc",
+  "linker_sha256": "35804c80de4346fdef52ee4803105adb1b7dc9754e1a4a9c2bf710699f54df5d",
+  "linker_version": "aarch64-linux-gnu-gcc-15 (Ubuntu 15.2.0-16ubuntu1) 15.2.0\nCopyright (C) 2025 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "output": "/tmp/threebee-display-qualified-raster-20261101",
+  "qualification": "source-clean; ELF64 AArch64; canonical Linux interpreter; copied SHA256 verified",
+  "rust_target": "aarch64-unknown-linux-gnu",
+  "rust_toolchain": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "schema": "conduit.developer/linux-face-display-build@1",
+  "scope": "development-framebuffer-adapter",
+  "source_identity": "e71bf7c7662ab63081e1f15cd95ec4711771b95f",
+  "target": "linux-aarch64"
+}
