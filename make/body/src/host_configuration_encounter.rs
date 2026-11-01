@@ -29,7 +29,7 @@ enum Page {
 pub enum HostConfigurationEncounterOutcome {
     Changed,
     /// Checked construction intent, never a Ready provider or produced image.
-    Checked(CheckedHostConfiguration),
+    Checked(Box<CheckedHostConfiguration>),
 }
 
 /// Borrows immutable catalogues; changing package truth requires a new encounter.
@@ -109,6 +109,8 @@ impl<'a> HostConfigurationEncounter<'a> {
     pub fn face(&self, basis: &HostConfigurationEncounterBasis) -> Result<Face, String> {
         projection::project(self, basis)
     }
+    /// The owner supplies its actual retained acknowledged Show. Structural
+    /// validation here does not manufacture a renderer's acknowledgement.
     pub fn apply_interaction(
         &mut self,
         basis: &HostConfigurationEncounterBasis,
@@ -138,7 +140,7 @@ impl<'a> HostConfigurationEncounter<'a> {
             draft::bounds(configuration)?;
         }
         let outcome = if input.action_id == "host-config/check" {
-            HostConfigurationEncounterOutcome::Checked(self.checked()?)
+            HostConfigurationEncounterOutcome::Checked(Box::new(self.checked()?))
         } else {
             HostConfigurationEncounterOutcome::Changed
         };
