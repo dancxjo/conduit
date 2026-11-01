@@ -148,7 +148,8 @@ pub(super) fn disabled_owner_refusal(
     }];
     let revision = owner.revision();
     let naming = owner.requested_system().to_owned();
-    let selection = owner.selection(revision).unwrap();
+    let selection = owner.selection(revision);
+    let inventory = owner.choices().to_vec();
     assert_eq!(
         owner.apply_host_owned_face_interaction(basis, show, &forged),
         Err(BirthFaceRefusal::Interaction(
@@ -157,7 +158,8 @@ pub(super) fn disabled_owner_refusal(
     );
     assert_eq!(owner.revision(), revision);
     assert_eq!(owner.requested_system(), naming);
-    assert_eq!(owner.selection(revision).unwrap(), selection);
+    assert_eq!(owner.selection(revision), selection);
+    assert_eq!(owner.choices(), inventory);
 }
 
 #[test]

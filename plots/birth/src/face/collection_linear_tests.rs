@@ -30,24 +30,22 @@ fn compare(face: &Face, observed: &Records) {
                 .collect::<Vec<_>>(),
             members
         );
-        let mode = generic.multiplicity();
-        if mode.is_none() {
-            assert!(
+        match generic.multiplicity() {
+            None => assert!(
                 !observed
                     .properties
                     .contains_key(&(id.into(), "choice-multiplicity".into()))
-            );
-        } else {
-            assert_eq!(
+            ),
+            Some(mode) => assert_eq!(
                 observed.value(id, "choice-multiplicity"),
                 &Value::Text(
-                    match mode.unwrap() {
+                    match mode {
                         ChoiceMultiplicity::Exclusive => "exclusive",
                         ChoiceMultiplicity::Independent => "independent",
                     }
                     .into()
                 )
-            );
+            ),
         }
         for first in 0..=members.len() {
             let page = generic.page(first, 3).unwrap();
@@ -301,9 +299,9 @@ fn linear_derived_exclusive_and_independent_values_commit_once_at_current_owner(
             })
             .unwrap();
         let action = records.identity(item, "boolean-change-action");
-        let before = owner.selection(owner.revision()).unwrap();
+        let before = owner.choices().to_vec();
         let input = proposal(&face, &show, &records, action, &[u8::from(selected)]).unwrap();
-        assert_eq!(owner.selection(owner.revision()).unwrap(), before);
+        assert_eq!(owner.choices(), before);
         disabled_owner_refusal(&mut owner, &basis, &face, &show, &records, &input);
         owner
             .apply_host_owned_face_interaction(&basis, &show, &input)
@@ -311,13 +309,24 @@ fn linear_derived_exclusive_and_independent_values_commit_once_at_current_owner(
         let current = owner.host_owned_face(&basis).unwrap();
         let observed = observe(&current);
         assert_eq!(observed.flag(item, "selected"), selected);
-        let after = owner.selection(owner.revision()).unwrap();
+        let after = owner.choices().to_vec();
+        let after_revision = owner.revision();
+        assert_eq!(owner.requested_system().as_bytes(), bytes);
+        if selected {
+            owner.selection(after_revision).unwrap();
+        } else {
+            assert_eq!(
+                owner.selection(after_revision),
+                Err(BirthDraftRefusal::EmptySelection)
+            );
+        }
         assert!(
             owner
                 .apply_host_owned_face_interaction(&basis, &show, &input)
                 .is_err()
         );
-        assert_eq!(owner.selection(owner.revision()).unwrap(), after);
+        assert_eq!(owner.choices(), after);
+        assert_eq!(owner.revision(), after_revision);
         let disabled = items
             .iter()
             .find(|i| {
@@ -336,7 +345,8 @@ fn linear_derived_exclusive_and_independent_values_commit_once_at_current_owner(
             .unwrap_err(),
             FaceInteractionRefusal::UnavailableAction
         );
-        assert_eq!(owner.selection(owner.revision()).unwrap(), after);
+        assert_eq!(owner.choices(), after);
+        assert_eq!(owner.revision(), after_revision);
     }
     let face = owner.host_owned_face(&basis).unwrap();
     let records = observe(&face);
