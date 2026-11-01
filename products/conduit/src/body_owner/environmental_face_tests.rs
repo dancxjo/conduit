@@ -72,7 +72,7 @@ fn message(
 fn last_good_survives_twenty_unavailable_outcomes_and_new_child_play() {
     let first = selection("plan/first");
     let mut cache = EnvironmentalFace::prepare().unwrap();
-    cache.select(first.clone()).unwrap();
+    cache.select(first.clone(), None).unwrap();
     let good = message(first.clone(), 0, 10, Some(1));
     cache.accept(&good, 10).unwrap();
     for n in 1..=20 {
@@ -84,7 +84,7 @@ fn last_good_survives_twenty_unavailable_outcomes_and_new_child_play() {
     assert_eq!(rows.len(), 16);
     assert_eq!(rows[0].observation, &good.bytes[..good.length]);
     let next = selection("plan/next");
-    cache.select(next.clone()).unwrap();
+    cache.select(next.clone(), None).unwrap();
     assert!(cache
         .accept(&message(next.clone(), 1, 32, Some(2)), 32)
         .is_err());
@@ -106,7 +106,7 @@ fn last_good_survives_twenty_unavailable_outcomes_and_new_child_play() {
 fn wrong_scope_clock_and_order_leave_canonical_storage_unchanged() {
     let selected = selection("plan/source");
     let mut cache = EnvironmentalFace::prepare().unwrap();
-    cache.select(selected.clone()).unwrap();
+    cache.select(selected.clone(), None).unwrap();
     cache
         .accept(&message(selected.clone(), 0, 10, Some(1)), 10)
         .unwrap();
@@ -122,4 +122,47 @@ fn wrong_scope_clock_and_order_leave_canonical_storage_unchanged() {
         .is_err());
     assert_eq!(cache.sources[0].bytes, before);
     assert_eq!(cache.sources[0].accepted, 1);
+}
+
+#[test]
+fn descriptive_placement_changes_without_rewriting_source_or_observations() {
+    let selected = selection("plan/source");
+    let mut cache = EnvironmentalFace::prepare().unwrap();
+    cache
+        .select(selected.clone(), Some("Forebrain room".into()))
+        .unwrap();
+    cache
+        .accept(&message(selected.clone(), 0, 10, Some(1)), 10)
+        .unwrap();
+    let subject = cache.sources[0].subject.clone();
+    let canonical = cache.sources[0].bytes;
+    cache
+        .select(selected.clone(), Some("Greenhouse".into()))
+        .unwrap();
+    assert_eq!(cache.sources[0].subject, subject);
+    assert_eq!(cache.sources[0].bytes, canonical);
+    assert_eq!(
+        cache.sources[0].selection.as_deref(),
+        Some(selected.as_ref())
+    );
+    let fragment = cache
+        .contribution(
+            "host/collector",
+            "boot/collector",
+            10,
+            FaceContributionBasis {
+                checked_plot_id: "plot/source".into(),
+                plan_id: "plan/source".into(),
+                active_play_id: "play/source".into(),
+                required_interaction_context: None,
+            },
+        )
+        .unwrap()
+        .unwrap();
+    assert!(fragment.properties.iter().any(|p| p.name == "placement"
+        && p.value == conduit_face::FacePropertyValue::Text("Greenhouse".into())));
+    assert!(cache
+        .select(selected, Some("bad\nplacement".into()))
+        .is_err());
+    assert_eq!(cache.sources[0].placement.as_deref(), Some("Greenhouse"));
 }
