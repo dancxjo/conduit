@@ -83,17 +83,6 @@ pub(crate) fn run(args: BodyRecordingArgs) -> Result<(), String> {
         },
     )
 }
-#[derive(serde::Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SelectedAuthority {
-    grant_id: conduit_core::AuthorityGrantId,
-    contract_id: conduit_core::AuthorityContractId,
-    host_call_contract_id: conduit_core::HostCallContractId,
-    subject_kind: conduit_core::KindId,
-    host_id: conduit_core::HostId,
-    boot_id: conduit_core::BootId,
-    capability_id: conduit_core::CapabilityId,
-}
 fn read_authority(path: &Path) -> Result<conduit_core::AuthorityGrant, String> {
     const LIMIT: u64 = 16 * 1024;
     let file =
@@ -109,17 +98,7 @@ fn read_authority(path: &Path) -> Result<conduit_core::AuthorityGrant, String> {
     if bytes.is_empty() || bytes.len() as u64 > LIMIT {
         return Err("recording authority exceeds its finite file bound".into());
     }
-    let selected: SelectedAuthority =
-        serde_json::from_slice(&bytes).map_err(|e| format!("selected recording authority: {e}"))?;
-    Ok(conduit_core::AuthorityGrant {
-        grant_id: selected.grant_id,
-        contract_id: selected.contract_id,
-        host_call_contract_id: selected.host_call_contract_id,
-        subject_kind: selected.subject_kind,
-        host_id: selected.host_id,
-        boot_id: selected.boot_id,
-        capability_id: selected.capability_id,
-    })
+    crate::durable_host_control::body_recording::decode_selected_authority(&bytes)
 }
 
 #[cfg(test)]
