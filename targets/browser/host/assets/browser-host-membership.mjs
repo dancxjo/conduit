@@ -108,6 +108,23 @@ function createMembershipClient(api, hostId, bootId, verifyingKey) {
     proveReturn(challenge) {
       return Object.freeze({ hostId, bootId, signature: Array.from(invokeJson("conduit_browser_membership_prove_return", challenge)) });
     },
+    // Membership identity is admitted separately from this Host's complete
+    // installed equipment. The caller supplies pins from its validated Spore.
+    prepareMembershipScope({ claim, secret, expectedBodyId, expectedRoot, producerHost, producerBoot }) {
+      if (typeof api.conduit_browser_membership_prepare_scope !== "function") {
+        throw new Error("browser Host runtime lacks membership-only admission");
+      }
+      return JSON.parse(decoder.decode(invokeJson("conduit_browser_membership_prepare_scope", {
+        claim, secret, expected_body_id: expectedBodyId, expected_root: expectedRoot,
+        producer_host: producerHost, producer_boot: producerBoot,
+      })));
+    },
+    adoptMembershipScope(receipt) {
+      if (typeof api.conduit_browser_membership_adopt_scope !== "function") {
+        throw new Error("browser Host runtime lacks membership-only receipt verification");
+      }
+      return JSON.parse(decoder.decode(invokeJson("conduit_browser_membership_adopt_scope", receipt)));
+    },
     proveSpawn(claim, secret) {
       return Object.freeze({ hostId, bootId, signature: Array.from(invokeJson("conduit_browser_membership_prove_spawn", { claim, secret })) });
     },

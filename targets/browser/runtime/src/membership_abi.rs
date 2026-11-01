@@ -1,6 +1,7 @@
 //! Bounded WASM ABI for browser-owned Body admission proof material.
 
 use crate::membership::BrowserAdmissionIdentity;
+mod portable;
 use conduit_body::{
     AdmissionChallenge, PartReturnChallenge, SpawnInvitationClaim, SpawnInvitationSecret,
     ADMISSION_SIGNATURE_BYTES,
@@ -239,6 +240,7 @@ pub extern "C" fn conduit_browser_membership_advertisement() -> i32 {
 }
 
 fn clear_identity_and_output() {
+    portable::reset();
     IDENTITY.with(|slot| slot.borrow_mut().take());
     clear_output();
 }
