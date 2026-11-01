@@ -29,7 +29,7 @@ truth remains in Host construction and actual initialized offers.
 
 | Stage | Required witness | Current result |
 |---|---|---|
-| Existing Host and Crèche | Actual installed Host/Boot and acknowledged encounter | Old Linux entrance refused; current release building |
+| Existing Host and Crèche | Actual installed Host/Boot and acknowledged encounter | Verified installed Linux service and terminal Birth encounter; required toolset still absent |
 | Birth with useful tools | One reviewed birth, retained Source/workset, installed authoring/Make capabilities | Not achieved |
 | Wake and next Seed | Same Body, authored/checked Host definition, admitted Make and exact artifact | Not achieved |
 | Deployment and admission | Explicit carrier or human transfer, actual new Boot and authorized same-Body member | Not achieved |
@@ -74,10 +74,35 @@ cargo +stable xtask host release --platform linux \
 
 The Linux release set builds x86_64 and AArch64 executables and sealed target
 manifests. This is bootstrap preparation of the preexisting authoring Host, not
-a Seed claimed to have been made by a Body that does not yet exist. Exact output
-verification, installation and the actual Crèche encounter remain pending.
+a Seed claimed to have been made by a Body that does not yet exist. Completion,
+verified installation and the actual Crèche encounter are recorded below.
 Raw logs and private receipts are retained outside Git under the task's ignored
 `target/canonical-lifecycle-journey-20261101/` output.
+
+### Installed entrance reached
+
+The release job completed successfully for x86_64 and AArch64. The ordinary
+`host service install` command verified the sealed x86_64 bundle and activated
+the user service. Host identity above was preserved. Actual Boot
+`boot/installed/043fc8d265ae6b940dd261bdb0bb21328b17b79992a964c57f7a1939f306fbf0`
+reported offer generation1, and its live process executable matched the installed
+release path. The bundle digest is
+`sha256:e2c12ab001b76b1017bc8c242afbe6bfceeadfc1369a69781ff2434958959c2a`.
+
+Invoking the installed `body birth --screen-free` opened the actual service-owned
+Face revision1 with an acknowledged terminal Show. Its available Plots were
+Morse Network and Interval ticker. The required authoring/Make tools were absent;
+the operator explicitly exited without Birth. This is actual installed terminal
+evidence, not a graphical screenshot, useful-tool Body, Seed or membership proof.
+Compact receipt: `proof/evidence/creche/installed-birth-entrance-20261101.json`.
+
+The shared Plot editor catalog now checks/expands the shipped Crèche Source;
+all four catalog regressions passed. The recovered Std supplied-owner path passed
+18 tests again after integration with dev43aae275ce. Exact shipped-source product
+Fore planning passed two tests, including refusal without an installed offer and
+refusal of a same-name Plot with different Source identity. Those are software
+preparation/execution proofs; actual checked Crèche provider selection and the
+production encounter owner remain the next installed gates under #6468.
 
 ## 3. Source gates to address at the real encounter
 

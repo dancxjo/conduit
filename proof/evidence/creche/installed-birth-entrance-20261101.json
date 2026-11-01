@@ -1,0 +1,59 @@
+{
+  "schema": "conduit.proof/installed-birth-entrance@1",
+  "source_identity": "dc2e85c6e2cf9ab54610885206ac2ff925b7808e",
+  "bundle_sha256": "sha256:e2c12ab001b76b1017bc8c242afbe6bfceeadfc1369a69781ff2434958959c2a",
+  "host_id": "host/installed/f0ccc266877e6d1c192e22246ddaef8be554c52c408a6a8bcbc967c1b1775ed8",
+  "boot_id": "boot/installed/043fc8d265ae6b940dd261bdb0bb21328b17b79992a964c57f7a1939f306fbf0",
+  "offer_generation": 1,
+  "process_executable_verified": true,
+  "body_id": null,
+  "outcome": "Installed service-owned zero-Body encounter opened and explicitly exited; no Birth performed",
+  "available_plots": [
+    "Morse Network",
+    "Interval ticker"
+  ],
+  "required_authoring_make_toolset_present": false,
+  "proof_class": "actual installed Linux service and terminal Mask; not graphical scanout or device membership",
+  "receipts": [
+    {
+      "file": "host-release.log",
+      "bytes": 48225,
+      "sha256": "31f57ab789292bc468c1f859652c6b89d50a11fd32c0e085d6f790e70a2f1c3e"
+    },
+    {
+      "file": "default-host-install.log",
+      "bytes": 677,
+      "sha256": "ccf2dc778fe95a3c047c0a368e8b1d4b506930af402c8fa059c988e67e28c070"
+    },
+    {
+      "file": "default-host-status.json",
+      "bytes": 391,
+      "sha256": "47aa161a61fd5648780064fff438a305c834aa7124ae5a07dfdf9e12f94d9f5f"
+    },
+    {
+      "file": "installed-birth-encounter.txt",
+      "bytes": 7160,
+      "sha256": "911d4bc9278eeb6cc226e854160d5b9a4a8e795f0064cfdd54d54e8750fa06a6"
+    },
+    {
+      "file": "installed-birth-encounter.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "editor-catalog-regressions.log",
+      "bytes": 924,
+      "sha256": "6a7ff80177b9942999e5b890f3a03440d47e867501e304008cabafb3fe195b46"
+    },
+    {
+      "file": "integrated-creche-tests.log",
+      "bytes": 9432,
+      "sha256": "e39d0e0500103f4dd044b96a148124895dd4e0e6ed98ea18da6617d05f2cba8d"
+    },
+    {
+      "file": "product-creche-planning-tests.log",
+      "bytes": 19578,
+      "sha256": "01a9a79deee99d1580a5f280c0e8b23aff6d8f5d6c2fbb5011998739f86fe827"
+    }
+  ]
+}
