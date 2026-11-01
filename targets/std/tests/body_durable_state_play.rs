@@ -23,6 +23,12 @@ fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
         &mut profiles,
     )
     .unwrap();
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: "state/latest".into(),
+            startup_parameters: vec![],
+        })
+        .unwrap();
     let mut advertisement = StdHost::new_with_config(StdHostConfig {
         host_id: "state/body-host".into(),
         boot_id: boot.into(),
@@ -51,7 +57,7 @@ fn planned(boot: &str) -> (StdHost, Plan, ResourceOffer) {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let host = StdHost::from_advertisement(advertisement).unwrap();
-    let checked = conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document("plot durable (\n >> write: Text <= 4KiB\n current: Text <= 4KiB >>\n) {\n cell: keep Text(\"\") <= 4KiB for life\n write >> cell\n cell >> current\n}\n"), &startup).unwrap();
+    let checked = conduit_plot::check_syntax_document(&conduit_plot::parse_syntax_document("plot durable (\n >> write: Text <= 4KiB\n current: $Text <= 4KiB >>\n) {\n cell: keep Text(\"\") <= 4KiB for life\n write >> cell\n cell >> current\n}\n"), &startup).unwrap();
     let authored =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "durable", &profiles).unwrap();
     let hosts = [host.advertisement().clone()];
@@ -184,6 +190,25 @@ fn rejected_start_has_no_state_effect_and_releases_original_pool() {
         let root = tempfile::tempdir().unwrap();
         let (mut host, plan, resource) = planned("state/boot-a");
         let (wake, body) = body_plan(plan);
+        let mut default_fore = CapturedFore::default();
+        let default_result = host.run_body_plan_with_fore_to(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body,
+                control: &RunControl::new(),
+                keyboard: None,
+            },
+            &[],
+            false,
+            &mut default_fore,
+            &mut Vec::new(),
+            &mut ThreadTimer,
+        );
+        assert!(
+            default_result.is_err(),
+            "unselected Body State must keep refusing"
+        );
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
         for accept in [false, true] {
             let mut fore = CapturedFore::default();
             let result = host.run_body_plan_with_durable_state_to_with_start(
@@ -222,5 +247,45 @@ fn rejected_start_has_no_state_effect_and_releases_original_pool() {
                 assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
             }
         }
+    });
+}
+
+#[test]
+fn foreign_selected_resource_refuses_before_start_or_residence_effect() {
+    thread(|| {
+        let root = tempfile::tempdir().unwrap();
+        let (mut host, plan, mut resource) = planned("state/boot-a");
+        let (wake, body) = body_plan(plan);
+        resource.pool_id = "state/foreign-pool".into();
+        let mut fore = CapturedFore::default();
+        let mut started = false;
+        let result = host.run_body_plan_with_durable_state_to_with_start(
+            BodyRunRequest {
+                wake: &wake,
+                plan: &body,
+                control: &RunControl::new(),
+                keyboard: None,
+            },
+            BodyForeExchange {
+                inputs: &[],
+                output: &mut fore,
+            },
+            BodyDurableStateSelection {
+                root: root.path(),
+                resource: &resource,
+                authorities: &[],
+                body_id: &body.body_id,
+                plan_id: &body.plan_id,
+            },
+            &mut Vec::new(),
+            &mut ThreadTimer,
+            |_, _| {
+                started = true;
+                Ok(())
+            },
+        );
+        assert!(result.unwrap_err().contains("Body State selection differs"));
+        assert!(!started);
+        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
     });
 }
