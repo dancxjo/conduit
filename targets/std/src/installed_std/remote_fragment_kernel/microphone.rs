@@ -3,6 +3,16 @@ use super::super::microphone_host;
 use super::*;
 
 impl InstalledRemoteFragment {
+    pub(crate) fn prepare_microphone_flow_host(
+        &mut self,
+        fragment: &conduit_core::PlanFragment,
+        adapter: Option<&crate::hosted_microphone::AlsaMicrophoneAdapter>,
+    ) -> Result<(), String> {
+        self.microphone_flow_host = Some(
+            super::super::microphone_flow_host::MicrophoneFlowHost::prepare(fragment, adapter)?,
+        );
+        Ok(())
+    }
     pub(crate) fn complete_microphone_provider_host_call(
         &mut self,
         request: HostCallRequest,
@@ -10,6 +20,15 @@ impl InstalledRemoteFragment {
         cancelled: impl FnMut() -> bool,
     ) -> Result<bool, String> {
         let work = self.host_request_view(request)?;
+        if work.contract_id.as_str() == conduit_std_offers::MICROPHONE_FLOW_OPERATION {
+            let host = self
+                .microphone_flow_host
+                .as_mut()
+                .ok_or("finite capture lacks a prepared provider lease")?;
+            let mut cancelled = cancelled;
+            host.accept(request, &mut self.scheduler, cancelled())?;
+            return Ok(true);
+        }
         if work.contract_id.as_str() != conduit_std_offers::MICROPHONE_CLIP_OPERATION {
             return Ok(false);
         }

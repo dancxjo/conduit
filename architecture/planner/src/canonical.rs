@@ -39,7 +39,7 @@ impl Ord for ForeBoundaryKey {
     }
 }
 
-mod authoring;
+pub(crate) mod authoring;
 pub use authoring::{
     plan_expanded_authoring_with_activations, plan_expanded_authoring_with_connection_limits,
     plan_expanded_authoring_with_options,
@@ -171,7 +171,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
 ) -> Result<Plan, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
-    let mut plan = crate::validated_planning::plan_borrowed_plot_with_connection_limits(
+    let mut plan = crate::validated_planning::plan_input_with_connection_limits(
         crate::planning_input::PlanningInput::from(plot),
         hosts,
         placements,
@@ -179,7 +179,7 @@ pub fn plan_expanded_canonical_with_connection_limits(
         options,
         connection_limits,
     )?;
-    attach_source_spans(plot, &mut plan)?;
+    attach_source_spans(&plot.provenance, &mut plan)?;
     Ok(
         conduit_core::seal_plan_with_realization_backs_and_completion(
             conduit_core::PlotIdentity {
@@ -194,48 +194,74 @@ pub fn plan_expanded_canonical_with_connection_limits(
     )
 }
 
-fn attach_source_spans(plot: &ExpandedCanonicalPlot, plan: &mut Plan) -> Result<(), PlannerError> {
-    for placement in plan
-        .fragments
+/// The same ordinary planning and validation, retiring the supplied checked
+/// expansion after transferring its configuration/program buffers into the Plan.
+/// Refusal consumes the expansion too; it publishes no partial Plan.
+pub fn plan_expanded_canonical_consuming_with_connection_limits(
+    mut plot: ExpandedCanonicalPlot,
+    hosts: &[HostAdvertisement],
+    placements: &PlacementChoices,
+    bases: &[BaseImplementationId],
+    options: PlanningOptions<'_>,
+    connection_limits: &BTreeMap<ConnectionEndpoints, ConnectionQueueLimits>,
+) -> Result<Plan, PlannerError> {
+    plot.validate_expansion()
+        .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    let gears = core::mem::take(&mut plot.gears);
+    let mut plan = crate::validated_planning::plan_input_with_connection_limits(
+        crate::planning_input::PlanningInput::consuming(&plot, gears),
+        hosts,
+        placements,
+        bases,
+        options,
+        connection_limits,
+    )?;
+    attach_source_spans(&plot.provenance, &mut plan)?;
+    Ok(
+        conduit_core::seal_plan_with_realization_backs_and_completion(
+            PlotIdentity {
+                source_document_id: plot.source_document_id,
+                checked_plot_id: plot.checked_plot_id,
+                expanded_plot_id: plot.expanded_plot_id,
+            },
+            crate::plan_completion_policy(plot.completion),
+            plot.realization_backs,
+            plan.fragments,
+        ),
+    )
+}
+
+pub(crate) fn attach_source_spans(
+    provenance: &[conduit_plot::ExpandedGearProvenance],
+    plan: &mut Plan,
+) -> Result<(), PlannerError> {
+    attach_fragment_source_spans(provenance, &mut plan.fragments)
+}
+
+pub(crate) fn attach_fragment_source_spans(
+    provenance: &[conduit_plot::ExpandedGearProvenance],
+    fragments: &mut [conduit_core::PlanFragment],
+) -> Result<(), PlannerError> {
+    attach_fragment_source_spans_by(fragments, |gear| {
+        provenance
+            .iter()
+            .find(|entry| entry.gear_id == gear)
+            .map(|entry| entry.source_span)
+    })
+}
+
+pub(crate) fn attach_fragment_source_spans_by(
+    fragments: &mut [conduit_core::PlanFragment],
+    source_span: impl Fn(&str) -> Option<conduit_plot::Span>,
+) -> Result<(), PlannerError> {
+    for placement in fragments
         .iter_mut()
         .flat_map(|fragment| &mut fragment.placements)
     {
-        let provenance = plot
-            .provenance
-            .iter()
-            .find(|entry| entry.gear_id == placement.gear_id.as_str())
-            .ok_or_else(|| {
-                PlannerError::InvalidPlotIdentity(format!(
-                    "expanded Gear '{}' has no exact source provenance",
-                    placement.gear_id.as_str()
-                ))
-            })?;
-        let span = provenance.source_span;
-        let span = conduit_core::SourceSpan {
-            start: span.start.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span start exceeds u64".into())
-            })?,
-            end: span.end.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span end exceeds u64".into())
-            })?,
-            line: span.line.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span line exceeds u64".into())
-            })?,
-            column: span.column.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span column exceeds u64".into())
-            })?,
-            end_line: span.end_line.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span end line exceeds u64".into())
-            })?,
-            end_column: span.end_column.try_into().map_err(|_| {
-                PlannerError::InvalidPlotIdentity("source span end column exceeds u64".into())
-            })?,
-        };
-        if !span.is_valid() {
-            return Err(PlannerError::InvalidPlotIdentity(
-                "expanded Gear source span is invalid".into(),
-            ));
-        }
+        let span = checked_source_span_ref(
+            placement.gear_id.as_str(),
+            source_span(placement.gear_id.as_str()),
+        )?;
         placement.source_span = Some(span);
     }
     Ok(())
@@ -264,3 +290,42 @@ pub(crate) fn expanded_planning_plot(plot: &ExpandedCanonicalPlot) -> CheckedPlo
 
 #[cfg(test)]
 mod borrowed_default_tests;
+
+pub(crate) fn checked_source_span_ref(
+    gear: &str,
+    source_span: Option<conduit_plot::Span>,
+) -> Result<conduit_core::SourceSpan, PlannerError> {
+    let span = source_span.ok_or_else(|| {
+        PlannerError::InvalidPlotIdentity(format!(
+            "expanded Gear '{}' has no exact source provenance",
+            gear
+        ))
+    })?;
+    let span = conduit_core::SourceSpan {
+        start: span.start.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span start exceeds u64".into())
+        })?,
+        end: span
+            .end
+            .try_into()
+            .map_err(|_| PlannerError::InvalidPlotIdentity("source span end exceeds u64".into()))?,
+        line: span.line.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span line exceeds u64".into())
+        })?,
+        column: span.column.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span column exceeds u64".into())
+        })?,
+        end_line: span.end_line.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span end line exceeds u64".into())
+        })?,
+        end_column: span.end_column.try_into().map_err(|_| {
+            PlannerError::InvalidPlotIdentity("source span end column exceeds u64".into())
+        })?,
+    };
+    if !span.is_valid() {
+        return Err(PlannerError::InvalidPlotIdentity(
+            "expanded Gear source span is invalid".into(),
+        ));
+    }
+    Ok(span)
+}

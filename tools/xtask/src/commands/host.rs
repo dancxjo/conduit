@@ -24,6 +24,8 @@ mod host_local_model;
 mod host_local_model_journey;
 #[path = "host_microphone.rs"]
 mod host_microphone;
+#[path = "host_microphone_flow.rs"]
+mod host_microphone_flow;
 #[path = "host_release.rs"]
 mod host_release;
 #[path = "host_release_catalog.rs"]
@@ -48,6 +50,7 @@ mod host_speech_proof;
 
 pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     match args.command.unwrap_or(HostCommand::Std) {
+        HostCommand::ProveMicrophoneFlow(request) => host_microphone_flow::prove(request, opts),
         HostCommand::Std => super::demo::run_std(opts),
         HostCommand::Browser => super::browser::run(opts),
         HostCommand::ProveSpokenBirth {
@@ -218,6 +221,23 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     println!("BUILT {} ({:?})", target.image_id, image.manifest.output);
                     println!("IMAGE: {}", output.join(&target.image.file).display());
                     println!("manifest: {}", output.join("build-manifest.json").display());
+                }
+            } else if crate::commands::body::pico_payload::try_build(
+                &profile_path,
+                &image,
+                &bytes,
+                &output,
+                opts.dry_run,
+            )? {
+                if !opts.dry_run {
+                    if opts.json {
+                        println!(
+                            "{}",
+                            fs::read_to_string(output.join("payload-receipt.json"))?
+                        );
+                    } else if !opts.quiet {
+                        println!("BUILT exact Pico environmental payload at {}; Body Spore bootstrap remains unavailable", output.display());
+                    }
                 }
             } else if !opts.dry_run {
                 fs::create_dir_all(&output)?;

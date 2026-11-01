@@ -1,3 +1,4 @@
+import { graphicsSceneElement } from "./owner-face-graphics.mjs";
 import { decodeVisualLook } from "../host/assets/application-look.mjs";
 import { decorate, iconForRole, iconForIntent } from "./owner-face-icons.mjs";
 // A reusable browser realization of the checked owner Face. The SDK owns the
@@ -308,6 +309,15 @@ export class OwnerFacePresentation {
       const heading = decorate(faceNode('h4', subject.name), iconForRole(subject.role));
       heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
       node.append(heading);
+      if (subject.graphics) {
+        node.classList.add('owner-face-graphics-subject');
+        if (view.show_state !== 'available') {
+          const retained = faceNode('p', 'Last shown drawing; live view unavailable.');
+          retained.setAttribute('role', 'status'); node.append(retained);
+        }
+        try { node.append(graphicsSceneElement(subject.graphics, subject.name)); }
+        catch { node.append(faceNode('p', 'Drawing refused; inspect exact facts.')); }
+      }
       for (const text of subject.text) node.append(faceNode('p', text));
       if (subject.values?.length) {
         const values = document.createElement('dl');

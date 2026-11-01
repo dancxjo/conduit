@@ -23,6 +23,8 @@ mod appliance_support;
 mod pulse;
 #[path = "appliance_support/software.rs"]
 mod software_tests;
+#[path = "support/verified_metadata.rs"]
+mod verified_metadata;
 use conduit_core as c;
 use conduit_environment_runtime::appliance::ApplianceBack as Driver;
 use conduit_environment_runtime::{
@@ -45,30 +47,47 @@ fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
     let mut software = software(&source);
     let mut host = appliance_support::advertisement(&source, &mut software, &ready);
     let bases = ["conduit.base/local@1".into()];
-    assert!(source.plan_local(&host, &bases, &[]).is_err());
+    let compare = |host: &c::HostAdvertisement, authority: &[c::AuthorityGrant]| {
+        let borrowed = source.plan_local(host, &bases, authority);
+        let owned = conduit_environment_runtime::construction::ApplianceSource {
+            expanded: source.expanded.clone(),
+            count: source.count,
+            period_ms: source.period_ms,
+        }
+        .into_plan_local(host, &bases, authority);
+        assert_eq!(borrowed, owned);
+        borrowed
+    };
+    assert!(compare(&host, &[]).is_err());
     let mut wrong = pulse::grant();
     wrong.boot_id = "wrong/boot".into();
-    assert!(source.plan_local(&host, &bases, &[wrong]).is_err());
-    source.plan_local(&host, &bases, &[pulse::grant()]).unwrap();
+    assert!(compare(&host, &[wrong]).is_err());
+    compare(&host, &[pulse::grant()]).unwrap();
     host.capabilities
         .retain(|offer| offer.kind_id.as_str() != Channel::Reading.kind_id());
-    assert!(source.plan_local(&host, &bases, &[pulse::grant()]).is_err());
+    assert!(compare(&host, &[pulse::grant()]).is_err());
     assert_eq!(effects.get(), 0);
 }
 #[test]
 fn authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel() {
     for scenario in 0..=6 {
-        run(scenario, false);
+        run(scenario, false, false);
     }
 }
 #[test]
 fn full_authored_overnight_workload_drains_with_a_small_value_store() {
     // Deterministic CPU clock completions; no physical sixteen-hour claim.
     for scenario in 0..=6 {
-        run(scenario, true);
+        run(scenario, true, false);
     }
 }
-fn run(scenario: usize, overnight: bool) {
+#[test]
+fn source_node_publications_preserve_all_seven_full_overnight_trajectories() {
+    for scenario in 0..=6 {
+        run(scenario, true, true);
+    }
+}
+fn run(scenario: usize, overnight: bool, source_profile: bool) {
     let source = if overnight {
         conduit_environment_runtime::construction::compile_default().unwrap()
     } else {
@@ -79,6 +98,12 @@ fn run(scenario: usize, overnight: bool) {
     let (ready, effects) = pulse::ready(scenario);
     let (mut software, software_memory) = allocation_probe::observe(|| software(&source));
     if scenario == 0 {
+        if cfg!(target_pointer_width = "64") {
+            assert!(
+                software_memory.peak_bytes <= 164 * 1024,
+                "software preparation exceeds its CPU profile: {software_memory:?}"
+            );
+        }
         eprintln!(
             "environment_software_ready_peak={}",
             software_memory.peak_bytes
@@ -91,6 +116,15 @@ fn run(scenario: usize, overnight: bool) {
             .unwrap()
     });
     assert!(c::verify_plan(&plan));
+    if !overnight {
+        // CPU regression bound for this exact checked workload. Planning must
+        // borrow the initialized advertisement rather than retain another copy.
+        // This is not the combined appliance's Xtensa admission bound.
+        assert!(
+            planning_memory.peak_bytes <= 192 * 1024,
+            "local planning exceeds its CPU preparation budget: {planning_memory:?}"
+        );
+    }
     let (lowered, lowering_memory) = allocation_probe::observe(|| {
         conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap()
     });
@@ -98,9 +132,122 @@ fn run(scenario: usize, overnight: bool) {
         // Isolate copies from Source checking's large transient catalogue. These
         // are host heap observations, not an MCU memory-admission claim.
         let (graph_copy, graph_memory) = allocation_probe::observe(|| source.expanded.clone());
+        let owned_source = conduit_environment_runtime::construction::ApplianceSource {
+            expanded: graph_copy,
+            count,
+            period_ms,
+        };
+        let program_buffers: Vec<_> = owned_source
+            .expanded
+            .gears
+            .iter()
+            .flat_map(|gear| {
+                gear.configuration.iter().filter_map(|entry| {
+                    let c::ConfigurationValue::Text(text) = &entry.value else {
+                        return None;
+                    };
+                    Some((
+                        gear.gear_id.clone(),
+                        entry.key.clone(),
+                        text.as_ptr() as usize,
+                    ))
+                })
+            })
+            .collect();
+        let (consumed_plan, consumed_memory) = allocation_probe::observe(|| {
+            owned_source
+                .into_plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+                .unwrap()
+        });
+        assert_eq!(consumed_plan, plan);
+        assert!(
+            consumed_memory.peak_bytes <= 152 * 1024,
+            "{consumed_memory:?}"
+        );
+        for (gear, key, pointer) in program_buffers {
+            let placed = consumed_plan
+                .fragments
+                .iter()
+                .flat_map(|f| &f.placements)
+                .find(|p| p.gear_id == gear)
+                .unwrap();
+            let entry = placed
+                .configuration
+                .iter()
+                .find(|entry| entry.key == key)
+                .unwrap();
+            let c::ConfigurationValue::Text(text) = &entry.value else {
+                panic!("program Type changed");
+            };
+            assert_eq!(text.as_ptr() as usize, pointer, "program buffer was copied");
+        }
+
+        eprintln!(
+            "environment_consuming_planning_peak={}",
+            consumed_memory.peak_bytes
+        );
+        drop(consumed_plan);
         let (host_copy, host_memory) = allocation_probe::observe(|| host.clone());
         let (plan_copy, plan_memory) = allocation_probe::observe(|| plan.clone());
-        drop((graph_copy, host_copy, plan_copy));
+        #[cfg(feature = "body-image")]
+        {
+            let body = conduit_body::Body::born(
+                plan.source_document_id.clone(),
+                plan.checked_plot_id.clone(),
+                1,
+                "sign/memory/born".into(),
+            )
+            .unwrap();
+            let wake = body.wake(2, "sign/memory/wake".into()).unwrap().1;
+            let body_plan = conduit_body::BodyPlan::seal(
+                &wake,
+                vec![conduit_body::BodyPlotPlan {
+                    plot: wake.workset.plots()[0].clone(),
+                    plan: plan.clone(),
+                }],
+            )
+            .unwrap();
+            let (result, validation_memory) =
+                allocation_probe::observe(|| body_plan.validate_for(&wake));
+            result.unwrap();
+            let (retained, seal_memory) = allocation_probe::observe(|| {
+                conduit_body::BodyPlanSeal::capture(&body_plan).unwrap()
+            });
+            let (copy, retained_memory) = allocation_probe::observe(|| retained.clone());
+            drop(copy);
+            assert!(seal_memory.peak_bytes <= 8192);
+            assert!(retained_memory.peak_bytes <= 8192);
+            let expected_play = conduit_body::BodyPlayIdentity::bind(&body_plan, 1);
+            let expected = wake
+                .body_plan_ready(&body_plan, "ready/seal".into())
+                .unwrap()
+                .body_play_started(&body_plan, &expected_play, "started/seal".into())
+                .unwrap();
+            drop(body_plan);
+            let play = conduit_body::BodyPlayIdentity::bind(&retained, 1);
+            assert_eq!(play, expected_play);
+            let compact = wake
+                .body_plan_ready(&retained, "ready/seal".into())
+                .unwrap()
+                .body_play_started(&retained, &play, "started/seal".into())
+                .unwrap();
+            assert_eq!(compact, expected);
+            eprintln!(
+                "environment_body_plan_seal_capture_peak={} retained_clone_peak={}",
+                seal_memory.peak_bytes, retained_memory.peak_bytes
+            );
+            // Revalidation may hash semantic chunks and sort bounded references;
+            // it must not duplicate the appliance's rich nested Plan.
+            assert!(
+                validation_memory.peak_bytes <= 4096,
+                "Body validation exceeds this profile's 4 KiB CPU scratch budget: {validation_memory:?}"
+            );
+            eprintln!(
+                "environment_body_plan_validation_peak={} plan_copy_peak={}",
+                validation_memory.peak_bytes, plan_memory.peak_bytes
+            );
+        }
+        drop((host_copy, plan_copy));
         eprintln!(
             "environment_appliance_host_heap graph_copy_peak={} host_copy_peak={} plan_copy_peak={} ordinary_planning_peak={} lowering_peak={}",
             graph_memory.peak_bytes, host_memory.peak_bytes, plan_memory.peak_bytes,
@@ -110,32 +257,26 @@ fn run(scenario: usize, overnight: bool) {
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let (mut owner, pulse_node) =
         pulse::bind_budget(ready, &plan, &lowered, count.try_into().unwrap()).unwrap();
-    let nodes = core::array::from_fn(|i| {
-        let rich = lowered.node_specs[i];
-        assert!(rich.input_cords[P..].iter().all(Option::is_none));
-        conduit_kernel::scheduler::NodeSpec {
-            input_cords: core::array::from_fn(|port| rich.input_cords[port]),
-            maximum_step_fuel: rich.maximum_step_fuel,
-        }
+    let metadata = verified_metadata::from_plan(&plan);
+    let verified_lowering = conduit_plan_lowering::local_tables::VerifiedLocalLowering::prepare(
+        &metadata,
+        &plan.fragments[0].fragment_id,
+    )
+    .unwrap();
+    assert_eq!(verified_lowering.lowered(), &lowered);
+    let (tables, projection_memory) = allocation_probe::observe(|| {
+        conduit_plan_lowering::local_tables::VerifiedLocalKernelTables::<N, C, P, R, C, N>::from_verified_lowering(
+            &verified_lowering,
+        ).unwrap()
     });
-    let cords = core::array::from_fn(|i| lowered.cords[i].spec);
-    let mut routes = k::FixedRoutes::<R, C>::new(P as u16);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .unwrap();
-    }
-    routes.seal().unwrap();
-    let mut calls = k::FixedHostCallBindings::<N>::new(1);
-    for call in &lowered.host_calls {
-        calls.install(call.node, call.binding).unwrap();
-    }
-    calls.seal().unwrap();
+    assert_eq!(
+        (
+            projection_memory.allocations,
+            projection_memory.reallocations
+        ),
+        (0, 0)
+    );
+    let (nodes, cords, routes, calls) = (tables.nodes, tables.cords, tables.routes, tables.calls);
     let mut values = conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
     assert_eq!(
         values.reserved_storage_bytes(),
@@ -165,6 +306,8 @@ fn run(scenario: usize, overnight: bool) {
             .unwrap();
         let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
         let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
+        let source_order =
+            conduit_environment_runtime::publication::PublicationSequence::prepare(count);
         for placement in &plan.fragments[0].startup_order {
             let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
             let gear = plan.fragments[0]
@@ -178,10 +321,21 @@ fn run(scenario: usize, overnight: bool) {
                 Driver::Native(CaptureBack::pulse(1024))
             } else {
                 let prepared = software
-                    .take_selected(&plan.fragments[0], placement)
+                    .take_verified(&metadata, &plan.fragments[0].fragment_id, placement)
                     .unwrap();
                 selectors[i] = prepared.selector;
-                prepared.driver
+                if source_profile {
+                    if let Some(channel) = Channel::ALL
+                        .into_iter()
+                        .find(|channel| channel.kind_id() == gear.kind_id.as_str())
+                    {
+                        Driver::source_publication(&conduit_environment_runtime::publication::PublicationContract::prepare(channel).unwrap(), count.try_into().unwrap(), source_order.clone()).unwrap()
+                    } else {
+                        prepared.driver
+                    }
+                } else {
+                    prepared.driver
+                }
             });
         }
         (drivers.map(Option::unwrap), selectors, values)
@@ -251,7 +405,7 @@ fn run(scenario: usize, overnight: bool) {
     assert_eq!(waits, count);
     if overnight {
         eprintln!("overnight_post_step_peak_live_items={peak_items} overnight_post_step_peak_live_bytes={peak_bytes}");
-        eprintln!("overnight_samples={count} period_ms={period_ms} logical_elapsed_ms={} value_slots=9 value_bytes=11716",waits*period_ms);
+        eprintln!("overnight_samples={count} period_ms={period_ms} logical_elapsed_ms={} value_slots=9 value_bytes=9329",waits*period_ms);
     }
     let expected = match scenario {
         0 | 1 | 5 | 6 => Channel::Reading,
@@ -260,21 +414,17 @@ fn run(scenario: usize, overnight: bool) {
         _ => Channel::GeometryRefusal,
     };
     for driver in kernel.drivers() {
-        if let Driver::Publication(back) = driver {
-            if let Some(snapshot) = back.snapshot() {
-                assert_eq!(snapshot.channel, expected);
-                assert_eq!(snapshot.sequence, count);
-                c::validate_canonical_structured_value(snapshot.canonical).unwrap();
-            }
-        }
+        driver.with_publication_snapshot(|snapshot| {
+            assert_eq!(snapshot.channel, expected);
+            assert_eq!(snapshot.sequence, count);
+            c::validate_canonical_structured_value(snapshot.canonical).unwrap();
+        });
     }
     assert_eq!(
         kernel
             .drivers()
             .iter()
-            .filter(
-                |driver| matches!(driver,Driver::Publication(back) if back.snapshot().is_some())
-            )
+            .filter(|driver| driver.publication_sequence().is_some())
             .count(),
         1
     );

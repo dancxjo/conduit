@@ -181,7 +181,7 @@ impl ParsecAcknowledgedMap {
             || port.temporal != self.port.temporal
             || port.item_capacity != self.port.item_capacity
             || port.byte_capacity != self.port.byte_capacity
-            || port.selected_line != self.port.selected_line
+            || port.selected_line.as_ref() != self.port.selected_line.as_deref()
             || sequence != self.next_sequence
             || sequence >= u64::from(self.maximum_items)
         {

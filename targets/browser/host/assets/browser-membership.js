@@ -1,3 +1,5 @@
+import { createBrowserMembershipSession } from "./browser-membership-session.mjs";
+import { createInvitedBrowserHandshake, openVerifiedBrowserSporeMembership } from "./browser-spore-membership.mjs";
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
 import { openBrowserHostIdentity } from "./browser-host-identity.mjs";
 
@@ -143,9 +145,12 @@ function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = 
   return Object.freeze({ ...candidate });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, sessionCarrier = null, sessionDocumentWorkspace = null, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, invitedProvision = null, sporeRoot = null, selectedStorage = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
+  }
+  if (sporeRoot === null && invitedProvision?.rootAuthority != null) {
+    throw new Error("Root-bearing Spore requires explicit selected Root-aware participation");
   }
   const admitted = admittedHost !== null;
   const instance = admitted ? null : (await WebAssembly.instantiate(wasmBytes, {})).instance;
@@ -234,13 +239,28 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   configureHost?.(Object.freeze({ api, hostId, bootId }));
   let state = "connecting";
   let presenceState = "unavailable";
-  const priorCredential = retainedCredential === null ? null : requireCredential(retainedCredential, {
+  const verifiedSpore = sporeRoot === null ? null : await openVerifiedBrowserSporeMembership({
+    membership: admittedHost?.membership, storage: selectedStorage, expectedBodyId, sporeRoot,
+    invitedProvision, hostId, bootId, advertisement, retainedCredential,
+  });
+  const retained = verifiedSpore?.priorCredential ?? retainedCredential;
+  const priorCredential = retained === null ? null : requireCredential(retained, {
     expectedBodyId,
     hostId,
-    bootId: retainedCredential?.boot_id,
+    bootId: retained?.boot_id,
   });
   if (priorCredential !== null && priorCredential.boot_id === bootId) {
     throw new Error("retained membership credential belongs to the current Boot");
+  }
+  let invited;
+  try {
+    invited = invitedProvision === null || priorCredential !== null ? null
+      : createInvitedBrowserHandshake({ provision: invitedProvision, expectedBodyId,
+        hostId, bootId, advertisement, verifyingKey: Array.from(verifyingKey),
+        membership: admittedHost?.membership });
+  } catch (error) {
+    verifiedSpore?.cancelPending();
+    throw error;
   }
   let credential = priorCredential;
   let credentialPersistence = Promise.resolve();
@@ -295,7 +315,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     onState?.(next);
   };
   const sendWebRtcSignal = ({ targetHostId, targetBootId, signal }) => {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       throw new Error("current browser presence is required for WebRTC signaling");
     }
     if (typeof targetHostId !== "string" || targetHostId.length === 0 ||
@@ -317,7 +337,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     })));
   };
   const requestWebRtcGrant = (generation, index) => {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       throw new Error("current browser presence is required for WebRTC grants");
     }
     if (!Number.isInteger(generation) || generation < 0 || generation >= 2 ||
@@ -343,9 +363,9 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     onState: (next) => onWebRtcState?.(next),
   });
   const openSocket = (returning = false, freshBoot = false) => {
-    socket = new WebSocket(bodyUrl);
-    socket.binaryType = "arraybuffer";
-    socket.addEventListener("open", () => {
+    const session = createBrowserMembershipSession({ url: bodyUrl, carrier: sessionCarrier, documentWorkspace: sessionDocumentWorkspace });
+    socket = session;
+    session.start({ open: () => {
       if (returning) {
         setState(freshBoot ? "returning-fresh-boot" : "returning");
         socket.send(encoder.encode(JSON.stringify({
@@ -354,6 +374,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
           credential,
           advertisement,
         })));
+        return;
+      }
+      if (invited) {
+        setState("wants-to-join");
+        socket.send(encoder.encode(JSON.stringify(invited.advertise())));
         return;
       }
       setState("wants-to-join");
@@ -365,8 +390,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         verifying_key: Array.from(verifyingKey),
         freshness_sequence: 1,
       })));
-    });
-    socket.addEventListener("message", async (event) => {
+    }, message: async (event) => {
     const frameBytes = typeof event.data === "string"
       ? encoder.encode(event.data)
       : new Uint8Array(event.data);
@@ -460,6 +484,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       }
       const generation = webRtcSessions.activatePlan();
       if (generation !== frame.generation) throw new Error("WebRTC Plan generation mismatch");
+    } else if (frame.kind === "spawn-challenge" && frame.protocol === 1) {
+      if (!invited) throw new Error("unsolicited invitation challenge");
+      try {
+        socket.send(encoder.encode(JSON.stringify(invited.prove(frame.claim))));
+        setState("proof-sent");
+      } catch {
+        invited.retire(); deliberateClose = true;
+        setState("refused:invitation-challenge");
+        socket.close(1008, "Invitation challenge refused");
+      }
     } else if (frame.kind === "challenge" && frame.protocol === 1) {
       if (expectedBodyId !== null && frame.challenge?.body_id !== expectedBodyId) {
         deliberateClose = true;
@@ -513,6 +547,15 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         nonce: frame.challenge.nonce,
         signature: Array.from(signature),
       })));
+    } else if (frame.kind === "membership-receipt" && frame.protocol === 1) {
+      if (!verifiedSpore || returning) throw new Error("unsolicited membership custody receipt");
+      const retained = await verifiedSpore.accept(frame.receipt);
+      await onCredential?.(requireCredential(retained, { expectedBodyId, hostId, bootId }));
+      if (socket !== session || !session.isOpen()) return;
+      // Durable membership custody is not current presence or an active Line.
+      deliberateClose = true;
+      setState("custody-retained-awaiting-fresh-boot");
+      socket.close(1000, "Membership retained; fresh Boot Return required");
     } else if (frame.kind === "admitted" && frame.protocol === 1) {
       if (expectedBodyId !== null && frame.credential?.body_id !== expectedBodyId) {
         deliberateClose = true;
@@ -520,7 +563,10 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         socket.close(1008, "Body credential identity mismatch");
         return;
       }
-      credential = requireCredential(frame.credential, {
+      const admittedCredential = verifiedSpore && !returning
+        ? await verifiedSpore.accept(frame.signed_membership_receipt, frame.credential)
+        : frame.credential;
+      credential = requireCredential(admittedCredential, {
         expectedBodyId,
         hostId,
         bootId,
@@ -529,6 +575,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       offerEvidence = null;
       credentialPersistence = Promise.resolve(onCredential?.(credential));
       await credentialPersistence;
+      if (socket !== session || !session.isOpen()) return;
       setState("admitted");
     } else if (frame.kind === "biography-evidence" && frame.protocol === 1) {
       const evidence = frame.evidence;
@@ -580,6 +627,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       onOfferEvidence?.(offerEvidence);
     } else if (frame.kind === "presence-accepted" && frame.protocol === 1) {
       await credentialPersistence;
+      if (socket !== session || !session.isOpen()) return;
       if (!credential || (!returning && frame.sequence !== renewalSequence)) {
         throw new Error("presence acceptance did not match the current credential sequence");
       }
@@ -659,13 +707,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         onWebRtcState?.(webRtcSessions.state());
       });
     } else if (frame.kind === "refused" && frame.protocol === 1) {
+      invited?.retire();
+      verifiedSpore?.cancelPending();
       presenceState = "unavailable";
       clearTimeout(renewalTimer);
       webRtcSessions.reset(`body-refused:${frame.code}`);
       setState(`refused:${frame.code}`);
     }
-    });
-    socket.addEventListener("close", () => {
+    }, close: () => {
+      invited?.retire();
+      verifiedSpore?.cancelPending();
       clearTimeout(renewalTimer);
       presenceState = "unavailable";
       webRtcSessions.reset("presence-lost");
@@ -704,19 +755,20 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         pendingSelectedSpeech.reject(new Error("selected speech owner Line closed"));
         pendingSelectedSpeech = null;
       }
-      if (state.startsWith("refused:")) return;
-      if (!deliberateClose && presenceEstablished && reconnectPresence && reconnectAttempts === 0) {
+      if (state.startsWith("refused:") || state === "custody-retained-awaiting-fresh-boot") return;
+      if (!deliberateClose && presenceEstablished && reconnectPresence && sessionCarrier === null && reconnectAttempts === 0) {
         reconnectAttempts += 1;
         setState("reconnecting");
         queueMicrotask(() => openSocket(true));
       } else {
         setState("offline");
       }
-    });
+    } });
   };
-  openSocket(priorCredential !== null, priorCredential !== null);
+  try { openSocket(priorCredential !== null, priorCredential !== null); }
+  catch (error) { invited?.retire(); verifiedSpore?.cancelPending(); throw error; }
   function publishMediaResource(mediaEvidence) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current body membership is required for media resource truth"));
     }
     if (pendingMediaPlan) {
@@ -770,13 +822,13 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function requestOfferEvidence({ capabilityIds = [], resourcePoolIds = [] }) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) throw new Error("current body membership is required for offer disclosure");
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) throw new Error("current body membership is required for offer disclosure");
     const canonical = values => Array.isArray(values) && values.length > 0 && values.length <= 16 && values.every((value, index) => typeof value === "string" && value.length > 0 && (index === 0 || values[index - 1] < value));
     if ((!canonical(capabilityIds) && capabilityIds.length !== 0) || (!canonical(resourcePoolIds) && resourcePoolIds.length !== 0) || capabilityIds.length + resourcePoolIds.length === 0) throw new Error("offer disclosure selection must be finite and canonical");
     socket.send(encoder.encode(JSON.stringify({kind:"offer-disclosure-request",protocol:1,credential_id:credential.credential_id,body_id:credential.body_id,part_id:credential.part_id,host_id:hostId,boot_id:bootId,request:{stage:"Planning",capability_ids:capabilityIds,resource_pool_ids:resourcePoolIds}})));
   }
   function requestFaceSnapshot({ lastSeenRevision = null, lastSeenIdentity = null } = {}) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for the owner Face"));
     }
     if (pendingFaceSnapshot) return Promise.reject(new Error("one owner Face request is already pending"));
@@ -816,7 +868,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function submitFaceInteraction(submissionBytes) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for owner interaction"));
     }
     if (pendingFaceInteraction) return Promise.reject(new Error("one owner interaction is already pending"));
@@ -853,7 +905,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function selectComponentMask({ showBytes, look, recipe }) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for component selection"));
     }
     if (pendingComponent) return Promise.reject(new Error("one component selection is already pending"));
@@ -878,7 +930,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function ownerWardrobe({ action = null, ownerPlanId = null, basisRevision = "0" } = {}) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for owner wardrobe"));
     }
     if (pendingWardrobe) return Promise.reject(new Error("one owner wardrobe request is already pending"));
@@ -912,7 +964,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function acknowledgeFaceShow(showBytes) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for owner Show"));
     }
     if (pendingFaceShow) return Promise.reject(new Error("one owner Show acknowledgement is already pending"));
@@ -948,7 +1000,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     });
   }
   function selectedSpeech(kind, { showBytes = null, operationId = null } = {}) {
-    if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+    if (!credential || presenceState !== "available" || !socket?.isOpen()) {
       return Promise.reject(new Error("current browser presence is required for selected speech"));
     }
     if (pendingSelectedSpeech) return Promise.reject(new Error("one selected speech request is already pending"));
@@ -990,7 +1042,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   return Object.freeze({
     hostId,
     bootId,
-    membershipCredential: () => credential === undefined ? null : Object.freeze({ ...credential }),
+    membershipCredential: () => credential == null ? null : Object.freeze({ ...credential }),
     biographyEvidence: () => biographyEvidence,
     offerEvidence: () => offerEvidence,
     requestOfferEvidence,
@@ -1024,9 +1076,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     selectComponentMask,
     publishMediaResource,
     close: () => {
+      invited?.retire();
+      verifiedSpore?.cancelPending();
       clearTimeout(renewalTimer);
       webRtcSessions.reset("presence-closed");
-      if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {
+      if (!credential || presenceState !== "available" || !socket?.isOpen()) {
         deliberateClose = true;
         socket?.close(1000, "Browser Host leaving");
         return renewalSequence;

@@ -31,6 +31,30 @@ impl ProtectedFrameCarrier for ChannelCarrier {
             })
     }
 
+    fn send_frame_with_timeout(
+        &mut self,
+        frame: &[u8],
+        timeout_millis: u32,
+    ) -> Option<Result<(), CarrierFailure>> {
+        Some((|| {
+            let deadline =
+                std::time::Instant::now() + Duration::from_millis(u64::from(timeout_millis));
+            let sender = self.send.as_ref().ok_or(CarrierFailure::Lost)?;
+            let mut pending = frame.to_vec();
+            loop {
+                match sender.try_send(pending) {
+                    Ok(()) => return Ok(()),
+                    Err(mpsc::TrySendError::Disconnected(_)) => return Err(CarrierFailure::Lost),
+                    Err(mpsc::TrySendError::Full(frame)) => pending = frame,
+                }
+                if std::time::Instant::now() >= deadline {
+                    return Err(CarrierFailure::TimedOut);
+                }
+                std::thread::yield_now();
+            }
+        })())
+    }
+
     fn receive_frame(
         &mut self,
         output: &mut [u8],
@@ -48,6 +72,10 @@ impl ProtectedFrameCarrier for ChannelCarrier {
         }
         output[..frame.len()].copy_from_slice(&frame);
         Ok(frame.len())
+    }
+
+    fn close_with_timeout(&mut self, _: u32) -> Option<Result<(), CarrierFailure>> {
+        Some(self.close())
     }
 
     fn close(&mut self) -> Result<(), CarrierFailure> {
@@ -114,6 +142,35 @@ fn policy() -> ProtectedSessionPolicy {
 }
 
 fn protected_lines() -> (ProtectedMemoryLine, ProtectedMemoryLine) {
+    protected_lines_for(binding(), policy())
+}
+/// Real Noise session over finite one-slot channels; no handshake bypass.
+pub(crate) fn native_snapshot_lines(
+    chosen: SessionBinding,
+    maximum_document_bytes: usize,
+) -> (
+    super::ProtectedDocumentLine<impl ProtectedFrameCarrier + Send>,
+    super::ProtectedDocumentLine<impl ProtectedFrameCarrier + Send>,
+) {
+    // Explicit finite test selection for the actual complete std inventory.
+    // Ordinary existing protected tests retain their independent 16-frame policy.
+    let mut selected_policy = policy();
+    selected_policy.traffic.maximum_frames_per_direction = 64;
+    selected_policy.traffic.maximum_bytes_per_direction = 65_519 * 64;
+    let (client, server) = protected_lines_for(chosen, selected_policy);
+    let workspace = super::DocumentWorkspace {
+        maximum_document_bytes,
+        capacity_bytes: maximum_document_bytes + 65_519,
+    };
+    (
+        super::ProtectedDocumentLine::new(client.inner, 2000, Some(workspace)).unwrap(),
+        super::ProtectedDocumentLine::new(server.inner, 2000, Some(workspace)).unwrap(),
+    )
+}
+fn protected_lines_for(
+    chosen: SessionBinding,
+    selected_policy: ProtectedSessionPolicy,
+) -> (ProtectedMemoryLine, ProtectedMemoryLine) {
     let (client_send, server_receive) = mpsc::sync_channel(1);
     let (server_send, client_receive) = mpsc::sync_channel(1);
     let mut client_io = ChannelCarrier {
@@ -124,32 +181,33 @@ fn protected_lines() -> (ProtectedMemoryLine, ProtectedMemoryLine) {
         send: Some(server_send),
         receive: server_receive,
     };
+    let responder_binding = chosen.clone();
     let server = std::thread::spawn(move || {
         let session = establish_protected_session(
             &mut server_io,
             Role::Responder,
-            &binding(),
-            policy(),
+            &responder_binding,
+            selected_policy,
             [41; 32],
             [43; 32],
         )
         .unwrap();
         ProtectedMemoryLine {
-            inner: ProtectedCarrier::new(server_io, session, policy()).unwrap(),
+            inner: ProtectedCarrier::new(server_io, session, selected_policy).unwrap(),
         }
     });
     let session = establish_protected_session(
         &mut client_io,
         Role::Initiator,
-        &binding(),
-        policy(),
+        &chosen,
+        selected_policy,
         [41; 32],
         [42; 32],
     )
     .unwrap();
     (
         ProtectedMemoryLine {
-            inner: ProtectedCarrier::new(client_io, session, policy()).unwrap(),
+            inner: ProtectedCarrier::new(client_io, session, selected_policy).unwrap(),
         },
         server.join().unwrap(),
     )
@@ -378,4 +436,212 @@ fn ordinary_rendezvous_session_crosses_the_real_user_operated_relay() {
     );
     assert_eq!(relay_server.join().unwrap(), Ok(()));
     fs::remove_dir_all(directory).unwrap();
+}
+
+#[test]
+fn protected_membership_document_preserves_large_complete_bytes_in_both_directions() {
+    let (client, server) = protected_lines();
+    let mut client =
+        super::ProtectedDocumentLine::new(client.inner, 2_000, Some(document_workspace())).unwrap();
+    let mut server =
+        super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace())).unwrap();
+    let expected: Vec<u8> = (0..701_632).map(|i| (i % 251) as u8).collect();
+    let returned = expected.clone();
+    let worker = thread::spawn(move || {
+        let received = server.receive().unwrap();
+        assert_eq!(received, returned);
+        server.send(&received).unwrap();
+    });
+    client.send(&expected).unwrap();
+    assert_eq!(client.receive().unwrap(), expected);
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_refuses_payload_hash_mismatch_and_retires() {
+    let (mut client, server) = protected_lines();
+    let worker = thread::spawn(move || {
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace()))
+                .unwrap();
+        assert!(server.receive().unwrap_err().contains("digest"));
+        assert!(server.receive().unwrap_err().contains("retired"));
+    });
+    let bytes = vec![9; 70_000];
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    let mut frame = vec![0; 65_519];
+    let (length, next) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    let (length, _) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, next, &digest).unwrap();
+    frame[44] ^= 1;
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_refuses_mixed_raw_control_without_partial_publication() {
+    let (mut client, server) = protected_lines();
+    let worker = thread::spawn(move || {
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace()))
+                .unwrap();
+        assert!(server.receive().is_err());
+        assert!(server.receive().unwrap_err().contains("retired"));
+    });
+    let bytes = vec![9; 70_000];
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    let mut frame = vec![0; 65_519];
+    let (length, _) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(b"{\"kind\":\"close\",\"protocol\":1}", 2_000)
+        .unwrap();
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_preserves_existing_session_frame_quota() {
+    let (client, server) = protected_lines();
+    let mut client =
+        super::ProtectedDocumentLine::new(client.inner, 2_000, Some(document_workspace())).unwrap();
+    let worker = thread::spawn(move || {
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 2_000, Some(document_workspace()))
+                .unwrap();
+        assert!(server.receive().is_err());
+    });
+    // Existing fixture admits sixteen frames, fewer than the 33 needed here.
+    assert!(client.send(&vec![1; MAXIMUM_FRAME_BYTES]).is_err());
+    assert!(client.send(b"{}").unwrap_err().contains("retired"));
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_deadline_is_not_renewed_by_each_chunk() {
+    let (mut client, server) = protected_lines();
+    let worker = thread::spawn(move || {
+        let mut server =
+            super::ProtectedDocumentLine::new(server.inner, 100, Some(document_workspace()))
+                .unwrap();
+        assert!(
+            server.receive().is_err(),
+            "late final chunk published a complete document"
+        );
+        assert!(server.receive().unwrap_err().contains("retired"));
+    });
+    let bytes = vec![9; 150_000];
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    let mut frame = vec![0; 65_519];
+    let (length, mut next) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    std::thread::sleep(Duration::from_millis(60));
+    let (length, following) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, next, &digest).unwrap();
+    client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000)
+        .unwrap();
+    next = following;
+    std::thread::sleep(Duration::from_millis(60));
+    let (length, _) =
+        conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, next, &digest).unwrap();
+    let _ = client
+        .inner
+        .send_with_timeout_millis(&frame[..length], 2_000);
+    worker.join().unwrap();
+}
+
+fn document_workspace() -> super::DocumentWorkspace {
+    super::DocumentWorkspace {
+        maximum_document_bytes: MAXIMUM_FRAME_BYTES,
+        capacity_bytes: MAXIMUM_FRAME_BYTES + 65_519,
+    }
+}
+
+#[test]
+fn protected_membership_document_requires_independently_selected_workspace() {
+    for workspace in [
+        None,
+        Some(super::DocumentWorkspace {
+            maximum_document_bytes: MAXIMUM_FRAME_BYTES,
+            capacity_bytes: 1,
+        }),
+    ] {
+        let (client, _) = protected_lines();
+        let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000, workspace).unwrap();
+        assert!(client
+            .send(&vec![1; 70_000])
+            .unwrap_err()
+            .contains("workspace"));
+        assert!(client.send(b"{}").unwrap_err().contains("retired"));
+    }
+}
+
+#[test]
+fn protected_membership_document_workspace_refusal_precedes_large_assembly() {
+    for workspace in [
+        None,
+        Some(super::DocumentWorkspace {
+            maximum_document_bytes: MAXIMUM_FRAME_BYTES,
+            capacity_bytes: 1,
+        }),
+    ] {
+        let (mut client, server) = protected_lines();
+        let worker = thread::spawn(move || {
+            let mut server =
+                super::ProtectedDocumentLine::new(server.inner, 2_000, workspace).unwrap();
+            assert!(server.receive().unwrap_err().contains("workspace"));
+        });
+        let bytes = vec![9; 70_000];
+        let digest: [u8; 32] = Sha256::digest(&bytes).into();
+        let mut frame = vec![0; 65_519];
+        let (length, _) =
+            conduit_wire::encode_bounded_document_chunk(&mut frame, &bytes, 0, &digest).unwrap();
+        client
+            .inner
+            .send_with_timeout_millis(&frame[..length], 2_000)
+            .unwrap();
+        worker.join().unwrap();
+    }
+    // Absence selects no large workspace, but the original raw small path remains.
+    let (client, server) = protected_lines();
+    let mut client = super::ProtectedDocumentLine::new(client.inner, 2_000, None).unwrap();
+    let worker = thread::spawn(move || {
+        let mut server = super::ProtectedDocumentLine::new(server.inner, 2_000, None).unwrap();
+        assert_eq!(server.receive().unwrap(), b"{}");
+        server.send(b"CNDS-small").unwrap();
+    });
+    client.send(b"{}").unwrap();
+    assert_eq!(client.receive().unwrap(), b"CNDS-small");
+    worker.join().unwrap();
+}
+
+#[test]
+fn protected_membership_document_initial_receive_uses_the_original_deadline() {
+    let (_client, server) = protected_lines();
+    let mut server =
+        super::ProtectedDocumentLine::new(server.inner, 20, Some(document_workspace())).unwrap();
+    let start = std::time::Instant::now();
+    assert!(server.receive().is_err());
+    assert!(
+        start.elapsed() < Duration::from_secs(1),
+        "initial receive waited for the old idle timeout"
+    );
 }

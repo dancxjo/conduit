@@ -13,7 +13,12 @@ use conduit_core as c;
 
 #[path = "software_offers.rs"]
 mod offers;
+#[path = "software_selection.rs"]
+mod selection;
 pub use offers::ReadySoftwareOffers;
+#[cfg(feature = "display-output")]
+#[path = "software_assigned.rs"]
+mod assigned_output;
 pub const PROFILE: &str = "conduit.environment/prepared-software@1";
 pub const ARTIFACT: &str = "conduit-environment-runtime/appliance-software@1";
 const BYTES: u32 = 1024;
@@ -32,11 +37,11 @@ pub struct PreparedSoftwareOperation {
     pub driver: ApplianceBack,
     pub selector: Option<PreparedCaptureSelector>,
 }
-struct ReadyOperation {
+pub(super) struct ReadyOperation {
     gear: c::GearId,
-    configuration: Vec<c::ConfigurationEntry>,
-    offer: c::CapabilityOffer,
-    prepared: Option<PreparedSoftwareOperation>,
+    pub(super) configuration: Vec<c::ConfigurationEntry>,
+    pub(super) offer: c::CapabilityOffer,
+    pub(super) prepared: Option<PreparedSoftwareOperation>,
 }
 /// All codec/interpreter/publication workspaces are initialized and owned here.
 /// Root supplies trusted checked Source and actual Host/Boot; it must separately
@@ -222,65 +227,6 @@ impl ReadySoftwareBacks {
     ) -> Result<(), SoftwareRefusal> {
         self.selected_index(fragment, placement).map(|_| ())
     }
-    fn selected_index(
-        &self,
-        fragment: &c::PlanFragment,
-        placement: &c::PlacementId,
-    ) -> Result<usize, SoftwareRefusal> {
-        if !c::verify_plan_fragment(fragment)
-            || fragment.host_id != self.host
-            || fragment.boot_id != self.boot
-            || fragment.source_document_id != self.source
-            || fragment.checked_plot_id != self.checked
-            || fragment.expanded_plot_id != self.expanded
-        {
-            return Err(SoftwareRefusal::Selection);
-        }
-        if self.metadata_released {
-            return Err(SoftwareRefusal::AlreadySelected);
-        }
-        let gear = fragment
-            .placements
-            .iter()
-            .find(|gear| &gear.placement_id == placement)
-            .ok_or(SoftwareRefusal::Selection)?;
-        let index = self
-            .operations
-            .iter()
-            .position(|op| op.gear == gear.gear_id)
-            .ok_or(SoftwareRefusal::Selection)?;
-        let op = &self.operations[index];
-        let offer = &op.offer;
-        if self.generation != Some(gear.offer_generation)
-            || gear.host_id != self.host
-            || gear.boot_id != self.boot
-            || gear.limits != offer.limits
-            || gear.configuration != op.configuration
-            || gear.kind_id != offer.kind_id
-            || gear.kind_contract_revision != offer.kind_contract_revision
-            || gear.semantic_contract != offer.semantic_contract
-            || gear.inputs != offer.inputs
-            || gear.outputs != offer.outputs
-            || gear.capability_id != offer.capability_id
-            || gear.execution_profile_id != offer.implementation.execution_profile_id
-            || gear.implementation_id != offer.implementation.implementation_id
-            || gear.artifact_id != offer.implementation.artifact_id
-            || gear.host_calls != offer.host_calls
-            || gear.base.is_some()
-            || !gear.resources.is_empty()
-            || !gear.authority.is_empty()
-            || !gear.pool_references.is_empty()
-            || !gear.terminal_transductions.is_empty()
-            || !gear.realization_properties.is_empty()
-            || !gear.realization_characteristics.is_empty()
-        {
-            return Err(SoftwareRefusal::Selection);
-        }
-        if op.prepared.is_none() {
-            return Err(SoftwareRefusal::AlreadySelected);
-        }
-        Ok(index)
-    }
 }
 /// Make-side metadata from the ordinary portable implementation constructor.
 /// No Host/Boot, native provider, advertisement or readiness is manufactured.
@@ -319,7 +265,7 @@ type InitializedOperation = (
     PreparedSoftwareOperation,
     Vec<c::HostCallRequirement>,
 );
-fn ready_operation(
+pub(super) fn ready_operation(
     gear: &conduit_plot::CheckedGear,
     initialized: InitializedOperation,
 ) -> Result<ReadyOperation, SoftwareRefusal> {
@@ -405,7 +351,7 @@ fn initialize(
         vec![],
     ))
 }
-fn initialize_portable(
+pub(super) fn initialize_portable(
     gear: &conduit_plot::CheckedGear,
 ) -> Result<InitializedOperation, SoftwareRefusal> {
     let mut selector = None;
@@ -420,7 +366,7 @@ fn initialize_portable(
         let program =
             conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).map_err(init)?;
         (
-            conduit_semantic_catalog::pure_expression_contract(&program, temporal).map_err(init)?,
+            conduit_computation::pure_expression_contract(&program, temporal).map_err(init)?,
             ApplianceBack::Native(CaptureBack::expression(&program, temporal).map_err(init)?),
         )
     } else if let Some(c::ConfigurationValue::Text(encoded)) = gear
@@ -430,7 +376,7 @@ fn initialize_portable(
         .map(|c| &c.value)
     {
         let value = c::StructuredSelector::from_canonical_hex(encoded).map_err(init)?;
-        let kind = conduit_semantic_catalog::structured_selector_contract(&value, temporal);
+        let kind = conduit_computation::structured_selector_contract(&value, temporal);
         selector = Some(
             PreparedCaptureSelector::prepare(value, BYTES as usize, BYTES as usize)
                 .map_err(init)?,
@@ -451,4 +397,12 @@ fn initialize_portable(
 
 fn init<T>(_: T) -> SoftwareRefusal {
     SoftwareRefusal::Initialization
+}
+
+/// Make-side descriptor from the same validated portable constructor. This
+/// creates no Host, native provider, reservation or authority.
+pub fn compile_portable_offer(
+    gear: &conduit_plot::CheckedGear,
+) -> Result<c::CapabilityOffer, SoftwareRefusal> {
+    Ok(ready_operation(gear, initialize_portable(gear)?)?.offer)
 }

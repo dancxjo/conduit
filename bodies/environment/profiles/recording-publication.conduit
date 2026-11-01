@@ -1,0 +1,10 @@
+# One selected immutable generation. A returned reference is publication output;
+# Root independently owns storage, current authority and Body/Play custody.
+plot recorder-publication (
+    >> chunk: JsonText
+    published: ResourceRef >>
+) {
+    publication: resource/publish-json-snapshot("@REFERENCE@")
+    chunk >> publication.source
+    publication.value >> published
+}

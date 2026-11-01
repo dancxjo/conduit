@@ -17,6 +17,8 @@ use core::ops::{Deref, DerefMut};
 
 pub struct AdmittedRemoteFragment {
     runtime: InstalledRemoteFragment,
+    source_fragment: PlanFragment,
+    native_work_request: Option<HostCallRequest>,
     reservation: Option<KernelResourceReservation>,
     identity: ActivePlayIdentity,
     offer_generation: conduit_core::OfferGeneration,
@@ -261,12 +263,22 @@ impl StdHost {
                 return Err(error);
             }
         };
-        let runtime = match InstalledRemoteFragment::prepare(
+        let runtime = match InstalledRemoteFragment::prepare_with_retained_native(
             &advertisement,
             fragment,
             play.identity().play_sequence,
+            crate::RemoteSignRetention::default(),
+            &self.retained_native_calls,
         ) {
-            Ok(runtime) => runtime,
+            Ok(mut runtime) => {
+                if let Err(error) =
+                    runtime.prepare_microphone_flow_host(fragment, self.microphone.as_ref())
+                {
+                    self.kernel_resources.release(reservation)?;
+                    return Err(error);
+                }
+                runtime
+            }
             Err(error) => {
                 self.kernel_resources.release(reservation)?;
                 return Err(error);
@@ -274,6 +286,8 @@ impl StdHost {
         };
         Ok(AdmittedRemoteFragment {
             runtime,
+            source_fragment: fragment.clone(),
+            native_work_request: None,
             reservation: Some(reservation),
             identity: play.identity().clone(),
             offer_generation: advertisement.offer_generation,
@@ -315,3 +329,73 @@ impl StdHost {
         self.kernel_resources.release(reservation)
     }
 }
+
+/// A borrowed request from one actual admitted fragment whose lease remains held.
+/// Descriptive Plan bytes cannot construct this witness or mint another lease.
+pub struct AdmittedNativeRequest<'a> {
+    selected: conduit_plan_lowering::selected_operation::SelectedOperationPlan<'a>,
+    work: crate::RemoteHostWorkRef<'a>,
+}
+impl<'a> AdmittedNativeRequest<'a> {
+    pub fn selected(&self) -> conduit_plan_lowering::selected_operation::SelectedOperationPlan<'_> {
+        conduit_plan_lowering::selected_operation::SelectedOperationPlan {
+            fragment: self.selected.fragment,
+            lowered: self.selected.lowered,
+            active: self.selected.active,
+            placement_id: self.selected.placement_id,
+        }
+    }
+    pub fn work(&self) -> crate::RemoteHostWorkRef<'a> {
+        self.work
+    }
+}
+impl StdHost {
+    pub fn admitted_native_request<'a>(
+        &self,
+        admitted: &'a AdmittedRemoteFragment,
+        request: HostCallRequest,
+    ) -> Result<AdmittedNativeRequest<'a>, String> {
+        let fragment = &admitted.source_fragment;
+        if admitted.native_work_request.is_some()
+            || !admitted.runtime.native_request_is_pending(request)
+            || admitted.reservation.is_none()
+            || admitted.identity.host_id != self.advertisement.host_id
+            || admitted.identity.boot_id != self.advertisement.boot_id
+            || admitted.offer_generation != self.advertisement.offer_generation
+            || !conduit_core::verify_plan_fragment(fragment)
+        {
+            return Err(
+                "native request does not retain the actual current admitted reservation".into(),
+            );
+        }
+        let lowered = admitted.runtime.native_lowered();
+        let node = lowered
+            .nodes
+            .iter()
+            .find(|node| node.node == request.node)
+            .ok_or("native request node absent")?;
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|gear| gear.placement_id == node.placement_id)
+            .ok_or("native request placement absent")?;
+        if !self.retained_native_calls.iter().any(|(capability, kind)| {
+            &gear.capability_id == capability && gear.kind_id == kind.kind_id
+        }) {
+            return Err("request is not an independently installed retained native Back".into());
+        }
+        let work = admitted.runtime.host_request_view(request)?;
+        Ok(AdmittedNativeRequest {
+            selected: conduit_plan_lowering::selected_operation::SelectedOperationPlan {
+                fragment,
+                lowered,
+                active: &admitted.identity,
+                placement_id: &gear.placement_id,
+            },
+            work,
+        })
+    }
+}
+
+mod native_work;
+pub use native_work::{NativeWorkReturnRefusal, PreparedNativeWork, ReturnedNativeRequest};

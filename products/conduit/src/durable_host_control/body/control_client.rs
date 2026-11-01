@@ -11,25 +11,26 @@ use std::{
 use socket2::{Domain, SockAddr, Socket, Type};
 
 use super::super::{Request, Response, CONTROL_OUTCOME_UNKNOWN, MAXIMUM_LOCAL_CONTROL_FRAME_BYTES};
-use super::{CONTROL_DEADLINE, TODO_ACTION_DEADLINE};
+use super::{CONTROL_DEADLINE, DURABLE_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
     let deadline = match &request {
+        Request::BodyReplacePlot { .. } | Request::BodyRecording { .. } => DURABLE_ACTION_DEADLINE,
         #[cfg(target_os = "linux")]
-        Request::Notebook { .. } => TODO_ACTION_DEADLINE,
+        Request::Notebook { .. } => DURABLE_ACTION_DEADLINE,
         Request::BodyInteraction { interaction, .. }
         | Request::BodyBrowserInteraction { interaction, .. }
         | Request::BodyNativeGuestInteraction { interaction, .. }
             if interaction.action_id.starts_with("todo.")
                 || interaction.action_id.starts_with("notebook.") =>
         {
-            TODO_ACTION_DEADLINE
+            DURABLE_ACTION_DEADLINE
         }
         Request::BodyAttachedTerminalInteraction { interaction, .. }
             if interaction.action_id.starts_with("todo.")
                 || interaction.action_id.starts_with("notebook.") =>
         {
-            TODO_ACTION_DEADLINE
+            DURABLE_ACTION_DEADLINE
         }
         _ => CONTROL_DEADLINE,
     };
@@ -100,10 +101,15 @@ fn clear_token(request: &mut Request) {
     match request {
         #[cfg(target_os = "linux")]
         Request::Notebook { token, .. } => token.fill(0),
-        Request::BodyInspect { token, .. }
+        Request::BodyReplacePlot { token, .. }
+        | Request::BodyEstablishRootSigner { token, .. }
+        | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
+        | Request::BodyNativeSnapshotStart { token, .. }
+        | Request::BodyNativeSnapshotFace { token, .. }
+        | Request::BodyBrowserInviteStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }
@@ -128,6 +134,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyAttachedTerminalRefreshShow { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
+        | Request::BodyRecording { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::InspectWorkerText { token, .. }

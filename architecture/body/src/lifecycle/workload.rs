@@ -7,8 +7,8 @@ use super::{
     MAX_BODY_SIGNS,
 };
 use crate::{
-    BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyWorkset, ResidentPlot,
-    WakeLifecycleEvent,
+    BodyLifecycleEvent, BodyPlanError, BodyPlanEvidence, BodyPlayIdentity, BodyWorkset,
+    ResidentPlot, WakeLifecycleEvent,
 };
 
 impl Body {
@@ -77,7 +77,7 @@ impl Body {
 impl Wake {
     pub fn body_plan_ready(
         &self,
-        plan: &BodyPlan,
+        plan: &impl BodyPlanEvidence,
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {
         self.validate()?;
@@ -87,12 +87,12 @@ impl Wake {
             }
             _ => BodyLifecycleError::InvalidPlan,
         })?;
-        self.accept_plan_id(&plan.plan_id, sign_id)
+        self.accept_plan_id(plan.plan_id(), sign_id)
     }
 
     pub fn body_play_started(
         &self,
-        plan: &BodyPlan,
+        plan: &impl BodyPlanEvidence,
         play: &BodyPlayIdentity,
         sign_id: SignId,
     ) -> Result<Self, BodyLifecycleError> {

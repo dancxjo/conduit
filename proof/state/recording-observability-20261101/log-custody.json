@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "local_ignored_logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-observability-20261101/control-7b2b60198e.log",
+      "bytes": 1042,
+      "sha256": "41020e3810ffc870af4104323851c010b9f7f6b133cdcf12a3c5dbef78833bcb"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-observability-20261101/evidence-retention-7b2b60198e.log",
+      "bytes": 176,
+      "sha256": "f34fc84fe106a35f2a7c60d6c5f32067e8bd437462a0a9174ab7c6c6ac0f9b0d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-observability-20261101/stage-7b2b60198e.log",
+      "bytes": 3227,
+      "sha256": "f465b106959040e9c249619de66962e59585010196ec5645295da1541846bd1c"
+    }
+  ]
+}

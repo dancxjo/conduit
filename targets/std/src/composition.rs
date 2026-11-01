@@ -224,6 +224,7 @@ pub(super) fn build_advertisement(
     if composition.time {
         capabilities.extend([
             installed_std::tick_offer(),
+            conduit_std_offers::tick_trigger_offer(),
             installed_std::every_offer(),
             installed_std::render_demand_offer(),
             installed_std::synth_offer(),

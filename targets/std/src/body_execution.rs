@@ -20,16 +20,28 @@ pub use parsec_instruction_observation::ParsecInputInstructionObservation;
 mod parsec_instruction_effect_observation;
 pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
 
+mod borrowed_fore;
+mod durable_state;
+pub use borrowed_fore::{BodyBorrowedForeOutputAdapter, BodyForeDeliveryRef};
+pub use durable_state::BodyDurableStateSelection;
+pub(crate) use durable_state::BodyStateStorageSelection;
 mod fore;
 mod fore_custody;
+pub mod native;
 pub use fore_custody::{
     BodyForeDeliveryStage, BodyForePendingOutput, BodyForePendingOutputMetadata,
 };
 
 mod parsec_terminal;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod selected_storage;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod snapshot;
 mod todo_checkpoint;
 pub(crate) use parsec_terminal::ParsecTerminalAttachment;
 pub use parsec_terminal::{BodyParsecShowObserver, BodyParsecTerminalRoute};
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub use snapshot::BodySnapshotSelection;
 
 #[derive(Debug, Clone)]
 pub struct ObservedKernelEvent {
@@ -90,6 +102,8 @@ pub struct BodyRunReport {
     pub failure: Option<String>,
     /// Exact kernel Back failure, preserved independently of human diagnostics.
     pub kernel_failure: Option<conduit_kernel::Failure>,
+    /// One terminal native refusal, correlated to the original kernel request.
+    pub native_failure: Option<native::NativeFailureDiagnostic>,
     pub cleanup_failure: Option<String>,
     pub terminal_sign: SignIdentity,
     pub partitions: Vec<KernelIdentityMap>,
@@ -293,6 +307,50 @@ impl StdHost {
         live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
         checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
         terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
+        started: F,
+    ) -> Result<BodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_body_plan_to_with_start_and_clock_storage(
+            request,
+            output,
+            timer,
+            correlation,
+            execution_bounds,
+            fore,
+            live,
+            checkpoint,
+            terminal,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            None,
+            None,
+            false,
+            started,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn run_body_plan_to_with_start_and_clock_storage<'a, W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        correlation: Option<&BodyClockCorrelation>,
+        execution_bounds: Option<(MonotonicDuration, MonotonicDuration)>,
+        fore: Option<(
+            &[ExternalForeInput],
+            bool,
+            &'a mut dyn BodyForeOutputAdapter,
+        )>,
+        live: Option<(&BodyLiveForeQueue, &'a mut dyn BodyForeOutputAdapter)>,
+        checkpoint: Option<(&Path, crate::todo_durable_resource::CheckpointIdentity)>,
+        terminal: Option<parsec_terminal::ParsecTerminalAttachment<'a>>,
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))] snapshots: Option<
+            BodySnapshotSelection<'a>,
+        >,
+        durable_state: Option<BodyStateStorageSelection<'a>>,
+        borrowed_fore: bool,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -333,43 +391,52 @@ impl StdHost {
         // a preparation refusal leaves the Host sequence untouched.
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
-        let mut kernel = if let Some((queue, _)) = &live {
-            BodyKernel::prepare_live_on_host(
-                &request.plan.plots,
-                request.keyboard.is_some(),
-                &prospective_play.active_play_id,
-                queue,
-                request.control,
-                &self.advertisement,
-                #[cfg(target_os = "linux")]
-                self.selected_text_file.as_ref(),
-            )?
+        let mut prepared_kernel = if durable_state.is_none() {
+            let mut kernel = if let Some((queue, _)) = &live {
+                BodyKernel::prepare_live_on_host(
+                    &request.plan.plots,
+                    request.keyboard.is_some(),
+                    &prospective_play.active_play_id,
+                    queue,
+                    request.control,
+                    &self.advertisement,
+                    #[cfg(target_os = "linux")]
+                    self.selected_text_file.as_ref(),
+                )?
+            } else {
+                BodyKernel::prepare_on_host(
+                    &request.plan.plots,
+                    request.keyboard.is_some(),
+                    &prospective_play.active_play_id,
+                    fore_inputs,
+                    sequential_fore,
+                    has_fore_output,
+                    &self.advertisement,
+                    #[cfg(target_os = "linux")]
+                    self.selected_text_file.as_ref(),
+                )?
+            };
+            kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
+            if let Some(terminal) = &terminal {
+                kernel.attach_parsec_terminal(
+                    request.plan,
+                    &self.advertisement,
+                    terminal.columns,
+                    terminal.rows,
+                )?;
+            }
+            if let Some((root, checkpoint)) = &checkpoint {
+                kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint.clone())?;
+            }
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            if let Some(selection) = snapshots {
+                kernel.attach_snapshot(&request.plan.plots, selection, &prospective_play)?;
+            }
+            kernel.require_supported_execution()?;
+            Some(kernel)
         } else {
-            BodyKernel::prepare_on_host(
-                &request.plan.plots,
-                request.keyboard.is_some(),
-                &prospective_play.active_play_id,
-                fore_inputs,
-                sequential_fore,
-                has_fore_output,
-                &self.advertisement,
-                #[cfg(target_os = "linux")]
-                self.selected_text_file.as_ref(),
-            )?
+            None
         };
-        kernel.prepare_input_origin(&self.advertisement, request.plan, &prospective_play)?;
-        if let Some(terminal) = &terminal {
-            kernel.attach_parsec_terminal(
-                request.plan,
-                &self.advertisement,
-                terminal.columns,
-                terminal.rows,
-            )?;
-        }
-        if let Some((root, checkpoint)) = checkpoint {
-            kernel.attach_todo_checkpoint(&request.plan.plots, root, checkpoint)?;
-        }
-        kernel.require_supported_execution()?;
         let reservations = self.kernel_resources.prepare_and_reserve_plans(
             &self.advertisement,
             &request
@@ -384,11 +451,43 @@ impl StdHost {
             self.next_kernel_play_sequence = sequence
                 .checked_add(1)
                 .ok_or_else(|| "Body Play sequence exhausted".to_string())?;
-            let play = prospective_play;
-            if play.play_sequence != sequence {
+            let play = BodyPlayIdentity::bind(request.plan, sequence);
+            if play != prospective_play {
                 return Err("Body prospective Play identity changed before start".into());
             }
+            let mut kernel = match prepared_kernel.take() {
+                Some(kernel) => kernel,
+                None => {
+                    let selection = durable_state
+                        .as_ref()
+                        .ok_or("Body State selection absent")?;
+                    let mut kernel = BodyKernel::prepare_durable_on_host(
+                        &request.plan.plots,
+                        request.keyboard.is_some(),
+                        &play,
+                        fore_inputs,
+                        sequential_fore,
+                        has_fore_output,
+                        &self.advertisement,
+                        #[cfg(target_os = "linux")]
+                        self.selected_text_file.as_ref(),
+                        selection,
+                    )?;
+                    kernel.prepare_input_origin(&self.advertisement, request.plan, &play)?;
+                    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                    if let Some(snapshot) = snapshots {
+                        kernel.attach_snapshot(&request.plan.plots, snapshot, &play)?;
+                    }
+                    kernel.require_supported_execution()?;
+                    kernel
+                }
+            };
+            if borrowed_fore {
+                kernel.prepare_borrowed_fore()?;
+            }
             kernel.confirm_input_play(&self.advertisement, &play)?;
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            kernel.confirm_snapshot_play(&play)?;
             // Body lifecycle signs are scoped by this unique admitted Play.
             // The shared lifecycle session and browser producer use 0/1/2;
             // reusing the Host-wide cursor would make a second genuine start
@@ -443,6 +542,7 @@ impl StdHost {
                 terminal: result.terminal,
                 failure: result.failure,
                 kernel_failure: result.kernel_failure,
+                native_failure: result.native_failure,
                 cleanup_failure: result.cleanup_failure,
                 terminal_sign,
                 partitions: result.partitions,
@@ -571,3 +671,9 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod native_tests;
+
+#[cfg(test)]
+mod native_stream_tests;

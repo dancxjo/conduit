@@ -15,6 +15,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(target_os = "linux")]
+use std::os::fd::{AsRawFd, FromRawFd};
+
 const MAGIC: &[u8; 8] = b"CDSTATE1";
 const HEADER_BYTES: usize = MAGIC.len() + 32 + 8 + 4 + 32;
 
@@ -23,6 +26,8 @@ const HEADER_BYTES: usize = MAGIC.len() + 32 + 8 + 4 + 32;
 pub struct FileDurableStateResidence {
     binding: DurableStateBinding,
     directory: PathBuf,
+    #[cfg(target_os = "linux")]
+    selected_directory: Option<File>,
 }
 
 pub(crate) struct InstalledDurableStateHost {
@@ -37,6 +42,17 @@ impl InstalledDurableStateHost {
     ) -> Result<Self, DurableStateRefusal> {
         Ok(Self {
             residence: FileDurableStateResidence::open(root, binding)?,
+            generation: 0,
+        })
+    }
+
+    #[cfg(target_os = "linux")]
+    pub(crate) fn open_selected_root(
+        root: &File,
+        binding: DurableStateBinding,
+    ) -> Result<Self, DurableStateRefusal> {
+        Ok(Self {
+            residence: FileDurableStateResidence::open_selected_root(root, binding)?,
             generation: 0,
         })
     }
@@ -87,15 +103,74 @@ impl InstalledDurableStateHost {
 }
 
 impl FileDurableStateResidence {
+    /// Exact stable locator shared with Root inventory selection. This grants
+    /// no permission to recover or commit a journal.
+    pub fn storage_key(binding: &DurableStateBinding) -> Result<String, DurableStateRefusal> {
+        binding.validate()?;
+        Ok(hex(&binding_key(binding)))
+    }
     pub fn open(
         root: impl AsRef<Path>,
         binding: DurableStateBinding,
     ) -> Result<Self, DurableStateRefusal> {
         binding.validate()?;
-        let key = binding_key(&binding);
-        let directory = root.as_ref().join(hex(&key));
+        let directory = root.as_ref().join(Self::storage_key(&binding)?);
         fs::create_dir_all(&directory).map_err(|_| DurableStateRefusal::Lost)?;
-        Ok(Self { binding, directory })
+        Ok(Self {
+            binding,
+            directory,
+            #[cfg(target_os = "linux")]
+            selected_directory: None,
+        })
+    }
+
+    /// The caller retains custody of an already selected durable root. This
+    /// persists the exact journal entry in that root, not any root ancestors.
+    #[cfg(target_os = "linux")]
+    pub fn open_selected_root(
+        root: &File,
+        binding: DurableStateBinding,
+    ) -> Result<Self, DurableStateRefusal> {
+        let name = std::ffi::CString::new(Self::storage_key(&binding)?)
+            .map_err(|_| DurableStateRefusal::Lost)?;
+        // SAFETY: root is retained throughout, and name is a single NUL-terminated component.
+        let created = unsafe { libc::mkdirat(root.as_raw_fd(), name.as_ptr(), 0o700) };
+        if created != 0
+            && std::io::Error::last_os_error().kind() != std::io::ErrorKind::AlreadyExists
+        {
+            return Err(DurableStateRefusal::Lost);
+        }
+        // SAFETY: valid retained directory descriptor and component; returned fd is owned below.
+        let fd = unsafe {
+            libc::openat(
+                root.as_raw_fd(),
+                name.as_ptr(),
+                libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            )
+        };
+        if fd < 0 {
+            return Err(DurableStateRefusal::Lost);
+        }
+        // SAFETY: successful openat returned a fresh owned descriptor.
+        let child = unsafe { File::from_raw_fd(fd) };
+        sync_journal(&child).map_err(|_| DurableStateRefusal::Lost)?;
+        sync_parent(root).map_err(|_| DurableStateRefusal::Lost)?;
+        let directory = PathBuf::from(format!("/proc/self/fd/{}", child.as_raw_fd()));
+        Ok(Self {
+            binding,
+            directory,
+            selected_directory: Some(child),
+        })
+    }
+
+    fn sync_directory(&self) -> Result<(), DurableStateRefusal> {
+        #[cfg(target_os = "linux")]
+        if let Some(directory) = &self.selected_directory {
+            return sync_journal(directory).map_err(|_| DurableStateRefusal::Lost);
+        }
+        File::open(&self.directory)
+            .and_then(|directory| sync_journal(&directory))
+            .map_err(|_| DurableStateRefusal::Lost)
     }
 
     pub fn binding(&self) -> &DurableStateBinding {
@@ -137,14 +212,18 @@ impl FileDurableStateResidence {
         }
         let value_digest = digest(value);
         match self.read_current_generation()? {
-            Some((current, current_digest)) if current == generation => {
+            Some((current, current_digest, current_file)) if current == generation => {
                 return if current_digest == value_digest {
+                    // Visibility after rename is not evidence that a previous
+                    // publication barrier succeeded. Complete it on every retry.
+                    sync_current(&current_file).map_err(|_| DurableStateRefusal::Lost)?;
+                    self.sync_directory()?;
                     Ok(receipt(generation, value_digest))
                 } else {
                     Err(DurableStateRefusal::ConflictingDigest)
                 };
             }
-            Some((current, _)) if current.checked_add(1) != Some(generation) => {
+            Some((current, _, _)) if current.checked_add(1) != Some(generation) => {
                 return Err(DurableStateRefusal::GenerationGap);
             }
             None if generation != 1 => return Err(DurableStateRefusal::GenerationGap),
@@ -153,9 +232,7 @@ impl FileDurableStateResidence {
         self.write_candidate(generation, value)?;
         fs::rename(self.candidate_path(), self.current_path())
             .map_err(|_| DurableStateRefusal::Lost)?;
-        File::open(&self.directory)
-            .and_then(|directory| directory.sync_all())
-            .map_err(|_| DurableStateRefusal::Lost)?;
+        self.sync_directory()?;
         Ok(receipt(generation, value_digest))
     }
 
@@ -173,18 +250,21 @@ impl FileDurableStateResidence {
             .map_err(|_| DurableStateRefusal::Lost)
     }
 
-    fn read_current_generation(&self) -> Result<Option<(u64, [u8; 32])>, DurableStateRefusal> {
+    fn read_current_generation(
+        &self,
+    ) -> Result<Option<(u64, [u8; 32], File)>, DurableStateRefusal> {
         let mut encoded = Vec::new();
-        match File::open(self.current_path()) {
+        let file = match File::open(self.current_path()) {
             Ok(mut file) => {
                 file.read_to_end(&mut encoded)
                     .map_err(|_| DurableStateRefusal::Lost)?;
+                file
             }
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
             Err(_) => return Err(DurableStateRefusal::Lost),
-        }
+        };
         let (generation, value) = decode_generation(&self.binding, &encoded)?;
-        Ok(Some((generation, digest(value))))
+        Ok(Some((generation, digest(value), file)))
     }
 
     fn current_path(&self) -> PathBuf {
@@ -203,6 +283,40 @@ impl FileDurableStateResidence {
     ) -> Result<(), DurableStateRefusal> {
         self.write_candidate(generation, value)
     }
+}
+
+fn sync_current(file: &File) -> std::io::Result<()> {
+    #[cfg(test)]
+    test_sync("current")?;
+    file.sync_all()
+}
+fn sync_journal(file: &File) -> std::io::Result<()> {
+    #[cfg(test)]
+    test_sync("journal")?;
+    file.sync_all()
+}
+#[cfg(target_os = "linux")]
+fn sync_parent(file: &File) -> std::io::Result<()> {
+    #[cfg(test)]
+    test_sync("parent")?;
+    file.sync_all()
+}
+#[cfg(test)]
+thread_local! {
+    static SYNC_FAILURE: std::cell::RefCell<Option<&'static str>> = const { std::cell::RefCell::new(None) };
+    static SYNC_EVENTS: std::cell::RefCell<Vec<&'static str>> = const { std::cell::RefCell::new(Vec::new()) };
+}
+#[cfg(test)]
+fn test_sync(stage: &'static str) -> std::io::Result<()> {
+    SYNC_EVENTS.with(|events| events.borrow_mut().push(stage));
+    SYNC_FAILURE.with(|failure| {
+        if *failure.borrow() == Some(stage) {
+            failure.replace(None);
+            Err(std::io::Error::other("injected synchronization failure"))
+        } else {
+            Ok(())
+        }
+    })
 }
 
 fn binding_key(binding: &DurableStateBinding) -> [u8; 32] {
@@ -293,142 +407,13 @@ fn hex(bytes: &[u8]) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_core::{KindId, StateId};
-    use std::{process::Command, time::SystemTime};
+mod tests;
 
-    const CHILD_MODE: &str = "CONDUIT_DURABLE_STATE_CHILD_MODE";
-    const CHILD_ROOT: &str = "CONDUIT_DURABLE_STATE_CHILD_ROOT";
-
-    fn binding() -> DurableStateBinding {
-        DurableStateBinding {
-            body: "body/notebook".into(),
-            state: StateId::from("note/current"),
-            value_kind: KindId::from("value/text"),
-            maximum_value_bytes: conduit_data::MAXIMUM_DATA_TEXT_BYTES,
-        }
+pub(crate) fn durable_record_byte_bound(maximum: u32) -> Result<usize, String> {
+    if maximum == 0 || maximum > super::MAXIMUM_DURABLE_STATE_BYTES {
+        return Err("State record byte bound exceeds implementation".into());
     }
-
-    fn temporary_root(label: &str) -> PathBuf {
-        let nonce = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        std::env::temp_dir().join(format!(
-            "conduit-durable-state-{label}-{}-{nonce}",
-            std::process::id()
-        ))
-    }
-
-    fn child(mode: &str, root: &Path) -> ! {
-        let residence = FileDurableStateResidence::open(root, binding()).unwrap();
-        match mode {
-            "commit" => {
-                residence
-                    .commit(1, b"published before abrupt loss")
-                    .unwrap();
-            }
-            "torn" => {
-                residence
-                    .synchronize_candidate_without_publication(2, b"unpublished candidate")
-                    .unwrap();
-            }
-            _ => panic!("unknown child mode"),
-        }
-        std::process::abort()
-    }
-
-    fn spawn_abrupt(mode: &str, root: &Path) {
-        let status = Command::new(std::env::current_exe().unwrap())
-            .arg("--exact")
-            .arg("state_value::durable::residence::tests::fresh_process_abrupt_loss_recovers_only_published_generation")
-            .arg("--nocapture")
-            .env(CHILD_MODE, mode)
-            .env(CHILD_ROOT, root)
-            .status()
-            .unwrap();
-        assert!(!status.success(), "child must end by abrupt process loss");
-    }
-
-    #[test]
-    fn fresh_process_abrupt_loss_recovers_only_published_generation() {
-        if let (Ok(mode), Ok(root)) = (std::env::var(CHILD_MODE), std::env::var(CHILD_ROOT)) {
-            child(&mode, Path::new(&root));
-        }
-        let root = temporary_root("abrupt");
-        spawn_abrupt("commit", &root);
-        let residence = FileDurableStateResidence::open(&root, binding()).unwrap();
-        assert_eq!(
-            residence.recover().unwrap().0,
-            RecoveryDisposition::Recovered { generation: 1 }
-        );
-        spawn_abrupt("torn", &root);
-        let reopened = FileDurableStateResidence::open(&root, binding()).unwrap();
-        let (disposition, encoded) = reopened.recover().unwrap();
-        assert_eq!(
-            disposition,
-            RecoveryDisposition::Recovered { generation: 1 }
-        );
-        assert!(encoded.ends_with(b"published before abrupt loss"));
-        fs::remove_dir_all(&root).unwrap();
-    }
-
-    #[test]
-    fn commit_is_idempotent_and_conflicts_are_exact() {
-        let root = temporary_root("conflict");
-        let residence = FileDurableStateResidence::open(&root, binding()).unwrap();
-        let first = residence.commit(1, b"A").unwrap();
-        assert_eq!(residence.commit(1, b"A").unwrap(), first);
-        assert_eq!(
-            residence.commit(1, b"B"),
-            Err(DurableStateRefusal::ConflictingDigest)
-        );
-        assert_eq!(
-            residence.commit(3, b"C"),
-            Err(DurableStateRefusal::GenerationGap)
-        );
-        fs::remove_dir_all(&root).unwrap();
-    }
-
-    #[test]
-    fn exact_recovery_refuses_drift_and_carries_the_full_text_bound() {
-        let root = temporary_root("exact-four-kib");
-        let mut installed = InstalledDurableStateHost::open(&root, binding()).unwrap();
-        let value = vec![b'n'; conduit_data::MAXIMUM_DATA_TEXT_BYTES as usize];
-        installed.commit(&value).unwrap();
-        let metadata = installed.recover_metadata().unwrap();
-        assert_eq!(installed.recover_exact(&metadata).unwrap(), value);
-
-        installed.commit(b"new generation").unwrap();
-        assert_eq!(
-            installed.recover_exact(&metadata),
-            Err(DurableStateRefusal::StaleRecovery)
-        );
-        fs::remove_dir_all(&root).unwrap();
-    }
-
-    #[test]
-    fn residence_distinguishes_absent_corrupt_incompatible_and_lost() {
-        let root = temporary_root("recovery-dispositions");
-        let residence = FileDurableStateResidence::open(&root, binding()).unwrap();
-        assert_eq!(residence.recover().unwrap().0, RecoveryDisposition::Absent);
-        residence.commit(1, b"A").unwrap();
-        fs::write(residence.current_path(), b"not a generation").unwrap();
-        assert_eq!(residence.recover(), Err(DurableStateRefusal::Corrupt));
-
-        let mut foreign_binding = binding();
-        foreign_binding.body = "body/foreign".into();
-        fs::write(
-            residence.current_path(),
-            encode_generation(&foreign_binding, 1, b"A").unwrap(),
-        )
-        .unwrap();
-        assert_eq!(residence.recover(), Err(DurableStateRefusal::Incompatible));
-
-        fs::remove_file(residence.current_path()).unwrap();
-        fs::create_dir(residence.current_path()).unwrap();
-        assert_eq!(residence.recover(), Err(DurableStateRefusal::Lost));
-        fs::remove_dir_all(&root).unwrap();
-    }
+    HEADER_BYTES
+        .checked_add(maximum as usize)
+        .ok_or("State record byte bound overflow".into())
 }

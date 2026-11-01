@@ -7,7 +7,7 @@ use conduit_host_make::{
     canonical_host_configuration_conduit, check_host_configuration,
     parse_host_configuration_conduit, CheckedHostConfiguration,
 };
-use conduit_std_host::StdHost;
+use conduit_std_host::{StdHost, StdHostComposition};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -17,6 +17,8 @@ mod microphone;
 mod playback;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
+#[path = "selected_host_configuration/storage.rs"]
+mod storage;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -24,6 +26,8 @@ const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 pub(super) struct Selection {
     source: String,
     configuration_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    storage_root: Option<storage::RootIdentity>,
 }
 impl Selection {
     fn from_source(source: &str, target: &str) -> Result<Self, String> {
@@ -37,6 +41,7 @@ impl Selection {
         Ok(Self {
             source,
             configuration_id: checked.configuration_id().into(),
+            storage_root: None,
         })
     }
     pub(super) fn validate_speech_overlap(
@@ -55,7 +60,7 @@ impl Selection {
         }
         Ok(())
     }
-    fn checked(&self) -> Result<CheckedHostConfiguration, String> {
+    pub(super) fn checked(&self) -> Result<CheckedHostConfiguration, String> {
         let checked = check(&self.source)?;
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
@@ -63,7 +68,23 @@ impl Selection {
         Ok(checked)
     }
     pub(super) fn validate(&self) -> Result<(), String> {
-        self.checked().map(|_| ())
+        let checked = self.checked()?;
+        storage::validate_binding(&checked, self.storage_root.as_ref())
+    }
+    /// Choose software before constructing advertisement, ledger or providers.
+    /// An absent purpose preserves the caller's existing composition. An explicit
+    /// empty purpose requests the existing base-only construction baseline.
+    pub(super) fn composition(
+        &self,
+        fallback: StdHostComposition,
+    ) -> Result<StdHostComposition, String> {
+        let checked = self.checked()?;
+        require_target(&checked, running_target_id()?)?;
+        match &checked.configuration().software {
+            None => Ok(fallback),
+            Some(purpose) if purpose.capabilities.is_empty() => Ok(StdHostComposition::minimal()),
+            Some(_) => Err("installed Host cannot construct the selected software purpose".into()),
+        }
     }
     pub(super) fn attach_to_fresh_host(&self, host: &mut StdHost) -> Result<(), String> {
         let checked = self.checked()?;
@@ -101,6 +122,19 @@ impl Selection {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     host.attach_whisper_clip_recognizer(recognition::initialize(initialization)?)?;
                 }
+                Some(storage::IMPLEMENTATION) => {
+                    storage::attach(initialization, self.storage_root.as_ref(), host)?;
+                }
+                Some("linux/environmental-sources@1") => {
+                    #[cfg(not(all(
+                        feature = "installed-environmental-sources",
+                        target_os = "linux"
+                    )))]
+                    return Err(
+                        "selected environmental sources require the installed Linux-native feature"
+                            .into(),
+                    );
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }
@@ -119,6 +153,14 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
         &conduit_workspace_make::package_set(),
     )
     .map_err(|e| format!("Host configuration refused: {e:?}"))?;
+    if checked
+        .configuration()
+        .software
+        .as_ref()
+        .is_some_and(|purpose| !purpose.capabilities.is_empty())
+    {
+        return Err("installed Host cannot construct the selected software purpose".into());
+    }
     for base in &checked.configuration().bases {
         if let Some(initialization) = &base.initialization {
             let implementation = checked
@@ -136,6 +178,19 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 }
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
+                }
+                Some(storage::IMPLEMENTATION) => storage::validate(initialization)?,
+                Some("linux/environmental-sources@1") => {
+                    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+                    super::selected_environmental_sources::validate(&checked)?;
+                    #[cfg(not(all(
+                        feature = "installed-environmental-sources",
+                        target_os = "linux"
+                    )))]
+                    return Err(
+                        "selected environmental sources require the installed Linux-native feature"
+                            .into(),
+                    );
                 }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
@@ -172,7 +227,11 @@ pub(super) fn configure(
         }
         let bytes = bounded_read(path, MAXIMUM_SOURCE_BYTES)?;
         let source = std::str::from_utf8(&bytes).map_err(|_| "Host configuration must be UTF-8")?;
-        let selection = Selection::from_source(source, running_target_id()?)?;
+        let mut selection = Selection::from_source(source, running_target_id()?)?;
+        // Explicit effectful selection follows pure checking and completes
+        // before persisting any part of this configuration.
+        selection.storage_root = storage::select_identity(&selection.checked()?)?;
+        selection.validate()?;
         if installation.selected_todo_checkpoint.is_some() {
             return Err(
                 "scoped Todo checkpoint Host cannot initialize additional checked equipment".into(),

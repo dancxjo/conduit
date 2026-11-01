@@ -1,0 +1,17 @@
+{
+  "source": "fa8c0b5283a78237ae86ccdee43fe7c91f3f92aa",
+  "qualified_offline": true,
+  "app_bytes": {
+    "bytes": 3283472,
+    "sha256": "bd59fc981036f7469b5ac63e1cee7e6cbc57042eac41c0697003db277512e592"
+  },
+  "stack_bytes": 37348,
+  "stack_floor_bytes": 36864,
+  "flashed": false,
+  "temporary_backing": "fallible exact-layout reservation in existing Root arena, dropped before local workers start",
+  "limits": [
+    "No physical cold membership operation proved.",
+    "No ordinary during-Play checkpoint timing authority enabled.",
+    "Future backing peak and release require target measurement."
+  ]
+}

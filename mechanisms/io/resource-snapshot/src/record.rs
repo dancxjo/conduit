@@ -137,21 +137,7 @@ impl PreparedSnapshotRecord {
         prefix.extend_from_slice(owner);
         prefix.extend_from_slice(&(encoded.len() as u16).to_le_bytes());
         prefix.extend_from_slice(&encoded);
-        // Boot and grant are deliberately absent: restoration requires a new
-        // current-Boot binding, while the exact stored generation stays stable.
-        let mut key_identity = Vec::with_capacity(owner.len() + 66);
-        key_identity.extend_from_slice(&(owner.len() as u16).to_le_bytes());
-        key_identity.extend_from_slice(owner);
-        key_identity.extend_from_slice(&reference.identity.digest());
-        key_identity.extend_from_slice(&reference.lifetime.version.digest());
-        let digest = semantic_digest("conduit.resource/snapshot-key@1", &key_identity);
-        let key = digest
-            .iter()
-            .fold(String::from("resource/"), |mut key, byte| {
-                use core::fmt::Write;
-                write!(&mut key, "{byte:02x}").expect("String write");
-                key
-            });
+        let key = snapshot_storage_key(&placement.host_id, reference);
         Ok(Self {
             authority: authority.clone(),
             access: contract.access,
@@ -236,4 +222,26 @@ impl PreparedSnapshotRecord {
         }
         Ok(())
     }
+}
+
+/// Stable physical record key. Boot and grants are deliberately absent: a
+/// fresh Boot still requires a newly admitted authority binding before reading.
+/// The key is a locator, never proof of content or execution authority.
+pub fn snapshot_storage_key(
+    owner: &conduit_core::HostId,
+    reference: &BoundedResourceRef,
+) -> String {
+    let owner = owner.as_str().as_bytes();
+    let mut key_identity = Vec::with_capacity(owner.len() + 66);
+    key_identity.extend_from_slice(&(owner.len() as u16).to_le_bytes());
+    key_identity.extend_from_slice(owner);
+    key_identity.extend_from_slice(&reference.identity.digest());
+    key_identity.extend_from_slice(&reference.lifetime.version.digest());
+    semantic_digest("conduit.resource/snapshot-key@1", &key_identity)
+        .iter()
+        .fold(String::from("resource/"), |mut key, byte| {
+            use core::fmt::Write;
+            write!(&mut key, "{byte:02x}").expect("String write");
+            key
+        })
 }

@@ -1,0 +1,15 @@
+[package]
+name = "conduit-computation"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[features]
+default = []
+kernel-step = ["dep:conduit-kernel"]
+prepared-expression-session = ["kernel-step", "conduit-kernel/alloc"]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }

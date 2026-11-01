@@ -60,6 +60,66 @@ where
     S: ValueStorage,
     E: SignSink + SignQuery,
 {
+    /// Explicit extension for owned output ports that admit zero or one Value
+    /// per invocation. All inputs and unlisted outputs retain exact-one rules.
+    /// The caller must establish this cardinality from the independently checked
+    /// Fore. This declaration grants neither transport nor effect authority.
+    /// Output sequences count actual Values, including across empty invocations.
+    #[allow(clippy::type_complexity)]
+    pub fn new_with_owned_optional_value_outputs(
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        boundaries: &[OwnedValueBoundary],
+        optional_outputs: &[OwnedValueBoundary],
+        remote_sign_reservation: u16,
+    ) -> Result<
+        Self,
+        (
+            SessionRefusal,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        ),
+    > {
+        for (index, output) in optional_outputs.iter().enumerate() {
+            if optional_outputs[..index].contains(output)
+                || !boundaries.contains(output)
+                || !kernel
+                    .cord_specs
+                    .get(usize::from(output.cord.0))
+                    .is_some_and(|cord| {
+                        matches!((cord.source, cord.sink),
+                        (CordEndpoint::Local { .. }, CordEndpoint::Remote(endpoint))
+                            if endpoint == output.endpoint)
+                    })
+            {
+                return Err((SessionRefusal::InvalidOwnedBoundary, kernel));
+            }
+        }
+        let mut session =
+            Self::new_with_owned_value_boundaries(kernel, boundaries, remote_sign_reservation)?;
+        if !optional_outputs.is_empty() {
+            let mut starts = Box::new([None; C]);
+            for output in optional_outputs {
+                let index = usize::from(output.cord.0);
+                starts[index] = Some(session.kernel.cords[index].next_remote_sequence);
+            }
+            session.optional_output_starts = Some(starts);
+        }
+        Ok(session)
+    }
+    fn optional_output_start(&self, index: usize) -> Option<u64> {
+        self.optional_output_starts
+            .as_ref()
+            .and_then(|starts| starts.get(index).copied().flatten())
+    }
+    pub(super) fn completed_owned_sequence(&self, index: usize, sequence: u64) -> bool {
+        match self.optional_output_start(index) {
+            Some(start) => sequence == start || start.checked_add(1) == Some(sequence),
+            None => sequence == self.owned_value_index + 1,
+        }
+    }
+    fn expected_output_sequence(&self, cord: CordId) -> u64 {
+        self.optional_output_start(usize::from(cord.0))
+            .unwrap_or(self.owned_value_index)
+    }
     fn owned_io(&self) -> Result<(), SchedulerError> {
         if self.remote_sign_reservation == 0
             || !matches!(self.phase, Phase::Prepared | Phase::Active)
@@ -81,6 +141,24 @@ where
         sequence: u64,
         bytes: &[u8],
     ) -> Result<RemoteIngressOutcome, SchedulerError> {
+        if let Some(outcome) = self.preflight_owned_input(endpoint, cord, sequence, bytes.len())? {
+            return Ok(outcome);
+        }
+        let result = self
+            .kernel
+            .admit_remote_input(endpoint, cord, sequence, bytes);
+        if matches!(result, Ok(RemoteIngressOutcome::Accepted { .. })) {
+            self.phase = Phase::Active;
+        }
+        self.observe_io(result)
+    }
+    pub(super) fn preflight_owned_input(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+        maximum_bytes: usize,
+    ) -> Result<Option<RemoteIngressOutcome>, SchedulerError> {
         self.owned_io()?;
         let index = usize::from(cord.0);
         let spec = self
@@ -90,7 +168,7 @@ where
             .filter(|_| index < self.kernel.active_cords)
             .filter(|spec| spec.source == CordEndpoint::Remote(endpoint))
             .ok_or(SchedulerError::InvalidRemoteCordAccess)?;
-        if bytes.len() > spec.maximum_value_bytes as usize {
+        if maximum_bytes > spec.maximum_value_bytes as usize {
             return self.observe_io(Err(SchedulerError::QueueByteCapacityExceeded));
         }
         // One Value per declared input in each invocation. A subsequent Value
@@ -99,18 +177,12 @@ where
         if sequence == self.owned_value_index + 1
             && self.kernel.cords[index].next_remote_sequence == sequence
         {
-            return Ok(RemoteIngressOutcome::Full { sequence });
+            return Ok(Some(RemoteIngressOutcome::Full { sequence }));
         }
         if sequence != self.owned_value_index {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
-        let result = self
-            .kernel
-            .admit_remote_input(endpoint, cord, sequence, bytes);
-        if matches!(result, Ok(RemoteIngressOutcome::Accepted { .. })) {
-            self.phase = Phase::Active;
-        }
-        self.observe_io(result)
+        Ok(None)
     }
     pub fn close_owned_input(
         &mut self,
@@ -137,10 +209,9 @@ where
     ) -> Result<Option<RemoteValueOffer>, SchedulerError> {
         self.owned_io()?;
         let result = self.kernel.remote_egress_offer(endpoint, cord);
-        if result
-            .as_ref()
-            .is_ok_and(|offer| offer.is_some_and(|offer| offer.sequence != self.owned_value_index))
-        {
+        if result.as_ref().is_ok_and(|offer| {
+            offer.is_some_and(|offer| offer.sequence != self.expected_output_sequence(cord))
+        }) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         self.observe_io(result)
@@ -154,7 +225,7 @@ where
         sequence: u64,
     ) -> Result<(), SchedulerError> {
         self.owned_io()?;
-        if sequence != self.owned_value_index {
+        if sequence != self.expected_output_sequence(cord) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         let result = self

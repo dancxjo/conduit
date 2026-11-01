@@ -1,0 +1,329 @@
+{
+  "schema": "conduit.development/physical-source-recording-recovery@1",
+  "production_source": "057f48d32ce3223ce1530ddc1f50f2d53e3affe7",
+  "product_bytes": 66267256,
+  "product_sha256": "sha256:c153285a8ac63c91e417da8e0ab95faefa053811e21986a0a7becb95aacda4a7",
+  "maximum_product_bytes": 67108864,
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "source_boot": "boot/installed/23dea1695aa81d35e4dd385cdf8108af87dba2ff11eadc66dc6b60f2e569f3d2",
+  "recovery_boot": "boot/installed/ae888bd4de025acc97c01cfb1fac6f9ba329e92c42e0b67ebc7f9af624a78e11",
+  "accepted_canonical_observations": 16,
+  "chunks": [
+    {
+      "records": 9,
+      "canonical_bytes": 3888,
+      "canonical_sha256": "2a91f2d3d0659e5b45e8611c170dc4e7165986e38ed9461cc0f1ff570a3c0482",
+      "reference_hex": "012a91f2d3d0659e5b45e8611c170dc4e7165986e38ed9461cc0f1ff570a3c04822a91f2d3d0659e5b45e8611c170dc4e7165986e38ed9461cc0f1ff570a3c04821000746578742f6a736f6e2d75746638403113007265736f757263652f736e617073686f744031300f00000000000001010000000000000000"
+    },
+    {
+      "records": 7,
+      "canonical_bytes": 3339,
+      "canonical_sha256": "8c09f1fe36443994faecbdfa594edec0af5c64f2cc26c12c6f6de11370d2dff4",
+      "reference_hex": "018c09f1fe36443994faecbdfa594edec0af5c64f2cc26c12c6f6de11370d2dff48c09f1fe36443994faecbdfa594edec0af5c64f2cc26c12c6f6de11370d2dff41000746578742f6a736f6e2d75746638403113007265736f757263652f736e617073686f7440310b0d00000000000001010000000000000000"
+    }
+  ],
+  "source_scope": {
+    "attachment_id": "green",
+    "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+    "boot_id": "boot/installed/23dea1695aa81d35e4dd385cdf8108af87dba2ff11eadc66dc6b60f2e569f3d2",
+    "capability_id": "environment/source/a3f7d4acb7f44d5ff31775a24e2d5e71",
+    "configuration_id": "sha256:7609e0873dbc5481aa45d2a446e0eac32472eb450407a664bb20a00bb2124721",
+    "firmware_sha256": [
+      198,
+      48,
+      72,
+      155,
+      239,
+      49,
+      172,
+      102,
+      14,
+      140,
+      3,
+      206,
+      75,
+      53,
+      48,
+      87,
+      51,
+      64,
+      196,
+      132,
+      98,
+      172,
+      178,
+      225,
+      162,
+      209,
+      178,
+      242,
+      153,
+      112,
+      29,
+      239
+    ],
+    "fragment_id": "067c20813e0963ead7a8f1a59138648201c95235f5e18f300a80fa24b41ceb9b",
+    "host_id": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+    "native_play": {
+      "active_play_id": "0372db7784bdb549448237066708e04160a8acee24acef7a6788cda4d5ef282b",
+      "boot_id": "boot/installed/23dea1695aa81d35e4dd385cdf8108af87dba2ff11eadc66dc6b60f2e569f3d2",
+      "host_id": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+      "plan_id": "1c38266a59ea7c7a689c63c7f57897dd802654d0cc18539bd1350045829725a2",
+      "play_sequence": 1
+    },
+    "placement_id": "f616a1cb7704a29e470e7bdf7b39a3e4b59e4a30e18fc48165e48a35b4994e46",
+    "plan_id": "1c38266a59ea7c7a689c63c7f57897dd802654d0cc18539bd1350045829725a2",
+    "provider_generation": 1,
+    "provider_instance_id": "instance/environment-source/a3f7d4acb7f44d5ff31775a24e2d5e71"
+  },
+  "catalog_evidence": {
+    "catalog_canonical_sha256": "97cfa71985fbef0ee88c6caef1fd1669bf1bf62b9e8a0862dccb5d87dbce9a45",
+    "catalog_reference_hex": "0197cfa71985fbef0ee88c6caef1fd1669bf1bf62b9e8a0862dccb5d87dbce9a4597cfa71985fbef0ee88c6caef1fd1669bf1bf62b9e8a0862dccb5d87dbce9a451000746578742f6a736f6e2d75746638403113007265736f757263652f736e617073686f744031310200000000000001010000000000000000",
+    "indexed_chunks": [
+      {
+        "canonical_bytes": 3888,
+        "canonical_sha256": "2a91f2d3d0659e5b45e8611c170dc4e7165986e38ed9461cc0f1ff570a3c0482",
+        "index": 0,
+        "reference_hex": "012a91f2d3d0659e5b45e8611c170dc4e7165986e38ed9461cc0f1ff570a3c04822a91f2d3d0659e5b45e8611c170dc4e7165986e38ed9461cc0f1ff570a3c04821000746578742f6a736f6e2d75746638403113007265736f757263652f736e617073686f744031300f00000000000001010000000000000000"
+      },
+      {
+        "canonical_bytes": 3339,
+        "canonical_sha256": "8c09f1fe36443994faecbdfa594edec0af5c64f2cc26c12c6f6de11370d2dff4",
+        "index": 1,
+        "reference_hex": "018c09f1fe36443994faecbdfa594edec0af5c64f2cc26c12c6f6de11370d2dff48c09f1fe36443994faecbdfa594edec0af5c64f2cc26c12c6f6de11370d2dff41000746578742f6a736f6e2d75746638403113007265736f757263652f736e617073686f7440310b0d00000000000001010000000000000000"
+      }
+    ],
+    "schema": "conduit.environment/recovered-catalog-evidence@1"
+  },
+  "fresh_process_admitted_readback_verified": true,
+  "original_volatile_stage_absent_after_restart": true,
+  "original_three_parts_retained": true,
+  "owner_membership_transition": "same owner Part detached old Boot and attached new Boot; revision32 to34",
+  "rollout": {
+    "source": "057f48d32ce3223ce1530ddc1f50f2d53e3affe7",
+    "body_files_preserved": 25,
+    "membership_parts_preserved": 3,
+    "host_and_storage_identity_preserved": true,
+    "failed_test_ram_only_observations_lost": 7,
+    "previous_written_snapshot_and_receipts_preserved": true,
+    "producer_ack_issued": false,
+    "service_started": false
+  },
+  "catalog_terminal": {
+    "Cancelled": {
+      "reason": "OperatorRequested"
+    }
+  },
+  "catalog_own_stop_after_matching_current": true,
+  "producer_ack_issued": false,
+  "producer_retirement_authorized": false,
+  "automatic_overnight_recording_verified": false,
+  "nat_interruption_recovery_verified": false,
+  "mcu_body_membership_verified": false,
+  "mcu_firmware_changed": false,
+  "green_after_recovery": {
+    "build": "c630489bef31ac660e8c03ce4b3530573340c48462acb2e1a2d1b2f299701def",
+    "samples": 5470,
+    "attempts": 5471,
+    "frames": 82053,
+    "acks": 82053,
+    "heap_peak": 4524,
+    "sensor_error": false,
+    "display_error": false,
+    "body_member": false
+  },
+  "limits": {
+    "snapshot_records": 16,
+    "snapshot_bytes": 4096,
+    "disk_bytes": 131072,
+    "state_bytes": 1024,
+    "preparation_bytes": 1048576
+  },
+  "raw_evidence": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/catalog-0-before.json",
+      "bytes": 6741561,
+      "sha256": "b87fa8fc723e85c5646ecdd554a61e18f144f31fe3606cb41fc476e1a5d335aa"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/catalog-0-terminal.json",
+      "bytes": 6757714,
+      "sha256": "4eea51f50512471fc5e4f1764722dd7b47c5c62216d95dc6fdf5fc8a3123f92f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/chunk-0-before-publication.json",
+      "bytes": 2387,
+      "sha256": "8d55d1deb34b10c6a3922af82e0e485f7d75a7fba30a2d87fe3dbc05f4e1276b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/chunk-1-before-publication.json",
+      "bytes": 2389,
+      "sha256": "09b6cb09bdba9fdc6a3523316bbaff5f8c3fcd3218c6386de9489920d44fddba"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/native-latest.json",
+      "bytes": 6744081,
+      "sha256": "fec00a5663a6aa8f73b799eef9484b942e51c01f3d67391148cb6ab668471793"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/native-terminal.json",
+      "bytes": 6744081,
+      "sha256": "fec00a5663a6aa8f73b799eef9484b942e51c01f3d67391148cb6ab668471793"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/next-chunk-0-before.json",
+      "bytes": 6745772,
+      "sha256": "44e676931debc39cfc309a30a7c659f8f34fb13b02e93ecc43563539e3d8fb8b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/next-chunk-0-prepared.json",
+      "bytes": 6745774,
+      "sha256": "3c365fa0a9ebf3c18ef5e2f2cc8a1c37db29dcdea1de5d994ca0162512a5fbb3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/publish-0-before.json",
+      "bytes": 6744081,
+      "sha256": "fec00a5663a6aa8f73b799eef9484b942e51c01f3d67391148cb6ab668471793"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/publish-0-terminal.json",
+      "bytes": 6748510,
+      "sha256": "a0a75bd67cd4f522d088d1efd05bd89df2d34834236f9c998fb8e90bf6bedd01"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/publish-1-before.json",
+      "bytes": 6745774,
+      "sha256": "3c365fa0a9ebf3c18ef5e2f2cc8a1c37db29dcdea1de5d994ca0162512a5fbb3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/publish-1-terminal.json",
+      "bytes": 6735258,
+      "sha256": "4de62516914e4660b407aa8dc961af6b9a8cebb7388aa9b3cfee240dc5d96c88"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/read-recovered-catalog-0-before.json",
+      "bytes": 6757582,
+      "sha256": "68e1eeeed40ba6a2e67c631c28e7474a26e42fcb1af9e8696f1e6a971e71b97d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/read-recovered-catalog-0-terminal.json",
+      "bytes": 6756667,
+      "sha256": "c414b42916709a63dfe947f7215d3c96f166e9b91b0678a22ce74af8d1b71bdf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/read-recovered-chunk-0-before.json",
+      "bytes": 6756667,
+      "sha256": "c414b42916709a63dfe947f7215d3c96f166e9b91b0678a22ce74af8d1b71bdf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/read-recovered-chunk-0-terminal.json",
+      "bytes": 6755341,
+      "sha256": "b5b132dab588ed9e71d03bd11346291d23e9f0d59916355c5cb60ae4714fd5c5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/read-recovered-chunk-1-before.json",
+      "bytes": 6755341,
+      "sha256": "b5b132dab588ed9e71d03bd11346291d23e9f0d59916355c5cb60ae4714fd5c5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/read-recovered-chunk-1-terminal.json",
+      "bytes": 6752678,
+      "sha256": "229c469bd4a9ae67aedc41267e87d6415facd6cac7352a6259bf32f19eb1c947"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/readback-0-before.json",
+      "bytes": 6748510,
+      "sha256": "a0a75bd67cd4f522d088d1efd05bd89df2d34834236f9c998fb8e90bf6bedd01"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/readback-0-terminal.json",
+      "bytes": 6745772,
+      "sha256": "44e676931debc39cfc309a30a7c659f8f34fb13b02e93ecc43563539e3d8fb8b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/readback-1-before.json",
+      "bytes": 6735258,
+      "sha256": "4de62516914e4660b407aa8dc961af6b9a8cebb7388aa9b3cfee240dc5d96c88"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/readback-1-terminal.json",
+      "bytes": 6741561,
+      "sha256": "b87fa8fc723e85c5646ecdd554a61e18f144f31fe3606cb41fc476e1a5d335aa"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/recover-catalog-0-before.json",
+      "bytes": 6757714,
+      "sha256": "4eea51f50512471fc5e4f1764722dd7b47c5c62216d95dc6fdf5fc8a3123f92f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/23dea1695aa8/recover-catalog-0-terminal.json",
+      "bytes": 6757582,
+      "sha256": "68e1eeeed40ba6a2e67c631c28e7474a26e42fcb1af9e8696f1e6a971e71b97d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/read-recovered-catalog-0-before.json",
+      "bytes": 6730258,
+      "sha256": "e12f093fa858ff00de67aea5b5d5f26f46a3bf44332d6d584a9bb3c90b897c4a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/read-recovered-catalog-0-terminal.json",
+      "bytes": 6738380,
+      "sha256": "ca28d5ab200c68caa19d9cf50729d96fd0097a86a6a2c1daa009967e44026be4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/read-recovered-chunk-0-before.json",
+      "bytes": 6738380,
+      "sha256": "ca28d5ab200c68caa19d9cf50729d96fd0097a86a6a2c1daa009967e44026be4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/read-recovered-chunk-0-terminal.json",
+      "bytes": 6746097,
+      "sha256": "1dc11e11bbf5a336636ae10f429b52264b9a53b6d09613bd7c2213a5b2138f00"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/read-recovered-chunk-1-before.json",
+      "bytes": 6746097,
+      "sha256": "1dc11e11bbf5a336636ae10f429b52264b9a53b6d09613bd7c2213a5b2138f00"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/read-recovered-chunk-1-terminal.json",
+      "bytes": 6752464,
+      "sha256": "8969579b59daaf80ccc8e9eace25d8fd5d347b374634ebdfe26709ea33bf5062"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/recover-catalog-0-before.json",
+      "bytes": 6742230,
+      "sha256": "0d68628a576961d1304689404eec9e6521c71b670d6119d08d751a6d6777f0be"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/recover-catalog-0-terminal.json",
+      "bytes": 6730258,
+      "sha256": "e12f093fa858ff00de67aea5b5d5f26f46a3bf44332d6d584a9bb3c90b897c4a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/ae888bd4de02/whole16-comparison.json",
+      "bytes": 6489,
+      "sha256": "0f9c4c2433491d9c30dc89c05e4844cd73bef46ea2520ea42c5671d46ac00e8d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/monitor.log",
+      "bytes": 20335,
+      "sha256": "02ed5610f6e0263ad5e5f80807dbacd9d91e787b637d2d1fd59e6bb4f0c9cbc5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/fresh-recovery-steps.log",
+      "bytes": 8272,
+      "sha256": "b75ba8e751742e771d44f696376834d4c841bac999647fc2ff4e45f4daccafa2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/same-boot-reads.log",
+      "bytes": 18273,
+      "sha256": "7af58c5842bc6b73b05ed03f6f995f73ed6cb8ed77cc755ad3aba88de3bd955f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-whole-live-20261101/green-after-recovery.json",
+      "bytes": 850,
+      "sha256": "c21fade3d69d4272123a6bac3c7527af917239cb2c691916a858bf44d0a8537b"
+    }
+  ]
+}

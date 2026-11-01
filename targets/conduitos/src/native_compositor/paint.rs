@@ -1,6 +1,6 @@
 //! Shared native paint realization for both renderer backends.
-#[cfg(feature = "native-compositor-core")]
-pub(super) fn visual_paint(
+#[cfg(feature = "native-face-raster")]
+pub(crate) fn visual_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,
     expression: Option<&conduit_face::AdmittedVisualExpression>,
@@ -43,14 +43,14 @@ pub(super) fn visual_paint(
     format.pixel(color.0, color.1, color.2)
 }
 
-#[cfg(all(test, feature = "native-compositor-core"))]
+#[cfg(all(test, feature = "native-face-raster"))]
 #[path = "paint_contrast_tests.rs"]
 mod contrast_tests;
 
 /// Complete Look tokens lower to the existing finite semantic paint roles.
 /// Platform accessibility colors always take precedence over authored tokens.
-#[cfg(feature = "native-compositor-core")]
-pub(super) fn visual_look_paint(
+#[cfg(feature = "native-face-raster")]
+pub fn visual_look_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,
     expression: Option<&conduit_face::AdmittedVisualExpression>,
@@ -81,8 +81,8 @@ pub(super) fn visual_look_paint(
 
 /// Resolve text from the same selected resource used by native scene preparation.
 /// Legacy expression-only surfaces retain their fixed made profile.
-#[cfg(feature = "native-compositor-core")]
-pub(super) fn visual_look_typography(
+#[cfg(feature = "native-face-raster")]
+pub(crate) fn visual_look_typography(
     expression: Option<&conduit_face::AdmittedVisualExpression>,
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<crate::display::typography::Typography, crate::display::DisplayError> {

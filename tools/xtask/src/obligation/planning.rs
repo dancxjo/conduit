@@ -110,7 +110,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
                 .iter()
                 .map(|name| KindConfigurationField {
                     key: (*name).into(),
-                    default_value: conduit_core::ConfigurationValue::Text(String::new()),
+                    default_value: conduit_core::ConfigurationValue::Text(String::new().into()),
                     rule: KindConfigurationRule::TextBytes { maximum: 256 },
                 })
                 .collect(),
@@ -160,7 +160,7 @@ fn source_offer() -> CapabilityOffer {
                 .iter()
                 .map(|name| KindConfigurationField {
                     key: (*name).into(),
-                    default_value: conduit_core::ConfigurationValue::Text(String::new()),
+                    default_value: conduit_core::ConfigurationValue::Text(String::new().into()),
                     rule: KindConfigurationRule::TextBytes { maximum: 256 },
                 })
                 .collect(),

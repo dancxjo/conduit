@@ -12,8 +12,8 @@ pub(crate) use controller::run_service_window;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,
-    LlmSpokenStart, NotebookWaitingWorker, Owner, RunWorker, ThermostatWorker, TodoWaitingWorker,
-    CLOCK_RUN_MAXIMUM_MILLIS,
+    LlmSpokenStart, NotebookWaitingWorker, Owner, OwnerHost, RunWorker, ThermostatWorker,
+    TodoWaitingWorker, CLOCK_RUN_MAXIMUM_MILLIS,
 };
 use serde::Deserialize;
 use std::{
@@ -347,3 +347,25 @@ mod service_clock_smoke;
 
 #[cfg(test)]
 mod todo_speech_tests;
+
+pub(crate) fn establish_root_signer(
+    owner: &mut Owner,
+    root: &Path,
+    expected_body: &str,
+) -> Result<crate::durable_host::root_signer::Binding, String> {
+    owner.persist(root)?;
+    state::establish_root_signer(root, expected_body)
+}
+
+mod browser_completion;
+pub(crate) use browser_completion::BrowserAdmissionCompletion;
+
+#[cfg(all(
+    test,
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
+pub(crate) use controller::{
+    source_recording_control_fixture, source_recording_control_multi_fixture, source_recording_control_read_grant,
+};

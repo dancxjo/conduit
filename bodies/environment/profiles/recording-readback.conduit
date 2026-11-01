@@ -1,0 +1,10 @@
+# Read exactly one selected immutable snapshot through independent authority.
+# Matching content is readback evidence; catalog commitment is separate.
+plot recorder-readback (
+    >> reference: ResourceRef
+    content: JsonText >>
+) {
+    snapshot: resource/read-json-snapshot("@REFERENCE@")
+    reference >> snapshot.source
+    snapshot.value >> content
+}

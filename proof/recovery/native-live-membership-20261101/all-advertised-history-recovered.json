@@ -1,0 +1,45 @@
+{
+  "directory_signature_verified": true,
+  "batch_signatures_order_and_clocks_verified": true,
+  "epochs": [
+    {
+      "slot": 0,
+      "advertised_records": 14,
+      "recovered_records": 14,
+      "batch_files": 7,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 1,
+      "advertised_records": 73,
+      "recovered_records": 73,
+      "batch_files": 19,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 2,
+      "advertised_records": 447,
+      "recovered_records": 447,
+      "batch_files": 112,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 3,
+      "advertised_records": 16,
+      "recovered_records": 16,
+      "batch_files": 4,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 4,
+      "advertised_records": 40,
+      "recovered_records": 40,
+      "batch_files": 10,
+      "complete_at_snapshot": true
+    }
+  ],
+  "all_advertised_recovered": true,
+  "records_recovered": 590,
+  "recording_ack_sent": false,
+  "limit": "Durable authenticated projection files; not a selected installed recorder commitment."
+}

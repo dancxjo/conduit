@@ -1,0 +1,165 @@
+//! Trusted build material for output computations. No current Host/Boot, Plan,
+//! provider readiness, grant or runtime admission is serialized here.
+use crate::DisplayOutputSource;
+use conduit_core as c;
+use conduit_environment_runtime::appliance::software::{ReadySoftwareBacks, SoftwareRefusal};
+use std::fmt::{self, Write};
+#[path = "display_material/planning.rs"]
+mod planning;
+const MAXIMUM_GEAR_BYTES: usize = 32 * 1024;
+pub struct DisplaySourceMaterial {
+    identity: c::PlotIdentity,
+    planning_image: Vec<u8>,
+    front: c::CheckedFront,
+    inputs: Vec<conduit_plot::AuthoringFrontBinding>,
+    outputs: Vec<conduit_plot::AuthoringFrontBinding>,
+    gears: Vec<(Vec<u8>, Vec<c::ConfigurationEntry>, Vec<u8>)>,
+}
+impl DisplaySourceMaterial {
+    pub fn prepare(source: &DisplayOutputSource) -> Result<Self, String> {
+        source
+            .plot
+            .validate_boundary_provenance()
+            .map_err(|e| format!("display boundary: {e:?}"))?;
+        let planning_image = conduit_plot::flat_image::indexed::encode(&source.plot.expanded)
+            .map_err(|e| format!("display indexed Source: {e:?}"))?;
+        let mut gears = Vec::new();
+        for original in &source.plot.expanded.gears {
+            if original.kind_id.as_str() == conduit_tm1637_wire::WRITE_KIND {
+                continue;
+            }
+            let offer =
+                conduit_environment_runtime::appliance::software::compile_portable_offer(original)
+                    .map_err(|e| format!("portable output: {e:?}"))?;
+            let offer = serde_json::to_vec(&offer).map_err(|e| e.to_string())?;
+            let mut gear = original.clone();
+            let configuration = core::mem::take(&mut gear.configuration);
+            if configuration.len() != 1
+                || !matches!(configuration[0].key.as_str(), "program" | "selector")
+                || !matches!(configuration[0].value, c::ConfigurationValue::Text(_))
+            {
+                return Err("unsupported portable configuration".into());
+            }
+            let bytes = serde_json::to_vec(&gear).map_err(|e| e.to_string())?;
+            if bytes.len() > MAXIMUM_GEAR_BYTES {
+                return Err("gear metadata capacity".into());
+            }
+            gears.push((bytes, configuration, offer));
+        }
+        if gears.len() != 3 {
+            return Err("output computation closure".into());
+        }
+        Ok(Self {
+            planning_image,
+            front: source.plot.front.clone(),
+            inputs: source.plot.input_bindings.clone(),
+            outputs: source.plot.output_bindings.clone(),
+            identity: c::PlotIdentity {
+                source_document_id: source.plot.expanded.source_document_id.clone(),
+                checked_plot_id: source.plot.expanded.checked_plot_id.clone(),
+                expanded_plot_id: source.plot.expanded.expanded_plot_id.clone(),
+            },
+            gears,
+        })
+    }
+    pub fn metadata_bytes(&self) -> usize {
+        self.gears.iter().map(|(bytes, _, _)| bytes.len()).sum()
+    }
+    pub fn largest_metadata_bytes(&self) -> usize {
+        self.gears
+            .iter()
+            .map(|(bytes, _, _)| bytes.len())
+            .max()
+            .unwrap_or(0)
+    }
+    /// Same independently checked material and sequential reconstruction used
+    /// by generated firmware. This allocates only during preparation.
+    pub fn prepare_software(
+        &self,
+        host: c::HostId,
+        boot: c::BootId,
+    ) -> Result<ReadySoftwareBacks, SoftwareRefusal> {
+        let gears = self.gears.iter().map(|(bytes, config, _)| {
+            let mut gear: conduit_plot::CheckedGear =
+                serde_json::from_slice(bytes).map_err(|_| SoftwareRefusal::Initialization)?;
+            gear.configuration = config.clone();
+            Ok(gear)
+        });
+        // SAFETY: private material is constructed solely from the ordinary
+        // checked output Source above; no received identities enter this path.
+        unsafe {
+            ReadySoftwareBacks::prepare_portable_make(self.identity.clone(), gears, host, boot)
+        }
+    }
+    /// CPU proof uses the same borrowed material lifetime as linked firmware.
+    pub fn prepare_compact(
+        &self,
+        host: c::HostId,
+        boot: c::BootId,
+    ) -> Result<
+        conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware<'_>,
+        SoftwareRefusal,
+    > {
+        let material = self.gears.iter().map(|(bytes, config, offer)| {
+            let mut gear: conduit_plot::CheckedGear =
+                serde_json::from_slice(bytes).map_err(|_| SoftwareRefusal::Initialization)?;
+            gear.configuration = config.clone();
+            let c::ConfigurationValue::Text(text) = &config[0].value else {
+                return Err(SoftwareRefusal::Selection);
+            };
+            Ok((gear, text.as_str(), offer.as_slice()))
+        });
+        // SAFETY: all private material was emitted from the checked constructor.
+        unsafe {
+            conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware::prepare_make(self.identity.clone(), material, host, boot)
+        }
+    }
+    /// Source/metadata and computation texts remain distinct static material.
+    /// The receiver reconstructs one gear at a time; it runs no Source compiler.
+    pub fn write_rust(&self, out: &mut impl Write) -> fmt::Result {
+        writeln!(
+            out,
+            "// Trusted Make-checked output software; no native authority."
+        )?;
+        writeln!(out, "use conduit_core as c;")?;
+        writeln!(out, "use conduit_environment_runtime::appliance::software::{{ReadySoftwareBacks, SoftwareRefusal}};")?;
+        writeln!(out, "pub fn prepare(host:c::HostId, boot:c::BootId) -> Result<ReadySoftwareBacks, SoftwareRefusal> {{")?;
+        writeln!(out, "let source=c::PlotIdentity {{ source_document_id:{:?}.into(),checked_plot_id:{:?}.into(),expanded_plot_id:{:?}.into() }};", self.identity.source_document_id.as_str(), self.identity.checked_plot_id.as_str(), self.identity.expanded_plot_id.as_str())?;
+        writeln!(out, "let material: &[(&[u8], &str, &str)] = &[")?;
+        for (bytes, config, _) in &self.gears {
+            let c::ConfigurationValue::Text(text) = &config[0].value else {
+                unreachable!("checked material")
+            };
+            writeln!(out, "(&{:?}, {:?}, {:?}),", bytes, config[0].key, text)?;
+        }
+        writeln!(out, "]; let gears=material.iter().map(|(bytes,key,text)| {{ let mut gear: conduit_plot::CheckedGear=serde_json::from_slice(bytes).map_err(|_| SoftwareRefusal::Initialization)?; gear.configuration=alloc::vec![c::ConfigurationEntry {{ key:(*key).into(),value:c::ConfigurationValue::Text((*text).into()) }}]; Ok(gear) }});")?;
+        writeln!(out, "// SAFETY: this module is emitted only by the checked Make producer and linked into trusted firmware. No ingress bytes are accepted.")?;
+        writeln!(
+            out,
+            "unsafe {{ ReadySoftwareBacks::prepare_portable_make(source,gears,host,boot) }} }}"
+        )?;
+        self.write_compact_rust(out)?;
+        self.write_planning_rust(out)
+    }
+    fn write_compact_rust(&self, out: &mut impl Write) -> fmt::Result {
+        writeln!(out, "pub fn prepare_compact(host:c::HostId, boot:c::BootId) -> Result<conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware<'static>, SoftwareRefusal> {{")?;
+        writeln!(out, "let source=c::PlotIdentity {{ source_document_id:{:?}.into(),checked_plot_id:{:?}.into(),expanded_plot_id:{:?}.into() }};", self.identity.source_document_id.as_str(), self.identity.checked_plot_id.as_str(), self.identity.expanded_plot_id.as_str())?;
+        writeln!(
+            out,
+            "let material: &'static [(&[u8], &str, &str, &[u8])] = &["
+        )?;
+        for (bytes, config, offer) in &self.gears {
+            let c::ConfigurationValue::Text(text) = &config[0].value else {
+                unreachable!("checked material")
+            };
+            writeln!(
+                out,
+                "(&{:?}, {:?}, {:?}, &{:?}),",
+                bytes, config[0].key, text, offer
+            )?;
+        }
+        writeln!(out, "]; let gears=material.iter().map(|(bytes,key,text,offer)| {{ let mut gear: conduit_plot::CheckedGear=serde_json::from_slice(bytes).map_err(|_| SoftwareRefusal::Initialization)?; gear.configuration=alloc::vec![c::ConfigurationEntry {{ key:(*key).into(),value:c::ConfigurationValue::Text((*text).into()) }}]; Ok((gear,*text,*offer)) }});")?;
+        writeln!(out, "// SAFETY: only independently checked, linked Make material supplies all four descriptions.")?;
+        writeln!(out, "unsafe {{ conduit_environment_runtime::appliance::software_compact::CompactOutputSoftware::prepare_linked_make(source,gears,host,boot,decode_current_offer) }} }}")
+    }
+}

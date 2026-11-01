@@ -144,7 +144,9 @@ pub fn replay_control_kind_projection() -> conduit_plot::KindProjection {
         configuration: alloc::vec![
             KindConfigurationField {
                 key: "mode".to_string(),
-                default_value: ConfigurationValue::Text(REPLAY_MODE_ORIGINAL_TIMING.to_string()),
+                default_value: ConfigurationValue::Text(
+                    REPLAY_MODE_ORIGINAL_TIMING.to_string().into()
+                ),
                 rule: KindConfigurationRule::TextOneOf {
                     values: alloc::vec![
                         REPLAY_MODE_STEP.to_string(),

@@ -1,0 +1,140 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/architecture/plot)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/conduitos)
+   Compiling conduit-computation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/implementations/computation)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/architecture/composite)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/commons)
+   Compiling conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/io/i2c-transaction)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/process)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/robotics)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/tongues)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/ai)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/architecture/wire)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/architecture/planner)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/protocols/midi)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/tutorial)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/bodies/environment/runtime)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/bodies/environment/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/birth)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/protocols/bluetooth)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/body-invitation)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/home)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/plot-library)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/architecture/observatory)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/implementations/synth)
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/io/resource-snapshot)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/finance)
+   Compiling conduit-environment-history v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/bodies/environment/history)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/conduitos/mask-offer)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/thermostat/face)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/conduitos/mask-core)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/little-seismograph/fixture)
+   Compiling conduit-linux-snapshot-store v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std/resource-snapshot)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/proof/conformance/alife-distributed)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/todo/face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/make/host)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std/offers)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/patchbay/application)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/tour)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/conduitos/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/esp32/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/rp2040/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/orange-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/avr/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/proof/conformance/signal)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/proof/conformance/network-r1)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/conduitos/application-core)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/make/workspace)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std)
+error[E0277]: `?` couldn't convert the error to `&str`
+  --> targets/std/src/expression_specialization.rs:54:67
+   |
+53 |                 .canonical_byte_len()
+   |                  -------------------- this has type `Result<_, PortableExpressionProgramRefusal>`
+54 |                 .map_err(|e| format!("expression program: {e:?}"))? as u64;
+   |                  -------------------------------------------------^ the trait `From<std::string::String>` is not implemented for `&str`
+   |                  |
+   |                  this can't be annotated with `?` because it has type `Result<_, std::string::String>`
+   |
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = help: `&str` implements trait `From<T>`:
+             From<&langtag::LangTag>
+             From<&langtag::normal::NormalLangTag>
+             From<&langtag::normal::extension::Extension>
+             From<&langtag::normal::extension::ExtensionSubtag>
+             From<&langtag::normal::extension::Extensions>
+             From<&langtag::normal::language::Language>
+             From<&langtag::normal::language::extlang::ExtendedLangTag>
+             From<&langtag::normal::language::extlang::LanguageExtension>
+           and 7 others
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+  --> targets/std/src/whisper_installation.rs:37:12
+   |
+37 |         Ok(Self {
+   |            ^^^^ missing `expression_program_base`
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+   --> targets/std/src/whisper_installation.rs:103:12
+    |
+103 |         Ok(Self {
+    |            ^^^^ missing `expression_program_base`
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+  --> targets/std/src/hosted_midi/host.rs:38:12
+   |
+38 |         Ok(Self {
+   |            ^^^^ missing `expression_program_base`
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+  --> targets/std/src/hosted_midi/host.rs:99:12
+   |
+99 |         Ok(Self {
+   |            ^^^^ missing `expression_program_base`
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+   --> targets/std/src/hosted_midi/host.rs:163:12
+    |
+163 |         Ok(Self {
+    |            ^^^^ missing `expression_program_base`
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+   --> targets/std/src/hosted_midi/host.rs:221:12
+    |
+221 |         Ok(Self {
+    |            ^^^^ missing `expression_program_base`
+
+error[E0063]: missing field `expression_program_base` in initializer of `StdHost`
+   --> targets/std/src/hosted_midi/host.rs:327:12
+    |
+327 |         Ok(Self {
+    |            ^^^^ missing `expression_program_base`
+
+Some errors have detailed explanations: E0063, E0277.
+For more information about an error, try `rustc --explain E0063`.
+error: could not compile `conduit-std-host` (lib test) due to 8 previous errors

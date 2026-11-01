@@ -6,12 +6,21 @@ use conduit_host_make::{
 use std::collections::BTreeMap;
 
 mod builder;
+mod environmental_source_initialization;
+mod storage_initialization;
+pub use storage_initialization::{
+    body_storage_initialization_contract, BODY_STORAGE_BASE_KIND, BODY_STORAGE_IMPLEMENTATION,
+};
 #[cfg(target_os = "linux")]
 mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
 pub use builder::*;
+pub use environmental_source_initialization::{
+    environmental_source_initialization_contract, ENVIRONMENTAL_SOURCES_IMPLEMENTATION,
+    ENVIRONMENTAL_SOURCE_ATTACHMENT_IMPLEMENTATION, ENVIRONMENTAL_SOURCE_BASE_KIND,
+};
 #[cfg(target_os = "linux")]
 pub use linux_builder::*;
 pub use microphone_initialization::{
@@ -96,6 +105,14 @@ fn package_catalog() -> PackageCatalogContribution {
         .collect();
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                storage_initialization::BODY_STORAGE_IMPLEMENTATION.into(),
+                storage_initialization::body_storage_initialization_contract(),
+            ),
+            (
+                environmental_source_initialization::ENVIRONMENTAL_SOURCES_IMPLEMENTATION.into(),
+                environmental_source_initialization::environmental_source_initialization_contract(),
+            ),
             (
                 conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION.into(),
                 recognition_initialization::whisper_initialization_contract(),
@@ -203,6 +220,8 @@ impl HostMakePackage for HostedMakePackage {
                 ),
             ],
             offers: vec![
+                environmental_source_initialization::offer(),
+                storage_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
                 microphone_initialization::offer(),

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "local_ignored_logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recovered-source-read-20261101/codec-2ba21aa030.log",
+      "bytes": 4223,
+      "sha256": "bef67b4ad828628f3e89912bc5175c6ed19e9cfb5687dc5fdbb6584a20516b6f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recovered-source-read-20261101/codec-de213ff223.log",
+      "bytes": 847,
+      "sha256": "c559f116ec37fb6812b84918f094e7be4ba92f6f0fa8bcc41664c57da3cff275"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recovered-source-read-20261101/evidence-retention-de213ff223.log",
+      "bytes": 176,
+      "sha256": "6af853c6a912d8225d3b21d4dbd6285ee4d61c14b869ab7a6c7f62552381d9ff"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recovered-source-read-20261101/recovered-read-initial.log",
+      "bytes": 2343,
+      "sha256": "52a8e2409da8d84f3c0a7a53b15d1da00e1d99a4f5b4c9f2551ea8ddb98dbd5c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recovered-source-read-20261101/stage-combined-de213ff223.log",
+      "bytes": 3227,
+      "sha256": "93db6e6d6ce4aadc8e6b0cb24d3d997a1cbbf1a80b159ca7156005d435684235"
+    }
+  ]
+}

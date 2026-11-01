@@ -11,13 +11,13 @@ let sequence = 0;
 function fixture(t, change = () => {}) {
   const sources = [
     `import { OwnerFacePresentation } from "./owner-face-presentation.mjs";\nexport { ownerFacePointerReachable } from "./owner-face-pointer.mjs";\n// fixture ${++sequence}`,
-    'import { decodeVisualLook } from "../host/assets/application-look.mjs";\nimport { decorate } from "./owner-face-icons.mjs";\nimport { ownerFacePointerReachable } from "./owner-face-pointer.mjs";\nexport class OwnerFacePresentation {}',
+    'import { decodeVisualLook } from "../host/assets/application-look.mjs";\nimport { decorate } from "./owner-face-icons.mjs";\nimport { ownerFacePointerReachable } from "./owner-face-pointer.mjs";\nimport { graphicsSceneElement } from "./owner-face-graphics.mjs";\nexport class OwnerFacePresentation {}',
     'export function ownerFacePointerReachable() {}', ':host { display: block; }',
-    'export function decorate() {}', 'export function decodeVisualLook() {}',
+    'export function decorate() {}', 'export function decodeVisualLook() {}', 'export function graphicsSceneElement() {}',
   ];
-  const roles = ['component', 'presentation', 'pointer', 'style', 'icons', 'look'];
-  const paths = ['owner-face-component.mjs', 'owner-face-presentation.mjs', 'owner-face-pointer.mjs', 'owner-face-look.css', 'owner-face-icons.mjs', 'application-look.mjs'];
-  const limits = [8192, 65536, 8192, 16384, 32768, 32768];
+  const roles = ['component', 'presentation', 'pointer', 'style', 'icons', 'look', 'graphics'];
+  const paths = ['owner-face-component.mjs', 'owner-face-presentation.mjs', 'owner-face-pointer.mjs', 'owner-face-look.css', 'owner-face-icons.mjs', 'application-look.mjs', 'owner-face-graphics.mjs'];
+  const limits = [8192, 65536, 8192, 16384, 32768, 32768, 65536];
   const bytes = sources.map(value => encoder.encode(value));
   const chunks = [Buffer.from('conduit.browser/owner-face-bundle@1\n')];
   for (let index = 0; index < roles.length; index++) {
@@ -40,6 +40,7 @@ function fixture(t, change = () => {}) {
       { role: 'owner-face-icons', specifier: './owner-face-icons.mjs' },
       { role: 'application-look', specifier: '../host/assets/application-look.mjs' },
       { role: 'owner-face-pointer', specifier: './owner-face-pointer.mjs' },
+      { role: 'owner-face-graphics', specifier: './owner-face-graphics.mjs' },
     ] : [],
     sha256: `sha256:${digest(bytes[index])}`, url: new URL(paths[index], 'https://component.test/handbook/') }));
   const application = { manifest: { resources }, bytes: role => bytes[role === 'owner-face-presentation' ? 1 : 3].slice() };
@@ -94,12 +95,13 @@ test('exact assets bind one current incarnation before advertising; repeat is im
   assert.equal(value.calls.imports, 1);
   assert.equal(value.calls.styles.length, 1);
   assert.equal(await value.run(), selected);
-  assert.equal(value.calls.fetches, 5);
+  assert.equal(value.calls.fetches, 6);
 });
 
 for (const [name, change] of [
   ['foreign descriptor', value => { value.descriptor.identity += '/foreign'; }],
   ['wrong asset digest', value => { value.descriptor.resources[0].sha256 = '0'.repeat(64); }],
+  ['wrong graphics digest', value => { value.descriptor.resources[6].sha256 = '0'.repeat(64); }],
   ['unadmitted generic dependency', value => { value.application.manifest.resources[0].dependencies.push({ role: 'invented' }); }],
   ['missing optional wrapper', value => { value.services.fetchAsset = async () => { throw new Error('absent'); }; }],
   ['missing optional stylesheet', value => { const fetchAsset = value.services.fetchAsset; value.services.fetchAsset = async (...args) => { if (args[1].endsWith('.css')) throw new Error('absent style'); return fetchAsset(...args); }; }],

@@ -1,0 +1,110 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/assigned-plan)
+   Compiling conduit-rp2040-flash-layout v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/rp2040/flash-layout)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/patchbay)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/protected-line)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/kernel)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/conduitos)
+   Compiling conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/conduitos/runtime-core)
+   Compiling conduit-device-carrier-protocol v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/io/device-carrier-protocol)
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/body)
+   Compiling conduit-computation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/implementations/computation)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/plan-lowering)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/thermostat/model)
+   Compiling conduit-environment-measurement v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/bodies/environment/measurement)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/composite)
+   Compiling conduit-i2c-transaction v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/io/i2c-transaction)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/commons)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/rp2040/network-realization)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/browser/runtime)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/process)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/text)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/robotics)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/ai)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/chat)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/planner)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/protocols/midi)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/tongues)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/tutorial)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/bodies/environment/runtime)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/protocols/bluetooth)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/home)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/plot-library)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/architecture/observatory)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/bodies/environment/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/birth)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/implementations/synth)
+   Compiling conduit-resource-snapshot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/io/resource-snapshot)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/finance)
+   Compiling conduit-environment-history v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/bodies/environment/history)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/thermostat/face)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/conduitos/mask-core)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/conduitos/mask-offer)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/little-seismograph/fixture)
+   Compiling conduit-linux-snapshot-store v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/std/resource-snapshot)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/proof/conformance/alife-distributed)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/todo/face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/make/host)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/std/offers)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/patchbay/application)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/plots/tour)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/orange-pi/make)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/std/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/rp2040/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/conduitos/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/avr/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/proof/conformance/signal)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/proof/conformance/network-r1)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/conduitos/application-core)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/make/workspace)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/state-durability-retry-20261101/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 4m 09s
+     Running unittests src/lib.rs (/tmp/conduit-local-native-provider-check/debug/deps/conduit_std_host-8f4b275686e5a55b)
+
+running 13 tests
+test state_value::durable::tests::four_kib_recovery_is_bound_to_metadata_and_forwards_the_hosted_value ... ok
+test state_value::durable::tests::transition_waits_for_exact_commit_receipt_before_consuming_or_emitting ... ok
+test state_value::durable::tests::mismatched_receipt_never_publishes_candidate ... ok
+test state_value::durable::tests::recovery_distinguishes_absent_corrupt_incompatible_and_lost ... ok
+test state_value::durable::residence::tests::commit_is_idempotent_and_conflicts_are_exact ... ok
+test state_value::durable::residence::tests::selected_root_refuses_symlink_journal ... ok
+test state_value::durable::residence::tests::uncertain_publication_retry_requires_current_and_directory_barriers ... ok
+test state_value::durable::residence::tests::residence_distinguishes_absent_corrupt_incompatible_and_lost ... ok
+test state_value::durable::residence::tests::selected_root_parent_barrier_is_required_on_creation_and_existing_retry ... ok
+test state_value::durable::tests::durable_binding_refuses_more_than_the_canonical_text_bound ... ok
+test state_value::durable::tests::incomplete_candidate_is_ignored_and_commit_is_idempotent_but_not_ambiguous ... ok
+test state_value::durable::residence::tests::exact_recovery_refuses_drift_and_carries_the_full_text_bound ... ok
+
+running 1 test
+
+running 1 test
+test state_value::durable::residence::tests::fresh_process_abrupt_loss_recovers_only_published_generation ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 986 filtered out; finished in 2.27s
+

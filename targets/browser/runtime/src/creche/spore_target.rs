@@ -207,6 +207,10 @@ fn orange_pi_target() -> Result<TargetFacts, String> {
         deployment_destination: Some("operator/removable-sd-writer"),
         output: descriptor.default_output,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: configuration_name.into(),
             target: ConfigurationTarget {
@@ -285,6 +289,10 @@ fn conduitos_target(target_id: &str) -> Result<TargetFacts, String> {
         deployment_destination: Some("operator/local-disk-or-vm-loader"),
         output: SporeOutputKind::DiskImage,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: configuration_name.into(),
             target: ConfigurationTarget {
@@ -352,6 +360,10 @@ fn raspberry_pi_target(target_id: &str) -> Result<TargetFacts, String> {
         deployment_destination,
         output: descriptor.default_output,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: configuration_name.into(),
             target: ConfigurationTarget {
@@ -396,6 +408,10 @@ fn avr_target() -> Result<TargetFacts, String> {
         deployment_destination: None,
         output: SporeOutputKind::IntelHex,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: "creche-avr-promicro-prebuilt".into(),
             target: ConfigurationTarget {
@@ -446,6 +462,10 @@ fn hosted_target(target_id: &str) -> Result<TargetFacts, String> {
         deployment_destination: Some("operator/local-download"),
         output: SporeOutputKind::NativeBundle,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: configuration_name.into(),
             target: ConfigurationTarget {
@@ -494,6 +514,10 @@ fn browser_target() -> Result<TargetFacts, String> {
         deployment_destination: Some("browser/local-sandbox"),
         output: SporeOutputKind::BrowserBundle,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: "creche-browser-page".into(),
             target: ConfigurationTarget {
@@ -520,6 +544,10 @@ fn pico_target() -> Result<TargetFacts, String> {
         deployment_destination: Some("browser/webusb"),
         output: SporeOutputKind::Uf2,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: "creche-pico-w-prebuilt".into(),
             target: ConfigurationTarget {
@@ -575,6 +603,10 @@ fn esp32_target(target: Esp32FamilyTarget) -> Result<TargetFacts, String> {
         deployment_destination: Some("browser/webserial"),
         output: SporeOutputKind::Esp32Image,
         configuration: HostConfiguration {
+            metadata: None,
+            software: None,
+            buses: Vec::new(),
+            devices: Vec::new(),
             schema: 1,
             name: configuration_name.into(),
             target: ConfigurationTarget {

@@ -1,6 +1,7 @@
 //! Bounded immutable Mask projection. No measurement storage or clock is owned here.
 use alloc::vec::Vec;
 use conduit_core::{kind_id, Quantity, QuantityRole, Unit, RATIO_INFO_ID, TEMPERATURE_INFO_ID};
+use conduit_environment_runtime::recording::RecordingTimestampBasis;
 use conduit_face::{Face, FacePropertyValue as V, FaceRelationshipKind, FaceRole};
 
 pub const MAX_GRAPH_SAMPLES: usize = 16;
@@ -25,6 +26,7 @@ pub struct GraphSample {
 }
 /// Coordinates are shared by both realizations; producer time is never wall time.
 pub struct HistoryGraph<'a> {
+    timestamp_basis: RecordingTimestampBasis,
     pub(crate) content_id: &'a str,
     pub(crate) revision: u64,
     pub(crate) subject: &'a str,
@@ -57,6 +59,9 @@ impl GraphSample {
     }
 }
 impl<'a> HistoryGraph<'a> {
+    pub fn timestamp_basis(&self) -> RecordingTimestampBasis {
+        self.timestamp_basis
+    }
     pub fn content_id(&self) -> &str {
         self.content_id
     }
@@ -90,11 +95,22 @@ impl<'a> HistoryGraph<'a> {
             return Err(R::Missing);
         }
         let p = |s: &str, n: &str| property(face, s, n);
-        if p(subject, "schema")? != Some(&V::Text("environment/history@1".into()))
-            || p(subject, "clock")? != Some(&V::Text("producer-boot-ms".into()))
-        {
+        if p(subject, "schema")? != Some(&V::Text("environment/history@1".into())) {
             return Err(R::InvalidProperty);
         }
+        let timestamp_basis = match p(subject, "clock")? {
+            Some(V::Text(value))
+                if value == RecordingTimestampBasis::Acquisition.clock_profile() =>
+            {
+                RecordingTimestampBasis::Acquisition
+            }
+            Some(V::Text(value))
+                if value == RecordingTimestampBasis::ProducerObservation.clock_profile() =>
+            {
+                RecordingTimestampBasis::ProducerObservation
+            }
+            _ => return Err(R::InvalidProperty),
+        };
         let mut producer_context = [""; 4];
         for (slot, name) in producer_context.iter_mut().zip([
             "producer-host",
@@ -172,7 +188,18 @@ impl<'a> HistoryGraph<'a> {
             if sequence == 0 {
                 return Err(R::InvalidOrder);
             }
-            let boot_ms = count(face, s, "sampled-at-boot-ms")?;
+            let boot_ms = count(face, s, timestamp_basis.time_property())?;
+            let other = match timestamp_basis {
+                RecordingTimestampBasis::Acquisition => {
+                    RecordingTimestampBasis::ProducerObservation
+                }
+                RecordingTimestampBasis::ProducerObservation => {
+                    RecordingTimestampBasis::Acquisition
+                }
+            };
+            if p(s, other.time_property())?.is_some() {
+                return Err(R::InvalidProperty);
+            }
             let gap_before = match (
                 p(s, "missing-sequence-first")?,
                 p(s, "missing-sequence-last")?,
@@ -272,6 +299,7 @@ impl<'a> HistoryGraph<'a> {
             }
         }
         Ok(Self {
+            timestamp_basis,
             content_id: face.identity.as_str(),
             revision: face.revision,
             subject,
@@ -281,6 +309,29 @@ impl<'a> HistoryGraph<'a> {
             samples,
         })
     }
+    pub fn x(&self, sample: &GraphSample) -> u16 {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .x(sample)
+    }
+    pub fn temperature_range(&self) -> (i64, i64) {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .temperature_range()
+    }
+    pub fn y(&self, value: i64, humidity: bool) -> u16 {
+        ChartGeometry {
+            samples: &self.samples,
+        }
+        .y(value, humidity)
+    }
+}
+pub(crate) struct ChartGeometry<'a> {
+    pub(crate) samples: &'a [GraphSample],
+}
+impl ChartGeometry<'_> {
     pub fn x(&self, sample: &GraphSample) -> u16 {
         let first = self.samples.first().map_or(0, |s| s.boot_ms);
         let span = self.samples.last().map_or(0, |s| s.boot_ms - first);
@@ -320,6 +371,7 @@ impl<'a> HistoryGraph<'a> {
         (if humidity { 292 } else { 140 }) - offset
     }
 }
+
 fn property<'a>(face: &'a Face, subject: &str, name: &str) -> Result<Option<&'a V>, GraphRefusal> {
     let mut matches = face
         .properties
@@ -366,6 +418,9 @@ fn quantity(
     if contract.value_kind != kind_id(expected) {
         return Err(GraphRefusal::InvalidProperty);
     }
+    quantity_milli(q, target).map(Some)
+}
+pub(crate) fn quantity_milli(q: Quantity, target: Unit) -> Result<i64, GraphRefusal> {
     let (coefficient, source_exponent) = q
         .convert_to_unit(target)
         .map_err(|_| GraphRefusal::InvalidProperty)?;
@@ -385,10 +440,8 @@ fn quantity(
         }
         coefficient.checked_div(divisor)
     };
-    Ok(Some(
-        i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
-            .map_err(|_| GraphRefusal::InvalidProperty)?,
-    ))
+    i64::try_from(value.ok_or(GraphRefusal::InvalidProperty)?)
+        .map_err(|_| GraphRefusal::InvalidProperty)
 }
 
 pub(crate) fn milli_label(value: i64) -> alloc::string::String {

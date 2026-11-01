@@ -7,9 +7,9 @@
 use conduit_body::{
     AdmissionChallenge, AdmissionId, BodyBiographyEvidence, BodyId, HostOfferProjection,
     MembershipCredential, MembershipCredentialId, OfferDisclosureRequest, OfferDisclosureStage,
-    PartId, PartReturnChallenge, SpawnInvitationId, ADMISSION_SIGNATURE_BYTES,
-    MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES, MAX_DISCLOSED_CAPABILITIES,
-    MAX_DISCLOSED_RESOURCES,
+    PartId, PartReturnChallenge, SpawnInvitationClaim, SpawnInvitationId,
+    ADMISSION_SIGNATURE_BYTES, MAX_CANDIDATE_ADVERTISEMENT_BYTES, MAX_CANDIDATE_LABEL_BYTES,
+    MAX_DISCLOSED_CAPABILITIES, MAX_DISCLOSED_RESOURCES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
 use conduit_face::{
@@ -47,6 +47,12 @@ pub use component_selection::{BrowserComponentLook, BrowserComponentRecipe};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BrowserAdmissionIngress {
+    InvitedAdvertise {
+        protocol: u16,
+        advertisement: HostAdvertisement,
+        claim: SpawnInvitationClaim,
+        verifying_key: Vec<u8>,
+    },
     Advertise {
         protocol: u16,
         advertisement: HostAdvertisement,
@@ -196,6 +202,14 @@ pub enum BrowserAdmissionIngress {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum BrowserAdmissionEgress {
+    MembershipReceipt {
+        protocol: u16,
+        receipt: Box<conduit_body::PortableMembershipAdmissionReceipt>,
+    },
+    SpawnChallenge {
+        protocol: u16,
+        claim: SpawnInvitationClaim,
+    },
     Challenge {
         protocol: u16,
         challenge: AdmissionChallenge,
@@ -203,6 +217,8 @@ pub enum BrowserAdmissionEgress {
     Admitted {
         protocol: u16,
         credential: MembershipCredential,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        signed_membership_receipt: Option<Box<conduit_body::PortableMembershipAdmissionReceipt>>,
     },
     BiographyEvidence {
         protocol: u16,
@@ -295,6 +311,7 @@ pub enum BrowserAdmissionFrameError {
     WrongProtocol,
     LabelTooLong,
     InvalidVerifyingKey,
+    InvalidMembershipReceipt,
     InvalidNonce,
     InvalidSignature,
     InvalidSequence,
@@ -428,6 +445,20 @@ pub fn encode_browser_admission_frame(
 
 fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmissionFrameError> {
     let protocol = match frame {
+        BrowserAdmissionIngress::InvitedAdvertise {
+            protocol,
+            claim,
+            verifying_key,
+            ..
+        } => {
+            claim
+                .inspect(0)
+                .map_err(|_| BrowserAdmissionFrameError::InvalidNonce)?;
+            if verifying_key.len() != 32 {
+                return Err(BrowserAdmissionFrameError::InvalidVerifyingKey);
+            }
+            protocol
+        }
         BrowserAdmissionIngress::Advertise {
             protocol,
             friendly_label,
@@ -824,3 +855,7 @@ mod component_mask_wire_tests {
         assert!(encode_browser_admission_frame(&oversized, &mut output).is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "browser_admission/invited_tests.rs"]
+mod invited_tests;

@@ -418,7 +418,7 @@ fn unchanged_plot_selects_direct_front_or_distributed_provider_back_exactly() {
             for admitted in connection
                 .admitted_lines
                 .iter_mut()
-                .chain(connection.selected_line.iter_mut())
+                .chain(connection.selected_line.as_deref_mut())
             {
                 if admitted.binding.source.host_id == provider.host_id {
                     admitted.binding.source.host_id = fresh_host.clone();

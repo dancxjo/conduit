@@ -10,9 +10,12 @@ use tables::ChildPreparationTables;
 
 impl ChildKernel {
     /// Fixed inline/boxed backing only. Values, Signs and owned Back heaps are
-    /// additional; this is a preflight floor rather than a footprint receipt.
+    /// additional; optional terminal metadata is conservatively included at its
+    /// maximum. This is a preflight floor rather than a footprint receipt.
     pub(crate) const fn fixed_storage_floor_bytes() -> usize {
-        core::mem::size_of::<Self>() + core::mem::size_of::<RawChildScheduler>()
+        core::mem::size_of::<Self>()
+            + core::mem::size_of::<RawChildScheduler>()
+            + RawChildScheduler::maximum_terminal_transduction_preparation_bytes()
     }
 
     pub(crate) fn prepare(

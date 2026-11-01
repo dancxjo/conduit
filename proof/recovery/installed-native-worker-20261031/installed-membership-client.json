@@ -1,0 +1,33 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "base_commit": "87f5cba5b4",
+  "test_filter": "durable_host::membership::compact::tests",
+  "result": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 322
+  },
+  "log_sha256": "e478c39b23427e5c758104bf53f4e461dd06691fc923afc72c9e07f97b233696",
+  "source_sha256": {
+    "products/conduit/src/durable_host_membership/compact.rs": "f3fbb58e07e33f0576dca3f55dd896492ff60c4159e633be84dc53ba7fb35971",
+    "products/conduit/src/durable_host_membership/compact_tests.rs": "2f5fffb2f6db47c1ec376385ce7d1b4ffcc4240d1b14966dbe666133bcef65d4",
+    "products/conduit/src/cli.rs": "9b616b37f5a5798821027f46dc7d8118549f35e4a07ce53203c766a226d20426",
+    "products/conduit/src/main.rs": "08ed2774ae0ee13fc48be15088fc2f1d525d7270dfcbcee792d0fd0d4a8eebf6"
+  },
+  "scope": [
+    "actual installed Host identity from authenticated local-control snapshot in fixture",
+    "bounded membership-only request without equipment inventory",
+    "independent Root pin and signed correlated receipt verification",
+    "private non-overwriting attempt retention and exact completion replay",
+    "same installed Host credential and runtime marker updated only after verification",
+    "compact receipt retention within original2048byte bound"
+  ],
+  "not_proven": [
+    "live Blue admission or fresh checkpoint capacity",
+    "transport submission and automatic reconnection for this client path",
+    "equipment/worker/recorder admission or ordinary durable recording",
+    "new Boot membership return",
+    "physical sampling/Mask continuity during admission"
+  ]
+}

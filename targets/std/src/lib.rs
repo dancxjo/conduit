@@ -23,6 +23,10 @@ pub mod body_causal_evidence;
 pub mod body_clock_line;
 pub mod body_coordination;
 pub mod body_execution;
+#[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+pub mod body_storage;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub mod body_storage_generation;
 mod boot_identity;
 pub mod browser_admission;
 pub mod carried_formant;
@@ -38,6 +42,7 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+pub mod expression_specialization;
 pub mod numerical_fore;
 mod numerical_host;
 pub mod relay_client;
@@ -69,6 +74,8 @@ pub mod flow_activation;
 pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+pub mod linux_snapshot;
 mod reluctant_replan;
 pub use reluctant_replan::{
     StdReluctantReplanError, StdReluctantReplanOutcome, StdReluctantReplanRefusal,
@@ -95,7 +102,9 @@ mod house_conversation_topology;
 #[cfg(unix)]
 pub mod pico_indicator;
 mod whisper_installation;
-pub use host_execution::{ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters};
+pub use host_execution::{
+    ExternalForeRun, ExternalForeStreamConfig, ExternalForeStreamStats, HostedRunAdapters,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExternalForeInput {
@@ -191,6 +200,7 @@ mod installed_std_tests;
 pub mod isolated_base;
 #[cfg(all(target_os = "linux", feature = "isolated-file-base"))]
 pub mod isolated_copy_base;
+pub mod microphone_flow_proof;
 pub mod microphone_whisper_proof;
 #[cfg(feature = "native-webrtc")]
 pub mod native_webrtc;
@@ -592,6 +602,7 @@ pub struct StdHost {
     microphone: Option<hosted_microphone::AlsaMicrophoneAdapter>,
     base_registry: conduit_core::BaseRegistry,
     native_source: Option<selected_native_source::InitializedNativeSource>,
+    retained_native_calls: Vec<(conduit_core::CapabilityId, conduit_core::Kind)>,
     vector_search: Option<Box<dyn hosted_vector_search::HostedVectorSearchAdapter>>,
     model_work: Option<Box<dyn hosted_model_work::HostedModelWorkAdapter>>,
     calendar: Option<Box<dyn hosted_calendar::HostedCalendarAdapter>>,
@@ -602,6 +613,9 @@ pub struct StdHost {
     todo_checkpoint_root: Option<TodoCheckpointResidenceRoot>,
     #[cfg(target_os = "linux")]
     selected_text_file: Option<text_file::SelectedTextFileResidence>,
+    #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+    selected_body_storage: Option<std::sync::Arc<body_storage::SelectedBodyStorage>>,
+    expression_program_base: Option<conduit_core::BaseInstanceId>,
     next_kernel_play_sequence: u64,
     next_kernel_sign_sequence: u64,
 }
@@ -957,6 +971,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -967,6 +982,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1032,6 +1050,7 @@ impl StdHost {
             microphone: None,
             base_registry,
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1042,6 +1061,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1083,6 +1105,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1093,6 +1116,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1133,6 +1159,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: Some(adapter),
             model_work: None,
             calendar: None,
@@ -1143,6 +1170,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1183,6 +1213,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: Some(adapter),
             calendar: None,
@@ -1193,6 +1224,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1233,6 +1267,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: Some(adapter),
@@ -1243,6 +1278,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1268,6 +1306,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1278,6 +1317,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1327,6 +1369,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1337,6 +1380,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1381,6 +1427,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1391,6 +1438,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1424,6 +1474,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1434,6 +1485,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -1480,6 +1534,7 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            retained_native_calls: Vec::new(),
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1490,6 +1545,9 @@ impl StdHost {
             todo_checkpoint_root: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
+            #[cfg(all(target_os = "linux", feature = "linux-snapshot"))]
+            selected_body_storage: None,
+            expression_program_base: None,
             next_kernel_play_sequence: 0,
             next_kernel_sign_sequence: 0,
             #[cfg(unix)]
@@ -2015,7 +2073,7 @@ mod tests {
         let mut remote = fragment.clone();
         let foreign_line: conduit_core::AdmittedLine =
             (&conduit_signal_conformance::distributed_websocket_line_offer()).into();
-        remote.connections[0].selected_line = Some(foreign_line.clone());
+        remote.connections[0].selected_line = Some(Box::new(foreign_line.clone()));
         remote.connections[0].admitted_lines = vec![foreign_line];
         let remote = seal_plan(plot_identity.clone(), vec![remote]);
         assert!(matches!(
@@ -2280,5 +2338,14 @@ pub mod hosted_integer_categorical;
 
 pub mod todo_spoken_reading;
 
+#[cfg(target_os = "linux")]
+pub mod device_carrier;
 /// Finite worker text evidence; admission and shared Face projection remain owner decisions.
 pub mod worker_text_result;
+
+mod retained_native_inventory;
+pub use retained_native_inventory::NativeFragmentReservation;
+
+pub use remote_host_fragment::{
+    AdmittedNativeRequest, NativeWorkReturnRefusal, PreparedNativeWork, ReturnedNativeRequest,
+};

@@ -1,0 +1,78 @@
+{
+  "schema": "conduit.environment/pico-usb-identity-proof@1",
+  "base_commit": "0f1131ff92",
+  "source_sha256": {
+    "targets/rp2040/proof/environment-usb/src/main.rs": "b17f6d228aafe93e1b724f0015fb7bc0ce844b7e26927c91522ea76bc88db7cb",
+    "targets/rp2040/proof/environment-usb/src/usb_identity.rs": "b6a86486d6667359fbac01a406d9c64862c335dd432a9dcd37275625689ca902"
+  },
+  "images": {
+    "baseline": {
+      "text_bytes": 632588,
+      "data_bytes": 1112,
+      "bss_bytes": 97136,
+      "elf_sha256": "2d8436cfd80cc033bf2b91aebce55c9086657d07d0e63d1d3f5f275042f3dfdf"
+    },
+    "green": {
+      "text_bytes": 634292,
+      "data_bytes": 0,
+      "bss_bytes": 97152,
+      "elf_sha256": "ede30712bb8e12c9999f5563a278b2cee67d757362f993829431378e9da43a81",
+      "uf2_sha256": "762432791e26b33155134403c0d7c574b8500a208735b2bad5d956cf2c9da68e"
+    },
+    "white": {
+      "text_bytes": 630820,
+      "data_bytes": 0,
+      "bss_bytes": 97072,
+      "elf_sha256": "c7cdbaa8bb07113e51bed0f87e4571862bbdc12bef4cd9dae465c6b209189821",
+      "uf2_sha256": "b60f84fa5894da01874312390f1922df5490fa89cd0519a2d2268aff75806ae7"
+    },
+    "yellow": {
+      "text_bytes": 731356,
+      "data_bytes": 0,
+      "bss_bytes": 100992,
+      "elf_sha256": "7c8786d3d06e9aa715721a6c1029ac53d743d3598fe71957c35c777941b1211d",
+      "uf2_sha256": "836c399784c28910136cfb89cfa22b8d04e850eb78af624f59ece6a6471557e5"
+    }
+  },
+  "flash_delta_bytes": 592,
+  "unchanged_static_limit_bytes": 131072,
+  "unchanged_stack_floor_bytes": 16384,
+  "dedicated_serial_bytes": 16,
+  "cpu_tests": 2,
+  "carrier_regression_tests": 14,
+  "physical": {
+    "device": "Green",
+    "runtime_build": "6efbbe0c10222fcae6921efa7cc9d6bdc6e5cbdfe7a5f5a489a55f29f70261c0",
+    "configuration": "sha256:7609e0873dbc5481aa45d2a446e0eac32472eb450407a664bb20a00bb2124721",
+    "stable_alias_sha256": "fa28d69498346f7dd3dd2c311ac853bc54c5aec3b66e08ffe4e6c23bd0072979",
+    "same_alias_across_three_firmware_starts": true,
+    "same_alias_across_two_image_builds": true,
+    "sensor_error": false,
+    "display_error": false,
+    "frames": 10,
+    "acks": 10,
+    "wifi_joined_after_explicit_reprovision": true,
+    "body_member": false,
+    "white_or_yellow_deployed": false,
+    "final_samples_without_usb_client": 5,
+    "final_display_acks_without_usb_client": 58,
+    "continued_measurement_without_usb_client": true
+  },
+  "verification_correction": "BOOTSEL USB serial is a separate identity; initial equality assumption was rejected and is not used as evidence. Runtime aliases were compared across actual firmware starts instead.",
+  "not_proved": [
+    "cold power-cycle",
+    "native Pico Body membership",
+    "durable Pico history",
+    "restart-persistent network credentials",
+    "human visual display acceptance"
+  ],
+  "lint": {
+    "scoped_result": "pass",
+    "baseline_allowed_classes": [
+      "chunks_exact_to_as_chunks",
+      "too_many_arguments",
+      "let_unit_value"
+    ],
+    "full_strict_result": "baseline diagnostic classes remain; no whole-package strict pass claimed"
+  }
+}

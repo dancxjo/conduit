@@ -227,22 +227,54 @@ impl BodyBiographyEvidence {
         if membership.body_id != self.body_id {
             return Err(BodyBiographyError::WrongBody);
         }
-        let mut candidate = self.clone();
-        candidate.membership = membership;
+        // Preserve the original record allocation and current membership until
+        // the complete candidate validates. Body and Wake history are borrowed
+        // unchanged, rather than copied merely to append membership records.
+        let mut records = Vec::new();
+        records
+            .try_reserve_exact(self.records.len() + events.len())
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        let record_count = self.records.len();
+        let previous = (
+            core::mem::replace(&mut self.membership, membership),
+            core::mem::replace(&mut self.records, records),
+        );
+        let mut transaction = MembershipAppend {
+            evidence: self,
+            previous: Some(previous),
+            record_count,
+        };
+        // Move the exact original values, retaining their emptied allocation
+        // for rollback. The preflight above makes both this and rollback append
+        // allocation-free; no historical record payload is cloned.
+        transaction.evidence.records.append(
+            &mut transaction
+                .previous
+                .as_mut()
+                .expect("owned original records")
+                .1,
+        );
         for (change_id, sequence) in events {
-            let event = membership_event(&candidate.membership, change_id)?.clone();
-            if event.body_id != candidate.body_id || *sequence <= candidate.last_sequence() {
+            let event = membership_event(&transaction.evidence.membership, change_id)?.clone();
+            if event.body_id != transaction.evidence.body_id
+                || *sequence <= transaction.evidence.last_sequence()
+            {
                 return Err(BodyBiographyError::InvalidSequence);
             }
-            if candidate.records.iter().any(|record| match &record.kind {
-                BodyBiographyRecordKind::PartAdmitted { change_id, .. }
-                | BodyBiographyRecordKind::HostJoined { change_id, .. }
-                | BodyBiographyRecordKind::HostLeft { change_id, .. }
-                | BodyBiographyRecordKind::PartRevoked { change_id, .. } => {
-                    change_id == &event.change_id
-                }
-                _ => false,
-            }) {
+            if transaction
+                .evidence
+                .records
+                .iter()
+                .any(|record| match &record.kind {
+                    BodyBiographyRecordKind::PartAdmitted { change_id, .. }
+                    | BodyBiographyRecordKind::HostJoined { change_id, .. }
+                    | BodyBiographyRecordKind::HostLeft { change_id, .. }
+                    | BodyBiographyRecordKind::PartRevoked { change_id, .. } => {
+                        change_id == &event.change_id
+                    }
+                    _ => false,
+                })
+            {
                 return Err(BodyBiographyError::DuplicateEvidence);
             }
             let kind = match &event.kind {
@@ -270,14 +302,14 @@ impl BodyBiographyEvidence {
                     part_id: event.part_id.clone(),
                 },
             };
-            candidate.records.push(BodyBiographyRecord {
+            transaction.evidence.records.push(BodyBiographyRecord {
                 sequence: *sequence,
                 sign_id: event.sign_id,
                 kind,
             });
         }
-        candidate.validate()?;
-        *self = candidate;
+        transaction.evidence.validate()?;
+        drop(transaction.previous.take());
         Ok(())
     }
 
@@ -450,6 +482,24 @@ impl BodyBiographyEvidence {
     }
 }
 
+/// Exclusive temporary field replacement. Refusal or unwind restores the exact
+/// original allocations as well as every serialized membership/record byte.
+struct MembershipAppend<'a> {
+    evidence: &'a mut BodyBiographyEvidence,
+    previous: Option<(BodyMembership, Vec<BodyBiographyRecord>)>,
+    record_count: usize,
+}
+impl Drop for MembershipAppend<'_> {
+    fn drop(&mut self) {
+        if let Some((membership, mut records)) = self.previous.take() {
+            self.evidence.records.truncate(self.record_count);
+            records.append(&mut self.evidence.records);
+            self.evidence.membership = membership;
+            self.evidence.records = records;
+        }
+    }
+}
+
 fn membership_event<'a>(
     membership: &'a BodyMembership,
     change_id: &MembershipChangeId,
@@ -480,5 +530,57 @@ fn validate_graduation(evidence: &BodyGraduationEvidence) -> Result<(), BodyBiog
             Ok(())
         }
         _ => Err(BodyBiographyError::InvalidEvidence),
+    }
+}
+
+#[cfg(test)]
+mod membership_append_tests {
+    extern crate std;
+    use super::*;
+
+    #[test]
+    fn unwind_restores_original_membership_and_record_allocation_without_replay() {
+        let body = Body::born(
+            "fixture/source".into(),
+            "fixture/checked".into(),
+            1,
+            "fixture/born".into(),
+        )
+        .unwrap();
+        let membership = BodyMembership::new(body.body_id.clone()).unwrap();
+        let mut evidence = BodyBiographyEvidence::born(body, membership, "fixture".into()).unwrap();
+        evidence.records.reserve_exact(7);
+        let before = postcard::to_allocvec(&evidence).unwrap();
+        let pointer = evidence.records.as_ptr();
+        let capacity = evidence.records.capacity();
+        let sequence = evidence.last_sequence();
+        let mut replacement = Vec::with_capacity(evidence.records.len() + 1);
+        let mut extra = evidence.records[0].clone();
+        extra.sequence += 1;
+        let next_membership = evidence.membership.clone();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let record_count = evidence.records.len();
+            let previous = (
+                core::mem::replace(&mut evidence.membership, next_membership),
+                core::mem::replace(&mut evidence.records, core::mem::take(&mut replacement)),
+            );
+            let mut transaction = MembershipAppend {
+                evidence: &mut evidence,
+                previous: Some(previous),
+                record_count,
+            };
+            transaction
+                .evidence
+                .records
+                .append(&mut transaction.previous.as_mut().unwrap().1);
+            transaction.evidence.records.push(extra);
+            std::panic::panic_any("synthetic validation unwind");
+        }));
+        assert!(result.is_err());
+        assert_eq!(evidence.records.as_ptr(), pointer);
+        assert_eq!(evidence.records.capacity(), capacity);
+        assert_eq!(evidence.last_sequence(), sequence);
+        assert_eq!(postcard::to_allocvec(&evidence).unwrap(), before);
+        evidence.validate().unwrap();
     }
 }

@@ -23,7 +23,7 @@ pub(crate) fn generate_configuration(
                 ConfigurationValue::Text(value)
                     if entry.key == "label" && conduit_core::valid_data_label(value) =>
                 {
-                    GeneratedConfigurationValue::Text(value.clone())
+                    GeneratedConfigurationValue::Text(value.to_string())
                 }
                 ConfigurationValue::Text(value)
                     if matches!(entry.key.as_str(), "program" | "selector")
@@ -49,7 +49,7 @@ pub(crate) fn generate_configuration(
                         bounds.maximum_total_program_bytes,
                     )?;
                     validate_expression(placement, &entry.key, value)?;
-                    GeneratedConfigurationValue::Text(value.clone())
+                    GeneratedConfigurationValue::Text(value.to_string())
                 }
                 ConfigurationValue::Text(_) => {
                     return Err(GenerationError::Unsupported(

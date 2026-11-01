@@ -16,7 +16,9 @@ pub enum RecordingReadRefusal {
 
 pub struct RecordedSample<'a> {
     pub sequence: u64,
-    pub sampled_at_boot_ms: u64,
+    pub timestamp_basis: RecordingTimestampBasis,
+    /// Producer-Boot milliseconds with the exact event meaning above; not UTC.
+    pub at_boot_ms: u64,
     pub disposition: RecordingDisposition,
     pub gap_before: Option<(u64, u64)>,
     /// Exact canonical observation containing Temperature and relative humidity.
@@ -26,6 +28,7 @@ pub struct RecordedSample<'a> {
 /// One chunk's finite recovery workspace. The caller supplies the expected
 /// authenticated producer context. This reader does not infer one from bytes.
 pub struct PreparedRecordingReader {
+    timestamp_basis: RecordingTimestampBasis,
     prefix: String,
     quantities: PreparedObservationQuantityForms,
     samples: [[u8; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
@@ -39,6 +42,7 @@ impl PreparedRecordingReader {
     ) -> Result<Self, RecordingRefusal> {
         let prepared = PreparedRecordingChunk::prepare(context, contract)?;
         Ok(Self {
+            timestamp_basis: prepared.timestamp_basis,
             prefix: prepared.prefix,
             quantities: prepared.quantities,
             samples: [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
@@ -131,7 +135,8 @@ impl PreparedRecordingReader {
             .map(|previous| (previous + 1, sequence - 1));
         Some(RecordedSample {
             sequence,
-            sampled_at_boot_ms: number(&sample[8..16]),
+            timestamp_basis: self.timestamp_basis,
+            at_boot_ms: number(&sample[8..16]),
             disposition,
             gap_before,
             observation: if disposition == RecordingDisposition::Available {

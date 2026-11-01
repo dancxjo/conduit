@@ -5,7 +5,13 @@ pub const STEPS: &[Step] = &[
         "resource-snapshot.records",
         "Check immutable snapshot records",
         "cargo",
-        &["test", "--locked", "-p", "conduit-resource-snapshot"],
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-resource-snapshot",
+            "--all-features",
+        ],
     ),
     Step::new(
         "resource-snapshot.browser",
@@ -47,6 +53,7 @@ pub const STEPS: &[Step] = &[
             "-p",
             "conduit-resource-snapshot",
             "--all-targets",
+            "--all-features",
             "--",
             "-D",
             "warnings",

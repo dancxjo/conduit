@@ -3,21 +3,23 @@ use super::{
     storage_bound, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal,
 };
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
 
 pub(super) struct PreparedMemberSelection {
-    source: Option<Box<PreparedPortableExpressionEvaluator>>,
-    steps: Vec<Member>,
-    output_type: Vec<u8>,
-    output: Vec<u8>,
-    primitive: bool,
-    fixed: Option<(u32, u32)>,
+    pub(super) source: Option<Box<PreparedPortableExpressionEvaluator>>,
+    pub(super) steps: Vec<Member>,
+    pub(super) linked_steps: Option<(usize, &'static [u8])>,
+    pub(super) output_type: Cow<'static, [u8]>,
+    pub(super) output: Vec<u8>,
+    pub(super) primitive: bool,
+    pub(super) fixed: Option<(u32, u32)>,
 }
-enum Member {
-    Field(String),
+#[derive(Clone)]
+pub(super) enum Member {
+    Field(Cow<'static, str>),
     Index(u16),
-    Variant(String),
+    Variant(Cow<'static, str>),
 }
 
 pub(super) fn prepare(
@@ -44,7 +46,7 @@ pub(super) fn prepare(
                             .iter()
                             .find(|field| field.name() == name)
                             .ok_or(Refusal::InvalidProgram)?;
-                        (field.value_type(), Member::Field(name.clone()))
+                        (field.value_type(), Member::Field(name.clone().into()))
                     }
                     (
                         StructuredInfoTypeShape::Record { fields, .. },
@@ -55,7 +57,7 @@ pub(super) fn prepare(
                             .iter()
                             .find(|field| field.name() == name)
                             .ok_or(Refusal::InvalidProgram)?;
-                        (field.value_type(), Member::Field(name))
+                        (field.value_type(), Member::Field(name.into()))
                     }
                     (
                         StructuredInfoTypeShape::Variant { cases, .. },
@@ -65,7 +67,7 @@ pub(super) fn prepare(
                             .iter()
                             .find(|case| case.tag() == name)
                             .ok_or(Refusal::InvalidProgram)?;
-                        (case.payload_type(), Member::Variant(name.clone()))
+                        (case.payload_type(), Member::Variant(name.clone().into()))
                     }
                     (
                         StructuredInfoTypeShape::Collection { element, length },
@@ -145,10 +147,11 @@ pub(super) fn prepare(
     Ok(PreparedMemberSelection {
         source,
         steps,
+        linked_steps: None,
         output_type: if fixed.is_some() {
-            Vec::new()
+            Vec::new().into()
         } else {
-            output_type
+            output_type.into()
         },
         output: Vec::with_capacity(if primitive {
             0
@@ -160,6 +163,12 @@ pub(super) fn prepare(
     })
 }
 impl PreparedMemberSelection {
+    /// Checked location; only usable after the enclosing evaluator validates
+    /// the entire input and its exact Type. Variable layouts retain their path.
+    pub(super) fn fixed_leaf(&self) -> Option<(u32, u32)> {
+        self.fixed
+    }
+
     pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
         if let Some((start, length)) = self.fixed {
             // Whole-input validation and checked geometry establish the leaf
@@ -181,14 +190,14 @@ impl PreparedMemberSelection {
         };
         let mut value = conduit_core::validate_canonical_structured_value(selected)
             .map_err(|_| Refusal::InvalidInput)?;
-        for step in &self.steps {
-            value = match step {
-                Member::Field(name) => value.record_field(name),
-                Member::Index(index) => value.collection_index(*index),
-                Member::Variant(name) => value.variant_payload(name),
+        if let Some((count, mut bytes)) = self.linked_steps {
+            for _ in 0..count {
+                value = super::linked::next_member(&mut bytes)?.select(value)?;
             }
-            .map_err(|_| Refusal::InvalidInput)?
-            .ok_or(Refusal::InvalidInput)?;
+        } else {
+            for step in &self.steps {
+                value = step.select(value)?;
+            }
         }
         render_selected(value, &self.output_type, self.primitive, &mut self.output)
     }
@@ -234,5 +243,20 @@ pub(super) fn is_primitive(ty: &StructuredInfoType) -> bool {
         StructuredInfoTypeShape::Leaf(_) => true,
         StructuredInfoTypeShape::Nominal { representation, .. } => is_primitive(representation),
         _ => false,
+    }
+}
+
+impl Member {
+    fn select<'a>(
+        &self,
+        value: conduit_core::ValidatedCanonicalStructuredValue<'a>,
+    ) -> Result<conduit_core::ValidatedCanonicalStructuredValue<'a>, Refusal> {
+        match self {
+            Self::Field(n) => value.record_field(n),
+            Self::Index(i) => value.collection_index(*i),
+            Self::Variant(n) => value.variant_payload(n),
+        }
+        .map_err(|_| Refusal::InvalidInput)?
+        .ok_or(Refusal::InvalidInput)
     }
 }

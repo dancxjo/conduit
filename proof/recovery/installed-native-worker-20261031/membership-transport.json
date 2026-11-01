@@ -1,0 +1,26 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "base_commit": "2dcfdb62ab9614052c4cba3a4c1790fd7104373d",
+  "test_filter": "body_join::membership_transport::tests",
+  "result": {
+    "passed": 2,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 211
+  },
+  "log_sha256": "33a2a0cfb189a89acb4dcbc77463ffaaddc766daeca9b526625fd66324cf6a4d",
+  "scope": [
+    "existing attended HTTP transport reused without deriving Host identity",
+    "full installed Host/Boot frame remains within1024bytes",
+    "original signed proof retained before POST and replayed byte-identically after lost reply",
+    "candidate receipt correlation does not establish pinned Root authentication",
+    "no installation, recorder binding or continuity identity created by transport"
+  ],
+  "not_proven": [
+    "live Blue admission or checkpoint capacity",
+    "receipt recovery after Root digest-cache eviction or restart",
+    "new Boot membership return",
+    "selected recorder commitment or durable acknowledgment",
+    "physical MCU continuity during admission"
+  ]
+}

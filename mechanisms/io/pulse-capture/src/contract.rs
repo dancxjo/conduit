@@ -15,18 +15,9 @@ pub struct PulseReadContract {
 }
 impl PulseReadContract {
     pub fn prepare() -> Result<Self, StructuredInfoRefusal> {
-        let request = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/request.type"
-        )))?;
-        let capture = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/capture.type"
-        )))?;
-        let result = StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/result.type"
-        )))?;
+        let request = StructuredInfoType::from_canonical_bytes(super::schema::REQUEST)?;
+        let capture = StructuredInfoType::from_canonical_bytes(super::schema::CAPTURE)?;
+        let result = StructuredInfoType::from_canonical_bytes(super::schema::RESULT)?;
         let port = |name, ty: &StructuredInfoType, direction| -> Result<_, StructuredInfoRefusal> {
             Ok(PortDescriptor {
                 port_id: port_id(name),

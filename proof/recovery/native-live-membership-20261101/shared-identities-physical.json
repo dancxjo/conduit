@@ -1,0 +1,141 @@
+{
+  "scope": "Physical application-only update, exact non-app readback, existing Body restart, read-only preparation, local Play and station join",
+  "installed_source": "cb39e29b84e656c4675b156bbd06079e3d1142b0",
+  "readback": {
+    "source": "cb39e29b84e656c4675b156bbd06079e3d1142b0",
+    "app_sha256": "13dc5fccaee0f31553a05f40ee7b6676a1a86b2b40251eb3332792fb77e4f537",
+    "app_bytes": 3276528,
+    "all_non_app_bytes_exact": true,
+    "before_full_sha256": "5eb7ee21d48d5185c8bce001189dcd5c5707cafc18df5288eda36e6083fc340c",
+    "after_full_sha256": "f549909396fbce567b5a350639c9b016d4b14f9e734b3428cddc7ac255769096"
+  },
+  "backup": {
+    "full_sha256": "5eb7ee21d48d5185c8bce001189dcd5c5707cafc18df5288eda36e6083fc340c",
+    "banks": [
+      {
+        "bank": 0,
+        "generation": 911,
+        "bytes": 13077
+      },
+      {
+        "bank": 1,
+        "generation": 910,
+        "bytes": 12193
+      }
+    ],
+    "body_root_pins_match": true,
+    "partition_table_matches": true
+  },
+  "boot": {
+    "event": "body-image-loaded",
+    "body_id": "71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57",
+    "friendly_name": "Malo Lef\u00e8vre Laurent",
+    "host_id": "esp32/b0a732286178",
+    "boot_id": "boot/289518734d5c16efd446ca46107ce0cb",
+    "offer_generation": 1,
+    "membership_revision": 430,
+    "member_admitted": true,
+    "linked_source_gears": 15,
+    "root_heap_size_bytes": 118768,
+    "root_heap_used_bytes": 22676,
+    "root_heap_peak_bytes": 48088,
+    "play_started": false,
+    "restart_resumed": true,
+    "checkpoint_generation": 913
+  },
+  "read_only_preparation": {
+    "event": "checkpoint-preparation-probe",
+    "phase": "readonly-frozen-prepare-capture",
+    "source_generation": 913,
+    "source_bytes": 14326,
+    "output_bytes": 14326,
+    "prepare_us": 722465,
+    "capture_us": 738832,
+    "retained_cache_bytes": 9100,
+    "heap_before": [
+      22676,
+      48088
+    ],
+    "heap_after_prepare": [
+      22804,
+      48088
+    ],
+    "heap_after_capture": [
+      31908,
+      48088
+    ],
+    "heap_after_release": [
+      22676,
+      48088
+    ],
+    "heap_pair": "root_current_boot_lifetime_peak",
+    "physical_operations": 0,
+    "membership_staged": false,
+    "start_measured": false,
+    "chunk_measured": false,
+    "finish_measured": false,
+    "phase_peak_measured": false,
+    "total_ram_measured": false,
+    "during_local_play": false,
+    "timing_qualified": false
+  },
+  "last_observed": {
+    "event": "local-appliance-progress",
+    "millis": 121699,
+    "root_used": 95248,
+    "root_free": 23520,
+    "root_peak": 113712,
+    "sampler_phase": "running",
+    "source_sequence": 1,
+    "sampler_failure": null,
+    "mask_phase": "running",
+    "mask_consumed": 35,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network": {
+      "runner_polls": [
+        4,
+        9431
+      ],
+      "observed_services": "station-ready",
+      "ap_link": null,
+      "station_link": null,
+      "ap_configured": null,
+      "station_configured": null,
+      "ap_mac": null,
+      "channel": null
+    },
+    "station_address": [
+      10,
+      0,
+      0,
+      210
+    ],
+    "network_control": "attached",
+    "archive": {
+      "committed": 1,
+      "retained_bytes": 640,
+      "last_sequence": 1,
+      "scope_ready": true,
+      "failed": false,
+      "recovered_read_only": false,
+      "maximum_records": 960
+    },
+    "face_available": true,
+    "face_fresh": true,
+    "renewal_phase": null,
+    "renewal_failure": null,
+    "renewal_archive_refusal": null
+  },
+  "capture_sha256": "5619548ffab1a00aa2464cbd5b695464dfb65e30bb8a1516650be3b8b9446068",
+  "limits": [
+    "No exact same-snapshot target A/B allocation saving measured.",
+    "Root allocator statistics exclude SDK arenas and stack; no complete phase RAM bound claimed.",
+    "Read-only preparation does not qualify Start, Chunk, Finish or during-Play preparation.",
+    "Existing member restart is not new browser/Pi admission.",
+    "Local journal commitment is not selected durable-recorder commitment.",
+    "Forebrain still lacks a route to the station address across NAT."
+  ],
+  "reviewed_preparation_profile_enabled": false,
+  "uart_released": true
+}

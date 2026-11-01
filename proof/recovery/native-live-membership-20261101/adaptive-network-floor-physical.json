@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.environment/adaptive-network-floor-physical@1",
+  "source": "7901e71e85feb363370299b1b4cd82e9e417d443",
+  "app_bytes": 3341152,
+  "app_partition_bytes": 3371008,
+  "stack_bytes": 37372,
+  "stack_floor_bytes": 36864,
+  "app_sha256": "cfaa642eee689804c4f782275105e0b4c2005d5a7153c2ef001a46ec2525ad99",
+  "fresh_full_backup_verified": true,
+  "all_non_app_bytes_unchanged": true,
+  "same_body_loaded": "71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57",
+  "restart_resumed": true,
+  "unchanged_floor_bytes": 16384,
+  "station_address": [
+    192,
+    168,
+    1,
+    164
+  ],
+  "samples_at_capture_end": 1,
+  "mask_updates_at_capture_end": 37,
+  "sampler_or_mask_failures": false,
+  "archive_still_full": true,
+  "ordinary_preparation_timing_qualified": false,
+  "limitations": [
+    "The first station address acquisition timed out; retry joined another saved network.",
+    "Sampling and display observed; new observation archive remains full.",
+    "Network preparation backing success does not establish admitted CPU preparation costs."
+  ]
+}

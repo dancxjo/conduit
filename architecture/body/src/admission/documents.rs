@@ -94,14 +94,14 @@ struct RequestWire<A> {
     play_created: bool,
 }
 
-impl RequestWire<crate::admission_advertisement_wire::CompactAdvertisement> {
-    fn from_request(request: &PortableSpawnAdmissionRequest) -> Self {
+impl<'a> RequestWire<crate::admission_advertisement_wire::CompactAdvertisementRef<'a>> {
+    fn from_request(request: &'a PortableSpawnAdmissionRequest) -> Self {
         Self {
             schema: request.schema.clone(),
             invitation_id: request.invitation_id.clone(),
             body_id: request.body_id.clone(),
-            host_advertisement: crate::admission_advertisement_wire::CompactAdvertisement(
-                request.host_advertisement.clone(),
+            host_advertisement: crate::admission_advertisement_wire::CompactAdvertisementRef(
+                &request.host_advertisement,
             ),
             nonce: request.nonce,
             signature: request.signature.clone(),
@@ -110,6 +110,9 @@ impl RequestWire<crate::admission_advertisement_wire::CompactAdvertisement> {
             play_created: request.play_created,
         }
     }
+}
+
+impl RequestWire<crate::admission_advertisement_wire::CompactAdvertisement> {
     fn into_request(self) -> PortableSpawnAdmissionRequest {
         PortableSpawnAdmissionRequest {
             schema: self.schema,
@@ -211,22 +214,22 @@ pub enum RoutedAdmissionResponse {
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct CompactReceiptWire {
+struct CompactReceiptWire<A = crate::admission_advertisement_wire::CompactAdvertisement> {
     schema: String,
     credential: MembershipCredential,
-    host_advertisement: crate::admission_advertisement_wire::CompactAdvertisement,
+    host_advertisement: A,
     membership_admitted: bool,
     current_offers_available: bool,
     plan_created: bool,
     play_created: bool,
 }
-impl CompactReceiptWire {
-    fn from_receipt(receipt: &PortableAdmissionReceipt) -> Self {
+impl<'a> CompactReceiptWire<crate::admission_advertisement_wire::CompactAdvertisementRef<'a>> {
+    fn from_receipt(receipt: &'a PortableAdmissionReceipt) -> Self {
         Self {
             schema: receipt.schema.clone(),
             credential: receipt.credential.clone(),
-            host_advertisement: crate::admission_advertisement_wire::CompactAdvertisement(
-                receipt.host_advertisement.clone(),
+            host_advertisement: crate::admission_advertisement_wire::CompactAdvertisementRef(
+                &receipt.host_advertisement,
             ),
             membership_admitted: receipt.membership_admitted,
             current_offers_available: receipt.current_offers_available,
@@ -234,6 +237,9 @@ impl CompactReceiptWire {
             play_created: receipt.play_created,
         }
     }
+}
+
+impl CompactReceiptWire {
     fn into_receipt(self) -> PortableAdmissionReceipt {
         PortableAdmissionReceipt {
             schema: self.schema,

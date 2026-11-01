@@ -1,0 +1,20 @@
+[package]
+name = "conduit-esp32-network-switch"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[features]
+default = []
+bounded-scan = []
+
+[dependencies]
+conduit-network-join-call = { path = "../../../mechanisms/io/network-join" }
+conduit-net = { path = "../../../semantics/net" }
+esp-radio = { version = "=0.18.0", default-features = false, features = ["wifi", "esp32", "unstable"] }
+esp-hal = { version = "=1.1.2", features = ["esp32", "unstable"] }
+embassy-net = { version = "=0.9.1", features = ["medium-ethernet", "proto-ipv4", "dhcpv4"] }
+embassy-time = "=0.5.1"
+
+[patch.crates-io]
+esp-radio = { path = "../vendor/esp-radio-0.18.0" }

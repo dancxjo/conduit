@@ -149,6 +149,12 @@ fn prepare_runtime_with_composition(
         })
     })?;
     let mut host = trace.run(Phase::HostConstruction, || {
+        let composition = installation
+            .selected_host_configuration
+            .as_ref()
+            .map(|selection| selection.composition(composition))
+            .transpose()?
+            .unwrap_or(composition);
         Ok(if let Some((initial, maximum_items)) = todo {
             StdHost::new_for_todo_scan(config, initial, maximum_items)?
         } else if let Some((initial, maximum_items)) = thermostat {
@@ -191,6 +197,15 @@ fn prepare_runtime_with_composition(
             None
         })
     })?;
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    let (host, selected_environmental_equipment) = trace.run(Phase::EquipmentSelection, || {
+        match installation.selected_host_configuration.as_ref() {
+            Some(selection) => {
+                super::selected_environmental_sources::attach(host, &selection.checked()?)
+            }
+            None => Ok((host, None)),
+        }
+    })?;
     let status = trace.run(Phase::RuntimeIdentity, || {
         Ok(RuntimeStatus {
             schema: RUNTIME_SCHEMA.into(),
@@ -215,7 +230,11 @@ fn prepare_runtime_with_composition(
             image_content_digest,
             host,
         )
-        .with_selected_speech_equipment(selected_equipment))
+        .with_selected_speech_equipment(selected_equipment)
+        .with_selected_environmental_equipment(
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment,
+        ))
     })?;
     // Cold reviewed inventory and compiled contracts belong to preparation,
     // before clients can spend their finite control budget on an interaction.

@@ -1,0 +1,77 @@
+{
+  "source": {
+    "commit": "2ff950a91d017c5d0c38eb317777600e10ad21e4",
+    "tree": "2d1bb94c9995e59b17d6ed11abc328d2060f4668",
+    "tracked_files": 14575,
+    "filesystem_sha256": "9542840bc5fb93db0b1ed1168cc74a338ce7ded2a0031101332c673cc7a05f57"
+  },
+  "runtime_role": "normal-instrument",
+  "qualified": true,
+  "app_partition_bytes": 3371008,
+  "app_bytes": 3364288,
+  "app_remaining_bytes": 6720,
+  "stack_floor_bytes": 36864,
+  "stack_bytes": 37372,
+  "stack_margin_bytes": 508,
+  "hardware_operations": false,
+  "flashed": false,
+  "rustc": "rustc 1.91.1-nightly (719630278 2025-11-17) (1.91.1.0)\nbinary: rustc\ncommit-hash: 71963027884c9d995173aca298b0fe614e145bde\ncommit-date: 2025-11-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.91.1-nightly\nLLVM version: 20.1.1\n",
+  "helper_sha256": "a286361afda4e31a785b8fc2d6549783415d611c23c4a2bf0f463c9451cb341e",
+  "build_command": [
+    "cargo",
+    "+esp-conduit-1.91.1",
+    "rustc",
+    "--config",
+    "profile.release.package.conduit-planner.debug=1",
+    "--locked",
+    "--release",
+    "--features",
+    "flat-network-appliance",
+    "--message-format=json-render-diagnostics",
+    "--",
+    "-C",
+    "llvm-args=-switch-to-lookup=false",
+    "-C",
+    "opt-level=s",
+    "-C",
+    "llvm-args=-inline-threshold=0",
+    "-C",
+    "llvm-args=-inlinehint-threshold=0",
+    "-Z",
+    "location-detail=none"
+  ],
+  "source_hash_scope": "tracked filesystem bytes and exact private construction inputs; excludes ignored files and transitive toolchain contents",
+  "profile": "flat-network-appliance",
+  "jobs": 2,
+  "elapsed_build": "7m01s",
+  "scope": "Offline full normal old-Body diagnostic only; not final Hamm provisioning, physical execution, lower actual Mask peak, or #6341 closure.",
+  "private_artifact_directory": "TASK/work/private/blue-current-combined-2ff-oldbody-fit-20261101",
+  "files": {
+    "candidate.bin": {
+      "bytes": 3364288,
+      "sha256": "436c6313a8d382a83ceae8ab93692554450ff1b1182d266e67ac69e8d320fe8e"
+    },
+    "candidate.elf": {
+      "bytes": 7841012,
+      "sha256": "c39297b67773d41c96832db4513ad4716813ae17250c9487390a480459cf6246"
+    },
+    "build.log": {
+      "bytes": 104206,
+      "sha256": "80f8a6066e8db6e9c1aad52c55265fb4ac85367d4b7473301429916fbfbe053c"
+    },
+    "build.jsonl": {
+      "bytes": 382713,
+      "sha256": "2501ecc8d3c0c97fd13a545de86e7ec604013061bee3a2bc7de56bbafaff856b"
+    },
+    "native-root.map": {
+      "bytes": 10123128,
+      "sha256": "646b9fb9be41b387ea82fa6f5024e8203a24d917036cbf5927edcbdc74af877d"
+    }
+  },
+  "initial_refusal": {
+    "source": "3799ab2f45535cc56ccdf04278b27e6e901e0bb7",
+    "result": "--locked refused stale standalone lock before compilation",
+    "preserved_private_directory": "TASK/work/private/blue-current-combined-3799-20261101",
+    "repair": "2ff950a91d adds only two existing workspace dependency rows; no package/version/checksum changes"
+  }
+}

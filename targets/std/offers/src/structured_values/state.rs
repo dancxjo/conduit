@@ -119,6 +119,39 @@ pub fn state_value_durable_std_offer(
     Ok(offer)
 }
 
+/// Specialize the existing durable implementation to one independently selected
+/// value ceiling. This narrows advertised queues and Host Calls; it grants no
+/// residence, resources or authority and leaves the default factory unchanged.
+pub fn state_value_durable_std_offer_with_bound(
+    type_name: &str,
+    value_type: &StructuredInfoType,
+    default_value: &conduit_core::StructuredInfoValue,
+    maximum_value_bytes: u32,
+) -> Result<CapabilityOffer, StructuredInfoRefusal> {
+    if !(1..=STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES).contains(&maximum_value_bytes) {
+        return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+    }
+    let mut offer = state_value_durable_std_offer(type_name, value_type, default_value)?;
+    // Borrow the factory's already encoded canonical initializer rather than
+    // allocating a second encoding just to count its exact bytes.
+    let initial = offer
+        .semantic_contract
+        .configuration
+        .iter()
+        .find(|field| field.key == "initial")
+        .ok_or(StructuredInfoRefusal::WrongType)?;
+    let conduit_core::ConfigurationValue::Structured(initial) = &initial.default_value else {
+        return Err(StructuredInfoRefusal::WrongType);
+    };
+    if initial.canonical_value().len() > maximum_value_bytes as usize {
+        return Err(StructuredInfoRefusal::CanonicalEncodingTooLarge);
+    }
+    offer.limits.max_queue_bytes = maximum_value_bytes;
+    offer.host_calls[0].maximum_input_bytes = maximum_value_bytes;
+    offer.host_calls[1].maximum_output_bytes = maximum_value_bytes;
+    Ok(offer)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -189,5 +222,63 @@ mod tests {
                 maximum_lifetime: StateLifetime::Play,
             })
         );
+    }
+    #[test]
+    fn bounded_durable_offer_narrows_only_selected_value_envelope() {
+        let ty =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+        let default = conduit_core::StructuredInfoValue::leaf(
+            ty.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .unwrap();
+        let original = state_value_durable_std_offer("Cell", &ty, &default).unwrap();
+        assert_eq!(
+            original,
+            state_value_durable_std_offer_with_bound("Cell", &ty, &default, 4096).unwrap()
+        );
+        let selected =
+            state_value_durable_std_offer_with_bound("Cell", &ty, &default, 1024).unwrap();
+        assert_eq!(selected.semantic_contract, original.semantic_contract);
+        assert_eq!(selected.inputs, original.inputs);
+        assert_eq!(selected.outputs, original.outputs);
+        assert_eq!(selected.implementation, original.implementation);
+        assert_eq!(
+            selected.authority_requirements,
+            original.authority_requirements
+        );
+        assert_eq!(
+            selected.resource_requirements,
+            original.resource_requirements
+        );
+        assert_eq!(selected.limits.max_queue_bytes, 1024);
+        assert_eq!(selected.host_calls[0].maximum_input_bytes, 1024);
+        assert_eq!(
+            selected.host_calls[0].maximum_output_bytes,
+            STATE_VALUE_DURABLE_RECEIPT_BYTES
+        );
+        assert_eq!(
+            selected.host_calls[1].maximum_input_bytes,
+            STATE_VALUE_DURABLE_RECOVERY_METADATA_BYTES
+        );
+        assert_eq!(selected.host_calls[1].maximum_output_bytes, 1024);
+    }
+    #[test]
+    fn bounded_durable_offer_refuses_outside_ceiling_or_unfit_canonical_default() {
+        let ty =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+        let default = conduit_core::StructuredInfoValue::leaf(
+            ty.clone(),
+            conduit_core::InfoBool::FALSE.encode().to_vec(),
+        )
+        .unwrap();
+        let exact = default.canonical_bytes().unwrap().len() as u32;
+        assert!(state_value_durable_std_offer_with_bound("Cell", &ty, &default, exact).is_ok());
+        for maximum in [0, exact - 1, STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES + 1] {
+            assert_eq!(
+                state_value_durable_std_offer_with_bound("Cell", &ty, &default, maximum),
+                Err(StructuredInfoRefusal::CanonicalEncodingTooLarge)
+            );
+        }
     }
 }

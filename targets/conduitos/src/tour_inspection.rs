@@ -52,7 +52,7 @@ impl RunInspection {
                     if entry.key == "value"
                         && let conduit_core::ConfigurationValue::Text(value) = &entry.value
                     {
-                        return Some(value.clone());
+                        return Some(value.as_str().into());
                     }
                     None
                 }),

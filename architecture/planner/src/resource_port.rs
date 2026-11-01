@@ -1,20 +1,21 @@
+use crate::planning_input::ConnectionGear;
 use crate::PlannerError;
 use conduit_core::{PlannedGear, PlannedResourceConnection};
-use conduit_plot::{CheckedConnection, CheckedGear};
+use conduit_plot::CheckedConnection;
 
 pub(crate) fn plan_resource_connection(
     connection: &CheckedConnection,
-    source_gear: &CheckedGear,
-    sink_gear: &CheckedGear,
+    source_gear: &ConnectionGear<'_>,
+    sink_gear: &ConnectionGear<'_>,
     source_plan: &PlannedGear,
     sink_plan: &PlannedGear,
 ) -> Result<Option<PlannedResourceConnection>, PlannerError> {
     let source = source_gear
-        .resource_ports
+        .resource_ports()
         .iter()
         .find(|port| port.port_id == connection.source_port_id);
     let sink = sink_gear
-        .resource_ports
+        .resource_ports()
         .iter()
         .find(|port| port.port_id == connection.sink_port_id);
     match (source, sink) {

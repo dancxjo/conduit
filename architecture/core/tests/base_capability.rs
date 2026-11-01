@@ -9,6 +9,9 @@ use conduit_core::{
 #[path = "base_capability/allocation.rs"]
 mod allocation;
 
+#[path = "base_capability/borrowed.rs"]
+mod borrowed;
+
 fn scope() -> BaseCapabilityScope {
     BaseCapabilityScope {
         host_id: HostId::from("host/one"),

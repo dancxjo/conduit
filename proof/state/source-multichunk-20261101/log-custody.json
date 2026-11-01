@@ -1,0 +1,57 @@
+{
+  "production_source": "057f48d32ce3223ce1530ddc1f50f2d53e3affe7",
+  "final_test_source": "a62836bb135075496a72a3fc5c9eddb0ce8e7695",
+  "raw_logs": "ignored; local custody only",
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/advance-2a8b84b917.log",
+      "bytes": 1416,
+      "sha256": "ab2deed4d87dc38fbe10fb2420fd0d16bf3e0c0b5641f37e5e170b911dea76d1"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/advance-a31e5c6ca2.log",
+      "bytes": 3575,
+      "sha256": "23b7cd8767de9dae0a29ca8a14ae490969844307ef119f883266f465f3919de4"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/control-057f48d32c.log",
+      "bytes": 2409,
+      "sha256": "bdc9ad94df6e388c9b1b537884fe5e1b154735004fd78fbdc2eebdc67f433372"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/control-a62836bb13.log",
+      "bytes": 1913,
+      "sha256": "62621909a599f8ec20d79ef1b9ca04cbc07efb05a3ff8353ae088dccdcb54a32"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/native-custody-a62836bb13.log",
+      "bytes": 993,
+      "sha256": "f603b81fbdcbd168df2db6c8da0c7c352d952580d4a4dfd633c745bd9f484c30"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/native-return-a62836bb13.log",
+      "bytes": 1419,
+      "sha256": "32641cf09aa6ce564e4a34a2e7219a059669ac1e3fe8a561e873db69da9f4127"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/owner-release-build.log",
+      "bytes": 5785,
+      "sha256": "d8608559e92fa78c6a255f90599a6c27c2d61718fd9c3a698d26325e2e36dbb2"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/recovered-read-057f48d32c.log",
+      "bytes": 1333,
+      "sha256": "4e5149b5cab5219cd82c190fe0ee62a476ef62b01774658afae245bd273a7358"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/stage-057f48d32c.log",
+      "bytes": 3898,
+      "sha256": "34dc4e5fe2784caf01c6805224501392da67c6cd27b5d21b35fe01004a24dfd3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/source-multichunk-20261101/evidence-retention-a62836bb13.log",
+      "bytes": 176,
+      "sha256": "b52fbfe69d1e010c19a849a65a7343817ecf898be8107ff474335f51f11e61ee"
+    }
+  ]
+}

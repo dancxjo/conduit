@@ -40,6 +40,10 @@ enum Driver {
         values: [Option<ValueRef>; 4],
         next: usize,
     },
+    EncodedSource {
+        mode: u8,
+        emitted: bool,
+    },
     PreparedSource {
         bytes: [u8; 256],
         emitted: bool,
@@ -89,6 +93,30 @@ enum Driver {
 }
 
 impl StepBack<PORTS> for Driver {
+    fn encodes_prepared_output(&self, port: PortId) -> bool {
+        matches!(self, Self::EncodedSource { .. }) && port == PortId(0)
+    }
+    fn encode_prepared_output(
+        &self,
+        _: PortId,
+        output: &mut [u8],
+    ) -> Result<usize, crate::StorageError> {
+        let Self::EncodedSource { mode, .. } = self else {
+            unreachable!()
+        };
+        output.fill(0x5a);
+        match mode {
+            1 => Err(crate::StorageError::RepresentationMismatch),
+            2 => Ok(output.len() + 1),
+            3 => Ok(output.len() - 1),
+            _ => Ok(output.len()),
+        }
+    }
+    fn step_committed(&mut self) {
+        if let Self::EncodedSource { emitted, .. } = self {
+            *emitted = true;
+        }
+    }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::PreparedSource { bytes, .. } if port == PortId(0) => Some(bytes),
@@ -177,6 +205,19 @@ impl StepBack<PORTS> for Driver {
                 }
                 io.send(PortId(0), value).unwrap();
                 *next += 1;
+                StepOutcome::Progress
+            }
+            Self::EncodedSource { emitted, .. } => {
+                if *emitted {
+                    return StepOutcome::Complete;
+                }
+                if !io.output_ready(PortId(0)) {
+                    return StepOutcome::Await;
+                }
+                if io.input(PortId(0)).is_some() {
+                    io.consume(PortId(0)).unwrap();
+                }
+                io.send_prepared(PortId(0), 256).unwrap();
                 StepOutcome::Progress
             }
             Self::PreparedSource { emitted, .. } => {
@@ -484,6 +525,241 @@ fn prepared_back_storage_emits_beyond_the_inline_derived_value_envelope() {
     };
     assert_eq!(observed_bytes, Some(256));
     assert_eq!(scheduler.values().used_items(), 0);
+}
+
+#[test]
+fn direct_encoded_step_publication_is_transactional() {
+    struct Profile {
+        values: FixedValueStore<2, 256>,
+        encoded: bool,
+    }
+    impl ValueStorage for Profile {
+        fn item_capacity(&self) -> u16 {
+            self.values.item_capacity()
+        }
+        fn byte_capacity(&self) -> u32 {
+            self.values.byte_capacity()
+        }
+        fn used_items(&self) -> u16 {
+            self.values.used_items()
+        }
+        fn used_bytes(&self) -> u32 {
+            self.values.used_bytes()
+        }
+        fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, crate::StorageError> {
+            self.values.store(bytes)
+        }
+        fn get(&self, value: ValueRef) -> Result<&[u8], crate::StorageError> {
+            self.values.get(value)
+        }
+        fn resolve_identity(
+            &self,
+            slot: u16,
+            generation: u32,
+        ) -> Result<ValueRef, crate::StorageError> {
+            self.values.resolve_identity(slot, generation)
+        }
+        fn reference_count(&self, value: ValueRef) -> Result<u16, crate::StorageError> {
+            self.values.reference_count(value)
+        }
+        fn retain(&mut self, value: ValueRef) -> Result<(), crate::StorageError> {
+            self.values.retain(value)
+        }
+        fn release(&mut self, value: ValueRef) -> Result<(), crate::StorageError> {
+            self.values.release(value)
+        }
+        fn clear(&mut self) {
+            self.values.clear()
+        }
+        fn supports_prepared_encoding(&self) -> bool {
+            self.encoded
+        }
+        fn store_prepared_encoded(
+            &mut self,
+            maximum: usize,
+            encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, crate::StorageError>,
+        ) -> Result<ValueRef, crate::StorageError> {
+            assert!(self.encoded);
+            self.values.store_prepared_encoded(maximum, encode)
+        }
+    }
+    for mode in 0..=6 {
+        let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
+        routes
+            .install(
+                NodeId(0),
+                PortId(0),
+                RouteRange { start: 0, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(0),
+                    sink: crate::CordEndpoint::local(NodeId(1), PortId(0)),
+                }],
+            )
+            .unwrap();
+        routes.seal().unwrap();
+        let signs =
+            FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32)
+                .unwrap();
+        let prepared = FixedScheduler::<_, _, _, 2, 1, PORTS, 1, 2, 1>::new(
+            [node([None, None]), node([Some(CordId(0)), None])],
+            [CordSpec::local(
+                CordId(0),
+                (NodeId(0), PortId(0)),
+                (NodeId(1), PortId(0)),
+                CordCapacity {
+                    slot_start: 0,
+                    item_capacity: 1,
+                    byte_capacity: 256,
+                    pressure_policy: Default::default(),
+                },
+            )],
+            routes,
+            [
+                if mode == 6 {
+                    Driver::PreparedSource {
+                        bytes: [0x5a; 256],
+                        emitted: false,
+                    }
+                } else {
+                    Driver::EncodedSource {
+                        mode,
+                        emitted: false,
+                    }
+                },
+                Driver::TerminalSink {
+                    observed_bytes: None,
+                },
+            ],
+            Profile {
+                values: FixedValueStore::<2, 256>::new(if mode == 4 { 255 } else { 256 }).unwrap(),
+                encoded: mode < 5,
+            },
+            signs,
+        );
+        if mode == 5 {
+            assert!(matches!(prepared, Err(SchedulerError::InvalidPlan)));
+            continue;
+        }
+        let mut scheduler = prepared.unwrap();
+        if mode != 0 && mode != 6 {
+            assert!(scheduler.step().is_err());
+            assert_eq!(
+                (scheduler.values.used_items(), scheduler.values.used_bytes()),
+                (0, 0)
+            );
+            assert_eq!(scheduler.cords[0].len, 0);
+            assert!(matches!(
+                scheduler.drivers()[0],
+                Driver::EncodedSource { emitted: false, .. }
+            ));
+            continue;
+        }
+        for _ in 0..6 {
+            if scheduler.step().unwrap() == SchedulerStatus::Drained {
+                break;
+            }
+        }
+        assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Drained);
+        let Driver::TerminalSink { observed_bytes } = scheduler.drivers()[1] else {
+            panic!("terminal sink")
+        };
+        assert_eq!(observed_bytes, Some(256));
+        assert_eq!(scheduler.values().used_items(), 0);
+    }
+}
+
+#[test]
+fn failed_direct_encoder_preserves_input_cursor_and_reference() {
+    let mut values = FixedValueStore::<3, 256>::new(257).unwrap();
+    let original = values.store(&[0x77]).unwrap();
+    let mut routes = FixedRoutes::<3, 2>::new(PORTS as u16);
+    for at in 0..2u16 {
+        routes
+            .install(
+                NodeId(at),
+                PortId(0),
+                RouteRange { start: at, len: 1 },
+                &[RouteTarget {
+                    cord: CordId(at),
+                    sink: crate::CordEndpoint::local(NodeId(at + 1), PortId(0)),
+                }],
+            )
+            .unwrap();
+    }
+    routes.seal().unwrap();
+    let signs =
+        FixedSignLog::<16>::new((16 * core::mem::size_of::<crate::KernelEvent>()) as u32).unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, 3, 2, PORTS, 2, 3, 2>::new(
+        [
+            node([None, None]),
+            node([Some(CordId(0)), None]),
+            node([Some(CordId(1)), None]),
+        ],
+        core::array::from_fn(|at| {
+            CordSpec::local(
+                CordId(at as u16),
+                (NodeId(at as u16), PortId(0)),
+                (NodeId(at as u16 + 1), PortId(0)),
+                CordCapacity {
+                    slot_start: at as u16,
+                    item_capacity: 1,
+                    byte_capacity: if at == 0 { 1 } else { 256 },
+                    pressure_policy: Default::default(),
+                },
+            )
+        }),
+        routes,
+        [
+            Driver::Source {
+                values: [Some(original), None, None, None],
+                next: 0,
+            },
+            Driver::EncodedSource {
+                mode: 1,
+                emitted: false,
+            },
+            Driver::TerminalSink {
+                observed_bytes: None,
+            },
+        ],
+        values,
+        signs,
+    )
+    .unwrap();
+    scheduler.step().unwrap();
+    let before = scheduler.cords[0];
+    let references = scheduler.values.reference_count(original).unwrap();
+    assert!(scheduler.step().is_err());
+    let after = scheduler.cords[0];
+    assert_eq!(
+        (
+            after.head,
+            after.len,
+            after.queued_bytes,
+            after.next_remote_sequence
+        ),
+        (
+            before.head,
+            before.len,
+            before.queued_bytes,
+            before.next_remote_sequence
+        )
+    );
+    assert_eq!(after.len, 1);
+    assert_eq!(
+        scheduler.values.reference_count(original).unwrap(),
+        references
+    );
+    assert_eq!(scheduler.values.get(original).unwrap(), &[0x77]);
+    assert_eq!(
+        (scheduler.values.used_items(), scheduler.values.used_bytes()),
+        (1, 1)
+    );
+    assert_eq!(scheduler.cords[1].len, 0);
+    assert!(matches!(
+        scheduler.drivers()[1],
+        Driver::EncodedSource { emitted: false, .. }
+    ));
 }
 
 #[test]

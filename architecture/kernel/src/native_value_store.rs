@@ -6,7 +6,7 @@
 use crate::{StorageError, ValueRef, ValueStorage};
 #[derive(Clone, Copy)]
 struct Slot {
-    generation: u16,
+    generation: u32,
     references: u16,
     value: u64,
 }
@@ -77,11 +77,24 @@ impl<S: ValueStorage, const N: usize> NativeU64ValueStore<S, N> {
     }
 }
 impl<S: ValueStorage, const N: usize> ValueStorage for NativeU64ValueStore<S, N> {
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        if slot < self.canonical_slots {
+            self.canonical.resolve_identity(slot, generation)
+        } else {
+            let value = ValueRef {
+                slot,
+                generation,
+                byte_len: 8,
+            };
+            self.slot(value)?;
+            Ok(value)
+        }
+    }
     fn native_u64_available(&self) -> (u16, u32) {
         (
             self.native
                 .iter()
-                .filter(|slot| slot.references == 0 && slot.generation != u16::MAX)
+                .filter(|slot| slot.references == 0 && slot.generation != u32::MAX)
                 .count() as u16,
             self.native_byte_capacity - u32::from(self.native_used) * 8,
         )
@@ -97,6 +110,18 @@ impl<S: ValueStorage, const N: usize> ValueStorage for NativeU64ValueStore<S, N>
     }
     fn used_bytes(&self) -> u32 {
         self.canonical.used_bytes() + u32::from(self.native_used) * 8
+    }
+    #[cfg(feature = "alloc")]
+    fn supports_prepared_encoding(&self) -> bool {
+        self.canonical.supports_prepared_encoding()
+    }
+    #[cfg(feature = "alloc")]
+    fn store_prepared_encoded(
+        &mut self,
+        maximum_bytes: usize,
+        encode: &mut dyn FnMut(&mut [u8]) -> Result<usize, StorageError>,
+    ) -> Result<ValueRef, StorageError> {
+        self.canonical.store_prepared_encoded(maximum_bytes, encode)
     }
     fn store(&mut self, bytes: &[u8]) -> Result<ValueRef, StorageError> {
         self.canonical.store(bytes)
@@ -118,10 +143,10 @@ impl<S: ValueStorage, const N: usize> ValueStorage for NativeU64ValueStore<S, N>
             .iter_mut()
             .enumerate()
             .find(|(_, s)| {
-                if s.references == 0 && s.generation == u16::MAX {
+                if s.references == 0 && s.generation == u32::MAX {
                     retired = true;
                 }
-                s.references == 0 && s.generation != u16::MAX
+                s.references == 0 && s.generation != u32::MAX
             })
             .ok_or(if retired {
                 StorageError::GenerationExhausted

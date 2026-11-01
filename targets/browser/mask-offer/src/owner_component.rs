@@ -10,7 +10,7 @@ const IMPLEMENTATION: &str = "implementation/browser-owner-face-component@1";
 const CAPABILITY: &str = "capability/browser-owner-face-component@1";
 // Current Look/icon graph; one finite aggregate ceiling, independent per-resource ceilings.
 const MAXIMUM_BUNDLE_BYTES: usize = 131_072;
-const SOURCES: [(&str, &str, usize, &[u8]); 6] = [
+const SOURCES: [(&str, &str, usize, &[u8]); 7] = [
     (
         "component",
         "owner-face-component.mjs",
@@ -46,6 +46,12 @@ const SOURCES: [(&str, &str, usize, &[u8]); 6] = [
         "application-look.mjs",
         32768,
         include_bytes!("../../host/assets/application-look.mjs"),
+    ),
+    (
+        "graphics",
+        "owner-face-graphics.mjs",
+        65536,
+        include_bytes!("../../handbook/owner-face-graphics.mjs"),
     ),
 ];
 

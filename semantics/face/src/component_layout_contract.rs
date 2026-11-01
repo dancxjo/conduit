@@ -6,8 +6,7 @@ use crate::{
     ComponentLayoutNode,
 };
 #[cfg(feature = "plot-catalog")]
-use conduit_plot::rust_binding::BoundedSequence;
-use conduit_plot::rust_binding::NativeRustBinding;
+use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 
 pub fn component_layout_type() -> conduit_core::StructuredInfoType {
     ComponentLayoutInfo::semantic_type().expect("checked finite component layout Type")

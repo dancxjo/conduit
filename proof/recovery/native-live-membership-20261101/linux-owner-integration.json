@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "source": "0ac1c3a7e1",
+  "scope": [
+    "Linux product compilation accepts exact borrowed admission receipt comparisons",
+    "All six credential fields remain part of exact comparison",
+    "Environmental Source output can leave through ordinary typed Fore without a publication Back"
+  ],
+  "checks": [
+    {
+      "name": "Body unit tests",
+      "passed": 60,
+      "failed": 0,
+      "log_sha256": "340ecf831ccf8523d348e74b0f1b4f3138491f49f7b9fde97e760de0b07030fd"
+    },
+    {
+      "name": "source_observation_can_leave_through_ordinary_typed_fore",
+      "passed": 1,
+      "failed": 0,
+      "log_sha256": "4f5dc28f7735121415eafb3eee47142f21c5554d3aeeeff83536df858636556d"
+    }
+  ],
+  "not_proven": [
+    "optimized installed Linux owner image",
+    "new Body birth or membership",
+    "owner-local native Source dispatch",
+    "durable Recorder commitment",
+    "live shared environmental Face or browser Spore startup"
+  ]
+}

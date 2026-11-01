@@ -184,7 +184,18 @@ impl DurableHostRuntime {
             running: Some(worker),
         } = &mut self.host
         {
-            if worker.progress(owner, root)? {
+            let result = worker.progress(owner, root);
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            if let OwnedRunWorker::General(worker) = worker {
+                if let Some(equipment) = worker.take_returned_equipment() {
+                    assert!(
+                        self.selected_environmental_equipment.is_none(),
+                        "returned native equipment cannot replace another owner"
+                    );
+                    self.selected_environmental_equipment = Some(equipment);
+                }
+            }
+            if result? {
                 if let HostSource::Body { running, .. } = &mut self.host {
                     *running = None;
                 }
@@ -256,7 +267,22 @@ impl DurableHostRuntime {
                         owner.start_thermostat_run(root, maximum_millis)?,
                     ))
                 } else {
-                    OwnedRunWorker::General(owner.start_service_run(root, maximum_millis)?)
+                    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+                    let worker = if self.selected_environmental_equipment.is_some() {
+                        owner.start_service_native_run(
+                            root,
+                            maximum_millis,
+                            &mut self.selected_environmental_equipment,
+                        )?
+                    } else {
+                        owner.start_service_run(root, maximum_millis)?
+                    };
+                    #[cfg(not(all(
+                        feature = "installed-environmental-sources",
+                        target_os = "linux"
+                    )))]
+                    let worker = owner.start_service_run(root, maximum_millis)?;
+                    OwnedRunWorker::General(worker)
                 }
             }
             _ => return Err("selected Todo list and Host residence differ".into()),

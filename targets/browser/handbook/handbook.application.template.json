@@ -103,8 +103,19 @@
         {
           "role": "owner-face-pointer",
           "specifier": "./owner-face-pointer.mjs"
+        },
+        {
+          "role": "owner-face-graphics",
+          "specifier": "./owner-face-graphics.mjs"
         }
       ]
+    },
+    {
+      "role": "owner-face-graphics",
+      "kind": "module",
+      "path": "owner-face-graphics.mjs",
+      "maximum_bytes": 65536,
+      "dependencies": []
     },
     {
       "role": "owner-face-pointer",

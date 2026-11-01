@@ -4,16 +4,14 @@ use conduit_core as c;
 pub const WRITE_KIND: &str = "machine/tm1637/write";
 pub const WRITE_CALL: &str = "conduit.host/tm1637-write@1";
 pub const MAXIMUM_BYTES: u32 = 1024;
+pub(crate) const PACKETS_SCHEMA: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/packets.type"));
 pub struct WriteContract {
     kind: c::Kind,
     packets: c::StructuredInfoType,
 }
 impl WriteContract {
     pub fn prepare() -> Result<Self, c::StructuredInfoRefusal> {
-        let packets = c::StructuredInfoType::from_canonical_bytes(include_bytes!(concat!(
-            env!("OUT_DIR"),
-            "/packets.type"
-        )))?;
+        let packets = c::StructuredInfoType::from_canonical_bytes(PACKETS_SCHEMA)?;
         let profile = packets.profile()?;
         let kind = c::Kind {
             kind_id: c::kind_id(WRITE_KIND),

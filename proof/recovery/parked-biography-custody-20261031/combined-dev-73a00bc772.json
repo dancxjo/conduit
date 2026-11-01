@@ -1,0 +1,54 @@
+{
+  "schema": "conduit.proof/live-biography-combined-cpu@1",
+  "source": "73a00bc772d1e7523bf9c269a51d40f0ad9eb5d2",
+  "proof_boundary": "host CPU only; actual opt-in owning harness",
+  "harness": "native_observed_cold",
+  "compile_final_crate_cfg": "feature=\"observation-store\"",
+  "regular": {
+    "passed": 3,
+    "ignored": 1,
+    "nor_operations": 63,
+    "cut_effects": 3,
+    "cut_cases": 189
+  },
+  "boot_global_exact_fresh_process": {
+    "passed": 1,
+    "ignored": 0
+  },
+  "allocation_bytes": {
+    "reserve_peak": 2644,
+    "reserve_backing": 2264,
+    "root_adopt_allocations": 0
+  },
+  "proved": [
+    "actual started owner and realization preserved",
+    "pending RAM tail retained and next checkpoint appends it once",
+    "stale scope refusal before effects",
+    "old or complete successor after each modeled NOR cut",
+    "actual CPU gate permit and affine lease retained across adoption refusal"
+  ],
+  "not_proved": [
+    "native Root caller and mutation fences",
+    "MCU WaitLane phase timing and worst-case work",
+    "continuous physical sampler and Mask execution during custody",
+    "real flash rewrite or observer acknowledgment"
+  ],
+  "logs": {
+    "biography-live-owning-harness-build.log": {
+      "bytes": 7316,
+      "sha256": "1056369338575fb255367ec6e87ef506ffb32d9e3bea4d2e1ee210d7307ffb00"
+    },
+    "biography-live-owning-list.log": {
+      "bytes": 514,
+      "sha256": "f0187cb9ec80d4e145d643742c1224a64ec085c005694cc463678c823a7cda26"
+    },
+    "biography-live-owning-regular.log": {
+      "bytes": 1175,
+      "sha256": "3e92868b5ee1d42c0a6753235bcebbec1bb22af0182eefb9ce27aee485e7eda4"
+    },
+    "biography-live-owning-global.log": {
+      "bytes": 501,
+      "sha256": "9e04b333b70b196aed29bb7f59cab7118eb117cbea2df740e72193502fd0333c"
+    }
+  }
+}

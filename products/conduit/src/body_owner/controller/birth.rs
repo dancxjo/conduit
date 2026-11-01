@@ -118,6 +118,32 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_face: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            source_recording_stage: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog_contents: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_chunk: None,
             todo_verified: None,
             notebook: None,
         }

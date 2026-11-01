@@ -20,6 +20,7 @@ mod deployment_removable;
 mod deployment_uf2;
 mod deployment_vm;
 mod initialization;
+pub mod linked_material;
 mod model;
 mod package_contract;
 mod release_catalog;

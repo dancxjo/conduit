@@ -27,8 +27,10 @@ pub use service::{
 mod worker;
 
 mod base_backing;
+mod storage_refresh;
 pub(crate) use base_backing::BaseBackingReservation;
 mod ledger;
+mod metadata_generation;
 pub(crate) use ledger::{KernelResourceLedger, KernelResourceReservation};
 mod placement_resources;
 

@@ -31,8 +31,10 @@ cargo +stable xtask prove environment history
 
 The shared graph preparation selects at most the latest 16 samples, counting
 all older samples outside the view. Both graphical adapters use the same actual
-producer-Boot time coordinates and independent Celsius/percent axes. They show
-observation dots without interpolation across failed or missing samples. The
+producer-Boot time coordinates and independent Celsius/percent axes. The native adapter joins consecutive available observations with bounded
+polylines; failures, missing sequences and producer-Boot boundaries break the
+line, and isolated samples remain dots. The browser adapter retains its existing
+observation dots. Neither fabricates samples across failures or gaps. The
 browser also supplies a semantic data table and an inspectable source context;
 the native material uses the existing finite `GraphicsScene` grammar with exact
 Face identity/revision retained beside its payload. These are inert preparation
@@ -72,3 +74,11 @@ scheduler, sensor acquisition, Body birth or transport service.
 without discarding recorded samples or advancing recovery. Samples outside the
 view remain counted. This sample budget does not replace admission of the full
 composed Face against the selected Host byte limits.
+
+`RetainedEvidenceGraph` is a separate read-only projection of at most16 original
+canonical observed records supplied by an independently verified retained-evidence
+exporter. It shares chart geometry and finite native graphics, but creates no
+Face contribution, current Play, selected recording State or commit receipt. Its
+native page explicitly says `RETAINED HISTORY / SIGNED EVIDENCE`; producer Boot
+milliseconds remain distinct from wall time. The integrating Host verifies
+signatures and binds the private input before this inert representation check.

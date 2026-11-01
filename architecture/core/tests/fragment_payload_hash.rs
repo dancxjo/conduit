@@ -21,7 +21,7 @@ fn fragment(size: usize) -> PlanFragment {
         },
         Entry {
             key: "text".into(),
-            value: Value::Text("\0é🌡".repeat(size)),
+            value: Value::Text("\0é🌡".repeat(size).into()),
         },
         Entry {
             key: "between".into(),
@@ -84,20 +84,12 @@ fn immutable_payload_lengths_preserve_the_historical_fingerprint() {
     ];
     for ((size, expected), plan_id) in cases.into_iter().zip(plan_ids) {
         let fragment = fragment(size);
-        let id = compute_fragment_id(&fragment);
+        let (id, memory) = allocation_probe::observe(|| compute_fragment_id(&fragment));
         assert_eq!(id.as_str(), expected, "payload size {size}");
         assert_eq!(fixture::seal(fragment.clone()).plan_id.as_str(), plan_id);
-    }
-}
-
-#[test]
-fn fingerprint_scratch_does_not_grow_with_immutable_payloads() {
-    for size in [0, 1, 15, 511, 4096, 32768] {
-        let fragment = fragment(size);
-        let (_, memory) = allocation_probe::observe(|| compute_fragment_id(&fragment));
         assert!(
             memory.peak_bytes <= 2048,
-            "payload size {size} copied into scratch: {memory:?}"
+            "payload copied into scratch: {memory:?}"
         );
     }
 }
@@ -110,7 +102,9 @@ fn equal_length_payload_changes_still_change_identity() {
     let Value::Text(text) = &mut changed.placements[0].configuration[1].value else {
         unreachable!()
     };
-    text.replace_range(7 * 1234..7 * 1234 + 1, "x");
+    let mut changed_text = text.as_str().to_owned();
+    changed_text.replace_range(7 * 1234..7 * 1234 + 1, "x");
+    *text = changed_text.into();
     assert_ne!(compute_fragment_id(&changed), expected);
 
     let mut changed = original;

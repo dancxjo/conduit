@@ -1,0 +1,12 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std)
+error[E0277]: the trait bound `conduit_core::ResourceGenerationId: From<&str>` is not satisfied
+   --> targets/std/src/expression_specialization/tests/body_play.rs:108:69
+    |
+108 |         resource_generation: "test/selected-bool-source-resource@1".into(),
+    |                                                                     ^^^^ the trait `From<&str>` is not implemented for `conduit_core::ResourceGenerationId`
+    |
+    = note: required for `&str` to implement `Into<conduit_core::ResourceGenerationId>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `conduit-std-host` (lib test) due to 1 previous error

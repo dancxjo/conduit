@@ -1,0 +1,86 @@
+{
+  "schema": "conduit.environment/recovery-diagnostics-preparation@1",
+  "diagnostic_source": "7e0dd0bff6f47fe2e4cd523fdf4617a955003e09",
+  "queue_transition_tests_passed": 5,
+  "application_bytes": 3342784,
+  "partition_bytes": 3371008,
+  "stack_bytes": 37372,
+  "stack_floor_bytes": 36864,
+  "diagnostic_image_flashed": true,
+  "new_queue_counter_bytes_per_queue": 16,
+  "queue_behavior_and_authority_unchanged": true,
+  "credential_refusal_codes_preserved_without_private_values": true,
+  "offline_saved_credential_audit": {
+    "production_journal_and_owner_decoder_used": true,
+    "committed_revision": 2,
+    "profiles": 2,
+    "all_profiles_freeze_request_and_retirement_verified": true,
+    "radio_join_or_current_authentication_proved": false
+  },
+  "currently_installed_source": "7e0dd0bff6f47fe2e4cd523fdf4617a955003e09",
+  "continued_local_observation": {
+    "millis": 179583,
+    "sampler_sequence": 2,
+    "archive_committed": 2,
+    "mask_updates": 55,
+    "sampler_failure": null,
+    "mask_failure": null,
+    "archive_failed": false,
+    "root_free_bytes": 22064,
+    "root_peak_bytes": 115168
+  },
+  "current_limit": "After initial station recovery, station link loss triggered actual AP restoration. Retry now refuses physical backing for the unchanged16KiB construction floor. Local sampling/display/history continue. A phased kernel/Sign reservation is under investigation to remove preparation/execution overlap; no saving or successful retry is claimed. Automatic running-Play custody, NAT interruption acceptance, browser/Pi joining and ordinary preparation CPU qualification remain unproved.",
+  "boot": "boot/21e01d2f483bff874eb1e9a7f71b4a11",
+  "guarded_install": {
+    "fresh_full_backup": true,
+    "independent_body_root_pins_verified": true,
+    "application_readback_exact": true,
+    "all_non_application_bytes_exact": true,
+    "safely_retained_closed_epoch_reclaimed_before_next_boot": 447
+  },
+  "network_observation": {
+    "station_address": "10.0.0.210",
+    "observed_services": "station-ready",
+    "control": "attached",
+    "runner_polls": [
+      4,
+      7629
+    ],
+    "network_preparation_peak_used_bytes": 115168,
+    "ordinary_preparation_cpu_qualification": null
+  },
+  "history_readback": {
+    "all_current_directory_and_batch_signatures_verified": true,
+    "all_current_sequences_and_clocks_verified": true,
+    "advertised_records_recovered_at_snapshot": 104,
+    "previous_boot_records_recovered": 28,
+    "new_boot_records_recovered": 2,
+    "recording_ack_sent": false,
+    "selected_installed_recorder_commitment": false
+  },
+  "post_join_recovery_observation": {
+    "local_progress_boot_ms": 345801,
+    "sampler_sequence": 5,
+    "archive_committed": 5,
+    "mask_updates": 110,
+    "sampler_failure": null,
+    "mask_failure": null,
+    "archive_failed": false,
+    "services": "access-point-ready",
+    "network_control": "retry-backoff",
+    "station_address": null,
+    "root_free_bytes_after_refusal": 26456,
+    "retry_preparation_backing_bytes": 4192,
+    "free_bytes_after_backing": 22264,
+    "bank_free_after_backing": [
+      2384,
+      820,
+      19060
+    ],
+    "actual_floor_backed_bytes": 15616,
+    "unchanged_required_floor_bytes": 16384,
+    "floor_refusal_preserved_local_play": true,
+    "linux_connection_trace": "connect timeout and EHOSTUNREACH with repeated FAILED neighbour resolution; not HTTP parser failure",
+    "cause_of_original_radio_link_loss": "not yet established"
+  }
+}

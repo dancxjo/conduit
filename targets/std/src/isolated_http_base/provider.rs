@@ -133,8 +133,28 @@ fn exchange(
         .map_err(|failure| format!("encode exact HTTP request: {failure:?}"))?;
     stream.write_all(&wire).map_err(io_error)?;
     stream.flush().map_err(io_error)?;
-    let response = crate::hosted_http::wire::read_response(stream, request.transaction_id.clone())
-        .map_err(|failure| format!("read exact HTTP response: {failure:?}"))?;
+    let mut observed = ResponseReader {
+        stream,
+        io_failure: None,
+    };
+    let response = match crate::hosted_http::wire::read_response(
+        &mut observed,
+        request.transaction_id.clone(),
+    ) {
+        Ok(response) => response,
+        Err(_) => {
+            let reason = match observed.io_failure {
+                Some(io::ErrorKind::TimedOut | io::ErrorKind::WouldBlock) => "transport:timeout",
+                Some(_) => "transport:io",
+                None => "response:malformed",
+            };
+            write(&ResponseFrame::Refused {
+                reason: reason.into(),
+            })?;
+            // Preserve terminal worker failure: diagnostics do not reopen its lease.
+            return Err("HTTP response refused".into());
+        }
+    };
     let response = conduit_web::encode_response(&response)
         .map_err(|_| "encode bounded HTTP response".to_string())?;
     table
@@ -251,4 +271,20 @@ fn io_error(error: io::Error) -> String {
 
 fn capability_error(error: conduit_core::BaseCapabilityRefusal) -> String {
     format!("capability:{error:?}")
+}
+
+struct ResponseReader<'a> {
+    stream: &'a mut TcpStream,
+    io_failure: Option<io::ErrorKind>,
+}
+impl io::Read for ResponseReader<'_> {
+    fn read(&mut self, bytes: &mut [u8]) -> io::Result<usize> {
+        let result = self.stream.read(bytes);
+        match &result {
+            Err(error) => self.io_failure = Some(error.kind()),
+            Ok(0) if !bytes.is_empty() => self.io_failure = Some(io::ErrorKind::UnexpectedEof),
+            _ => {}
+        }
+        result
+    }
 }

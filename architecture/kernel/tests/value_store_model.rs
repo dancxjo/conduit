@@ -2,7 +2,7 @@
 use conduit_kernel::{FixedValueStore, StorageError, ValueRef, ValueStorage};
 #[derive(Clone, Copy, Default)]
 struct Slot {
-    generation: u16,
+    generation: u32,
     references: u16,
     len: u32,
     byte: u8,
@@ -38,14 +38,14 @@ impl Model {
         let index = (0..8)
             .filter(|&i| {
                 self.slots[i].references == 0
-                    && self.slots[i].generation < u16::MAX
+                    && self.slots[i].generation < u32::MAX
                     && self.capacities[i] >= len
             })
             .min_by_key(|&i| (self.capacities[i], i))
             .ok_or_else(|| {
                 if (0..8).any(|i| {
                     self.slots[i].references == 0
-                        && self.slots[i].generation == u16::MAX
+                        && self.slots[i].generation == u32::MAX
                         && self.capacities[i] >= len
                 }) {
                     StorageError::GenerationExhausted

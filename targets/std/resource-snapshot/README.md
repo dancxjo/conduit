@@ -15,16 +15,25 @@ preparation. Existing generations, abandoned candidates and uncertain I/O stages
 remain distinct. Nothing retries, removes abandoned work or interprets an occupied
 published name as success. Root must explicitly reconcile uncertain outcomes.
 
-Run `cargo xtask check linux-snapshot`. Six tests use actual local file effects,
+`PreparedFileSnapshotOperation` correlates the selected lowered node and complete
+original Host Call request before touching files. Completion reuses retained bytes
+without repeating I/O; overlap, replay and foreign requests refuse. The shared
+operation also serves the browser adapter, preserving its storage-request wire
+shape. Effect completion remains distinct from kernel Step commitment.
+
+Run `cargo xtask check linux-snapshot`. Six primitive tests use actual local file effects,
 including fresh-Boot reopen, duplicate preservation, authority/extent preflight,
 symlink/FIFO/oversize/corruption refusal, abandoned candidates and directory rename.
 Successful prepared publication and read allocate no Rust heap. The check also
 runs shared codec tests and strict all-target package lint. Crash/power-loss
-acceptance is not established by OS sync success.
+acceptance is not established by OS sync success. Four operation tests additionally
+cover request correlation, no repeated effects, invalid JSON and storage refusal.
+Run `cargo xtask check resource-snapshot` for the shared operation and browser
+compatibility checks.
 
 This standalone preparation package creates no Host offer, thread, retry loop,
 kernel scheduler, catalog seed or Body. Root still has to bind the directory to
 its selected resource residence, reserve disk capacity including candidates,
 admit live Host/Boot/Play capability custody and complete memory/work bounds, and
-connect the typed snapshot operation to the actual kernel request. Workspace/Host
-integration and the Pi recorder service remain subsequent work. Refs #6352.
+connect the prepared operation to the actual installed kernel completion. Host
+integration and the Pi recorder service remain subsequent work. Refs #6352, #6354.

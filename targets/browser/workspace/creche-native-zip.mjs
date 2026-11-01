@@ -25,6 +25,9 @@ export async function createBodyBoundZip({ prepared, release, filename }) {
       nonce: prepared.invitation_nonce,
       expires_at_millis: prepared.invitation_expires_at_millis,
       secret: prepared.invitation_secret,
+      root_authority: prepared.root_authority,
+      root_producer: prepared.root_producer,
+      rendezvous: boundSpawnRendezvous(prepared.rendezvous, prepared.body_id, prepared.invitation_id),
       rendezvous_candidates: boundedRendezvousCandidates(prepared.rendezvous_candidates, {
         bodyId: prepared.body_id,
         invitationExpiresAtMillis: prepared.invitation_expires_at_millis,
@@ -188,6 +191,7 @@ function requireProvisionIdentities(provision) {
     || !Number.isSafeInteger(provision.invitation_provision?.expires_at_millis)) {
     throw new TypeError("native ZIP Body provision lost its exact identities");
   }
+  boundSpawnRendezvous(provision.invitation_provision.rendezvous, provision.spore.body_id, provision.invitation_provision.invitation_id);
   boundedRendezvousCandidates(provision.invitation_provision.rendezvous_candidates, {
     bodyId: provision.spore.body_id,
     invitationExpiresAtMillis: provision.invitation_provision.expires_at_millis,
@@ -249,4 +253,16 @@ function crc32(bytes) {
 async function sha256(bytes) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Retain the canonical owner's routed invitation without interpreting it as a
+// selected Line or re-encoding its authenticated endpoint material.
+function boundSpawnRendezvous(value, bodyId, invitationId) {
+  if (value === undefined || value === null) return null;
+  if (value.protocol !== 1 || value.body_id !== bodyId || value.invitation_id !== invitationId
+    || !Array.isArray(value.candidates) || value.candidates.length < 1 || value.candidates.length > 4
+    || encoder.encode(JSON.stringify(value)).length > 16 * 1024) {
+    throw new TypeError("native ZIP routed invitation lost its bounded Body scope");
+  }
+  return value;
 }

@@ -1,0 +1,12 @@
+[package]
+name = "conduit-esp32-pulse-capture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[features]
+host-call = ["conduit-pulse-capture/host-call"]
+[dependencies]
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture" }
+esp-hal = { version = "=1.1.2", features = ["esp32", "unstable"] }
+critical-section = "1.2"

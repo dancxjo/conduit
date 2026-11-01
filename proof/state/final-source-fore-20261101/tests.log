@@ -1,0 +1,16 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/patchbay/workbench/model)
+   Compiling conduit-environment-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/bodies/environment/host)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std/patchbay-workbench)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/plots/thermostat/runtime)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/products/conduit)
+    Finished `test` profile [unoptimized] target(s) in 29.85s
+     Running unittests src/main.rs (/tmp/conduit-local-native-provider-check/debug/deps/conduit-cad10d5861e27838)
+
+running 2 tests
+test durable_host::owner::controller::continuing::final_fore_tests::final_fore_after_existing_refusal_retains_trailing_slot_before_receipt ... ok
+test durable_host::owner::controller::continuing::final_fore_tests::final_fore_after_prejoin_empty_is_refused_before_lifecycle_receipt ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 386 filtered out; finished in 3.65s
+

@@ -56,9 +56,9 @@ pub fn validate_configuration_value(
         (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }
-        (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => {
-            values.contains(value)
-        }
+        (KindConfigurationRule::TextOneOf { values }, ConfigurationValue::Text(value)) => values
+            .iter()
+            .any(|allowed| allowed.as_str() == value.as_str()),
         (KindConfigurationRule::Structured { profile }, ConfigurationValue::Structured(value)) => {
             value.profile() == profile
         }
@@ -220,7 +220,7 @@ fn parse_configuration_value(
     } else if let Ok(value) = literal.parse::<u64>() {
         Ok(ConfigurationValue::U64(value))
     } else if let Some(value) = crate::text_value::parse_quoted_text(&literal) {
-        Ok(ConfigurationValue::Text(value))
+        Ok(ConfigurationValue::Text(value.into()))
     } else {
         Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-041",

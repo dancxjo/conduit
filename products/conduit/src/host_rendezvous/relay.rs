@@ -444,3 +444,9 @@ impl RendezvousLine for ProtectedCarrier<HostedRelayCarrier> {
             .map_err(|error| format!("close protected relay Line: {error:?}"))
     }
 }
+
+#[cfg(unix)]
+#[path = "relay/native_snapshot.rs"]
+mod native_snapshot;
+#[cfg(unix)]
+pub(crate) use native_snapshot::{connect_native_snapshot, serve_native_snapshot};

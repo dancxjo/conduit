@@ -2,7 +2,7 @@
 use super::*;
 
 #[test]
-fn compacted_pending_proof_still_admits_and_retains_completed_receipt() {
+fn compacted_pending_proof_still_admits_and_retained_key_authenticates() {
     let (mut manager, mut candidates, mut membership, key, challenge) = ambient_fixture();
     let wire = serde_json::to_vec(&manager).unwrap();
     manager.try_compact_storage().unwrap();
@@ -17,7 +17,19 @@ fn compacted_pending_proof_still_admits_and_retains_completed_receipt() {
         )
         .unwrap();
     manager.try_compact_storage().unwrap();
-    assert_eq!(manager.receipts[0].credential, credential);
+    let transcript = [42; 32];
+    let signature = key.sign(&transcript).to_bytes();
+    manager
+        .verify_admitted_message(
+            &membership,
+            &credential.part_id,
+            &credential.host_id,
+            &credential.boot_id,
+            &transcript,
+            &signature,
+        )
+        .unwrap();
+    assert_eq!(manager.receipts.owned(0).unwrap().credential, credential);
     assert_eq!(
         manager.complete_ambient(
             &mut candidates,

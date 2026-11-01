@@ -3,7 +3,7 @@
 //! admission, membership, authority, or elapsed authorization time.
 use super::speech_route::{call as speech_call, SpeechReply, SpeechRequest};
 use super::{read_frame, read_secret, write_frame, Request, Response, PROTOCOL};
-use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserWindowAuthorization};
+use crate::durable_host::owner::{BrowserAdmissionCompletion, BrowserWindowAuthorization};
 use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
 };
@@ -136,17 +136,17 @@ pub(crate) fn complete(
     state_dir: &Path,
     window_id: &str,
     frame: BrowserAdmissionIngress,
-) -> Result<BrowserAdmittedSnapshot, String> {
+) -> Result<BrowserAdmissionCompletion, String> {
     match call(state_dir, |token| Request::BodyBrowserComplete {
         protocol: PROTOCOL,
         token,
         window_id: window_id.into(),
         frame: Box::new(frame),
     })? {
-        Response::BodyBrowserSnapshot {
+        Response::BodyBrowserCompletion {
             protocol: PROTOCOL,
-            snapshot,
-        } => Ok(*snapshot),
+            completion,
+        } => Ok(*completion),
         Response::Refused { code, .. } => Err(format!("Body owner refused browser proof: {code}")),
         _ => Err("Body owner returned the wrong browser proof response".into()),
     }

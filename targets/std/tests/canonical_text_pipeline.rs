@@ -43,7 +43,9 @@ fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign() {
             operation.configuration
                 == [conduit_core::ConfigurationEntry {
                     key: "value".to_string(),
-                    value: conduit_core::ConfigurationValue::Text("Hello, world.".to_string()),
+                    value: conduit_core::ConfigurationValue::Text(
+                        "Hello, world.".to_string().into(),
+                    ),
                 }]
         }));
 

@@ -1091,3 +1091,38 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
     assert_eq!(owner.session.evidence(), &before);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn native_planning_refuses_foreign_root_grants_before_proposing_a_body_play() {
+    let checked = source();
+    let mut owner =
+        Owner::open(host("boot/native-scope"), resident(&checked), None, "Test").unwrap();
+    let ad = owner.host.advertisement().clone();
+    let grant = conduit_core::AuthorityGrant {
+        grant_id: "grant/native-source".into(),
+        contract_id: "authority/native-source".into(),
+        host_call_contract_id: "call/native-source".into(),
+        subject_kind: "kind/native-source".into(),
+        host_id: ad.host_id.clone(),
+        boot_id: "boot/earlier".into(),
+        capability_id: "capability/native-source".into(),
+    };
+    assert!(
+        owner
+            .plan_with_execution_custody(&checked, std::slice::from_ref(&grant), &BTreeMap::new())
+            .unwrap_err()
+            .contains("actual installed Host/Boot")
+    );
+    let mut other = grant;
+    other.boot_id = ad.boot_id.clone();
+    other.host_id = "host/another".into();
+    assert!(
+        owner
+            .plan_with_execution_custody(&checked, &[other], &BTreeMap::new())
+            .is_err()
+    );
+    assert!(owner.session.realization().is_none());
+    assert_eq!(owner.host.advertisement(), &ad);
+    owner.plan(&checked).unwrap();
+    assert!(owner.session.realization().is_some());
+}

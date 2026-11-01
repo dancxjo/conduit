@@ -15,6 +15,8 @@ fn context() -> RecordingContext<'static> {
     static PLAN: LazyLock<c::PlanId> = LazyLock::new(|| "fixture/plan".into());
     static PLAY: LazyLock<c::ActivePlayId> = LazyLock::new(|| "fixture/play".into());
     RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &HOST,
         boot: &BOOT,
         plan: &PLAN,
@@ -38,6 +40,22 @@ fn prepared_generation(
     Vec<u8>,
     Vec<u8>,
 ) {
+    prepared_generation_with_basis(version, first, RecordingTimestampBasis::Acquisition)
+}
+fn prepared_generation_with_basis(
+    version: u8,
+    first: u64,
+    timestamp_basis: RecordingTimestampBasis,
+) -> (
+    RecordingSnapshotBack,
+    RecordingCommitObserver,
+    Vec<u8>,
+    Vec<u8>,
+) {
+    let context = || RecordingContext {
+        timestamp_basis,
+        ..context()
+    };
     let contract = ObservationContract::prepare().unwrap();
     let reference = c::BoundedResourceRef {
         identity: c::ResourceSemanticIdentity::from_digest([1; 32]),
@@ -212,8 +230,42 @@ fn actual_kernel_completion_is_required_before_the_recorded_range_becomes_visibl
 fn execute(result: ResultFixture) -> RecordingCommitObserver {
     execute_generation(result, 2, 12)
 }
+#[test]
+fn observation_time_has_the_same_actual_kernel_commit_and_refusal_laws() {
+    for result in [
+        ResultFixture::Published,
+        ResultFixture::Failed,
+        ResultFixture::Denied,
+        ResultFixture::Cancelled,
+        ResultFixture::WrongReference,
+        ResultFixture::MissingOutput,
+        ResultFixture::CorruptContent,
+    ] {
+        execute_generation_with_basis(result, 2, 12, RecordingTimestampBasis::ProducerObservation);
+    }
+}
 fn execute_generation(result: ResultFixture, version: u8, first: u64) -> RecordingCommitObserver {
-    let (back, observer, mut content, mut reference) = prepared_generation(version, first);
+    execute_generation_with_basis(result, version, first, RecordingTimestampBasis::Acquisition)
+}
+fn execute_generation_with_basis(
+    result: ResultFixture,
+    version: u8,
+    first: u64,
+    basis: RecordingTimestampBasis,
+) -> RecordingCommitObserver {
+    let (back, observer, mut content, mut reference) =
+        prepared_generation_with_basis(version, first, basis);
+    let selected = c::BoundedResourceRef::decode(observer.encoded_reference()).unwrap();
+    assert_eq!(
+        PreparedRecordingCatalog::prepare_committed(
+            core::slice::from_ref(&selected),
+            core::slice::from_ref(&observer),
+            2,
+            8192,
+        )
+        .err(),
+        Some(RecordingCatalogRefusal::UncommittedGeneration(0))
+    );
     if matches!(result, ResultFixture::CorruptContent) {
         content[0] = b'!';
     }
@@ -369,6 +421,60 @@ fn execute_generation(result: ResultFixture, version: u8, first: u64) -> Recordi
         "fixture must reach a terminal kernel disposition: {result:?}"
     );
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    let (matches_content, digest_allocation) =
+        allocation_probe::observe(|| observer.committed_content_matches(&content));
+    assert_eq!(matches_content, matches!(result, ResultFixture::Published));
+    assert_eq!(
+        (
+            digest_allocation.allocations,
+            digest_allocation.reallocations
+        ),
+        (0, 0)
+    );
+    if matches_content {
+        let mut changed = content.clone();
+        let index = changed
+            .windows(3)
+            .position(|bytes| bytes == b"100")
+            .unwrap();
+        changed[index + 2] = b'1'; // Same sequence range, different producer time.
+        assert!(!observer.committed_content_matches(&changed));
+        assert!(!observer.committed_content_matches(&reference));
+        assert!(!observer.committed_content_matches(&content[..content.len() - 1]));
+    }
+    let catalog = PreparedRecordingCatalog::prepare_committed(
+        core::slice::from_ref(&selected),
+        core::slice::from_ref(&observer),
+        2,
+        8192,
+    );
+    if matches!(result, ResultFixture::Published) {
+        let catalog = catalog.unwrap();
+        let mut reader = PreparedRecordingCatalogReader::default();
+        reader.read(catalog.content()).unwrap();
+        assert_eq!(
+            reader.encoded_reference(0).unwrap(),
+            selected.encode().unwrap()
+        );
+    } else {
+        assert_eq!(
+            catalog.err(),
+            Some(RecordingCatalogRefusal::UncommittedGeneration(0))
+        );
+    }
+    let mut foreign = selected;
+    foreign.lifetime.version = c::ResourceVersionIdentity::from_digest([version + 1; 32]);
+    assert_eq!(
+        PreparedRecordingCatalog::prepare_committed(
+            &[foreign],
+            core::slice::from_ref(&observer),
+            2,
+            8192,
+        )
+        .err(),
+        Some(RecordingCatalogRefusal::PublicationReference(0))
+    );
+
     assert_eq!(
         requests,
         usize::from(!matches!(result, ResultFixture::CorruptContent))
@@ -386,4 +492,43 @@ fn execute_generation(result: ResultFixture, version: u8, first: u64) -> Recordi
         u32::from(matches!(result, ResultFixture::Published))
     );
     observer
+}
+
+#[test]
+fn catalog_requires_every_exact_ordered_generation_to_have_committed() {
+    let first = execute_generation(ResultFixture::Published, 2, 12);
+    let second = execute_generation(ResultFixture::Published, 3, 64);
+    let failed = execute_generation(ResultFixture::Failed, 4, 128);
+    let observers = [first, second, failed];
+    let references: Vec<_> = observers
+        .iter()
+        .map(|observer| c::BoundedResourceRef::decode(observer.encoded_reference()).unwrap())
+        .collect();
+    assert!(PreparedRecordingCatalog::prepare_committed(
+        &references[..2],
+        &observers[..2],
+        3,
+        8192
+    )
+    .is_ok());
+    assert_eq!(
+        PreparedRecordingCatalog::prepare_committed(&references, &observers, 4, 8192).err(),
+        Some(RecordingCatalogRefusal::UncommittedGeneration(2))
+    );
+    assert_eq!(
+        PreparedRecordingCatalog::prepare_committed(&references, &observers[..2], 4, 8192).err(),
+        Some(RecordingCatalogRefusal::PublicationCount)
+    );
+    let reversed_references = [references[1].clone(), references[0].clone()];
+    let reversed_observers = [observers[1].clone(), observers[0].clone()];
+    assert_eq!(
+        PreparedRecordingCatalog::prepare_committed(
+            &reversed_references,
+            &reversed_observers,
+            3,
+            8192
+        )
+        .err(),
+        Some(RecordingCatalogRefusal::PublicationOrder(1))
+    );
 }

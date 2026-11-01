@@ -13,6 +13,8 @@ use std::{
 
 #[path = "body_owner/mod.rs"]
 pub(crate) mod owner;
+#[path = "durable_host_root_signer.rs"]
+pub(crate) mod root_signer;
 pub(crate) use owner::run as run_body_owner;
 #[path = "body_owner/lock.rs"]
 mod owner_lock;
@@ -60,7 +62,14 @@ mod membership;
 #[path = "durable_body_join_route.rs"]
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
-pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
+pub(crate) use membership::{
+    accept_membership_invitation, complete_body_join, complete_membership_join,
+    retain_rendezvous_membership,
+};
+#[cfg(unix)]
+pub(crate) use membership::RetainedPart;
+#[cfg(unix)]
+pub(crate) use routed_join::native_snapshot_encounter;
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]
@@ -1579,7 +1588,29 @@ mod tests {
         })
         .unwrap();
         write_bytes_atomic(&receipt_path, &receipt_bytes).unwrap();
+        let pending_before_completion = fs::read(joining_state.join("body/pending-join.json")).unwrap();
         complete_body_join(&receipt_path, &joining_state, true).unwrap();
+        let private_before_retry = fs::read(joining_state.join("body/native-part-private.json")).unwrap();
+        let runtime_before_retry = fs::read(joining_state.join("runtime.json")).unwrap();
+        let installation_before_retry = fs::read(joining_state.join("installation.json")).unwrap();
+        // A completed binding alone cannot regenerate missing private custody.
+        fs::remove_file(joining_state.join("body/native-part-private.json")).unwrap();
+        write_bytes_atomic(&joining_state.join("body/pending-join.json"), &pending_before_completion).unwrap();
+        assert!(complete_body_join(&receipt_path, &joining_state, true).is_err());
+        assert!(joining_state.join("body/pending-join.json").exists());
+        write_bytes_atomic(&joining_state.join("body/native-part-private.json"), &private_before_retry).unwrap();
+        #[cfg(unix)] {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(joining_state.join("body/native-part-private.json"), fs::Permissions::from_mode(0o600)).unwrap();
+        }
+        // Reproduce the durable crash boundary: installation committed, pending
+        // deletion not yet durable. Retry must only reconcile and consume it.
+        write_bytes_atomic(&joining_state.join("body/pending-join.json"), &pending_before_completion).unwrap();
+        complete_body_join(&receipt_path, &joining_state, true).unwrap();
+        assert_eq!(fs::read(joining_state.join("body/native-part-private.json")).unwrap(), private_before_retry);
+        assert_eq!(fs::read(joining_state.join("runtime.json")).unwrap(), runtime_before_retry);
+        assert_eq!(fs::read(joining_state.join("installation.json")).unwrap(), installation_before_retry);
+
         let joined_installation =
             read_installation(&joining_state.join("installation.json")).unwrap();
         let joined = joined_installation
@@ -1597,3 +1628,7 @@ mod tests {
         fs::remove_dir_all(joining_state.parent().unwrap()).unwrap();
     }
 }
+
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "durable_host/selected_environmental_sources.rs"]
+pub(crate) mod selected_environmental_sources;

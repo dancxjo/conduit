@@ -11,13 +11,13 @@ pub const STEPS: &[Step] = &[
         "tm1637-output.contract",
         "Verify exact selected and assigned output, finite kernel execution and electrical failures",
         "cargo",
-        &["test", "--locked", "--manifest-path", "mechanisms/io/tm1637/Cargo.toml", "--features", "host-call"],
+        &["test", "--locked", "--manifest-path", "mechanisms/io/tm1637/Cargo.toml", "--features", "prepared-write-session"],
     ),
     Step::new(
         "tm1637-output.lint",
         "Lint output ownership, wire transport and its contract fixtures",
         "cargo",
-        &["clippy", "--locked", "--manifest-path", "mechanisms/io/tm1637/Cargo.toml", "--features", "host-call", "--all-targets", "--", "-D", "warnings"],
+        &["clippy", "--locked", "--manifest-path", "mechanisms/io/tm1637/Cargo.toml", "--features", "prepared-write-session", "--all-targets", "--", "-D", "warnings"],
     ),
     Step::new(
         "tm1637-output.source",

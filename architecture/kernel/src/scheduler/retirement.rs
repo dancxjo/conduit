@@ -88,6 +88,34 @@ where
         Ok(())
     }
 
+    /// Read-only retirement preflight. This reports scheduling custody only;
+    /// it grants no replacement execution, native claim or Body admission.
+    pub fn can_retire(&self) -> bool {
+        (self.cancelled || self.completed[..self.active_nodes].iter().all(|done| *done))
+            && !self.pending_host_calls.iter().any(Option::is_some)
+            && !self.queue_slots.iter().any(Option::is_some)
+            && !self.cords[..self.active_cords]
+                .iter()
+                .any(|cord| cord.len != 0 || cord.offered_remote_sequence.is_some())
+    }
+
+    /// Return only the original value and Sign backing after the same complete
+    /// retirement gate, dropping the terminal drivers in their original Box.
+    /// This is not a replacement execution or authority grant. Refusal retains
+    /// the exact Box and all of its owners, without allocating.
+    #[cfg(feature = "alloc")]
+    pub fn try_retire_backing(
+        self: alloc::boxed::Box<Self>,
+    ) -> Result<(S, E), alloc::boxed::Box<Self>> {
+        if !self.can_retire() {
+            return Err(self);
+        }
+        // Do not bind a giant driver array in a temporary return value. The
+        // remaining fields are dropped normally, including every original Back.
+        let Self { values, signs, .. } = *self;
+        Ok((values, signs))
+    }
+
     /// Refuses active/quiescent execution and outstanding queue/host ownership.
     /// Refusal returns the exact original scheduler so execution may continue.
     #[allow(
@@ -95,13 +123,7 @@ where
         reason = "Refusal must return fixed-storage ownership without allocating or dropping the active scheduler"
     )]
     pub fn try_retire(self) -> Result<RetiredExecution<D, S, E, NODES>, Self> {
-        if (!self.cancelled && !self.completed[..self.active_nodes].iter().all(|done| *done))
-            || self.pending_host_calls.iter().any(Option::is_some)
-            || self.queue_slots.iter().any(Option::is_some)
-            || self.cords[..self.active_cords]
-                .iter()
-                .any(|cord| cord.len != 0 || cord.offered_remote_sequence.is_some())
-        {
+        if !self.can_retire() {
             return Err(self);
         }
         Ok(RetiredExecution {

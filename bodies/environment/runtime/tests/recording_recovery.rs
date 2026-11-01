@@ -14,6 +14,8 @@ fn prepared() -> (PreparedRecordingChunk, PreparedRecordingReader, Vec<u8>) {
     let plan = PlanId::from("plan/exact");
     let play = ActivePlayId::from("play/exact");
     let context = || RecordingContext {
+        timestamp_basis:
+            conduit_environment_runtime::recording::RecordingTimestampBasis::Acquisition,
         host: &host,
         boot: &boot,
         plan: &plan,
@@ -66,7 +68,7 @@ fn recovered_quantities_failures_and_gaps_require_no_play_allocations() {
             let sample = reader.sample(i).unwrap();
             assert_eq!(sample.disposition, status);
             assert_eq!(sample.sequence, i as u64 * 2 + 7);
-            assert_eq!(sample.sampled_at_boot_ms, i as u64 * 60_000);
+            assert_eq!(sample.at_boot_ms, i as u64 * 60_000);
             assert_eq!(
                 sample.observation,
                 (i == 0).then_some(observation.as_slice())

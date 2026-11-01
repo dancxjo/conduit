@@ -97,7 +97,7 @@ impl Owner {
         let already_admitted = manager
             .receipts
             .iter()
-            .any(|receipt| receipt.credential.host_id == request.host_advertisement.host_id);
+            .any(|receipt| receipt.credential.host_id == request.host_advertisement.host_id.as_str());
         let mut session = self.session.clone();
         let credential = session
             .admit_invited_host(

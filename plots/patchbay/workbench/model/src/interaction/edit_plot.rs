@@ -51,7 +51,7 @@ fn edit_configuration() -> Vec<KindConfigurationField> {
         text_field("basis"),
         KindConfigurationField {
             key: "operation".into(),
-            default_value: ConfigurationValue::Text(String::new()),
+            default_value: ConfigurationValue::Text(String::new().into()),
             rule: KindConfigurationRule::TextOneOf {
                 values: vec![
                     "place-gear".into(),
@@ -69,7 +69,7 @@ fn edit_configuration() -> Vec<KindConfigurationField> {
         text_field("key"),
         KindConfigurationField {
             key: "value-type".into(),
-            default_value: ConfigurationValue::Text(String::new()),
+            default_value: ConfigurationValue::Text(String::new().into()),
             rule: KindConfigurationRule::TextOneOf {
                 values: vec![
                     "none".into(),
@@ -111,7 +111,7 @@ fn edit_configuration() -> Vec<KindConfigurationField> {
 fn text_field(key: &str) -> KindConfigurationField {
     KindConfigurationField {
         key: key.into(),
-        default_value: ConfigurationValue::Text(String::new()),
+        default_value: ConfigurationValue::Text(String::new().into()),
         rule: KindConfigurationRule::TextBytes {
             maximum: MAX_INTERACTION_ID_BYTES as u32,
         },
@@ -245,7 +245,7 @@ fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &Patchba
         Some(ConfigurationValue::Bool(value)) => ("bool", *value, 0, 0, String::new()),
         Some(ConfigurationValue::U64(value)) => ("count", false, *value, 0, String::new()),
         Some(ConfigurationValue::I64(value)) => ("scalar", false, 0, *value, String::new()),
-        Some(ConfigurationValue::Text(value)) => ("text", false, 0, 0, value.clone()),
+        Some(ConfigurationValue::Text(value)) => ("text", false, 0, 0, value.to_string()),
         Some(ConfigurationValue::Structured(value)) => (
             "structured-read-only",
             false,
@@ -294,7 +294,7 @@ pub(super) fn edit_from_configuration(
             .ok_or_else(|| InteractionError::Plot(format!("interaction field '{key}' is absent")))
     };
     let text = |key: &str| match value(key)? {
-        ConfigurationValue::Text(value) => Ok(value.clone()),
+        ConfigurationValue::Text(value) => Ok(value.to_string()),
         _ => Err(InteractionError::MalformedValue),
     };
     let revision = match value("revision")? {

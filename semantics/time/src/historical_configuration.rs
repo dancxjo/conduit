@@ -109,14 +109,14 @@ pub fn historical_timeline_kind_projection() -> conduit_plot::KindProjection {
         configuration: vec![
             KindConfigurationField {
                 key: "value-profile".to_string(),
-                default_value: ConfigurationValue::Text("value/text".to_string()),
+                default_value: ConfigurationValue::Text("value/text".to_string().into()),
                 rule: KindConfigurationRule::TextBytes {
                     maximum: MAXIMUM_RESOURCE_REFERENCE_IDENTITY_BYTES as u32,
                 },
             },
             KindConfigurationField {
                 key: "clock-basis".to_string(),
-                default_value: ConfigurationValue::Text("history/event-clock".to_string()),
+                default_value: ConfigurationValue::Text("history/event-clock".to_string().into()),
                 rule: KindConfigurationRule::TextBytes {
                     maximum: MAXIMUM_TEMPORAL_IDENTITY_BYTES as u32,
                 },
@@ -124,7 +124,7 @@ pub fn historical_timeline_kind_projection() -> conduit_plot::KindProjection {
             KindConfigurationField {
                 key: "time-scale".to_string(),
                 default_value: ConfigurationValue::Text(
-                    HISTORICAL_TIME_SCALE_MILLISECONDS.to_string(),
+                    HISTORICAL_TIME_SCALE_MILLISECONDS.to_string().into(),
                 ),
                 rule: KindConfigurationRule::TextOneOf {
                     values: vec![
@@ -153,7 +153,9 @@ pub fn historical_timeline_kind_projection() -> conduit_plot::KindProjection {
             },
             KindConfigurationField {
                 key: "overflow-policy".to_string(),
-                default_value: ConfigurationValue::Text(HISTORICAL_OVERFLOW_REFUSE.to_string()),
+                default_value: ConfigurationValue::Text(
+                    HISTORICAL_OVERFLOW_REFUSE.to_string().into(),
+                ),
                 rule: KindConfigurationRule::TextOneOf {
                     values: vec![
                         HISTORICAL_OVERFLOW_REFUSE.to_string(),

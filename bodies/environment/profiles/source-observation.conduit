@@ -1,0 +1,10 @@
+# Exact sensor-independent observation output; Host offers select equipment.
+# This Plot grants no native possession, Body membership or recording authority.
+plot sample (
+    >> begin: Empty...|
+    observation: EnvironmentalObservation...| >>
+) {
+    source: environment/read-environmental-source()
+    begin >> source.request
+    source.observation >> observation
+}

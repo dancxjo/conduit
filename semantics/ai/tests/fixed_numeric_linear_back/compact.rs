@@ -52,6 +52,9 @@ impl ValueStorage for Values {
     fn release(&mut self, v: ValueRef) -> Result<(), StorageError> {
         self.inner.release(v)
     }
+    fn resolve_identity(&self, slot: u16, generation: u32) -> Result<ValueRef, StorageError> {
+        self.inner.resolve_identity(slot, generation)
+    }
     fn reference_count(&self, v: ValueRef) -> Result<u16, StorageError> {
         self.inner.reference_count(v)
     }

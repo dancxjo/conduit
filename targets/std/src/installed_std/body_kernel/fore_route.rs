@@ -24,6 +24,7 @@ pub(super) struct BodyForeRoute<'a> {
     deliveries: Vec<ExternalForeDelivery>,
     pending_output: Option<BodyForePendingOutput>,
     started: bool,
+    borrowed_stream: bool,
     acknowledged_inputs: VecDeque<AcknowledgedInput>,
 }
 
@@ -176,6 +177,7 @@ impl<'a> BodyForeRoute<'a> {
             deliveries: Vec::with_capacity(delivery_capacity),
             pending_output: None,
             started: false,
+            borrowed_stream: false,
             acknowledged_inputs: VecDeque::with_capacity(MAX_COMPLETED_INPUT_EVENTS),
         })
     }
@@ -199,6 +201,18 @@ impl<'a> BodyForeRoute<'a> {
         external_fore_feeder::remote_sign_items(&self.ports, maximum_items)
     }
 
+    pub(super) fn prepare_borrowed_stream(&mut self) -> Result<(), String> {
+        if self.started
+            || self
+                .output_slots
+                .iter()
+                .any(|slot| slot.input_origin.is_some())
+        {
+            return Err("borrowed Fore stream cannot replace retained input-event custody".into());
+        }
+        self.borrowed_stream = true;
+        Ok(())
+    }
     pub(super) fn has_ports(&self) -> bool {
         !self.ports.is_empty()
     }
@@ -239,7 +253,7 @@ impl<'a> BodyForeRoute<'a> {
                 .remote_egress_offer(planned.endpoint, planned.cord)
                 .map_err(|error| format!("Body Fore offer: {error:?}"))?
             {
-                if self.deliveries.len() == self.deliveries.capacity() {
+                if !self.borrowed_stream && self.deliveries.len() == self.deliveries.capacity() {
                     return Err("Body Fore delivery capacity exceeded".into());
                 }
                 let bytes = scheduler
@@ -277,13 +291,25 @@ impl<'a> BodyForeRoute<'a> {
                     .pop()
                     .ok_or("Body Fore delivery slots exhausted")?;
                 delivery.fill_prepared(offer.sequence, bytes)?;
-                let delivery = match custody::deliver(scheduler, output, planned, delivery) {
+                let delivery = match custody::deliver(
+                    scheduler,
+                    output,
+                    planned,
+                    delivery,
+                    self.borrowed_stream,
+                ) {
                     Ok(delivery) => delivery,
                     Err((pending, error)) => {
                         self.pending_output = Some(pending);
                         return Err(error);
                     }
                 };
+                if self.borrowed_stream {
+                    // The borrowed adapter copied accepted bytes into its own
+                    // finite storage. Recycle only AFTER exact kernel ACK.
+                    slots.available.push(delivery);
+                    continue;
+                }
                 // Retain confirmed delivery even if a subsequent source/map
                 // acknowledgement fails. Those are distinct custody facts.
                 let delivery_index = self.deliveries.len();

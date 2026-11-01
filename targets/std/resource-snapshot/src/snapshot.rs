@@ -216,4 +216,7 @@ impl<'a> PreparedFileSnapshot<'a> {
         self.buffer_len = length;
         Ok(())
     }
+    pub(crate) fn cached_record(&self) -> &[u8] {
+        &self.buffer[..self.buffer_len]
+    }
 }

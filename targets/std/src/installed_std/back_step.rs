@@ -235,6 +235,7 @@ installed_step_dispatch!(
     RecordedSpeech,
     WhisperSpeech,
     MicrophoneClip,
+    MicrophoneFlow,
     AddressDetect,
     RecognitionText,
     RecognizedTurnCommit,
@@ -243,6 +244,7 @@ installed_step_dispatch!(
     KeyboardInput,
     ButtonInput,
     Tick,
+    TickTrigger,
     PulseObserve,
     #[cfg(test)]
     TestPulseSink,
@@ -291,6 +293,8 @@ installed_step_dispatch!(
     FinalNormalizedPattern,
     TimedPattern,
     TimedButtonAttempt,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    LinuxSnapshot,
     TemplateStorage,
     DataSaveText,
     DataLoadText,

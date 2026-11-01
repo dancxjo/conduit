@@ -174,8 +174,8 @@ impl Owner {
                     .receipts
                     .iter()
                     .rev()
-                    .find(|receipt| receipt.credential.part_id == credential.part_id)
-                    .is_some_and(|receipt| receipt.credential == *credential)
+                    .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
+                    .is_some_and(|receipt| receipt.credential.matches(credential))
             });
             if !current || !admitted || credential.body_id != self.session.evidence().body_id {
                 return Err("browser-route-part-unavailable".into());

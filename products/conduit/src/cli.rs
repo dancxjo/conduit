@@ -1,3 +1,4 @@
+pub(crate) mod body_recording;
 mod host_service;
 pub(crate) use host_service::HostServiceCommand;
 #[cfg(target_os = "linux")]
@@ -300,6 +301,26 @@ pub(crate) struct InstalledTodoCheckpointOptions {
 
 #[derive(Debug, Subcommand)]
 pub(crate) enum BodyCommand {
+    /// Replace one exact resident Plot while retaining the same lulled Body.
+    ReplacePlot {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        source: PathBuf,
+        #[arg(long)]
+        expected_workload_revision: u64,
+        #[arg(long)]
+        expected_checked_plot_id: String,
+    },
+    /// Explicitly establish this installed owner's durable receipt-signing identity.
+    EstablishRootSigner {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        body_id: String,
+        #[arg(long)]
+        authorize_establish: bool,
+    },
     /// Rename an existing environmental Body through its signed Root transaction.
     Rename(crate::body_rename::Args),
     /// Write, save and reopen the installed owner's bounded text notebook.
@@ -383,6 +404,8 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         todo_new_list: Option<String>,
     },
+    /// Perform an explicit finite recording stage on the current installed Body.
+    Recording(body_recording::BodyRecordingArgs),
     /// Request that the current service-owned Body Play stop and lull.
     Lull {
         #[arg(long)]
@@ -430,9 +453,12 @@ pub(crate) enum BodyCommand {
         /// Installed Host state whose running service owns the Body.
         #[arg(long)]
         state_dir: PathBuf,
+        /// Authorize one newly issued invitation, binding its first valid fresh browser.
+        #[arg(long, conflicts_with_all = ["expected_host_id", "new_host_verifying_key"])]
+        invited: bool,
         /// Exact Host ID shown by the browser's "Join an owned Body" view.
-        #[arg(long)]
-        expected_host_id: String,
+        #[arg(long, required_unless_present = "invited")]
+        expected_host_id: Option<String>,
         /// JSON byte array copied from the browser for first admission; omit on return.
         #[arg(long)]
         new_host_verifying_key: Option<String>,
@@ -486,6 +512,27 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         state_dir: PathBuf,
         /// Explicitly authorize retaining membership in the admitted body.
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_membership: bool,
+    },
+    /// Prepare bounded membership proof for this actual running installed Host.
+    #[command(hide = true)]
+    AcceptMembership {
+        invitation: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Independently trusted issuer public key (64 hexadecimal characters).
+        #[arg(long)]
+        root_key: String,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
+    },
+    /// Verify a pinned Root's membership-only receipt and retain this membership.
+    #[command(hide = true)]
+    CompleteMembership {
+        receipt: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_membership: bool,
     },
@@ -927,6 +974,58 @@ mod public_surface_tests {
             "--selected-todo-checkpoint-root",
             "/existing/checkpoint",
             "--without-selected-todo-checkpoint",
+        ]))
+        .is_err());
+    }
+    #[test]
+    fn browser_window_keeps_exact_host_mode_and_explicit_invitation_mode_disjoint() {
+        let base = [
+            "conduit",
+            "body",
+            "browser-window",
+            "--state-dir",
+            "/tmp/host",
+        ];
+        assert!(Cli::try_parse_from(base).is_err());
+        let exact = Cli::try_parse_from(base.into_iter().chain([
+            "--expected-host-id",
+            "browser/test",
+            "--authorize-window",
+        ]))
+        .unwrap();
+        assert!(matches!(
+            exact.command,
+            Some(Command::Body {
+                command: Some(BodyCommand::BrowserWindow {
+                    invited: false,
+                    expected_host_id: Some(_),
+                    ..
+                })
+            })
+        ));
+        let invited =
+            Cli::try_parse_from(base.into_iter().chain(["--invited", "--authorize-window"]))
+                .unwrap();
+        assert!(matches!(
+            invited.command,
+            Some(Command::Body {
+                command: Some(BodyCommand::BrowserWindow {
+                    invited: true,
+                    expected_host_id: None,
+                    ..
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.into_iter().chain([
+            "--invited",
+            "--expected-host-id",
+            "browser/test"
+        ]))
+        .is_err());
+        assert!(Cli::try_parse_from(base.into_iter().chain([
+            "--invited",
+            "--new-host-verifying-key",
+            "[]"
         ]))
         .is_err());
     }

@@ -4,8 +4,57 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+#[cfg(feature = "recording-kernel")]
+mod batch_kernel;
+#[cfg(feature = "recording-kernel")]
+pub use batch_kernel::{PreparedRecordingBatchKernel, RecordingBatchKernel};
+#[cfg(feature = "recording-kernel")]
+mod back;
+#[cfg(feature = "recording-kernel")]
+mod installation;
+#[cfg(feature = "recording-kernel")]
+mod kernel;
+#[cfg(feature = "recording-kernel")]
+mod recovery_back;
+#[cfg(feature = "recording-kernel")]
+mod reference_source;
+#[cfg(feature = "recording-kernel")]
+mod temporal;
+#[cfg(feature = "recording-kernel")]
+pub use back::RecordingBack;
+#[cfg(feature = "recording-kernel")]
+pub use installation::{
+    ReadyRecordingConcat, ReadyRecordingGenerations, ReadyRecordingRecovery,
+    ReadyRecordingSingleton, ReadyRecordingSoftware, RecoveryInstallationRefusal,
+};
+#[cfg(feature = "recording-kernel")]
+pub use kernel::{
+    PreparedRecordingKernel, RecordingKernel, RecordingKernelRefusal, RecordingRoles,
+};
+#[cfg(feature = "recording-kernel")]
+pub use recovery_back::{install_recovery_kind, recovery_kind, RecordingRecoveryBack};
+#[cfg(feature = "recording-kernel")]
+pub use reference_source::{
+    generation_source_kind, generation_value_kind, install_generation_source_kind,
+    install_generation_value_kind, RecordingReferenceRefusal, RecordingReferenceSource,
+};
+#[cfg(feature = "recording-kernel")]
+pub use temporal::{recording_singleton_kind, RecordingSingletonBack};
+mod catalog;
+pub use catalog::{
+    PreparedRecordingCatalog, PreparedRecordingCatalogReader, RecordingCatalogRefusal,
+    MAXIMUM_CATALOG_GENERATIONS,
+};
+mod batch;
+pub use batch::{PreparedRecordingBatch, PreparedRecordingGeneration, RecordingBatchRefusal};
+mod publication;
+pub use publication::PreparedRecordingInput;
+mod timestamp;
+pub use timestamp::RecordingTimestampBasis;
 mod history;
 mod host_call;
+#[cfg(feature = "face-projection")]
+mod observed;
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
 mod reader;
 mod snapshot;
@@ -26,6 +75,7 @@ pub const SAMPLE_BYTES: usize = 21; // sequence u64le, boot ms u64le, status For
 const PREFIX_BYTES: usize = MAXIMUM_CHUNK_BYTES - MAXIMUM_CHUNK_SAMPLES * SAMPLE_BYTES * 2 - 2;
 
 pub struct RecordingContext<'a> {
+    pub timestamp_basis: RecordingTimestampBasis,
     pub host: &'a HostId,
     pub boot: &'a BootId,
     pub plan: &'a PlanId,
@@ -34,6 +84,9 @@ pub struct RecordingContext<'a> {
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecordingRefusal {
     ContextExtent,
+    ClockBasis,
+    #[cfg(feature = "face-projection")]
+    ObservedRecord(crate::observed_record::Refusal),
     Empty,
     Full,
     Sealed,
@@ -65,6 +118,7 @@ pub enum ChunkAppend {
 /// preserves the exact bytes across failed publication attempts. No implicit
 /// flush, retry, eviction, next generation or mutable store is hidden here.
 pub struct PreparedRecordingChunk {
+    timestamp_basis: RecordingTimestampBasis,
     quantities: PreparedObservationQuantityForms,
     prefix: String,
     output: String,
@@ -78,7 +132,9 @@ impl PreparedRecordingChunk {
         contract: &ObservationContract,
     ) -> Result<Self, RecordingRefusal> {
         let mut prefix = String::with_capacity(MAXIMUM_CHUNK_BYTES);
-        prefix.push_str("{\"schema\":\"conduit.environment/recording-chunk@1\",\"identity_encoding\":\"utf8-hex\",\"record_encoding\":\"hex\",\"record_bytes\":21,\"clock\":\"producer-boot-ms\"");
+        prefix.push_str("{\"schema\":\"conduit.environment/recording-chunk@1\",\"identity_encoding\":\"utf8-hex\",\"record_encoding\":\"hex\",\"record_bytes\":21,\"clock\":\"");
+        prefix.push_str(context.timestamp_basis.clock_profile());
+        prefix.push('"');
         for (name, value) in [
             ("host", context.host.as_str()),
             ("boot", context.boot.as_str()),
@@ -107,6 +163,7 @@ impl PreparedRecordingChunk {
             return Err(RecordingRefusal::ContextExtent);
         }
         Ok(Self {
+            timestamp_basis: context.timestamp_basis,
             quantities: PreparedObservationQuantityForms::prepare(contract)?,
             prefix,
             output: String::with_capacity(MAXIMUM_CHUNK_BYTES),
@@ -117,11 +174,12 @@ impl PreparedRecordingChunk {
     }
     /// Inputs use the shared committed PublicationSnapshot sequence across all
     /// producer outcomes. Failures never copy a prior temperature; their four
-    /// quantity bytes are absent (canonical zero).
+    /// quantity bytes are absent (canonical zero). The clock has the event
+    /// meaning independently selected in RecordingContext, never receipt/UTC time.
     pub fn append(
         &mut self,
         sequence: u64,
-        sampled_at_boot_ms: u64,
+        at_boot_ms: u64,
         disposition: RecordingDisposition,
         observation: Option<&[u8]>,
     ) -> Result<ChunkAppend, RecordingRefusal> {
@@ -135,7 +193,7 @@ impl PreparedRecordingChunk {
         let tag = forms::RecordingDispositionForm::encode(disposition)[0];
         let mut entry = [0; SAMPLE_BYTES];
         entry[..8].copy_from_slice(&sequence.to_le_bytes());
-        entry[8..16].copy_from_slice(&sampled_at_boot_ms.to_le_bytes());
+        entry[8..16].copy_from_slice(&at_boot_ms.to_le_bytes());
         entry[16] = tag;
         if tag == forms::RecordingDispositionForm::encode(RecordingDisposition::Available)[0] {
             entry[17..].copy_from_slice(
@@ -145,6 +203,18 @@ impl PreparedRecordingChunk {
             );
         } else if observation.is_some() {
             return Err(E::UnexpectedObservation);
+        }
+        self.append_entry(entry)
+    }
+    fn append_entry(&mut self, entry: [u8; SAMPLE_BYTES]) -> Result<ChunkAppend, RecordingRefusal> {
+        use RecordingRefusal as E;
+        if self.sealed {
+            return Err(E::Sealed);
+        }
+        let sequence = u64::from_le_bytes(entry[..8].try_into().unwrap());
+        let at_boot_ms = u64::from_le_bytes(entry[8..16].try_into().unwrap());
+        if sequence == 0 {
+            return Err(E::InvalidSequence);
         }
         for old in &self.samples[..self.count] {
             if old[..8] == entry[..8] {
@@ -163,7 +233,7 @@ impl PreparedRecordingChunk {
                 return Err(E::OutOfOrder);
             }
             let previous_time = u64::from_le_bytes(last[8..16].try_into().unwrap());
-            if sampled_at_boot_ms < previous_time {
+            if at_boot_ms < previous_time {
                 return Err(E::ClockReversed);
             }
             if sequence - previous > 1 {

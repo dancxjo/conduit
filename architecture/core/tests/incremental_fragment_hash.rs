@@ -70,7 +70,7 @@ fn placement(prototype: &PlannedGear, index: usize) -> PlannedGear {
     gear.gear_id = format!("gear/{index:03}").into();
     gear.configuration = vec![ConfigurationEntry {
         key: "program".into(),
-        value: ConfigurationValue::Text(format!("{index:03}\0{}", "é".repeat(4096))),
+        value: ConfigurationValue::Text(format!("{index:03}\0{}", "é".repeat(4096)).into()),
     }];
     gear
 }
@@ -114,4 +114,29 @@ fn placements_can_be_materialized_and_retired_individually_without_retaining_the
         reversed.push_placement(gear).unwrap();
     }
     assert_ne!(reversed.finish((&metadata).into()).unwrap(), expected);
+}
+
+#[test]
+fn separately_borrowed_configuration_keeps_the_canonical_placement_identity() {
+    let mut fragment = fixture::fragment();
+    fragment.placements[0].configuration = vec![
+        ConfigurationEntry {
+            key: "program".into(),
+            value: ConfigurationValue::Text("é\0canonical".into()),
+        },
+        ConfigurationEntry {
+            key: "count".into(),
+            value: ConfigurationValue::U64(27),
+        },
+    ];
+    let mut metadata = fragment.placements[0].clone();
+    let entries = core::mem::take(&mut metadata.configuration);
+    assert!(!entries.is_empty());
+    let mut hash = FragmentFingerprintBuilder::new((&fragment).into(), 1);
+    hash.push_placement_with_configuration(&metadata, &entries)
+        .unwrap();
+    assert_eq!(
+        hash.finish((&fragment).into()).unwrap(),
+        compute_fragment_id(&fragment)
+    );
 }

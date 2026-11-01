@@ -14,7 +14,8 @@ creche-surface = []
 protected-line = ["dep:conduit-protected-line"]
 
 [dependencies]
-conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot" }
+conduit-environment-history = { path = "../../../bodies/environment/history" }
+conduit-resource-snapshot = { path = "../../../mechanisms/io/resource-snapshot", features = ["host-call", "serde"] }
 conduit-synth = { path = "../../../mechanisms/implementations/synth" }
 conduit-audio = { path = "../../../semantics/audio" }
 conduit-body-invitation-plot = { path = "../../../semantics/body-invitation" }
@@ -70,6 +71,7 @@ qrcode = { version = "0.14.1", default-features = false }
 conduit-web = { path = "../../../semantics/web", features = ["plot-catalog"] }
 
 [dev-dependencies]
+conduit-environment-measurement = { path = "../../../bodies/environment/measurement" }
 # Browser planning conformance exercises the hosted speech offer catalog as
 # fixture data; production browser builds still carry no std speech provider.
 conduit-std-offers = { path = "../../std/offers", features = ["speech"] }

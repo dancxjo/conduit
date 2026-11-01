@@ -1,4 +1,7 @@
 //! Finite authenticated owner route for one portable Body invitation.
+#[cfg(unix)]
+#[path = "durable_body_join_route/native_snapshot_encounter.rs"]
+pub(crate) mod native_snapshot_encounter;
 
 #[path = "durable_body_join_route/face_snapshot.rs"]
 mod face_snapshot;

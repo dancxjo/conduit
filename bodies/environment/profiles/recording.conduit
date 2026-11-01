@@ -10,3 +10,9 @@ type RecordingDisposition =
     | checksum
     | invalid-payload
 form environment/recording-disposition = RecordingDisposition as u8
+
+# Event meaning in the producer's Boot clock; neither alternative is UTC or
+# receiver receipt time. Observing a publication does not date its acquisition.
+type RecordingTimestampBasis =
+    acquisition
+    | producer-observation

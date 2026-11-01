@@ -228,7 +228,7 @@ pub(crate) fn raw_sink_offer(kind: &str, value_kind: &str) -> CapabilityOffer {
 pub(crate) fn raw_configuration(value: &[u8]) -> Vec<ConfigurationEntry> {
     vec![ConfigurationEntry {
         key: "value".into(),
-        value: ConfigurationValue::Text(hex(value)),
+        value: ConfigurationValue::Text(hex(value).into()),
     }]
 }
 
@@ -240,7 +240,7 @@ pub(crate) fn bind_text_configuration(
 ) {
     offer.semantic_contract.configuration = vec![conduit_core::KindConfigurationField {
         key: key.into(),
-        default_value: ConfigurationValue::Text(default_value),
+        default_value: ConfigurationValue::Text(default_value.into()),
         rule: conduit_core::KindConfigurationRule::TextBytes { maximum },
     }];
 }

@@ -2,8 +2,9 @@
 use crate::AdmissionRefusal;
 use crate::{
     BodyBiographyArchiveSegment, BodyBiographyError, BodyBiographyEvidence, BodyFulfillment,
-    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlayIdentity, BodyState,
-    FulfillmentObligation, MembershipRefusal, MembershipState, ResidentPlot, Wake,
+    BodyLifecycleError, BodyLifecycleEvent, BodyPlan, BodyPlanError, BodyPlanEvidence,
+    BodyPlanSeal, BodyPlanSealRefusal, BodyPlayIdentity, BodyState, FulfillmentObligation,
+    MembershipRefusal, MembershipState, ResidentPlot, Wake,
 };
 use alloc::{vec, vec::Vec};
 use conduit_core::{bind_sign, AuthorityGrantId, BootId, HostId, SignId};
@@ -11,26 +12,31 @@ use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "authenticated-admission")]
 mod browser_admission;
+mod checkpoint_history;
 mod continuity;
 mod flow;
 mod membership;
 #[cfg(feature = "authenticated-admission")]
+mod observer_return;
+mod prepared_proposal;
+#[cfg(feature = "authenticated-admission")]
 mod naming;
 mod proposal;
+pub use prepared_proposal::{PreparedVerifiedBodyProposal, VerifiedBodyProposalContext};
 mod workload;
 
 /// An exact current proposal and its optional admitted play, never a scheduler.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BodyLifecycleRealization {
+pub struct BodyLifecycleRealization<P: BodyPlanEvidence = BodyPlan> {
     pub wake: Wake,
-    pub plan: BodyPlan,
+    pub plan: P,
     pub play: Option<BodyPlayIdentity>,
 }
 
 #[derive(Clone, Debug)]
-pub struct BodyLifecycleSession {
+pub struct BodyLifecycleOwner<P: BodyPlanEvidence> {
     evidence: BodyBiographyEvidence,
-    realization: Option<BodyLifecycleRealization>,
+    realization: Option<BodyLifecycleRealization<P>>,
     foreground: Option<ResidentPlot>,
     pub(crate) pending_archives: Vec<BodyBiographyArchiveSegment>,
 }
@@ -42,6 +48,7 @@ pub enum BodyLifecycleSessionError {
     Admission(AdmissionRefusal),
     Lifecycle(BodyLifecycleError),
     Plan(BodyPlanError),
+    PlanSeal(BodyPlanSealRefusal),
     Membership(MembershipRefusal),
     NotLulled,
     NoProposal,
@@ -55,11 +62,17 @@ pub enum BodyLifecycleSessionError {
     ArchivePersistenceRequired,
 }
 
-impl BodyLifecycleSession {
+/// Ordinary hosted owner retaining inspectable rich Plot Plans.
+pub type BodyLifecycleSession = BodyLifecycleOwner<BodyPlan>;
+/// The same lifecycle owner retaining local immutable validation evidence.
+/// Execution admission remains separate; this cannot deserialize a Plan seal.
+pub type SealedBodyLifecycleSession = BodyLifecycleOwner<BodyPlanSeal>;
+
+impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
     /// A Crèche handoff or retained body may be opened for inspection. Only a
     /// Lulled Body can subsequently mutate; Fulfilled remains terminal.
     /// An Awake snapshot alone never proves its previous Play has ended.
-    pub fn open(evidence: BodyBiographyEvidence) -> Result<Self, BodyLifecycleSessionError> {
+    pub fn open(mut evidence: BodyBiographyEvidence) -> Result<Self, BodyLifecycleSessionError> {
         evidence
             .validate()
             .map_err(BodyLifecycleSessionError::Biography)?;
@@ -69,6 +82,10 @@ impl BodyLifecycleSession {
         ) {
             return Err(BodyLifecycleSessionError::UnreconciledWake);
         }
+        evidence
+            .membership
+            .share_validated_checkpoint_parts()
+            .map_err(BodyLifecycleSessionError::Membership)?;
         let foreground = evidence.body.workset.plots().first().cloned();
         Ok(Self {
             foreground,
@@ -93,7 +110,7 @@ impl BodyLifecycleSession {
     pub fn evidence(&self) -> &BodyBiographyEvidence {
         &self.evidence
     }
-    pub fn realization(&self) -> Option<&BodyLifecycleRealization> {
+    pub fn realization(&self) -> Option<&BodyLifecycleRealization<P>> {
         self.realization.as_ref()
     }
 
@@ -101,8 +118,76 @@ impl BodyLifecycleSession {
         self.foreground.as_ref()
     }
 
+    /// Inspect retained inline archive slots without traversing their contents
+    /// or changing archive acknowledgment custody.
+    pub fn pending_archive_storage_usage(&self) -> crate::VecStorageUsage {
+        crate::VecStorageUsage::inspect(&self.pending_archives)
+    }
+
     pub fn pending_archives(&self) -> &[BodyBiographyArchiveSegment] {
         &self.pending_archives
+    }
+
+    /// Stage exact membership history for the next complete durable checkpoint.
+    /// No archive is acknowledged or discarded here. Only a settled Lulled
+    /// owner may move this history; active proposals and Plays remain fenced.
+    pub fn seal_membership_history_for_checkpoint(
+        &mut self,
+    ) -> Result<bool, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        if self.evidence.body.state != BodyState::Lulled || self.realization.is_some() {
+            return Err(BodyLifecycleSessionError::NotLulled);
+        }
+        self.stage_membership_history_for_checkpoint()
+    }
+
+    /// Stage membership-only history while retaining the exact already-started
+    /// realization. This neither ends nor starts a Play, and never acknowledges
+    /// archive custody. An Awake snapshot alone cannot construct this owner.
+    pub fn seal_started_membership_history_for_checkpoint(
+        &mut self,
+    ) -> Result<bool, BodyLifecycleSessionError> {
+        self.require_mutable()?;
+        let current = self
+            .realization
+            .as_ref()
+            .ok_or(BodyLifecycleSessionError::NoProposal)?;
+        let play = current
+            .play
+            .as_ref()
+            .ok_or(BodyLifecycleSessionError::StalePlay)?;
+        if !matches!(&self.evidence.body.state, BodyState::Awake { wake_id }
+            if wake_id == &current.wake.wake_id)
+            || !play.validate_for(&current.plan)
+            || !self.evidence.wakes.iter().any(|wake| wake == &current.wake)
+        {
+            return Err(BodyLifecycleSessionError::StalePlay);
+        }
+        self.stage_membership_history_for_checkpoint()
+    }
+
+    fn stage_membership_history_for_checkpoint(
+        &mut self,
+    ) -> Result<bool, BodyLifecycleSessionError> {
+        if self.evidence.membership.events.is_empty() {
+            return Ok(false);
+        }
+        if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+        }
+        self.pending_archives
+            .try_reserve_exact(1)
+            .map_err(|_| BodyLifecycleSessionError::ArchivePersistenceRequired)?;
+        let segment = self
+            .evidence
+            .seal_membership_history()
+            .map_err(BodyLifecycleSessionError::Biography)?;
+        if let Some(segment) = segment {
+            self.pending_archives.push(segment);
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// A host calls this only after the archive segments and the newer active
@@ -157,15 +242,10 @@ impl BodyLifecycleSession {
         if expected != wake_at_start {
             return Err(BodyLifecycleSessionError::StalePlay);
         }
-        let mut evidence = self.evidence.clone();
-        evidence
-            .append_wake(
-                evidence.body.clone(),
-                expected.clone(),
-                self.next_sequence()?,
-            )
+        let sequence = self.next_sequence()?;
+        self.evidence
+            .append_unchanged_body_wake(wake_at_start, sequence)
             .map_err(BodyLifecycleSessionError::Biography)?;
-        self.evidence = evidence;
         let realization = self.realization.as_mut().expect("validated realization");
         realization.wake = expected;
         realization.play = Some(play);
@@ -230,14 +310,15 @@ impl BodyLifecycleSession {
             || rejections.iter().any(|rejection| {
                 rejection.host_id != *host
                     || rejection.boot_id != *boot
-                    || rejection.plan_id.as_ref() != Some(&current.plan.plan_id)
+                    || rejection.plan_id.as_ref() != Some(current.plan.plan_id())
                     || rejection.checked_plot_ids.is_empty()
                     || rejection.checked_plot_ids.iter().any(|checked| {
                         !current
                             .plan
-                            .plots
+                            .workset()
+                            .plots()
                             .iter()
-                            .any(|plot| &plot.plot.checked_plot_id == checked)
+                            .any(|plot| &plot.checked_plot_id == checked)
                     })
             })
         {
@@ -348,15 +429,18 @@ impl BodyLifecycleSession {
             .ok_or(BodyLifecycleSessionError::SequenceExhausted)
     }
 
+    fn has_lifecycle_room(&self, body_signs: usize, wakes: usize) -> bool {
+        self.evidence.body.sign_ids.len().saturating_add(body_signs) <= crate::MAX_BODY_SIGNS
+            && self.evidence.wakes.len().saturating_add(wakes) <= crate::MAX_BODY_BIOGRAPHY_WAKES
+            && self.evidence.records.len().saturating_add(5) <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+    }
+
     fn make_lifecycle_room(
         &mut self,
         body_signs: usize,
         wakes: usize,
     ) -> Result<(), BodyLifecycleSessionError> {
-        while self.evidence.body.sign_ids.len().saturating_add(body_signs) > crate::MAX_BODY_SIGNS
-            || self.evidence.wakes.len().saturating_add(wakes) > crate::MAX_BODY_BIOGRAPHY_WAKES
-            || self.evidence.records.len().saturating_add(5) > crate::MAX_BODY_BIOGRAPHY_RECORDS
-        {
+        while !self.has_lifecycle_room(body_signs, wakes) {
             if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
                 return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
             }
@@ -396,26 +480,40 @@ impl BodyLifecycleSession {
     }
 
     fn make_membership_room(&mut self, events: usize) -> Result<(), BodyLifecycleSessionError> {
-        if self.evidence.membership.events.len().saturating_add(events)
-            <= crate::MAX_MEMBERSHIP_EVENTS
-            && self.evidence.records.len().saturating_add(events)
-                <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+        if let Some(segment) =
+            prepare_membership_room(&mut self.evidence, self.pending_archives.len(), events)?
         {
-            return Ok(());
+            self.pending_archives.push(segment);
         }
-        if self.pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
-            return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
-        }
-        let segment = self
-            .evidence
-            .seal_membership_history()
-            .map_err(BodyLifecycleSessionError::Biography)?
-            .ok_or(BodyLifecycleSessionError::Biography(
-                BodyBiographyError::CapacityExhausted,
-            ))?;
-        self.pending_archives.push(segment);
         Ok(())
     }
+}
+
+fn has_membership_room(evidence: &BodyBiographyEvidence, events: usize) -> bool {
+    evidence.membership.events.len().saturating_add(events) <= crate::MAX_MEMBERSHIP_EVENTS
+        && evidence.records.len().saturating_add(events) <= crate::MAX_BODY_BIOGRAPHY_RECORDS
+}
+
+/// Prepare compaction against privately owned evidence; returned archive custody
+/// is published only together with a successful membership transaction.
+fn prepare_membership_room(
+    evidence: &mut BodyBiographyEvidence,
+    pending_archives: usize,
+    events: usize,
+) -> Result<Option<BodyBiographyArchiveSegment>, BodyLifecycleSessionError> {
+    if has_membership_room(evidence, events) {
+        return Ok(None);
+    }
+    if pending_archives >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+        return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+    }
+    evidence
+        .seal_membership_history()
+        .map_err(BodyLifecycleSessionError::Biography)?
+        .map(Some)
+        .ok_or(BodyLifecycleSessionError::Biography(
+            BodyBiographyError::CapacityExhausted,
+        ))
 }
 
 fn sign(host: &HostId, boot: &BootId, sequence: u64) -> SignId {

@@ -67,6 +67,24 @@ impl<const P: usize> StepBack<P> for Back<'_> {
             }
         }
     }
+    fn encodes_prepared_output(&self, port: PortId) -> bool {
+        match self {
+            Self::Native(back) => <CaptureBack as StepBack<P>>::encodes_prepared_output(back, port),
+            _ => false,
+        }
+    }
+    fn encode_prepared_output(
+        &self,
+        port: PortId,
+        output: &mut [u8],
+    ) -> Result<usize, conduit_kernel::StorageError> {
+        match self {
+            Self::Native(back) => {
+                <CaptureBack as StepBack<P>>::encode_prepared_output(back, port, output)
+            }
+            _ => Err(conduit_kernel::StorageError::RepresentationMismatch),
+        }
+    }
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
         match self {
             Self::Native(back) => <CaptureBack as StepBack<P>>::prepared_output(back, port),

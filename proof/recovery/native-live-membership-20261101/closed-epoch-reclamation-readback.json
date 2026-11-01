@@ -1,0 +1,28 @@
+{
+  "schema": "conduit.environment/physical-observed-custody-snapshot@1",
+  "snapshot_sha256": "04ab1c92eb605e8dbedb9e712c3a66eb140a3d698f5b9750ebffdd4463c9e377",
+  "physical_epoch_origin": "0x348000",
+  "erased_data_bytes": 122880,
+  "markers": [
+    {
+      "bank": 0,
+      "generation": 73,
+      "phase": 1,
+      "accepted_records": 73,
+      "accepted_sha256": "4de36faff50e5078fd676921ba8d569ca92126e0b80ff6ea413f75726770e6e4"
+    },
+    {
+      "bank": 1,
+      "generation": 74,
+      "phase": 2,
+      "accepted_records": 73,
+      "accepted_sha256": "4de36faff50e5078fd676921ba8d569ca92126e0b80ff6ea413f75726770e6e4"
+    }
+  ],
+  "all_data_erased": true,
+  "root_signatures_crc_body_geometry_verified": true,
+  "same_acceptance_in_both_markers": true,
+  "client_http_acceptance_retained": false,
+  "raw_backup_and_416_byte_acceptance_retained_privately": true,
+  "scope": "Independent signature, CRC, physical geometry, and erased-byte readback of fresh950 backup; no erase or new custody acknowledgment issued by verifier."
+}

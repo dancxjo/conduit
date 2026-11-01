@@ -207,7 +207,7 @@ impl Owner {
                 .receipts
                 .iter()
                 .rev()
-                .any(|admitted| admitted.credential == *credential)
+                .any(|admitted| admitted.credential.matches(credential))
         });
         if interaction_line.is_some() || spoken.is_some() {
             let digest = super::super::super::digest(

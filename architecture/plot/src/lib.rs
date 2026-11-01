@@ -2,6 +2,8 @@
 
 #[macro_use]
 extern crate alloc;
+#[cfg(feature = "flat-image")]
+pub mod flat_image;
 #[cfg(test)]
 extern crate std;
 
@@ -52,6 +54,8 @@ mod expression_proof;
 mod expression_quantity;
 mod expression_semantic_call;
 mod expression_trigonometry;
+mod planning_ref;
+pub use planning_ref::*;
 mod functional_front;
 mod glyph_notation;
 #[cfg(test)]
@@ -173,6 +177,7 @@ pub struct PlotDiagnostic {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "flat-image", derive(serde::Serialize, serde::Deserialize))]
 pub struct CheckedGear {
     pub gear_id: GearId,
     pub kind_id: KindId,
@@ -189,6 +194,7 @@ pub struct CheckedGear {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "flat-image", derive(serde::Serialize, serde::Deserialize))]
 pub struct CheckedConnection {
     pub source_gear_id: GearId,
     pub source_port_id: PortId,

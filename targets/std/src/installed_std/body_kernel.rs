@@ -26,10 +26,14 @@ use std::io::Write;
 
 mod clock_observation;
 mod data_text;
+mod durable_state;
 mod fore_route;
+pub(crate) mod native;
 mod parsec_acknowledged_map;
 mod parsec_sources;
 mod parsec_terminal_owner;
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod snapshot;
 pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod each_route;
 mod scan_route;
@@ -39,6 +43,10 @@ use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
     scheduler: Box<InstalledScheduler>,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    snapshot: Option<snapshot::PreparedBodySnapshot<'a>>,
+    durable_states: Vec<durable_state::PreparedBodyState>,
+    native: native::NativeRoute,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
@@ -65,6 +73,7 @@ pub(crate) struct BodyKernelResult {
     pub terminal: TerminalDisposition,
     pub failure: Option<String>,
     pub kernel_failure: Option<Failure>,
+    pub native_failure: Option<crate::body_execution::native::NativeFailureDiagnostic>,
     pub cleanup_failure: Option<String>,
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
@@ -182,6 +191,7 @@ impl<'a> BodyKernel<'a> {
             None,
             #[cfg(target_os = "linux")]
             None,
+            &[],
         )
     }
 
@@ -210,6 +220,7 @@ impl<'a> BodyKernel<'a> {
             sources.as_ref(),
             #[cfg(target_os = "linux")]
             selected_file,
+            &[],
         )
     }
 
@@ -242,11 +253,12 @@ impl<'a> BodyKernel<'a> {
             sources.as_ref(),
             #[cfg(target_os = "linux")]
             selected_file,
+            &[],
         )
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn prepare_with_live(
+    pub(crate) fn prepare_with_live(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
@@ -258,6 +270,42 @@ impl<'a> BodyKernel<'a> {
         #[cfg(target_os = "linux")] selected_file: Option<
             &'a crate::text_file::SelectedTextFileResidence,
         >,
+        native_calls: &[(conduit_core::CapabilityId, conduit_core::Kind)],
+    ) -> Result<Self, String> {
+        Self::prepare_with_storage(
+            partitions,
+            has_keyboard,
+            parent_play,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+            live,
+            parsec_sources,
+            #[cfg(target_os = "linux")]
+            selected_file,
+            native_calls,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_with_storage(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+        live: Option<&BodyLiveForeQueue>,
+        parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
+        #[cfg(target_os = "linux")] selected_file: Option<
+            &'a crate::text_file::SelectedTextFileResidence,
+        >,
+        native_calls: &[(conduit_core::CapabilityId, conduit_core::Kind)],
+        durable: Option<(
+            &crate::body_execution::BodyStateStorageSelection<'_>,
+            &conduit_body::BodyPlayIdentity,
+        )>,
     ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
@@ -306,9 +354,21 @@ impl<'a> BodyKernel<'a> {
             .iter()
             .map(|partition| &partition.plan)
             .collect::<Vec<_>>();
-        let lowered = lower_local_fragment_set_from_plans(
+        let lower = if durable.is_some() {
+            conduit_plan_lowering::fragment_set::lower_local_fragment_set_from_plans_with_body_state
+        } else {
+            lower_local_fragment_set_from_plans
+        };
+        let profile = if durable.is_some() {
+            FIXED_KERNEL_STORAGE_PROFILE
+                .with_state_storage(1, conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES)
+                .map_err(|e| format!("Body State profile: {e:?}"))?
+        } else {
+            FIXED_KERNEL_STORAGE_PROFILE
+        };
+        let lowered = lower(
             &plans,
-            FIXED_KERNEL_STORAGE_PROFILE,
+            profile,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
                 nodes: MAX_NODES as u16,
@@ -320,6 +380,7 @@ impl<'a> BodyKernel<'a> {
             },
         )
         .map_err(|error| format!("Body fragment lowering: {error:?}"))?;
+        let native = native::NativeRoute::prepare(&fragments, &lowered.partitions, native_calls)?;
         let fore = if let Some(queue) = live {
             BodyForeRoute::prepare_live(&lowered.partitions, queue)?
         } else {
@@ -335,7 +396,10 @@ impl<'a> BodyKernel<'a> {
                 if !has_keyboard {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
-            } else if !timer(&operation.contract_id)
+            } else if !native.contains(operation.node)
+                && !(durable.is_some()
+                    && durable_state::is_operation(operation.contract_id.as_str()))
+                && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
                 && !text_state(&operation.contract_id)
@@ -344,6 +408,7 @@ impl<'a> BodyKernel<'a> {
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
                 && !face(operation)
+                && !super::linux_snapshot_host::is_operation(operation.contract_id.as_str())
             {
                 return Err(format!(
                     "Body Host Call is unsupported: {}",
@@ -370,7 +435,11 @@ impl<'a> BodyKernel<'a> {
                 } else {
                     // Ordinary Backs are budgeted only after exact activation
                     // owners have been consumed by the whole-Plan scan route.
-                    ordinary = preparation::back_budget(placement)?;
+                    ordinary = if native.matches(partition_index, &placement.placement_id) {
+                        native::budget(placement)?
+                    } else {
+                        preparation::back_budget(placement)?
+                    };
                     &ordinary
                 };
                 items = items
@@ -404,6 +473,7 @@ impl<'a> BodyKernel<'a> {
             .ok_or("Body Fore Sign overflow")?;
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
+        let mut durable_states = Vec::new();
         let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
         for (partition_index, (fragment, part)) in
             fragments.iter().zip(&lowered.partitions).enumerate()
@@ -426,6 +496,33 @@ impl<'a> BodyKernel<'a> {
                             .take()
                             .ok_or("installed Each owner was prepared twice")?,
                     ))
+                } else if let Some(state) = part.states.iter().find(|state| {
+                    state.node == node.node
+                        && fragment.placements.iter().any(|placement| {
+                            placement.placement_id == node.placement_id
+                                && placement.implementation_id.as_str()
+                                    == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+                        })
+                }) {
+                    let (selection, play) =
+                        durable.ok_or("Body State has no selected durable residence")?;
+                    let prepared = durable_state::PreparedBodyState::prepare(
+                        fragment,
+                        part,
+                        state,
+                        selection,
+                        play,
+                        &mut values,
+                    )?;
+                    let (driver, host) = prepared;
+                    durable_states.push(host);
+                    InstalledBack::DurableState(Box::new(driver))
+                } else if native.contains(node.node) {
+                    InstalledBack::SelectedNativeSource(
+                        conduit_kernel::scheduler::HostCallBack::new(
+                            native.input_bound(node.node)?,
+                        ),
+                    )
                 } else {
                     preparation::prepare_ordinary_operation(
                         fragment,
@@ -506,6 +603,10 @@ impl<'a> BodyKernel<'a> {
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
+            #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+            snapshot: None,
+            durable_states,
+            native,
             face_labels,
             input_origin: None,
             fore,
@@ -535,6 +636,18 @@ impl<'a> BodyKernel<'a> {
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
+    }
+
+    pub(crate) fn prepare_borrowed_fore(&mut self) -> Result<(), String> {
+        self.fore.prepare_borrowed_stream()
+    }
+
+    pub(crate) fn prepare_native_slots(
+        &mut self,
+        inventory: &conduit_core::HostAdvertisement,
+        sequence: u64,
+    ) -> Result<(), String> {
+        self.native.install(inventory, sequence)
     }
 
     /// Prepare input origin descriptors without granting issued-Play authority.
@@ -681,6 +794,20 @@ impl<'a> BodyKernel<'a> {
     /// profile have installed Body routes. This admits execution shape only;
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+        if self
+            .operations
+            .iter()
+            .any(|operation| self.requires_snapshot_custody(operation))
+            && self.snapshot.is_none()
+        {
+            return Err(
+                "planned Body snapshot has no selected directory/resource/grant custody".into(),
+            );
+        }
+        if !self.native.is_prepared() {
+            return Err("Body native work has no prepared provider request slots".into());
+        }
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
         }) && self.todo_checkpoint.is_none()
@@ -709,6 +836,40 @@ impl<'a> BodyKernel<'a> {
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn run<W: Write, T: TimerAdapter>(
+        self,
+        output: &mut W,
+        clock: &mut T,
+        input: Option<&mut dyn HostedKeyboardAdapter>,
+        fore_output: Option<&mut dyn BodyForeOutputAdapter>,
+        control: &RunControl,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
+        body_time: Option<(&BodyTimeRequirement, &BodyClockCorrelation)>,
+        execution_bounds: Option<(
+            conduit_core::MonotonicDuration,
+            conduit_core::MonotonicDuration,
+        )>,
+        admitted_clock_quality: Option<BodyTimeQuality>,
+        terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
+    ) -> BodyKernelResult {
+        self.run_with_native(
+            output,
+            clock,
+            input,
+            fore_output,
+            control,
+            host_id,
+            boot_id,
+            body_time,
+            execution_bounds,
+            admitted_clock_quality,
+            terminal,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn run_with_native<W: Write, T: TimerAdapter>(
         mut self,
         output: &mut W,
         clock: &mut T,
@@ -724,6 +885,7 @@ impl<'a> BodyKernel<'a> {
         )>,
         admitted_clock_quality: Option<BodyTimeQuality>,
         mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
+        mut native_execution: Option<&mut crate::body_execution::native::NativeExecution<'_>>,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -740,9 +902,10 @@ impl<'a> BodyKernel<'a> {
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let mut clock_quality = admitted_clock_quality;
         let mut kernel_failure = None;
+        let mut native_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
-            loop {
+            'body: loop {
                 self.fore.drain(
                     &mut self.scheduler,
                     &mut fore_output,
@@ -879,6 +1042,18 @@ impl<'a> BodyKernel<'a> {
                                 },
                             )
                             .map_err(|error| format!("Body keyboard cancellation: {error:?}"))?;
+                    } else if self.native.contains(cancellation.node) {
+                        self.scheduler
+                            .complete_host_call(
+                                cancellation.node,
+                                cancellation.request,
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Cancelled,
+                                    output: None,
+                                    failure: None,
+                                },
+                            )
+                            .map_err(|e| format!("Body native cancellation: {e:?}"))?;
                     } else {
                         deadlines.cancel(cancellation, &mut self.scheduler)?;
                     }
@@ -903,10 +1078,91 @@ impl<'a> BodyKernel<'a> {
                         .iter()
                         .find(|op| op.node == request.node && op.call == request.call)
                         .ok_or("Body request has no exact partition operation")?;
+                    if durable_state::is_operation(operation.contract_id.as_str()) {
+                        self.durable_states
+                            .iter_mut()
+                            .find(|state| state.node == request.node)
+                            .ok_or("Body State request has no exact residence")?
+                            .perform(&mut self.scheduler, request, operation)?;
+                        continue;
+                    }
+                    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                    if self.requires_snapshot_custody(operation) {
+                        self.snapshot
+                            .as_mut()
+                            .ok_or("Body snapshot custody absent")?
+                            .perform(&mut self.scheduler, request)?;
+                        continue;
+                    }
                     let input = self
                         .scheduler
                         .host_value(request.input.value)
                         .map_err(|error| format!("Body request value: {error:?}"))?;
+                    if self.native.contains(request.node) {
+                        let execution = native_execution
+                            .as_deref_mut()
+                            .ok_or("Body native provider absent")?;
+                        let bytes = match self.native.execute(execution, request, input) {
+                            Ok(bytes) => bytes,
+                            Err(error) => {
+                                native_failure = execution.last_failure;
+                                return Err(error);
+                            }
+                        };
+                        if control.stop_requested() {
+                            // Retire the original lease before dropping late bytes. The
+                            // ordinary cancellation path owns the terminal completion.
+                            continue 'body;
+                        }
+                        let outcome = match bytes {
+                            Ok(bytes) => {
+                                let value = self
+                                    .scheduler
+                                    .store_host_value(&bytes)
+                                    .map_err(|e| format!("Body native output: {e:?}"))?;
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Completed,
+                                    output: Some(
+                                        BoundedValueRef::new(
+                                            value,
+                                            operation.binding.maximum_output_bytes,
+                                        )
+                                        .map_err(|e| format!("Body native output bound: {e:?}"))?,
+                                    ),
+                                    failure: None,
+                                }
+                            }
+                            Err(_) => {
+                                if native_failure.is_none() {
+                                    native_failure = execution.last_failure;
+                                }
+                                // Outcome classification belongs to THIS request even
+                                // when the report retains an earlier terminal refusal.
+                                let denied =
+                                    execution.last_failure.is_some_and(|d| d.category.denied());
+                                HostCallOutcome {
+                                    disposition: if denied {
+                                        HostCallDisposition::Denied
+                                    } else {
+                                        HostCallDisposition::Failed
+                                    },
+                                    output: None,
+                                    failure: Some(Failure {
+                                        code: if denied {
+                                            FailureCode::HostCallDenied
+                                        } else {
+                                            FailureCode::HostCallFailed
+                                        },
+                                        detail: 1,
+                                    }),
+                                }
+                            }
+                        };
+                        self.scheduler
+                            .complete_host_call(request.node, request.request, outcome)
+                            .map_err(|e| format!("Body native completion: {e:?}"))?;
+                        continue;
+                    }
                     if data_text::is_file(&operation.contract_id) {
                         let source = self
                             .data_text_hosts
@@ -1441,6 +1697,7 @@ impl<'a> BodyKernel<'a> {
             terminal,
             failure,
             kernel_failure,
+            native_failure,
             cleanup_failure,
             partitions: self.partitions,
             requests: self.requests,

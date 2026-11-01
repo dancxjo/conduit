@@ -17,12 +17,9 @@
 
 extern crate alloc;
 
-#[cfg(feature = "authenticated-admission")]
-mod storage_usage;
-#[cfg(feature = "authenticated-admission")]
-pub use storage_usage::VecStorageUsage;
-
 mod administration;
+mod storage_usage;
+pub use storage_usage::VecStorageUsage;
 #[cfg(feature = "authenticated-admission")]
 mod rename;
 #[cfg(feature = "authenticated-admission")]
@@ -56,6 +53,7 @@ mod offers;
 #[cfg(feature = "authenticated-admission")]
 mod pico_admission;
 mod planning_session;
+mod postcard_hash;
 mod presence;
 mod provenance;
 mod rendezvous;

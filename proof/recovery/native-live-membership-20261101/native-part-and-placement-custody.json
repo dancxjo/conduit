@@ -1,0 +1,16 @@
+{
+  "schema": "conduit.proof/native-part-and-placement-custody@1",
+  "source_commit": "6f0bbd50ba66634e5a16e680275d1c9beebd1ffb",
+  "tests": {
+    "source_face_scope_and_placement": 3,
+    "native_part_private_custody": 2,
+    "actual_native_completion_transaction_and_interrupted_retry": 1
+  },
+  "result": "passed",
+  "scope": "Combined local Rust product test target on Linux. Private original Part signer is retained before pending admission deletion; interrupted completion refuses missing/conflicting custody and consumes exact pending record without rewriting installed/runtime authority. Descriptive placement does not alter canonical observations or exact Source selection. Not fresh-process/device Return, installed deployment or cross-platform runtime proof. Non-Unix private custody explicitly refuses until a supported private storage realization exists.",
+  "initial_compile_corrections": [
+    "Explicit path for nested Part module",
+    "Canonical PartId test decoding",
+    "Equality assertion without new Debug exposure"
+  ]
+}

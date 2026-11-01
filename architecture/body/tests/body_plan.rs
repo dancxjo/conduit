@@ -354,3 +354,68 @@ fn body_time_quality_converts_horizon_to_local_clock_scale() {
         other => panic!("expected admitted mixed-scale horizon, got {other:?}"),
     }
 }
+
+#[test]
+fn borrowed_validation_preserves_resealing_results_for_permutations_and_refusals() {
+    let wake = two_plot_wake();
+    let original = BodyPlan::seal(
+        &wake,
+        wake.workset
+            .plots()
+            .iter()
+            .map(|plot| BodyPlotPlan {
+                plot: plot.clone(),
+                plan: plan(plot, plot.source_document_id.as_str()),
+            })
+            .collect(),
+    )
+    .unwrap();
+    for mutation in 0..=8 {
+        let mut candidate = original.clone();
+        match mutation {
+            0 => {}
+            1 => candidate.plots.reverse(),
+            2 => candidate.plots[0].plan.source_document_id = "source/foreign".into(),
+            3 => candidate.plots[0].plan.plan_id = "plan/forged".into(),
+            4 => {
+                candidate.plots.pop();
+            }
+            5 => candidate.plots.push(candidate.plots[0].clone()),
+            6 => {
+                let plot = resident("foreign");
+                candidate.plots.push(BodyPlotPlan {
+                    plan: plan(&plot, "foreign"),
+                    plot,
+                });
+            }
+            7 => candidate.plan_id = "body-plan/forged".into(),
+            8 => candidate
+                .mask_topologies
+                .push(conduit_body::BodyMaskTopology {
+                    face: conduit_body::BodyFaceSelector {
+                        plot: None,
+                        source_placement_id: None,
+                    },
+                    chains: vec![],
+                }),
+            _ => unreachable!(),
+        }
+        let previous = BodyPlan::seal_with_masks(
+            &wake,
+            candidate.plots.clone(),
+            candidate.mask_topologies.clone(),
+        )
+        .and_then(|resealed| {
+            if resealed.plan_id == candidate.plan_id {
+                Ok(())
+            } else {
+                Err(BodyPlanError::InvalidIdentity)
+            }
+        });
+        assert_eq!(
+            candidate.validate_for(&wake),
+            previous,
+            "mutation {mutation}"
+        );
+    }
+}

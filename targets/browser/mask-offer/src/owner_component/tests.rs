@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn descriptor_pins_the_complete_finite_owner_component_graph() {
     let descriptor = owner_component_descriptor().unwrap();
-    assert_eq!(descriptor.resources.len(), 6);
+    assert_eq!(descriptor.resources.len(), 7);
     assert_eq!(descriptor.maximum_bundle_bytes, 131_072);
     assert_eq!(
         descriptor
@@ -17,7 +17,8 @@ fn descriptor_pins_the_complete_finite_owner_component_graph() {
             "pointer",
             "style",
             "icons",
-            "look"
+            "look",
+            "graphics"
         ]
     );
     for (resource, (role, path, maximum, bytes)) in descriptor.resources.iter().zip(SOURCES) {
@@ -113,17 +114,18 @@ fn reviewed_static_graph_has_no_unpinned_dependency() {
     assert_eq!(
         dependencies(source(1)),
         [
+            r#"import { graphicsSceneElement } from "./owner-face-graphics.mjs";"#,
             r#"import { decodeVisualLook } from "../host/assets/application-look.mjs";"#,
             r#"import { decorate, iconForRole, iconForIntent } from "./owner-face-icons.mjs";"#,
             r#"import { ownerFacePointerReachable } from "./owner-face-pointer.mjs";"#,
         ]
     );
-    for index in [2, 4, 5] {
+    for index in [2, 4, 5, 6] {
         assert!(dependencies(source(index)).is_empty());
     }
     assert_eq!(source(0).matches("new URL(").count(), 1);
     assert!(source(0).contains("new URL('./owner-face-look.css', import.meta.url)"));
-    for index in [0, 1, 2, 4, 5] {
+    for index in [0, 1, 2, 4, 5, 6] {
         assert!(!source(index).contains("import("));
         assert!(!source(index).contains("import ("));
         if index != 0 {

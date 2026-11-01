@@ -83,7 +83,10 @@ fn wrapped_and_coalescing_queued_values_remain_owned() {
             assert_eq!(scheduler.cords[0].head, 1);
             assert_eq!(scheduler.values().used_items(), 2);
             for slot in [0, 1] {
-                let value = scheduler.queue_slots[slot].unwrap();
+                let value = scheduler.queue_slots[slot]
+                    .unwrap()
+                    .resolve(&scheduler.values)
+                    .unwrap();
                 scheduler.scan_counts.set(Default::default());
                 assert_eq!(
                     scheduler.discard_host_value(value),

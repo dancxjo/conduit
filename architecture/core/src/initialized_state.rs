@@ -21,7 +21,19 @@ pub fn initialized_state_boundary<'a>(
     outputs: &[PortDescriptor],
     semantic: &'a KindSemanticContract,
 ) -> Result<Option<&'a InitializedStateLaw>, &'static str> {
-    let mut laws = semantic.laws.iter().filter_map(|law| match law {
+    initialized_state_boundary_ref(
+        crate::PortDescriptorRefs::Owned(inputs),
+        crate::PortDescriptorRefs::Owned(outputs),
+        &semantic.laws,
+    )
+}
+
+fn initialized_state_boundary_ref<'a>(
+    inputs: crate::PortDescriptorRefs<'_>,
+    outputs: crate::PortDescriptorRefs<'_>,
+    semantic_laws: &'a [KindSemanticLaw],
+) -> Result<Option<&'a InitializedStateLaw>, &'static str> {
+    let mut laws = semantic_laws.iter().filter_map(|law| match law {
         KindSemanticLaw::InitializedState(value) => Some(value),
         _ => None,
     });
@@ -31,8 +43,7 @@ pub fn initialized_state_boundary<'a>(
     if laws.next().is_some() || inputs.len() != 1 || outputs.len() != 1 {
         return Err("initialized state requires one exact update/current boundary");
     }
-    let mut state = semantic
-        .laws
+    let mut state = semantic_laws
         .iter()
         .filter(|law| matches!(law, KindSemanticLaw::TemporalState(_)));
     if state.next()
@@ -43,20 +54,20 @@ pub fn initialized_state_boundary<'a>(
     {
         return Err("initialized state must declare retained temporal semantics");
     }
-    let input = &inputs[0];
-    let output = &outputs[0];
-    if input.port_id != law.update_port_id
+    let input = inputs.iter().next().expect("checked exact length");
+    let output = outputs.iter().next().expect("checked exact length");
+    if input.port_id != law.update_port_id.as_str()
         || input.direction != PortDirection::Input
         || input.abnormal_kind.is_some()
         || input.temporal != (PortTemporal::Flow { closes: false })
-        || output.port_id != law.current_port_id
+        || output.port_id != law.current_port_id.as_str()
         || output.direction != PortDirection::Output
         || output.abnormal_kind.is_some()
         || !matches!(
             output.temporal,
             PortTemporal::Current | PortTemporal::Flow { closes: false }
         )
-        || output.value_kind != law.current.value_kind
+        || output.value_kind != law.current.value_kind.as_str()
         || law.current.maximum_bytes == 0
         || law.current.validate_definition().is_err()
         || law.current.validate(&law.initial).is_err()
@@ -66,7 +77,9 @@ pub fn initialized_state_boundary<'a>(
     Ok(Some(law))
 }
 
-pub(crate) fn validate_kind(kind: &crate::Kind) -> Result<(), crate::KindValidationError> {
+pub(crate) fn validate_kind(
+    kind: &crate::KindDefinitionRef<'_>,
+) -> Result<(), crate::KindValidationError> {
     // Ordinary Kinds may carry large structured configuration. Do not clone
     // their entire semantic contract merely to discover this law is absent.
     if !kind
@@ -78,7 +91,7 @@ pub(crate) fn validate_kind(kind: &crate::Kind) -> Result<(), crate::KindValidat
     }
     // Checker projections carry placeholder realization limits. Check meaning
     // here; the planner separately checks the selected Back's finite storage.
-    initialized_state_boundary(&kind.inputs, &kind.outputs, &kind.semantic_contract())
+    initialized_state_boundary_ref(kind.inputs, kind.outputs, kind.semantic_laws)
         .map(|_| ())
         .map_err(|_| crate::KindValidationError::InvalidInitializedState)
 }

@@ -40,7 +40,7 @@ fn pressure_and_generation_exhaustion_refuse_without_publishing_values() {
     store
         .native
         .iter_mut()
-        .for_each(|s| s.generation = u16::MAX);
+        .for_each(|s| s.generation = u32::MAX);
     assert_eq!(
         store.native_u64_available().0,
         0,

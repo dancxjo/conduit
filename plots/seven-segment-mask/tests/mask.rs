@@ -81,6 +81,8 @@ fn text(show: &SevenSegmentShow) -> String {
             0x39 => 'C',
             0x71 => 'F',
             0x76 => 'H',
+            0x50 => 'r',
+            0x63 => '°',
             0x40 => '-',
             _ => char::from(
                 b'0' + numerals
@@ -133,7 +135,7 @@ fn fahrenheit_look_changes_expression_without_changing_face_quantity() {
             )
             .show
         ),
-        " 59H"
+        "H 59"
     );
     assert_eq!(
         text(
@@ -211,7 +213,7 @@ fn rounding_sign_precision_fitting_and_overflow_are_explicit() {
             )
             .show
         ),
-        " 60H"
+        "H 60"
     );
 }
 
@@ -482,14 +484,115 @@ fn timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime() {
     for (elapsed, expected) in [
         (0, "67:6F"),
         (2999, "67:6F"),
-        (3000, " 59H"),
-        (5999, " 59H"),
+        (3000, "H 59"),
+        (5999, "H 59"),
         (6000, "67:6F"),
-        (9000, " 59H"),
+        (9000, "H 59"),
         (12000, "----"),
     ] {
         let show = mask.render(&view, elapsed, &profile).unwrap();
         assert_eq!(text(&show.show), expected);
         assert_eq!(show.face_content_id, face.identity.as_str());
     }
+}
+
+#[test]
+fn whole_degree_environment_layout_rounds_and_keeps_three_digit_values() {
+    let look = SevenSegmentLook::fahrenheit().with_whole_degrees();
+    for (temperature, expected) in [
+        ("19.8°C", "68°F"),
+        ("72.4°F", "72°F"),
+        ("72.5°F", "73°F"),
+        ("99.5°F", "100°"),
+        ("122°F", "122°"),
+        ("-9.5°F", "-10°"),
+        ("-100°F", "----"),
+    ] {
+        let face = face(temperature, "44%", true, true);
+        let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+        let output = render(&view, SevenSegmentSelection::Temperature, &look);
+        assert_eq!(text(&output.show), expected, "{temperature}");
+        assert!(!output.show.colon());
+        assert_eq!(output.show.decimal_points(), &[false; 4]);
+    }
+    for (humidity, expected) in [
+        ("44%", "H 44"),
+        ("5%", "H 05"),
+        ("0%", "H 00"),
+        ("99.5%", "H100"),
+    ] {
+        let face = face("20°C", humidity, true, true);
+        let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+        let output = render(&view, SevenSegmentSelection::Humidity, &look);
+        assert_eq!(text(&output.show), expected);
+        assert!(!output.show.colon());
+        assert_eq!(output.show.decimal_points(), &[false; 4]);
+    }
+}
+
+#[test]
+fn validated_borrow_preserves_projection_and_exact_wire_refusals() {
+    use conduit_face::{PreparedFaceValue, ValidatedFace};
+    let original = face("19.8°C", "59%", true, true);
+    let wire = serde_json::to_vec(&original).unwrap();
+    let (pin, checked) =
+        PreparedFaceValue::prepare_with_view(&original, &wire, wire.len()).unwrap();
+    assert!(core::ptr::eq(checked.face(), &original));
+    assert!(pin.matches(&wire));
+    let ordinary = PreparedEnvironmentFace::prepare(&original, "environment").unwrap();
+    let reused = PreparedEnvironmentFace::prepare_validated(checked, "environment").unwrap();
+    // Both paths interpret all properties and render the same timed pages.
+    let look = SevenSegmentLook::fahrenheit();
+    let profile = profile();
+    let mask = TimedSevenSegmentMask::prepare(look, 2000, 10000).unwrap();
+    for elapsed in [0, 1999, 2000, 4000] {
+        let a = mask.render(&ordinary, elapsed, &profile).unwrap();
+        let b = mask.render(&reused, elapsed, &profile).unwrap();
+        assert_eq!(a.show, b.show);
+    }
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare_validated(checked, "foreign"),
+        Err(FaceProjectionRefusal::MissingProperty)
+    ));
+    let foreign = face("20°C", "60%", true, true);
+    let foreign_wire = serde_json::to_vec(&foreign).unwrap();
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&original, &foreign_wire, usize::MAX),
+        Err("face-value-mismatch")
+    ));
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&original, b"{", usize::MAX),
+        Err("face-value-json")
+    ));
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&original, &wire, wire.len() - 1),
+        Err("face-value-capacity")
+    ));
+    // A semantically valid Face may still fail the selected projection.
+    let out_of_range = face("19.8°C", "101%", true, true);
+    let checked_range = ValidatedFace::prepare(&out_of_range).unwrap();
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare_validated(checked_range, "environment"),
+        Err(FaceProjectionRefusal::InvalidQuantity)
+    ));
+    let mut oversized = original.clone();
+    oversized
+        .properties
+        .extend((0..65).map(|n| property(&format!("extra-{n}"), FacePropertyValue::Count(0))));
+    let basis = oversized.basis.clone();
+    let oversized = oversized.with_basis(basis).unwrap();
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare_validated(
+            ValidatedFace::prepare(&oversized).unwrap(),
+            "environment"
+        ),
+        Err(FaceProjectionRefusal::TooLarge)
+    ));
+    let mut malformed = original.clone();
+    malformed.properties[0].value = FacePropertyValue::Count(1);
+    assert!(ValidatedFace::prepare(&malformed).is_err());
+    assert!(matches!(
+        PreparedFaceValue::prepare_with_view(&malformed, &wire, usize::MAX),
+        Err("invalid-face")
+    ));
 }

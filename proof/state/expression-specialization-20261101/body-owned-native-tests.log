@@ -1,0 +1,16 @@
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/dev-sync-eb55/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 18.66s
+     Running unittests src/lib.rs (/tmp/conduit-local-native-provider-check/debug/deps/conduit_std_host-8f4b275686e5a55b)
+
+running 8 tests
+test expression_specialization::preparation::tests::counting_writer_matches_existing_serialized_factory_volume ... ok
+test expression_specialization::tests::unknown_program_refuses_without_inventory_change ... ok
+test expression_specialization::tests::duplicates_count_and_descriptor_limits_refuse_without_inventory_mutation ... ok
+test expression_specialization::tests::specialization_preserves_unrelated_payload_and_retires_only_owned_base ... ok
+test expression_specialization::tests::unsupported_temporal_profiles_refuse_without_mutation ... ok
+test expression_specialization::tests::canonical_count_matches_shared_encoding_and_invalid_program_refuses ... ok
+test expression_specialization::tests::body_play::selected_closing_flow_program_executes_with_retained_source_and_sealed_body_play ... ok
+test expression_specialization::tests::body_play::selected_value_program_executes_with_retained_source_and_sealed_body_play ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 1000 filtered out; finished in 0.43s
+

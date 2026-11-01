@@ -1,0 +1,22 @@
+{
+  "scope": "Read-only USB STATUS/SENSOR_STATUS and actual Wi-Fi HTTP GET /environment on port8080; no firmware/network changes",
+  "device": "Green",
+  "observed": {
+    "build": "c630489bef31ac660e8c03ce4b3530573340c48462acb2e1a2d1b2f299701def",
+    "configuration": "sha256:7609e0873dbc5481aa45d2a446e0eac32472eb450407a664bb20a00bb2124721",
+    "samples": 3918,
+    "attempts": 3918,
+    "frames": 58767,
+    "acks": 58767,
+    "sampled_at_boot_ms": 119176560,
+    "sensor_error": false,
+    "display_error": false,
+    "body_member": false
+  },
+  "usb_http_build_and_configuration_match": true,
+  "limits": [
+    "Diagnostic counters are not a selected installed Body recorder commitment.",
+    "Carrier still reports body_member false; no execution-Host admission claim.",
+    "Counter snapshot does not establish uninterrupted history or human visual quality."
+  ]
+}

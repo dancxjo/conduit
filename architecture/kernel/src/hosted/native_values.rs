@@ -10,13 +10,13 @@ impl HostedValueStore {
         }
     }
     pub(super) fn available_native_words(&self) -> (u16, u32) {
-        if self.native_words.is_empty() {
+        if self.native_words.is_empty() || self.compact_canonical.is_some() {
             return (0, 0);
         }
         let items = self
             .slots
             .iter()
-            .filter(|s| s.references == 0 && s.generation != u16::MAX && s.bytes.capacity() >= 8)
+            .filter(|s| s.references == 0 && s.generation != u32::MAX && s.bytes.capacity() >= 8)
             .count();
         (items as u16, self.byte_capacity - self.used_bytes)
     }

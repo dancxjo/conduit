@@ -49,8 +49,31 @@ export async function admitApplicationSdk(manifest, admittedBytes) {
     if (!continuityResource) throw new Error('Admitted SDK has no application continuity boundary');
     const { applicationContinuity } = await import(await moduleUrl(continuityResource.role));
     const continuity = await applicationContinuity(application);
+    const readPolicy = path => {
+      const matches = manifest.resources.filter(resource => resource.path === path);
+      if (matches.length !== 1 || matches[0].kind !== 'content') throw new Error('Selected application SDK policy is unavailable');
+      const bytes = admittedBytes.get(matches[0].role);
+      if (!(bytes instanceof Uint8Array) || bytes.length < 1 || bytes.length > 128 * 1024) throw new Error('Selected application SDK policy exceeds its bound');
+      return JSON.parse(decoder.decode(bytes));
+    };
+    const importerResource = manifest.resources.find(resource => resource.path === 'sdk/workspace/creche-browser-spore-import.mjs');
+    const importer = importerResource ? await import(await moduleUrl(importerResource.role)) : null;
+    const importBrowserSpore = importerResource ? async (bytes, { nowMillis, expectedBodyId, root } = {}) => {
+      if (!Number.isSafeInteger(nowMillis) || nowMillis < 0
+        || typeof expectedBodyId !== 'string' || expectedBodyId.length < 1
+        || new TextEncoder().encode(expectedBodyId).length > 256) {
+        throw new Error('Imported browser Spore requires an explicit bounded Body and clock scope');
+      }
+      const policy = { package: readPolicy('sdk/bundle/browser-sdk-package.json'),
+        distribution: readPolicy('sdk/bundle/browser-page.json'), release: readPolicy('sdk/bundle/browser-bundle-release.json') };
+      const imported = await importer.importBrowserSpore(bytes, { reviewedRelease: policy, nowMillis, expectedBodyId });
+      try {
+        const host = await sdk.Conduit.browser({ ...imported.browserOptions, root, application, durable: true });
+        return Object.freeze({ host, provision: imported.provision });
+      } catch (error) { imported.provision.secret.fill(0); throw error; }
+    } : undefined;
     admitted = true;
-    return { continuity, browser: ({ root } = {}) => sdk.Conduit.browser({ root,
+    return { continuity, ...(importBrowserSpore ? { importBrowserSpore } : {}), browser: ({ root } = {}) => sdk.Conduit.browser({ root,
       bundleRoot: new URL('./bundle/', resources.get('browser-sdk').url), application,
     }) };
   } finally {

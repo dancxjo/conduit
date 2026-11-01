@@ -122,7 +122,6 @@ impl TextDomain {
             || !(1..=2).contains(&frame.timer_request)
             || frame.timer_slot >= 6
             || frame.timer_generation == 0
-            || frame.timer_generation > u32::from(u16::MAX)
             || frame.timer_value_bytes != 8
             || frame.timer_admitted_bytes != 8
             || !matches!(frame.timer_kind, 1 | 2)
@@ -143,7 +142,7 @@ impl TextDomain {
                 input: BoundedValueRef {
                     value: ValueRef {
                         slot: frame.timer_slot as u16,
-                        generation: frame.timer_generation as u16,
+                        generation: frame.timer_generation,
                         byte_len: 8,
                     },
                     admitted_bytes: 8,

@@ -81,6 +81,7 @@ impl DurableHostRuntime {
             &mut self.host,
             admitted,
             &mut self.pending_worker_text,
+            &mut self.pending_native_source,
             &mut responses,
             || false,
         )?;

@@ -20,8 +20,9 @@ impl HostedValueStore {
         let retired_uniform = self.uniform_slots
             && self.has_retired_slots
             && self.slots.iter().enumerate().any(|(index, slot)| {
-                slot.references == 0 && slot.generation == u16::MAX && !self.is_owned_compact(index)
+                slot.references == 0 && slot.generation == u32::MAX && !self.is_owned_compact(index)
             });
+        let compact_start = self.canonical_slot_limit();
         let owned = &self.owned_compact_slots;
         #[cfg(test)]
         let probes = &mut self.slot_probes;
@@ -38,7 +39,7 @@ impl HostedValueStore {
                 })
                 .find(|(offset, slot)| {
                     slot.references == 0
-                        && slot.generation != u16::MAX
+                        && slot.generation != u32::MAX
                         && owned.get(start + offset).is_none_or(Option::is_none)
                 })
                 .map(|(offset, slot)| (start + offset, slot))
@@ -59,11 +60,12 @@ impl HostedValueStore {
                     }
                 })
                 .filter(|(_index, slot)| {
-                    let free_fit = slot.references == 0
+                    let free_fit = *_index < compact_start
+                        && slot.references == 0
                         && slot.bytes.capacity() >= length
                         && owned.get(*_index).is_none_or(Option::is_none);
-                    retired_fit |= free_fit && slot.generation == u16::MAX;
-                    free_fit && slot.generation != u16::MAX
+                    retired_fit |= free_fit && slot.generation == u32::MAX;
+                    free_fit && slot.generation != u32::MAX
                 })
                 .min_by_key(|(_, slot)| slot.bytes.capacity())
                 .ok_or(if retired_fit {

@@ -52,6 +52,18 @@ pub enum CheckSuite {
     NativeLawCustody,
     /// Prove exact portable ResourceRef equality, refusals and installed kernel execution.
     ResourceReferenceEquality,
+    /// Check shared typed snapshot requests and browser wire compatibility.
+    ResourceSnapshot,
+    /// Check correlated immutable snapshot operations against actual Linux files.
+    LinuxSnapshot,
+    /// Check planned recorder recovery through exact Linux file completions.
+    RecordingFiles,
+    /// Check installed Body-durable catalog State across fresh processes.
+    RecordingSeed,
+    /// Check actual snapshot publication before Body-durable catalog selection.
+    RecordingCheckpoint,
+    /// Finite Zenoh platform handoff; no actual transport or hardware claim.
+    ZenohPlatform,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,

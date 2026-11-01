@@ -1,0 +1,9 @@
+{
+  "source": "da756f55c8",
+  "tests": 8,
+  "failures": 0,
+  "command": "cargo +stable test --offline -p conduit-std-host --features linux-snapshot --test body_durable_state_play --test body_snapshot_play",
+  "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-selected-storage-durability-combined-20261101.log",
+  "sha256": "c65b066e1883a1343ff7f9c222a689e190f35c9f6a8eee6ceb96f55fa9140ad5",
+  "scope": "Selected actual root descriptor retained through accepted-start ambient directory substitution; decoy untouched; exact Body State fresh Host Boot recovery; Snapshot publication and identical readback with independent exact authority. Includes shared durable retry repair. Same-process Host Boot fixture is not installed Recorder or physical power-loss proof."
+}

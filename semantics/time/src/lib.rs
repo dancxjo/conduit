@@ -66,7 +66,7 @@ mod timed_pattern_refusal;
 #[cfg(feature = "kernel-step")]
 mod tick_back;
 #[cfg(feature = "kernel-step")]
-pub use tick_back::TickBack;
+pub use tick_back::{RetiredTickValues, TickBack};
 mod tick_trigger;
 #[cfg(feature = "kernel-step")]
 pub use tick_trigger::TickTriggerBack;

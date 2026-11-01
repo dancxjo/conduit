@@ -12,6 +12,48 @@ use conduit_face::{
 fn contract(kind: &str, maximum: u32) -> CheckedValueContract {
     CheckedValueContract::new(kind_id(kind), maximum, vec![]).unwrap()
 }
+#[test]
+fn preferred_unit_formats_exact_quantities_without_rewriting_the_face() {
+    use conduit_face::display_typed_value_in_unit;
+    let checked = contract(TEMPERATURE_INFO_ID, QUANTITY_ENCODED_LEN as u32);
+    for (coefficient, expected) in [(-400, "-40 °F"), (0, "32 °F"), (225, "72.5 °F")] {
+        let bytes = Quantity::from_decimal(coefficient, -1, Unit::Celsius)
+            .unwrap()
+            .encode();
+        let original = bytes;
+        assert_eq!(
+            display_typed_value_in_unit(&checked, &bytes, Unit::Fahrenheit).as_deref(),
+            Some(expected)
+        );
+        assert_eq!(bytes, original);
+    }
+    let original = face(quantity(225, -1)).unwrap();
+    let unchanged = original.clone();
+    let FacePropertyValue::TypedValue { contract, bytes } = &original.properties[0].value else {
+        panic!("typed quantity")
+    };
+    assert_eq!(
+        display_typed_value_in_unit(contract, bytes, Unit::Fahrenheit).as_deref(),
+        Some("72.5 °F")
+    );
+    assert_eq!(original, unchanged);
+    assert_eq!(
+        display_typed_value_in_unit(contract, bytes, Unit::Percent),
+        None
+    );
+    assert_eq!(
+        display_typed_value_in_unit(contract, &[], Unit::Fahrenheit),
+        None
+    );
+    let unit_contract = self::contract(
+        conduit_core::UNIT_INFO_ID,
+        conduit_core::UNIT_ENCODED_LEN as u32,
+    );
+    assert_eq!(
+        display_typed_value_in_unit(&unit_contract, &Unit::Celsius.encode(), Unit::Fahrenheit),
+        None
+    );
+}
 fn quantity(coefficient: i128, exponent: i16) -> FacePropertyValue {
     FacePropertyValue::TypedValue {
         contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32),

@@ -1,0 +1,12 @@
+# Autonomous appliance: all five signed history epochs retain 960 readings.
+# Display evidence has a separate 4KiB residual region; no integrity overlap.
+# Fresh profile only: original legacy flash is backed up before full erase.
+# Name, Type, SubType, Offset, Size
+nvs,data,nvs,0x9000,0x4000
+credentials,data,undefined,0xd000,0x2000
+phy_init,data,phy,0xf000,0x1000
+factory,app,factory,0x10000,0x337000
+evidence,data,undefined,0x347000,0x1000
+obs_epochs,data,undefined,0x348000,0xa0000
+net_recovery,data,undefined,0x3e8000,0x8000
+body_state,data,undefined,0x3f0000,0x10000

@@ -79,11 +79,11 @@ pub(super) fn push_canonical(
 }
 
 pub(super) fn validate_kind_requirements(
-    kind: &crate::Kind,
+    kind: &crate::KindDefinitionRef<'_>,
 ) -> Result<(), crate::KindValidationError> {
     use alloc::collections::BTreeSet;
     let mut fields = BTreeSet::new();
-    for law in &kind.semantic_laws {
+    for law in kind.semantic_laws {
         let (property_profile, configuration_key, exact) = match law {
             crate::KindSemanticLaw::RealizationRequirement {
                 property_profile,

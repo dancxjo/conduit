@@ -9,8 +9,8 @@
 use conduit_core::{ActivePlayId, SignId};
 
 use crate::{
-    BodyBiographyEvidence, BodyId, BodyLifecycleEvent, BodyPlan, BodyPlayIdentity, BodyState,
-    WakeId, WakeLifecycle, WakeLifecycleEvent, WakePlanState,
+    BodyBiographyEvidence, BodyId, BodyLifecycleEvent, BodyPlanEvidence, BodyPlayIdentity,
+    BodyState, WakeId, WakeLifecycle, WakeLifecycleEvent, WakePlanState,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -55,7 +55,7 @@ impl BodyBiographyEvidence {
     /// inside the admitted play; old Plays cannot be revived from this value.
     pub fn startup_for_play(
         &self,
-        plan: &BodyPlan,
+        plan: &impl BodyPlanEvidence,
         play: &BodyPlayIdentity,
     ) -> Result<BodyStartup, BodyStartupRefusal> {
         self.validate()
@@ -73,7 +73,7 @@ impl BodyBiographyEvidence {
         if wake.lifecycle != WakeLifecycle::Playing
             || !play.validate_for(plan)
             || !wake.plans.iter().any(|candidate| {
-                candidate.plan_id == plan.plan_id
+                &candidate.plan_id == plan.plan_id()
                     && candidate.state == WakePlanState::Playing
                     && candidate.active_play_id.as_ref() == Some(&play.active_play_id)
             })
@@ -123,7 +123,7 @@ impl BodyBiographyEvidence {
                     plan_id,
                     active_play_id,
                     sign_id,
-                } if plan_id == &plan.plan_id && active_play_id == &play.active_play_id => {
+                } if plan_id == plan.plan_id() && active_play_id == &play.active_play_id => {
                     Some(sign_id)
                 }
                 _ => None,

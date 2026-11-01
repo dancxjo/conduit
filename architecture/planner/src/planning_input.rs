@@ -1,8 +1,15 @@
-//! Borrow validated plot content during Plan assembly without copying programs.
-use conduit_core::{CheckedPlotId, ExpandedPlotId, PlotIdentity, SourceDocumentId};
+//! Borrow reusable checked content, or transfer retiring configuration buffers.
+use alloc::{borrow::Cow, vec::Vec};
+mod connection_gear;
+mod gears;
+use conduit_core::{CheckedPlotId, ExpandedPlotId, SourceDocumentId};
 use conduit_plot::{
     CheckedConnection, CheckedGear, CheckedPlot, ExpandedCanonicalPlot, PlotCompletionPolicy,
 };
+#[cfg(test)]
+pub(crate) use connection_gear::minimum_at as minimum_value_bytes;
+pub(crate) use connection_gear::ConnectionGear;
+pub(crate) use gears::PlanningGears;
 
 pub(crate) struct PlanningInput<'a> {
     pub source_document_id: &'a SourceDocumentId,
@@ -10,17 +17,15 @@ pub(crate) struct PlanningInput<'a> {
     pub expanded_plot_id: &'a ExpandedPlotId,
     pub name: &'a str,
     pub completion: PlotCompletionPolicy,
-    pub gears: &'a [CheckedGear],
-    pub connections: &'a [CheckedConnection],
+    pub gears: PlanningGears<'a>,
+    pub connections: Cow<'a, [CheckedConnection]>,
 }
 
 impl PlanningInput<'_> {
-    pub fn identity(&self) -> PlotIdentity {
-        PlotIdentity {
-            source_document_id: self.source_document_id.clone(),
-            checked_plot_id: self.checked_plot_id.clone(),
-            expanded_plot_id: self.expanded_plot_id.clone(),
-        }
+    pub fn consuming(plot: &ExpandedCanonicalPlot, gears: Vec<CheckedGear>) -> PlanningInput<'_> {
+        let mut input = PlanningInput::from(plot);
+        input.gears = PlanningGears::owned(gears);
+        input
     }
 }
 
@@ -32,8 +37,8 @@ impl<'a> From<&'a CheckedPlot> for PlanningInput<'a> {
             expanded_plot_id: &plot.expanded_plot_id,
             name: &plot.name,
             completion: plot.completion,
-            gears: &plot.gears,
-            connections: &plot.connections,
+            gears: PlanningGears::borrowed(&plot.gears),
+            connections: Cow::Borrowed(&plot.connections),
         }
     }
 }
@@ -46,8 +51,8 @@ impl<'a> From<&'a ExpandedCanonicalPlot> for PlanningInput<'a> {
             expanded_plot_id: &plot.expanded_plot_id,
             name: &plot.name,
             completion: plot.completion,
-            gears: &plot.gears,
-            connections: &plot.connections,
+            gears: PlanningGears::borrowed(&plot.gears),
+            connections: Cow::Borrowed(&plot.connections),
         }
     }
 }

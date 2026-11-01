@@ -69,6 +69,47 @@ pub(super) fn bind_with_budget(
 ) -> Result<PulseHostCall<Provider>, PulseCallRefusal> {
     let mut scope = scope();
     scope.maximum_operations = maximum_operations;
+    let (table, handle, claim) = authorization(scope, fragment, active);
+    unsafe {
+        PulseHostCall::bind_selected(
+            table,
+            handle,
+            claim,
+            PulseAttachment {
+                generation: 7,
+                resource_bytes: 4096,
+                limits: limits(),
+            },
+            provider,
+            &PulseReadContract::prepare().unwrap(),
+            SelectedOperationPlan {
+                fragment,
+                lowered,
+                active,
+                placement_id: placement,
+            },
+        )
+    }
+}
+
+pub(super) fn owner(provider: Provider) -> (PulseHostCall<Provider>, NodeId) {
+    let (fragment, lowered, active, placement) = selected();
+    let node = lowered.nodes[0].node;
+    (
+        bind(&fragment, &lowered, &active, &placement, provider).unwrap(),
+        node,
+    )
+}
+
+pub(super) fn authorization(
+    mut scope: BaseCapabilityScope,
+    fragment: &PlanFragment,
+    active: &ActivePlayIdentity,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let authority = BaseCapabilityAuthority {
@@ -113,7 +154,7 @@ pub(super) fn bind_with_budget(
         scope.host_id.clone(),
         scope.boot_id.clone(),
         scope.base_instance_id.clone(),
-        4,
+        scope.base_provider_generation,
         [7; 32],
         1,
     )
@@ -121,33 +162,5 @@ pub(super) fn bind_with_budget(
     let handle = table
         .issue(CapabilityIssueRequest { scope, authority })
         .unwrap();
-    unsafe {
-        PulseHostCall::bind_selected(
-            table,
-            handle,
-            claim,
-            PulseAttachment {
-                generation: 7,
-                resource_bytes: 4096,
-                limits: limits(),
-            },
-            provider,
-            &PulseReadContract::prepare().unwrap(),
-            SelectedOperationPlan {
-                fragment,
-                lowered,
-                active,
-                placement_id: placement,
-            },
-        )
-    }
-}
-
-pub(super) fn owner(provider: Provider) -> (PulseHostCall<Provider>, NodeId) {
-    let (fragment, lowered, active, placement) = selected();
-    let node = lowered.nodes[0].node;
-    (
-        bind(&fragment, &lowered, &active, &placement, provider).unwrap(),
-        node,
-    )
+    (table, handle, claim)
 }

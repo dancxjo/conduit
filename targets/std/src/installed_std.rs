@@ -83,6 +83,8 @@ mod logic_backs;
 mod math_backs;
 mod math_host;
 mod microphone_clip_back;
+mod microphone_flow_back;
+mod microphone_flow_host;
 mod microphone_host;
 mod midi_input_back;
 mod midi_output_back;
@@ -196,6 +198,7 @@ mod text_state_back;
 mod thermostat_combine_back;
 mod tick_backs;
 mod tick_face;
+mod tick_trigger_back;
 mod time_sample_back;
 mod time_window_back;
 mod timed_button_attempt_back;
@@ -246,6 +249,9 @@ use conduit_plan_lowering::lowering::KernelExecutionIdentityMap;
 use std::io::Write;
 use std::time::Duration;
 
+#[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+mod linux_snapshot_back;
+mod linux_snapshot_host;
 mod storage_profile;
 pub(crate) use facade::*;
 use storage_profile::{
@@ -294,6 +300,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         mut external_fore,
         spoken_mask,
         direct_spoken_mask,
+        #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+        snapshot_directory,
         durable_state,
     } = lifecycle;
     let InstalledRunHost {
@@ -447,6 +455,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .as_ref()
             .map(|source| (source.node, source.input_bytes())),
     )?;
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    let mut snapshot_hosts =
+        linux_snapshot_host::PreparedSnapshots::prepare(snapshot_directory, fragment, &lowered)?;
     let mut durable_state_hosts = (0..MAX_NODES).map(|_| None).collect::<Vec<_>>();
     for state in &lowered.states {
         let placement = fragment
@@ -850,6 +861,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .contract_id;
     #[cfg(test)]
     let observer_target_kind = kind_id("conduit-test/tick-observation");
+    let mut microphone_flow_host =
+        microphone_flow_host::MicrophoneFlowHost::prepare(fragment, microphone.as_deref())?;
     timer.observe_kernel_phase(crate::KernelTimingPhase::PlayStarted);
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
@@ -939,6 +952,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled audio/play: {error:?}"))?;
+            } else if linux_snapshot_host::is_operation(cancelled_operation.contract_id.as_str()) {
+                // Cancellation never starts a synchronous file effect or undoes
+                // an already published immutable generation.
             } else if cancelled_operation.contract_id.as_str() == wav_artifact_back::HOST_CALL {
                 // The incomplete artifact is never finalized on cancellation.
             } else if matches!(
@@ -960,6 +976,10 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 session
                     .stop()
                     .map_err(|error| format!("stop cancelled MIDI output: {error:?}"))?;
+            } else if cancelled_operation.contract_id.as_str()
+                == conduit_std_offers::MICROPHONE_FLOW_OPERATION
+            {
+                microphone_flow_host.cancel();
             } else if cancelled_operation.contract_id == midi_input_contract_id {
                 let node = usize::from(cancellation.node.0);
                 let session = midi_input_sessions
@@ -1004,6 +1024,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
+        microphone_flow_host.poll(&mut scheduler, control.stop_requested())?;
         installed_model_work.poll(&mut scheduler, &mut model_work_output, || {
             control.stop_requested()
         })?;
@@ -1035,6 +1056,16 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     &mut host_calls,
                     maximum_output_bytes,
                 )?;
+                continue;
+            }
+            if host_calls
+                .get(request.node, request.call)
+                .is_some_and(|operation| {
+                    operation.contract_id.as_str() == conduit_std_offers::MICROPHONE_FLOW_OPERATION
+                })
+            {
+                host_calls.record(request)?;
+                microphone_flow_host.accept(request, &mut scheduler, control.stop_requested())?;
                 continue;
             }
             let input = scheduler
@@ -1087,20 +1118,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     Err(refusal) => HostCallOutcome {
                         disposition: HostCallDisposition::Failed,
                         output: None,
-                        failure: Some(conduit_kernel::Failure {
-                            code: conduit_kernel::FailureCode::HostCallFailed,
-                            detail: match refusal {
-                                crate::state_value::DurableStateRefusal::InvalidBinding => 1,
-                                crate::state_value::DurableStateRefusal::ValueTooLarge => 2,
-                                crate::state_value::DurableStateRefusal::GenerationGap => 3,
-                                crate::state_value::DurableStateRefusal::ConflictingDigest => 4,
-                                crate::state_value::DurableStateRefusal::Corrupt => 5,
-                                crate::state_value::DurableStateRefusal::Incompatible => 6,
-                                crate::state_value::DurableStateRefusal::Lost => 7,
-                                crate::state_value::DurableStateRefusal::StaleRecovery => 8,
-                                crate::state_value::DurableStateRefusal::InvalidReceipt => 9,
-                            },
-                        }),
+                        failure: Some(crate::state_value::durable_refusal_failure(refusal)),
                     },
                 };
                 host_calls.record(request)?;
@@ -1108,6 +1126,13 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete durable State operation: {error:?}"))?;
                 continue;
+            } else if linux_snapshot_host::is_operation(contract.as_str()) {
+                #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                {
+                    host_calls.record(request)?;
+                    snapshot_hosts.perform(&mut scheduler, request)?;
+                    continue;
+                }
             } else if contract.as_str() == conduit_std_offers::MICROPHONE_CLIP_OPERATION {
                 let placement = fragment
                     .placements
@@ -3497,6 +3522,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     continue;
                 }
                 let completed_deadline = if installed_model_work.is_pending()
+                    || microphone_flow_host.is_pending()
                     || native_call
                         .as_ref()
                         .is_some_and(|source| source.is_pending())
@@ -3510,6 +3536,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 }
                 if !deadlines.is_empty()
                     || pending_midi_input
+                    || microphone_flow_host.is_pending()
                     || installed_model_work.is_pending()
                     || native_call
                         .as_ref()

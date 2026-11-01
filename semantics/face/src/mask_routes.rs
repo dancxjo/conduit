@@ -9,6 +9,8 @@ use crate::{
     RemoteOwnerMaskRouteError, RemoteOwnerMaskRouteSeal, SealedMaskPlotRoute,
 };
 
+mod sealed;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedMaskPlotRoutes {
     body_id: BodyId,

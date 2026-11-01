@@ -211,6 +211,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     )
     .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    conduit_environment_host::source_operator::install_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profiles)?;
     if include_dsp {
@@ -231,6 +233,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profiles)?;
+    #[cfg(feature = "installed-body-storage")]
+    snapshot_catalog::install(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
     conduit_speech::ipa_constructors::install(&mut startup, &mut profiles)?;
@@ -239,6 +243,7 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
+    conduit_time::install_tick_trigger_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profiles)?;
@@ -484,3 +489,7 @@ mod tests {
 #[cfg(test)]
 #[path = "plot_source/creche_tests.rs"]
 mod creche_tests;
+
+#[cfg(feature = "installed-body-storage")]
+#[path = "plot_source/snapshot_catalog.rs"]
+mod snapshot_catalog;

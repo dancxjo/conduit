@@ -298,6 +298,8 @@ fn main() {
                 relay_descriptor.as_deref(),
             ),
         },
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::EstablishRootSigner { state_dir, body_id, authorize_establish }) }) => durable_host_control::establish_root_signer(&state_dir, &body_id, authorize_establish),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::ReplacePlot { state_dir, source, expected_workload_revision, expected_checked_plot_id }) }) => durable_host_control::replace_plot(&state_dir, &source, expected_workload_revision, &expected_checked_plot_id),
         Some(cli::Command::Body { command: Some(cli::BodyCommand::Rename(args)) }) => body_rename::run(args),
         Some(cli::Command::Body { command: None }) => {
             current_state_dir().and_then(|state_dir| durable_host::body_status(&state_dir, false))
@@ -314,6 +316,7 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list }),
         }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::Recording(args)) }) => cli::body_recording::run(args),
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
@@ -375,6 +378,7 @@ fn main() {
             command:
                 Some(cli::BodyCommand::BrowserWindow {
                     state_dir,
+                    invited,
                     expected_host_id,
                     new_host_verifying_key,
                     maximum_millis,
@@ -383,6 +387,17 @@ fn main() {
         }) => {
             if !authorize_window {
                 Err("browser admission window requires --authorize-window".into())
+            } else if invited {
+                durable_host_control::start_invited_browser_window(&state_dir, maximum_millis)
+                    .and_then(|(invitation, root_authority, authorization, url)| {
+                        let document = serde_json::json!({
+                            "schema":"conduit.body/browser-invitation-window@1",
+                            "invitation":invitation, "root_authority":root_authority, "authorization":authorization,
+                            "url":url, "remote_execution":false,
+                        });
+                        println!("{}", serde_json::to_string(&document).map_err(|e| e.to_string())?);
+                        Ok(())
+                    })
             } else {
                 let key = new_host_verifying_key
                     .as_deref()
@@ -394,7 +409,7 @@ fn main() {
                 key.and_then(|key| {
                     durable_host_control::start_browser_window(
                         &state_dir,
-                        &expected_host_id,
+                        expected_host_id.as_deref().ok_or("exact browser Host is required outside invitation mode")?,
                         key,
                         maximum_millis,
                     )
@@ -433,6 +448,12 @@ fn main() {
                     authorize_membership,
                 }),
         }) => durable_host::complete_body_join(&receipt, &state_dir, authorize_membership),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::AcceptMembership { invitation, state_dir, root_key, authorize_join }),
+        }) => durable_host::accept_membership_invitation(&invitation, &state_dir, &root_key, authorize_join),
+        Some(cli::Command::Body {
+            command: Some(cli::BodyCommand::CompleteMembership { receipt, state_dir, authorize_membership }),
+        }) => durable_host::complete_membership_join(&receipt, &state_dir, authorize_membership),
         Some(cli::Command::Body {
             command: Some(command),
         }) => match command {

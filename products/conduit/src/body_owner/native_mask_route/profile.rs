@@ -24,11 +24,11 @@ impl Owner {
             manager.receipts.iter().any(|receipt| {
                 let c = &receipt.credential;
                 request.has_exact_basis()
-                    && request.credential_id == c.credential_id.as_str()
-                    && request.body_id == c.body_id
-                    && request.part_id == c.part_id
-                    && request.host_id == c.host_id
-                    && request.boot_id == c.boot_id
+                    && c.credential_id.equals(&request.credential_id)
+                    && request.body_id.as_str() == c.body_id
+                    && request.part_id.as_str() == c.part_id
+                    && request.host_id.as_str() == c.host_id
+                    && request.boot_id.as_str() == c.boot_id
             })
         });
         if admitted && self.session.evidence().body_id == request.body_id {

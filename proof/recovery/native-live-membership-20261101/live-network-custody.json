@@ -1,0 +1,28 @@
+{
+  "firmware_source": "c201aa5006d46bcb2f25c88e824e3f47d923af48",
+  "linux_collector_source": "fb1ad9d21bea847359f6f5f776e0a1e0756f2834",
+  "linux_collector_sha256": "69ccb36d60c766f525d42ca155fae572bbe0b0e78d5acf474a560b6255e52b55",
+  "transport": "authenticated original Root at conduit-climate-b0a732286178.local:80",
+  "epoch_records": 28,
+  "one_shot_live_custody_exit_code": 0,
+  "production_offer_history_and_receipt_checks_passed": true,
+  "original_forebrain_member_identity_used": true,
+  "identity_cloned_to_victus": false,
+  "root_runtime_reclaimed_verified_reusable": true,
+  "independent_post_operation_full_flash_readback": false,
+  "continued_local_runtime": {
+    "source_sequence": 53,
+    "mask_consumed": 1075,
+    "sampler_failure": null,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network_control": "attached"
+  },
+  "owning_custody_tests_passed": 14,
+  "unattended_custody": "live; acceptance not yet established",
+  "limits": [
+    "One-shot network custody acceptance and Root runtime reclamation, not selected installed Recorder Plot commitment.",
+    "Runtime reclaim witness is distinct from independent full-flash verification.",
+    "No NAT interruption or overnight acceptance claimed."
+  ]
+}

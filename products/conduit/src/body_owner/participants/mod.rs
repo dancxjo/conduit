@@ -72,7 +72,7 @@ impl Owner {
             manager
                 .receipts
                 .iter()
-                .any(|receipt| receipt.credential.host_id == expected)
+                .any(|receipt| receipt.credential.host_id == expected.as_str())
         });
         if !known && new_host_key.is_none() {
             return Err("first browser admission requires its exact public verifying key".into());
@@ -189,6 +189,7 @@ fn serve_presence(
         .map_err(debug)?;
     admission::remaining(deadline)?;
     socket.send(&Out::Admitted {
+        signed_membership_receipt: snapshot.signed_membership_receipt.clone().map(Box::new),
         protocol: PROTOCOL,
         credential: credential.clone(),
     })?;

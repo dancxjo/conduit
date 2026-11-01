@@ -1,7 +1,7 @@
 //! Authenticated local control plane into the durable installed host owner.
 
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt,
+    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation,
     PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_body::{
@@ -85,6 +85,8 @@ mod body;
 mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
+#[path = "durable_host_control/body_recording.rs"]
+pub(crate) mod body_recording;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
@@ -94,6 +96,8 @@ mod client_frame;
 #[cfg(unix)]
 #[path = "durable_host_control/direct_spoken.rs"]
 pub(crate) mod direct_spoken;
+#[path = "durable_host_control/native_snapshot.rs"]
+pub(crate) mod native_snapshot;
 #[cfg(target_os = "linux")]
 #[path = "durable_host_control/notebook.rs"]
 pub(crate) mod notebook;
@@ -111,7 +115,6 @@ pub(crate) mod direct_spoken {
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
 pub(crate) use body::local_wardrobe;
-pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
@@ -125,6 +128,7 @@ pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
     local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
 };
+pub(crate) use body::{start_browser_window, start_invited_browser_window};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -157,6 +161,12 @@ pub(crate) struct DurableHostRuntime {
     birth_root: Option<PathBuf>,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
+    pending_native_source: Option<conduit_kernel::scheduler::HostCallRequest>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    selected_environmental_equipment:
+        Option<crate::durable_host::selected_environmental_sources::AttachedEquipment>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    environmental_worker: Option<environmental_worker::Worker>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
     cancellation_signal: Option<PathBuf>,
     next_observation_sequence: u64,
@@ -174,7 +184,9 @@ pub(crate) struct DurableHostRuntime {
 impl DurableHostRuntime {
     pub(crate) fn into_owner_host(self) -> StdHost {
         match self.host {
-            HostSource::Bare(host) => *host,
+            HostSource::Bare(mut host) => host
+                .take_for_play()
+                .expect("foreground owner remains available"),
             HostSource::Transitioning => unreachable!("Host transition is synchronous"),
             HostSource::Body { .. } => unreachable!("foreground owner cannot take a service Body"),
         }
@@ -184,11 +196,16 @@ impl DurableHostRuntime {
         Self {
             target_id,
             image_content_digest,
-            host: HostSource::Bare(Box::new(host)),
+            host: HostSource::Bare(Box::new(crate::durable_host::owner::OwnerHost::new(host))),
             birth: None,
             birth_root: None,
             remote_fragment: None,
             pending_worker_text: None,
+            pending_native_source: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_worker: None,
             pool_member: None,
             cancellation_signal: None,
             next_observation_sequence: 0,
@@ -208,6 +225,20 @@ impl DurableHostRuntime {
         equipment: Option<crate::durable_host::selected_speech::AttachedEquipment>,
     ) -> Self {
         self.selected_speech_equipment = equipment;
+        self
+    }
+
+    pub(crate) fn with_selected_environmental_equipment(
+        mut self,
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        equipment: Option<
+            crate::durable_host::selected_environmental_sources::AttachedEquipment,
+        >,
+    ) -> Self {
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        {
+            self.selected_environmental_equipment = equipment;
+        }
         self
     }
 
@@ -462,6 +493,7 @@ impl DurableHostRuntime {
                             &mut self.host,
                             admitted,
                             &mut self.pending_worker_text,
+                            &mut self.pending_native_source,
                             &mut responses,
                             cancelled,
                         )?;
@@ -506,6 +538,7 @@ impl DurableHostRuntime {
                     &mut self.host,
                     admitted,
                     &mut self.pending_worker_text,
+                    &mut self.pending_native_source,
                     &mut responses,
                     cancelled,
                 )?;
@@ -519,6 +552,7 @@ impl DurableHostRuntime {
                     &mut self.host,
                     admitted,
                     &mut self.pending_worker_text,
+                    &mut self.pending_native_source,
                     &mut responses,
                     cancelled,
                 )?;
@@ -575,6 +609,7 @@ impl DurableHostRuntime {
                     &mut self.host,
                     admitted,
                     &mut self.pending_worker_text,
+                    &mut self.pending_native_source,
                     &mut responses,
                     cancelled,
                 )?;
@@ -589,6 +624,7 @@ impl DurableHostRuntime {
                         &mut self.host,
                         admitted,
                         &mut self.pending_worker_text,
+                        &mut self.pending_native_source,
                         &mut responses,
                         cancelled,
                     )?;
@@ -927,6 +963,18 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyReplacePlot {
+        protocol: u16,
+        token: Vec<u8>,
+        source: String,
+        expected_workload_revision: u64,
+        expected_checked_plot_id: String,
+    },
+    BodyEstablishRootSigner {
+        protocol: u16,
+        token: Vec<u8>,
+        body_id: String,
+    },
     BodyInspect {
         protocol: u16,
         token: Vec<u8>,
@@ -941,6 +989,24 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
         request: Box<PortableSpawnAdmissionRequest>,
+    },
+    BodyBrowserInviteStart {
+        protocol: u16,
+        token: Vec<u8>,
+        maximum_millis: u64,
+    },
+    BodyNativeSnapshotFace {
+        protocol: u16,
+        token: Vec<u8>,
+        window_id: String,
+        binding: LinkBindingId,
+        request: OwnerFaceSnapshotRequest,
+    },
+    BodyNativeSnapshotStart {
+        protocol: u16,
+        token: Vec<u8>,
+        expected_host_id: String,
+        maximum_millis: u64,
     },
     BodyBrowserStart {
         protocol: u16,
@@ -1139,6 +1205,11 @@ enum Request {
         token: Vec<u8>,
         command: crate::cli::NotebookCommand,
     },
+    BodyRecording {
+        protocol: u16,
+        token: Vec<u8>,
+        request: Box<body_recording::RecordingRequest>,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1217,6 +1288,10 @@ enum Response {
         image_content_digest: String,
         advertisement: HostAdvertisement,
     },
+    BodyRootSignerEstablished {
+        protocol: u16,
+        binding: crate::durable_host::root_signer::Binding,
+    },
     BodyTruth {
         protocol: u16,
         truth: serde_json::Value,
@@ -1229,6 +1304,17 @@ enum Response {
         protocol: u16,
         receipt: Box<conduit_body::PortableAdmissionReceipt>,
     },
+    BodyBrowserInvitationWindow {
+        protocol: u16,
+        invitation: Box<PortableInvitation>,
+        root_authority: conduit_body::BodyRootAuthority,
+        authorization: crate::durable_host::owner::BrowserWindowAuthorization,
+        url: String,
+    },
+    BodyNativeSnapshotWindow {
+        protocol: u16,
+        authorization: crate::durable_host::owner::BrowserWindowAuthorization,
+    },
     BodyBrowserWindow {
         protocol: u16,
         window_id: String,
@@ -1240,9 +1326,9 @@ enum Response {
         protocol: u16,
         frame: Box<BrowserAdmissionEgress>,
     },
-    BodyBrowserSnapshot {
+    BodyBrowserCompletion {
         protocol: u16,
-        snapshot: Box<crate::durable_host::owner::BrowserAdmittedSnapshot>,
+        completion: Box<crate::durable_host::owner::BrowserAdmissionCompletion>,
     },
     BodyBrowserOffer {
         protocol: u16,
@@ -1322,6 +1408,10 @@ enum Response {
         protocol: u16,
         show: Box<MaskShow>,
         advertisement: HostAdvertisement,
+    },
+    BodyRecordingChunkPrepared {
+        protocol: u16,
+        metadata: serde_json::Value,
     },
     BodyRunRequested {
         protocol: u16,
@@ -1437,8 +1527,21 @@ pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result
     let token = read_secret(&state_dir.join("control.token"))?;
     let mut polling_play = false;
     loop {
+        #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+        runtime.progress_environmental_worker()?;
         terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running()
+        let native_running = {
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            {
+                runtime.environmental_worker_active()
+            }
+            #[cfg(not(all(feature = "installed-environmental-sources", target_os = "linux")))]
+            {
+                false
+            }
+        };
+        let running = native_running
+            || runtime.host.body_is_running()
             || runtime.speech_worker.is_some()
             || runtime.owner_spoken_worker.is_some()
             || terminal_attach::is_attached(&mut runtime);
@@ -1849,10 +1952,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         #[cfg(target_os = "linux")]
         Request::Notebook { token, .. } => token,
         Request::Status { token, .. }
+        | Request::BodyEstablishRootSigner { token, .. }
+        | Request::BodyReplacePlot { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
+        | Request::BodyNativeSnapshotStart { token, .. }
+        | Request::BodyNativeSnapshotFace { token, .. }
+        | Request::BodyBrowserInviteStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }
@@ -1874,6 +1982,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
+        | Request::BodyRecording { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -1896,6 +2005,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
     offered.fill(0);
     if !authenticated {
         return refused("unauthorized");
+    }
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    {
+        if let Err(reason) = runtime.progress_environmental_worker() {
+            return refused(&reason);
+        }
+        if runtime.environmental_worker_active()
+            && !matches!(
+                &request,
+                Request::Status { .. } | Request::ExchangeRemote { .. }
+            )
+        {
+            return refused("native-source-active");
+        }
     }
     #[cfg(target_os = "linux")]
     let notebook_read = matches!(
@@ -1941,13 +2064,39 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         return refused("selected-speech-active");
     }
     let truth = runtime.truth();
-    match request {
+    let response = match request {
         Request::Status { protocol, .. } if protocol == PROTOCOL => Response::Status {
             protocol: PROTOCOL,
             target_id: truth.target_id.clone(),
             image_content_digest: truth.image_content_digest.clone(),
             advertisement: truth.advertisement.clone(),
         },
+        Request::BodyReplacePlot {
+            protocol,
+            source,
+            expected_workload_revision,
+            expected_checked_plot_id,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .replace_owned_plot(
+                &source,
+                expected_workload_revision,
+                &expected_checked_plot_id,
+            )
+            .map(|truth| Response::BodyTruth {
+                protocol: PROTOCOL,
+                truth,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyEstablishRootSigner {
+            protocol, body_id, ..
+        } if protocol == PROTOCOL => runtime
+            .establish_owned_root_signer(&body_id)
+            .map(|binding| Response::BodyRootSignerEstablished {
+                protocol: PROTOCOL,
+                binding,
+            })
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyInspect { protocol, .. } if protocol == PROTOCOL => runtime
             .owned_body_truth()
             .map(|truth| Response::BodyTruth {
@@ -1974,6 +2123,47 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|receipt| Response::BodyAdmitted {
                 protocol: PROTOCOL,
                 receipt: Box::new(receipt),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserInviteStart {
+            protocol,
+            maximum_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .start_invited_browser_window(maximum_millis)
+            .map(|(invitation, root_authority, authorization, url)| {
+                Response::BodyBrowserInvitationWindow {
+                    protocol: PROTOCOL,
+                    invitation: Box::new(invitation),
+                    root_authority,
+                    authorization,
+                    url,
+                }
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeSnapshotFace {
+            protocol,
+            window_id,
+            binding,
+            request,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .native_snapshot_face(&window_id, &binding, &request)
+            .map(|response| Response::Face {
+                protocol: PROTOCOL,
+                response: Box::new(response),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyNativeSnapshotStart {
+            protocol,
+            expected_host_id,
+            maximum_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .authorize_native_snapshot_window(&expected_host_id, maximum_millis)
+            .map(|authorization| Response::BodyNativeSnapshotWindow {
+                protocol: PROTOCOL,
+                authorization,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserStart {
@@ -2013,9 +2203,9 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             ..
         } if protocol == PROTOCOL => runtime
             .browser_complete(&window_id, *frame)
-            .map(|snapshot| Response::BodyBrowserSnapshot {
+            .map(|completion| Response::BodyBrowserCompletion {
                 protocol: PROTOCOL,
-                snapshot: Box::new(snapshot),
+                completion: Box::new(completion),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserOffer {
@@ -2378,6 +2568,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 truth,
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyRecording {
+            protocol, request, ..
+        } if protocol == PROTOCOL => runtime
+            .start_owned_recording(*request)
+            .unwrap_or_else(|code| refused(&code)),
         Request::BodyStart {
             protocol,
             maximum_millis,
@@ -2517,7 +2712,12 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|()| Response::RemoteReleased { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         _ => refused("protocol"),
+    };
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    if let Err(reason) = runtime.start_pending_environmental_source() {
+        return refused(&reason);
     }
+    response
 }
 
 fn create_join(
@@ -3235,3 +3435,17 @@ mod tests {
         runtime.release_remote().unwrap();
     }
 }
+
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "durable_host_control/environmental_worker.rs"]
+mod environmental_worker;
+
+pub(crate) fn establish_root_signer(
+    state_dir: &Path,
+    body_id: &str,
+    authorized: bool,
+) -> Result<(), String> {
+    body::establish_root_signer(state_dir, body_id, authorized)
+}
+
+pub(crate) use body::replace_plot;

@@ -1,0 +1,52 @@
+{
+  "schema": "conduit.development/checkpoint-immutable-custody@1",
+  "integration_head": "3ac18d7282ba528c98ec66b063e66f48fa1e3de5",
+  "integration_tree": "614c3ee4c844bf4dc5842772c90ab8830c945552",
+  "proof_checkout_head": "38820692af12908ce78e07b44705dbccb3ec59d7",
+  "proof_checkout_tree": "614c3ee4c844bf4dc5842772c90ab8830c945552",
+  "accepted_dev": "32d76ab369a2dfe101e5a1d8b530a1536a105f16",
+  "change": "Move original immutable layout and prefix owners only after authenticated successor readback; preserve original owners and source after failed write. No new memory grant.",
+  "checks": [
+    {
+      "name": "actual_checkpoint_observation_layout_suite",
+      "passed": 6
+    },
+    {
+      "name": "isolated_actual_Store_lease_and_FlashPermit_custody",
+      "passed": 1,
+      "native_timing": false
+    },
+    {
+      "name": "actual_HTTP_mailbox_retained_retry_and_new_proof_refusal",
+      "passed": 1
+    }
+  ],
+  "regression_before": {
+    "checkpoint_source": "c5bc363049",
+    "test": "five_receipts_survive_replay_checkpoint_and_park_with_exact_original_metadata",
+    "result": "fails original backing identity after successful rewrite"
+  },
+  "pre_dev_absorption_live_owner_suite": {
+    "checkpoint_change_identical": true,
+    "passed": 3,
+    "global_test_run_separately_on_combined_tree": true,
+    "NOR_operations": 63,
+    "effects_per_operation": 3,
+    "cases": 189,
+    "scope": "CPU simulated storage, actual live-owner algorithms; no physical timing or Root integration claim"
+  },
+  "proof_limits": [
+    "Not total firmware peak RAM or flash measurement",
+    "Not actual Root workspace/FlashWaitLane integration",
+    "Not physical sampler or display continuity during checkpoint",
+    "Not installed Host membership or selected durable recorder commitment"
+  ],
+  "logs": {
+    "checkpoint-carry-before-build.log": "1d03c458e63625207c472cacc4fd884ec56e71c90a7fb936823567d42d98e510",
+    "checkpoint-carry-before-test.log": "64fd6aadb88e807ef79aa52e474f02c11c1c0f70cd8eb4ff5f3e3dd333cbacfe",
+    "checkpoint-carry-fixed-build.log": "fb2de388fc7015b7216bff952343713123ffdfc952c592a815f8c3be5b6d7f7b",
+    "checkpoint-carry-fixed-tests.log": "d109bbd02db22e80e9ef159d8f322dff35145ecbc7ab59723da16f61e934237b",
+    "checkpoint-immutable-carry-build.log": "9918b75521d1dd3873612c3568b2bdd51d078b2f81fd8bf6e4752981e7b5d7cb",
+    "join-mailbox-combined-3ac18d7282.log": "e26cc3d00e3363f520aeb767486d25aa59f277312336124b6eddb0910b2a6cbf"
+  }
+}

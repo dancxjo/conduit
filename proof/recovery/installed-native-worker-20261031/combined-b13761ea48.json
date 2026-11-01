@@ -1,0 +1,25 @@
+{
+  "schema": "conduit.development/qualification@1",
+  "source_commit": "b13761ea48cbbd9782d1a6390b26d5623489f1ed",
+  "test_filter": "durable_host_control::environmental_worker::tests",
+  "result": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 318
+  },
+  "log_sha256": "e41eeaae3c90bc657ad688561fe741b8402a87d5091fe454dc18560be071d93e",
+  "worker_sha256": "f9dfb9e6087385f490e6ed2c4a3c0dc83b35e71bb43264666e6fab7af9e4381a",
+  "scope": [
+    "combined integration source including accepted dev memory foundations and finite PCM work",
+    "actual authenticated installed Source/HTTP worker completion",
+    "original native lease, cancellation and discarded late output",
+    "new Boot retained Body resume preserves selected native inventory"
+  ],
+  "not_proven": [
+    "hosted CI",
+    "physical MCU execution on this source",
+    "durable recorder State commitment and acknowledgment",
+    "full fleet Body membership"
+  ]
+}

@@ -75,7 +75,8 @@ try {
   assert(listing.includes("browser-sdk-body-face.mjs"));
   const bodyFaceRenderer = await readFile(path.join(output, "browser-sdk-body-face.mjs"), "utf8");
   assert.match(bodyFaceRenderer, /import\s+["']\.\/owner-face-component\.mjs["']/);
-  for (const name of ["owner-face-component.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
+  for (const name of ["owner-face-component.mjs", "owner-face-graphics.mjs", "owner-face-icons.mjs", "owner-face-look.css", "LUCIDE-LICENSE"]) {
+    assert(listing.includes(name));
     const source = await readFile(path.join(root, "../handbook", name));
     const expected = name === "owner-face-component.mjs"
       ? Buffer.from(source.toString().replaceAll('"../host/assets/application-look.mjs"', '"./host/assets/application-look.mjs"'))
@@ -88,6 +89,9 @@ try {
   assert(listing.includes("browser-sdk-owner-show-state.mjs"));
   assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
+  assert(listing.includes("host/assets/browser-spore-membership.mjs"));
+  assert(listing.includes("host/assets/browser-bounded-document.mjs"));
+  assert(listing.includes("host/assets/browser-part-membership.mjs"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
   assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));
@@ -101,7 +105,7 @@ try {
   const archive = JSON.parse(packed.stdout)[0].filename;
   const extracted = spawnSync("tar", ["-xzf", path.join(output, archive), "-C", installed], { encoding: "utf8" });
   assert.equal(extracted.status, 0, extracted.stderr);
-  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs')"], { cwd: path.join(installed, "package"), encoding: "utf8" });
+  const imported = spawnSync(process.execPath, ["--input-type=module", "-e", "await import('./browser-sdk.mjs'); await import('./workspace/creche-browser-spore-import.mjs')"], { cwd: path.join(installed, "package"), encoding: "utf8" });
   assert.equal(imported.status, 0, imported.stderr);
 
   // The static application composes this exact bundle, including its SDK graph.
@@ -133,6 +137,11 @@ try {
   assert.equal(await readFile(path.join(staticOutput, "navigation.html"), "utf8"), "<nav>Local navigation</nav>");
   assert.equal(appManifest.resources.filter(resource => resource.role === "runtime").length, 1);
   assert(appManifest.resources.find(resource => resource.role === "browser-sdk").dependencies.length > 0);
+  const importerResource = appManifest.resources.find(resource => resource.path === "sdk/workspace/creche-browser-spore-import.mjs");
+  assert(importerResource?.dependencies.length === 3);
+  for (const name of ["browser-sdk-package.json", "browser-page.json", "browser-bundle-release.json"]) {
+    assert(appManifest.resources.some(resource => resource.path === `sdk/bundle/${name}` && resource.kind === "content"));
+  }
   for (const resource of appManifest.resources) {
     assert.equal(await sha256(await readFile(path.join(staticOutput, resource.path))), resource.sha256);
   }

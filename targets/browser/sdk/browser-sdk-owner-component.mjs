@@ -8,6 +8,7 @@ const ownerResources = [
   ['style', 'owner-face-look.css', 16384],
   ['icons', 'owner-face-icons.mjs', 32768],
   ['look', 'application-look.mjs', 32768],
+  ['graphics', 'owner-face-graphics.mjs', 65536],
 ];
 
 function ownerBundleBytes(resources) {
@@ -47,7 +48,7 @@ export async function admitOwnerFaceComponentBack(state, application, { fetchAss
       || descriptor.artifact_id !== `artifact/browser-owner-face-component@1/sha256/${descriptor.bundle_sha256}`
       || descriptor.implementation_id !== 'implementation/browser-owner-face-component@1'
       || descriptor.capability_id !== 'capability/browser-owner-face-component@1'
-      || !Array.isArray(descriptor.resources) || descriptor.resources.length !== 6) throw new Error('Owner component descriptor refused');
+      || !Array.isArray(descriptor.resources) || descriptor.resources.length !== 7) throw new Error('Owner component descriptor refused');
     const byRole = new Map(application.manifest.resources.map(resource => [resource.role, resource]));
     const presentation = byRole.get('owner-face-presentation');
     const style = byRole.get('owner-face-look');
@@ -55,6 +56,7 @@ export async function admitOwnerFaceComponentBack(state, application, { fetchAss
       ['owner-face-icons', './owner-face-icons.mjs'],
       ['application-look', '../host/assets/application-look.mjs'],
       ['owner-face-pointer', './owner-face-pointer.mjs'],
+      ['owner-face-graphics', './owner-face-graphics.mjs'],
     ];
     if (presentation?.kind !== 'module' || presentation.path !== ownerResources[1][1]
       || !Array.isArray(presentation.dependencies)
@@ -84,8 +86,8 @@ export async function admitOwnerFaceComponentBack(state, application, { fetchAss
     if (/@import\b|url\s*\(/i.test(styleText)) throw new Error('Owner component has an unpinned style dependency');
     const dependencyGraph = new Map([
       [0, [[1, '"./owner-face-presentation.mjs"'], [2, '"./owner-face-pointer.mjs"']]],
-      [1, [[5, '"../host/assets/application-look.mjs"'], [4, '"./owner-face-icons.mjs"'], [2, '"./owner-face-pointer.mjs"']]],
-      [2, []], [4, []], [5, []],
+      [1, [[5, '"../host/assets/application-look.mjs"'], [4, '"./owner-face-icons.mjs"'], [2, '"./owner-face-pointer.mjs"'], [6, '"./owner-face-graphics.mjs"']]],
+      [2, []], [4, []], [5, []], [6, []],
     ]);
     const sources = new Map();
     for (const [index, dependencies] of dependencyGraph) {

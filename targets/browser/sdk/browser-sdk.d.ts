@@ -53,9 +53,30 @@ export interface BrowserSyntaxEditor {
   destroy(): void;
 }
 
+/** Private signer retention; not a current presence or durable recording receipt. */
+export interface BrowserPartMembershipStore {
+  retain(): Promise<Readonly<{ bodyId: string; state: "retained-private-part" }>>;
+  /** Original signed admission only. Persist newer return credentials separately. */
+  load(): Promise<Readonly<{ admissionCredential: Readonly<Record<string, unknown>> }> | null>;
+  forget(partId: string): Promise<void>;
+}
+
 export class BrowserHost {
   /** Public proof material for first admission; contains no signing secret. */
   admissionIdentity(): Readonly<{ hostId: string; bootId: string; verifyingKey: readonly number[] }>;
+  /** Membership-only proof for this exact Host/Boot. Root pins come from trusted provisioning. */
+  prepareMembershipScope(options: {
+    claim: Readonly<Record<string, unknown>>;
+    secret: readonly number[];
+    expectedBodyId: string;
+    expectedRoot: readonly number[];
+    producerHost: string;
+    producerBoot: string;
+  }): Readonly<Record<string, unknown>>;
+  /** Verify the original request's pinned Root receipt; creates no presence lease or Play. */
+  adoptMembershipScope(receipt: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
+  partMembershipStore(options: { expectedBodyId: string; expectedRoot: readonly number[] }): Promise<BrowserPartMembershipStore>;
+
   /** Attach native syntax highlighting while preserving the accessible textarea. */
   attachEditor(textarea: HTMLTextAreaElement): BrowserSyntaxEditor;
   /** Return the bounded canonical Rust syntax projection, or throw on refusal. */
@@ -91,9 +112,18 @@ export class BrowserHost {
   }>>;
   /** Participate in one externally owned Body without creating a second Host or Boot. */
   participate(options: {
-    invitation: string;
+    invitation?: string;
+    /** Already admitted authenticated single-use carrier; creates no membership authority. */
+    /** Selected finite transport workspace; sizes confer no authority or admission. */
+    sessionDocumentWorkspace?: { readonly maximumDocumentBytes: number; readonly capacityBytes: number } | null;
+    sessionCarrier?: { readonly maximumFrameBytes?: number; readonly documentTimeoutMillis?: number; sendSessionFrame(frame: Uint8Array): Promise<void>;
+      receiveSessionFrame(): Promise<Uint8Array>; close(): void };
     expectedBodyId?: string | null;
     retainedCredential?: Readonly<Record<string, unknown>> | null;
+    invitedProvision?: { claim: Readonly<Record<string, unknown>>; secret: number[] } | null;
+    /** Explicit human-selected owner Spore provenance; first admission requires its signed Root receipt. */
+    sporeRoot?: { rootAuthority: Readonly<Record<string, unknown>>;
+      rootProducer: Readonly<Record<string, unknown>> } | null;
     onCredential?: (credential: Readonly<Record<string, unknown>>) => void | Promise<void>;
     onState?: (state: string) => void;
     onBiographyEvidence?: (evidence: Readonly<Record<string, unknown>>) => void;
@@ -431,11 +461,26 @@ export class BrowserPlay {
   terminate(): Promise<Readonly<Record<string, unknown>> | null>;
 }
 
+/** Independently selected policy; never obtain this trust input from an imported archive. */
+export interface BrowserReviewedRelease {
+  package: Record<string, unknown>;
+  distribution: Record<string, unknown>;
+  release: Record<string, unknown>;
+}
+export function admitBrowserAssetMap(assets: Map<string, Uint8Array>, policy: BrowserReviewedRelease,
+  profileId?: string): Promise<{ payloads: Map<string, Uint8Array>; pkg: Record<string, unknown>;
+    distribution: Record<string, unknown>; bundle: Record<string, unknown>;
+    image: Record<string, unknown>; imageBytes: Uint8Array }>;
+
 export interface BrowserOptions {
   /** An application-owned Element or ShadowRoot used only for face. */
   root?: Element | ShadowRoot;
   /** Same-origin directory containing the exact package-bound BrowserBundle. */
   bundleRoot?: string | URL;
+  /** Exact in-memory release closure; provision/credentials must be excluded. */
+  assetMap?: Map<string, Uint8Array>;
+  /** Required with assetMap, selected by the importing Workspace independently. */
+  reviewedRelease?: BrowserReviewedRelease;
   /** Optional assertion that this package contains the expected checked PROFILE. */
   profileId?: string;
   /** Use a fresh Host identity for an intentionally ephemeral Host. */

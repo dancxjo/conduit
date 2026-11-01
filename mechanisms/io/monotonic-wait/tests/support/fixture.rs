@@ -158,7 +158,7 @@ pub(super) fn authorization(
         scope.host_id.clone(),
         scope.boot_id.clone(),
         scope.base_instance_id.clone(),
-        4,
+        scope.base_provider_generation,
         [7; 32],
         1,
     )

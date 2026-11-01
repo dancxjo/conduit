@@ -120,6 +120,8 @@ export async function openBrowserRelayLine({
     schema: "conduit.creche/joined-host-line@1",
     implementationId: "conduit-line/user-operated-protected-relay@1",
     candidateId: normalized.route_id,
+    maximumFrameBytes: normalized.bounds.maximum_payload_bytes,
+    documentTimeoutMillis: normalized.bounds.attempt_timeout_millis,
     async sendSessionFrame(frame) {
       current();
       const plaintext = boundedFrame(frame, normalized.bounds.maximum_payload_bytes, "session frame");

@@ -72,14 +72,34 @@ impl PreparedRecordingSnapshot {
     pub fn append(
         &mut self,
         sequence: u64,
-        sampled_at_boot_ms: u64,
+        at_boot_ms: u64,
         disposition: RecordingDisposition,
         observation: Option<&[u8]>,
     ) -> Result<ChunkAppend, RecordingSnapshotRefusal> {
         self.check_room(sequence)?;
         Ok(self
             .chunk
-            .append(sequence, sampled_at_boot_ms, disposition, observation)?)
+            .append(sequence, at_boot_ms, disposition, observation)?)
+    }
+    /// Append an ordinary committed publication with its actual producer clock.
+    pub fn append_publication(
+        &mut self,
+        input: &mut PreparedRecordingInput,
+        snapshot: crate::publication::PublicationSnapshot<'_>,
+        at_boot_ms: u64,
+    ) -> Result<ChunkAppend, RecordingSnapshotRefusal> {
+        self.check_room(snapshot.sequence)?;
+        Ok(input.append(&mut self.chunk, snapshot, at_boot_ms)?)
+    }
+    /// Caller verifies origin separately. This preserves observation time and
+    /// refuses an acquisition-time snapshot before accepting any record.
+    #[cfg(feature = "face-projection")]
+    pub fn append_observed(
+        &mut self,
+        record: &crate::observed_record::ObservedRecord,
+    ) -> Result<ChunkAppend, RecordingSnapshotRefusal> {
+        self.check_room(record.sequence)?;
+        Ok(self.chunk.append_observed(record)?)
     }
     fn check_room(&self, sequence: u64) -> Result<(), RecordingSnapshotRefusal> {
         if self.chunk.sealed {

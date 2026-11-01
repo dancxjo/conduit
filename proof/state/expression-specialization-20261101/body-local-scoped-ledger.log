@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 0.17s
+     Running unittests src/lib.rs (/tmp/conduit-local-native-provider-check/debug/deps/conduit_std_host-8f4b275686e5a55b)
+
+running 1 test
+test kernel_preparation::storage_refresh::tests::scoped_software_refresh_preserves_exact_reserved_backing_and_refuses_active_child ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1007 filtered out; finished in 0.23s
+

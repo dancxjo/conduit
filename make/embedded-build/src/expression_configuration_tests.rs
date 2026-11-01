@@ -58,7 +58,7 @@ fn fixture() -> (PlanFragment, u32) {
     };
     expression.configuration = vec![ConfigurationEntry {
         key: "program".into(),
-        value: ConfigurationValue::Text(program.canonical_hex().unwrap()),
+        value: ConfigurationValue::Text(program.canonical_hex().unwrap().into()),
     }];
     let input = expression.inputs[0].clone();
     fragment.placements[0].outputs[0].value_kind = input.value_kind.clone();

@@ -6,7 +6,9 @@ use conduit_plan_lowering::{
         AssignedOperationInput, SelectedAssignedOperationPlan,
     },
     selected_operation::{
-        bind_selected_configured_operation, SelectedCallRefusal, SelectedOperationContract,
+        bind_selected_configured_operation, bind_selected_direct_configured_operation,
+        bind_selected_verified_configured_operation, SelectedCallRefusal,
+        SelectedDirectOperationPlan, SelectedOperationContract, SelectedVerifiedOperationPlan,
     },
 };
 
@@ -65,6 +67,55 @@ fn generic_ordinary_binding_checks_source_configuration_and_exact_zero_result_sh
         });
         let (table, _, claim) = fixture::authorization(fixture::scope(), &fragment, &active);
         let expected = fixture::configuration();
+        let mut metadata = seal_plan(
+            PlotIdentity {
+                source_document_id: fragment.source_document_id.clone(),
+                checked_plot_id: fragment.checked_plot_id.clone(),
+                expanded_plot_id: fragment.expanded_plot_id.clone(),
+            },
+            vec![fragment.clone()],
+        );
+        let supplied = core::mem::take(&mut metadata.fragments[0].placements[0].configuration);
+        let verified =
+            verify_plan_metadata_with_configurations(metadata, |_| Ok::<_, ()>(supplied.clone()))
+                .unwrap();
+        let verified_check = |lowered, configuration: &[ConfigurationEntry]| {
+            bind_selected_verified_configured_operation(
+                &table,
+                &claim,
+                contract(&kind),
+                configuration,
+                SelectedVerifiedOperationPlan {
+                    plan: &verified,
+                    fragment_id: &fragment.fragment_id,
+                    lowered,
+                    active: &active,
+                    placement_id: &placement,
+                },
+            )
+        };
+        let direct_tables = conduit_plan_lowering::local_tables::DirectLocalKernelTables::<
+            1,
+            0,
+            4,
+            4,
+            0,
+            1,
+        >::prepare(&verified, &fragment.fragment_id)
+        .unwrap();
+        let direct_check = |configuration: &[ConfigurationEntry]| {
+            bind_selected_direct_configured_operation(
+                &table,
+                &claim,
+                contract(&kind),
+                configuration,
+                SelectedDirectOperationPlan {
+                    tables: &direct_tables,
+                    active: &active,
+                    placement_id: &placement,
+                },
+            )
+        };
         let check = |configuration: &[ConfigurationEntry]| {
             bind_selected_configured_operation(
                 &table,
@@ -79,7 +130,64 @@ fn generic_ordinary_binding_checks_source_configuration_and_exact_zero_result_sh
                 },
             )
         };
+        assert_eq!(verified_check(&lowered, &expected), check(&expected));
+        assert_eq!(verified_check(&lowered, &[]), check(&[]));
+        assert_eq!(direct_check(&expected), check(&expected));
+        assert_eq!(direct_check(&[]), check(&[]));
         if mutation == 0 {
+            let (old, rich_memory) =
+                allocation_probe::observe(|| verified_check(&lowered, &expected));
+            let (new, direct_memory) = allocation_probe::observe(|| direct_check(&expected));
+            assert_eq!(new, old);
+            assert!(direct_memory.peak_bytes < rich_memory.peak_bytes);
+            eprintln!(
+                "native selection direct_peak={} rich_verified_peak={}",
+                direct_memory.peak_bytes, rich_memory.peak_bytes
+            );
+            let mut substituted = lowered.clone();
+            substituted.nodes[0].maximum_step_fuel += 1;
+            assert_eq!(
+                verified_check(&substituted, &expected),
+                Err(SelectedCallRefusal::WrongBinding)
+            );
+            let mut stale_active = active.clone();
+            stale_active.play_sequence += 1;
+            let mut stale_claim = claim.clone();
+            stale_claim.base_provider_generation += 1;
+            for (claim, active) in [(&claim, &stale_active), (&stale_claim, &active)] {
+                assert_eq!(
+                    bind_selected_verified_configured_operation(
+                        &table,
+                        claim,
+                        contract(&kind),
+                        &expected,
+                        SelectedVerifiedOperationPlan {
+                            plan: &verified,
+                            fragment_id: &fragment.fragment_id,
+                            lowered: &lowered,
+                            active,
+                            placement_id: &placement
+                        },
+                    ),
+                    Err(SelectedCallRefusal::WrongBinding)
+                );
+            }
+            for (claim, active) in [(&claim, &stale_active), (&stale_claim, &active)] {
+                assert_eq!(
+                    bind_selected_direct_configured_operation(
+                        &table,
+                        claim,
+                        contract(&kind),
+                        &expected,
+                        SelectedDirectOperationPlan {
+                            tables: &direct_tables,
+                            active,
+                            placement_id: &placement
+                        }
+                    ),
+                    Err(SelectedCallRefusal::WrongBinding)
+                );
+            }
             assert_eq!(check(&expected), Ok(lowered.nodes[0].node));
             assert_eq!(check(&[]), Err(SelectedCallRefusal::WrongBinding));
         } else {
@@ -209,5 +317,66 @@ fn generic_assigned_binding_checks_configuration_and_zero_result_shape_in_both_s
             }
             assert_eq!(table.inspections().next().unwrap().completed_operations, 0);
         }
+    }
+}
+
+#[test]
+fn direct_binding_requires_current_idle_issued_possession_just_like_rich_binding() {
+    let kind = conduit_time::tick_semantic_contract();
+    let (fragment, lowered, active, placement) = candidate(|_| {});
+    let mut plan = seal_plan(
+        PlotIdentity {
+            source_document_id: fragment.source_document_id.clone(),
+            checked_plot_id: fragment.checked_plot_id.clone(),
+            expanded_plot_id: fragment.expanded_plot_id.clone(),
+        },
+        vec![fragment.clone()],
+    );
+    let configuration = core::mem::take(&mut plan.fragments[0].placements[0].configuration);
+    let verified =
+        verify_plan_metadata_with_configurations(plan, |_| Ok::<_, ()>(configuration.clone()))
+            .unwrap();
+    let tables =
+        conduit_plan_lowering::local_tables::DirectLocalKernelTables::<1, 0, 1, 1, 0, 1>::prepare(
+            &verified,
+            &fragment.fragment_id,
+        )
+        .unwrap();
+    for busy in [false, true] {
+        let (mut table, handle, claim) =
+            fixture::authorization(fixture::scope(), &fragment, &active);
+        let _lease = if busy {
+            Some(table.authorize(&handle, &claim).unwrap())
+        } else {
+            table.revoke(&handle).unwrap();
+            None
+        };
+        let ordinary = bind_selected_verified_configured_operation(
+            &table,
+            &claim,
+            contract(&kind),
+            &configuration,
+            SelectedVerifiedOperationPlan {
+                plan: &verified,
+                fragment_id: &fragment.fragment_id,
+                lowered: &lowered,
+                active: &active,
+                placement_id: &placement,
+            },
+        );
+        let direct = bind_selected_direct_configured_operation(
+            &table,
+            &claim,
+            contract(&kind),
+            &configuration,
+            SelectedDirectOperationPlan {
+                tables: &tables,
+                active: &active,
+                placement_id: &placement,
+            },
+        );
+        assert_eq!(ordinary, Err(SelectedCallRefusal::Possession));
+        assert_eq!(direct, ordinary);
+        assert_eq!(table.inspections().next().unwrap().completed_operations, 0);
     }
 }

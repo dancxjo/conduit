@@ -16,33 +16,7 @@ impl CheckedGear {
     /// value contracts are determined completely by the ordered port fields.
     /// Other Fronts retain the complete ordinary constructor comparison.
     pub fn accepts_callable_front(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        if self.startup_parameters.is_empty()
-            && offer.startup_parameters.is_empty()
-            && self.semantic_contract.value_contracts().is_empty()
-            && offer.semantic_contract.value_contracts().is_empty()
-        {
-            let offered_shorthand = offer
-                .shorthand
-                .as_ref()
-                .map(|(input, output)| (input.as_str(), output.as_str()))
-                .or_else(
-                    || match (offer.inputs.as_slice(), offer.outputs.as_slice()) {
-                        ([input], [output]) => {
-                            Some((input.port_id.as_str(), output.port_id.as_str()))
-                        }
-                        _ => None,
-                    },
-                );
-            let shorthand = self
-                .shorthand
-                .as_ref()
-                .map(|(input, output)| (input.as_str(), output.as_str()));
-            shorthand == offered_shorthand
-                && canonical_ports_eq(&self.inputs, &offer.inputs)
-                && canonical_ports_eq(&self.outputs, &offer.outputs)
-        } else {
-            self.checked_front() == offer.checked_front()
-        }
+        crate::CheckedGearRef::from(self).accepts_callable_front(offer.into())
     }
 
     /// Tests both callable fit and semantic realization eligibility.
@@ -54,12 +28,7 @@ impl CheckedGear {
     /// a merely front-compatible offer for another Kind is not a Back for this
     /// Gear.
     pub fn accepts_realization(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        self.kind_id == offer.kind_id
-            && self.accepts_callable_front(offer)
-            && self.accepts_semantic_contract(offer)
-            && (self.kind_contract_revision == offer.kind_contract_revision
-                || self.kind_contract_revision.as_str()
-                    == conduit_core::STRUCTURAL_POLYMORPHIC_CONTRACT)
+        crate::CheckedGearRef::from(self).accepts_realization_ref(offer.into())
     }
 
     /// Exact Kind law and configuration-schema equality, excluding the finite
@@ -67,26 +36,7 @@ impl CheckedGear {
     /// authored values belong to this Gear's `configuration`; only actual Kind
     /// defaults (`has_default = true`) are part of realization identity.
     pub fn accepts_semantic_contract(&self, offer: &conduit_core::CapabilityOffer) -> bool {
-        self.semantic_contract.laws == offer.semantic_contract.laws
-            && self.semantic_contract.configuration.len()
-                == offer.semantic_contract.configuration.len()
-            && self
-                .semantic_contract
-                .configuration
-                .iter()
-                .zip(&offer.semantic_contract.configuration)
-                .all(|(gear, offered)| {
-                    gear.key == offered.key
-                        && gear.rule == offered.rule
-                        && self
-                            .startup_parameters
-                            .iter()
-                            .find(|parameter| parameter.name == gear.key)
-                            .is_some_and(|parameter| {
-                                !parameter.has_default
-                                    || gear.default_value == offered.default_value
-                            })
-                })
+        crate::CheckedGearRef::from(self).accepts_semantic_contract(offer.into())
     }
 
     #[doc(hidden)]
@@ -133,27 +83,6 @@ impl CheckedCanonicalPlot {
     pub fn checked_front(&self) -> conduit_core::CheckedFront {
         self.runtime_front.clone()
     }
-}
-
-// Compare the stable port-id ordering used by CheckedFront without cloning or
-// sorting descriptors. Equal-id occurrences retain their original order.
-fn canonical_ports_eq(
-    left: &[conduit_core::PortDescriptor],
-    right: &[conduit_core::PortDescriptor],
-) -> bool {
-    left.len() == right.len()
-        && left.iter().enumerate().all(|(index, port)| {
-            let occurrence = left
-                .iter()
-                .take(index)
-                .filter(|previous| previous.port_id == port.port_id)
-                .count();
-            right
-                .iter()
-                .filter(|candidate| candidate.port_id == port.port_id)
-                .nth(occurrence)
-                == Some(port)
-        })
 }
 
 #[cfg(test)]

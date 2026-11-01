@@ -35,16 +35,20 @@ type SevenSegmentTemperatureUnit =
 type SevenSegmentFractionMarker =
     decimal-point
     | colon
+type SevenSegmentTemperatureFormat =
+    fractional
+    | whole-degrees
 type SevenSegmentLook = {
     temperature_unit: SevenSegmentTemperatureUnit
     fraction_marker: SevenSegmentFractionMarker
+    temperature_format: SevenSegmentTemperatureFormat
 }
 
 # The application-selected Look is ordinary checked Source data.
 plot fahrenheit-look (
     begin: Empty >> look: SevenSegmentLook
-) = ({ temperature_unit: fahrenheit(empty), fraction_marker: decimal-point(empty) })
+) = ({ temperature_unit: fahrenheit(empty), fraction_marker: decimal-point(empty), temperature_format: fractional(empty) })
 
 plot fahrenheit-colon-look (
     begin: Empty >> look: SevenSegmentLook
-) = ({ temperature_unit: fahrenheit(empty), fraction_marker: colon(empty) })
+) = ({ temperature_unit: fahrenheit(empty), fraction_marker: colon(empty), temperature_format: fractional(empty) })

@@ -4,6 +4,7 @@ use conduit_core::PlanFragment;
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
 
+#[cfg(test)]
 pub(super) fn prepare_operations(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
@@ -28,9 +29,30 @@ pub(super) fn prepare_operations_with_native(
     lowered: &LoweredPlanFragment,
     values: &mut HostedValueStore,
     play: &conduit_core::ActivePlayIdentity,
-    mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
+    retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
     durable_body: Option<&conduit_body::BodyId>,
     native_source: Option<(conduit_kernel::NodeId, u32)>,
+) -> Result<[InstalledBack; MAX_NODES], String> {
+    let sources = native_source.into_iter().collect::<Vec<_>>();
+    prepare_operations_with_retained_native(
+        fragment,
+        lowered,
+        values,
+        play,
+        retained,
+        durable_body,
+        &sources,
+    )
+}
+
+pub(super) fn prepare_operations_with_retained_native(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    values: &mut HostedValueStore,
+    play: &conduit_core::ActivePlayIdentity,
+    mut retained: Option<&mut Vec<crate::state_value::RetainedTypedState>>,
+    durable_body: Option<&conduit_body::BodyId>,
+    native_sources: &[(conduit_kernel::NodeId, u32)],
 ) -> Result<[InstalledBack; MAX_NODES], String> {
     if lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
@@ -67,7 +89,11 @@ pub(super) fn prepare_operations_with_native(
     // placement identity inside this exact partition, never by the global ID.
     let mut operations: Vec<_> = (0..MAX_NODES).map(|_| InstalledBack::inactive()).collect();
     for node in &lowered.nodes {
-        if let Some((_, input_bytes)) = native_source.filter(|(id, _)| *id == node.node) {
+        if let Some((_, input_bytes)) = native_sources
+            .iter()
+            .copied()
+            .find(|(id, _)| *id == node.node)
+        {
             operations[usize::from(node.node.0)] = InstalledBack::SelectedNativeSource(
                 conduit_kernel::scheduler::HostCallBack::new(input_bytes),
             );

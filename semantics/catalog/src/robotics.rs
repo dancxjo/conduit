@@ -473,7 +473,7 @@ fn availability_field() -> KindConfigurationField {
 fn text_field(key: &str, default: &str, values: &[&str]) -> KindConfigurationField {
     KindConfigurationField {
         key: key.to_string(),
-        default_value: ConfigurationValue::Text(default.to_string()),
+        default_value: ConfigurationValue::Text(default.to_string().into()),
         rule: KindConfigurationRule::TextOneOf {
             values: values.iter().map(|value| (*value).to_string()).collect(),
         },

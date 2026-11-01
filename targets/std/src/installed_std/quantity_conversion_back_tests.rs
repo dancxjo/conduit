@@ -93,7 +93,7 @@ fn exact_offer_and_finite_configuration_are_required_before_preparation() {
         let mut limits = correct.clone();
         limits.limits.max_queue_items += 1;
         let mut oversized = correct.clone();
-        oversized.configuration[0].value = ConfigurationValue::Text("1".repeat(129));
+        oversized.configuration[0].value = ConfigurationValue::Text("1".repeat(129).into());
         let mut invalid = correct.clone();
         invalid.configuration[0].value = ConfigurationValue::Text("21C".into());
         for invalid in [

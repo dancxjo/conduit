@@ -44,8 +44,10 @@ members = [
 	"make/workspace",
 
 	# Reusable lower mechanisms and implementations.
-	"mechanisms/io/resource-snapshot",
 	"mechanisms/io/i2c-transaction",
+	"mechanisms/io/resource-snapshot",
+	"mechanisms/io/device-carrier-protocol",
+	"mechanisms/io/zenoh-pico-platform",
 	"mechanisms/devices/create-oi",
 	"mechanisms/devices/mpu6050",
 	"mechanisms/devices/ssd1306",
@@ -124,6 +126,23 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	# Retain independently rooted environmental/MCU construction workspaces.
+	"bodies/environment/history",
+	"bodies/environment/host",
+	"bodies/environment/make",
+	"bodies/environment/runtime",
+	"bodies/environment/face",
+	"bodies/environment/measurement",
+	"mechanisms/io/bosch-env",
+	"mechanisms/io/ht16k33",
+	"plots/seven-segment-mask",
+	"mechanisms/io/pulse-capture",
+	"mechanisms/io/tm1637",
+	"bodies/environment/http",
+	"mechanisms/io/monotonic-wait",
+	"mechanisms/io/network-join",
+	"bodies/environment/linux",
+
 	"targets/conduitos/mask-service",
 	"targets/conduitos/tls-service",
 	"targets/conduitos/network-service",

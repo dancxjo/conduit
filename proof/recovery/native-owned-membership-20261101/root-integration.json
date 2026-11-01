@@ -1,0 +1,24 @@
+{
+  "inspected_source": "0cc7b1c3c3f26dce8768d855e731411e86a49be2",
+  "actual_sync_entrance": "native_body_join_http::advance_join -> NativeRoot::admit_body_membership_request -> membership::admit -> admissions_transaction",
+  "target_preparation_qualification": "missing; SDK erase/program/readback timing is insufficient",
+  "required_production_changes": {
+    "native_body_join_http.rs": "reserve response backing before accepted input moves; preserve ticket through deferred/busy/failure states",
+    "native_body_root.rs": "explicit owned start/poll/adopt; restore original Body before signing",
+    "native_flash_domain_job.rs": "boxed owned Start and checkpoint phases with monotonic wrapper ordinal",
+    "native_flash_domain.rs": "typed submit/take/cancel; queue rejection returns identical actual owner",
+    "native_entry.rs": "poll membership before observed reclaim/export; fence setup, joins, offers, invitations, Body-dependent Face preparation and local renewal while owner leased"
+  },
+  "local_execution": "sampler and Mask keep their independent prepared kernels; do not retire or re-create them because Root Body is leased",
+  "failure": "retain complete job, original Body, Store lease, opaque result and accepted HTTP ticket for reconciliation",
+  "required_tests": [
+    "actual production HTTP pump plus domain dispatcher",
+    "unqualified preparation preserves input Body and Store",
+    "busy queue preserves ticket",
+    "invalid proof returns identical Body",
+    "success restores Body before signing",
+    "storage failure retains unsigned custody",
+    "renewal and export defer while independent local workers progress"
+  ],
+  "not_implemented_by_this_audit": "no claim actual Root has adopted owned queued membership"
+}

@@ -1,0 +1,24 @@
+{
+  "source": "95e752151d",
+  "accepted_dev": "e3a8db1b84",
+  "tests": {
+    "product_source_filter": 40,
+    "body_storage": 8
+  },
+  "failures": 0,
+  "commands": [
+    "cargo +stable test --offline -p conduit --bin conduit --features installed-environmental-sources,installed-body-storage source_",
+    "cargo +stable test --offline -p conduit-std-host --features linux-snapshot --test body_durable_state_play --test body_snapshot_play"
+  ],
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/source-refusal-worker-combined-20261101.log",
+      "sha256": "b27941c3bc6162434c8db001864181d055c2dc5954b6363809657d90096ff2ed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-provider-dispatch-20261101.log",
+      "sha256": "d53a458f344e6f85b3d47be619daaab000e0735f0311b91c8e18cbdbd50c2192"
+    }
+  ],
+  "scope": "Refused live Source consumer requests original RunControl cancellation, retains refused canonical data plus the original one-slot channel trailing value after join, restores actual Host and records rejection without ACK/retirement authority. Real clock Body worker fixture injects foreign Source ingress and proves original Host return plus rejected-data receipt. Broader product filter caught notebook Text provider contract collision; exact prepared provider-node dispatch fixes it, while eight State/Snapshot authority/start/custody tests still pass. Not live hardware, installed Recorder, producer journal ACK, physical power loss or full product suite acceptance."
+}

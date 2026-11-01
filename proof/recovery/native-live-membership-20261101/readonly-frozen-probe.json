@@ -1,0 +1,43 @@
+{
+  "scope": "Read-only Prepare/Capture CPU test and offline ESP32 image; no physical deployment",
+  "production_source": "65f91457bbefca5d3fd51c66f7b4cff9c4f9540c",
+  "cpu_test_source": "2b2df677a0d50123053f45858274fca8e9c99637",
+  "cpu_dependency_scope": "Qualified native warm dependency tree; native production files match integrated source. Browser runtime manifest differs, not whole-root dependency proof.",
+  "success_and_forced_capacity_refusal": {
+    "retained_probe_allocations_bytes": 0,
+    "full_storage_media_unchanged": true,
+    "owner_evidence_unchanged": true,
+    "generation_unchanged": true,
+    "store_available_afterward": true
+  },
+  "subsequent_actual_source_membership_tests_passed": 2,
+  "measured_phases": [
+    "Prepare",
+    "Capture"
+  ],
+  "unqualified": [
+    "Start",
+    "Chunk",
+    "Finish",
+    "total target RAM",
+    "during local Play",
+    "physical timing"
+  ],
+  "profile_enabled": false,
+  "offline_esp32": {
+    "app_bytes": 3275200,
+    "app_partition_bytes": 3371008,
+    "app_remaining_bytes": 95808,
+    "stack_bytes": 37356,
+    "stack_floor_bytes": 36864,
+    "stack_margin_bytes": 492,
+    "flashed": false
+  },
+  "app_sha256": "f9ddd9f789169ad10fb82d0861663275c67c11fd9b933cb0f861a77b5fedca55",
+  "logs_sha256": {
+    "readonly-frozen-probe-build.log": "7c84ae94c42e4946382965e958ef097a6cea5fbd041cc3befbe425cdaa812722",
+    "readonly-frozen-probe-pressure-test.log": "cd38d2be7bc74e7e87eea6c6cd57a140afd61c69c5bc882018beffb8d5ff31d7",
+    "readonly-frozen-probe-private-test.log": "c479e08b7ca500093debf8b9c4c888a700a47a796ec3aa160c6110571e41f7b0",
+    "readonly-frozen-probe-warm-build.log": "a67048cab957acb70ec8d84d512e8bf60787726480a75a051f9457a930a647cc"
+  }
+}

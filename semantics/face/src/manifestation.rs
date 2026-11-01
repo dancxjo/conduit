@@ -12,7 +12,9 @@ use sha2::{Digest, Sha256};
 
 use crate::{Face, FaceContentId, RENDERER_KIND};
 
+mod prepared;
 mod validation;
+pub(crate) use prepared::PreparedPresenterBasis;
 
 pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
 pub const MAX_MANIFESTATION_SIGNS: usize = 3;
@@ -172,14 +174,34 @@ impl Manifestation {
         target_subject: String,
         sign_id: SignId,
     ) -> Result<Self, ManifestationError> {
-        if active_play.plan_id != plan.plan_id
-            || active_play.host_id != placement.host_id
-            || active_play.boot_id != placement.boot_id
+        Self::prepared_at_basis(
+            face,
+            &plan.plan_id,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+    #[allow(clippy::too_many_arguments)]
+    fn prepared_at_basis(
+        face: &Face,
+        plan_id: &PlanId,
+        active_play: ActivePlayIdentity,
+        placement: &impl prepared::Presenter,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        if active_play.plan_id != *plan_id
+            || active_play.host_id != *placement.host_id()
+            || active_play.boot_id != *placement.boot_id()
             || active_play
                 != bind_active_play(
-                    &plan.plan_id,
-                    &placement.host_id,
-                    &placement.boot_id,
+                    plan_id,
+                    placement.host_id(),
+                    placement.boot_id(),
                     active_play.play_sequence,
                 )
         {
@@ -190,7 +212,7 @@ impl Manifestation {
         validate_target(&target_subject)?;
         let manifestation_id = bind_manifestation(
             &face.identity,
-            &plan.plan_id,
+            plan_id,
             &active_play.active_play_id,
             placement,
             &front_subject,
@@ -202,17 +224,17 @@ impl Manifestation {
             wake_id: face.basis.wake_id.clone(),
             face_id: face.identity.clone(),
             face_revision: face.revision,
-            plan_id: plan.plan_id.clone(),
+            plan_id: plan_id.clone(),
             active_play_id: active_play.active_play_id,
             play_sequence: active_play.play_sequence,
-            placement_id: placement.placement_id.clone(),
+            placement_id: placement.placement_id().clone(),
             front_subject,
-            presenter_capability_id: placement.capability_id.clone(),
-            presenter_implementation_id: placement.implementation_id.clone(),
-            presenter_artifact_id: placement.artifact_id.clone(),
-            host_id: placement.host_id.clone(),
-            boot_id: placement.boot_id.clone(),
-            offer_generation: placement.offer_generation,
+            presenter_capability_id: placement.capability_id().clone(),
+            presenter_implementation_id: placement.implementation_id().clone(),
+            presenter_artifact_id: placement.artifact_id().clone(),
+            host_id: placement.host_id().clone(),
+            boot_id: placement.boot_id().clone(),
+            offer_generation: placement.offer_generation(),
             target_subject,
             lifecycle: ManifestationLifecycle::Prepared,
             failure: None,
@@ -399,7 +421,7 @@ fn bind_manifestation(
     face: &FaceContentId,
     plan: &PlanId,
     active_play: &ActivePlayId,
-    placement: &PlannedGear,
+    placement: &impl prepared::Presenter,
     front_subject: &str,
     target_subject: &str,
 ) -> ManifestationId {
@@ -409,19 +431,19 @@ fn bind_manifestation(
         face.as_str(),
         plan.as_str(),
         active_play.as_str(),
-        placement.placement_id.as_str(),
-        placement.host_id.as_str(),
-        placement.boot_id.as_str(),
-        placement.capability_id.as_str(),
-        placement.implementation_id.as_str(),
-        placement.artifact_id.as_str(),
+        placement.placement_id().as_str(),
+        placement.host_id().as_str(),
+        placement.boot_id().as_str(),
+        placement.capability_id().as_str(),
+        placement.implementation_id().as_str(),
+        placement.artifact_id().as_str(),
         front_subject,
         target_subject,
     ] {
         digest.update((value.len() as u32).to_le_bytes());
         digest.update(value.as_bytes());
     }
-    digest.update(placement.offer_generation.0.to_le_bytes());
+    digest.update(placement.offer_generation().0.to_le_bytes());
     let bytes: [u8; 32] = digest.finalize().into();
     let mut output = String::with_capacity(64);
     for byte in bytes {

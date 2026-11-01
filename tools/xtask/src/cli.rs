@@ -72,6 +72,11 @@ pub struct MakeArgs {
 
 #[derive(Subcommand, Debug)]
 pub enum MakeTarget {
+    /// Build and qualify the developer-only Linux framebuffer Face adapter.
+    LinuxFaceDisplay {
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        arguments: Vec<String>,
+    },
     /// Build or guardedly flash the Pete Pro Micro Brainstem.
     Avr(AvrArgs),
     /// Build and launch one independent browser page/WASM Host.

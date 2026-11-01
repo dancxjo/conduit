@@ -1,0 +1,24 @@
+{
+  "collector_source": "ffebb9f2c6",
+  "history_tests_passed": 28,
+  "original_batch_files_unchanged": 32,
+  "batch_files_after_restart": 78,
+  "epoch_directories": 3,
+  "retention": "existing admitted binding, Root signature and scope verified by collector, fsynced batches",
+  "limits": [
+    "Collection continues; complete all-epoch recovery not yet established.",
+    "No recording commitment ACK sent by this read-only collector.",
+    "Collector process interruption tested; radio loss and NAT interruption not tested here."
+  ],
+  "rename_handoff": {
+    "pr": 6669,
+    "head": "8eab8c0a92d23411f43d07f2adab91daa60e9854",
+    "live_body_rename": false,
+    "requires": [
+      "qualified checkpoint runtime",
+      "v3-capable recovery artifact",
+      "durable rename receipt verification",
+      "browser and native screenshots"
+    ]
+  }
+}

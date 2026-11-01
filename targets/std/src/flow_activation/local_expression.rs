@@ -66,7 +66,9 @@ pub(super) fn validate(placement: &PlannedGear) -> Result<PortableExpressionProg
         || placement.semantic_contract != expected.semantic_contract
         || placement.limits != expected.limits
         || placement.host_calls != expected.host_calls
-        || placement.base.is_some()
+        || placement.base.as_ref().is_some_and(|binding| {
+            !crate::expression_specialization::is_local_expression_base(binding)
+        })
         || !placement.resources.is_empty()
         || !placement.authority.is_empty()
         || !placement.pool_references.is_empty()

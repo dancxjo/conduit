@@ -31,9 +31,9 @@ use std::{
 /// The one local-control round-trip budget, including an action's durable
 /// acknowledgement. Timeout leaves the result unknown to its caller.
 pub(super) const CONTROL_DEADLINE: std::time::Duration = std::time::Duration::from_secs(2);
-/// One Todo action may wait for a bounded write and a second admitted read
-/// before its committed-state Face is safe to return to the caller.
-pub(super) const TODO_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
+/// Durable mutations may wait for bounded persistence and admitted reads.
+/// Expiry still leaves the publication outcome unknown to the caller.
+pub(super) const DURABLE_ACTION_DEADLINE: std::time::Duration = std::time::Duration::from_secs(8);
 
 #[path = "body/clock_action.rs"]
 mod clock_action;
@@ -50,7 +50,7 @@ pub(super) mod speech;
 pub(super) use control_client::call;
 
 pub(super) enum HostSource {
-    Bare(Box<StdHost>),
+    Bare(Box<crate::durable_host::owner::OwnerHost>),
     /// Occupied only while the same Host moves into a journaled Body owner.
     Transitioning,
     Body {
@@ -131,6 +131,40 @@ impl DurableHostRuntime {
         Ok((report, reading))
     }
 
+    pub(super) fn start_invited_browser_window(
+        &mut self,
+        maximum_millis: u64,
+    ) -> Result<
+        (
+            PortableInvitation,
+            conduit_body::BodyRootAuthority,
+            crate::durable_host::owner::BrowserWindowAuthorization,
+            String,
+        ),
+        String,
+    > {
+        let HostSource::Body { owner, root, .. } = &mut self.host else {
+            return Err("installed Host does not own a live Body session".into());
+        };
+        let (invitation, root_authority, authorization) =
+            owner.browser_prepare_spore_window(root, maximum_millis)?;
+        #[cfg(unix)]
+        {
+            match super::browser::spawn_window(root, authorization.clone()) {
+                Ok(url) => Ok((invitation, root_authority, authorization, url)),
+                Err(error) => {
+                    let _ = owner.browser_cancel_window(root, &authorization.window_id);
+                    Err(error)
+                }
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = owner.browser_cancel_window(root, &authorization.window_id);
+            Err("browser admission worker requires local Unix control".into())
+        }
+    }
+
     pub(super) fn start_browser_window(
         &mut self,
         expected_host_id: &str,
@@ -190,9 +224,11 @@ impl DurableHostRuntime {
         &mut self,
         window_id: &str,
         frame: BrowserAdmissionIngress,
-    ) -> Result<crate::durable_host::owner::BrowserAdmittedSnapshot, String> {
+    ) -> Result<crate::durable_host::owner::BrowserAdmissionCompletion, String> {
         match &mut self.host {
-            HostSource::Body { owner, root, .. } => owner.browser_complete(root, window_id, frame),
+            HostSource::Body { owner, root, .. } => {
+                owner.browser_complete_outcome(root, window_id, frame)
+            }
             HostSource::Bare(_) | HostSource::Transitioning => {
                 Err("installed Host does not own a live Body session".into())
             }
@@ -342,6 +378,11 @@ impl DurableHostRuntime {
             birth_root,
             remote_fragment,
             pending_worker_text,
+            pending_native_source,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_worker,
             pool_member,
             cancellation_signal,
             next_observation_sequence,
@@ -354,11 +395,11 @@ impl DurableHostRuntime {
             owner_spoken_terminal,
             spoken_template_session,
         } = self;
-        let HostSource::Bare(host) = host else {
+        let HostSource::Bare(mut host) = host else {
             return Err("durable Host already owns a Body session".into());
         };
         let previous_generation = host.advertisement().offer_generation;
-        let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let owner = crate::durable_host::owner::resume_service(host.take_for_play()?, root)?;
         let current = owner.host.advertisement();
         if current.offer_generation != previous_generation {
             crate::durable_host::refresh_offer_generation(
@@ -383,6 +424,11 @@ impl DurableHostRuntime {
             birth_root,
             remote_fragment,
             pending_worker_text,
+            pending_native_source,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            selected_environmental_equipment,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_worker,
             pool_member,
             cancellation_signal,
             next_observation_sequence,
@@ -438,6 +484,20 @@ impl DurableHostRuntime {
         owner.acknowledge_native_mask_show(request, show)
     }
 
+    pub(super) fn establish_owned_root_signer(
+        &mut self,
+        body_id: &str,
+    ) -> Result<crate::durable_host::root_signer::Binding, String> {
+        match &mut self.host {
+            HostSource::Body {
+                owner,
+                root,
+                running: None,
+            } => crate::durable_host::owner::establish_root_signer(owner, root, body_id),
+            _ => Err("Root signer establishment requires an idle live Body owner".into()),
+        }
+    }
+
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -470,6 +530,55 @@ impl DurableHostRuntime {
             }
         }
     }
+}
+
+#[cfg(unix)]
+pub(crate) fn start_invited_browser_window(
+    state_dir: &Path,
+    maximum_millis: u64,
+) -> Result<
+    (
+        PortableInvitation,
+        conduit_body::BodyRootAuthority,
+        crate::durable_host::owner::BrowserWindowAuthorization,
+        String,
+    ),
+    String,
+> {
+    match call(
+        state_dir,
+        Request::BodyBrowserInviteStart {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            maximum_millis,
+        },
+    )? {
+        Response::BodyBrowserInvitationWindow {
+            protocol: PROTOCOL,
+            invitation,
+            root_authority,
+            authorization,
+            url,
+        } => Ok((*invitation, root_authority, authorization, url)),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong invited browser-window response".into()),
+    }
+}
+
+#[cfg(not(unix))]
+pub(crate) fn start_invited_browser_window(
+    _: &Path,
+    _: u64,
+) -> Result<
+    (
+        PortableInvitation,
+        conduit_body::BodyRootAuthority,
+        crate::durable_host::owner::BrowserWindowAuthorization,
+        String,
+    ),
+    String,
+> {
+    Err("browser invitation window requires local Unix control".into())
 }
 
 #[cfg(unix)]
@@ -1043,3 +1152,50 @@ pub(crate) fn select_native_component_mask(
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
 }
+
+#[cfg(unix)]
+pub(crate) fn establish_root_signer(
+    state_dir: &Path,
+    body_id: &str,
+    authorized: bool,
+) -> Result<(), String> {
+    if !authorized {
+        return Err("Root signer establishment requires --authorize-establish".into());
+    }
+    match call(
+        state_dir,
+        Request::BodyEstablishRootSigner {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            body_id: body_id.into(),
+        },
+    )? {
+        Response::BodyRootSignerEstablished {
+            protocol: PROTOCOL,
+            binding,
+        } => {
+            // Public pin only; never serialize the private record through control/status.
+            println!(
+                "{}",
+                serde_json::to_string(&binding).map_err(|e| e.to_string())?
+            );
+            Ok(())
+        }
+        Response::Refused { code, .. } => Err(format!(
+            "Body owner refused Root signer establishment: {code}"
+        )),
+        _ => Err("Body owner returned the wrong Root signer response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn establish_root_signer(
+    _state_dir: &Path,
+    _body_id: &str,
+    _authorized: bool,
+) -> Result<(), String> {
+    Err("no reviewed local durable owner control carrier exists on this platform".into())
+}
+
+#[path = "body/replace_plot.rs"]
+mod replace_plot;
+pub(crate) use replace_plot::replace_plot;

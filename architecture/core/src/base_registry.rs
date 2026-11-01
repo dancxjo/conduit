@@ -11,6 +11,9 @@ use crate::{
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
+mod prepared_update;
+pub use prepared_update::PreparedBaseProviderUpdate;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BaseEnforcementClass {
     Cooperative,
@@ -336,10 +339,19 @@ fn validate_entry(
     entry: &BaseProviderEntry,
     limits: BaseRegistryLimits,
 ) -> Result<(), BaseRegistryRefusal> {
-    if entry.base_id.as_str().is_empty()
-        || entry.provider_instance_id.as_str().is_empty()
-        || entry.implementation_id.as_str().is_empty()
-        || entry.mechanism_family.as_str().is_empty()
+    validate_base_provider_entry_ref(entry.into(), limits)
+}
+
+/// Validate the complete borrowed current description using the registry predicates.
+/// This does not register a provider or grant execution authority.
+pub fn validate_base_provider_entry_ref(
+    entry: crate::BaseProviderEntryRef<'_>,
+    limits: BaseRegistryLimits,
+) -> Result<(), BaseRegistryRefusal> {
+    if entry.base_id.is_empty()
+        || entry.provider_instance_id.is_empty()
+        || entry.implementation_id.is_empty()
+        || entry.mechanism_family.is_empty()
     {
         return Err(BaseRegistryRefusal::EmptyIdentity);
     }

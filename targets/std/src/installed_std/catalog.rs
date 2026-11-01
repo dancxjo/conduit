@@ -73,6 +73,9 @@ use super::math_backs::{MATH_CLAMP_FACTORY, MATH_DEADBAND_FACTORY, MATH_SCALE_FA
 use super::microphone_clip_back::{
     CONVERTED_FACTORY as CONVERTED_MICROPHONE_CLIP_FACTORY, FACTORY as MICROPHONE_CLIP_FACTORY,
 };
+use super::microphone_flow_back::{
+    CONVERTED_FACTORY as CONVERTED_MICROPHONE_FLOW_FACTORY, FACTORY as MICROPHONE_FLOW_FACTORY,
+};
 use super::midi_input_back::MIDI_INPUT_FACTORY;
 use super::midi_output_back::MIDI_OUTPUT_FACTORY;
 use super::model_text_back::FACTORY as MODEL_TEXT_FACTORY;
@@ -210,6 +213,10 @@ use super::whisper_speech_back::{
 use conduit_core::{ImplementationId, PlanFragment};
 
 const FACTORIES: &[&BackFactory] = &[
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    &super::linux_snapshot_back::PUBLISH,
+    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+    &super::linux_snapshot_back::READ,
     &super::ieee_back::FACTORY,
     &super::near_back::FACTORY,
     &super::numerical_back::EXACT_FACTORY,
@@ -258,6 +265,8 @@ const FACTORIES: &[&BackFactory] = &[
     &RECORDED_SPEECH_FACTORY,
     &WHISPER_SPEECH_FACTORY,
     &WHISPER_CLIP_SPEECH_FACTORY,
+    &MICROPHONE_FLOW_FACTORY,
+    &CONVERTED_MICROPHONE_FLOW_FACTORY,
     &MICROPHONE_CLIP_FACTORY,
     &CONVERTED_MICROPHONE_CLIP_FACTORY,
     &ADDRESS_DETECT_FACTORY,
@@ -271,6 +280,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::keyboard_input_back::button::indicator::INDICATOR,
     &super::keyboard_input_back::button::indicator::RESOURCE_INDICATOR,
     &TICK_FACTORY,
+    &super::tick_trigger_back::FACTORY,
     &super::pulse_observation_back::FACTORY,
     #[cfg(test)]
     &super::pulse_observation_sink::FACTORY,

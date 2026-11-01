@@ -1,3 +1,4 @@
+use crate::postcard_hash::PostcardSha256 as ArchiveHash;
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -344,53 +345,96 @@ impl BodyBiographyEvidence {
         if self.membership.events.is_empty() {
             return Ok(None);
         }
-        let membership_events = self.membership.events.clone();
-        let change_ids: Vec<_> = membership_events
-            .iter()
-            .map(|event| event.change_id.clone())
-            .collect();
-        let records: Vec<_> = self
-            .records
-            .iter()
-            .filter(|record| match &record.kind {
-                super::BodyBiographyRecordKind::PartAdmitted { change_id, .. }
-                | super::BodyBiographyRecordKind::HostJoined { change_id, .. }
-                | super::BodyBiographyRecordKind::HostLeft { change_id, .. }
-                | super::BodyBiographyRecordKind::PartRevoked { change_id, .. } => {
-                    change_ids.contains(change_id)
-                }
-                _ => false,
-            })
-            .cloned()
-            .collect();
-        if records.len() != membership_events.len() {
-            return Err(BodyBiographyError::InvalidEvidence);
-        }
-        let segment = BodyBiographyArchiveSegment::seal(
-            self,
-            records.clone(),
-            Vec::new(),
-            Vec::new(),
-            membership_events,
-        )?;
-        let mut candidate = self.clone();
-        candidate
-            .membership
-            .checkpoint_events()
-            .map_err(|_| BodyBiographyError::InvalidEvidence)?;
-        candidate.records.retain(|record| match &record.kind {
+        let membership_record = |record: &BodyBiographyRecord| match &record.kind {
             super::BodyBiographyRecordKind::PartAdmitted { change_id, .. }
             | super::BodyBiographyRecordKind::HostJoined { change_id, .. }
             | super::BodyBiographyRecordKind::HostLeft { change_id, .. }
-            | super::BodyBiographyRecordKind::PartRevoked { change_id, .. } => {
-                !change_ids.contains(change_id)
+            | super::BodyBiographyRecordKind::PartRevoked { change_id, .. } => self
+                .membership
+                .events
+                .iter()
+                .any(|event| &event.change_id == change_id),
+            _ => false,
+        };
+        let archived_count = self.records.iter().filter(|r| membership_record(r)).count();
+        if archived_count != self.membership.events.len() {
+            return Err(BodyBiographyError::InvalidEvidence);
+        }
+        let mut retained = Vec::new();
+        retained
+            .try_reserve_exact(self.records.len() - archived_count)
+            .map_err(|_| BodyBiographyError::CapacityExhausted)?;
+        // Only current Part truth is copied. Historical events/records/IDs move.
+        let checkpoint = crate::BodyMembershipCheckpoint {
+            revision: self.membership.revision,
+            parts: self.membership.parts.clone(),
+        };
+        let segment = BodyBiographyArchiveSegment {
+            schema: "conduit.body/biography-archive-segment@2".into(),
+            body_id: self.body_id.clone(),
+            ordinal: self
+                .compaction
+                .as_ref()
+                .map_or(1, |s| s.sealed_segments.saturating_add(1)),
+            previous_digest: self.compaction.as_ref().and_then(|s| s.archive_head_digest),
+            records: core::mem::take(&mut self.records),
+            wakes: Vec::new(),
+            body_events: Vec::new(),
+            membership_events: core::mem::take(&mut self.membership.events),
+            digest: [0; 32],
+        };
+        let old_checkpoint = self.membership.checkpoint.replace(checkpoint);
+        let mut transaction = MembershipSeal {
+            evidence: self,
+            segment: Some(segment),
+            old_checkpoint,
+            old_compaction: None,
+        };
+        transaction.evidence.records = retained;
+        let segment = transaction
+            .segment
+            .as_mut()
+            .expect("owned membership suffix");
+        let mut index = 0;
+        while index < segment.records.len() {
+            let selected = match &segment.records[index].kind {
+                super::BodyBiographyRecordKind::PartAdmitted { change_id, .. }
+                | super::BodyBiographyRecordKind::HostJoined { change_id, .. }
+                | super::BodyBiographyRecordKind::HostLeft { change_id, .. }
+                | super::BodyBiographyRecordKind::PartRevoked { change_id, .. } => segment
+                    .membership_events
+                    .iter()
+                    .any(|event| &event.change_id == change_id),
+                _ => false,
+            };
+            if selected {
+                index += 1;
+            } else {
+                transaction
+                    .evidence
+                    .records
+                    .push(segment.records.remove(index));
             }
-            _ => true,
-        });
-        candidate.advance_compaction(&segment, &records, 0, None)?;
-        candidate.validate()?;
-        *self = candidate;
-        Ok(Some(segment))
+        }
+        segment.digest = digest(&ArchivePayload {
+            schema: &segment.schema,
+            body_id: &segment.body_id,
+            ordinal: segment.ordinal,
+            previous_digest: segment.previous_digest,
+            records: &segment.records,
+            wakes: &segment.wakes,
+            body_events: &segment.body_events,
+            membership_events: &segment.membership_events,
+        })?;
+        segment.validate()?;
+        let compaction =
+            transaction
+                .evidence
+                .next_compaction(segment, &segment.records, 0, None)?;
+        transaction.old_compaction = Some(transaction.evidence.compaction.replace(compaction));
+        transaction.evidence.validate()?;
+        segment.validate_as_head_of(transaction.evidence)?;
+        Ok(transaction.segment.take())
     }
 
     pub(super) fn advance_compaction(
@@ -400,6 +444,16 @@ impl BodyBiographyEvidence {
         wakes: u64,
         first_wake_id: Option<crate::WakeId>,
     ) -> Result<(), BodyBiographyError> {
+        self.compaction = Some(self.next_compaction(segment, records, wakes, first_wake_id)?);
+        Ok(())
+    }
+    fn next_compaction(
+        &self,
+        segment: &BodyBiographyArchiveSegment,
+        records: &[BodyBiographyRecord],
+        wakes: u64,
+        first_wake_id: Option<crate::WakeId>,
+    ) -> Result<super::BodyBiographyCompaction, BodyBiographyError> {
         let last = records.last().ok_or(BodyBiographyError::InvalidEvidence)?;
         let prior = self.compaction.as_ref();
         let (through_sequence, through_sign_id) =
@@ -409,7 +463,7 @@ impl BodyBiographyEvidence {
             } else {
                 (last.sequence, last.sign_id.clone())
             };
-        self.compaction = Some(super::BodyBiographyCompaction {
+        Ok(super::BodyBiographyCompaction {
             wakes: prior
                 .map_or(0, |summary| summary.wakes)
                 .checked_add(wakes)
@@ -425,17 +479,40 @@ impl BodyBiographyEvidence {
                 .or(first_wake_id),
             sealed_segments: segment.ordinal,
             archive_head_digest: Some(segment.digest),
-        });
-        Ok(())
+        })
     }
 }
 
-fn digest(payload: &ArchivePayload<'_>) -> Result<[u8; 32], BodyBiographyError> {
-    let bytes = postcard::to_allocvec(payload).map_err(|_| BodyBiographyError::InvalidEvidence)?;
-    Ok(Sha256::digest(bytes).into())
+/// Until publication, all moved custody remains available for exact rollback.
+struct MembershipSeal<'a> {
+    evidence: &'a mut BodyBiographyEvidence,
+    segment: Option<BodyBiographyArchiveSegment>,
+    old_checkpoint: Option<crate::BodyMembershipCheckpoint>,
+    old_compaction: Option<Option<super::BodyBiographyCompaction>>,
 }
-
+impl Drop for MembershipSeal<'_> {
+    fn drop(&mut self) {
+        let Some(mut segment) = self.segment.take() else {
+            return;
+        };
+        // Original capacity held every record, so append cannot allocate.
+        segment.records.append(&mut self.evidence.records);
+        segment
+            .records
+            .sort_unstable_by_key(|record| record.sequence);
+        self.evidence.records = segment.records;
+        self.evidence.membership.events = segment.membership_events;
+        self.evidence.membership.checkpoint = self.old_checkpoint.take();
+        if let Some(compaction) = self.old_compaction.take() {
+            self.evidence.compaction = compaction;
+        }
+    }
+}
+fn digest(payload: &ArchivePayload<'_>) -> Result<[u8; 32], BodyBiographyError> {
+    postcard::serialize_with_flavor(payload, ArchiveHash(Sha256::new()))
+        .map_err(|_| BodyBiographyError::InvalidEvidence)
+}
 fn legacy_digest(payload: &LegacyArchivePayload<'_>) -> Result<[u8; 32], BodyBiographyError> {
-    let bytes = postcard::to_allocvec(payload).map_err(|_| BodyBiographyError::InvalidEvidence)?;
-    Ok(Sha256::digest(bytes).into())
+    postcard::serialize_with_flavor(payload, ArchiveHash(Sha256::new()))
+        .map_err(|_| BodyBiographyError::InvalidEvidence)
 }

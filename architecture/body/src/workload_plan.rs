@@ -1,6 +1,6 @@
 //! One immutable body-wide Plan over the current exact plot workset.
 
-use alloc::{format, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 use conduit_core::{verify_plan, ActivePlayId, BodyTimeRequirement, PlacementId, Plan, PlanId};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -27,6 +27,15 @@ pub struct BodyPlan {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub body_time_requirement: Option<BodyTimeRequirement>,
 }
+
+mod encoding;
+mod masks;
+mod seal;
+mod validation;
+mod verified_inputs;
+mod views;
+pub use seal::*;
+pub use verified_inputs::{VerifiedBodyMaskChain, VerifiedBodyMaskTopology, VerifiedBodyPlotPlan};
 
 pub const MAX_BODY_MASK_TOPOLOGIES: usize = 16;
 pub const MAX_BODY_MASK_CHAINS: usize = 8;
@@ -151,8 +160,8 @@ impl BodyPlan {
             &wake.body_id,
             &wake.wake_id,
             wake.workload_revision,
-            &plots,
-            &mask_topologies,
+            plots.iter(),
+            mask_topologies.iter(),
             body_time_requirement.as_ref(),
         );
         Ok(Self {
@@ -165,28 +174,6 @@ impl BodyPlan {
             mask_topologies,
             body_time_requirement,
         })
-    }
-
-    pub fn validate_for(&self, wake: &Wake) -> Result<(), BodyPlanError> {
-        if self.body_id != wake.body_id {
-            return Err(BodyPlanError::WrongBody);
-        }
-        if self.wake_id != wake.wake_id {
-            return Err(BodyPlanError::WrongWake);
-        }
-        if self.workload_revision != wake.workload_revision || self.workset != wake.workset {
-            return Err(BodyPlanError::StaleWorkload);
-        }
-        let resealed = Self::seal_with_requirements(
-            wake,
-            self.plots.clone(),
-            self.mask_topologies.clone(),
-            self.body_time_requirement.clone(),
-        )?;
-        if resealed.plan_id != self.plan_id {
-            return Err(BodyPlanError::InvalidIdentity);
-        }
-        Ok(())
     }
 
     /// Revalidate the immutable body-wide seal without relying on ambient Wake
@@ -235,8 +222,8 @@ impl BodyPlan {
                     &self.body_id,
                     &self.wake_id,
                     self.workload_revision,
-                    &self.plots,
-                    &self.mask_topologies,
+                    self.plots.iter(),
+                    self.mask_topologies.iter(),
                     self.body_time_requirement.as_ref(),
                 )
         {
@@ -247,25 +234,25 @@ impl BodyPlan {
 }
 
 impl BodyPlayIdentity {
-    pub fn bind(plan: &BodyPlan, play_sequence: u64) -> Self {
+    pub fn bind(plan: &impl BodyPlanEvidence, play_sequence: u64) -> Self {
         Self {
             active_play_id: bind_body_play(
-                &plan.body_id,
-                &plan.wake_id,
-                &plan.plan_id,
+                plan.body_id(),
+                plan.wake_id(),
+                plan.plan_id(),
                 play_sequence,
             ),
-            body_id: plan.body_id.clone(),
-            wake_id: plan.wake_id.clone(),
-            plan_id: plan.plan_id.clone(),
+            body_id: plan.body_id().clone(),
+            wake_id: plan.wake_id().clone(),
+            plan_id: plan.plan_id().clone(),
             play_sequence,
         }
     }
 
-    pub fn validate_for(&self, plan: &BodyPlan) -> bool {
-        self.body_id == plan.body_id
-            && self.wake_id == plan.wake_id
-            && self.plan_id == plan.plan_id
+    pub fn validate_for(&self, plan: &impl BodyPlanEvidence) -> bool {
+        &self.body_id == plan.body_id()
+            && &self.wake_id == plan.wake_id()
+            && &self.plan_id == plan.plan_id()
             && self.active_play_id
                 == bind_body_play(
                     &self.body_id,
@@ -276,59 +263,22 @@ impl BodyPlayIdentity {
     }
 }
 
-fn bind_body_plan(
+fn bind_body_plan<'a>(
     body_id: &BodyId,
     wake_id: &WakeId,
     workload_revision: u64,
-    plots: &[BodyPlotPlan],
-    mask_topologies: &[BodyMaskTopology],
+    plots: impl ExactSizeIterator<Item = &'a BodyPlotPlan>,
+    mask_topologies: impl ExactSizeIterator<Item = &'a BodyMaskTopology>,
     body_time_requirement: Option<&BodyTimeRequirement>,
 ) -> PlanId {
-    let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-plan@3");
-    push(&mut bytes, body_id.as_str());
-    push(&mut bytes, wake_id.as_str());
-    bytes.extend_from_slice(&workload_revision.to_le_bytes());
-    bytes.extend_from_slice(&(plots.len() as u32).to_le_bytes());
-    for plot in plots {
-        push(&mut bytes, plot.plot.source_document_id.as_str());
-        push(&mut bytes, plot.plot.checked_plot_id.as_str());
-        push(&mut bytes, plot.plan.plan_id.as_str());
-    }
-    bytes.extend_from_slice(&(mask_topologies.len() as u32).to_le_bytes());
-    for topology in mask_topologies {
-        if let Some(plot) = &topology.face.plot {
-            push(&mut bytes, "plot");
-            push(&mut bytes, plot.source_document_id.as_str());
-            push(&mut bytes, plot.checked_plot_id.as_str());
-        } else {
-            push(&mut bytes, "body");
-        }
-        match &topology.face.source_placement_id {
-            Some(placement) => {
-                push(&mut bytes, "plot-placement");
-                push(&mut bytes, placement.as_str());
-            }
-            None => push(&mut bytes, "owner-composed"),
-        }
-        bytes.extend_from_slice(&(topology.chains.len() as u32).to_le_bytes());
-        for chain in &topology.chains {
-            push(&mut bytes, chain.plan.plan_id.as_str());
-            bytes.extend_from_slice(&(chain.stage_placement_ids.len() as u32).to_le_bytes());
-            for placement in &chain.stage_placement_ids {
-                push(&mut bytes, placement.as_str());
-            }
-        }
-    }
-    if let Some(requirement) = body_time_requirement {
-        push(&mut bytes, "body-time-requirement@1");
-        push(&mut bytes, requirement.body_basis());
-        bytes.extend_from_slice(&requirement.tolerance().ticks().to_le_bytes());
-        push_temporal_scale(&mut bytes, requirement.tolerance().scale());
-        bytes.extend_from_slice(&requirement.horizon().ticks().to_le_bytes());
-        push_temporal_scale(&mut bytes, requirement.horizon().scale());
-    }
-    PlanId::from(digest_id("body-plan", &bytes))
+    encoding::bind_body_plan_views(
+        body_id,
+        wake_id,
+        workload_revision,
+        plots.map(views::PlotRef::rich),
+        mask_topologies.map(views::MaskRef::rich),
+        body_time_requirement,
+    )
 }
 
 fn validate_body_time_requirement(
@@ -343,7 +293,7 @@ fn validate_body_time_requirement(
     Ok(())
 }
 
-fn push_temporal_scale(bytes: &mut Vec<u8>, scale: conduit_core::TemporalScale) {
+fn push_temporal_scale(bytes: &mut Sha256, scale: conduit_core::TemporalScale) {
     let label = match scale {
         conduit_core::TemporalScale::Seconds => "seconds",
         conduit_core::TemporalScale::Milliseconds => "milliseconds",
@@ -358,80 +308,11 @@ fn validate_mask_topologies(
     plots: &[BodyPlotPlan],
     topologies: &[BodyMaskTopology],
 ) -> Result<(), BodyPlanError> {
-    if topologies.len() > MAX_BODY_MASK_TOPOLOGIES {
-        return Err(BodyPlanError::MaskTopologyCapacityExceeded);
-    }
-    for (index, topology) in topologies.iter().enumerate() {
-        let valid_source = match (&topology.face.plot, &topology.face.source_placement_id) {
-            (None, None) => true,
-            (Some(plot), None) => workset.contains(plot),
-            (Some(plot), Some(source)) => {
-                workset.contains(plot)
-                    && plots.iter().any(|partition| {
-                        &partition.plot == plot
-                            && partition
-                                .plan
-                                .fragments
-                                .iter()
-                                .flat_map(|fragment| &fragment.placements)
-                                .any(|placement| &placement.placement_id == source)
-                    })
-            }
-            _ => false,
-        };
-        if !valid_source
-            || topology.chains.is_empty()
-            || topology.chains.len() > MAX_BODY_MASK_CHAINS
-        {
-            return Err(BodyPlanError::InvalidMaskChain);
-        }
-        if topologies[index + 1..]
-            .iter()
-            .any(|other| other.face == topology.face)
-        {
-            return Err(BodyPlanError::DuplicateMaskTopology);
-        }
-        for chain in &topology.chains {
-            if !verify_plan(&chain.plan)
-                || chain.stage_placement_ids.is_empty()
-                || chain.stage_placement_ids.len() > MAX_BODY_MASK_STAGES
-            {
-                return Err(BodyPlanError::InvalidMaskChain);
-            }
-            let placements = chain
-                .plan
-                .fragments
-                .iter()
-                .flat_map(|fragment| &fragment.placements)
-                .collect::<Vec<_>>();
-            for (stage_index, stage_id) in chain.stage_placement_ids.iter().enumerate() {
-                if chain.stage_placement_ids[..stage_index].contains(stage_id)
-                    || placements
-                        .iter()
-                        .filter(|placement| &placement.placement_id == stage_id)
-                        .count()
-                        != 1
-                {
-                    return Err(BodyPlanError::InvalidMaskChain);
-                }
-                if let Some(next_id) = chain.stage_placement_ids.get(stage_index + 1) {
-                    let connected = chain
-                        .plan
-                        .fragments
-                        .iter()
-                        .flat_map(|f| &f.connections)
-                        .any(|cord| {
-                            &cord.source_placement_id == stage_id
-                                && &cord.sink_placement_id == next_id
-                        });
-                    if !connected {
-                        return Err(BodyPlanError::InvalidMaskChain);
-                    }
-                }
-            }
-        }
-    }
-    Ok(())
+    masks::validate_mask_views(
+        workset,
+        plots.iter().map(views::PlotRef::rich),
+        topologies.iter().map(views::MaskRef::rich),
+    )
 }
 
 fn bind_body_play(
@@ -440,25 +321,27 @@ fn bind_body_play(
     plan_id: &PlanId,
     play_sequence: u64,
 ) -> ActivePlayId {
-    let mut bytes = Vec::new();
-    push(&mut bytes, "conduit.body/body-play@1");
-    push(&mut bytes, body_id.as_str());
-    push(&mut bytes, wake_id.as_str());
-    push(&mut bytes, plan_id.as_str());
-    bytes.extend_from_slice(&play_sequence.to_le_bytes());
-    ActivePlayId::from(digest_id("body-play", &bytes))
+    let mut hash = Sha256::new();
+    push(&mut hash, "conduit.body/body-play@1");
+    push(&mut hash, body_id.as_str());
+    push(&mut hash, wake_id.as_str());
+    push(&mut hash, plan_id.as_str());
+    hash.update(play_sequence.to_le_bytes());
+    ActivePlayId::from(digest_id("body-play", hash))
 }
 
-fn push(output: &mut Vec<u8>, value: &str) {
-    output.extend_from_slice(&(value.len() as u32).to_le_bytes());
-    output.extend_from_slice(value.as_bytes());
+fn push(output: &mut Sha256, value: &str) {
+    output.update((value.len() as u32).to_le_bytes());
+    output.update(value.as_bytes());
 }
 
-fn digest_id(prefix: &str, bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    let mut hex = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        hex.push_str(&format!("{byte:02x}"));
+fn digest_id(prefix: &str, hash: Sha256) -> String {
+    use core::fmt::Write;
+    let mut output = String::with_capacity(prefix.len() + 8 + 64);
+    output.push_str(prefix);
+    output.push_str("/sha256:");
+    for byte in hash.finalize() {
+        let _ = write!(output, "{byte:02x}");
     }
-    format!("{prefix}/sha256:{hex}")
+    output
 }

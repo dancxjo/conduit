@@ -242,7 +242,7 @@ mod back;
 pub use back::DurableStateBack;
 mod residence;
 pub use residence::FileDurableStateResidence;
-pub(crate) use residence::InstalledDurableStateHost;
+pub(crate) use residence::{durable_record_byte_bound, InstalledDurableStateHost};
 
 #[cfg(test)]
 mod tests {
@@ -437,7 +437,7 @@ mod tests {
         };
         let metadata_outcome = conduit_kernel::HostCallOutcome {
             disposition: HostCallDisposition::Completed,
-            output: Some(BoundedValueRef::new(metadata_ref, metadata.len() as u32).unwrap()),
+            output: Some(BoundedValueRef::new(metadata_ref, 4096).unwrap()),
             failure: None,
         };
         let mut metadata_step = StepIo::test_frame(

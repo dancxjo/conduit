@@ -1,0 +1,8 @@
+# One independently admitted scan. Invocation generation and finite deadlines
+# belong to its selected owner, not an invented Source or network Line.
+# Delivery of observations is distinct from durable retirement and round renewal.
+plot environment-network-scan {
+    scan: network/scan
+    observed: network/scan-sign
+    scan.observations >> observed.observations
+}

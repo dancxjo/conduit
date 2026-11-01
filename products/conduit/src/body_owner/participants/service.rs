@@ -1,6 +1,8 @@
 //! Service-owned browser authorization. The carrier worker never owns membership
 //! truth: every challenge and completion is applied on the serialized owner actor.
 mod admission;
+mod invited;
+mod native_snapshot;
 mod route;
 #[cfg(test)]
 mod tests;
@@ -31,12 +33,16 @@ use std::{
 pub(crate) struct BrowserWindowAuthorization {
     pub(crate) window_id: String,
     pub(crate) body_id: BodyId,
+    pub(crate) owner_host_id: HostId,
+    pub(crate) owner_boot_id: conduit_core::BootId,
     pub(crate) maximum_millis: u64,
     pub(crate) presence_maximum_millis: u64,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct BrowserAdmittedSnapshot {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) signed_membership_receipt: Option<conduit_body::PortableMembershipAdmissionReceipt>,
     pub(crate) credential: MembershipCredential,
     pub(crate) biography: Box<BodyBiographyEvidence>,
     pub(crate) offer: Box<HostOfferProjection>,
@@ -107,6 +113,7 @@ impl BrowserAdmittedSnapshot {
         )
         .map_err(debug)?;
         Ok(Self {
+            signed_membership_receipt: None,
             credential,
             biography: Box::new(owner.session.evidence().clone()),
             offer: Box::new(offer),
@@ -119,8 +126,10 @@ impl BrowserAdmittedSnapshot {
 
 pub(crate) struct BrowserWindow {
     id: String,
-    expected: HostId,
+    expected: Option<HostId>,
+    scope: BrowserWindowScope,
     new_key: Option<[u8; 32]>,
+    invited_proof_refused: bool,
     clock: Instant,
     deadline: Instant,
     state: WindowState,
@@ -129,6 +138,14 @@ pub(crate) struct BrowserWindow {
         conduit_face::ComponentMaskLook,
         conduit_std_host::browser_admission::BrowserComponentRecipe,
     )>,
+}
+
+enum BrowserWindowScope {
+    ExactHost,
+    InvitationScope {
+        claim: conduit_body::SpawnInvitationClaim,
+        observed_sha256: Option<String>,
+    },
 }
 
 enum WindowState {
@@ -215,6 +232,9 @@ struct Pending {
 }
 
 enum PendingKind {
+    Invited {
+        claim: conduit_body::SpawnInvitationClaim,
+    },
     Ambient {
         challenge: AdmissionChallenge,
         observed_candidates: CandidateInventory,
@@ -262,6 +282,9 @@ impl BrowserWindow {
     }
 
     fn check(&self, id: &str) -> Result<u64, String> {
+        if self.invited_proof_refused {
+            return Err("invited browser proof window retired".into());
+        }
         if self.id != id {
             return Err("browser admission window identity differs".into());
         }
@@ -286,6 +309,74 @@ impl BrowserWindow {
 }
 
 impl Owner {
+    /// Authenticated Make preparation: validate selected Root custody before
+    /// issuing the single claim that the finite fresh-endpoint scope awaits.
+    pub(crate) fn browser_prepare_spore_window(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+    ) -> Result<
+        (
+            conduit_body::PortableInvitation,
+            conduit_body::BodyRootAuthority,
+            BrowserWindowAuthorization,
+        ),
+        String,
+    > {
+        let authority = crate::durable_host::root_signer::public_authority(
+            root,
+            &self.session.evidence().body_id,
+            self.host.advertisement().host_id.as_str(),
+        )?;
+        let (invitation, window) =
+            self.browser_authorize_invitation_window(root, maximum_millis)?;
+        Ok((invitation, authority, window))
+    }
+
+    /// Issue and durably retain one invitation before publishing its finite
+    /// fresh-endpoint window. No ambient or Return authorization is implied.
+    pub(crate) fn browser_authorize_invitation_window(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+    ) -> Result<(conduit_body::PortableInvitation, BrowserWindowAuthorization), String> {
+        if !(1000..=60_000).contains(&maximum_millis) || maximum_millis % 1000 != 0 {
+            return Err("invited browser window requires whole seconds in 1000..60000 ms".into());
+        }
+        if self.pending_browser.is_some() {
+            return Err("another browser admission window is active".into());
+        }
+        // Prepare fallible entropy before the durable invitation transaction.
+        let id = format!("browser-window/{}", hex(&nonce()?));
+        let invitation = self.issue_invitation(root, maximum_millis / 1000, None)?;
+        let clock = Instant::now();
+        self.pending_browser = Some(BrowserWindow {
+            id: id.clone(),
+            expected: None,
+            new_key: None,
+            scope: BrowserWindowScope::InvitationScope {
+                claim: invitation.claim.clone(),
+                observed_sha256: None,
+            },
+            invited_proof_refused: false,
+            clock,
+            deadline: clock + Duration::from_millis(maximum_millis),
+            state: WindowState::Ready,
+            component_mask_selection: None,
+        });
+        Ok((
+            invitation,
+            BrowserWindowAuthorization {
+                window_id: id,
+                body_id: self.session.evidence().body_id.clone(),
+                owner_host_id: self.host.advertisement().host_id.clone(),
+                owner_boot_id: self.host.advertisement().boot_id.clone(),
+                maximum_millis,
+                presence_maximum_millis: MAX_BROWSER_PRESENCE_MILLIS,
+            },
+        ))
+    }
+
     pub(crate) fn browser_authorize_window(
         &mut self,
         expected_host: &str,
@@ -318,7 +409,7 @@ impl Owner {
             manager
                 .receipts
                 .iter()
-                .any(|receipt| receipt.credential.host_id == expected)
+                .any(|receipt| receipt.credential.host_id == expected.as_str())
         });
         if !known && new_key.is_none() {
             return Err("first browser admission requires its exact public verifying key".into());
@@ -327,8 +418,10 @@ impl Owner {
         let clock = Instant::now();
         self.pending_browser = Some(BrowserWindow {
             id: id.clone(),
-            expected,
+            expected: Some(expected),
+            scope: BrowserWindowScope::ExactHost,
             new_key,
+            invited_proof_refused: false,
             clock,
             deadline: clock + Duration::from_millis(maximum_millis),
             state: WindowState::Ready,
@@ -337,6 +430,8 @@ impl Owner {
         Ok(BrowserWindowAuthorization {
             window_id: id,
             body_id: self.session.evidence().body_id.clone(),
+            owner_host_id: self.host.advertisement().host_id.clone(),
+            owner_boot_id: self.host.advertisement().boot_id.clone(),
             maximum_millis,
             presence_maximum_millis: MAX_BROWSER_PRESENCE_MILLIS,
         })
@@ -424,8 +519,8 @@ impl Owner {
                 .receipts
                 .iter()
                 .rev()
-                .find(|receipt| receipt.credential.part_id == credential.part_id)
-                .is_some_and(|receipt| receipt.credential == *credential)
+                .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
+                .is_some_and(|receipt| receipt.credential.matches(credential))
         });
         if !current || !admitted || self.session.evidence().body_id != credential.body_id {
             return Err("part-unavailable".into());
@@ -501,9 +596,9 @@ impl Owner {
                     .receipts
                     .iter()
                     .rev()
-                    .find(|receipt| receipt.credential.part_id == credential.part_id)
+                    .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
             });
-            if latest.is_none_or(|receipt| receipt.credential != *credential) {
+            if latest.is_none_or(|receipt| !receipt.credential.matches(credential)) {
                 return Err("browser leave credential is no longer current".into());
             }
             let mut session = self.session.clone();

@@ -1,0 +1,13 @@
+# White: BME280 I2C1 SDA GP6 (physical 9), SCL GP7 (physical 10), address 0x76.
+# Sensor CSB is tied to 3V3 and SDO to GND. TM1637 CLK GP3 (physical 5), DIO GP4 (physical 6).
+# These are checked attachment requests, not Body membership or execution grants.
+host pico-w-bme280-tm1637 {
+  metadata = {placement: "Beeplus room"}
+  schema = 1
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  bus = {kind: "i2c", id: "sensor", controller: 1, sda: 6, scl: 7, frequency_hz: 100000}
+  device = {kind: "i2c", id: "sensor", bus: "sensor", address: 118, implementation: "bosch-environment@1"}
+  device = {kind: "gpio", id: "display", implementation: "tm1637@1", pins: {clk: 3, dio: 4}, configuration: {brightness: 3, layout: "seven4", half_period_us: 50, weak_pullups: true}}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 49152, queue_items: 16, buffered_bytes: 8192, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 16}
+}

@@ -28,7 +28,14 @@ depends on semantic, application, target, or proof packages.
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
-| `canonical_bytes.rs` | universal architecture | Shared canonical byte sink for stored encodings and streaming fingerprints, preserving exact field order and identity bytes. |
+| `canonical_bytes.rs` | universal architecture | Shared bounded canonical sink and incremental hashing primitives; encoding does not authorize execution. |
+| `configuration_text.rs` | generic value mechanism | Immutable static or owned text configuration with identical canonical semantics. |
+| `descriptor_ref.rs` | universal architecture | Complete immutable port and Host Call descriptions for shared canonical encoding and validation; linked storage grants no authority. |
+| `flat_plan.rs` | universal architecture | Opaque Core structural verification over complete immutable flat Plan views; current-offer, Source, Body and native ownership admission remain separate. |
+| `plan_metadata.rs` and children | universal architecture | Full Plan verification with separately streamed configuration commitments and read-only preparation metadata. |
+| `plan_verification.rs` | universal architecture | Shared rich and streamed whole-Plan fingerprint and structural verification gates. |
+| `planned_connection_ref.rs` | universal architecture | Complete immutable descriptive Cord, startup and expected evidence records for the shared canonical encoder. |
+| `planned_gear_ref.rs` | universal architecture | Complete immutable descriptive placement, resource and authority binding records; descriptions grant no possession. |
 | `plan_fingerprint.rs` and children | universal architecture | Canonical fragment and plan commitment encoding; incremental fragment hashing preserves immutable realization identity. |
 | `fore_ports.rs` | universal architecture | Exact external Fore verification, separately accounted typed terminal exports, and admitted Line binding checks. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |

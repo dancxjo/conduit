@@ -180,7 +180,7 @@ fn exact_quantity_browser_admission_refuses_identity_and_configuration_drift() {
         changed.configuration.push(changed.configuration[0].clone());
         preparation_refuses(&changed);
         let mut changed = placement.clone();
-        changed.configuration[0].value = ConfigurationValue::Text("1".repeat(129));
+        changed.configuration[0].value = ConfigurationValue::Text("1".repeat(129).into());
         preparation_refuses(&changed);
     }
     for (kind, left, right) in [

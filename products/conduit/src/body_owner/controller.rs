@@ -35,8 +35,13 @@ mod checkpoint_once;
 pub(crate) use checkpoint_once::tests::published_fixture as published_todo_test_fixture;
 #[path = "continuing.rs"]
 mod continuing;
+#[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "environmental_face.rs"]
+mod environmental_face;
 #[path = "execution_retention.rs"]
 mod execution_retention;
+#[path = "replace_plot.rs"]
+mod replace_plot;
 pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
@@ -107,7 +112,7 @@ pub(crate) struct OwnerHost {
 }
 
 impl OwnerHost {
-    fn new(host: StdHost) -> Self {
+    pub(crate) fn new(host: StdHost) -> Self {
         Self {
             advertised: host.advertisement().clone(),
             current: Some(host),
@@ -210,6 +215,33 @@ pub(crate) struct Owner {
     /// Projection cache for the exact currently Playing Todo encounter. The
     /// next Play must restore through its admitted read Host Call.
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
+    #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+    environmental_face: Option<environmental_face::EnvironmentalFace>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    source_recording_stage: Option<continuing::source_recording_stage::SourceRecordingStage>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recovered_source_catalog: Option<continuing::recovery_run::RecoveredCatalogReference>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recovered_source_catalog_contents:
+        Option<continuing::recovered_read_run::RecoveredCatalogContents>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recovered_source_chunk: Option<continuing::recovered_read_run::RecoveredSourceChunk>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
     /// Bounded display cache from an exact selected read Host Call and both
@@ -315,6 +347,32 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_face: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            source_recording_stage: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog_contents: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_chunk: None,
             todo_verified: None,
             notebook: None,
         })
@@ -345,6 +403,32 @@ impl Owner {
             face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
+            #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
+            environmental_face: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            source_recording_stage: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog_contents: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_chunk: None,
             todo_verified: None,
             notebook: None,
         })
@@ -386,7 +470,10 @@ impl Owner {
         Ok(())
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
-        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending})
+        let truth = serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending});
+        #[cfg(all(feature = "installed-environmental-sources", feature = "installed-body-storage", target_os = "linux"))]
+        let truth = self.with_recording_stage_truth(truth);
+        truth
     }
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even
@@ -395,11 +482,14 @@ impl Owner {
         let admitted = self.admissions.as_ref().is_some_and(|manager| {
             manager.receipts.iter().any(|receipt| {
                 request.has_exact_basis()
-                    && request.credential_id == receipt.credential.credential_id.as_str()
-                    && request.body_id == receipt.credential.body_id
-                    && request.part_id == receipt.credential.part_id
-                    && request.host_id == receipt.credential.host_id
-                    && request.boot_id == receipt.credential.boot_id
+                    && receipt
+                        .credential
+                        .credential_id
+                        .equals(&request.credential_id)
+                    && request.body_id.as_str() == receipt.credential.body_id
+                    && request.part_id.as_str() == receipt.credential.part_id
+                    && request.host_id.as_str() == receipt.credential.host_id
+                    && request.boot_id.as_str() == receipt.credential.boot_id
             })
         });
         if !admitted {
@@ -446,8 +536,23 @@ impl Owner {
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
+        self.plan_with_execution_custody(plot, &[], &BTreeMap::new())
+    }
+
+    /// Grants must come from the installed Root's retained native equipment,
+    /// never from the authored Source or a remote offer.
+    pub(super) fn plan_with_execution_custody(
+        &mut self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        grants: &[conduit_core::AuthorityGrant],
+        boundaries: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+    ) -> Result<(), String> {
         let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
-        let partition = self.plan_partition(plot, resident)?;
+        let partition =
+            self.plan_partition_with_authority_grants(plot, resident, grants, boundaries)?;
         let hosts = [self.host.advertisement().clone()];
         self.session
             .propose(vec![partition], &hosts[0].host_id, &hosts[0].boot_id)
@@ -475,7 +580,50 @@ impl Owner {
         plot: &conduit_plot::ExpandedAuthoringPlot,
         resident: &ResidentPlot,
     ) -> Result<BodyPlotPlan, String> {
-        let hosts = [self.host.advertisement().clone()];
+        self.plan_partition_with_authority_grants(plot, resident, &[], &BTreeMap::new())
+    }
+
+    fn plan_partition_with_authority_grants(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        grants: &[conduit_core::AuthorityGrant],
+        boundaries: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+    ) -> Result<BodyPlotPlan, String> {
+        self.plan_partition_with_limits(
+            plot,
+            resident,
+            grants,
+            boundaries,
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
+                byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
+            },
+        )
+    }
+
+    fn plan_partition_with_limits(
+        &self,
+        plot: &conduit_plot::ExpandedAuthoringPlot,
+        resident: &ResidentPlot,
+        grants: &[conduit_core::AuthorityGrant],
+        boundaries: &BTreeMap<
+            conduit_planner::ForeBoundaryKey,
+            conduit_planner::ConnectionQueueLimits,
+        >,
+        limits: conduit_planner::ConnectionQueueLimits,
+    ) -> Result<BodyPlotPlan, String> {
+        let advertised = self.host.advertisement();
+        if grants
+            .iter()
+            .any(|grant| grant.host_id != advertised.host_id || grant.boot_id != advertised.boot_id)
+        {
+            return Err("native planning grant differs from the actual installed Host/Boot".into());
+        }
+        let hosts = [advertised.clone()];
         // Ordinary planning does not attach child Plans for scan/fold/make.
         // Refuse before sealing a deceptively runnable parent-only Body Plan.
         if !plot.expanded.activations.is_empty() {
@@ -491,13 +639,13 @@ impl Owner {
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
-                connection_item_capacity: conduit_core::DEFAULT_CONNECTION_ITEM_CAPACITY,
-                connection_byte_capacity: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY,
-                authority_grants: &[],
+                connection_item_capacity: limits.item_capacity,
+                connection_byte_capacity: limits.byte_capacity,
+                authority_grants: grants,
                 protected_resource_grants: &[],
                 line_offers: &[],
             },
-            &BTreeMap::new(),
+            boundaries,
         )
         .map_err(debug)?;
         Ok(BodyPlotPlan {
@@ -744,3 +892,15 @@ impl TimerAdapter for DeadlineTimer {
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(all(
+    test,
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
+pub(crate) use continuing::source_recording_stage::publication::tests::{
+    fixture as source_recording_control_fixture,
+    fixture_sixteen as source_recording_control_multi_fixture,
+    independent_read_grant as source_recording_control_read_grant,
+};

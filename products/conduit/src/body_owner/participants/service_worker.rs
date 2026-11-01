@@ -70,7 +70,18 @@ fn serve(
             )?;
             socket.send(&challenge)?;
             let (proof, _) = socket.receive(remaining(deadline)?.min(Duration::from_secs(2)))?;
-            let snapshot = browser::complete(state_dir, window_id, proof)?;
+            let snapshot = match browser::complete(state_dir, window_id, proof)? {
+                crate::durable_host::owner::BrowserAdmissionCompletion::Active { snapshot } => {
+                    snapshot
+                }
+                crate::durable_host::owner::BrowserAdmissionCompletion::CustodyOnly { receipt } => {
+                    socket.send(&Out::MembershipReceipt {
+                        protocol: PROTOCOL,
+                        receipt,
+                    })?;
+                    return Ok("membership-custody-recovered");
+                }
+            };
             active = Some(snapshot.credential.clone());
             let presence_clock = Instant::now();
             serve_presence(

@@ -1,24 +1,29 @@
 use alloc::vec::Vec;
-use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, SignId};
+use conduit_core::{BootId, HostId, OfferGeneration, SignId};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::identity::{bind_identity, validate_ids};
 use crate::{
-    AdmissionId, AuthenticatedHostObservation, BodyId, BodyLifecycleError, BodyMembership,
-    CandidateId, CandidateInventory, CandidateRefusal, CandidateState, MembershipCredentialId,
-    MembershipProofId, MembershipRefusal, PartId,
+    AdmissionId, BodyId, BodyLifecycleError, BodyMembership, CandidateId, CandidateInventory,
+    CandidateRefusal, CandidateState, MembershipCredentialId, MembershipRefusal, PartId,
 };
 
+mod attachment;
+pub use attachment::SpawnAdmissionHostScope;
 mod continuity;
 mod documents;
 mod invitation;
+mod membership_documents;
+pub use membership_documents::*;
 mod storage;
-pub use storage::{AdmissionStorageCompactionRefusal, AdmissionStorageUsage};
+pub use storage::AdmissionStorageCompactionRefusal;
 
 use continuity::{ContinuityKeyRecord, PendingReturn};
-pub use continuity::{PartReturnChallenge, PartReturnProof};
+pub use continuity::{
+    PartReturnChallenge, PartReturnProof, VerifiedAdmittedMessage, VerifiedRetainedCustodyMessage,
+};
 pub use documents::{
     supported_routed_admission_response_schema, AdmissionDocumentRefusal, PortableAdmissionReceipt,
     PortableInvitation, PortableSpawnAdmissionRequest, RoutedAdmissionRequest,
@@ -103,10 +108,26 @@ struct PendingAdmission {
     attempts: u8,
 }
 
+mod receipt_log;
+pub use receipt_log::{
+    AdmissionReceiptLog, AdmissionReceiptRef, ReceiptCredentialRef, ReceiptIdentityRef,
+    ReceiptLogStorageUsage,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AdmissionReceipt {
     pub admission_id: AdmissionId,
     pub credential: MembershipCredential,
+}
+
+/// Read-only storage accounting without admission contents or authority.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct AdmissionStorageUsage {
+    pub pending_admissions: crate::VecStorageUsage,
+    pub invitations: crate::VecStorageUsage,
+    pub continuity_keys: crate::VecStorageUsage,
+    pub pending_returns: crate::VecStorageUsage,
+    pub receipts: crate::VecStorageUsage,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -116,7 +137,7 @@ pub struct AdmissionManager {
     invitations: Vec<InvitationRecord>,
     continuity_keys: Vec<ContinuityKeyRecord>,
     pending_returns: Vec<PendingReturn>,
-    pub receipts: Vec<AdmissionReceipt>,
+    pub receipts: AdmissionReceiptLog,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -167,6 +188,18 @@ impl From<MembershipRefusal> for AdmissionRefusal {
 }
 
 impl AdmissionManager {
+    /// Inspect retained inline collection storage without allocating or mutating
+    /// pending work. Nested allocations are deliberately not traversed.
+    pub fn storage_usage(&self) -> AdmissionStorageUsage {
+        AdmissionStorageUsage {
+            pending_admissions: crate::VecStorageUsage::inspect(&self.pending),
+            invitations: crate::VecStorageUsage::inspect(&self.invitations),
+            continuity_keys: crate::VecStorageUsage::inspect(&self.continuity_keys),
+            pending_returns: crate::VecStorageUsage::inspect(&self.pending_returns),
+            receipts: self.receipts.usage(),
+        }
+    }
+
     pub fn new(body_id: BodyId) -> Result<Self, AdmissionRefusal> {
         validate_ids(&[body_id.as_str()])?;
         Ok(Self {
@@ -175,7 +208,7 @@ impl AdmissionManager {
             invitations: Vec::new(),
             continuity_keys: Vec::new(),
             pending_returns: Vec::new(),
-            receipts: Vec::new(),
+            receipts: AdmissionReceiptLog::default(),
         })
     }
 
@@ -217,11 +250,7 @@ impl AdmissionManager {
             ],
             now_millis,
         ));
-        if self
-            .receipts
-            .iter()
-            .any(|receipt| receipt.admission_id == admission_id)
-        {
+        if self.receipts.contains_admission(&admission_id) {
             return Err(AdmissionRefusal::Replay);
         }
         let challenge = AdmissionChallenge {
@@ -259,11 +288,7 @@ impl AdmissionManager {
         now_millis: u64,
         signs: AdmissionSigns,
     ) -> Result<MembershipCredential, AdmissionRefusal> {
-        if self
-            .receipts
-            .iter()
-            .any(|receipt| receipt.admission_id == proof.admission_id)
-        {
+        if self.receipts.contains_admission(&proof.admission_id) {
             return Err(AdmissionRefusal::Replay);
         }
         let index = self
@@ -302,9 +327,9 @@ impl AdmissionManager {
             .advertisement
             .clone();
         let mut next_membership = membership.clone();
-        let credential = self.attach(
+        let credential = self.attach_for_host(
             &mut next_membership,
-            &advertisement,
+            SpawnAdmissionHostScope::from(&advertisement),
             now_millis,
             &pending.challenge.admission_id,
             &signs,
@@ -390,69 +415,6 @@ impl AdmissionManager {
         Ok(())
     }
 
-    fn attach(
-        &self,
-        membership: &mut BodyMembership,
-        advertisement: &HostAdvertisement,
-        now_millis: u64,
-        admission_id: &AdmissionId,
-        signs: &AdmissionSigns,
-    ) -> Result<MembershipCredential, AdmissionRefusal> {
-        if membership.body_id != self.body_id {
-            return Err(AdmissionRefusal::WrongBody);
-        }
-        if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
-            return Err(AdmissionRefusal::ReceiptCapacityExhausted);
-        }
-        let part_id = PartId::bind(
-            &self.body_id,
-            admission_id.as_str(),
-            self.receipts.len() as u64,
-        )?;
-        let credential_id = MembershipCredentialId::bound(bind_identity(
-            "membership-credential",
-            &[
-                self.body_id.as_str(),
-                part_id.as_str(),
-                advertisement.host_id.as_str(),
-                advertisement.boot_id.as_str(),
-                admission_id.as_str(),
-            ],
-            now_millis,
-        ));
-        let proof_id = MembershipProofId::bind(credential_id.as_str())?;
-        let mut next = membership.clone();
-        next.admit(
-            &self.body_id,
-            next.revision,
-            part_id.clone(),
-            proof_id.clone(),
-            signs.part_admitted.clone(),
-        )?;
-        next.observe_present(
-            &self.body_id,
-            next.revision,
-            &part_id,
-            AuthenticatedHostObservation {
-                host_id: advertisement.host_id.clone(),
-                boot_id: advertisement.boot_id.clone(),
-                offer_generation: advertisement.offer_generation,
-                proof_id,
-                sequence: 0,
-            },
-            signs.host_attached.clone(),
-        )?;
-        *membership = next;
-        Ok(MembershipCredential {
-            credential_id,
-            body_id: self.body_id.clone(),
-            part_id,
-            host_id: advertisement.host_id.clone(),
-            boot_id: advertisement.boot_id.clone(),
-            issued_at_millis: now_millis,
-        })
-    }
-
     fn retain_receipt(
         &mut self,
         admission_id: AdmissionId,
@@ -461,11 +423,12 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
-        self.receipts.push(AdmissionReceipt {
+        // This is retained authority evidence, so reserve only the next record.
+        // Refusal precedes membership publication and invitation consumption.
+        self.receipts.try_push(AdmissionReceipt {
             admission_id,
             credential,
-        });
-        Ok(())
+        })
     }
 }
 

@@ -110,6 +110,7 @@ impl<'a> Cursor<'a> {
             .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)
     }
 
+    #[inline(never)]
     fn value_type(&mut self) -> Result<StructuredInfoType, PortableExpressionProgramRefusal> {
         let length = self.length()?;
         let encoded = self.take(length)?;
@@ -131,6 +132,8 @@ impl<'a> Cursor<'a> {
         }
     }
 
+    // Keep variant temporaries out of this frame: it remains live at every tree level.
+    #[inline(never)]
     fn node(
         &mut self,
         depth: usize,
@@ -144,98 +147,223 @@ impl<'a> Cursor<'a> {
             .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
         let value_type = self.value_type()?;
         let operation = match self.byte()? {
-            13 => {
-                let input = self.contract()?;
-                let output = self.contract()?;
-                let value = Box::new(self.node(depth + 1, remaining_nodes)?);
-                if value.value_type != value_type || (input.is_none() && output.is_none()) {
-                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
-                }
-                PortableExpressionOperation::ValueContract {
-                    input,
-                    output,
-                    value,
-                }
-            }
-            11 => {
-                let length = self.length()?;
-                if length > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES {
-                    return Err(PortableExpressionProgramRefusal::TooLarge);
-                }
-                let value =
-                    conduit_core::StructuredInfoValue::from_canonical_bytes(self.take(length)?)?;
-                if value.value_type() != &value_type {
-                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
-                }
-                PortableExpressionOperation::Constant(value)
-            }
-            0 => PortableExpressionOperation::Input,
-            1 => PortableExpressionOperation::Literal(self.text()?),
-            12 => {
-                let length = self.length()?;
-                let bytes = self.take(length)?.to_vec();
-                crate::expression_program::validate_capsule_literal(&value_type, &bytes)?;
-                PortableExpressionOperation::CanonicalLiteral(bytes)
-            }
-            2 => {
-                let value = Box::new(self.node(depth + 1, remaining_nodes)?);
-                let member = match self.byte()? {
-                    0 => PortableExpressionProjection::Field(self.text()?),
-                    1 => PortableExpressionProjection::TupleIndex(u16::from_le_bytes(
-                        self.take(2)?
-                            .try_into()
-                            .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?,
-                    )),
-                    _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
-                };
-                PortableExpressionOperation::Projection { value, member }
-            }
-            3 => PortableExpressionOperation::Unary {
-                operator: unary(self.byte()?)?,
-                operand: Box::new(self.node(depth + 1, remaining_nodes)?),
-            },
-            4 => PortableExpressionOperation::Binary {
-                operator: binary(self.byte()?)?,
-                proven: match self.byte()? {
-                    0 => false,
-                    1 => true,
-                    _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
-                },
-                left: Box::new(self.node(depth + 1, remaining_nodes)?),
-                right: Box::new(self.node(depth + 1, remaining_nodes)?),
-            },
-            5 => PortableExpressionOperation::Conditional {
-                condition: Box::new(self.node(depth + 1, remaining_nodes)?),
-                when_true: Box::new(self.node(depth + 1, remaining_nodes)?),
-                when_false: Box::new(self.node(depth + 1, remaining_nodes)?),
-            },
-            6 => PortableExpressionOperation::Tuple(self.nodes(depth, remaining_nodes)?),
-            7 => {
-                let length = self.bounded_node_count(*remaining_nodes)?;
-                let mut fields = Vec::with_capacity(length);
-                for _ in 0..length {
-                    let name = self.text()?;
-                    if name.is_empty() || name.len() > MAXIMUM_STRUCTURED_NAME_BYTES {
-                        return Err(PortableExpressionProgramRefusal::MalformedEncoding);
-                    }
-                    fields.push((name, self.node(depth + 1, remaining_nodes)?));
-                }
-                PortableExpressionOperation::Record(fields)
-            }
-            8 => PortableExpressionOperation::Collection(self.nodes(depth, remaining_nodes)?),
-            9 => PortableExpressionOperation::Variant {
-                tag: self.text()?,
-                payload: Box::new(self.node(depth + 1, remaining_nodes)?),
-            },
-            10 => PortableExpressionOperation::SemanticCall {
-                kind: self.text()?,
-                arguments: self.nodes(depth, remaining_nodes)?,
-            },
+            13 => self.decode_value_contract(&value_type, depth, remaining_nodes)?,
+            11 => self.decode_constant(&value_type)?,
+            0 => self.decode_input()?,
+            1 => self.decode_literal()?,
+            12 => self.decode_canonical_literal(&value_type)?,
+            2 => self.decode_projection(depth, remaining_nodes)?,
+            3 => self.decode_unary(depth, remaining_nodes)?,
+            4 => self.decode_binary(depth, remaining_nodes)?,
+            5 => self.decode_conditional(depth, remaining_nodes)?,
+            6 => self.decode_tuple(depth, remaining_nodes)?,
+            7 => self.decode_record(depth, remaining_nodes)?,
+            8 => self.decode_collection(depth, remaining_nodes)?,
+            9 => self.decode_variant(depth, remaining_nodes)?,
+            10 => self.decode_semantic_call(depth, remaining_nodes)?,
             _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
         };
         Ok(PortableExpressionNode {
             value_type,
             operation,
+        })
+    }
+
+    #[inline(never)]
+    fn decode_value_contract(
+        &mut self,
+        value_type: &StructuredInfoType,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok({
+            let input = self.contract()?;
+            let output = self.contract()?;
+            let value = Box::new(self.node(depth + 1, remaining_nodes)?);
+            if value.value_type != *value_type || (input.is_none() && output.is_none()) {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            PortableExpressionOperation::ValueContract {
+                input,
+                output,
+                value,
+            }
+        })
+    }
+
+    #[inline(never)]
+    fn decode_constant(
+        &mut self,
+        value_type: &StructuredInfoType,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok({
+            let length = self.length()?;
+            if length > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+                return Err(PortableExpressionProgramRefusal::TooLarge);
+            }
+            let value =
+                conduit_core::StructuredInfoValue::from_canonical_bytes(self.take(length)?)?;
+            if value.value_type() != value_type {
+                return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+            }
+            PortableExpressionOperation::Constant(value)
+        })
+    }
+
+    #[inline(never)]
+    fn decode_input(
+        &mut self,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Input)
+    }
+
+    #[inline(never)]
+    fn decode_literal(
+        &mut self,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Literal(self.text()?))
+    }
+
+    #[inline(never)]
+    fn decode_canonical_literal(
+        &mut self,
+        value_type: &StructuredInfoType,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok({
+            let length = self.length()?;
+            let bytes = self.take(length)?.to_vec();
+            crate::expression_program::validate_capsule_literal(value_type, &bytes)?;
+            PortableExpressionOperation::CanonicalLiteral(bytes)
+        })
+    }
+
+    #[inline(never)]
+    fn decode_projection(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok({
+            let value = Box::new(self.node(depth + 1, remaining_nodes)?);
+            let member = match self.byte()? {
+                0 => PortableExpressionProjection::Field(self.text()?),
+                1 => PortableExpressionProjection::TupleIndex(u16::from_le_bytes(
+                    self.take(2)?
+                        .try_into()
+                        .map_err(|_| PortableExpressionProgramRefusal::MalformedEncoding)?,
+                )),
+                _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
+            };
+            PortableExpressionOperation::Projection { value, member }
+        })
+    }
+
+    #[inline(never)]
+    fn decode_unary(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Unary {
+            operator: unary(self.byte()?)?,
+            operand: Box::new(self.node(depth + 1, remaining_nodes)?),
+        })
+    }
+
+    #[inline(never)]
+    fn decode_binary(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Binary {
+            operator: binary(self.byte()?)?,
+            proven: match self.byte()? {
+                0 => false,
+                1 => true,
+                _ => return Err(PortableExpressionProgramRefusal::MalformedEncoding),
+            },
+            left: Box::new(self.node(depth + 1, remaining_nodes)?),
+            right: Box::new(self.node(depth + 1, remaining_nodes)?),
+        })
+    }
+
+    #[inline(never)]
+    fn decode_conditional(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Conditional {
+            condition: Box::new(self.node(depth + 1, remaining_nodes)?),
+            when_true: Box::new(self.node(depth + 1, remaining_nodes)?),
+            when_false: Box::new(self.node(depth + 1, remaining_nodes)?),
+        })
+    }
+
+    #[inline(never)]
+    fn decode_tuple(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Tuple(
+            self.nodes(depth, remaining_nodes)?,
+        ))
+    }
+
+    #[inline(never)]
+    fn decode_record(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok({
+            let length = self.bounded_node_count(*remaining_nodes)?;
+            let mut fields = Vec::with_capacity(length);
+            for _ in 0..length {
+                let name = self.text()?;
+                if name.is_empty() || name.len() > MAXIMUM_STRUCTURED_NAME_BYTES {
+                    return Err(PortableExpressionProgramRefusal::MalformedEncoding);
+                }
+                fields.push((name, self.node(depth + 1, remaining_nodes)?));
+            }
+            PortableExpressionOperation::Record(fields)
+        })
+    }
+
+    #[inline(never)]
+    fn decode_collection(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Collection(
+            self.nodes(depth, remaining_nodes)?,
+        ))
+    }
+
+    #[inline(never)]
+    fn decode_variant(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::Variant {
+            tag: self.text()?,
+            payload: Box::new(self.node(depth + 1, remaining_nodes)?),
+        })
+    }
+
+    #[inline(never)]
+    fn decode_semantic_call(
+        &mut self,
+        depth: usize,
+        remaining_nodes: &mut usize,
+    ) -> Result<PortableExpressionOperation, PortableExpressionProgramRefusal> {
+        Ok(PortableExpressionOperation::SemanticCall {
+            kind: self.text()?,
+            arguments: self.nodes(depth, remaining_nodes)?,
         })
     }
 

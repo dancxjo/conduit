@@ -58,7 +58,7 @@ fn connection() -> PlannedConnection {
         track: Default::default(),
         temporal: conduit_core::PortTemporal::Value,
         pressure_policy: Default::default(),
-        selected_line: Some(line("line-a")),
+        selected_line: Some(Box::new(line("line-a"))),
         admitted_lines: vec![line("line-a"), line("line-b")],
         item_capacity: 1,
         byte_capacity: 64,

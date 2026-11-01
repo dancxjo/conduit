@@ -4,7 +4,20 @@ version = "0.1.0"
 edition = "2021"
 default-run = "conduit"
 
+[features]
+installed-body-storage = ["conduit-std-host/linux-snapshot"]
+installed-environmental-sources = ["dep:conduit-environment-host", "dep:conduit-environment-measurement", "dep:conduit-environment-history", "dep:conduit-environment-runtime"]
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+conduit-environment-history = { path = "../../bodies/environment/history", optional = true }
+conduit-environment-host = { path = "../../bodies/environment/host", optional = true, features = ["carrier-source"] }
+
 [dependencies]
+conduit-environment-runtime = { path = "../../bodies/environment/runtime", optional = true, features = ["source-recording"] }
+conduit-environment-measurement = { path = "../../bodies/environment/measurement", optional = true }
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
@@ -50,11 +63,13 @@ patchbay-svg-mask = { path = "../../plots/patchbay/workbench/svg-mask" }
 patchbay-hosted = { path = "../../targets/std/patchbay-workbench" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+ed25519-dalek = { version = "2.2", default-features = false, features = ["alloc"] }
 getrandom = "0.3"
 sha2 = "0.10"
 socket2 = "0.6"
 
 [dev-dependencies]
+conduit-environment-measurement = { path = "../../bodies/environment/measurement" }
 conduit-composite = { path = "../../architecture/composite" }
 conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }
 rcgen = "0.14"

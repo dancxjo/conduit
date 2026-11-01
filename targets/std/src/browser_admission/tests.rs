@@ -16,7 +16,7 @@ use conduit_wire::{
 };
 use std::net::SocketAddr;
 
-fn advertisement() -> BrowserAdmissionIngress {
+pub(super) fn advertisement() -> BrowserAdmissionIngress {
     BrowserAdmissionIngress::Advertise {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         advertisement: HostAdvertisement {
@@ -602,3 +602,6 @@ fn loopback_socket_carries_one_exact_inert_advertisement_and_refusal() {
         }
     );
 }
+
+#[path = "receipt_tests.rs"]
+mod receipt_tests;

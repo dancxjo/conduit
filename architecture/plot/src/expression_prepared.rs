@@ -8,6 +8,9 @@ use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
+mod compact;
+mod linked;
+pub use linked::MakeExpressionMaterial;
 mod equality;
 mod evaluate;
 mod fixed_projection;
@@ -60,8 +63,10 @@ pub struct PreparedPortableExpressionEvaluator {
     root: PreparedRoot,
     input: PreparedInput,
     input_maximum_bytes: Option<u32>,
-    input_value_contract: Option<conduit_core::CheckedValueContract>,
-    output_value_contract: Option<conduit_core::CheckedValueContract>,
+    // Most computations have no boundary predicates. Reserve their decoded
+    // contracts only when present, rather than two full inline descriptors.
+    input_value_contract: Option<Box<conduit_core::CheckedValueContract>>,
+    output_value_contract: Option<Box<conduit_core::CheckedValueContract>>,
     output: Vec<u8>,
 }
 
@@ -104,12 +109,16 @@ struct ProgramView<'a> {
 }
 
 enum PreparedRoot {
+    LinkedLiteral {
+        kind: PrimitiveInfoKind,
+        bytes: &'static [u8],
+    },
     ScalarTape {
         tape: scalar_tape::ScalarTape,
         nominal_type: Option<Vec<u8>>,
     },
     Primitive {
-        node: PreparedNode,
+        node: Box<PreparedNode>,
         nominal_type: Option<Vec<u8>>,
     },
     Structured(PreparedStructuredExpression),
@@ -312,8 +321,8 @@ impl PreparedPortableExpressionEvaluator {
     ) -> Result<Self, Refusal> {
         let (input_contract, output_contract, body) =
             crate::expression_program::value_contract::boundary(program.root);
-        let input_value_contract = input_contract.cloned();
-        let output_value_contract = output_contract.cloned();
+        let input_value_contract = input_contract.cloned().map(Box::new);
+        let output_value_contract = output_contract.cloned().map(Box::new);
         let program = ProgramView {
             root: body,
             ..program
@@ -327,7 +336,7 @@ impl PreparedPortableExpressionEvaluator {
                     return Err(Refusal::InvalidProgram);
                 }
                 PreparedRoot::Primitive {
-                    node: root,
+                    node: Box::new(root),
                     nominal_type: matches!(
                         program.output_type.shape(),
                         StructuredInfoTypeShape::Nominal { .. }
@@ -394,6 +403,13 @@ impl PreparedPortableExpressionEvaluator {
         };
         self.output.clear();
         match &mut self.root {
+            PreparedRoot::LinkedLiteral { kind, bytes } => {
+                let value = PrimitiveValue::borrowed(*kind, bytes)?;
+                if value.length > self.output.capacity() {
+                    return Err(Refusal::InvalidProgram);
+                }
+                self.output.extend_from_slice(value.as_slice());
+            }
             PreparedRoot::Primitive { node, nominal_type } => {
                 let value = evaluate_node(node, primitive_bytes, primitive_input)?;
                 if let Some(value_type) = nominal_type {
@@ -430,6 +446,7 @@ impl PreparedPortableExpressionEvaluator {
     // admitted prefix without retaining another identical schema byte buffer.
     fn output_type_prefix(&self) -> Option<&[u8]> {
         match &self.root {
+            PreparedRoot::LinkedLiteral { .. } => None,
             PreparedRoot::Primitive { nominal_type, .. }
             | PreparedRoot::ScalarTape { nominal_type, .. } => nominal_type.as_deref(),
             PreparedRoot::Structured(root) => Some(root.type_prefix()),

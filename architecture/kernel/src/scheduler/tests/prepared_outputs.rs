@@ -94,7 +94,10 @@ fn prepared_pair_commits_both_routes_and_waits_when_either_queue_is_full() {
     }
     assert_eq!(scheduler.values.used_items(), 2);
     for (index, expected) in [b"abcd", b"wxyz"].into_iter().enumerate() {
-        let value = scheduler.queue_slots[index].unwrap();
+        let value = scheduler.queue_slots[index]
+            .unwrap()
+            .resolve(&scheduler.values)
+            .unwrap();
         assert_eq!(scheduler.values.get(value).unwrap(), expected);
         assert_eq!(scheduler.values.reference_count(value).unwrap(), 1);
     }

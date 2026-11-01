@@ -1,0 +1,548 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/join-mailbox-proof-20261031/bodies/environment/make)
+warning: struct `PrivateBodyInvitation` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join.rs:61:19
+   |
+61 | pub(crate) struct PrivateBodyInvitation {
+   |                   ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: struct `DurablyAdmittedHost` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join.rs:70:19
+   |
+70 | pub(crate) struct DurablyAdmittedHost {
+   |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `transcript` and `signed` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join.rs:74:19
+   |
+73 | impl DurablyAdmittedHost {
+   | ------------------------ methods in this implementation
+74 |     pub(crate) fn transcript(&self) -> [u8; 32] {
+   |                   ^^^^^^^^^^
+...
+77 |     pub(crate) fn signed(mut self, signature: [u8; 64]) -> JoinedHostReceipt {
+   |                   ^^^^^^
+
+warning: function `issue` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join.rs:84:15
+   |
+84 | pub(crate) fn issue(
+   |               ^^^^^
+
+warning: function `admit` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join.rs:124:15
+    |
+124 | pub(crate) fn admit(
+    |               ^^^^^
+
+warning: constant `PROFILE` is never used
+ --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:7:18
+  |
+7 | pub(crate) const PROFILE: &str = "conduit.environment/private-invitation-owner@1";
+  |                  ^^^^^^^
+
+warning: struct `Request` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:10:19
+   |
+10 | pub(crate) struct Request {
+   |                   ^^^^^^^
+
+warning: method `transcript` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:22:19
+   |
+21 | impl Request {
+   | ------------ method in this implementation
+22 |     pub(crate) fn transcript(&self) -> [u8; 32] {
+   |                   ^^^^^^^^^^
+
+warning: struct `Gate` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:36:19
+   |
+36 | pub(crate) struct Gate {
+   |                   ^^^^
+
+warning: struct `AuthorizedInvitation` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:42:19
+   |
+42 | pub(crate) struct AuthorizedInvitation {
+   |                   ^^^^^^^^^^^^^^^^^^^^
+
+warning: method `ttl_ms` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:46:19
+   |
+45 | impl AuthorizedInvitation {
+   | ------------------------- method in this implementation
+46 |     pub(crate) fn ttl_ms(&self) -> u64 {
+   |                   ^^^^^^
+
+warning: associated items `new`, `next_sequence`, `challenge`, and `authorize` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:51:19
+   |
+50 | impl Gate {
+   | --------- associated items in this implementation
+51 |     pub(crate) fn new(owner_key: Option<[u8; 32]>) -> Result<Self, &'static str> {
+   |                   ^^^
+...
+64 |     pub(crate) fn next_sequence(&self) -> Option<u64> {
+   |                   ^^^^^^^^^^^^^
+...
+67 |     pub(crate) fn challenge(&mut self, nonce: [u8; 32], now_ms: u64) -> Result<(), &'static str> {
+   |                   ^^^^^^^^^
+...
+76 |     pub(crate) fn authorize(
+   |                   ^^^^^^^^^
+
+warning: constant `BIOGRAPHY_PROFILE` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:116:18
+    |
+116 | pub(crate) const BIOGRAPHY_PROFILE: &str = "conduit.environment/biography-owner-custody@1";
+    |                  ^^^^^^^^^^^^^^^^^
+
+warning: struct `BiographyChallenge` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:119:19
+    |
+119 | pub(crate) struct BiographyChallenge {
+    |                   ^^^^^^^^^^^^^^^^^^
+
+warning: struct `BiographyRequest` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:130:19
+    |
+130 | pub(crate) struct BiographyRequest {
+    |                   ^^^^^^^^^^^^^^^^
+
+warning: method `transcript` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:136:19
+    |
+135 | impl BiographyRequest {
+    | --------------------- method in this implementation
+136 |     pub(crate) fn transcript(&self) -> Result<[u8; 32], &'static str> {
+    |                   ^^^^^^^^^^
+
+warning: struct `AuthorizedOwnerBiography` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:163:19
+    |
+163 | pub(crate) struct AuthorizedOwnerBiography {
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `matches`, `owner`, and `acknowledgement` are never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:171:19
+    |
+170 | impl AuthorizedOwnerBiography {
+    | ----------------------------- methods in this implementation
+171 |     pub(crate) fn matches(&self, body: &str, root: &[u8; 32], offer: &[u8; 32]) -> bool {
+    |                   ^^^^^^^
+...
+174 |     pub(crate) fn owner(&self) -> &[u8; 32] {
+    |                   ^^^^^
+...
+177 |     pub(crate) fn acknowledgement(&self) -> &[u8; 32] {
+    |                   ^^^^^^^^^^^^^^^
+
+warning: method `authorize_biography` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_owner.rs:183:19
+    |
+181 | impl Gate {
+    | --------- method in this implementation
+182 |     #[allow(clippy::too_many_arguments)]
+183 |     pub(crate) fn authorize_biography(
+    |                   ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `AcceptedDraft` is never constructed
+ --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:9:12
+  |
+9 | pub struct AcceptedDraft {
+  |            ^^^^^^^^^^^^^
+
+warning: methods `transcript`, `root`, and `signed` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:14:12
+   |
+13 | impl AcceptedDraft {
+   | ------------------ methods in this implementation
+14 |     pub fn transcript(&self) -> [u8; 32] {
+   |            ^^^^^^^^^^
+...
+17 |     pub fn root(&self) -> &[u8; 32] {
+   |            ^^^^
+...
+20 |     pub fn signed(mut self, signature: [u8; 64]) -> Receipt {
+   |            ^^^^^^
+
+warning: function `verify_ack` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:25:8
+   |
+25 | pub fn verify_ack(
+   |        ^^^^^^^^^^
+
+warning: function `accept_owner` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_biography_custody_acceptance.rs:83:15
+   |
+83 | pub(crate) fn accept_owner(
+   |               ^^^^^^^^^^^^
+
+warning: struct `DurablyAdmittedMembership` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:11:19
+   |
+11 | pub(crate) struct DurablyAdmittedMembership {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `transcript`, `root`, and `signed` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:15:19
+   |
+14 | impl DurablyAdmittedMembership {
+   | ------------------------------ methods in this implementation
+15 |     pub(crate) fn transcript(&self) -> [u8; 32] {
+   |                   ^^^^^^^^^^
+...
+18 |     pub(crate) fn root(&self) -> &[u8; 32] {
+   |                   ^^^^
+...
+21 |     pub(crate) fn signed(mut self, signature: [u8; 64]) -> PortableMembershipAdmissionReceipt {
+   |                   ^^^^^^
+
+warning: function `admit` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:27:15
+   |
+27 | pub(crate) fn admit(
+   |               ^^^^^
+
+warning: function `pending` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:65:4
+   |
+65 | fn pending(
+   |    ^^^^^^^
+
+warning: struct `PendingMembership` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:95:19
+   |
+95 | pub(crate) struct PendingMembership {
+   |                   ^^^^^^^^^^^^^^^^^
+
+warning: type alias `PendingCheckpoint` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:98:17
+   |
+98 | pub(crate) type PendingCheckpoint = crate::native_restart::owned_checkpoint::Job<PendingMembership>;
+   |                 ^^^^^^^^^^^^^^^^^
+
+warning: enum `OwnedRefusal` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:99:17
+   |
+99 | pub(crate) enum OwnedRefusal {
+   |                 ^^^^^^^^^^^^
+
+warning: function `validate_profile` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:103:4
+    |
+103 | fn validate_profile(
+    |    ^^^^^^^^^^^^^^^^
+
+warning: function `begin_owned` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:119:15
+    |
+119 | pub(crate) fn begin_owned(
+    |               ^^^^^^^^^^^
+
+warning: function `finish_owned` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_membership.rs:163:15
+    |
+163 | pub(crate) fn finish_owned(
+    |               ^^^^^^^^^^^^
+
+warning: constant `RECEIPT` is never used
+ --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:8:11
+  |
+8 | pub const RECEIPT: &str = "conduit.environment/current-observer@1";
+  |           ^^^^^^^
+
+warning: function `text` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:20:4
+   |
+20 | fn text(hash: &mut Sha256, value: &str) {
+   |    ^^^^
+
+warning: method `transcript` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:25:12
+   |
+24 | impl Request {
+   | ------------ method in this implementation
+25 |     pub fn transcript(&self) -> [u8; 32] {
+   |            ^^^^^^^^^^
+
+warning: methods `transcript` and `verify` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:52:12
+   |
+51 | impl Receipt {
+   | ------------ methods in this implementation
+52 |     pub fn transcript(&self) -> [u8; 32] {
+   |            ^^^^^^^^^^
+...
+72 |     pub fn verify(&self, root: &[u8; 32], request: &Request) -> Result<(), &'static str> {
+   |            ^^^^^^
+
+warning: struct `VerifiedCurrentObserver` is never constructed
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:101:19
+    |
+101 | pub(crate) struct VerifiedCurrentObserver(Receipt);
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `transcript` and `signed` are never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:103:19
+    |
+102 | impl VerifiedCurrentObserver {
+    | ---------------------------- methods in this implementation
+103 |     pub(crate) fn transcript(&self) -> [u8; 32] {
+    |                   ^^^^^^^^^^
+...
+106 |     pub(crate) fn signed(mut self, signature: [u8; 64]) -> Receipt {
+    |                   ^^^^^^
+
+warning: function `verify_current` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_recovery.rs:111:15
+    |
+111 | pub(crate) fn verify_current(
+    |               ^^^^^^^^^^^^^^
+
+warning: fields `body_id`, `part_id`, and `advertisement` are never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return_wire.rs:30:9
+   |
+29 | pub(crate) struct Begin {
+   |                   ----- fields in this struct
+30 |     pub body_id: BodyId,
+   |         ^^^^^^^
+31 |     pub part_id: PartId,
+   |         ^^^^^^^
+32 |     pub advertisement: HostAdvertisement,
+   |         ^^^^^^^^^^^^^
+
+warning: fields `advertisement` and `proof` are never read
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return_wire.rs:35:9
+   |
+34 | pub(crate) struct Complete {
+   |                   -------- fields in this struct
+35 |     pub advertisement: HostAdvertisement,
+   |         ^^^^^^^^^^^^^
+36 |     pub proof: PartReturnProof,
+   |         ^^^^^
+
+warning: constant `CHALLENGE` is never used
+ --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:7:18
+  |
+7 | pub(crate) const CHALLENGE: &str = "conduit.environment/observer-return-challenge@1";
+  |                  ^^^^^^^^^
+
+warning: struct `DurableChallenge` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:17:19
+   |
+17 | pub(crate) struct DurableChallenge(Challenge);
+   |                   ^^^^^^^^^^^^^^^^
+
+warning: function `text` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:18:4
+   |
+18 | fn text(h: &mut Sha256, s: &str) {
+   |    ^^^^
+
+warning: methods `transcript` and `signed` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:23:19
+   |
+22 | impl DurableChallenge {
+   | --------------------- methods in this implementation
+23 |     pub(crate) fn transcript(&self) -> [u8; 32] {
+   |                   ^^^^^^^^^^
+...
+46 |     pub(crate) fn signed(mut self, signature: [u8; 64]) -> Challenge {
+   |                   ^^^^^^
+
+warning: struct `DurableReturn` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:51:19
+   |
+51 | pub(crate) struct DurableReturn(recovery::Receipt);
+   |                   ^^^^^^^^^^^^^
+
+warning: methods `transcript` and `signed` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:53:19
+   |
+52 | impl DurableReturn {
+   | ------------------ methods in this implementation
+53 |     pub(crate) fn transcript(&self) -> [u8; 32] {
+   |                   ^^^^^^^^^^
+...
+56 |     pub(crate) fn signed(mut self, signature: [u8; 64]) -> recovery::Receipt {
+   |                   ^^^^^^
+
+warning: function `profile` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:61:4
+   |
+61 | fn profile(
+   |    ^^^^^^^
+
+warning: function `begin` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:80:15
+   |
+80 | pub(crate) fn begin(
+   |               ^^^^^
+
+warning: function `complete` is never used
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_return.rs:144:15
+    |
+144 | pub(crate) fn complete(
+    |               ^^^^^^^^
+
+warning: function `completed_storage_usage` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_body_join_http.rs:43:15
+   |
+43 | pub(crate) fn completed_storage_usage() -> Option<[usize; 2]> {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `PROFILE` is never used
+ --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs:6:11
+  |
+6 | pub const PROFILE: &str = "conduit.environment/joined-host@1";
+  |           ^^^^^^^
+
+warning: methods `scope` and `verify` are never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs:23:12
+   |
+22 | impl JoinedHostReceipt {
+   | ---------------------- methods in this implementation
+23 |     pub fn scope(&self) -> JoinedHostScope<'_> {
+   |            ^^^^^
+...
+34 |     pub fn verify(&self, expected_root: &[u8; 32]) -> Result<(), &'static str> {
+   |            ^^^^^^
+
+warning: struct `JoinedHostScope` is never constructed
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs:56:12
+   |
+56 | pub struct JoinedHostScope<'a> {
+   |            ^^^^^^^^^^^^^^^
+
+warning: function `text` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs:65:4
+   |
+65 | fn text(hash: &mut Sha256, value: &str) {
+   |    ^^^^
+
+warning: function `transcript` is never used
+  --> tests/../../../../targets/esp32/proof/tm1637/src/native_joined_host_wire.rs:69:8
+   |
+69 | pub fn transcript(scope: &JoinedHostScope<'_>) -> [u8; 32] {
+   |        ^^^^^^^^^^
+
+warning: methods `spawner` and `advance_next_timer` are never used
+  --> tests/native_flash_providers/manual_clock.rs:60:12
+   |
+51 | impl Executor {
+   | ------------- methods in this implementation
+...
+60 |     pub fn spawner(&self) -> embassy_executor::Spawner {
+   |            ^^^^^^^
+...
+96 |     pub fn advance_next_timer(&self) -> bool {
+   |            ^^^^^^^^^^^^^^^^^^
+
+warning: function `next_deadline` is never used
+   --> tests/native_flash_providers/manual_clock.rs:119:8
+    |
+119 | pub fn next_deadline() -> Option<u64> {
+    |        ^^^^^^^^^^^^^
+
+warning: function `wake_count` is never used
+   --> tests/native_flash_providers/manual_clock.rs:129:8
+    |
+129 | pub fn wake_count() -> usize {
+    |        ^^^^^^^^^^
+
+warning: calls to `std::mem::drop` with a reference instead of an owned value does nothing
+   --> tests/../../../../targets/esp32/proof/tm1637/src/native_restart_network_pending_job_tests.rs:177:5
+    |
+177 |     drop(store);
+    |     ^^^^^-----^
+    |          |
+    |          argument has type `&mut native_restart::Store`
+    |
+    = note: `#[warn(dropping_references)]` on by default
+help: use `let _ = ...` to ignore the expression or result
+    |
+177 -     drop(store);
+177 +     let _ = store;
+    |
+
+warning: `conduit-environment-make` (test "native_join_mailbox") generated 61 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.79s
+     Running tests/native_join_mailbox.rs (/tmp/conduit-source-series-integration-20261031/debug/deps/native_join_mailbox-09263169094ed8dc)
+
+running 63 tests
+test native_body_join_http::cache::tests::durable_receipt_bytes_remain_retained_without_a_challenge_deadline ... ok
+test native_body_join_http::cache::tests::pruning_old_challenge_leaves_pending_and_inflight_custody_untouched ... ok
+test native_body_join_http::cache::tests::completed_join_receipt_compaction_preserves_bytes_identity_and_lifetime_under_pressure ... ok
+test native_body_join_http::cache::tests::signed_challenge_cache_survives_exact_deadline_but_not_later ... ok
+test native_body_join_http::tests::retained_custody_remains_accessible_while_publication_is_unavailable ... ok
+test native_body_checkpoint::incremental::tests::exact_completion_and_one_call_per_step ... ok
+test native_restart::biography::tests::private_backup_prefix_migration_preserves_exact_canonical_custody ... ignored, requires explicit private backup and Body inputs; never prints private material
+test native_restart::biography::tests::private_physical_offload_preserves_actual_receipt_and_complete_archives ... ignored, requires actual before/after physical backups and private custody files
+test native_body_checkpoint::timing::tests::timing_is_bounded_saturating_and_disables_without_clock_work ... ok
+test native_body_checkpoint::incremental::tests::changed_emitter_or_source_fails_before_next_program ... ok
+test native_body_checkpoint::incremental::tests::invalid_measurement_has_no_physical_effects_and_failure_scrubs_staging ... ok
+test native_body_checkpoint::incremental::tests::stale_generation_and_incomplete_source_refuse ... ok
+test native_body_checkpoint::incremental::tests::cancellation_before_commit_keeps_old_bank ... ok
+57 physical cuts
+test native_body_checkpoint::incremental::tests::every_physical_cut_reopens_old_or_exact_successor ... ok
+test native_restart::network_pending_job::tests::authenticated_transition_replay_rejects_changed_inputs_without_crypto_or_effects ... ignored, owns Boot-global STORE; run this exact test alone in a fresh process
+test native_restart::network_pending_job::tests::incremental_pending_bridge_custody_cancellation_and_actual_adoption ... ignored, owns Boot-global STORE; run this exact test alone in a fresh process
+test native_restart::network_pending_job::tests::live::pending_blank_incremental_clean_and_every_live_media_interruption ... ignored, owns Boot-global STORE; run this exact test alone in a fresh process
+test native_body_checkpoint::incremental::tests::maximum_bank_extent_has_constant_workspace ... ok
+test native_restart::biography::hot::tests::changed_offer_cannot_rewrite_or_discard_the_original_owner ... ok
+test native_restart::checkpoint_extent_tests::checkpoint_extent_is_exact_readonly_and_refuses_unknown_or_stale_custody ... ok
+test native_restart::network_pending::tests::committed_ack_read_survives_real_root_new_boot_without_new_snapshot_or_writes ... ok
+test native_restart::biography::hot::tests::bounded_export_chunks_are_authenticated_before_publication ... ok
+test native_restart::biography::tests::interrupted_export_preserves_the_original_producer_custody ... ok
+test native_restart::network_pending::tests::pending_commit_readback_preserves_body_admissions_and_changes_only_receipt_custody ... ok
+test native_restart::biography::tests::actual_snapshot_export_is_signed_private_bounded_and_source_fenced ... ok
+test native_restart::biography::hot::tests::cancellation_after_unadopted_readback_still_returns_original_source_owner ... ok
+test native_restart::biography::hot::tests::parked_prefix_commit_restores_same_boot_exact_owner_and_original_admissions ... ok
+test native_restart::network_pending::tests::next_pending_uses_exact_authenticated_clean_predecessor ... ok
+test native_restart::biography::tests::cold_format_migration_preserves_body_key_and_original_admissions ... ok
+test native_restart::biography::tests::foreign_receipt_and_live_owner_cannot_discharge_snapshot ... ok
+test native_restart::network_recovery::tests::dirty_readback_and_stale_blank_cannot_sign_or_commit_clean ... ok
+test native_restart::biography::tests::biography_custody_rewrite_and_followup_checkpoint_preserve_network_cursor ... ok
+test native_restart::network_recovery::tests::epochs::all_eight_closed_pages_and_tail_are_reclaimed_then_ninth_retirement_survives_clean_boot ... ok
+test native_restart::payload::compress::matcher::index::tests::borrowed_encoder_releases_only_wiped_workspace_on_failure ... ok
+test native_restart::payload::compress::matcher::index::tests::exact_ring_order_overwrite_and_private_clear ... ok
+test native_restart::park_tests::park_refusal_preserves_installed_owner_and_all_custody ... ok
+test native_restart::park_tests::admission_storage_tests::final_restore_compacts_redecoded_admissions_without_changing_body_or_authority ... ok
+test native_restart::park_tests::admission_storage_tests::optional_compaction_null_refusal_keeps_exact_manager_usable ... ok
+test native_restart::park_tests::park_restores_exact_same_boot_evidence_archives_and_unretired_admissions ... ok
+test native_restart::network_recovery::tests::live_blank_requires_exact_pending_and_adopted_clean_successor ... ok
+archive rewrite transient peak=352 retained=0
+test native_restart::payload::network::wire::tests::next_offer_requires_authenticated_clean_predecessor ... ok
+test native_restart::network_recovery::tests::pending_and_ambiguous_checkpoint_fence_live_append_even_with_old_journal_handle ... ok
+test native_restart::payload::read_json::tests::ignored_archive_keeps_existing_depth_and_byte_limits ... ok
+test native_restart::store_backing::tests::pointer_custody_preserves_once_only_initialization ... ok
+custodied cold restore peak=7497 retained=5367
+test native_restart::park_tests::archived_boot_history_stays_exact_on_flash_and_out_of_cold_resident_memory ... ok
+test native_restart::payload::read_json::tests::ignored_archive_traversal_preserves_recursive_acceptance_and_refusals ... ok
+test native_restart::park_tests::network_cursor_survives_actual_checkpoint_framed_rewrite_and_parked_restore ... ok
+test native_restart::park_tests::retained_restore_keeps_actual_token_and_context_through_early_and_decoded_refusals ... ok
+test native_restart::payload::network::wire::tests::pending_and_clean_bind_exact_retired_epoch ... ok
+test native_restart::network_recovery::tests::pending_is_affine_until_clean_readback_and_clean_boot_preserves_new_records ... ok
+test native_restart::payload::prefix_tests::prefix_decoder_validates_real_suffix_counts_keys_and_hold_policy ... ok
+test native_restart::payload::prefix_tests::prefix_rewrite_drops_only_acknowledged_local_bytes_and_reopens_offline ... ok
+test native_restart::biography::hot::tests::deny_and_cancel_return_the_actual_original_owner_without_checkpoint ... ok
+test native_restart::payload::prefix_tests::network_tests::network_cursor_production_serializers_preserve_pending_and_clean_and_refuse_tampering ... ok
+test native_restart::payload::network::wire::tests::every_receipt_and_cursor_byte_is_authenticated_or_canonical ... ok
+test native_restart::biography::hot::tests::source_and_owner_scope_refusal_returns_the_unconsumed_token ... ok
+test native_restart::park_tests::parked_token_rejects_generation_binding_key_and_current_host_boot_changes ... ok
+test native_restart::network_pending::tests::pending_refusals_leave_publication_and_original_source_intact ... ok
+test native_restart::network_recovery::tests::no_cursor_never_erases_and_wrong_cold_scope_refuses_without_io ... ok
+Pending writer: 372 media-operation cuts across before/partial/after modes
+test native_restart::network_pending::tests::every_pending_writer_media_cut_reboots_to_exact_old_or_authenticated_pending ... ok
+test native_restart::biography::hot::tests::every_failed_step_keeps_the_original_parked_owner_restorable ... ok
+Clean checkpoint:429 operation cuts with region retained
+test native_restart::network_recovery::tests::clean_cuts::every_clean_checkpoint_cut_keeps_blank_owner_and_reopens_pending_or_clean ... ok
+test native_restart::network_recovery::tests::every_network_erase_and_readback_cut_remains_pending_and_resumes_before_clean has been running for over 60 seconds
+Recovery:216 media cuts across8 erases and64 full-region readbacks
+test native_restart::network_recovery::tests::every_network_erase_and_readback_cut_remains_pending_and_resumes_before_clean ... ok
+
+test result: ok. 58 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 109.00s
+
