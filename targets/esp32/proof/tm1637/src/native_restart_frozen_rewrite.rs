@@ -161,7 +161,7 @@ impl PreparedRewrite<'_> {
             Err(_) => return Err("checkpoint-frozen-capture"),
         };
         if recipe.changed_lengths() != measured.dimensions
-            || recipe.source_range() != Some(measured.reuse)
+            || recipe.source_range() != expected_source_range(measured.reuse)
             || length != measured.length
             || <[u8; 32]>::from(hash.finalize()) != measured.digest
             || (metadata.0, metadata.1) != measured.metadata
@@ -205,3 +205,13 @@ impl PreparedRewrite<'_> {
         )))
     }
 }
+
+// The canonical framed encoder emits no Reused piece for an empty span.
+// Its byte-free source location still remains bound by Measurement's source
+// identity; it is not an observed range in Recipe's consumed-byte contract.
+fn expected_source_range(reuse: archive::Span) -> Option<archive::Span> {
+    (reuse.start != reuse.end).then_some(reuse)
+}
+#[cfg(test)]
+#[path = "native_restart_frozen_rewrite_range_tests.rs"]
+mod range_tests;
