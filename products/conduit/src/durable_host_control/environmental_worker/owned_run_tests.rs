@@ -114,7 +114,10 @@ pub(super) fn exercise_owned_source(
         assert_eq!(selection["host_id"], inventory.host_id.as_str());
         assert_eq!(selection["boot_id"], inventory.boot_id.as_str());
         assert_eq!(selection["provider_instance_id"], session.as_str());
-        assert_eq!(selection["firmware_sha256"], serde_json::to_value([1u8; 32]).unwrap());
+        assert_eq!(
+            selection["firmware_sha256"],
+            serde_json::to_value([1u8; 32]).unwrap()
+        );
         assert_eq!(
             selection["capability_id"],
             equipment.instruments[0].session.capability().as_str()
@@ -194,4 +197,115 @@ fn observation(
         .unwrap()
         .decode(&bytes)
         .unwrap()
+}
+
+/// Three accepted canonical observations reach the shared graph during the
+/// actual admitted Body Play. Lull removes authority, not last-known storage.
+pub(super) fn exercise_continuing_source(runtime: DurableHostRuntime, device: GatedDevice) {
+    let source =
+        include_str!("../../../../../bodies/environment/profiles/continuing-observation.conduit")
+            .replace("count: Count = 16", "count: Count = 8")
+            .replace("period-ms: Count = 30000", "period-ms: Count = 100");
+    let checked = crate::plot_source::parse(&source)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    let resident = conduit_body::ResidentPlot::new(
+        checked.expanded.source_document_id,
+        checked.expanded.checked_plot_id,
+    );
+    let root = std::env::temp_dir().join(format!(
+        "conduit-owned-native-{}",
+        crate::birth_identity::fresh_uuid().unwrap()
+    ));
+    fs::create_dir_all(&root).unwrap();
+    fs::write(root.join("installation.json"), serde_json::to_vec(&serde_json::json!({
+        "schema":"conduit.install/durable-host@1", "host_id":"actor/native-host",
+        "release_source_identity":"source/test", "release_bundle_sha256":format!("sha256:{}", "a".repeat(64)),
+        "product_executable":"fixture-unused", "body_state":null, "joined_body_state":null
+    })).unwrap()).unwrap();
+    let prior = StdHost::new_with_config(StdHostConfig {
+        host_id: "actor/native-host".into(),
+        boot_id: "actor/prior-boot".into(),
+        offer_generation: OfferGeneration(1),
+    });
+    let mut owner =
+        crate::durable_host::owner::Owner::open(prior, resident, None, "Owned Source").unwrap();
+    owner.persist(&root).unwrap();
+    fs::write(root.join("body/source.conduit"), &source).unwrap();
+    drop(owner);
+    let inventory = runtime.truth().advertisement;
+    let mut runtime = runtime.with_owned_body(&root).unwrap();
+
+    device.release.store(true, Ordering::SeqCst);
+    runtime.start_owned_body(5_000, None).unwrap();
+    let graph = wait_for_graph(&mut runtime, 3);
+    assert_eq!(graph.collector_host(), inventory.host_id.as_str());
+    assert_eq!(graph.collector_boot(), inventory.boot_id.as_str());
+    assert_eq!(graph.series().len(), 1);
+    assert_eq!(graph.series()[0].name, "actor-device");
+    assert!(host_is_out(&runtime), "Face came from a retired Play");
+    let first_counter = graph.series()[0].points.last().unwrap().sequence;
+    let last_time = graph.series()[0]
+        .points
+        .last()
+        .unwrap()
+        .observation
+        .observed_at_host_boot_ms;
+    assert!(matches!(
+        graph.series()[0].state_at(last_time + 90_001).unwrap(),
+        conduit_environment_history::source_series::SourceSeriesState::Stale { .. }
+    ));
+    assert!(graph.series()[0].points.len() >= 3, "staleness erased view");
+    runtime.request_owned_body_lull().unwrap();
+    finish(&mut runtime);
+    let idle = match &runtime.host {
+        HostSource::Body { owner, .. } => owner.local_face_snapshot().unwrap(),
+        _ => panic!("owner vanished"),
+    };
+    assert!(
+        conduit_environment_history::source_series::SourceSeriesGraph::prepare(
+            &idle,
+            "environmental-observations"
+        )
+        .is_err(),
+        "retired Source supplied current Face"
+    );
+    // Re-admission keeps the same provider session and earlier canonical rows.
+    runtime.start_owned_body(5_000, None).unwrap();
+    let next = wait_for_graph(&mut runtime, 4);
+    assert!(next.series()[0].points.last().unwrap().sequence > first_counter);
+    assert_eq!(next.series()[0].points[0], graph.series()[0].points[0]);
+    runtime.request_owned_body_lull().unwrap();
+    finish(&mut runtime);
+    assert!(!host_is_out(&runtime));
+    assert_eq!(runtime.truth().advertisement, inventory);
+    drop(runtime);
+    fs::remove_dir_all(root).unwrap();
+}
+fn wait_for_graph(
+    runtime: &mut DurableHostRuntime,
+    count: usize,
+) -> conduit_environment_history::source_series::SourceSeriesGraph {
+    let deadline = Instant::now() + Duration::from_secs(4);
+    loop {
+        runtime.progress_owned_body().unwrap();
+        let face = match &runtime.host {
+            HostSource::Body { owner, .. } => owner.local_face_snapshot().unwrap(),
+            _ => panic!("owner vanished"),
+        };
+        if let Ok(graph) = conduit_environment_history::source_series::SourceSeriesGraph::prepare(
+            &face,
+            "environmental-observations",
+        ) {
+            if graph.series()[0].points.len() >= count {
+                return graph;
+            }
+        }
+        assert!(
+            Instant::now() < deadline,
+            "current admitted Source Face did not acquire {count} samples; receipt={}; current={}", owner_truth(runtime)["last_execution"], owner_truth(runtime)["realization"].get("play").unwrap_or(&serde_json::Value::Null)
+        );
+        std::thread::sleep(Duration::from_millis(2));
+    }
 }

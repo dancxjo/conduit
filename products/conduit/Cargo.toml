@@ -5,9 +5,11 @@ edition = "2021"
 default-run = "conduit"
 
 [features]
-installed-environmental-sources = ["dep:conduit-environment-host", "dep:conduit-environment-measurement"]
+installed-environmental-sources = ["dep:conduit-environment-host", "dep:conduit-environment-measurement", "dep:conduit-environment-history", "dep:libc"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
+conduit-environment-history = { path = "../../bodies/environment/history", optional = true }
+libc = { version = "0.2", optional = true }
 conduit-environment-host = { path = "../../bodies/environment/host", optional = true, features = ["carrier-source"] }
 
 [dependencies]
