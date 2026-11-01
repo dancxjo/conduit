@@ -72,12 +72,7 @@ fn authored_metric_bounds_units_and_semantic_fields_cannot_bypass_look_checking(
     ] {
         assert!(FIELD_INSTRUMENT_LOOKS_SOURCE.contains(valid));
         let altered = FIELD_INSTRUMENT_LOOKS_SOURCE.replace(valid, invalid);
-        if let Ok(checked) = check(&altered) {
-            assert!(
-                make_resources::resource(&checked, "day").is_err(),
-                "admitted {invalid}"
-            );
-        }
+        assert!(check(&altered).is_err(), "Source admitted {invalid}");
     }
 }
 
@@ -88,6 +83,11 @@ fn authored_visual_identity_law_is_admitted_before_retaining_the_resource() {
         "identity: \"conduit.look/foreign@1\"",
         1,
     );
-    let checked = check(&altered).unwrap();
-    assert!(make_resources::resource(&checked, "day").is_err());
+    let diagnostic = check(&altered).unwrap_err();
+    assert_eq!(diagnostic.code, "CND-FRM-058");
+    assert!(diagnostic
+        .message
+        .contains("ViolatedInvariant { index: 0 }"));
+    let source = [include_str!("../types.conduit"), LOOK_SOURCE, &altered].join("\n");
+    assert!(source[diagnostic.span.start..diagnostic.span.end].contains("conduit.look/foreign@1"));
 }
