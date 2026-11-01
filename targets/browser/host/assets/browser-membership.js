@@ -1,3 +1,4 @@
+import { createInvitedBrowserHandshake } from "./browser-spore-membership.mjs";
 import { BodyWebRtcSessions } from "./body-webrtc-sessions.mjs";
 import { openBrowserHostIdentity } from "./browser-host-identity.mjs";
 
@@ -143,7 +144,7 @@ function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = 
   return Object.freeze({ ...candidate });
 }
 
-export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, invitedProvision = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
@@ -242,6 +243,10 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
   if (priorCredential !== null && priorCredential.boot_id === bootId) {
     throw new Error("retained membership credential belongs to the current Boot");
   }
+  const invited = invitedProvision === null || priorCredential !== null ? null
+    : createInvitedBrowserHandshake({ provision: invitedProvision, expectedBodyId,
+      hostId, bootId, advertisement, verifyingKey: Array.from(verifyingKey),
+      membership: admittedHost?.membership });
   let credential = priorCredential;
   let credentialPersistence = Promise.resolve();
   let biographyEvidence = null;
@@ -356,6 +361,11 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         })));
         return;
       }
+      if (invited) {
+        setState("wants-to-join");
+        socket.send(encoder.encode(JSON.stringify(invited.advertise())));
+        return;
+      }
       setState("wants-to-join");
       socket.send(encoder.encode(JSON.stringify({
         kind: "advertise",
@@ -460,6 +470,16 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
       }
       const generation = webRtcSessions.activatePlan();
       if (generation !== frame.generation) throw new Error("WebRTC Plan generation mismatch");
+    } else if (frame.kind === "spawn-challenge" && frame.protocol === 1) {
+      if (!invited) throw new Error("unsolicited invitation challenge");
+      try {
+        socket.send(encoder.encode(JSON.stringify(invited.prove(frame.claim))));
+        setState("proof-sent");
+      } catch {
+        invited.retire(); deliberateClose = true;
+        setState("refused:invitation-challenge");
+        socket.close(1008, "Invitation challenge refused");
+      }
     } else if (frame.kind === "challenge" && frame.protocol === 1) {
       if (expectedBodyId !== null && frame.challenge?.body_id !== expectedBodyId) {
         deliberateClose = true;
@@ -659,6 +679,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
         onWebRtcState?.(webRtcSessions.state());
       });
     } else if (frame.kind === "refused" && frame.protocol === 1) {
+      invited?.retire();
       presenceState = "unavailable";
       clearTimeout(renewalTimer);
       webRtcSessions.reset(`body-refused:${frame.code}`);
@@ -666,6 +687,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     }
     });
     socket.addEventListener("close", () => {
+      invited?.retire();
       clearTimeout(renewalTimer);
       presenceState = "unavailable";
       webRtcSessions.reset("presence-lost");
@@ -1024,6 +1046,7 @@ export async function joinBrowserBody({ bodyUrl, wasmBytes, admittedHost = null,
     selectComponentMask,
     publishMediaResource,
     close: () => {
+      invited?.retire();
       clearTimeout(renewalTimer);
       webRtcSessions.reset("presence-closed");
       if (!credential || presenceState !== "available" || socket?.readyState !== WebSocket.OPEN) {

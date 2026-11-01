@@ -89,6 +89,7 @@ try {
   assert(listing.includes("browser-sdk-owner-show-state.mjs"));
   assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));
+  assert(listing.includes("host/assets/browser-spore-membership.mjs"));
   assert(listing.includes("host/assets/browser-host-identity.mjs"));
   assert(listing.includes("host/assets/body-webrtc-sessions.mjs"));
   assert(listing.includes("host/assets/browser-body-host.mjs"));

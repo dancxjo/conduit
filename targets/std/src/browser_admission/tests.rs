@@ -16,7 +16,7 @@ use conduit_wire::{
 };
 use std::net::SocketAddr;
 
-fn advertisement() -> BrowserAdmissionIngress {
+pub(super) fn advertisement() -> BrowserAdmissionIngress {
     BrowserAdmissionIngress::Advertise {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         advertisement: HostAdvertisement {
