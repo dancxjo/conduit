@@ -1,0 +1,62 @@
+{
+  "schema": "conduit.native-part-renewal-qualification@1",
+  "source": "d5339dcc54",
+  "base": "3799ab2f45",
+  "accepted_domain_merge": "a1941258fb",
+  "tests_passed": 76,
+  "tests_failed": 0,
+  "results": [
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-snapshot-renewal-d533-20261101.log",
+      "sha256": "21342b2efdd78b5814cbdfce6a19c9297d563736c30e76dd001961cbf557a71b",
+      "result": "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 423 filtered out; finished in 9.14s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-compact-20261101.log",
+      "sha256": "85230ec88fec13c06ab27c737dd60c12162fef70f0925b743fa27b9ebb4f775c",
+      "result": "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 428 filtered out; finished in 6.03s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-configuration-20261101.log",
+      "sha256": "fd1bc692f7d934a1f7b75c30556ee1845723ecfbb70d571c4b5cd71c7f771912",
+      "result": "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 416 filtered out; finished in 6.38s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-custody-20261101.log",
+      "sha256": "fc29abdcdf75e421c004c0fea88ecfcacf9dc8f3bcbe6f6044e78638cc4d3b2f",
+      "result": "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 429 filtered out; finished in 0.98s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-installation-20261101.log",
+      "sha256": "e0cdb4d50c984761f6c2b657833b03679f36182dbcc42db13b5450bde1382965",
+      "result": "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 416 filtered out; finished in 7.32s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-owner-state-20261101.log",
+      "sha256": "f6ba8aa5ee37ba91bc2939385a820ba888315f1dfdf77910a638b1474b4c99be",
+      "result": "test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 410 filtered out; finished in 6.37s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-renewal-20261101.log",
+      "sha256": "a9cbf8008a6cab539ba9e77afd1fd3752e5cf96649791b236670f6804a132661",
+      "result": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 425 filtered out; finished in 6.69s"
+    },
+    {
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/native-renewal-d533-return-20261101.log",
+      "sha256": "6ef557005e4fc7f1bb943a547c1c9b2b601703bd04fb740bad68115d5b6474ae",
+      "result": "test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 425 filtered out; finished in 1.91s"
+    }
+  ],
+  "scope": [
+    "Original private Spawn signer/request/raw receipt remains immutable",
+    "Verified protected canonical Return is persisted before Face retrieval",
+    "One bounded prepared renewal, versioned credential file, installation pointer/hash commit, exact replay",
+    "Short shared installation transaction lock and pending owner recovery before competing mutations"
+  ],
+  "limitations": [
+    "Fault injection occurs after durable publication boundaries; not hardware fsync failure emulation",
+    "Remote signed current-owner selection and finite route renewal still absent",
+    "No live device or service deployment",
+    "No Root signature inferred from raw Spawn receipt"
+  ]
+}
