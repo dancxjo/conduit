@@ -5,6 +5,7 @@ use crate::kernel_preparation::KernelResourceReservation;
 use crate::PreparedNativeWork;
 use conduit_core::{ActivePlayIdentity, HostAdvertisement, PlacementId, PlanFragment};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
+use std::sync::Arc;
 
 /// Cooperative native adapter for one finite admitted effect. Implementations
 /// must return the SAME Host and work, including on provider refusal. Their
@@ -19,9 +20,9 @@ pub trait BodyNativeProvider {
 
 /// Prepared descriptors are inert until joined to the ORIGINAL reserved lease.
 pub(crate) struct LocalNativeDescriptor {
-    pub inventory: HostAdvertisement,
-    pub fragment: PlanFragment,
-    pub lowered: LoweredPlanFragment,
+    pub inventory: Arc<HostAdvertisement>,
+    pub fragment: Arc<PlanFragment>,
+    pub lowered: Arc<LoweredPlanFragment>,
     pub active: ActivePlayIdentity,
     pub placement: PlacementId,
     pub input: Vec<u8>,

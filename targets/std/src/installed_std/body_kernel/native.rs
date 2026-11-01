@@ -2,6 +2,7 @@
 use super::*;
 use conduit_core::{CapabilityId, Kind, PlacementId};
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+use std::sync::Arc;
 
 struct Entry {
     partition: usize,
@@ -12,8 +13,8 @@ struct Entry {
     descriptor: Option<crate::body_execution::native::LocalNativeDescriptor>,
 }
 pub(crate) struct NativeRoute {
-    fragments: Vec<PlanFragment>,
-    lowered: Vec<LoweredPlanFragment>,
+    fragments: Vec<Arc<PlanFragment>>,
+    lowered: Vec<Arc<LoweredPlanFragment>>,
     entries: Vec<Entry>,
     active: Vec<conduit_core::ActivePlayIdentity>,
 }
@@ -69,10 +70,14 @@ impl NativeRoute {
         }
         let lowered = fragments
             .iter()
-            .map(|f| lower_plan_fragment(f).map_err(|e| format!("native local lowering: {e:?}")))
+            .map(|f| {
+                lower_plan_fragment(f)
+                    .map(Arc::new)
+                    .map_err(|e| format!("native local lowering: {e:?}"))
+            })
             .collect::<Result<_, _>>()?;
         Ok(Self {
-            fragments: fragments.iter().map(|f| (*f).clone()).collect(),
+            fragments: fragments.iter().map(|f| Arc::new((*f).clone())).collect(),
             lowered,
             entries,
             active: Vec::new(),
@@ -98,6 +103,9 @@ impl NativeRoute {
                 )
             })
             .collect();
+        // One immutable inventory for the Host and one canonical witness per
+        // partition; each request slot owns only its bounded mutable input.
+        let inventory = Arc::new(inventory.clone());
         for entry in &mut self.entries {
             let mut input = Vec::new();
             input

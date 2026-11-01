@@ -4,13 +4,14 @@ use conduit_core::{HostAdvertisement, PlacementId};
 use conduit_plan_lowering::{
     lowering::LoweredPlanFragment, selected_operation::SelectedOperationPlan,
 };
+use std::sync::Arc;
 /// The ORIGINAL admitted reservation moves here for the worker's finite turn.
 /// No Clone/Deserialize or constructor from claimed IDs is provided.
 pub struct PreparedNativeWork {
     reservation: Option<KernelResourceReservation>,
-    inventory: HostAdvertisement,
-    fragment: PlanFragment,
-    lowered: LoweredPlanFragment,
+    inventory: Arc<HostAdvertisement>,
+    fragment: Arc<PlanFragment>,
+    lowered: Arc<LoweredPlanFragment>,
     active: ActivePlayIdentity,
     placement: PlacementId,
     request: HostCallRequest,
@@ -121,9 +122,9 @@ impl StdHost {
         admitted.native_work_request = Some(request);
         Ok(PreparedNativeWork {
             reservation: Some(reservation),
-            inventory: self.advertisement.clone(),
-            fragment: prepared.0,
-            lowered: prepared.1,
+            inventory: Arc::new(self.advertisement.clone()),
+            fragment: Arc::new(prepared.0),
+            lowered: Arc::new(prepared.1),
             active: prepared.2,
             placement: prepared.3,
             request,
@@ -134,7 +135,7 @@ impl StdHost {
     }
     pub fn validate_native_work(&self, work: &PreparedNativeWork) -> Result<(), String> {
         if work.reservation.is_none()
-            || work.inventory != self.advertisement
+            || work.inventory.as_ref() != &self.advertisement
             || work.active.host_id != self.advertisement.host_id
             || work.active.boot_id != self.advertisement.boot_id
             || work.fragment.offer_generation != self.advertisement.offer_generation
@@ -165,7 +166,7 @@ impl StdHost {
             if admitted.reservation.is_some()
                 || admitted.native_work_request != Some(work.request)
                 || admitted.identity != work.active
-                || admitted.source_fragment != work.fragment
+                || &admitted.source_fragment != work.fragment.as_ref()
             {
                 return Err(
                     "native work returned to a different admitted fragment or duplicate lease"
@@ -232,7 +233,7 @@ impl PreparedNativeWork {
         NativeWorkReturnRefusal,
     > {
         let checked = host.validate_native_work(&self).and_then(|()| {
-            if &self.fragment != fragment
+            if self.fragment.as_ref() != fragment
                 || &self.active != active
                 || self.request != request
                 || &self.placement != placement
