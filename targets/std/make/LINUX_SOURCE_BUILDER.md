@@ -7,7 +7,7 @@ by itself.
 
 ## Caller admission
 
-The owning Host operation supplies a `CheckedHostConfiguration`, a shared
+The owning Host Call supplies a `CheckedHostConfiguration`, a shared
 `Arc<AtomicBool>` cancellation flag, and an explicit local boot-archive read grant:
 
 ```rust,ignore

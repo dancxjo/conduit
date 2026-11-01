@@ -14,7 +14,7 @@ pub(super) const LIMINE_SHA256: &str =
 const LIMINE_URL: &str =
     "https://github.com/limine-bootloader/limine/releases/download/v12.5.2/limine-binary.tar.gz";
 
-/// The owning admitted Host operation supplies this local read grant explicitly.
+/// The owning admitted Host Call supplies this local read grant explicitly.
 /// This grants no network acquisition. The archive is independently verified
 /// while copying; a previously verified pathname is never trusted as bytes.
 pub struct ReviewedConduitosBootAssets {

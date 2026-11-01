@@ -2,14 +2,14 @@
 
 `main.conduit` is an ordinary checked Plot invoking the `creche/prepare` Kind.
 It prepares another Body from an existing Body through one exact admitted Host
-operation. It contains no target, filesystem, toolchain or deployment facts. Each invocation
+Call. It contains no target, filesystem, toolchain or deployment facts. Each invocation
 accepts one exact request and settles after one classified outcome; an empty
 closed request is invalid rather than an encounter that waits indefinitely.
 
 The 32-byte request identifies retained owner-admitted encounter state. It is
 not itself an authority grant. Host preparation must bind it to the actual
 producing Body, Plan and Play, reviewed catalogues, selected operations, resources,
-finite work and storage bounds, and authority. The Host operation runs the
+finite work and storage bounds, and authority. The Host Call runs the
 canonical `DeploymentEncounter`, validates actual acknowledged MaskShows, and
 crosses the ordinary make/carrier boundaries. It must not replace canonical
 FaceInteraction with a private event protocol.
