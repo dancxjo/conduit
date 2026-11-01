@@ -1,0 +1,57 @@
+{
+  "schema": "conduit.environment/adaptive-observer-return-history@1",
+  "firmware_source": "7901e71e85feb363370299b1b4cd82e9e417d443",
+  "canonical_return_command_completed": true,
+  "same_existing_linux_host": true,
+  "returned_membership_revision": 446,
+  "current_producer_boot": "boot/849d4aa913e19a78df25ba4971e4cf42",
+  "root_signed_current_directory_verified": true,
+  "all_current_advertised_records_recovered": true,
+  "record_signatures_sequence_and_clocks_verified": true,
+  "records_in_current_snapshot": 594,
+  "epochs": [
+    {
+      "slot": 1,
+      "advertised_records": 73,
+      "recovered_records": 73,
+      "batch_files": 19,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 2,
+      "advertised_records": 447,
+      "recovered_records": 447,
+      "batch_files": 112,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 3,
+      "advertised_records": 16,
+      "recovered_records": 16,
+      "batch_files": 4,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 4,
+      "advertised_records": 40,
+      "recovered_records": 40,
+      "batch_files": 10,
+      "complete_at_snapshot": true
+    },
+    {
+      "slot": 5,
+      "advertised_records": 18,
+      "recovered_records": 18,
+      "batch_files": 11,
+      "complete_at_snapshot": true
+    }
+  ],
+  "observation_reclamation_proved": false,
+  "selected_installed_recorder_commitment_proved": false,
+  "ordinary_membership_preparation_cpu_budget_proved": false,
+  "limits": [
+    "Return of an existing authorized observer is not new browser/Pi Host admission.",
+    "Current local journal is full; collector continues custody polling, with no physical erase confirmation yet.",
+    "Private canonical binding, signed receipts, original journal files and full flash backups remain retained."
+  ]
+}
