@@ -98,6 +98,7 @@ pub(crate) fn fixed_signal_specs() -> Vec<Spec> {
     );
     for (i, n) in [
         (320, 80),
+        (320, 40),
         (480, 160),
         (384, 128),
         (44, 40),
