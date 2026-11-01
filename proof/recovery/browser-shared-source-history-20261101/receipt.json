@@ -1,0 +1,69 @@
+{
+  "source": "3bd1d44273",
+  "base": "f965f797703e7518516fe7c344d2be2a584c24f2",
+  "scope": "Browser owner Mask realization of existing typed shared Face history",
+  "proof": {
+    "cpu_runtime": {
+      "test": "owner_face_mask::graphics::tests::typed_face_history_reuses_shared_geometry_and_preserves_unavailable_samples",
+      "passed": 1,
+      "filtered": 489,
+      "covers": "Canonical SourceObservation codec\u2192shared Face contribution\u2192production browser graphical projection; exact command equality with shared history geometry, malformed typed-value refusal, no manufactured interpolated gap"
+    },
+    "history": {
+      "test": "source_series",
+      "passed": 9,
+      "covers": "Existing finite source-series geometry, clock, gaps, framing plus Primary collection disclosure without nested provenance promotion"
+    },
+    "browser": {
+      "playwright": "1.62.0",
+      "browser": "chromium",
+      "workers": 1,
+      "retries": 0,
+      "passed": 1,
+      "forced_actions": false,
+      "covers": "Actual DOM/SVG rendering of CPU-produced command fixture, Show replacement retains drawing with explicit unavailable status, finite viewport scrolls on mobile without page overflow, malformed command refuses complete drawing"
+    },
+    "cargo_check": true
+  },
+  "mechanisms": {
+    "face_schema_changed": false,
+    "history_dto_added": false,
+    "independent_graph_geometry_added": false,
+    "history_reader": "SourceSeriesGraph::prepare",
+    "geometry": "SourceSeriesGraph::native_scene_at_size",
+    "maximum_commands": 48,
+    "maximum_command_text_bytes": 192,
+    "browser_default_unit": "Fahrenheit",
+    "intrinsic_viewport": [
+      960,
+      540
+    ],
+    "narrow_viewports": "Keyboard-focusable horizontal scroll preserves intrinsic text sizes",
+    "look": "Existing checked Look CSS tokens; source names select paint role only"
+  },
+  "limits": [
+    "CPU runtime test plus pinned browser command-fixture rendering, not compiled Wasm browser execution proof.",
+    "No live same-Body route, invitation, membership, producer freshness or durable recording commitment asserted.",
+    "No new runtime browser bundle fabricated here; integrator must build this source into selected bundle.",
+    "Field Instrument Look must be selected through existing Mask Look controls/config for desired blue/green/white/yellow appearance.",
+    "Underlying schema time is collector-observed Boot time, not synchronized global wall time."
+  ],
+  "logs": {
+    "check": {
+      "file": "check.log.gz",
+      "sha256": "2404fb1444dddcd86a0d233b91f88617f0ac8a0cbcbf001592b5bca6981d8cd9"
+    },
+    "runtime": {
+      "file": "runtime.log.gz",
+      "sha256": "08a3f61863b6dc27784c8d123b739fffa97af41435746278e596166f25dc90dc"
+    },
+    "history": {
+      "file": "history.log.gz",
+      "sha256": "c0e45f1494aa3519962c3886c21b0894f0ed7a4f136614c6a56cf21aa8c0c343"
+    },
+    "browser": {
+      "file": "browser.log.gz",
+      "sha256": "46a5e8e4ca80c07d74896850baca4a18c94e665e7e0bd45d0d10f95a30c411e2"
+    }
+  }
+}
