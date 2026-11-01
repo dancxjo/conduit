@@ -26,6 +26,7 @@ use std::io::Write;
 
 mod clock_observation;
 mod data_text;
+mod durable_state;
 mod fore_route;
 pub(crate) mod native;
 mod parsec_acknowledged_map;
@@ -44,6 +45,7 @@ pub(crate) struct BodyKernel<'a> {
     scheduler: Box<InstalledScheduler>,
     #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
     snapshot: Option<snapshot::PreparedBodySnapshot<'a>>,
+    durable_states: Vec<durable_state::PreparedBodyState>,
     native: native::NativeRoute,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
@@ -270,6 +272,41 @@ impl<'a> BodyKernel<'a> {
         >,
         native_calls: &[(conduit_core::CapabilityId, conduit_core::Kind)],
     ) -> Result<Self, String> {
+        Self::prepare_with_storage(
+            partitions,
+            has_keyboard,
+            parent_play,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+            live,
+            parsec_sources,
+            #[cfg(target_os = "linux")]
+            selected_file,
+            native_calls,
+            None,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_with_storage(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+        live: Option<&BodyLiveForeQueue>,
+        parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
+        #[cfg(target_os = "linux")] selected_file: Option<
+            &'a crate::text_file::SelectedTextFileResidence,
+        >,
+        native_calls: &[(conduit_core::CapabilityId, conduit_core::Kind)],
+        durable: Option<(
+            &crate::body_execution::BodyDurableStateSelection<'_>,
+            &conduit_body::BodyPlayIdentity,
+        )>,
+    ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
             .map(|partition| {
@@ -317,9 +354,21 @@ impl<'a> BodyKernel<'a> {
             .iter()
             .map(|partition| &partition.plan)
             .collect::<Vec<_>>();
-        let lowered = lower_local_fragment_set_from_plans(
+        let lower = if durable.is_some() {
+            conduit_plan_lowering::fragment_set::lower_local_fragment_set_from_plans_with_body_state
+        } else {
+            lower_local_fragment_set_from_plans
+        };
+        let profile = if durable.is_some() {
+            FIXED_KERNEL_STORAGE_PROFILE
+                .with_state_storage(1, conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES)
+                .map_err(|e| format!("Body State profile: {e:?}"))?
+        } else {
+            FIXED_KERNEL_STORAGE_PROFILE
+        };
+        let lowered = lower(
             &plans,
-            FIXED_KERNEL_STORAGE_PROFILE,
+            profile,
             FragmentSetBounds {
                 fragments: conduit_body::MAX_BODY_PLOTS as u16,
                 nodes: MAX_NODES as u16,
@@ -348,6 +397,8 @@ impl<'a> BodyKernel<'a> {
                     return Err("Body keyboard has no admitted adapter".into());
                 }
             } else if !native.contains(operation.node)
+                && !(durable.is_some()
+                    && durable_state::is_operation(operation.contract_id.as_str()))
                 && !timer(&operation.contract_id)
                 && !typed_record_codec(&operation.contract_id)
                 && !image_text(&operation.contract_id)
@@ -422,6 +473,7 @@ impl<'a> BodyKernel<'a> {
             .ok_or("Body Fore Sign overflow")?;
         let mut values = HostedValueStore::new(items.max(1), maximum, bytes.max(1))
             .map_err(|error| format!("Body value store: {error:?}"))?;
+        let mut durable_states = Vec::new();
         let mut drivers = core::array::from_fn(|_| InstalledBack::inactive());
         for (partition_index, (fragment, part)) in
             fragments.iter().zip(&lowered.partitions).enumerate()
@@ -444,6 +496,27 @@ impl<'a> BodyKernel<'a> {
                             .take()
                             .ok_or("installed Each owner was prepared twice")?,
                     ))
+                } else if let Some(state) = part.states.iter().find(|state| {
+                    state.node == node.node
+                        && fragment.placements.iter().any(|placement| {
+                            placement.placement_id == node.placement_id
+                                && placement.implementation_id.as_str()
+                                    == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
+                        })
+                }) {
+                    let (selection, play) =
+                        durable.ok_or("Body State has no selected durable residence")?;
+                    let prepared = durable_state::PreparedBodyState::prepare(
+                        fragment,
+                        part,
+                        state,
+                        selection,
+                        play,
+                        &mut values,
+                    )?;
+                    let (driver, host) = prepared;
+                    durable_states.push(host);
+                    InstalledBack::DurableState(Box::new(driver))
                 } else if native.contains(node.node) {
                     InstalledBack::SelectedNativeSource(
                         conduit_kernel::scheduler::HostCallBack::new(
@@ -532,6 +605,7 @@ impl<'a> BodyKernel<'a> {
             scheduler,
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             snapshot: None,
+            durable_states,
             native,
             face_labels,
             input_origin: None,
@@ -1002,6 +1076,14 @@ impl<'a> BodyKernel<'a> {
                         .iter()
                         .find(|op| op.node == request.node && op.call == request.call)
                         .ok_or("Body request has no exact partition operation")?;
+                    if durable_state::is_operation(operation.contract_id.as_str()) {
+                        self.durable_states
+                            .iter_mut()
+                            .find(|state| state.node == request.node)
+                            .ok_or("Body State request has no exact residence")?
+                            .perform(&mut self.scheduler, request, operation)?;
+                        continue;
+                    }
                     #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
                     if super::linux_snapshot_host::is_operation(operation.contract_id.as_str()) {
                         self.snapshot

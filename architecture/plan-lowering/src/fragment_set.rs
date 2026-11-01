@@ -63,7 +63,7 @@ pub fn lower_local_fragment_set(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
-    lower_local_fragment_set_with(fragments, profile, bounds, |_, fragment| {
+    lower_local_fragment_set_with(fragments, profile, bounds, false, |_, fragment| {
         lower_plan_fragment_for_profile(fragment, profile)
     })
 }
@@ -75,6 +75,25 @@ pub fn lower_local_fragment_set_from_plans(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
+    lower_local_fragment_set_from_plans_selected(plans, profile, bounds, false)
+}
+
+/// Explicit Body-lived State composition entrance. The installing Host must
+/// retain and admit each exact State residence before execution; lowering grants
+/// no residence or I/O authority. Retained transfer remains unsupported.
+pub fn lower_local_fragment_set_from_plans_with_body_state(
+    plans: &[&Plan],
+    profile: KernelStorageProfile,
+    bounds: FragmentSetBounds,
+) -> Result<LoweredFragmentSet, FragmentSetError> {
+    lower_local_fragment_set_from_plans_selected(plans, profile, bounds, true)
+}
+fn lower_local_fragment_set_from_plans_selected(
+    plans: &[&Plan],
+    profile: KernelStorageProfile,
+    bounds: FragmentSetBounds,
+    body_state: bool,
+) -> Result<LoweredFragmentSet, FragmentSetError> {
     let fragments = plans
         .iter()
         .map(|plan| {
@@ -84,15 +103,22 @@ pub fn lower_local_fragment_set_from_plans(
                 .ok_or(FragmentSetError::Fragment(LoweringError::InvalidFragment))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    lower_local_fragment_set_with(&fragments, profile, bounds, |index, fragment| {
-        lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
-    })
+    lower_local_fragment_set_with(
+        &fragments,
+        profile,
+        bounds,
+        body_state,
+        |index, fragment| {
+            lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
+        },
+    )
 }
 
 fn lower_local_fragment_set_with(
     fragments: &[&PlanFragment],
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
+    body_state: bool,
     mut lower: impl FnMut(usize, &PlanFragment) -> Result<LoweredPlanFragment, LoweringError>,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
     let first = fragments.first().ok_or(FragmentSetError::Empty)?;
@@ -139,10 +165,10 @@ fn lower_local_fragment_set_with(
         }
         if lowered.states.iter().any(|state| {
             state.contract.retained.is_some()
-                || !matches!(
+                || !(matches!(
                     state.contract.lifetime,
                     StateLifetime::Step | StateLifetime::Play
-                )
+                ) || (body_state && state.contract.lifetime == StateLifetime::Body))
         }) {
             return Err(FragmentSetError::StateUnsupported);
         }
