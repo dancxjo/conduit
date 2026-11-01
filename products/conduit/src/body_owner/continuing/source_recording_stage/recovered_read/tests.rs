@@ -137,6 +137,12 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
         let chunk = owner.recovered_source_chunk.as_ref().unwrap();
         assert_eq!(chunk.index(), 0);
         assert_eq!(chunk.reference(), &chunk_reference);
+        assert!(owner
+            .recovered_source_catalog_contents
+            .as_ref()
+            .unwrap()
+            .all_chunks_verified());
+        assert_ne!(chunk.snapshot().context().boot_id.as_str(), boot);
         let canonical = chunk.snapshot().content().unwrap();
         installed::write_json_atomic(&root.join("fresh-source-read-result.json"),&serde_json::json!({"catalog":reference.encode().unwrap(),"chunk":chunk_reference.encode().unwrap(),"content":canonical,"body":owner.session.evidence().body_id,"boot":boot,"stage_absent":owner.source_recording_stage.is_none()})).unwrap();
         return;
