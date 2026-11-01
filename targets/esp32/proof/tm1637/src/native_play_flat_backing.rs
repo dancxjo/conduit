@@ -9,14 +9,54 @@ pub(super) fn reserve_local_base_id() -> Result<c::BaseImplementationId, ()> {
     Ok(id.into())
 }
 
-/// Protect both exact execution allocations before temporary descriptions can
-/// fragment their holes. Every byte remains inside the same admitted workspace.
+/// Unique uninitialized storage; neither variant grants execution authority.
+pub(super) enum PhasedStorage {
+    Kernel(n::PreparedNetworkKernelBacking),
+    Complete(n::PreparedNetworkKernelStorage),
+}
+impl PhasedStorage {
+    pub(super) fn as_ptr(&self) -> *const PreparedNetworkKernel {
+        match self {
+            Self::Kernel(v) => v.as_ptr(),
+            Self::Complete(v) => v.as_ptr(),
+        }
+    }
+}
+pub(super) fn complete_phased_storage(
+    storage: PhasedStorage,
+) -> Result<n::PreparedNetworkKernelStorage, ()> {
+    match storage {
+        PhasedStorage::Complete(storage) => Ok(storage),
+        PhasedStorage::Kernel(backing) => {
+            #[cfg(test)]
+            let _refusal = if REFUSE_NEXT_LOG.with(|flag| flag.replace(false)) {
+                Some(crate::allocation_probe::refuse_next_allocation_size(
+                    n::CONTROL_SIGN_BACKING_BYTES,
+                ))
+            } else {
+                None
+            };
+            backing
+                .with_signs_observing_failure(diagnostics::trace_storage_failure)
+                .map_err(|(backing, _)| {
+                    drop(backing);
+                    ()
+                })
+        }
+    }
+}
+/// Protect the largest kernel allocation before temporary descriptions. The
+/// unchanged Sign allocation follows description retirement; supplied complete
+/// storage keeps its original ownership. All bytes stay in the same workspace.
 pub(super) fn reserve_phased_storage(
-    storage: Option<n::PreparedNetworkKernelStorage>,
+    storage: Option<PhasedStorage>,
     custody: &IssuedCustody,
-) -> Result<(n::PreparedNetworkKernelStorage, c::BaseImplementationId), ()> {
+) -> Result<(PhasedStorage, c::BaseImplementationId), ()> {
     let storage = storage
-        .map_or_else(NativePlay::reserve_linked_backing, Ok)
+        .map_or_else(
+            || NativePlay::reserve_linked_kernel_backing().map(PhasedStorage::Kernel),
+            Ok,
+        )
         .map_err(|()| trace_phased_refusal(114, custody, false, false))?;
     #[cfg(test)]
     record_phased(9, Some(storage.as_ptr() as usize));
@@ -26,6 +66,21 @@ pub(super) fn reserve_phased_storage(
 }
 
 impl NativePlay {
+    pub(crate) fn reserve_linked_kernel_backing() -> Result<n::PreparedNetworkKernelBacking, ()> {
+        #[cfg(test)]
+        let _refusal = if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {
+            Some(crate::allocation_probe::refuse_next_allocation_size(
+                core::mem::size_of::<PreparedNetworkKernel>(),
+            ))
+        } else {
+            None
+        };
+        n::PreparedNetworkKernelBacking::try_new_observing_failure(
+            diagnostics::trace_storage_failure,
+        )
+        .map_err(|_| ())
+    }
+
     pub(crate) fn reserve_linked_backing() -> Result<n::PreparedNetworkKernelStorage, ()> {
         #[cfg(test)]
         let _refusal = if REFUSE_NEXT_BACKING.with(|flag| flag.replace(false)) {

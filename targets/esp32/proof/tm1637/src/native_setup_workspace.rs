@@ -122,7 +122,7 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "permit-revoked");
             return;
         }
-        // Checked preparation and actual execution backing share the unchanged
+        // Checked preparation and complete execution backing share the unchanged
         // 8KiB envelope above the physically protected 16KiB floor.
         if memory.size.saturating_sub(memory.current_usage) < minimum {
             self.trace_network_workspace("capacity", "aggregate-construction-refused");
@@ -132,10 +132,12 @@ impl NativeRoot {
             self.trace_network_workspace("scope", "current-body-refused");
             return;
         }
-        // Protect both actual execution allocations before the floor blocks can
-        // fragment their holes. The unique storage conveys no execution authority.
+        // Protect the unique kernel allocation before floor blocks can fragment
+        // its hole. Unchanged Sign backing is allocated after checked temporary
+        // descriptions retire, while this same floor remains held. No authority
+        // is conveyed by uninitialized backing.
         #[cfg(feature = "flat-network-appliance")]
-        let backing = match crate::native_play::NativePlay::reserve_linked_backing() {
+        let backing = match crate::native_play::NativePlay::reserve_linked_kernel_backing() {
             Ok(storage) => Some(storage),
             Err(()) => {
                 self.trace_network_workspace("reserve", "execution-backing-refused");
@@ -147,7 +149,7 @@ impl NativeRoot {
         // Initial admission already charged the unchanged complete minimum.
         // Only its now-owned exact backing is subtracted to avoid double count.
         let Some(remaining_minimum) = minimum.checked_sub(backing.as_ref().map_or(0, |_| {
-            conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes()
+            conduit_network_join_call::PreparedNetworkKernelBacking::allocation_bytes()
         })) else {
             self.trace_network_workspace("reserve", "execution-backing-exceeds-workspace");
             return;

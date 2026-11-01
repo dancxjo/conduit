@@ -489,7 +489,10 @@ fn phased_storage_refusal_returns_original_owners_before_admission_or_root_mutat
                 }
             )
             .is_err());
-        assert_eq!(flat::phased_refusal(), Some((114, false, false)));
+        assert_eq!(
+            flat::phased_refusal(),
+            Some((if refuse_signs { 117 } else { 114 }, false, false))
+        );
         assert!(!admitted.get() && !play.attempted);
         assert!(play.active.is_none() && play.flat_refusal.is_empty());
         assert!(source.is_some() && join.is_some());
@@ -570,13 +573,16 @@ fn phased_constructor_counts_complete_retained_proofs_and_both_phase_peaks() {
         phases[1].backing.unwrap(),
         play.prepared.as_ref().unwrap().as_ref() as *const _ as usize
     );
-    assert_eq!(backed.retained_bytes(), cold.retained_bytes());
+    assert_eq!(
+        backed.retained_bytes(),
+        cold.retained_bytes() + n::CONTROL_SIGN_BACKING_BYTES
+    );
     let early = phases[9]
         .observation
-        .expect("kernel and Sign backing precede descriptions");
+        .expect("only kernel backing precedes descriptions");
     assert_eq!(
         early.retained_bytes(),
-        n::PreparedNetworkKernelStorage::allocation_bytes()
+        n::PreparedNetworkKernelBacking::allocation_bytes()
     );
     assert_eq!(phases[9].backing, phases[1].backing);
     assert!(

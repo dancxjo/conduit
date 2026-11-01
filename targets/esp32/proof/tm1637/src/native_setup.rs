@@ -59,8 +59,11 @@ impl NativeRoot {
         &mut self,
         window: Option<&WorkspacePermit<'_>>,
         release: bool,
-        backing: Option<conduit_network_join_call::PreparedNetworkKernelStorage>,
+        backing: Option<conduit_network_join_call::PreparedNetworkKernelBacking>,
     ) -> &'static [u8] {
+        if backing.is_some() && window.is_none() {
+            return b"network-backing-workspace-required";
+        }
         if self.membership_busy() {
             return b"body-membership-busy";
         }
@@ -128,7 +131,7 @@ impl NativeRoot {
                         .map_err(|_| ())
                 };
                 match backing {
-                    Some(storage) => self.play.install_linked_phased_held_with_storage(
+                    Some(storage) => self.play.install_linked_phased_held_with_backing(
                         &image,
                         &self.network_source,
                         c::OfferGeneration(self.offer_generation),
@@ -157,25 +160,14 @@ impl NativeRoot {
                 {
                     return &diagnostics::NETWORK_RECOVERY_REFUSED;
                 }
-                match backing {
-                    Some(backing) => self.play.install_linked_reserved_held(
-                        &image,
-                        &self.network_source,
-                        c::OfferGeneration(self.offer_generation),
-                        &mut self.credentials,
-                        self.network.ready_slot(),
-                        &mut self.issuer,
-                        backing,
-                    ),
-                    None => self.play.install_linked_held(
-                        &image,
-                        &self.network_source,
-                        c::OfferGeneration(self.offer_generation),
-                        &mut self.credentials,
-                        self.network.ready_slot(),
-                        &mut self.issuer,
-                    ),
-                }
+                self.play.install_linked_held(
+                    &image,
+                    &self.network_source,
+                    c::OfferGeneration(self.offer_generation),
+                    &mut self.credentials,
+                    self.network.ready_slot(),
+                    &mut self.issuer,
+                )
             };
             if result.is_ok() && window.is_none() && release {
                 self.play.release_held()
