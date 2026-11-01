@@ -87,6 +87,7 @@ fn project_view(
             .subjects
             .iter()
             .map(|subject| SubjectView {
+                graphics: graphics::project(face, subject),
                 identity: subject.identity.clone(),
                 name: subject.name.clone(),
                 role: format!("{:?}", subject.role),

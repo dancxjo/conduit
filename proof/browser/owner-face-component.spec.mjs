@@ -1605,3 +1605,45 @@ for (const palette of ['editorial', 'phosphor']) {
       muted: 'CanvasText', line: 'CanvasText', accent: 'LinkText', control: 'ButtonText', focus: 'Highlight' });
   });
 }
+
+test('typed Face history uses bounded shared graphics in the owner Mask without losing stale data', async ({ page }) => {
+  const { readFile } = await import('node:fs/promises');
+  const graphics = JSON.parse(await readFile('proof/fixtures/browser-source-series-graphics.json', 'utf8'));
+  await page.goto('/proof/browser/owner-face-look-fixture.html');
+  await page.evaluate(async graphics => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    const fixture = { body_id: 'fixture/body', face_id: 'fixture/face', face_revision: 1,
+      show_id: 'fixture/show', show_state: 'available', interactions_admitted: false,
+      subjects: [{ identity: 'observations', name: 'Recovered environmental observations', role: 'Collection',
+        disclosure: 'Primary', text: ['Synthetic typed Face fixture; no live Body claim.'], properties: [],
+        unmodeled_property_count: 0, values: [], graphics }], relationships: [], actions: [] };
+    element.show(fixture); document.body.replaceChildren(element);
+    globalThis.graphicsFixture = fixture;
+  }, graphics);
+  const face = page.locator('conduit-owner-face');
+  const graph = face.getByRole('img', { name: 'Recovered environmental observations' });
+  await expect(graph).toBeVisible();
+  await expect(graph).toHaveAttribute('viewBox', '0 0 960 540');
+  expect(await graph.locator('polyline').count()).toBeGreaterThan(0);
+  await expect(graph.locator('text').filter({ hasText: '°F' }).first()).toBeVisible();
+  // Expiry disables interactions, but current source provenance and last data remain.
+  await face.evaluate(element => element.show({ ...globalThis.graphicsFixture,
+    show_state: 'replaced', interactions_admitted: false }));
+  await expect(graph).toBeVisible();
+  await expect(face.getByRole('status')).toHaveText('Last shown drawing; live view unavailable.');
+  await page.screenshot({ path: 'test-results/shared-history-graphics-desktop.png', fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(await graph.evaluate(node => node.getBoundingClientRect().width)).toBeGreaterThanOrEqual(960);
+  await page.screenshot({ path: 'test-results/shared-history-graphics-mobile.png', fullPage: true });
+  // Invalid command geometry refuses the complete drawing, never emits an href or script.
+  await face.evaluate(element => {
+    const fixture = structuredClone(globalThis.graphicsFixture);
+    fixture.subjects[0].graphics.commands[0].bounds[2] = 0;
+    element.show(fixture);
+  });
+  await expect(face.getByText('Drawing refused; inspect exact facts.', { exact: true })).toBeVisible();
+  await expect(face.getByRole('img')).toHaveCount(0);
+  await expect(face.locator('script, [href^="javascript:"]')).toHaveCount(0);
+});

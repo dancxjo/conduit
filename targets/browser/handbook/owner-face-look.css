@@ -85,3 +85,6 @@ textarea:focus-visible{outline:3px solid var(--face-focus,#247c85);outline-offse
 :host([data-component-look]) textarea{font-size:calc(max(1rem,var(--look-type-body)) * var(--face-text-scale,1));padding:var(--look-space-control-block) var(--look-space-control-inline);border-radius:var(--look-radius-control)}
 :host([data-component-look]) textarea:focus-visible{outline-width:var(--look-focus-width)}
 @media(forced-colors:active){textarea{background:Canvas;color:CanvasText;border-color:CanvasText}textarea:focus-visible{outline-color:Highlight}}
+
+/* A finite graphical leaf keeps its intrinsic aspect on the full admitted column span. */
+.owner-face-graphics-subject{grid-column:1/-1;min-width:0}
