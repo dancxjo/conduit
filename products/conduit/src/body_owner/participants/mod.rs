@@ -72,7 +72,7 @@ impl Owner {
             manager
                 .receipts
                 .iter()
-                .any(|receipt| receipt.credential.host_id == expected)
+                .any(|receipt| receipt.credential.host_id == expected.as_str())
         });
         if !known && new_host_key.is_none() {
             return Err("first browser admission requires its exact public verifying key".into());

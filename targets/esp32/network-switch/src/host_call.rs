@@ -102,7 +102,16 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     /// Observation of this actual retained interface, not attachment evidence.
     /// HTTP service readiness remains separately acknowledged by the owner.
     pub fn station_link_and_address_up(&self) -> bool {
-        self.radio.station_stack.is_link_up() && self.radio.station_stack.config_v4().is_some()
+        let (link_up, address_configured) = self.station_link_and_address_state();
+        link_up && address_configured
+    }
+    /// Live interface observations, separate from the frozen join inspection.
+    /// Configured IPv4 does not prove reachability or application readiness.
+    pub fn station_link_and_address_state(&self) -> (bool, bool) {
+        (
+            self.radio.station_stack.is_link_up(),
+            self.radio.station_stack.config_v4().is_some(),
+        )
     }
     /// Current address of this actual interface; never an attachment receipt or
     /// a claim that application services or a Body peer have been verified.

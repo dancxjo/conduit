@@ -5,6 +5,8 @@ use crate::{checked, observed_history::Collector, Result};
 use conduit_body::{BodyId, MembershipCredential};
 use sha2::{Digest, Sha256};
 use std::path::Path;
+#[path = "observed_custody_prepare.rs"]
+pub(crate) mod prepare;
 #[allow(clippy::duplicate_mod)] // Same exact portable wire as the native verifier.
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_observed_custody_wire.rs"]
 pub(crate) mod wire;
@@ -134,39 +136,10 @@ fn exchange(
     if slot > 5 {
         return Err("observed custody slot must be 0..5".into());
     }
-    let binding = crate::local_recorder::validated_binding(binding_path)?;
     line.paced(&format!("OBS? {slot}"))?;
     let value = line.event("observed-custody-offer")?;
-    // Keep the JSON storage alive while the strict canonical Offer borrows it.
     let bytes = serde_json::to_vec(&value)?;
-    #[derive(serde::Deserialize)]
-    #[serde(deny_unknown_fields)]
-    struct Offered<'a> {
-        event: &'a str,
-        slot: u8,
-        #[serde(borrow)]
-        offer: crate::observed_custody_client::wire::Offer<'a>,
-    }
-    let offered: Offered<'_> = serde_json::from_slice(&bytes)?;
-    if offered.event != "observed-custody-offer" || offered.slot != slot {
-        return Err("observed custody offer slot/event differs".into());
-    }
-    let scope = offered
-        .offer
-        .scope
-        .0
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<String>();
-    let directory = history.join(format!("epoch-{scope}"));
-    // This authenticates the exact Root/Body/Forms/count/digest, fsyncs actual
-    // signed batch inodes and directories, then reopens and verifies them again.
-    let verified = crate::observed_custody_client::VerifiedDurableEpoch::verify(
-        &offered.offer,
-        &binding.credential().body_id,
-        binding.root(),
-        &directory,
-    )?;
+    let (_, verified) = prepare::verify_offered(binding_path, history, &bytes, Some(slot))?;
     let request =
         crate::body_join::sign_durable_custody(binding_path, continuity_private, &verified)?;
     let command = format!("OBS ACK {}", core::str::from_utf8(&request)?);
@@ -411,4 +384,5 @@ mod tests {
             .is_err());
         }
     }
+    include!("observed_custody_prepare_tests.rs");
 }

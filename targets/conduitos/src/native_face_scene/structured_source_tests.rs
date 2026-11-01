@@ -6,7 +6,11 @@ use conduit_plot::{
     CanonicalStartupValue, ProfileCatalog, check_syntax_document, parse_syntax_document,
 };
 
-fn structure<'a>(source: &str, component: &str, face: &'a Face) -> PreparedComponentLayout<'a> {
+pub(super) fn structure<'a>(
+    source: &str,
+    component: &str,
+    face: &'a Face,
+) -> PreparedComponentLayout<'a> {
     let mut catalog = ProfileCatalog::new();
     catalog
         .insert_kind(layout_component_mask_kind(48 * 1024))
@@ -47,7 +51,7 @@ fn structure<'a>(source: &str, component: &str, face: &'a Face) -> PreparedCompo
     prepare_component_layout(literal("layout"), literal("recipe"), face).unwrap()
 }
 
-fn todo() -> Face {
+pub(super) fn todo() -> Face {
     let state = conduit_todo_plot::TodoState {
         title: "Things".into(),
         revision: 3,

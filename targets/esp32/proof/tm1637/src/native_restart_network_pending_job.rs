@@ -6,6 +6,9 @@ use crate::native_body_checkpoint::{
     PayloadReader,
 };
 use alloc::boxed::Box;
+#[path = "native_restart_network_pending_frozen.rs"]
+mod frozen;
+
 use network_pending::{live_key, prepare as prepare_pending, CommittedCustody};
 #[cfg(all(
     feature = "local-appliance",
@@ -20,6 +23,8 @@ struct CheckpointJob {
     lease: StoreLease,
     cursor: Option<payload::network::Cursor>,
     writer: Option<IncrementalRewrite>,
+    frozen: Option<payload::rewrite::FrozenRewrite>,
+    owner_digest: [u8; 32],
     transition: payload::rewrite::AuthenticatedNetworkTransition,
     summary: payload::archive::Summary,
     span: payload::archive::Span,
@@ -182,29 +187,23 @@ impl CheckpointJob {
         let prepared =
             prepare_candidate(previous, owner, store.admissions.as_ref(), root, &cursor)?;
         let transition = prepared.authenticated_network_transition()?;
-        let mut metadata = None;
-        let writer = IncrementalRewrite::prepare(
+        let (writer, frozen, summary, span) = frozen::prepare_writer(
+            &prepared,
             &mut store.journal,
             &previous.source,
             &store.binding,
             store.seed.as_ref().ok_or("network-pending-key")?,
-            |reader, sink| {
-                let next = emit(&prepared, reader, sink)?;
-                if next.0 != previous.summary {
-                    return Err(Refusal::Corrupt);
-                }
-                metadata = Some(next);
-                Ok(())
-            },
-        )
-        .map_err(checkpoint_commit_refusal)?;
+            &previous.summary,
+        )?;
         drop(prepared);
-        let (summary, span) = metadata.ok_or("network-pending-metadata")?;
+        let owner_digest = frozen::evidence_digest(owner)?;
         store.ready = false;
         Ok(Self {
             lease,
             cursor: Some(cursor),
             writer: Some(writer),
+            frozen,
+            owner_digest,
             transition,
             summary,
             span,
@@ -242,25 +241,18 @@ impl CheckpointJob {
             &cursor,
         )?;
         let transition = prepared.authenticated_network_transition()?;
-        let mut metadata = None;
-        let writer = IncrementalRewrite::prepare(
+        let (writer, frozen, summary, span) = frozen::prepare_writer(
+            &prepared,
             &mut store.journal,
             &previous.source,
             &store.binding,
-            store.seed.as_ref().ok_or("network-recovery-key")?,
-            |reader, sink| {
-                let next = emit(&prepared, reader, sink)?;
-                if next.0 != previous.summary {
-                    return Err(Refusal::Corrupt);
-                }
-                metadata = Some(next);
-                Ok(())
-            },
-        )
-        .map_err(checkpoint_commit_refusal)?;
+            store.seed.as_ref().ok_or("network-pending-key")?,
+            &previous.summary,
+        )?;
         drop(prepared);
-        let (summary, span) = metadata.ok_or("network-pending-metadata")?;
         self.writer = Some(writer);
+        self.frozen = frozen;
+        self.owner_digest = frozen::evidence_digest(owner)?;
         self.transition = transition;
         self.cursor = Some(cursor);
         self.summary = summary;
@@ -305,6 +297,17 @@ impl CheckpointJob {
                 &self.root,
                 self.cursor.as_ref().ok_or("network-pending-phase")?,
             )?;
+            if let Some(frozen) = self.frozen.as_ref() {
+                if frozen::evidence_digest(owner)? != self.owner_digest {
+                    return Err("network-pending-owner-changed");
+                }
+                return frozen
+                    .stage(
+                        self.writer.as_mut().ok_or("network-pending-phase")?,
+                        &mut store.journal,
+                    )
+                    .map_err(checkpoint_commit_refusal);
+            }
             self.writer
                 .as_mut()
                 .ok_or("network-pending-phase")?
@@ -354,6 +357,8 @@ impl CheckpointJob {
         if !self.is_complete() || !owner.pending_archives().is_empty() {
             return Err("network-pending-incomplete");
         }
+        // Commit no longer needs encoded changed bytes; release before replay.
+        self.frozen = None;
         let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
         let previous = store.custody.as_ref().ok_or("network-pending-source")?;
         let cursor = self.cursor.as_ref().ok_or("network-pending-phase")?;

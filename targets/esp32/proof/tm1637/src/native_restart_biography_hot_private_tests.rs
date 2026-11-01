@@ -1,7 +1,8 @@
 //! Opt-in copied-media proof. Fixture endorsements never leave this CPU test;
 //! this grants no real receiver custody, hardware ACK, or physical timing claim.
 use super::*;
-type CpuMedia = std::sync::Arc<std::sync::Mutex<(Vec<u8>, bool)>>;
+// Explicit CPU-only region alias, preserving each owning fixture's fault fields.
+type CpuMedia = BodyRegion;
 
 pub(super) struct ProfileAccess {
     pub calls: usize,
@@ -18,7 +19,7 @@ impl ProfileAccess {
 }
 impl SectorStorage<BodyRegion> for ProfileAccess {
     fn erase_sector(&mut self, s: &mut BodyRegion, bank: u8, sector: u8) -> Result<(), Refusal> {
-        self.media = Some(s.media.clone());
+        self.media = Some(s.clone());
         let fault = self.fault();
         let n = match fault {
             Some(0) => 0,
@@ -34,7 +35,7 @@ impl SectorStorage<BodyRegion> for ProfileAccess {
         }
     }
     fn program(&mut self, s: &mut BodyRegion, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
-        self.media = Some(s.media.clone());
+        self.media = Some(s.clone());
         let fault = self.fault();
         let n = match fault {
             Some(0) => 0,
@@ -56,7 +57,7 @@ impl SectorStorage<BodyRegion> for ProfileAccess {
         }
     }
     fn read(&mut self, s: &mut BodyRegion, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
-        self.media = Some(s.media.clone());
+        self.media = Some(s.clone());
         if self.fault().is_some() {
             return Err(Refusal::Storage);
         }
@@ -318,3 +319,92 @@ fn job_allocation_refusal_returns_owner_before_acquiring_any_store() {
     assert_eq!(owner.evidence(), &evidence);
     assert_eq!(store.journal.generation(), Some(generation));
 }
+
+/// Replays only the real, independently pinned committed source. No fixture
+/// receipt, synthetic receiver, offload or production Host identity is minted.
+#[test]
+#[ignore = "requires private pinned post-custody flash; copied CPU next-Boot only"]
+fn private_committed_prefix_survives_next_boot_without_new_custody() {
+    let body: conduit_body::BodyId = serde_json::from_value(serde_json::Value::String(
+        std::env::var("CONDUIT_PRIVATE_BODY_ID").unwrap(),
+    ))
+    .unwrap();
+    let host: conduit_core::HostId = std::env::var("CONDUIT_PRIVATE_PRODUCER_HOST")
+        .unwrap()
+        .into();
+    let raw = std::fs::read(std::env::var("CONDUIT_PRIVATE_BODY_BACKUP").unwrap()).unwrap();
+    assert_eq!(raw.len(), 4194304);
+    let root = root_pin();
+    let binding = Sha256::digest(body.as_str().as_bytes()).into();
+    let mut region = crate::native_evidence_region::test_empty();
+    region.program(0, &raw[0x3f0000..0x400000]).unwrap();
+    let mut journal = Checkpoint::open(region).unwrap();
+    let generation = journal.generation().unwrap();
+    let before = journal.payload_length(&binding).unwrap().unwrap();
+    let mut seed = PrivateSeed([0; 32]);
+    let (resident, source) =
+        decode_checkpoint(&mut journal, &binding, &body, &mut seed.0, None).unwrap();
+    assert!(SigningKey::from_bytes(&seed.0).verifying_key().to_bytes() == root);
+    let prefix = serde_json::to_vec(&resident.prefix).unwrap();
+    assert!(
+        resident.prefix.is_some(),
+        "requires actual committed external custody"
+    );
+    let network = resident.network.as_ref().map(|c| *c.bytes());
+    let layouts = serde_json::to_vec(&resident.layouts).unwrap();
+    let summary = resident.summary.clone();
+    let evidence = resident.retained.evidence;
+    let mut admissions = resident.retained.admissions.unwrap();
+    admissions.retire_unfinished_challenges();
+    crate::native_restart::compact_admission_storage(&mut admissions);
+    let admissions_bytes = serde_json::to_vec(&admissions).unwrap();
+    let mut store = Store {
+        journal,
+        binding,
+        seed: Some(seed.0),
+        evidence: Some(evidence.clone()),
+        archives: Vec::new(),
+        custody: Some(ArchiveCustody {
+            proof: resident.proof,
+            layouts: resident.layouts,
+            network: resident.network,
+            source,
+            summary: resident.summary,
+            prefix: resident.prefix,
+            local_count: resident.local_count,
+            span: resident.span,
+        }),
+        admissions: Some(admissions),
+        parked: false,
+        pristine: false,
+        failed: false,
+        ready: false,
+    };
+    let boot: conduit_core::BootId = "boot/copied-real-prefix-next-boot-001".into();
+    assert_eq!(boot.as_str().len(), 37);
+    let mut owner = SealedBodyLifecycleSession::resume_here(evidence, &host, &boot).unwrap();
+    while owner.seal_terminal_wake_for_checkpoint().unwrap() {
+        checkpoint_store(&mut store, &mut owner, &root).unwrap();
+    }
+    owner.seal_membership_history_for_checkpoint().unwrap();
+    checkpoint_store(&mut store, &mut owner, &root).unwrap();
+    let next_bytes = store.journal.payload_length(&binding).unwrap().unwrap();
+    assert!(next_bytes <= payload::MAX_BYTES);
+    let (after, _) =
+        decode_checkpoint(&mut store.journal, &binding, &body, &mut seed.0, None).unwrap();
+    assert!(SigningKey::from_bytes(&seed.0).verifying_key().to_bytes() == root);
+    assert!(after.retained.evidence == *owner.evidence());
+    assert!(after.retained.evidence.body_id == body);
+    assert!(serde_json::to_vec(&after.prefix).unwrap() == prefix);
+    assert!(serde_json::to_vec(&after.retained.admissions).unwrap() == admissions_bytes);
+    assert!(after.network.as_ref().map(|c| *c.bytes()) == network);
+    assert!(serde_json::to_vec(&after.layouts).unwrap() == layouts);
+    assert!(after.summary.count >= summary.count);
+    println!("private_actual_prefix_next_boot: generation={generation}->{} bytes={before}->{next_bytes} capacity={} original_prefix_receipt_preserved=true fixture_receipts=0 hardware_boots=0", store.journal.generation().unwrap(), payload::MAX_BYTES);
+}
+
+#[path = "native_restart_biography_hot_private_membership_tests.rs"]
+mod owned_membership;
+
+#[path = "native_restart_private_receipt_log_tests.rs"]
+mod private_receipt_log;

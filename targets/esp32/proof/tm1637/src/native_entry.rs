@@ -138,6 +138,21 @@ async fn main(spawner: Spawner) {
     {
         #[cfg(feature = "body-image-root")]
         root.install_linked_body().expect("linked body biography");
+        #[cfg(feature = "checkpoint-preparation-check")]
+        root.measure_checkpoint_preparation();
+        #[cfg(feature = "membership-preparation-check")]
+        {
+            // Cold preparation must not enlarge the permanent executor task.
+            // Exact fallible backing comes from the existing Root arena and is
+            // dropped before any local Plot worker starts. No grant is enlarged.
+            let future = root.qualify_cold_membership(&mut invitation_uart, flash_timing);
+            let backing = crate::native_box_backing::reserve_box()
+                .expect("finite cold membership preparation backing");
+            let future = alloc::boxed::Box::into_pin(alloc::boxed::Box::write(backing, future));
+            await_outlined(future)
+                .await
+                .expect("attended cold membership qualification");
+        }
         root.start_preparation_service(spawner)
             .await
             .expect("Root preparation service must start");
@@ -175,11 +190,13 @@ async fn main(spawner: Spawner) {
                     // and history readers run independently; emergency cancellation
                     // remains a separate scoped entrance.
                     #[cfg(feature = "body-persistence")]
+                    root.advance_membership();
+                    #[cfg(feature = "body-persistence")]
                     root.advance_observed_reclaim();
                     #[cfg(feature = "body-persistence")]
                     root.advance_network_export();
                     #[cfg(feature = "body-persistence")]
-                    let network_writing = root.network_write_inflight();
+                    let network_writing = root.network_write_inflight() || root.membership_busy();
                     #[cfg(not(feature = "body-persistence"))]
                     let network_writing = false;
                     if !root.local_renewal_pending() && !network_writing {
@@ -202,6 +219,7 @@ async fn main(spawner: Spawner) {
                     }
                     if embassy_time::Instant::now() >= next_report {
                         root.report_local_progress();
+                        root.report_observed_queue();
                         next_report =
                             embassy_time::Instant::now() + embassy_time::Duration::from_secs(15);
                     }

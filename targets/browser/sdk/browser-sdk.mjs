@@ -94,6 +94,16 @@ export class BrowserHost {
     return Object.freeze({ hostId: this.id, bootId: this.bootId,
       verifyingKey: Object.freeze([...this.#state.membership.verifyingKey]) });
   }
+  /** Prepare membership proof from an invitation and independently pinned Body Root.
+   * This uses this admitted Host/Boot; it does not install equipment or start Play. */
+  prepareMembershipScope(options) {
+    return this.#state.membership.prepareMembershipScope(options);
+  }
+
+  /** Release a membership credential only after this runtime verifies the exact Root receipt. */
+  adoptMembershipScope(receipt) {
+    return this.#state.membership.adoptMembershipScope(receipt);
+  }
   get offers() { return this.#state.offers; }
   get state() { return Object.freeze({ schema: "conduit.browser/boot-truth@1", generation: this.#state.boot.offer_generation }); }
 
@@ -123,9 +133,12 @@ export class BrowserHost {
     return reviewBrowserPlots({ bridge: this.#state.bridge, host: this.id, boot: this.bootId, plots });
   }
 
-  /** Join this already-admitted Host and Boot to one external Body invitation. */
+  /** Join this already-admitted Host and Boot to one external Body invitation.
+   * invitedProvision supplies first-admission proof inside an independently
+   * authorized owner window; it opens no route or window. Portable Part-key
+   * return is not implemented by the current browser membership ABI. */
   async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
-    onState, onBiographyEvidence, onOfferEvidence, renewPresence = true, reconnectPresence = true } = {}) {
+    onState, onBiographyEvidence, onOfferEvidence, invitedProvision = null, renewPresence = true, reconnectPresence = true } = {}) {
     if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
     }
@@ -140,6 +153,7 @@ export class BrowserHost {
       },
       expectedBodyId,
       retainedCredential,
+      invitedProvision,
       onCredential,
       onState: state => {
         if (state === "offline" || state.startsWith("refused:")) this.#state.bridge.ownerFaceClear?.();

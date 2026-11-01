@@ -1,4 +1,4 @@
-//! Exact worker-owned backing for the existing fixed Value vector realizations.
+//! Exact worker-owned backing for the explicitly supported numeric realizations.
 use super::*;
 use crate::fixed_numeric_operations_back::{FixedConcatenateBack, FixedTanhBack};
 use conduit_composite::PreparedWorkerBack;
@@ -22,6 +22,9 @@ fn concatenate<const L: usize, const R: usize, const O: usize>(
     PreparedWorkerBack::new(Box::new(back), heap)
 }
 pub(super) fn prepare(gear: &PlannedGear) -> Result<PreparedWorkerBack, String> {
+    if let Some(prepared) = super::dispatch_dsp::prepare_worker(gear) {
+        return prepared;
+    }
     match gear.kind_id.as_str() {
         "numeric/concatenate1x1" => concatenate::<1, 1, 2>(gear),
         "numeric/concatenate2x1" => concatenate::<2, 1, 3>(gear),

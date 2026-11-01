@@ -56,6 +56,17 @@ export interface BrowserSyntaxEditor {
 export class BrowserHost {
   /** Public proof material for first admission; contains no signing secret. */
   admissionIdentity(): Readonly<{ hostId: string; bootId: string; verifyingKey: readonly number[] }>;
+  /** Membership-only proof for this exact Host/Boot. Root pins come from trusted provisioning. */
+  prepareMembershipScope(options: {
+    claim: Readonly<Record<string, unknown>>;
+    secret: readonly number[];
+    expectedBodyId: string;
+    expectedRoot: readonly number[];
+    producerHost: string;
+    producerBoot: string;
+  }): Readonly<Record<string, unknown>>;
+  /** Verify the original request's pinned Root receipt; creates no presence lease or Play. */
+  adoptMembershipScope(receipt: Readonly<Record<string, unknown>>): Readonly<Record<string, unknown>>;
   /** Attach native syntax highlighting while preserving the accessible textarea. */
   attachEditor(textarea: HTMLTextAreaElement): BrowserSyntaxEditor;
   /** Return the bounded canonical Rust syntax projection, or throw on refusal. */

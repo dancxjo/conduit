@@ -1,0 +1,23 @@
+{
+  "source": "c4cd421bfb3b54047c95aa16b5fa68df6147234f",
+  "name": "Hamm Creek House",
+  "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "host_id": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+  "boot_ids": [
+    "boot/installed/7099db9a3d11b3a071df09a331198c9a6e8dda32d49f70bb72b800ed4ca304df",
+    "boot/installed/1061390883fc3cd580f81e34840c435769bddbf71127381a62a090f5467e4d81"
+  ],
+  "same_body_reopened_on_new_boot": true,
+  "product_bytes": 64808032,
+  "product_sha256": "sha256:9d34326439c718849519976729b34aef46ab054b880c1cba8087d9a0f930e366",
+  "system_service_activated": false,
+  "sampling_play_started": false,
+  "old_body_changed": false,
+  "history_imported": false,
+  "browser_joined": false,
+  "foreground_host_service_running": true,
+  "live_body_status_bytes": 927647,
+  "live_body_status_name": "Hamm Creek House",
+  "live_owner_body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "proof_boundary": "Real isolated installed Linux owner; two foreground Boots and a running service. No sensing Play, joined browser, selected durable recorder or old-history import."
+}

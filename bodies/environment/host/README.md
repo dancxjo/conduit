@@ -86,3 +86,21 @@ idle observation-custody lane can resume after verified return; an unresolved
 possibly accepted request still requires explicit reconciliation. This is a
 finite host-tool recovery policy, not proof of an installed selected recorder,
 execution-Host admission, or a checked HostDescription storage grant.
+
+## Retaining a recovered network completion
+
+If the original acknowledgment's response was obtained through another admitted
+route, retain that response without starting another network transaction:
+
+```sh
+conduit-environment-host --retain-network-completion PRIVATE_BINDING ORIGINAL_PRODUCER_BOOT PRIVATE_SNAPSHOT_DIRECTORY PRIVATE_RESPONSE_JSON
+```
+
+The original snapshot, acknowledgment and reserved session must already exist.
+The command requires their exclusive file lock, verifies the independently pinned
+Body/Root, original acknowledgment and Root-signed Clean cursor, then fsyncs and
+reopens the completion. Pending, corrupt or unrelated receipts refuse before
+publication. Repetition preserves the original completion. This filesystem-only
+entry has no signer or transport and creates no retry allowance or erase request.
+A continuing collector subsequently reopens that completion using its original
+identity, even after an observer return.

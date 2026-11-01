@@ -4,7 +4,8 @@ use std::process::Command;
 use crate::{process::Step, suites::workspace_shards::WorkspaceShard};
 
 pub const PACKAGE: &str = "conduitos";
-pub const FEATURES: &str = "hosted-tools,native-compositor";
+// Exercise the feature-gated public HTTP lifetime test instead of an empty target.
+pub const FEATURES: &str = "hosted-tools,native-compositor,native-http-client";
 const NATIVE_TESTS: &[&str] = &[
     "canonical_root_returns",
     "native_compositor",

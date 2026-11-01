@@ -96,7 +96,7 @@ impl NativeRoot {
             memory.region_stats[i].as_ref().map_or(0, |r| r.free)
         });
         esp_println::println!("{{\"event\":\"network-workspace-phase\",\"phase\":\"{}\",\"backing_bytes\":{},\"baseline_used\":{},\"used\":{},\"peak\":{},\"free_bytes\":{},\"bank_free\":[{},{},{}]}}",
-            phase, conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes(), baseline_used,
+            phase, if phase == "preparation-ready" { conduit_network_join_call::PreparedNetworkKernelBacking::allocation_bytes() } else { conduit_network_join_call::PreparedNetworkKernelStorage::allocation_bytes() }, baseline_used,
             memory.current_usage, memory.max_usage, memory.size.saturating_sub(memory.current_usage), banks[0], banks[1], banks[2]);
     }
     /// Called only in the joining failure branch immediately before failed()
@@ -124,4 +124,16 @@ impl NativeRoot {
             self.play.receipt_received()
         );
     }
+}
+
+/// Final physical backing failed before any attempt or issuer reservation.
+#[cfg(feature = "local-appliance")]
+#[cold]
+#[inline(never)]
+pub(super) fn trace_floor_reproof_refusal(backed: usize, required: usize) {
+    esp_println::println!(
+        "{{\"event\":\"network-floor-reproof-refused\",\"backed_bytes\":{},\"required_bytes\":{}}}",
+        backed,
+        required
+    );
 }

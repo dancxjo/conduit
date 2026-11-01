@@ -421,6 +421,17 @@ pub fn install_catalog(
 ) -> Result<(), alloc::string::String> {
     let contract = ObservationContract::prepare()
         .map_err(|reason| alloc::format!("environmental contract: {reason:?}"))?;
+    // Expose the same exact observation contract at an authored Plot Fore.
+    // Installed collectors need not invent a publication Back to export it.
+    startup.insert_value_kind_alias(
+        "EnvironmentalObservation",
+        contract
+            .value_type()
+            .profile()
+            .map_err(|reason| alloc::format!("environmental Fore: {reason:?}"))?
+            .value_kind()
+            .clone(),
+    )?;
     for publication in [false, true] {
         let kind = contract
             .kind(publication)
@@ -436,4 +447,30 @@ pub fn install_catalog(
             .map_err(|reason| alloc::format!("environmental profile: {reason:?}"))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod fore_catalog_tests {
+    #[test]
+    fn source_observation_can_leave_through_ordinary_typed_fore() {
+        let mut startup = conduit_plot::StartupCatalog::new();
+        let mut profiles = conduit_plot::ProfileCatalog::new();
+        super::install_catalog(&mut startup, &mut profiles).unwrap();
+        let source = include_str!("../../profiles/source-observation.conduit");
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(source),
+            &startup,
+        )
+        .unwrap();
+        let expanded =
+            conduit_plot::expand_canonical_plot_for_authoring(&checked, "sample", &profiles)
+                .unwrap();
+        assert_eq!(expanded.expanded.gears.len(), 1);
+        assert_eq!(
+            expanded.expanded.gears[0].kind_id.as_str(),
+            conduit_environment_measurement::source_observation::SOURCE_KIND
+        );
+        assert_eq!(expanded.input_bindings.len(), 1);
+        assert_eq!(expanded.output_bindings.len(), 1);
+    }
 }

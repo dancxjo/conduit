@@ -22,6 +22,23 @@ impl Owner {
                 AdmissionManager::new(self.session.evidence().body_id.clone()).map_err(debug)?,
             );
             match frame {
+                In::InvitedAdvertise {
+                    protocol: PROTOCOL,
+                    advertisement,
+                    claim,
+                    verifying_key,
+                } => invited::begin(
+                    self,
+                    &mut window,
+                    binding,
+                    invited::InvitedAdvertisement {
+                        advertisement,
+                        claim,
+                        verifying_key,
+                        encoded_bytes,
+                    },
+                ),
+
                 In::Advertise {
                     protocol: PROTOCOL,
                     advertisement,
@@ -44,7 +61,7 @@ impl Owner {
                     if manager
                         .receipts
                         .iter()
-                        .any(|receipt| receipt.credential.host_id == window.expected)
+                        .any(|receipt| receipt.credential.host_id == window.expected.as_str())
                     {
                         return Err("admitted browser must present its retained credential".into());
                     }
@@ -111,8 +128,8 @@ impl Owner {
                         .receipts
                         .iter()
                         .rev()
-                        .find(|receipt| receipt.credential.part_id == credential.part_id)
-                        .is_none_or(|receipt| receipt.credential != credential)
+                        .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
+                        .is_none_or(|receipt| !receipt.credential.matches(&credential))
                     {
                         return Err("returning browser credential is stale or unknown".into());
                     }
@@ -166,6 +183,7 @@ impl Owner {
             .pending_browser
             .take()
             .ok_or("no browser admission window")?;
+        let mut retire_invited = false;
         let result = (|| {
             let at = window.check(window_id)?;
             let WindowState::Pending(pending) = &window.state else {
@@ -176,7 +194,37 @@ impl Owner {
             );
             let mut session = self.session.clone();
             let authority = self.host.advertisement().clone();
+            retire_invited = matches!(pending.kind, PendingKind::Invited { .. });
             let credential = match (&pending.kind, frame) {
+                (
+                    PendingKind::Invited { claim },
+                    In::SpawnProof {
+                        protocol: PROTOCOL,
+                        invitation_id,
+                        body_id,
+                        host_id,
+                        boot_id,
+                        nonce,
+                        signature,
+                    },
+                ) => invited::complete(
+                    &mut session,
+                    &mut manager,
+                    pending,
+                    claim,
+                    conduit_body::SpawnAdmissionProof {
+                        invitation_id,
+                        body_id,
+                        host_id,
+                        boot_id,
+                        nonce: nonce.try_into().map_err(|_| "invalid invited nonce")?,
+                        signature: signature
+                            .try_into()
+                            .map_err(|_| "invalid invited signature")?,
+                    },
+                    &authority,
+                )?,
+
                 (
                     PendingKind::Ambient {
                         challenge,
@@ -284,6 +332,9 @@ impl Owner {
                 }
                 _ => return Err("browser proof differs from current challenge".into()),
             };
+            // A valid proof may be retried after storage refusal; invalid invited
+            // proofs retire this exact window instead of resetting attempt state.
+            retire_invited = false;
             remaining(window.deadline)?;
             let offer = disclose_host_offer(
                 &pending.observation,
@@ -324,6 +375,9 @@ impl Owner {
             };
             Ok(snapshot)
         })();
+        if retire_invited {
+            window.invited_proof_refused = true;
+        }
         self.pending_browser = Some(window);
         result
     }

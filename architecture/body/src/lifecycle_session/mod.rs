@@ -19,6 +19,8 @@ mod membership;
 #[cfg(feature = "authenticated-admission")]
 mod observer_return;
 mod prepared_proposal;
+#[cfg(feature = "authenticated-admission")]
+mod naming;
 mod proposal;
 pub use prepared_proposal::{PreparedVerifiedBodyProposal, VerifiedBodyProposalContext};
 mod workload;
@@ -458,6 +460,13 @@ impl<P: BodyPlanEvidence> BodyLifecycleOwner<P> {
                 None => self
                     .evidence
                     .seal_membership_history()
+                    .map_err(BodyLifecycleSessionError::Biography)?,
+            };
+            let segment = match segment {
+                Some(segment) => Some(segment),
+                None => self
+                    .evidence
+                    .seal_name_history()
                     .map_err(BodyLifecycleSessionError::Biography)?,
             };
             let Some(segment) = segment else {

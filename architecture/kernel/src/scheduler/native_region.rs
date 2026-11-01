@@ -24,11 +24,11 @@ impl<const P: usize> StepIo<P> {
                 .is_none_or(|n| n < 8)
             || self.outputs.get(index).is_none_or(Option::is_some)
             || self.canonical_output.is_some()
-            || self.prepared_output.is_some()
+            || self.prepared_outputs[index].is_some()
         {
             return self.fail(SchedulerError::OutputBlocked);
         }
-        self.prepared_output = Some((port, PreparedStepValue::NativeU64(value)));
+        self.prepared_outputs[index] = Some(PreparedStepValue::NativeU64(value));
         Ok(())
     }
 }

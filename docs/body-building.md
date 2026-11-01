@@ -27,6 +27,43 @@ cargo xtask make body deploy bodies/pete/profiles/pete-r1.body.conduit --host fo
 
 `check` and `show` parse descriptors and reuse host-configuration validation without invoking target builders. `build` emits `image.json`, `build-manifest.json`, and `spore-manifest.json` beneath one directory per selected host. `--host` selects one named host declaration and its make package. The checked example covers hosted native, Pico W, and browser targets, and both prejoined and self-joining bindings.
 
+With no `--host` filter, fabrication selects every declared Host. Before runtime
+builders or invitation minting, it checks each selected package's actual payload
+producer. A descriptor-only target refuses with its Host, target, package,
+builder and missing integration seam. In particular, an existing UF2 or ESP
+Spore binder does not establish that arbitrary authored Host configuration can
+be lowered into that firmware. The command must not label JSON descriptors as
+a successfully fabricated MCU. A `fabrication-batch.json` receipt stays
+incomplete until every selected artifact succeeds; retained partial artifacts
+do not report a completed Body fabrication.
+
+The existing developer payload entrance can build the checked Pico environmental
+profiles without substituting the signal template:
+
+```sh
+cargo xtask make host build targets/rp2040/profiles/pico-w-dht11-tm1637.host.conduit --output target/yellow-payload
+```
+
+It selects physical bindings through the RP2040 package's canonical lowerer,
+builds the exact environmental runtime, and emits ELF, UF2 and a payload receipt.
+It requires the package-selected Rust toolchain and official `picotool`; it
+never opens USB, provisions Wi-Fi, flashes, or mints a Body invitation. Output
+must be new. The receipt explicitly says `body_spore_created: false`: the
+current environmental runtime still lacks the canonical Spore bootstrap
+consumer. Ordinary Body fabrication reports `BodyBootstrapUnavailable` for
+these exact profiles before requesting any invitation.
+
+A selected self-joining `browser-bundle` Host also fabricates its reviewed Wasm
+runtime, exact configured BrowserBundle and private `<host-name>.zip` through
+the existing browser Spore packager. The installed owner named by
+`CONDUIT_STATE_DIR` must own the exact authored Body. The build checks that
+identity before compiling, prepares the runtime before requesting a fresh
+invitation, and binds the owner's actual invitation identity through canonical
+Body checking. Missing or foreign owner authority refuses; descriptor files
+alone are not reported as a fabricated browser Host. The package contains a
+single-use invitation and must remain private. Fabrication does not prove
+that the browser has opened it, joined, or manifested a Show.
+
 `body` is a canonical Conduit document role parsed by the same tokenizer,
 declarations, structured values, spans, and diagnostics as `plot` and `host`.
 Each repeated `host` declaration references checked `*.host.conduit` source and

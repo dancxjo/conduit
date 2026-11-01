@@ -495,3 +495,14 @@ fn placement_requires_exact_source_and_bounded_nonempty_utf8_text() {
         Err(SourceSeriesRefusal::Placement)
     );
 }
+
+#[test]
+fn history_collection_is_primary_without_promoting_nested_provenance() {
+    let bytes = value(4500, 42);
+    let records = [SourceSeriesRecord { sequence: 4, observation: &bytes }];
+    let rows = [series(&records)];
+    let fragment = collection(&rows).contribution(basis()).unwrap();
+    assert_eq!(fragment.disclosures, vec![conduit_face::FaceDisclosure {
+        subject: "observations".into(), level: conduit_face::FaceDisclosureLevel::Primary,
+    }]);
+}

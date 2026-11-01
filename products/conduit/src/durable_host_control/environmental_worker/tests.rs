@@ -280,25 +280,25 @@ fn host_is_out(runtime: &DurableHostRuntime) -> bool {
 
 #[test]
 fn ordinary_actor_keeps_control_and_session_while_native_io_returns_after_cancel() {
-    exercise_actor(true, false, false);
+    exercise_actor(true, false, false, false);
 }
 
 #[test]
 fn ordinary_actor_commits_native_result_and_returns_original_resources() {
-    exercise_actor(false, false, false);
+    exercise_actor(false, false, false, false);
 }
 
 #[test]
 fn resumed_body_keeps_selected_native_inventory_and_commits_source_result() {
-    exercise_actor(false, true, false);
+    exercise_actor(false, true, false, false);
 }
 
 #[test]
 fn ordinary_actor_dispatches_selected_http_through_original_native_lease() {
-    exercise_actor(false, false, true);
+    exercise_actor(false, false, true, false);
 }
 
-fn exercise_actor(cancel: bool, resume_body: bool, http: bool) {
+fn exercise_actor(cancel: bool, resume_body: bool, http: bool, owned_local: bool) {
     let Some(worker) = std::env::var_os("CONDUIT_ENVIRONMENT_TEST_WORKER") else {
         eprintln!(
             "native actor process proof skipped: explicitly set CONDUIT_ENVIRONMENT_TEST_WORKER"
@@ -382,6 +382,10 @@ fn exercise_actor(cancel: bool, resume_body: bool, http: bool) {
         host,
     )
     .with_selected_environmental_equipment(Some(equipment));
+    if owned_local {
+        owned_run::exercise_owned_source(runtime, device, cancel);
+        return;
+    }
     let body_root = if resume_body {
         let root = std::env::temp_dir().join(format!(
             "conduit-native-resume-{}",
@@ -609,4 +613,17 @@ fn exercise_actor(cancel: bool, resume_body: bool, http: bool) {
     if let Some(root) = body_root {
         fs::remove_dir_all(root).unwrap();
     }
+}
+
+#[path = "owned_run_tests.rs"]
+mod owned_run;
+
+#[test]
+fn owned_body_executes_retained_source_through_typed_fore_and_reuses_equipment() {
+    exercise_actor(false, false, false, true);
+}
+
+#[test]
+fn owned_body_cancels_delayed_source_without_publishing_late_fore() {
+    exercise_actor(true, false, false, true);
 }

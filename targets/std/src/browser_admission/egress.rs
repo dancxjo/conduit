@@ -2,6 +2,12 @@ use super::*;
 
 pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmissionFrameError> {
     let protocol = match frame {
+        BrowserAdmissionEgress::SpawnChallenge { protocol, claim } => {
+            claim
+                .inspect(0)
+                .map_err(|_| BrowserAdmissionFrameError::InvalidNonce)?;
+            protocol
+        }
         BrowserAdmissionEgress::Challenge { protocol, .. }
         | BrowserAdmissionEgress::Admitted { protocol, .. }
         | BrowserAdmissionEgress::PresenceAccepted { protocol, .. }

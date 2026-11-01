@@ -3,14 +3,24 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_body_root.rs"]
 mod body;
-#[cfg(all(feature = "local-appliance", feature = "body-persistence", feature = "native-face-root"))]
-#[path = "native_face_export.rs"]
-pub(crate) mod face_export;
+#[cfg(feature = "checkpoint-preparation-check")]
+#[path = "native_checkpoint_preparation_check.rs"]
+mod checkpoint_preparation_check;
+#[cfg(feature = "membership-preparation-check")]
+#[path = "native_cold_membership.rs"]
+pub(crate) mod cold_membership;
 #[cfg(feature = "display-physical-check")]
 #[path = "native_display_check.rs"]
 mod display_check;
 #[path = "native_display_native_offer.rs"]
 mod display_offers;
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    feature = "native-face-root"
+))]
+#[path = "native_face_export.rs"]
+pub(crate) mod face_export;
 #[path = "native_install.rs"]
 mod install;
 #[path = "native_lifecycle.rs"]
@@ -77,6 +87,13 @@ pub(crate) type DevicePulse<'a> = RawPulse<'a>;
 use conduit_pulse_capture::{installation::*, owner::*};
 use DevicePulse as Esp32PulseCapture;
 
+#[cfg(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    target_os = "none"
+))]
+#[path = "native_root_membership.rs"]
+mod membership;
 include!("native_root_state.rs");
 
 impl NativeRoot {
@@ -185,6 +202,12 @@ impl NativeRoot {
                 target_os = "none"
             ))]
             observed_reclaim_cursor: 0,
+            #[cfg(all(
+                feature = "local-appliance",
+                feature = "body-persistence",
+                target_os = "none"
+            ))]
+            membership: None,
             retired_native: None,
             worker: None,
             #[cfg(feature = "native-face-root")]
@@ -479,5 +502,16 @@ impl NativeRoot {
 impl NativeRoot {
     pub fn display_fit_telemetry(&self) -> crate::native_display::fit::Telemetry {
         self.display.fit_telemetry()
+    }
+}
+
+#[cfg(not(all(
+    feature = "local-appliance",
+    feature = "body-persistence",
+    target_os = "none"
+)))]
+impl NativeRoot {
+    pub(crate) fn membership_busy(&self) -> bool {
+        false
     }
 }

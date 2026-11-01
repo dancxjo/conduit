@@ -5,12 +5,13 @@ edition = "2021"
 default-run = "conduit"
 
 [features]
-installed-environmental-sources = ["dep:conduit-environment-host"]
+installed-environmental-sources = ["dep:conduit-environment-host", "dep:conduit-environment-measurement"]
 
 [target.'cfg(target_os = "linux")'.dependencies]
 conduit-environment-host = { path = "../../bodies/environment/host", optional = true, features = ["carrier-source"] }
 
 [dependencies]
+conduit-environment-measurement = { path = "../../bodies/environment/measurement", optional = true }
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }

@@ -15,7 +15,7 @@ pub struct NativePlay {
     pub(super) receipt_observed: bool,
     pub(super) failure: Option<k::Failure>,
     pub(super) native_failure: Option<conduit_net::StationAttemptFailure>,
-    pub(super) station_outcome: Option<(Result<(), conduit_net::StationAttemptFailure>, u64)>,
+    pub(super) station_outcome: station_outcome::StationOutcome,
     pub(super) cleanup_failure: Option<conduit_net::StationFailure>,
     pub(super) configuration_revision: u64,
 }
@@ -36,7 +36,7 @@ impl NativePlay {
             receipt_observed: false,
             failure: None,
             native_failure: None,
-            station_outcome: None,
+            station_outcome: station_outcome::StationOutcome::default(),
             cleanup_failure: None,
             configuration_revision: 0,
         }
@@ -64,15 +64,41 @@ impl NativePlay {
     pub fn receipt_received(&self) -> bool {
         self.receipt_observed
     }
-    /// Current native interface and acknowledged socket-task observation.
-    /// The historical receipt alone cannot keep a lost attachment available.
-    pub fn station_services_available(&self) -> bool {
-        self.phase == "attached"
-            && self.join.as_ref().is_some_and(|join| {
-                join.observe_provider(|provider| provider.station_link_and_address_up())
-            })
-            && crate::services::MAILBOX.observed_state()
-                == Some(conduit_environment_http::service_control::ServiceState::StationReady)
+    /// Observe loss only through this Play's retained provider and service owner.
+    /// Sample live flags once before cleanup; frozen join progress is historical.
+    /// The observation neither changes join Signs nor authorizes another attempt.
+    pub fn observe_attachment_availability(&mut self, now: u64) -> bool {
+        use conduit_environment_http::service_control::ServiceState;
+        let interface = self.join.as_ref().map(|join| {
+            join.observe_provider(|provider| provider.station_link_and_address_state())
+        });
+        let services = crate::services::MAILBOX.observed_state();
+        let available = self.phase == "attached"
+            && interface == Some((true, true))
+            && services == Some(ServiceState::StationReady);
+        if self.phase == "attached" && !available && self.station_outcome.detached(now) {
+            #[cfg(target_arch = "xtensa")]
+            {
+                let flag = |value: Option<bool>| match value {
+                    Some(true) => "true",
+                    Some(false) => "false",
+                    None => "null",
+                };
+                let service = match services {
+                    Some(ServiceState::Ready) => "access-point-ready",
+                    Some(ServiceState::StationReady) => "station-ready",
+                    Some(ServiceState::Stopped) => "stopped",
+                    Some(ServiceState::Failed) => "failed",
+                    None => "unobserved",
+                };
+                esp_println::println!(
+                    "{{\"event\":\"network-attachment-lost\",\"at_ms\":{},\"link_up\":{},\"address_configured\":{},\"services\":\"{}\"}}",
+                    now, flag(interface.map(|state| state.0)),
+                    flag(interface.map(|state| state.1)), service
+                );
+            }
+        }
+        available
     }
     // Actual SDK observation only; CPU transcript providers do not impersonate it.
     #[cfg(target_arch = "xtensa")]
@@ -186,8 +212,10 @@ impl NativePlay {
                         .await
                     {
                         Ok(bytes) => {
-                            self.station_outcome =
-                                Some((Ok(()), embassy_time::Instant::now().as_millis()));
+                            self.station_outcome = station_outcome::StationOutcome::attempt(
+                                Ok(()),
+                                embassy_time::Instant::now().as_millis(),
+                            );
                             match kernel.store_host_value(bytes) {
                                 Ok(value) => {
                                     output = Some(
@@ -199,8 +227,10 @@ impl NativePlay {
                             }
                         }
                         Err(n::JoinCallRefusal::Provider(error)) => {
-                            self.station_outcome =
-                                Some((Err(error), embassy_time::Instant::now().as_millis()));
+                            self.station_outcome = station_outcome::StationOutcome::attempt(
+                                Err(error),
+                                embassy_time::Instant::now().as_millis(),
+                            );
                             self.native_failure = Some(error);
                             failure = Some(fail(
                                 if error.reason == conduit_net::StationFailure::Pressure {

@@ -1,0 +1,103 @@
+{
+  "schema": "conduit.proof/native-live-membership@1",
+  "source": "fc3899a0fb32533f832ef60f6fc98dc6d284f2b8",
+  "tree": "67360ee5c39f96fd843b00c807dd0006ee77c248",
+  "equivalent_cpu_checkout": "99881a15779cd5e0ce09e079226d6a9eb81b5188",
+  "accepted_dev": "c67146fcdc",
+  "implementation": [
+    "actual local-appliance HTTP Membership routes to Root-owned scheduled Start/checkpoint/adopt",
+    "accepted request and reserved response backing retained through deferral",
+    "Root restores actual Body before releasing signed receipt",
+    "terminal staged failure remains retained with observable refusal",
+    "Root mutations exports setup Face preparation and renewal fenced while actual owner held",
+    "cold read-only replay probe logs dimensions elapsed time and lifetime heap snapshots without enabling preparation"
+  ],
+  "preparation_qualification": "absent; no profile can be received or manufactured from flash timing, free heap or probe result",
+  "checks": {
+    "esp32_compile": {
+      "source": "f85285ed44",
+      "profile": "release",
+      "features": "checkpoint-preparation-check",
+      "toolchain": "esp-conduit-1.91.1",
+      "exit": 0,
+      "scope": "compile only, not linked flash fit or target execution"
+    },
+    "production_mailbox": {
+      "source": "f85285ed44",
+      "passed": 1,
+      "filtered": 62,
+      "scope": "actual mailbox, Root hardware entrances are panic adapters"
+    },
+    "production_export_adapter": {
+      "source": "f85285ed44",
+      "passed": 1,
+      "filtered": 4,
+      "scope": "actual exporter lease/mailbox path; lifecycle admission adapter"
+    },
+    "actual_renewal": {
+      "passed": 1,
+      "filtered": 117,
+      "reads": 2880,
+      "mask_children": 57600,
+      "normal_handoffs": 2,
+      "seconds": 119.46,
+      "scope": "actual Root renewal/task/kernel/Face/history code; simulated CPU hardware/time, membership_busy controlled by fixture, not full successful joined Root transaction"
+    },
+    "actual_read_only_probe": {
+      "passed": 1,
+      "filtered": 75,
+      "scope": "canonical owner and Store with simulated flash; zero writes unchanged ownership/metadata/publication"
+    }
+  },
+  "renewal_cfg": [
+    "local-appliance",
+    "native-face-root",
+    "body-image-root",
+    "body-persistence",
+    "mask-root",
+    "target-mask-memory-check",
+    "target-mask-native-check",
+    "observation-store",
+    "native-root"
+  ],
+  "generated_fixture_sha256": {
+    "appliance-software.rs": "73ebdfe37c43022dcf812e8f995b03d1712ef7f8e43ab8ca36975cf76b91c0dc",
+    "mask-source.rs": "0dfde739f381123ccbba03a4afeb10d5306cfbb2c73c30f128190393ffe89097"
+  },
+  "remaining": [
+    "physical successful Start/replay/chunk/finish timing and admitted workspace qualification",
+    "complete transaction must fit remaining finite local Play or defer until fresh coverage",
+    "retain and reconcile staged failure with actual owner and Store",
+    "real installed Pi/browser membership",
+    "selected recorder durable commitment and recording acknowledgments",
+    "full original hardware acceptance"
+  ],
+  "no_claims": [
+    "no MCU reset/flash performed",
+    "no target phase peak from lifetime heap maximum",
+    "no selected Back commit or recording acknowledgment",
+    "no overall goal completion"
+  ],
+  "logs": {
+    "esp32-cold-check.log.gz": {
+      "raw_sha256": "799831d68f14bc6e588476036fe41ba43e95d2a72695e4b4079602829f3cabc4",
+      "compressed_sha256": "29e393622a2b55153fb71ba94e5b4ef0643fcf3ef3565ab306269ee6df8174dd"
+    },
+    "mailbox.log.gz": {
+      "raw_sha256": "bd997f8925349a6c8906c9e455cf376ad53ba6e5f6f7d6045ca45de1a92cc665",
+      "compressed_sha256": "7fd4788513ae63a1f74a0f705c878410bdd0de164824c04bbf3b003201b115b7"
+    },
+    "exporter.log.gz": {
+      "raw_sha256": "d383d5c35129f28f0cc81f8c5a2d94f76cbe1141ea604eb538c9b87c9372645a",
+      "compressed_sha256": "ad4a6150601eb20b4cd0911bde3a88c9605186a0b98749e1b37b57a16491b083"
+    },
+    "renewal.log.gz": {
+      "raw_sha256": "d5a3b3140d8e83fd5de62c49447ce2016e53445d49d5fea5b70fcc2d7f4b50aa",
+      "compressed_sha256": "16b93d21d844f4414c99ca3e224416b3b7b0f5ea89f65271aea190d772917d8f"
+    },
+    "probe.log.gz": {
+      "raw_sha256": "ac6860b3e6916c61ddc5b3712c4a723858235c9abea33c004c2b26a24eff25e6",
+      "compressed_sha256": "d0b257151d907d4d21716a733f816fb5bf69f0b6ee26f4f50a024cecf59ef983"
+    }
+  }
+}

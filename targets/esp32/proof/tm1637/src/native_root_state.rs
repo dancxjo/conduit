@@ -9,6 +9,12 @@ pub struct NativeRoot {
         feature = "body-persistence",
         target_os = "none"
     ))]
+    membership: Option<alloc::boxed::Box<membership::Membership>>,
+    #[cfg(all(
+        feature = "local-appliance",
+        feature = "body-persistence",
+        target_os = "none"
+    ))]
     observed_offer: Option<alloc::boxed::Box<observed_offer::Job>>,
     #[cfg(all(
         feature = "local-appliance",

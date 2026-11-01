@@ -238,10 +238,30 @@ pub(super) fn prepare(
                 ));
             }
         }
-        // Contains already determines indentation. Readable primary wording
-        // comes from this subject's Face text; technical relationships and
-        // properties remain inspectable in Details without becoming a second
-        // copy of the main view.
+        // Typed values are portable human content, unlike technical properties.
+        // Use the canonical formatter; no domain names, unit inference or local
+        // sensor cache belongs here. Exactly associated editable current values
+        // already have their field row and must not be duplicated.
+        for property in face.properties.iter().filter(|property| {
+            property.subject == subject.identity
+                && !(named_control
+                    && subject.role == FaceRole::TextEntry
+                    && property.name == "current-value")
+        }) {
+            if let FacePropertyValue::TypedValue { contract, bytes } = &property.value {
+                append(item(
+                    format!(
+                        "{}: {}",
+                        property.name,
+                        conduit_face::display_typed_value(contract, bytes)
+                    ),
+                    GraphicsTextRole::Body,
+                ));
+            }
+        }
+        // Contains already determines indentation. Face text and canonical typed
+        // values supply primary wording; technical relationships and untyped
+        // properties remain inspectable in Details.
         // Action order comes from the Face, never an application-name convention.
         for clause in &plan.clauses {
             let Provenance::Action(provenance) = &clause.provenance else {
@@ -384,3 +404,7 @@ fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
         |choices| format!("Choose {}", choices.join(", ")),
     )
 }
+
+#[cfg(test)]
+#[path = "typed_value_tests.rs"]
+mod typed_value_tests;

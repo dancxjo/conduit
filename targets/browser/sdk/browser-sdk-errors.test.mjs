@@ -198,3 +198,12 @@ test("Browser SDK verifies the exact IMAGE bytes it interpreted without refetchi
     }
   }
 });
+
+
+test("membership-only scope entrances require the existing admitted BrowserHost", async () => {
+  const { BrowserHost } = await import("./browser-sdk.mjs");
+  for (const method of ["prepareMembershipScope", "adoptMembershipScope"]) {
+    assert.equal(typeof BrowserHost.prototype[method], "function");
+    assert.throws(() => BrowserHost.prototype[method].call({ id: "forged", bootId: "forged" }, {}), TypeError);
+  }
+});

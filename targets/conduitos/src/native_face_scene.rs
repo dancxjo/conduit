@@ -62,6 +62,7 @@ pub enum FaceSceneError {
     InvalidFace,
     DocumentBound,
     InvalidExtent,
+    LookTypography(crate::display::typography::LookTypographyRefusal),
     UnsupportedStructure,
     SceneBound,
     StaleFace,
@@ -467,3 +468,11 @@ mod structured_source_tests;
 #[cfg(test)]
 #[path = "native_face_scene/local_look_hint_tests.rs"]
 mod local_look_hint_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/authored_look_metrics_tests.rs"]
+mod authored_look_metrics_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/row_spacing_tests.rs"]
+mod row_spacing_tests;

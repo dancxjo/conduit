@@ -78,3 +78,21 @@ pub fn visual_look_paint(
     };
     format.pixel(color.red(), color.green(), color.blue())
 }
+
+/// Resolve text from the same selected resource used by native scene preparation.
+/// Legacy expression-only surfaces retain their fixed made profile.
+#[cfg(feature = "native-compositor-core")]
+pub(super) fn visual_look_typography(
+    expression: Option<&conduit_face::AdmittedVisualExpression>,
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<crate::display::typography::Typography, crate::display::DisplayError> {
+    use crate::display::typography::Typography;
+    let intent = expression.map_or(conduit_face::VisualTypography::Editorial, |value| {
+        value.expression.typography
+    });
+    match look {
+        Some(look) => Typography::with_visual_look(intent, look, 200)
+            .map_err(|_| crate::display::DisplayError::InvalidExtent),
+        None => Ok(Typography::new(intent)),
+    }
+}

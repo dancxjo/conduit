@@ -13,6 +13,10 @@ pub(super) fn report(body: Option<&SealedBodyLifecycleSession>) {
         // Rows: pending, invitations, continuity keys, pending returns, receipts.
         // Each row is [length, capacity, inline element bytes].
         admissions: Option<[[usize; 3]; 5]>,
+        // Hot/cold receipt counts then actual five container capacities in bytes;
+        // excludes nested hot identity owners. Receipt order row alone is not
+        // the entire compact log's storage.
+        receipt_representation: Option<[usize; 7]>,
         pending_archives: Option<[usize; 3]>,
         // The exact completed signed response's [length, capacity].
         join_response: Option<[usize; 2]>,
@@ -20,20 +24,33 @@ pub(super) fn report(body: Option<&SealedBodyLifecycleSession>) {
         // None while the actual Store is leased, stale or unavailable.
         checkpoint: Option<(u64, usize)>,
     }
-    let admissions = crate::native_restart::with_admissions(|manager| {
+    let storage = crate::native_restart::with_admissions(|manager| {
         let usage = manager.storage_usage();
-        Ok([
-            row(usage.pending_admissions),
-            row(usage.invitations),
-            row(usage.continuity_keys),
-            row(usage.pending_returns),
-            row(usage.receipts),
-        ])
+        let receipt = manager.receipts.storage_usage();
+        Ok((
+            [
+                row(usage.pending_admissions),
+                row(usage.invitations),
+                row(usage.continuity_keys),
+                row(usage.pending_returns),
+                row(usage.receipts),
+            ],
+            [
+                receipt.owned_receipts,
+                receipt.historical_receipts,
+                receipt.allocation_capacities[0],
+                receipt.allocation_capacities[1],
+                receipt.allocation_capacities[2],
+                receipt.allocation_capacities[3],
+                receipt.allocation_capacities[4],
+            ],
+        ))
     })
     .ok();
     let report = Report {
         event: "root-retained-storage",
-        admissions,
+        admissions: storage.as_ref().map(|value| value.0),
+        receipt_representation: storage.map(|value| value.1),
         pending_archives: body.map(|owner| row(owner.pending_archive_storage_usage())),
         join_response: crate::native_body_join_http::completed_storage_usage(),
         checkpoint: crate::native_restart::checkpoint_extent().ok(),

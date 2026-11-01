@@ -6,6 +6,12 @@ fn checkpoint_decode_fault(mode: u8) {
     CHECKPOINT_DECODE_FAULT.with(|f| f.set((mode, 0, 0)));
 }
 
+// Actual cooperative mailbox/window backing needed by included checkpoint proofs.
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_flash_jobs.rs"]
+mod native_flash_jobs;
+#[path = "../../../../../targets/esp32/proof/tm1637/src/native_flash_window.rs"]
+mod native_flash_window;
+
 // Actual Root/task/kernel/Face/history modules; adapters are in adapters.rs.
 use conduit_core as c;
 include!("adapters.rs");

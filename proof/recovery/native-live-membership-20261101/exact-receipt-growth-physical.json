@@ -1,0 +1,129 @@
+{
+  "source": "60cfc304db9ddbd43ff0370ddd3aee5ad7147128",
+  "role": "normal-instrument",
+  "app_bytes": 3272416,
+  "stack_bytes": 37388,
+  "readback": {
+    "source": "60cfc304db9ddbd43ff0370ddd3aee5ad7147128",
+    "app_sha256": "a6ea00141845ab98cdf6e660726de21e89cd21f2d920b0cad2d0d0a3380246bd",
+    "app_bytes": 3272416,
+    "all_non_app_bytes_exact": true,
+    "before_full_sha256": "e423ed08af33087d108b9f620be99093542021ab381f4879da4514bb2c47f3a9",
+    "after_full_sha256": "dc22141e12f2a3bc4202690062d50974bf12cac90fa4f27041389a6b2a4182f8"
+  },
+  "boot": {
+    "event": "body-image-loaded",
+    "body_id": "71650b9db6dd18c41ebdb849789fc394126e91a923df668f80b5eb6075b0ae57",
+    "friendly_name": "Malo Lef\u00e8vre Laurent",
+    "host_id": "esp32/b0a732286178",
+    "boot_id": "boot/cb82e78f69f7051fd08494e16335d46a",
+    "offer_generation": 1,
+    "membership_revision": 434,
+    "member_admitted": true,
+    "linked_source_gears": 15,
+    "root_heap_size_bytes": 118768,
+    "root_heap_used_bytes": 22968,
+    "root_heap_peak_bytes": 48380,
+    "play_started": false,
+    "restart_resumed": true,
+    "checkpoint_generation": 922
+  },
+  "progress": {
+    "event": "local-appliance-progress",
+    "millis": 119956,
+    "root_used": 95540,
+    "root_free": 23228,
+    "root_peak": 114004,
+    "sampler_phase": "running",
+    "source_sequence": 1,
+    "sampler_failure": null,
+    "mask_phase": "running",
+    "mask_consumed": 35,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network": {
+      "runner_polls": [
+        4,
+        5205
+      ],
+      "observed_services": "station-ready",
+      "ap_link": null,
+      "station_link": null,
+      "ap_configured": null,
+      "station_configured": null,
+      "ap_mac": null,
+      "channel": null
+    },
+    "station_address": [
+      10,
+      0,
+      0,
+      210
+    ],
+    "network_control": "attached",
+    "archive": {
+      "committed": 1,
+      "retained_bytes": 640,
+      "last_sequence": 1,
+      "scope_ready": true,
+      "failed": false,
+      "recovered_read_only": false,
+      "maximum_records": 960
+    },
+    "face_available": true,
+    "face_fresh": true,
+    "renewal_phase": null,
+    "renewal_failure": null,
+    "renewal_archive_refusal": null
+  },
+  "storage": {
+    "event": "root-retained-storage",
+    "admissions": [
+      [
+        0,
+        0,
+        144
+      ],
+      [
+        0,
+        0,
+        96
+      ],
+      [
+        6,
+        6,
+        52
+      ],
+      [
+        0,
+        0,
+        112
+      ],
+      [
+        24,
+        24,
+        64
+      ]
+    ],
+    "pending_archives": [
+      0,
+      0,
+      144
+    ],
+    "join_response": null,
+    "checkpoint": [
+      925,
+      17908
+    ]
+  },
+  "integrated_checkpoint_tests": {
+    "source": "60cfc304db9ddbd43ff0370ddd3aee5ad7147128",
+    "passed": 2
+  },
+  "http_reachable": true,
+  "limits": [
+    "Startup station connectivity verified; later interruption recovery not yet proved.",
+    "Local journal counters do not establish selected durable recorder commitment.",
+    "No live membership checkpoint timing authority enabled."
+  ]
+}

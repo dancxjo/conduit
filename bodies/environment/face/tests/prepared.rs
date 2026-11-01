@@ -243,3 +243,43 @@ fn inspection_time_prevents_stale_reading_resurrection() {
         .iter()
         .any(|p| p.name == "fresh" && p.value == FacePropertyValue::Flag(true)));
 }
+
+#[test]
+fn committed_name_projection_is_allocation_free_and_preserves_observations() {
+    let mut scope = basis();
+    let body = conduit_body::Body::born(
+        "source/house".into(),
+        "checked/house".into(),
+        1,
+        "born/house".into(),
+    )
+    .unwrap();
+    let (_, wake) = body.wake(2, "wake/house".into()).unwrap();
+    scope.body_id = Some(body.body_id.clone());
+    scope.wake_id = Some(wake.wake_id);
+    let mut owner =
+        PreparedObservationFace::prepare_observed_named(scope, 4, 30000, "Malo Lefèvre Laurent")
+            .unwrap();
+    owner
+        .publish(Some((q("19.8°C"), q("59%"))), SensorStatus::Available, 100)
+        .unwrap();
+    let properties = owner.current().properties.clone();
+    let basis = owner.current().basis.clone();
+    let revision = owner.current().revision;
+    let (result, allocations) = allocation_probe::observe(|| {
+        owner.project_body_name(body.body_id.as_str(), "Hamm Creek House")
+    });
+    result.unwrap();
+    assert_eq!(allocations.allocations + allocations.reallocations, 0);
+    assert_eq!(owner.current().properties, properties);
+    assert_eq!(owner.current().basis, basis);
+    assert!(owner.current().revision > revision);
+    assert_eq!(owner.current().subjects[0].name, "Hamm Creek House");
+    let identity = owner.current().identity.clone();
+    assert!(owner.project_body_name("body/other", "Wrong").is_err());
+    assert_eq!(owner.current().identity, identity);
+    owner
+        .project_body_name(body.body_id.as_str(), "Hamm Creek House")
+        .unwrap();
+    assert_eq!(owner.current().identity, identity);
+}

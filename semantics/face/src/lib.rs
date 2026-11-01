@@ -73,6 +73,8 @@ mod generated {
         }
     }
 }
+pub use generated::{LocalLookContrast, LocalLookInfo, LocalLookVisualOverride};
+
 pub use generated::{
     LookFacetAvailability, LookFacetRequest, LookGenerativeFacetInfo, LookGenerativeFacetOption,
     LookGenerativeRegister, LookInfo, LookSpokenDelivery, LookSpokenFacetInfo,
@@ -153,7 +155,9 @@ mod interaction_ledger;
 mod layout;
 mod linear;
 mod linear_navigation;
+mod local_look;
 mod look;
+pub use local_look::*;
 mod look_selection;
 mod manifestation;
 mod manifestation_set;
@@ -178,6 +182,7 @@ mod owner_face_route;
 mod owner_mask_route;
 pub mod presentation_preferences;
 mod projection;
+mod quantity_format;
 mod readable_choices;
 mod remote_owner_mask_route;
 mod renderer_execution;
@@ -245,6 +250,9 @@ pub use owner_face_plan::*;
 pub use owner_face_route::*;
 pub use owner_mask_route::*;
 pub use projection::*;
+pub use quantity_format::{
+    rounded_quantity_coordinate, QuantityFormatRefusal, MAX_QUANTITY_DISPLAY_DECIMAL_PLACES,
+};
 pub use readable_choices::*;
 pub use remote_owner_mask_route::*;
 pub use renderer_execution::*;

@@ -20,6 +20,7 @@ impl Observation {
     }
 }
 thread_local! {
+    static REFUSE_REALLOCATION: Cell<Option<(usize, usize)>> = const { Cell::new(None) };
     static REFUSE_BYTES: Cell<Option<usize>> = const { Cell::new(None) };
     static TRACKING: Cell<bool> = const { Cell::new(false) };
     static OBSERVATION: Cell<Observation> = const { Cell::new(Observation { allocations: 0, reallocations: 0, deallocations: 0, deallocated_bytes: 0, peak_bytes: 0, requested_bytes: 0, live_bytes: 0 }) };
@@ -53,7 +54,17 @@ unsafe impl GlobalAlloc for Allocator {
         }
     }
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, size: usize) -> *mut u8 {
-        if refuse(size) {
+        let refuse_reallocation = REFUSE_REALLOCATION
+            .try_with(|expected| {
+                if expected.get() == Some((pointer as usize, size)) {
+                    expected.set(None);
+                    true
+                } else {
+                    false
+                }
+            })
+            .unwrap_or(false);
+        if refuse_reallocation || refuse(size) {
             return core::ptr::null_mut();
         }
         let next = unsafe { System.realloc(pointer, layout, size) };
@@ -119,10 +130,21 @@ pub struct RefusalGuard;
 impl Drop for RefusalGuard {
     fn drop(&mut self) {
         REFUSE_BYTES.with(|expected| expected.set(None));
+        REFUSE_REALLOCATION.with(|expected| expected.set(None));
     }
 }
 pub fn refuse_next_allocation_size(bytes: usize) -> RefusalGuard {
     assert!(bytes > 0);
     REFUSE_BYTES.with(|expected| assert!(expected.replace(Some(bytes)).is_none()));
+    RefusalGuard
+}
+
+/// Refuse only growth of this actual backing allocation, never an identity or
+/// another staged vector that happens to request the same number of bytes.
+#[allow(dead_code)]
+pub fn refuse_next_reallocation(pointer: *const u8, bytes: usize) -> RefusalGuard {
+    assert!(!pointer.is_null() && bytes > 0);
+    REFUSE_REALLOCATION
+        .with(|expected| assert!(expected.replace(Some((pointer as usize, bytes))).is_none()));
     RefusalGuard
 }

@@ -1,6 +1,7 @@
 //! Service-owned browser authorization. The carrier worker never owns membership
 //! truth: every challenge and completion is applied on the serialized owner actor.
 mod admission;
+mod invited;
 mod route;
 #[cfg(test)]
 mod tests;
@@ -121,6 +122,7 @@ pub(crate) struct BrowserWindow {
     id: String,
     expected: HostId,
     new_key: Option<[u8; 32]>,
+    invited_proof_refused: bool,
     clock: Instant,
     deadline: Instant,
     state: WindowState,
@@ -215,6 +217,9 @@ struct Pending {
 }
 
 enum PendingKind {
+    Invited {
+        claim: conduit_body::SpawnInvitationClaim,
+    },
     Ambient {
         challenge: AdmissionChallenge,
         observed_candidates: CandidateInventory,
@@ -262,6 +267,9 @@ impl BrowserWindow {
     }
 
     fn check(&self, id: &str) -> Result<u64, String> {
+        if self.invited_proof_refused {
+            return Err("invited browser proof window retired".into());
+        }
         if self.id != id {
             return Err("browser admission window identity differs".into());
         }
@@ -318,7 +326,7 @@ impl Owner {
             manager
                 .receipts
                 .iter()
-                .any(|receipt| receipt.credential.host_id == expected)
+                .any(|receipt| receipt.credential.host_id == expected.as_str())
         });
         if !known && new_key.is_none() {
             return Err("first browser admission requires its exact public verifying key".into());
@@ -329,6 +337,7 @@ impl Owner {
             id: id.clone(),
             expected,
             new_key,
+            invited_proof_refused: false,
             clock,
             deadline: clock + Duration::from_millis(maximum_millis),
             state: WindowState::Ready,
@@ -424,8 +433,8 @@ impl Owner {
                 .receipts
                 .iter()
                 .rev()
-                .find(|receipt| receipt.credential.part_id == credential.part_id)
-                .is_some_and(|receipt| receipt.credential == *credential)
+                .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
+                .is_some_and(|receipt| receipt.credential.matches(credential))
         });
         if !current || !admitted || self.session.evidence().body_id != credential.body_id {
             return Err("part-unavailable".into());
@@ -501,9 +510,9 @@ impl Owner {
                     .receipts
                     .iter()
                     .rev()
-                    .find(|receipt| receipt.credential.part_id == credential.part_id)
+                    .find(|receipt| receipt.credential.part_id == credential.part_id.as_str())
             });
-            if latest.is_none_or(|receipt| receipt.credential != *credential) {
+            if latest.is_none_or(|receipt| !receipt.credential.matches(credential)) {
                 return Err("browser leave credential is no longer current".into());
             }
             let mut session = self.session.clone();

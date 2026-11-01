@@ -40,7 +40,10 @@ fn actual_record_compaction_preserves_wire_order_attempts_and_nested_identity_ba
         0
     );
     assert!(old.iter().all(|r| r.capacity > r.len));
-    let pointer = manager.receipts[0]
+    let pointer = manager
+        .receipts
+        .owned(0)
+        .unwrap()
         .credential
         .credential_id
         .as_str()
@@ -51,7 +54,10 @@ fn actual_record_compaction_preserves_wire_order_attempts_and_nested_identity_ba
     assert_eq!(observed.reallocations, 0);
     assert_eq!(serde_json::to_vec(&manager).unwrap(), before);
     assert_eq!(
-        manager.receipts[0]
+        manager
+            .receipts
+            .owned(0)
+            .unwrap()
             .credential
             .credential_id
             .as_str()
@@ -119,7 +125,7 @@ fn empty_collections_release_only_spare_backing_without_allocating() {
         (0, 0, 0)
     );
     let mut empty = AdmissionManager::new(manager.body_id.clone()).unwrap();
-    empty.receipts.reserve_exact(3);
+    empty.receipts.try_reserve_exact(3).unwrap();
     let (result, memory) = allocation_probe::observe(|| empty.try_compact_storage());
     assert_eq!(result, Ok(()));
     assert_eq!(empty.receipts.capacity(), 0);

@@ -12,6 +12,9 @@ use std::{
 };
 const RECEIPT: &str = "conduit.environment/accepted-observed-custody@1";
 const DEADLINE: Duration = Duration::from_secs(300);
+// The Root's pending response advertises Retry-After: 1. Keep that
+// preparation moving without accelerating idle scans or collection.
+const PENDING_RETRY: Duration = Duration::from_secs(1);
 
 pub(crate) fn run(
     binding_path: &Path,
@@ -136,6 +139,7 @@ impl Continuing {
             // before consuming it can evict that completion indefinitely.
             // Retry this exact GET, just as a possibly accepted POST must keep
             // its exact signed bytes. Collection still runs before each tick.
+            self.next = Instant::now() + PENDING_RETRY;
             return Ok(());
         }
         if status == 503 {
@@ -144,6 +148,8 @@ impl Continuing {
                 // behind it. Revisit this same hint on the next
                 // finite round; a slot is never identity or erase authority.
                 self.slot = (slot + 1) % 6;
+            } else {
+                self.next = Instant::now() + PENDING_RETRY;
             }
             // A possibly accepted POST retains its exact immutable request.
             return Ok(());
@@ -216,6 +222,7 @@ impl Continuing {
             return Err("live observed custody request exceeds HTTP admission".into());
         }
         self.pending = Some((response, request));
+        self.next = Instant::now() + PENDING_RETRY;
         Ok(())
     }
 }
@@ -437,8 +444,15 @@ mod tests {
         let mut continuing = Continuing::new();
         let absent = Path::new("/nonexistent/private-key");
         for _ in 0..2 {
-            continuing.advance(absent, absent, &peer, absent).unwrap();
+            continuing.next = Instant::now();
+            let before = Instant::now();
+            continuing.tick(absent, absent, &peer, absent);
             assert_eq!(continuing.slot, 0);
+            assert!(!continuing.disabled);
+            // Actual HTTP pending responses must schedule their advertised
+            // retry, rather than wait for the thirty-second idle scan.
+            assert!(continuing.next >= before + PENDING_RETRY);
+            assert!(continuing.next <= Instant::now() + PENDING_RETRY);
         }
         // The completed response reaches ordinary binding/authentication
         // validation; absent credentials cannot fabricate an accepted offer.

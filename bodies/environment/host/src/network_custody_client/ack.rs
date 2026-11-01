@@ -10,7 +10,7 @@ const SESSION: &str = "incremental-ack-session.bin";
 const COMPLETED: &str = "incremental-ack-completed.json";
 #[path = "ack_retained.rs"]
 mod retained;
-pub(crate) use retained::{reopen_completed, Retained};
+pub(crate) use retained::{reopen_completed, run as retain_completion_file, Retained};
 
 pub(crate) enum Start {
     Ready(Acknowledgement),

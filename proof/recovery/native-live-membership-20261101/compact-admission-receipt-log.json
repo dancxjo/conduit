@@ -1,0 +1,166 @@
+{
+  "source": "c201aa5006d46bcb2f25c88e824e3f47d923af48",
+  "dev_baseline": "3e87023934",
+  "representation": {
+    "logical_receipts": 28,
+    "typed_latest_receipts": 6,
+    "lossless_historical_rows": 22,
+    "historical_order_and_replay_ids_preserved": true,
+    "legacy_json_and_serde_model_preserved": true,
+    "old_receipts_not_pruned": true,
+    "public_api": "AdmissionReceiptLog borrowed logical views; typed latest credentials remain owned"
+  },
+  "cpu64_actual_checkpoint": {
+    "new_allocations": 5,
+    "new_allocation_bytes": 4107,
+    "freed_allocation_bytes": 8636,
+    "net_heap_bytes_released": 4529,
+    "preparation_overlap_bytes": 4107,
+    "inline_header_increase_bytes": 96,
+    "old_clone_retained_bytes": 6274,
+    "compact_clone_retained_bytes": 5265,
+    "checkpoint_reopen_prefix_layout_network_unchanged": true,
+    "core_tests_passed": 39,
+    "actual_fresh_process_proofs_passed": 3,
+    "frozen_source_range_regressions_passed": 2,
+    "synthetic_producer_admission_recovery_passed": true
+  },
+  "checkpoint_correction": {
+    "empty_reused_source_expects_no_consumed_range": true,
+    "nonempty_source_requires_exact_range": true,
+    "identity_dimensions_digests_and_other_guards_unchanged": true
+  },
+  "esp32_qualification": {
+    "app_bytes": 3353776,
+    "app_partition_bytes": 3371008,
+    "app_remaining_bytes": 17232,
+    "stack_bytes": 37372,
+    "stack_floor_bytes": 36864,
+    "qualified": true,
+    "flashed": true
+  },
+  "physical": {
+    "pending": false,
+    "body_resumed": true,
+    "boot_id": "boot/9e4f4032e78833bf2eaf78f8cc248ffd",
+    "membership_revision_at_boot": 458,
+    "checkpoint_generation_at_boot": 975,
+    "all_nonapplication_bytes_identical_before_normal_boot": true,
+    "startup_receipts": {
+      "logical": 28,
+      "typed_hot": 6,
+      "historical": 22,
+      "container_capacities_bytes": [
+        384,
+        1760,
+        28,
+        1359,
+        240
+      ]
+    },
+    "root_heap_bytes_unchanged": 118768,
+    "preparation_permit_baseline_bytes": 87184,
+    "previous_eb9_permit_baseline_bytes": 90228,
+    "baseline_comparison_reduction_bytes": 3044,
+    "comparison_limit": "Source-bound before/after phase comparison; includes other synchronized source and newer checkpoint state, not isolated target allocator attribution.",
+    "full_16384_byte_floor_reproved_at_startup": true,
+    "joined_troys_address": "10.0.0.210",
+    "last_first_passive": {
+      "boot_ms": 423741,
+      "samples": 6,
+      "mask_updates": 136,
+      "reported_sensor_or_mask_fault": false,
+      "network": "attached"
+    },
+    "new_source_radio_loss_retry_exercised": false,
+    "network_continuation": {
+      "address": "192.168.1.164",
+      "mdns_resolves": true,
+      "original_root_signature_and_same_active_scope_verified": true,
+      "samples": 32,
+      "mask_updates": 645,
+      "reported_sensor_or_mask_fault": false,
+      "transition_capture_limit": "Transition occurred during UART capture gap; loss cause and retry floor reproof were not directly captured."
+    }
+  },
+  "limits": [
+    "CPU savings exclude the separately reported inline header increase; no target RAM saving inferred.",
+    "Ordinary concurrent membership preparation qualification remains distinct from CPU fixture success.",
+    "Selected installed recorder commitment and MCU/Pi/browser joining remain separate acceptance gates."
+  ],
+  "shared_quantity_rounding": {
+    "supported_entrance_passed": true,
+    "face_and_mask_tests_passed": 25,
+    "strict_owning_crate_clippy_passed": true,
+    "wasm_library_check_passed": true
+  },
+  "cold_history_custody": {
+    "records": 18,
+    "physical_origin": "0x3c8000",
+    "producer_reply_matches_exact_signed_offer": true,
+    "one_ack_transfer": true,
+    "all_30_data_sectors_erased": true,
+    "both_root_signature_and_crc_markers_verified": true,
+    "other_four_physical_epochs_byte_identical": true,
+    "original_recorder_identity_not_cloned": true,
+    "selected_installed_recorder_commit_claimed": false
+  },
+  "reader_interruption": {
+    "reader_interruption_seconds": 130,
+    "same_original_binding_and_history_reused": true,
+    "prior_signed_batch_files_unchanged": 204,
+    "local_start": {
+      "millis": 938478,
+      "source_sequence": 15,
+      "mask_consumed": 307
+    },
+    "local_end": {
+      "millis": 1074794,
+      "source_sequence": 17,
+      "mask_consumed": 353
+    },
+    "all_local_progress_without_reported_fault": true,
+    "fixed_directory_signature_and_all_batch_signatures_verified": true,
+    "all_fixed_cut_advertised_recovered": true,
+    "recovered_records": 142,
+    "epoch_counts": [
+      {
+        "slot": 0,
+        "advertised_records": 20,
+        "recovered_records": 21,
+        "batch_files": 19,
+        "complete_at_snapshot": true
+      },
+      {
+        "slot": 1,
+        "advertised_records": 28,
+        "recovered_records": 28,
+        "batch_files": 7,
+        "complete_at_snapshot": true
+      },
+      {
+        "slot": 2,
+        "advertised_records": 17,
+        "recovered_records": 17,
+        "batch_files": 7,
+        "complete_at_snapshot": true
+      },
+      {
+        "slot": 3,
+        "advertised_records": 13,
+        "recovered_records": 13,
+        "batch_files": 4,
+        "complete_at_snapshot": true
+      },
+      {
+        "slot": 4,
+        "advertised_records": 63,
+        "recovered_records": 63,
+        "batch_files": 16,
+        "complete_at_snapshot": true
+      }
+    ],
+    "network_loss_events": [],
+    "scope": "Readonly receiver interruption, not radio/NAT interruption or selected Recorder commitment; no ACK sent by this reader."
+  }
+}

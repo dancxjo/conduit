@@ -724,3 +724,28 @@ fn epoch_collection_reconnects(change_boot: bool) {
 
 #[path = "tests/transport.rs"]
 mod transport;
+
+#[test]
+fn history_connect_waits_for_bounded_listener_retirement() {
+    use std::net::TcpListener;
+    let reserved = TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = reserved.local_addr().unwrap();
+    drop(reserved);
+    let producer = std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(120));
+        let listener = TcpListener::bind(address).unwrap();
+        let (mut socket, _) = listener.accept().unwrap();
+        socket.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+        let mut request = Vec::new();
+        while !request.ends_with(b"\r\n\r\n") {
+            let mut byte = [0];
+            socket.read_exact(&mut byte).unwrap();
+            request.push(byte[0]);
+            assert!(request.len() <= 512);
+        }
+        assert!(request.starts_with(b"GET /history?after=7 "));
+        socket.write_all(b"HTTP/1.0 200 OK\r\nConnection: close\r\n\r\nretained").unwrap();
+    });
+    assert_eq!(fetch(address, 7).unwrap(), b"retained");
+    producer.join().unwrap();
+}

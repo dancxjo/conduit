@@ -51,7 +51,7 @@ pub(super) fn admit(
             if manager
                 .receipts
                 .iter()
-                .any(|r| &r.credential.host_id == expected)
+                .any(|r| r.credential.host_id == expected.as_str())
             {
                 return Err("admitted browser must present its retained credential".into());
             }
@@ -141,8 +141,8 @@ pub(super) fn admit(
                 .receipts
                 .iter()
                 .rev()
-                .find(|r| r.credential.part_id == credential.part_id)
-                .is_none_or(|r| r.credential != credential)
+                .find(|r| r.credential.part_id == credential.part_id.as_str())
+                .is_none_or(|r| !r.credential.matches(&credential))
             {
                 return Err("returning browser credential is stale or unknown".into());
             }

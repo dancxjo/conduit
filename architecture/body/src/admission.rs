@@ -108,6 +108,12 @@ struct PendingAdmission {
     attempts: u8,
 }
 
+mod receipt_log;
+pub use receipt_log::{
+    AdmissionReceiptLog, AdmissionReceiptRef, ReceiptCredentialRef, ReceiptIdentityRef,
+    ReceiptLogStorageUsage,
+};
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AdmissionReceipt {
     pub admission_id: AdmissionId,
@@ -131,7 +137,7 @@ pub struct AdmissionManager {
     invitations: Vec<InvitationRecord>,
     continuity_keys: Vec<ContinuityKeyRecord>,
     pending_returns: Vec<PendingReturn>,
-    pub receipts: Vec<AdmissionReceipt>,
+    pub receipts: AdmissionReceiptLog,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -190,7 +196,7 @@ impl AdmissionManager {
             invitations: crate::VecStorageUsage::inspect(&self.invitations),
             continuity_keys: crate::VecStorageUsage::inspect(&self.continuity_keys),
             pending_returns: crate::VecStorageUsage::inspect(&self.pending_returns),
-            receipts: crate::VecStorageUsage::inspect(&self.receipts),
+            receipts: self.receipts.usage(),
         }
     }
 
@@ -202,7 +208,7 @@ impl AdmissionManager {
             invitations: Vec::new(),
             continuity_keys: Vec::new(),
             pending_returns: Vec::new(),
-            receipts: Vec::new(),
+            receipts: AdmissionReceiptLog::default(),
         })
     }
 
@@ -244,11 +250,7 @@ impl AdmissionManager {
             ],
             now_millis,
         ));
-        if self
-            .receipts
-            .iter()
-            .any(|receipt| receipt.admission_id == admission_id)
-        {
+        if self.receipts.contains_admission(&admission_id) {
             return Err(AdmissionRefusal::Replay);
         }
         let challenge = AdmissionChallenge {
@@ -286,11 +288,7 @@ impl AdmissionManager {
         now_millis: u64,
         signs: AdmissionSigns,
     ) -> Result<MembershipCredential, AdmissionRefusal> {
-        if self
-            .receipts
-            .iter()
-            .any(|receipt| receipt.admission_id == proof.admission_id)
-        {
+        if self.receipts.contains_admission(&proof.admission_id) {
             return Err(AdmissionRefusal::Replay);
         }
         let index = self
@@ -425,11 +423,12 @@ impl AdmissionManager {
         if self.receipts.len() == MAX_ADMISSION_RECEIPTS {
             return Err(AdmissionRefusal::ReceiptCapacityExhausted);
         }
-        self.receipts.push(AdmissionReceipt {
+        // This is retained authority evidence, so reserve only the next record.
+        // Refusal precedes membership publication and invitation consumption.
+        self.receipts.try_push(AdmissionReceipt {
             admission_id,
             credential,
-        });
-        Ok(())
+        })
     }
 }
 

@@ -47,7 +47,19 @@ fn submit(request: Request) -> Reply {
     }
 }
 impl NativeRoot {
+    pub(crate) fn report_observed_queue(&self) {
+        let snapshot = MAILBOX.lock(|cell| cell.borrow().snapshot());
+        esp_println::println!(
+            "{{\"event\":\"observed-custody-queue\",\"submissions\":{},\"cache_hits\":{},\"takes\":{},\"completions\":{},\"pending\":{},\"inflight\":{},\"completed\":{},\"result\":{}}}",
+            snapshot.counts.submissions, snapshot.counts.cache_hits,
+            snapshot.counts.takes, snapshot.counts.completions,
+            snapshot.pending, snapshot.inflight, snapshot.completed, snapshot.result
+        );
+    }
     pub(crate) fn advance_observed_offer(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         if !http::available() {
             if self.body.as_ref().is_none() || !crate::native_restart::publication_ready() {
                 return;
@@ -88,8 +100,8 @@ impl NativeRoot {
                 Ok(job) => self.observed_offer = Some(job),
                 Err(reason) => {
                     esp_println::println!(
-                        "{{\"event\":\"observed-custody-refused\",\"stage\":\"start\",\"reason\":\"{}\"}}",
-                        reason
+                        "{{\"event\":\"observed-custody-refused\",\"stage\":\"start\",\"slot\":{},\"reason\":\"{}\"}}",
+                        key.slot, reason
                     );
                     complete(key, Err(()));
                     return;
@@ -241,6 +253,9 @@ impl NativeRoot {
     /// Root polls completions even during local renewal. The sampler's actual
     /// wait provider performs every physical step under its own scoped permit.
     pub(crate) fn advance_observed_reclaim(&mut self) {
+        if self.membership_busy() {
+            return;
+        }
         if self.observed_reclaim.is_none() && self.observed_reclaim_cursor < 6 {
             if let Err(reason) = self.resume_observed_reclaim() {
                 esp_println::println!(

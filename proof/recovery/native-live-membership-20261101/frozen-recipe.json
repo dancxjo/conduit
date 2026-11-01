@@ -1,0 +1,95 @@
+{
+  "scope": "CPU-only actual copied custody and unchanged checkpoint encoding; no physical admission or frozen-writer execution",
+  "cpu_source": "aade7b33c2a06ea8bc49201c9fcbda38962ab947",
+  "source_basis": "real privately retained Blue checkpoint with independently pinned original Body and Root",
+  "tests": {
+    "incremental_checkpoint": {
+      "passed": 9,
+      "physical_cut_cases": 57,
+      "staging_corruption_regression_failed_before": true
+    },
+    "recipe_equivalence": {
+      "passed": 1
+    },
+    "recipe_capacity_and_order_refusal": {
+      "passed": 1
+    },
+    "actual_copied_membership": {
+      "passed": 1,
+      "phases_start_prepare_chunk_physical_finish": [
+        1,
+        1,
+        81,
+        175,
+        1
+      ],
+      "complete_recipe_invocations": 83,
+      "checkpoint_generation": 901,
+      "checkpoint_bytes": 10368,
+      "original_custody_prefix_preserved": true,
+      "reopened_credential_verified": true
+    }
+  },
+  "cpu64_per_step_allocation_observations": {
+    "extra_peak_bytes": [
+      13549,
+      352,
+      352,
+      0,
+      352
+    ],
+    "extra_retained_max_bytes": [
+      7093,
+      64,
+      0,
+      0,
+      0
+    ],
+    "reserve_retained_bytes": 502,
+    "includes_existing_body": false,
+    "global_live_peak_measured": false,
+    "target_grant_or_peak_proof": false
+  },
+  "actual_joined_recipe_encoded_bytes": {
+    "changed_prefix": 3551,
+    "changed_append": 0,
+    "changed_suffix": 4630,
+    "reused_source": 2187,
+    "total": 10368,
+    "used_bytes_are_not_reserved_capacity": true
+  },
+  "runtime": {
+    "optimized_recipe_writer_enabled": false,
+    "reviewed_preparation_profile_installed": false,
+    "hardware_flashed_this_turn": false
+  },
+  "logs_sha256": {
+    "tests.log": "98cf940607f4456bd94f5874007f45bcdc06ececf78e8da9a7e4d2d48cc26e8a",
+    "before-tests.log": "09e776fcb044955c542976e2da825594aa6b0589a0457ac35ab5e3a1f307ab34",
+    "frozen-recipe-final-tests.log": "3eb082bfc37f583bec6b06f985f6438155f1f9a7391c867fa4d6b5da93438cba",
+    "frozen-recipe-final-reservation-tests.log": "475fc85fcb9dfc67f243026ee1328158870343c0efcb92b685e539fb484b9763",
+    "private-frozen-recipe-final-membership-test.log": "35641ea549f77c38bb8121ef2efbd4705e926b1148804d4dbaa324b5ef55f39b"
+  },
+  "tested_seam_files": {
+    "native_checkpoint_incremental.rs": "2a933e04cbbcf2142d0fb6f553558445c0741ae94038f0581044c66d5e06549f",
+    "native_restart_framed_rewrite.rs": "709eb831c35152a428c63515d20be8e353bf5eaf6a645042e4383cdf853dfe4c",
+    "native_restart_frame_recipe.rs": "5c7416e3b8c4b64ddb1025b5e0744170e3d08c10204f37f51ac617b6d5f6a0ab",
+    "native_restart_rewrite.rs": "41301f633203d2371abeff600c1a943d4b4ee526e72b56cc992705eff3d8b119",
+    "native_restart_recipe_probe.rs": "facf7218b135068b939b5365aaf5eab6c7c7a2fb0102302a5b108fd9c6c959f5",
+    "native_restart_owned_checkpoint.rs": "e1d63c53daf4cac27118a46249c9d5a50134d75f1afc24743e530682d4aacfcf",
+    "native_restart_biography_hot_private_membership_tests.rs": "261dc8774675e986083df9c7f21a3a99aca3eb7fe924ed31bc172450502cd414"
+  },
+  "offline_esp32": {
+    "qualified": true,
+    "app_bytes": 3257024,
+    "app_partition_bytes": 3371008,
+    "app_remaining_bytes": 113984,
+    "stack_bytes": 37356,
+    "stack_floor_bytes": 36864,
+    "stack_margin_bytes": 492,
+    "flashed": false,
+    "source": "e744a2a8575cdc575a7e7ab48aebd6a6494a07b7",
+    "app_sha256": "b937798f89a8bb2106e423435f490b12027bedad1ec72fd6ebc0f7ff06684034",
+    "preparation_timing_qualified": false
+  }
+}

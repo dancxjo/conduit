@@ -94,3 +94,81 @@ fn original_credential(
 #[cfg(test)]
 #[path = "ack_retained_tests.rs"]
 mod tests;
+
+/// Adopt an already obtained historical completion. No signer, transport,
+/// clock or retry window is created; the original reserved session is required.
+pub(crate) fn retain_completion(
+    token: &VerifiedDurableSnapshot,
+    response: &[u8],
+) -> Result<CommittedNetworkCustody> {
+    let lock_path = token.directory.join("incremental-ack.lock");
+    private(&lock_path, false)?;
+    let lock = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(&lock_path)?;
+    // SAFETY: this owned descriptor is retained through verification and fsync.
+    // Recovery cannot race the original affine acknowledgment writer.
+    if unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+        return Err("network ACK owner still running".into());
+    }
+    let prior = reopen_completed(token)?;
+    if matches!(prior, Retained::Absent) {
+        return Err("network completion requires original reserved session".into());
+    }
+    let ack = reopen(&token.directory.join("ack.bin"), REQUEST)?;
+    let credential = original_credential(token, &ack)?;
+    let verified = token.verify_committed_receipt(&credential, &ack, response)?;
+    if verified.bytes()[8] != 2 {
+        return Err("network recovered completion is not Clean".into());
+    }
+    if let Retained::Complete(existing) = prior {
+        if existing.bytes() != verified.bytes() {
+            return Err("network recovered completion differs".into());
+        }
+        return Ok(existing);
+    }
+    token.retain_committed_receipt(&credential, &ack, response)?;
+    immutable(&token.directory.join(COMPLETED), response)?;
+    File::open(&token.directory)?.sync_all()?;
+    match reopen_completed(token)? {
+        Retained::Complete(receipt) if receipt.bytes() == verified.bytes() => Ok(receipt),
+        _ => Err("network recovered completion did not reopen".into()),
+    }
+}
+
+/// Filesystem-only recovery using independent admitted Body/Root pins and the
+/// original producer Boot. Neither the response nor its filenames supply trust.
+pub(crate) fn run(
+    binding: &Path,
+    producer_boot: &str,
+    directory: &Path,
+    response: &Path,
+) -> Result<()> {
+    let binding = crate::local_recorder::validated_binding(binding)?;
+    private(directory, true)?;
+    let offer = reopen(&directory.join("offer.bin"), OFFER)?;
+    let offer: [u8; OFFER] = offer.try_into().map_err(|_| "network offer extent")?;
+    let scope = Scope {
+        body: binding.credential().body_id.clone(),
+        root: *binding.root(),
+        producer_boot: producer_boot.into(),
+        epoch: u64::from_le_bytes(offer[64..72].try_into().unwrap()),
+        region: offer[32..64].try_into().unwrap(),
+        predecessor: offer[144..176].try_into().unwrap(),
+    };
+    let id = verify(
+        &scope,
+        &offer,
+        &reopen(&directory.join("snapshot.bin"), CAPACITY)?,
+    )?;
+    let token = VerifiedDurableSnapshot {
+        scope,
+        directory: directory.into(),
+        offer: id,
+    };
+    let response = live::input(response, 1408)?;
+    let receipt = retain_completion(&token, &response)?;
+    println!("original Root-signed Clean receipt verified and reopened ({} bytes); no transport or retry allowance created", receipt.bytes().len());
+    Ok(())
+}

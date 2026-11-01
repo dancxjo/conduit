@@ -1,0 +1,31 @@
+{
+  "source": "c63db3c7cf06f5046c20e629ade56e997a25bbd9",
+  "runtime_role": "cold-checkpoint-probe",
+  "qualified_offline": true,
+  "flashed": false,
+  "app_bytes": 3253584,
+  "app_partition_bytes": 3371008,
+  "app_remaining_bytes": 117424,
+  "stack_bytes": 37356,
+  "stack_floor_bytes": 36864,
+  "stack_margin_bytes": 492,
+  "files": {
+    "candidate.bin": {
+      "bytes": 3253584,
+      "sha256": "0d52b52901e61f7038a4ec9974ad40c5e04404ae3bc7107cef5aae6136e8c737"
+    },
+    "candidate.elf": {
+      "bytes": 7712140,
+      "sha256": "18de52b13a931ab26e9cf0030015c3f4810bc7d3f12625ef5f97fc38d0e839e2"
+    }
+  },
+  "manifest_sha256": "8d1e379361814ab281bbbacd9b34406200f22749c6f131d8bbde4a01b784f6ea",
+  "limits": [
+    "No target timing/workspace qualification",
+    "No physical startup/local-progress evidence for this candidate",
+    "Preparation profile remains absent; actual membership defers before moving Body",
+    "Do not infer phase peak from lifetime heap snapshots",
+    "Do not erase or replace existing Body/history/credential partitions"
+  ],
+  "scope": "linked offline ESP32 candidate, no target execution or preparation qualification"
+}

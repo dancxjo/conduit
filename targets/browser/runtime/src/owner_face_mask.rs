@@ -16,6 +16,8 @@ use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use serde::{Deserialize, Serialize};
 
+#[path = "owner_face_mask/graphics.rs"]
+mod graphics;
 #[path = "owner_face_mask/abi.rs"]
 mod abi;
 #[path = "owner_face_mask/component.rs"]
@@ -82,6 +84,8 @@ struct InteractionEmission<'a> {
 
 #[derive(Serialize)]
 struct SubjectView {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    graphics: Option<graphics::GraphicsView>,
     identity: String,
     name: String,
     role: String,

@@ -1,0 +1,76 @@
+{
+  "cold_attempt_source": "fa8c0b5283",
+  "cold_attempt_result": "refused before invitation or admission phases: cold-membership-not-exclusive",
+  "identified_guard_error": "foreground means selected authored Plot even on BodyLifecycleOwner::open, not a running realization",
+  "corrected_source": "ed1935961f31824628f459bdc7e15118e8bfdf74",
+  "corrected_app": {
+    "bytes": 3283456,
+    "sha256": "7098fe625803df0b49925b61d74de3613316ef2f8438ff19f683bd9e241e14b4"
+  },
+  "corrected_stack_bytes": 37348,
+  "corrected_qualified_offline": true,
+  "corrected_flashed": false,
+  "restored_normal_readback": {
+    "source": "60cfc304db9ddbd43ff0370ddd3aee5ad7147128",
+    "app_sha256": "a6ea00141845ab98cdf6e660726de21e89cd21f2d920b0cad2d0d0a3380246bd",
+    "app_bytes": 3272416,
+    "all_non_app_bytes_exact": true,
+    "before_full_sha256": "790b2b3371aff9da5f580c06ddd8ee37fa54e8c80285fd6142cb817d31dbe379",
+    "after_full_sha256": "0688c3b1fa7f688d309acbc3273b81810b8a8ae7171f841787dbf2d4768e5169"
+  },
+  "restored_progress": {
+    "event": "local-appliance-progress",
+    "millis": 118254,
+    "root_used": 89356,
+    "root_free": 29412,
+    "root_peak": 96016,
+    "sampler_phase": "running",
+    "source_sequence": 1,
+    "sampler_failure": null,
+    "mask_phase": "running",
+    "mask_consumed": 35,
+    "mask_failure": null,
+    "mask_cleanup_refusal": null,
+    "network": {
+      "runner_polls": [
+        1,
+        1
+      ],
+      "observed_services": "access-point-ready",
+      "ap_link": true,
+      "station_link": false,
+      "ap_configured": true,
+      "station_configured": false,
+      "ap_mac": [
+        178,
+        167,
+        50,
+        40,
+        97,
+        120
+      ],
+      "channel": 1
+    },
+    "station_address": null,
+    "network_control": "uninstalled",
+    "archive": {
+      "committed": 0,
+      "retained_bytes": 0,
+      "last_sequence": 0,
+      "scope_ready": false,
+      "failed": true,
+      "recovered_read_only": false,
+      "maximum_records": 0
+    },
+    "face_available": true,
+    "face_fresh": true,
+    "renewal_phase": null,
+    "renewal_failure": null,
+    "renewal_archive_refusal": null
+  },
+  "limits": [
+    "New Boot cannot append history: finite epoch capacity exhausted; no retained evidence erased.",
+    "Station recovery unavailable; spare AP activation requires Linux administrator authentication.",
+    "No successful live canonical browser membership or during-Play checkpoint qualification claimed."
+  ]
+}

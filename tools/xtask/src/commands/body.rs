@@ -14,8 +14,11 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
+mod artifact_dispatch;
 mod browser_admission;
+mod browser_package;
 mod environment_image;
+pub(crate) mod pico_payload;
 #[cfg(unix)]
 mod provision_conduitos;
 mod scaffold;
@@ -295,7 +298,7 @@ fn build(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let source_identity = command_identity()?;
-    let spores = build_body_spores(
+    let mut spores = build_body_spores(
         body,
         selected,
         &source_identity,
@@ -321,6 +324,20 @@ fn build(
             }
         }
         return Ok(());
+    }
+    let producers = artifact_dispatch::plan(body, &spores)?;
+    artifact_dispatch::record_batch(output, &spores, false)?;
+    if !producers.is_empty() {
+        let state = browser_package::require_owner(body)?;
+        let distribution = browser_package::build_distribution(output)?;
+        for (spore, producer) in spores.iter_mut().zip(producers) {
+            match producer {
+                artifact_dispatch::ArtifactProducer::BrowserBundle => {
+                    *spore =
+                        browser_package::fabricate(body, spore, output, &state, &distribution)?;
+                }
+            }
+        }
     }
     let receipts = if deploy {
         spores
@@ -351,6 +368,7 @@ fn build(
             )?;
         }
     }
+    artifact_dispatch::record_batch(output, &spores, true)?;
     if opts.json {
         println!(
             "{}",

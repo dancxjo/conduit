@@ -79,6 +79,7 @@ pub fn generate() {
     let mut coverage = Vec::new();
     let mut records = String::from("pub(super) static GLYPHS: &[Glyph] = &[\n");
     let mut profiles = String::from("pub(super) static PROFILES: &[ProfileMetrics] = &[\n");
+    let mut extents = String::from("pub(super) const PROFILE_GLYPH_EXTENTS: &[(u8,u8)] = &[\n");
     let mut ledger = String::from(
         "profile\tfont\tsize\tglyphs\tfallbacks\tcoverage_bytes\tascent\tline_height\tleft_ink\tright_overhang\n",
     );
@@ -91,6 +92,7 @@ pub fn generate() {
         // Include selected and Sans-fallback ink, not only font-wide metadata.
         let mut ascent = (line.ascent.ceil() as i16).max(14);
         let mut descent = (line.new_line_size.ceil() as i16 - ascent).max(2);
+        let (mut maximum_width, mut maximum_height) = (16usize, 16usize); // include rescue coverage
         let (mut glyph_count, mut fallbacks) = (0usize, 0usize);
         let coverage_start = coverage.len();
         let (mut left_ink, mut right_overhang) = (0i16, 0i16);
@@ -114,6 +116,8 @@ pub fn generate() {
                 metrics.advance_width
             };
             assert!(metrics.width <= MAX_GLYPH_EDGE && metrics.height <= MAX_GLYPH_EDGE);
+            maximum_width = maximum_width.max(metrics.width);
+            maximum_height = maximum_height.max(metrics.height);
             assert_eq!(bitmap.len(), metrics.width * metrics.height);
             assert!(
                 coverage.len() + bitmap.len() <= MAX_COVERAGE_BYTES,
@@ -140,11 +144,14 @@ pub fn generate() {
             "ProfileMetrics {{ em_size: {size}, ascent: {ascent}, line_height: {line_height} }},"
         )
         .unwrap();
+        writeln!(extents, "({maximum_width},{maximum_height}),").unwrap();
         writeln!(ledger, "{profile}\t{}\t{size}\t{glyph_count}\t{fallbacks}\t{}\t{ascent}\t{line_height}\t{left_ink}\t{right_overhang}", FONTS[front].0, coverage.len() - coverage_start).unwrap();
     }
     records.push_str("];\n");
     profiles.push_str("];\n");
     records.push_str(&profiles);
+    extents.push_str("];\n");
+    records.push_str(&extents);
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo OUT_DIR"));
     fs::write(output.join("native_typography_resources.tsv"), ledger)
         .expect("fixed resource ledger");

@@ -215,8 +215,10 @@ impl AdmissionManager {
             boot_id: advertisement.boot_id.clone(),
             issued_at_millis: now_millis,
         };
-        self.pending_returns.remove(index);
+        // Reserve/retain the completed authority evidence before consuming the
+        // challenge. Allocation refusal must permit the identical valid retry.
         self.retain_receipt(challenge.admission_id.clone(), credential.clone())?;
+        self.pending_returns.remove(index);
         *membership = next;
         Ok(credential)
     }
@@ -368,11 +370,7 @@ impl AdmissionManager {
     /// Observe the latest completed credential in this manager's bounded receipt
     /// log. This is data only: it proves neither current presence nor a signature.
     pub fn latest_completed_credential(&self, part_id: &PartId) -> Option<&MembershipCredential> {
-        self.receipts
-            .iter()
-            .rev()
-            .find(|receipt| &receipt.credential.part_id == part_id)
-            .map(|receipt| &receipt.credential)
+        self.receipts.latest_completed_credential(part_id)
     }
 
     /// Authenticate a custody-only transcript using the retained continuity key

@@ -25,7 +25,9 @@ impl NativeRoot {
                         Err("credential-unavailable" | "credential-not-acknowledged") => {
                             return Err(b"waiting");
                         }
-                        Err(_) => return Err(b"refused"),
+                        // Source errors are static, credential-free refusal codes.
+                        // Preserve their identity for recovery diagnostics.
+                        Err(reason) => return Err(reason.as_bytes()),
                     };
                 let revision = match crate::native_credentials::committed_revision() {
                     0 => match self.network.recovery.revision().checked_add(1) {
@@ -39,7 +41,7 @@ impl NativeRoot {
                     .stage_unselected_configuration(configuration)
                     .is_err()
                 {
-                    return Err(b"refused");
+                    return Err(b"configuration-stage");
                 }
                 if self.network.recovery.configuration(revision, now).is_err() {
                     return Err(b"configuration-refused");
