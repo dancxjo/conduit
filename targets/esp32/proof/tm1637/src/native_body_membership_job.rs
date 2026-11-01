@@ -91,6 +91,19 @@ impl Job {
             State::Moving => unreachable!("synchronous owner transition"),
         }
     }
+    #[cfg(test)]
+    pub(crate) fn capture_prefix_bytes(&self) -> Option<usize> {
+        match &self.state {
+            State::Checkpoint(job) => job.capture_prefix_bytes(),
+            _ => None,
+        }
+    }
+    pub(crate) fn cached_bytes(&self) -> usize {
+        match &self.state {
+            State::Checkpoint(job) => job.cached_bytes(),
+            _ => 0,
+        }
+    }
     pub(crate) fn step(&self) -> u32 {
         self.step
     }
@@ -146,6 +159,7 @@ impl Job {
         use crate::native_restart::owned_checkpoint::Phase as P;
         let result = match job.phase() {
             P::Prepare => job.prepare(permit),
+            P::Capture => job.capture(permit),
             P::Chunk => job.prepare_chunk(permit),
             P::Physical(_) => job.advance(storage),
             P::Finish => job.finish_source(permit),

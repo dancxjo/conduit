@@ -113,6 +113,7 @@ fn owned_checkpoint_withholds_output_preserves_identity_and_fences_failure() {
                 let job = &mut scheduled.0;
                 match job.phase() {
                     Phase::Prepare => job.prepare(permit),
+                    Phase::Capture => job.capture(permit),
                     Phase::Chunk => job.prepare_chunk(permit),
                     Phase::Physical(_) => job.advance(&mut access),
                     Phase::Finish => job.finish_source(permit),

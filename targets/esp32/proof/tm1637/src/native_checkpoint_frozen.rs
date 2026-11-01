@@ -116,6 +116,10 @@ impl SourceBlocks {
     pub(crate) fn hash_bytes(&self) -> usize {
         self.hashes.len() * 32
     }
+    pub(crate) fn retained_hash_bytes(&self) -> usize {
+        self.hashes.capacity() * 32
+    }
+
     /// Only bytes in the retained reused range can escape; each intersecting
     /// complete physical source block is checked before any byte is copied.
     pub(crate) fn read_slice<S: Storage>(

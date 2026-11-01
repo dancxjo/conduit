@@ -4,6 +4,16 @@ use super::*;
 #[test]
 #[ignore = "owns Boot-global STORE; private real committed source, fresh CPU process only"]
 fn private_committed_prefix_owned_membership_survives_reopen() {
+    prove_private_membership(false);
+}
+
+#[test]
+#[ignore = "owns Boot-global STORE; private real source; fresh CPU process only"]
+fn private_committed_prefix_pressure_falls_back_before_effects() {
+    prove_private_membership(true);
+}
+
+fn prove_private_membership(pressure: bool) {
     use crate::native_body_join::{self, membership::job};
     use crate::native_restart::owned_checkpoint::Phase as CheckpointPhase;
     let body: conduit_body::BodyId = serde_json::from_value(serde_json::Value::String(
@@ -75,6 +85,7 @@ fn private_committed_prefix_owned_membership_survives_reopen() {
         payload::rewrite::probe_frozen_recipe(store, &owner, &root)
     })
     .unwrap();
+    let encoding_before = payload::rewrite::canonical_encoding_passes();
     let owner = Box::new(owner);
     let owner_pointer = &*owner as *const _;
     let (mut job, reserve) = crate::allocation_probe::observe(|| {
@@ -88,29 +99,51 @@ fn private_committed_prefix_owned_membership_survives_reopen() {
         fault: None,
         media: None,
     };
-    let mut counts = [0usize; 5];
-    let mut peaks = [0usize; 5];
-    let mut retained_max = [0usize; 5];
-    let mut requested_total = [0usize; 5];
+    let mut counts = [0usize; 6];
+    let mut peaks = [0usize; 6];
+    let mut retained_max = [0usize; 6];
+    let mut requested_total = [0usize; 6];
+    let mut cache_bytes = 0;
     loop {
+        cache_bytes = cache_bytes.max(job.cached_bytes());
         let phase = job.phase();
         if phase == job::Phase::Checkpoint(CheckpointPhase::Complete) {
             break;
         }
+        job = job.finish().err().unwrap(); // no receipt before verified adoption
+        if counts[0] > 0 {
+            job = job.release_unstarted().err().unwrap();
+        }
         let index = match phase {
             job::Phase::Start => 0,
             job::Phase::Checkpoint(CheckpointPhase::Prepare) => 1,
-            job::Phase::Checkpoint(CheckpointPhase::Chunk) => 2,
-            job::Phase::Checkpoint(CheckpointPhase::Physical(_)) => 3,
-            job::Phase::Checkpoint(CheckpointPhase::Finish) => 4,
+            job::Phase::Checkpoint(CheckpointPhase::Capture) => 2,
+            job::Phase::Checkpoint(CheckpointPhase::Chunk) => 3,
+            job::Phase::Checkpoint(CheckpointPhase::Physical(_)) => 4,
+            job::Phase::Checkpoint(CheckpointPhase::Finish) => 5,
             _ => panic!("unexpected membership phase"),
         };
         let wait = gate.begin_wait(0, 1000).unwrap();
         let permit = wait.try_flash(0, 1000).unwrap();
         let ordinal = job.step();
+        let calls_before = access.calls;
+        let refusal = if pressure && index == 2 {
+            Some(crate::allocation_probe::refuse_next_allocation_size(
+                job.capture_prefix_bytes().unwrap(),
+            ))
+        } else {
+            None
+        };
         let (result, memory) =
             crate::allocation_probe::observe(|| job.advance(&permit, &mut access, 101));
+        drop(refusal);
         result.unwrap();
+        if index == 2 {
+            assert_eq!(
+                access.calls, calls_before,
+                "Capture must never issue physical effects"
+            );
+        }
         assert_eq!(job.step(), ordinal + 1);
         counts[index] += 1;
         peaks[index] = peaks[index].max(memory.peak_bytes);
@@ -128,6 +161,16 @@ fn private_committed_prefix_owned_membership_survives_reopen() {
             && !receipt.plan_created
             && !receipt.play_created
     );
+    let encoding_passes = payload::rewrite::canonical_encoding_passes() - encoding_before;
+    if pressure {
+        assert_eq!(cache_bytes, 0);
+        assert!(encoding_passes > 3);
+    } else {
+        assert_eq!(encoding_passes, 3);
+        assert_eq!(peaks[3], 0);
+        assert_eq!(requested_total[3], 0);
+        assert!(cache_bytes > 0 && cache_bytes <= payload::MAX_BYTES);
+    }
     let after_recipe = crate::native_restart::with_store(|store| {
         payload::rewrite::probe_frozen_recipe(store, &owner, &root)
     })
@@ -156,5 +199,5 @@ fn private_committed_prefix_owned_membership_survives_reopen() {
         .unwrap();
     let length = reopened.payload_length(&binding).unwrap().unwrap();
     assert!(length <= payload::MAX_BYTES);
-    println!("private_actual_prefix_owned_membership: phases_start_prepare_chunk_physical_finish={counts:?} per_phase_peak={peaks:?} per_phase_retained_max={retained_max:?} per_phase_requested_total={requested_total:?} reserve_peak={} reserve_retained={} body_baseline_excluded=true per_step_probes_not_global_live_heap=true source_replay_recipe_invocations={} bytes={length} generation={} original_prefix_receipt_preserved=true fixture_receipts=0 cpu64_only=true hardware_admission=false", reserve.peak_bytes, reserve.retained_bytes(), counts[1]+counts[2]+counts[4], reopened.generation().unwrap());
+    println!("private_actual_prefix_owned_membership: phases_start_prepare_capture_chunk_physical_finish={counts:?} per_phase_peak={peaks:?} per_phase_retained_max={retained_max:?} per_phase_requested_total={requested_total:?} reserve_peak={} reserve_retained={} body_baseline_excluded=true per_step_probes_not_global_live_heap=true canonical_encoding_passes={encoding_passes} cache_retained_capacities_plus_index={cache_bytes} bytes={length} generation={} original_prefix_receipt_preserved=true fixture_receipts=0 forced_capacity_refusal={pressure} cpu64_only=true hardware_admission=false", reserve.peak_bytes, reserve.retained_bytes(), reopened.generation().unwrap());
 }

@@ -340,6 +340,8 @@ impl<'a> PreparedRewrite<'a> {
         read: impl FnMut(&mut [u8; 128]) -> Result<usize, ()>,
         sink: &mut dyn FnMut(&[u8]) -> Result<(), E>,
     ) -> Result<(archive::Summary, archive::Span), StreamRefusal<E>> {
+        #[cfg(test)]
+        ENCODING_PASSES.with(|n| n.set(n.get() + 1));
         let mut hash = Sha256::new();
         let mut length = 0usize;
         let mut output = |bytes: &[u8]| {
@@ -457,3 +459,12 @@ impl AuthenticatedReceipts {
         self.frames.map(|(range, _)| range)
     }
 }
+
+#[path = "native_restart_frozen_rewrite.rs"]
+mod frozen;
+pub(crate) use frozen::{FrozenRewrite, Measurement as FrozenMeasurement};
+
+#[cfg(test)]
+std::thread_local! {static ENCODING_PASSES:core::cell::Cell<usize>=const{core::cell::Cell::new(0)};}
+#[cfg(test)]
+pub(crate) fn canonical_encoding_passes() -> usize { ENCODING_PASSES.with(|n| n.get()) }

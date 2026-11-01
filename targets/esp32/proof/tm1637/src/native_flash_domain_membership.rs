@@ -26,7 +26,10 @@ impl Submitter {
             }
             phase @ (Phase::Start
             | Phase::Checkpoint(
-                CheckpointPhase::Prepare | CheckpointPhase::Chunk | CheckpointPhase::Finish,
+                CheckpointPhase::Prepare
+                | CheckpointPhase::Capture
+                | CheckpointPhase::Chunk
+                | CheckpointPhase::Finish,
             )) => {
                 let Some(budget) = self
                     .preparation

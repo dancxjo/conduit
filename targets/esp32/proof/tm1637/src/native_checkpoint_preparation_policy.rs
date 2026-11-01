@@ -20,7 +20,7 @@ impl ReviewedPreparation {
         use crate::native_body_join::membership::job::Phase as Membership;
         let budget = match phase {
             Membership::Start => self.start_ms,
-            Membership::Checkpoint(Phase::Prepare) => self.replay_ms,
+            Membership::Checkpoint(Phase::Prepare | Phase::Capture) => self.replay_ms,
             Membership::Checkpoint(Phase::Chunk) => self.chunk_ms,
             Membership::Checkpoint(Phase::Finish) => self.finish_ms,
             _ => return None,

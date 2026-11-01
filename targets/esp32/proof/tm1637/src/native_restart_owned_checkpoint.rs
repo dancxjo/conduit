@@ -11,6 +11,7 @@ use conduit_monotonic_wait::flash_window::FlashPermit;
 pub(crate) enum Phase {
     Staging,
     Prepare,
+    Capture,
     Chunk,
     Physical(Operation),
     Finish,
@@ -24,6 +25,8 @@ pub(crate) struct Job<T> {
     lease: StoreLease,
     root: [u8; 32],
     writer: Option<IncrementalRewrite>,
+    measurement: Option<payload::rewrite::FrozenMeasurement>,
+    frozen: Option<payload::rewrite::FrozenRewrite>,
     metadata: Option<(payload::archive::Summary, payload::archive::Span)>,
     phase: Phase,
     step: u32,
@@ -68,6 +71,8 @@ impl<T> Job<T> {
                 lease,
                 root,
                 writer: None,
+                measurement: None,
+                frozen: None,
                 metadata: None,
                 phase: Phase::Staging,
                 step: 0,
@@ -77,6 +82,13 @@ impl<T> Job<T> {
     }
     pub(crate) fn phase(&self) -> Phase {
         self.phase
+    }
+    #[cfg(test)]
+    pub(crate) fn capture_prefix_bytes(&self) -> Option<usize> {
+        self.measurement.as_ref().map(|m| m.prefix_bytes())
+    }
+    pub(crate) fn cached_bytes(&self) -> usize {
+        self.frozen.as_ref().map_or(0, |f| f.retained_bytes())
     }
     pub(crate) fn step(&self) -> u32 {
         self.step
@@ -190,6 +202,11 @@ impl<T> Job<T> {
             }
             let previous = store.custody.as_ref().ok_or("restart-custody-missing")?;
             let prepared = prepare(previous, owner, store.admissions.as_ref(), &self.root)?;
+            if let Some(measured) = prepared.measure_frozen(&mut store.journal, &previous.source)? {
+                self.metadata = Some(measured.metadata());
+                self.measurement = Some(measured);
+                return Ok(());
+            }
             let mut metadata = None;
             let writer = IncrementalRewrite::prepare(
                 &mut store.journal,
@@ -206,6 +223,60 @@ impl<T> Job<T> {
             self.metadata = metadata;
             Ok(())
         })();
+        if result.is_ok() && self.measurement.is_some() {
+            self.step = self.step.checked_add(1).ok_or("checkpoint-job-step")?;
+            self.phase = Phase::Capture;
+            Ok(())
+        } else {
+            self.transition(result)
+        }
+    }
+    pub(crate) fn capture(&mut self, _permit: &FlashPermit<'_, '_>) -> Result<(), &'static str> {
+        if self.phase != Phase::Capture {
+            return Err("checkpoint-job-phase");
+        }
+        let result = (|| {
+            let owner = self.owner.as_deref().ok_or("checkpoint-job-owner")?;
+            let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
+            let previous = store.custody.as_ref().ok_or("restart-custody-missing")?;
+            let prepared = prepare(previous, owner, store.admissions.as_ref(), &self.root)?;
+            let measured = self
+                .measurement
+                .as_ref()
+                .ok_or("checkpoint-job-measurement")?;
+            let seed = store.seed.as_ref().ok_or("restart-key-missing")?;
+            if let Some((frozen, writer)) = prepared.capture_frozen(
+                &mut store.journal,
+                &previous.source,
+                &store.binding,
+                seed,
+                measured,
+            )? {
+                self.frozen = Some(frozen);
+                self.writer = Some(writer);
+            } else {
+                // Allocation refusal preserves the actual owner and source;
+                // the existing full replay writer has not produced any effect.
+                let expected = self.metadata.as_ref().ok_or("checkpoint-job-metadata")?;
+                self.writer = Some(
+                    IncrementalRewrite::prepare(
+                        &mut store.journal,
+                        &previous.source,
+                        &store.binding,
+                        seed,
+                        |reader, sink| {
+                            if &emit(&prepared, reader, sink)? != expected {
+                                return Err(Refusal::Corrupt);
+                            }
+                            Ok(())
+                        },
+                    )
+                    .map_err(checkpoint_commit_refusal)?,
+                );
+            }
+            self.measurement = None;
+            Ok(())
+        })();
         self.transition(result)
     }
     pub(crate) fn prepare_chunk(
@@ -216,8 +287,16 @@ impl<T> Job<T> {
             return Err("checkpoint-job-phase");
         }
         let result = (|| {
-            let owner = self.owner.as_deref().ok_or("checkpoint-job-owner")?;
             let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
+            if let Some(frozen) = self.frozen.as_ref() {
+                return frozen
+                    .stage(
+                        self.writer.as_mut().ok_or("checkpoint-job-writer")?,
+                        &mut store.journal,
+                    )
+                    .map_err(checkpoint_commit_refusal);
+            }
+            let owner = self.owner.as_deref().ok_or("checkpoint-job-owner")?;
             let previous = store.custody.as_ref().ok_or("restart-custody-missing")?;
             let prepared = prepare(previous, owner, store.admissions.as_ref(), &self.root)?;
             let metadata = self.metadata.as_ref().ok_or("checkpoint-job-metadata")?;
@@ -282,6 +361,8 @@ impl<T> Job<T> {
             self.phase = Phase::Failed;
             return Err("checkpoint-job-step");
         };
+        // Encoded cache is no longer needed after authenticated physical commit.
+        self.frozen = None;
         let result = (|| {
             let owner = self.owner.as_deref_mut().ok_or("checkpoint-job-owner")?;
             let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
