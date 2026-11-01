@@ -1,0 +1,48 @@
+{
+  "scope": "quiescent exact storage-generation selection; no installed recording acknowledgment",
+  "base": "bb9869daa8",
+  "source": "03ecacb71bc7fc56bfb0939f2420541ab44b155b",
+  "checks": [
+    {
+      "name": "bounded generation selection",
+      "source": "6423960754",
+      "passed": 4,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-generation-tests-20261101.log",
+      "sha256": "3085c0b7d60a75f111317e9ea994c2c831147b5105d59b3314c7c8645dd7323c"
+    },
+    {
+      "name": "actual Source worker backing retention",
+      "source": "03ecacb71bc7fc56bfb0939f2420541ab44b155b",
+      "passed": 1,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-generation-source-worker-20261101.log",
+      "sha256": "2d8ed232e84aded134e4347442e805a1be723c788b6f78ec412c76c712eea4f2"
+    },
+    {
+      "name": "exclusive Base registry update",
+      "source": "03ecacb71bc7fc56bfb0939f2420541ab44b155b",
+      "passed": 2,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/body-storage-generation-registry-20261101.log",
+      "sha256": "d0624882d4e8c962bdb676d794b3747e6c44abb6979134d078fa7d0d4ece4cc2"
+    }
+  ],
+  "operation_preparation_model_bytes": {
+    "snapshot_only": 163698,
+    "state_only": 130200
+  },
+  "fixture": {
+    "maximum_snapshot_records": 2,
+    "maximum_record_bytes": 4096,
+    "state_slots": 1,
+    "maximum_state_bytes": 4096,
+    "total_disk_bytes": 131072,
+    "preparation_bytes": 1048576
+  },
+  "non_claims": [
+    "No full Body Plan/workspace admission from this storage quote",
+    "No exclusive filesystem block reservation or quota",
+    "No whole-process/RSS/allocator arena bound",
+    "No installed recorder or durable acknowledgment",
+    "No live service, MCU, or persistent owner mutation",
+    "No fresh-Boot State commit/recover proof in this slice; parent owns selected worker vertical"
+  ]
+}
