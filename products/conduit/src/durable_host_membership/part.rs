@@ -163,6 +163,95 @@ pub(super) fn retain(
     result
 }
 
+/// Validated continuity signer. This is neither a current session nor Root authority.
+pub(crate) struct RetainedPart {
+    record: Record,
+    advertisement: HostAdvertisement,
+}
+impl RetainedPart {
+    #[cfg(test)]
+    pub(crate) fn from_test_document(bytes: &[u8], advertisement: HostAdvertisement) -> Self {
+        let record: Record = serde_json::from_slice(bytes).unwrap();
+        record.validate(advertisement.host_id.as_str()).unwrap();
+        Self {
+            record,
+            advertisement,
+        }
+    }
+
+    pub(crate) fn open(state: &Path, advertisement: HostAdvertisement) -> Result<Self, String> {
+        let installation = read_installation(&state.join("installation.json"))?;
+        let binding = installation
+            .joined_body_state
+            .as_ref()
+            .ok_or("Host has no joined Part")?;
+        super::validate(binding, &installation)?;
+        if advertisement.host_id.as_str() != installation.host_id {
+            return Err("Return advertisement belongs to another installed Host".into());
+        }
+        let runtime = crate::durable_host_control::current(state)?;
+        if runtime.advertisement != advertisement {
+            return Err("Return advertisement is not the current installed Boot and offers".into());
+        }
+        let record = load(
+            &state.join("body/native-part-private.json"),
+            &installation.host_id,
+        )?;
+        let credential: MembershipCredential = serde_json::from_slice(&bounded_read(
+            Path::new(&binding.credential_path),
+            64 * 1024,
+        )?)
+        .map_err(|_| "retained Part credential encoding")?;
+        if credential != record.receipt.credential {
+            return Err("private Part custody differs from installed credential".into());
+        }
+        Ok(Self {
+            record,
+            advertisement,
+        })
+    }
+    pub(crate) fn credential(&self) -> &MembershipCredential {
+        &self.record.receipt.credential
+    }
+    pub(crate) fn advertisement(&self) -> &HostAdvertisement {
+        &self.advertisement
+    }
+    pub(crate) fn rendezvous(&self) -> Option<&conduit_body::SpawnRendezvousDescriptor> {
+        self.record.pending.invitation.rendezvous.as_ref()
+    }
+    pub(crate) fn prove(
+        &self,
+        challenge: &conduit_body::PartReturnChallenge,
+    ) -> Result<conduit_body::PartReturnProof, String> {
+        let credential = self.credential();
+        let ad = self.advertisement();
+        if challenge.body_id != credential.body_id
+            || challenge.part_id != credential.part_id
+            || challenge.host_id != ad.host_id
+            || challenge.boot_id != ad.boot_id
+            || challenge.offer_generation != ad.offer_generation
+            || challenge.nonce == [0; 32]
+            || challenge.expires_at_millis <= challenge.issued_at_millis
+            || challenge.expires_at_millis - challenge.issued_at_millis
+                > conduit_body::MAX_ADMISSION_TTL_MILLIS
+        {
+            return Err("Return challenge differs from retained Part or current Boot".into());
+        }
+        let secret =
+            SpawnInvitationSecret::from_csprng_bytes(self.record.pending.invitation.secret)
+                .map_err(|_| "native Part signer missing")?;
+        Ok(conduit_body::PartReturnProof {
+            admission_id: challenge.admission_id.clone(),
+            body_id: challenge.body_id.clone(),
+            part_id: challenge.part_id.clone(),
+            host_id: challenge.host_id.clone(),
+            boot_id: challenge.boot_id.clone(),
+            nonce: challenge.nonce,
+            signature: secret.sign(&challenge.signing_transcript()),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

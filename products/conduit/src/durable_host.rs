@@ -66,6 +66,8 @@ pub(crate) use membership::{
     accept_membership_invitation, complete_body_join, complete_membership_join,
     retain_rendezvous_membership,
 };
+#[cfg(unix)]
+pub(crate) use membership::RetainedPart;
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]

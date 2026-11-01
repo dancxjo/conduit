@@ -15,6 +15,8 @@ mod compact;
 #[cfg(unix)]
 #[path = "durable_host_membership/part.rs"]
 mod part;
+#[cfg(unix)]
+pub(crate) use part::RetainedPart;
 #[cfg(not(unix))]
 mod part {
     use super::*;
