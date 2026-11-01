@@ -151,24 +151,24 @@ mod owned {
             invoke(&mut runtime, req),
             Response::Refused { .. }
         ));
-        for operation in [
-            RecordingOperation::Publish { authority: publish },
-            RecordingOperation::Readback {
-                authority: {
-                    let HostSource::Body { owner, .. } = &mut runtime.host else {
-                        panic!()
-                    };
-                    source_recording_control_read_grant(owner)
-                },
-            },
-        ] {
-            let req = make_request(&runtime, operation);
-            assert!(matches!(
-                invoke(&mut runtime, req),
-                Response::BodyRunRequested { .. }
-            ));
-            finish(&mut runtime);
-        }
+        let req = make_request(&runtime, RecordingOperation::Publish { authority: publish });
+        assert!(matches!(
+            invoke(&mut runtime, req),
+            Response::BodyRunRequested { .. }
+        ));
+        finish(&mut runtime);
+        let authority = {
+            let HostSource::Body { owner, .. } = &mut runtime.host else {
+                panic!()
+            };
+            source_recording_control_read_grant(owner)
+        };
+        let req = make_request(&runtime, RecordingOperation::Readback { authority });
+        assert!(matches!(
+            invoke(&mut runtime, req),
+            Response::BodyRunRequested { .. }
+        ));
+        finish(&mut runtime);
         let before = runtime.truth().advertisement;
         let receipt = {
             let HostSource::Body { owner, .. } = &runtime.host else {
