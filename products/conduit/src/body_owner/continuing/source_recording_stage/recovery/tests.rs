@@ -114,3 +114,21 @@ fn fresh_process_recovers_unknown_catalog_reference_from_body_state() {
 fn binding_json(binding: &conduit_std_host::state_value::DurableStateBinding) -> serde_json::Value {
     serde_json::json!({"body":binding.body,"state":binding.state,"value_kind":binding.value_kind,"maximum_value_bytes":binding.maximum_value_bytes})
 }
+
+#[test]
+fn recovery_preparation_volume_refuses_before_generation_or_state_effect() {
+    let (root, disk, mut owner, _) = fixture();
+    owner.source_recording_stage = None;
+    let generation = owner.host.advertisement().offer_generation;
+    let resident = owner.resident.clone();
+    assert!(owner
+        .prepare_source_catalog_recovery(&root, 0)
+        .err()
+        .unwrap()
+        .contains("volume limit"));
+    assert_eq!(owner.host.advertisement().offer_generation, generation);
+    assert_eq!(owner.resident, resident);
+    assert!(owner.session.realization().is_none());
+    assert_eq!(std::fs::read_dir(disk).unwrap().count(), 0);
+    std::fs::remove_dir_all(root).unwrap();
+}
