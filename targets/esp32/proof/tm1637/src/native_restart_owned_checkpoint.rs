@@ -84,8 +84,7 @@ impl<T> Job<T> {
     pub(crate) fn owner(&self) -> &SealedBodyLifecycleSession {
         self.owner.as_deref().expect("owned Body")
     }
-    /// Caller performs the canonical authoritative mutation. Even a failed
-    /// closure may have changed state: keep publication fenced and retain self.
+    /// Caller performs an arbitrary mutation; an error may have changed state.
     pub(crate) fn stage(
         &mut self,
         mutate: impl FnOnce(
@@ -99,25 +98,72 @@ impl<T> Job<T> {
         self.staged = true;
         let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
         store.ready = false;
-        let result = (|| {
-            let owner = self.owner.as_deref_mut().ok_or("checkpoint-job-owner")?;
-            let value = mutate(
-                owner,
+        let value = mutate(
+            self.owner.as_deref_mut().ok_or("checkpoint-job-owner")?,
+            store
+                .admissions
+                .as_mut()
+                .ok_or("restart-admissions-missing")?,
+        );
+        match value {
+            Ok(value) => {
+                self.pending_output = Some(value);
+                self.seal_staged()
+            }
+            Err(reason) => {
+                self.phase = Phase::Failed;
+                Err(reason)
+            }
+        }
+    }
+    /// This entrance relies specifically on the Core admission transaction:
+    /// lifecycle_session/membership stages manager/membership privately, and
+    /// biography::MembershipAppend restores original records on every refusal.
+    /// No caller-supplied mutation or assertion of atomicity is accepted.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn stage_invited_host_scope(
+        &mut self,
+        host: conduit_body::SpawnAdmissionHostScope<'_>,
+        proof: &conduit_body::SpawnAdmissionProof,
+        now_millis: u64,
+        authority_host: &conduit_core::HostId,
+        authority_boot: &conduit_core::BootId,
+        map_output: impl FnOnce(&SealedBodyLifecycleSession, conduit_body::MembershipCredential) -> T,
+    ) -> Result<(), &'static str> {
+        if self.phase != Phase::Staging {
+            return Err("checkpoint-job-phase");
+        }
+        let store = self.lease.0.as_mut().ok_or("restart-not-ready")?;
+        let owner = self.owner.as_deref_mut().ok_or("checkpoint-job-owner")?;
+        let credential = owner
+            .admit_invited_host_scope(
                 store
                     .admissions
                     .as_mut()
                     .ok_or("restart-admissions-missing")?,
-            )?;
-            if owner.realization().is_some_and(|r| r.play.is_some()) {
-                owner
-                    .seal_started_membership_history_for_checkpoint()
-                    .map_err(|_| "restart-active-membership-seal")?;
-            }
-            Ok(value)
-        })();
-        let result = result.map(|value| {
-            self.pending_output = Some(value);
-        });
+                host,
+                proof,
+                now_millis,
+                authority_host,
+                authority_boot,
+            )
+            .map_err(|_| "body-membership-admission")?;
+        // Canonical success is the first point at which publication must fence.
+        self.staged = true;
+        store.ready = false;
+        self.pending_output = Some(map_output(owner, credential));
+        self.seal_staged()
+    }
+    fn seal_staged(&mut self) -> Result<(), &'static str> {
+        let owner = self.owner.as_deref_mut().ok_or("checkpoint-job-owner")?;
+        let result = if owner.realization().is_some_and(|r| r.play.is_some()) {
+            owner
+                .seal_started_membership_history_for_checkpoint()
+                .map(|_| ())
+                .map_err(|_| "restart-active-membership-seal")
+        } else {
+            Ok(())
+        };
         self.phase = if result.is_ok() {
             Phase::Prepare
         } else {

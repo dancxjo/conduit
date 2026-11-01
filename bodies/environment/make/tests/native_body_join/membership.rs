@@ -71,7 +71,8 @@ pub(super) fn prove(
     })
     .unwrap();
     let generation = native_restart::generation().unwrap();
-    let boxed = Box::new(owner);
+    let boxed = refuse_owned(Box::new(owner), root, host, &wrong, 101);
+    let boxed = refuse_owned(boxed, root, host, &request, 1001);
     let identity = &*boxed as *const _;
     let mut self_host = request.clone();
     self_host.host_id = host.host_id.clone();
@@ -152,6 +153,8 @@ pub(super) fn prove(
     )
     .is_err());
     assert_eq!(owner.evidence(), &admitted);
+    let boxed = refuse_owned(Box::new(owner), root, host, &request, 102);
+    owner = *boxed;
     let mut boxed = Some(Box::new(owner));
     let parked = native_restart::park_box(&mut boxed, root, &host.host_id, &host.boot_id).unwrap();
     owner = *native_restart::restore_parked(parked, &host.host_id, &host.boot_id, root).unwrap();
@@ -375,4 +378,41 @@ fn owned_membership_physical_failure_retains_unsigned_custody() {
 
     let (owner, request) = prove(owner, &root_key, &host, &signer);
     prove_failed_owned(owner, &root_key, &host, &request);
+}
+
+fn refuse_owned(
+    owner: Box<SealedBodyLifecycleSession>,
+    root: &[u8; 32],
+    host: &c::HostAdvertisement,
+    request: &Request,
+    now: u64,
+) -> Box<SealedBodyLifecycleSession> {
+    let identity = &*owner as *const _;
+    let evidence = owner.evidence().clone();
+    let manager = native_restart::with_admissions(|m| Ok(serde_json::to_vec(m).unwrap())).unwrap();
+    let generation = native_restart::generation();
+    let owner = match native_body_join::membership::begin_owned(
+        owner,
+        root,
+        &host.host_id,
+        &host.boot_id,
+        request,
+        now,
+    ) {
+        Err(native_body_join::membership::OwnedRefusal::Unstaged(owner, reason)) => {
+            assert_eq!(reason, "body-membership-admission");
+            owner
+        }
+        _ => panic!("canonical rejection poisoned durable custody"),
+    };
+    assert_eq!(&*owner as *const _, identity);
+    assert_eq!(owner.evidence(), &evidence);
+    assert_eq!(native_restart::generation(), generation);
+    assert!(native_restart::publication_ready());
+    native_restart::with_admissions(|m| {
+        assert_eq!(serde_json::to_vec(m).unwrap(), manager);
+        Ok(())
+    })
+    .unwrap();
+    owner
 }
