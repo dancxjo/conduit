@@ -2,6 +2,7 @@
 use std::{error::Error, path::Path, process::Command};
 pub(super) fn dispatch(root: &Path, args: &[String]) -> Option<Result<(), Box<dyn Error>>> {
     match args {
+        [name] if name == "quantity-rounding" => Some(quantity_rounding(root)),
         [name] if name == "history" => Some(prove(root)),
         [name] if name == "history-target" => Some(target(root)),
         [name] if name == "history-browser" => Some(browser(root)),
@@ -63,4 +64,51 @@ fn browser(root: &Path) -> Result<(), Box<dyn Error>> {
         "--workers=1",
         "--retries=0",
     ]))
+}
+
+// Exact display rounding only: no Look wire, device or live Host migration.
+fn quantity_rounding(root: &Path) -> Result<(), Box<dyn Error>> {
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--test",
+        "quantity_rounding",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--lib",
+        "--test",
+        "quantity_rounding",
+        "--",
+        "-D",
+        "warnings",
+    ]))?;
+    super::execute(Command::new("cargo").current_dir(root).args([
+        "check",
+        "--locked",
+        "-p",
+        "conduit-face",
+        "--lib",
+        "--target",
+        "wasm32-unknown-unknown",
+    ]))?;
+    for operation in ["test", "clippy"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(root).args([
+            operation,
+            "--locked",
+            "--manifest-path",
+            "plots/seven-segment-mask/Cargo.toml",
+        ]);
+        if operation == "clippy" {
+            command.args(["--all-targets", "--", "-D", "warnings"]);
+        }
+        super::execute(&mut command)?;
+    }
+    Ok(())
 }
