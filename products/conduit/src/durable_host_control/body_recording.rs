@@ -23,7 +23,7 @@ pub(crate) enum RecordingOperation {
     Catalog {
         authority: conduit_core::AuthorityGrant,
     },
-    RecoverCatalog,
+    RecoverCatalog {},
     ReadRecoveredCatalog {
         authority: conduit_core::AuthorityGrant,
     },
@@ -105,7 +105,7 @@ impl DurableHostRuntime {
                 &authority,
                 request.preparation_limit_bytes,
             ),
-            RecordingOperation::RecoverCatalog => owner.start_service_source_catalog_recovery(
+            RecordingOperation::RecoverCatalog {} => owner.start_service_source_catalog_recovery(
                 root,
                 request.maximum_millis,
                 request.preparation_limit_bytes,

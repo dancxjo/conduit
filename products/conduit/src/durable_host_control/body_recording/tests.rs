@@ -11,7 +11,7 @@ fn request(operation: RecordingOperation) -> RecordingRequest {
 }
 #[test]
 fn recording_request_is_closed_and_never_accepts_reference_or_extra_authority_fields() {
-    let value = serde_json::to_value(request(RecordingOperation::RecoverCatalog)).unwrap();
+    let value = serde_json::to_value(request(RecordingOperation::RecoverCatalog {})).unwrap();
     assert!(serde_json::from_value::<RecordingRequest>(value.clone()).is_ok());
     for field in ["reference", "root_directory", "source", "acknowledged"] {
         let mut extra = value.clone();
@@ -38,7 +38,7 @@ fn recording_authentication_refuses_before_any_owner_preparation() {
             Request::BodyRecording {
                 protocol: PROTOCOL,
                 token,
-                request: Box::new(request(RecordingOperation::RecoverCatalog)),
+                request: Box::new(request(RecordingOperation::RecoverCatalog {})),
             },
             &[7; 32],
             &mut runtime,
@@ -151,7 +151,7 @@ mod owned {
                 1024 * 1024 + 1,
             ),
         ] {
-            let mut req = make_request(&runtime, RecordingOperation::RecoverCatalog);
+            let mut req = make_request(&runtime, RecordingOperation::RecoverCatalog {});
             req.expected_body_id = body.into();
             req.expected_boot_id = boot.into();
             req.maximum_millis = millis;
@@ -179,7 +179,7 @@ mod owned {
                 ..
             }
         ));
-        let busy = make_request(&runtime, RecordingOperation::RecoverCatalog);
+        let busy = make_request(&runtime, RecordingOperation::RecoverCatalog {});
         assert!(
             matches!(invoke(&mut runtime,busy),Response::Refused{code,..} if code=="body-play-active")
         );
@@ -214,7 +214,7 @@ mod owned {
                 authority: read.clone(),
             },
             RecordingOperation::Catalog { authority: publish },
-            RecordingOperation::RecoverCatalog,
+            RecordingOperation::RecoverCatalog {},
             RecordingOperation::ReadRecoveredCatalog {
                 authority: read.clone(),
             },
