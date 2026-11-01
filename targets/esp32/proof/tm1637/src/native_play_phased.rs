@@ -13,6 +13,7 @@ impl NativePlay {
         join: &mut Option<ReadyNetworkJoinBase<Provider>>,
         issuer: &mut RootIssuer,
         storage: Option<backing::PhasedStorage>,
+        descriptions_retired: impl FnOnce() -> Result<(), ()>,
         admit: impl FnOnce() -> Result<(), ()>,
     ) -> Result<(), ()> {
         if self.attempted || !self.flat_refusal.is_empty() || source.is_none() || join.is_none() {
@@ -92,6 +93,8 @@ impl NativePlay {
             // unchanged complete Sign grant now, before admission or issuance.
             #[cfg(test)]
             record_phased(0, None);
+            refusal_stage = 118;
+            descriptions_retired()?;
             refusal_stage = 117;
             let storage = backing::complete_phased_storage(storage)?;
             #[cfg(test)]

@@ -838,3 +838,6 @@ mod planner_capacity;
 
 #[path = "network_play_failures.rs"]
 mod installer_capacity;
+
+#[path = "network_floor_reproof.rs"]
+mod floor_reproof;

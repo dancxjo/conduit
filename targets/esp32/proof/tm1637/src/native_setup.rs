@@ -53,13 +53,15 @@ impl NativeRoot {
         window: Option<&WorkspacePermit<'_>>,
         release: bool,
     ) -> &'static [u8] {
-        self.prepare_network_configuration_backed(window, release, None)
+        self.prepare_network_configuration_backed(window, release, None, || Ok(()), || Ok(()))
     }
     fn prepare_network_configuration_backed(
         &mut self,
         window: Option<&WorkspacePermit<'_>>,
         release: bool,
         backing: Option<conduit_network_join_call::PreparedNetworkKernelBacking>,
+        descriptions_retired: impl FnOnce() -> Result<(), ()>,
+        final_capacity: impl FnOnce() -> Result<(), ()>,
     ) -> &'static [u8] {
         if backing.is_some() && window.is_none() {
             return b"network-backing-workspace-required";
@@ -68,7 +70,7 @@ impl NativeRoot {
             return b"body-membership-busy";
         }
         #[cfg(not(feature = "flat-network-appliance"))]
-        let _ = backing;
+        let _ = (backing, descriptions_retired, final_capacity);
         if self.network.retirement.is_some() {
             return b"retirement-evidence-pending";
         }
@@ -122,6 +124,7 @@ impl NativeRoot {
             let result = if window.is_some() {
                 let (ready, recovery) = self.network.ready_and_recovery();
                 let admit = || {
+                    final_capacity()?;
                     if !window.is_some_and(|window| window.held()) {
                         return Err(());
                     }
@@ -130,27 +133,17 @@ impl NativeRoot {
                         .map(|_| ())
                         .map_err(|_| ())
                 };
-                match backing {
-                    Some(storage) => self.play.install_linked_phased_held_with_backing(
-                        &image,
-                        &self.network_source,
-                        c::OfferGeneration(self.offer_generation),
-                        &mut self.credentials,
-                        ready,
-                        &mut self.issuer,
-                        storage,
-                        admit,
-                    ),
-                    None => self.play.install_linked_phased_held(
-                        &image,
-                        &self.network_source,
-                        c::OfferGeneration(self.offer_generation),
-                        &mut self.credentials,
-                        ready,
-                        &mut self.issuer,
-                        admit,
-                    ),
-                }
+                self.play.install_linked_phased_held_with_boundaries(
+                    &image,
+                    &self.network_source,
+                    c::OfferGeneration(self.offer_generation),
+                    &mut self.credentials,
+                    ready,
+                    &mut self.issuer,
+                    backing,
+                    descriptions_retired,
+                    admit,
+                )
             } else {
                 if self
                     .network

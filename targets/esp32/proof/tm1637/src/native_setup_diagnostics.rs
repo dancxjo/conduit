@@ -125,3 +125,15 @@ impl NativeRoot {
         );
     }
 }
+
+/// Final physical backing failed before any attempt or issuer reservation.
+#[cfg(feature = "local-appliance")]
+#[cold]
+#[inline(never)]
+pub(super) fn trace_floor_reproof_refusal(backed: usize, required: usize) {
+    esp_println::println!(
+        "{{\"event\":\"network-floor-reproof-refused\",\"backed_bytes\":{},\"required_bytes\":{}}}",
+        backed,
+        required
+    );
+}

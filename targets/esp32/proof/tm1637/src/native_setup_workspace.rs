@@ -165,8 +165,8 @@ impl NativeRoot {
         }
         // The constructor makes multiple allocations. Its unchanged aggregate
         // envelope is not a request for one contiguous 24KiB block. Protect the
-        // actual 16KiB release floor across small regions while both bounded
-        // preparation and execution-storage admission run above it.
+        // actual16KiB release floor across small regions during descriptions;
+        // re-prove it after final backing under the same exclusive permit.
         let mut floor_allocator = floor_reserve::Global;
         let reserve = match floor_reserve::reserve(&mut floor_allocator) {
             Ok(reserve) => reserve,
@@ -176,10 +176,48 @@ impl NativeRoot {
                 return;
             }
         };
-        let prepared = self.prepare_network_configuration_backed(Some(&permit), false, backing);
+        // The same scheduling permit remains HELD with no await. Retire only
+        // the initial physical guard after descriptions, then re-prove the full
+        // floor after every mandatory execution/issuance allocation and before
+        // attempt admission. The final actual guard survives kernel install.
+        let mut final_allocator = floor_reserve::Global;
+        let mut final_reserve = None;
+        let final_allocator_ref = &mut final_allocator;
+        let final_reserve_ref = &mut final_reserve;
+        let permit_ref = &permit;
+        let prepared = self.prepare_network_configuration_backed(
+            Some(&permit),
+            false,
+            backing,
+            move || {
+                drop(reserve);
+                Ok(())
+            },
+            move || {
+                if !permit_ref.held() {
+                    return Err(());
+                }
+                *final_reserve_ref = Some(floor_reserve::reserve(final_allocator_ref).map_err(
+                    |refused| {
+                        super::diagnostics::trace_floor_reproof_refusal(
+                            refused.backed_bytes,
+                            refused.required_bytes,
+                        );
+                    },
+                )?);
+                Ok(())
+            },
+        );
         #[cfg(feature = "flat-network-appliance")]
-        self.trace_network_phase("prepared-floor-held", baseline_used);
-        drop(reserve);
+        self.trace_network_phase(
+            if final_reserve.is_some() {
+                "prepared-floor-reproved"
+            } else {
+                "prepared-floor-absent"
+            },
+            baseline_used,
+        );
+        drop(final_reserve);
         #[cfg(feature = "network-scan")]
         let scan_prepared = self.scan.is_some();
         #[cfg(not(feature = "network-scan"))]
