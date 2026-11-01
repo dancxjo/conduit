@@ -34,6 +34,8 @@ pub const STEPS: &[Step] = &[
             "prepared_native_optional",
             "--test",
             "prepared_native_decode",
+            "--test",
+            "prepared_native_decode_variants",
             "--",
             "--nocapture",
             "--test-threads=1",

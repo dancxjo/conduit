@@ -60,8 +60,11 @@ pub(super) struct Layout {
 ///
 /// `finish_retained` transfers both the Native value and retained canonical
 /// storage, allowing a zero-deallocation boundary while both remain alive.
-/// Plain `finish` drops canonical storage. Refused finish returns the original
-/// private staging; partial Native values are never published.
+/// Branch-bearing roots return a generated `TPreparedRetained` remainder holding
+/// the gate and all unused preallocated Text buffers; selected buffers move into T.
+/// Both T and its remainder must stay alive across the no-deallocation boundary.
+/// Plain `finish` drops canonical and unused branch storage. Refused finish
+/// returns the original private staging; partial Native values are never published.
 pub fn generate_rust_bindings_with_prepared_storage(
     types: &[CheckedNativeType],
     options: &RustBindingOptions,

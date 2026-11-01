@@ -48,6 +48,32 @@ fn generated_payload_and_optional_storage_compile_and_preserve_all_admission_law
     );
 }
 #[test]
+fn prefixed_enum_root_materializes_optional_records_and_primitives() {
+    let source = format!(
+        "{SOURCE}\ntype Envelope = {{\n flag: Boolean?\n interval: Interval?\n}}\ntype Dispatch =\n empty\n | envelope Envelope\n"
+    );
+    let doc =
+        check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).unwrap();
+    let options = RustBindingOptions {
+        type_prefix: "checked".into(),
+        ..RustBindingOptions::default()
+    };
+    let generated =
+        generate_rust_bindings_with_prepared_storage(&doc.native_types, &options, &["Dispatch"])
+            .unwrap();
+    let exercise = format!(
+        "\nconst SOURCE:&str={source:?};\nmod allocation_probe {{ {} }}\n{}",
+        include_str!("common/allocation_probe.rs"),
+        PREFIXED_EXERCISE
+    );
+    generated_rust::exercise(
+        &generated.source,
+        &exercise,
+        1,
+        "prepared-native-prefixed-variants",
+    );
+}
+#[test]
 fn boxed_sequence_foreign_and_forged_optional_shapes_refuse_generation() {
     let doc = document();
     let mut boxed = RustBindingOptions::default();
@@ -90,7 +116,7 @@ fn boxed_sequence_foreign_and_forged_optional_shapes_refuse_generation() {
         vec![cases[0].clone(), cases[0].clone()]
     )
     .is_err());
-    let foreign = StructuredInfoType::variant(kind_id("unowned/optional"), cases.clone()).unwrap();
+    let foreign = StructuredInfoType::variant(kind_id("unowned/optional"), cases.to_vec()).unwrap();
     let forged = StructuredInfoType::variant(
         kind_id("conduit.conduitese.optional.v1"),
         vec![
@@ -142,7 +168,7 @@ fn value(index:usize)->Holder {
 }
 fn admit<'d>(d:&'d CheckedSyntaxDocument,name:&str,bytes:&[u8])->PreparedNativeAdmission<'d>{
  let id=&d.native_types.iter().find(|n|n.name==name).unwrap().identity;
- let mut a=PreparedNativeAdmission::new(d,id,PreparedNativeBounds{canonical_bytes:16384,scopes:128,invariants:128}).unwrap();
+ let mut a=PreparedNativeAdmission::new(d,id,PreparedNativeBounds{canonical_bytes:16384,scopes:128,invariants:128,contracts:128}).unwrap();
  a.begin(bytes).unwrap();while a.step().unwrap()!=PreparedNativeProgress::Admitted{} a
 }
 #[test]fn all_alternatives_none_some_retain_inactive_buffers_without_growth(){
@@ -196,9 +222,35 @@ fn admit<'d>(d:&'d CheckedSyntaxDocument,name:&str,bytes:&[u8])->PreparedNativeA
  let choice=conduit_core::StructuredInfoValue::variant(Choice::semantic_type().unwrap(),"interval",interval).unwrap();
  let bad=conduit_core::StructuredInfoValue::variant(right.value_type().clone(),"some",choice).unwrap();
  let bytes=conduit_core::StructuredInfoValue::record(Holder::semantic_type().unwrap(),fields.iter().map(|f|conduit_core::StructuredFieldValue::new(f.name(),if f.name()=="right"{bad.clone()}else{f.value().clone()}).unwrap()).collect()).unwrap().canonical_bytes().unwrap();
- let id=&d.native_types.iter().find(|n|n.name=="Holder").unwrap().identity;let mut a=PreparedNativeAdmission::new(&d,id,PreparedNativeBounds{canonical_bytes:16384,scopes:128,invariants:128}).unwrap();a.begin(&bytes).unwrap();
+ let id=&d.native_types.iter().find(|n|n.name=="Holder").unwrap().identity;let mut a=PreparedNativeAdmission::new(&d,id,PreparedNativeBounds{canonical_bytes:16384,scopes:128,invariants:128,contracts:128}).unwrap();a.begin(&bytes).unwrap();
  let failure=loop{match a.step(){Ok(PreparedNativeProgress::Pending)=>(),Ok(_)=>panic!("invalid nested payload law admitted"),Err(e)=>break e}};
  assert!(matches!(failure,PreparedNativeRefusal::Invariant{..}));assert!(a.admitted().is_err());
 }
+}
+"#;
+const PREFIXED_EXERCISE: &str = r#"
+#[global_allocator]
+static ALLOCATOR:allocation_probe::Allocator=allocation_probe::Allocator;
+#[test]fn nested_optional_record_and_primitive_in_enum_root(){
+ use conduit_plot::{*,rust_binding::*};
+ let d=check_syntax_document(&parse_syntax_document(SOURCE),&StartupCatalog::new()).unwrap();
+ let id=&d.native_types.iter().find(|n|n.name=="Dispatch").unwrap().identity;
+ for expected in [CheckedDispatch::Empty,
+  CheckedDispatch::Envelope(CheckedDispatchEnvelope{flag:None,interval:None}),
+  CheckedDispatch::Envelope(CheckedDispatchEnvelope{flag:Some(true),interval:Some(CheckedInterval::new(7,2).unwrap())})] {
+  let bytes=expected.clone().encode().unwrap();
+  let mut admission=PreparedNativeAdmission::new(&d,id,PreparedNativeBounds{canonical_bytes:16384,scopes:128,invariants:128,contracts:128}).unwrap();
+  admission.begin(&bytes).unwrap();while admission.step().unwrap()!=PreparedNativeProgress::Admitted{}
+  let proof=admission.admitted().unwrap();
+  let mut staging=CheckedDispatch::prepare_storage(&d,PreparedDecodeBounds{canonical_bytes:16384,leaf_steps:128,text_bytes:0}).unwrap();
+  let ((actual,retained,steps),growth)=allocation_probe::observe(||{
+   let mut steps=0;loop{steps+=1;if staging.step(&proof).unwrap()==PreparedDecodeProgress::Complete{break;}}
+   let (actual,retained)=match staging.finish_retained(&proof){Ok(v)=>v,Err(_)=>panic!("completion refused")};
+   (actual,retained,steps)
+  });
+  assert_eq!(actual,expected);assert_eq!(steps,CheckedDispatch::PREPARED_STORAGE_LEAF_STEPS);
+  assert_eq!((growth.allocations,growth.reallocations,growth.deallocations),(0,0,0));
+  assert!(retained.canonical_capacity()>=16384);
+ }
 }
 "#;
