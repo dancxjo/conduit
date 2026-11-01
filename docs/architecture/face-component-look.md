@@ -84,6 +84,19 @@ The built-in Phosphor resource has identity `conduit.look/phosphor@1` and versio
 2. The visual facet carries bounded RGB/metric tokens and a checked expression;
 structural breakpoint/grid selection stays with the component/Mask.
 
+Field instrument day/night values are authored once in
+`semantics/face/field-instrument-looks.conduit`. Make retains their canonical
+values and composes reviewed Todo and Patchbay wrapper documents using those
+exact expressions. The wrappers call the existing components with a different
+Look argument; they do not rewrite recipes, Face data or source actions.
+`FIELD_INSTRUMENT_TODO_MASK_SOURCE` and
+`FIELD_INSTRUMENT_PATCHBAY_MASK_SOURCE` expose these documents, with finite root
+lists alongside them. Browser preparation registers those exact documents and
+reconstructs their configuration through the ordinary checked Plan gate;
+unknown documents or a root relabeled to another theme remain refused.
+This supplies prepared presets, not an owner selection, an admitted carrier,
+an acknowledged DOM/scanout occurrence, or a change to the Look wire contract.
+
 [Personal visual proposals](../../semantics/face/LOCAL_LOOKS.md) provide a bounded
 shared data-resolution seam over an authored Look. Omitted expression values
 inherit, repeated keys refuse, and independent accessibility requirements take

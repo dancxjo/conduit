@@ -103,3 +103,61 @@ fn registered_nonvisual_source_recovers_default_without_trusting_unknown_roots()
     absent.capabilities.clear();
     assert!(configured_mask_configuration(&absent, &planned).is_err());
 }
+
+#[test]
+fn field_presets_retain_authored_values_and_existing_recipes_through_revalidation() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    for (source, roots, original) in [
+        (
+            FIELD_INSTRUMENT_TODO_MASK_SOURCE,
+            FIELD_INSTRUMENT_TODO_MASK_ROOTS.as_slice(),
+            TODO_COMPONENT_MASK_SOURCE,
+        ),
+        (
+            FIELD_INSTRUMENT_PATCHBAY_MASK_SOURCE,
+            FIELD_INSTRUMENT_PATCHBAY_MASK_ROOTS.as_slice(),
+            PATCHBAY_COMPONENT_MASK_SOURCE,
+        ),
+    ] {
+        assert!(super::contains(source));
+        let mut source_id = None;
+        for root in roots {
+            assert_eq!(super::for_root(root), Some(source));
+            let (planned, configuration) = configured(source, root);
+            let expected = if root.ends_with("-day") {
+                field_instrument_day_look().unwrap()
+            } else {
+                field_instrument_night_look().unwrap()
+            };
+            assert_eq!(
+                configuration.look.canonical_value(),
+                expected.encode().unwrap()
+            );
+            let original_root = root
+                .replace("field-instrument-day", "compact")
+                .replace("field-instrument-night", "compact");
+            let (_, baseline) = configured(original, &original_root);
+            assert_eq!(configuration.recipe, baseline.recipe);
+            assert_eq!(
+                configuration.component.checked_plot_id,
+                baseline.component.checked_plot_id
+            );
+            assert_eq!(configuration.component.fore_id, baseline.component.fore_id);
+            assert_eq!(
+                configured_mask_configuration(&host(), &planned).unwrap(),
+                Some(configuration.clone())
+            );
+            if root.ends_with("-day") {
+                let mut forged = planned.clone();
+                forged.mask.plot_name = root.replace("-day", "-night");
+                assert!(configured_mask_configuration(&host(), &forged).is_err());
+            }
+            if let Some(previous) = &source_id {
+                assert_eq!(&configuration.component.source_document_id, previous);
+            }
+            source_id = Some(configuration.component.source_document_id);
+        }
+        assert!(!super::contains(&(String::from(source) + "\n")));
+    }
+    assert!(super::for_root("todo-mask-flat-field-instrument-day@2").is_none());
+}
