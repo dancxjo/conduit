@@ -217,6 +217,12 @@ pub(crate) struct Owner {
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
     environmental_face: Option<environmental_face::EnvironmentalFace>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    source_recording_stage: Option<continuing::source_recording_stage::SourceRecordingStage>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
     /// Bounded display cache from an exact selected read Host Call and both
@@ -324,6 +330,12 @@ impl Owner {
             todo_live: None,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             environmental_face: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            source_recording_stage: None,
             todo_verified: None,
             notebook: None,
         })
@@ -356,6 +368,12 @@ impl Owner {
             todo_live: None,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             environmental_face: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            source_recording_stage: None,
             todo_verified: None,
             notebook: None,
         })

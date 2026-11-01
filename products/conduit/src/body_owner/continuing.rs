@@ -21,6 +21,13 @@ const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
 pub(super) mod native;
 #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
 pub(super) use native::SourceSelection;
+#[cfg(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
+#[path = "continuing/source_recording_stage.rs"]
+pub(super) mod source_recording_stage;
 struct WorkerOutcome {
     host: StdHost,
     result: Result<BodyRunReport, String>,

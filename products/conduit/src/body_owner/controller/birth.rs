@@ -120,6 +120,12 @@ impl Owner {
             todo_live: None,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
             environmental_face: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            source_recording_stage: None,
             todo_verified: None,
             notebook: None,
         }

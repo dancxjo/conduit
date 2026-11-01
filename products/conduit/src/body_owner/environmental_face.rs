@@ -311,10 +311,21 @@ impl Owner {
         }) {
             return Err("Source Fore does not belong to current exact native Play".into());
         }
+        // Validate bounded recorder pressure before mutating the projection.
+        // Neither finite custody nor Face delivery is a durable receipt.
+        #[cfg(feature = "installed-body-storage")]
+        if let Some(stage) = self.source_recording_stage.as_ref() {
+            stage.validate(&value).map_err(debug)?;
+        }
         self.environmental_face
             .as_mut()
             .ok_or("Source Face slots unprepared")?
-            .accept(&value, now()?)
+            .accept(&value, now()?)?;
+        #[cfg(feature = "installed-body-storage")]
+        if let Some(stage) = self.source_recording_stage.as_mut() {
+            stage.accept(&value).map_err(debug)?;
+        }
+        Ok(())
     }
     pub(super) fn environmental_contribution(&self) -> Result<Option<FaceFragment>, String> {
         let Some(cache) = &self.environmental_face else {

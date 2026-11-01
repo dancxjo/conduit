@@ -187,6 +187,22 @@ impl NativeRun {
             configuration_id: instrument.source_configuration.configuration_id().into(),
             firmware_sha256: instrument.firmware,
         });
+        #[cfg(feature = "installed-body-storage")]
+        if owner.host.selected_body_storage().is_some() {
+            let body_id = &owner.session.evidence().body_id;
+            match owner.source_recording_stage.as_ref() {
+                Some(stage) => stage.check_selection(body_id, &selection).map_err(debug)?,
+                None => {
+                    owner.source_recording_stage = Some(
+                        super::source_recording_stage::SourceRecordingStage::prepare(
+                            body_id.clone(),
+                            selection.clone(),
+                        )
+                        .map_err(debug)?,
+                    );
+                }
+            }
+        }
         // Do not publish a proposal until its output is associated with the
         // exact independently retained equipment, rather than vector position.
         if owner.environmental_face.is_none() {
