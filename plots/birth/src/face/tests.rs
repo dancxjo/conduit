@@ -446,9 +446,14 @@ fn birth_review_is_current_face_meaning_for_every_mask() {
         filtered
             .subjects
             .iter()
-            .any(|subject| subject.name == "Starting Plot 1")
+            .any(|subject| subject.role == FaceRole::Item && subject.name == "Clock")
     );
-    assert!(filtered.text.iter().any(|text| text.text == "Clock"));
+    assert!(
+        filtered
+            .subjects
+            .iter()
+            .any(|subject| subject.name == "Clock")
+    );
     draft.select(draft.revision(), 0, false).unwrap();
     let changed = draft.host_owned_face(&host_owned_basis()).unwrap();
     assert_ne!(face.identity, changed.identity);
@@ -460,3 +465,9 @@ fn birth_review_is_current_face_meaning_for_every_mask() {
     assert!(detail.text.contains("Starting Plots selected: 0 of 2"));
     assert!(detail.text.contains("Birth: unavailable (EmptySelection)"));
 }
+
+#[path = "collection_profiles_tests.rs"]
+mod collection_profiles;
+
+#[path = "collection_profile_controls.rs"]
+mod collection_profile_controls;

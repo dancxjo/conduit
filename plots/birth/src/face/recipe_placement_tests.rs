@@ -128,7 +128,7 @@ fn assert_fallback(
     }
 }
 #[test]
-fn legacy_missing_typed_facts_keeps_full_fallback_but_does_not_preserve_selection_placement() {
+fn missing_typed_facts_leave_selection_unplaced_and_preserve_full_fallback() {
     for layout in [false, true] {
         for recipe in [
             CrecheComponentRecipe::SingleColumn,
@@ -141,20 +141,18 @@ fn legacy_missing_typed_facts_keeps_full_fallback_but_does_not_preserve_selectio
                     draft.search_plots(draft.revision(), query).unwrap();
                 }
                 let face = legacy_face(draft.host_owned_face(&host_owned_basis()).unwrap());
-                let old = prepare_component_recipe(selection_recipe(&configuration, false), &face)
+                assert!(matches!(
+                    prepare_component_recipe(selection_recipe(&configuration, false), &face),
+                    Err(ComponentRecipeRefusal::SlotCapacity)
+                ));
+                let typed = prepare_component_recipe(selection_recipe(&configuration, true), &face)
                     .unwrap();
-                let proposed =
-                    prepare_component_recipe(selection_recipe(&configuration, true), &face)
-                        .unwrap();
-                assert_eq!(old.reading, proposed.reading);
                 for (index, subject) in face.subjects.iter().enumerate() {
                     if subject.role == FaceRole::Collection {
-                        assert!(old.subject_regions[index].is_some());
-                        assert_eq!(proposed.subject_regions[index], None);
-                    } else {
-                        assert_eq!(old.subject_regions[index], proposed.subject_regions[index]);
+                        assert_eq!(typed.subject_regions[index], None);
                     }
                 }
+                assert_eq!(typed.reading, plan_face_utterances(&face).unwrap());
                 assert_fallback(
                     &configuration,
                     selection_recipe(&configuration, true),
@@ -164,9 +162,8 @@ fn legacy_missing_typed_facts_keeps_full_fallback_but_does_not_preserve_selectio
         }
     }
 }
-
 #[test]
-fn current_typed_choice_facts_preserve_old_role_placement_for_both_documents_and_roots() {
+fn actual_three_profile_source_places_only_independent_inventory_and_preserves_fallback() {
     for layout in [false, true] {
         for recipe in [
             CrecheComponentRecipe::SingleColumn,
@@ -176,13 +173,14 @@ fn current_typed_choice_facts_preserve_old_role_placement_for_both_documents_and
             let authored =
                 ComponentRecipeInfo::from_structured(info(configuration.recipe.canonical_value()))
                     .unwrap();
-            let groups: alloc::vec::Vec<_> =
-                authored.regions().iter().map(|r| *r.group()).collect();
-            let expected_groups = match recipe {
-                CrecheComponentRecipe::SingleColumn => vec![0, 0, 0, 0, 0, 0],
-                CrecheComponentRecipe::ResponsiveColumns => vec![0, 0, 1, 1, 1, 2],
-            };
-            assert_eq!(groups, expected_groups);
+            let selection = authored
+                .regions()
+                .iter()
+                .position(|r| r.identity() == "selection")
+                .unwrap();
+            assert!(
+                matches!(authored.regions()[selection].selector(), ComponentSubjectSelector::Collection(binding) if binding.mode() == "independent" && *binding.maximum_items() == 16)
+            );
             assert_eq!(
                 authored
                     .regions()
@@ -191,90 +189,78 @@ fn current_typed_choice_facts_preserve_old_role_placement_for_both_documents_and
                     .collect::<alloc::vec::Vec<_>>(),
                 vec![1, 1, 1, 1, 16, 20]
             );
+            let expected_groups = if recipe == CrecheComponentRecipe::SingleColumn {
+                vec![0, 0, 0, 0, 0, 0]
+            } else {
+                vec![0, 0, 1, 1, 1, 2]
+            };
+            assert_eq!(
+                authored
+                    .regions()
+                    .iter()
+                    .map(|r| *r.group())
+                    .collect::<alloc::vec::Vec<_>>(),
+                expected_groups
+            );
             if let Some(layout) = &configuration.layout {
                 let structure =
                     ComponentLayoutInfo::from_structured(info(layout.canonical_value())).unwrap();
                 assert_eq!(
                     structure.candidates().len(),
-                    match recipe {
-                        CrecheComponentRecipe::SingleColumn => 1,
-                        CrecheComponentRecipe::ResponsiveColumns => 2,
+                    if recipe == CrecheComponentRecipe::SingleColumn {
+                        1
+                    } else {
+                        2
                     }
                 );
             }
-            assert!(
-                matches!(authored.regions().iter().find(|r|r.identity()=="selection").unwrap().selector(),
-                ComponentSubjectSelector::Collection(binding) if binding.mode()=="independent" && *binding.maximum_items()==16)
-            );
             for query in ["", "Clock", "Speaker", "none"] {
                 let mut draft = draft();
                 if !query.is_empty() {
                     draft.search_plots(draft.revision(), query).unwrap();
                 }
                 let face = draft.host_owned_face(&host_owned_basis()).unwrap();
-                let old = prepare_component_recipe(selection_recipe(&configuration, false), &face)
-                    .unwrap();
-                let typed = prepare_component_recipe(selection_recipe(&configuration, true), &face)
-                    .unwrap();
-                assert_eq!(
-                    old.subject_regions, typed.subject_regions,
-                    "query={query:?} layout={layout}"
-                );
-                assert_eq!(old.reading, typed.reading);
+                let before = face.clone();
+                assert!(matches!(
+                    prepare_component_recipe(selection_recipe(&configuration, false), &face),
+                    Err(ComponentRecipeRefusal::SlotCapacity)
+                ));
                 let actual =
                     prepare_component_recipe(info(configuration.recipe.canonical_value()), &face)
                         .unwrap();
+                let typed = prepare_component_recipe(selection_recipe(&configuration, true), &face)
+                    .unwrap();
                 assert_eq!(actual.subject_regions, typed.subject_regions);
+                assert_eq!(actual.reading, plan_face_utterances(&face).unwrap());
+                let mut collections = 0;
+                for (index, subject) in face
+                    .subjects
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, s)| s.role == FaceRole::Collection)
+                {
+                    collections += 1;
+                    let independent = face.properties.iter().any(|p| {
+                        p.subject == subject.identity
+                            && p.name == "choice-multiplicity"
+                            && p.value == FacePropertyValue::Text("independent".into())
+                    });
+                    assert_eq!(
+                        actual.subject_regions[index],
+                        independent.then_some(selection)
+                    );
+                }
+                assert_eq!(collections, 3);
                 assert_fallback(
                     &configuration,
                     info(configuration.recipe.canonical_value()),
                     &face,
                 );
-                for collection in face
-                    .subjects
-                    .iter()
-                    .filter(|s| s.role == FaceRole::Collection)
-                {
-                    let members: alloc::vec::Vec<_> = face
-                        .relationships
-                        .iter()
-                        .filter(|r| {
-                            r.source == collection.identity
-                                && r.kind == FaceRelationshipKind::Contains
-                        })
-                        .collect();
-                    assert!(
-                        face.properties
-                            .iter()
-                            .any(|p| p.subject == collection.identity
-                                && p.name == "choice-multiplicity"
-                                && p.value == FacePropertyValue::Text("independent".into()))
-                    );
-                    assert!(
-                        face.properties
-                            .iter()
-                            .any(|p| p.subject == collection.identity
-                                && p.name == "item-count"
-                                && p.value == FacePropertyValue::Count(members.len() as u64))
-                    );
-                    for (index, member) in members.iter().enumerate() {
-                        assert!(face.properties.iter().any(|p| p.subject == member.target
-                            && p.name == "order"
-                            && p.value == FacePropertyValue::Count(index as u64)));
-                    }
-                }
-                // Complete original facts/actions are borrowed by either recipe;
-                // this is structural admission, not execution or pixel geometry.
-                assert_fallback(
-                    &configuration,
-                    selection_recipe(&configuration, true),
-                    &face,
-                );
+                assert_eq!(face, before);
             }
         }
     }
 }
-
 #[test]
 fn maximum_current_inventory_keeps_complete_structural_placement_and_reading() {
     let choices = (0..conduit_body::MAX_BODY_PLOTS)
@@ -305,13 +291,14 @@ fn maximum_current_inventory_keeps_complete_structural_placement_and_reading() {
             CrecheComponentRecipe::ResponsiveColumns,
         ] {
             let configuration = configuration(layout, recipe);
-            let old =
-                prepare_component_recipe(selection_recipe(&configuration, false), &face).unwrap();
+            assert!(matches!(
+                prepare_component_recipe(selection_recipe(&configuration, false), &face),
+                Err(ComponentRecipeRefusal::SlotCapacity)
+            ));
             let actual =
                 prepare_component_recipe(info(configuration.recipe.canonical_value()), &face)
                     .unwrap();
-            assert_eq!(old.subject_regions, actual.subject_regions);
-            assert_eq!(old.reading, actual.reading);
+            assert_eq!(actual.reading, plan_face_utterances(&face).unwrap());
             assert_fallback(
                 &configuration,
                 info(configuration.recipe.canonical_value()),
