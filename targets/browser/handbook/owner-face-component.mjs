@@ -84,6 +84,17 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     look.rel = 'stylesheet';
     look.href = new URL('./owner-face-look.css', import.meta.url).href;
     this.#surface = document.createElement('div');
+    this.#surface.addEventListener('focusin', event => {
+      const control = event.target;
+      if (!control.dataset.ownerFocus) return;
+      const visibleControl = control.matches('input[type=radio]') ? control.closest('label') : control;
+      if (!this.#reachable(control, visibleControl)) return;
+      // Native focus can begin a CSS smooth scroll. Enter may arrive before
+      // that scroll exposes the control, so settle its ordinary focus path
+      // before activation checks the current pointer geometry. Occlusion and
+      // interaction authority are still checked independently at dispatch.
+      visibleControl.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+    });
     shadow.append(look, this.#surface);
   }
   disconnectedCallback() {

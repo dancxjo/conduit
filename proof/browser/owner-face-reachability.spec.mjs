@@ -184,3 +184,34 @@ for (const scope of ['none', 'shadow', 'document', 'pointer-transparent']) {
     expect(calls[0]).toEqual({ view: active, action: active.actions[0], arguments: [{ name: 'text', value: 'Bounded draft' }] });
   });
 }
+
+for (const behavior of ['auto', 'smooth']) {
+  test(`native keyboard submission during focus scrolling (${behavior})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ view, behavior }) => {
+      const { ownerFacePointerReachable } = await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.documentElement.style.scrollBehavior = behavior;
+      const before = document.createElement('div'); before.style.height = '1800px';
+      const after = document.createElement('div'); after.style.height = '1800px';
+      const element = document.createElement('conduit-owner-face');
+      document.body.replaceChildren(before, element, after); globalThis.calls = [];
+      element.show({ ...view, show_state: 'available', interactions_admitted: true },
+        { invoke: async call => globalThis.calls.push(call) });
+      const link = element.shadowRoot.querySelector('link');
+      if (!link.sheet) await new Promise(resolve => link.addEventListener('load', resolve, { once: true }));
+      element.shadowRoot.querySelector('input').value = 'Keyboard draft';
+      const button = element.shadowRoot.querySelector('button');
+      button.form.addEventListener('submit', () => {
+        const bounds = button.getBoundingClientRect();
+        globalThis.guardDiagnostic = { reachable: ownerFacePointerReachable(button),
+          top: bounds.top, bottom: bounds.bottom, scrollY,
+          hit: document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)?.tagName };
+      }, { capture: true });
+      window.scrollTo({ top: 3500, behavior: 'instant' });
+    }, { view, behavior });
+    await page.getByRole('button', { name: 'Add item', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    const result = await page.evaluate(() => ({ calls: globalThis.calls.length, diagnostic: globalThis.guardDiagnostic }));
+    expect(result, JSON.stringify(result)).toMatchObject({ calls: 1 });
+  });
+}
