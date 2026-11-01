@@ -37,7 +37,7 @@ impl conduit_tm1637_wire::OpenDrain for Provider {
 pub fn ready(pins: Rc<Pins>) -> ReadyRenderer<Provider> {
     ready_with_resource_bytes(pins, 4096)
 }
-pub fn ready_with_resource_bytes(pins: Rc<Pins>, resource_bytes: u32) -> ReadyRenderer<Provider> {
+pub fn ready_with_resource_bytes(pins: Rc<Pins>, resource_bytes: u64) -> ReadyRenderer<Provider> {
     let identity = RendererIdentity {
         host_id: "fixture/mask-host".into(),
         boot_id: "fixture/mask-boot".into(),
