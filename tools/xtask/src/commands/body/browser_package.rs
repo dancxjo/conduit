@@ -34,7 +34,6 @@ impl std::error::Error for BrowserFabricationRefusal {}
 const MAXIMUM_OWNER_STATUS_BYTES: u64 = 2 * 1024 * 1024;
 const MAXIMUM_INVITATION_BYTES: u64 = 64 * 1024;
 fn read_owner_response(reader: impl std::io::Read, action: &str) -> Result<Value> {
-    use std::io::Read;
     let maximum = if action == "status" {
         MAXIMUM_OWNER_STATUS_BYTES
     } else {
