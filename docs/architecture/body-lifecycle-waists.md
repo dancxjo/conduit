@@ -87,6 +87,7 @@ key as well as the request. Transport acceptance is not completion. A failed or 
 
 Renamed biographies use `biography-evidence@3`, which older writers reject;
 existing v2 evidence retains its original name without synthetic rename events.
+Retain a v3-capable recovery artifact before applying the first rename.
 Name-history compaction preserves the latest rename in the active window and
 moves older records into digest-linked v3 archive segments. Face producers
 project the committed name using prepared storage, without changing observations
