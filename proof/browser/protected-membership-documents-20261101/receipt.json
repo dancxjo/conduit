@@ -1,0 +1,16 @@
+{
+  "rust_source": "bedf2b5b73995d8edab7dc2eff0e1c61775951b1",
+  "js_source": "3491a37b403ae8413ac4051caae92b9b4c0915fb",
+  "rust_source_unchanged_after_test": true,
+  "rust_tests": 8,
+  "js_tests": 47,
+  "cache_released": true,
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "2"
+  },
+  "scope": "Local synthetic extent, controlled protected-memory transport, JS membership/staging regression. No actual browser advertisement/WASM/live owner service join or actual workspace admission proof."
+}
