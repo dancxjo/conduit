@@ -320,48 +320,83 @@ fn refused_start_and_missing_custody_never_write_or_deliver() {
             .is_err());
         assert!(fore.0.is_empty());
         assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+        // The single original pool unit must have been released on callback
+        // refusal. Re-admission succeeds without a second or enlarged grant.
+        let report = host
+            .run_body_plan_with_snapshot_to_with_start(
+                BodyRunRequest {
+                    wake: &wake,
+                    plan: &body,
+                    control: &control,
+                    keyboard: None,
+                },
+                BodyForeExchange {
+                    inputs: &inputs(CONTENT),
+                    output: &mut fore,
+                },
+                BodySnapshotSelection {
+                    directory: &directory,
+                    resource: &resource,
+                    authority: &grant,
+                    body_id: &body.body_id,
+                    plan_id: &body.plan_id,
+                },
+                &mut Vec::new(),
+                &mut ThreadTimer,
+                |_, _| Ok(()),
+            )
+            .unwrap();
+        assert_eq!(report.terminal, TerminalDisposition::Completed);
+        assert!(report.failure.is_none());
+        assert_eq!(fore.0.len(), 1);
     });
 }
 #[test]
 fn foreign_grant_refuses_before_start() {
     thread(|| {
-        let root = tempfile::tempdir().unwrap();
-        let directory =
-            SnapshotDirectory::prepare(std::fs::File::open(root.path()).unwrap()).unwrap();
-        let (mut host, plan, resource, mut grant, _) = planned(true);
-        let (wake, body) = body_plan(plan);
-        grant.boot_id = "boot/foreign".into();
-        let mut fore = CapturedFore::default();
-        let control = RunControl::default();
-        let mut started = false;
-        let result = host.run_body_plan_with_snapshot_to_with_start(
-            BodyRunRequest {
-                wake: &wake,
-                plan: &body,
-                control: &control,
-                keyboard: None,
-            },
-            BodyForeExchange {
-                inputs: &inputs(CONTENT),
-                output: &mut fore,
-            },
-            BodySnapshotSelection {
-                directory: &directory,
-                resource: &resource,
-                authority: &grant,
-                body_id: &body.body_id,
-                plan_id: &body.plan_id,
-            },
-            &mut Vec::new(),
-            &mut ThreadTimer,
-            |_, _| {
-                started = true;
-                Ok(())
-            },
-        );
-        assert!(result.is_err());
-        assert!(!started);
-        assert!(fore.0.is_empty());
-        assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+        for wrong_boot in [true, false] {
+            let root = tempfile::tempdir().unwrap();
+            let directory =
+                SnapshotDirectory::prepare(std::fs::File::open(root.path()).unwrap()).unwrap();
+            let (mut host, plan, resource, mut grant, _) = planned(true);
+            let (wake, body) = body_plan(plan);
+            if wrong_boot {
+                grant.boot_id = "boot/foreign".into();
+            } else {
+                grant.grant_id = "grant/not-selected".into();
+            }
+            let mut fore = CapturedFore::default();
+            let control = RunControl::default();
+            let mut started = false;
+            let result = host.run_body_plan_with_snapshot_to_with_start(
+                BodyRunRequest {
+                    wake: &wake,
+                    plan: &body,
+                    control: &control,
+                    keyboard: None,
+                },
+                BodyForeExchange {
+                    inputs: &inputs(CONTENT),
+                    output: &mut fore,
+                },
+                BodySnapshotSelection {
+                    directory: &directory,
+                    resource: &resource,
+                    authority: &grant,
+                    body_id: &body.body_id,
+                    plan_id: &body.plan_id,
+                },
+                &mut Vec::new(),
+                &mut ThreadTimer,
+                |_, _| {
+                    started = true;
+                    Ok(())
+                },
+            );
+            assert!(result.is_err());
+            assert!(!started);
+            assert!(fore.0.is_empty());
+            assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+        }
     });
 }
