@@ -472,6 +472,9 @@ pub fn initialize(region: BodyRegion, compiled: BodyBiographyEvidence) -> Result
 // optional cold optimization at each publication boundary, not just first boot.
 #[inline(never)]
 fn compact_admission_storage(admissions: &mut AdmissionManager) {
+    // Decoding gives equal immutable identities independent backing. Reuse the
+    // manager's existing owners without retiring records or changing wire data.
+    admissions.share_equal_identity_storage();
     if admissions.try_compact_storage().is_err() {
         // Capacity pressure must not discard valid metadata or block otherwise
         // admissible local work. Later workset bounds remain unchanged.
