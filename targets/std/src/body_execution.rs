@@ -322,6 +322,7 @@ impl StdHost {
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             None,
             None,
+            false,
             started,
         )
     }
@@ -346,6 +347,7 @@ impl StdHost {
             BodySnapshotSelection<'a>,
         >,
         durable_state: Option<BodyDurableStateSelection<'a>>,
+        borrowed_fore: bool,
         mut started: F,
     ) -> Result<BodyRunReport, String>
     where
@@ -386,25 +388,7 @@ impl StdHost {
         // a preparation refusal leaves the Host sequence untouched.
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
-        let prepare_kernel = |issued: Option<&BodyPlayIdentity>| {
-            if let Some(selection) = durable_state.as_ref() {
-                let issued = issued.ok_or("Body State needs an actually issued Play")?;
-                let mut kernel = BodyKernel::prepare_durable_on_host(
-                    &request.plan.plots,
-                    request.keyboard.is_some(),
-                    issued,
-                    fore_inputs,
-                    sequential_fore,
-                    has_fore_output,
-                    &self.advertisement,
-                    #[cfg(target_os = "linux")]
-                    self.selected_text_file.as_ref(),
-                    selection,
-                )?;
-                kernel.prepare_input_origin(&self.advertisement, request.plan, issued)?;
-                kernel.require_supported_execution()?;
-                return Ok(kernel);
-            }
+        let mut prepared_kernel = if durable_state.is_none() {
             let mut kernel = if let Some((queue, _)) = &live {
                 BodyKernel::prepare_live_on_host(
                     &request.plan.plots,
@@ -446,10 +430,7 @@ impl StdHost {
                 kernel.attach_snapshot(&request.plan.plots, selection, &prospective_play)?;
             }
             kernel.require_supported_execution()?;
-            Ok::<_, String>(kernel)
-        };
-        let mut prepared_kernel = if durable_state.is_none() {
-            Some(prepare_kernel(None)?)
+            Some(kernel)
         } else {
             None
         };
@@ -473,8 +454,34 @@ impl StdHost {
             }
             let mut kernel = match prepared_kernel.take() {
                 Some(kernel) => kernel,
-                None => prepare_kernel(Some(&play))?,
+                None => {
+                    let selection = durable_state
+                        .as_ref()
+                        .ok_or("Body State selection absent")?;
+                    let mut kernel = BodyKernel::prepare_durable_on_host(
+                        &request.plan.plots,
+                        request.keyboard.is_some(),
+                        &play,
+                        fore_inputs,
+                        sequential_fore,
+                        has_fore_output,
+                        &self.advertisement,
+                        #[cfg(target_os = "linux")]
+                        self.selected_text_file.as_ref(),
+                        selection,
+                    )?;
+                    kernel.prepare_input_origin(&self.advertisement, request.plan, &play)?;
+                    #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
+                    if let Some(snapshot) = snapshots {
+                        kernel.attach_snapshot(&request.plan.plots, snapshot, &play)?;
+                    }
+                    kernel.require_supported_execution()?;
+                    kernel
+                }
             };
+            if borrowed_fore {
+                kernel.prepare_borrowed_fore()?;
+            }
             kernel.confirm_input_play(&self.advertisement, &play)?;
             #[cfg(all(feature = "linux-snapshot", target_os = "linux"))]
             kernel.confirm_snapshot_play(&play)?;
