@@ -249,6 +249,8 @@ mod tests {
     #[test]
     fn insufficient_candidate_disk_or_preparation_refuses_without_filesystem_effect() {
         let root = tempfile::tempdir().unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
         let mut limits = bounds();
         limits.total_disk_bytes = 1;
         assert!(
