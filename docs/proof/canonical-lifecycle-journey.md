@@ -137,6 +137,14 @@ bounds must be programmable through ordinary checked source. Reuse existing
 measurement and graph contracts where their meaning fits; illustrative names
 such as `environment/current-temperature` are not new canonical Kind identities.
 
+Keep the operation/value boundary open until the real provider contracts are
+examined. The preferred direction is an observe/sample operation producing typed
+observations: temperature is a semantic quantity, while observe, sample, publish
+and retain describe operations. Do not preselect a temperature-specific Gear
+Kind, or claim one general sampling contract can hide different device timing,
+failures, available quantities or provenance. Compare existing observation and
+quantity contracts before settling the exact Kind and Fore.
+
 For each real device, retain the chain: checked Host configuration → selected
 Base/provider implementation → actual ready offer → exact admitted Plan/Play →
 typed observation provenance → authored graph contribution → acknowledged Show.
