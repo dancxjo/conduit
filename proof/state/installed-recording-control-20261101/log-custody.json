@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "local_ignored_logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/browser-owner-component-14d4de02c5.log",
+      "bytes": 4815,
+      "sha256": "0eb4302f49ff0fb8af7a550030f072d92a6a75a5df5904dc654c75f2e37e937e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/control-corrected.log",
+      "bytes": 1068,
+      "sha256": "5abc6d9187eef51a6013d56b6064b510e94f0070575765da6cf1c712a0f44f7d"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/control-default-final.log",
+      "bytes": 15313,
+      "sha256": "db56064e0e34e0e51589cf361098c9ded7911fd9296364ffd9d477256cc027bd"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/control-initial.log",
+      "bytes": 1676,
+      "sha256": "90cf6838aa93d4a78aae063d727d0d8c5815f180dd78b573a7313a72701b241f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/control-merged-14d4de02c5.log",
+      "bytes": 2495,
+      "sha256": "49958d90ddbf5f360b3d2b7dc9fbb2bb4e356596776ebea3655db95b10e1e804"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/control-strict-final.log",
+      "bytes": 1186,
+      "sha256": "ebef8583857d1375b4b582841c32c168a459176d96586540879e5d111a969fcc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/evidence-retention-14d4de02c5.log",
+      "bytes": 338,
+      "sha256": "f1e67176150b97c33be5ad6a844f15ffadbeb43d9bd9d158690ecb5de4b77622"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/recording-control-20261101/merged-owner-release-build.log",
+      "bytes": 1634,
+      "sha256": "4f58b3f3c53d3772617417d53394785c8b8016d61e4e3442dc3d468bc356bf0d"
+    }
+  ]
+}
