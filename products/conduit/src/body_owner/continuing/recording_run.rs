@@ -17,6 +17,7 @@ impl VerifiedSourceSnapshot {
 pub(super) enum RecordingRun {
     Snapshot(SnapshotRun),
     Catalog(super::catalog_run::CatalogRun),
+    Recovery(super::recovery_run::RecoveryRun),
 }
 impl RecordingRun {
     pub(super) fn new(input: SourcePublicationInput) -> Self {
@@ -26,6 +27,20 @@ impl RecordingRun {
         input: source_recording_stage::catalog::SourceCatalogInput,
     ) -> Result<Self, String> {
         super::catalog_run::CatalogRun::new(input).map(Self::Catalog)
+    }
+    pub(super) fn recovery(
+        input: source_recording_stage::recovery::SourceCatalogRecoveryInput,
+    ) -> Result<Self, String> {
+        super::recovery_run::RecoveryRun::new(input).map(Self::Recovery)
+    }
+    pub(super) fn recovered_catalog(
+        &self,
+        report: Option<&BodyRunReport>,
+    ) -> Result<Option<super::recovery_run::RecoveredCatalogReference>, String> {
+        match self {
+            Self::Recovery(run) => run.recovered(report),
+            _ => Ok(None),
+        }
     }
     pub(super) fn execute<W: std::io::Write, T: conduit_std_host::TimerAdapter, F>(
         &mut self,
@@ -41,12 +56,14 @@ impl RecordingRun {
         match self {
             Self::Snapshot(run) => run.execute(host, request, output, timer, started),
             Self::Catalog(run) => run.execute(host, request, output, timer, started),
+            Self::Recovery(run) => run.execute(host, request, output, timer, started),
         }
     }
     pub(super) fn metadata(&self, report: Option<&BodyRunReport>) -> serde_json::Value {
         match self {
             Self::Snapshot(run) => run.metadata(report),
             Self::Catalog(run) => run.metadata(report),
+            Self::Recovery(run) => run.metadata(report),
         }
     }
     pub(super) fn verified_snapshot(
@@ -55,7 +72,7 @@ impl RecordingRun {
     ) -> Option<VerifiedSourceSnapshot> {
         match self {
             Self::Snapshot(run) => run.verified_snapshot(report),
-            Self::Catalog(_) => None,
+            Self::Catalog(_) | Self::Recovery(_) => None,
         }
     }
 }

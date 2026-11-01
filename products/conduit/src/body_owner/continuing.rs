@@ -43,6 +43,13 @@ mod recording_run;
     feature = "installed-body-storage",
     target_os = "linux"
 ))]
+#[path = "continuing/recovery_run.rs"]
+pub(super) mod recovery_run;
+#[cfg(all(
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
 #[path = "continuing/source_recording_stage.rs"]
 pub(super) mod source_recording_stage;
 struct WorkerOutcome {
@@ -197,6 +204,30 @@ impl Owner {
             maximum_millis,
             &mut None,
             Some(recording_run::RecordingRun::catalog(input)?),
+        )
+    }
+
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    pub(crate) fn start_service_source_catalog_recovery(
+        &mut self,
+        root: &Path,
+        maximum_millis: u64,
+        preparation_limit_bytes: u64,
+    ) -> Result<RunWorker, String> {
+        if !(1..=MAXIMUM_SERVICE_RUN_MILLIS).contains(&maximum_millis) {
+            return Err("service run duration must be 1..900000 milliseconds".into());
+        }
+        let input = self.prepare_source_catalog_recovery(root, preparation_limit_bytes)?;
+        self.recovered_source_catalog = None;
+        self.start_service_run_inner(
+            root,
+            maximum_millis,
+            &mut None,
+            Some(recording_run::RecordingRun::recovery(input)?),
         )
     }
 
@@ -526,7 +557,9 @@ impl Owner {
         let receipt = {
             let mut receipt = receipt;
             if let Some(publication) = publication {
-                let field = if publication.get("catalog_checkpoint_observed").is_some() {
+                let field = if publication.get("catalog_reference_recovered").is_some() {
+                    "source_catalog_recovery"
+                } else if publication.get("catalog_checkpoint_observed").is_some() {
                     "source_catalog"
                 } else if publication.get("snapshot_readback_completed").is_some() {
                     "source_readback"
@@ -639,6 +672,15 @@ impl RunWorker {
             feature = "installed-body-storage",
             target_os = "linux"
         ))]
+        let recovered = recording
+            .as_ref()
+            .map(|r| r.recovered_catalog(result.as_ref().ok()))
+            .transpose();
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
         let verified = recording
             .as_ref()
             .and_then(|r| r.verified_snapshot(result.as_ref().ok()));
@@ -674,6 +716,17 @@ impl RunWorker {
                 .as_mut()
                 .ok_or("verified Source stage vanished")?
                 .accept_verified_snapshot(verified)?;
+        }
+        #[cfg(all(
+            feature = "installed-environmental-sources",
+            feature = "installed-body-storage",
+            target_os = "linux"
+        ))]
+        if let Some(Some(recovered)) = recovered? {
+            if recovered.binding().body != owner.session.evidence().body_id.as_str() {
+                return Err("recovered catalog belongs to another Body".into());
+            }
+            owner.recovered_source_catalog = Some(recovered);
         }
         Ok(true)
     }

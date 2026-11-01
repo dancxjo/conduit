@@ -223,6 +223,12 @@ pub(crate) struct Owner {
         target_os = "linux"
     ))]
     source_recording_stage: Option<continuing::source_recording_stage::SourceRecordingStage>,
+    #[cfg(all(
+        feature = "installed-environmental-sources",
+        feature = "installed-body-storage",
+        target_os = "linux"
+    ))]
+    recovered_source_catalog: Option<continuing::recovery_run::RecoveredCatalogReference>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
     /// Bounded display cache from an exact selected read Host Call and both
@@ -336,6 +342,12 @@ impl Owner {
                 target_os = "linux"
             ))]
             source_recording_stage: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog: None,
             todo_verified: None,
             notebook: None,
         })
@@ -374,6 +386,12 @@ impl Owner {
                 target_os = "linux"
             ))]
             source_recording_stage: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog: None,
             todo_verified: None,
             notebook: None,
         })

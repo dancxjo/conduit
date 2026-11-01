@@ -126,6 +126,12 @@ impl Owner {
                 target_os = "linux"
             ))]
             source_recording_stage: None,
+            #[cfg(all(
+                feature = "installed-environmental-sources",
+                feature = "installed-body-storage",
+                target_os = "linux"
+            ))]
+            recovered_source_catalog: None,
             todo_verified: None,
             notebook: None,
         }
