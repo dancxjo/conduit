@@ -129,3 +129,37 @@ states. It is neither acquisition time nor UTC. A journal adapter selects
 `RecordingTimestampBasis::ProducerObservation` and uses `append_observed` after
 authenticating the original record and producer context. Recorder receipt time
 and receiver wall time cannot supply missing provenance or replace its clock.
+
+## Exact native Source snapshot content
+
+The optional runtime `source-recording` feature adds
+`source_recording::SourceRecordingSnapshot`. It retains the complete canonical
+`environment/source-observation@1` value, including its 82-byte decimal Form,
+pressure, field support, failure and honest clock coordinates. It does not
+convert that value to the older 21-byte temperature/humidity recording Form.
+Each generation pins one original Body, selected provider/session/configuration,
+firmware and actual native ActivePlay. Recovery requires that independently
+retained expected context; matching names alone confer no authentication.
+
+The JSON content schema is `conduit.environment/source-recording@1`. One immutable
+generation contains at most 16 samples and 4096 total bytes, including context.
+Large contexts reduce sample capacity; they never enlarge the snapshot grant.
+A recording sequence replay is idempotent only with identical canonical bytes.
+Changed replay content, reversed observation time and reversed/reused successful
+source counters refuse while preserving the prior content. Source counters
+remain session-local correlation; reported source milliseconds remain untrusted.
+Encoding and recovery allocate during bounded preparation, outside kernel Steps.
+
+This is content preparation only. Existing Resource publication and catalog State
+can name the snapshot, but Root must still admit the actual directory, storage,
+capability, authority, work and Body-lived State and execute the selected Back.
+`SourceRecordingSnapshot::content` and generic catalog construction establish no
+kernel output commit or durable acknowledgement. A selected recorder must bind
+exact content to its actual committed publication before catalog/State commitment.
+
+The focused Linux `source_recording_snapshot` test publishes through the actual
+`SnapshotDirectory` / `PreparedFileSnapshot` implementation and reopens the exact
+bytes in a fresh child process. It checks foreign authority and occupied generation
+refusal. Admission and grants are fixtures; it proves synced immutable file
+publication and semantic recovery, not installed Body selection, kernel commit,
+MCU membership, retirement acknowledgement or overnight operation.
