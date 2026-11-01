@@ -575,3 +575,17 @@ impl NativeRoot {
         "cpu-network-uninstalled"
     }
 }
+
+// This fixture exercises the actual local Face/Mask workers, not remote Face
+// export/signing. An uninhabited draft prevents fabricating signing authority.
+pub(crate) mod face_export {
+    pub(crate) enum Draft {}
+    impl Draft {
+        pub(crate) fn root(&self) -> &[u8; 32] {
+            match *self {}
+        }
+        pub(crate) fn transcript(&self) -> [u8; 32] {
+            match *self {}
+        }
+    }
+}
