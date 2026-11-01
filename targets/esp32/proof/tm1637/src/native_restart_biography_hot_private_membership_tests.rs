@@ -40,6 +40,18 @@ fn prove_private_membership(pressure: bool) {
     let original_network = resident.network.as_ref().map(|n| *n.bytes());
     let original_layouts = serde_json::to_vec(&resident.layouts).unwrap();
     crate::native_restart::initialize(region.clone(), resident.retained.evidence).unwrap();
+    crate::native_restart::with_store(|store| {
+        let manager = store.admissions.as_mut().ok_or("private-manager-missing")?;
+        let before = serde_json::to_vec(&*manager).unwrap();
+        let usage = manager.storage_usage();
+        let (_, memory) = crate::allocation_probe::observe(|| manager.share_equal_identity_storage());
+        assert_eq!(memory.allocations + memory.reallocations, 0);
+        assert!(serde_json::to_vec(&*manager).unwrap() == before);
+        let (_, repeated) = crate::allocation_probe::observe(|| manager.share_equal_identity_storage());
+        assert_eq!(repeated.allocations + repeated.reallocations + repeated.deallocations, 0);
+        println!("actual_private_decoded_admissions_sharing_cpu64: receipts={} continuity_keys={} freed_allocations={} freed_bytes={} allocations={} wire_unchanged=true no_target_saving_claim=true", usage.receipts.len, usage.continuity_keys.len, memory.deallocations, memory.deallocated_bytes, memory.allocations);
+        Ok(())
+    }).unwrap();
     let retained = crate::native_restart::take_body().unwrap();
     assert!(!retained.pristine);
     let boot: conduit_core::BootId = "boot/copied-real-prefix-join-boot-001".into();
