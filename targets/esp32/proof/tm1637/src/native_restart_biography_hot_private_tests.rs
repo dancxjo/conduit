@@ -1,7 +1,8 @@
 //! Opt-in copied-media proof. Fixture endorsements never leave this CPU test;
 //! this grants no real receiver custody, hardware ACK, or physical timing claim.
 use super::*;
-type CpuMedia = std::sync::Arc<std::sync::Mutex<(Vec<u8>, bool)>>;
+// Explicit CPU-only region alias, preserving each owning fixture's fault fields.
+type CpuMedia = BodyRegion;
 
 pub(super) struct ProfileAccess {
     pub calls: usize,
@@ -18,7 +19,7 @@ impl ProfileAccess {
 }
 impl SectorStorage<BodyRegion> for ProfileAccess {
     fn erase_sector(&mut self, s: &mut BodyRegion, bank: u8, sector: u8) -> Result<(), Refusal> {
-        self.media = Some(s.media.clone());
+        self.media = Some(s.clone());
         let fault = self.fault();
         let n = match fault {
             Some(0) => 0,
@@ -34,7 +35,7 @@ impl SectorStorage<BodyRegion> for ProfileAccess {
         }
     }
     fn program(&mut self, s: &mut BodyRegion, at: u32, bytes: &[u8]) -> Result<(), Refusal> {
-        self.media = Some(s.media.clone());
+        self.media = Some(s.clone());
         let fault = self.fault();
         let n = match fault {
             Some(0) => 0,
@@ -56,7 +57,7 @@ impl SectorStorage<BodyRegion> for ProfileAccess {
         }
     }
     fn read(&mut self, s: &mut BodyRegion, at: u32, out: &mut [u8]) -> Result<(), Refusal> {
-        self.media = Some(s.media.clone());
+        self.media = Some(s.clone());
         if self.fault().is_some() {
             return Err(Refusal::Storage);
         }

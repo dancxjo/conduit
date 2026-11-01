@@ -93,7 +93,8 @@ fn receipt(transaction: &Transaction<LiveScope>) -> payload::wire::Receipt {
     receipt.signature = Hex(key.sign(&receipt.transcript(&root)).to_bytes());
     receipt
 }
-type CpuMedia = std::sync::Arc<std::sync::Mutex<(Vec<u8>, bool)>>;
+// Explicit CPU-only region alias, preserving each owning fixture's fault fields.
+type CpuMedia = BodyRegion;
 struct Access {
     calls: usize,
     fault: Option<(usize, u8)>,
@@ -114,7 +115,7 @@ impl SectorStorage<BodyRegion> for Access {
         bank: u8,
         sector: u8,
     ) -> Result<(), Refusal> {
-        self.media = Some(storage.media.clone());
+        self.media = Some(storage.clone());
         let fault = self.effect();
         let n = match fault {
             Some(0) => 0,
@@ -355,7 +356,7 @@ fn live_cancel_and_nor_cuts_preserve_original_owner_and_reboot_only_complete_sou
                 .as_ref()
                 .unwrap()
                 .bytes();
-            let mut reopened = Checkpoint::open(BodyRegion { media }).unwrap();
+            let mut reopened = Checkpoint::open(media).unwrap();
             let reopened_generation = reopened.generation().unwrap();
             assert!(reopened_generation == generation || reopened_generation == generation + 1);
             let mut seed = PrivateSeed([0; 32]);

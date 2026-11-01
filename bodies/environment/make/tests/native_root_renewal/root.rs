@@ -564,9 +564,6 @@ pub(super) fn prove_fresh_journal_failure_latches() {
     assert!(!native_restart::publication_ready());
 }
 
-#[path = "../../../../../targets/esp32/proof/tm1637/src/native_display_native_offer.rs"]
-mod display_offers;
-
 impl NativeRoot {
     pub(crate) fn membership_busy(&self) -> bool {
         MEMBERSHIP_BUSY.with(|busy| busy.get())
