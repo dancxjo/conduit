@@ -1,7 +1,7 @@
 //! Authenticated local control plane into the durable installed host owner.
 
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt,
+    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt, PortableInvitation,
     PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_body::{
@@ -111,7 +111,6 @@ pub(crate) mod direct_spoken {
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
 pub(crate) use body::local_wardrobe;
-pub(crate) use body::start_browser_window;
 #[cfg(unix)]
 pub(crate) use body::submit_attached_terminal_interaction;
 use body::HostSource;
@@ -125,6 +124,7 @@ pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
     local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
 };
+pub(crate) use body::{start_browser_window, start_invited_browser_window};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -986,6 +986,11 @@ enum Request {
         token: Vec<u8>,
         request: Box<PortableSpawnAdmissionRequest>,
     },
+    BodyBrowserInviteStart {
+        protocol: u16,
+        token: Vec<u8>,
+        maximum_millis: u64,
+    },
     BodyBrowserStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1276,6 +1281,12 @@ enum Response {
     BodyAdmitted {
         protocol: u16,
         receipt: Box<conduit_body::PortableAdmissionReceipt>,
+    },
+    BodyBrowserInvitationWindow {
+        protocol: u16,
+        invitation: Box<PortableInvitation>,
+        authorization: crate::durable_host::owner::BrowserWindowAuthorization,
+        url: String,
     },
     BodyBrowserWindow {
         protocol: u16,
@@ -1916,6 +1927,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInvite { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
+        | Request::BodyBrowserInviteStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
         | Request::BodyBrowserComplete { token, .. }
         | Request::BodyBrowserOffer { token, .. }
@@ -2078,6 +2090,21 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 receipt: Box::new(receipt),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyBrowserInviteStart {
+            protocol,
+            maximum_millis,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .start_invited_browser_window(maximum_millis)
+            .map(
+                |(invitation, authorization, url)| Response::BodyBrowserInvitationWindow {
+                    protocol: PROTOCOL,
+                    invitation: Box::new(invitation),
+                    authorization,
+                    url,
+                },
+            )
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyBrowserStart {
             protocol,

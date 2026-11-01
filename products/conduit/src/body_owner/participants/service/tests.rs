@@ -360,3 +360,6 @@ mod invited_tests;
 
 #[path = "signed_receipt_tests.rs"]
 mod signed_receipt_tests;
+
+#[path = "invitation_scope_tests.rs"]
+mod invitation_scope_tests;

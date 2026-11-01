@@ -450,9 +450,12 @@ pub(crate) enum BodyCommand {
         /// Installed Host state whose running service owns the Body.
         #[arg(long)]
         state_dir: PathBuf,
+        /// Authorize one newly issued invitation, binding its first valid fresh browser.
+        #[arg(long, conflicts_with_all = ["expected_host_id", "new_host_verifying_key"])]
+        invited: bool,
         /// Exact Host ID shown by the browser's "Join an owned Body" view.
-        #[arg(long)]
-        expected_host_id: String,
+        #[arg(long, required_unless_present = "invited")]
+        expected_host_id: Option<String>,
         /// JSON byte array copied from the browser for first admission; omit on return.
         #[arg(long)]
         new_host_verifying_key: Option<String>,
@@ -968,6 +971,58 @@ mod public_surface_tests {
             "--selected-todo-checkpoint-root",
             "/existing/checkpoint",
             "--without-selected-todo-checkpoint",
+        ]))
+        .is_err());
+    }
+    #[test]
+    fn browser_window_keeps_exact_host_mode_and_explicit_invitation_mode_disjoint() {
+        let base = [
+            "conduit",
+            "body",
+            "browser-window",
+            "--state-dir",
+            "/tmp/host",
+        ];
+        assert!(Cli::try_parse_from(base).is_err());
+        let exact = Cli::try_parse_from(base.into_iter().chain([
+            "--expected-host-id",
+            "browser/test",
+            "--authorize-window",
+        ]))
+        .unwrap();
+        assert!(matches!(
+            exact.command,
+            Some(Command::Body {
+                command: Some(BodyCommand::BrowserWindow {
+                    invited: false,
+                    expected_host_id: Some(_),
+                    ..
+                })
+            })
+        ));
+        let invited =
+            Cli::try_parse_from(base.into_iter().chain(["--invited", "--authorize-window"]))
+                .unwrap();
+        assert!(matches!(
+            invited.command,
+            Some(Command::Body {
+                command: Some(BodyCommand::BrowserWindow {
+                    invited: true,
+                    expected_host_id: None,
+                    ..
+                })
+            })
+        ));
+        assert!(Cli::try_parse_from(base.into_iter().chain([
+            "--invited",
+            "--expected-host-id",
+            "browser/test"
+        ]))
+        .is_err());
+        assert!(Cli::try_parse_from(base.into_iter().chain([
+            "--invited",
+            "--new-host-verifying-key",
+            "[]"
         ]))
         .is_err());
     }
