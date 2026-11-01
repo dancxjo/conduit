@@ -196,6 +196,16 @@ fn unconfigured_mask_explicitly_refuses_personal_look() {
 #[test]
 #[ignore = "requires retained real Faces and their checked personal browser views"]
 fn identical_personal_resources_select_identical_native_and_browser_looks() {
+    qualify_personal_pairing(false);
+}
+
+#[test]
+#[ignore = "requires retained real Faces and their checked personal corner browser views"]
+fn personal_corners_prepare_real_faces_with_matching_browser_bytes_and_canonical_graphics() {
+    qualify_personal_pairing(true);
+}
+
+fn qualify_personal_pairing(corners: bool) {
     use conduit_conduitos_mask_offer::{
         NativeMaskStorageProfile, native_layout_host_advertisement,
         prepare_layout_component_document,
@@ -219,12 +229,29 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
         NativeMaskStorageProfile::Standard,
     );
     let preferences = NativeLookPreferences {
-        local: Some(local(vec![
-            LocalLookVisualOverride::TypeBodyPx(20),
-            LocalLookVisualOverride::SpacePanelPx(0),
-        ])),
+        local: Some(local(if corners {
+            vec![
+                LocalLookVisualOverride::TypeBodyPx(20),
+                LocalLookVisualOverride::TypeSmallPx(18),
+                LocalLookVisualOverride::RadiusControlPx(20),
+                LocalLookVisualOverride::RadiusPanelPx(20),
+            ]
+        } else {
+            vec![
+                LocalLookVisualOverride::TypeBodyPx(20),
+                LocalLookVisualOverride::SpacePanelPx(0),
+            ]
+        })),
         minimum_contrast: LocalLookContrast::Standard,
     };
+    let suffix = if corners {
+        "personal-corners"
+    } else {
+        "personal"
+    };
+    let mut preparations = 0;
+    let mut comparisons = 0;
+    let mut explicit_rectangles = 0;
     for component in ["todo-component-flat", "creche-component-columns"] {
         for theme in ["day", "night"] {
             let (_, configuration) = prepare_layout_component_document(
@@ -271,7 +298,7 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
                     let bytes = std::fs::read(
                         counterpart
                             .join(name)
-                            .join(alloc::format!("{browser}-{theme}-personal.json")),
+                            .join(alloc::format!("{browser}-{theme}-{suffix}.json")),
                     )
                     .unwrap();
                     let view: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
@@ -285,17 +312,40 @@ fn identical_personal_resources_select_identical_native_and_browser_looks() {
                         selected, browser_selected,
                         "{name}/{component}/{browser}/{theme}"
                     );
+                    comparisons += 1;
                 }
                 for details in [false, true] {
                     scene.show_details(details);
                     for _ in 0..scene.pages() {
-                        assert!(scene.frame().unwrap().hits.is_empty());
+                        let frame = scene.frame().unwrap();
+                        assert!(frame.hits.is_empty());
+                        let encoded = frame.scene.encode();
+                        assert_eq!(
+                            conduit_face::GraphicsScene::decode(
+                                &encoded[..frame.scene.encoded_len()]
+                            ),
+                            Ok(frame.scene),
+                        );
+                        if corners {
+                            for command in frame.scene.commands() {
+                                if let Some(metrics) = command.rect_metrics() {
+                                    assert_eq!(metrics, (20, 1));
+                                    explicit_rectangles += 1;
+                                }
+                            }
+                        }
                         scene.turn_page(true);
                     }
                 }
                 assert_eq!(scene.face(), &export.face);
+                preparations += 1;
             }
         }
+    }
+    assert_eq!(preparations, 8);
+    assert_eq!(comparisons, 16);
+    if corners {
+        assert!(explicit_rectangles > 0);
     }
 }
 

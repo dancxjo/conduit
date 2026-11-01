@@ -104,3 +104,13 @@ selection. Invalid local resolution cannot draw or acknowledge a usable Show.
 CPU pixel writes and matched canonical native/browser selections are software
 evidence; physical output, complete accessibility and Host deployment require
 their own qualification. Appearance UI and durable preferences are not added.
+
+The opt-in [paired preparation tests](../../targets/conduitos/src/native_face_mask/preferences_tests.rs)
+consume explicitly supplied retained environmental and Todo Faces, checked native
+layouts, and checked browser views. Readable and rounded personal proposals each
+prepare eight native encounters and compare their canonical selected Look bytes
+with sixteen browser counterparts. Every primary and Details frame round-trips
+through the graphical codec; the rounded profile also checks actual explicit
+rectangle metrics. The complete Face and read-only input boundary are retained.
+These observations qualify software preparation, not current owner delivery,
+physical output or an acknowledged browser Show.
