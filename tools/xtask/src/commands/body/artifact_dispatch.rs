@@ -144,7 +144,9 @@ mod tests {
         .is_err());
         assert!(select(
             &SporeOutputKind::Uf2,
-            "conduit-host-browser/bind-prebuilt@1"
+            "conduit-host-browser/bind-prebuilt@1",
+            "browser/wasm32/page",
+            "browser-wasm@1"
         )
         .is_err());
         for output in [
