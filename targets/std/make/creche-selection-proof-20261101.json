@@ -1,0 +1,39 @@
+{
+  "source": "faeec554480b4539325eeccdee8d610b73cb0e31",
+  "tree": "2e6679ec881d11572f4552b4788a7d86c7a6e1b2",
+  "base": "43aae275ce",
+  "checks": [
+    {
+      "command": "cargo +stable metadata --offline --format-version 1",
+      "result": "normal dependency graph resolves; hosted -> body-make -> host/core, no normal return edge; root lock adds only hosted body-make row"
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-host-hosted --lib creche -- --nocapture",
+      "result": "4 passed",
+      "log": "owning-1.log"
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-host-hosted --lib",
+      "result": "22 passed",
+      "log": "package.log"
+    }
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-threebee-dev-release-20261031",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-checked-selection-20261101/owning-1.log",
+      "sha256": "7d4962954ae5dcfc2ba9e07851db74a02685d9b672492cba2aed76ac338e9174"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-checked-selection-20261101/package.log",
+      "sha256": "45cad61d3e2c3447a1d6b268c9c8c9526c70f572886dd685f4fb7f86cb8d2a8c"
+    }
+  ],
+  "boundary": "Checked construction intent only, restricted to std/x86_64/computer. Reuses exact body-make semantic offer constants and metadata. No runtime offer, initialized provider, encounter owner, byte admission, authority, product integration, Seed production, deployment or issue closure. Existing product unknown initialization adapter refusal remains. Slot units and evidence ceiling do not admit workspace. No Clippy or hardware claim."
+}
