@@ -238,7 +238,7 @@ impl Owner {
         result: Result<BodyRunReport, String>,
         output: Vec<u8>,
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
-        accepted_fore: Option<conduit_std_host::ExternalForeDelivery>,
+        accepted_fore: Option<native::AcceptedSourceFore>,
     ) -> Result<(), String> {
         let authority = self.host.advertisement();
         let proposed = self
@@ -282,9 +282,11 @@ impl Owner {
         #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
         let receipt = {
             let mut receipt = receipt;
-            if let Some(value) = accepted_fore {
+            if let Some(accepted) = accepted_fore {
+                let value = accepted.value;
                 receipt["accepted_source_fore"] = serde_json::json!({
                     "custody": "accepted-typed-fore-not-durable-recording",
+                    "source_selection": accepted.selection, "native_play": accepted.native_play,
                     "front_port_id": value.front_port_id, "track": value.track,
                     "value_kind": value.value_kind, "sequence": value.sequence,
                     "canonical_bytes": value.bytes.as_slice(),
@@ -334,7 +336,10 @@ impl RunWorker {
             result,
             output,
             #[cfg(all(feature = "installed-environmental-sources", target_os = "linux"))]
-            native.and_then(|run| run.capture.value),
+            native
+                .map(native::NativeRun::accepted)
+                .transpose()?
+                .flatten(),
         )?;
         Ok(true)
     }

@@ -46,6 +46,31 @@ pub(super) fn exercise_owned_source(
         .session
         .session()
         .clone();
+    // Two descriptions of one possession cannot supply unique attribution.
+    // Refusal must preserve the actual equipment and leave no proposed Play.
+    let equipment = runtime.selected_environmental_equipment.as_mut().unwrap();
+    let original = &equipment.instruments[0];
+    equipment.instruments.insert(
+        0,
+        SelectedInstrument {
+            attachment_id: "ambiguous-alias".into(),
+            source_configuration: original.source_configuration.clone(),
+            firmware: original.firmware,
+            session: original.session.clone(),
+        },
+    );
+    assert!(runtime
+        .start_owned_body(5_000, None)
+        .unwrap_err()
+        .contains("multiple equipment associations"));
+    assert!(!host_is_out(&runtime));
+    assert!(owner_truth(&runtime)["realization"].is_null());
+    runtime
+        .selected_environmental_equipment
+        .as_mut()
+        .unwrap()
+        .instruments
+        .remove(0);
     device.armed.store(true, Ordering::SeqCst);
     runtime.start_owned_body(5_000, None).unwrap();
     assert!(runtime.selected_environmental_equipment.is_none());
@@ -83,6 +108,22 @@ pub(super) fn exercise_owned_source(
     let truth = owner_truth(&runtime);
     let receipt = &truth["last_execution"];
     assert!(receipt["play"].is_object());
+    if !cancel {
+        let selection = &receipt["accepted_source_fore"]["source_selection"];
+        assert_eq!(selection["attachment_id"], "actor-device");
+        assert_eq!(selection["host_id"], inventory.host_id.as_str());
+        assert_eq!(selection["boot_id"], inventory.boot_id.as_str());
+        assert_eq!(selection["provider_instance_id"], session.as_str());
+        assert_eq!(selection["firmware_sha256"], serde_json::to_value([1u8; 32]).unwrap());
+        assert_eq!(
+            selection["capability_id"],
+            equipment.instruments[0].session.capability().as_str()
+        );
+        let native = &receipt["accepted_source_fore"]["native_play"];
+        assert_eq!(native["plan_id"], selection["plan_id"]);
+        assert_eq!(native["host_id"], selection["host_id"]);
+        assert_eq!(native["boot_id"], selection["boot_id"]);
+    }
     if cancel {
         assert!(
             receipt.get("accepted_source_fore").is_none(),
