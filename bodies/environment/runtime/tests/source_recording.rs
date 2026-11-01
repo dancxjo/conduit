@@ -149,3 +149,36 @@ fn cumulative_context_budget_refuses_without_enlargement() {
         assert!(snapshot.content().unwrap().len() <= 4096);
     }
 }
+
+#[test]
+fn candidate_decode_preserves_evidence_without_replacing_pinned_context_checks() {
+    let scope = context();
+    let mut snapshot = SourceRecordingSnapshot::prepare(scope.clone()).unwrap();
+    snapshot.append(1, &sample(28, 9000)).unwrap();
+    let bytes = snapshot.content().unwrap();
+    let candidate = SourceRecordingSnapshot::decode_candidate(bytes).unwrap();
+    assert_eq!(candidate.context(), &scope);
+    assert_eq!(candidate.content().unwrap(), bytes);
+    let mut foreign = scope.clone();
+    foreign.body_id = "body/other".into();
+    assert!(matches!(
+        SourceRecordingSnapshot::read(bytes, &foreign),
+        Err(Refusal::Scope)
+    ));
+    let mut malformed = bytes.to_vec();
+    malformed.push(b' ');
+    assert!(matches!(
+        SourceRecordingSnapshot::decode_candidate(&malformed),
+        Err(Refusal::Encoding)
+    ));
+    let mut malformed: serde_json::Value = serde_json::from_slice(bytes).unwrap();
+    malformed["context"]["native_play"]["boot_id"] = "boot/contradictory".into();
+    assert!(matches!(
+        SourceRecordingSnapshot::decode_candidate(&serde_json::to_vec(&malformed).unwrap()),
+        Err(Refusal::Scope)
+    ));
+    assert!(matches!(
+        SourceRecordingSnapshot::decode_candidate(&[0; MAXIMUM_BYTES + 1]),
+        Err(Refusal::Capacity)
+    ));
+}
