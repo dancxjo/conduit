@@ -134,6 +134,12 @@ fn fresh_process_reads_recovered_catalog_and_chunk_through_admitted_worker() {
             .start_service_recovered_source_read(&root, 5000, &grant, Some(0), 1024 * 1024)
             .unwrap();
         finish_worker(&root, &mut owner, worker);
+        let receipt = owner.last_execution.as_ref().unwrap();
+        assert_eq!(receipt["source_recovered_read"]["read_completed"], true);
+        assert_eq!(
+            receipt["source_recovered_read"]["producer_retirement_authorized"],
+            false
+        );
         let chunk = owner.recovered_source_chunk.as_ref().unwrap();
         assert_eq!(chunk.index(), 0);
         assert_eq!(chunk.reference(), &chunk_reference);
