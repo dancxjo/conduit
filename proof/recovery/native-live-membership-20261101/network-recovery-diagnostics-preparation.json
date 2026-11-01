@@ -1,0 +1,31 @@
+{
+  "schema": "conduit.environment/recovery-diagnostics-preparation@1",
+  "diagnostic_source": "7e0dd0bff6f47fe2e4cd523fdf4617a955003e09",
+  "queue_transition_tests_passed": 5,
+  "application_bytes": 3342784,
+  "partition_bytes": 3371008,
+  "stack_bytes": 37372,
+  "stack_floor_bytes": 36864,
+  "diagnostic_image_flashed": false,
+  "new_queue_counter_bytes_per_queue": 16,
+  "queue_behavior_and_authority_unchanged": true,
+  "credential_refusal_codes_preserved_without_private_values": true,
+  "offline_saved_credential_audit": {
+    "production_journal_and_owner_decoder_used": true,
+    "committed_revision": 2,
+    "profiles": 2,
+    "all_profiles_freeze_request_and_retirement_verified": true,
+    "radio_join_or_current_authentication_proved": false
+  },
+  "currently_installed_source": "35b0510bd559048c144eaf89e3110e06a304736e",
+  "continued_local_observation": {
+    "millis": 875048,
+    "sampler_sequence": 14,
+    "archive_committed": 14,
+    "mask_updates": 287,
+    "sampler_failure": null,
+    "mask_failure": null,
+    "archive_failed": false
+  },
+  "current_limit": "Blue remains in AP mode; live history route needs protected spare-adapter activation. Diagnostic image is held to preserve active local recording until another safely retained epoch can be reclaimed."
+}
