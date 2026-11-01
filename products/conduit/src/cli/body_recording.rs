@@ -58,7 +58,7 @@ pub(crate) fn run(args: BodyRecordingArgs) -> Result<(), String> {
         Operation::Catalog { authority_file } => RecordingOperation::Catalog {
             authority: read_authority(&authority_file)?,
         },
-        Operation::RecoverCatalog => RecordingOperation::RecoverCatalog,
+        Operation::RecoverCatalog => RecordingOperation::RecoverCatalog {},
         Operation::ReadRecoveredCatalog { authority_file } => {
             RecordingOperation::ReadRecoveredCatalog {
                 authority: read_authority(&authority_file)?,
