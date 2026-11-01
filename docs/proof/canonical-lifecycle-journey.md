@@ -113,3 +113,31 @@ paths require reconciliation; new application-specific styling or Face truth is
 not a replacement. Actual screenshots, artifact hashes and rollback receipts are
 retained in the task's Threebee update output; no framebuffer capture is added
 to source.
+
+## Face, Mask and Look acceptance
+
+Applications contribute semantic Face content through the shared contracts.
+Masks realize that content for their medium; Looks are independently selected,
+checked expressions reusable by multiple applications and compatible Masks.
+Appearance selection must preserve Face identity/revision, actions, source
+quantities, provenance, freshness and required reading order.
+
+The first conformance witness reuses the existing authored Field day/night
+resources on Crèche and an unrelated Todo Face, through checked native/browser
+Mask configuration. Existing cross-application tests are the starting point,
+not a second presentation framework. Record requested and resolved Look identity,
+constraints, recipe identity and actual Show evidence. Exercise text scaling,
+forced colors and honest unsupported-resource fallback; an old Show must not
+authorize an action after presentation changes.
+
+Reconcile the divergent Phosphor/Navy entry defaults and local preference paths
+at shared selection boundaries. Do not fix this by duplicating app stylesheets.
+Unit preference remains independently retained across Look changes. Limited
+displays realize only supported facets: a seven-segment Mask must preserve typed
+quantity meaning without acquiring a graphical engine. Terminal presentation
+preserves semantic order and actions without claiming visual Look support.
+
+Threebee's local theme/preferences path is not yet ordinary installed Mask/Show
+custody. Its successful renderer update must not be counted as this conformance
+gate. Existing ownership remains #5368, #5377, #6485–#6487 and #6628; the current
+lifecycle milestone determines the next implementation slice.
