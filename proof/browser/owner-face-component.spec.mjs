@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from '@playwright/test';
+import { registerOwnerFacePresentationTests } from './owner-face-presentation.mjs';
 
 // Renderer fixture only: the callback is not a Body/action receipt.
 const view = {
@@ -11,6 +12,8 @@ const view = {
   actions: [{ identity: 'fixture/complete', target: 'fixture/task', name: 'Complete task',
     availability: 'available', disclosure: 'CurrentAction', arguments: [] }],
 };
+
+registerOwnerFacePresentationTests(view);
 
 test('semantic icons remain bounded decoration without the Look stylesheet', async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
