@@ -145,7 +145,7 @@ function requireCredential(candidate, { expectedBodyId, hostId, bootId, prior = 
   return Object.freeze({ ...candidate });
 }
 
-export async function joinBrowserBody({ bodyUrl, sessionCarrier = null, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, invitedProvision = null, sporeRoot = null, selectedStorage = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
+export async function joinBrowserBody({ bodyUrl, sessionCarrier = null, sessionDocumentWorkspace = null, wasmBytes, admittedHost = null, expectedBodyId = null, retainedCredential = null, invitedProvision = null, sporeRoot = null, selectedStorage = null, onCredential, onState, onBiographyEvidence, onOfferEvidence, onWebRtcGrant, onWebRtcSignal, onWebRtcState, configureHost, renewPresence = true, reconnectPresence = true }) {
   if (expectedBodyId !== null && (typeof expectedBodyId !== "string" || expectedBodyId.length === 0)) {
     throw new Error("invalid expected Body identity");
   }
@@ -363,7 +363,7 @@ export async function joinBrowserBody({ bodyUrl, sessionCarrier = null, wasmByte
     onState: (next) => onWebRtcState?.(next),
   });
   const openSocket = (returning = false, freshBoot = false) => {
-    const session = createBrowserMembershipSession({ url: bodyUrl, carrier: sessionCarrier });
+    const session = createBrowserMembershipSession({ url: bodyUrl, carrier: sessionCarrier, documentWorkspace: sessionDocumentWorkspace });
     socket = session;
     session.start({ open: () => {
       if (returning) {

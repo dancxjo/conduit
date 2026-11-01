@@ -12,6 +12,14 @@ pub(crate) struct ProtectedDocumentLine<C: ProtectedFrameCarrier> {
     inner: ProtectedCarrier<C>,
     timeout: Duration,
     failed: bool,
+    workspace: Option<DocumentWorkspace>,
+}
+/// Local finite storage selection, not authority. The owning bridge must derive
+/// it independently from its actual admitted workspace, never traffic quotas.
+#[derive(Clone, Copy)]
+pub(crate) struct DocumentWorkspace {
+    pub(crate) maximum_document_bytes: usize,
+    pub(crate) capacity_bytes: usize,
 }
 struct Bytes(Vec<u8>);
 impl Drop for Bytes {
@@ -21,14 +29,26 @@ impl Drop for Bytes {
 }
 
 impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
-    pub(crate) fn new(inner: ProtectedCarrier<C>, timeout_millis: u32) -> Result<Self, String> {
+    pub(crate) fn new(
+        inner: ProtectedCarrier<C>,
+        timeout_millis: u32,
+        workspace: Option<DocumentWorkspace>,
+    ) -> Result<Self, String> {
         if timeout_millis == 0 || timeout_millis > 300_000 {
             return Err("invalid admitted document deadline".into());
+        }
+        if workspace.is_some_and(|space| {
+            space.maximum_document_bytes == 0
+                || space.maximum_document_bytes > MAXIMUM_FRAME_BYTES
+                || space.capacity_bytes == 0
+        }) {
+            return Err("invalid selected document workspace".into());
         }
         Ok(Self {
             inner,
             timeout: Duration::from_millis(u64::from(timeout_millis)),
             failed: false,
+            workspace,
         })
     }
     fn deadline(&self) -> Result<Instant, String> {
@@ -50,21 +70,31 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
         self.inner.session().limits().maximum_payload_bytes as usize
     }
     fn receive_document(&mut self) -> Result<Vec<u8>, String> {
-        let mut frame = Bytes(
+        let deadline = self.deadline()?;
+        let mut frame = Bytes(Vec::with_capacity(self.payload()));
+        frame.0.extend_from_slice(
             self.inner
-                .receive()
-                .map_err(|error| format!("protected document receive:{error:?}"))?
-                .to_vec(),
+                .receive_with_timeout_millis(Self::remaining(deadline)?)
+                .map_err(|error| format!("protected document receive:{error:?}"))?,
         );
+        Self::remaining(deadline)?;
         if !frame.0.starts_with(b"CBD1") {
+            if self
+                .workspace
+                .is_some_and(|space| frame.0.len() > space.maximum_document_bytes)
+            {
+                return Err("document exceeds selected logical bound".into());
+            }
             return Ok(core::mem::take(&mut frame.0));
         }
-        let deadline = self.deadline()?;
+        let workspace = self
+            .workspace
+            .ok_or("bounded document requires selected workspace")?;
         if frame.0.len() <= BOUNDED_DOCUMENT_HEADER_BYTES {
             return Err("document chunk header".into());
         }
         let total = u32::from_le_bytes(frame.0[4..8].try_into().unwrap()) as usize;
-        if total == 0 || total > MAXIMUM_FRAME_BYTES {
+        if total == 0 || total > workspace.maximum_document_bytes {
             return Err("document exceeds existing rendezvous bound".into());
         }
         let capacity = self
@@ -72,7 +102,13 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
             .checked_sub(BOUNDED_DOCUMENT_HEADER_BYTES)
             .filter(|n| *n > 0)
             .ok_or("document carrier payload too small")?;
-        let maximum_chunks = MAXIMUM_FRAME_BYTES.div_ceil(capacity);
+        let maximum_chunks = workspace.maximum_document_bytes.div_ceil(capacity);
+        if total
+            .checked_add(self.payload())
+            .is_none_or(|bytes| bytes > workspace.capacity_bytes)
+        {
+            return Err("selected document workspace capacity exceeded".into());
+        }
         // Allocate only the validated declared extent, never a second full copy.
         let mut assembly = BoundedDocumentAssembly::new(total, maximum_chunks);
         for _ in 0..maximum_chunks {
@@ -93,11 +129,12 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
                     .ok_or_else(|| "document incomplete".into());
             }
             let remaining = Self::remaining(deadline)?;
-            frame.0 = self
-                .inner
-                .receive_with_timeout_millis(remaining)
-                .map_err(|error| format!("protected document receive:{error:?}"))?
-                .to_vec();
+            frame.0.clear();
+            frame.0.extend_from_slice(
+                self.inner
+                    .receive_with_timeout_millis(remaining)
+                    .map_err(|error| format!("protected document receive:{error:?}"))?,
+            );
         }
         Err("document chunk pressure".into())
     }
@@ -106,12 +143,24 @@ impl<C: ProtectedFrameCarrier> ProtectedDocumentLine<C> {
             return Err("document exceeds existing rendezvous bound".into());
         }
         let deadline = self.deadline()?;
+        if self
+            .workspace
+            .is_some_and(|space| bytes.len() > space.maximum_document_bytes)
+        {
+            return Err("document exceeds selected logical bound".into());
+        }
         if bytes.len() <= self.payload() {
             self.inner
                 .send_with_timeout_millis(bytes, Self::remaining(deadline)?)
                 .map_err(|error| format!("bounded timed protected send required:{error:?}"))?;
             Self::remaining(deadline)?;
             return Ok(());
+        }
+        let workspace = self
+            .workspace
+            .ok_or("bounded document requires selected workspace")?;
+        if self.payload() > workspace.capacity_bytes {
+            return Err("selected document workspace capacity exceeded".into());
         }
         if self.payload() <= BOUNDED_DOCUMENT_HEADER_BYTES {
             return Err("document carrier payload too small".into());

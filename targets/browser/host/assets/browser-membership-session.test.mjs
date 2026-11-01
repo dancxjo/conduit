@@ -60,7 +60,7 @@ test('WS retains its envelope and protected carrier chunks within exact admitted
  s.start({open(){},message(){},close(){}});const ws=Socket.instances.at(-1);ws.emit('open');await turn();
  s.send(new Uint8Array(701632));assert.equal(ws.sent[0].length,701632);
  assert.throws(()=>s.send(new Uint8Array(2*1024*1024+1025)),/bound/);s.close();
- const c=carrier(),protectedSession=createBrowserMembershipSession({carrier:c});protectedSession.start({open(){},message(){},close(){}});await turn();
+ const c=carrier(),protectedSession=createBrowserMembershipSession({carrier:c,documentWorkspace:{maximumDocumentBytes:2*1024*1024,capacityBytes:4*1024*1024+4*65519+64}});protectedSession.start({open(){},message(){},close(){}});await turn();
  protectedSession.send(new Uint8Array(65520));
  for(let turnCount=0;c.sent.length<2 && turnCount<100;turnCount++)await turn();
  assert.equal(c.sent.length,2);assert(c.sent.every(frame=>frame.length<=65519));protectedSession.close();
@@ -133,3 +133,13 @@ test('Root-bearing provision cannot silently enter legacy unsigned mode or reuse
  await assert.rejects(joinBrowserBody({...g.options,sessionCarrier:carrier()}),/current Boot/);
  assert.equal(g.events.includes('retire'),false);assert.equal(g.events.includes('prepare'),false);
 }));
+
+test('queued large and small snapshots share independently selected workspace before copying',async()=>{
+ const c=carrier(),large=new Uint8Array(120000),small=new Uint8Array(60000);
+ const s=createBrowserMembershipSession({carrier:c,documentWorkspace:{maximumDocumentBytes:2*1024*1024,capacityBytes:240000}});
+ s.start({open(){},message(){},close(){}});await turn();
+ s.send(large);s.send(small);s.send(small);
+ const refused=new Uint8Array(1);refused.slice=()=>{throw Error('copied before workspace check');};
+ assert.throws(()=>s.send(refused),/workspace/);
+ s.close();await turn();assert.equal(c.sent.length,0);assert.equal(c.closed,1);
+});
