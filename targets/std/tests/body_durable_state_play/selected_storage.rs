@@ -149,6 +149,7 @@ fn selected_descriptor_state_executes_and_recovers_with_original_body_admission(
                 assert!(capture.0.is_empty());
                 assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
             }
+            let retained = root.path().with_extension("selected-retained");
             let report = host
                 .run_body_plan_with_selected_storage_borrowed_to_with_start(
                     BodyRunRequest {
@@ -165,10 +166,23 @@ fn selected_descriptor_state_executes_and_recovers_with_original_body_admission(
                     &mut ThreadTimer,
                     |play, _| {
                         assert!(play.validate_for(&body));
+                        // Move the selected directory after preparation and
+                        // substitute an empty ambient path before the first
+                        // State effect. Only the retained descriptor may win.
+                        if boot == "selected/first" {
+                            std::fs::rename(root.path(), &retained).unwrap();
+                            std::fs::create_dir(root.path()).unwrap();
+                        }
                         Ok(())
                     },
                 )
                 .unwrap();
+            if boot == "selected/first" {
+                assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+                assert_eq!(std::fs::read_dir(&retained).unwrap().count(), 1);
+                std::fs::remove_dir(root.path()).unwrap();
+                std::fs::rename(&retained, root.path()).unwrap();
+            }
             assert_eq!(
                 report.terminal,
                 TerminalDisposition::Completed,
