@@ -1,0 +1,63 @@
+{
+  "schema": "conduit.proof/physical-continuing-source-prefix@1",
+  "installed_source": "7a3db69dd8d3afd36cdbf804ea7e175c8cf417d4",
+  "combined_tests": {
+    "state": 20,
+    "signed_receipt": 5,
+    "real_actor_and_owner_source_service": 7
+  },
+  "same_body_replace": {
+    "body_id": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+    "boot_id": "boot/installed/40397483df62f9444d8474f19f3b849ee9d7ad79c49a1f13b4de147a13d756f6",
+    "custody": "retained-source-and-canonical-workset-not-started",
+    "host_id": "host/installed/ca02ca8c789a1758d27e5ba2763a2f1a3af95fc75f1f5cc4765be47eb9d58228",
+    "previous_plot": {
+      "checked_plot_id": "fc2dfe63c7766e30fda154663b1ff8e62492c3d1993f9261707d7cb867700c65",
+      "source_document_id": "5aced0439e3dd6dc8c62df7917b841cc8915dcbf44cc1b5e5edfbf8ffd2b0085"
+    },
+    "resident_plot": {
+      "checked_plot_id": "779e4d3fd07a584cfcd1e04c9efe04d11acdd64283fd90f39eb24cc078172028",
+      "source_document_id": "91eae38312dffa664153bc8f03e1c9a1826bb41d43819eb08d096d46809d2e6a"
+    },
+    "workload_revision": 2
+  },
+  "members_after_upgrade": 2,
+  "selected_public_signer_unchanged": true,
+  "accepted_physical_rows": [
+    {
+      "sequence": 1,
+      "canonical_bytes": 124,
+      "host_boot_ms": 73363623,
+      "reported_source_counter": 4610,
+      "reported_source_ms": 140260563
+    },
+    {
+      "sequence": 2,
+      "canonical_bytes": 124,
+      "host_boot_ms": 73394060,
+      "reported_source_counter": 4611,
+      "reported_source_ms": 140290998
+    },
+    {
+      "sequence": 3,
+      "canonical_bytes": 124,
+      "host_boot_ms": 73424552,
+      "reported_source_counter": 4612,
+      "reported_source_ms": 140321438
+    }
+  ],
+  "face_identity_changed": true,
+  "face_numeric_revision": [
+    2342599200261618521,
+    2342599200261618521
+  ],
+  "lull_removes_current_source_contribution": true,
+  "terminal_failure": "Body kernel: BackFailed(Failure { code: HostCallDenied, detail: 1 })",
+  "cleanup_failure": null,
+  "limitations": [
+    "Successful physical prefix only; full16samplePlay failed HostCallDenied and is under investigation",
+    "Typed Fore/current semantic Face is not selected durable Recorder commitment",
+    "No HDMI deployment or browser joining demonstrated",
+    "MCU firmware unchanged; instrument remains a carrier, not execution Host"
+  ]
+}
