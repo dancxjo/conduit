@@ -28,7 +28,25 @@ fn fresh_process_recovers_unknown_catalog_reference_from_body_state() {
             .start_service_source_catalog_recovery(&root, 5000, 1024 * 1024)
             .unwrap();
         finish_worker(&root, &mut owner, worker);
+        let receipt = owner.last_execution.as_ref().unwrap();
+        assert_eq!(
+            receipt["source_catalog_recovery"]["state_current_observed"],
+            true
+        );
+        assert_eq!(
+            receipt["source_catalog_recovery"]["catalog_reference_recovered"],
+            true
+        );
+        assert_eq!(
+            receipt["source_catalog_recovery"]["producer_retirement_authorized"],
+            false
+        );
         let token = owner.recovered_source_catalog.as_ref().unwrap();
+        assert_eq!(
+            token.binding().body.as_str(),
+            owner.session.evidence().body_id.as_str()
+        );
+        let _issued_play = token.play();
         installed::write_json_atomic(
             &root.join("fresh-recovery-result.json"),
             &serde_json::json!({
