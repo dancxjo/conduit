@@ -98,7 +98,7 @@ impl SourceSeriesGraph {
         width: u16,
         height: u16,
         window_ms: Option<u64>,
-        style: SourceSeriesStyleResolver,
+        style: impl Fn(&PreparedSourceSeries) -> SourceSeriesStyle,
     ) -> Result<GraphicsScene, Error> {
         if !matches!(unit, Unit::Celsius | Unit::Fahrenheit)
             || width < 320
@@ -296,4 +296,43 @@ impl SourceSeriesGraph {
         )?;
         Ok(scene)
     }
+}
+
+/// Stable distinct expression for the operator's named sources. Names select
+/// paint only; source identity, observations, clocks and authority are unchanged.
+pub fn source_series_styles(
+    graph: &SourceSeriesGraph,
+) -> Vec<(alloc::string::String, SourceSeriesStyle)> {
+    let preferred = |s: &PreparedSourceSeries| match s.name.as_str() {
+        "Blue" => Some(Paint::Accent),
+        "Green" => Some(Paint::Success),
+        "White" => Some(Paint::Foreground),
+        "Yellow" => Some(Paint::Warning),
+        _ => None,
+    };
+    let mut ordered: Vec<_> = graph.series().iter().collect();
+    ordered.sort_unstable_by_key(|s| (preferred(s).is_none(), s.source.as_str()));
+    let mut assigned: Vec<(alloc::string::String, SourceSeriesStyle)> = Vec::new();
+    for series in ordered {
+        let unused = |paint| !assigned.iter().any(|(_, style)| style.paint == paint);
+        let paint = preferred(series).filter(|p| unused(*p)).unwrap_or_else(|| {
+            [
+                Paint::Accent,
+                Paint::Success,
+                Paint::Foreground,
+                Paint::Warning,
+            ]
+            .into_iter()
+            .find(|p| unused(*p))
+            .expect("four validated source series")
+        });
+        assigned.push((
+            series.subject.clone(),
+            SourceSeriesStyle {
+                paint,
+                dashed: paint == Paint::Foreground,
+            },
+        ));
+    }
+    assigned
 }

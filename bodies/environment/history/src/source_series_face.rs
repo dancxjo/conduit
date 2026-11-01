@@ -88,7 +88,10 @@ impl SourceSeriesCollection<'_> {
             properties: vec![],
             text: vec![],
             actions: vec![],
-            disclosures: vec![],
+            disclosures: vec![conduit_face::FaceDisclosure {
+                subject: self.subject.into(),
+                level: conduit_face::FaceDisclosureLevel::Primary,
+            }],
             temporal_references: vec![],
             temporal_facts: vec![],
         };
