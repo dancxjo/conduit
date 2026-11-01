@@ -178,7 +178,7 @@ impl Owner {
             return Err("Body already has a current proposal or Play".into());
         }
         self.ensure_execution_retained(root)?;
-        let checked = super::super::checked_retained_source(root)?
+        let checked = super::super::super::checked_retained_source(root)?
             .ok_or("retained source is unavailable for Body Play")?;
         let resident = ResidentPlot::new(
             checked.expanded.source_document_id.clone(),
