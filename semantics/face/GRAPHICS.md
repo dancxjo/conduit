@@ -74,7 +74,20 @@ shared Rust codec; the proof reader is not planning or owner authority.
 
 The [planning matrix](../../targets/std/tests/graphics_revision_planning.rs)
 checks actual portable contracts against installed offers at default and explicit
-selection entrances for both checked and expanded canonical plots. It is a planning proof, not evidence of Host Calls, a live
-owner, acknowledged Show, or physical device adoption. The integration owner's
-borrowed planning entrance and real expanded-packet execution require separate
-qualification before this slice is admitted.
+selection entrances for both checked and expanded canonical plots. These are
+planning proofs, not evidence of physical device adoption.
+
+The [planned execution test](../../targets/std/tests/graphics_revision_planning/execution.rs)
+feeds the common union packet through a sealed external Fore, the installed
+Text/Icon graphics transforms, and the terminal in the ordinary kernel. It checks
+that the original commands survive, the output remains canonical version three,
+the Play completes, and three Host Calls are requested and completed. The input
+and output Fore explicitly declare the unchanged 10,226-byte envelope; accepting
+an unbounded alias is not a compatibility relaxation.
+
+The integration owner's plain linked-source planning entrance excludes configured
+Kinds and semantic laws before selection. These graphics Kinds have both; the
+successful rich checked/expanded matrix must not be called a successful plain
+linked-source test. That entrance's refusal scope and compatibility qualification
+remain an integration review obligation. No historical Back is executed merely
+by relabeling a current installed implementation as its old revision.

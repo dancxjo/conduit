@@ -73,7 +73,9 @@ fn shared_union_packet_renders_and_reuses_one_native_surface() {
     let hex = include_str!("../../../../../proof/fixtures/graphics-scene-union.hex").trim();
     let packet: alloc::vec::Vec<u8> = hex
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect();
     let scene = GraphicsScene::decode(&packet).unwrap();

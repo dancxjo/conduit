@@ -162,7 +162,9 @@ fn union_packet_preserves_polyline_value_and_explicit_rectangle_together() {
     let golden = include_str!("../../../../proof/fixtures/graphics-scene-union.hex").trim();
     let expected: alloc::vec::Vec<u8> = golden
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect();
     assert_eq!(&v3[..scene.encoded_len()], expected.as_slice());
