@@ -484,3 +484,7 @@ mod control_spacing_tests;
 #[cfg(test)]
 #[path = "native_face_scene/panel_spacing_tests.rs"]
 mod panel_spacing_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/heading_tests.rs"]
+mod heading_tests;

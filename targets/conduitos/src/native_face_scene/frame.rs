@@ -31,27 +31,12 @@ impl NativeFaceScene {
                 GraphicsShapeStyle::Fill,
             ),
         )?;
-        let heading = if chrome.compact {
-            if self.showing_diagram {
-                "GRAPH"
-            } else if self.showing_details {
-                "DETAILS"
-            } else {
-                "VIEW"
-            }
-        } else if !self.interaction_admitted && self.showing_diagram {
-            "OWNER FACE / PATCHBAY"
-        } else if !self.interaction_admitted && self.showing_details {
-            "OWNER FACE / DETAILS"
-        } else if !self.interaction_admitted {
-            "OWNER FACE / SNAPSHOT"
-        } else if self.showing_diagram {
-            "PATCHBAY"
-        } else if self.showing_details {
-            "DETAILS"
-        } else {
-            "CURRENT VIEW"
-        };
+        let heading = chrome.encounter_heading(
+            &self.face,
+            self.showing_details,
+            self.showing_diagram,
+            self.text_scale_percent,
+        );
         push(
             &mut scene,
             GraphicsCommand::text(

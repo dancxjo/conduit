@@ -11,15 +11,8 @@ pub(super) const COMMANDS: usize = 6;
 const EDGE: u16 = 8;
 pub(super) const HEADER: u16 = 56;
 pub(super) const FOOTER: u16 = 56;
-const COMPACT_HEADINGS: [&str; 3] = ["VIEW", "DETAILS", "GRAPH"];
-const HEADINGS: [&str; 6] = [
-    "CURRENT VIEW",
-    "DETAILS",
-    "PATCHBAY",
-    "OWNER FACE / SNAPSHOT",
-    "OWNER FACE / DETAILS",
-    "OWNER FACE / PATCHBAY",
-];
+const COMPACT_HEADINGS: [&str; 3] = ["View", "Details", "Graph"];
+const HEADINGS: [&str; 3] = ["Overview", "Details", "Connections"];
 pub(super) const EDITOR_FOOTER: &str =
     "Type message · Backspace erase · Tab switch plot · F2 details";
 pub(super) const EDITOR_COMPACT_FOOTER: &str = "Type · F2";
@@ -173,6 +166,49 @@ impl Chrome {
             compact,
             heading_role,
         })
+    }
+
+    /// A single explicitly presented Body can name the encounter. Neither an
+    /// opaque basis identifier nor the first of several Bodies supplies a name.
+    /// Keep the complete name in the ordinary document when it exceeds this
+    /// already admitted chrome; never truncate meaning to fit a command.
+    pub fn encounter_heading<'a>(
+        &self,
+        face: &'a conduit_face::Face,
+        details: bool,
+        diagram: bool,
+        scale: u16,
+    ) -> &'a str {
+        let mut bodies = face
+            .subjects
+            .iter()
+            .filter(|subject| subject.role == conduit_face::FaceRole::Body);
+        if let Some(body) = bodies.next()
+            && bodies.next().is_none()
+            && !body.name.trim().is_empty()
+            && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
+            && height(
+                &body.name,
+                self.heading_role,
+                self.heading.width,
+                scale,
+                self.typography,
+            )
+            .is_ok_and(|height| height <= self.heading.height)
+        {
+            return &body.name;
+        }
+        if diagram && self.compact {
+            "Graph"
+        } else if diagram {
+            "Connections"
+        } else if details {
+            "Details"
+        } else if self.compact {
+            "View"
+        } else {
+            "Overview"
+        }
     }
 
     /// Only the visible provisional suffix is shortened. The argument buffer
