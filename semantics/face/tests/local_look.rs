@@ -240,6 +240,8 @@ fn all_existing_builtin_palettes_pass_standard_nominal_pair_checks() {
         editorial_look().unwrap(),
         engineering_look().unwrap(),
         navy_look(VisualDensity::Compact, VisualTypography::Editorial).unwrap(),
+        field_instrument_day_look().unwrap(),
+        field_instrument_night_look().unwrap(),
     ] {
         assert_eq!(
             resolve(&author, &local(vec![]), user()).unwrap().contrast,
