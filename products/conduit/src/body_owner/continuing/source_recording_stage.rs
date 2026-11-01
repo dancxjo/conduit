@@ -50,6 +50,8 @@ pub(crate) mod catalog;
 mod checkpoint;
 #[path = "source_recording_stage/publication.rs"]
 pub(crate) mod publication;
+#[path = "source_recording_stage/recovery.rs"]
+pub(crate) mod recovery;
 impl SourceRecordingStage {
     pub(in super::super) fn prepare(
         body_id: conduit_body::BodyId,

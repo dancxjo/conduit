@@ -1,9 +1,9 @@
 //! Extract the canonical authored keep, using the planner's exact Gear State ID.
 use super::*;
-pub(super) struct Seed {
-    pub(super) request: BodyStorageStateRequest,
+pub(in super::super) struct Seed {
+    pub(in super::super) request: BodyStorageStateRequest,
 }
-pub(super) fn extract(
+pub(in super::super) fn extract(
     plot: &conduit_plot::ExpandedAuthoringPlot,
     body: &str,
 ) -> Result<Seed, String> {

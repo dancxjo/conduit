@@ -277,7 +277,7 @@ impl Owner {
     }
 }
 #[path = "catalog/seed.rs"]
-mod seed;
+pub(super) mod seed;
 #[cfg(test)]
 #[path = "catalog/tests.rs"]
 mod tests;
