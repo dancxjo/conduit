@@ -12,6 +12,7 @@ mod actions;
 mod draft;
 mod face;
 pub mod names;
+mod plot_choice_identity;
 mod widget_face;
 
 pub use actions::{BirthActionOutcome, BirthActions};

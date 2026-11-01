@@ -111,3 +111,52 @@ fn conditional_join_preserves_following_common_record_field_headers() {
     );
     parity(&program, &(0..=255).collect::<Vec<_>>());
 }
+
+#[test]
+fn conditional_record_field_keeps_following_constant_field_on_both_branches() {
+    let boolean = Type::leaf(kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+    let record = Type::record(
+        kind_id("test/tape-conditional-join"),
+        ["left", "right"]
+            .into_iter()
+            .map(|name| StructuredFieldType::new(name, octet()).unwrap())
+            .collect(),
+    )
+    .unwrap();
+    let literal = |value: &str| Node {
+        value_type: octet(),
+        operation: Operation::Literal(value.into()),
+    };
+    let conditional = Node {
+        value_type: octet(),
+        operation: Operation::Conditional {
+            condition: Box::new(Node {
+                value_type: boolean.clone(),
+                operation: Operation::Input,
+            }),
+            when_true: Box::new(literal("11")),
+            when_false: Box::new(literal("22")),
+        },
+    };
+    let program = Program {
+        input_maximum_bytes: None,
+        input_type: boolean,
+        output_type: record.clone(),
+        root: Node {
+            value_type: record,
+            operation: Operation::Record(vec![
+                ("left".into(), conditional),
+                ("right".into(), literal("33")),
+            ]),
+        },
+    };
+    let mut prepared = Evaluator::new(&program).unwrap();
+    for value in [1, 0, 1] {
+        let expected = program.evaluate(&[value]).unwrap();
+        assert_eq!(
+            allocation::allocations(|| assert_eq!(prepared.evaluate(&[value]).unwrap(), expected)),
+            0,
+            "branch {value}"
+        );
+    }
+}

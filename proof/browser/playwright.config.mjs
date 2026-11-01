@@ -54,6 +54,8 @@ export default defineConfig({
     "scoped-glyphs.spec.mjs",
     "web-accessibility.spec.mjs",
     "owner-face-component.spec.mjs",
+    "owner-face-look-contracts.spec.mjs",
+    "browser-lifetime.spec.mjs",
     "owner-face-current-value.spec.mjs",
     "owner-look-controls.spec.mjs",
     "owner-face-reachability.spec.mjs",

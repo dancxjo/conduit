@@ -356,26 +356,40 @@ fn independent_grid_bands_paginate_under_row_and_command_pressure() {
     let candidate =
         ComponentLayoutCandidate::new(BoundedSequence::try_from_iter(nodes).unwrap(), 0).unwrap();
     let profile = super::tests::prepared(&face, vec![candidate]);
-    let items = (0..24)
-        .map(|index| {
-            item(
-                &format!("Control {index}"),
-                match index / 8 {
-                    0 => Some(0),
-                    1 => Some(1),
-                    _ => None,
-                },
-                true,
-            )
-        })
-        .collect();
-    let rows = super::tests::run(items, 1000, 1000, &profile).unwrap();
-    assert_eq!(rows.len(), 24);
-    assert_eq!(rows.iter().filter(|row| row.page == 0).count(), 16);
-    assert_eq!(rows.iter().filter(|row| row.page == 1).count(), 8);
-    assert_geometry(&rows, 1000, 1000);
-    for (index, row) in rows.iter().enumerate() {
-        assert_eq!(row.text, format!("Control {index}"));
+    let items = || {
+        (0..24)
+            .map(|index| {
+                item(
+                    &format!("Control {index}"),
+                    match index / 8 {
+                        0 => Some(0),
+                        1 => Some(1),
+                        _ => None,
+                    },
+                    true,
+                )
+            })
+            .collect::<Vec<_>>()
+    };
+    for height in [1000, 2000] {
+        let rows = super::tests::run(items(), 1000, height, &profile).unwrap();
+        assert_eq!(rows.len(), 24);
+        assert_eq!(rows.iter().filter(|row| row.page == 0).count(), 16);
+        assert_eq!(rows.iter().filter(|row| row.page == 1).count(), 8);
+        let cause = rows.iter().find_map(|row| row.continuation).unwrap();
+        assert!(cause.row_limit() && cause.command_limit() && cause.kept_group());
+        // The original 1000px specimen also exceeds measured block space.
+        // Doubling available height isolates simultaneous resource pressure.
+        assert_eq!(cause.block_limit(), height == 1000);
+        assert!(
+            rows.iter()
+                .filter(|row| row.page == 0)
+                .all(|row| row.continuation.is_none())
+        );
+        assert_geometry(&rows, 1000, height);
+        for (index, row) in rows.iter().enumerate() {
+            assert_eq!(row.text, format!("Control {index}"));
+        }
     }
 }
 #[test]
