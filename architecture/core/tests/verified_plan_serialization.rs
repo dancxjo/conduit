@@ -205,3 +205,106 @@ fn serialization_retires_each_placement_instead_of_retaining_all_configuration()
         streaming.peak_bytes, reconstruction.peak_bytes
     );
 }
+
+#[test]
+fn serialization_borrows_large_immutable_contract_instead_of_cloning_placement() {
+    let mut fragment = fixture::fragment();
+    fragment.states.clear();
+    fragment.placements[0]
+        .semantic_contract
+        .configuration
+        .push(KindConfigurationField {
+            key: "immutable-default".into(),
+            default_value: ConfigurationValue::Text("x".repeat(8192).into()),
+            rule: KindConfigurationRule::Any,
+        });
+    let full = fixture::seal(fragment);
+    let expected = serde_json::to_vec(&full).unwrap();
+    let (verified, _) = separate(&full);
+    let view = verified.serialize_with_configurations(|_| Ok::<_, ()>(Vec::new()));
+    let mut output = vec![0; expected.len()];
+    let ((), borrowed) = allocation_probe::observe(|| {
+        let mut writer = std::io::Cursor::new(output.as_mut_slice());
+        serde_json::to_writer(&mut writer, &view).unwrap();
+        assert_eq!(writer.position() as usize, expected.len());
+    });
+    assert_eq!(output, expected);
+    assert_eq!(
+        borrowed.allocations + borrowed.reallocations,
+        0,
+        "{borrowed:?}"
+    );
+    // Historical per-placement reconstruction, measured independently of output
+    // backing and configuration supply; it duplicates this immutable contract.
+    let (_, historical) = allocation_probe::observe(|| {
+        let complete = verified.preparation_metadata().fragments[0].placements[0].clone();
+        serde_json::to_writer(std::io::sink(), &complete).unwrap();
+    });
+    assert!(historical.peak_bytes >= 8192, "{historical:?}");
+    assert_eq!(historical.retained_bytes(), 0);
+    eprintln!(
+        "borrowed_placement_peak={} historical_placement_clone_peak={} historical_allocations={}",
+        borrowed.peak_bytes, historical.peak_bytes, historical.allocations
+    );
+}
+
+#[test]
+fn canonical_configuration_replacement_preserves_optional_placement_fields() {
+    for present in [false, true] {
+        let mut fragment = fixture::fragment();
+        fragment.states.clear();
+        let gear = &mut fragment.placements[0];
+        if present {
+            gear.source_span = Some(SourceSpan {
+                start: 1,
+                end: 9,
+                line: 1,
+                column: 2,
+                end_line: 1,
+                end_column: 10,
+            });
+            gear.base = Some(BaseProviderBinding {
+                base_id: "base".into(),
+                provider_instance_id: "provider".into(),
+                provider_generation: 7,
+                implementation_id: "base/implementation".into(),
+                mechanism_family: "base/family".into(),
+                enforcement_class: BaseEnforcementClass::HardwareGated,
+            });
+            gear.terminal_transductions
+                .push(TerminalTransductionProfile {
+                    input_port_id: "next".into(),
+                    output_port_id: "current".into(),
+                    normal_close: NormalCloseTransduction::NotAccepted,
+                    abnormal: AbnormalTerminalTransduction::NotAccepted,
+                    cancellation: CancellationTransduction::NotCancellable,
+                });
+            gear.host_calls.push(HostCallRequirement {
+                contract_id: "call".into(),
+                target_kind: Some(gear.kind_id.clone()),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 64,
+                maximum_output_bytes: 64,
+            });
+        }
+        let full = fixture::seal(fragment);
+        let (verified, configurations) = separate(&full);
+        let view = verified.serialize_with_configurations(|gear| {
+            Ok::<_, ()>(configurations[&gear.placement_id].clone())
+        });
+        assert_eq!(
+            serde_json::to_vec(&view).unwrap(),
+            serde_json::to_vec(&full).unwrap()
+        );
+        assert_eq!(
+            postcard::to_allocvec(&view).unwrap(),
+            postcard::to_allocvec(&full).unwrap()
+        );
+        let json = serde_json::to_value(&view).unwrap();
+        let gear = &json["fragments"][0]["placements"][0];
+        assert_eq!(gear.get("source_span").is_some(), present);
+        assert_eq!(gear.get("base").is_some(), present);
+        assert_eq!(gear.get("terminal_transductions").is_some(), present);
+        assert!(gear["configuration"].as_array().unwrap().is_empty());
+    }
+}
