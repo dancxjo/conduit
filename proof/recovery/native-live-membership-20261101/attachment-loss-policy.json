@@ -22,5 +22,24 @@
     "CPU policy proof and pinned ESP32 build only; no physical failover claim.",
     "Current installed eb9 firmware still refuses network recovery workspace.",
     "No attempts, grants, authority, quotas or transport acknowledgments are created by this observation."
-  ]
+  ],
+  "diagnostic": {
+    "source": "008b5c102df2cc4bf1d015c01f3d248d3fa1cb05",
+    "focused_handoff_tests_passed": 34,
+    "esp32_app_bytes": 3343984,
+    "stack_bytes": 37372,
+    "qualified": true,
+    "flashed": false,
+    "event": "network-attachment-lost",
+    "fields": [
+      "at_ms",
+      "link_up",
+      "address_configured",
+      "services"
+    ],
+    "sampling": "actual retained provider and service state before cleanup; no frozen join snapshot",
+    "deduplication": "first successful Attempt-to-Detached transition; no added retained state",
+    "missing_provider": "null flags",
+    "causal_limit": "Classifies readiness loss only. Does not infer RF/SDK disconnect reason."
+  }
 }
