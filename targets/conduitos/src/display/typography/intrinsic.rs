@@ -33,6 +33,7 @@ pub fn intrinsic_item_text_metrics(
     maximum_bytes: usize,
 ) -> Result<IntrinsicTextMetrics, DisplayError> {
     let scale = TextScale::new(percent)?;
+    style.admit_scale(percent)?;
     if value.len() > maximum_bytes {
         return Err(DisplayError::BufferTooSmall);
     }
@@ -72,6 +73,7 @@ pub fn resolve_em_sixteenths(
     units: u16,
 ) -> Result<u16, DisplayError> {
     TextScale::new(percent)?;
+    style.admit_scale(percent)?;
     if units > 4096 {
         return Err(DisplayError::InvalidExtent);
     }

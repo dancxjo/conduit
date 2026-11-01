@@ -93,6 +93,9 @@ impl NativeCompositor {
         self.pending(face, show, display)?;
         let i = self.index(&show.show.target_subject)?;
         self.check_revision(i, face, &show.show, Mode::Pending)?;
+        // Check fixed-resource capacity before changing selection or upload state.
+        #[cfg(feature = "native-compositor-core")]
+        super::super::paint::visual_look_typography(Some(expression), look)?;
         self.surfaces[i].expression = Some(expression.clone());
         self.surfaces[i].visual_look = look.cloned();
         self.raster(
@@ -200,6 +203,9 @@ impl NativeCompositor {
         let bounds = self.surfaces[i].bounds;
         let expression = self.surfaces[i].expression.clone();
         let visual_look = self.surfaces[i].visual_look.clone();
+        #[cfg(feature = "native-compositor-core")]
+        let typography =
+            super::super::paint::visual_look_typography(expression.as_ref(), visual_look.as_ref())?;
         self.invalidate();
         self.surfaces[i].receipt = None;
         if let Err(error) = self.unit(Request::BeginUpload {
@@ -240,13 +246,7 @@ impl NativeCompositor {
                         expression
                             .as_ref()
                             .map_or(100, |e| e.expression.text_scale_percent),
-                        crate::display::typography::Typography::new(
-                            expression
-                                .as_ref()
-                                .map_or(conduit_face::VisualTypography::Editorial, |e| {
-                                    e.expression.typography
-                                }),
-                        ),
+                        typography,
                         |role| {
                             super::super::paint::visual_look_paint(
                                 format,
