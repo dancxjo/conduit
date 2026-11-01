@@ -47,13 +47,28 @@ impl NativeFaceScene {
             height,
         };
         let (primary, details) = document::prepare(&face, interaction_admitted)?;
+        let spacing = layout::RowSpacing::legacy(SPACE_SM);
+        let viewport = layout::Viewport::for_face(
+            screen,
+            100,
+            Typography::EDITORIAL,
+            spacing,
+            &face,
+            interaction_admitted,
+            [&primary, &details],
+        )?;
         Ok(Self {
-            primary: layout::admit(primary, screen)?,
-            details: layout::admit(details, screen)?,
+            primary: layout::admit_with_expression_selected(
+                primary, SPACE_XL, 1, spacing, &viewport,
+            )?,
+            details: layout::admit_with_expression_selected(
+                details, SPACE_XL, 1, spacing, &viewport,
+            )?,
             graph_reading: graph_reading::GraphReading::prepare(&face)?,
             face,
             screen,
             text_scale_percent: 100,
+            header_top: viewport.chrome.top,
             typography: Typography::EDITORIAL,
             page: 0,
             focus: None,
@@ -138,30 +153,36 @@ impl NativeFaceScene {
         }
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
+        let viewport = layout::Viewport::for_face(
+            scene.screen,
+            scale,
+            typography,
+            spacing,
+            &scene.face,
+            interaction_admitted,
+            [&primary, &details],
+        )?;
         let panel_groups = layout::authored_panel_groups(
             recipe.recipe.regions().iter().map(|region| *region.group()),
         );
         scene.primary = layout::admit_configured_selected(
             primary,
-            scene.screen,
             layout::ConfiguredColumns {
                 gutter: geometry.gutter,
                 columns: geometry.columns,
                 spacing,
                 groups: panel_groups,
             },
-            scale,
-            typography,
+            &viewport,
         )?;
         scene.details = layout::admit_with_expression_selected(
             details,
-            scene.screen,
             geometry.gutter,
             geometry.columns,
-            scale,
             spacing,
-            typography,
+            &viewport,
         )?;
+        scene.header_top = viewport.chrome.top;
         scene.text_scale_percent = scale;
         scene.typography = typography;
         Ok(scene)
@@ -242,24 +263,20 @@ impl NativeFaceScene {
         let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
-        scene.primary = layout::admit_with_expression_selected(
-            primary,
+        let viewport = layout::Viewport::for_face(
             scene.screen,
-            SPACE_XL,
-            1,
             scale,
-            spacing,
             typography,
-        )?;
-        scene.details = layout::admit_with_expression_selected(
-            details,
-            scene.screen,
-            SPACE_XL,
-            1,
-            scale,
             spacing,
-            typography,
+            &scene.face,
+            interaction_admitted,
+            [&primary, &details],
         )?;
+        scene.primary =
+            layout::admit_with_expression_selected(primary, SPACE_XL, 1, spacing, &viewport)?;
+        scene.details =
+            layout::admit_with_expression_selected(details, SPACE_XL, 1, spacing, &viewport)?;
+        scene.header_top = viewport.chrome.top;
         scene.text_scale_percent = scale;
         scene.typography = typography;
         Ok(scene)
@@ -343,11 +360,18 @@ impl NativeFaceScene {
         }
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
-        let primary =
-            layout::admit_mechanical(primary, screen, structure, scale, spacing, typography)?;
-        let details = layout::admit_with_expression_selected(
-            details, screen, SPACE_XL, 1, scale, spacing, typography,
+        let viewport = layout::Viewport::for_face(
+            screen,
+            scale,
+            typography,
+            spacing,
+            face,
+            interaction_admitted,
+            [&primary, &details],
         )?;
+        let primary = layout::admit_mechanical(primary, structure, spacing, &viewport)?;
+        let details =
+            layout::admit_with_expression_selected(details, SPACE_XL, 1, spacing, &viewport)?;
         Ok(Self {
             primary,
             details,
@@ -355,6 +379,7 @@ impl NativeFaceScene {
             face: face.clone(),
             screen,
             text_scale_percent: scale,
+            header_top: viewport.chrome.top,
             typography,
             page: 0,
             focus: None,

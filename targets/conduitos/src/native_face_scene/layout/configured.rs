@@ -28,17 +28,16 @@ pub(in crate::native_face_scene) fn admit_configured(
     padding: u16,
     groups: Option<[u8; 2]>,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let viewport = Viewport::legacy(screen, text_scale_percent, Typography::EDITORIAL)?;
     admit_configured_selected(
         items,
-        screen,
         ConfiguredColumns {
             gutter,
             columns,
             spacing: RowSpacing::legacy(padding),
             groups,
         },
-        text_scale_percent,
-        Typography::EDITORIAL,
+        &viewport,
     )
 }
 
@@ -52,11 +51,10 @@ pub(in crate::native_face_scene) struct ConfiguredColumns {
 
 pub(in crate::native_face_scene) fn admit_configured_selected(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     geometry: ConfiguredColumns,
-    text_scale_percent: u16,
-    typography: Typography,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let screen = viewport.screen;
     let ConfiguredColumns {
         gutter,
         columns,
@@ -77,24 +75,8 @@ pub(in crate::native_face_scene) fn admit_configured_selected(
         if pair.is_some_and(|groups| groups[0] == groups[1]) {
             return Err(FaceSceneError::InvalidExtent);
         }
-        panels::admit(
-            items,
-            screen,
-            gutter,
-            text_scale_percent,
-            spacing,
-            pair,
-            typography,
-        )
+        panels::admit(items, gutter, spacing, pair, viewport)
     } else {
-        admit_with_expression_selected(
-            items,
-            screen,
-            gutter,
-            columns,
-            text_scale_percent,
-            spacing,
-            typography,
-        )
+        admit_with_expression_selected(items, gutter, columns, spacing, viewport)
     }
 }

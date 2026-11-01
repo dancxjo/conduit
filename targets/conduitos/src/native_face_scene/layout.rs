@@ -5,7 +5,7 @@ use alloc::string::String;
 
 #[path = "layout/mechanical.rs"]
 mod mechanical;
-pub(super) use mechanical::admit as admit_mechanical;
+pub(super) use mechanical::admit_viewport as admit_mechanical;
 #[path = "layout/surfaces.rs"]
 mod surfaces;
 pub(super) use surfaces::append_region_surfaces;
@@ -19,6 +19,10 @@ pub(super) use configured::{ConfiguredColumns, admit_configured_selected, author
 #[path = "layout/spacing.rs"]
 mod spacing;
 pub(super) use spacing::{NativePart, PackedRowInsets, RowInsets, RowSpacing};
+
+#[path = "layout/viewport.rs"]
+mod viewport;
+pub(super) use viewport::Viewport;
 
 #[path = "layout/field_clusters.rs"]
 mod field_clusters;
@@ -91,13 +95,7 @@ impl Row {
     }
 }
 
-pub(super) fn admit(
-    items: Vec<document::Item>,
-    screen: LayoutRect,
-) -> Result<Vec<Row>, FaceSceneError> {
-    admit_with_expression(items, screen, SPACE_XL, 1, 100, SPACE_SM)
-}
-
+#[cfg(test)]
 /// Geometry belongs to this admitted Mask; semantic rows remain in their
 /// existing order and retain exact action/argument references across columns.
 pub(super) fn admit_with_expression(
@@ -108,26 +106,26 @@ pub(super) fn admit_with_expression(
     text_scale_percent: u16,
     padding: u16,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let viewport = Viewport::legacy(screen, text_scale_percent, Typography::EDITORIAL)?;
     admit_with_expression_selected(
         items,
-        screen,
         gutter,
         columns,
-        text_scale_percent,
         RowSpacing::legacy(padding),
-        Typography::EDITORIAL,
+        &viewport,
     )
 }
 
 pub(super) fn admit_with_expression_selected(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     gutter: u16,
     columns: u16,
-    text_scale_percent: u16,
     spacing: RowSpacing,
-    typography: Typography,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let screen = viewport.screen;
+    let typography = viewport.typography;
+    let text_scale_percent = viewport.scale;
     field_clusters::validate(&items)?;
     let spacing = spacing.validate()?;
     let gap = spacing.gap;
@@ -145,7 +143,7 @@ pub(super) fn admit_with_expression_selected(
         .map(|width| width / columns)
         .filter(|width| *width > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
-    let chrome = chrome::Chrome::prepare_selected(screen, text_scale_percent, typography)?;
+    let chrome = &viewport.chrome;
     let bottom = chrome.bottom;
     let padding = fit_padding(
         items.iter(),

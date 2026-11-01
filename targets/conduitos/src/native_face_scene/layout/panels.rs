@@ -13,13 +13,13 @@ use flow::Flow;
 
 pub(super) fn admit(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     gutter: u16,
-    scale: u16,
     spacing: RowSpacing,
     groups: Option<[u8; 2]>,
-    typography: Typography,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let scale = viewport.scale;
+    let typography = viewport.typography;
     let spacing = spacing.validate()?;
     let padding = spacing.padding;
     let items = ordering::prepare(items, groups)?;
@@ -32,15 +32,7 @@ pub(super) fn admit(
                 .any(|(_, item)| item.region == Some(*group) && !item.text.is_empty())
         })
     });
-    let mut flow = Flow::new(
-        screen,
-        gutter,
-        scale,
-        groups,
-        typography,
-        paired_regions,
-        spacing,
-    )?;
+    let mut flow = Flow::new(viewport, gutter, groups, paired_regions, spacing)?;
     let padding = fit_padding(
         items.iter().map(|(_, item)| item),
         (flow.bottom - flow.top).saturating_sub(flow.edge * 2),

@@ -30,16 +30,15 @@ pub(super) struct Flow {
 
 impl Flow {
     pub(super) fn new(
-        screen: LayoutRect,
+        viewport: &Viewport,
         gutter: u16,
-        scale: u16,
         groups: Option<[u8; 2]>,
-        typography: Typography,
         paired_regions: bool,
         spacing: RowSpacing,
     ) -> Result<Self, FaceSceneError> {
+        let screen = viewport.screen;
         let edge = spacing.panel.unwrap_or(LEGACY_EDGE);
-        let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
+        let chrome = &viewport.chrome;
         let width = screen
             .width
             .checked_sub(gutter.checked_mul(2).ok_or(FaceSceneError::InvalidExtent)?)

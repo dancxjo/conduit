@@ -8,11 +8,14 @@ impl NativeFaceScene {
     }
 
     pub fn frame(&self) -> Result<FaceFrame<'_>, FaceSceneError> {
-        let chrome = chrome::Chrome::prepare_selected(
+        let mut chrome = chrome::Chrome::prepare_selected(
             self.screen,
             self.text_scale_percent,
             self.typography,
         )?;
+        if !self.showing_diagram {
+            chrome.reserve_top(self.header_top)?;
+        }
         if self.showing_diagram
             && (chrome.top != layout::HEADER
                 || self.screen.height - chrome.bottom != layout::FOOTER)
@@ -86,12 +89,13 @@ impl NativeFaceScene {
         let editor_visible = self.interaction_admitted
             && !self.showing_details
             && !self.showing_diagram
-            && text_editor::append(
+            && text_editor::append_with_chrome(
                 &mut scene,
                 &self.face,
                 self.screen,
                 self.text_scale_percent,
                 self.typography,
+                &chrome,
             )?;
         if !editor_visible && !self.showing_diagram && !self.showing_details {
             layout::append_region_surfaces(&mut scene, self.rows(), self.page, self.screen)?;

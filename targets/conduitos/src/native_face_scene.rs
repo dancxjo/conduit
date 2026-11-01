@@ -120,6 +120,8 @@ pub struct NativeFaceScene {
     face: Face,
     screen: LayoutRect,
     text_scale_percent: u16,
+    /// Admitted physical content origin shared by stored rows and frame chrome.
+    header_top: u16,
     typography: Typography,
     primary: Vec<layout::Row>,
     details: Vec<layout::Row>,

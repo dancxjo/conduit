@@ -179,16 +179,9 @@ impl Chrome {
         diagram: bool,
         scale: u16,
     ) -> &'a str {
-        let mut bodies = face
-            .subjects
-            .iter()
-            .filter(|subject| subject.role == conduit_face::FaceRole::Body);
-        if let Some(body) = bodies.next()
-            && bodies.next().is_none()
-            && !body.name.trim().is_empty()
-            && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
+        if let Some(name) = body_name(face)
             && height(
-                &body.name,
+                name,
                 self.heading_role,
                 self.heading.width,
                 scale,
@@ -196,7 +189,7 @@ impl Chrome {
             )
             .is_ok_and(|height| height <= self.heading.height)
         {
-            return &body.name;
+            return name;
         }
         if diagram && self.compact {
             "Graph"
@@ -209,6 +202,46 @@ impl Chrome {
         } else {
             "Overview"
         }
+    }
+
+    /// Reserve complete wording only while every actual content row can still
+    /// admit a full line. Oversized names stay intact in the paged document.
+    pub fn reserve_body_name(
+        &mut self,
+        face: &conduit_face::Face,
+        scale: u16,
+        minimum_row: u16,
+    ) -> Result<(), FaceSceneError> {
+        if let Some(name) = body_name(face)
+            && let Ok(needed) = height(
+                name,
+                self.heading_role,
+                self.heading.width,
+                scale,
+                self.typography,
+            )
+            && let Some(top) = needed.checked_add(EDGE * 2)
+            && top > self.top
+            && self
+                .bottom
+                .checked_sub(top)
+                .is_some_and(|space| space >= minimum_row)
+        {
+            self.reserve_top(top)?;
+        }
+        Ok(())
+    }
+
+    /// Reconstruct exactly the extent admitted during scene preparation.
+    /// Footer and screen coordinates do not move when the heading grows.
+    pub fn reserve_top(&mut self, top: u16) -> Result<(), FaceSceneError> {
+        if top < self.top || top >= self.bottom {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        self.top = top;
+        self.heading.height = top - EDGE * 2;
+        self.marker.height = top - EDGE * 2;
+        Ok(())
     }
 
     /// Only the visible provisional suffix is shortened. The argument buffer
@@ -275,6 +308,18 @@ impl Chrome {
         }
         Ok(())
     }
+}
+
+fn body_name(face: &conduit_face::Face) -> Option<&str> {
+    let mut bodies = face
+        .subjects
+        .iter()
+        .filter(|subject| subject.role == conduit_face::FaceRole::Body);
+    let body = bodies.next()?;
+    (bodies.next().is_none()
+        && !body.name.trim().is_empty()
+        && body.name.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES)
+        .then_some(body.name.as_str())
 }
 
 #[cfg(test)]

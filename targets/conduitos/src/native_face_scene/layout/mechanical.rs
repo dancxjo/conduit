@@ -23,17 +23,18 @@ mod structure;
 use fragment::{Entry, Fragment};
 use structure::{Demand, Group, Node};
 
-pub(in crate::native_face_scene) fn admit(
+pub(in crate::native_face_scene) fn admit_viewport(
     items: Vec<document::Item>,
-    screen: LayoutRect,
     prepared: &PreparedComponentLayout<'_>,
-    scale: u16,
     spacing: RowSpacing,
-    typography: Typography,
+    viewport: &Viewport,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let screen = viewport.screen;
+    let scale = viewport.scale;
+    let typography = viewport.typography;
     let spacing = spacing.validate()?;
     field_clusters::validate(&items)?;
-    let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
+    let chrome = &viewport.chrome;
     let height = chrome
         .bottom
         .checked_sub(chrome.top)
@@ -112,6 +113,19 @@ fn arrange_candidate(
         height,
         &demands,
     )
+}
+
+#[cfg(test)]
+fn admit(
+    items: Vec<document::Item>,
+    screen: LayoutRect,
+    prepared: &PreparedComponentLayout<'_>,
+    scale: u16,
+    spacing: RowSpacing,
+    typography: Typography,
+) -> Result<Vec<Row>, FaceSceneError> {
+    let viewport = Viewport::legacy(screen, scale, typography)?;
+    admit_viewport(items, prepared, spacing, &viewport)
 }
 
 struct Context<'a> {
