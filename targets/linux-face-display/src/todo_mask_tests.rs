@@ -33,13 +33,29 @@ fn canonical_todo_projection_uses_generic_mask_at_zero_one_three_and_twenty_rema
             .map(|s| s.name.clone())
             .collect();
         let mut shown = String::new();
-        for theme in [Theme::Navy, Theme::Editorial, Theme::Engineering] {
+        for theme in [
+            Theme::Navy,
+            Theme::Editorial,
+            Theme::Engineering,
+            Theme::FieldDay,
+            Theme::FieldNight,
+        ] {
             let look = theme.look().unwrap();
-            let (_, _, pages, _, _) = crate::view::frame(face.clone(), 1024, 512, 0, None).unwrap();
+            let (_, _, pages, _, _) =
+                crate::view::frame_with_look(face.clone(), 1024, 512, 0, None, false, Some(&look))
+                    .unwrap();
             assert!(pages > 0 && pages <= 64);
             for page in 0..pages {
-                let (scene, _, _, _, _) =
-                    crate::view::frame(face.clone(), 1024, 512, page, None).unwrap();
+                let (scene, _, _, _, _) = crate::view::frame_with_look(
+                    face.clone(),
+                    1024,
+                    512,
+                    page,
+                    None,
+                    false,
+                    Some(&look),
+                )
+                .unwrap();
                 for c in scene.commands() {
                     shown.push_str(c.payload());
                     shown.push('\n');
@@ -60,7 +76,15 @@ fn canonical_todo_projection_uses_generic_mask_at_zero_one_three_and_twenty_rema
                     split: SplitLayout::CollapsedRight,
                     ..Default::default()
                 };
-                crate::mask_controls::chrome(1024, 600, &mut pixels, preferences, &look).unwrap();
+                crate::mask_controls::chrome_in_context(
+                    1024,
+                    600,
+                    &mut pixels,
+                    preferences,
+                    &look,
+                    crate::mask_controls::Context::for_face(&face, false),
+                )
+                .unwrap();
                 crate::display_clock::render(1024, 600, 0, &mut pixels).unwrap();
                 if let Some(output) = &output {
                     let mut ppm = b"P6\n1024 600\n255\n".to_vec();
@@ -78,6 +102,17 @@ fn canonical_todo_projection_uses_generic_mask_at_zero_one_three_and_twenty_rema
                     .unwrap();
                 }
             }
+        }
+        assert!(!shown.contains("todo-return-route-unavailable"));
+        assert!(!shown.contains("OWNER FACE"));
+        assert!(!shown.contains("[ ]"));
+        if remaining <= 3 {
+            assert_eq!(
+                crate::view::frame(face.clone(), 1024, 512, 0, None)
+                    .unwrap()
+                    .2,
+                1
+            );
         }
         for name in names {
             assert!(
@@ -154,4 +189,87 @@ fn exact_environmental_face_is_consumed_by_hdmi_and_thermometer_masks() {
         face.identity.as_str(),
         face.revision
     );
+}
+
+#[test]
+fn details_retains_completed_items_and_exact_unavailable_reasons() {
+    let face = fixture::face(1, 3, false);
+    let mut text = String::new();
+    let pages = crate::view::frame_with_details(face.clone(), 1024, 512, 0, None, true)
+        .unwrap()
+        .2;
+    for page in 0..pages {
+        let (scene, ..) =
+            crate::view::frame_with_details(face.clone(), 1024, 512, page, None, true).unwrap();
+        for command in scene.commands() {
+            text.push_str(command.payload());
+            text.push('\n');
+        }
+    }
+    assert!(text.contains("Task 2"));
+    assert!(text.contains("Task 3"));
+    assert!(text.contains("todo-return-route-unavailable"));
+    assert!(text.contains("complete"));
+}
+#[test]
+fn todo_boolean_contract_exposes_no_return_route_in_observer() {
+    let face = fixture::face(1, 3, false);
+    let original = face.clone();
+    let mut scene =
+        conduitos::native_face_scene::NativeFaceScene::prepare_read_only(face, 1024, 512).unwrap();
+    assert!(scene.focus_next(true).is_none());
+    assert!(scene.frame().unwrap().hits.is_empty());
+    scene.show_details(true);
+    assert_eq!(scene.face(), &original);
+}
+
+#[test]
+fn admitted_todo_preserves_the_current_sources_actual_completion_contract() {
+    let face = fixture::face(1, 3, true);
+    let expected = face
+        .actions
+        .iter()
+        .find(|a| a.identity == "todo.complete.task-1")
+        .expect("current dev Todo completion action");
+    assert!(expected.arguments.is_empty());
+    // A visual Look must not manufacture the Boolean return contract from a
+    // newer, unmerged Todo producer. Preserve current Source and Face exactly.
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        let admitted = conduit_face::admit_visual_look(
+            &look,
+            conduit_face::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        let mut scene = conduitos::native_face_scene::NativeFaceScene::prepare_visual_fallback(
+            face.clone(),
+            1024,
+            512,
+            true,
+            &admitted.visual,
+        )
+        .unwrap();
+        let mut found = false;
+        for _ in 0..scene.pages() {
+            let frame = scene.frame().unwrap();
+            for hit in &frame.hits {
+                if hit.action.identity == expected.identity {
+                    assert_eq!(hit.action, expected);
+                    found = true;
+                }
+            }
+            assert_eq!(frame.face_id, &face.identity);
+            assert_eq!(frame.revision, face.revision);
+            scene.turn_page(true);
+        }
+        assert!(found, "actual completion contract remains reachable");
+        assert_eq!(scene.face(), &face);
+    }
 }

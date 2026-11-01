@@ -5,7 +5,7 @@ ConduitOS's existing `NativeFaceScene` and typography raster. It does not read
 sensors, reconstruct an environmental Face from numbers, select a Body source,
 or grant membership. The same Face identity, revision, and producing basis are
 retained; viewport, pagination, and pixel encoding belong to this realization.
-A property-focused Look brings Info-subject typed values and status forward;
+A property-focused Mask brings Info-subject typed values and status forward;
 quantity decoding, precision, and units reuse Face formatting. This creates no
 replacement Face. Larger unsupported layouts fall back to the ordinary scene.
 Actions are unavailable. It is not yet an installed Host-selected display Back
@@ -47,8 +47,9 @@ quantity summary. Lease time uses Linux `CLOCK_BOOTTIME` milliseconds; the
 producer should refresh each second with a five-second lease. Leases more
 than 30 seconds in the future are refused. This lease only protects against a
 dead producer/reboot; it does not decide sensor freshness or alter the Face.
-An unavailable, expired, or refused input shows a separate Host-owned local
-status with no Body or execution provenance and no cached sensor values.
+An unavailable, expired, or refused live input cannot renew its Face lease.
+A previously accepted same-Boot Face may remain visible as explicitly last known;
+otherwise a separate Host-owned unavailable view carries no Body provenance.
 
 The included user service is an explicit deployment adapter. Install its binary
 in `~/.local/lib/conduit-face-display/`, create
@@ -59,11 +60,11 @@ requirements; displaying a Face is not evidence of either.
 
 Set `CONDUIT_DISPLAY_TEMPERATURE_UNIT=fahrenheit` or `celsius` to choose the local Mask temperature unit. Conversion uses the shared exact Quantity formatter; incompatible values retain their canonical wording. The input Face and its measurement units remain unchanged.
 
-Large property pages precede the ordinary native Face pages in one rotation. Mixed sensor and transcript content therefore remains perceptible; the property Look never replaces the complete Face view. This renderer does not admit workers, synthesize contributions, or renew a producer lease.
+Large property pages precede the ordinary native Face pages in one rotation. Mixed sensor and transcript content therefore remains perceptible; the property Mask never replaces the complete Face view. This renderer does not admit workers, synthesize contributions, or renew a producer lease.
 
 The display retains its last successfully validated same-Boot Face when its live
 feed expires or becomes unavailable. A separate Host notice marks that view
-`STALE`; the original Face, source times and execution identity are unchanged,
+`LAST KNOWN` / `FEED DELAYED`; the original Face, source times and execution identity are unchanged,
 and actions remain disabled. A privately published, semantically valid same-Linux-Boot file may be recovered
 as explicitly historical at startup even if its live lease has expired. A
 foreign Boot, malformed document or unbounded future lease still refuses; this
@@ -127,3 +128,56 @@ the initial `CONDUIT_DISPLAY_TEMPERATURE_UNIT` default. Input is polled every
 10ms between paints; redraws are limited to ten per second during interaction
 and once per second while idle. These are development-adapter scheduling limits,
 not an admitted Host Back or a real-time input-latency guarantee.
+
+The Theme control includes Field · day and Field · night, using the exact
+Conduitese-authored Field instrument Look resources shared with browser Masks.
+It changes local presentation and retains the same Face and action contracts.
+Property pages and generic scenes measure and paint the same selected fixed font
+resources at the Look's authored body/small sizes and line height. Exact rational
+resampling preserves the existing 128×128 per-glyph work bound; unsupported line
+boxes or size requests refuse before scene/hit publication. No runtime font loader
+is introduced. Token-driven component spacing, radii and local partial overrides
+are still pending; Theme selection does not claim those contracts or a successful
+hardware Show. Narrow observer chrome uses the same compact headings as its
+measured reservation, and selects full or compact read-only/font guidance by
+footer admission. If no complete candidate fits, preparation still refuses;
+text is never silently clipped or scaled down to fit.
+
+Retained and recorded history charts now prepare their heading/footer boxes using
+the same selected typography as raster paint. Wrapping reserves space above the
+controls rather than clipping the provenance, gaps, failure or omitted-sample
+counts. Changing Look text metrics invalidates cached chart geometry even when the
+evidence bytes are unchanged; it never creates a new observation or changes the
+window.
+
+### Shared collector-observed series
+
+When the actual supplied Face contains the history library's
+`environment/source-observation-series@1` Collection, the right column presents
+that collection instead of the separate legacy signed-history preview. All
+instruments share the quantity axes and the exact collector Host/Boot time
+basis. The Mask does not poll equipment, collect observations or retain another
+history. See `bodies/environment/history/SOURCE_SERIES.md` for the checked data
+profile and its explicit provenance/clock limits.
+
+The operator's Blue, Green, White and Yellow names select cobalt, green,
+contrasting neutral/dashed and amber expression roles. Other sources receive
+remaining distinct styles in stable source order. A name changes appearance
+only; it never selects equipment or grants membership. Label and line use the
+same resolved style. Actual selected-font measurement refuses a label that
+cannot fit rather than silently clipping it.
+
+Split mode retains the report on the left and the shared graph on the right;
+unsplit mode cycles report and graph. Original technical observations remain
+in Details. Source-series gaps/failures are not joined or plotted at zero,
+collector-relative staleness remains separate from the Face transport lease,
+and drawing pressure refuses within the existing 48-command bound. Invalid or
+unsupported shared input is never replaced by unrelated legacy data under the
+same graph title. This development adapter still does not establish installed
+Host/Show admission or prove that a real collector has delivered four devices.
+
+An Info subject's optional ordinary `placement` Text is presented between the
+Body heading and its fieldgroup. It is measured in the selected Look, repeated
+once per fieldgroup on each page, and retained exactly in Details. The Mask
+supplies no default room and performs no host/network inference; the owner
+projects the current authored metadata from host configuration.

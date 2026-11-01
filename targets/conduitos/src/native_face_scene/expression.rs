@@ -38,6 +38,19 @@ impl NativeFaceScene {
         height: u16,
         interaction_admitted: bool,
     ) -> Result<Self, FaceSceneError> {
+        Self::prepare_input_mode(face, width, height, interaction_admitted, false)
+    }
+    /// Read-only primary projection; exact facts/actions remain in Details.
+    pub fn prepare_read_only(face: Face, width: u16, height: u16) -> Result<Self, FaceSceneError> {
+        Self::prepare_input_mode(face, width, height, false, true)
+    }
+    fn prepare_input_mode(
+        face: Face,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        overview: bool,
+    ) -> Result<Self, FaceSceneError> {
         face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
         if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
             return Err(FaceSceneError::InvalidExtent);
@@ -48,7 +61,7 @@ impl NativeFaceScene {
             width,
             height,
         };
-        let (mut primary, details) = document::prepare(&face, interaction_admitted)?;
+        let (mut primary, details) = document::prepare_mode(&face, interaction_admitted, overview)?;
         let spacing = layout::RowSpacing::legacy(SPACE_SM);
         let viewport = layout::Viewport::for_face(
             screen,
@@ -210,6 +223,7 @@ impl NativeFaceScene {
             interaction_admitted,
             expression,
             SelectedMetrics::legacy(Typography::new(expression.expression.typography)),
+            false,
         )
     }
     /// Realize the selected immutable Look's existing typed size/leading tokens.
@@ -229,6 +243,24 @@ impl NativeFaceScene {
             interaction_admitted,
             &look.visual,
             metrics,
+            false,
+        )
+    }
+    /// The same selected viewport/Look admission with read-only primary content.
+    pub fn prepare_read_only_visual_look(
+        face: Face,
+        width: u16,
+        height: u16,
+        look: &conduit_face::AdmittedVisualLook,
+    ) -> Result<Self, FaceSceneError> {
+        Self::prepare_visual_typography(
+            face,
+            width,
+            height,
+            false,
+            &look.visual,
+            Self::look_metrics(look)?,
+            true,
         )
     }
     fn look_metrics(
@@ -264,10 +296,13 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
         metrics: SelectedMetrics,
+        overview: bool,
     ) -> Result<Self, FaceSceneError> {
         let typography = metrics.typography;
-        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        let mut scene =
+            Self::prepare_input_mode(face, width, height, interaction_admitted, overview)?;
+        let (mut primary, details) =
+            document::prepare_mode(&scene.face, interaction_admitted, overview)?;
         let scale = expression.expression.text_scale_percent;
         let spacing = metrics.spacing(expression);
         let viewport = layout::Viewport::for_face(

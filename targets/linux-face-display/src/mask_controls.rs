@@ -8,15 +8,45 @@ use conduit_face::{
     },
 };
 pub const HEIGHT: u16 = 56;
-const ACTIONS: [Action; 5] = [
-    Action::NextTheme,
-    Action::ToggleTemperatureUnit,
-    Action::ZoomOut,
-    Action::ZoomIn,
-    Action::ResetHistoryWindow,
-];
+#[derive(Clone, Copy, Debug)]
+pub struct Context {
+    pub temperature: bool,
+    pub history: bool,
+}
+impl Default for Context {
+    fn default() -> Self {
+        Self {
+            temperature: true,
+            history: true,
+        }
+    }
+}
+impl Context {
+    fn actions(self) -> Vec<Action> {
+        let mut actions = vec![Action::NextTheme, Action::ToggleDetails];
+        if self.temperature {
+            actions.push(Action::ToggleTemperatureUnit);
+        }
+        if self.history {
+            actions.extend([Action::ZoomOut, Action::ZoomIn, Action::ResetHistoryWindow]);
+        }
+        actions
+    }
+    pub fn for_face(face: &conduit_face::Face, history: bool) -> Self {
+        let temperature = face.properties.iter().any(|p| {
+            matches!(&p.value,
+            conduit_face::FacePropertyValue::TypedValue { contract, .. }
+            if contract.value_kind.as_str() == conduit_core::TEMPERATURE_INFO_ID)
+        });
+        Self {
+            temperature,
+            history,
+        }
+    }
+}
 #[derive(Default)]
 pub struct Gestures {
+    pub context: Context,
     down: Option<(u16, u16)>,
     pinching: bool,
     distance: Option<u64>,
@@ -60,7 +90,8 @@ impl Gestures {
             self.down = None;
             self.dragging = false;
             self.pinching = true;
-            if a.y >= height.saturating_sub(HEIGHT)
+            if !self.context.history
+                || a.y >= height.saturating_sub(HEIGHT)
                 || b.y >= height.saturating_sub(HEIGHT)
                 || a.x < graph_left
                 || b.x < graph_left
@@ -116,17 +147,20 @@ impl Gestures {
         if self.moved || y >= height || y < height.saturating_sub(HEIGHT) {
             return None;
         }
-        ACTIONS.iter().enumerate().find_map(|(index, action)| {
-            (u32::from(x) < u32::from(width) * (index as u32 + 1) / 5).then_some(*action)
+        let actions = self.context.actions();
+        actions.iter().enumerate().find_map(|(index, action)| {
+            (u32::from(x) < u32::from(width) * (index as u32 + 1) / actions.len() as u32)
+                .then_some(*action)
         })
     }
 }
-pub fn render(
+fn render(
     width: u16,
     height: u16,
     pixels: &mut [u32],
     preferences: Preferences,
     look: &conduit_face::LookInfo,
+    context: Context,
 ) -> Result<(), String> {
     if width < 240 || height < HEIGHT || pixels.len() != usize::from(width) * usize::from(height) {
         return Err("controls viewport".into());
@@ -138,16 +172,27 @@ pub fn render(
         height: HEIGHT,
     };
     let mut scene = GraphicsScene::empty();
-    let labels = [
-        format!("Theme: {}", preferences.theme.label()),
-        format!("Units: {}", preferences.temperature.label()),
-        "Zoom out -".into(),
-        "Zoom in +".into(),
-        format!("Range: {}", preferences.history_window.label()),
-    ];
+    let labels: Vec<String> = context
+        .actions()
+        .iter()
+        .map(|action| match action {
+            Action::NextTheme => preferences.theme.label().into(),
+            Action::ToggleDetails => if preferences.details {
+                "Back to overview"
+            } else {
+                "Details"
+            }
+            .into(),
+            Action::ToggleTemperatureUnit => format!("Units: {}", preferences.temperature.label()),
+            Action::ZoomOut => "Zoom out -".into(),
+            Action::ZoomIn => "Zoom in +".into(),
+            Action::ResetHistoryWindow => format!("Range: {}", preferences.history_window.label()),
+            _ => unreachable!(),
+        })
+        .collect();
     for (index, label) in labels.iter().enumerate() {
-        let left = u32::from(width) * index as u32 / 5;
-        let right = u32::from(width) * (index + 1) as u32 / 5;
+        let left = u32::from(width) * index as u32 / labels.len() as u32;
+        let right = u32::from(width) * (index + 1) as u32 / labels.len() as u32;
         let bounds = LayoutRect {
             x: left as i16,
             y: 0,
@@ -240,6 +285,7 @@ pub fn render_divider(
     crate::raster_target::panel(&scene, width, height, pixels, look)
 }
 
+#[cfg(test)]
 pub fn chrome(
     width: u16,
     height: u16,
@@ -247,10 +293,22 @@ pub fn chrome(
     preferences: Preferences,
     look: &conduit_face::LookInfo,
 ) -> Result<(), String> {
+    chrome_in_context(width, height, pixels, preferences, look, Context::default())
+}
+pub fn chrome_in_context(
+    width: u16,
+    height: u16,
+    pixels: &mut [u32],
+    preferences: Preferences,
+    look: &conduit_face::LookInfo,
+    context: Context,
+) -> Result<(), String> {
     let interaction = crate::display_clock::content_height(height)?;
     let view = &mut pixels[..usize::from(width) * usize::from(interaction)];
-    render_divider(width, interaction, view, preferences, look)?;
-    render(width, interaction, view, preferences, look)
+    if context.history {
+        render_divider(width, interaction, view, preferences, look)?;
+    }
+    render(width, interaction, view, preferences, look, context)
 }
 
 #[cfg(test)]
@@ -308,6 +366,55 @@ mod tests {
         assert_eq!(
             g.frame([Contact::default(); 5], 1024, 568, 372),
             Some(Action::NextTheme)
+        );
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+    use super::*;
+    #[test]
+    fn observer_toolbar_and_touch_use_identical_content_actions() {
+        let mut gesture = Gestures {
+            context: Context {
+                temperature: false,
+                history: false,
+            },
+            ..Default::default()
+        };
+        let mut contacts = [Contact::default(); 5];
+        contacts[0] = Contact {
+            x: 800,
+            y: 540,
+            active: true,
+        };
+        assert_eq!(
+            gesture.frame_with_divider(contacts, 1024, 568, 0, None),
+            None
+        );
+        assert_eq!(
+            gesture.frame_with_divider([Contact::default(); 5], 1024, 568, 0, None),
+            Some(Action::ToggleDetails)
+        );
+        assert_eq!(
+            gesture.context.actions(),
+            vec![Action::NextTheme, Action::ToggleDetails]
+        );
+        contacts[0] = Contact {
+            x: 500,
+            y: 200,
+            active: true,
+        };
+        contacts[1] = Contact {
+            x: 600,
+            y: 200,
+            active: true,
+        };
+        gesture.frame_with_divider(contacts, 1024, 568, 0, None);
+        contacts[1].x = 900;
+        assert_eq!(
+            gesture.frame_with_divider(contacts, 1024, 568, 0, None),
+            None
         );
     }
 }

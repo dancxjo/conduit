@@ -1,11 +1,11 @@
-//! A property-focused Look of the same immutable Face. Selects readable Info
+//! A property-focused Mask of the same immutable Face. Selects readable Info
 //! properties; all decoding, quantity precision, and units use Face formatting.
 //! No sensor protocol, Body identity, freshness decision, or new Face is made.
 use conduit_face::{
     Face, FacePropertyValue, FaceRole, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
     GraphicsShapeStyle, GraphicsTextRole, LayoutRect, display_typed_value,
 };
-use conduitos::display::typography::TextLayout;
+use conduitos::display::typography::{TextLayout, Typography};
 // Local Mask preference uses the existing checked Quantity conversion. It does
 // not change the input Face, contract, or its canonical measurement bytes.
 fn display_typed_value_in_unit(
@@ -28,22 +28,42 @@ fn display_typed_value_in_unit(
 struct Row {
     group: String,
     group_label: String,
+    placement: Option<String>,
     group_order: usize,
     label: String,
     value: String,
     quantity: bool,
 }
-fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> {
+fn rows(
+    face: &Face,
+    preferred: Option<conduit_core::Unit>,
+    retained_snapshot: bool,
+) -> Option<Vec<Row>> {
     let mut rows = Vec::new();
     for (group_order, subject) in face.subjects.iter().enumerate() {
         if subject.role != FaceRole::Info {
             continue;
         }
-        for property in face
-            .properties
-            .iter()
-            .filter(|p| p.subject == subject.identity)
-        {
+        let mut placements = face.properties.iter().filter(|p| {
+            p.subject == subject.identity
+                && p.name == conduit_environment_history::source_series::SOURCE_PLACEMENT_PROPERTY
+        });
+        let placement = match placements.next().map(|p| &p.value) {
+            None => None,
+            Some(FacePropertyValue::Text(value))
+                if conduit_environment_history::source_series::valid_source_placement(value) =>
+            {
+                Some(value.clone())
+            }
+            _ => return None,
+        };
+        if placements.next().is_some() {
+            return None;
+        }
+        for property in face.properties.iter().filter(|p| {
+            p.subject == subject.identity
+                && p.name != conduit_environment_history::source_series::SOURCE_PLACEMENT_PROPERTY
+        }) {
             let (value, quantity) = match &property.value {
                 FacePropertyValue::TypedValue { contract, bytes } => (
                     preferred
@@ -56,6 +76,13 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
                 _ => continue,
             };
             let label = property.name.replace('-', " ");
+            // Qualify snapshot-local status without editing the immutable Face.
+            // Exact original property names and values remain in Details.
+            let label = if retained_snapshot && !quantity {
+                format!("At observation · {label}")
+            } else {
+                label
+            };
             // Larger documents retain the ordinary scene's complete bounded
             // wrapping/pagination rather than truncating a semantic value.
             if label.len() > 192 || value.len() > 192 {
@@ -64,6 +91,7 @@ fn rows(face: &Face, preferred: Option<conduit_core::Unit>) -> Option<Vec<Row>> 
             rows.push(Row {
                 group: subject.identity.clone(),
                 group_label: subject.name.clone(),
+                placement: placement.clone(),
                 group_order,
                 label,
                 value,
@@ -92,15 +120,19 @@ fn body_heading(face: &Face) -> Option<&str> {
 /// Keep native primary pages whenever they add content beyond the Info headings
 /// already named by the property Look. This is not a full Face/Details projection.
 pub fn has_no_additional_native_primary_content(face: &Face) -> bool {
+    has_no_additional_native_primary_content_except(face, &[])
+}
+pub fn has_no_additional_native_primary_content_except(face: &Face, summarized: &[String]) -> bool {
     !face.subjects.is_empty()
         && face.subjects.iter().all(|subject| {
-            (subject.role == FaceRole::Body
-                && face
-                    .basis
-                    .body_id
-                    .as_ref()
-                    .is_some_and(|id| subject.identity == format!("body/{}", id.as_str()))
-                && body_heading(face) == Some(subject.name.as_str()))
+            summarized.contains(&subject.identity)
+                || (subject.role == FaceRole::Body
+                    && face
+                        .basis
+                        .body_id
+                        .as_ref()
+                        .is_some_and(|id| subject.identity == format!("body/{}", id.as_str()))
+                    && body_heading(face) == Some(subject.name.as_str()))
                 || subject.role == FaceRole::Info
                     && face.properties.iter().any(|p| {
                         p.subject == subject.identity
@@ -113,7 +145,10 @@ pub fn has_no_additional_native_primary_content(face: &Face) -> bool {
                     })
         })
         && face.text.is_empty()
-        && face.relationships.is_empty()
+        && face
+            .relationships
+            .iter()
+            .all(|r| summarized.contains(&r.source) && summarized.contains(&r.target))
         && face.composition.is_empty()
         && face.actions.is_empty()
         && face.disclosures.is_empty()
@@ -128,8 +163,9 @@ fn text(
     value: &str,
     role: GraphicsTextRole,
     paint: GraphicsPaintRole,
+    typography: Typography,
 ) -> Option<()> {
-    if TextLayout::new_scaled(value, role.into(), bounds.width, 100)
+    if TextLayout::new_selected(value, typography.style(role.into()), bounds.width, 100)
         .ok()?
         .finish_height()
         > u32::from(bounds.height)
@@ -146,14 +182,14 @@ fn text(
         .ok()?;
     Some(())
 }
-fn row_height(row: &Row, width: u16) -> Option<u16> {
+fn row_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
     if row.quantity {
         return Some(84);
     }
     let label = format!("{}: {}", row.label, row.value);
-    let measured = TextLayout::new_scaled(
+    let measured = TextLayout::new_selected(
         &label,
-        GraphicsTextRole::Body.into(),
+        typography.style(GraphicsTextRole::Body.into()),
         width.checked_sub(64)?,
         100,
     )
@@ -161,16 +197,33 @@ fn row_height(row: &Row, width: u16) -> Option<u16> {
     .finish_height();
     u16::try_from(measured).ok()?.checked_add(8)
 }
-fn group_height(row: &Row, width: u16) -> Option<u16> {
-    let measured = TextLayout::new_scaled(
-        &row.group_label,
-        GraphicsTextRole::Heading.into(),
+fn placement_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
+    let Some(placement) = row.placement.as_deref() else {
+        return Some(0);
+    };
+    let measured = TextLayout::new_selected(
+        placement,
+        typography.style(GraphicsTextRole::Label.into()),
         width.checked_sub(48)?,
         100,
     )
     .ok()?
     .finish_height();
     u16::try_from(measured).ok()?.checked_add(8)
+}
+fn group_height(row: &Row, width: u16, typography: Typography) -> Option<u16> {
+    let measured = TextLayout::new_selected(
+        &row.group_label,
+        typography.style(GraphicsTextRole::Heading.into()),
+        width.checked_sub(48)?,
+        100,
+    )
+    .ok()?
+    .finish_height();
+    u16::try_from(measured)
+        .ok()?
+        .checked_add(8)?
+        .checked_add(placement_height(row, width, typography)?)
 }
 /// Selects one finite property page. `None` retains the complete ordinary Face
 /// scene as the refusal/fallback, never partial or fabricated sensor wording.
@@ -181,13 +234,41 @@ pub fn frame(
     tick: usize,
     preferred: Option<conduit_core::Unit>,
 ) -> Option<(GraphicsScene, usize, usize)> {
-    let rows = rows(face, preferred)?;
+    frame_with_look(face, width, height, tick, preferred, None)
+}
+pub fn frame_with_look(
+    face: &Face,
+    width: u16,
+    height: u16,
+    tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    look: Option<&conduit_face::LookInfo>,
+) -> Option<(GraphicsScene, usize, usize)> {
+    frame_with_context(face, width, height, tick, preferred, look, false)
+}
+#[allow(clippy::too_many_arguments)]
+pub fn frame_with_context(
+    face: &Face,
+    width: u16,
+    height: u16,
+    tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    look: Option<&conduit_face::LookInfo>,
+    retained_snapshot: bool,
+) -> Option<(GraphicsScene, usize, usize)> {
+    let typography = crate::raster_target::selected_typography(look).ok()?;
+    let rows = rows(face, preferred, retained_snapshot)?;
     let heading = body_heading(face).unwrap_or("Conduit");
     let title_width = width.checked_sub(48)?;
     let title_height = u16::try_from(
-        TextLayout::new_scaled(heading, GraphicsTextRole::Title.into(), title_width, 100)
-            .ok()?
-            .finish_height(),
+        TextLayout::new_selected(
+            heading,
+            typography.style(GraphicsTextRole::Title.into()),
+            title_width,
+            100,
+        )
+        .ok()?
+        .finish_height(),
     )
     .ok()?
     .max(40);
@@ -205,9 +286,10 @@ pub fn frame(
         while end < rows.len() {
             let row = &rows[end];
             let extra = if group == Some(row.group.as_str()) {
-                row_height(row, width)?
+                row_height(row, width, typography)?
             } else {
-                group_height(row, width)?.checked_add(row_height(row, width)?)?
+                group_height(row, width, typography)?
+                    .checked_add(row_height(row, width, typography)?)?
             };
             if y.checked_add(extra)? > bottom {
                 break;
@@ -254,12 +336,31 @@ pub fn frame(
         heading,
         GraphicsTextRole::Title,
         GraphicsPaintRole::Accent,
+        typography,
     )?;
     let (start, end) = page_ranges[page];
     let mut y = i16::try_from(rows_start).ok()?;
     let mut group = None;
     for row in &rows[start..end] {
         if group != Some(row.group.as_str()) {
+            let placement_height = placement_height(row, width, typography)?;
+            if let Some(placement) = row.placement.as_deref() {
+                text(
+                    &mut scene,
+                    screen,
+                    LayoutRect {
+                        x: 24,
+                        y,
+                        width: width.checked_sub(48)?,
+                        height: placement_height,
+                    },
+                    placement,
+                    GraphicsTextRole::Label,
+                    GraphicsPaintRole::Muted,
+                    typography,
+                )?;
+                y += i16::try_from(placement_height).ok()?;
+            }
             text(
                 &mut scene,
                 screen,
@@ -267,13 +368,16 @@ pub fn frame(
                     x: 24,
                     y,
                     width: width.checked_sub(48)?,
-                    height: group_height(row, width)?,
+                    height: group_height(row, width, typography)?.checked_sub(placement_height)?,
                 },
                 &row.group_label,
                 GraphicsTextRole::Heading,
                 GraphicsPaintRole::Accent,
+                typography,
             )?;
-            y += i16::try_from(group_height(row, width)?).ok()?;
+            y +=
+                i16::try_from(group_height(row, width, typography)?.checked_sub(placement_height)?)
+                    .ok()?;
             group = Some(row.group.as_str());
         }
         if !row.quantity {
@@ -285,13 +389,14 @@ pub fn frame(
                     x: 32,
                     y,
                     width: width.checked_sub(64)?,
-                    height: row_height(row, width)?,
+                    height: row_height(row, width, typography)?,
                 },
                 &label,
                 GraphicsTextRole::Body,
                 GraphicsPaintRole::Foreground,
+                typography,
             )?;
-            y += i16::try_from(row_height(row, width)?).ok()?;
+            y += i16::try_from(row_height(row, width, typography)?).ok()?;
             continue;
         }
         text(
@@ -306,6 +411,7 @@ pub fn frame(
             &row.label,
             GraphicsTextRole::Label,
             GraphicsPaintRole::Muted,
+            typography,
         )?;
         text(
             &mut scene,
@@ -323,6 +429,7 @@ pub fn frame(
                 GraphicsTextRole::Body
             },
             GraphicsPaintRole::Foreground,
+            typography,
         )?;
         y += 84;
     }
@@ -339,6 +446,7 @@ pub fn frame(
         &footer,
         GraphicsTextRole::Label,
         GraphicsPaintRole::Muted,
+        typography,
     )?;
     Some((scene, page, pages))
 }

@@ -8,6 +8,8 @@ pub enum Theme {
     Navy,
     Editorial,
     Engineering,
+    FieldDay,
+    FieldNight,
 }
 impl Theme {
     pub fn look(self) -> Result<crate::LookInfo, conduit_plot::rust_binding::NativeBindingRefusal> {
@@ -18,6 +20,8 @@ impl Theme {
             ),
             Self::Editorial => crate::editorial_look(),
             Self::Engineering => crate::engineering_look(),
+            Self::FieldDay => crate::field_instrument_day_look(),
+            Self::FieldNight => crate::field_instrument_night_look(),
         }
     }
     pub const fn label(self) -> &'static str {
@@ -25,13 +29,17 @@ impl Theme {
             Self::Navy => "Navy",
             Self::Editorial => "Editorial",
             Self::Engineering => "Engineering",
+            Self::FieldDay => "Field · day",
+            Self::FieldNight => "Field · night",
         }
     }
     fn next(self) -> Self {
         match self {
             Self::Navy => Self::Editorial,
             Self::Editorial => Self::Engineering,
-            Self::Engineering => Self::Navy,
+            Self::Engineering => Self::FieldDay,
+            Self::FieldDay => Self::FieldNight,
+            Self::FieldNight => Self::Navy,
         }
     }
 }
@@ -128,6 +136,8 @@ impl SplitLayout {
 pub struct PresentationPreferences {
     pub theme: Theme,
     #[serde(default)]
+    pub details: bool,
+    #[serde(default)]
     pub split: SplitLayout,
     pub temperature: TemperatureUnit,
     pub history_window: HistoryWindow,
@@ -136,6 +146,7 @@ pub struct PresentationPreferences {
 pub enum PresentationAction {
     MoveDivider(u16),
     NextTheme,
+    ToggleDetails,
     ToggleTemperatureUnit,
     ZoomIn,
     ZoomOut,
@@ -148,6 +159,7 @@ impl PresentationPreferences {
             PresentationAction::MoveDivider(position) => {
                 self.split = SplitLayout::from_divider(position)
             }
+            PresentationAction::ToggleDetails => self.details = !self.details,
             PresentationAction::NextTheme => self.theme = self.theme.next(),
             PresentationAction::ToggleTemperatureUnit => {
                 self.temperature = match self.temperature {
@@ -166,6 +178,17 @@ impl PresentationPreferences {
 mod tests {
     use super::*;
     #[test]
+    fn details_is_local_and_old_saved_preferences_remain_valid() {
+        let old = r#"{"theme":"Navy","temperature":"Celsius","history_window":"Retained"}"#;
+        let mut preferences: PresentationPreferences = serde_json::from_str(old).unwrap();
+        assert!(!preferences.details);
+        let original = preferences;
+        assert!(preferences.apply(PresentationAction::ToggleDetails));
+        assert!(preferences.details);
+        assert!(preferences.apply(PresentationAction::ToggleDetails));
+        assert_eq!(preferences, original);
+    }
+    #[test]
     fn zoom_is_bounded_and_reversible_and_does_not_change_other_preferences() {
         let mut p = PresentationPreferences::default();
         for _ in 0..20 {
@@ -182,7 +205,13 @@ mod tests {
     }
     #[test]
     fn selected_themes_are_existing_valid_looks_and_units_remain_dimensions() {
-        for theme in [Theme::Navy, Theme::Editorial, Theme::Engineering] {
+        for theme in [
+            Theme::Navy,
+            Theme::Editorial,
+            Theme::Engineering,
+            Theme::FieldDay,
+            Theme::FieldNight,
+        ] {
             assert!(theme.look().is_ok());
         }
         let mut p = PresentationPreferences::default();

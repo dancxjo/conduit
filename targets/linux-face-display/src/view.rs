@@ -33,6 +33,44 @@ pub fn unavailable(reason: &str) -> Face {
     .expect("bounded static host status")
 }
 
+/// The adapter supplies ordinary Mask-local guidance. Choose the first wording
+/// admitted by the shared measured footer; never clip text or ignore refusal.
+fn set_read_only_notice(
+    scene: &mut NativeFaceScene,
+    missing_glyphs: bool,
+) -> Result<(), conduitos::native_face_scene::FaceSceneError> {
+    use conduitos::native_face_scene::FaceSceneError;
+    let candidates = if missing_glyphs {
+        [
+            "Font missing characters; original text retained",
+            "Missing glyphs; text retained",
+            "Missing glyphs",
+        ]
+    } else {
+        [
+            "Read only; Details for actions and facts",
+            "Read only; see Details",
+            "Read only; Details",
+        ]
+    };
+    for notice in candidates {
+        match scene.set_local_notice(notice) {
+            Ok(()) => return Ok(()),
+            Err(FaceSceneError::InputBound) => continue,
+            Err(error) => return Err(error),
+        }
+    }
+    Err(FaceSceneError::InputBound)
+}
+
+pub struct Presentation<'a> {
+    pub unit: Option<conduit_core::Unit>,
+    pub look: Option<&'a conduit_face::LookInfo>,
+    pub details: bool,
+    /// Properties are historical facts of the retained snapshot, not current liveness.
+    pub retained_snapshot: bool,
+    pub history_in_primary: bool,
+}
 pub fn render_with_palette(
     face: Face,
     width: u16,
@@ -42,11 +80,50 @@ pub fn render_with_palette(
     preferred: Option<conduit_core::Unit>,
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<(usize, usize), String> {
+    render_with_details(
+        face,
+        width,
+        height,
+        page_tick,
+        pixels,
+        Presentation {
+            unit: preferred,
+            look,
+            details: false,
+            retained_snapshot: false,
+            history_in_primary: true,
+        },
+    )
+}
+pub fn render_with_details(
+    face: Face,
+    width: u16,
+    height: u16,
+    page_tick: usize,
+    pixels: &mut [u32],
+    presentation: Presentation<'_>,
+) -> Result<(usize, usize), String> {
+    let Presentation {
+        unit: preferred,
+        look,
+        details,
+        retained_snapshot,
+        history_in_primary,
+    } = presentation;
     if pixels.len() != usize::from(width) * usize::from(height) {
         return Err("raster extent mismatch".into());
     }
-    let (frame, page, pages, scale, chart_viewport) =
-        frame(face, width, height, page_tick, preferred)?;
+    let (frame, page, pages, scale, chart_viewport) = frame_with_context(
+        face,
+        width,
+        height,
+        page_tick,
+        preferred,
+        details,
+        look,
+        retained_snapshot,
+        history_in_primary,
+    )?;
     if chart_viewport {
         render_graphics_with_palette(&frame, width, height, pixels, look)?;
         return Ok((page, pages));
@@ -178,6 +255,7 @@ pub fn render_notice_with_palette(
         .map_err(|e| format!("notice raster: {e:?}"))
 }
 
+#[cfg(test)]
 pub(crate) fn frame(
     face: Face,
     width: u16,
@@ -185,13 +263,106 @@ pub(crate) fn frame(
     page_tick: usize,
     preferred: Option<conduit_core::Unit>,
 ) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
+    frame_with_details(face, width, height, page_tick, preferred, false)
+}
+pub(crate) fn frame_with_details(
+    face: Face,
+    width: u16,
+    height: u16,
+    page_tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    details: bool,
+) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
+    frame_with_look(face, width, height, page_tick, preferred, details, None)
+}
+pub(crate) fn frame_with_look(
+    face: Face,
+    width: u16,
+    height: u16,
+    page_tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    details: bool,
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
+    frame_with_context(
+        face, width, height, page_tick, preferred, details, look, false, true,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn frame_with_context(
+    face: Face,
+    width: u16,
+    height: u16,
+    page_tick: usize,
+    preferred: Option<conduit_core::Unit>,
+    details: bool,
+    look: Option<&conduit_face::LookInfo>,
+    retained_snapshot: bool,
+    history_in_primary: bool,
+) -> Result<(conduit_face::GraphicsScene, usize, usize, u16, bool), String> {
     let property_face = face.clone();
-    let property = crate::property_mask::frame(&property_face, width, height, 0, preferred);
-    let mut scene = NativeFaceScene::prepare_with_input(face, width, height, false)
-        .map_err(|e| format!("Face scene refused: {e:?}"))?;
-    scene
-        .set_local_notice("Read only; pages advance automatically")
+    let property = crate::property_mask::frame_with_context(
+        &property_face,
+        width,
+        height,
+        0,
+        preferred,
+        look,
+        retained_snapshot,
+    );
+    let mut scene = if let Some(look) = look {
+        let admitted = conduit_face::admit_visual_look(
+            look,
+            conduit_face::VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .map_err(|e| format!("Look capacity refused: {e:?}"))?;
+        NativeFaceScene::prepare_read_only_visual_look(face, width, height, &admitted)
+    } else {
+        NativeFaceScene::prepare_read_only(face, width, height)
+    }
+    .map_err(|e| format!("Face scene refused: {e:?}"))?;
+    scene.show_details(details);
+    let unsupported = property_face
+        .subjects
+        .iter()
+        .flat_map(|subject| subject.name.chars())
+        .any(|character| {
+            conduitos::display::typography::glyph(
+                conduitos::display::typography::TextRole::Body,
+                character,
+            )
+            .unsupported
+        });
+    set_read_only_notice(&mut scene, unsupported)
         .map_err(|e| format!("Face notice refused: {e:?}"))?;
+    if details {
+        let pages = scene.pages();
+        let page = page_tick % pages;
+        for _ in 0..page {
+            scene.turn_page(true);
+        }
+        let frame = scene.frame().map_err(|e| format!("Details: {e:?}"))?;
+        return Ok((frame.scene, page, pages, scene.text_scale_percent(), false));
+    }
+    let summarized = crate::source_history::scope(&property_face)?;
+    let shared = if history_in_primary {
+        crate::source_history::prepare(
+            &property_face,
+            preferred.unwrap_or(conduit_core::Unit::Celsius),
+            width,
+            height.saturating_sub(STATUS_STRIP_HEIGHT as u16),
+            None,
+            look,
+        )?
+    } else {
+        None
+    };
+    let shared_pages = usize::from(shared.is_some());
     let charts: Vec<_> = property_face
         .subjects
         .iter()
@@ -202,29 +373,50 @@ pub(crate) fn frame(
         .collect();
     let property_pages = property.as_ref().map_or(0, |(_, _, pages)| *pages);
     let native_pages = if property_pages > 0
-        && crate::property_mask::has_no_additional_native_primary_content(&property_face)
-    {
+        && crate::property_mask::has_no_additional_native_primary_content_except(
+            &property_face,
+            &summarized,
+        ) {
         0
     } else {
         scene.pages()
     };
-    let pages = charts.len() + native_pages + property_pages;
+    let pages = shared_pages + charts.len() + native_pages + property_pages;
     let page = page_tick % pages;
-    if page < charts.len() {
-        let show = charts[page]
-            .native_show_in_unit_at_size(
+    if let Some(shared) = shared
+        && page == 0
+    {
+        return Ok((shared.scene, page, pages, 100, true));
+    }
+    let chart_page = page - shared_pages;
+    if chart_page < charts.len() {
+        let typography = crate::raster_target::selected_typography(look)
+            .map_err(|e| format!("history typography refused: {e:?}"))?;
+        let graphics = charts[chart_page]
+            .native_scene_in_unit_at_size_measured(
                 preferred.unwrap_or(conduit_core::Unit::Celsius),
                 width,
                 height.saturating_sub(STATUS_STRIP_HEIGHT as u16),
+                &|text, role, width| {
+                    crate::raster_target::measure_chart_text(typography, text, role, width)
+                },
             )
             .map_err(|e| format!("history graph refused: {e:?}"))?;
-        return Ok((show.scene, page, pages, 100, true));
+        return Ok((graphics, page, pages, 100, true));
     }
-    let content_page = page - charts.len();
+
+    let content_page = chart_page - charts.len();
     if content_page < property_pages {
-        let (graphics, _, _) =
-            crate::property_mask::frame(&property_face, width, height, content_page, preferred)
-                .ok_or("property page refused")?;
+        let (graphics, _, _) = crate::property_mask::frame_with_context(
+            &property_face,
+            width,
+            height,
+            content_page,
+            preferred,
+            look,
+            retained_snapshot,
+        )
+        .ok_or("property page refused")?;
         return Ok((graphics, page, pages, 100, false));
     }
     for _ in 0..content_page - property_pages {
@@ -237,146 +429,5 @@ pub(crate) fn frame(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn complete_info_property_pages_do_not_alternate_with_an_empty_snapshot() {
-        let base = unavailable("unused");
-        let make = |properties| {
-            Face::new(
-                9,
-                base.basis.clone(),
-                vec![FaceSubject {
-                    identity: "instrument".into(),
-                    role: FaceRole::Info,
-                    name: "Room conditions".into(),
-                }],
-                vec![],
-                properties,
-                vec![],
-            )
-            .unwrap()
-        };
-        let property = conduit_face::FaceProperty {
-            subject: "instrument".into(),
-            name: "reading".into(),
-            value: conduit_face::FacePropertyValue::Text("Real value".into()),
-        };
-        let face = make(vec![property.clone()]);
-        for tick in 0..6 {
-            let (scene, page, pages, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
-            assert_eq!((page, pages), (0, 1));
-            assert!(
-                scene
-                    .commands()
-                    .iter()
-                    .any(|c| c.payload() == "reading: Real value")
-            );
-        }
-        let unsupported = conduit_face::FaceProperty {
-            subject: "instrument".into(),
-            name: "count".into(),
-            value: conduit_face::FacePropertyValue::Count(12),
-        };
-        let mixed = make(vec![property, unsupported]);
-        let (_, _, pages, _, _) = frame(mixed, 1024, 600, 0, None).unwrap();
-        assert_eq!(pages, 1, "Count metadata adds no native primary content");
-    }
-    #[test]
-    #[ignore = "requires explicitly selected private actual current Face"]
-    fn actual_info_face_with_metadata_has_no_empty_page_in_any_cycle() {
-        let path =
-            std::env::var_os("CONDUIT_PRIVATE_CURRENT_FACE_TEST").expect("private actual Face");
-        let document: serde_json::Value =
-            serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-        let face: Face = serde_json::from_value(document["face"].clone()).unwrap();
-        face.validate().unwrap();
-        assert!(
-            face.properties
-                .iter()
-                .any(|p| matches!(p.value, conduit_face::FacePropertyValue::Count(_)))
-        );
-        for tick in 0..8 {
-            let (scene, page, pages, _, _) = frame(
-                face.clone(),
-                1024,
-                600,
-                tick,
-                Some(conduit_core::Unit::Fahrenheit),
-            )
-            .unwrap();
-            assert_eq!((page, pages), (0, 1));
-            assert!(scene.commands().iter().any(|c| c.payload().contains("°F")));
-            assert!(scene.commands().iter().any(|c| c.payload().contains('%')));
-        }
-    }
-    #[test]
-    fn sensor_pages_do_not_hide_transcript_from_the_same_face() {
-        let base = unavailable("Transcript: the greenhouse is quiet");
-        let face = Face::new(
-            9,
-            base.basis,
-            vec![
-                base.subjects[0].clone(),
-                FaceSubject {
-                    identity: "sensor".into(),
-                    role: FaceRole::Info,
-                    name: "Greenhouse".into(),
-                },
-            ],
-            vec![],
-            vec![conduit_face::FaceProperty {
-                subject: "sensor".into(),
-                name: "reading".into(),
-                value: conduit_face::FacePropertyValue::Text("Sensor marker".into()),
-            }],
-            base.text,
-        )
-        .unwrap();
-        let original = face.clone();
-        let (_, _, pages, _, _) = frame(face.clone(), 1024, 600, 0, None).unwrap();
-        assert!(pages >= 2);
-        let mut sensor = false;
-        let mut transcript = false;
-        for tick in 0..pages {
-            let (scene, page, count, _, _) = frame(face.clone(), 1024, 600, tick, None).unwrap();
-            assert_eq!((page, count), (tick, pages));
-            sensor |= scene
-                .commands()
-                .iter()
-                .any(|c| c.payload().contains("Sensor marker"));
-            transcript |= scene
-                .commands()
-                .iter()
-                .any(|c| c.payload().contains("greenhouse is quiet"));
-        }
-        assert!(
-            sensor && transcript,
-            "both contributions must remain perceptible"
-        );
-        assert_eq!(face, original);
-    }
-}
-
-#[cfg(test)]
-mod native_chart_pixel_tests {
-    use super::*;
-    use conduitos::display::{PixelTarget, RetainedPixelTarget};
-    #[test]
-    fn chart_pixel_is_written_once_without_stretching_and_preserves_status_strip() {
-        let mut pixels = vec![0; 1024 * 600];
-        let mut target = ChartViewport {
-            width: 1024,
-            height: 600,
-            pixels: &mut pixels,
-        };
-        assert_eq!(target.format().width, 1024);
-        assert_eq!(target.format().height, 564);
-        target.write_pixel(511, 100, 0xabcdef).unwrap();
-        assert_eq!(target.read_pixel(511, 100).unwrap(), 0xabcdef);
-        assert!(target.write_pixel(1024, 100, 1).is_err());
-        assert_eq!(pixels.iter().filter(|p| **p != 0).count(), 1);
-        assert_eq!(pixels[(100 + 36) * 1024 + 511], 0xabcdef);
-        assert!(pixels[..36 * 1024].iter().all(|p| *p == 0));
-    }
-}
+#[path = "view_tests.rs"]
+mod presentation_contract_tests;

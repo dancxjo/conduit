@@ -77,9 +77,9 @@ mod property_contract {
         )
         .unwrap();
         let original = face.clone();
-        let canonical = rows(&face, None).unwrap();
+        let canonical = rows(&face, None, false).unwrap();
         assert_eq!(canonical[0].value, "22.5 °C");
-        let preferred = rows(&face, Some(Unit::Fahrenheit)).unwrap();
+        let preferred = rows(&face, Some(Unit::Fahrenheit), false).unwrap();
         assert_eq!(preferred[0].value, "72.5 °F");
         assert_eq!(preferred[1].value, "true");
         assert_eq!(face, original);
@@ -170,4 +170,107 @@ mod status_layout_tests {
             (0..36).map(|i| format!("value-{i}")).collect::<Vec<_>>()
         );
     }
+}
+
+#[test]
+fn selected_look_measures_its_actual_title_resource_without_changing_the_face() {
+    use conduit_face::{FaceProperty, FacePropertyValue, FaceRole, GraphicsCommandKind};
+    use conduitos::display::typography::TextLayout;
+    let mut face = crate::view::unavailable("unused");
+    face.subjects[0].role = FaceRole::Info;
+    face.text.clear();
+    face.properties.push(FaceProperty {
+        subject: face.subjects[0].identity.clone(),
+        name: "status".into(),
+        value: FacePropertyValue::Text("ready".into()),
+    });
+    let original = face.clone();
+    for look in [
+        conduit_face::field_instrument_day_look().unwrap(),
+        conduit_face::field_instrument_night_look().unwrap(),
+    ] {
+        let typography = crate::raster_target::selected_typography(Some(&look)).unwrap();
+        for width in [320, 368, 692] {
+            let (scene, _, _) =
+                crate::property_mask::frame_with_look(&face, width, 512, 0, None, Some(&look))
+                    .unwrap();
+            for command in scene
+                .commands()
+                .iter()
+                .filter(|c| c.kind == GraphicsCommandKind::Text)
+            {
+                let measured = TextLayout::new_selected(
+                    command.payload(),
+                    typography.style(command.text_role().into()),
+                    command.bounds.width,
+                    100,
+                )
+                .unwrap()
+                .finish_height();
+                assert!(
+                    measured <= u32::from(command.bounds.height),
+                    "{}",
+                    command.payload()
+                );
+            }
+        }
+        assert_eq!(face, original);
+    }
+}
+
+#[test]
+fn retained_context_qualifies_status_without_altering_face_or_exact_details() {
+    use conduit_face::{Face, FaceProperty, FacePropertyValue as V, FaceRole};
+    let mut face = crate::view::unavailable("unused");
+    face.subjects[0].role = FaceRole::Info;
+    face.subjects[0].name = "Room conditions".into();
+    face.text.clear();
+    face.properties = vec![
+        FaceProperty {
+            subject: face.subjects[0].identity.clone(),
+            name: "fresh".into(),
+            value: V::Flag(true),
+        },
+        FaceProperty {
+            subject: face.subjects[0].identity.clone(),
+            name: "sensor-status".into(),
+            value: V::Text("available".into()),
+        },
+    ];
+    let face = Face::new(
+        1,
+        face.basis,
+        face.subjects,
+        vec![],
+        face.properties,
+        vec![],
+    )
+    .unwrap();
+    let original = face.clone();
+    let retained =
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, false, None, true, true)
+            .unwrap()
+            .0;
+    let text: Vec<_> = retained.commands().iter().map(|c| c.payload()).collect();
+    assert!(text.contains(&"At observation · fresh: true"));
+    assert!(text.contains(&"At observation · sensor status: available"));
+    assert!(!text.contains(&"fresh: true"));
+    let current =
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, false, None, false, true)
+            .unwrap()
+            .0;
+    assert!(
+        current
+            .commands()
+            .iter()
+            .any(|c| c.payload() == "fresh: true")
+    );
+    let details =
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, true, None, false, true)
+            .unwrap();
+    let retained_details =
+        crate::view::frame_with_context(face.clone(), 500, 564, 0, None, true, None, true, true)
+            .unwrap();
+    assert_eq!(details.0.encode(), retained_details.0.encode());
+    assert_eq!(face, original);
 }

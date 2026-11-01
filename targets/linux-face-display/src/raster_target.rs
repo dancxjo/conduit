@@ -78,12 +78,15 @@ pub fn paint_scene(
     scale: u16,
     look: Option<&conduit_face::LookInfo>,
 ) -> Result<DisplayReceipt, DisplayError> {
+    let fallback = visual_fallback(look).map_err(|_| DisplayError::InvalidExtent)?;
+    let look = fallback.as_ref().or(look);
     let format = target.format();
-    typography::render_scene_configured(
+    typography::render_scene_selected(
         target,
         scene,
         |_, command| command.text_role().into(),
         scale,
+        selected_typography(look).map_err(|_| DisplayError::InvalidExtent)?,
         |role| conduitos::native_compositor::visual_look_paint(format, role, None, look),
     )
 }
@@ -112,4 +115,51 @@ pub fn panel(
     paint_scene(&mut target, scene, 100, Some(look))
         .map(|_| ())
         .map_err(|e| format!("panel raster: {e:?}"))
+}
+
+/// Shared scene preparation receives exactly the text metrics used by paint.
+pub fn measure_chart_text(
+    typography: typography::Typography,
+    text: &str,
+    role: conduit_face::GraphicsTextRole,
+    width: u16,
+) -> Result<u16, conduit_face::GraphicsError> {
+    let height =
+        typography::TextLayout::new_selected(text, typography.style(role.into()), width, 100)
+            .map_err(|_| conduit_face::GraphicsError::InvalidGeometry)?
+            .finish_height();
+    u16::try_from(height).map_err(|_| conduit_face::GraphicsError::InvalidGeometry)
+}
+
+/// Measurement and paint select the same fixed, made font resource.
+/// No runtime font loader or Face mutation is involved.
+pub fn selected_typography(
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<typography::Typography, typography::LookTypographyRefusal> {
+    use conduit_face::{LookVisualFacetOption, VisualTypography, VisualTypographyPreference};
+    let fallback = visual_fallback(look)?;
+    let look = fallback.as_ref().or(look);
+    let Some(LookVisualFacetOption::Some(visual)) = look.map(|value| value.visual()) else {
+        return Ok(typography::Typography::EDITORIAL);
+    };
+    let intent = match visual.expression().typography() {
+        VisualTypographyPreference::Engineering => VisualTypography::Engineering,
+        _ => VisualTypography::Editorial,
+    };
+    typography::Typography::with_look_metrics(intent, visual.tokens(), 200)
+}
+
+fn visual_fallback(
+    look: Option<&conduit_face::LookInfo>,
+) -> Result<Option<conduit_face::LookInfo>, typography::LookTypographyRefusal> {
+    if matches!(
+        look.map(|l| l.visual()),
+        Some(conduit_face::LookVisualFacetOption::None)
+    ) {
+        conduit_face::phosphor_look()
+            .map(Some)
+            .map_err(|_| typography::LookTypographyRefusal::MissingVisualFacet)
+    } else {
+        Ok(None)
+    }
 }
