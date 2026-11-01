@@ -114,8 +114,6 @@ not a replacement. Actual screenshots, artifact hashes and rollback receipts are
 retained in the task's Threebee update output; no framebuffer capture is added
 to source.
 
-## Face, Mask and Look acceptance
-
 ## Checked equipment and programmable composition
 
 Each Host definition must declare its actual physical attachments and selected
@@ -144,6 +142,23 @@ Base/provider implementation → actual ready offer → exact admitted Plan/Play
 typed observation provenance → authored graph contribution → acknowledged Show.
 Changing equipment configuration must change construction/admission evidence;
 changing a Look must not change this semantic chain.
+
+The revised 1 November objective makes these separate delivery gates, not
+optional future improvements:
+
+| Gate | Required evidence | Current result |
+|---|---|---|
+| Physical configuration | Actual checked attachments and finite Base selections resolved through Host Make | Retained device declarations exist; full installed path unproved |
+| Interchangeable semantic providers | Exact common Kind/Fore meaning, device protocol/conversion and initialized ready offer | Must verify per supported sensor; no equivalence inferred from a label |
+| Programmable graph | Authored typed feed connections, window/axes/series/unit configuration, admitted generic graph operation and actual Threebee Show | Existing environmental renderer does not satisfy this gate |
+| Reuse beyond environment | Same graph contract consumes a compatible non-environmental typed series, respecting clock/provenance/gaps | Not demonstrated |
+| Reconfiguration | Appropriate checked construction/Plan/lifecycle boundary for attachment, Plot and presentation changes | No blanket live-reconfiguration claim |
+
+Accepted source already contains `data/measurement-plot` and
+`face/measurement-plot` contracts in `semantics/data`, plus bounded window and
+measurement operations. Inspect and reuse their exact meaning before extending
+them. Their presence alone does not establish configurable axes, cross-Host
+delivery, installed execution or actual graphical output.
 
 ## Shared presentation conformance
 
