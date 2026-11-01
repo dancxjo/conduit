@@ -1,9 +1,11 @@
 //! Realization configuration from the exact current planned renderer placement.
 use super::*;
 use conduit_face::{
-    admit_visual_look, prepare_component_recipe, AdmittedVisualExpression,
-    ConfiguredMaskConfiguration, VisualUserConstraints,
+    prepare_component_recipe, AdmittedVisualExpression, ConfiguredMaskConfiguration,
+    VisualUserConstraints,
 };
+#[path = "component/local_look.rs"]
+mod local_look;
 
 #[derive(Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -13,6 +15,11 @@ pub(super) struct VisualConstraints {
     #[serde(default)]
     pub reduced_motion: bool,
     pub minimum_text_scale_percent: u16,
+    /// Caller-bound personal data, independent of the owner's planned Look.
+    #[serde(default)]
+    pub local_look: Option<Vec<u8>>,
+    #[serde(default)]
+    pub enhanced_contrast: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -29,6 +36,8 @@ pub(super) struct ComponentView {
     pub subject_regions: Vec<Option<usize>>,
     pub groups: Vec<u8>,
     pub fallback: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_look: Option<local_look::LocalLookProjection>,
 }
 
 pub(super) fn prepare(
@@ -40,6 +49,15 @@ pub(super) fn prepare(
     let Some(configuration) =
         crate::installed_browser::dom_mask::configured_mask_configuration(host, planned)?
     else {
+        if basis
+            .visual_constraints
+            .as_ref()
+            .is_some_and(|value| value.local_look.is_some() || value.enhanced_contrast)
+        {
+            return Err(
+                "browser selected Mask has no configured author Look for local preferences".into(),
+            );
+        }
         return Ok(None);
     };
     let constraints = basis.visual_constraints.as_ref();
@@ -50,16 +68,16 @@ pub(super) fn prepare(
     let requested = configuration
         .requested_look()
         .map_err(|error| format!("browser configured Look: {error:?}"))?;
-    let admitted = admit_visual_look(
+    let (admitted, local_look) = local_look::admit(
         &requested,
+        constraints,
         VisualUserConstraints {
             forced_colors: constraints.is_some_and(|value| value.forced_colors),
             reduced_motion: constraints.is_some_and(|value| value.reduced_motion),
             minimum_text_scale_percent: minimum,
             maximum_supported_text_scale_percent: 200,
         },
-    )
-    .map_err(|error| format!("browser visual capacity: {error:?}"))?;
+    )?;
     use conduit_plot::rust_binding::NativeRustBinding;
     let selected = admitted
         .selected
@@ -122,5 +140,6 @@ pub(super) fn prepare(
         subject_regions,
         groups,
         fallback,
+        local_look,
     }))
 }

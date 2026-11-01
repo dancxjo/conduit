@@ -8,7 +8,7 @@ use conduit_face::{
 };
 use conduit_plot::rust_binding::NativeRustBinding;
 
-fn line(
+pub(super) fn line(
     name: &str,
     source: &HostAdvertisement,
     sink: &HostAdvertisement,
@@ -81,6 +81,7 @@ fn qualify(face: &Face, capture: Option<&std::path::Path>) {
                             forced_colors: false,
                             reduced_motion: true,
                             minimum_text_scale_percent: scale,
+                            ..Default::default()
                         }),
                     },
                     face.clone(),

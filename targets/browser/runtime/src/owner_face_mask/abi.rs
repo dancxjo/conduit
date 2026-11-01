@@ -144,6 +144,20 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             {
                 return -6;
             }
+            if mask
+                .component
+                .as_ref()
+                .is_some_and(|value| value.local_look.is_some())
+                || basis
+                    .visual_constraints
+                    .as_ref()
+                    .is_some_and(|value| value.local_look.is_some() || value.enhanced_contrast)
+            {
+                return write_output(&serde_json::json!({
+                    "schema": "conduit.browser/owner-face-refusal@1",
+                    "code": "owner-visual-preferences-require-full-snapshot",
+                }));
+            }
             write_output(&mask.view())
         }),
         OwnerFaceSnapshotResponse::Refused { schema, code }
@@ -340,6 +354,33 @@ mod tests {
         let retained: Face = serde_json::from_value(observed["face"].clone()).unwrap();
         assert_eq!(retained, face);
         assert_eq!(observed["show_id"], prepared.show_id);
+        assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
+        assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
+        // Conditional reuse cannot claim that new Host-local preferences were
+        // applied. The old exact Face/Show remains observable, not restyled.
+        let basis = serde_json::json!({
+            "body_id": body.body_id, "host_id": "host/canonical-observation",
+            "boot_id": "boot/canonical-observation",
+            "visual_constraints": { "minimum_text_scale_percent": 100, "enhanced_contrast": true },
+        });
+        assert_eq!(
+            send(
+                &basis,
+                &OwnerFaceSnapshotResponse::Unchanged {
+                    schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                    revision: face.revision,
+                    identity: face.identity.clone(),
+                }
+            ),
+            0
+        );
+        let refusal: serde_json::Value =
+            OUTPUT.with(|output| serde_json::from_slice(&output.borrow()).unwrap());
+        assert_eq!(refusal["schema"], "conduit.browser/owner-face-refusal@1");
+        assert_eq!(
+            refusal["code"],
+            "owner-visual-preferences-require-full-snapshot"
+        );
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
         assert_eq!(OUTPUT.with(|output| output.borrow().clone()), bytes);
         conduit_browser_owner_face_clear();
