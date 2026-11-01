@@ -359,3 +359,13 @@ pub(crate) fn establish_root_signer(
 
 mod browser_completion;
 pub(crate) use browser_completion::BrowserAdmissionCompletion;
+
+#[cfg(all(
+    test,
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
+pub(crate) use controller::{
+    source_recording_control_fixture, source_recording_control_read_grant,
+};

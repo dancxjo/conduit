@@ -90,6 +90,10 @@ pub(crate) struct RunWorker {
 }
 
 impl Owner {
+    pub(crate) fn current_body_id(&self) -> &conduit_body::BodyId {
+        &self.session.evidence().body_id
+    }
+
     pub(crate) fn current_play_id(&self) -> Option<&conduit_core::ActivePlayId> {
         self.session
             .realization()

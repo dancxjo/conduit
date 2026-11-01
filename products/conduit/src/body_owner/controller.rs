@@ -889,3 +889,14 @@ impl TimerAdapter for DeadlineTimer {
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(all(
+    test,
+    feature = "installed-environmental-sources",
+    feature = "installed-body-storage",
+    target_os = "linux"
+))]
+pub(crate) use continuing::source_recording_stage::publication::tests::{
+    fixture as source_recording_control_fixture,
+    independent_read_grant as source_recording_control_read_grant,
+};

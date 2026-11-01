@@ -85,6 +85,8 @@ mod body;
 mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
+#[path = "durable_host_control/body_recording.rs"]
+pub(crate) mod body_recording;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
@@ -1188,6 +1190,11 @@ enum Request {
         token: Vec<u8>,
         command: crate::cli::NotebookCommand,
     },
+    BodyRecording {
+        protocol: u16,
+        token: Vec<u8>,
+        request: Box<body_recording::RecordingRequest>,
+    },
     BodyStart {
         protocol: u16,
         token: Vec<u8>,
@@ -1950,6 +1957,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
+        | Request::BodyRecording { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::Join { token, .. }
@@ -2510,6 +2518,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 truth,
             })
             .unwrap_or_else(|code| refused(&code)),
+        Request::BodyRecording { protocol, request, .. } if protocol == PROTOCOL => {
+            let maximum_millis=request.maximum_millis;
+            runtime.start_owned_recording(*request).map(|()|Response::BodyRunRequested {protocol:PROTOCOL,maximum_millis})
+                .unwrap_or_else(|code|refused(&code))
+        },
         Request::BodyStart {
             protocol,
             maximum_millis,

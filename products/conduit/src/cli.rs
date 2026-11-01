@@ -1,3 +1,4 @@
+pub(crate) mod body_recording;
 mod host_service;
 pub(crate) use host_service::HostServiceCommand;
 #[cfg(target_os = "linux")]
@@ -403,6 +404,8 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         todo_new_list: Option<String>,
     },
+    /// Perform an explicit finite recording stage on the current installed Body.
+    Recording(body_recording::BodyRecordingArgs),
     /// Request that the current service-owned Body Play stop and lull.
     Lull {
         #[arg(long)]

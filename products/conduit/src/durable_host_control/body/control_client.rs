@@ -15,7 +15,7 @@ use super::{CONTROL_DEADLINE, DURABLE_ACTION_DEADLINE};
 
 pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, String> {
     let deadline = match &request {
-        Request::BodyReplacePlot { .. } => DURABLE_ACTION_DEADLINE,
+        Request::BodyReplacePlot { .. } | Request::BodyRecording { .. } => DURABLE_ACTION_DEADLINE,
         #[cfg(target_os = "linux")]
         Request::Notebook { .. } => DURABLE_ACTION_DEADLINE,
         Request::BodyInteraction { interaction, .. }
@@ -132,6 +132,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyAttachedTerminalRefreshShow { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
         | Request::BodyNativeGuestInteraction { token, .. }
+        | Request::BodyRecording { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
         | Request::InspectWorkerText { token, .. }

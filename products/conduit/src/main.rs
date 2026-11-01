@@ -316,6 +316,7 @@ fn main() {
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Start { state_dir, maximum_millis, todo_new_list }),
         }) => durable_host_control::start_owned_body(&state_dir, maximum_millis, todo_new_list),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::Recording(args)) }) => cli::body_recording::run(args),
         Some(cli::Command::Body {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
