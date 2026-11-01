@@ -38,7 +38,7 @@ pub(crate) fn fixture() -> (
                 publication_slots: 1,
                 reader_leases: 1,
                 state_slots: 1,
-                maximum_state_bytes: 4096,
+                maximum_state_bytes: 1024,
                 total_disk_bytes: 131072,
                 preparation_bytes: 1024 * 1024,
             },

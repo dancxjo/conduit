@@ -227,3 +227,55 @@ fn occupied_state_slot_is_bound_to_exact_authored_body_state_key() {
     assert_eq!(host.advertisement, before);
     assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 1);
 }
+
+#[test]
+fn selected_1024_state_narrows_offer_and_preserves_original_host_inventory() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut selected_bounds = bounds();
+    selected_bounds.maximum_state_bytes = 1024;
+    let mut host = StdHost::new();
+    host.attach_selected_body_storage(
+        SelectedBodyStorage::open(root.path(), "test/selected-1024", selected_bounds, None)
+            .unwrap(),
+    )
+    .unwrap();
+    let before = host.advertisement.clone();
+    let old_input = host.advertisement.capabilities[0].inputs.as_ptr();
+    let sign = host.next_kernel_sign_sequence;
+    let play = host.next_kernel_play_sequence;
+    assert!(host
+        .select_body_storage_generation(state_request())
+        .unwrap_err()
+        .contains("configured profile"));
+    assert_eq!(host.advertisement, before);
+    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+    let mut selected = state_request();
+    selected.state.as_mut().unwrap().binding.maximum_value_bytes = 1024;
+    host.select_body_storage_generation(selected).unwrap();
+    let entry = host.selected_body_storage_generation().unwrap();
+    assert_eq!(entry.state_binding().unwrap().maximum_value_bytes, 1024);
+    let offer = &entry.base.capabilities[0];
+    assert_eq!(offer.limits.max_queue_bytes, 1024);
+    assert_eq!(offer.host_calls[0].maximum_input_bytes, 1024);
+    assert_eq!(offer.host_calls[1].maximum_output_bytes, 1024);
+    for old in &before.capabilities {
+        assert!(host.advertisement.capabilities.contains(old));
+    }
+    for old in &before.resources {
+        assert!(host.advertisement.resources.contains(old));
+    }
+    assert_eq!(
+        host.advertisement
+            .capabilities
+            .iter()
+            .find(|c| c.capability_id == before.capabilities[0].capability_id)
+            .unwrap()
+            .inputs
+            .as_ptr(),
+        old_input
+    );
+    assert_eq!(host.next_kernel_sign_sequence, sign);
+    assert_eq!(host.next_kernel_play_sequence, play);
+    assert_eq!(std::fs::read_dir(root.path()).unwrap().count(), 0);
+}

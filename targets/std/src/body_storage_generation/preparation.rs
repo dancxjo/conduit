@@ -93,15 +93,11 @@ pub(super) fn prepare(
             crate::state_value::FileDurableStateResidence::storage_key(&selected.binding)
                 .map_err(|e| format!("State key: {e:?}"))?,
         );
-        if bounds.maximum_state_bytes < conduit_std_offers::STATE_VALUE_DURABLE_STD_MAXIMUM_BYTES {
-            return Err(
-                "selected State bound cannot cover advertised durable implementation".into(),
-            );
-        }
-        let offer = conduit_std_offers::state_value_durable_std_offer(
+        let offer = conduit_std_offers::state_value_durable_std_offer_with_bound(
             &selected.type_name,
             &selected.value_type,
             &selected.default_value,
+            selected.binding.maximum_value_bytes,
         )
         .map_err(|e| format!("State specialization: {e:?}"))?;
         if offer.outputs[0].value_kind != selected.binding.value_kind {
