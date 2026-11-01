@@ -424,3 +424,7 @@ impl RunWorker {
             .map_err(|_| "Body Play already has a stop request".into())
     }
 }
+
+#[cfg(all(test, feature = "installed-environmental-sources", target_os = "linux"))]
+#[path = "continuing/fore_refusal_worker_tests.rs"]
+mod fore_refusal_worker_tests;

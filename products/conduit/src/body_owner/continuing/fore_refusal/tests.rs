@@ -1,6 +1,6 @@
+use super::super::native::{CompletedScope, SourceSelection};
 use super::*;
-use crate::body_owner::continuing::native::{CompletedScope, SourceSelection};
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 fn value(sequence: u64) -> LiveFore {
     let selection = Arc::new(SourceSelection {
         attachment_id: "green".into(),

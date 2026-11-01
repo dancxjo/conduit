@@ -47,7 +47,7 @@ fn document(fore: &LiveFore) -> serde_json::Value {
         "canonical_hex":canonical,
         "canonical_length":fore.length,
         "extent_valid":fore.length <= fore.bytes.len(),
-        "source_selection":fore.scope.selection,
+        "source_selection":fore.scope.selection.as_ref(),
         "native_play":fore.scope.native_play,
     })
 }
