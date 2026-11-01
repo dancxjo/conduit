@@ -11,7 +11,9 @@ pub(super) fn complete(
     let input = scheduler
         .host_value(request.input.value)
         .map_err(|error| format!("read native Source input: {error:?}"))?;
-    let encoded = source.read(request, input)?;
+    let Some(encoded) = source.read(request, input)? else {
+        return Ok(());
+    };
     let value = scheduler
         .store_host_value(encoded)
         .map_err(|error| format!("store selected native Source value: {error:?}"))?;
@@ -47,4 +49,43 @@ pub(crate) fn supports_with_native(
                 || gear.implementation_id.as_str()
                     == conduit_std_offers::STATE_VALUE_DURABLE_STD_IMPLEMENTATION
         })
+}
+
+/// Poll the sole outstanding worker request; cancellation retains cleanup custody.
+pub(super) fn poll(
+    source: &mut crate::selected_native_source::PreparedNativeSource<'_>,
+    cancelled: bool,
+    scheduler: &mut InstalledScheduler,
+    host_calls: &mut prepared_host_calls::PreparedHostCalls<'_>,
+) -> Result<(), String> {
+    if cancelled {
+        source.cancel();
+    }
+    let Some((request, encoded)) = source.poll()? else {
+        return Ok(());
+    };
+    let maximum = host_calls
+        .get(request.node, request.call)
+        .ok_or("pending native Source lost its lowered contract")?
+        .binding
+        .maximum_output_bytes;
+    let value = scheduler
+        .store_host_value(encoded)
+        .map_err(|e| format!("store pending native Source: {e:?}"))?;
+    host_calls.record(request)?;
+    scheduler
+        .complete_host_call(
+            request.node,
+            request.request,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(
+                    BoundedValueRef::new(value, maximum)
+                        .map_err(|e| format!("bound pending native Source: {e:?}"))?,
+                ),
+                failure: None,
+            },
+        )
+        .map_err(|e| format!("complete pending native Source: {e:?}"))?;
+    Ok(())
 }

@@ -90,6 +90,16 @@ fn exact_reservation_rejects_overlap_releases_and_does_not_grow() {
         overlap.contains("combined active-instance limit"),
         "{overlap}"
     );
+    let mut refreshed = host.clone();
+    refreshed.offer_generation = OfferGeneration(host.offer_generation.0 + 1);
+    refreshed
+        .capabilities
+        .push(conduit_std_offers::body_conversation_context_std_offer());
+    assert!(ledger
+        .prepare_capability_refresh(&host, &refreshed, None)
+        .is_err());
+    // Refusal did not invalidate the actual child reservation: its ordinary
+    // exact release still succeeds against the untouched original ledger.
     ledger.release(first).expect("terminal release succeeds");
     let second = ledger
         .prepare_and_reserve(&host, fragment)
