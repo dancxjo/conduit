@@ -14,6 +14,7 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
+mod artifact_dispatch;
 mod browser_admission;
 mod browser_package;
 mod environment_image;
@@ -323,15 +324,17 @@ fn build(
         }
         return Ok(());
     }
-    if spores
-        .iter()
-        .any(|spore| spore.manifest.output == SporeOutputKind::BrowserBundle)
-    {
+    let producers = artifact_dispatch::plan(&spores)?;
+    artifact_dispatch::record_batch(output, &spores, false)?;
+    if !producers.is_empty() {
         let state = browser_package::require_owner(body)?;
         let distribution = browser_package::build_distribution(output)?;
-        for spore in &mut spores {
-            if spore.manifest.output == SporeOutputKind::BrowserBundle {
-                *spore = browser_package::fabricate(body, spore, output, &state, &distribution)?;
+        for (spore, producer) in spores.iter_mut().zip(producers) {
+            match producer {
+                artifact_dispatch::ArtifactProducer::BrowserBundle => {
+                    *spore =
+                        browser_package::fabricate(body, spore, output, &state, &distribution)?;
+                }
             }
         }
     }
@@ -364,6 +367,7 @@ fn build(
             )?;
         }
     }
+    artifact_dispatch::record_batch(output, &spores, true)?;
     if opts.json {
         println!(
             "{}",
