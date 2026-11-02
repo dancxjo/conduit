@@ -13,6 +13,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::time::{Duration, Instant};
 
+#[path = "admitted_snapshot.rs"]
+mod admitted_snapshot;
+use admitted_snapshot::AdmittedSnapshot;
+
 const MESSAGE: usize = 64 * 1024;
 const ADMISSION: usize = 512 * 1024;
 #[derive(Deserialize)]
@@ -35,6 +39,7 @@ pub(super) struct OwnerRoute {
     deadline: Instant,
     sequence: u8,
     mask: MaskSelection,
+    admitted: AdmittedSnapshot,
 }
 
 pub(super) struct Snapshot {
@@ -112,6 +117,7 @@ impl OwnerRoute {
             MESSAGE,
         )?;
         let snapshot = snapshot(document(&mut line)?)?;
+        let admitted = AdmittedSnapshot::bind(&snapshot, &request)?;
         let grant: Grant = receive(&mut line, MESSAGE)?;
         validate_grant(&grant, &request)?;
         let deadline = Instant::now() + Duration::from_millis(u64::from(grant.remaining_millis));
@@ -123,6 +129,7 @@ impl OwnerRoute {
                 deadline,
                 sequence: 1,
                 mask,
+                admitted,
             },
             snapshot,
         ))
@@ -142,6 +149,7 @@ impl OwnerRoute {
     }
 
     pub(super) fn acknowledge(&self, show: &MaskShow) -> Result<(), String> {
+        self.admitted.validate_show(show)?;
         let mut line = self.connection()?;
         send_return(
             &mut line,
@@ -199,6 +207,7 @@ impl OwnerRoute {
         self.deadline = self
             .deadline
             .min(Instant::now() + Duration::from_millis(u64::from(grant.remaining_millis)));
+        self.admitted = AdmittedSnapshot::bind(&selected, &self.request)?;
         self.grant = grant;
         self.sequence = 1;
         Ok(selected)
@@ -363,4 +372,30 @@ fn send_return(
             .map_err(|error| format!("presentation return:{error:?}"))?;
     }
     Ok(())
+}
+
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+impl conduit_std_host::NativeMaskEncounter for OwnerRoute {
+    fn validate_current(
+        &self,
+        face: &Face,
+        route: &RemoteOwnerMaskRouteSeal,
+        local_offer: &conduit_core::HostAdvertisement,
+    ) -> Result<(), String> {
+        if self.mask != MaskSelection::Native || self.deadline <= Instant::now() {
+            return Err("native owner encounter is not current".into());
+        }
+        validate_grant(&self.grant, &self.request)?;
+        if route.body_id != self.request.body_id
+            || face.basis.body_id.as_ref() != Some(&self.request.body_id)
+            || local_offer.host_id != self.request.host_id
+            || local_offer.boot_id != self.request.boot_id
+        {
+            return Err("native owner encounter differs from this admitted member".into());
+        }
+        self.admitted.validate_native(face, route)?;
+        route
+            .validate_mask_host_offer(local_offer)
+            .map_err(|_| "native owner route targets a different current offer".into())
+    }
 }
