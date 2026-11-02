@@ -13,12 +13,15 @@ use std::path::Path;
 
 #[path = "selected_host_configuration/creche.rs"]
 mod creche;
+#[path = "selected_host_configuration/image.rs"]
+mod image;
 #[path = "selected_host_configuration/microphone.rs"]
 mod microphone;
 #[path = "selected_host_configuration/playback.rs"]
 mod playback;
 #[path = "selected_host_configuration/recognition.rs"]
 mod recognition;
+pub(crate) use image::check_seed_image;
 const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -26,8 +29,16 @@ const MAXIMUM_SOURCE_BYTES: u64 = 16 * 1024;
 pub(super) struct Selection {
     source: String,
     configuration_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    host_image: Option<conduit_host_make::HostImage>,
 }
 impl Selection {
+    pub(super) fn host_image(&self) -> Option<&conduit_host_make::HostImage> {
+        self.host_image.as_ref()
+    }
+    pub(super) fn configuration_id(&self) -> &str {
+        &self.configuration_id
+    }
     fn from_source(source: &str, target: &str) -> Result<Self, String> {
         let checked = check(source)?;
         require_target(&checked, target)?;
@@ -39,6 +50,7 @@ impl Selection {
         Ok(Self {
             source,
             configuration_id: checked.configuration_id().into(),
+            host_image: None,
         })
     }
     pub(super) fn validate_speech_overlap(
@@ -58,7 +70,10 @@ impl Selection {
         Ok(())
     }
     fn checked(&self) -> Result<CheckedHostConfiguration, String> {
-        let checked = check(&self.source)?;
+        let checked = match &self.host_image {
+            Some(image) => check_seed_image(&self.source, image)?,
+            None => check(&self.source)?,
+        };
         if checked.configuration_id() != self.configuration_id {
             return Err("retained Host configuration identity changed".into());
         }
@@ -206,7 +221,7 @@ pub(super) fn configure(
     let _host = owner_lock::acquire(state_dir)?;
     let _body = owner_lock::body(state_dir)?;
     let path = state_dir.join("installation.json");
-    let mut installation = installation_read::read_for_configuration_change(&path)?;
+    let installation = installation_read::read_for_configuration_change(&path)?;
     let selection = if let Some(path) = source {
         if !path
             .file_name()
@@ -227,6 +242,45 @@ pub(super) fn configure(
     } else {
         None
     };
+    retain_selection(state_dir, installation, selection)?;
+    println!("retained checked Host configuration for the next Boot");
+    Ok(())
+}
+
+/// Only the fresh, stopped Seed installer uses this source-bearing entrance.
+pub(super) fn select_seed_source(
+    state_dir: &Path,
+    source: &str,
+    expected_id: &str,
+    image: &conduit_host_make::HostImage,
+) -> Result<(), String> {
+    let _host = owner_lock::acquire(state_dir)?;
+    let _body = owner_lock::body(state_dir)?;
+    let installation =
+        installation_read::read_for_configuration_change(&state_dir.join("installation.json"))?;
+    if installation.body_state.is_some()
+        || installation.joined_body_state.is_some()
+        || installation.selected_host_configuration.is_some()
+        || installation.selected_speech.is_some()
+        || installation.selected_model.is_some()
+        || installation.selected_todo_checkpoint.is_some()
+    {
+        return Err("Seed configuration requires a fresh stopped Host".into());
+    }
+    let mut selection = Selection::from_source(source, running_target_id()?)?;
+    selection.host_image = Some(image.clone());
+    selection.validate()?;
+    if selection.configuration_id != expected_id {
+        return Err("Seed configuration identity changed before installation".into());
+    }
+    retain_selection(state_dir, installation, Some(selection))
+}
+
+fn retain_selection(
+    state_dir: &Path,
+    mut installation: super::Installation,
+    selection: Option<Selection>,
+) -> Result<(), String> {
     if let Some(selection) = &selection {
         selection.validate_speech_overlap(installation.selected_speech.as_ref())?;
     }
@@ -235,9 +289,9 @@ pub(super) fn configure(
     if bytes.len() > 64 * 1024 {
         return Err("installed Host selection exceeds retained installation bound".into());
     }
+    let path = state_dir.join("installation.json");
     write_json_atomic(&path, &installation)?;
     read_installation(&path)?;
-    println!("retained checked Host configuration for the next Boot");
     Ok(())
 }
 

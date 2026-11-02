@@ -57,6 +57,9 @@ fn installed_seed_requests_original_body_from_actual_initialized_boot() {
     let receipt = conduit_body_make::write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
         &invitation,
         now + 1,
         |path| Ok(std::io::Cursor::new(payloads[path].clone())),
@@ -78,6 +81,15 @@ fn installed_seed_requests_original_body_from_actual_initialized_boot() {
     let mut installer = LocalNativeInstaller::new_without_service_manager(root.clone());
     installer.install_and_start(&source, &artifact).unwrap();
     assert!(has_pending_seed(&root).unwrap());
+    let selected = read_installation(&root.join("installation.json"))
+        .unwrap()
+        .selected_host_configuration
+        .unwrap();
+    assert_eq!(selected.host_image().unwrap(), &spore.image);
+    assert_eq!(
+        selected.configuration_id(),
+        spore.manifest.host_configuration_id
+    );
     assert_ne!(installer.installed_host().unwrap().host_id, owner.host_id);
     assert!(installer.install_and_start(&source, &artifact).is_err());
     assert!(prepare_pending_seed_request(&root, false).is_err());
@@ -134,9 +146,28 @@ fn installed_seed_requests_original_body_from_actual_initialized_boot() {
 
 #[test]
 fn expired_or_corrupt_seed_never_becomes_a_birth_or_implicit_admission() {
-    let (release, _, invitation, _) = common::fixture(&["conduit-linux-x86_64"]);
+    let (release, spore, invitation, _) = common::fixture(&["conduit-linux-x86_64"]);
     let (manifest, state) = super::super::tests::fixture();
-    install_pending_seed(&manifest, &state, &invitation, false).unwrap();
+    // This fixture exercises delayed Boot fencing; keep its synthetic release
+    // source consistent with the actual selected Make IMAGE.
+    let mut release_document: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest).unwrap()).unwrap();
+    release_document["source_identity"] = spore.image.manifest.source_identity.clone().into();
+    fs::write(&manifest, serde_json::to_vec(&release_document).unwrap()).unwrap();
+    let configuration = common::configuration(false);
+    let source =
+        conduit_host_make::canonical_host_configuration_conduit(configuration.configuration())
+            .unwrap();
+    install_pending_seed(
+        &manifest,
+        &state,
+        &invitation,
+        &source,
+        configuration.configuration_id(),
+        &spore.image,
+        false,
+    )
+    .unwrap();
     assert!(has_pending_seed(&state).unwrap());
     assert!(prepare_pending_seed_request(&state, true).is_err());
     let (_, mut runtime) = super::super::runtime_preparation::prepare_runtime(&state).unwrap();
@@ -145,6 +176,16 @@ fn expired_or_corrupt_seed_never_becomes_a_birth_or_implicit_admission() {
         .unwrap()
         .joined_body_state
         .is_none());
+    let installation_path = state.join("installation.json");
+    let original = fs::read(&installation_path).unwrap();
+    let mut partial: serde_json::Value = serde_json::from_slice(&original).unwrap();
+    partial
+        .as_object_mut()
+        .unwrap()
+        .remove("selected_host_configuration");
+    fs::write(&installation_path, serde_json::to_vec(&partial).unwrap()).unwrap();
+    assert!(super::super::runtime_preparation::prepare_runtime(&state).is_err());
+    fs::write(&installation_path, original).unwrap();
     fs::write(state.join(PATH), b"corrupt").unwrap();
     assert!(has_pending_seed(&state).is_err());
     assert!(super::super::runtime_preparation::prepare_runtime(&state).is_err());

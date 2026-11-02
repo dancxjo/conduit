@@ -120,6 +120,7 @@ fn prepare_runtime_with_composition(
     let installation = trace.run(Phase::Installation, || {
         read_installation(&state_dir.join("installation.json"))
     })?;
+    let pending_seed = super::has_pending_seed(state_dir)?;
     if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
             || installation.selected_speech.is_some()
@@ -241,7 +242,7 @@ fn prepare_runtime_with_composition(
     trace.run(Phase::Catalogs, crate::plot_source::standard_catalogs)?;
     if installation.body_state.is_none()
         && installation.joined_body_state.is_none()
-        && !super::has_pending_seed(state_dir)?
+        && !pending_seed
     {
         trace.run(Phase::BirthEncounter, || {
             runtime.prepare_birth_encounter(state_dir)

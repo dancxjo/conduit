@@ -14,6 +14,9 @@ fn release_correspondence_modes_and_existing_js_reader() {
     let receipt = write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
         &invitation,
         1,
         |path| Ok(Cursor::new(payloads[path].clone())),
@@ -58,6 +61,9 @@ fn changed_missing_extra_and_expired_inputs_never_produce_receipts() {
         assert!(write_joining_host_package(
             &release,
             &spore,
+            &common::configuration(
+                spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+            ),
             &invitation,
             1,
             |_| Ok(Cursor::new(changed.clone())),
@@ -70,6 +76,9 @@ fn changed_missing_extra_and_expired_inputs_never_produce_receipts() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -82,6 +91,9 @@ fn changed_missing_extra_and_expired_inputs_never_produce_receipts() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -108,6 +120,9 @@ fn source_changes_after_crc_and_mid_stream_cancellation_refuse() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(ChangesOnRewind(Cursor::new(payloads[p].clone()))),
@@ -121,6 +136,9 @@ fn source_changes_after_crc_and_mid_stream_cancellation_refuse() {
         let result = write_joining_host_package(
             &release,
             &spore,
+            &common::configuration(
+                spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+            ),
             &invitation,
             1,
             |p| Ok(Cursor::new(payloads[p].clone())),
@@ -144,6 +162,9 @@ fn entry_capacity_and_reserved_or_nested_names_refuse_before_output() {
         assert!(write_joining_host_package(
             &release,
             &spore,
+            &common::configuration(
+                spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+            ),
             &invitation,
             1,
             |p| Ok(Cursor::new(payloads[p].clone())),
@@ -159,6 +180,9 @@ fn entry_capacity_and_reserved_or_nested_names_refuse_before_output() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -176,6 +200,9 @@ fn typed_routed_invitation_survives_existing_js_consumer_without_legacy_conversi
     write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -201,6 +228,9 @@ fn typed_routed_invitation_survives_existing_js_consumer_without_legacy_conversi
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -218,6 +248,9 @@ fn browser_bundle_uses_same_package_format_and_exact_output_correspondence() {
     let receipt = write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -247,6 +280,9 @@ fn browser_bundle_uses_same_package_format_and_exact_output_correspondence() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -267,6 +303,9 @@ fn original_birth_provenance_and_artifact_source_remain_distinct() {
     write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -282,6 +321,9 @@ fn original_birth_provenance_and_artifact_source_remain_distinct() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |p| Ok(Cursor::new(payloads[p].clone())),
@@ -301,11 +343,45 @@ fn oversized_image_metadata_refuses_before_payload_open_or_write() {
     assert!(write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle
+        ),
         &invitation,
         1,
         |_| {
             opened.set(true);
             Ok(Cursor::new(Vec::new()))
+        },
+        &mut output,
+        || false
+    )
+    .is_err());
+    assert!(!opened.get());
+    assert!(output.is_empty());
+}
+
+#[test]
+fn different_checked_host_source_refuses_before_payload_access() {
+    let (release, spore, invitation, _) = common::fixture(&["conduit-linux-x86_64"]);
+    let mut declaration = common::configuration(false).configuration().clone();
+    declaration.name = "other-installed-host".into();
+    let other = conduit_host_make::check_host_configuration(
+        declaration,
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    let opened = Cell::new(false);
+    let mut output = Vec::new();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &other,
+        &invitation,
+        1,
+        |_| {
+            opened.set(true);
+            Ok(Cursor::new(Vec::<u8>::new()))
         },
         &mut output,
         || false

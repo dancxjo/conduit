@@ -12,6 +12,8 @@ const SCHEMA: &str = "conduit.install/pending-seed@1";
 #[derive(Serialize, Deserialize)]
 struct PendingSeed {
     schema: String,
+    configuration_id: String,
+    image_id: String,
     invitation: PortableInvitation,
 }
 impl Drop for PendingSeed {
@@ -25,7 +27,7 @@ fn read(root: &Path) -> Result<PendingSeed, String> {
     let decoded = serde_json::from_slice::<PendingSeed>(&bytes);
     bytes.fill(0);
     let pending = decoded.map_err(|_| "invalid private pending Seed provision")?;
-    if pending.schema != SCHEMA {
+    if pending.schema != SCHEMA || pending.configuration_id.is_empty() {
         return Err("unsupported pending Seed provision".into());
     }
     // Expiry may prevent requesting admission, but must never turn a Seed into
@@ -40,7 +42,25 @@ fn read(root: &Path) -> Result<PendingSeed, String> {
 pub(crate) fn has_pending_seed(root: &Path) -> Result<bool, String> {
     match fs::symlink_metadata(root.join(PATH)) {
         Ok(metadata) if metadata.file_type().is_file() => {
-            read(root)?;
+            let pending = read(root)?;
+            let installation = read_installation(&root.join("installation.json"))?;
+            if installation
+                .selected_host_configuration
+                .as_ref()
+                .map(|s| s.configuration_id())
+                != Some(pending.configuration_id.as_str())
+            {
+                return Err("pending Seed lacks its exact installed Host configuration".into());
+            }
+            if installation
+                .selected_host_configuration
+                .as_ref()
+                .and_then(|s| s.host_image())
+                .map(|image| image.manifest.image_id.as_str())
+                != Some(pending.image_id.as_str())
+            {
+                return Err("pending Seed lacks its exact installed Make IMAGE".into());
+            }
             Ok(true)
         }
         Ok(_) => Err("pending Seed provision is not a regular private file".into()),
@@ -53,15 +73,25 @@ pub(crate) fn install_pending_seed(
     manifest: &Path,
     root: &Path,
     invitation: &PortableInvitation,
+    source: &str,
+    configuration_id: &str,
+    image: &conduit_host_make::HostImage,
     start: bool,
 ) -> Result<InstalledHostIdentity, String> {
     invitation.validate(0).map_err(|error| error.to_string())?;
+    if selected_host_configuration::check_seed_image(source, image)?.configuration_id()
+        != configuration_id
+    {
+        return Err("Seed configuration identity changed before installation".into());
+    }
     // Never inherit a previously installed Host identity or Body credential.
     // A failed installation remains fenced, for explicit recovery, not Birth.
     fs::create_dir(root).map_err(|_| "Seed requires a fresh destination state directory")?;
     restrict_directory(root)?;
     let pending = PendingSeed {
         schema: SCHEMA.into(),
+        configuration_id: configuration_id.into(),
+        image_id: image.manifest.image_id.clone(),
         invitation: invitation.clone(),
     };
     let mut bytes = conduit_body_make::encode_joining_host_evidence(&pending, 64 * 1024)?;
@@ -85,6 +115,7 @@ pub(crate) fn install_pending_seed(
             .and_then(|directory| directory.sync_all())
             .map_err(|error| error.to_string())?;
         let installed = install_without_start(manifest, root)?;
+        selected_host_configuration::select_seed_source(root, source, configuration_id, image)?;
         if start {
             activate_service(root)?;
         }

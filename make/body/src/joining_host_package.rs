@@ -4,7 +4,10 @@
 //! partial output on error, and validates target-specific IMAGE semantics first.
 use crate::{BuiltSpore, SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_body::PortableInvitation;
-use conduit_host_make::{SporeOutputKind, VerifiedHostReleaseBytes};
+use conduit_host_make::{
+    canonical_host_configuration_conduit, CheckedHostConfiguration, SporeOutputKind,
+    VerifiedHostReleaseBytes,
+};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -40,6 +43,8 @@ struct Provision<'a> {
     release_manifest: &'a conduit_host_make::HostReleaseManifest,
     invitation_provision: Invitation<'a>,
     portable_invitation: &'a PortableInvitation,
+    host_configuration_source: &'a str,
+    host_image: &'a conduit_host_make::HostImage,
 }
 #[derive(Serialize)]
 struct Invitation<'a> {
@@ -90,6 +95,7 @@ struct Entry {
 pub fn write_joining_host_package<R: Read + Seek>(
     release: &VerifiedHostReleaseBytes,
     built: &BuiltSpore,
+    configuration: &CheckedHostConfiguration,
     invitation: &PortableInvitation,
     now_millis: u64,
     mut open: impl FnMut(&str) -> Result<R, String>,
@@ -98,6 +104,20 @@ pub fn write_joining_host_package<R: Read + Seek>(
 ) -> Result<JoiningHostPackageReceipt, String> {
     check_binding(release, built, invitation, now_millis)?;
     let spore = &built.manifest;
+    if configuration.configuration_id() != spore.host_configuration_id
+        || Some(configuration.configuration_id())
+            != built.image.manifest.source_configuration_id.as_deref()
+        || configuration.profile().target.key() != spore.target
+        || configuration.profile().bounds != built.image.manifest.bounds
+    {
+        return Err("package Host configuration differs from selected Spore/IMAGE".into());
+    }
+    let host_configuration_source =
+        canonical_host_configuration_conduit(configuration.configuration())
+            .map_err(|_| "package Host configuration canonical encoding failed")?;
+    if host_configuration_source.len() > 16 * 1024 {
+        return Err("package Host configuration exceeds retained source bound".into());
+    }
     check_cancel(&mut cancelled)?;
     let mut provision = SecretBytes(Vec::new());
     serde_json::to_writer(
@@ -107,6 +127,8 @@ pub fn write_joining_host_package<R: Read + Seek>(
             spore,
             release_manifest: release.manifest(),
             portable_invitation: invitation,
+            host_configuration_source: &host_configuration_source,
+            host_image: &built.image,
             invitation_provision: Invitation {
                 invitation_id: invitation.claim.invitation_id.as_str(),
                 nonce: &invitation.claim.nonce,

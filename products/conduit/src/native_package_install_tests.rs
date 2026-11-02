@@ -1,6 +1,33 @@
 use super::*;
 
 pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
+    let checked = conduit_host_make::check_host_configuration(
+        conduit_host_make::parse_host_configuration_conduit(include_str!(
+            "../../../targets/std/profiles/linux-computer.host.conduit"
+        ))
+        .unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    let source =
+        conduit_host_make::canonical_host_configuration_conduit(checked.configuration()).unwrap();
+    let profile = conduit_host_make::validate_profile(
+        checked.profile().clone(),
+        &conduit_workspace_make::catalog(),
+    )
+    .unwrap();
+    let (image, _) = conduit_host_make::build_host_image(
+        checked.profile().clone(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+        &conduit_host_make::SporeOutputKind::NativeBundle,
+        &conduit_host_make::BuildInputs {
+            source_identity: "commit:reviewed".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
     let payloads = vec![
         ZipEntry {
             name: "conduit-linux-x86_64".into(),
@@ -35,6 +62,8 @@ pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
     let provision = serde_json::to_vec(&serde_json::json!({
         "schema": "conduit.spore/native-package-provision@1",
         "release_manifest": release_manifest,
+        "host_configuration_source": source,
+        "host_image": image,
         "spore": {
             "schema": "conduit.body/spore-manifest@2",
             "spore_id": "spore/body-one/native-host",
@@ -42,10 +71,10 @@ pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
             "binding": {"mode":"self-joining", "invitation_id":"invitation/one"},
             "body_description_id": "body-description/one",
             "host_entry_name": "native-host",
-            "host_configuration_id": "host-configuration/native",
-            "profile_id": "host-profile/native",
-            "build_id": "build/native",
-            "image_id": "image/native-reviewed",
+            "host_configuration_id": checked.configuration_id(),
+            "profile_id": profile.profile_id().as_str(),
+            "build_id": image.manifest.build_id,
+            "image_id": image.manifest.image_id,
             "image_content_digest": image_content_sha256,
             "target": "std/x86_64/computer",
             "output": "native-bundle",
@@ -87,7 +116,7 @@ pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
     let package = stored_zip(&entries);
     let artifact = BodyBoundArtifactIdentity {
         target_id: "std/x86_64/computer".into(),
-        image_id: "image/native-reviewed".into(),
+        image_id: image.manifest.image_id.clone(),
         image_content_sha256,
         spore_id: "spore/body-one/native-host".into(),
         artifact_content_sha256: digest(&package),
@@ -318,6 +347,54 @@ fn original_seed_invitation_cannot_be_missing_or_diverge_from_zip_binding() {
         artifact.artifact_bytes = package.len() as u64;
         artifact.artifact_content_sha256 = digest(&package);
         let root = test_root(&format!("original-invitation-{change}"));
+        fs::create_dir_all(&root).unwrap();
+        let source = root.join("seed.zip");
+        fs::write(&source, package).unwrap();
+        assert!(matches!(
+            prepare(&source, &artifact, &root.join("state")),
+            Err(NativeInstallRefusal::BindingMismatch)
+        ));
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn missing_or_divergent_selected_source_and_image_refuse_before_installation() {
+    for change in 0..6 {
+        let (package, mut artifact) = fixture();
+        let mut entries = read_stored_zip(&package).unwrap();
+        let entry = entries
+            .iter_mut()
+            .find(|e| e.name == PROVISION_PATH)
+            .unwrap();
+        let mut value: serde_json::Value = serde_json::from_slice(&entry.bytes).unwrap();
+        match change {
+            0 => {
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("host_configuration_source");
+            }
+            1 => {
+                value.as_object_mut().unwrap().remove("host_image");
+            }
+            2 => {
+                value["host_configuration_source"] = value["host_configuration_source"]
+                    .as_str()
+                    .unwrap()
+                    .replace("linux-computer", "other-computer")
+                    .into()
+            }
+            3 => value["spore"]["profile_id"] = "profile/foreign".into(),
+            4 => value["host_image"]["manifest"]["bounds"]["timer_slots"] = 999999.into(),
+            _ => value["host_image"]["manifest"]["source_identity"] = "source/foreign".into(),
+        }
+        entry.bytes = serde_json::to_vec(&value).unwrap();
+        let package = stored_zip(&entries);
+        artifact.artifact_bytes = package.len() as u64;
+        artifact.artifact_content_sha256 = digest(&package);
+        let root = test_root(&format!("selected-host-custody-{change}"));
         fs::create_dir_all(&root).unwrap();
         let source = root.join("seed.zip");
         fs::write(&source, package).unwrap();

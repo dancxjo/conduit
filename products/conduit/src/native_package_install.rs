@@ -3,7 +3,6 @@
 use conduit_host_make::{
     BodyBoundArtifactIdentity, NativeInstallOutcome, NativeInstallRefusal, NativePackageInstaller,
 };
-use serde::Deserialize;
 #[cfg(test)]
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -14,7 +13,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod provision;
 mod secret_bytes;
+use provision::{validate_provision, Provision, SelectedConfiguration};
 
 const MAXIMUM_PACKAGE_BYTES: usize = 64 * 1024 * 1024;
 const MAXIMUM_FILES: usize = 17;
@@ -72,6 +73,9 @@ impl NativePackageInstaller for LocalNativeInstaller {
                 .invitation
                 .as_ref()
                 .ok_or(NativeInstallRefusal::BindingMismatch)?,
+            &prepared.configuration.source,
+            &prepared.configuration.configuration_id,
+            &prepared.configuration.image,
             start,
         );
         let cleanup = fs::remove_dir_all(&prepared.root);
@@ -89,6 +93,7 @@ struct PreparedPackage {
     root: PathBuf,
     manifest: PathBuf,
     invitation: Option<conduit_body::PortableInvitation>,
+    configuration: SelectedConfiguration,
 }
 
 impl std::fmt::Debug for PreparedPackage {
@@ -106,63 +111,6 @@ impl Drop for PreparedPackage {
             invitation.secret.fill(0);
         }
     }
-}
-
-#[derive(Deserialize)]
-struct Provision {
-    schema: String,
-    spore: NativeSpore,
-    invitation_provision: InvitationProvision,
-    #[serde(default)]
-    portable_invitation: Option<conduit_body::PortableInvitation>,
-    #[serde(default)]
-    release_manifest: Option<conduit_host_make::HostReleaseManifest>,
-}
-
-impl Drop for Provision {
-    fn drop(&mut self) {
-        self.invitation_provision.secret.fill(0);
-        if let Some(invitation) = &mut self.portable_invitation {
-            invitation.secret.fill(0);
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct NativeSpore {
-    schema: String,
-    spore_id: String,
-    body_id: String,
-    binding: SporeBinding,
-    image_id: String,
-    image_content_digest: String,
-    target: String,
-    output: String,
-    make: MakeSelection,
-    source_identity: String,
-}
-
-#[derive(Deserialize)]
-struct SporeBinding {
-    mode: String,
-    invitation_id: String,
-}
-
-#[derive(Deserialize)]
-struct MakeSelection {
-    make_package_id: String,
-    builder_adapter: String,
-    deployment_adapter: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct InvitationProvision {
-    invitation_id: String,
-    nonce: Vec<u8>,
-    secret: Vec<u8>,
-    expires_at_millis: u64,
-    #[serde(default)]
-    rendezvous: Option<conduit_body::SpawnRendezvousDescriptor>,
 }
 
 #[cfg(test)]
@@ -207,9 +155,9 @@ fn prepare(
     let decoded = serde_json::from_slice::<Provision>(&provision_bytes);
     provision_bytes.fill(0);
     let mut provision = decoded.map_err(|_| NativeInstallRefusal::PackageMalformed)?;
-    let validation = validate_provision(&provision, artifact);
+    let configuration = validate_provision(&provision, artifact);
     provision.invitation_provision.secret.fill(0);
-    validation.map_err(|_| NativeInstallRefusal::BindingMismatch)?;
+    let configuration = configuration.map_err(|_| NativeInstallRefusal::BindingMismatch)?;
     let release = verify_release_manifest(&provision, artifact, &entries)?;
     let parent = state_dir.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|_| NativeInstallRefusal::InstallationFailed)?;
@@ -233,6 +181,7 @@ fn prepare(
             root: root.clone(),
             manifest: manifest_path,
             invitation: provision.portable_invitation.take(),
+            configuration,
         })
     })();
     if result.is_err() {
@@ -294,51 +243,6 @@ fn verify_release_manifest(
         || false,
     )
     .map_err(|_| NativeInstallRefusal::ImageMismatch)
-}
-
-fn validate_provision(
-    provision: &Provision,
-    artifact: &BodyBoundArtifactIdentity,
-) -> Result<(), String> {
-    let spore = &provision.spore;
-    let invitation = &provision.invitation_provision;
-    let portable = provision
-        .portable_invitation
-        .as_ref()
-        .ok_or("missing original portable invitation")?;
-    portable.validate(0).map_err(|error| error.to_string())?;
-    if portable.claim.body_id.as_str() != spore.body_id
-        || portable.claim.invitation_id.as_str() != invitation.invitation_id
-        || portable.claim.nonce.as_slice() != invitation.nonce
-        || portable.claim.expires_at_millis != invitation.expires_at_millis
-        || portable.secret.as_slice() != invitation.secret
-        || portable.rendezvous != invitation.rendezvous
-    {
-        return Err("portable invitation differs from exact package binding".into());
-    }
-
-    if provision.schema != "conduit.spore/native-package-provision@1"
-        || spore.schema != "conduit.body/spore-manifest@2"
-        || spore.spore_id != artifact.spore_id
-        || spore.image_id != artifact.image_id
-        || spore.image_content_digest != artifact.image_content_sha256
-        || spore.target != artifact.target_id
-        || spore.output != "native-bundle"
-        || spore.body_id.is_empty()
-        || spore.binding.mode != "self-joining"
-        || spore.binding.invitation_id != invitation.invitation_id
-        || invitation.nonce.len() != 32
-        || invitation.nonce.iter().all(|byte| *byte == 0)
-        || invitation.secret.len() != 32
-        || invitation.secret.iter().all(|byte| *byte == 0)
-        || invitation.expires_at_millis == 0
-        || spore.source_identity.is_empty()
-    {
-        return Err(
-            "native package provision lost its exact body, spore, or IMAGE identity".into(),
-        );
-    }
-    Ok(())
 }
 
 fn read_stored_zip(bytes: &[u8]) -> Result<Vec<ZipEntry>, String> {

@@ -13,6 +13,22 @@ use conduit_host_make::{
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, io::Cursor};
 
+pub fn configuration(browser: bool) -> conduit_host_make::CheckedHostConfiguration {
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let source = if browser {
+        include_str!("../../../../targets/browser/profiles/browser-page.host.conduit")
+    } else {
+        include_str!("../../../../targets/std/profiles/linux-computer.host.conduit")
+    };
+    check_host_configuration(
+        parse_host_configuration_conduit(source).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap()
+}
+
 pub fn fixture_for(
     paths: &[&str],
     browser: bool,
@@ -36,17 +52,7 @@ pub fn fixture_at(
 ) {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
-    let source = if browser {
-        include_str!("../../../../targets/browser/profiles/browser-page.host.conduit")
-    } else {
-        include_str!("../../../../targets/std/profiles/linux-computer.host.conduit")
-    };
-    let configuration = check_host_configuration(
-        parse_host_configuration_conduit(source).unwrap(),
-        &catalog,
-        &packages,
-    )
-    .unwrap();
+    let configuration = configuration(browser);
     let output = if browser {
         SporeOutputKind::BrowserBundle
     } else {

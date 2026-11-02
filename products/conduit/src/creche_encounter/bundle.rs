@@ -193,6 +193,7 @@ impl CrecheReviewedBundle {
         let receipt = conduit_body_make::write_joining_host_package(
             self.release(),
             &spore,
+            configuration,
             &binding.invitation,
             clock()?,
             |name| self.open(name),

@@ -10,6 +10,9 @@ fn generic_producer_matches_existing_native_parser_and_release_aggregate() {
     let result = conduit_body_make::write_joining_host_package(
         &release,
         &spore,
+        &common::configuration(
+            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
+        ),
         &invitation,
         1,
         |p| Ok(std::io::Cursor::new(payloads[p].clone())),
@@ -64,6 +67,18 @@ fn generic_producer_matches_existing_native_parser_and_release_aggregate() {
     let source = root.join("spore.zip");
     fs::write(&source, &bytes).unwrap();
     let prepared = prepare(&source, &artifact, &root.join("state")).unwrap();
+    assert_eq!(prepared.configuration.image, spore.image);
+    assert_eq!(
+        prepared.configuration.configuration_id,
+        spore.manifest.host_configuration_id
+    );
+    assert_eq!(
+        prepared.configuration.source,
+        conduit_host_make::canonical_host_configuration_conduit(
+            common::configuration(false).configuration()
+        )
+        .unwrap()
+    );
     let installed: serde_json::Value =
         serde_json::from_slice(&fs::read(&prepared.manifest).unwrap()).unwrap();
     assert_eq!(installed, serde_json::to_value(release.manifest()).unwrap());
