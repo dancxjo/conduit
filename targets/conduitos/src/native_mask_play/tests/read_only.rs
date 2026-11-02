@@ -18,6 +18,24 @@ fn narrowed_read_only_back_renders_and_closes_but_cannot_emit_interaction() {
         .unwrap()
     };
     let (pending, mut compositor) = fixture_scanout_with_stage(1, planned());
+    // Actual Standard backing, not merely a PROFILE closure label. This excludes
+    // Face/Plan metadata heaps, serialized buffers, scanout, allocator overhead
+    // and preparation peak.
+    let budget =
+        storage::admit_budget(&pending.scheduler, NativeMaskStorageProfile::Standard).unwrap();
+    assert_eq!(budget.value_slots, 10);
+    assert_eq!(budget.reserved_value_payload_bytes, 10 * 48 * 1024);
+    let managed_stores = budget
+        .scheduler_inline_bytes
+        .checked_add(budget.reserved_value_storage_bytes)
+        .unwrap()
+        .checked_add(budget.prepared_inline_bytes)
+        .unwrap();
+    assert!(
+        managed_stores <= 1024 * 1024,
+        "Standard managed stores require {managed_stores} bytes"
+    );
+    std::eprintln!("STANDARD_MASK_MANAGED_STORES bytes={managed_stores} budget={budget:?}");
     let staged = stage(&pending, &mut compositor);
     compositor
         .compose_frame(&mut FixturePixelTarget {
