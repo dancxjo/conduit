@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkedOwnerWindowHint, prefillOwnerWindowHint, checkedExpectedBodyId, checkedLoopbackOwnerWindow, checkedOwnerRouteEvidence, projectFaceCollections } from './owner-participation.mjs';
+import { publicKeyBase64, checkedOwnerWindowHint, prefillOwnerWindowHint, checkedExpectedBodyId, checkedLoopbackOwnerWindow, checkedOwnerRouteEvidence, projectFaceCollections } from './owner-participation.mjs';
 
 test('Handbook owner window accepts only the local admitted carrier', () => {
   assert.equal(checkedLoopbackOwnerWindow('ws://127.0.0.1:41000/conduit'), 'ws://127.0.0.1:41000/conduit');
@@ -88,4 +88,13 @@ test('checked prefill mutates only editable fields and never submits or connects
   assert.equal(prefillOwnerWindowHint(form, search), true);
   assert.equal(fields['[name="body"]'].value, 'body/one');
   assert.equal(fields['[name="window"]'].value, 'ws://127.0.0.1:46156/conduit');
+});
+
+test("public key clipboard form is standard Base64 with unchanged bytes", () => {
+  const key = Array.from({ length: 32 }, (_, index) => index);
+  const encoded = publicKeyBase64(key);
+  assert.equal(encoded, "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=");
+  assert.deepEqual([...Buffer.from(encoded, "base64")], key);
+  assert.throws(() => publicKeyBase64(key.slice(1)), /32 bytes/);
+  assert.throws(() => publicKeyBase64([...key.slice(1), 256]), /32 bytes/);
 });

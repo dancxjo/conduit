@@ -7,6 +7,14 @@ import { decorate } from "./owner-face-icons.mjs";
 // Linux Host. All admission and biography facts come from the production SDK.
 const encoder = new TextEncoder();
 
+export function publicKeyBase64(key) {
+  if (!Array.isArray(key) || key.length !== 32
+    || key.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255)) {
+    throw new Error("The browser public key must contain exactly 32 bytes.");
+  }
+  return btoa(String.fromCharCode(...key));
+}
+
 // A Mask-local layout choice over the current Face, never a second Todo store.
 export function projectFaceCollections(view) {
   const subjects = new Map((view.subjects ?? []).map(subject => [subject.identity, subject]));
@@ -145,7 +153,7 @@ export async function startOwnerParticipation(application, root) {
       <p>On the running owner's Linux Host, use <code>conduit body browser-window</code> with the copied public key. For first admission, the explicitly pinned key can identify this Host without copying its Host ID. A returning Host still uses its exact Host ID. The Boot changes when this page reloads.</p>
       <dl class="owner-identity"><dt>Host</dt><dd><code data-owner-host></code></dd>
         <dt>Boot</dt><dd><code data-owner-boot></code></dd>
-        <dt>Public verifying key (byte array)</dt><dd><code data-owner-key></code>
+        <dt>Public verifying key (Base64)</dt><dd><code data-owner-key></code>
           <button type="button" data-copy-key>Copy key</button></dd></dl></section>
     <form data-owner-join><h3>2 · Join the authorized window</h3>
       <label>Body ID <input name="body" autocomplete="off" required aria-describedby="owner-body-help"></label>
@@ -501,10 +509,11 @@ export async function startOwnerParticipation(application, root) {
     const identity = host.admissionIdentity();
     root.querySelector('[data-owner-host]').textContent = identity.hostId;
     root.querySelector('[data-owner-boot]').textContent = identity.bootId;
-    root.querySelector('[data-owner-key]').textContent = JSON.stringify(identity.verifyingKey);
+    const encodedKey = publicKeyBase64(identity.verifyingKey);
+    root.querySelector('[data-owner-key]').textContent = encodedKey;
     root.querySelector('[data-copy-key]').addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(JSON.stringify(identity.verifyingKey));
+        await navigator.clipboard.writeText(encodedKey);
         status.textContent = 'Public verifying key copied. Give it to the Body owner for explicit first-admission authorization. The Host ID remains visible above.';
       } catch {
         status.textContent = 'Clipboard unavailable. Select and copy the exact public verifying key shown above.';
