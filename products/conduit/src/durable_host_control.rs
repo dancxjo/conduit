@@ -1038,7 +1038,7 @@ enum Request {
     BodyReturn {
         protocol: u16,
         token: Vec<u8>,
-        encounter: Box<crate::durable_host::routed_join::MemberEncounter>,
+        encounter: Box<crate::durable_host::MemberEncounter>,
     },
     BodyMemberReturnBegin {
         protocol: u16,

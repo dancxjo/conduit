@@ -86,13 +86,12 @@ pub(crate) fn complete_member_return(
 impl DurableHostRuntime {
     pub(in crate::durable_host_control) fn return_member(
         &mut self,
-        encounter: crate::durable_host::routed_join::MemberEncounter,
+        encounter: crate::durable_host::MemberEncounter,
     ) -> Result<MembershipCredential, String> {
         let HostSource::Bare(host) = &self.host else {
             return Err("member return requires a quiescent non-owner Host".into());
         };
-        if host.is_playing()
-            || self.remote_fragment.is_some()
+        if self.remote_fragment.is_some()
             || self.pending_worker_text.is_some()
             || self.pool_member.is_some()
             || self.speech_worker.is_some()
@@ -112,17 +111,13 @@ impl DurableHostRuntime {
             .birth_root
             .as_deref()
             .ok_or("member return requires installed service custody")?;
-        crate::durable_host::routed_join::return_on_actual_host(
-            state,
-            host.advertisement(),
-            &encounter,
-        )
+        crate::durable_host::return_on_actual_host(state, host.advertisement(), &encounter)
     }
 }
 #[cfg(unix)]
 pub(crate) fn return_member(
     state: &Path,
-    encounter: crate::durable_host::routed_join::MemberEncounter,
+    encounter: crate::durable_host::MemberEncounter,
 ) -> Result<MembershipCredential, String> {
     match call(
         state,
@@ -143,7 +138,7 @@ pub(crate) fn return_member(
 #[cfg(not(unix))]
 pub(crate) fn return_member(
     _: &Path,
-    _: crate::durable_host::routed_join::MemberEncounter,
+    _: crate::durable_host::MemberEncounter,
 ) -> Result<MembershipCredential, String> {
     Err("member return requires authenticated local owner control".into())
 }

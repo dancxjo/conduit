@@ -1599,4 +1599,6 @@ mod tests {
     }
 }
 
-pub(crate) use routed_join::{return_installed_member, serve_body_member_route};
+pub(crate) use routed_join::{
+    return_installed_member, return_on_actual_host, serve_body_member_route, MemberEncounter,
+};
