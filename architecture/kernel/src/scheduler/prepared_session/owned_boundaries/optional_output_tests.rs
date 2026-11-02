@@ -267,3 +267,46 @@ fn optional_tracking_is_charged_only_for_selected_sessions_and_not_inline() {
     assert_eq!(optional.optional_output_storage_bytes(), charged);
     invoke(&mut optional, 1, [Some(0), None]);
 }
+
+#[test]
+fn exact_optional_bind_consumes_preallocated_tracking_without_reallocation() {
+    let storage = super::super::OptionalOutputStorage::<3>::prepare();
+    let address = storage.backing_identity();
+    let mut s = Session::new_with_preallocated_optional_outputs(
+        kernel([false, true]),
+        &[INPUT, OUTPUTS[0], OUTPUTS[1]],
+        &OUTPUTS,
+        24,
+        storage,
+    )
+    .unwrap_or_else(|_| panic!("exact preallocated binding"));
+    assert_eq!(
+        (&**s.optional_outputs.as_ref().unwrap() as *const _) as usize,
+        address
+    );
+    invoke(&mut s, 0, [None, Some(0)]);
+    let _evidence = s
+        .begin_next([[true, false]], log())
+        .unwrap_or_else(|_| panic!("drained"));
+    assert_eq!(
+        (&**s.optional_outputs.as_ref().unwrap() as *const _) as usize,
+        address
+    );
+    invoke(&mut s, 1, [Some(0), None]);
+    assert!(Session::new_with_preallocated_optional_outputs(
+        kernel([true, true]),
+        &[INPUT, OUTPUTS[0], OUTPUTS[1]],
+        &[],
+        24,
+        super::super::OptionalOutputStorage::prepare()
+    )
+    .is_err());
+    assert!(Session::new_with_preallocated_optional_outputs(
+        kernel([true, true]),
+        &[INPUT, OUTPUTS[0], OUTPUTS[1]],
+        &[INPUT],
+        24,
+        super::super::OptionalOutputStorage::prepare()
+    )
+    .is_err());
+}

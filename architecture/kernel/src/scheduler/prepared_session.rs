@@ -59,6 +59,9 @@ struct OptionalOwnedOutputs<const C: usize> {
     optional: [bool; C],
 }
 
+mod optional_storage;
+pub use optional_storage::OptionalOutputStorage;
+
 pub struct PreparedKernelSession<
     D,
     S,
@@ -149,6 +152,58 @@ where
             Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
         ),
     > {
+        let storage = (!optional_outputs.is_empty()).then(OptionalOutputStorage::prepare);
+        Self::new_with_optional_storage(
+            kernel,
+            boundaries,
+            optional_outputs,
+            remote_sign_reservation,
+            storage,
+        )
+    }
+
+    /// Bind only validated exact optional endpoints into already allocated stores.
+    /// Refusal drops the unused tracking store; the untouched kernel is returned.
+    #[allow(clippy::type_complexity)]
+    pub fn new_with_preallocated_optional_outputs(
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        boundaries: &[OwnedValueBoundary],
+        optional_outputs: &[OwnedValueBoundary],
+        remote_sign_reservation: u16,
+        storage: OptionalOutputStorage<C>,
+    ) -> Result<
+        Self,
+        (
+            SessionRefusal,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        ),
+    > {
+        Self::new_with_optional_storage(
+            kernel,
+            boundaries,
+            optional_outputs,
+            remote_sign_reservation,
+            Some(storage),
+        )
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn new_with_optional_storage(
+        kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        boundaries: &[OwnedValueBoundary],
+        optional_outputs: &[OwnedValueBoundary],
+        remote_sign_reservation: u16,
+        storage: Option<OptionalOutputStorage<C>>,
+    ) -> Result<
+        Self,
+        (
+            SessionRefusal,
+            Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
+        ),
+    > {
+        if optional_outputs.is_empty() != storage.is_none() {
+            return Err((SessionRefusal::InvalidOwnedBoundary, kernel));
+        }
         if kernel.decisions != 0
             || kernel.logical_invocations != 0
             || kernel.cancelled
@@ -187,13 +242,8 @@ where
                 return Err((SessionRefusal::InvocationExhausted, kernel));
             }
         }
-        let optional_outputs = if optional_outputs.is_empty() {
-            None
-        } else {
-            let mut tracking = Box::new(OptionalOwnedOutputs {
-                starts: [0; C],
-                optional: [false; C],
-            });
+        let optional_outputs = storage.map(|storage| {
+            let mut tracking = storage.inner;
             for boundary in boundaries {
                 let index = usize::from(boundary.cord.0);
                 tracking.starts[index] = kernel.cords[index].next_remote_sequence;
@@ -201,8 +251,8 @@ where
             for boundary in optional_outputs {
                 tracking.optional[usize::from(boundary.cord.0)] = true;
             }
-            Some(tracking)
-        };
+            tracking
+        });
         Ok(Self {
             kernel,
             phase: Phase::Prepared,
@@ -214,7 +264,7 @@ where
     /// Additional managed heap storage required only for optional outputs.
     /// Ordinary lockstep sessions retain no per-Cord tracking allocation.
     pub fn optional_output_storage_requirement() -> usize {
-        core::mem::size_of::<OptionalOwnedOutputs<C>>()
+        OptionalOutputStorage::<C>::required_bytes()
     }
     pub fn optional_output_storage_bytes(&self) -> usize {
         if self.optional_outputs.is_some() {
