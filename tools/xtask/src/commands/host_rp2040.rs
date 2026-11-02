@@ -137,7 +137,7 @@ pub(super) fn build(
                 "private Seed input/output must stay outside the public artifact directory".into(),
             );
         }
-        compose_private_seed(&checked, input, destination)?;
+        compose_private_seed(&checked, &image.manifest.image_id, input, destination)?;
     }
     if !opts.quiet {
         println!("RP2040 application: {}", uf2.display());
@@ -168,6 +168,7 @@ fn validate_application_uf2(bytes: &[u8]) -> Result<(), Box<dyn std::error::Erro
 }
 fn compose_private_seed(
     checked: &conduit_host_make::CheckedHostConfiguration,
+    expected_image_id: &str,
     input: &Path,
     destination: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -181,6 +182,7 @@ fn compose_private_seed(
             serde_json::from_slice(&bytes).map_err(|_| "invalid private Seed input")?;
         let mut sector = conduit_host_rp2040::encode_membership_seed_sector(
             checked,
+            expected_image_id,
             input.physical_uid,
             &input.pinned_owner,
             &input.provision,

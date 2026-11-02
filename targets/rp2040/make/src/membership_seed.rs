@@ -24,6 +24,7 @@ struct PrivateSeed<'a, 'b> {
 /// Application-only updates must leave this sector and credentials untouched.
 pub fn encode_membership_seed_sector(
     checked: &CheckedHostConfiguration,
+    expected_image_id: &str,
     physical_uid: [u8; 8],
     pinned_owner: &FederationPeer,
     provision: &PicoSpawnProvision<'_>,
@@ -33,6 +34,7 @@ pub fn encode_membership_seed_sector(
         || physical_uid == [0; 8]
         || physical_uid == [255; 8]
         || !validate_pico_spawn_provision(provision)
+        || provision.image_id != expected_image_id
         || pinned_owner.verifying_key == [0; 32]
         || pinned_owner.host_id.as_str().is_empty()
         || pinned_owner.boot_id.as_str().is_empty()
@@ -141,6 +143,7 @@ mod tests {
         };
         let sector = encode_membership_seed_sector(
             &checked,
+            "image/1",
             [1, 2, 3, 4, 5, 6, 7, 8],
             &owner,
             &provision,
@@ -156,7 +159,19 @@ mod tests {
             value["spawn"]["secret"],
             serde_json::to_value([9; 32]).unwrap()
         );
-        assert!(encode_membership_seed_sector(&checked, [0; 8], &owner, &provision, None).is_err());
+        assert!(encode_membership_seed_sector(
+            &checked, "image/1", [0; 8], &owner, &provision, None
+        )
+        .is_err());
+        assert!(encode_membership_seed_sector(
+            &checked,
+            "other-image",
+            [1, 2, 3, 4, 5, 6, 7, 8],
+            &owner,
+            &provision,
+            None
+        )
+        .is_err());
         let uf2 = membership_seed_sector_uf2(&sector);
         let mut validator = Uf2Validator::new(uf2.len() as u64).unwrap();
         for block in uf2.chunks_exact(UF2_BLOCK_BYTES) {

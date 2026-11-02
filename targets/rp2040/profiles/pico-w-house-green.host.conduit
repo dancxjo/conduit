@@ -6,7 +6,7 @@ host pico-w-house-green {
   base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
   base = {kind: "bus/i2c", implementation: "rp2040/i2c@1", initialization: {controller: 1, sda_gpio: 6, scl_gpio: 7, frequency_hz: 100000}}
   base = {kind: "sensor/environment", implementation: "rp2040/bosch-environment@1", initialization: {controller: 1, address: 118}}
-  base = {kind: "display/seven-segment", implementation: "rp2040/ht16k33@1", initialization: {controller: 1, address: 112, brightness: 3}}
+  base = {kind: "display/segmented", implementation: "rp2040/ht16k33@1", initialization: {controller: 1, address: 112, brightness: 3, layout: "adafruit-alpha4"}}
   base = {kind: "network/wifi", implementation: "rp2040/cyw43-retained@1", initialization: {credential_source: "private-flash-network-journal", maximum_sockets: 4}}
   limits = {static_memory_bytes: 131072, heap_arena_bytes: 49152, queue_items: 16, buffered_bytes: 8192, active_instances: 8, operation_slots: 16, timer_slots: 4, line_sessions: 1, evidence_items: 16}
 }

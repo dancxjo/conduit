@@ -8,7 +8,7 @@ pub const I2C_BASE_KIND: &str = "bus/i2c";
 pub const I2C_IMPLEMENTATION: &str = "rp2040/i2c@1";
 pub const BOSCH_BASE_KIND: &str = "sensor/environment";
 pub const BOSCH_IMPLEMENTATION: &str = "rp2040/bosch-environment@1";
-pub const HT16K33_BASE_KIND: &str = "display/seven-segment";
+pub const HT16K33_BASE_KIND: &str = "display/segmented";
 pub const HT16K33_IMPLEMENTATION: &str = "rp2040/ht16k33@1";
 
 pub const WIFI_BASE_KIND: &str = "network/wifi";
@@ -70,6 +70,13 @@ pub fn ht16k33_initialization_contract() -> BaseInitializationContract {
             count("controller", 0, 1),
             count("address", 0x70, 0x77),
             count("brightness", 0, 15),
+            KindConfigurationField {
+                key: "layout".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::TextOneOf {
+                    values: vec!["adafruit-alpha4".into()],
+                },
+            },
         ],
     }
 }
@@ -266,5 +273,6 @@ mod tests {
         .is_err());
         assert!(prepare(&GREEN.replace("address: 112", "address: 118")).is_err());
         assert!(prepare(&GREEN.replace("brightness: 3", "brightness: 16")).is_err());
+        assert!(prepare(&GREEN.replace("adafruit-alpha4", "unknown-layout")).is_err());
     }
 }
