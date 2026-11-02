@@ -1,5 +1,5 @@
 use super::*;
-use crate::native_face_mask::tests::{CountingDisplay, fixture};
+use crate::native_face_mask::tests::{fixture, CountingDisplay};
 use conduit_conduitos_mask_offer::NativeMaskStorageProfile;
 use conduit_kernel::SignSink;
 
@@ -23,7 +23,7 @@ fn retained_store_bound_refuses_before_installation_and_does_not_enlarge() {
 
 #[test]
 fn real_mask_reuses_one_kernel_only_after_full_previous_evidence_transfer() {
-    let (mut mask, draft) = fixture();
+    let (mut mask, mut draft) = fixture();
     let required =
         RetainedNativeMaskStorage::required_store_bytes(NativeMaskStorageProfile::Standard)
             .unwrap();
@@ -49,7 +49,12 @@ fn real_mask_reuses_one_kernel_only_after_full_previous_evidence_transfer() {
     assert!(evidence.signs.len() > 0);
     assert_eq!(evidence.receipt.kernel_signs, evidence.signs.len());
     assert!(mask.take_retired_evidence().unwrap().is_none());
-    mask.present_read_only(face, 2, 2, &mut display).unwrap();
+    draft
+        .edit_name(draft.revision(), "Continuing house".into())
+        .unwrap();
+    let next_face = draft.face(&mask.birth_basis("arrival/retained")).unwrap();
+    mask.present_read_only(next_face, 2, 2, &mut display)
+        .unwrap();
     assert_eq!(mask.session.as_ref().unwrap().backing_identity(), pointer);
     let second = mask.show().unwrap().show.clone();
     assert_eq!(second.plan_id, first.plan_id);

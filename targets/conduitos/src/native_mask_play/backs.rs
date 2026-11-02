@@ -1,6 +1,7 @@
 //! Bounded kernel Backs for the ordinary native Mask Plot.
 use super::PORTS;
-use conduit_kernel::scheduler::{ReusableStepBack, StepBack, StepInputBytes, StepIo, StepOutcome};
+use conduit_kernel::scheduler::prepared_session::ReusableStepBack;
+use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId};
 
 pub(super) enum MaskBack {

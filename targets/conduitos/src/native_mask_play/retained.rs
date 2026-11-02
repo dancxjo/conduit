@@ -1,6 +1,8 @@
 //! Affine backing for repeated read-only Shows through the existing kernel owner.
 use super::*;
-use conduit_kernel::scheduler::{DrainedInvocation, OwnedValueBoundary, PreparedKernelSession};
+use conduit_kernel::scheduler::prepared_session::{
+    DrainedInvocation, OwnedValueBoundary, PreparedKernelSession,
+};
 use conduit_kernel::{RequestId, SignSink};
 use core::ops::Deref;
 type Session = PreparedKernelSession<
