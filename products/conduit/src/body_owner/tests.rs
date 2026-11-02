@@ -1100,3 +1100,10 @@ mod member_leave;
 
 #[path = "tests/member_presentation.rs"]
 mod member_presentation;
+
+#[path = "tests/member_return.rs"]
+mod member_return;
+
+pub(crate) fn member_return_owner_fixture() -> (Owner, std::path::PathBuf) {
+    member_leave::owner_fixture()
+}

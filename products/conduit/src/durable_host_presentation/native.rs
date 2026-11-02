@@ -33,14 +33,25 @@ impl NativePresentation {
         {
             return Err("native presentation has no initialized selected Mask".into());
         }
-        let invitation = super::super::pending_seed::original_invitation(state)?;
-        let (owner, snapshot) = wire::OwnerRoute::admit_initialized(
-            runtime,
-            status,
-            state,
-            invitation,
-            MaskSelection::Native,
-        )?;
+        let installation = super::super::read_installation(&state.join("installation.json"))?;
+        let (owner, snapshot) = if installation.joined_body_state.is_some() {
+            wire::OwnerRoute::return_initialized(
+                runtime,
+                status,
+                state,
+                wire::load_member_encounter(state)?,
+                MaskSelection::Native,
+            )?
+        } else {
+            let invitation = super::super::pending_seed::original_invitation(state)?;
+            wire::OwnerRoute::admit_initialized(
+                runtime,
+                status,
+                state,
+                invitation,
+                MaskSelection::Native,
+            )?
+        };
         let owner_acknowledged = present(runtime, output, &owner, snapshot, 1)?;
         Ok(Self {
             owner: owner_acknowledged.then_some(owner),

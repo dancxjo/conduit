@@ -235,3 +235,16 @@ pub(super) fn validate(
     }
     Ok(())
 }
+
+pub(crate) fn leave_member_from_file(
+    state: &Path,
+    credential: &Path,
+    authorize: bool,
+) -> Result<(), String> {
+    if !authorize {
+        return Err("withdrawing a member requires --authorize-leave".into());
+    }
+    let credential = serde_json::from_slice(&bounded_read(credential, 64 * 1024)?)
+        .map_err(|_| "invalid selected member credential")?;
+    crate::durable_host_control::leave_member(state, credential)
+}

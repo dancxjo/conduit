@@ -820,3 +820,51 @@ Checkpoint `8b97054c28` passed two focused member-presentation tests,
 17 routed-join tests, 11 participant-service regressions, and the installed
 product check with warnings denied. These are local source proofs, not a
 physical returning-member deployment.
+
+### Signed installed-member return entrance, 2026-11-02
+
+The next source implementation connects the retained private continuity signer
+and crash-safe returned-credential storage to a finite pinned TLS member
+encounter. This is an existing Part's return, not another invitation or another
+birth. The owner checks its latest credential, makes one ten-second challenge,
+verifies Core's signature proof against current biography, and durably commits
+before replying. At most three failed proofs may use that challenge. Exact
+completed replies can be recovered inside the same still-current challenge;
+a withdrawal invalidates that cached response. No route timeout implies Host
+loss and no return silently Lulls a Playing Body.
+
+The native startup selects this entrance for retained membership instead of
+reading its consumed original Seed invitation. Its returned credential is
+published as an immutable file before switching the installation's binding;
+interrupted pointer commits preserve the previous valid binding and private
+key. Only after the authenticated response and local commit does it request the
+existing finite native Face route and acknowledge an actual rendered Show.
+
+The generic installed CLI exposes `body member-route` for an explicitly
+selected existing member and bounded TLS endpoint, `body member-encounter` to
+select that descriptor while the member is stopped, and `body member-leave`
+for explicit owner-authorized withdrawal. Transport selection checks the
+retained Body/Part/Host, expiry, pin, attempt and timeout bounds. It grants no
+membership, provider readiness, Plan or Show. Endpoint selection is not yet
+part of ordinary authored Host construction; this operational entrance does
+not complete that goal requirement.
+
+The local TLS regression uses a genuinely installed identity-only test Host,
+normal private-key retention, and actual Core owner admission/return. A wrong
+certificate pin refuses before owner operations. The owner then commits a
+return and deliberately drops its first reply; the production client's second
+bounded attempt recovers the same credential. Membership revision proves one
+attachment, and the selected credential reopens from disk. No Face, HDMI,
+remote-NAT or physical-restart success is inferred from this local test.
+
+A lost reply beyond the live challenge, or loss of the owner process between
+commit and receipt delivery, still needs a durable recovery policy. Native
+encounters remain finite; automatic continuing Face renewal and receipt-store
+retirement are separate unfinished work. The source has not yet replaced
+Threebee's installed release.
+
+Qualification for this source checkpoint: four member-return tests (including
+actual pinned TLS dropped-reply recovery and checked descriptor installation),
+twelve private-custody tests, and the installed native-display product check
+with warnings denied passed. Threebee's existing PID 6512 was rechecked active
+with zero restarts; no replacement release has been deployed yet.

@@ -403,3 +403,10 @@ mod tests {
             .starts_with("endpoint-authentication-failed:"));
     }
 }
+
+#[path = "durable_body_join_route/member_return.rs"]
+mod member_return;
+pub(crate) use member_return::{
+    install_member_encounter, serve_body_member_route, MemberEncounter, MemberReturnFrame,
+    MEMBER_RETURN_SCHEMA, MEMBER_ROUTE_SCHEMA,
+};

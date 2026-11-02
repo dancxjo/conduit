@@ -71,6 +71,11 @@ impl OwnerRoute {
         invitation: PortableInvitation,
         mask: MaskSelection,
     ) -> Result<(Self, Snapshot), String> {
+        let installation = super::super::read_installation(&state.join("installation.json"))?;
+        if installation.joined_body_state.is_some() {
+            let encounter = load_member_encounter(state)?;
+            return Self::return_initialized(runtime, status, state, encounter, mask);
+        }
         let encounter_started = Instant::now();
         let rendezvous = invitation
             .rendezvous
@@ -141,6 +146,75 @@ impl OwnerRoute {
         // and delivery. Anchor conservatively before the exchange, rather than
         // extending its witness by time spent preparing/transmitting the Face.
         let deadline = encounter_started + Duration::from_millis(u64::from(grant.remaining_millis));
+        Ok((
+            Self {
+                candidate,
+                request,
+                grant,
+                deadline,
+                sequence: 1,
+                mask,
+                admitted,
+            },
+            snapshot,
+        ))
+    }
+
+    pub(super) fn return_initialized(
+        runtime: &mut crate::durable_host_control::DurableHostRuntime,
+        status: &mut super::RuntimeStatus,
+        state: &std::path::Path,
+        encounter: crate::durable_host::routed_join::MemberEncounter,
+        mask: MaskSelection,
+    ) -> Result<(Self, Snapshot), String> {
+        use crate::durable_host::routed_join::MEMBER_ROUTE_SCHEMA;
+        let started = Instant::now();
+        let installation = super::super::read_installation(&state.join("installation.json"))?;
+        let prior = super::super::membership::load_joined_credential(state, &installation)?;
+        let actual = runtime.truth().advertisement;
+        if encounter.schema != MEMBER_ROUTE_SCHEMA
+            || encounter.body_id != prior.body_id
+            || encounter.part_id != prior.part_id
+            || encounter.host_id != prior.host_id
+            || actual.host_id.as_str() != status.host_id
+            || actual.boot_id.as_str() != status.boot_id
+        {
+            return Err("member encounter differs from retained member and actual Boot".into());
+        }
+        let candidate = encounter.candidate;
+        if candidate.line_family != conduit_body::RendezvousLineFamily::AuthenticatedTlsStream
+            || candidate.expires_at_millis <= super::super::current_time_millis()?
+            || !(1..=30_000).contains(&candidate.attempt_timeout_millis)
+            || !(1..=2).contains(&candidate.maximum_attempts)
+        {
+            return Err("member encounter has no current bounded TLS route".into());
+        }
+        let (mut line, credential) = bounded_signed_return(state, &prior, &actual, &candidate)?;
+        super::super::membership::retain_returned_membership(state, &prior, &credential, &actual)?;
+        status.body_id = Some(credential.body_id.as_str().into());
+        status.offer_generation = actual.offer_generation.0;
+        super::super::write_json_atomic(&state.join("runtime.json"), status)?;
+        let request = OwnerFaceSnapshotRequest {
+            schema: OWNER_FACE_REQUEST_SCHEMA.into(),
+            credential_id: credential.credential_id.as_str().into(),
+            body_id: credential.body_id,
+            part_id: credential.part_id,
+            host_id: credential.host_id,
+            boot_id: credential.boot_id,
+            last_seen_revision: None,
+            last_seen_identity: None,
+        };
+        send(
+            &mut line,
+            &json!({"schema":"conduit.body/native-owner-face-request@1",
+            "request":request,"mask":mask}),
+            MESSAGE,
+        )?;
+        let snapshot = snapshot(document(&mut line)?)?;
+        let admitted = AdmittedSnapshot::bind(&snapshot, &request)?;
+        let grant: Grant = receive(&mut line, MESSAGE)?;
+        validate_grant(&grant, &request)?;
+        let deadline = started + Duration::from_millis(u64::from(grant.remaining_millis));
         Ok((
             Self {
                 candidate,
@@ -464,3 +538,109 @@ impl conduit_std_host::NativeMaskEncounter for OwnerRoute {
 #[cfg(test)]
 #[path = "action_snapshot_tests.rs"]
 mod action_snapshot_tests;
+
+pub(super) fn load_member_encounter(
+    state: &std::path::Path,
+) -> Result<crate::durable_host::routed_join::MemberEncounter, String> {
+    serde_json::from_slice(&super::super::bounded_read(
+        &state.join("body/member-encounter.json"),
+        16 * 1024,
+    )?)
+    .map_err(|_| "invalid installed finite member encounter".into())
+}
+
+fn signed_return_exchange(
+    state: &std::path::Path,
+    prior: &conduit_body::MembershipCredential,
+    actual: &conduit_core::HostAdvertisement,
+    candidate: &RendezvousCandidate,
+) -> Result<
+    (
+        SecureWebSocketClientLine,
+        conduit_body::MembershipCredential,
+    ),
+    String,
+> {
+    use crate::durable_host::routed_join::{MemberReturnFrame, MEMBER_RETURN_SCHEMA};
+    let mut line = connect(
+        candidate,
+        Duration::from_millis(u64::from(candidate.attempt_timeout_millis.min(3_000))),
+    )?;
+    send(
+        &mut line,
+        &MemberReturnFrame::Advertise {
+            schema: MEMBER_RETURN_SCHEMA.into(),
+            credential: prior.clone(),
+            advertisement: Box::new(actual.clone()),
+        },
+        ADMISSION,
+    )?;
+    let challenge = match receive::<MemberReturnFrame>(&mut line, MESSAGE)? {
+        MemberReturnFrame::Challenge { schema, challenge } if schema == MEMBER_RETURN_SCHEMA => {
+            *challenge
+        }
+        MemberReturnFrame::Refused { code, .. } => {
+            return Err(format!("member return refused: {code}"))
+        }
+        _ => return Err("member return challenge response schema".into()),
+    };
+    let proof = super::super::membership::sign_return_challenge(
+        state,
+        prior,
+        actual,
+        &challenge,
+        super::super::current_time_millis()?,
+    )?;
+    send(
+        &mut line,
+        &MemberReturnFrame::Proof {
+            schema: MEMBER_RETURN_SCHEMA.into(),
+            proof: crate::durable_host::owner::MemberReturnProofDocument::encode(proof),
+        },
+        MESSAGE,
+    )?;
+    let credential = match receive::<MemberReturnFrame>(&mut line, ADMISSION)? {
+        MemberReturnFrame::Admitted {
+            schema,
+            credential,
+            advertisement,
+        } if schema == MEMBER_RETURN_SCHEMA
+            && *advertisement == *actual
+            && credential.issued_at_millis >= challenge.issued_at_millis
+            && credential.issued_at_millis < challenge.expires_at_millis =>
+        {
+            credential
+        }
+        MemberReturnFrame::Refused { code, .. } => {
+            return Err(format!("member return refused: {code}"))
+        }
+        _ => return Err("member return response differs from authenticated challenge".into()),
+    };
+    Ok((line, credential))
+}
+
+#[cfg(test)]
+#[path = "member_return_tests.rs"]
+mod member_return_tests;
+
+fn bounded_signed_return(
+    state: &std::path::Path,
+    prior: &conduit_body::MembershipCredential,
+    actual: &conduit_core::HostAdvertisement,
+    candidate: &RendezvousCandidate,
+) -> Result<
+    (
+        SecureWebSocketClientLine,
+        conduit_body::MembershipCredential,
+    ),
+    String,
+> {
+    let mut result = Err("member return had no authenticated exchange".to_string());
+    for _ in 0..candidate.maximum_attempts.min(2) {
+        result = signed_return_exchange(state, prior, actual, candidate);
+        if result.is_ok() {
+            break;
+        }
+    }
+    result
+}

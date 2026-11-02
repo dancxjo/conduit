@@ -111,6 +111,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            pending_member_return: None,
             invited_mask_offers: Default::default(),
             attached_terminal_route: None,
             direct_spoken_route: None,
