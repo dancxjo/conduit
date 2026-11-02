@@ -328,3 +328,29 @@ the need to rebuild that reviewed distribution merely to investigate packaging.
 It creates an SDK package, without private invitation provisioning, and is
 not yet a same-Body Seed or a deployed browser Host. The installed producer
 still needs the verified target identity handoff and ordinary packaging step.
+
+## Combined bundle production check — 2 November UTC
+
+The target/package primitives were integrated into the installed Crèche. Bundle
+providers now require retained, verified payload handles; an unproved raw
+NativeBundle/BrowserBundle refuses before readiness. The selected Host Base
+uses a pinned existing release manifest and a private `package_directory`.
+Artifact capacity is checked before offering the provider; production writes
+an unlinked private ZIP, rechecks invitation expiry/cancellation, and retains
+bounded evidence separately from its artifact file. This integration is not
+yet qualified or deployed.
+
+The first combined library run passed seven tests and refused the successful
+production case. Retained evidence showed `native ZIP lost exact release,
+Spore or invitation binding`. Inspection found that the package primitive
+compared the Spore's Body birth/construction source with the release's compiler
+source. The ordinary sealer deliberately preserves the former; artifact
+provenance belongs to its Make IMAGE. The correction must accept the complete
+BuiltSpore and validate the IMAGE source while preserving the original Body
+identity. Earlier primitive reader tests used matching synthetic labels and
+did not expose this distinction. Preserve that limit when citing them.
+
+The existing native installer also reconstructs release `source_identity` from
+the Spore source. Its format-reader success does not prove correct installed
+artifact-source reporting. Keep that downstream correction separate from a
+claim of browser Boot or Body membership; neither is demonstrated here.
