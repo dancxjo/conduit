@@ -80,6 +80,16 @@ pub fn verify_native_release_build(
     selection: &crate::MakeBuildSelection,
 ) -> Result<(), String> {
     let manifest = release.manifest();
+    if manifest.output != "native-bundle"
+        || manifest.target_id != image.manifest.target
+        || manifest.source_identity != image.manifest.source_identity
+        || manifest.make_package_id != selection.make_package_id
+        || manifest.builder_adapter != selection.builder_adapter
+        || Some(manifest.deployment_adapter.as_str()) != selection.deployment_adapter.as_deref()
+        || image.manifest.source_configuration_id.as_deref() != Some(checked.configuration_id())
+    {
+        return Err("native release baseline differs from checked Source/IMAGE/Make".into());
+    }
     let Some(receipt) = &manifest.reviewed_native_build else {
         if selection.features.iter().all(|feature| {
             matches!(
