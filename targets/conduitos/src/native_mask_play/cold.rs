@@ -24,7 +24,7 @@ pub(super) struct ColdMaskFields {
 /// Contains actual serialized/Show/Face owners, with no Step or pending Host
 /// Call yet. A future Available Show is private and cannot acknowledge output.
 pub struct ColdNativeMaskInvocation {
-    parts: Option<ColdMaskFields>,
+    pub(super) parts: Option<ColdMaskFields>,
 }
 impl ColdNativeMaskInvocation {
     pub(super) fn new(parts: ColdMaskFields) -> Self {

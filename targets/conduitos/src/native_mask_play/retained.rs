@@ -176,6 +176,13 @@ impl Deref for MaskScheduler {
     }
 }
 impl MaskScheduler {
+    pub(super) fn retained_metadata_bytes(&self) -> Option<usize> {
+        match self {
+            Self::Retained(storage) => Some(storage.plan_id.0.capacity()),
+            Self::Ephemeral(_) | Self::Retired => None,
+        }
+    }
+
     pub(super) fn retained(
         storage: RetainedNativeMaskStorage,
         planned: &PlannedMaskPlot,
