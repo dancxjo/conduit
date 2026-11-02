@@ -80,28 +80,28 @@ fn selected_timer_preserves_actual_registry_and_only_authored_capacity() {
     assert!(host.kernel_resources.is_idle());
 }
 #[test]
-fn selected_single_timer_reservation_refuses_excess_and_old_boot() {
+fn selected_timer_boot_does_not_grant_unaccounted_play_storage() {
     let image = image(&SOURCE.replace("slots: 8", "slots: 1"));
     let mut first = host(&image, "boot/a").unwrap();
     let plan = plan(&first);
-    let reservation = first
+    let error = first
         .kernel_resources
         .prepare_and_reserve_plans(&first.advertisement, &[(&plan, false)])
-        .unwrap()
-        .pop()
-        .unwrap();
-    assert!(first
-        .kernel_resources
-        .prepare_and_reserve_plans(&first.advertisement, &[(&plan, false)])
-        .is_err());
-    first.kernel_resources.release(reservation).unwrap();
+        .unwrap_err();
+    assert!(
+        error.contains("complete ordinary managed-memory accounting"),
+        "{error}"
+    );
+    assert!(first.kernel_resources.is_idle());
     let mut fresh = host(&image, "boot/b").unwrap();
-    assert!(fresh
+    let stale = fresh
         .kernel_resources
         .prepare_and_reserve_plans(&fresh.advertisement, &[(&plan, false)])
-        .is_err());
+        .unwrap_err();
+    assert!(stale.contains("stale Host/Boot/offer"), "{stale}");
     assert!(fresh.kernel_resources.is_idle());
 }
+
 #[test]
 fn duplicate_pools_aggregate_capacity_and_unsupported_operations_refuse() {
     // Each pool individually fits 128; the two together exceed the selected ceiling.
@@ -133,4 +133,69 @@ fn duplicate_pools_aggregate_capacity_and_unsupported_operations_refuse() {
         .err()
         .unwrap()
         .contains("manifest/payload"));
+}
+
+#[test]
+fn selected_image_reconfiguration_refuses_without_losing_current_providers() {
+    let image = image(SOURCE);
+    let mut current = host(&image, "boot/original").unwrap();
+    let advertisement = current.advertisement.clone();
+    let bases = current.base_registry.entries().to_vec();
+    let refused = current
+        .set_declared_name(HostDeclaredName::new("other-host").unwrap())
+        .unwrap_err();
+    assert!(refused.contains("fresh checked construction"));
+    assert_eq!(current.advertisement, advertisement);
+    assert_eq!(current.base_registry.entries(), bases);
+    assert_eq!(
+        current.image_identity().unwrap().image_id,
+        image.manifest.image_id
+    );
+    assert!(current.kernel_resources.is_idle());
+    let next = host(&image, "boot/replacement").unwrap();
+    assert_ne!(next.advertisement.boot_id, advertisement.boot_id);
+    assert_eq!(
+        next.image_identity().unwrap().image_id,
+        image.manifest.image_id
+    );
+}
+
+#[test]
+fn actual_profile_boot_preserves_zero_unused_line_capacity() {
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(SOURCE).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    // A directly authored PROFILE is legal independently of construction Source.
+    // Do not retain the checked Source identity after changing that PROFILE.
+    let mut profile = checked.into_profile();
+    profile.source_configuration_id = None;
+    profile.bounds.line_sessions = 0;
+    let image = build_default_host_image(
+        profile,
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "fixture/zero-line-profile".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap()
+    .0;
+    let initialized = host(&image, "boot/no-lines").unwrap();
+    assert_eq!(
+        initialized
+            .kernel_resources
+            .image_bounds
+            .as_ref()
+            .unwrap()
+            .line_sessions,
+        0
+    );
+    assert_eq!(initialized.advertisement.capabilities.len(), 1);
+    assert!(initialized.kernel_resources.is_idle());
 }

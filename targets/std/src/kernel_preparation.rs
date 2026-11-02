@@ -28,6 +28,7 @@ mod worker;
 
 mod base_backing;
 pub(crate) use base_backing::BaseBackingReservation;
+mod image_bounds;
 mod ledger;
 pub(crate) use ledger::{KernelResourceLedger, KernelResourceReservation};
 mod placement_resources;
@@ -53,6 +54,12 @@ impl KernelResourceLedger {
         bindings: &[ResourceBinding],
     ) -> Result<KernelResourceReservation, String> {
         self.require_available()?;
+        if self.image_bounds.is_some() {
+            return Err(
+                "selected IMAGE dynamic pool member lacks complete managed-memory accounting"
+                    .into(),
+            );
+        }
         let capability = advertisement
             .capabilities
             .iter()
@@ -135,6 +142,7 @@ impl KernelResourceLedger {
                 return Err("duplicate local workload partition".into());
             }
         }
+        self.preflight_image_workset(partitions.iter().map(|(fragment, _)| *fragment))?;
         // Staging is pre-play, finite, and includes all existing reservations.
         // A late invalid partition or combined shortage discards the candidate
         // ledger without requiring fallible rollback of the live ledger.
@@ -163,6 +171,7 @@ impl KernelResourceLedger {
         if plans.is_empty() || plans.len() > conduit_body::MAX_BODY_PLOTS {
             return Err("local workload partition count exceeds the admitted profile".into());
         }
+        self.preflight_image_workset(plans.iter().flat_map(|(plan, _)| plan.fragments.iter()))?;
         let mut staged = self.clone();
         let mut reservations = Vec::with_capacity(plans.len());
         for (index, (plan, continuity)) in plans.iter().enumerate() {

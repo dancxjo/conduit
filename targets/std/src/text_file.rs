@@ -159,6 +159,7 @@ impl crate::StdHost {
         write: bool,
         advance_offer: bool,
     ) -> Result<(), String> {
+        self.kernel_resources.require_reference_reconfiguration()?;
         if !self.kernel_resources.is_idle() {
             return Err("Text file selection requires an idle Host".into());
         }
@@ -242,7 +243,7 @@ impl crate::StdHost {
             }),
         });
         advertisement.resources.sort();
-        let ledger = crate::kernel_preparation::KernelResourceLedger::new(&advertisement)?;
+        let ledger = self.kernel_resources.replacement_for(&advertisement)?;
         self.advertisement = advertisement;
         self.kernel_resources = ledger;
         self.selected_text_file = Some(SelectedTextFileResidence {

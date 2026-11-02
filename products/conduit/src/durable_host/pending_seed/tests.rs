@@ -3,13 +3,25 @@ use crate::joining_host_package_test_common as common;
 use crate::native_package_install::LocalNativeInstaller;
 use conduit_host_make::{BodyBoundArtifactIdentity, NativePackageInstaller};
 
+fn timer_configuration() -> conduit_host_make::CheckedHostConfiguration {
+    let source = include_str!("../../../../../targets/std/profiles/linux-computer.host.conduit").replace("kind: \"clock/monotonic\"", "kind: \"timer/monotonic\"").replace("  limits =", "  capability = {kind: \"time/tick\", pinned_implementation: \"std/kernel-time-tick@2\"}\n  need = {id: \"timer/main\", class: \"conduit.resource/timer-slot@1\", slots: 8, bytes: 512}\n  limits =");
+    conduit_host_make::check_host_configuration(
+        conduit_host_make::parse_host_configuration_conduit(&source).unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap()
+}
+
 #[test]
-fn configured_seed_refuses_default_boot_before_publication() {
+fn configured_seed_initializes_exact_timer_before_admission() {
     let now = current_time_millis().unwrap();
-    let (release, spore, invitation, payloads) = common::fixture_at(
+    let configuration = timer_configuration();
+    let (release, spore, invitation, payloads) = common::fixture_with_configuration_at(
         &["conduit-linux-x86_64", "install-linux-x86_64.sh"],
         false,
         now,
+        &configuration,
     );
     let (comparison_manifest, comparison_state) = super::super::tests::fixture();
     let comparison_host = super::super::install(&comparison_manifest, &comparison_state).unwrap();
@@ -17,9 +29,7 @@ fn configured_seed_refuses_default_boot_before_publication() {
     let receipt = conduit_body_make::write_joining_host_package(
         &release,
         &spore,
-        &common::configuration(
-            spore.manifest.output == conduit_host_make::SporeOutputKind::BrowserBundle,
-        ),
+        &configuration,
         &invitation,
         now + 1,
         |path| Ok(std::io::Cursor::new(payloads[path].clone())),
@@ -72,14 +82,28 @@ fn configured_seed_refuses_default_boot_before_publication() {
         );
     }
 
-    // The pending-accept signing/admission transaction has separate ordinary
-    // invitation coverage. A configured Seed may not invent an initialized
-    // Boot by substituting the default Host while that integration is absent.
-    let refused = super::super::runtime_preparation::prepare_runtime(&root);
-    assert!(
-        matches!(refused, Err(error) if error.contains("exact image-bound provider initialization"))
+    let (_, mut runtime) = super::super::runtime_preparation::prepare_runtime(&root).unwrap();
+    let advertisement = runtime.truth().advertisement;
+    assert_eq!(
+        advertisement.profile.as_str(),
+        spore.image.manifest.profile_id
     );
-    assert!(!root.join("runtime.json").exists());
+    assert_eq!(advertisement.capabilities.len(), 1);
+    assert_eq!(
+        advertisement.capabilities[0]
+            .implementation
+            .implementation_id
+            .as_str(),
+        conduit_std_offers::TICK_IMPLEMENTATION
+    );
+    assert_eq!(advertisement.resources.len(), 1);
+    assert_eq!(advertisement.resources[0].capacity_units, 8);
+    assert!(!advertisement.bases.iter().any(|base| matches!(
+        base.mechanism_family.as_str(),
+        "storage/protected-file" | "serial/text"
+    )));
+    assert!(runtime.prepare_birth_encounter(&root).is_err());
+    assert!(root.join("runtime.json").exists());
     assert!(!root.join("control.sock").exists());
     assert!(!root.join("body/pending-join.json").exists());
     let installation = read_installation(&root.join("installation.json")).unwrap();
@@ -90,7 +114,9 @@ fn configured_seed_refuses_default_boot_before_publication() {
 
 #[test]
 fn expired_or_corrupt_seed_never_becomes_a_birth_or_implicit_admission() {
-    let (release, spore, invitation, _) = common::fixture(&["conduit-linux-x86_64"]);
+    let configuration = timer_configuration();
+    let (release, spore, invitation, _) =
+        common::fixture_with_configuration_at(&["conduit-linux-x86_64"], false, 0, &configuration);
     let (manifest, state) = super::super::tests::fixture();
     // This fixture exercises delayed Boot fencing; keep its synthetic release
     // source consistent with the actual selected Make IMAGE.
@@ -98,7 +124,6 @@ fn expired_or_corrupt_seed_never_becomes_a_birth_or_implicit_admission() {
         serde_json::from_slice(&fs::read(&manifest).unwrap()).unwrap();
     release_document["source_identity"] = spore.image.manifest.source_identity.clone().into();
     fs::write(&manifest, serde_json::to_vec(&release_document).unwrap()).unwrap();
-    let configuration = common::configuration(false);
     let source =
         conduit_host_make::canonical_host_configuration_conduit(configuration.configuration())
             .unwrap();
@@ -114,10 +139,8 @@ fn expired_or_corrupt_seed_never_becomes_a_birth_or_implicit_admission() {
     .unwrap();
     assert!(has_pending_seed(&state).unwrap());
     assert!(prepare_pending_seed_request(&state, true).is_err());
-    assert!(
-        matches!(super::super::runtime_preparation::prepare_runtime(&state),
-        Err(error) if error.contains("exact image-bound provider initialization"))
-    );
+    let (_, mut runtime) = super::super::runtime_preparation::prepare_runtime(&state).unwrap();
+    assert!(runtime.prepare_birth_encounter(&state).is_err());
     assert!(read_installation(&state.join("installation.json"))
         .unwrap()
         .joined_body_state

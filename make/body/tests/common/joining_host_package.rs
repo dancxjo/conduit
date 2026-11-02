@@ -50,9 +50,21 @@ pub fn fixture_at(
     PortableInvitation,
     BTreeMap<String, Vec<u8>>,
 ) {
+    fixture_with_configuration_at(paths, browser, now, &configuration(browser))
+}
+pub fn fixture_with_configuration_at(
+    paths: &[&str],
+    browser: bool,
+    now: u64,
+    configuration: &conduit_host_make::CheckedHostConfiguration,
+) -> (
+    VerifiedHostReleaseBytes,
+    BuiltSpore,
+    PortableInvitation,
+    BTreeMap<String, Vec<u8>>,
+) {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
-    let configuration = configuration(browser);
     let output = if browser {
         SporeOutputKind::BrowserBundle
     } else {
@@ -151,7 +163,7 @@ pub fn fixture_at(
         JoiningReleaseSelection {
             body: &biography,
             invitation: &invitation.claim,
-            configuration: &configuration,
+            configuration,
             output,
             image: &image,
             image_manifest: &image_manifest,

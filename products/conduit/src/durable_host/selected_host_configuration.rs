@@ -33,6 +33,21 @@ pub(super) struct Selection {
     host_image: Option<conduit_host_make::HostImage>,
 }
 impl Selection {
+    pub(super) fn require_timer_image_initialization(&self) -> Result<(), String> {
+        if self
+            .checked()?
+            .configuration()
+            .bases
+            .iter()
+            .any(|base| base.initialization.is_some())
+        {
+            return Err(
+                "selected timer IMAGE cannot initialize physical equipment or Crèche providers"
+                    .into(),
+            );
+        }
+        Ok(())
+    }
     pub(super) fn host_image(&self) -> Option<&conduit_host_make::HostImage> {
         self.host_image.as_ref()
     }

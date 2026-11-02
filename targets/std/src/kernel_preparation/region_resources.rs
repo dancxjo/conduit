@@ -16,6 +16,11 @@ impl KernelResourceLedger {
         observations: &[ResourceObservation],
     ) -> Result<RegionResourceReservation, String> {
         self.require_available()?;
+        if self.image_bounds.is_some() {
+            return Err(
+                "selected timer IMAGE has no initialized region-worker storage profile".into(),
+            );
+        }
         super::exact_profile::validate_selected_placements(host, prepared.fragment())?;
         if prepared.fragment().placements.iter().any(|p| {
             host.capabilities

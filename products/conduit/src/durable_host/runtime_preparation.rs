@@ -121,13 +121,24 @@ fn prepare_runtime_with_composition(
         read_installation(&state_dir.join("installation.json"))
     })?;
     let pending_seed = super::has_pending_seed(state_dir)?;
-    if installation
+    let selected_image = installation
         .selected_host_configuration
         .as_ref()
-        .and_then(|selection| selection.host_image())
-        .is_some()
-    {
-        return Err("selected Seed IMAGE requires exact image-bound provider initialization; default Host Boot is refused before publication".into());
+        .and_then(|selection| selection.host_image());
+    if selected_image.is_some() {
+        if todo.is_some()
+            || thermostat.is_some()
+            || installation.selected_model.is_some()
+            || installation.selected_speech.is_some()
+            || installation.selected_todo_checkpoint.is_some()
+        {
+            return Err("selected timer IMAGE cannot preserve unrelated initialized equipment or scoped scans".into());
+        }
+        installation
+            .selected_host_configuration
+            .as_ref()
+            .ok_or("selected IMAGE lost its source")?
+            .require_timer_image_initialization()?;
     }
     if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
@@ -159,12 +170,16 @@ fn prepare_runtime_with_composition(
     })?;
     // Keep the actual initialized provider alive before constructing its slot.
     // A checked Base alone cannot publish this offer.
-    let creche_factory = installation
-        .selected_host_configuration
-        .as_ref()
-        .map(|selection| selection.prepare_creche())
-        .transpose()?
-        .flatten();
+    let creche_factory = if selected_image.is_some() {
+        None
+    } else {
+        installation
+            .selected_host_configuration
+            .as_ref()
+            .map(|selection| selection.prepare_creche())
+            .transpose()?
+            .flatten()
+    };
     if creche_factory.is_some()
         && (todo.is_some()
             || thermostat.is_some()
@@ -174,7 +189,9 @@ fn prepare_runtime_with_composition(
         return Err("selected Crèche provider cannot preserve this scoped Host composition".into());
     }
     let mut host = trace.run(Phase::HostConstruction, || {
-        Ok(if let Some(factory) = &creche_factory {
+        Ok(if let Some(image) = selected_image {
+            StdHost::from_selected_timer_image(config, image, &conduit_workspace_make::catalog())?
+        } else if let Some(factory) = &creche_factory {
             StdHost::new_with_creche_encounter(config, composition, factory.resource_offer())?
         } else if let Some((initial, maximum_items)) = todo {
             StdHost::new_for_todo_scan(config, initial, maximum_items)?
@@ -203,8 +220,10 @@ fn prepare_runtime_with_composition(
         })
     })?;
     let selected_equipment = trace.run(Phase::EquipmentSelection, || {
-        if let Some(selection) = &installation.selected_host_configuration {
-            selection.attach_to_prepared_host(&mut host, creche_factory.as_ref())?;
+        if selected_image.is_none() {
+            if let Some(selection) = &installation.selected_host_configuration {
+                selection.attach_to_prepared_host(&mut host, creche_factory.as_ref())?;
+            }
         }
         Ok(if let Some(selection) = &installation.selected_speech {
             let artifact_dir = state_dir.join("spoken-artifacts");

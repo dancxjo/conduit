@@ -98,6 +98,13 @@ impl StdHost {
         // Bind the prospective identity without consuming the sequence. The
         // exact child pool must be prepared and correlated before Play start;
         // a preparation refusal leaves the Host sequence untouched.
+        self.kernel_resources.preflight_image_workset(
+            request
+                .plan
+                .plots
+                .iter()
+                .flat_map(|part| part.plan.fragments.iter()),
+        )?;
         let prospective_play = BodyPlayIdentity::bind(request.plan, self.next_kernel_play_sequence);
         let live_queue = live.as_ref().map(|(queue, _)| *queue);
         let mut kernel = if let Some((queue, _)) = &live {

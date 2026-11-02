@@ -36,6 +36,7 @@ impl KernelResourceLedger {
         backing: Option<&BaseBackingReservation>,
     ) -> Result<Self, String> {
         self.require_available()?;
+        self.require_reference_reconfiguration()?;
         if self.identity
             != (
                 current.host_id.clone(),
