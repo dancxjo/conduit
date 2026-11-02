@@ -15,6 +15,7 @@ impl KernelResourceLedger {
         prepared: &PreparedExecutionRegions<'_>,
         observations: &[ResourceObservation],
     ) -> Result<RegionResourceReservation, String> {
+        self.require_available()?;
         super::exact_profile::validate_selected_placements(host, prepared.fragment())?;
         if prepared.fragment().placements.iter().any(|p| {
             host.capabilities

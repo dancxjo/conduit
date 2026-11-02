@@ -1,0 +1,85 @@
+{
+  "source": "80e233cd0acade93e7d450824aabc86a455c650e",
+  "tree": "56fa32d274f38b75aafe22f18c99589d9499df75",
+  "base": "dc2e85c6e2cf9ab54610885206ac2ff925b7808e",
+  "toolchain": "cargo +stable",
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "checks": [
+    {
+      "command": "cargo +stable test --locked -p conduit-std-host --lib creche -- --nocapture",
+      "result": "18 passed",
+      "log": "owning-final-2.log"
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-std-host --lib kernel_preparation:: -- --nocapture",
+      "result": "11 passed before final early-cleanup guard; ledger behavior unchanged",
+      "log": "ledger.log"
+    },
+    {
+      "command": "cargo +stable test --locked -p conduit-std-host --lib activation_binding_tests -- --nocapture",
+      "result": "6 passed before final early-cleanup guard; activation behavior unchanged",
+      "log": "activation.log"
+    },
+    {
+      "command": "cargo +stable clippy --locked -p conduit-std-host --lib -- -D warnings",
+      "result": "passed",
+      "log": "clippy-final.log"
+    }
+  ],
+  "intermediate_failures": [
+    "initial locked dependency-row refusal; repaired only Std conduit-body-make row",
+    "two existing activation test calls needed new optional argument",
+    "extracted execution methods needed internal visibility",
+    "strict Clippy final option needless_as_deref",
+    "early cleanup gate needed crate-private ledger guard visibility"
+  ],
+  "logs": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/initial.log",
+      "sha256": "00f2a4fe438d65da4e82df6db833fe047a9cff2974bc757d31795de98f402d8c"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/owning-1.log",
+      "sha256": "3d5fdb2a2cd844b1af8757179fae7de6d732220dc769c76f16ab1b40fc8b815e"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/owning-2.log",
+      "sha256": "d3cbd80ff5e7ccd4042cbdc29968bcf90f9ac42b7890fd092f9876e5e01626b5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/owning-3.log",
+      "sha256": "732fb907a7849127748e3985b7e65dded1d77096cc45df671d7e67f42919c5ca"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/ledger.log",
+      "sha256": "99aa5fbf77912c128948f420ffb1a0785f80ef1c95497cf1efc3185719c2dd2a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/activation.log",
+      "sha256": "3698f8886c8ad2de6f8898cf5f05a7746030c0398762731f4391e6257c71d802"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/clippy.log",
+      "sha256": "5492b687ffcbfcdc172c23297b685e3f3eecc387500de0ee6df4a42ed68e925f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/owning-final.log",
+      "sha256": "4b9187d74398dd4c0e7146c75fabd9b225553ecbe8cd652ad8b0ec72167f3507"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/owning-final-2.log",
+      "sha256": "116372dc5ae2fd78e80668173e267e3c2f475a28a69621c42b1a3802fb078d65"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/6468-installed-creche-20261101/clippy-final.log",
+      "sha256": "67596330ab0781d013ab67128c051a3548dfc4f1d931cae6914822c3b9a7cc9d"
+    }
+  ],
+  "boundary": "Explicit initial constructor resource selection and caller-supplied encounter owner only. Actual shipped Source, sealed Plan, ordinary kernel and Play tested with classified software adapter refusal, not Seed production. Existing initialized installed Host has no implicit Creche resource or production encounter owner; checked retained authoring configuration and owner integration remain required. No Body birth, UI, deployment, physical or issue closure claim. Failed execution drain retains charged vector by move; failed pre-reservation drain retains uncharged terminal quarantine marker; neither provides recovery or external quiescence proof."
+}

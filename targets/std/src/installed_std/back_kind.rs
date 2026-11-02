@@ -99,6 +99,7 @@ use conduit_todo_plot::TodoCombineBack;
 // operation shares a small driver envelope on the bounded runner stack.
 #[allow(clippy::large_enum_variant)]
 pub(super) enum InstalledBack {
+    Creche(conduit_body_make::deployment_runtime::CrecheBack),
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
     PcmClipFrames(super::pcm_clip_frames_back::PcmClipFramesBack),

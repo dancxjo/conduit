@@ -3,6 +3,9 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct KernelResourceLedger {
+    // Exact charged tokens retained after uncertain platform retirement.
+    // Terminal quarantine: there is deliberately no automatic recovery API.
+    pub(super) retirement_hold: Option<Vec<KernelResourceReservation>>,
     pub(super) identity: (
         conduit_core::HostId,
         conduit_core::BootId,
@@ -20,8 +23,27 @@ pub(crate) struct KernelResourceReservation {
 }
 
 impl KernelResourceLedger {
+    /// Retain already charged tokens without releasing, cloning or allocating.
+    /// Process drop is not proof that an external provider has quiesced; a
+    /// replacement Host requires its own real provider admission.
+    pub(crate) fn quarantine_retirement(&mut self, reservations: Vec<KernelResourceReservation>) {
+        assert!(
+            self.retirement_hold.is_none(),
+            "Host retirement already quarantined"
+        );
+        self.retirement_hold = Some(reservations);
+    }
+
+    pub(crate) fn require_available(&self) -> Result<(), String> {
+        if self.retirement_hold.is_some() {
+            return Err("Host quarantined: Creche platform retirement is uncertain".into());
+        }
+        Ok(())
+    }
+
     pub(crate) fn is_idle(&self) -> bool {
-        self.pools.iter().all(|pool| pool.used_units == 0)
+        self.retirement_hold.is_none()
+            && self.pools.iter().all(|pool| pool.used_units == 0)
             && self.instances.iter().all(|(_, active)| *active == 0)
     }
 
@@ -50,6 +72,7 @@ impl KernelResourceLedger {
             instances.push((capability.capability_id.clone(), 0));
         }
         Ok(Self {
+            retirement_hold: None,
             identity: (
                 advertisement.host_id.clone(),
                 advertisement.boot_id.clone(),
@@ -121,6 +144,7 @@ impl KernelResourceLedger {
         >,
         sign_ids: &[SignId],
     ) -> Result<Vec<ResourceObservation>, String> {
+        self.require_available()?;
         if pools.len() != sign_ids.len() {
             return Err(
                 "resource observation Sign width does not match the sealed bindings".into(),
