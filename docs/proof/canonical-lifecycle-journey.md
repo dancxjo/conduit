@@ -713,3 +713,40 @@ checked before transfer. The private Seed is not committed because it contains
 admission material. This is actual manufacture and export, not installation,
 Boot, membership or HDMI proof. Threebee's system SDL package is still absent;
 its old display remains running while that runtime prerequisite is resolved.
+
+
+### Installed Seed, genuine admission, first physical Show, 2026-11-02
+
+Threebee's Seed was installed through the ordinary native carrier into a fresh
+state directory. Its original invitation admitted Host
+`host/installed/7823f2d16c13b79c7a9685fd3bd1d92fd836bcef7e225ad60b089ad3bacd29fa`
+into the existing Hamm Creek House Body. The credential remains retained; the
+installed executable matches the sealed AArch64 SHA-256. The actual Mask
+committed frame 1 with 614,400 pixels (1024 by 600), Face revision 126, and the
+owner acknowledgment returned successfully. These are physical driver/runtime
+observations; no human optical acceptance or screenshot was captured.
+
+The Seed then refused output lifetime `Lost`. The restart loop was stopped and
+the old renderer restored. The new service is not enabled at boot while this
+fault remains. Both old Host state/service and new Seed membership are retained.
+No invitation or credential is fabricated to bypass new-Boot admission.
+
+The system SDL package remained unavailable without root authentication. A
+hash-verified official Debian runtime was instead retained in an explicit user
+prefix and selected only for this user service. The first loader attempt exposed
+missing EGL/DRI plugins; apt's dependency resolver selected the corresponding
+runtime closure and every archive was checked against its repository SHA-256
+before extraction. GBM, DRI and EGL plugin paths are explicit. No system package
+or global loader setting was changed.
+
+An independent actual KMSDRM SDL diagnostic observes `Hidden` then `Shown`
+during fullscreen renderer preparation. The product issues its initialized
+output token before draining that startup queue. Stale queued loss is the next
+causal hypothesis to qualify; later output loss must remain terminal. This does
+not yet prove stable output or restart continuity. Compact evidence is
+`proof/evidence/creche/graphical-seed-first-boot-20261102.json`.
+
+Before the next build, sole-owned inactive language package variants were
+inventoried and removed through `cargo clean -p conduit-language` (766 files,
+12.0 GiB). Installed binaries, sealed releases, Seeds, private state, source and
+raw proof were preserved; disk headroom rose from about 8 GiB to 21 GiB.

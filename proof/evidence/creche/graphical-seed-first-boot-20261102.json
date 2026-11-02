@@ -1,0 +1,32 @@
+{
+  "schema": "conduit.proof/graphical-seed-first-boot@1",
+  "seed_manufactured_by_body": true,
+  "artifact_sha256": "0f26a3de8f1b9d5e1affc5214e57529d4a858228f69629b451379befc2d5f248",
+  "executable_sha256": "a119b9b245f3a0cbbdd4e3b065a3dd77417583ceed5467cb4dd30b416bc293bc",
+  "executable_source": "8ed8abef1b87bd14c8a44ffa9b8b7cbd4ed39f65",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "host_id": "host/installed/7823f2d16c13b79c7a9685fd3bd1d92fd836bcef7e225ad60b089ad3bacd29fa",
+  "part_id": "e09a606de59271fc33bdbcb30a93a3be51b4a99ad78a6fb7d20473dc9ffb1288",
+  "membership_credential_retained": true,
+  "physical_frame": {
+    "width": 1024,
+    "height": 600,
+    "pixels": 614400,
+    "sequence": 1,
+    "face_revision": 126,
+    "face_id": "8092ab5d342c336c59b0d12150a9ee965993069172db0c24278a310c5ee84df3"
+  },
+  "terminal": "output-lifetime-lost-after-first-Show",
+  "system_runtime_installed": false,
+  "private_verified_debian_runtime": true,
+  "stable_display": false,
+  "screenshot_available": false,
+  "historical_renderer_restored": true,
+  "diagnostic_inference": "Independent actual KMSDRM window/renderer preparation queues Hidden then Shown. The product does not drain those preparation events before issuing its token. This suggests stale startup loss, not yet causal product proof. Post-ready loss guards remain required.",
+  "log_sha256": {
+    "threebee-graphical-seed-install-610b.log": "f2fce2ef62545c12904c8c0ca82111aacd862e73bf1189dd4c46be3c7071422c",
+    "threebee-graphical-first-boot-610b.log": "62993f87ac040eda96aeb78340365dbd421361a5b8ec8fa5d8361d13f36ace16",
+    "threebee-graphical-seed-installed-custody-610b.json": "dd9668492967d598451af8bc3e6fac5be6d5591ba1d3cc4adf61c53f4d4a2488",
+    "threebee-sdl-window-lifecycle-diagnostic.log": "85ef9c9ba88f8a9b445a714803333f9a3bd1d59b7def3a7614136387f59b7ccf"
+  }
+}
