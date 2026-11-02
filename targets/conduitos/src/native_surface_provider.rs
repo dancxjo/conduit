@@ -2,6 +2,7 @@
 
 use conduit_core::{
     BaseEnforcementClass, BaseLifecycle, BaseProviderEntry, BaseRegistry, BaseRegistryLimits,
+    ResourceOffer,
 };
 
 use crate::display::{DisplayError, PixelTarget};
@@ -57,24 +58,36 @@ impl NativeSurfaceProvider {
         if issuer_key == [0; 32] {
             return Err(SurfaceProviderError::InvalidIssuerKey);
         }
+        let show = exact_show_resource(&entry).ok_or(SurfaceProviderError::InvalidProvider)?;
         if entry.lifecycle != BaseLifecycle::Ready
             || entry.enforcement_class != BaseEnforcementClass::Cooperative
             || !entry.capabilities.is_empty()
-            || entry.resources.len() != 1
-            || entry.resources[0].class_id.as_str() != conduit_face::SHOW_RESOURCE_CLASS
-            || entry.resources[0].pool_id.as_str().is_empty()
-            || entry.resources[0].capacity_units != 1
-            || entry.resources[0].compute.is_some()
-            || entry.resources[0].content.is_some()
+            || show.pool_id.as_str().is_empty()
+            || show.capacity_units != 1
+            || show.compute.is_some()
+            || show.content.is_some()
         {
             return Err(SurfaceProviderError::InvalidProvider);
         }
+        for (index, resource) in entry.resources.iter().enumerate() {
+            if resource.pool_id.as_str().is_empty()
+                || resource.class_id.as_str().is_empty()
+                || resource.capacity_units == 0
+                || entry.resources[..index]
+                    .iter()
+                    .any(|prior| prior.pool_id == resource.pool_id)
+            {
+                return Err(SurfaceProviderError::InvalidProvider);
+            }
+        }
+        let resource_count = u16::try_from(entry.resources.len())
+            .map_err(|_| SurfaceProviderError::InvalidProvider)?;
         let mut registry = BaseRegistry::new(BaseRegistryLimits {
             maximum_bases: 1,
             maximum_capabilities_per_base: 0,
-            maximum_resources_per_base: 1,
+            maximum_resources_per_base: resource_count,
             maximum_advertised_capabilities: 1,
-            maximum_advertised_resources: 1,
+            maximum_advertised_resources: resource_count,
         })
         .map_err(|_| SurfaceProviderError::InvalidProvider)?;
         registry
@@ -87,6 +100,17 @@ impl NativeSurfaceProvider {
             display_owner: None,
         })
     }
+}
+
+/// Require one exact semantic Show pool without depending on physical-resource
+/// ordering. The complete Base inventory remains retained and registry-validated.
+pub(crate) fn exact_show_resource(entry: &BaseProviderEntry) -> Option<&ResourceOffer> {
+    let mut matching = entry
+        .resources
+        .iter()
+        .filter(|resource| resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS);
+    let selected = matching.next()?;
+    matching.next().is_none().then_some(selected)
 }
 
 #[cfg(test)]

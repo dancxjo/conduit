@@ -61,7 +61,9 @@ impl ActiveNativeSurfacePossession {
         if base.provider_instance_id != provider.entry.provider_instance_id
             || base.provider_generation != provider.entry.provider_generation
             || resource.source_binding.pool_id
-                != provider.entry.resources.first().ok_or(())?.pool_id
+                != crate::native_surface_provider::exact_show_resource(&provider.entry)
+                    .ok_or(())?
+                    .pool_id
         {
             return Err(());
         }
