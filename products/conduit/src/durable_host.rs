@@ -445,19 +445,45 @@ fn run(state_dir: &Path) -> Result<(), String> {
             return conduit_linux_display::with_kmsdrm(
                 parameters.width(),
                 parameters.height(),
-                |scanout, _events| {
+                |scanout, events| {
                     let prepared = runtime_preparation::prepare_traced_runtime_with_scanout(
                         state_dir,
                         &trace,
                         scanout.initialized_display()?,
                     )?;
-                    serve_prepared_runtime(state_dir, &trace, owns_body, prepared)
+                    let mut progress =
+                        |_runtime: &mut crate::durable_host_control::DurableHostRuntime| {
+                            match scanout.poll_output_lifecycle(events, 16) {
+                                Ok(
+                                    conduit_linux_display::NativeInput::Idle
+                                    | conduit_linux_display::NativeInput::Pending,
+                                ) => Ok(()),
+                                Ok(_) => Err("native output lifetime ended".into()),
+                                Err(error) => {
+                                    Err(format!("native output lifetime lost: {error:?}"))
+                                }
+                            }
+                        };
+                    serve_prepared_runtime(
+                        state_dir,
+                        &trace,
+                        owns_body,
+                        prepared,
+                        Some(&mut progress),
+                    )
                 },
             );
         }
     }
     let prepared = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
-    serve_prepared_runtime(state_dir, &trace, owns_body, prepared)
+    serve_prepared_runtime(
+        state_dir,
+        &trace,
+        owns_body,
+        prepared,
+        #[cfg(all(unix, feature = "native-display"))]
+        None,
+    )
 }
 
 fn serve_prepared_runtime(
@@ -468,6 +494,9 @@ fn serve_prepared_runtime(
         RuntimeStatus,
         crate::durable_host_control::DurableHostRuntime,
     ),
+    #[cfg(all(unix, feature = "native-display"))] foreground: Option<
+        &mut dyn FnMut(&mut crate::durable_host_control::DurableHostRuntime) -> Result<(), String>,
+    >,
 ) -> Result<(), String> {
     use startup_trace::Phase;
     let runtime = state_dir.join("runtime.json");
@@ -485,6 +514,12 @@ fn serve_prepared_runtime(
         "durable host {} boot {} is running",
         status.host_id, status.boot_id
     );
+    #[cfg(all(unix, feature = "native-display"))]
+    let outcome = match foreground {
+        Some(poll) => crate::durable_host_control::serve_with_foreground(state_dir, truth, poll),
+        None => crate::durable_host_control::serve(state_dir, truth),
+    };
+    #[cfg(not(all(unix, feature = "native-display")))]
     let outcome = crate::durable_host_control::serve(state_dir, truth);
     match fs::remove_file(&runtime) {
         Ok(()) => outcome,

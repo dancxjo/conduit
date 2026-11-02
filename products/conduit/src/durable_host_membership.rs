@@ -10,6 +10,7 @@ use conduit_core::HostAdvertisement;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
+#[path = "durable_host_membership/continuity_key.rs"]
 mod continuity_key;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

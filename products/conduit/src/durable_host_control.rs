@@ -1445,56 +1445,12 @@ pub(crate) fn signal_remote_cancellation(
 }
 
 #[cfg(unix)]
-pub(crate) fn serve(state_dir: &Path, mut runtime: DurableHostRuntime) -> Result<(), String> {
-    use std::os::unix::{fs::PermissionsExt, net::UnixListener};
-
-    runtime.install_cancellation_signal(state_dir);
-    runtime.birth_root = Some(state_dir.to_path_buf());
-    let socket = state_dir.join("control.sock");
-    if socket.exists() {
-        fs::remove_file(&socket)
-            .map_err(|error| format!("remove stale control endpoint: {error}"))?;
-    }
-    let listener = UnixListener::bind(&socket)
-        .map_err(|error| format!("bind durable host control endpoint: {error}"))?;
-    fs::set_permissions(&socket, fs::Permissions::from_mode(0o600))
-        .map_err(|error| format!("restrict durable host control endpoint: {error}"))?;
-    let token = read_secret(&state_dir.join("control.token"))?;
-    let mut polling_play = false;
-    loop {
-        terminal_attach::retire_closed_attachment(state_dir, &mut runtime)?;
-        let running = runtime.host.body_is_running()
-            || runtime.speech_worker.is_some()
-            || runtime.owner_spoken_worker.is_some()
-            || terminal_attach::is_attached(&mut runtime);
-        if running != polling_play {
-            listener
-                .set_nonblocking(running)
-                .map_err(|error| format!("set Body owner control responsiveness: {error}"))?;
-            polling_play = running;
-        }
-        runtime.progress_owned_body()?;
-        runtime.progress_browser_speech()?;
-        runtime.progress_owner_spoken()?;
-        let mut stream = match listener.accept() {
-            Ok((stream, _)) => stream,
-            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
-                let pause = if runtime.host.body_is_running()
-                    || runtime.speech_worker.is_some()
-                    || runtime.owner_spoken_worker.is_some()
-                {
-                    10
-                } else {
-                    100
-                };
-                std::thread::sleep(std::time::Duration::from_millis(pause));
-                continue;
-            }
-            Err(error) => return Err(format!("accept local host control: {error}")),
-        };
-        client_frame::serve_client(state_dir, &mut stream, &mut runtime, &token)?;
-    }
-}
+#[path = "durable_host_control/service.rs"]
+mod service;
+#[cfg(unix)]
+pub(crate) use service::serve;
+#[cfg(all(unix, any(test, feature = "native-display")))]
+pub(crate) use service::serve_with_foreground;
 
 #[cfg(not(unix))]
 pub(crate) fn serve(_state_dir: &Path, _runtime: DurableHostRuntime) -> Result<(), String> {
