@@ -1175,3 +1175,35 @@ transport loss is neither departure nor PartReturn. Any replacement affecting
 the active body-wide realization must obey its lifecycle gate. The owning
 issues remain #6461, #6340 and #6409. This is the next implementation boundary,
 not evidence that persistent service or automatic replacement already exists.
+
+
+### Checked listener equipment and accepted key custody (2 November 2026)
+
+`cd84dacc44` adds the hosted package's `network/tls-listener` Base initialization
+contract and Source-bound checked request. The ordinary Host checker can retain
+its exact endpoint, identity-file references, certificate binding and finite
+handshake/message bounds. Two strict local tests pass, including canonical
+Source identity changes, malformed or ambiguous endpoints, wrong identity shape,
+missing fields and insufficient declared capacity. The test deliberately uses
+nonexistent identity paths: construction neither reads a private key nor opens
+a socket, and it creates no Line. The contract is retained on the delivery
+branch, not accepted runtime support or deployed listener evidence.
+
+The physical Base must next use the existing initialized-provider staging and
+registry path. `line_sessions` currently checks Plan shape only; it is not an
+affine accepted-socket reservation. The actual listener needs its own selected
+session resource pool and separately admitted fixed backing. Reserve both before
+accept/preparation, preserve their resource classes, and release only after exact
+socket/worker retirement. Uncertain retirement must retain custody. Do not use
+a memory reservation as a disguised session slot, or reset the ledger to make a
+replacement fit. The existing pool accounting and Base-owned reservation
+pattern provide the implementation seam; no second execution engine is needed.
+
+PR #6731 is now merged at `5475e716b05bbb09bccf36091627d100f7e81bcc`
+after exact-head parallel installed-Body integration (3/3) and private continuity
+custody (7/7), plus its passing Candidate. The earlier failure remains unexplained;
+no cause is inferred from the passing rerun. The main delivery branch integrates
+that accepted commit without changing its already-present shared custody tree.
+The next delivery slice is an ordinary explicit member-return CLI with a real
+protocol caller, rather than an uncalled signing helper or rendering dependency.
+Threebee remains on the earlier physical checkpoint with historical pixels.
