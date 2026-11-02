@@ -1,14 +1,26 @@
 //! Linux scanout adapter below the ordinary Face graphics Show. This module
 //! owns no Body, observation, Mask policy, scheduler, or recording authority.
+// SDL is an explicitly selected hosted adapter, never a default Host dependency.
+#![cfg_attr(not(feature = "sdl"), no_std)]
+#![cfg(feature = "sdl")]
+mod initialized;
+mod input;
+pub use input::{NativeInput, NativeInputRefusal};
 mod surface;
 use conduit_face::GraphicsScene;
-use conduitos::display::DisplayReceipt;
+use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
+pub use initialized::{DisplayClaimRefusal, DisplayHostClaim, InitializedDisplay};
 use sdl2::{
     pixels::PixelFormatEnum,
     render::{Canvas, Texture, TextureCreator},
     video::{Window, WindowContext},
 };
 pub use surface::Surface;
+
+const KMSDRM_DRIVER: &str = "KMSDRM";
+fn is_kmsdrm_backend(driver: &str) -> bool {
+    driver == KMSDRM_DRIVER
+}
 
 /// Prepared texture and finite CPU surface. The caller owns renderer lifetime
 /// and must call `lose` when its admitted display custody is withdrawn.
@@ -17,6 +29,8 @@ pub struct Scanout<'a> {
     texture: Texture<'a>,
     surface: Surface,
     live: bool,
+    input_ready: bool,
+    initialized: InitializedDisplay,
 }
 impl<'a> Scanout<'a> {
     pub fn prepare(
@@ -30,15 +44,30 @@ impl<'a> Scanout<'a> {
             .create_texture_streaming(PixelFormatEnum::ARGB8888, width, height)
             .map_err(|e| e.to_string())?;
         texture.set_blend_mode(sdl2::render::BlendMode::None);
+        let initialized = InitializedDisplay::prepared(canvas, width, height)?;
         Ok(Self {
             canvas,
             texture,
             surface,
             live: true,
+            input_ready: false,
+            initialized,
         })
     }
+    /// Observe this exact live preparation; neither a CPU Surface nor copied
+    /// advertisement bytes can construct an InitializedDisplay.
+    pub fn initialized_display(&self) -> Result<InitializedDisplay, String> {
+        if !self.live || !self.initialized.is_live() {
+            return Err("display-custody-lost".into());
+        }
+        Ok(self.initialized.clone())
+    }
+    /// Bind Host attachment custody to this exact live SDL preparation.
+    pub fn matches_initialized(&self, initialized: &InitializedDisplay) -> bool {
+        self.live && self.initialized.is_live() && self.initialized.same_instance(initialized)
+    }
     pub fn present(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
-        if !self.live {
+        if !self.live || !self.initialized.is_live() {
             return Err("display-custody-lost".into());
         }
         let result = self.present_inner(scene);
@@ -49,18 +78,70 @@ impl<'a> Scanout<'a> {
     }
     fn present_inner(&mut self, scene: &GraphicsScene) -> Result<DisplayReceipt, String> {
         let receipt = self.surface.render(scene).map_err(str::to_owned)?;
+        self.commit_pixels()?;
+        Ok(receipt)
+    }
+    fn commit_pixels(&mut self) -> Result<(), String> {
+        if !self.live || !self.initialized.is_live() {
+            return Err("display-custody-lost".into());
+        }
+        let result = self.commit_pixels_inner();
+        if result.is_err() {
+            self.lose();
+        }
+        result
+    }
+    fn commit_pixels_inner(&mut self) -> Result<(), String> {
         self.texture
             .update(None, self.surface.bytes(), self.surface.pitch())
             .map_err(|e| e.to_string())?;
         self.canvas.copy(&self.texture, None, None)?;
         self.canvas.present();
-        Ok(receipt)
+        Ok(())
     }
     /// Revocation is terminal for this prepared scanout. Reacquisition requires
     /// a new preparation; device availability alone cannot restore authority.
     pub fn lose(&mut self) {
+        self.initialized.revoke();
         self.live = false;
         self.surface.lose();
+    }
+}
+
+impl conduitos::product_bases::InitializedNativeOutput for Scanout<'_> {
+    fn require_live(&self) -> Result<(), DisplayError> {
+        if self.live && self.initialized.is_live() {
+            Ok(())
+        } else {
+            Err(DisplayError::Lost)
+        }
+    }
+}
+
+impl Drop for Scanout<'_> {
+    fn drop(&mut self) {
+        self.lose();
+    }
+}
+
+/// Compositor writes reuse the one prepared Surface. Only commit performs SDL
+/// upload/copy/present; successful CPU writes cannot acknowledge a Mask Show.
+impl PixelTarget for Scanout<'_> {
+    fn format(&self) -> DisplayFormat {
+        self.surface.format()
+    }
+    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
+        if !self.live || !self.initialized.is_live() {
+            return Err(DisplayError::Lost);
+        }
+        let result = self.surface.write_pixel(x, y, pixel);
+        if result.is_err() {
+            self.lose();
+        }
+        result
+    }
+    fn commit_frame(&mut self) -> Result<(), DisplayError> {
+        self.commit_pixels().map_err(|_| DisplayError::Lost)
     }
 }
 
@@ -72,12 +153,12 @@ pub fn with_kmsdrm<T>(
     height: u32,
     run: impl FnOnce(&mut Scanout<'_>, &mut sdl2::EventPump) -> Result<T, String>,
 ) -> Result<T, String> {
-    if !sdl2::hint::set("SDL_VIDEODRIVER", "kmsdrm") {
+    if !sdl2::hint::set("SDL_VIDEODRIVER", KMSDRM_DRIVER) {
         return Err("kmsdrm-driver-selection-refused".into());
     }
     let sdl = sdl2::init()?;
     let video = sdl.video()?;
-    if video.current_video_driver() != "kmsdrm" {
+    if !is_kmsdrm_backend(video.current_video_driver()) {
         return Err("kmsdrm-driver-unavailable".into());
     }
     let window = video
@@ -94,3 +175,6 @@ pub fn with_kmsdrm<T>(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod input_queue_tests;
