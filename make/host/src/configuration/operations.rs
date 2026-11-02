@@ -1,15 +1,22 @@
 //! Explicit operation selection. Construction describes inclusion, never readiness.
 use crate::*;
 
+#[derive(Default)]
+pub(super) struct ResolvedOperations {
+    pub capabilities: Vec<CapabilitySelection>,
+    pub host_calls: Vec<String>,
+    pub facilities: Vec<String>,
+}
+
 pub(super) fn resolve(
     configuration: &HostConfiguration,
     target: &str,
     bases: &[(String, String)],
     catalog: &MakeCatalog,
     packages: &MakePackageSet,
-) -> Result<(Vec<CapabilitySelection>, Vec<String>, Vec<String>), Vec<ConfigurationDiagnostic>> {
+) -> Result<ResolvedOperations, Vec<ConfigurationDiagnostic>> {
     if configuration.capabilities.is_empty() {
-        return Ok((vec![], vec![], vec![]));
+        return Ok(ResolvedOperations::default());
     }
     let refuse = |detail| vec![ConfigurationDiagnostic::Capability { detail }];
     let review = resolve_host_capability_intent(
@@ -67,5 +74,9 @@ pub(super) fn resolve(
         facilities.extend(candidate.prerequisites.facilities);
     }
     selections.sort_by(|a, b| a.kind.cmp(&b.kind));
-    Ok((selections, calls, facilities))
+    Ok(ResolvedOperations {
+        capabilities: selections,
+        host_calls: calls,
+        facilities,
+    })
 }

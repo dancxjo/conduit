@@ -343,11 +343,11 @@ pub fn check_host_configuration(
         packages,
     )?;
     let mut host_calls = presentation.host_calls;
-    host_calls.extend(operations.1);
+    host_calls.extend(operations.host_calls);
     host_calls.sort();
     host_calls.dedup();
     let mut facilities = presentation.facilities;
-    facilities.extend(operations.2);
+    facilities.extend(operations.facilities);
     facilities.sort();
     facilities.dedup();
     let profile = HostProfile {
@@ -363,7 +363,7 @@ pub fn check_host_configuration(
         },
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
-        capabilities: operations.0,
+        capabilities: operations.capabilities,
         host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases
