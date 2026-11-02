@@ -25,7 +25,8 @@ pub(super) fn serve_optional_face_snapshot(
         }
         Err(error) => return Err(format!("receive owner Face request: {error:?}")),
     };
-    let (request, return_requested, mask) = return_route::decode_face_request(&bytes[..length])?;
+    let (mut request, return_requested, mask) =
+        return_route::decode_face_request(&bytes[..length])?;
     let credential = &receipt.credential;
     if !request.has_exact_basis()
         || request.credential_id != credential.credential_id.as_str()
@@ -43,7 +44,9 @@ pub(super) fn serve_optional_face_snapshot(
         )?;
         return Err("owner Face request differs from the admitted guest".into());
     }
-    let mut response = crate::durable_host_control::face_snapshot(state_dir, request)
+    request.last_seen_revision = None;
+    request.last_seen_identity = None;
+    let mut response = crate::durable_host_control::face_snapshot(state_dir, request.clone())
         .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
             code: if error == "face-frame-pressure" {
@@ -61,35 +64,25 @@ pub(super) fn serve_optional_face_snapshot(
     } else {
         None
     };
-    let selected = if let (Some(grant), OwnerFaceSnapshotResponse::Snapshot { route, .. }) =
-        (grant.as_ref(), &mut response)
-    {
-        let result = crate::durable_host_control::local_face_snapshot(state_dir).and_then(
-            |(_, owner_offer)| grant.seal_mask_route(listener, state_dir, &owner_offer, 0),
-        );
-        match result {
-            Ok(selected) => {
-                *route = Some(Box::new(selected));
-                true
-            }
+    if let Some(selected) = &grant {
+        response = match selected.prepare_face_route(listener, state_dir, request, 0) {
+            Ok(response) => response,
             Err(error) => {
-                eprintln!("native owner Mask route refused: {error}");
-                false
+                grant = None;
+                OwnerFaceSnapshotResponse::Refused {
+                    schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+                    code: error.chars().take(256).collect(),
+                }
             }
-        }
-    } else {
-        false
-    };
-    if let OwnerFaceSnapshotResponse::Snapshot {
+        };
+    } else if let OwnerFaceSnapshotResponse::Snapshot {
         interactions_admitted,
         route,
         ..
     } = &mut response
     {
-        *interactions_admitted = selected && route.as_deref().is_some_and(route_allows_interaction);
-    }
-    if !selected {
-        grant = None;
+        *interactions_admitted = false;
+        *route = None;
     }
     response_document::send_for_profile(
         line,

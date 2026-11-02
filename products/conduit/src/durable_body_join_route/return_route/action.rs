@@ -68,51 +68,21 @@ pub(super) fn apply(
         }
         Err(_) => (false, "interaction-refused"),
     };
-    let face = crate::durable_host_control::face_snapshot(state_dir, request)
-        .ok()
-        .map(|mut response| {
-            if let OwnerFaceSnapshotResponse::Snapshot {
-                interactions_admitted,
-                route,
-                ..
-            } = &mut response
-            {
-                let available = more_actions
-                    && code != "control-outcome-unknown"
-                    && current_time_millis().is_ok_and(|now| now < grant.expires_at_millis);
-                if available {
-                    let selected = crate::durable_host_control::local_face_snapshot(state_dir)
-                        .and_then(|(_, owner_offer)| {
-                            grant.seal_mask_route(
-                                listener,
-                                state_dir,
-                                &owner_offer,
-                                action.sequence,
-                            )
-                        });
-                    match selected {
-                        Ok(selected) => {
-                            *route = Some(Box::new(selected));
-                            *interactions_admitted = true;
-                        }
-                        Err(error) => {
-                            let code = if error.len() <= 256
-                                && error.bytes().all(|byte| (32..=126).contains(&byte))
-                            {
-                                error.as_str()
-                            } else {
-                                "refreshed-route-detail-invalid"
-                            };
-                            eprintln!(
-                                "CONDUIT_OWNER_RETURN_DIAGNOSTIC {}",
-                                serde_json::json!({"phase":"refreshed-route-refused","code":code})
-                            );
-                        }
-                    }
-                }
-            }
-            response
-        });
+    let available = more_actions
+        && code != "control-outcome-unknown"
+        && current_time_millis().is_ok_and(|now| now < grant.expires_at_millis);
+    let face = if available {
+        Some(
+            grant
+                .prepare_face_route(listener, state_dir, request, action.sequence)
+                .unwrap_or_else(|error| OwnerFaceSnapshotResponse::Refused {
+                    schema: conduit_face::OWNER_FACE_RESPONSE_SCHEMA.into(),
+                    code: error.chars().take(256).collect(),
+                }),
+        )
+    } else {
+        None
+    };
     Response {
         schema: RESPONSE_SCHEMA,
         accepted,
