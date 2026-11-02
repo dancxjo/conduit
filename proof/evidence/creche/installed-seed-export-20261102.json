@@ -1,0 +1,53 @@
+{
+  "source": "b56eefe55b37ed70bb1fc9141511407a307da0eb",
+  "tree": "ac26681e0a9b04dfa5b57df7d5f764cc45b51fcb",
+  "class": "CPU installed Owner/local-control/retained-file carrier validation, not live deployed service or destination Boot",
+  "checks": [
+    {
+      "scope": "4 CLI/authentication/active-worker tests",
+      "log": "seed-export-control-tests.log",
+      "sha256": "6da762c09fb6d6686c457779d3718c10cc06fa645a80dba09f3bcc720d6d0abf"
+    },
+    {
+      "scope": "13 Cr\u00e8che Owner/kernel tests including actual prepared ZIP export, no overwrite and expiry refusal",
+      "log": "seed-export-owner-tests.log",
+      "sha256": "b051d0d89fb9bc6b65ee20bb95ee1549564a45be5d4ac9504942e2660c7e9fff"
+    },
+    {
+      "scope": "8 scoped adapter/package tests",
+      "log": "seed-export-adapter-tests.log",
+      "sha256": "2e6f294aef4cdd98d1faf2386e99544ada40d7dd190573acb77174da65afc0c5"
+    },
+    {
+      "scope": "8 generic package tests",
+      "log": "seed-export-package-tests.log",
+      "sha256": "1620caa19dd5e41df82e0d59b9d9c35008f58f98d9279b4c6a9ec19da79e98fc"
+    },
+    {
+      "scope": "strict conduit/body-Make/host-Make libraries, binaries and tests",
+      "log": "seed-export-clippy-2.log",
+      "sha256": "2aeb74cac35b7e9b40dedfe0562e3e45826974b5f35d2752400c57ad66e90a76"
+    },
+    {
+      "scope": "full workspace formatting",
+      "log": "seed-export-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "entrance": "conduit body export-seed --state-dir PATH DESTINATION",
+  "invariants": [
+    "existing AFUnix token authentication and actual Body owner required",
+    "active worker refuses before carrier effects",
+    "current Body/original Birth Sign and exact issued invitation retained",
+    "expired invitation refuses without destination output",
+    "shared carrier verifies raw ZIP digest/extent separately from image aggregate",
+    "private output, no overwrite, cooperative two-second copy budget",
+    "carrier receipt does not assert Boot, joining or membership"
+  ],
+  "limitations": [
+    "hard-link publication requires filesystem support; unsupported destination refuses",
+    "control timeout leaves result unknown; destination is never removed by the client",
+    "export and manufacture have not been demonstrated on the live authoring service yet",
+    "native installer release-source provenance caveat remains"
+  ]
+}

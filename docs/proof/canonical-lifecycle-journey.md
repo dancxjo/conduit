@@ -373,3 +373,23 @@ attended Show, browser Boot or membership. The next real boundary is exporting
 the owner's retained unlinked ZIP through the existing authenticated carrier
 mechanism, followed by the ordinary live authoring journey. Native installer
 provenance remains a distinct known limitation. The full goal remains open.
+
+## Authenticated Seed export — 2 November UTC
+
+Source `b56eefe55b` adds the ordinary local entrance
+`conduit body export-seed --state-dir PATH DESTINATION`. It uses the existing
+authenticated Unix control socket and shared artifact carrier, reading the
+owner's actual retained file rather than reconstructing configuration or
+provisioning. It refuses during an active Body worker and rejects an expired
+invitation before copying. Current Body identity and original Birth Sign are
+checked separately from the exact raw ZIP hash and aggregate IMAGE content.
+Private atomic output never overwrites an existing destination. Transfer
+receipts explicitly leave Boot, joining and membership unproved. A timeout
+leaves the outcome unknown; the client does not delete the destination.
+
+Four control/CLI tests, thirteen ordinary Owner/kernel tests (including actual
+Seed export), eight adapter tests, eight package tests, strict Clippy and
+formatting pass. See `proof/evidence/creche/installed-seed-export-20261102.json`
+for exact source/log hashes. These remain software proofs. The next step is
+building and deploying the authoring Host release, then using the actual birth
+and Crèche encounter and capturing its visible output.
