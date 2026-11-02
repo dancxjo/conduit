@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.proof/graphical-seed-build-and-return-qualification@1",
+  "working_release_source": "8ed8abef1b87bd14c8a44ffa9b8b7cbd4ed39f65",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "aarch64_executable_bytes": 57811472,
+  "aarch64_executable_sha256": "a119b9b245f3a0cbbdd4e3b065a3dd77417583ceed5467cb4dd30b416bc293bc",
+  "destination_configuration_id": "sha256:1c43007ffd7208de891225ca8bda53b9837515fca14d6e7d955ebc80b8c72274",
+  "destination_image_id": "image:sha256:031b503261f4195415d7d55b8599842448f9cac797b57d97ff24c171e0225825",
+  "compiled_and_sealed": true,
+  "pi_cli_help_with_private_sdl_dependencies": true,
+  "same_body_owner_update_deployed": true,
+  "physical_hdmi_show": false,
+  "graphical_seed_made": false,
+  "new_return_repairs_deployed": false,
+  "integration_parent": "c8fbe3155d7b95b93df38db1025d8cd4e9006f09",
+  "qualified_source_sha256": {
+    "products/conduit/src/durable_host_control/body/clock_action.rs": "c8789a5f3d9c65f0d18636467c0700400fccd372c405e8cea9f05428a0a59f75",
+    "products/conduit/src/durable_host_control/terminal_attach.rs": "6b0d09a704794f8641224337e0765338bd357df086fff8e760b450ffa8298bed",
+    "products/conduit/src/durable_host_control/terminal_attach/action_tests.rs": "6c9527a6562e6d60788fc816c224003600f5a99ce17c722943c937012963f64b",
+    "products/conduit/src/durable_host_control/terminal_attach/tests.rs": "677eaa000d017c786b499fccd2816c14968928ff368961e026bac390f11fc0df",
+    "products/conduit/src/body_terminal_owner.rs": "800b8c971c1281b8ab1cda7a18e14e2b421e013c2e3b7e7d961ae7c6b3249ae6",
+    "products/conduit/src/durable_body_join_route/face_snapshot.rs": "b22d2a3489ffbf43469f83e68a3df509aae79aa06fc3430d5e7cfdf67805218d",
+    "products/conduit/src/durable_body_join_route/return_route/action.rs": "443dd8b0b02abcd5141a13b9c604766ab68b1982430ee9c8bba1f0ea5d54de75",
+    "products/conduit/src/durable_body_join_route/return_route/refresh.rs": "3f5fda2ef4f34123f69f1a9aa55815946431e79f05d650eec960f2c78df1aecf",
+    "products/conduit/src/durable_body_join_route/return_route/mask_selection.rs": "b905b5e5a3a1647f314e98de2139898c870137cba2eb7e9a5b04055daa1c0927"
+  },
+  "checks": {
+    "attached_terminal_tests": 12,
+    "face_route_guard_tests": 3,
+    "product_binary_and_tests_strict": true
+  },
+  "log_sha256": {
+    "threebee-selected-native-8ed8abef1b-verified-release.log": "81095ff410e317d117374e6fe888addc7a461ea5c2c41159e72058227dbae793",
+    "threebee-native-image-8ed8abef1b.log": "3e1ffe6c84634e73b13e1a3c5938290f61372537b20beb9820a4feffc321eeb6",
+    "threebee-native-executable-help-8ed8abef1b.log": "f4c573932ca138229082431d95340e35361a8adb40c78497cab142d82badef64",
+    "forebrain-selected-authoring-8ed8abef1b-release.log": "acb7c79a696500a8c1b4a6a4cc364de111d39ac32d205f1d97720bc7fcb3a284",
+    "terminal-lifecycle-return-tests.log": "f7b405de4c14302127a5d20931f560f8b0847823549f66c7bbefd027e709f87a",
+    "coherent-owner-face-route-tests.log": "6dcd9bb70b141a2b507ff399d832c7cf5bd06c40e6e24293fa9e40d5a3a6773f",
+    "owner-lifecycle-face-route-strict.log": "598b3ba6b8c63ad0c0867a0f5f28b80c13a72dced886d362f1d79922bfe56457"
+  },
+  "live_failures": [
+    "Attached owner terminal routed Wake to the interval-only handler",
+    "Joined terminal Wake was accepted but a separately read Face differed from the newly sealed route"
+  ],
+  "proof_boundaries": [
+    "The three route guard tests cover equality and bounded retry control, not a physical Show or an end-to-end asynchronous transition",
+    "The hosted AArch64 check passed with existing unused-code warnings; it was not strict-warning acceptance",
+    "The same-Body owner update is deployed; the newly qualified return repairs require a new owner artifact",
+    "Private SDL staging and CLI help do not initialize scanout or establish Ready"
+  ]
+}

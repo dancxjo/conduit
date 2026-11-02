@@ -619,3 +619,48 @@ Threebee's checked 1024×600 equipment Source is
 8 MiB runtime pool and unchanged 64 MiB IMAGE heap bound. This remains checked
 construction intent, not initialized target equipment. Compact log provenance
 is in `proof/evidence/creche/selected-native-seed-preparation-20261102.json`.
+
+
+### Graphical executable, IMAGE and installed owner, 2026-11-02
+
+The supported checked release entrance initially failed to compose its Host
+configuration loader and selected Make dependency. The shared loader and release
+dispatcher now preserve the same checker and locked dependency graph. Sixteen
+release tests and dispatcher strict checks passed. The real hosted AArch64 build
+then exposed an unguarded firmware lifecycle module. Its product dependencies
+are now gated together; the targeted hosted check passes with existing unused-code
+warnings. The focused gate repair is PR #6725.
+
+Exact Source `8ed8abef1b` produced and sealed Threebee's selected graphical
+executable (57,811,472 bytes) and its matching checked Make IMAGE. The target is
+its actual Pi 3B+ and 1024 by 600 KMSDRM display. Threebee loaded the verified
+executable and rendered CLI help against privately staged, hash-verified Debian
+SDL dependencies. Backend enumeration includes KMSDRM. This is target loading,
+not display initialization, resource admission, or pixels.
+
+The corresponding checked authoring-Host release was installed after a stopped,
+hash-verified state snapshot. Only regenerable Unix sockets were excluded from
+the snapshot. The same original Host and Hamm Creek House Body resumed under a
+new Boot; its actual running executable hash and source were checked. Its
+initialized Creche factory now names the graphical artifact, IMAGE and Host
+Source by exact hashes.
+
+Live operator work found two further failures. The attached terminal advertised
+Wake but dispatched it to interval-only handling. A genuinely admitted peer
+terminal then rendered the Body and returned an accepted Wake, but refused the
+next Face because its content differed from the separately sealed route. The
+Creche Play was stopped; no failed presentation was counted as a successful Show.
+The terminal lifecycle repair now resolves the authenticated occurrence, retires
+the consumed Mask before starting work on the same Host, and refuses replay.
+Twelve attached-terminal tests pass. The native carrier now prepares an exact
+Face/route tuple with at most three attempts for observed transitions only;
+authority, pressure, transport and expiry faults do not retry. Three guard tests
+and product binary/tests strict checks pass. These repairs are not deployed yet.
+
+The complete inactive AArch64 compilation cache was reclaimed only after the
+sealed release, IMAGE, checked Source, target copy and raw evidence were verified
+preserved. It recovered approximately 4.1 GB; active x86_64 and host caches and
+private state were retained. No graphical Seed, new HDMI screenshot, continuous
+owner refresh, MCU membership or unified environmental graph is claimed.
+Compact qualification is in
+`proof/evidence/creche/graphical-seed-build-and-return-qualification-20261102.json`.

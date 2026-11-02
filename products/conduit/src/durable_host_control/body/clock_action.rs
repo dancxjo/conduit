@@ -109,6 +109,19 @@ impl DurableHostRuntime {
                 self.submit_owned_todo_action(show, interaction)
             };
         };
+        self.apply_resolved_owner_action(show, interaction, action)
+    }
+
+    /// Dispatch only after the current Face, Show and typed return were checked.
+    /// An attached terminal may retire its consumed Mask before transferring the
+    /// same Host into the requested workload; it must not resolve a stale Show
+    /// again after that expected provider-generation change.
+    pub(in crate::durable_host_control) fn apply_resolved_owner_action(
+        &mut self,
+        show: &MaskShow,
+        interaction: &FaceInteraction,
+        action: crate::durable_host::owner::ClockAction,
+    ) -> Result<serde_json::Value, String> {
         match action {
             crate::durable_host::owner::ClockAction::NotebookNavigation => {
                 let HostSource::Body { owner, .. } = &mut self.host else {
