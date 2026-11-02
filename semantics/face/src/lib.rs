@@ -135,6 +135,7 @@ mod composition;
 mod construction;
 mod contract;
 mod face;
+mod retained_backing;
 mod face_fragment;
 mod face_reading;
 mod generated_correlation;
