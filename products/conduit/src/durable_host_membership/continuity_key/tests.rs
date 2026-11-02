@@ -202,3 +202,79 @@ fn rendezvous_without_original_pending_never_invents_private_identity() {
     .unwrap();
     assert!(!f.root.join("body").join(PATH).exists());
 }
+
+#[cfg(unix)]
+#[test]
+fn restart_retries_around_preserved_uncommitted_private_staging() {
+    use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+    let f = fixture();
+    let body = f.root.join("body");
+    // Simulate process death before publication, including the earlier fixed
+    // staging spelling. Neither incomplete nor mismatched state is final custody.
+    for name in [
+        "member-continuity-key.tmp",
+        "member-continuity-key-interrupted.tmp",
+    ] {
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(body.join(name))
+            .unwrap();
+        file.write_all(b"interrupted private staging fixture")
+            .unwrap();
+        file.sync_all().unwrap();
+    }
+    complete(&f).unwrap();
+    assert!(read(&body.join(PATH)).is_ok());
+    assert!(!body.join("pending-join.json").exists());
+    let stages = fs::read_dir(&body)
+        .unwrap()
+        .filter_map(Result::ok)
+        .filter(|entry| {
+            entry
+                .path()
+                .extension()
+                .is_some_and(|extension| extension == "tmp")
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        stages.len(),
+        2,
+        "only the interrupted fixture stages remain"
+    );
+    for stage in stages {
+        assert_eq!(
+            fs::read(stage.path()).unwrap(),
+            b"interrupted private staging fixture"
+        );
+        assert_eq!(
+            stage.metadata().unwrap().permissions().mode() & 0o777,
+            0o600
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn restart_after_key_publication_finishes_membership_without_clobbering_stage() {
+    let f = fixture();
+    retain(
+        &f.root,
+        &f.pending,
+        &f.receipt.credential,
+        &f.receipt.host_advertisement,
+    )
+    .unwrap();
+    let path = f.root.join("body").join(PATH);
+    let stage = f
+        .root
+        .join("body/member-continuity-key-published-interruption.tmp");
+    fs::hard_link(&path, &stage).unwrap();
+    // A previous process published and synced its key but did not commit local
+    // membership. The idempotent retry validates the exact retained key first.
+    complete(&f).unwrap();
+    assert!(stage.is_file());
+    assert!(read(&path).unwrap() == read(&stage).unwrap());
+    assert!(!f.root.join("body/pending-join.json").exists());
+}

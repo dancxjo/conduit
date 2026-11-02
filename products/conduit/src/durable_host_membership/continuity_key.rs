@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     io::{Read, Write},
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 const PATH: &str = "member-continuity-key.json";
@@ -91,7 +91,14 @@ pub(super) fn retain(
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(_) => return Err("inspect private continuity key failed".into()),
     }
-    let temporary = body.join("member-continuity-key.tmp");
+    // A crash may leave an earlier private staging file. A new bounded name
+    // lets the exact pending proof retry without erasing that historical state.
+    let identity = crate::durable_host::fresh_identity("member-continuity-stage", "private-key");
+    let suffix = identity
+        .rsplit('/')
+        .next()
+        .ok_or("continuity staging identity missing")?;
+    let temporary = body.join(format!("member-continuity-key-{suffix}.tmp"));
     let mut options = fs::OpenOptions::new();
     options.write(true).create_new(true);
     #[cfg(unix)]
@@ -99,30 +106,61 @@ pub(super) fn retain(
         use std::os::unix::fs::OpenOptionsExt;
         options.mode(0o600);
     }
-    let mut file = options
+    let file = options
         .open(&temporary)
         .map_err(|_| "create private continuity staging file failed")?;
+    let mut staging = OwnedStaging {
+        path: temporary,
+        file,
+    };
     let mut bytes =
         serde_json::to_vec(&record).map_err(|_| "encode private continuity key failed")?;
     if bytes.len() as u64 > MAX_BYTES {
         bytes.fill(0);
-        let _ = fs::remove_file(&temporary);
         return Err("private continuity key exceeds finite bound".into());
     }
-    let result = file.write_all(&bytes).and_then(|()| file.sync_all());
+    let result = staging
+        .file
+        .write_all(&bytes)
+        .and_then(|()| staging.file.sync_all());
     bytes.fill(0);
     if result.is_err() {
-        let _ = fs::remove_file(&temporary);
         return Err("persist private continuity key failed".into());
     }
     // Atomic no-clobber publication: an existing file OR symlink refuses. A
     // failed membership commit leaves the pending request and this key intact.
-    if fs::hard_link(&temporary, &path).is_err() {
-        let _ = fs::remove_file(&temporary);
+    if fs::hard_link(&staging.path, &path).is_err() {
         return Err("commit private continuity key without overwrite failed".into());
     }
-    fs::remove_file(&temporary).map_err(|_| "retire private continuity staging file failed")?;
+    drop(staging);
+
     sync_directory(&body)
+}
+
+/// Cleanup belongs only to this attempt's newly created inode. Crash leftovers
+/// or a replaced pathname remain untouched; neither is evidence of final custody.
+struct OwnedStaging {
+    path: PathBuf,
+    file: fs::File,
+}
+impl Drop for OwnedStaging {
+    fn drop(&mut self) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::MetadataExt;
+            if let (Ok(owned), Ok(current)) =
+                (self.file.metadata(), fs::symlink_metadata(&self.path))
+            {
+                if current.file_type().is_file()
+                    && owned.dev() == current.dev()
+                    && owned.ino() == current.ino()
+                {
+                    let _ = fs::remove_file(&self.path);
+                }
+            }
+        }
+        // Without a reviewed inode-identity check, preserve uncertain staging.
+    }
 }
 
 fn require_directory(path: &Path) -> Result<(), String> {
@@ -158,10 +196,10 @@ fn read(path: &Path) -> Result<RetainedKey, String> {
         }
     }
     let mut bytes = Vec::new();
-    file.take(MAX_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|_| "read private continuity record failed")?;
-    let result = if bytes.len() as u64 <= MAX_BYTES {
+    let read_result = file.take(MAX_BYTES + 1).read_to_end(&mut bytes);
+    let result = if read_result.is_err() {
+        Err("read private continuity record failed".into())
+    } else if bytes.len() as u64 <= MAX_BYTES {
         serde_json::from_slice(&bytes).map_err(|_| "invalid private continuity record".to_string())
     } else {
         Err("private continuity record exceeds finite bound".into())
