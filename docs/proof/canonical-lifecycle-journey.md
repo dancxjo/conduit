@@ -393,3 +393,14 @@ formatting pass. See `proof/evidence/creche/installed-seed-export-20261102.json`
 for exact source/log hashes. These remain software proofs. The next step is
 building and deploying the authoring Host release, then using the actual birth
 and Crèche encounter and capturing its visible output.
+
+
+### 2 November: actual installed birth and Host rollout
+
+At source `1818e77ae6`, the supported Linux release was installed on Forebrain, preserving its durable Host identity. The actual Birth Face named **Hamm Creek House** and selected the shipped `creche/main` resident Plot. Body `d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7` was retained and survived a new Host Boot. Wake exposed the live Host configuration Face through ordinary Crèche execution.
+
+An initially undersized admitted poll count exhausted; the exact execution failure was retained and the checked Host configuration revised before another Boot. The next real gate is selected Mask custody: screen-free `host-config/check` is correctly refused without that route. The Play was lulled; no Seed manufacture or membership is claimed.
+
+Threebee received the same source through its exact Pi3 aarch64 release profile. Its durable Host identity and prior joined Body were preserved; the independent HDMI renderer stayed active. A fresh framebuffer capture still shows the older Malo Face as LAST KNOWN / FEED DELAYED, not the new Body. Earlier inspection of only `body_state` missed its retained `joined_body_state`; that inventory conclusion is corrected.
+
+Exact identities, failures, local evidence hashes and remaining gates are recorded in `proof/evidence/creche/installed-birth-and-host-update-20261102.json`.

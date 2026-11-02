@@ -1,0 +1,54 @@
+{
+  "schema": "conduit.proof/installed-creche-journey@1",
+  "observed_at": "2026-11-02T02:08:53.165864+00:00",
+  "source_commit": "1818e77ae651fd3b96d7312118d8b380a484a60c",
+  "linux_release_source_label": "1818e77ae6",
+  "pi_release_source_label": "1818e77ae651fd3b96d7312118d8b380a484a60c",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "friendly_name": "Hamm Creek House",
+  "resident_plot": "creche/main",
+  "checked_plot_id": "d2310161e0afacd595bf0204efba35582d1202269157b3423160b6eb46856f60",
+  "authoring_host_id": "host/installed/f0ccc266877e6d1c192e22246ddaef8be554c52c408a6a8bcbc967c1b1775ed8",
+  "authoring_boot_after_configuration_revision": "boot/installed/81fed98c03a5bf8f0c779978d382344c6df3c4c31949ae846d8f19e08f3f1ec3",
+  "threebee_host_id": "host/installed/9741ac216129a8296654338e04174e8ea2b3ef253a524e5bffdc1b6ad0d335bc",
+  "threebee_boot": "boot/installed/632bfca435571a95bef79ee039091f0753a589b6bb93bd5c15a5eae38101b623",
+  "threebee_retained_prior_body": "4c8197e30e0b48104eba80a1c2484874da5125995b7ca4ea01925b37a439d5b2",
+  "observed": [
+    "Supported host release completed for x86_64 and aarch64; all payload hashes and lengths rechecked.",
+    "Both installed Host identities preserved across supported service install.",
+    "Actual installed Birth Face selected Host authoring and Cr\u00e8che, applied name and birthed Body once.",
+    "Body retained across authoring Host restart.",
+    "Real Wake planned/played Cr\u00e8che and exposed Host configuration Face.",
+    "Threebee new Host runtime and independent HDMI renderer active."
+  ],
+  "failures_and_corrections": [
+    "First start used cached old systemd executable; daemon-reload and reset-failed selected actual new executable.",
+    "1000 polls at10ms exhausted during interaction; failure retained and checked Host configuration revised to60000 polls, followed by new Boot.",
+    "Screen-free host-config/check refused: Cr\u00e8che actions require an admitted selected Mask return. Guard preserved; Play lulled.",
+    "Earlier Threebee inventory checked body_state only; joined_body_state actually retains prior Body. No new membership claimed."
+  ],
+  "not_proven": [
+    "Selected Mask action route into live Cr\u00e8che",
+    "Actual Seed production/export in this Body",
+    "Browser Seed Boot or membership",
+    "Threebee membership in newly born Body",
+    "New Body graphical Face or environmental feed"
+  ],
+  "evidence": {
+    "birth_face": {
+      "local_path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/private/canonical-lifecycle-journey-20261101/authoring-host/born-body-face.json",
+      "bytes": 926340,
+      "sha256": "3183bc8ca4f8d0584013d86561435d5acde66a8a798c1707d406d8a0f2a92e84"
+    },
+    "poll_failure": {
+      "local_path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/work/private/canonical-lifecycle-journey-20261101/authoring-host/poll-exhaustion-owner-execution.json",
+      "bytes": 3357,
+      "sha256": "aa76bc6cf691c1c688e9fa25becd2e75afc15619c01b3d5f196466fd74d56b8a"
+    },
+    "threebee_capture": {
+      "local_path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/outputs/threebee-creche-host-update-20261102/display.png",
+      "bytes": 36610,
+      "sha256": "3a88bc23c922d847daf983a35f2334c16eb29d0a1ee5aec7bf56f624a3d634c2"
+    }
+  }
+}
