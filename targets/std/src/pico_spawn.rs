@@ -3,8 +3,8 @@
 use std::time::Duration;
 
 use conduit_body::{
-    BodyId, PicoSpawnProvision, SpawnAdmissionProof, SpawnInvitation, SpawnInvitationId,
-    MAX_PICO_ADMISSION_FRAME_BYTES, PICO_SPAWN_PROTOCOL,
+    BodyId, SpawnAdmissionProof, SpawnInvitationClaim, SpawnInvitationId,
+    MAX_PICO_ADMISSION_FRAME_BYTES, PICO_SPAWN_PROTOCOL, PICO_SPAWN_REQUEST,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration};
 use serde::Deserialize;
@@ -82,40 +82,16 @@ impl PicoSpawnSocket {
     }
 
     pub fn request_join(
-        mut self,
+        &mut self,
         spore_id: &str,
         image_id: &str,
-        invitation: &SpawnInvitation,
+        invitation: &SpawnInvitationClaim,
         timeout: Duration,
     ) -> Result<PicoSpawnObservation, PicoSpawnTransportError> {
-        let mut secret = invitation.secret.copy_for_target_provisioning();
-        let mut provision = PicoSpawnProvision {
-            protocol: PICO_SPAWN_PROTOCOL,
-            spore_id,
-            image_id,
-            invitation_id: invitation.invitation_id.as_str(),
-            body_id: invitation.body_id.as_str(),
-            nonce: invitation.nonce,
-            expires_at_millis: invitation.expires_at_millis,
-            secret,
-        };
-        let mut encoded = match serde_json::to_vec(&provision) {
-            Ok(encoded) => encoded,
-            Err(_) => {
-                provision.secret.fill(0);
-                secret.fill(0);
-                return Err(PicoSpawnTransportError::Malformed);
-            }
-        };
-        provision.secret.fill(0);
-        secret.fill(0);
-        if encoded.len() > MAX_PICO_ADMISSION_FRAME_BYTES {
-            encoded.fill(0);
-            return Err(PicoSpawnTransportError::Oversized);
-        }
-        let sent = self.line.send_raw_stream_frame(&encoded, timeout);
-        encoded.fill(0);
-        sent?;
+        // The private provision is already in the checked Seed. Request only
+        // its existing canonical proof; never transfer its signing secret here.
+        self.line
+            .send_raw_stream_frame(PICO_SPAWN_REQUEST, timeout)?;
 
         let mut bytes = [0u8; MAX_PICO_ADMISSION_FRAME_BYTES];
         let advertisement =
@@ -128,7 +104,7 @@ impl PicoSpawnSocket {
         if join.image_id != image_id {
             return Err(PicoSpawnTransportError::WrongImage);
         }
-        if join.invitation_id != invitation.invitation_id {
+        if join.invitation_id != invitation.invitation_id || join.nonce != invitation.nonce {
             return Err(PicoSpawnTransportError::WrongInvitation);
         }
         if join.body_id != invitation.body_id {
