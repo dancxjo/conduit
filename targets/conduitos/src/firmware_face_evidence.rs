@@ -135,7 +135,7 @@ fn validated_bytes(value: &Value, marked: bool) -> Result<Vec<u8>, &'static str>
             return Err(INVALID);
         }
         let mut bytes = Vec::with_capacity(length);
-        for pair in text.as_bytes().chunks_exact(2) {
+        for pair in text.as_bytes().as_chunks::<2>().0 {
             bytes.push((digit(pair[0])? << 4) | digit(pair[1])?);
         }
         bytes
