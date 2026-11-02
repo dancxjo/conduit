@@ -108,12 +108,8 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
         .take()
         .unwrap();
     assert!(mask.plan().is_none());
-    let planned = conduit_conduitos_mask_offer::prepare_native_stage_with_profile(
-        &host.advertisement,
-        NativeMaskStorageProfile::Standard,
-    )
-    .unwrap()
-    .planned_mask;
+    let (encounter, route, face) = super::encounter_fixture::encounter(&host.advertisement, 1);
+    let planned = route.planned_mask.clone();
     mask.bind(&mut host, &planned).unwrap();
     assert_eq!(mask.plan(), Some(&planned));
     let bound_bytes = observed.load(std::sync::atomic::Ordering::Acquire);
@@ -129,6 +125,67 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
     );
     host.selected_scanout.as_mut().unwrap().native_mask = Some(mask);
     assert!(host.ready_selected_native_mask().is_some());
+    let frame = host
+        .render_selected_native_mask(
+            &encounter,
+            &route,
+            &face,
+            1,
+            "front/native-mask",
+            &mut output,
+        )
+        .unwrap();
+    assert_eq!(frame.face_revision, 1);
+    assert!(frame.scanout_frame_sequence > 0);
+    assert!(
+        encounter.calls.get() >= 3,
+        "authority remains current before prep/Step/effect"
+    );
+    let during = observed.load(std::sync::atomic::Ordering::Acquire);
+    assert!(during > bound_bytes);
+    assert!(
+        host.render_selected_native_mask(
+            &encounter,
+            &route,
+            &face,
+            2,
+            "front/native-mask",
+            &mut output
+        )
+        .is_err(),
+        "pending evidence is not silently cleared"
+    );
+    let retained = host.take_selected_native_mask_evidence().unwrap().unwrap();
+    assert!(retained.evidence().receipt.scanout_pixels_written > 0);
+    assert_eq!(retained.possession().lifecycle, "revoked-at-play-end");
+    assert_eq!(retained.composition().face_id, face.identity);
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        during,
+        "transferring evidence is not releasing its managed custody"
+    );
+    host.retire_selected_native_mask_evidence(retained).unwrap();
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        bound_bytes
+    );
+    let (next, next_route, next_face) = super::encounter_fixture::encounter(&host.advertisement, 2);
+    assert_eq!(next_route.planned_mask.plan, route.planned_mask.plan);
+    host.render_selected_native_mask(
+        &next,
+        &next_route,
+        &next_face,
+        2,
+        "front/native-mask",
+        &mut output,
+    )
+    .unwrap();
+    let retained = host.take_selected_native_mask_evidence().unwrap().unwrap();
+    host.retire_selected_native_mask_evidence(retained).unwrap();
+    assert_eq!(
+        observed.load(std::sync::atomic::Ordering::Acquire),
+        bound_bytes
+    );
     drop(host);
     assert_eq!(observed.load(std::sync::atomic::Ordering::Acquire), 0);
 }

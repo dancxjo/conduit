@@ -1,5 +1,7 @@
 //! Checked selected read-only Mask: actual stores and driver custody, no local
 //! forwarding Plot, fabricated publication, membership or Show acknowledgment.
+#[cfg(test)]
+mod encounter_fixture;
 mod initialization;
 mod render;
 #[cfg(test)]
