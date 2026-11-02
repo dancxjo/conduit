@@ -16,7 +16,9 @@ use conduit_plan_lowering::lowering::{
 };
 
 mod pool_usage;
+mod provider_resources;
 use pool_usage::PoolUsage;
+pub use provider_resources::ProviderResourceReservation;
 mod region_resources;
 mod service;
 pub use service::{

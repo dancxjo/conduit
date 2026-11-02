@@ -3,6 +3,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct KernelResourceLedger {
+    pub(super) custody_epoch: usize,
     pub(super) image_memory: Option<std::sync::Arc<std::sync::atomic::AtomicUsize>>,
     pub(super) image_receipt_reserving: bool,
     pub(super) image_bounds: Option<conduit_host_make::HostBounds>,
@@ -74,7 +75,17 @@ impl KernelResourceLedger {
             }
             instances.push((capability.capability_id.clone(), 0));
         }
+        static NEXT_CUSTODY_EPOCH: std::sync::atomic::AtomicUsize =
+            std::sync::atomic::AtomicUsize::new(1);
+        let custody_epoch = NEXT_CUSTODY_EPOCH
+            .fetch_update(
+                std::sync::atomic::Ordering::Relaxed,
+                std::sync::atomic::Ordering::Relaxed,
+                |epoch| epoch.checked_add(1),
+            )
+            .map_err(|_| "resource ledger custody identity exhausted")?;
         Ok(Self {
+            custody_epoch,
             image_bounds: None,
             image_memory: None,
             image_receipt_reserving: false,
