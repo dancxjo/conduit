@@ -182,3 +182,36 @@ fn malformed_or_duplicate_provider_truth_refuses_instead_of_flattening() {
         })
     );
 }
+
+#[test]
+fn multiple_ready_bases_keep_ownership_and_canonical_global_pool_order() {
+    let mut first = display_base(BaseLifecycle::Ready);
+    first.capabilities.clear();
+    first.resources[0].pool_id = "z/pixels".into();
+    let mut second = first.clone();
+    second.base_id = "second/display".into();
+    second.provider_instance_id = "second/initialized-provider".into();
+    second.resources[0].pool_id = "a/pixels".into();
+    let bound = bind(vec![first, second], facts(true)).unwrap();
+    let advertisement = bound.advertisement();
+    assert_eq!(
+        advertisement
+            .resources
+            .iter()
+            .map(|pool| pool.pool_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a/pixels", "z/pixels"]
+    );
+    assert_eq!(
+        advertisement.bases[0].resource_pool_ids,
+        vec![conduit_core::ResourcePoolId::from("z/pixels")]
+    );
+    assert_eq!(
+        advertisement.bases[1].resource_pool_ids,
+        vec![conduit_core::ResourcePoolId::from("a/pixels")]
+    );
+    assert!(
+        advertisement.capabilities.is_empty(),
+        "sorting never creates a renderer"
+    );
+}

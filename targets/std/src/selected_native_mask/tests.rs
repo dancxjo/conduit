@@ -96,6 +96,13 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
         &mut output,
     )
     .unwrap();
+    assert!(
+        host.advertisement
+            .resources
+            .windows(2)
+            .all(|pair| pair[0].pool_id < pair[1].pool_id),
+        "actual multi-Base Host offer is canonical before planning"
+    );
     let observed = host.kernel_resources.image_memory_observer();
     let fixed = host.ready_selected_native_mask().unwrap().fixed_backing();
     assert!(fixed.mask.managed_store_bytes > 0);
