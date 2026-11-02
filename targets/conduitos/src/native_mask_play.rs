@@ -231,12 +231,14 @@ fn scheduler_for_profile(
                     pending: false,
                     emitted: false,
                     maximum_value_bytes: profile.bytes(),
+                    request: conduit_kernel::RequestId(0),
                 })
             }
             conduit_face::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction {
                 seen_face: false,
                 pending: false,
                 maximum_value_bytes: profile.bytes(),
+                request: conduit_kernel::RequestId(1),
             }),
             _ => Err(NativeMaskPlayError::Shape),
         })
