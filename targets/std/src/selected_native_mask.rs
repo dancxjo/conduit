@@ -321,6 +321,14 @@ impl StdHost {
             .as_ref()
             .filter(|mask| mask.validate_binding(self).is_ok())
     }
+    /// Borrow only the actual acknowledged Show while its child Play and
+    /// selected physical provider remain current. No reconstructed receipt.
+    pub fn selected_native_mask_show(&self) -> Option<&conduit_face::MaskShow> {
+        match &self.ready_selected_native_mask()?.stores {
+            Stores::Bound { renderer, .. } => renderer.show(),
+            _ => None,
+        }
+    }
     /// Consume an already authorized owner Face through the real selected Mask
     /// Fore. No local snapshot-forwarding Plot or publication receipt is made.
     pub fn render_selected_native_mask(
@@ -395,8 +403,19 @@ impl StdHost {
     /// a durable history acknowledgment and cannot authorize another member.
     pub fn retire_selected_native_mask_evidence(
         &mut self,
-        evidence: SelectedNativeMaskEvidence,
+        evidence: &mut Option<SelectedNativeMaskEvidence>,
     ) -> Result<(), String> {
-        evidence.retire(&mut self.kernel_resources)
+        let owner = evidence
+            .as_ref()
+            .ok_or("native Mask evidence custody absent")?;
+        if !owner.matches_ledger(&self.kernel_resources) {
+            return Err(
+                "native Mask evidence belongs to another Host/Boot/ledger; custody retained".into(),
+            );
+        }
+        evidence
+            .take()
+            .ok_or("native Mask evidence custody absent")?
+            .retire(&mut self.kernel_resources)
     }
 }

@@ -111,6 +111,9 @@ impl SelectedNativeMaskEvidence {
     pub fn possession(&self) -> &NativeSurfacePossessionReceipt {
         &self.frame.possession
     }
+    pub(super) fn matches_ledger(&self, ledger: &KernelResourceLedger) -> bool {
+        self.frame.pool.matches_ledger(ledger)
+    }
     pub(super) fn retire(self, ledger: &mut KernelResourceLedger) -> Result<(), String> {
         let Self { evidence, frame } = self;
         let FrameCustody {
@@ -153,6 +156,12 @@ impl BoundReadOnlyMask {
     }
     pub(super) fn plan(&self) -> &PlannedMaskPlot {
         &self.plan
+    }
+    pub(super) fn show(&self) -> Option<&conduit_face::MaskShow> {
+        self.session
+            .as_ref()
+            .filter(|_| !self.failed)
+            .map(|session| session.show())
     }
     pub(super) fn healthy(&self) -> bool {
         !self.failed

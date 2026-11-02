@@ -141,6 +141,12 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
         encounter.calls.get() >= 3,
         "authority remains current before prep/Step/effect"
     );
+    let actual_show = host.selected_native_mask_show().unwrap();
+    assert_eq!(
+        actual_show.show.lifecycle,
+        conduit_face::ManifestationLifecycle::Available
+    );
+    assert_eq!(actual_show.face_id, face.identity);
     let during = observed.load(std::sync::atomic::Ordering::Acquire);
     assert!(during > bound_bytes);
     assert!(
@@ -155,16 +161,27 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
         .is_err(),
         "pending evidence is not silently cleared"
     );
-    let retained = host.take_selected_native_mask_evidence().unwrap().unwrap();
-    assert!(retained.evidence().receipt.scanout_pixels_written > 0);
-    assert_eq!(retained.possession().lifecycle, "revoked-at-play-end");
-    assert_eq!(retained.composition().face_id, face.identity);
+    let mut retained = host.take_selected_native_mask_evidence().unwrap();
+    let owner = retained.as_ref().unwrap();
+    assert!(owner.evidence().receipt.scanout_pixels_written > 0);
+    assert_eq!(owner.possession().lifecycle, "revoked-at-play-end");
+    assert_eq!(owner.composition().face_id, face.identity);
     assert_eq!(
         observed.load(std::sync::atomic::Ordering::Acquire),
         during,
         "transferring evidence is not releasing its managed custody"
     );
-    host.retire_selected_native_mask_evidence(retained).unwrap();
+    let mut foreign = StdHost::new();
+    assert!(foreign
+        .retire_selected_native_mask_evidence(&mut retained)
+        .is_err());
+    assert!(
+        retained.is_some(),
+        "scope refusal preserves complete evidence"
+    );
+    host.retire_selected_native_mask_evidence(&mut retained)
+        .unwrap();
+    assert!(retained.is_none());
     assert_eq!(
         observed.load(std::sync::atomic::Ordering::Acquire),
         bound_bytes
@@ -180,8 +197,18 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
         &mut output,
     )
     .unwrap();
-    let retained = host.take_selected_native_mask_evidence().unwrap().unwrap();
-    host.retire_selected_native_mask_evidence(retained).unwrap();
+    let mut retained = host.take_selected_native_mask_evidence().unwrap();
+    let mut foreign = StdHost::new();
+    assert!(foreign
+        .retire_selected_native_mask_evidence(&mut retained)
+        .is_err());
+    assert!(
+        retained.is_some(),
+        "scope refusal preserves complete evidence"
+    );
+    host.retire_selected_native_mask_evidence(&mut retained)
+        .unwrap();
+    assert!(retained.is_none());
     assert_eq!(
         observed.load(std::sync::atomic::Ordering::Acquire),
         bound_bytes
