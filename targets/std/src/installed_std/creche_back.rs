@@ -78,12 +78,11 @@ mod tests {
     use conduit_core::*;
     fn placement() -> PlannedGear {
         let offer = creche_std_offer();
-        PlannedGear {
+        conduit_core::planned_gear_from_parts! {
             placement_id: "placement/creche".into(),
             gear_id: "gear/creche".into(),
             kind_id: offer.kind_id,
             kind_contract_revision: offer.kind_contract_revision,
-            source_span: None,
             execution_profile_id: offer.implementation.execution_profile_id,
             configuration: vec![],
             host_id: "host/test".into(),
@@ -94,7 +93,6 @@ mod tests {
             artifact_id: offer.implementation.artifact_id,
             base: None,
             realization_characteristics: vec![],
-            realization_properties: vec![],
             limits: offer.limits,
             inputs: offer.inputs,
             outputs: offer.outputs,
