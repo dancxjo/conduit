@@ -13,6 +13,7 @@ fn package_catalog() -> PackageCatalogContribution {
             PresenterMetadata {
                 targets: vec![
                     "std/x86_64/computer".into(),
+                    "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
                     "conduitos/x86_64/pc".into(),
                     "conduitos/aarch64/virt".into(),
                     "conduitos/ia32/pc".into(),
@@ -71,6 +72,7 @@ impl HostMakePackage for LinearFramebufferMakeExtension {
                 implementation_revision: 1,
                 target_patterns: vec![
                     "std/x86_64/computer".into(),
+                    "std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3".into(),
                     "conduitos/x86_64/pc".into(),
                     "conduitos/aarch64/virt".into(),
                     "conduitos/ia32/pc".into(),
