@@ -1,5 +1,6 @@
 //! Synthetic local custody tests. Receipt correlation does not authenticate an
-//! owner; no return challenge, Line, membership authority or live Host is issued.
+//! owner. Return tests exercise real Core proof verification; no live transport,
+//! independently authenticated owner, Line or execution authority is claimed.
 use super::*;
 use crate::durable_host::{self, invitation::PortableAdmissionReceipt};
 use conduit_body::{PortableInvitation, PortableSpawnAdmissionRequest, SpawnInvitationClaim};
@@ -281,4 +282,162 @@ fn restart_after_key_publication_finishes_membership_without_clobbering_stage() 
     assert!(stage.is_file());
     assert!(read(&path).unwrap() == read(&stage).unwrap());
     assert!(!f.root.join("body/pending-join.json").exists());
+}
+
+fn returning_fixture(
+    fresh_boot: bool,
+) -> (
+    Fixture,
+    conduit_body::AdmissionManager,
+    conduit_body::BodyMembership,
+    HostAdvertisement,
+    conduit_body::PartReturnChallenge,
+) {
+    use conduit_body::{AdmissionManager, AdmissionSigns, BodyMembership, SpawnAdmissionProof};
+    let mut f = fixture();
+    let old = &f.receipt.host_advertisement;
+    let mut manager = AdmissionManager::new(f.receipt.credential.body_id.clone()).unwrap();
+    let invitation = manager
+        .issue_spawn_invitation(
+            SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap(),
+            [3; 32],
+            1,
+            1000,
+        )
+        .unwrap();
+    let signature = invitation.secret.sign(&invitation.signing_transcript(
+        &old.host_id,
+        &old.boot_id,
+        old.offer_generation,
+    ));
+    let mut membership = BodyMembership::new(invitation.body_id.clone()).unwrap();
+    f.receipt.credential = manager
+        .complete_spawn(
+            &mut membership,
+            old,
+            &SpawnAdmissionProof {
+                invitation_id: invitation.invitation_id.clone(),
+                body_id: invitation.body_id.clone(),
+                host_id: old.host_id.clone(),
+                boot_id: old.boot_id.clone(),
+                nonce: invitation.nonce,
+                signature,
+            },
+            2,
+            AdmissionSigns {
+                part_admitted: "fixture/part".into(),
+                host_attached: "fixture/attached".into(),
+                candidate_admitted: "fixture/candidate".into(),
+            },
+        )
+        .unwrap();
+    f.pending.invitation.claim = invitation.claim();
+    f.pending.request.invitation_id = invitation.invitation_id;
+    f.pending.request.signature = signature.to_vec();
+    retain(&f.root, &f.pending, &f.receipt.credential, old).unwrap();
+    membership
+        .observe_offline(
+            &membership.body_id.clone(),
+            membership.revision,
+            &f.receipt.credential.part_id,
+            &old.boot_id,
+            "fixture/lost".into(),
+        )
+        .unwrap();
+    let mut current = old.clone();
+    if fresh_boot {
+        current.boot_id = "fixture/returned-boot".into();
+    }
+    current.offer_generation = OfferGeneration(2);
+    let challenge = manager
+        .begin_return(
+            &membership,
+            &f.receipt.credential.part_id,
+            &current,
+            [9; 32],
+            10,
+            100,
+        )
+        .unwrap();
+    (f, manager, membership, current, challenge)
+}
+
+#[test]
+fn retained_private_signer_completes_real_core_return_without_invitation_reuse() {
+    for fresh_boot in [false, true] {
+        let (f, mut manager, mut membership, current, challenge) = returning_fixture(fresh_boot);
+        let proof = sign_return_challenge(&f.root, &f.receipt.credential, &current, &challenge, 11)
+            .unwrap();
+        let returned = manager
+            .complete_return(
+                &mut membership,
+                &current,
+                &proof,
+                12,
+                "fixture/return".into(),
+            )
+            .unwrap();
+        assert_eq!(returned.part_id, f.receipt.credential.part_id);
+        assert_eq!(returned.host_id, f.receipt.credential.host_id);
+        assert_eq!(returned.boot_id, current.boot_id);
+        assert!(manager
+            .complete_return(
+                &mut membership,
+                &current,
+                &proof,
+                13,
+                "fixture/replay".into()
+            )
+            .is_err());
+    }
+}
+
+#[test]
+fn return_signer_refuses_mismatched_scope_and_invalid_time_without_changing_key() {
+    let (f, _, _, current, challenge) = returning_fixture(true);
+    let original = fs::read(f.root.join("body").join(PATH)).unwrap();
+    for index in 0..10 {
+        let mut wrong = challenge.clone();
+        match index {
+            0 => wrong.body_id = id("another/body"),
+            1 => wrong.part_id = id("another/part"),
+            2 => wrong.host_id = "another/host".into(),
+            3 => wrong.boot_id = "another/boot".into(),
+            4 => wrong.offer_generation = OfferGeneration(99),
+            5 => wrong.nonce = [0; 32],
+            6 => wrong.issued_at_millis = 12,
+            7 => wrong.expires_at_millis = 11,
+            8 => wrong.expires_at_millis = 10 + conduit_body::MAX_ADMISSION_TTL_MILLIS + 1,
+            9 => wrong.admission_id = id(""),
+            _ => unreachable!(),
+        }
+        assert!(
+            sign_return_challenge(&f.root, &f.receipt.credential, &current, &wrong, 11).is_err()
+        );
+    }
+    let mut credential = f.receipt.credential.clone();
+    credential.part_id = id("another/part");
+    assert!(sign_return_challenge(&f.root, &credential, &current, &challenge, 11).is_err());
+    assert_eq!(fs::read(f.root.join("body").join(PATH)).unwrap(), original);
+}
+
+#[cfg(unix)]
+#[test]
+fn return_signer_refuses_symlink_and_nonprivate_key_file() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let (f, _, _, current, challenge) = returning_fixture(true);
+    let path = f.root.join("body").join(PATH);
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(
+        sign_return_challenge(&f.root, &f.receipt.credential, &current, &challenge, 11).is_err()
+    );
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    let target = f.root.join("preserved-key");
+    fs::rename(&path, &target).unwrap();
+    let original = fs::read(&target).unwrap();
+    symlink(&target, &path).unwrap();
+    assert!(
+        sign_return_challenge(&f.root, &f.receipt.credential, &current, &challenge, 11).is_err()
+    );
+    assert_eq!(fs::read(&target).unwrap(), original);
 }
