@@ -868,3 +868,34 @@ actual pinned TLS dropped-reply recovery and checked descriptor installation),
 twelve private-custody tests, and the installed native-display product check
 with warnings denied passed. Threebee's existing PID 6512 was rechecked active
 with zero restarts; no replacement release has been deployed yet.
+
+
+### 2026-11-02: Physical release-update attempt exposes IMAGE custody gap
+
+The aarch64 native release from `20e0cc11cb270dee219c7f0aabdf70a4d936170d`
+compiled and passed manifest byte/hash verification. Its executable SHA-256 is
+`82539c7909da044c41a72cb4aad9755ae03fe2286b5fe8789c96a76185d8386e`.
+The real Threebee installation was stopped and cold-archived; all eight regular
+state files were individually verified against the archive before installation.
+Body, Host, Part, and the private continuity-key inode were retained.
+
+This did **not** prove returned-member Boot. Reapplying identical checked Host
+source through `host service configure` removed the Seed-derived `host_image`;
+startup refused with `selected scanout requires the Seed's checked IMAGE`.
+Restoring the verified original installation selection and installing only the
+new release exposed the next refusal:
+`retained Seed IMAGE source differs from installed Make release`.
+Neither check was bypassed. The original installation and exact prior executable
+were restored and verified; the Host remains stopped pending a valid encounter
+and a checked release/IMAGE replacement path. No new Show or optical success is
+claimed. A finite owner return listener was prepared, but admission was never
+reached by these failed Boots.
+
+The next construction obligation is to replace executable and compatible checked
+IMAGE together through the installed lifecycle, preserving membership custody.
+An executable-only update must not silently leave an unbootable selected IMAGE.
+Separately, online Workspace browser invitations still use same-origin
+BroadcastChannel admission; remote Host rendezvous recruits a Host into a
+browser-owned Body and does not implement joining a Linux-owned Body. A remote
+browser invitation requires the latter protocol and reachable authenticated
+transport, rather than merely encoding a Linux invitation as a Workspace link.
