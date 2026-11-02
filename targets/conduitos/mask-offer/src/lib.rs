@@ -327,20 +327,12 @@ fn renderer_host_for_profile(
             },
         },
     }));
-    let (surface_resource, bases) = if matches!(adapter, Adapter::Native) {
+    let (mut resources, bases) = if matches!(adapter, Adapter::Native) {
         if let Some(provider) = surface_provider {
-            let resource = provider
-                .resources
-                .iter()
-                .find(|resource| resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS)
-                .cloned()
-                .unwrap_or_else(|| {
-                    resource_offer(
-                        &format!("{}/{capability}", host_id.as_str()),
-                        conduit_face::SHOW_RESOURCE_CLASS,
-                        1,
-                    )
-                });
+            // Preserve the complete observed inventory. In particular, a physical
+            // raster pool does not disappear when this Base also owns a Show pool.
+            // A supplied provider without Show remains unplannable; do not invent
+            // a replacement resource for a malformed initialized descriptor.
             let base = conduit_core::BaseProviderAdvertisement {
                 base_id: provider.base_id.clone(),
                 provider_instance_id: provider.provider_instance_id.clone(),
@@ -350,37 +342,38 @@ fn renderer_host_for_profile(
                 enforcement_class: provider.enforcement_class,
                 lifecycle: provider.lifecycle,
                 capability_ids: vec![CapabilityId::from("renderer-conduitos-resource-source")],
-                resource_pool_ids: vec![resource.pool_id.clone()],
+                resource_pool_ids: provider
+                    .resources
+                    .iter()
+                    .map(|resource| resource.pool_id.clone())
+                    .collect(),
             };
-            (resource, vec![base])
+            (provider.resources.clone(), vec![base])
         } else {
             (
-                resource_offer(
+                vec![resource_offer(
                     &format!("{}/{capability}", host_id.as_str()),
                     conduit_face::SHOW_RESOURCE_CLASS,
                     1,
-                ),
+                )],
                 Vec::new(),
             )
         }
     } else {
         (
-            resource_offer(
+            vec![resource_offer(
                 &format!("{}/{capability}", host_id.as_str()),
                 resource_class,
                 1,
-            ),
+            )],
             Vec::new(),
         )
     };
-    let mut resources = vec![
-        surface_resource,
-        resource_offer(
-            &format!("{}/{capability}-input", host_id.as_str()),
-            input_resource,
-            1,
-        ),
-    ];
+    resources.push(resource_offer(
+        &format!("{}/{capability}-input", host_id.as_str()),
+        input_resource,
+        1,
+    ));
     resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     HostAdvertisement {
         declared_name: None,

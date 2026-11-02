@@ -6,8 +6,8 @@ const PI3: &str = r#"host display-host {
   target = {architecture: "aarch64", machine: "raspberry-pi-3-model-b-plus-rev-1.3", board: "raspberry-pi-3-model-b-plus-rev-1.3", os: "linux"}
   base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1"}
   need = {id: "display/main", class: "face/surface", slots: 1, bytes: 2457600}
-  need = {id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}
   need = {id: "display/memory", class: "conduit.resource/runtime-memory@1", slots: 1048576, bytes: 1048576}
+  need = {id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}
   limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
 }"#;
 

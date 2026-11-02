@@ -25,6 +25,8 @@ fn provider() -> BaseProviderEntry {
 #[test]
 fn read_only_closure_uses_actual_backs_and_exact_declared_resources_without_input() {
     let provider = provider();
+    let mut expected_resources = provider.resources.clone();
+    expected_resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     for profile in [
         NativeMaskStorageProfile::Standard,
         NativeMaskStorageProfile::Collection,
@@ -36,7 +38,7 @@ fn read_only_closure_uses_actual_backs_and_exact_declared_resources_without_inpu
             &provider,
             profile,
         );
-        assert_eq!(offer.resources, provider.resources);
+        assert_eq!(offer.resources, expected_resources);
         assert_eq!(offer.offer_generation.0, 7);
         assert_eq!(
             offer.capabilities,
