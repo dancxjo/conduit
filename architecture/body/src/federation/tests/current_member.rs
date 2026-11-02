@@ -227,3 +227,6 @@ fn scoped_session_rechecks_exact_part_and_body_before_effect_authority() {
     session.revoke_credential();
     assert!(!session.inspection(&f.membership).credential_current);
 }
+
+#[path = "current_member/challenge_slot.rs"]
+mod challenge_slot;

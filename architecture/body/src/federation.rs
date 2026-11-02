@@ -13,6 +13,8 @@ use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod challenge_slot;
+pub use challenge_slot::CurrentMemberChallengeSlot;
 mod current_member;
 pub use current_member::CurrentMemberReceivingSession;
 
@@ -67,6 +69,9 @@ pub struct FederationInspection {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FederationRefusal {
+    ChallengePending,
+    ChallengeConsumed,
+    ChallengeContextMismatch,
     EmptyIdentity,
     Expired,
     InvalidBounds,
