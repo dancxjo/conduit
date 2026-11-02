@@ -334,3 +334,16 @@ pub(crate) fn carrier_show(
         other => Err(wrong(other)),
     }
 }
+
+impl DurableHostRuntime {
+    pub(in crate::durable_host_control) fn owned_body_attest_admission_receipt(
+        &mut self,
+        receipt: &conduit_body::PortableAdmissionReceipt,
+        expected_owner: &conduit_body::FederationPeer,
+    ) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("receipt attestation requires the live installed owner".into());
+        };
+        owner.attest_current_member_receipt(receipt, expected_owner)
+    }
+}

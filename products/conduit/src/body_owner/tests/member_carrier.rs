@@ -278,3 +278,42 @@ fn interrupted_challenge_retirement_releases_only_its_exact_pending_slot() {
     assert_eq!(owner.admissions, admissions);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn receipt_attestation_requires_commit_exact_offer_and_pinned_owner() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, key, ad) = admit_with_key(&mut owner, &root, "host/receipt-attestation");
+    let receipt = conduit_body::PortableAdmissionReceipt {
+        schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+        credential,
+        host_advertisement: ad.clone(),
+        membership_admitted: true,
+        current_offers_available: !ad.capabilities.is_empty(),
+        plan_created: false,
+        play_created: false,
+    };
+    let peer = owner.prepare_current_member_carrier_receiver().unwrap();
+    // The admission fixture has no transport offer observation. Membership alone
+    // must not authorize attestation of arbitrary equipment supplied by a caller.
+    assert!(owner.attest_current_member_receipt(&receipt, &peer).is_err());
+    owner.invited_mask_offers.insert(ad.host_id.clone(),
+        super::super::native_mask_route::InvitedMaskOffer::observed(
+            &ad, crate::durable_host::digest(&serde_json::to_vec(&ad).unwrap())));
+    let before = owner.session.evidence().clone();
+    let signed = owner.attest_current_member_receipt(&receipt, &peer).unwrap();
+    signed.verify(&peer, &key.verifying_key(), &receipt.credential.body_id, &ad).unwrap();
+    assert_eq!(owner.session.evidence(), &before);
+    let mut wrong_peer = peer.clone();
+    wrong_peer.boot_id = "boot/foreign-owner".into();
+    assert!(owner.attest_current_member_receipt(&receipt, &wrong_peer).is_err());
+    let mut changed = receipt.clone();
+    changed.host_advertisement.profile.push_str("/changed");
+    assert!(owner.attest_current_member_receipt(&changed, &peer).is_err());
+    changed = receipt.clone();
+    changed.credential.credential_id = "credential/not-committed".into();
+    assert!(owner.attest_current_member_receipt(&changed, &peer).is_err());
+    changed = receipt;
+    changed.play_created = true;
+    assert!(owner.attest_current_member_receipt(&changed, &peer).is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}

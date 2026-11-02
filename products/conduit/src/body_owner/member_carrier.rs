@@ -411,3 +411,39 @@ impl Owner {
         Ok(())
     }
 }
+
+impl Owner {
+    /// Attests only an already committed member; this creates no membership or grant.
+    pub(crate) fn attest_current_member_receipt(
+        &mut self,
+        receipt: &conduit_body::PortableAdmissionReceipt,
+        expected_owner: &FederationPeer,
+    ) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
+        let member = MemberPresentationBasis::from_admission(receipt)?;
+        self.require_current_native_member(&member)?;
+        self.require_observed_member_offer(&receipt.host_advertisement)?;
+        let manager = self
+            .admissions
+            .as_ref()
+            .ok_or("member admission custody absent")?;
+        let witness = manager
+            .current_member_continuity(
+                &self.session.evidence().membership,
+                &receipt.credential.part_id,
+                &receipt.host_advertisement,
+            )
+            .map_err(|e| format!("current member: {e:?}"))?;
+        let member_key = witness.peer().verifying_key;
+        let owner = self.member_carrier_peer()?;
+        if &owner != expected_owner {
+            return Err("receipt owner differs from independently pinned owner".into());
+        }
+        let key = self
+            .member_carrier
+            .as_ref()
+            .and_then(|c| c.key.as_ref())
+            .ok_or("member carrier owner key absent")?;
+        conduit_body::attest_portable_admission_receipt(receipt, owner, member_key, |t| key.sign(t))
+            .map_err(|e| format!("admission receipt attestation: {e:?}"))
+    }
+}

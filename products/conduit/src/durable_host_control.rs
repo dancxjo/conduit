@@ -1059,6 +1059,12 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyAttestAdmissionReceipt {
+        protocol: u16,
+        token: Vec<u8>,
+        receipt: Box<conduit_body::PortableAdmissionReceipt>,
+        expected_owner: Box<conduit_body::FederationPeer>,
+    },
     BodyMemberCarrierBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1382,6 +1388,10 @@ enum Response {
     BodyMemberCarrierReceiver {
         protocol: u16,
         receiver: Box<conduit_body::FederationPeer>,
+    },
+    BodyAttestedAdmissionReceipt {
+        protocol: u16,
+        receipt: Box<conduit_body::SignedPortableAdmissionReceipt>,
     },
     BodyMemberCarrierChallenge {
         protocol: u16,
@@ -1966,6 +1976,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
         | Request::BodyMemberCarrierReceiver { token, .. }
+        | Request::BodyAttestAdmissionReceipt { token, .. }
         | Request::BodyMemberCarrierBegin { token, .. }
         | Request::BodyMemberCarrierComplete { token, .. }
         | Request::BodyMemberCarrierMaskRoute { token, .. }
@@ -2267,6 +2278,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|biography| Response::BodyBrowserLeft {
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyAttestAdmissionReceipt {
+            protocol,
+            receipt,
+            expected_owner,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_attest_admission_receipt(&receipt, &expected_owner)
+            .map(|receipt| Response::BodyAttestedAdmissionReceipt {
+                protocol: PROTOCOL,
+                receipt: Box::new(receipt),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberCarrierReceiver { protocol, .. } if protocol == PROTOCOL => runtime
