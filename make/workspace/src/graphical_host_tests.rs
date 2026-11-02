@@ -216,8 +216,7 @@ fn checked_native_presenter_closes_actual_back_implementations_into_image() {
         .manifest
         .host_calls
         .contains(&"conduit.host/face-interaction@1".into()));
-    assert_eq!(
-        image.manifest.resource_budgets,
-        checked.configuration().resources
-    );
+    let mut declared_resources = checked.configuration().resources.clone();
+    declared_resources.sort_by(|left, right| left.id.cmp(&right.id));
+    assert_eq!(image.manifest.resource_budgets, declared_resources);
 }
