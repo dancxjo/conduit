@@ -12,6 +12,7 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/continuity_key.rs"]
 mod continuity_key;
+pub(crate) use continuity_key::{sign_member_carrier_challenge, MemberCarrierSigningContext};
 #[path = "durable_host_membership/returned.rs"]
 mod returned;
 pub(super) use returned::{load_joined_credential, retain_returned_membership};

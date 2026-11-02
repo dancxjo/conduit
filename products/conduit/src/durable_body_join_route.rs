@@ -404,6 +404,8 @@ mod tests {
     }
 }
 
+#[path = "durable_body_join_route/current_member.rs"]
+pub(crate) mod current_member;
 #[path = "durable_body_join_route/member_return.rs"]
 mod member_return;
 pub(crate) use member_return::{

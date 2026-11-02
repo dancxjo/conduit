@@ -13,6 +13,7 @@ pub(crate) struct MemberEncounter {
     pub part_id: conduit_body::PartId,
     pub host_id: conduit_core::HostId,
     pub candidate: RendezvousCandidate,
+    pub owner: conduit_body::FederationPeer,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
@@ -21,6 +22,25 @@ pub(crate) enum MemberReturnFrame {
         schema: String,
         credential: MembershipCredential,
         advertisement: Box<HostAdvertisement>,
+    },
+    Resume {
+        schema: String,
+        credential: MembershipCredential,
+        advertisement: Box<HostAdvertisement>,
+    },
+    CarrierChallenge {
+        schema: String,
+        challenge: Box<conduit_body::FederationChallenge>,
+        signature: Vec<u8>,
+    },
+    CarrierProof {
+        schema: String,
+        challenge: Box<conduit_body::FederationChallenge>,
+        signature: Vec<u8>,
+    },
+    CarrierAuthenticated {
+        schema: String,
+        inspection: Box<conduit_body::FederationInspection>,
     },
     Challenge {
         schema: String,
@@ -85,6 +105,7 @@ pub(crate) fn serve_body_member_route(
         body_id: selected.body_id,
         part_id: selected.part_id,
         host_id: selected.host_id,
+        owner: crate::durable_host_control::carrier_receiver(state)?,
         candidate: RendezvousCandidate {
             candidate_id: "candidate/body-member-route".into(),
             line_family: RendezvousLineFamily::AuthenticatedTlsStream,
@@ -113,8 +134,15 @@ pub(crate) fn serve_body_member_route(
             .map_err(|e| format!("member route accept: {e:?}"))?;
         line.set_read_timeout(Some(Duration::from_secs(10)))
             .map_err(|e| format!("member route deadline: {e:?}"))?;
-        let result = exchange(state, &encounter, &mut line);
-        let member = match result {
+        let result = receive(&mut line).and_then(|frame| {
+            if matches!(&frame, MemberReturnFrame::Resume { .. }) {
+                super::current_member::serve(state, &encounter, &mut line, frame)
+                    .map(|(member, session)| (member, Some(session)))
+            } else {
+                exchange(state, &encounter, &mut line, frame).map(|member| (member, None))
+            }
+        });
+        let (member, carrier) = match result {
             Ok(member) => member,
             Err(error) => {
                 let _ = send(
@@ -127,6 +155,13 @@ pub(crate) fn serve_body_member_route(
                 continue;
             }
         };
+        if let Some(session) = carrier {
+            // Authentication alone must not open the old finite Face grant:
+            // the shared presence/Line custody entrance has not been installed.
+            // End this diagnostic exchange without changing member attachment.
+            crate::durable_host_control::retire_carrier(state, session)?;
+            continue;
+        }
         if let Some(grant) =
             face_snapshot::serve_optional_face_snapshot(&mut line, &listener, state, &member)?
         {
@@ -139,6 +174,7 @@ fn exchange(
     state: &Path,
     encounter: &MemberEncounter,
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
+    frame: MemberReturnFrame,
 ) -> Result<MemberPresentationBasis, String> {
     if current_time_millis()? >= encounter.candidate.expires_at_millis {
         return Err("member encounter expired".into());
@@ -147,7 +183,7 @@ fn exchange(
         schema,
         credential,
         advertisement,
-    } = receive(line)?
+    } = frame
     else {
         return Err("member return requires its retained credential and actual offer".into());
     };
@@ -211,6 +247,13 @@ pub(crate) fn install_member_encounter(
         || encounter.body_id != credential.body_id
         || encounter.part_id != credential.part_id
         || encounter.host_id != credential.host_id
+        || encounter.owner.host_id.as_str().is_empty()
+        || encounter.owner.host_id.as_str().len() > 256
+        || encounter.owner.host_id == encounter.host_id
+        || encounter.owner.boot_id.as_str().is_empty()
+        || encounter.owner.boot_id.as_str().len() > 256
+        || encounter.owner.offer_generation.0 == 0
+        || encounter.owner.verifying_key == [0; 32]
         || candidate.line_family != RendezvousLineFamily::AuthenticatedTlsStream
         || candidate.expires_at_millis <= now
         || candidate.expires_at_millis.saturating_sub(now) > 600_000

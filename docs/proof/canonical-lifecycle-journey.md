@@ -1009,3 +1009,27 @@ actual carrier/Line evidence, and connect authenticated sessions to finite prese
 renewal and current Face/Show resealing. Initial browser admission remains a
 separate required step. No live endpoint, online Workspace link, continuing Show,
 new physical deployment or additional execution authority is claimed here.
+
+### Pinned-TLS current-member authentication
+
+The retained-member route now carries the existing federation challenge and proof
+over a real pinned-TLS WebSocket. The encounter records the independently selected
+owner peer; the member checks that peer, its retained credential, the selected
+carrier label, security and finite bounds before signing with its retained key.
+The owner issues and completes the challenge through authenticated local control.
+The wire envelope does not change the canonical signed federation transcript.
+
+The real TCP/TLS lost-return-reply regression now also exercises two fresh
+connections through the production member client and server exchange. Both
+authenticate with distinct session identities while the exact biography and
+admission bytes remain unchanged. Five focused carrier tests and the native
+binary/test compilation pass with warnings denied. These are local transport
+and owner-custody proofs, not physical or browser admission evidence.
+
+Authentication alone does not establish presence or authorize a Show. The route
+therefore retires the completed authentication session and closes this entrance
+instead of feeding it into the old finite return-grant presentation path. The
+next step is integrating the authenticated carrier with the existing renewable
+presence machinery and actual native Line custody, including exact route cleanup
+without withdrawing the member. No continuing display, deployed upgrade or usable
+online Workspace invitation is claimed by this checkpoint.

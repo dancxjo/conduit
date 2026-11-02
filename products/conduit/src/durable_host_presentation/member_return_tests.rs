@@ -168,10 +168,80 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
         assert!(Some(client.join().unwrap()) == accepted);
     });
     let returned = accepted.unwrap();
+    installed::membership::retain_returned_membership(&state, &prior, &returned, &actual).unwrap();
+    let mut current_candidate = candidate.clone();
+    current_candidate.expires_at_millis = installed::current_time_millis().unwrap() + 60_000;
+    let current_encounter = installed::routed_join::MemberEncounter {
+        schema: installed::routed_join::MEMBER_ROUTE_SCHEMA.into(),
+        body_id: returned.body_id.clone(),
+        part_id: returned.part_id.clone(),
+        host_id: returned.host_id.clone(),
+        candidate: current_candidate.clone(),
+        owner: owner.prepare_current_member_carrier_receiver().unwrap(),
+    };
+    let biography_before = owner.truth()["biography"].clone();
+    let admission_path = owner_state.join("body/admission.json");
+    let admission_before = fs::read(&admission_path).unwrap();
+    let mut previous_session = None;
+    for _ in 0..2 {
+        let controller = std::cell::RefCell::new(&mut owner);
+        std::thread::scope(|scope| {
+            let client = scope.spawn(|| {
+                let mut line = connect(&current_candidate, Duration::from_secs(3)).unwrap();
+                installed::routed_join::current_member::resume(
+                    &state,
+                    &returned,
+                    &actual,
+                    &current_encounter,
+                    &mut line,
+                )
+                .unwrap()
+            });
+            let mut line = listener
+                .accept_with_timeout(Duration::from_secs(3))
+                .unwrap();
+            line.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+            let frame = server_receive(&mut line);
+            let (_, session) = installed::routed_join::current_member::serve_with(
+                &current_encounter,
+                &mut line,
+                frame,
+                |credential, ad, label, millis| {
+                    controller.borrow_mut().begin_current_member_carrier(
+                        &credential,
+                        &ad,
+                        label,
+                        conduit_core::LineSecurity::AuthenticatedEncrypted,
+                        millis,
+                        128,
+                    )
+                },
+                |challenge, signature| {
+                    controller
+                        .borrow_mut()
+                        .complete_current_member_carrier(&challenge, signature)
+                },
+                |session| {
+                    controller
+                        .borrow_mut()
+                        .retire_current_member_carrier(&session)
+                },
+            )
+            .unwrap();
+            assert_eq!(client.join().unwrap().session_id, session);
+            assert!(previous_session.as_ref().is_none_or(|old| old != &session));
+            controller
+                .borrow_mut()
+                .retire_current_member_carrier(&session)
+                .unwrap();
+            previous_session = Some(session);
+        });
+    }
+    assert_eq!(owner.truth()["biography"], biography_before);
+    assert_eq!(fs::read(&admission_path).unwrap(), admission_before);
     let withdrawn = owner.member_leave(&owner_state, &returned).unwrap();
     // Exactly one attachment followed by this explicit test withdrawal.
     assert_eq!(withdrawn.membership.revision.0, before.0 + 2);
-    installed::membership::retain_returned_membership(&state, &prior, &returned, &actual).unwrap();
     let reopened = installed::read_installation(&state.join("installation.json")).unwrap();
     assert!(installed::membership::load_joined_credential(&state, &reopened).unwrap() == returned);
     // The finite route is installed through its checked operation, not by
@@ -183,6 +253,7 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
         part_id: returned.part_id.clone(),
         host_id: returned.host_id.clone(),
         candidate: candidate.clone(),
+        owner: owner.prepare_current_member_carrier_receiver().unwrap(),
     };
     installed::write_json_atomic(&descriptor, &encounter).unwrap();
     assert!(installed::routed_join::install_member_encounter(&state, &descriptor, false).is_err());

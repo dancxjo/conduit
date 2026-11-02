@@ -6,6 +6,14 @@ use super::*;
 use conduit_body::{FederationChallenge, FederationInspection};
 use conduit_core::{HostAdvertisement, LineId, LineSecurity, LinkBindingId};
 impl DurableHostRuntime {
+    pub(in crate::durable_host_control) fn owned_body_member_carrier_receiver(
+        &mut self,
+    ) -> Result<conduit_body::FederationPeer, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("current-member carrier requires the live installed owner".into());
+        };
+        owner.prepare_current_member_carrier_receiver()
+    }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_begin(
         &mut self,
         credential: &MembershipCredential,
@@ -90,6 +98,10 @@ mod tests {
             maximum_frames: 2,
         };
         vec![
+            Request::BodyMemberCarrierReceiver {
+                protocol: PROTOCOL,
+                token: vec![token; 32],
+            },
             Request::BodyMemberCarrierBegin {
                 protocol: PROTOCOL,
                 token: vec![token; 32],
@@ -139,5 +151,91 @@ mod tests {
             }
         }
         assert_eq!(runtime.truth().advertisement, original);
+    }
+}
+
+#[cfg(unix)]
+fn exchange(state: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Response, String> {
+    call(state, request(token(state)?))
+}
+#[cfg(not(unix))]
+fn exchange(_: &Path, _: impl FnOnce(Vec<u8>) -> Request) -> Result<Response, String> {
+    Err("current-member carrier requires local Unix owner control".into())
+}
+fn wrong(response: Response) -> String {
+    match response {
+        Response::Refused { code, .. } => code,
+        _ => "wrong current-member carrier control response".into(),
+    }
+}
+pub(crate) fn carrier_receiver(state: &Path) -> Result<conduit_body::FederationPeer, String> {
+    match exchange(state, |token| Request::BodyMemberCarrierReceiver {
+        protocol: PROTOCOL,
+        token,
+    })? {
+        Response::BodyMemberCarrierReceiver {
+            protocol: PROTOCOL,
+            receiver,
+        } => Ok(*receiver),
+        other => Err(wrong(other)),
+    }
+}
+pub(crate) fn begin_carrier(
+    state: &Path,
+    credential: MembershipCredential,
+    advertisement: HostAdvertisement,
+    line: LineId,
+    maximum_millis: u32,
+    maximum_frames: u32,
+) -> Result<(FederationChallenge, [u8; 64]), String> {
+    match exchange(state, |token| Request::BodyMemberCarrierBegin {
+        protocol: PROTOCOL,
+        token,
+        credential,
+        advertisement: Box::new(advertisement),
+        line,
+        security: LineSecurity::AuthenticatedEncrypted,
+        maximum_millis,
+        maximum_frames,
+    })? {
+        Response::BodyMemberCarrierChallenge {
+            protocol: PROTOCOL,
+            challenge,
+            signature,
+        } => Ok((
+            *challenge,
+            signature
+                .try_into()
+                .map_err(|_| "invalid owner carrier signature size")?,
+        )),
+        other => Err(wrong(other)),
+    }
+}
+pub(crate) fn complete_carrier(
+    state: &Path,
+    challenge: FederationChallenge,
+    signature: [u8; 64],
+) -> Result<FederationInspection, String> {
+    match exchange(state, |token| Request::BodyMemberCarrierComplete {
+        protocol: PROTOCOL,
+        token,
+        challenge: Box::new(challenge),
+        signature: signature.to_vec(),
+    })? {
+        Response::BodyMemberCarrierInspection {
+            protocol: PROTOCOL,
+            inspection,
+        } => Ok(*inspection),
+        other => Err(wrong(other)),
+    }
+}
+pub(crate) fn retire_carrier(state: &Path, session: LinkBindingId) -> Result<(), String> {
+    match exchange(state, |token| Request::BodyMemberCarrierRetire {
+        protocol: PROTOCOL,
+        token,
+        session,
+    })? {
+        Response::BodyMemberCarrierRetired { protocol: PROTOCOL } => Ok(()),
+        other => Err(wrong(other)),
     }
 }

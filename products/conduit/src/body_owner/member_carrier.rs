@@ -47,6 +47,24 @@ impl Owner {
         })
     }
 
+    pub(crate) fn prepare_current_member_carrier_receiver(
+        &mut self,
+    ) -> Result<FederationPeer, String> {
+        let custody = self
+            .member_carrier
+            .get_or_insert_with(|| Box::new(MemberCarrierCustody::default()));
+        if custody.key.is_none() {
+            let mut bytes = [0; 32];
+            getrandom::fill(&mut bytes).map_err(|e| e.to_string())?;
+            custody.key = Some(
+                SpawnInvitationSecret::from_csprng_bytes(bytes)
+                    .map_err(|e| format!("owner key: {e:?}"))?,
+            );
+            bytes.fill(0);
+        }
+        self.member_carrier_peer()
+    }
+
     /// A single occupied active slot refuses replacement; no implicit supersession.
     /// Challenge issuance and completion make no durable membership changes.
     pub(crate) fn begin_current_member_carrier(
@@ -109,16 +127,7 @@ impl Owner {
         }
         custody.pending = None;
         custody.active = None;
-        if custody.key.is_none() {
-            let mut bytes = [0; 32];
-            getrandom::fill(&mut bytes).map_err(|e| e.to_string())?;
-            custody.key = Some(
-                SpawnInvitationSecret::from_csprng_bytes(bytes)
-                    .map_err(|e| format!("owner key: {e:?}"))?,
-            );
-            bytes.fill(0);
-        }
-        let receiver = self.member_carrier_peer()?;
+        let receiver = self.prepare_current_member_carrier_receiver()?;
         let mut nonce = [0; 32];
         getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
         if nonce == [0; 32] {

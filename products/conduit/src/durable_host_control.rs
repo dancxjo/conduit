@@ -131,6 +131,7 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
+pub(crate) use body::{begin_carrier, carrier_receiver, complete_carrier, retire_carrier};
 pub(crate) use body::{begin_member_return, complete_member_return, leave_member};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
@@ -1051,6 +1052,10 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
+    BodyMemberCarrierReceiver {
+        protocol: u16,
+        token: Vec<u8>,
+    },
     BodyMemberCarrierBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1350,6 +1355,10 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    BodyMemberCarrierReceiver {
+        protocol: u16,
+        receiver: Box<conduit_body::FederationPeer>,
     },
     BodyMemberCarrierChallenge {
         protocol: u16,
@@ -1929,6 +1938,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyMemberCarrierBegin { token, .. }
         | Request::BodyMemberCarrierComplete { token, .. }
         | Request::BodyMemberCarrierInspect { token, .. }
@@ -2224,6 +2234,13 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|biography| Response::BodyBrowserLeft {
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierReceiver { protocol, .. } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_receiver()
+            .map(|receiver| Response::BodyMemberCarrierReceiver {
+                protocol: PROTOCOL,
+                receiver: Box::new(receiver),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberCarrierBegin {
