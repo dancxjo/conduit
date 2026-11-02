@@ -259,3 +259,25 @@ fn choices_are_canonical_bounded_collections_and_unicode_diagnostics_fit_face() 
     let input = draft::bounded_text(&"界".repeat(1000), 768);
     assert!(input.len() <= 768);
 }
+
+#[test]
+fn saved_explicit_capabilities_survive_name_edit_and_check_and_target_refuses_without_loss() {
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let source =
+        include_str!("../../../../targets/std/profiles/raspberry-pi-3-tick-workset.host.conduit");
+    let mut encounter = HostConfigurationEncounter::load(source, &catalog, &packages).unwrap();
+    let b = basis();
+    let before = encounter.configuration().unwrap().capabilities.clone();
+    assert!(matches!(
+        act(&mut encounter, &b, "host-config/check", None).unwrap(),
+        HostConfigurationEncounterOutcome::Checked(_)
+    ));
+    act(&mut encounter, &b, "host-config/name", Some("renamed-pi")).unwrap();
+    assert_eq!(encounter.configuration().unwrap().capabilities, before);
+    let canonical = encounter.canonical_source().unwrap();
+    act(&mut encounter, &b, "host-config/targets", None).unwrap();
+    assert!(act(&mut encounter, &b, "host-config/target/0", None).is_err());
+    assert_eq!(encounter.canonical_source().unwrap(), canonical);
+    assert_eq!(encounter.configuration().unwrap().capabilities, before);
+}

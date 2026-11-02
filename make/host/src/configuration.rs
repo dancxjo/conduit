@@ -1,3 +1,5 @@
+mod identity;
+mod operations;
 #[path = "configuration/presentation.rs"]
 mod presentation;
 
@@ -23,6 +25,8 @@ pub struct HostConfiguration {
     pub bases: Vec<ConfigurationBase>,
     #[serde(default)]
     pub resources: Vec<ResourceBudget>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub capabilities: Vec<crate::CapabilityIntent>,
     pub limits: HostBounds,
 }
 
@@ -63,6 +67,9 @@ impl ConfigurationBase {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConfigurationDiagnostic {
+    Capability {
+        detail: String,
+    },
     Decode {
         detail: String,
     },
@@ -149,24 +156,6 @@ impl CheckedHostConfiguration {
     pub fn resolved_bases(&self) -> &[(String, String)] {
         &self.resolved_bases
     }
-}
-
-// Configuration identity predates the canonical Conduit construction source.
-// Keep this encoding private so accepted identities remain stable without
-// retaining TOML as a parseable or authorable construction format.
-fn stable_host_configuration_identity_source(
-    configuration: &HostConfiguration,
-) -> Result<String, ConfigurationDiagnostic> {
-    let mut canonical = configuration.clone();
-    canonical
-        .bases
-        .sort_by(|left, right| left.kind.cmp(&right.kind));
-    canonical
-        .resources
-        .sort_by(|left, right| left.id.cmp(&right.id));
-    toml::to_string_pretty(&canonical).map_err(|error| ConfigurationDiagnostic::Encode {
-        detail: error.to_string(),
-    })
 }
 
 pub fn check_host_configuration(
@@ -333,8 +322,8 @@ pub fn check_host_configuration(
     if !diagnostics.is_empty() {
         return Err(diagnostics);
     }
-    let canonical =
-        stable_host_configuration_identity_source(&configuration).map_err(|item| vec![item])?;
+    let canonical = identity::stable_host_configuration_identity_source(&configuration)
+        .map_err(|item| vec![item])?;
     let configuration_id = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
     let mut resolved_bases = selected.into_iter().collect::<Vec<_>>();
     resolved_bases.sort();
@@ -346,6 +335,21 @@ pub fn check_host_configuration(
         &resolved_bases,
         &configuration.resources,
     )?;
+    let operations = operations::resolve(
+        &configuration,
+        &target_key,
+        &resolved_bases,
+        catalog,
+        packages,
+    )?;
+    let mut host_calls = presentation.host_calls;
+    host_calls.extend(operations.host_calls);
+    host_calls.sort();
+    host_calls.dedup();
+    let mut facilities = presentation.facilities;
+    facilities.extend(operations.facilities);
+    facilities.sort();
+    facilities.dedup();
     let profile = HostProfile {
         schema: HOST_PROFILE_SCHEMA.into(),
         name: configuration.name.clone(),
@@ -359,8 +363,8 @@ pub fn check_host_configuration(
         },
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
-        capabilities: Vec::new(),
-        host_calls: presentation.host_calls,
+        capabilities: operations.capabilities,
+        host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases
             .iter()
@@ -385,7 +389,7 @@ pub fn check_host_configuration(
             .into_iter()
             .chain(presentation.presenter)
             .collect(),
-        facilities: presentation.facilities,
+        facilities,
         exclusions: Vec::new(),
         policy: HostPolicy {
             authority_profile: "authority/explicit@1".into(),

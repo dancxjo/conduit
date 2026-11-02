@@ -291,6 +291,7 @@ pub(super) fn review(
                 initialization: None,
             })
             .collect(),
+        capabilities: Vec::new(),
         resources: Vec::new(),
         limits: target.maxima.clone(),
     };

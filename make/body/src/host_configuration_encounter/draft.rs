@@ -115,6 +115,11 @@ pub(super) fn apply(
         };
     }
     if let Some(index) = action.strip_prefix("host-config/target/") {
+        if c.as_ref()
+            .is_some_and(|configuration| !configuration.capabilities.is_empty())
+        {
+            return Err("Target change requires explicit review of retained capability intents; source preserved".into());
+        }
         let index: usize = index.parse().map_err(|_| "Invalid target choice")?;
         let targets = e.packages.target_descriptors();
         let t = targets.get(index).ok_or("Unknown target")?;
@@ -129,6 +134,7 @@ pub(super) fn apply(
                 make_descriptor: None,
             },
             bases: vec![],
+            capabilities: Vec::new(),
             resources: vec![],
             limits: HostBounds {
                 static_memory_bytes: 0,
