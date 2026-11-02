@@ -66,6 +66,7 @@ mod membership;
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
+pub(crate) use routed_join::PreparedAdmissionRoute;
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]
@@ -446,29 +447,48 @@ fn run(state_dir: &Path) -> Result<(), String> {
                 parameters.width(),
                 parameters.height(),
                 |scanout, events| {
-                    let prepared = runtime_preparation::prepare_traced_runtime_with_scanout(
-                        state_dir,
-                        &trace,
-                        scanout.initialized_display()?,
-                    )?;
+                    let (mut status, mut truth) =
+                        runtime_preparation::prepare_traced_runtime_with_scanout(
+                            state_dir, &trace, scanout,
+                        )?;
+                    let mut presentation = if owns_body {
+                        None
+                    } else {
+                        match presentation::NativePresentation::join_seed(
+                            state_dir,
+                            &mut status,
+                            &mut truth,
+                            scanout,
+                        ) {
+                            Ok(presentation) => Some(presentation),
+                            Err(error) => {
+                                let _ = fs::remove_file(state_dir.join("runtime.json"));
+                                return Err(error);
+                            }
+                        }
+                    };
                     let mut progress =
-                        |_runtime: &mut crate::durable_host_control::DurableHostRuntime| {
+                        |runtime: &mut crate::durable_host_control::DurableHostRuntime| {
                             match scanout.poll_output_lifecycle(events, 16) {
                                 Ok(
                                     conduit_linux_display::NativeInput::Idle
                                     | conduit_linux_display::NativeInput::Pending,
-                                ) => Ok(()),
-                                Ok(_) => Err("native output lifetime ended".into()),
+                                ) => (),
+                                Ok(_) => return Err("native output lifetime ended".into()),
                                 Err(error) => {
-                                    Err(format!("native output lifetime lost: {error:?}"))
+                                    return Err(format!("native output lifetime lost: {error:?}"));
                                 }
                             }
+                            if let Some(presentation) = &mut presentation {
+                                presentation.poll(runtime, scanout)?;
+                            }
+                            Ok(())
                         };
                     serve_prepared_runtime(
                         state_dir,
                         &trace,
                         owns_body,
-                        prepared,
+                        (status, truth),
                         Some(&mut progress),
                     )
                 },

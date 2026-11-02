@@ -69,6 +69,14 @@ pub(crate) fn has_pending_seed(root: &Path) -> Result<bool, String> {
     }
 }
 
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+pub(super) fn original_invitation(root: &Path) -> Result<PortableInvitation, String> {
+    if !has_pending_seed(root)? {
+        return Err("native Seed admission requires its original pending invitation".into());
+    }
+    Ok(read(root)?.invitation.clone())
+}
+
 pub(crate) fn install_pending_seed(
     manifest: &Path,
     root: &Path,

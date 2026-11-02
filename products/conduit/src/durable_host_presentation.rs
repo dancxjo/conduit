@@ -1,12 +1,12 @@
 //! One foreground presentation Boot from a fresh explicitly installed Host.
 //! Retained selected equipment stays in its real runtime for the whole encounter.
 use super::{
-    MAXIMUM_BODY_ADMISSION_BYTES, RuntimeStatus, bounded_read, current_time_millis, owner_lock,
-    read_installation, write_bytes_atomic, write_json_atomic,
+    bounded_read, current_time_millis, owner_lock, read_installation, write_bytes_atomic,
+    write_json_atomic, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES,
 };
 use conduit_body::{
-    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    SPAWN_ADMISSION_REQUEST_SCHEMA, SpawnInvitationSecret,
+    PortableInvitation, PortableSpawnAdmissionRequest, SpawnInvitationSecret,
+    SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use std::{
     fs,
@@ -40,62 +40,65 @@ impl PresentationHost {
             _body_owner: body_owner,
         })
     }
+}
 
-    /// Sign the actual offer only after all foreground providers are attached.
-    /// No reconstructed bare Host can stand in for selected terminal or speech.
-    pub(crate) fn prepare_join(
-        &mut self,
-        invitation: PortableInvitation,
-    ) -> Result<PortableSpawnAdmissionRequest, String> {
-        invitation
-            .validate(current_time_millis()?)
-            .map_err(|error| error.to_string())?;
-        let advertisement = self.runtime.truth().advertisement;
-        if advertisement.host_id.as_str() != self.status.host_id
-            || advertisement.boot_id.as_str() != self.status.boot_id
-        {
-            return Err("presentation Host differs from its installed Boot".into());
-        }
-        self.status.offer_generation = advertisement.offer_generation.0;
-        write_json_atomic(&self.state.join("runtime.json"), &self.status)?;
-        let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret)
-            .map_err(|error| format!("presentation invitation: {error:?}"))?;
-        let signature = secret.sign(&invitation.claim.signing_transcript(
-            &advertisement.host_id,
-            &advertisement.boot_id,
-            advertisement.offer_generation,
-        ));
-        let request = PortableSpawnAdmissionRequest {
-            schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
-            invitation_id: invitation.claim.invitation_id.clone(),
-            body_id: invitation.claim.body_id.clone(),
-            host_advertisement: advertisement,
-            nonce: invitation.claim.nonce,
-            signature: signature.to_vec(),
-            membership_admitted: false,
-            plan_created: false,
-            play_created: false,
-        };
-        request.validate().map_err(|error| error.to_string())?;
-        let pending = super::invitation::PendingBodyJoin {
-            schema: "conduit.body/pending-join@1".into(),
-            invitation,
-            request: request.clone(),
-        };
-        let bytes = serde_json::to_vec(&pending).map_err(|error| error.to_string())?;
-        if bytes.len() as u64 > MAXIMUM_BODY_ADMISSION_BYTES {
-            return Err("presentation admission exceeds its finite file bound".into());
-        }
-        let body = self.state.join("body");
-        fs::create_dir_all(&body).map_err(|error| error.to_string())?;
-        super::restrict_directory(&body)?;
-        write_bytes_atomic(&body.join("pending-join.json"), &bytes)?;
-        Ok(request)
+/// Join using the initialized runtime that will perform the actual Mask work.
+/// The installed service already owns its locks; it must not reconstruct a Host.
+fn prepare_initialized_join(
+    runtime: &mut crate::durable_host_control::DurableHostRuntime,
+    status: &mut RuntimeStatus,
+    state: &Path,
+    invitation: PortableInvitation,
+) -> Result<PortableSpawnAdmissionRequest, String> {
+    let installation = read_installation(&state.join("installation.json"))?;
+    if installation.body_state.is_some() || installation.joined_body_state.is_some() {
+        return Err("initial presentation admission requires an unjoined Host".into());
     }
-
-    pub(crate) fn retain_join(&self, receipt: PortableAdmissionReceipt) -> Result<(), String> {
-        super::membership::complete_body_join_document(receipt, &self.state, true)
+    super::pending_seed::validate_invitation(state, &invitation)?;
+    invitation
+        .validate(current_time_millis()?)
+        .map_err(|error| error.to_string())?;
+    let advertisement = runtime.truth().advertisement;
+    if advertisement.host_id.as_str() != status.host_id
+        || advertisement.boot_id.as_str() != status.boot_id
+    {
+        return Err("presentation Host differs from its installed Boot".into());
     }
+    status.offer_generation = advertisement.offer_generation.0;
+    write_json_atomic(&state.join("runtime.json"), &status)?;
+    let secret = SpawnInvitationSecret::from_csprng_bytes(invitation.secret)
+        .map_err(|error| format!("presentation invitation: {error:?}"))?;
+    let signature = secret.sign(&invitation.claim.signing_transcript(
+        &advertisement.host_id,
+        &advertisement.boot_id,
+        advertisement.offer_generation,
+    ));
+    let request = PortableSpawnAdmissionRequest {
+        schema: SPAWN_ADMISSION_REQUEST_SCHEMA.into(),
+        invitation_id: invitation.claim.invitation_id.clone(),
+        body_id: invitation.claim.body_id.clone(),
+        host_advertisement: advertisement,
+        nonce: invitation.claim.nonce,
+        signature: signature.to_vec(),
+        membership_admitted: false,
+        plan_created: false,
+        play_created: false,
+    };
+    request.validate().map_err(|error| error.to_string())?;
+    let pending = super::invitation::PendingBodyJoin {
+        schema: "conduit.body/pending-join@1".into(),
+        invitation,
+        request: request.clone(),
+    };
+    let bytes = serde_json::to_vec(&pending).map_err(|error| error.to_string())?;
+    if bytes.len() as u64 > MAXIMUM_BODY_ADMISSION_BYTES {
+        return Err("presentation admission exceeds its finite file bound".into());
+    }
+    let body = state.join("body");
+    fs::create_dir_all(&body).map_err(|error| error.to_string())?;
+    super::restrict_directory(&body)?;
+    write_bytes_atomic(&body.join("pending-join.json"), &bytes)?;
+    Ok(request)
 }
 
 impl Drop for PresentationHost {
@@ -121,3 +124,9 @@ pub(crate) use terminal::run;
 #[cfg(unix)]
 #[path = "durable_host_presentation/wire.rs"]
 mod wire;
+
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+#[path = "durable_host_presentation/native.rs"]
+mod native;
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+pub(crate) use native::NativePresentation;

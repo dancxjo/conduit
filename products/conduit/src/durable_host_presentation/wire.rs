@@ -1,16 +1,16 @@
 //! Bounded pinned TLS exchanges for the existing finite owner return protocol.
 use crate::durable_host::routed_join::MaskSelection;
 use conduit_body::{
-    PortableAdmissionReceipt, PortableInvitation, ROUTED_ADMISSION_REQUEST_SCHEMA,
-    RendezvousCandidate, RoutedAdmissionRequest, RoutedAdmissionResponse,
+    PortableAdmissionReceipt, PortableInvitation, RendezvousCandidate, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_face::{
-    Face, MaskShow, OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
+    Face, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
+    OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::secure_websocket::SecureWebSocketClientLine;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
 #[path = "admitted_snapshot.rs"]
@@ -55,6 +55,22 @@ impl OwnerRoute {
         invitation: PortableInvitation,
         mask: MaskSelection,
     ) -> Result<(Self, Snapshot), String> {
+        Self::admit_initialized(
+            &mut host.runtime,
+            &mut host.status,
+            &host.state,
+            invitation,
+            mask,
+        )
+    }
+
+    pub(super) fn admit_initialized(
+        runtime: &mut crate::durable_host_control::DurableHostRuntime,
+        status: &mut super::RuntimeStatus,
+        state: &std::path::Path,
+        invitation: PortableInvitation,
+        mask: MaskSelection,
+    ) -> Result<(Self, Snapshot), String> {
         let rendezvous = invitation
             .rendezvous
             .as_ref()
@@ -70,7 +86,7 @@ impl OwnerRoute {
         if candidate.line_family != conduit_body::RendezvousLineFamily::AuthenticatedTlsStream {
             return Err("presentation requires an authenticated TLS route".into());
         }
-        let request = host.prepare_join(invitation)?;
+        let request = super::prepare_initialized_join(runtime, status, state, invitation)?;
         let mut line = connect(
             &candidate,
             Duration::from_millis(u64::from(candidate.attempt_timeout_millis)),
@@ -99,7 +115,7 @@ impl OwnerRoute {
         receipt
             .validate_against(&request)
             .map_err(|error| error.to_string())?;
-        host.retain_join(receipt.clone())?;
+        super::super::membership::complete_body_join_document(receipt.clone(), state, true)?;
         let credential = receipt.credential;
         let request = OwnerFaceSnapshotRequest {
             schema: OWNER_FACE_REQUEST_SCHEMA.into(),

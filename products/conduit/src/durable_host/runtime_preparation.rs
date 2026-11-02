@@ -111,7 +111,7 @@ pub(super) fn prepare_presentation_runtime(
 pub(super) fn prepare_traced_runtime_with_scanout(
     state_dir: &Path,
     trace: &Trace,
-    initialized: conduit_linux_display::InitializedDisplay,
+    scanout: &mut conduit_linux_display::Scanout<'_>,
 ) -> Result<
     (
         RuntimeStatus,
@@ -128,7 +128,7 @@ pub(super) fn prepare_traced_runtime_with_scanout(
         None,
         StdHostComposition::reference(),
         trace,
-        Some(initialized),
+        Some(scanout),
     )
 }
 
@@ -139,7 +139,7 @@ fn prepare_runtime_with_composition(
     composition: StdHostComposition,
     trace: &Trace,
     #[cfg(all(target_os = "linux", feature = "native-display"))] scanout: Option<
-        conduit_linux_display::InitializedDisplay,
+        &mut conduit_linux_display::Scanout<'_>,
     >,
 ) -> Result<
     (
@@ -236,23 +236,23 @@ fn prepare_runtime_with_composition(
     let mut host = trace.run(Phase::HostConstruction, || {
         Ok(if let Some(image) = selected_image {
             #[cfg(all(target_os = "linux", feature = "native-display"))]
-            if let Some(initialized) = scanout {
+            if let Some(output) = scanout {
                 let checked = installation
                     .selected_host_configuration
                     .as_ref()
                     .ok_or("scanout lost selected Source")?
                     .checked()?;
                 let parameters =
-                    conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
+                    conduit_workspace_make::CheckedNativeMaskInitialization::from_configuration(
                         &checked,
                     )?;
-                return StdHost::from_selected_timer_and_scanout_image(
+                return StdHost::from_selected_timer_and_native_mask_image(
                     config,
                     image,
                     &conduit_workspace_make::catalog(),
                     &checked,
                     parameters,
-                    initialized,
+                    output,
                 );
             }
             StdHost::from_selected_timer_image(config, image, &conduit_workspace_make::catalog())?

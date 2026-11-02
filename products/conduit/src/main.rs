@@ -360,13 +360,22 @@ fn main() {
                     route_tls_cert,
                     route_tls_key,
                     authorize_route,
+                    prepare,
                 }),
         }) => match (route_bind, route_url, route_tls_cert, route_tls_key) {
-            (None, None, None, None) if !authorize_route => {
+            (None, None, None, None) if !authorize_route && !prepare => {
                 durable_host::issue_body_invitation(&state_dir, ttl_seconds)
             }
             (Some(bind), Some(url), Some(certificate), Some(private_key)) => {
-                durable_host::serve_body_invitation_route(
+                if prepare {
+                    durable_host_control::prepare_owned_invitation_route(
+                        &state_dir, ttl_seconds, bind, &url, &certificate, &private_key, authorize_route,
+                    ).and_then(|candidate| {
+                        println!("{}", serde_json::to_string(&candidate).map_err(|error| error.to_string())?);
+                        Ok(())
+                    })
+                } else {
+                    durable_host::serve_body_invitation_route(
                     &state_dir,
                     ttl_seconds,
                     bind,
@@ -374,7 +383,8 @@ fn main() {
                     &certificate,
                     &private_key,
                     authorize_route,
-                )
+                    )
+                }
             }
             _ => Err("a routed invitation requires --route-bind, --route-url, --route-tls-cert, --route-tls-key, and --authorize-route together".into()),
         },

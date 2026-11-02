@@ -434,6 +434,10 @@ pub(crate) enum BodyCommand {
         /// Explicitly authorize exposing this one-invitation admission route.
         #[arg(long, action = clap::ArgAction::SetTrue)]
         authorize_route: bool,
+        /// Prepare the route for the owner's next invitation, including a Crèche Seed.
+        /// This binds transport now without issuing a separate invitation.
+        #[arg(long, requires_all = ["route_bind", "route_url", "route_tls_cert", "route_tls_key", "authorize_route"])]
+        prepare: bool,
     },
     /// Open one short-lived local window for this browser Host to join the installed owner.
     BrowserWindow {
