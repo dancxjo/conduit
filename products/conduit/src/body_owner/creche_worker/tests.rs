@@ -408,4 +408,5 @@ fn creche_without_ready_provider_refuses_before_playing_or_invitation() {
     }
 }
 
+#[path = "tests/remote_plot_route.rs"]
 mod remote_plot_route;
