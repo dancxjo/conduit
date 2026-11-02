@@ -754,6 +754,10 @@ impl TimerAdapter for DeadlineTimer {
         }
     }
 
+    fn monotonic_ticks_on(&mut self, basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        ThreadTimer.monotonic_ticks_on(basis)
+    }
+
     fn monotonic_observation(
         &mut self,
         host_id: &conduit_core::HostId,

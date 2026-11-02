@@ -114,6 +114,7 @@ impl KernelResourceLedger {
         if self.image_bounds.is_some() || !self.is_idle() {
             return Err("selected IMAGE bounds require one fresh idle resource ledger".into());
         }
+        self.image_memory = Some(std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)));
         self.image_bounds = Some(bounds.clone());
         Ok(())
     }
@@ -139,7 +140,7 @@ impl KernelResourceLedger {
     /// Check the complete proposed workload before constructing its kernel or
     /// staging resource counters. These scalar checks are necessary, not a
     /// complete managed-memory receipt. In particular, slots are never bytes.
-    pub(crate) fn preflight_image_workset<'a>(
+    pub(crate) fn preflight_image_shape<'a>(
         &self,
         fragments: impl IntoIterator<Item = &'a PlanFragment>,
     ) -> Result<(), String> {
@@ -160,6 +161,17 @@ impl KernelResourceLedger {
             shape.include(fragment)?;
         }
         shape.check(bounds)?;
+        Ok(())
+    }
+
+    pub(crate) fn preflight_image_workset<'a>(
+        &self,
+        fragments: impl IntoIterator<Item = &'a PlanFragment>,
+    ) -> Result<(), String> {
+        self.preflight_image_shape(fragments)?;
+        if self.image_bounds.is_none() || self.image_receipt_reserving {
+            return Ok(());
+        }
         // Ordinary installed Backs do not yet provide complete owned backing
         // receipts. Region receipts cannot be borrowed for a cooperative Body
         // kernel. Boot/current offers remain independent of Play admission.

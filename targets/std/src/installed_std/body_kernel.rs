@@ -39,7 +39,13 @@ use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
+mod diagnostic;
+pub(crate) mod memory;
+
 pub(crate) struct BodyKernel<'a> {
+    terminal_events: Option<Vec<KernelEvent>>,
+    error_diagnostic: Option<diagnostic::Diagnostic>,
+    cleanup_diagnostic: Option<diagnostic::Diagnostic>,
     creche: Option<CrecheRoute>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
@@ -510,6 +516,9 @@ impl<'a> BodyKernel<'a> {
         )?;
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
+            terminal_events: None,
+            error_diagnostic: None,
+            cleanup_diagnostic: None,
             creche: None,
             scheduler,
             face_labels,
@@ -830,9 +839,12 @@ impl<'a> BodyKernel<'a> {
                     if let Some(owner) = creche.as_deref_mut() {
                         owner.retire()?;
                     }
-                    self.scheduler
-                        .cancel()
-                        .map_err(|error| format!("Body cancel: {error:?}"))?;
+                    self.scheduler.cancel().map_err(|error| {
+                        diagnostic::error(
+                            &mut self.error_diagnostic,
+                            format_args!("Body cancel: {error:?}"),
+                        )
+                    })?;
                     keys.cancel();
                     // No acknowledged map remains current while the owning
                     // Body Play is being cancelled.
@@ -904,7 +916,14 @@ impl<'a> BodyKernel<'a> {
                             )
                             .map_err(|error| format!("Body keyboard cancellation: {error:?}"))?;
                     } else {
-                        deadlines.cancel(cancellation, &mut self.scheduler)?;
+                        deadlines
+                            .cancel(cancellation, &mut self.scheduler)
+                            .map_err(|error| {
+                                diagnostic::error(
+                                    &mut self.error_diagnostic,
+                                    format_args!("{error}"),
+                                )
+                            })?;
                     }
                 }
                 while let Some(request) = self.scheduler.next_host_request() {
@@ -918,7 +937,10 @@ impl<'a> BodyKernel<'a> {
                         observed.node == request.node && observed.call == request.call
                     }) {
                         if self.requests.len() == self.requests.capacity() {
-                            return Err("Body observed-operation capacity exceeded".into());
+                            return Err(diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body observed-operation capacity exceeded"),
+                            ));
                         }
                         self.requests.push(request);
                     }
@@ -926,17 +948,27 @@ impl<'a> BodyKernel<'a> {
                         .operations
                         .iter()
                         .find(|op| op.node == request.node && op.call == request.call)
-                        .ok_or("Body request has no exact partition operation")?;
+                        .ok_or_else(|| {
+                            diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body request has no exact partition operation"),
+                            )
+                        })?;
                     if operation.contract_id.as_str()
                         == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
                     {
                         self.begin_creche(request, creche.as_deref_mut())?;
                         continue;
                     }
-                    let input = self
-                        .scheduler
-                        .host_value(request.input.value)
-                        .map_err(|error| format!("Body request value: {error:?}"))?;
+                    let input =
+                        self.scheduler
+                            .host_value(request.input.value)
+                            .map_err(|error| {
+                                diagnostic::error(
+                                    &mut self.error_diagnostic,
+                                    format_args!("Body request value: {error:?}"),
+                                )
+                            })?;
                     if data_text::is_file(&operation.contract_id) {
                         let source = self
                             .data_text_hosts
@@ -1283,12 +1315,18 @@ impl<'a> BodyKernel<'a> {
                         continue;
                     }
                     if timer(&operation.contract_id) {
-                        let duration =
-                            conduit_time::decode_tick(input).map_err(|error| error.to_string())?;
-                        let now = clock.monotonic_now_ms().ok_or_else(|| {
-                            "admitted monotonic wait Base is unavailable".to_string()
+                        let duration = conduit_time::decode_tick(input).map_err(|error| {
+                            diagnostic::error(&mut self.error_diagnostic, format_args!("{error}"))
                         })?;
-                        deadlines.arm(request, duration, now)?;
+                        let now = clock.monotonic_now_ms().ok_or_else(|| {
+                            diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("admitted monotonic wait Base is unavailable"),
+                            )
+                        })?;
+                        deadlines.arm(request, duration, now).map_err(|error| {
+                            diagnostic::error(&mut self.error_diagnostic, format_args!("{error}"))
+                        })?;
                         continue;
                     } else if !simple_face_host::present_named(
                         operation.target_kind.as_ref(),
@@ -1308,13 +1346,21 @@ impl<'a> BodyKernel<'a> {
                                 failure: None,
                             },
                         )
-                        .map_err(|error| format!("Body Host completion: {error:?}"))?;
+                        .map_err(|error| {
+                            diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body Host completion: {error:?}"),
+                            )
+                        })?;
                 }
                 let status = self.scheduler.step().map_err(|error| {
                     if let conduit_kernel::scheduler::SchedulerError::BackFailed(failure) = error {
                         kernel_failure = Some(failure);
                     }
-                    format!("Body kernel: {error:?}")
+                    diagnostic::error(
+                        &mut self.error_diagnostic,
+                        format_args!("Body kernel: {error:?}"),
+                    )
                 })?;
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
@@ -1369,7 +1415,14 @@ impl<'a> BodyKernel<'a> {
                     }
                     SchedulerStatus::Idle => {
                         if keys.poll(&mut self.scheduler)?
-                            || deadlines.complete_next(&mut self.scheduler, clock)?
+                            || deadlines
+                                .complete_next(&mut self.scheduler, clock)
+                                .map_err(|error| {
+                                    diagnostic::error(
+                                        &mut self.error_diagnostic,
+                                        format_args!("{error}"),
+                                    )
+                                })?
                         {
                             continue;
                         }
@@ -1383,7 +1436,10 @@ impl<'a> BodyKernel<'a> {
                             }
                         }
                         if !keys.is_pending() && deadlines.is_empty() && !self.creche_pending() {
-                            return Err("Body kernel has no admitted progress source".into());
+                            return Err(diagnostic::error(
+                                &mut self.error_diagnostic,
+                                format_args!("Body kernel has no admitted progress source"),
+                            ));
                         }
                         if self.creche_pending() {
                             if let Some(owner) = creche.as_deref() {
@@ -1431,11 +1487,12 @@ impl<'a> BodyKernel<'a> {
                 keys.cancel();
                 deadlines.clear();
                 if retirement.is_ok() {
-                    let failure = self
-                        .scheduler
-                        .cancel()
-                        .err()
-                        .map(|error| format!("Body failure cleanup: {error:?}"));
+                    let failure = self.scheduler.cancel().err().map(|error| {
+                        diagnostic::error(
+                            &mut self.cleanup_diagnostic,
+                            format_args!("Body failure cleanup: {error:?}"),
+                        )
+                    });
                     if cleanup_failure.is_none() {
                         cleanup_failure = failure;
                     }
@@ -1499,7 +1556,12 @@ impl<'a> BodyKernel<'a> {
             cleanup_failure,
             partitions: self.partitions,
             requests: self.requests,
-            events: self.scheduler.signs().events().collect(),
+            events: if let Some(mut prepared) = self.terminal_events.take() {
+                prepared.extend(self.scheduler.signs().events());
+                prepared
+            } else {
+                self.scheduler.signs().events().collect()
+            },
             scan_child_signs,
             scan_cancellation_failed,
             scan_output_completion_failed,

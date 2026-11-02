@@ -44,6 +44,29 @@ pub(super) struct DataTextGenerationHosts<'a> {
 }
 
 impl<'a> DataTextGenerationHosts<'a> {
+    pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
+        #[cfg(target_os = "linux")]
+        if self.file.is_some() {
+            return None;
+        }
+        if !self.stores.is_empty() || !self.bindings.is_empty() {
+            return None;
+        }
+        self.text_kind
+            .0
+            .capacity()
+            .checked_add(
+                self.stores
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<PoolStore>())?,
+            )?
+            .checked_add(
+                self.bindings
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<NodeBinding>())?,
+            )
+    }
+
     pub(super) fn contains_node(&self, node: NodeId) -> bool {
         #[cfg(target_os = "linux")]
         if self.file.as_ref().is_some_and(|entry| entry.0 == node) {

@@ -430,6 +430,12 @@ pub trait TimerAdapter {
         None
     }
 
+    /// Allocation-free scalar sample on the exact previously prepared basis.
+    /// Unsupported adapters refuse; the default never guesses correspondence.
+    fn monotonic_ticks_on(&mut self, _basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        None
+    }
+
     /// Returns the current host/boot-scoped monotonic millisecond reading when
     /// this adapter offers the admitted deadline contract.
     fn monotonic_now_ms(&mut self) -> Option<u64> {
@@ -480,6 +486,18 @@ impl TimerAdapter for ThreadTimer {
                 .as_micros(),
         )
         .ok()
+    }
+
+    fn monotonic_ticks_on(&mut self, basis: &conduit_core::MonotonicClockIdentity) -> Option<u64> {
+        if basis.validate().is_err()
+            || basis.scale() != conduit_core::TemporalScale::Microseconds
+            || basis.resolution_ticks() != 1
+            || basis.uncertainty_ticks() != 1
+            || THREAD_TIMER_BASIS.get()?.as_deref()? != basis.basis_id()
+        {
+            return None;
+        }
+        self.monotonic_now_micros()
     }
 
     fn monotonic_observation(
