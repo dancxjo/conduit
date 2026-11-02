@@ -120,6 +120,18 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "check.input-semantics.collections",
+        "test canonical collection profiles, finite pages and checked current-Show proposals",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-face", "--features", "plot-catalog", "--test", "collections"],
+    ),
+    Step::new(
+        "check.input-semantics.birth-collections",
+        "test the complete Birth owner package including collection profiles and Linear correspondence",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-birth-plot"],
+    ),
+    Step::new(
         "check.input-semantics.core",
         "test the reusable keymap and chord contracts",
         "cargo",
