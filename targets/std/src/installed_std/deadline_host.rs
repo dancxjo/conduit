@@ -80,7 +80,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
         if self.reactor.is_empty() {
             return Ok(false);
         }
-        let now_ms = timer.monotonic_now_ms().ok_or_else(|| {
+        let now_ms = timer.monotonic_now_ms().ok_or({
             InstalledDeadlineError::Message("admitted monotonic deadline Base became unavailable")
         })?;
         self.observe_now(now_ms)?;
@@ -91,7 +91,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
                         "admitted monotonic deadline wait became unavailable",
                     ));
                 }
-                let after_wait = timer.monotonic_now_ms().ok_or_else(|| {
+                let after_wait = timer.monotonic_now_ms().ok_or({
                     InstalledDeadlineError::Message(
                         "admitted monotonic deadline clock became unavailable after wait",
                     )
@@ -113,7 +113,7 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
         if self.reactor.is_empty() {
             return Ok(false);
         }
-        let now_ms = timer.monotonic_now_ms().ok_or_else(|| {
+        let now_ms = timer.monotonic_now_ms().ok_or({
             InstalledDeadlineError::Message("admitted monotonic deadline Base became unavailable")
         })?;
         self.observe_now(now_ms)?;

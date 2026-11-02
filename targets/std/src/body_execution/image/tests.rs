@@ -461,3 +461,5 @@ fn raw_image_binding_without_selected_ledger_never_falls_back() {
     assert!(!started);
     assert!(raw.kernel_resources.is_idle());
 }
+
+mod adapter_refusal;

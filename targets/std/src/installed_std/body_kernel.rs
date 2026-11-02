@@ -1484,6 +1484,7 @@ impl<'a> BodyKernel<'a> {
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),
             Err(error) => {
+                let error = diagnostic::retained_error(&mut self.error_diagnostic, error);
                 keys.cancel();
                 deadlines.clear();
                 if retirement.is_ok() {

@@ -111,7 +111,9 @@ mod tests {
 }
 
 impl KernelClockObservations {
-    pub(super) fn event_capacity(&self) -> usize { self.observations.capacity() }
+    pub(super) fn event_capacity(&self) -> usize {
+        self.observations.capacity()
+    }
 
     pub fn with_capacity(event_capacity: usize) -> Self {
         Self {
