@@ -1,12 +1,10 @@
 use super::*;
+use crate::joining_host_package_test_common as common;
 use crate::native_package_install::LocalNativeInstaller;
 use conduit_body::{
     AdmissionManager, Body, BodyBiographyEvidence, BodyMembership, SpawnInvitationSecret,
 };
 use conduit_host_make::{BodyBoundArtifactIdentity, NativePackageInstaller};
-#[path = "../../../../../make/body/tests/common/joining_host_package.rs"]
-#[allow(dead_code)]
-mod common;
 
 #[test]
 fn installed_seed_requests_original_body_from_actual_initialized_boot() {

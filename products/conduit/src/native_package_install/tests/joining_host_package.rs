@@ -1,7 +1,6 @@
 //! Existing native consumer accepts the generic producer's exact bytes.
 use super::super::*;
-#[path = "../../../../../make/body/tests/common/joining_host_package.rs"]
-mod common;
+use crate::joining_host_package_test_common as common;
 
 #[test]
 fn generic_producer_matches_existing_native_parser_and_release_aggregate() {

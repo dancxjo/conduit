@@ -1,4 +1,8 @@
 #[cfg(test)]
+#[path = "../../../make/body/tests/common/joining_host_package.rs"]
+mod joining_host_package_test_common;
+
+#[cfg(test)]
 #[path = "../../../semantics/face/tests/common/mod.rs"]
 mod mask_test_common;
 
