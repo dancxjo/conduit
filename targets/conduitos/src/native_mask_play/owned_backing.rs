@@ -114,8 +114,8 @@ pub fn native_mask_plan_backing_bytes(mask: &PlannedMaskPlot) -> Option<usize> {
             if let Some(kind) = &port.abnormal_kind {
                 n.add(kind.0.capacity())?;
             }
-            if port.selected_line.is_some() {
-                return None;
+            if let Some(line) = &port.selected_line {
+                line_backing(&mut n, line)?;
             }
         }
         n.vector(&f.startup_dependencies)?;
@@ -152,10 +152,10 @@ pub fn native_mask_plan_backing_bytes(mask: &PlannedMaskPlot) -> Option<usize> {
     Some(n.0)
 }
 pub(super) fn lowered_fore_backing_bytes(port: &LoweredForePort) -> Option<usize> {
-    if port.selected_line.is_some() {
-        return None;
-    }
     let mut n = Bytes::default();
+    if let Some(line) = &port.selected_line {
+        line_backing(&mut n, line)?;
+    }
     n.ids(&[&port.front_port_id.0, &port.value_kind.0])?;
     if let Some(kind) = &port.abnormal_kind {
         n.add(kind.0.capacity())?;
@@ -164,6 +164,31 @@ pub(super) fn lowered_fore_backing_bytes(port: &LoweredForePort) -> Option<usize
         n.add(contract.retained_backing_bytes()?)?;
     }
     Some(n.0)
+}
+// Admitted route metadata is owned here; availability and transport buffers
+// are separate owners. Counting it grants neither a Line nor effect authority.
+fn line_backing(n: &mut Bytes, line: &AdmittedLine) -> Option<()> {
+    let b = &line.binding;
+    n.ids(&[
+        &line.line_id.0,
+        &b.binding_id.0,
+        &b.base.0,
+        &b.base_instance_id.0,
+    ])?;
+    for endpoint in [&b.source, &b.sink] {
+        n.ids(&[
+            &endpoint.host_id.0,
+            &endpoint.boot_id.0,
+            &endpoint.endpoint_id.0,
+        ])?;
+    }
+    if let LinkCredentialReference::Opaque(id) = &b.credential {
+        n.add(id.0.capacity())?;
+    }
+    if let LinkAuthorityReference::Grant(id) = &b.authority {
+        n.add(id.0.capacity())?;
+    }
+    Some(())
 }
 fn resource_contract(n: &mut Bytes, port: &ResourcePortContract) -> Option<()> {
     n.ids(&[&port.port_id.0, &port.class_id.0])
@@ -357,6 +382,88 @@ mod tests {
         assert_eq!(
             lowered_fore_backing_bytes(&fore),
             Some(initial + fore.front_port_id.0.capacity() - old)
+        );
+    }
+    #[test]
+    fn routed_fore_retains_bound_link_ids_credentials_and_spare_capacity() {
+        // Descriptive ownership fixture, not transport admission evidence.
+        let mut mask = mask();
+        let mut lowered =
+            conduit_plan_lowering::lowering::lower_plan_fragment(&mask.plan.fragments[0]).unwrap();
+        let mut line = AdmittedLine {
+            line_id: "line/owned".into(),
+            binding: BoundLink {
+                binding_id: "binding/owned".into(),
+                source: LinkEndpoint {
+                    host_id: "host/source".into(),
+                    boot_id: "boot/source".into(),
+                    endpoint_id: "endpoint/source".into(),
+                },
+                sink: LinkEndpoint {
+                    host_id: "host/sink".into(),
+                    boot_id: "boot/sink".into(),
+                    endpoint_id: "endpoint/sink".into(),
+                },
+                base: "base/owned".into(),
+                base_instance_id: "instance/owned".into(),
+                credential: LinkCredentialReference::Opaque("credential/owned".into()),
+                authority: LinkAuthorityReference::Grant("grant/owned".into()),
+                limits: LinkLimits {
+                    maximum_in_flight_items: 1,
+                    maximum_payload_bytes: 128,
+                    maximum_buffered_bytes: 128,
+                    maximum_frame_bytes: 256,
+                },
+            },
+            contract: LineContract {
+                scope: LineScope::RoutedNetwork,
+                traffic_shape: LineTrafficShape::ByteStream,
+                duplex: LineDuplex::FullDuplex,
+                ordering: LineOrdering::Ordered,
+                reliability: LineReliability::Reliable,
+                continuation: LineContinuation::None,
+                security: LineSecurity::AuthenticatedEncrypted,
+            },
+        };
+        line.binding.source.endpoint_id.0.reserve(151);
+        let b = &line.binding;
+        let expected: usize = [
+            &line.line_id.0,
+            &b.binding_id.0,
+            &b.base.0,
+            &b.base_instance_id.0,
+            &b.source.host_id.0,
+            &b.source.boot_id.0,
+            &b.source.endpoint_id.0,
+            &b.sink.host_id.0,
+            &b.sink.boot_id.0,
+            &b.sink.endpoint_id.0,
+        ]
+        .iter()
+        .map(|s| s.capacity())
+        .sum::<usize>()
+            + match &b.credential {
+                LinkCredentialReference::Opaque(id) => id.0.capacity(),
+                _ => 0,
+            }
+            + match &b.authority {
+                LinkAuthorityReference::Grant(id) => id.0.capacity(),
+                _ => 0,
+            };
+        let initial = native_mask_plan_backing_bytes(&mask).unwrap();
+        let fore_initial = lowered_fore_backing_bytes(&lowered.fore_ports[0]).unwrap();
+        // Move rather than clone into each tested owner: Clone need not preserve
+        // a String's spare capacity, so each allocation must be measured itself.
+        mask.plan.fragments[0].fore_ports[0].selected_line = Some(line);
+        assert_eq!(
+            native_mask_plan_backing_bytes(&mask),
+            Some(initial + expected)
+        );
+        lowered.fore_ports[0].selected_line =
+            mask.plan.fragments[0].fore_ports[0].selected_line.take();
+        assert_eq!(
+            lowered_fore_backing_bytes(&lowered.fore_ports[0]),
+            Some(fore_initial + expected)
         );
     }
 }
