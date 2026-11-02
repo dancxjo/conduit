@@ -64,3 +64,10 @@ pub(super) struct ImagePayload<'a> {
     pub boot_module: BootModule<'a>,
     pub files: &'a [HostReleaseFile],
 }
+
+#[derive(Serialize)]
+pub(super) struct ImageDocument<'a, 'b> {
+    #[serde(flatten)]
+    pub payload: &'a ImagePayload<'b>,
+    pub image_id: &'a str,
+}

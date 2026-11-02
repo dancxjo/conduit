@@ -202,6 +202,21 @@ pub fn verify_browser_bundle_image(
             "BrowserBundle rich IMAGE differs from checked profile/distribution/build basis".into(),
         );
     }
+    // Boot recomputes JSON.stringify(parsed payload), whose field order is
+    // significant. Value equality alone would accept reordered keys that Boot
+    // rejects. Accept the existing producer's exact spelling/order, with its
+    // optional pretty-print whitespace; alternate JSON escape spellings refuse.
+    let document = serde_json::to_vec(&ImageDocument {
+        payload: &payload,
+        image_id: &bundle_image_id,
+    })
+    .map_err(|e| e.to_string())?;
+    if compact_producer_json(browser_image_bytes) != document {
+        return Err(
+            "BrowserBundle rich IMAGE does not retain canonical producer field order/spelling"
+                .into(),
+        );
+    }
     for (key, value) in [
         ("browser_image_id", bundle_image_id.as_str()),
         ("browser_build_id", build_id.as_str()),
@@ -226,6 +241,29 @@ pub fn verify_browser_bundle_image(
 
 fn sha(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
+}
+fn compact_producer_json(bytes: &[u8]) -> Vec<u8> {
+    let mut compact = Vec::with_capacity(bytes.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    for &byte in bytes {
+        if in_string {
+            compact.push(byte);
+            if escaped {
+                escaped = false;
+            } else if byte == b'\\' {
+                escaped = true;
+            } else if byte == b'"' {
+                in_string = false;
+            }
+        } else if byte == b'"' {
+            in_string = true;
+            compact.push(byte);
+        } else if !byte.is_ascii_whitespace() {
+            compact.push(byte);
+        }
+    }
+    compact
 }
 fn bounded(value: &str) -> bool {
     !value.is_empty() && value.len() <= 256

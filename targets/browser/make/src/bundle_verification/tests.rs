@@ -191,6 +191,42 @@ fn target_proof_refuses_supplied_image_bytes_outside_verified_release() {
 }
 
 #[test]
+fn reordered_rich_image_keys_refuse_even_when_every_payload_hash_is_resealed() {
+    let mut value = fixture();
+    let semantic: serde_json::Value = serde_json::from_slice(&image_bytes(&value)).unwrap();
+    // Value's map serialization sorts keys, unlike the existing JS producer.
+    let reordered = serde_json::to_vec(&semantic).unwrap();
+    let digest = sha(&reordered);
+    let payload = value["payloads"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|p| p["path"] == IMAGE)
+        .unwrap();
+    payload["bytes"] = serde_json::to_value(&reordered).unwrap();
+    let file = value["release"]["files"]
+        .as_array_mut()
+        .unwrap()
+        .iter_mut()
+        .find(|f| f["path"] == IMAGE)
+        .unwrap();
+    file["bytes"] = (reordered.len() as u64).into();
+    file["sha256"] = digest.into();
+    let mut aggregate = "conduit.release/host-bundle-content@1\0".to_owned();
+    for file in value["release"]["files"].as_array().unwrap() {
+        aggregate.push_str(file["path"].as_str().unwrap());
+        aggregate.push('\0');
+        aggregate.push_str(file["sha256"].as_str().unwrap());
+        aggregate.push('\n');
+    }
+    value["release"]["bundle_sha256"] = sha(aggregate.as_bytes()).into();
+    assert!(verify(&value, &checked(CONFIGURATION))
+        .err()
+        .unwrap()
+        .contains("field order"));
+}
+
+#[test]
 #[ignore = "requires an explicitly selected retained real prior-Make browser artifact directory"]
 fn retained_real_browser_bundle_matches_checked_source_and_generic_make_image() {
     let root = std::path::PathBuf::from(
