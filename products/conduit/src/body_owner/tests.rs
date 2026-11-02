@@ -1092,5 +1092,7 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+#[path = "tests/invitation_retirement.rs"]
+mod invitation_retirement;
 #[path = "tests/member_leave.rs"]
 mod member_leave;
