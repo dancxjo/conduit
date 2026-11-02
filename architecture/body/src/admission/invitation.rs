@@ -28,6 +28,11 @@ impl SpawnInvitationSecret {
         Ok(Self(bytes))
     }
 
+    /// Public identity of the retained signing key; reveals no secret material.
+    pub fn verifying_key(&self) -> [u8; 32] {
+        SigningKey::from_bytes(&self.0).verifying_key().to_bytes()
+    }
+
     pub fn sign(&self, transcript: &[u8; 32]) -> [u8; ADMISSION_SIGNATURE_BYTES] {
         use ed25519_dalek::Signer;
         SigningKey::from_bytes(&self.0).sign(transcript).to_bytes()

@@ -948,3 +948,29 @@ membership revision75 and admission receipt count17. Only the Show became
 historical; no member departure was committed. Exact observations are retained in
 `proof/evidence/creche/native-encounter-expiry-keeps-member-20261102.json`.
 Continuing presentation and remote Workspace joining remain unfinished.
+
+### Current-member private signer bridge
+
+The installed member's existing 0600 continuity custody can now sign the canonical
+federation challenge transcript without performing PartReturn or replacing its
+credential. The signer rechecks the installed credential, actual Host/Boot/offer,
+its own retained key and caller-supplied independent receiver/session/Line facts,
+plus nonce, expiry and finite frame/time limits. Plaintext network contexts are
+refused. The receiver pin must be independently bound to this Body's owner:
+the existing federation transcript does not itself contain Body/Part fields.
+No new proof protocol, serialized secret or transport authority is introduced.
+
+Thirteen custody tests pass with `-Dwarnings`. The new bridge test uses real Core
+spawn admission, installed private custody and `CurrentMemberChallengeSlot` to
+complete signed current-member sessions, refuse per-slot replay, and verify
+unchanged membership, admission receipt count, installed credential and private
+key. Distinct fixture session IDs/nonces are synthetic, not CSPRNG or global
+replay proof. Redirected receiver/key, wrong session/Line/security, stale Boot or
+offer, invalid nonce, stale credential and exceeded bounds are refused.
+Authenticated Body code also checks with `-Dwarnings` for `thumbv6m-none-eabi`
+with default features disabled and `authenticated-admission` selected.
+
+The bridge is not yet connected to the installed owner route. Owner-side fresh
+issuance, exact current credential rechecks, actual authenticated carrier evidence,
+presence renewal and current Face resealing remain required. No online Workspace
+join, continuing native Show or additional physical deployment is claimed here.
