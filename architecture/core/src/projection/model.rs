@@ -95,6 +95,14 @@ pub trait ProjectionDomain {
 /// No universal best-effort policy is provided.
 pub trait ProjectionPolicy<D: ProjectionDomain> {
     fn identity(&self) -> ProjectionText<'_>;
+    /// Identity of the exact immutable configuration, including every parameter
+    /// that affects admission. It must be domain-separated, bounded and computed
+    /// without allocation here; preparation may retain a precomputed digest.
+    /// None leaves configuration-bound consumption and transport unsupported.
+    fn configuration_digest(&self) -> Option<[u8; 32]> {
+        None
+    }
+
     /// Defaults to refusing score normalization. Implementations must validate
     /// the exact numerical mapping and named policy, retaining the original.
     fn permits_normalization(
@@ -214,6 +222,7 @@ pub enum ProjectionRefusal {
     TerminalCategory,
     ConsumerRequiresExact,
     PolicyMismatch,
+    PolicyConfigurationUnavailable,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProjectionSummary {

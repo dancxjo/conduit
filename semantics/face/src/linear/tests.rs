@@ -127,3 +127,8 @@ fn rendering_is_deterministic_and_contains_no_renderer_local_input() {
         "renderer-local state {renderer_local_state:?} has no projection input"
     );
 }
+
+#[path = "tests/bounds.rs"]
+mod bounds;
+#[path = "tests/typed_values.rs"]
+mod typed_values;

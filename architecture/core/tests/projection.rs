@@ -2,8 +2,12 @@
 mod admission;
 #[path = "projection/common.rs"]
 mod common;
+#[path = "projection/evidence.rs"]
+mod evidence;
 #[path = "projection/fidelity.rs"]
 mod fidelity;
+#[path = "projection/policy_configuration.rs"]
+mod policy_configuration;
 #[path = "projection/policy_permission.rs"]
 mod policy_permission;
 #[path = "projection/scores.rs"]
