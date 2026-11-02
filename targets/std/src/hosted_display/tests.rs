@@ -45,6 +45,41 @@ fn actual_initialized_lifetime_admits_atomically_and_retracts_only_own_offers() 
         .unwrap();
     host.advertisement.resources.sort();
     host.kernel_resources = KernelResourceLedger::new(&host.advertisement).unwrap();
+    // Selected IMAGE construction owns its complete pool set. Recovering the
+    // reference attachment API must never reset its ledger or enlarge it.
+    let (mut selected, _, _) = crate::host_execution::scalar_tape_fixture::prepare(
+        "plot arithmetic (\n >> value: U64\n result: U64 >>\n) = (. + 1)\n",
+        "arithmetic",
+        true,
+    );
+    let bounds = conduit_host_make::HostBounds {
+        static_memory_bytes: 16 * 1024 * 1024,
+        heap_arena_bytes: 64 * 1024 * 1024,
+        queue_items: 4096,
+        buffered_bytes: 16 * 1024 * 1024,
+        active_instances: 512,
+        operation_slots: 256,
+        timer_slots: 128,
+        line_sessions: 64,
+        evidence_items: 4096,
+    };
+    selected
+        .kernel_resources
+        .bind_image_bounds(&bounds)
+        .unwrap();
+    let selected_before = selected.advertisement.clone();
+    assert!(matches!(
+        selected.attach_display(token.clone(), DisplayPolicy::DiagnosticDummy),
+        Err(DisplayAttachmentRefusal::Ledger(message))
+            if message.contains("fresh checked construction")
+    ));
+    assert_eq!(selected.advertisement, selected_before);
+    assert!(selected.native_display.is_none());
+    assert_eq!(
+        selected.kernel_resources.admitted_image_bounds(),
+        Some(&bounds)
+    );
+    assert!(token.is_live(), "refusal cannot consume output custody");
     let before = host.advertisement.clone();
     assert!(matches!(
         host.attach_initialized_display(token.clone()),
