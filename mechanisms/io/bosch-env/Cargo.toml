@@ -1,0 +1,12 @@
+[package]
+name = "conduit-bosch-env"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "BSD-3-Clause"
+
+[workspace]
+
+[dependencies]
+embedded-hal = "=1.0.0"
+embedded-hal-async = "=1.0.0"

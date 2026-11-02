@@ -1,7 +1,12 @@
 use conduit_host_make::{
     HostBounds, HostMakePackage, ImplementationOffer, MakeAnchor, MakeContribution,
-    PostBuildAction, SporeOutputKind, TargetDescriptor,
+    PackageCatalogContribution, PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
+
+mod hardware_initialization;
+mod membership_seed;
+pub use hardware_initialization::*;
+pub use membership_seed::*;
 
 pub const PACKAGE_ID: &str = "conduit-host-rp2040@1";
 pub const TARGET_ID: &str = "conduitos/thumbv6m/pico-w";
@@ -14,7 +19,21 @@ impl HostMakePackage for Rp2040MakePackage {
         MakeContribution::Anchor(MakeAnchor {
             package_id: PACKAGE_ID.into(),
             package_revision: 1,
-            catalog: Default::default(),
+            catalog: PackageCatalogContribution {
+                initialization_contracts: std::collections::BTreeMap::from([
+                    (
+                        WIFI_IMPLEMENTATION.into(),
+                        retained_wifi_initialization_contract(),
+                    ),
+                    (I2C_IMPLEMENTATION.into(), i2c_initialization_contract()),
+                    (BOSCH_IMPLEMENTATION.into(), bosch_initialization_contract()),
+                    (
+                        HT16K33_IMPLEMENTATION.into(),
+                        ht16k33_initialization_contract(),
+                    ),
+                ]),
+                ..Default::default()
+            },
             targets: vec![TargetDescriptor {
                 label: "Pico W".into(),
                 family: "conduitos".into(),
@@ -52,7 +71,10 @@ impl HostMakePackage for Rp2040MakePackage {
                 target_patterns: vec![TARGET_ID.into()],
                 prerequisites: Vec::new(),
                 build_feature: Some("line-usb-cdc".into()),
-            }],
+            }]
+            .into_iter()
+            .chain(hardware_initialization::offers())
+            .collect(),
         })
     }
 }

@@ -31,6 +31,8 @@ mod host_microphone;
 mod host_release;
 #[path = "host_release_catalog.rs"]
 mod host_release_catalog;
+#[path = "host_rp2040.rs"]
+mod host_rp2040;
 #[path = "host_spoken_birth.rs"]
 mod host_spoken_birth;
 #[path = "host_target.rs"]
@@ -201,6 +203,8 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             profile: profile_path,
             output,
             source_identity,
+            private_seed_input,
+            private_seed_output,
         } => {
             let source_identity = source_identity
                 .map(Ok)
@@ -212,6 +216,20 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     profile_path.display(),
                     image.manifest.image_id
                 );
+            }
+            if image.manifest.target == conduit_host_rp2040::TARGET_ID {
+                host_rp2040::build(
+                    &profile_path,
+                    &output,
+                    &image,
+                    private_seed_input.as_deref(),
+                    private_seed_output.as_deref(),
+                    opts,
+                )?;
+                return Ok(());
+            }
+            if private_seed_input.is_some() || private_seed_output.is_some() {
+                return Err("private embedded Seed applies only to an RP2040 Host build".into());
             }
             if crate::commands::conduitos::target_backend::find(&image.manifest.target).is_some() {
                 let target = host_target::build_target(&image, &bytes, &output, opts)?;

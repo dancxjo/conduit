@@ -54,6 +54,12 @@ pub(super) enum HostCommand {
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,
+        /// Private local invitation/owner pin input, never part of public artifacts.
+        #[arg(long, requires = "private_seed_output")]
+        private_seed_input: Option<PathBuf>,
+        /// New private UF2 containing only the reserved immutable Seed sector.
+        #[arg(long, requires = "private_seed_input")]
+        private_seed_output: Option<PathBuf>,
     },
     /// Compile and seal an existing-computer release or one checked native Host.
     Release {
