@@ -3,9 +3,15 @@
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod backs;
 #[cfg(any(test, feature = "native-compositor-core"))]
+mod cold;
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod interaction;
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod prepared;
+#[cfg(any(test, feature = "native-compositor-core"))]
+use cold::ColdMaskFields;
+#[cfg(any(test, feature = "native-compositor-core"))]
+pub use cold::ColdNativeMaskInvocation;
 #[cfg(test)]
 mod tests;
 #[cfg(any(test, feature = "native-compositor-core"))]

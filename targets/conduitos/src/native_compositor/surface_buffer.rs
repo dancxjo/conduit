@@ -32,6 +32,10 @@ impl SurfaceBufferPool {
         }
     }
 
+    pub(super) fn metadata_backing_bytes(&self) -> usize {
+        self.available.capacity() * core::mem::size_of::<SurfaceBuffer>()
+    }
+
     pub(super) const fn allocated_pixels(&self) -> usize {
         self.allocated_pixels
     }

@@ -41,6 +41,9 @@ mod frame;
 mod graph_reading;
 #[path = "native_face_scene/input.rs"]
 mod input;
+#[path = "native_face_scene/static_scene.rs"]
+mod static_scene;
+pub use static_scene::PreparedStaticNativeFaceScene;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
 #[path = "native_face_scene/ports.rs"]

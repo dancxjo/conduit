@@ -522,3 +522,6 @@ fn interaction_fore_waits_for_delivery_without_changing_or_duplicating_the_value
 
 #[path = "tests/read_only.rs"]
 mod read_only;
+
+#[path = "tests/cold.rs"]
+mod cold;

@@ -5,6 +5,7 @@
 //! pixels. Only then does its Show Fore become available for typed input.
 
 use alloc::string::{String, ToString};
+use conduit_conduitos_mask_offer::{Adapter, MaskStage, prepare_stage};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{
     Face, FaceInteraction, FaceRole, MaskInteractionCorrelation, MaskShow, RemoteOwnerMaskRouteSeal,
@@ -13,7 +14,6 @@ use conduit_human::{KeyEvent, KeyTransition};
 
 use crate::{
     display::PixelTarget,
-    mask_control::{Adapter, MaskStage, prepare_stage},
     native_compositor::{CompositionReceipt, CompositorAdmission, InputRoute, NativeCompositor},
     native_face_scene::{FaceFocusRequest, FaceSceneError, FaceSceneInput, NativeFaceScene},
     native_face_snapshot::{FaceSnapshotReceipt, FaceSnapshotRefusal},
