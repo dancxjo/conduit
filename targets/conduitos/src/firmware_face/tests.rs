@@ -160,6 +160,41 @@ fn native_face_retains_source_publication_show_and_readonly_scanout() {
             .any(|c| c.payload().contains("PgUp") || c.payload().contains("F2"))
     );
     let evidence: serde_json::Value = serde_json::from_slice(frame.evidence()).unwrap();
+    assert!(frame.evidence().len() <= MAX_EVIDENCE_BYTES);
+    let encoded_configuration = &evidence["component_configuration"];
+    let mut independent = encoded_configuration.clone();
+    independent
+        .as_object_mut()
+        .unwrap()
+        .remove("evidence_encoding");
+    for field in ["recipe", "look", "layout"] {
+        let Some(value) = independent.get_mut(field) else {
+            continue;
+        };
+        if value.is_null() {
+            continue;
+        }
+        let encoded = &value["canonical_value"];
+        assert_eq!(encoded["encoding"], "hex@1");
+        let text = encoded["value"].as_str().unwrap();
+        assert_eq!(text.len() % 2, 0);
+        let bytes: alloc::vec::Vec<u8> = (0..text.len())
+            .step_by(2)
+            .map(|offset| u8::from_str_radix(&text[offset..offset + 2], 16).unwrap())
+            .collect();
+        assert_eq!(
+            encoded["byte_length"].as_u64().unwrap() as usize,
+            bytes.len()
+        );
+        value["canonical_value"] = serde_json::to_value(bytes).unwrap();
+    }
+    let original_configuration =
+        serde_json::to_value(mask.component_configuration().unwrap()).unwrap();
+    assert_eq!(independent, original_configuration);
+    assert_eq!(
+        crate::firmware_face_evidence::decode_configuration(encoded_configuration).unwrap(),
+        original_configuration
+    );
     assert_eq!(evidence["face"]["identity"], face.identity.as_str());
     assert_eq!(evidence["show"]["face_id"], face.identity.as_str());
     assert_eq!(evidence["local_input_available"], false);

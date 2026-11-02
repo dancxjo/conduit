@@ -1,5 +1,5 @@
 {
-  "identity": "cfd2c114e61dcfbc4093baed980952390fe578024eca80ca0c205ce0635754cb",
+  "identity": "b20c770aae130aea48a9f4167ef0a7f1a03a22e62d049e9f6aae6871b43cfa3e",
   "revision": 1,
   "basis": {
     "body_id": null,
@@ -59,8 +59,128 @@
     },
     {
       "identity": "birth/encounter/prebirth-conformance/name-system/input-details",
-      "role": "Info",
-      "name": "Naming tradition input details"
+      "role": "Collection",
+      "name": "Naming tradition choices"
+    },
+    {
+      "identity": "birth-naming/surprise",
+      "role": "Item",
+      "name": "Surprise me"
+    },
+    {
+      "identity": "birth-naming/roman",
+      "role": "Item",
+      "name": "Roman tria nomina"
+    },
+    {
+      "identity": "birth-naming/chinese",
+      "role": "Item",
+      "name": "Chinese (romanized, family name first)"
+    },
+    {
+      "identity": "birth-naming/american",
+      "role": "Item",
+      "name": "Contemporary American"
+    },
+    {
+      "identity": "birth-naming/mexican",
+      "role": "Item",
+      "name": "Mexican (two surnames)"
+    },
+    {
+      "identity": "birth-naming/icelandic",
+      "role": "Item",
+      "name": "Icelandic patronymic or matronymic"
+    },
+    {
+      "identity": "birth-naming/japanese",
+      "role": "Item",
+      "name": "Japanese (romanized, family name first)"
+    },
+    {
+      "identity": "birth-naming/arabic",
+      "role": "Item",
+      "name": "Arabic lineage plot"
+    },
+    {
+      "identity": "birth-naming/french",
+      "role": "Item",
+      "name": "Contemporary French"
+    },
+    {
+      "identity": "birth-naming/british",
+      "role": "Item",
+      "name": "Contemporary British"
+    },
+    {
+      "identity": "birth-naming/classic-anglophone",
+      "role": "Item",
+      "name": "Classic Anglophone"
+    },
+    {
+      "identity": "birth-naming/korean",
+      "role": "Item",
+      "name": "Korean (romanized, family name first)"
+    },
+    {
+      "identity": "birth-naming/vietnamese",
+      "role": "Item",
+      "name": "Vietnamese (family–middle–given)"
+    },
+    {
+      "identity": "birth-naming/yoruba",
+      "role": "Item",
+      "name": "Yorùbá personal and family names"
+    },
+    {
+      "identity": "birth-naming/ukrainian",
+      "role": "Item",
+      "name": "Ukrainian (official romanization)"
+    },
+    {
+      "identity": "birth-naming/ancient-hebrew",
+      "role": "Item",
+      "name": "Biblical Hebrew-inspired patronymic (romanized)"
+    },
+    {
+      "identity": "birth-naming/amharic",
+      "role": "Item",
+      "name": "Amharic-style patronymic (romanized)"
+    },
+    {
+      "identity": "birth-naming/portuguese",
+      "role": "Item",
+      "name": "Portuguese multi-surname"
+    },
+    {
+      "identity": "birth-naming/tamil",
+      "role": "Item",
+      "name": "Tamil patronymic plots (romanized)"
+    },
+    {
+      "identity": "birth-naming/indonesian",
+      "role": "Item",
+      "name": "Indonesian complete personal-name plots (romanized)"
+    },
+    {
+      "identity": "birth-naming/welsh",
+      "role": "Item",
+      "name": "Welsh modern and patronymic plots"
+    },
+    {
+      "identity": "birth-naming/kurmanji",
+      "role": "Item",
+      "name": "Kurdish Kurmanji (Latin script)"
+    },
+    {
+      "identity": "birth-naming/targus",
+      "role": "Item",
+      "name": "The TARGUS family"
+    },
+    {
+      "identity": "birth-naming/elvish",
+      "role": "Item",
+      "name": "Original Elvish-inspired"
     },
     {
       "identity": "birth/encounter/prebirth-conformance/plot-search",
@@ -108,9 +228,14 @@
       "name": "Review Birth choices"
     },
     {
-      "identity": "birth/encounter/prebirth-conformance/birth-review-plot-0",
-      "role": "Status",
-      "name": "Starting Plot 1"
+      "identity": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "role": "Collection",
+      "name": "Selected starting Plots"
+    },
+    {
+      "identity": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/review",
+      "role": "Item",
+      "name": "Scratch"
     }
   ],
   "relationships": [
@@ -154,6 +279,287 @@
     {
       "source": "birth/encounter/prebirth-conformance/name-system",
       "target": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/surprise",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/surprise",
+      "target": "birth-naming/roman",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/roman",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/roman",
+      "target": "birth-naming/chinese",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/chinese",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/chinese",
+      "target": "birth-naming/american",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/american",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/american",
+      "target": "birth-naming/mexican",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/mexican",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/mexican",
+      "target": "birth-naming/icelandic",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/icelandic",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/icelandic",
+      "target": "birth-naming/japanese",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/japanese",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/japanese",
+      "target": "birth-naming/arabic",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/arabic",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/arabic",
+      "target": "birth-naming/french",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/french",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/french",
+      "target": "birth-naming/british",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/british",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/british",
+      "target": "birth-naming/classic-anglophone",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/classic-anglophone",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/classic-anglophone",
+      "target": "birth-naming/korean",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/korean",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/korean",
+      "target": "birth-naming/vietnamese",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/vietnamese",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/vietnamese",
+      "target": "birth-naming/yoruba",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/yoruba",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/yoruba",
+      "target": "birth-naming/ukrainian",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/ukrainian",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/ukrainian",
+      "target": "birth-naming/ancient-hebrew",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/ancient-hebrew",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/ancient-hebrew",
+      "target": "birth-naming/amharic",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/amharic",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/amharic",
+      "target": "birth-naming/portuguese",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/portuguese",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/portuguese",
+      "target": "birth-naming/tamil",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/tamil",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/tamil",
+      "target": "birth-naming/indonesian",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/indonesian",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/indonesian",
+      "target": "birth-naming/welsh",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/welsh",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/welsh",
+      "target": "birth-naming/kurmanji",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/kurmanji",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/kurmanji",
+      "target": "birth-naming/targus",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/targus",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth-naming/targus",
+      "target": "birth-naming/elvish",
+      "kind": {
+        "Semantic": "document/precedes"
+      }
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "target": "birth-naming/elvish",
       "kind": "Contains"
     },
     {
@@ -224,7 +630,12 @@
     },
     {
       "source": "birth/encounter/prebirth-conformance/article",
-      "target": "birth/encounter/prebirth-conformance/birth-review-plot-0",
+      "target": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "kind": "Contains"
+    },
+    {
+      "source": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "target": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/review",
       "kind": "Contains"
     }
   ],
@@ -283,6 +694,935 @@
       "name": "value-change-action",
       "value": {
         "Identity": "creche.name"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "item-count",
+      "value": {
+        "Count": 24
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "choice-multiplicity",
+      "value": {
+        "Text": "exclusive"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "minimum-selected-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "maximum-selected-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "selection-action",
+      "value": {
+        "Identity": "creche.naming"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/name-system/input-details",
+      "name": "value-source",
+      "value": {
+        "Identity": "birth/encounter/prebirth-conformance/name-system"
+      }
+    },
+    {
+      "subject": "birth-naming/surprise",
+      "name": "order",
+      "value": {
+        "Count": 0
+      }
+    },
+    {
+      "subject": "birth-naming/surprise",
+      "name": "selected",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "birth-naming/surprise",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            115,
+            117,
+            114,
+            112,
+            114,
+            105,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/roman",
+      "name": "order",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth-naming/roman",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/roman",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            114,
+            111,
+            109,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/chinese",
+      "name": "order",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
+      "subject": "birth-naming/chinese",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/chinese",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            99,
+            104,
+            105,
+            110,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/american",
+      "name": "order",
+      "value": {
+        "Count": 3
+      }
+    },
+    {
+      "subject": "birth-naming/american",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/american",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            109,
+            101,
+            114,
+            105,
+            99,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/mexican",
+      "name": "order",
+      "value": {
+        "Count": 4
+      }
+    },
+    {
+      "subject": "birth-naming/mexican",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/mexican",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            109,
+            101,
+            120,
+            105,
+            99,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/icelandic",
+      "name": "order",
+      "value": {
+        "Count": 5
+      }
+    },
+    {
+      "subject": "birth-naming/icelandic",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/icelandic",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            105,
+            99,
+            101,
+            108,
+            97,
+            110,
+            100,
+            105,
+            99
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/japanese",
+      "name": "order",
+      "value": {
+        "Count": 6
+      }
+    },
+    {
+      "subject": "birth-naming/japanese",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/japanese",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            106,
+            97,
+            112,
+            97,
+            110,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/arabic",
+      "name": "order",
+      "value": {
+        "Count": 7
+      }
+    },
+    {
+      "subject": "birth-naming/arabic",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/arabic",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            114,
+            97,
+            98,
+            105,
+            99
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/french",
+      "name": "order",
+      "value": {
+        "Count": 8
+      }
+    },
+    {
+      "subject": "birth-naming/french",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/french",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            102,
+            114,
+            101,
+            110,
+            99,
+            104
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/british",
+      "name": "order",
+      "value": {
+        "Count": 9
+      }
+    },
+    {
+      "subject": "birth-naming/british",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/british",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            98,
+            114,
+            105,
+            116,
+            105,
+            115,
+            104
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/classic-anglophone",
+      "name": "order",
+      "value": {
+        "Count": 10
+      }
+    },
+    {
+      "subject": "birth-naming/classic-anglophone",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/classic-anglophone",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            99,
+            108,
+            97,
+            115,
+            115,
+            105,
+            99,
+            45,
+            97,
+            110,
+            103,
+            108,
+            111,
+            112,
+            104,
+            111,
+            110,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/korean",
+      "name": "order",
+      "value": {
+        "Count": 11
+      }
+    },
+    {
+      "subject": "birth-naming/korean",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/korean",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            107,
+            111,
+            114,
+            101,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/vietnamese",
+      "name": "order",
+      "value": {
+        "Count": 12
+      }
+    },
+    {
+      "subject": "birth-naming/vietnamese",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/vietnamese",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            118,
+            105,
+            101,
+            116,
+            110,
+            97,
+            109,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/yoruba",
+      "name": "order",
+      "value": {
+        "Count": 13
+      }
+    },
+    {
+      "subject": "birth-naming/yoruba",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/yoruba",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            121,
+            111,
+            114,
+            117,
+            98,
+            97
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/ukrainian",
+      "name": "order",
+      "value": {
+        "Count": 14
+      }
+    },
+    {
+      "subject": "birth-naming/ukrainian",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/ukrainian",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            117,
+            107,
+            114,
+            97,
+            105,
+            110,
+            105,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/ancient-hebrew",
+      "name": "order",
+      "value": {
+        "Count": 15
+      }
+    },
+    {
+      "subject": "birth-naming/ancient-hebrew",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/ancient-hebrew",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            110,
+            99,
+            105,
+            101,
+            110,
+            116,
+            45,
+            104,
+            101,
+            98,
+            114,
+            101,
+            119
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/amharic",
+      "name": "order",
+      "value": {
+        "Count": 16
+      }
+    },
+    {
+      "subject": "birth-naming/amharic",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/amharic",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            97,
+            109,
+            104,
+            97,
+            114,
+            105,
+            99
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/portuguese",
+      "name": "order",
+      "value": {
+        "Count": 17
+      }
+    },
+    {
+      "subject": "birth-naming/portuguese",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/portuguese",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            112,
+            111,
+            114,
+            116,
+            117,
+            103,
+            117,
+            101,
+            115,
+            101
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/tamil",
+      "name": "order",
+      "value": {
+        "Count": 18
+      }
+    },
+    {
+      "subject": "birth-naming/tamil",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/tamil",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            116,
+            97,
+            109,
+            105,
+            108
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/indonesian",
+      "name": "order",
+      "value": {
+        "Count": 19
+      }
+    },
+    {
+      "subject": "birth-naming/indonesian",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/indonesian",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            105,
+            110,
+            100,
+            111,
+            110,
+            101,
+            115,
+            105,
+            97,
+            110
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/welsh",
+      "name": "order",
+      "value": {
+        "Count": 20
+      }
+    },
+    {
+      "subject": "birth-naming/welsh",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/welsh",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            119,
+            101,
+            108,
+            115,
+            104
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/kurmanji",
+      "name": "order",
+      "value": {
+        "Count": 21
+      }
+    },
+    {
+      "subject": "birth-naming/kurmanji",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/kurmanji",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            107,
+            117,
+            114,
+            109,
+            97,
+            110,
+            106,
+            105
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/targus",
+      "name": "order",
+      "value": {
+        "Count": 22
+      }
+    },
+    {
+      "subject": "birth-naming/targus",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/targus",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            116,
+            97,
+            114,
+            103,
+            117,
+            115
+          ]
+        }
+      }
+    },
+    {
+      "subject": "birth-naming/elvish",
+      "name": "order",
+      "value": {
+        "Count": 23
+      }
+    },
+    {
+      "subject": "birth-naming/elvish",
+      "name": "selected",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "birth-naming/elvish",
+      "name": "choice-value",
+      "value": {
+        "TypedValue": {
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 64,
+            "constraints": []
+          },
+          "bytes": [
+            101,
+            108,
+            118,
+            105,
+            115,
+            104
+          ]
+        }
       }
     },
     {
@@ -667,6 +2007,48 @@
       }
     },
     {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "inventory-count",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "selected-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/initial-plots",
+      "name": "query-source",
+      "value": {
+        "Identity": "birth/encounter/prebirth-conformance/plot-search"
+      }
+    },
+    {
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "name": "item-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/review",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/scratch"
+      }
+    },
+    {
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/review",
+      "name": "order",
+      "value": {
+        "Count": 0
+      }
+    },
+    {
       "subject": "birth/encounter/prebirth-conformance",
       "name": "host-id",
       "value": {
@@ -817,10 +2199,6 @@
     {
       "subject": "birth/encounter/prebirth-conformance/birth-review",
       "text": "Name: Gonçalo Pacheco Guerreiro. Starting Plots selected: 1 of 2. Birth: available."
-    },
-    {
-      "subject": "birth/encounter/prebirth-conformance/birth-review-plot-0",
-      "text": "Scratch"
     }
   ],
   "actions": [
@@ -1228,6 +2606,102 @@
       "level": "SelectedDetail"
     },
     {
+      "subject": "birth-naming/surprise",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/roman",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/chinese",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/american",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/mexican",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/icelandic",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/japanese",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/arabic",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/french",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/british",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/classic-anglophone",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/korean",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/vietnamese",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/yoruba",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/ukrainian",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/ancient-hebrew",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/amharic",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/portuguese",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/tamil",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/indonesian",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/welsh",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/kurmanji",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/targus",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "birth-naming/elvish",
+      "level": "SelectedDetail"
+    },
+    {
       "subject": "birth/encounter/prebirth-conformance/plot-search/input-details",
       "level": "SelectedDetail"
     },
@@ -1240,7 +2714,11 @@
       "level": "SelectedDetail"
     },
     {
-      "subject": "birth/encounter/prebirth-conformance/birth-review-plot-0",
+      "subject": "birth/encounter/prebirth-conformance/reviewed-plots",
+      "level": "SelectedDetail"
+    },
+    {
+      "subject": "8Hnt-oKQ8M8xWo063O9YzIx03KgMn-SEhIfkSzuEs24/review",
       "level": "SelectedDetail"
     }
   ],
