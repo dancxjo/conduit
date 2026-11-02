@@ -224,6 +224,9 @@ async function admitProfileGatedBrowserBoot({
 }
 
 export async function loadBrowserApplication(manifestReference) {
+  if (typeof globalThis.crypto?.subtle?.digest !== "function") {
+    throw new Error("A secure connection is required. Open this application over HTTPS or through a localhost tunnel.");
+  }
   const manifestUrl = new URL(manifestReference, document.baseURI);
   if (manifestUrl.origin !== location.origin) throw new Error("application package must be same-origin");
   const manifestBytes = await boundedFetch(manifestUrl, MAXIMUM_PACKAGE_BYTES, "application package manifest");
