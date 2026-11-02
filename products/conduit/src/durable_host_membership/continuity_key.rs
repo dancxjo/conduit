@@ -220,4 +220,5 @@ fn sync_directory(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(test)]
+#[path = "continuity_key/tests.rs"]
 mod tests;

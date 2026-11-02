@@ -6,6 +6,10 @@ use conduit_body::{PortableInvitation, PortableSpawnAdmissionRequest, SpawnInvit
 use conduit_core::{HostProfileId, OfferGeneration, PROTOCOL_VERSION};
 use std::path::PathBuf;
 
+fn id<T: serde::de::DeserializeOwned>(text: &str) -> T {
+    serde_json::from_value(serde_json::Value::String(text.into())).unwrap()
+}
+
 struct Fixture {
     root: PathBuf,
     pending: PendingBodyJoin,
@@ -36,8 +40,8 @@ fn fixture() -> Fixture {
     let invitation = PortableInvitation {
         schema: conduit_body::INVITATION_SCHEMA.into(),
         claim: SpawnInvitationClaim {
-            invitation_id: "fixture/invitation".into(),
-            body_id: "fixture/body".into(),
+            invitation_id: id("fixture/invitation"),
+            body_id: id("fixture/body"),
             nonce: [3; 32],
             expires_at_millis: 1000,
         },
@@ -69,9 +73,9 @@ fn fixture() -> Fixture {
     let receipt = PortableAdmissionReceipt {
         schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
         credential: MembershipCredential {
-            credential_id: "fixture/credential".into(),
-            body_id: "fixture/body".into(),
-            part_id: "fixture/part".into(),
+            credential_id: id("fixture/credential"),
+            body_id: id("fixture/body"),
+            part_id: id("fixture/part"),
             host_id: advertisement.host_id.clone(),
             boot_id: advertisement.boot_id.clone(),
             issued_at_millis: 10,
@@ -153,7 +157,7 @@ fn persistence_failure_leaves_membership_and_pending_unconsumed() {
 fn different_receipt_scope_and_signed_key_cannot_overwrite_retained_identity() {
     let mut f = fixture();
     let mut wrong = f.receipt.clone();
-    wrong.credential.body_id = "fixture/other".into();
+    wrong.credential.body_id = id("fixture/other");
     assert!(durable_host::membership::complete_body_join_document(wrong, &f.root, true).is_err());
     retain(
         &f.root,
@@ -163,9 +167,9 @@ fn different_receipt_scope_and_signed_key_cannot_overwrite_retained_identity() {
     )
     .unwrap();
     let original = fs::read(f.root.join("body").join(PATH)).unwrap();
-    f.receipt.credential.part_id = "fixture/another-part".into();
+    f.receipt.credential.part_id = id("fixture/another-part");
     assert!(complete(&f).is_err());
-    f.receipt.credential.part_id = "fixture/part".into();
+    f.receipt.credential.part_id = id("fixture/part");
     f.pending.invitation.secret = [8; 32];
     assert!(retain(
         &f.root,

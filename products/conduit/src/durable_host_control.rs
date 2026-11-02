@@ -1449,7 +1449,7 @@ pub(crate) fn signal_remote_cancellation(
 mod service;
 #[cfg(unix)]
 pub(crate) use service::serve;
-#[cfg(all(unix, any(test, feature = "native-display")))]
+#[cfg(all(unix, feature = "native-display"))]
 pub(crate) use service::serve_with_foreground;
 #[cfg(all(unix, feature = "native-display"))]
 pub(crate) use service::ForegroundPoll;

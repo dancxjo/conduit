@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.proof/installed-continuity-and-idle-progress@1",
+  "scope": "local installed product tests; no returning-member session or physical display proof",
+  "tests": {
+    "private_continuity_key": 7,
+    "idle_foreground_authenticated_control": 1
+  },
+  "log_sha256": {
+    "continuity-tests-typed.log": "c9fb8aa609aa5e25c12ee7d2bb1e6d4e2c65f688e1e321532373f20c96172da9",
+    "service-tests-fixed.log": "a608b401b2b192ea79f52eb1795280077756b261f87509722e36791cbf1c6eda"
+  },
+  "not_proved": [
+    "current-member authentication and one-use challenge custody",
+    "graphical Mask initialization and Face route",
+    "AArch64 feature-selected release or new Seed",
+    "physical KMSDRM/HDMI and restart continuity"
+  ]
+}
