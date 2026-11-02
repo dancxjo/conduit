@@ -116,6 +116,9 @@ pub struct AdmissionManager {
     pub body_id: BodyId,
     pending: Vec<PendingAdmission>,
     invitations: Vec<InvitationRecord>,
+    // Never reuse an issued identity after bounded invitation retirement.
+    #[serde(default)]
+    next_invitation_sequence: u64,
     continuity_keys: Vec<ContinuityKeyRecord>,
     pending_returns: Vec<PendingReturn>,
     pub receipts: Vec<AdmissionReceipt>,
@@ -141,6 +144,7 @@ pub enum AdmissionRefusal {
     CandidateNotEligible,
     PendingCapacityExhausted,
     InvitationCapacityExhausted,
+    InvitationSequenceExhausted,
     ReceiptCapacityExhausted,
     Candidate(CandidateRefusal),
     Membership(MembershipRefusal),
@@ -175,6 +179,7 @@ impl AdmissionManager {
             body_id,
             pending: Vec::new(),
             invitations: Vec::new(),
+            next_invitation_sequence: 0,
             continuity_keys: Vec::new(),
             pending_returns: Vec::new(),
             receipts: Vec::new(),
