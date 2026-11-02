@@ -47,13 +47,24 @@ fn generic_producer_matches_existing_native_parser_and_release_aggregate() {
     for entry in &entries {
         assert_eq!(entry.bytes, payloads[&entry.name]);
     }
-    let files = entries
-        .into_iter()
-        .map(|e| ReleaseFile {
-            path: e.name,
-            bytes: e.bytes.len() as u64,
-            sha256: digest(&e.bytes),
-        })
-        .collect::<Vec<_>>();
-    assert_eq!(bundle_digest(&files), artifact.image_content_sha256);
+    let verified = verify_release_manifest(&provision, &artifact, &entries).unwrap();
+    assert_eq!(
+        verified.manifest().source_identity,
+        spore.image.manifest.source_identity
+    );
+    assert_ne!(
+        verified.manifest().source_identity,
+        spore.manifest.source_identity
+    );
+    let root = super::test_root("ordinary-producer-make-source");
+    fs::create_dir_all(&root).unwrap();
+    let source = root.join("spore.zip");
+    fs::write(&source, &bytes).unwrap();
+    let prepared = prepare(&source, &artifact, &root.join("state")).unwrap();
+    let installed: serde_json::Value =
+        serde_json::from_slice(&fs::read(&prepared.manifest).unwrap()).unwrap();
+    assert_eq!(installed, serde_json::to_value(release.manifest()).unwrap());
+    assert_eq!(installed["source_identity"], "source/prior-reviewed-make");
+    assert_eq!(spore.manifest.source_identity, "sign/original-body-birth");
+    fs::remove_dir_all(root).unwrap();
 }

@@ -3,7 +3,9 @@
 use conduit_host_make::{
     BodyBoundArtifactIdentity, NativeInstallOutcome, NativeInstallRefusal, NativePackageInstaller,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+#[cfg(test)]
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeSet,
@@ -87,6 +89,8 @@ struct Provision {
     schema: String,
     spore: NativeSpore,
     invitation_provision: InvitationProvision,
+    #[serde(default)]
+    release_manifest: Option<conduit_host_make::HostReleaseManifest>,
 }
 
 #[derive(Deserialize)]
@@ -124,19 +128,7 @@ struct InvitationProvision {
     expires_at_millis: u64,
 }
 
-#[derive(Serialize)]
-struct ReleaseManifest<'a> {
-    schema: &'static str,
-    target_id: &'a str,
-    make_package_id: &'a str,
-    output: &'static str,
-    builder_adapter: &'a str,
-    deployment_adapter: &'a str,
-    source_identity: &'a str,
-    bundle_sha256: &'a str,
-    files: Vec<ReleaseFile>,
-}
-
+#[cfg(test)]
 #[derive(Serialize)]
 struct ReleaseFile {
     path: String,
@@ -168,24 +160,18 @@ fn prepare(
         .iter()
         .position(|entry| entry.name == PROVISION_PATH)
         .ok_or(NativeInstallRefusal::PackageMalformed)?;
-    let mut provision: Provision = serde_json::from_slice(&entries.remove(provision_index).bytes)
-        .map_err(|_| NativeInstallRefusal::PackageMalformed)?;
-    validate_provision(&provision, artifact).map_err(|_| NativeInstallRefusal::BindingMismatch)?;
-    provision.invitation_provision.secret.fill(0);
-    if entries.is_empty() || entries.len() >= MAXIMUM_FILES {
+    let mut provision_bytes = entries.remove(provision_index).bytes;
+    if provision_bytes.len() > 64 * 1024 {
+        provision_bytes.fill(0);
         return Err(NativeInstallRefusal::PackageMalformed);
     }
-    let files = entries
-        .iter()
-        .map(|entry| ReleaseFile {
-            path: entry.name.clone(),
-            bytes: entry.bytes.len() as u64,
-            sha256: digest(&entry.bytes),
-        })
-        .collect::<Vec<_>>();
-    if bundle_digest(&files) != artifact.image_content_sha256 {
-        return Err(NativeInstallRefusal::ImageMismatch);
-    }
+    let decoded = serde_json::from_slice::<Provision>(&provision_bytes);
+    provision_bytes.fill(0);
+    let mut provision = decoded.map_err(|_| NativeInstallRefusal::PackageMalformed)?;
+    let validation = validate_provision(&provision, artifact);
+    provision.invitation_provision.secret.fill(0);
+    validation.map_err(|_| NativeInstallRefusal::BindingMismatch)?;
+    let release = verify_release_manifest(&provision, artifact, &entries)?;
     let parent = state_dir.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|_| NativeInstallRefusal::InstallationFailed)?;
     let root = parent.join(format!(
@@ -199,30 +185,11 @@ fn prepare(
             create_new(&root.join(&entry.name), &entry.bytes)
                 .map_err(|_| NativeInstallRefusal::InstallationFailed)?;
         }
-        let deployment = provision
-            .spore
-            .make
-            .deployment_adapter
-            .as_deref()
-            .ok_or(NativeInstallRefusal::BindingMismatch)?;
-        let manifest = ReleaseManifest {
-            schema: "conduit.release/host-bundle@1",
-            target_id: &provision.spore.target,
-            make_package_id: &provision.spore.make.make_package_id,
-            output: "native-bundle",
-            builder_adapter: &provision.spore.make.builder_adapter,
-            deployment_adapter: deployment,
-            source_identity: &provision.spore.source_identity,
-            bundle_sha256: &artifact.image_content_sha256,
-            files,
-        };
         let manifest_path = root.join("body-bound-native-release.json");
-        create_new(
-            &manifest_path,
-            &serde_json::to_vec_pretty(&manifest)
-                .map_err(|_| NativeInstallRefusal::InstallationFailed)?,
-        )
-        .map_err(|_| NativeInstallRefusal::InstallationFailed)?;
+        // Keep the actual verified Make metadata, including its artifact source;
+        // Spore construction/Birth Sign provenance is a separate identity.
+        create_new(&manifest_path, release.manifest_bytes())
+            .map_err(|_| NativeInstallRefusal::InstallationFailed)?;
         Ok(PreparedPackage {
             root: root.clone(),
             manifest: manifest_path,
@@ -232,6 +199,61 @@ fn prepare(
         let _ = fs::remove_dir_all(&root);
     }
     result
+}
+
+/// The authenticated artifact's raw ZIP digest covers this metadata. The generic
+/// release verifier rechecks every extracted byte against its exact inventory;
+/// it never derives artifact provenance from the Body's Birth Sign.
+fn verify_release_manifest(
+    provision: &Provision,
+    artifact: &BodyBoundArtifactIdentity,
+    entries: &[ZipEntry],
+) -> Result<conduit_host_make::VerifiedHostReleaseBytes, NativeInstallRefusal> {
+    let manifest = provision
+        .release_manifest
+        .as_ref()
+        .ok_or(NativeInstallRefusal::BindingMismatch)?;
+    if entries.is_empty()
+        || entries.len() >= MAXIMUM_FILES
+        || manifest.files.len() != entries.len()
+        || manifest.bundle_sha256 != artifact.image_content_sha256
+    {
+        return Err(NativeInstallRefusal::ImageMismatch);
+    }
+    let bytes = conduit_body_make::encode_joining_host_evidence(manifest, 64 * 1024)
+        .map_err(|_| NativeInstallRefusal::PackageMalformed)?;
+    let spore = &provision.spore;
+    let deployment = spore
+        .make
+        .deployment_adapter
+        .as_deref()
+        .ok_or(NativeInstallRefusal::BindingMismatch)?;
+    conduit_host_make::verify_host_release_bytes(
+        &bytes,
+        &conduit_host_make::ReleaseTargetProfile {
+            target_id: &spore.target,
+            package_id: &spore.make.make_package_id,
+            output: "native-bundle",
+            builder_adapter: &spore.make.builder_adapter,
+            deployment_adapter: deployment,
+        },
+        &manifest.source_identity,
+        conduit_host_make::HostReleaseBounds {
+            maximum_manifest_bytes: 64 * 1024,
+            maximum_files: MAXIMUM_FILES - 1,
+            maximum_file_bytes: MAXIMUM_PACKAGE_BYTES as u64,
+            maximum_bundle_bytes: MAXIMUM_PACKAGE_BYTES as u64,
+        },
+        |path| {
+            entries
+                .iter()
+                .find(|entry| entry.name == path)
+                .map(|entry| std::io::Cursor::new(entry.bytes.as_slice()))
+                .ok_or_else(|| "native release payload is absent from exact ZIP".into())
+        },
+        || false,
+    )
+    .map_err(|_| NativeInstallRefusal::ImageMismatch)
 }
 
 fn validate_provision(
@@ -403,6 +425,7 @@ fn digest(bytes: &[u8]) -> String {
     format!("sha256:{:x}", Sha256::digest(bytes))
 }
 
+#[cfg(test)]
 fn bundle_digest(files: &[ReleaseFile]) -> String {
     let mut digest = Sha256::new();
     digest.update(b"conduit.release/host-bundle-content@1\0");

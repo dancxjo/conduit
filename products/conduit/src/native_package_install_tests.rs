@@ -20,8 +20,21 @@ pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
         })
         .collect::<Vec<_>>();
     let image_content_sha256 = bundle_digest(&files);
+    let release_manifest = serde_json::json!({
+        "schema":"conduit.release/host-bundle@1",
+        "target_id":"std/x86_64/computer",
+        "make_package_id":"hosted-native@1",
+        "output":"native-bundle",
+        "builder_adapter":"conduit-host-hosted/build-native@1",
+        "deployment_adapter":"conduit-host-hosted/launch@1",
+        "source_identity":"commit:reviewed",
+        "bundle_sha256":image_content_sha256,
+        "files":files.iter().map(|file|serde_json::json!({"path":file.path,"bytes":file.bytes,"sha256":file.sha256,"media_type":"application/octet-stream"})).collect::<Vec<_>>(),
+        "retained_target_metadata":{"example":true}
+    });
     let provision = serde_json::to_vec(&serde_json::json!({
         "schema": "conduit.spore/native-package-provision@1",
+        "release_manifest": release_manifest,
         "spore": {
             "schema": "conduit.body/spore-manifest@2",
             "spore_id": "spore/body-one/native-host",
@@ -50,7 +63,7 @@ pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
                 "selected_base_implementations": [],
                 "implementation_packages": []
             },
-            "source_identity": "commit:reviewed"
+            "source_identity": "sign/original-body-birth"
         },
         "invitation_provision": {
             "invitation_id": "invitation/one",
@@ -91,6 +104,8 @@ fn exact_body_bound_zip_becomes_a_verified_release_without_persisting_the_secret
     let manifest: serde_json::Value =
         serde_json::from_slice(&fs::read(&prepared.manifest).unwrap()).unwrap();
     assert_eq!(manifest["target_id"], artifact.target_id);
+    assert_eq!(manifest["source_identity"], "commit:reviewed");
+    assert_eq!(manifest["retained_target_metadata"]["example"], true);
     assert_eq!(manifest["bundle_sha256"], artifact.image_content_sha256);
     assert_eq!(manifest["files"].as_array().unwrap().len(), 2);
     assert!(prepared.root.join("conduit-linux-x86_64").is_file());
@@ -192,3 +207,83 @@ fn test_root(name: &str) -> PathBuf {
 
 #[path = "native_package_install/tests/joining_host_package.rs"]
 mod joining_host_package;
+
+#[test]
+fn missing_or_inconsistent_make_provenance_is_refused_before_staging() {
+    for (label, change) in [
+        ("missing", 0),
+        ("foreign-target", 1),
+        ("wrong-file-hash", 2),
+        ("missing-file", 3),
+        ("wrong-aggregate", 4),
+    ] {
+        let (original, mut artifact) = fixture();
+        let mut entries = read_stored_zip(&original).unwrap();
+        let provision = entries
+            .iter_mut()
+            .find(|entry| entry.name == PROVISION_PATH)
+            .unwrap();
+        let mut value: serde_json::Value = serde_json::from_slice(&provision.bytes).unwrap();
+        match change {
+            0 => {
+                value.as_object_mut().unwrap().remove("release_manifest");
+            }
+            1 => value["release_manifest"]["target_id"] = "std/foreign/computer".into(),
+            2 => {
+                value["release_manifest"]["files"][0]["sha256"] =
+                    format!("sha256:{}", "2".repeat(64)).into()
+            }
+            3 => {
+                value["release_manifest"]["files"]
+                    .as_array_mut()
+                    .unwrap()
+                    .pop();
+            }
+            _ => {
+                value["release_manifest"]["bundle_sha256"] =
+                    format!("sha256:{}", "3".repeat(64)).into()
+            }
+        }
+        provision.bytes = serde_json::to_vec(&value).unwrap();
+        let package = stored_zip(&entries);
+        // Even when supplied as a newly selected artifact, inconsistent Make
+        // metadata cannot pass the existing byte-inventory verifier.
+        artifact.artifact_bytes = package.len() as u64;
+        artifact.artifact_content_sha256 = digest(&package);
+        let root = test_root(label);
+        fs::create_dir_all(&root).unwrap();
+        let source = root.join("spore.zip");
+        fs::write(&source, package).unwrap();
+        let result = prepare(&source, &artifact, &root.join("state"));
+        assert!(matches!(
+            result,
+            Err(NativeInstallRefusal::BindingMismatch | NativeInstallRefusal::ImageMismatch)
+        ));
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+#[test]
+fn artifact_digest_authenticates_make_source_metadata() {
+    let (original, artifact) = fixture();
+    let mut entries = read_stored_zip(&original).unwrap();
+    let provision = entries
+        .iter_mut()
+        .find(|entry| entry.name == PROVISION_PATH)
+        .unwrap();
+    let mut value: serde_json::Value = serde_json::from_slice(&provision.bytes).unwrap();
+    value["release_manifest"]["source_identity"] = "source:tampered".into();
+    provision.bytes = serde_json::to_vec(&value).unwrap();
+    let root = test_root("source-tamper");
+    fs::create_dir_all(&root).unwrap();
+    let source = root.join("spore.zip");
+    let tampered = stored_zip(&entries);
+    assert_eq!(tampered.len() as u64, artifact.artifact_bytes);
+    fs::write(&source, tampered).unwrap();
+    assert!(matches!(
+        prepare(&source, &artifact, &root.join("state")),
+        Err(NativeInstallRefusal::ContentMismatch)
+    ));
+    assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    fs::remove_dir_all(root).unwrap();
+}
