@@ -380,3 +380,6 @@ fn loopback_transport_delivers_only_an_authenticated_authorized_frame() {
     assert!(inspection.membership_current);
     assert_eq!(inspection.next_sequence, 1);
 }
+
+#[path = "tests/current_member.rs"]
+mod current_member;
