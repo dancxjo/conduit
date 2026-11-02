@@ -98,9 +98,9 @@ impl CrecheEncounterFactory {
             .map_err(|e| format!("Crèche Body biography: {e:?}"))?;
         binding
             .invitation
-            .inspect(clock()?)
+            .validate(clock()?)
             .map_err(|e| format!("Crèche invitation: {e:?}"))?;
-        if binding.biography.body_id != binding.invitation.body_id {
+        if binding.biography.body_id != binding.invitation.claim.body_id {
             return Err("Crèche invitation belongs to another Body".into());
         }
         let encounter = match &self.inputs.installation.initial_source {

@@ -51,7 +51,7 @@ impl HostedCrecheAdapter for CrecheEncounterAdapter<'_> {
                 self.channel.inputs.admission_digest,
                 &self.channel.binding.biography.body_id,
                 &self.channel.binding.biography.body.identity_derivation,
-                &self.channel.binding.invitation,
+                &self.channel.binding.invitation.claim,
             ))
             .map_err(|e| e.to_string())?,
         )

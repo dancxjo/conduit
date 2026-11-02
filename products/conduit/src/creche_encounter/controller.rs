@@ -98,7 +98,7 @@ impl CrecheEncounterController {
                         conduit_body_make::JoiningProductionRequest {
                             request_id: &id,
                             body: &channel.binding.biography,
-                            invitation: &channel.binding.invitation,
+                            invitation: &channel.binding.invitation.claim,
                             configuration: &configuration,
                             output: artifact.output.clone(),
                             artifact: conduit_body_make::ReviewedJoiningArtifact {

@@ -67,7 +67,7 @@ impl Owner {
         super::super::super::write_json_atomic(&directory.join("invitation.json"), &invitation)?;
         Ok(Some(CrecheBodyBinding {
             biography: self.session.evidence().clone(),
-            invitation: invitation.claim,
+            invitation,
         }))
     }
     pub(super) fn take_creche_execution(

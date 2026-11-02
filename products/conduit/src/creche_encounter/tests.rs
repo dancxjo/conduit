@@ -74,11 +74,15 @@ fn binding() -> CrecheBodyBinding {
             now,
             now + 60_000,
         )
-        .unwrap()
-        .claim();
+        .unwrap();
     CrecheBodyBinding {
         biography,
-        invitation,
+        invitation: conduit_body::PortableInvitation {
+            schema: conduit_body::INVITATION_SCHEMA.into(),
+            claim: invitation.claim(),
+            secret: invitation.secret.copy_for_target_provisioning(),
+            rendezvous: None,
+        },
     }
 }
 fn factory() -> CrecheEncounterFactory {
@@ -338,4 +342,20 @@ fn failed_presentation_drain_does_not_report_retirement() {
         .unwrap_err()
         .contains("uncertain"));
     assert!(!adapter.retired);
+}
+
+#[test]
+fn encounter_refuses_invalid_private_provision_before_effects() {
+    let mut factory = factory();
+    let mut binding = binding();
+    binding.invitation.secret.fill(0);
+    assert!(factory
+        .encounter(
+            binding,
+            Box::new(Custody {
+                admitted: false,
+                drained: Arc::new(AtomicBool::new(false))
+            })
+        )
+        .is_err());
 }

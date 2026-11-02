@@ -1,6 +1,6 @@
 //! One admitted Crèche operation on the original installed Host. The service
 //! owns presentation and pumps production; kernel begin/poll never perform I/O.
-use conduit_body::{BodyBiographyEvidence, SpawnInvitationClaim};
+use conduit_body::{BodyBiographyEvidence, PortableInvitation};
 use conduit_body_make::{
     deployment_runtime::{CrecheDisposition, CrecheOutcome, CrecheRequest},
     HostConfigurationEncounter, HostConfigurationEncounterBasis, HostConfigurationEncounterOutcome,
@@ -60,9 +60,16 @@ pub struct CrecheReviewedArtifact {
     pub source_identity: String,
 }
 
+/// Private owner-issued provisioning stays in scoped custody, never in a Face.
 pub struct CrecheBodyBinding {
     pub biography: BodyBiographyEvidence,
-    pub invitation: SpawnInvitationClaim,
+    pub invitation: PortableInvitation,
+}
+
+impl Drop for CrecheBodyBinding {
+    fn drop(&mut self) {
+        self.invitation.secret.fill(0);
+    }
 }
 
 struct Inputs {
