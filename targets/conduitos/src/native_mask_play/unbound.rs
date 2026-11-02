@@ -73,6 +73,7 @@ impl UnboundNativeMaskStorage {
         planned: &PlannedMaskPlot,
     ) -> Result<RetainedNativeMaskStorage, NativeMaskPlayError> {
         storage::validate_profile(planned, self.profile)?;
+        let backing = self.backing();
         let fragment = planned
             .plan
             .fragments
@@ -88,7 +89,7 @@ impl UnboundNativeMaskStorage {
             self.profile,
             scheduler,
             self.optional,
-            self.backing,
+            backing,
         )
     }
     #[cfg(test)]
