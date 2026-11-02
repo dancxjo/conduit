@@ -684,3 +684,32 @@ PR #6724 merged into dev as `b09397ae6974decb7f42fe8c32b1f768f2b81829`
 after Candidate 41479108621 passed. The delivery branch incorporated that dev
 commit without conflicts. Threebee still lacks its system SDL runtime; the
 private loader preflight is not a system-package installation.
+
+
+### The Body makes its graphical Seed, 2026-11-02
+
+The post-action client repair binds the authenticated replacement Face/route
+before exposing it for rendering. It validates the outgoing Show and leaves the
+old scope unchanged if replacement validation fails. Two CPU custody regressions
+and product binary/tests strict checks passed on `610b10928c`; those fixtures do
+not prove TLS or physical presentation.
+
+A checked operator release from that source was installed as a fresh terminal
+Host. It genuinely joined Hamm Creek House through pinned TLS. Its actual
+terminal Mask returned accepted Wake and `host-config/check` actions, displayed
+the graphical Host editor, and remained operational across both transitions.
+The Body completed its ordinary Crèche worker and returned to Lulled. The
+ordinary `body export-seed` operation then exported 57,828,765 verified bytes:
+
+- Seed: `spore:sha256:5d9d72c77f59160455467b349e749ea9b92cf7d4e4fe1e98238d9123d8e8206c`
+- Package SHA-256: `0f26a3de8f1b9d5e1affc5214e57529d4a858228f69629b451379befc2d5f248`
+- Target: `std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3`
+- Checked Host configuration: `sha256:1c43007ffd7208de891225ca8bda53b9837515fca14d6e7d955ebc80b8c72274`
+
+The package contains the selected AArch64 executable and original Body-bound
+provision, including the checked Host Source, IMAGE and original routed
+invitation. The package hash, extent, Body and configuration were independently
+checked before transfer. The private Seed is not committed because it contains
+admission material. This is actual manufacture and export, not installation,
+Boot, membership or HDMI proof. Threebee's system SDL package is still absent;
+its old display remains running while that runtime prerequisite is resolved.
