@@ -12,6 +12,7 @@ mod linux_builder;
 mod microphone_initialization;
 mod playback_initialization;
 mod recognition_initialization;
+mod tls_listener_initialization;
 pub use builder::*;
 pub use creche_initialization::{
     creche_encounter_initialization_contract, CRECHE_ENCOUNTER_BASE_KIND,
@@ -20,6 +21,10 @@ pub use creche_initialization::{
 pub use linux_builder::*;
 pub use microphone_initialization::{
     alsa_microphone_initialization_contract, ALSA_MICROPHONE_BASE_KIND,
+};
+pub use tls_listener_initialization::{
+    tls_listener_initialization_contract, CheckedTlsListenerInitialization, TLS_LISTENER_BASE_KIND,
+    TLS_LISTENER_IMPLEMENTATION,
 };
 
 pub struct HostedMakePackage;
@@ -104,6 +109,10 @@ fn package_catalog() -> PackageCatalogContribution {
     );
     PackageCatalogContribution {
         initialization_contracts: BTreeMap::from([
+            (
+                TLS_LISTENER_IMPLEMENTATION.into(),
+                tls_listener_initialization_contract(),
+            ),
             (
                 conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION.into(),
                 creche_encounter_initialization_contract(),
@@ -217,6 +226,7 @@ impl HostMakePackage for HostedMakePackage {
             ],
             offers: vec![
                 creche_initialization::offer(),
+                tls_listener_initialization::offer(),
                 playback_initialization::offer(),
                 recognition_initialization::offer(),
                 microphone_initialization::offer(),
