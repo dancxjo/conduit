@@ -438,6 +438,30 @@ impl DurableHostRuntime {
         owner.acknowledge_native_mask_show(request, show)
     }
 
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn prepare_owned_invitation_route(
+        &mut self,
+        ttl_seconds: u64,
+        bind: std::net::SocketAddr,
+        public_url: &str,
+        certificate: &Path,
+        private_key: &Path,
+        authorize_route: bool,
+    ) -> Result<RendezvousCandidate, String> {
+        match &mut self.host {
+            HostSource::Body { owner, .. } => owner.prepare_invitation_route(
+                ttl_seconds,
+                bind,
+                public_url,
+                certificate,
+                private_key,
+                authorize_route,
+            ),
+            HostSource::Bare(_) | HostSource::Transitioning => {
+                Err("installed Host does not own a live Body session".into())
+            }
+        }
+    }
     pub(super) fn issue_owned_invitation(
         &mut self,
         ttl_seconds: u64,
@@ -1042,4 +1066,37 @@ pub(crate) fn select_native_component_mask(
     _recipe: conduit_face::TodoComponentRecipe,
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())
+}
+
+#[cfg(unix)]
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn prepare_owned_invitation_route(
+    state_dir: &Path,
+    ttl_seconds: u64,
+    bind: std::net::SocketAddr,
+    public_url: &str,
+    certificate: &Path,
+    private_key: &Path,
+    authorize_route: bool,
+) -> Result<RendezvousCandidate, String> {
+    match call(
+        state_dir,
+        Request::BodyPrepareInvitationRoute {
+            protocol: PROTOCOL,
+            token: token(state_dir)?,
+            ttl_seconds,
+            bind,
+            public_url: public_url.into(),
+            certificate: certificate.into(),
+            private_key: private_key.into(),
+            authorize_route,
+        },
+    )? {
+        Response::BodyInvitationRoutePrepared {
+            protocol: PROTOCOL,
+            candidate,
+        } => Ok(candidate),
+        Response::Refused { code, .. } => Err(format!("Body owner refused prepared route: {code}")),
+        _ => Err("Body owner returned the wrong prepared-route response".into()),
+    }
 }
