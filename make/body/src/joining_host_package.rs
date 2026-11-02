@@ -5,7 +5,7 @@
 use crate::{BuiltSpore, SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_body::PortableInvitation;
 use conduit_host_make::{SporeOutputKind, VerifiedHostReleaseBytes};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::{Read, Seek, SeekFrom, Write};
 
@@ -17,14 +17,16 @@ const DATA: u32 = 0o100644;
 
 /// Raw ZIP identity is deliberately distinct from the release bundle aggregate.
 /// No secret, credential, invitation or admission receipt is retained here.
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct JoiningHostPackageReceipt {
     pub artifact_bytes: u64,
     pub artifact_content_sha256: String,
     pub image_content_sha256: String,
     pub files: Vec<JoiningHostPackageFile>,
 }
-#[derive(Debug, PartialEq, Eq, Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct JoiningHostPackageFile {
     pub path: String,
     pub bytes: u64,

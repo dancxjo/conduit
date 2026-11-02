@@ -47,6 +47,7 @@ pub struct JoiningProductionRequest<'a> {
 /// Retains the actual opened artifact and exact canonical Seed/receipt bytes.
 /// A prepared result proves neither deployment nor Boot nor membership.
 pub struct ProducedJoiningHost<R> {
+    pub invitation: SpawnInvitationClaim,
     pub artifact: R,
     pub spore: BuiltSpore,
     pub spore_manifest: Vec<u8>,
@@ -199,6 +200,7 @@ pub fn produce_joining_host<R: Read + Seek>(
         return Err("joining Host production cancelled".into());
     }
     Ok(ProducedJoiningHost {
+        invitation: request.invitation.clone(),
         artifact,
         spore,
         spore_manifest,

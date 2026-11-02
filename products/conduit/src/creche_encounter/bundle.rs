@@ -222,6 +222,7 @@ impl CrecheReviewedBundle {
             inputs.installation.production_bounds.maximum_receipt_bytes,
         )?;
         Ok(ProducedJoiningHost {
+            invitation: binding.invitation.claim.clone(),
             artifact: output,
             spore,
             spore_manifest,

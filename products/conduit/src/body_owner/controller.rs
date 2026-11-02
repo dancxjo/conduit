@@ -41,6 +41,8 @@ pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
 mod clock_interval;
+#[path = "creche_export.rs"]
+mod creche_export;
 #[path = "creche_planning.rs"]
 mod creche_planning;
 #[path = "creche_route_custody.rs"]

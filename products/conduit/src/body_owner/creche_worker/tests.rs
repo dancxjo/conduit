@@ -273,6 +273,31 @@ fn ordinary_creche_play_prepares_one_same_body_seed_and_restores_original_host()
         .text
         .iter()
         .any(|text| text.text.contains("joining remain unverified")));
+    let destination = fixture.root.join("carried-seed.zip");
+    let carried = owner.export_prepared_seed(&destination).unwrap();
+    assert_eq!(
+        carried.terminal,
+        conduit_host_make::CarrierTerminal::Completed
+    );
+    assert!(carried.byte_verification_completed);
+    assert!(!carried.boot_observed && !carried.join_observed && !carried.membership_admitted);
+    assert_eq!(
+        std::fs::metadata(&destination).unwrap().len(),
+        carried.bytes_realized
+    );
+    assert!(owner.export_prepared_seed(&destination).is_err());
+    let retained = owner.creche_products.as_mut().unwrap();
+    let expiry = retained.invitation.expires_at_millis;
+    retained.invitation.expires_at_millis = 0;
+    let expired_destination = fixture.root.join("expired-seed.zip");
+    assert!(owner.export_prepared_seed(&expired_destination).is_err());
+    assert!(!expired_destination.exists());
+    owner
+        .creche_products
+        .as_mut()
+        .unwrap()
+        .invitation
+        .expires_at_millis = expiry;
     let mut products = owner
         .creche_products
         .take()
