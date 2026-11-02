@@ -3,6 +3,8 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct KernelResourceLedger {
+    pub(super) image_memory: Option<std::sync::Arc<std::sync::atomic::AtomicUsize>>,
+    pub(super) image_receipt_reserving: bool,
     pub(super) image_bounds: Option<conduit_host_make::HostBounds>,
     // Exact charged tokens retained after uncertain platform retirement.
     // Terminal quarantine: there is deliberately no automatic recovery API.
@@ -74,6 +76,8 @@ impl KernelResourceLedger {
         }
         Ok(Self {
             image_bounds: None,
+            image_memory: None,
+            image_receipt_reserving: false,
             retirement_hold: None,
             identity: (
                 advertisement.host_id.clone(),

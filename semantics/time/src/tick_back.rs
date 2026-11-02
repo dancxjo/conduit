@@ -129,6 +129,15 @@ impl TickBack {
     pub fn allocation_capacity(&self) -> usize {
         self.values.capacity() + self.waits.capacity()
     }
+
+    /// Actual owned Vec backing, excluding this inline Back. The existing
+    /// allocation_capacity API continues to report element counts.
+    pub fn retained_backing_bytes(&self) -> Option<usize> {
+        self.values
+            .capacity()
+            .checked_add(self.waits.capacity())?
+            .checked_mul(core::mem::size_of::<ValueRef>())
+    }
 }
 
 impl TickBack {
@@ -171,5 +180,30 @@ impl TickBack {
             sequence: 0,
             cancelled: false,
         }
+    }
+}
+
+#[cfg(test)]
+mod retained_backing_tests {
+    use super::*;
+    #[test]
+    fn retained_bytes_charge_value_ref_width_without_changing_element_counts() {
+        let value = ValueRef {
+            slot: 0,
+            generation: 1,
+            byte_len: 8,
+        };
+        let counted = TickBack::counted(value, 7).unwrap();
+        assert_eq!(counted.allocation_capacity(), 1);
+        assert_eq!(
+            counted.retained_backing_bytes(),
+            Some(core::mem::size_of::<ValueRef>())
+        );
+        let values = alloc::vec![value; 3];
+        let waits = alloc::vec![value; 3];
+        let expected = (values.capacity() + waits.capacity()) * core::mem::size_of::<ValueRef>();
+        let finite = TickBack::finite(values, waits).unwrap();
+        assert_eq!(finite.allocation_capacity(), 6);
+        assert_eq!(finite.retained_backing_bytes(), Some(expected));
     }
 }
