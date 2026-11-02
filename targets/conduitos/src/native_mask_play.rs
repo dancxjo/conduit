@@ -15,9 +15,17 @@ pub use interaction::NativeMaskInteractionSession;
 #[cfg(any(test, feature = "native-compositor-core"))]
 pub use prepared::PreparedNativeMaskPlay;
 #[cfg(any(test, feature = "native-compositor-core"))]
+mod retained;
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod storage;
 #[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_conduitos_mask_offer::NativeMaskStorageProfile;
+#[cfg(any(test, feature = "native-compositor-core"))]
+use retained::MaskScheduler;
+#[cfg(any(test, feature = "native-compositor-core"))]
+pub use retained::{
+    NativeMaskBackingReceipt, RetainedNativeMaskStorage, RetiredNativeMaskEvidence,
+};
 #[cfg(any(test, feature = "native-compositor-core"))]
 pub use storage::NativeMaskStorageBudget;
 

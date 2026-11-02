@@ -394,6 +394,8 @@ impl NativeFaceMask {
             scene: None,
             input_refusal: None,
             session: None,
+            retained_backing: false,
+            retained_storage: None,
             publication: None,
             surface_admitted: false,
             interaction_admitted: true,
