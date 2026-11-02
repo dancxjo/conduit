@@ -1,0 +1,32 @@
+{
+  "schema": "conduit.proof/mcu-admission-checkpoint@1",
+  "observed_at": "2026-11-02T21:57:24.500478+00:00",
+  "target_body": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "owner_source_validation": {
+    "strict_warnings": true,
+    "filter": "member_carrier",
+    "passed": 10,
+    "failed": 0,
+    "log_sha256": "85362ed7656156767a2b0f3fa1b2cfd9c662cd17d9d8e60efe9cfd62e75846e6"
+  },
+  "blue_recovery": {
+    "classification": "physical controlled reset, no flash writes",
+    "boot_id": "boot/db9df49c278f88ed53818fca5d1fccef",
+    "existing_source": "7d14030b5b389657063c716db800264250080178",
+    "fresh_sample_sequence": 1,
+    "display_updates": 35,
+    "backup_sha256": "df1924cdc7fb13a5e6945bf28d19bc957a91ed1181a757abf624d8797abad7c8",
+    "boot_log_sha256": "b268a4a9d017dbbe23c82f4435cf78febf2e30dd458606ff1198b62ce8ee7a34",
+    "body_migrated_to_hamm": false,
+    "station_connected": false,
+    "network_refusal": "network-evidence-capacity"
+  },
+  "not_proven": [
+    "new Pico firmware compilation/fit",
+    "physical MCU admission to Hamm",
+    "ordinary environmental Plot execution on MCU",
+    "same-Body shared history/graph",
+    "restart continuity of admitted MCU"
+  ],
+  "preservation": "device backups and control keys are private and excluded from source control"
+}
