@@ -1,3 +1,6 @@
+#[path = "host_configuration_load.rs"]
+mod configuration_load;
+use configuration_load::load_configuration;
 use std::{fs, path::Path};
 
 use conduit_host_make::{
@@ -416,27 +419,6 @@ fn command_identity(
         return Err(format!("{program} returned an empty identity").into());
     }
     Ok(identity)
-}
-
-fn load_configuration(
-    path: &std::path::Path,
-) -> Result<conduit_host_make::CheckedHostConfiguration, Box<dyn std::error::Error>> {
-    let source = fs::read_to_string(path)?;
-    if !is_conduit_source(path, "host") {
-        return Err(format!(
-            "Host construction source must use the canonical .host.conduit suffix: {}",
-            path.display()
-        )
-        .into());
-    }
-    let configuration = parse_host_configuration_conduit(&source)
-        .map_err(|diagnostic| format!("Host configuration decode refused: {diagnostic:?}"))?;
-    check_host_configuration(
-        configuration,
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-    )
-    .map_err(|diagnostics| format!("Host configuration refused: {diagnostics:?}").into())
 }
 
 fn is_conduit_source(path: &std::path::Path, role: &str) -> bool {

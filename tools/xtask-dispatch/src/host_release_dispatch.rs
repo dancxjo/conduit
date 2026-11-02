@@ -5,6 +5,7 @@ use std::path::PathBuf;
 pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
     let mut values = options.iter();
     let mut output = None;
+    let mut configuration = None;
     let mut platform = None;
     let mut source_identity = None;
     let mut json = false;
@@ -14,6 +15,11 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
             "--locked" => {}
             "--json" => json = true,
             "--quiet" => quiet = true,
+            "--configuration" => {
+                configuration = Some(PathBuf::from(
+                    values.next().ok_or("missing --configuration path")?,
+                ));
+            }
             "--output" => {
                 output = Some(PathBuf::from(values.next().ok_or("missing --output path")?));
             }
@@ -50,6 +56,7 @@ pub(super) fn run_host_release(options: &[String]) -> Result<(), String> {
         &output,
         platform,
         &source_identity,
+        configuration.as_deref(),
         &host_release::ReleaseOptions { json, quiet },
     )
     .map_err(|error| error.to_string())
@@ -92,6 +99,23 @@ fn aarch64_release_platform_is_accepted_before_required_output_validation() {
     let options = ["--platform".to_owned(), "linux-aarch64".to_owned()];
     assert_eq!(
         run_host_release(&options).unwrap_err(),
+        "host release requires --output"
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn checked_configuration_requires_a_path() {
+    assert_eq!(
+        run_host_release(&["--configuration".into()]).unwrap_err(),
+        "missing --configuration path"
+    );
+}
+#[cfg(test)]
+#[test]
+fn checked_configuration_is_accepted_before_output_validation() {
+    assert_eq!(
+        run_host_release(&["--configuration".into(), "pi.host.conduit".into()]).unwrap_err(),
         "host release requires --output"
     );
 }

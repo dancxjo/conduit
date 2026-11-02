@@ -1,6 +1,8 @@
 //! Compile one checked native closure through the existing reviewed Linux adapter.
 //! Repository build operation, not an admitted runtime builder or confinement.
 use super::*;
+#[path = "host_configuration_load.rs"]
+mod configuration_load;
 use conduit_host_make::{
     build_host_image, BuildInputs, MakeBuildSelection, ReviewedNativeBuild, SporeOutputKind,
     REVIEWED_NATIVE_BUILD_SCHEMA,
@@ -11,7 +13,7 @@ pub(super) fn build(
     source_identity: &str,
     configuration: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let checked = super::super::load_configuration(configuration)?;
+    let checked = configuration_load::load_configuration(configuration)?;
     let selection = conduit_workspace_make::package_set()
         .derive_build_selection(checked.profile(), &SporeOutputKind::NativeBundle)
         .map_err(|error| format!("native release Make closure: {error:?}"))?;
