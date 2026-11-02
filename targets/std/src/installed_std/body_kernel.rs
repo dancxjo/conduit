@@ -24,6 +24,8 @@ use conduit_plan_lowering::{
 };
 use std::io::Write;
 
+mod creche_route;
+use creche_route::CrecheRoute;
 mod clock_observation;
 mod data_text;
 mod fore_route;
@@ -38,6 +40,7 @@ use clock_observation::KernelClockObservations;
 use fore_route::BodyForeRoute;
 
 pub(crate) struct BodyKernel<'a> {
+    creche: Option<CrecheRoute>,
     scheduler: Box<InstalledScheduler>,
     fore: BodyForeRoute<'a>,
     activations: Vec<LoweredFragmentActivations>,
@@ -344,6 +347,8 @@ impl<'a> BodyKernel<'a> {
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
                 && !face(operation)
+                && operation.contract_id.as_str()
+                    != conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
             {
                 return Err(format!(
                     "Body Host Call is unsupported: {}",
@@ -505,6 +510,7 @@ impl<'a> BodyKernel<'a> {
         )?;
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
+            creche: None,
             scheduler,
             face_labels,
             input_origin: None,
@@ -682,6 +688,13 @@ impl<'a> BodyKernel<'a> {
     /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
         if self.operations.iter().any(|operation| {
+            operation.contract_id.as_str()
+                == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
+        }) && self.creche.is_none()
+        {
+            return Err("planned Creche has no scoped admitted encounter owner".into());
+        }
+        if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
         }) && self.todo_checkpoint.is_none()
         {
@@ -724,6 +737,7 @@ impl<'a> BodyKernel<'a> {
         )>,
         admitted_clock_quality: Option<BodyTimeQuality>,
         mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
+        mut creche: Option<&mut crate::hosted_creche::CrecheHost<'_>>,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -743,6 +757,9 @@ impl<'a> BodyKernel<'a> {
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
+                if !cancelling && !control.stop_requested() {
+                    self.poll_creche(creche.as_deref_mut())?;
+                }
                 self.fore.drain(
                     &mut self.scheduler,
                     &mut fore_output,
@@ -810,6 +827,9 @@ impl<'a> BodyKernel<'a> {
                     boot_id,
                 );
                 if !cancelling && control.requested_stop().is_some() {
+                    if let Some(owner) = creche.as_deref_mut() {
+                        owner.retire()?;
+                    }
                     self.scheduler
                         .cancel()
                         .map_err(|error| format!("Body cancel: {error:?}"))?;
@@ -866,7 +886,11 @@ impl<'a> BodyKernel<'a> {
                         .iter()
                         .find(|op| op.node == cancellation.node && op.call == cancellation.call)
                         .ok_or("Body cancellation has no exact operation")?;
-                    if keyboard(&operation.contract_id) || button(&operation.contract_id) {
+                    if operation.contract_id.as_str()
+                        == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
+                    {
+                        self.cancel_creche_call(cancellation, creche.as_deref_mut())?;
+                    } else if keyboard(&operation.contract_id) || button(&operation.contract_id) {
                         keys.cancel();
                         self.scheduler
                             .complete_host_call(
@@ -903,6 +927,12 @@ impl<'a> BodyKernel<'a> {
                         .iter()
                         .find(|op| op.node == request.node && op.call == request.call)
                         .ok_or("Body request has no exact partition operation")?;
+                    if operation.contract_id.as_str()
+                        == conduit_body_make::deployment_runtime_catalog::CRECHE_HOST_CALL
+                    {
+                        self.begin_creche(request, creche.as_deref_mut())?;
+                        continue;
+                    }
                     let input = self
                         .scheduler
                         .host_value(request.input.value)
@@ -1345,15 +1375,22 @@ impl<'a> BodyKernel<'a> {
                         }
                         // A pending admitted keyboard request owns progress even
                         // when no command has reached the live Fore queue yet.
-                        if !keys.is_pending() {
+                        if !keys.is_pending() && !self.creche_pending() {
                             if let Some(observed) = live_observed {
                                 if self.fore.wait_for_activity(observed)? {
                                     continue;
                                 }
                             }
                         }
-                        if !keys.is_pending() && deadlines.is_empty() {
+                        if !keys.is_pending() && deadlines.is_empty() && !self.creche_pending() {
                             return Err("Body kernel has no admitted progress source".into());
+                        }
+                        if self.creche_pending() {
+                            if let Some(owner) = creche.as_deref() {
+                                std::thread::park_timeout(
+                                    owner.poll_wait().min(std::time::Duration::from_millis(10)),
+                                );
+                            }
                         }
                         std::thread::yield_now();
                     }
@@ -1374,17 +1411,35 @@ impl<'a> BodyKernel<'a> {
         };
         keys.set_input_view_epoch(None);
         let result = result.and_then(|outcome| withdrawal.map(|()| outcome));
-        let mut cleanup_failure = None;
+        let retirement = match creche {
+            Some(owner) => owner.retire(),
+            None => Ok(()),
+        };
+        let mut cleanup_failure = retirement
+            .as_ref()
+            .err()
+            .map(|e| format!("Creche owner cleanup: {e}"));
+        let result = result.and_then(|outcome| {
+            retirement
+                .as_ref()
+                .map(|()| outcome)
+                .map_err(|e| format!("Creche owner retirement: {e}"))
+        });
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),
             Err(error) => {
                 keys.cancel();
                 deadlines.clear();
-                cleanup_failure = self
-                    .scheduler
-                    .cancel()
-                    .err()
-                    .map(|error| format!("Body failure cleanup: {error:?}"));
+                if retirement.is_ok() {
+                    let failure = self
+                        .scheduler
+                        .cancel()
+                        .err()
+                        .map(|error| format!("Body failure cleanup: {error:?}"));
+                    if cleanup_failure.is_none() {
+                        cleanup_failure = failure;
+                    }
+                }
                 (
                     TerminalDisposition::Failed {
                         reason: FailureReason::RequiredBranchFailed,

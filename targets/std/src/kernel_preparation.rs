@@ -52,6 +52,7 @@ impl KernelResourceLedger {
         capability_id: &conduit_core::CapabilityId,
         bindings: &[ResourceBinding],
     ) -> Result<KernelResourceReservation, String> {
+        self.require_available()?;
         let capability = advertisement
             .capabilities
             .iter()
@@ -123,6 +124,7 @@ impl KernelResourceLedger {
         advertisement: &HostAdvertisement,
         partitions: &[(&PlanFragment, bool)],
     ) -> Result<Vec<KernelResourceReservation>, String> {
+        self.require_available()?;
         if partitions.is_empty() || partitions.len() > conduit_body::MAX_BODY_PLOTS {
             return Err("local workload partition count exceeds the admitted profile".into());
         }
@@ -157,6 +159,7 @@ impl KernelResourceLedger {
         advertisement: &HostAdvertisement,
         plans: &[(&Plan, bool)],
     ) -> Result<Vec<KernelResourceReservation>, String> {
+        self.require_available()?;
         if plans.is_empty() || plans.len() > conduit_body::MAX_BODY_PLOTS {
             return Err("local workload partition count exceeds the admitted profile".into());
         }
@@ -241,3 +244,6 @@ mod partition_tests;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod creche_quarantine_tests;

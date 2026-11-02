@@ -35,6 +35,7 @@ impl KernelResourceLedger {
         next: &HostAdvertisement,
         backing: Option<&BaseBackingReservation>,
     ) -> Result<Self, String> {
+        self.require_available()?;
         if self.identity
             != (
                 current.host_id.clone(),
@@ -84,6 +85,7 @@ impl KernelResourceLedger {
         pool: &ResourcePoolId,
         bytes: u32,
     ) -> Result<BaseBackingReservation, String> {
+        self.require_available()?;
         if bytes == 0
             || self.identity
                 != (
