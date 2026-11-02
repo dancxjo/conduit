@@ -20,7 +20,7 @@ fn cold_invocation_owns_real_values_and_only_prepared_show_before_activation() {
         .unwrap()
         .bind(&planned)
         .unwrap();
-    let cold = PreparedNativeMaskPlay::prepare_cold_with_storage(
+    let mut cold = PreparedNativeMaskPlay::prepare_cold_with_storage(
         &planned,
         &face,
         1,
@@ -31,6 +31,12 @@ fn cold_invocation_owns_real_values_and_only_prepared_show_before_activation() {
         storage,
     )
     .unwrap();
+    let before = cold.retained_metadata_bytes().unwrap();
+    let bytes = &mut cold.parts.as_mut().unwrap().face_bytes;
+    let previous = bytes.capacity();
+    bytes.reserve(127);
+    let added = bytes.capacity() - previous;
+    assert_eq!(cold.retained_metadata_bytes(), Some(before + added));
     assert!(
         cold.idle_for_test(),
         "cold preparation performs no kernel Step or Fore input"

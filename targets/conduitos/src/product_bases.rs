@@ -12,7 +12,7 @@ use conduit_core::{
 pub use crate::native_mask_play::{
     ColdNativeMaskInvocation, NativeMaskBackingReceipt, NativeMaskInteractionSession,
     PreparedNativeMaskPlay, RetainedNativeMaskStorage, RetiredNativeMaskEvidence,
-    UnboundNativeMaskStorage,
+    UnboundNativeMaskStorage, native_mask_plan_backing_bytes,
 };
 
 pub use crate::native_surface_provider::{
