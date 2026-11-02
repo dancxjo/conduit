@@ -17,5 +17,5 @@ pub const SELECTION: &[Step] = &[Step::new(
     "parser-selection.plan-play",
     "Exercise optional admitted scoring, checked legal transitions and incremental Source revisions",
     "cargo",
-    &["test", "--locked", "-p", "conduit-language", "--features", "parser-model", "--test", "parser_scorer_artifact", "--test", "parser_model_admission", "--test", "parser_selection", "--test", "lexical", "--", "--nocapture", "--test-threads=1"],
+    &["test", "--locked", "-p", "conduit-language", "--features", "parser-model", "--test", "parser_scorer_artifact", "--test", "parser_model_admission", "--test", "parser_selection", "--test", "lexical", "--test", "parser_structural_consensus", "--test", "parser_rebase_replay", "--", "--nocapture", "--test-threads=1"],
 )];
