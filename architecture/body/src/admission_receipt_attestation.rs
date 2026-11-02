@@ -42,7 +42,7 @@ pub fn attest_portable_admission_receipt(
     member_verifying_key: [u8; 32],
     sign: impl FnOnce(&[u8; 32]) -> [u8; 64],
 ) -> Result<SignedPortableAdmissionReceipt, AdmissionReceiptAttestationRefusal> {
-    validate_receipt_basis(
+    validate_attested_admission_receipt_basis(
         receipt,
         &receipt.credential.body_id,
         &receipt.host_advertisement,
@@ -174,12 +174,14 @@ impl SignedPortableAdmissionReceipt {
         )?;
         let receipt = serde_json::from_str(&self.receipt_json)
             .map_err(|_| AdmissionReceiptAttestationRefusal::Encoding)?;
-        validate_receipt_basis(&receipt, expected_body, actual)?;
+        validate_attested_admission_receipt_basis(&receipt, expected_body, actual)?;
         Ok(receipt)
     }
 }
 
-fn validate_receipt_basis(
+/// Check decoded canonical receipt identity and exact current offers after
+/// transport authentication. This check grants no membership or effect authority.
+pub fn validate_attested_admission_receipt_basis(
     receipt: &PortableAdmissionReceipt,
     body: &BodyId,
     actual: &HostAdvertisement,
