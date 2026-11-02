@@ -937,3 +937,14 @@ This corrects the deployed finite-test client's conflation of presentation
 lifetime and member attachment; it does not implement presence renewal or grant
 new Show authority. The native-display binary check passes with `-Dwarnings`.
 Physical deployment of this correction is a separate next observation.
+
+
+Physical qualification of `3a87941da0`: Make produced the matching Pi IMAGE and
+release; the public matched install preserved membership and continuity key.
+Threebee returned on new Boot `e8e19853`, submitted Face revision 147, and remained
+active as PID7887 with zero restarts after encounter exhaustion. Authoritative
+owner snapshots before/after expiry retain the identical current Part/Host/Boot,
+membership revision75 and admission receipt count17. Only the Show became
+historical; no member departure was committed. Exact observations are retained in
+`proof/evidence/creche/native-encounter-expiry-keeps-member-20261102.json`.
+Continuing presentation and remote Workspace joining remain unfinished.
