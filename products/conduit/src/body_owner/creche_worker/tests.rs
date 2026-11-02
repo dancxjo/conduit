@@ -1,8 +1,12 @@
 //! Actual Owner/Std kernel and software artifact, with an explicit CPU trusted
 //! Mask-return fixture. No native rendering, deployment, Boot or join proof.
 use super::*;
+#[path = "../../../tests/common/creche_bundle.rs"]
+mod bundle_common;
 use crate::durable_host as installed;
-use conduit::creche_encounter::{CrecheEncounterInstallation, CrecheReviewedArtifact};
+use conduit::creche_encounter::{
+    CrecheEncounterInstallation, CrecheReviewedArtifact, CrecheReviewedBundle,
+};
 use conduit_body::{BodyState, PortableInvitation, ResidentPlot};
 use conduit_body_make::{JoiningProductionBounds, SporeBinding};
 use conduit_core::{BootId, HostId, OfferGeneration};
@@ -28,6 +32,7 @@ const BOOT: &str = "boot/creche-original-fixture";
 
 struct Fixture {
     root: PathBuf,
+    package_directories: std::cell::RefCell<Vec<bundle_common::PrivateDirectory>>,
 }
 impl Fixture {
     fn new() -> Self {
@@ -50,7 +55,10 @@ impl Fixture {
             selected_todo_checkpoint: None,
         };
         installed::write_json_atomic(&root.join("installation.json"), &installation).unwrap();
-        Self { root }
+        Self {
+            root,
+            package_directories: std::cell::RefCell::new(Vec::new()),
+        }
     }
     fn factory(&self) -> CrecheEncounterFactory {
         let catalog = conduit_workspace_make::catalog();
@@ -82,6 +90,15 @@ impl Fixture {
             .open(path)
             .unwrap();
         file.write_all(b"cpu-fixture-artifact").unwrap();
+        let directory = bundle_common::PrivateDirectory::new(self.root.join("private-packages"));
+        let bundle = CrecheReviewedBundle::native(
+            bundle_common::native_release(&image, b"cpu-fixture-artifact"),
+            std::collections::BTreeMap::from([("fixture.data".into(), file.try_clone().unwrap())]),
+            directory.0.clone(),
+        )
+        .unwrap();
+        // Fixture owns the enclosing root and removes the output directory.
+        self.package_directories.borrow_mut().push(directory);
         CrecheEncounterFactory::new(
             catalog,
             packages,
@@ -94,13 +111,14 @@ impl Fixture {
                     minimum_poll_interval_ms: 1,
                 },
                 production_bounds: JoiningProductionBounds {
-                    maximum_artifact_bytes: 1024,
+                    maximum_artifact_bytes: 128 * 1024,
                     maximum_manifest_bytes: 65536,
                     maximum_receipt_bytes: 65536,
                 },
                 initial_source: Some(CONFIGURATION.into()),
             },
             vec![CrecheReviewedArtifact {
+                bundle: Some(bundle),
                 configuration,
                 output: SporeOutputKind::NativeBundle,
                 image,
@@ -255,7 +273,7 @@ fn ordinary_creche_play_prepares_one_same_body_seed_and_restores_original_host()
         .text
         .iter()
         .any(|text| text.text.contains("joining remain unverified")));
-    let products = owner
+    let mut products = owner
         .creche_products
         .take()
         .expect("typed Prepared outcome retained its verified Seed");
@@ -274,10 +292,17 @@ fn ordinary_creche_play_prepares_one_same_body_seed_and_restores_original_host()
         }
     );
     let receipt: serde_json::Value = serde_json::from_slice(&products.receipt).unwrap();
-    assert_eq!(receipt["disposition"], "prepared");
-    assert_eq!(receipt["body_id"], body.as_str());
-    assert_eq!(receipt["spore_id"], products.spore.manifest.spore_id);
-    assert_eq!(receipt["artifact_bytes"], 20);
+    assert_eq!(
+        receipt["image_content_sha256"],
+        products.spore.manifest.image_content_digest
+    );
+    bundle_common::assert_seed_package(
+        &mut products.artifact,
+        &products.spore.manifest,
+        &invitation,
+        &products.receipt,
+        b"cpu-fixture-artifact",
+    );
     assert_eq!(owner.session.evidence().body_id, body);
     assert_eq!(
         owner.session.evidence().body.events.first(),

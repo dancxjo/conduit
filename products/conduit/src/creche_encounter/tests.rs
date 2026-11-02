@@ -1,6 +1,10 @@
 //! CPU lifecycle/mailbox fixtures. These do not prove physical rendering, Boot,
 //! installed service wiring, or membership.
 use super::*;
+#[path = "../../tests/common/creche_bundle.rs"]
+mod bundle_common;
+mod bundle_fixture;
+use bundle_fixture::factory;
 use conduit_body::{AdmissionManager, Body, BodyMembership, SpawnInvitationSecret};
 use conduit_host_make::{build_host_image, BuildInputs};
 use std::{
@@ -85,64 +89,6 @@ fn binding() -> CrecheBodyBinding {
         },
     }
 }
-fn factory() -> CrecheEncounterFactory {
-    static NEXT: AtomicU64 = AtomicU64::new(0);
-    let path = std::env::temp_dir().join(format!(
-        "conduit-creche-artifact-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    ));
-    let mut artifact = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create_new(true)
-        .open(&path)
-        .unwrap();
-    artifact.write_all(b"artifact").unwrap();
-    std::fs::remove_file(path).unwrap();
-    let configuration = checked();
-    let (image, image_manifest) = build_host_image(
-        configuration.profile().clone(),
-        &conduit_workspace_make::catalog(),
-        &conduit_workspace_make::package_set(),
-        &SporeOutputKind::NativeBundle,
-        &BuildInputs {
-            source_identity: "git:reviewed".into(),
-            toolchain_available: true,
-        },
-    )
-    .unwrap();
-    CrecheEncounterFactory::new(
-        conduit_workspace_make::catalog(),
-        conduit_workspace_make::package_set(),
-        CrecheEncounterInstallation {
-            encounter_id: "encounter/test".into(),
-            resource_pool: "pool/creche".into(),
-            limits: CrecheLimits {
-                maximum_evidence_bytes: 65536,
-                maximum_polls: 1000,
-                minimum_poll_interval_ms: 1,
-            },
-            production_bounds: JoiningProductionBounds {
-                maximum_artifact_bytes: 1024,
-                maximum_manifest_bytes: 65536,
-                maximum_receipt_bytes: 65536,
-            },
-            initial_source: Some(source().into()),
-        },
-        vec![CrecheReviewedArtifact {
-            configuration,
-            output: SporeOutputKind::NativeBundle,
-            image,
-            image_manifest,
-            artifact,
-            artifact_digest: format!("sha256:{:x}", Sha256::digest(b"artifact")),
-            artifact_bytes: 8,
-            source_identity: "git:reviewed".into(),
-        }],
-    )
-    .unwrap()
-}
 fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
     let (_, wake) = adapter
         .channel
@@ -179,7 +125,7 @@ fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
 }
 #[test]
 fn structural_available_show_does_not_grant_renderer_acknowledgment() {
-    let mut factory = factory();
+    let (mut factory, _directory) = factory();
     let drained = Arc::new(AtomicBool::new(false));
     let (mut adapter, controller) = factory
         .encounter(
@@ -204,7 +150,7 @@ fn structural_available_show_does_not_grant_renderer_acknowledgment() {
 }
 #[test]
 fn checked_configuration_is_not_prepared_and_production_is_once_only() {
-    let mut factory = factory();
+    let (mut factory, _directory) = factory();
     let drained = Arc::new(AtomicBool::new(false));
     let (mut adapter, controller) = factory
         .encounter(
@@ -238,7 +184,14 @@ fn checked_configuration_is_not_prepared_and_production_is_once_only() {
     };
     assert_eq!(outcome.disposition, CrecheDisposition::Prepared);
     assert!(!adapter.retained_evidence(&outcome).unwrap().is_empty());
-    let products = controller.take_products().unwrap().unwrap();
+    let mut products = controller.take_products().unwrap().unwrap();
+    bundle_common::assert_seed_package(
+        &mut products.artifact,
+        &products.spore.manifest,
+        &adapter.channel.binding.invitation,
+        &products.receipt,
+        b"artifact",
+    );
     assert_eq!(
         products.spore.manifest.body_id,
         adapter.channel.binding.biography.body_id.as_str()
@@ -249,7 +202,7 @@ fn checked_configuration_is_not_prepared_and_production_is_once_only() {
 }
 #[test]
 fn retirement_prevents_delayed_production_and_repeated_begin() {
-    let mut factory = factory();
+    let (mut factory, _directory) = factory();
     let (mut adapter, controller) = factory
         .encounter(
             binding(),
@@ -269,10 +222,11 @@ fn retirement_prevents_delayed_production_and_repeated_begin() {
 }
 
 #[test]
-fn factory_refuses_unverified_artifact_and_empty_inventory_before_advertisement() {
-    let inputs = Arc::try_unwrap(factory().inputs).ok().unwrap();
+fn factory_refuses_missing_bundle_proof_and_empty_inventory_before_advertisement() {
+    let (prepared, _directory) = factory();
+    let inputs = Arc::try_unwrap(prepared.inputs).ok().unwrap();
     let mut artifacts = inputs.artifacts;
-    artifacts[0].artifact_digest = format!("sha256:{}", "0".repeat(64));
+    artifacts[0].bundle = None;
     assert!(CrecheEncounterFactory::new(
         inputs.catalog,
         inputs.packages,
@@ -280,7 +234,8 @@ fn factory_refuses_unverified_artifact_and_empty_inventory_before_advertisement(
         artifacts
     )
     .is_err());
-    let inputs = Arc::try_unwrap(factory().inputs).ok().unwrap();
+    let (prepared, _directory) = factory();
+    let inputs = Arc::try_unwrap(prepared.inputs).ok().unwrap();
     assert!(CrecheEncounterFactory::new(
         inputs.catalog,
         inputs.packages,
@@ -292,7 +247,7 @@ fn factory_refuses_unverified_artifact_and_empty_inventory_before_advertisement(
 
 #[test]
 fn editing_invalidates_prior_acknowledged_show() {
-    let mut factory = factory();
+    let (mut factory, _directory) = factory();
     let (mut adapter, controller) = factory
         .encounter(
             binding(),
@@ -334,7 +289,7 @@ fn failed_presentation_drain_does_not_report_retirement() {
             Err("presentation drain uncertain".into())
         }
     }
-    let mut factory = factory();
+    let (mut factory, _directory) = factory();
     let (mut adapter, _) = factory.encounter(binding(), Box::new(Failure)).unwrap();
     start_fixture(&mut adapter);
     assert!(adapter
@@ -346,7 +301,7 @@ fn failed_presentation_drain_does_not_report_retirement() {
 
 #[test]
 fn encounter_refuses_invalid_private_provision_before_effects() {
-    let mut factory = factory();
+    let (mut factory, _directory) = factory();
     let mut binding = binding();
     binding.invitation.secret.fill(0);
     assert!(factory
@@ -358,4 +313,24 @@ fn encounter_refuses_invalid_private_provision_before_effects() {
             })
         )
         .is_err());
+}
+
+#[test]
+fn reviewed_bundle_refuses_nonmatching_retained_payload_handles() {
+    let (factory, directory) = factory();
+    let image = &factory.inputs.artifacts[0].image;
+    let release = bundle_common::native_release(image, b"artifact");
+    let mut wrong = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(directory.0.join("wrong-payload"))
+        .unwrap();
+    wrong.write_all(b"changed!").unwrap();
+    assert!(CrecheReviewedBundle::native(
+        release,
+        std::collections::BTreeMap::from([("fixture.data".into(), wrong)]),
+        directory.0.clone()
+    )
+    .is_err());
 }
