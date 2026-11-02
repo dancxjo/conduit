@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.proof/current-member-challenge-custody@1",
+  "source": "2425611605",
+  "tests": {
+    "complete_body_library": 55,
+    "new_challenge_cases_included": 4
+  },
+  "strict": "Body library/tests Clippy -D warnings passed",
+  "log_sha256": {
+    "current-member-challenge-body.log": "b09a35f81ef63e180344679be88a214985806e7826e147440e67d62579bb62b2",
+    "current-member-challenge-strict.log": "8a0b33c12e641311e9c5c918a12bd498a898379e4bd5e87ccdbf79cf7f0f8666"
+  },
+  "boundary": "One nonserialized pending owner slot binds exact Body/Part/initiator/responder/challenge. Matching attempt consumes before context/signature checks. No rearming or pending overwrite.",
+  "not_proved": [
+    "caller CSPRNG freshness and receiver-key pin provisioning",
+    "actual transport or authorized Line",
+    "installed presentation reconnect",
+    "physical Boot or graphical Seed deployment"
+  ]
+}
