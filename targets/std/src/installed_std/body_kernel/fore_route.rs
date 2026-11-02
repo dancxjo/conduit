@@ -46,35 +46,6 @@ struct OutputSlots {
 }
 
 impl<'a> BodyForeRoute<'a> {
-    pub(super) fn empty_backing_bytes(&self) -> Option<usize> {
-        if !self.ports.is_empty()
-            || !self.output_slots.is_empty()
-            || !self.deliveries.is_empty()
-            || !self.acknowledged_inputs.is_empty()
-            || self.pending_output.is_some()
-        {
-            return None;
-        }
-        let mut total = self.inputs.empty_backing_bytes()?;
-        for bytes in [
-            self.ports
-                .capacity()
-                .checked_mul(core::mem::size_of::<LoweredForePort>())?,
-            self.output_slots
-                .capacity()
-                .checked_mul(core::mem::size_of::<OutputSlots>())?,
-            self.deliveries
-                .capacity()
-                .checked_mul(core::mem::size_of::<ExternalForeDelivery>())?,
-            self.acknowledged_inputs
-                .capacity()
-                .checked_mul(core::mem::size_of::<AcknowledgedInput>())?,
-        ] {
-            total = total.checked_add(bytes)?;
-        }
-        Some(total)
-    }
-
     /// Closed direct tick output profile: ordinary prepared slots, no input,
     /// remote carrier, dynamic value constraints, or input-origin custody.
     pub(super) fn tick_backing_bytes(&self) -> Option<usize> {

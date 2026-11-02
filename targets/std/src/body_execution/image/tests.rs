@@ -3,10 +3,15 @@ use super::*;
 use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
 use conduit_core::{OfferGeneration, SignId, TerminalDisposition};
 use conduit_host_make::*;
-use conduit_plot::{
-    check_syntax_document, expand_canonical_plot, parse_syntax_document, ProfileCatalog,
-    StartupCatalog,
+use conduit_planner::{
+    default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
+    ForeBoundaryKey, PlanningOptions,
 };
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
+};
+use std::collections::BTreeMap;
 use std::sync::atomic::Ordering;
 const SOURCE: &str = include_str!("../../../profiles/raspberry-pi-3-tick-workset.host.conduit");
 struct AcceptOutput;
@@ -53,8 +58,40 @@ fn fixture(heap: u64) -> (StdHost, Wake, BodyPlan) {
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let source = "plot ticks (\n ticks: Tick...| >>\n) {\nclock: time/tick(count = 2, period-ms = 0)\nclock.tick >> ticks\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
-    let expanded = expand_canonical_plot(&checked, "ticks", &profile).unwrap();
-    let plan = host.plan_expanded_local(&expanded).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(&checked, "ticks", &profile).unwrap();
+    let hosts = [host.advertisement().clone()];
+    let placements = default_expanded_placements(&expanded.expanded, &hosts).unwrap();
+    let empty = BTreeMap::new();
+    let boundaries = BTreeMap::from([(
+        ForeBoundaryKey {
+            direction: conduit_core::PortDirection::Output,
+            front_port_id: "ticks".into(),
+            track: conduit_core::ConnectionTrack::Payload,
+        },
+        ConnectionQueueLimits {
+            item_capacity: 4,
+            byte_capacity: 64,
+        },
+    )]);
+    let plan = plan_expanded_authoring_with_options(
+        &expanded,
+        &hosts,
+        &placements,
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
+        PlanningOptions {
+            connection_bases: &empty,
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 64,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundaries,
+    )
+    .unwrap();
     let body = Body::born(
         plan.source_document_id.clone(),
         plan.checked_plot_id.clone(),
