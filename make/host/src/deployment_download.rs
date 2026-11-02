@@ -8,7 +8,7 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File, OpenOptions},
-    io::{Read, Write},
+    io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -24,6 +24,7 @@ pub enum ArtifactDownloadRefusal {
     DestinationExists,
     ExtentMismatch,
     ContentMismatch,
+    Cancelled,
 }
 
 impl From<DeploymentCarrierRefusal> for ArtifactDownloadRefusal {
@@ -40,20 +41,7 @@ pub fn download_body_bound_artifact(
     source: &Path,
     destination: &Path,
 ) -> Result<DeploymentRealizationReceipt, ArtifactDownloadRefusal> {
-    if descriptor.kind != DeploymentCarrierKind::ArtifactDownload
-        || descriptor.implementation_id != ARTIFACT_DOWNLOAD_IMPLEMENTATION
-    {
-        return Err(ArtifactDownloadRefusal::UnsupportedCarrier);
-    }
-    descriptor.validate_request(&DeploymentCarrierRequest {
-        carrier_id: &descriptor.carrier_id,
-        target_id: &descriptor.target_id,
-        artifact,
-        explicit_authority: false,
-        destructive_destination: None,
-        confirmed_destination: None,
-        destination_is_removable: None,
-    })?;
+    validate(descriptor, artifact)?;
     if destination.exists() {
         return Err(ArtifactDownloadRefusal::DestinationExists);
     }
@@ -65,16 +53,62 @@ pub fn download_body_bound_artifact(
     if source_metadata.len() != artifact.artifact_bytes {
         return Err(ArtifactDownloadRefusal::ExtentMismatch);
     }
+    let mut source = File::open(source).map_err(|_| ArtifactDownloadRefusal::SourceUnavailable)?;
+    download_body_bound_artifact_from(descriptor, artifact, &mut source, destination, || false)
+}
+
+/// Export an already-owned artifact handle. No source pathname is reopened and
+/// no package or private provisioning is reconstructed. The caller separately
+/// owns destination-write authority. Reads, hashing and cancellation are bounded
+/// by the exact raw artifact identity, independently of its IMAGE aggregate.
+/// Source position returns to zero after copying. Cancellation is cooperative
+/// between I/O operations; it does not interrupt a blocked OS write or sync.
+pub fn download_body_bound_artifact_from<R: Read + Seek>(
+    descriptor: &DeploymentCarrierDescriptor,
+    artifact: &BodyBoundArtifactIdentity,
+    source: &mut R,
+    destination: &Path,
+    mut cancelled: impl FnMut() -> bool,
+) -> Result<DeploymentRealizationReceipt, ArtifactDownloadRefusal> {
+    validate(descriptor, artifact)?;
+    if destination.exists() {
+        return Err(ArtifactDownloadRefusal::DestinationExists);
+    }
+    if cancelled() {
+        return Err(ArtifactDownloadRefusal::Cancelled);
+    }
+    source
+        .seek(SeekFrom::Start(0))
+        .map_err(|_| ArtifactDownloadRefusal::SourceUnavailable)?;
     let temporary = temporary_path(destination)?;
-    let result = copy_exact(source, &temporary, artifact);
-    if let Err(error) = result {
+    let mut output = create_partial(&temporary)?;
+    let result = copy_exact(source, &mut output, artifact, &mut cancelled);
+    drop(output);
+    let rewind = source
+        .seek(SeekFrom::Start(0))
+        .map_err(|_| ArtifactDownloadRefusal::SourceUnavailable);
+    if let Err(error) = result.and(rewind.map(|_| ())) {
         let _ = fs::remove_file(&temporary);
         return Err(error);
     }
-    fs::rename(&temporary, destination).map_err(|_| {
+    if cancelled() {
         let _ = fs::remove_file(&temporary);
-        ArtifactDownloadRefusal::DestinationUnavailable
+        return Err(ArtifactDownloadRefusal::Cancelled);
+    }
+    // Publish without replacing a concurrently created destination. Both names
+    // are in the same directory. A filesystem lacking this atomic operation
+    // refuses rather than weakening the no-overwrite contract.
+    fs::hard_link(&temporary, destination).map_err(|error| {
+        let _ = fs::remove_file(&temporary);
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            ArtifactDownloadRefusal::DestinationExists
+        } else {
+            ArtifactDownloadRefusal::DestinationUnavailable
+        }
     })?;
+    // Destination already owns the verified inode; failed cleanup must not turn
+    // a completed publication into a false claim that no output exists.
+    let _ = fs::remove_file(&temporary);
     let receipt = DeploymentRealizationReceipt {
         schema: DEPLOYMENT_RECEIPT_SCHEMA.into(),
         carrier_id: descriptor.carrier_id.clone(),
@@ -94,6 +128,27 @@ pub fn download_body_bound_artifact(
     Ok(receipt)
 }
 
+fn validate(
+    descriptor: &DeploymentCarrierDescriptor,
+    artifact: &BodyBoundArtifactIdentity,
+) -> Result<(), ArtifactDownloadRefusal> {
+    if descriptor.kind != DeploymentCarrierKind::ArtifactDownload
+        || descriptor.implementation_id != ARTIFACT_DOWNLOAD_IMPLEMENTATION
+    {
+        return Err(ArtifactDownloadRefusal::UnsupportedCarrier);
+    }
+    descriptor.validate_request(&DeploymentCarrierRequest {
+        carrier_id: &descriptor.carrier_id,
+        target_id: &descriptor.target_id,
+        artifact,
+        explicit_authority: false,
+        destructive_destination: None,
+        confirmed_destination: None,
+        destination_is_removable: None,
+    })?;
+    Ok(())
+}
+
 fn temporary_path(destination: &Path) -> Result<PathBuf, ArtifactDownloadRefusal> {
     let file_name = destination
         .file_name()
@@ -102,23 +157,37 @@ fn temporary_path(destination: &Path) -> Result<PathBuf, ArtifactDownloadRefusal
     Ok(destination.with_file_name(format!(".{file_name}.conduit-partial")))
 }
 
-fn copy_exact(
-    source: &Path,
-    temporary: &Path,
-    artifact: &BodyBoundArtifactIdentity,
-) -> Result<(), ArtifactDownloadRefusal> {
-    let mut input = File::open(source).map_err(|_| ArtifactDownloadRefusal::SourceUnavailable)?;
-    let mut output = OpenOptions::new()
-        .write(true)
-        .create_new(true)
+fn create_partial(temporary: &Path) -> Result<File, ArtifactDownloadRefusal> {
+    let mut options = OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options
         .open(temporary)
-        .map_err(|_| ArtifactDownloadRefusal::DestinationUnavailable)?;
+        .map_err(|_| ArtifactDownloadRefusal::DestinationUnavailable)
+}
+
+fn copy_exact<R: Read>(
+    input: &mut R,
+    output: &mut File,
+    artifact: &BodyBoundArtifactIdentity,
+    cancelled: &mut impl FnMut() -> bool,
+) -> Result<(), ArtifactDownloadRefusal> {
     let mut digest = Sha256::new();
     let mut copied = 0_u64;
     let mut buffer = [0_u8; COPY_BUFFER_BYTES];
     loop {
+        if cancelled() {
+            return Err(ArtifactDownloadRefusal::Cancelled);
+        }
+        let capacity = (artifact.artifact_bytes - copied)
+            .min(buffer.len() as u64)
+            .max(1) as usize;
         let count = input
-            .read(&mut buffer)
+            .read(&mut buffer[..capacity])
             .map_err(|_| ArtifactDownloadRefusal::SourceUnavailable)?;
         if count == 0 {
             break;
@@ -133,6 +202,9 @@ fn copy_exact(
         output
             .write_all(&buffer[..count])
             .map_err(|_| ArtifactDownloadRefusal::DestinationUnavailable)?;
+    }
+    if cancelled() {
+        return Err(ArtifactDownloadRefusal::Cancelled);
     }
     output
         .sync_all()
@@ -151,6 +223,8 @@ fn copy_exact(
 mod tests {
     use super::*;
     use crate::DEPLOYMENT_CARRIER_SCHEMA;
+
+    mod handles;
 
     fn fixture(bytes: &[u8]) -> (DeploymentCarrierDescriptor, BodyBoundArtifactIdentity) {
         let target_id = "conduitos/x86_64/pc".to_owned();
