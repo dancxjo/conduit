@@ -974,3 +974,38 @@ The bridge is not yet connected to the installed owner route. Owner-side fresh
 issuance, exact current credential rechecks, actual authenticated carrier evidence,
 presence renewal and current Face resealing remain required. No online Workspace
 join, continuing native Show or additional physical deployment is claimed here.
+
+### Owner-local current-member carrier custody
+
+The owner now issues, completes, inspects and retires the existing current-member
+federation challenge through authenticated local control. It retains one pending
+challenge and one active session in lazily allocated bounded custody. Issuance
+uses fresh CSPRNG nonce/session identity and an owner-local ephemeral key bound to
+actual Host/Boot/offer facts. Completion consumes an exact matching attempt before
+checking its proof; ten-second proof custody and both monotonic/wall session
+deadlines prevent an expired issuance from becoming current authentication.
+
+The active session retains its full member basis, not merely Host/Boot/generation.
+Every inspection rechecks the latest exact credential and current advertisement.
+A same-incarnation detach/reattach therefore invalidates old carrier custody and
+allows a fresh session without waiting for the old deadline. Retirement drops
+only the exact session; it never withdraws the still-running member. The existing
+running-Body guard continues to refuse new issuance/completion, while authenticated
+inspection/cleanup remain available. Control tokens are checked and cleared
+through the existing entrances; replies contain public challenge/signature or
+inspection facts, never the private owner key.
+
+Five focused tests pass with `-Dwarnings`: installed private signing; repeated
+owner authentication/retirement with unchanged durable membership/receipts;
+wrong-session/bad-proof consumption and withdrawal refusal; same-incarnation
+credential replacement; and serialized local-control refusal for foreign callers
+or a runtime without an actual owner. These are owner-local cryptographic and
+control-schema proofs, not an exercised network worker or an initialized Line.
+The one active-session capacity is explicit and refuses concurrent replacement;
+this is not yet the multi-Host continuing presentation end state.
+
+The next wire entrance must independently authenticate/pin the owner peer, use
+actual carrier/Line evidence, and connect authenticated sessions to finite presence
+renewal and current Face/Show resealing. Initial browser admission remains a
+separate required step. No live endpoint, online Workspace link, continuing Show,
+new physical deployment or additional execution authority is claimed here.

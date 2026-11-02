@@ -1051,6 +1051,32 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
+    BodyMemberCarrierBegin {
+        protocol: u16,
+        token: Vec<u8>,
+        credential: MembershipCredential,
+        advertisement: Box<HostAdvertisement>,
+        line: conduit_core::LineId,
+        security: conduit_core::LineSecurity,
+        maximum_millis: u32,
+        maximum_frames: u32,
+    },
+    BodyMemberCarrierComplete {
+        protocol: u16,
+        token: Vec<u8>,
+        challenge: Box<conduit_body::FederationChallenge>,
+        signature: Vec<u8>,
+    },
+    BodyMemberCarrierInspect {
+        protocol: u16,
+        token: Vec<u8>,
+        session: conduit_core::LinkBindingId,
+    },
+    BodyMemberCarrierRetire {
+        protocol: u16,
+        token: Vec<u8>,
+        session: conduit_core::LinkBindingId,
+    },
     BodyMemberReturnBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1324,6 +1350,18 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    BodyMemberCarrierChallenge {
+        protocol: u16,
+        challenge: Box<conduit_body::FederationChallenge>,
+        signature: Vec<u8>,
+    },
+    BodyMemberCarrierInspection {
+        protocol: u16,
+        inspection: Box<conduit_body::FederationInspection>,
+    },
+    BodyMemberCarrierRetired {
+        protocol: u16,
     },
     BodyMemberReturnChallenge {
         protocol: u16,
@@ -1891,6 +1929,10 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyMemberCarrierBegin { token, .. }
+        | Request::BodyMemberCarrierComplete { token, .. }
+        | Request::BodyMemberCarrierInspect { token, .. }
+        | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
@@ -1962,6 +2004,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserCancel { .. }
                 | Request::BodyBrowserLeave { .. }
                 | Request::BodyMemberLeave { .. }
+                | Request::BodyMemberCarrierInspect { .. }
+                | Request::BodyMemberCarrierRetire { .. }
         )
     {
         return refused("body-play-active");
@@ -2181,6 +2225,59 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierBegin {
+            protocol,
+            credential,
+            advertisement,
+            line,
+            security,
+            maximum_millis,
+            maximum_frames,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_begin(
+                &credential,
+                &advertisement,
+                line,
+                security,
+                maximum_millis,
+                maximum_frames,
+            )
+            .map(
+                |(challenge, signature)| Response::BodyMemberCarrierChallenge {
+                    protocol: PROTOCOL,
+                    challenge: Box::new(challenge),
+                    signature: signature.to_vec(),
+                },
+            )
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierComplete {
+            protocol,
+            challenge,
+            signature,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_complete(&challenge, signature)
+            .map(|inspection| Response::BodyMemberCarrierInspection {
+                protocol: PROTOCOL,
+                inspection: Box::new(inspection),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierInspect {
+            protocol, session, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_inspect(&session)
+            .map(|inspection| Response::BodyMemberCarrierInspection {
+                protocol: PROTOCOL,
+                inspection: Box::new(inspection),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberCarrierRetire {
+            protocol, session, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_carrier_retire(&session)
+            .map(|()| Response::BodyMemberCarrierRetired { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberReturnBegin {
             protocol,

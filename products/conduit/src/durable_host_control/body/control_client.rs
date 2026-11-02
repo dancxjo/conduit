@@ -116,6 +116,10 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyMemberCarrierBegin { token, .. }
+        | Request::BodyMemberCarrierComplete { token, .. }
+        | Request::BodyMemberCarrierInspect { token, .. }
+        | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }

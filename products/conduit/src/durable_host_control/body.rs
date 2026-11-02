@@ -4,6 +4,8 @@
 
 #[path = "body/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "body/member_carrier.rs"]
+mod member_carrier;
 #[path = "body/member_leave.rs"]
 mod member_leave;
 #[path = "body/member_return.rs"]

@@ -51,6 +51,8 @@ mod creche_route_custody;
 mod creche_worker;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
+#[path = "member_carrier.rs"]
+mod member_carrier;
 #[path = "member_leave.rs"]
 mod member_leave;
 #[path = "member_return.rs"]
@@ -211,6 +213,7 @@ pub(crate) struct Owner {
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     pending_member_return: Option<member_return::PendingMemberReturn>,
+    member_carrier: Option<Box<member_carrier::MemberCarrierCustody>>,
     invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
@@ -326,6 +329,7 @@ impl Owner {
             pending_browser: None,
             pending_native_mask: None,
             pending_member_return: None,
+            member_carrier: None,
             invited_mask_offers: BTreeMap::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
@@ -361,6 +365,7 @@ impl Owner {
             pending_browser: None,
             pending_native_mask: None,
             pending_member_return: None,
+            member_carrier: None,
             invited_mask_offers: BTreeMap::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,

@@ -1107,3 +1107,6 @@ mod member_return;
 pub(crate) fn member_return_owner_fixture() -> (Owner, std::path::PathBuf) {
     member_leave::owner_fixture()
 }
+
+#[path = "tests/member_carrier.rs"]
+mod member_carrier;
