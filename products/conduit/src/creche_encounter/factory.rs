@@ -2,6 +2,8 @@ use super::*;
 use conduit_host_make::{build_host_image, check_host_configuration, BuildInputs};
 use std::io::{Read, Seek, SeekFrom};
 
+type ArtifactAdmissionIdentity = (String, SporeOutputKind, String, u64, Option<String>);
+
 impl CrecheEncounterFactory {
     pub fn new(
         catalog: MakeCatalog,
@@ -33,12 +35,9 @@ impl CrecheEncounterFactory {
         }
         let mut identities = Vec::with_capacity(artifacts.len());
         for artifact in &mut artifacts {
-            if identities
-                .iter()
-                .any(|id: &(String, SporeOutputKind, String, u64)| {
-                    id.0 == artifact.configuration.configuration_id()
-                })
-            {
+            if identities.iter().any(|id: &ArtifactAdmissionIdentity| {
+                id.0 == artifact.configuration.configuration_id()
+            }) {
                 return Err("Crèche reviewed artifact selection is ambiguous".into());
             }
             validate(artifact, &catalog, &packages, b)?;
@@ -47,6 +46,10 @@ impl CrecheEncounterFactory {
                 artifact.output.clone(),
                 artifact.artifact_digest.clone(),
                 artifact.artifact_bytes,
+                artifact
+                    .bundle
+                    .as_ref()
+                    .map(|b| b.release().image_content_digest().to_owned()),
             ));
         }
         let admission = serde_json::to_vec(&(
@@ -186,6 +189,16 @@ fn validate(
     }
     conduit_host_make::verify_image_binding(&a.image, &a.image_manifest)
         .map_err(|e| format!("Crèche artifact manifest: {e:?}"))?;
+    if let Some(bundle) = &a.bundle {
+        bundle.validate(a)?;
+        return Ok(());
+    }
+    if matches!(
+        a.output,
+        SporeOutputKind::NativeBundle | SporeOutputKind::BrowserBundle
+    ) {
+        return Err("Crèche aggregate output requires verified retained bundle payloads".into());
+    }
     let metadata = a
         .artifact
         .metadata()

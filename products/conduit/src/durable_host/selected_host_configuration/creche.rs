@@ -23,6 +23,7 @@ struct Parameters {
     image_manifest: PathBuf,
     image_manifest_sha256: String,
     artifact: PathBuf,
+    package_directory: PathBuf,
     artifact_sha256: String,
     host_configuration: PathBuf,
     host_configuration_sha256: String,
@@ -39,9 +40,14 @@ fn parameters(initialization: &BaseInitialization) -> Result<Parameters, String>
     let p: Parameters =
         serde_json::from_value(serde_json::to_value(initialization).map_err(|e| e.to_string())?)
             .map_err(|e| format!("Crèche initialization parameters: {e}"))?;
-    if ![&p.image_manifest, &p.artifact, &p.host_configuration]
-        .iter()
-        .all(|p| p.is_absolute())
+    if ![
+        &p.image_manifest,
+        &p.artifact,
+        &p.host_configuration,
+        &p.package_directory,
+    ]
+    .iter()
+    .all(|p| p.is_absolute())
         || ![
             &p.image_manifest_sha256,
             &p.artifact_sha256,
@@ -109,6 +115,20 @@ pub(super) fn initialize(
     let configuration =
         conduit_host_make::check_host_configuration(configuration, &catalog, &packages)
             .map_err(|e| format!("destination Host configuration: {e:?}"))?;
+    if matches!(
+        image.manifest.output,
+        conduit_host_make::SporeOutputKind::NativeBundle
+            | conduit_host_make::SporeOutputKind::BrowserBundle
+    ) {
+        return bundle_inputs::initialize_bundle(
+            p,
+            image,
+            image_manifest,
+            configuration,
+            source,
+            (catalog, packages),
+        );
+    }
     let artifact = File::open(&p.artifact).map_err(|e| format!("selected Make artifact: {e}"))?;
     let metadata = artifact.metadata().map_err(|e| e.to_string())?;
     if !metadata.is_file() || metadata.len() == 0 || metadata.len() > p.maximum_artifact_bytes {
@@ -138,6 +158,7 @@ pub(super) fn initialize(
             initial_source: Some(source.into()),
         },
         vec![CrecheReviewedArtifact {
+            bundle: None,
             configuration,
             output,
             image,
@@ -150,6 +171,9 @@ pub(super) fn initialize(
     )
 }
 
+#[path = "creche_bundle_inputs.rs"]
+mod bundle_inputs;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,6 +183,7 @@ mod tests {
             "maximum_evidence_bytes":65536,"maximum_polls":1000,"minimum_poll_interval_ms":10,
             "image_manifest":"/explicit/missing-image.json","image_manifest_sha256":"a".repeat(64),
             "artifact":"/explicit/missing-image.bin","artifact_sha256":"b".repeat(64),
+            "package_directory":"/explicit/private-packages",
             "host_configuration":"/explicit/missing-destination.host.conduit","host_configuration_sha256":"c".repeat(64),
             "maximum_artifact_bytes":1048576,"maximum_manifest_bytes":65536,
         })).unwrap()
@@ -189,5 +214,49 @@ mod tests {
             selected.values.insert(key.into(), serde_json::json!(value));
             assert!(validate(&selected).is_err());
         }
+    }
+    #[test]
+    #[cfg(unix)]
+    #[ignore = "requires explicitly selected real prior-Make browser output"]
+    fn real_browser_bundle_initializes_retained_provider() {
+        use std::os::unix::fs::PermissionsExt;
+        let fixture = PathBuf::from(
+            std::env::var("CONDUIT_REVIEWED_BROWSER_FIXTURE_ROOT")
+                .expect("select actual prior Make directory"),
+        );
+        let directory = std::env::temp_dir().join(format!(
+            "conduit-real-creche-inputs-{}",
+            crate::birth_identity::fresh_uuid().unwrap()
+        ));
+        std::fs::create_dir(&directory).unwrap();
+        std::fs::set_permissions(&directory, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let source = include_str!(
+            "../../../../../targets/browser/profiles/environment-recorder.host.conduit"
+        );
+        let configuration = directory.join("destination.host.conduit");
+        std::fs::write(&configuration, source).unwrap();
+        let image = fixture.join("checked-image/image.json");
+        let release = fixture.join("bundle/browser-bundle-release.json");
+        let hash = |path: &Path| {
+            super::super::super::digest(&std::fs::read(path).unwrap())
+                .trim_start_matches("sha256:")
+                .to_owned()
+        };
+        let initialization: BaseInitialization = serde_json::from_value(serde_json::json!({
+            "slot_identity":"real/creche-proof", "maximum_evidence_bytes":65536,
+            "maximum_polls":1000,"minimum_poll_interval_ms":10,
+            "image_manifest":image,"image_manifest_sha256":hash(&image),
+            "artifact":release,"artifact_sha256":hash(&release),"package_directory":directory,
+            "host_configuration":configuration,"host_configuration_sha256":hash(&configuration),
+            "maximum_artifact_bytes":32*1024*1024,"maximum_manifest_bytes":65536,
+        }))
+        .unwrap();
+        let factory = initialize(&initialization).unwrap();
+        assert_eq!(
+            factory.resource_offer().pool_id.as_str(),
+            "real/creche-proof"
+        );
+        drop(factory);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }

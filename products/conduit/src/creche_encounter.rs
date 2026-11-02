@@ -21,9 +21,11 @@ use std::{
     thread::JoinHandle,
 };
 
+mod bundle;
 mod controller;
 mod factory;
 mod hosted;
+pub use bundle::CrecheReviewedBundle;
 pub use controller::CrecheEncounterController;
 
 /// Supplied by the service's actual selected Mask route, never a structural ACK
@@ -54,6 +56,7 @@ pub struct CrecheReviewedArtifact {
     pub output: SporeOutputKind,
     pub image: HostImage,
     pub image_manifest: Vec<u8>,
+    pub bundle: Option<CrecheReviewedBundle>,
     pub artifact: File,
     pub artifact_digest: String,
     pub artifact_bytes: u64,

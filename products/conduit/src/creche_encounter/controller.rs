@@ -88,6 +88,16 @@ impl CrecheEncounterController {
                             a.configuration.configuration_id() == configuration.configuration_id()
                         })
                         .ok_or("no owner-reviewed artifact matches this checked Host")?;
+                    if let Some(bundle) = &artifact.bundle {
+                        return bundle.produce(
+                            artifact,
+                            &configuration,
+                            &channel.binding,
+                            &channel.inputs,
+                            request,
+                            &cancelled,
+                        );
+                    }
                     let file = artifact
                         .artifact
                         .try_clone()

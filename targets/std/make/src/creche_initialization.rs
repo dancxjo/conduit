@@ -54,6 +54,11 @@ pub fn creche_encounter_initialization_contract() -> BaseInitializationContract 
                 default_value: ConfigurationValue::Text(String::new()),
                 rule: KindConfigurationRule::DataLabel { maximum: 64 },
             },
+            KindConfigurationField {
+                key: "package_directory".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 1024 },
+            },
             count("maximum_artifact_bytes", 1, 4 * 1024 * 1024 * 1024),
             count("maximum_manifest_bytes", 1, 1024 * 1024),
             count("maximum_evidence_bytes", 1, 64 * 1024 * 1024),

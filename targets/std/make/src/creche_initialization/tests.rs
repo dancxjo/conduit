@@ -6,7 +6,7 @@ use conduit_host_make::{
 };
 
 fn source() -> String {
-    include_str!("../../../profiles/linux-computer.host.conduit").replace("  limits =", r#"  base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1", initialization: {slot_identity: "authoring/creche", image_manifest: "/explicit/host-image.json", image_manifest_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", artifact: "/explicit/host.bin", artifact_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", host_configuration: "/explicit/destination.host.conduit", host_configuration_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", maximum_artifact_bytes: 1048576, maximum_manifest_bytes: 65536, maximum_evidence_bytes: 4096, maximum_polls: 1000, minimum_poll_interval_ms: 10}}
+    include_str!("../../../profiles/linux-computer.host.conduit").replace("  limits =", r#"  base = {kind: "creche/encounter", implementation: "std/kernel-creche-prepare@1", initialization: {slot_identity: "authoring/creche", image_manifest: "/explicit/host-image.json", image_manifest_sha256: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", artifact: "/explicit/host.bin", package_directory: "/explicit/private-packages", artifact_sha256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", host_configuration: "/explicit/destination.host.conduit", host_configuration_sha256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", maximum_artifact_bytes: 1048576, maximum_manifest_bytes: 65536, maximum_evidence_bytes: 4096, maximum_polls: 1000, minimum_poll_interval_ms: 10}}
   limits ="#)
 }
 fn check(source: &str) -> Result<conduit_host_make::CheckedHostConfiguration, String> {
@@ -37,6 +37,7 @@ fn creche_selection_roundtrips_and_every_field_binds_configuration_identity() {
         ("maximum_polls: 1000", "maximum_polls: 999"),
         ("/explicit/host-image.json", "/explicit/other-image.json"),
         ("/explicit/host.bin", "/explicit/other-host.bin"),
+        ("/explicit/private-packages", "/explicit/other-packages"),
         (
             "/explicit/destination.host.conduit",
             "/explicit/other.host.conduit",
