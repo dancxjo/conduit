@@ -1,0 +1,40 @@
+{
+  "schema": "conduit.proof/native-mask-construction-and-preallocation@1",
+  "source": "95d9a024ea",
+  "tests": {
+    "read_only_implementation_closure": 2,
+    "presenter_resolution": 8,
+    "graphical_host_image": 4,
+    "read_only_execution": 1,
+    "actual_offer_generation": 1,
+    "unbound_storage": 2,
+    "retained_backing_including_generation": 5,
+    "optional_tracking": 5,
+    "complete_kernel_library": 227,
+    "kernel_ignored": 3
+  },
+  "strict": "Make closure libraries, native-compositor library, kernel library/tests: Clippy -D warnings passed",
+  "log_sha256": {
+    "mask-closure-unsorted.log": "06d06e2d52f39bc8ab1a8f5ab7615e321132c7a45ddf93b2f83add08886a01cf",
+    "optional-preallocated.log": "431c63eff0b15732bdec369d0eb4746ffb798d5661e883a7ca42a2157af89e9a",
+    "preallocated-kernel-library.log": "778e3e161a94b97c938b34259ad027fba5b2609192161b86b90868be5e699a4d",
+    "native-presenter-resolution.log": "c9adfeeb1571a39460f11d8009fdc67dfbfe998cfc21844214048ed9932b906d",
+    "graphical-host-closure-fixed.log": "bdaefb4c33c1da033aa206c8b760fe7736c3004af24bcaec114782d53b91078a",
+    "native-read-only.log": "298e3e60d2a99669bdfe0b20c3f33603bd85df2b04e77a3f4df2037b9f776a12",
+    "native-offer-generation.log": "2928a922ff02b0de06ce87277513abfb49e78cd7dfc00d7da341866e01bb232b",
+    "native-unbound.log": "e6848e19339d24c7151627b5744c89313af8a97f2dc6a6391a02068403228f38",
+    "native-unbound-retained.log": "9301ad42d3c871df60aa15659184f7fab560cdefd42bb394e1c8b86ee32a31ff",
+    "native-closure-strict.log": "ff4b5ac87451c686d1c21ef00e47243a10300928dbe76bc14b80ed832ca4bc63",
+    "native-unbound-strict-fixed.log": "7fcdc23be5579d7e8725140a7c93c25f4bcfc7caf41da7ff5bc62260e2df67c5",
+    "optional-preallocated-strict.log": "86875513197f60c480ead0e9dfde768a46dd11a3835fe0a8dad9f2bd9b46b0ea"
+  },
+  "scope": "Package-owned declared Back closure in checked IMAGE; canonical exact observed resource inventory; narrowed read-only execution; real scheduler allocation, Value/Sign stores and optional tracking exist before Plan binding; exact supplied Plan binds in original allocation.",
+  "not_proved": [
+    "final installed registry/ledger admission",
+    "preallocated compositor custody",
+    "current authorized remote Face route",
+    "whole Root preparation peak",
+    "graphical Seed manufacture or Threebee deployment"
+  ],
+  "strict_source": "5132df78b6"
+}
