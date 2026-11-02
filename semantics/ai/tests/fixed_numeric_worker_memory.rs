@@ -9,6 +9,9 @@ use conduit_kernel::HostedValueStore;
 use std::collections::BTreeMap;
 #[path = "../../../architecture/core/tests/common/sealed_state.rs"]
 mod common;
+include!("../../../architecture/plot/tests/common/allocation_probe.rs");
+#[global_allocator]
+static ALLOCATOR: Allocator = Allocator;
 const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 fn check<const W: usize>() {
     let offer = fixed_tanh_offer::<W>().unwrap();
@@ -82,17 +85,17 @@ fn fixed_concatenate_workers_report_all_three_codec_allocations() {
         let expected = core::mem::size_of_val(&back) + back.worker_owned_heap_bytes();
         assert!(expected > core::mem::size_of_val(&back));
         let mut values = HostedValueStore::new(1, 16384, 16384).unwrap();
-        assert_eq!(
-            owners[0]
-                .prepare_worker(gear, &mut values)
-                .unwrap()
-                .retained_bytes(),
-            expected
-        );
+        let (prepared, observation) =
+            observe(|| owners[0].prepare_worker(gear, &mut values).unwrap());
+        assert_eq!(prepared.retained_bytes(), expected);
+        assert_eq!(prepared.retained_bytes(), observation.live_bytes);
+        assert!(observation.live_bytes > 0);
         let mut forged = gear.clone();
         forged.artifact_id = "other".into();
         assert!(owners[0].prepare_worker(&forged, &mut values).is_err());
     }
     check_concat::<1, 1, 2>();
+    check_concat::<40, 40, 80>();
+    check_concat::<80, 80, 160>();
     check_concat::<648, 40, 688>();
 }

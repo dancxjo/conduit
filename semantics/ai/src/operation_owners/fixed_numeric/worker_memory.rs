@@ -31,6 +31,8 @@ pub(super) fn prepare(gear: &PlannedGear) -> Result<PreparedWorkerBack, String> 
         "numeric/concatenate18x1" => concatenate::<18, 1, 19>(gear),
         "numeric/concatenate19x1" => concatenate::<19, 1, 20>(gear),
         "numeric/concatenate20x12" => concatenate::<20, 12, 32>(gear),
+        "numeric/concatenate40x40" => concatenate::<40, 40, 80>(gear),
+        "numeric/concatenate80x80" => concatenate::<80, 80, 160>(gear),
         "numeric/concatenate80x44" => concatenate::<80, 44, 124>(gear),
         "numeric/concatenate124x40" => concatenate::<124, 40, 164>(gear),
         "numeric/concatenate164x164" => concatenate::<164, 164, 328>(gear),
