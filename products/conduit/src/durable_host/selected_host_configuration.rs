@@ -34,19 +34,41 @@ pub(super) struct Selection {
 }
 impl Selection {
     pub(super) fn require_timer_image_initialization(&self) -> Result<(), String> {
-        if self
-            .checked()?
+        self.require_image_initialization(false)
+    }
+    pub(super) fn require_image_initialization(
+        &self,
+        scanout_prepared: bool,
+    ) -> Result<(), String> {
+        for base in &self.checked()?.configuration().bases {
+            if base.initialization.is_some()
+                && !(scanout_prepared && base.kind == "display/scanout")
+            {
+                return Err(
+                    "selected IMAGE cannot initialize this physical equipment or Crèche provider"
+                        .into(),
+                );
+            }
+        }
+        Ok(())
+    }
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    pub(super) fn scanout_parameters(
+        &self,
+    ) -> Result<Option<conduit_workspace_make::CheckedScanoutInitialization>, String> {
+        let checked = self.checked()?;
+        if !checked
             .configuration()
             .bases
             .iter()
-            .any(|base| base.initialization.is_some())
+            .any(|base| base.kind == "display/scanout" && base.initialization.is_some())
         {
-            return Err(
-                "selected timer IMAGE cannot initialize physical equipment or Crèche providers"
-                    .into(),
-            );
+            return Ok(None);
         }
-        Ok(())
+        if self.host_image.is_none() {
+            return Err("selected scanout requires the Seed's checked IMAGE".into());
+        }
+        conduit_workspace_make::CheckedScanoutInitialization::from_configuration(&checked).map(Some)
     }
     pub(super) fn host_image(&self) -> Option<&conduit_host_make::HostImage> {
         self.host_image.as_ref()
@@ -84,7 +106,7 @@ impl Selection {
         }
         Ok(())
     }
-    fn checked(&self) -> Result<CheckedHostConfiguration, String> {
+    pub(super) fn checked(&self) -> Result<CheckedHostConfiguration, String> {
         let checked = match &self.host_image {
             Some(image) => check_seed_image(&self.source, image)?,
             None => check(&self.source)?,

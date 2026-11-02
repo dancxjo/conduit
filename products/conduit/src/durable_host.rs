@@ -436,7 +436,40 @@ fn run(state_dir: &Path) -> Result<(), String> {
     })?;
     // Routed admission enters through authenticated local control while the
     // service owns this lock. No second process may edit its Body biography.
-    let (status, mut truth) = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    if let Some(selection) = read_installation(&state_dir.join("installation.json"))?
+        .selected_host_configuration
+        .as_ref()
+    {
+        if let Some(parameters) = selection.scanout_parameters()? {
+            return conduit_linux_display::with_kmsdrm(
+                parameters.width(),
+                parameters.height(),
+                |scanout, _events| {
+                    let prepared = runtime_preparation::prepare_traced_runtime_with_scanout(
+                        state_dir,
+                        &trace,
+                        scanout.initialized_display()?,
+                    )?;
+                    serve_prepared_runtime(state_dir, &trace, owns_body, prepared)
+                },
+            );
+        }
+    }
+    let prepared = runtime_preparation::prepare_traced_runtime(state_dir, &trace)?;
+    serve_prepared_runtime(state_dir, &trace, owns_body, prepared)
+}
+
+fn serve_prepared_runtime(
+    state_dir: &Path,
+    trace: &startup_trace::Trace,
+    owns_body: bool,
+    (status, mut truth): (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+) -> Result<(), String> {
+    use startup_trace::Phase;
     let runtime = state_dir.join("runtime.json");
     if owns_body {
         truth = match trace.run(Phase::OwnedBody, || truth.with_owned_body(state_dir)) {

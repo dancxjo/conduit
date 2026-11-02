@@ -43,6 +43,8 @@ pub(super) fn prepare_traced_runtime(
             .map(|(initial, maximum)| (initial, *maximum)),
         StdHostComposition::reference(),
         trace,
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        None,
     )
 }
 
@@ -80,6 +82,8 @@ pub(super) fn prepare_runtime_with_scans(
         thermostat,
         StdHostComposition::reference(),
         &Trace::disabled(),
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        None,
     )
 }
 
@@ -98,6 +102,33 @@ pub(super) fn prepare_presentation_runtime(
         None,
         StdHostComposition::minimal().with_text(),
         &Trace::disabled(),
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        None,
+    )
+}
+
+#[cfg(all(target_os = "linux", feature = "native-display"))]
+pub(super) fn prepare_traced_runtime_with_scanout(
+    state_dir: &Path,
+    trace: &Trace,
+    initialized: conduit_linux_display::InitializedDisplay,
+) -> Result<
+    (
+        RuntimeStatus,
+        crate::durable_host_control::DurableHostRuntime,
+    ),
+    String,
+> {
+    if owner::retained_thermostat_scan(state_dir)?.is_some() {
+        return Err("selected scanout cannot preserve a scoped Thermostat Host".into());
+    }
+    prepare_runtime_with_composition(
+        state_dir,
+        None,
+        None,
+        StdHostComposition::reference(),
+        trace,
+        Some(initialized),
     )
 }
 
@@ -107,6 +138,9 @@ fn prepare_runtime_with_composition(
     thermostat: Option<(&conduit_thermostat_plot::ThermostatState, u16)>,
     composition: StdHostComposition,
     trace: &Trace,
+    #[cfg(all(target_os = "linux", feature = "native-display"))] scanout: Option<
+        conduit_linux_display::InitializedDisplay,
+    >,
 ) -> Result<
     (
         RuntimeStatus,
@@ -125,6 +159,10 @@ fn prepare_runtime_with_composition(
         .selected_host_configuration
         .as_ref()
         .and_then(|selection| selection.host_image());
+    #[cfg(all(target_os = "linux", feature = "native-display"))]
+    if scanout.is_some() && selected_image.is_none() {
+        return Err("initialized scanout has no selected Seed IMAGE".into());
+    }
     if selected_image.is_some() {
         if todo.is_some()
             || thermostat.is_some()
@@ -134,11 +172,18 @@ fn prepare_runtime_with_composition(
         {
             return Err("selected timer IMAGE cannot preserve unrelated initialized equipment or scoped scans".into());
         }
-        installation
+        let selection = installation
             .selected_host_configuration
             .as_ref()
-            .ok_or("selected IMAGE lost its source")?
-            .require_timer_image_initialization()?;
+            .ok_or("selected IMAGE lost its source")?;
+        #[cfg(all(target_os = "linux", feature = "native-display"))]
+        if scanout.is_some() {
+            selection.require_image_initialization(true)?;
+        } else {
+            selection.require_timer_image_initialization()?;
+        }
+        #[cfg(not(all(target_os = "linux", feature = "native-display")))]
+        selection.require_timer_image_initialization()?;
     }
     if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
@@ -190,6 +235,26 @@ fn prepare_runtime_with_composition(
     }
     let mut host = trace.run(Phase::HostConstruction, || {
         Ok(if let Some(image) = selected_image {
+            #[cfg(all(target_os = "linux", feature = "native-display"))]
+            if let Some(initialized) = scanout {
+                let checked = installation
+                    .selected_host_configuration
+                    .as_ref()
+                    .ok_or("scanout lost selected Source")?
+                    .checked()?;
+                let parameters =
+                    conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
+                        &checked,
+                    )?;
+                return StdHost::from_selected_timer_and_scanout_image(
+                    config,
+                    image,
+                    &conduit_workspace_make::catalog(),
+                    &checked,
+                    parameters,
+                    initialized,
+                );
+            }
             StdHost::from_selected_timer_image(config, image, &conduit_workspace_make::catalog())?
         } else if let Some(factory) = &creche_factory {
             StdHost::new_with_creche_encounter(config, composition, factory.resource_offer())?
