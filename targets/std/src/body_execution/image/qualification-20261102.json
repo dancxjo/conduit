@@ -4,7 +4,13 @@
   "base": "f3e9b7f87707f28f968643c4c1c109ff20be97e7",
   "commands": [
     "cargo +stable test --locked -p conduit-std-host --lib body_execution::image::tests -- --nocapture",
-    "cargo +stable clippy --locked -p conduit-std-host --lib --tests -- -D warnings"
+    "cargo +stable clippy --locked -p conduit-std-host --lib --tests -- -D warnings",
+    "cargo +stable test --locked -p conduit-core --lib identity_receipt_counts_capacities_without_inline_double_count -- --nocapture",
+    "cargo +stable test --locked -p conduit-time --lib --features kernel-step retained_bytes_charge_value_ref_width_without_changing_element_counts -- --nocapture",
+    "cargo +stable test --locked -p conduit-body --lib backing_ -- --nocapture",
+    "cargo +stable test --locked -p conduit-std-host --test region_service_lifecycle -- --nocapture",
+    "cargo +stable test --locked -p conduit-std-host --lib unsupported_real_deadline_back_is_not_misreported_as_zero_bytes -- --nocapture",
+    "cargo +stable xtask ci pipeline evidence-retention"
   ],
   "environment": {
     "CARGO_TARGET_DIR": "/tmp/conduit-local-native-provider-check",
@@ -27,8 +33,7 @@
     "live/input/activation/BodyTime, remote selectedLine and nonempty dynamic value constraints explicitly unsupported",
     "no deployed destination Boot/Play/device acceptance claim",
     "shared immutable workset/Fore identities conservatively charged, not unique-memory accounting",
-    "owning accessor unit tests and broader integration not run in this focused batch",
-    "evidence-retention guard pending integration owner cache coordination"
+    "product continuing worker integration remains separate; this does not prove installed selected Play"
   ],
   "logs": [
     {
@@ -78,6 +83,48 @@
       "sha256": "17b32ca5b6968f7d4c32f1a0e2db81c9f5643cbebd4c1aa34530c378c973c346",
       "source": "36edc810da490bb2f4c466357ca1de56639c618f",
       "result": "passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-core.log",
+      "sha256": "6aff96d8267aa0fe3207a1cb88ffdc238ecf1042b63ecc1c6cca67d0147dec1f",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "1 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-time.log",
+      "sha256": "423b8dc8b09ea71d968ebe4e91a7054c8a91740d283d0508035f4d91fdef8a5b",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "0 matched; defaultfeatures exclude TickBack, corrected below"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-time-kernel-step.log",
+      "sha256": "0f55b3809f5c7b5984f06018da95c4138590cc7e1726f802f1a62e4aef43265c",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "1 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/accessor-body.log",
+      "sha256": "aa3aa19716a3bc03f69d6d54bbe6c809b6e1f46a41259539f47661699384c274",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "2 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/region-service-lifecycle.log",
+      "sha256": "4d4fd56f87fbb7f385279e414e69a151c4518fb90c966f4c5f526435e38b88c7",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "3 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/unsupported-back.log",
+      "sha256": "5a48417bf4938df2b5a01f1068ce741656206af3bb75d1751071936c7be3ed5f",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "1 passed"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-26/goal-re-conduit-mcu-thermometer-fit/target/std-tick-memory-20261102/evidence-retention.log",
+      "sha256": "f76aac74a7101af10bba1dec6a9e675736fab27784f73d0ebcf4a4665448912a",
+      "source": "b5833894db1f96603839a98a7d7aad3770fe229e",
+      "result": "exit0"
     }
   ]
 }
