@@ -378,7 +378,7 @@ impl Owner {
         Ok(lease)
     }
 
-    /// Drop only this exact authenticated session, never its member attachment.
+    /// Drop only this exact pending or authenticated session, never its member attachment.
     pub(crate) fn retire_current_member_carrier(
         &mut self,
         session_id: &conduit_core::LinkBindingId,
@@ -387,6 +387,14 @@ impl Owner {
             .member_carrier
             .as_mut()
             .ok_or("carrier custody absent")?;
+        if custody
+            .pending
+            .as_ref()
+            .is_some_and(|pending| pending.challenge.session_id == *session_id)
+        {
+            custody.pending = None;
+            return Ok(());
+        }
         let active = custody.active.as_mut().ok_or("carrier session absent")?;
         if active
             .session

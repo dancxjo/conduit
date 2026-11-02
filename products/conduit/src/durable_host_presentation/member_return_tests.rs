@@ -201,6 +201,77 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
     let biography_before = owner.truth()["biography"].clone();
     let admission_path = owner_state.join("body/admission.json");
     let admission_before = fs::read(&admission_path).unwrap();
+    // An interrupted pending handshake must not occupy the single slot until
+    // its ten-second deadline, or retire a later successful carrier.
+    for disconnect in [true, false] {
+        let controller = std::cell::RefCell::new(&mut owner);
+        std::thread::scope(|scope| {
+            let client = scope.spawn(|| {
+                let mut line = connect(&current_candidate, Duration::from_secs(3)).unwrap();
+                line.send_binary(
+                    &serde_json::to_vec(&MemberReturnFrame::Resume {
+                        schema: "conduit.body/member-carrier@1".into(),
+                        credential: returned.clone(),
+                        advertisement: Box::new(actual.clone()),
+                    })
+                    .unwrap(),
+                )
+                .unwrap();
+                let mut bytes = vec![0; ADMISSION];
+                let n = line.receive_binary(&mut bytes).unwrap();
+                let MemberReturnFrame::CarrierChallenge { challenge, .. } =
+                    serde_json::from_slice(&bytes[..n]).unwrap()
+                else {
+                    panic!("challenge absent")
+                };
+                if !disconnect {
+                    line.send_binary(
+                        &serde_json::to_vec(&MemberReturnFrame::CarrierProof {
+                            schema: "wrong/schema".into(),
+                            challenge,
+                            signature: vec![0; 64],
+                        })
+                        .unwrap(),
+                    )
+                    .unwrap();
+                }
+                let _ = line.close();
+            });
+            let mut line = listener
+                .accept_with_timeout(Duration::from_secs(3))
+                .unwrap();
+            line.set_read_timeout(Some(Duration::from_secs(3))).unwrap();
+            let frame = server_receive(&mut line);
+            let mut retired = false;
+            assert!(installed::routed_join::current_member::serve_with(
+                &current_encounter,
+                &mut line,
+                frame,
+                |credential, ad, label, millis| controller
+                    .borrow_mut()
+                    .begin_current_member_carrier(
+                        &credential,
+                        &ad,
+                        label,
+                        conduit_core::LineSecurity::AuthenticatedEncrypted,
+                        millis,
+                        128
+                    ),
+                |challenge, signature| controller
+                    .borrow_mut()
+                    .complete_current_member_carrier(&challenge, signature),
+                |session| {
+                    retired = true;
+                    controller
+                        .borrow_mut()
+                        .retire_current_member_carrier(&session)
+                },
+            )
+            .is_err());
+            assert!(retired);
+            client.join().unwrap();
+        });
+    }
     let mut previous_session = None;
     for _ in 0..2 {
         let controller = std::cell::RefCell::new(&mut owner);

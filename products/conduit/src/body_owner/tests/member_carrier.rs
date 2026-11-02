@@ -233,3 +233,48 @@ fn member_presence_renews_but_cannot_resurrect_expired_carrier_lease() {
 
 #[path = "member_carrier/presentation.rs"]
 mod presentation;
+
+#[test]
+fn interrupted_challenge_retirement_releases_only_its_exact_pending_slot() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, key, ad) = admit_with_key(&mut owner, &root, "host/interrupted-carrier");
+    let before = owner.session.evidence().clone();
+    let admissions = owner.admissions.clone();
+    let (interrupted, _) = begin(&mut owner, &credential, &ad);
+    assert!(owner
+        .retire_current_member_carrier(&"foreign/session".into())
+        .is_err());
+    assert!(owner
+        .begin_current_member_carrier(
+            &credential,
+            &ad,
+            "fixture/line".into(),
+            LineSecurity::AuthenticatedEncrypted,
+            60_000,
+            128,
+        )
+        .is_err());
+    owner
+        .retire_current_member_carrier(&interrupted.session_id)
+        .unwrap();
+    let (replacement, _) = begin(&mut owner, &credential, &ad);
+    assert_ne!(interrupted.session_id, replacement.session_id);
+    assert!(owner
+        .retire_current_member_carrier(&interrupted.session_id)
+        .is_err());
+    assert!(owner
+        .complete_current_member_carrier(&interrupted, signature(&interrupted, &key),)
+        .is_err());
+    owner
+        .complete_current_member_carrier(&replacement, signature(&replacement, &key))
+        .unwrap();
+    assert!(owner
+        .inspect_current_member_carrier(&replacement.session_id)
+        .is_ok());
+    owner
+        .retire_current_member_carrier(&replacement.session_id)
+        .unwrap();
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(owner.admissions, admissions);
+    std::fs::remove_dir_all(root).unwrap();
+}

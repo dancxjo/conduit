@@ -99,41 +99,45 @@ pub(crate) fn serve_with(
     )?;
     let (challenge, signature) =
         begin(credential, *advertisement, carrier_label(encounter), millis)?;
-    if challenge.responder != encounter.owner {
-        return Err("current-member receiver changed from selected owner".into());
-    }
-    send(
-        line,
-        &MemberReturnFrame::CarrierChallenge {
-            schema: SCHEMA.into(),
-            challenge: Box::new(challenge.clone()),
-            signature: signature.to_vec(),
-        },
-    )?;
-    let MemberReturnFrame::CarrierProof {
-        schema,
-        challenge: received,
-        signature,
-    } = receive(line)?
-    else {
-        return Err("current-member carrier proof absent".into());
-    };
-    if schema != SCHEMA || *received != challenge {
-        return Err("current-member carrier proof context differs".into());
-    }
-    let signature: [u8; 64] = signature
-        .try_into()
-        .map_err(|_| "current-member signature size")?;
     let session = challenge.session_id.clone();
-    let outcome = complete(challenge, signature).and_then(|inspection| {
+    // Once issued, every failed carrier exchange must release its exact slot.
+    // A disconnected or malformed peer cannot strand pending custody.
+    let outcome = (|| {
+        if challenge.responder != encounter.owner {
+            return Err("current-member receiver changed from selected owner".into());
+        }
         send(
             line,
-            &MemberReturnFrame::CarrierAuthenticated {
+            &MemberReturnFrame::CarrierChallenge {
                 schema: SCHEMA.into(),
-                inspection: Box::new(inspection),
+                challenge: Box::new(challenge.clone()),
+                signature: signature.to_vec(),
             },
-        )
-    });
+        )?;
+        let MemberReturnFrame::CarrierProof {
+            schema,
+            challenge: received,
+            signature,
+        } = receive(line)?
+        else {
+            return Err("current-member carrier proof absent".into());
+        };
+        if schema != SCHEMA || *received != challenge {
+            return Err("current-member carrier proof context differs".into());
+        }
+        let signature: [u8; 64] = signature
+            .try_into()
+            .map_err(|_| "current-member signature size")?;
+        complete(challenge, signature).and_then(|inspection| {
+            send(
+                line,
+                &MemberReturnFrame::CarrierAuthenticated {
+                    schema: SCHEMA.into(),
+                    inspection: Box::new(inspection),
+                },
+            )
+        })
+    })();
     if let Err(error) = outcome {
         if let Err(cleanup) = retire(session) {
             eprintln!("member carrier cleanup unacknowledged: {cleanup}");
