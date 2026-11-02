@@ -504,3 +504,6 @@ fn expired_reused_and_mismatched_spawn_proofs_refuse_distinctly() {
 
 #[path = "admission/compaction_behavior.rs"]
 mod compaction_behavior;
+
+#[path = "admission/retirement.rs"]
+mod retirement;
