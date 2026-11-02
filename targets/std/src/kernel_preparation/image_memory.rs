@@ -5,6 +5,20 @@ use std::sync::{
     Arc,
 };
 
+/// Constructed only by the trusted closed tick accounting owner, never wire data.
+#[derive(Debug)]
+pub(crate) struct BodyMemoryReceipt {
+    total_bytes: usize,
+}
+impl BodyMemoryReceipt {
+    pub(crate) fn prepared_tick(total_bytes: usize) -> Self {
+        Self { total_bytes }
+    }
+    pub(crate) fn total_bytes(&self) -> usize {
+        self.total_bytes
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct ImageMemoryLease {
     used: Arc<AtomicUsize>,
@@ -37,7 +51,7 @@ impl KernelResourceLedger {
         &mut self,
         advertisement: &HostAdvertisement,
         plans: &[(&Plan, bool)],
-        receipt: &crate::installed_std::body_kernel::memory::BodyMemoryReceipt,
+        receipt: &BodyMemoryReceipt,
     ) -> Result<(Vec<KernelResourceReservation>, ImageMemoryLease), String> {
         self.require_available()?;
         let bounds = self

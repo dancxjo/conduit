@@ -325,6 +325,10 @@ mod allocation_probe {
         }
     }
 
+    pub fn current() -> usize {
+        ALLOCATIONS.with(Cell::get)
+    }
+
     pub fn begin() -> Guard {
         ALLOCATIONS.with(|allocations| allocations.set(0));
         TRACKING.with(|tracking| tracking.set(true));

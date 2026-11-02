@@ -5,15 +5,8 @@ use crate::body_execution::BodyRunReport;
 use conduit_body::{BodyPlayIdentity, Wake, WakeLifecycleEvent};
 use conduit_core::SignIdentity;
 
-#[derive(Debug)]
-pub(crate) struct BodyMemoryReceipt {
-    total_bytes: usize,
-}
-impl BodyMemoryReceipt {
-    pub(crate) fn total_bytes(&self) -> usize {
-        self.total_bytes
-    }
-}
+use crate::kernel_preparation::BodyMemoryReceipt;
+
 fn add(total: &mut usize, value: usize) -> Result<(), String> {
     *total = total
         .checked_add(value)
@@ -322,7 +315,7 @@ impl BodyKernel<'_> {
                 .retained_backing_bytes()
                 .ok_or("prepared clock backing overflow")?,
         )?;
-        Ok(BodyMemoryReceipt { total_bytes: bytes })
+        Ok(BodyMemoryReceipt::prepared_tick(bytes))
     }
 }
 
