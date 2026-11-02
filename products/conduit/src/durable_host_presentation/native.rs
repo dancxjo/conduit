@@ -41,9 +41,9 @@ impl NativePresentation {
             invitation,
             MaskSelection::Native,
         )?;
-        present(runtime, output, &owner, snapshot, 1)?;
+        let owner_acknowledged = present(runtime, output, &owner, snapshot, 1)?;
         Ok(Self {
-            owner: Some(owner),
+            owner: owner_acknowledged.then_some(owner),
             next_refresh: Instant::now() + REFRESH_PERIOD,
             refreshes: 0,
             play_sequence: 1,
@@ -79,7 +79,10 @@ impl NativePresentation {
             .play_sequence
             .checked_add(1)
             .ok_or("native child Play sequence exhausted")?;
-        present(runtime, output, owner, snapshot, self.play_sequence)?;
+        let owner_acknowledged = present(runtime, output, owner, snapshot, self.play_sequence)?;
+        if !owner_acknowledged {
+            self.owner = None;
+        }
         self.refreshes += 1;
         self.next_refresh = Instant::now() + REFRESH_PERIOD;
         Ok(())
@@ -92,7 +95,7 @@ fn present(
     owner: &wire::OwnerRoute,
     snapshot: wire::Snapshot,
     play_sequence: u64,
-) -> Result<(), String> {
+) -> Result<bool, String> {
     let front = snapshot
         .face
         .subjects
@@ -127,5 +130,14 @@ fn present(
     // or a recorder's durable acknowledgment. The exact provider/ledger checks
     // remain inside StdHost; no resource charge is silently cleared here.
     host.retire_selected_native_mask_evidence(&mut evidence)?;
-    acknowledgement
+    match acknowledgement {
+        Ok(()) => Ok(true),
+        Err(error) => {
+            // Physical commit is real even if its return is lost or refused.
+            // End this encounter; no further Show/action uses its grant. Keep
+            // the actual Host/output alive with explicitly historical pixels.
+            eprintln!("native Show is historical; owner acknowledgment was not accepted: {error}");
+            Ok(false)
+        }
+    }
 }

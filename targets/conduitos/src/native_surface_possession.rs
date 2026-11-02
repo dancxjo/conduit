@@ -2,6 +2,7 @@
 
 use alloc::format;
 
+#[cfg(feature = "native-compositor-core")]
 mod retained_backing;
 use conduit_core::{
     ActivePlayId, BaseCapabilityAuthority, BaseCapabilityRefusal, BaseCapabilityScope,
