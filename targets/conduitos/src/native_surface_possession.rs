@@ -152,7 +152,9 @@ impl ActiveNativeSurfacePossession {
             .map_err(ResourceCordRefusal::Capability)?;
         let offered =
             OfferedResourceCord::new(plan.plan_id.clone(), active_play_id, connection, handle)?;
-        let cord = offered.accept(&connection.sink_placement_id, &connection.sink_port_id)?;
+        let cord = offered
+            .accept(&connection.sink_placement_id, &connection.sink_port_id)
+            .map_err(|failure| (*failure).0)?;
         let claim = BaseOperationClaim {
             host_id: scope.host_id,
             boot_id: scope.boot_id,
