@@ -142,6 +142,39 @@ Proof: `proof/evidence/creche/joining-host-construction-20261101.json`.
 This is native Rust software proof, not deployed WASM, installed provider, media
 manufacture or physical joining; #6471's native media/boot acceptance stays open.
 
+### Bounded Host authoring and same-Body Seed preparation
+
+The next shared tool source is now qualified: `HostConfigurationEncounter`
+loads a checked saved definition or lets the current execution author one from
+package descriptors. It exposes finite target/Base choices, explicit limits and
+initialization, and inspectable canonical Conduitese in bounded text chunks.
+Every edit validates the current Face and Show; stale interactions refuse.
+Its checked result is construction intent, never provider readiness.
+
+The same package now provides `produce_joining_host` for a prior ordinary Make
+artifact explicitly selected and opened by its authorized owner. It streams a
+bounded artifact check, checks the invitation again after reading, uses the
+original Body/Birth identity, and retains the Seed manifest and receipt. This
+observes artifact bytes and retains the handle; the owner still must preserve
+immutable custody or verify bytes at deployment. It performs no file opening,
+build, deployment, Boot observation or membership admission itself.
+
+Five authoring tests, six production tests and strict library Clippy pass on
+source `a564fbf32d7726ebac9cf98697d8e7e147bc72fb`. Exact logs and bounds are in
+`make/body/src/host_configuration_encounter/qualification-20261101.json`.
+This is software proof, not a deployed UI screenshot or a joined Host.
+The existing Linux source builder supports ConduitOS targets only; browser/Pico
+builder support must not be inferred from this reviewed-artifact route.
+
+The installed provider must next retain its catalogs, actual backend/resource
+custody and factory before initial advertisement. Per-Play construction uses the
+actual execution context and the original StdHost; the existing service's Face,
+Mask acknowledgment and typed input routes must own presentation. Do not recover
+the old another-Body deployment draft, replacement ledger or second native UI.
+The related Std integration-harness repair passes strict region integration
+Clippy and the exact allocation-free quarantine test; its separate receipt is
+`proof/evidence/creche/std-supplied-encounter-harness-20261101.json`.
+
 ## 3. Source gates to address at the real encounter
 
 On the inspected source, the installed Birth encounter offers reviewed Morse,
