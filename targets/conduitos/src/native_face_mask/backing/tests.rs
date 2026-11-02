@@ -125,3 +125,25 @@ fn failed_output_retires_backing_without_reconstruction_or_show_receipt() {
         Err(NativeFaceMaskError::Mask(NativeMaskPlayError::Pressure))
     ));
 }
+
+#[test]
+fn ordinary_mask_preparation_preserves_actual_offer_generation() {
+    let provider = crate::product_bases::fixture_surface_provider();
+    let mut mask = NativeFaceMask::prepare(
+        "host/native".into(),
+        "boot/native".into(),
+        conduit_core::OfferGeneration(7),
+        "build",
+        provider.entry.base_id.clone(),
+        "surface/actual-generation",
+        &provider,
+    )
+    .unwrap();
+    let face = crate::native_face_mask::tests::draft()
+        .face(&mask.birth_basis("arrival/gen-seven"))
+        .unwrap();
+    mask.present_read_only(face, 1, 1, &mut CountingDisplay::default())
+        .unwrap();
+    assert_eq!(mask.show().unwrap().show.offer_generation.0, 7);
+    assert_eq!(mask.publication().unwrap().offer_generation.0, 7);
+}

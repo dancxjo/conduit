@@ -164,3 +164,60 @@ fn native_mask_intent_requires_explicit_show_and_byte_backed_memory() {
         .iter()
         .any(|presenter| presenter.implementation == "presenter/native-graphical@1"));
 }
+
+#[test]
+fn checked_native_presenter_closes_actual_back_implementations_into_image() {
+    use conduit_host_make::{build_default_host_image, BuildInputs};
+    let catalog = super::catalog();
+    let packages = super::package_set();
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(PI3).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let profile = checked.profile();
+    for implementation in [
+        "conduit.face/tee-kernel@1",
+        "face/conduitos-surface-source@1",
+        "face/renderer-conduitos-native@1",
+        "face/conduitos-human-input@1",
+    ] {
+        assert!(
+            profile
+                .capabilities
+                .iter()
+                .any(|cap| cap.implementation == implementation),
+            "missing actual Back {implementation}"
+        );
+    }
+    assert!(profile
+        .host_calls
+        .contains(&"conduit.host/face-interaction@1".into()));
+    assert!(!profile
+        .resources
+        .iter()
+        .any(|pool| pool.class == "conduit.resource/conduitos-human-input@1"));
+    let (image, _) = build_default_host_image(
+        profile.clone(),
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "qualified-source-test".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    assert!(image
+        .manifest
+        .implementations
+        .contains(&"face/renderer-conduitos-native@1".into()));
+    assert!(image
+        .manifest
+        .host_calls
+        .contains(&"conduit.host/face-interaction@1".into()));
+    assert_eq!(
+        image.manifest.resource_budgets,
+        checked.configuration().resources
+    );
+}

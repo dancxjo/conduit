@@ -27,6 +27,8 @@ use conduit_plot::{
     parse_syntax_document,
 };
 
+mod implementation_closure;
+pub use implementation_closure::*;
 mod configured;
 mod layout_configured;
 mod storage_profile;
