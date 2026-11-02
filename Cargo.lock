@@ -2134,7 +2134,11 @@ dependencies = [
 name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-host-make",
+ "conduit-rp2040-flash-layout",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -10960,6 +10964,7 @@ dependencies = [
  "conduit-host-conduitos-make",
  "conduit-host-esp32-make",
  "conduit-host-make",
+ "conduit-host-rp2040",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
@@ -10976,6 +10981,7 @@ dependencies = [
  "conduit-plot-library",
  "conduit-r1-network-conformance",
  "conduit-robotics",
+ "conduit-rp2040-flash-layout",
  "conduit-rp2040-network-realization",
  "conduit-semantic-catalog",
  "conduit-signal",
