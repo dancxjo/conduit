@@ -190,8 +190,7 @@ fn actual_profile_boot_preserves_zero_unused_line_capacity() {
     assert_eq!(
         initialized
             .kernel_resources
-            .image_bounds
-            .as_ref()
+            .admitted_image_bounds()
             .unwrap()
             .line_sessions,
         0
