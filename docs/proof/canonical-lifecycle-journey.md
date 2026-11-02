@@ -1,6 +1,6 @@
 # The canonical Conduit lifecycle journey
 
-Status: in progress, 1 November 2026. This chronological account is an executable
+Status: in progress, 2 November 2026. This chronological account is an executable
 delivery record, not a claim that the destination below is already implemented.
 
 ## Destination and invariants
@@ -29,10 +29,10 @@ truth remains in Host construction and actual initialized offers.
 
 | Stage | Required witness | Current result |
 |---|---|---|
-| Existing Host and Crèche | Actual installed Host/Boot and acknowledged encounter | Verified installed Linux service and terminal Birth encounter; required toolset still absent |
-| Birth with useful tools | One reviewed birth, retained Source/workset, installed authoring/Make capabilities | Not achieved |
-| Wake and next Seed | Same Body, authored/checked Host definition, admitted Make and exact artifact | Not achieved |
-| Deployment and admission | Explicit carrier or human transfer, actual new Boot and authorized same-Body member | Not achieved |
+| Existing Host and Crèche | Actual installed Host/Boot and acknowledged encounter | Verified installed Linux service, Birth encounter and subsequent Crèche encounter |
+| Birth with useful tools | One reviewed birth, retained Source/workset, installed authoring/Make capabilities | Hamm Creek House born; checked Host authoring and Crèche used; full toolset remains limited |
+| Wake and next Seed | Same Body, authored/checked Host definition, admitted Make and exact artifact | Body-authored timer Seed verified; graphical successor not yet made |
+| Deployment and admission | Explicit carrier or human transfer, actual new Boot and authorized same-Body member | Physical Threebee timer Seed Boot/admission verified; graphical deployment pending |
 | Grow | Same recognizable path for RP2040, ESP32, Pi and browser | Not achieved |
 | Continue and present | Sensing/recording/interaction under exact Plans/Lines; coherent actual Faces/Shows | Not achieved |
 | Reproduce | Source, commands, chronological receipts, images and physical evidence | This record begins that evidence; whole journey remains open |
@@ -556,3 +556,51 @@ The existing member-key witness now has an owner-local one-use challenge slot. P
 Face, nested checked-value contracts and Manifestation/Sign owners now expose checked, capacity-based retained heap accounting. All 121 Core and 91 Face library tests pass (two Face tests ignored), plus strict Core/Face library/tests. Four new ownership cases cover spare capacity, nested content/contracts, temporal clock strings and retained Signs. Independent read-only review found no missing owned fields or double counting. These accessors exclude inline owners, allocator overhead, transient workspace and separate Plan/scene/serialization storage; they do not themselves admit execution.
 
 Off-device deployment preflight found that the AArch64 linker lacked SDL. The actual target package was downloaded against Threebee's package SHA-256, and 35 minimal target packages were verified. A read-only snapshot of Threebee's installed dynamic libraries supplies existing dependencies. The normal AArch64 linker now produces an ELF against actual SDL without suppressing unresolved symbols. This is a tiny link preflight, not the Conduit executable or target execution. No packages were installed on Threebee, its timer Seed and legacy renderer remain unchanged, and no new physical pixels are claimed.
+
+
+### Selected native execution and original-invitation transport, 2026-11-02
+
+[PR #6722](https://github.com/dancxjo/conduit/pull/6722) passed exact-head
+Candidate 41464589371 and merged into `dev` as `d622d3a4f6`. The integrator
+merged that accepted source while retaining its additional output-lifetime,
+selected-provider and preparation work. This is source delivery, not a new
+Threebee installation.
+
+The new selected native Host now owns its actual initialized display, fixed
+kernel/value/Sign/raster stores, exact Plan reservations and finite preparation
+capacity. Initialization refuses deterministic shortages before claiming the
+display. The physical Base retains its real renderer Backs; Make canonicalizes
+the complete multi-Base resource inventory before planning. Native storage is
+selected from the actual four-Back execution closure, independently of the
+whole Host profile. These fix encountered refusals without relabeling offers
+or weakening planner/resource checks.
+
+The CPU/SDL diagnostic now executes a read-only Show, takes and disposes its
+actual complete evidence, retires the old exact Plan, and displays another Face
+through a different real Fore-Line binding. Active frames refuse Plan
+replacement; old backing drops before replacement allocation under the same
+fixed reservation. The owning fixture and strict Std library/tests pass. The
+installed product's native-feature binary/tests also pass strict Clippy.
+These finite managed-backing receipts exclude SDL/GPU memory, allocator overhead,
+stack, unrelated Root owners and whole preparation peak/RSS.
+
+Crèche's original invitation previously had no route, while the network command
+issued a separate invitation. The new ordinary `body invite --prepare` retains
+one initialized, finite TLS listener for the owner's next original invitation.
+Two actual listener-lifetime cases and a two-process installed-Host join pass.
+The focused extraction is [PR #6724](https://github.com/dancxjo/conduit/pull/6724),
+not yet accepted or merged. The exact extraction's Candidate is its remaining
+source acceptance gate; the local tests ran on the integrator branch.
+
+The native installed-service path is connected to that same initialized Host,
+original Seed invitation, exact route and actual Available Show acknowledgment.
+Owner-side read-only authority, wardrobe selection and actual Fore binding have
+also been connected. An owning route test exposed a further genuine mismatch:
+the existing document adapter advertised a 64 KiB payload with an 8 KiB frame,
+which ordinary planner validation correctly refuses. Its logical document
+capacity and physical chunk limits must be reconciled before live deployment.
+
+Raw logs remain under ignored `target/native-service-qualification-20261102/`.
+No graphical Seed, AArch64 feature-selected executable, physical HDMI Show,
+returning-member reconnection, unified sensor history or new screenshot is
+claimed. Threebee's timer Seed and separate old display remain unchanged.
