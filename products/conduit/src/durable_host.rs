@@ -244,15 +244,6 @@ pub(crate) fn selected_todo_checkpoint(
         }))
 }
 
-pub(crate) fn install_and_activate(
-    manifest: &Path,
-    state_dir: &Path,
-) -> Result<InstalledHostIdentity, String> {
-    let installation = install_without_start(manifest, state_dir)?;
-    activate_service(state_dir)?;
-    Ok(installation)
-}
-
 fn install_and_activate_with_equipment(
     manifest: &Path,
     state_dir: &Path,

@@ -161,6 +161,8 @@ struct InvitationProvision {
     nonce: Vec<u8>,
     secret: Vec<u8>,
     expires_at_millis: u64,
+    #[serde(default)]
+    rendezvous: Option<conduit_body::SpawnRendezvousDescriptor>,
 }
 
 #[cfg(test)]
@@ -207,12 +209,7 @@ fn prepare(
     let mut provision = decoded.map_err(|_| NativeInstallRefusal::PackageMalformed)?;
     let validation = validate_provision(&provision, artifact);
     provision.invitation_provision.secret.fill(0);
-    if validation.is_err() {
-        if let Some(invitation) = &mut provision.portable_invitation {
-            invitation.secret.fill(0);
-        }
-        return Err(NativeInstallRefusal::BindingMismatch);
-    }
+    validation.map_err(|_| NativeInstallRefusal::BindingMismatch)?;
     let release = verify_release_manifest(&provision, artifact, &entries)?;
     let parent = state_dir.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|_| NativeInstallRefusal::InstallationFailed)?;
@@ -315,6 +312,7 @@ fn validate_provision(
         || portable.claim.nonce.as_slice() != invitation.nonce
         || portable.claim.expires_at_millis != invitation.expires_at_millis
         || portable.secret.as_slice() != invitation.secret
+        || portable.rendezvous != invitation.rendezvous
     {
         return Err("portable invitation differs from exact package binding".into());
     }
