@@ -250,7 +250,29 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     let selected = owner
         .seal_native_mask_route(&receipt, &face_line, &return_line, expires)
         .unwrap();
-    assert_eq!(selected, seal);
+    // The owner now seals the actual supplied Fore Lines into the native Plan;
+    // the earlier unbound schema seal is deliberately a different Plan.
+    assert_eq!(selected.face_id, seal.face_id);
+    let fore = &selected.planned_mask.plan.fragments[0].fore_ports;
+    for (port, line) in [
+        (
+            &selected.planned_mask.mask.face_input.front_port_id,
+            &face_line,
+        ),
+        (
+            &selected.planned_mask.mask.show_output.front_port_id,
+            &return_line,
+        ),
+    ] {
+        assert_eq!(
+            fore.iter()
+                .find(|f| &f.front_port_id == port)
+                .unwrap()
+                .selected_line
+                .as_ref(),
+            Some(&line.admitted_line())
+        );
+    }
     let mut forged_receipt = receipt.clone();
     forged_receipt.host_advertisement = wrong_offer;
     assert_eq!(

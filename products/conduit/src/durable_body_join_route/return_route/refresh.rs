@@ -100,13 +100,17 @@ pub(super) fn serve(
     }
     if let OwnerFaceSnapshotResponse::Snapshot {
         interactions_admitted,
+        route,
         ..
     } = &mut face
     {
         *interactions_admitted = selected
             && next
                 .as_ref()
-                .is_some_and(|grant| grant.spoken_selection.is_none());
+                .is_some_and(|grant| grant.spoken_selection.is_none())
+            && route
+                .as_deref()
+                .is_some_and(super::super::face_snapshot::route_allows_interaction);
     }
     if !selected {
         next = None;

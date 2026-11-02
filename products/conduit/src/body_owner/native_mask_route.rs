@@ -106,13 +106,25 @@ impl Owner {
             .as_ref()
             .filter(|route| route.credential == receipt.credential)
             .and_then(|route| route.component_selection);
-        self.seal_native_mask_route_with_selection(
-            receipt,
-            face_line,
-            return_line,
-            expires_at_millis,
-            SelectedRemoteMask::Native(selection),
-        )
+        let previous_route = self.pending_native_mask.clone();
+        let previous_wardrobe = self.face_wardrobe.clone();
+        let result = self
+            .seal_native_mask_route_with_selection(
+                receipt,
+                face_line,
+                return_line,
+                expires_at_millis,
+                SelectedRemoteMask::Native(selection),
+            )
+            .and_then(|seal| {
+                self.select_component_face_route(&seal)?;
+                Ok(seal)
+            });
+        if result.is_err() {
+            self.pending_native_mask = previous_route;
+            self.face_wardrobe = previous_wardrobe;
+        }
+        result
     }
 
     pub(crate) fn seal_remote_terminal_mask_route(
@@ -259,13 +271,69 @@ impl Owner {
                 interaction_line,
             )?
         } else {
-            conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
+            let planned = conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
                 native_offer,
                 component_selection.map(|(look, recipe)| (look.into(), recipe)),
             )
             .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
-            .planned_mask
+            .planned_mask;
+            let choices = [
+                (
+                    conduit_core::PortDirection::Input,
+                    &planned.mask.face_input.front_port_id,
+                    face_line,
+                ),
+                (
+                    conduit_core::PortDirection::Output,
+                    &planned.mask.show_output.front_port_id,
+                    return_line,
+                ),
+            ]
+            .map(
+                |(direction, port, line)| conduit_planner::ExternalForeLineChoice {
+                    host_id: native_offer.host_id.clone(),
+                    boot_id: native_offer.boot_id.clone(),
+                    direction,
+                    front_port_id: port.clone(),
+                    track: conduit_core::ConnectionTrack::Payload,
+                    peer_host_id: self.host.advertisement().host_id.clone(),
+                    peer_boot_id: self.host.advertisement().boot_id.clone(),
+                    line_id: line.line_id.clone(),
+                },
+            );
+            let mut bases = vec![
+                face_line.binding.base.clone(),
+                return_line.binding.base.clone(),
+            ];
+            bases.sort();
+            bases.dedup();
+            let plan = conduit_planner::bind_external_fore_lines(
+                &planned.plan,
+                &choices,
+                &[face_line.clone(), return_line.clone()],
+                &bases,
+            )
+            .map_err(|error| format!("native-mask-lines-refused:{error:?}"))?;
+            conduit_face::PlannedMaskPlot::admit(&planned.mask, &plan)
+                .map_err(|error| format!("native-mask-fore-refused:{error:?}"))?
         };
+        let selected_input = planned
+            .plan
+            .fragments
+            .iter()
+            .flat_map(|f| &f.placements)
+            .find(|p| p.gear_id == planned.mask.interaction_output.gear_id)
+            .ok_or("native-mask-input-back-absent")?;
+        let native_read_only = matches!(
+            selected_input.execution_profile_id.as_str(),
+            conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE
+                | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE
+        );
+        if native_read_only
+            && (!selected_input.resources.is_empty() || !selected_input.authority.is_empty())
+        {
+            return Err("native-read-only-input-has-unexpected-authority".into());
+        }
         let seal = if let Some(interaction_line) = interaction_line {
             RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
                 &self.session,
@@ -306,7 +374,7 @@ impl Owner {
             face_line: face_line.clone(),
             return_line: return_line.clone(),
             interaction_line: interaction_line.cloned(),
-            read_only: spoken.is_some(),
+            read_only: spoken.is_some() || native_read_only,
             seal: seal.clone(),
             acknowledged_show: None,
             expires_at_millis,

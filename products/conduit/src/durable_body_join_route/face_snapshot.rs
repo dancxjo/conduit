@@ -82,10 +82,11 @@ pub(super) fn serve_optional_face_snapshot(
     };
     if let OwnerFaceSnapshotResponse::Snapshot {
         interactions_admitted,
+        route,
         ..
     } = &mut response
     {
-        *interactions_admitted = selected;
+        *interactions_admitted = selected && route.as_deref().is_some_and(route_allows_interaction);
     }
     if !selected {
         grant = None;
@@ -101,4 +102,23 @@ pub(super) fn serve_optional_face_snapshot(
         send(line, grant)?;
     }
     Ok(grant)
+}
+
+/// Inspection of the exact selected input Back; a Show ACK grant is independent
+/// of permission to return a human interaction occurrence.
+pub(super) fn route_allows_interaction(route: &conduit_face::RemoteOwnerMaskRouteSeal) -> bool {
+    route
+        .planned_mask
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .find(|p| p.gear_id == route.planned_mask.mask.interaction_output.gear_id)
+        .is_some_and(|input| {
+            !matches!(
+                input.execution_profile_id.as_str(),
+                conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE
+                    | conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE
+            )
+        })
 }
