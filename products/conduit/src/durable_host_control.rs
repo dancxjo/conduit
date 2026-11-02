@@ -960,7 +960,8 @@ enum Request {
     BodyBrowserStart {
         protocol: u16,
         token: Vec<u8>,
-        expected_host_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        expected_host_id: Option<String>,
         new_host_verifying_key: Option<[u8; 32]>,
         maximum_millis: u64,
     },
@@ -2008,7 +2009,11 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             maximum_millis,
             ..
         } if protocol == PROTOCOL => runtime
-            .start_browser_window(&expected_host_id, new_host_verifying_key, maximum_millis)
+            .start_browser_window(
+                expected_host_id.as_deref(),
+                new_host_verifying_key,
+                maximum_millis,
+            )
             .map(|(authorization, url)| Response::BodyBrowserWindow {
                 protocol: PROTOCOL,
                 window_id: authorization.window_id,

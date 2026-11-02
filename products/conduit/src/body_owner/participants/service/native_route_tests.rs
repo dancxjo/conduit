@@ -34,7 +34,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .any(|placement| !placement.authority.is_empty()));
 
     let authorized = owner
-        .browser_authorize_window(host_id.as_str(), Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some(host_id.as_str()), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let Out::Challenge { challenge, .. } = owner
         .browser_begin(
@@ -408,7 +408,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let browser = owner
-        .browser_authorize_window("host/browser-control", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-control"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let browser_binding = LinkBindingId::from("line/test/browser-control");
     let Out::Challenge { challenge, .. } = owner

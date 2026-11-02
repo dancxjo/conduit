@@ -103,7 +103,7 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
         .clone();
     let capability = browser.capabilities[0].capability_id.clone();
     let authorized = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let challenge = advertise(&mut owner, &authorized.window_id);
     let secret = SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap();
@@ -236,7 +236,7 @@ fn current_browser_window_discloses_only_requested_planning_offer_detail() {
 fn signed_browser_proof_uses_latest_owner_after_interleaved_native_admission() {
     let (mut owner, root, _) = setup();
     let authorized = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let challenge = advertise(&mut owner, &authorized.window_id);
     assert!(
@@ -328,7 +328,7 @@ fn signed_browser_proof_uses_latest_owner_after_interleaved_native_admission() {
 fn aborted_challenge_is_not_retained_across_service_restart() {
     let (mut owner, root, resident) = setup();
     let authorized = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let first = advertise(&mut owner, &authorized.window_id);
     owner.browser_abort(&authorized.window_id).unwrap();
@@ -344,7 +344,7 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
     .unwrap();
     resumed.restore_execution(&root).unwrap();
     let second = resumed
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let next = advertise(&mut resumed, &second.window_id);
     assert_ne!(first.nonce, next.nonce);
@@ -354,3 +354,6 @@ fn aborted_challenge_is_not_retained_across_service_restart() {
         .is_none_or(|manager| manager.receipts.is_empty()));
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "key_pin_tests.rs"]
+mod key_pin_tests;

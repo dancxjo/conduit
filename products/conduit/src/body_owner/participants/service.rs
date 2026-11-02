@@ -119,7 +119,7 @@ impl BrowserAdmittedSnapshot {
 
 pub(crate) struct BrowserWindow {
     id: String,
-    expected: HostId,
+    expected: Option<HostId>,
     new_key: Option<[u8; 32]>,
     clock: Instant,
     deadline: Instant,
@@ -288,7 +288,7 @@ impl BrowserWindow {
 impl Owner {
     pub(crate) fn browser_authorize_window(
         &mut self,
-        expected_host: &str,
+        expected_host: Option<&str>,
         new_key: Option<[u8; 32]>,
         maximum_millis: u64,
     ) -> Result<BrowserWindowAuthorization, String> {
@@ -300,15 +300,15 @@ impl Owner {
             );
         }
         if !(1000..=60_000).contains(&maximum_millis)
-            || expected_host.is_empty()
-            || expected_host.len() > 256
+            || expected_host.is_some_and(|host| host.is_empty() || host.len() > 256)
+            || (expected_host.is_none() && new_key.is_none())
         {
             return Err(
-                "browser admission requires an exact Host and a window of 1000..60000 ms".into(),
+                "browser admission requires an exact Host or explicit first-admission key pin, and a window of 1000..60000 ms".into(),
             );
         }
-        let expected = HostId::from(expected_host);
-        if expected == self.host.advertisement().host_id {
+        let expected = expected_host.map(HostId::from);
+        if expected.as_ref() == Some(&self.host.advertisement().host_id) {
             return Err("browser participant cannot replace the owner Host".into());
         }
         if self.pending_browser.is_some() {
@@ -318,7 +318,7 @@ impl Owner {
             manager
                 .receipts
                 .iter()
-                .any(|receipt| receipt.credential.host_id == expected)
+                .any(|receipt| Some(&receipt.credential.host_id) == expected.as_ref())
         });
         if !known && new_key.is_none() {
             return Err("first browser admission requires its exact public verifying key".into());

@@ -438,9 +438,9 @@ pub(crate) enum BodyCommand {
         /// Installed Host state whose running service owns the Body.
         #[arg(long)]
         state_dir: PathBuf,
-        /// Exact Host ID shown by the browser's "Join an owned Body" view.
-        #[arg(long)]
-        expected_host_id: String,
+        /// Known browser Host ID; omit only for first admission with an explicit key pin.
+        #[arg(long, required_unless_present = "new_host_verifying_key")]
+        expected_host_id: Option<String>,
         /// JSON byte array copied from the browser for first admission; omit on return.
         #[arg(long)]
         new_host_verifying_key: Option<String>,
@@ -943,3 +943,7 @@ mod public_surface_tests {
 #[cfg(test)]
 #[path = "cli/seed_export_tests.rs"]
 mod seed_export_tests;
+
+#[cfg(test)]
+#[path = "cli/browser_window_tests.rs"]
+mod browser_window_tests;
