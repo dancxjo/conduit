@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.proof/physical-returned-host@1",
+  "source": "74a364aea109775b02dce71e07625e69e2af8f91",
+  "host": "threebee",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "part_id": "b45f1ac25591ea54404c7f0a0d3a59bb5945c00b5776dffc4a7f2250996be098",
+  "host_id": "host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad",
+  "boot_id": "boot/installed/43a8eda2371ddc4e11b63d5d6a42cd42cb1292742a4d2e9097326685cd00b4f5",
+  "credential_id": "3a64fc02e06d3e809ff3bca0d9af41b2f6e60e3a0ef08a2f91216e1408c623e6",
+  "executable_sha256": "ec3553d8f26f92baae78cf8c434d44e5082455426393ea97271848ee3006e8a0",
+  "same_body_host_part": true,
+  "unchanged_continuity_key": true,
+  "private_key_mode": "0600",
+  "owner_persisted_return_receipt_matches": true,
+  "native_frame": {
+    "face_id": "9d69e607d72e97589ad0fe0599009d2dbdaa57965c468a7144e590453b2cc377",
+    "revision": 145,
+    "frame": 1,
+    "pixels": 614400,
+    "drm_device": "/dev/dri/card0",
+    "observed_drm_descriptors": 4
+  },
+  "service_restarts_at_observation": 0,
+  "limitations": [
+    "finite encounter, not continuing renewal",
+    "driver frame submission, not independent optical acceptance",
+    "no screenshot captured",
+    "not MCU membership or shared environmental graph proof"
+  ]
+}

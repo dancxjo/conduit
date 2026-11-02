@@ -899,3 +899,30 @@ BroadcastChannel admission; remote Host rendezvous recruits a Host into a
 browser-owned Body and does not implement joining a Linux-owned Body. A remote
 browser invitation requires the latter protocol and reachable authenticated
 transport, rather than merely encoding a Linux invitation as a Workspace link.
+
+
+### 2026-11-02: Checked replacement IMAGE and real returned-member Boot
+
+Source `74a364aea1` adds explicit `host service install --host-image` replacement
+against the unchanged retained Host source, before installation commit. An
+incompatible executable-only update now refuses before changing installation
+state. Identical configuration reselection preserves the Seed IMAGE. Ten targeted
+configuration tests pass with `-Dwarnings`, including bad/mismatched IMAGE refusal,
+unchanged installation/service files on refusal, matching replacement and reopen,
+and final-envelope capacity refusal. Installation releases ownership before
+service activation.
+
+Make produced the matching checked AArch64 IMAGE and native release. Threebee
+verified the exact release bytes and installed them together through that public
+command. Actual installed Host, Body, Part and private continuity key remained
+unchanged. The existing finite authorized encounter admitted a signed return for
+new Boot `43a8eda2`; the selected member credential matches the owner's persisted
+admission receipt. The running executable hash matches the release manifest.
+Actual KMSDRM descriptors and a submitted native frame at Face revision 145,
+614400 pixels, establish the real returned-member Boot/display path. Service
+restart count was zero at observation.
+
+See `proof/evidence/creche/threebee-checked-image-return-20261102.json` for exact
+public identities and hashes. This is a finite encounter and driver submission,
+not continuing Show renewal, optical acceptance, a screenshot, remote online
+Workspace joining, MCU membership, or the environmental graph end state.
