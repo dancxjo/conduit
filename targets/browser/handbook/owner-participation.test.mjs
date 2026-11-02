@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkedExpectedBodyId, checkedLoopbackOwnerWindow, checkedOwnerRouteEvidence, projectFaceCollections } from './owner-participation.mjs';
+import { checkedOwnerWindowHint, prefillOwnerWindowHint, checkedExpectedBodyId, checkedLoopbackOwnerWindow, checkedOwnerRouteEvidence, projectFaceCollections } from './owner-participation.mjs';
 
 test('Handbook owner window accepts only the local admitted carrier', () => {
   assert.equal(checkedLoopbackOwnerWindow('ws://127.0.0.1:41000/conduit'), 'ws://127.0.0.1:41000/conduit');
@@ -55,4 +55,37 @@ test('simple collection projection folds only redundant count status', () => {
   const actionable = projectFaceCollections({ ...view, actions: [{ identity: 'inspect', target: status.identity }] });
   assert.equal(actionable.collections.length, 1);
   assert.equal(actionable.placed.has(status.identity), false);
+});
+
+
+test('owner link hints require one bounded complete pair and no credentials or remote window', () => {
+  const query = values => `?${new URLSearchParams(values)}`;
+  const exact = { participate: 'owner', body: 'body/one', window: 'ws://127.0.0.1:46156/conduit' };
+  assert.deepEqual(checkedOwnerWindowHint(query(exact)), { body: exact.body, window: exact.window });
+  assert.equal(checkedOwnerWindowHint('?participate=owner'), null);
+  for (const search of [
+    '?body=body/one', '?window=ws%3A%2F%2F127.0.0.1%3A46156%2Fconduit',
+    `${query(exact)}&body=body/two`, `${query(exact)}&window=${encodeURIComponent(exact.window)}`,
+    `${query(exact)}&participate=owner`, `${query(exact)}&token=private`,
+    query({ ...exact, body: '' }), query({ ...exact, body: 'x'.repeat(129) }),
+    query({ ...exact, window: 'ws://192.168.1.1:46156/conduit' }),
+    query({ ...exact, window: 'ws://user:secret@127.0.0.1:46156/conduit' }),
+    query({ ...exact, window: 'ws://127.0.0.1:46156/conduit?token=private' }),
+    query({ ...exact, window: 'ws://127.0.0.1:46156/conduit#secret' }),
+    `?${'x'.repeat(4097)}`,
+  ]) assert.throws(() => checkedOwnerWindowHint(search));
+});
+
+test('checked prefill mutates only editable fields and never submits or connects', () => {
+  const fields = { '[name="body"]': { value: '' }, '[name="window"]': { value: '' } };
+  const form = { querySelector(selector) { assert(selector in fields); return fields[selector]; },
+    submit() { assert.fail('prefill cannot submit'); }, requestSubmit() { assert.fail('prefill cannot request submission'); } };
+  const search = `?${new URLSearchParams({ participate: 'owner', body: 'body/one', window: 'ws://127.0.0.1:46156/conduit' })}`;
+  assert.equal(prefillOwnerWindowHint(form, '?participate=owner'), false);
+  assert.equal(fields['[name="body"]'].value, '');
+  assert.throws(() => prefillOwnerWindowHint(form, `${search}&window=bad`));
+  assert.equal(fields['[name="body"]'].value, '');
+  assert.equal(prefillOwnerWindowHint(form, search), true);
+  assert.equal(fields['[name="body"]'].value, 'body/one');
+  assert.equal(fields['[name="window"]'].value, 'ws://127.0.0.1:46156/conduit');
 });

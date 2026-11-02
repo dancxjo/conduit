@@ -68,6 +68,39 @@ export function checkedExpectedBodyId(value) {
   return bodyId;
 }
 
+// A link supplies editable UI hints only. It never opens a connection or
+// grants authorization; submit revalidates both exact values independently.
+export function checkedOwnerWindowHint(search) {
+  if (typeof search !== 'string' || encoder.encode(search).length > 4096) {
+    throw new Error('Owner window link exceeds its finite query bound.');
+  }
+  const parameters = new URLSearchParams(search);
+  const seen = new Set();
+  for (const key of parameters.keys()) {
+    if (seen.has(key) || !['participate', 'body', 'window'].includes(key)) {
+      throw new Error('Owner window link has duplicate or unsupported fields.');
+    }
+    seen.add(key);
+  }
+  if (!parameters.has('body') && !parameters.has('window')) return null;
+  if (!parameters.has('body') || !parameters.has('window')) {
+    throw new Error('Owner window link requires both Body ID and window URL.');
+  }
+  return Object.freeze({
+    body: checkedExpectedBodyId(parameters.get('body')),
+    window: checkedLoopbackOwnerWindow(parameters.get('window')),
+  });
+}
+
+export function prefillOwnerWindowHint(form, search) {
+  const hint = checkedOwnerWindowHint(search);
+  if (!hint) return false;
+  // Validate the entire pair before mutating either field.
+  form.querySelector('[name="body"]').value = hint.body;
+  form.querySelector('[name="window"]').value = hint.window;
+  return true;
+}
+
 export function checkedOwnerRouteEvidence(view, hostId, bootId) {
   const route = view?.route;
   if (view?.show_state !== 'available' || !route ||
@@ -109,7 +142,7 @@ export async function startOwnerParticipation(application, root) {
     <p>This browser can join a Body already owned by a Linux Host on this computer. The owner must explicitly authorize this Host first. Joining does not birth another Body.</p></header>
     <p role="status" data-owner-status>Opening this browser Host…</p>
     <section aria-labelledby="owner-identity-title"><h3 id="owner-identity-title">1 · Give the owner this Host identity</h3>
-      <p>On the running owner's Linux Host, use <code>conduit body browser-window</code> with this exact Host ID and copied public key. The Boot changes when this page reloads.</p>
+      <p>On the running owner's Linux Host, use <code>conduit body browser-window</code> with the copied public key. For first admission, the explicitly pinned key can identify this Host without copying its Host ID. A returning Host still uses its exact Host ID. The Boot changes when this page reloads.</p>
       <dl class="owner-identity"><dt>Host</dt><dd><code data-owner-host></code></dd>
         <dt>Boot</dt><dd><code data-owner-boot></code></dd>
         <dt>Public verifying key (byte array)</dt><dd><code data-owner-key></code>
@@ -119,6 +152,7 @@ export async function startOwnerParticipation(application, root) {
       <p id="owner-body-help">Copy the Body ID from the owner's current truth.</p>
       <label>Owner window URL <input name="window" type="url" autocomplete="off" required placeholder="ws://127.0.0.1:PORT/conduit"></label>
       <p>The owner prints this short-lived URL only after authorizing the Host above.</p>
+      <p data-owner-link-hint></p>
       <button type="submit">Join this Body</button></form>
     <section aria-labelledby="owner-result-title"><h3 id="owner-result-title">What the Body admitted</h3>
       <p data-owner-result>No admission has been acknowledged.</p>
@@ -160,6 +194,14 @@ export async function startOwnerParticipation(application, root) {
   ]) for (const node of root.querySelectorAll(selector)) decorate(node, icon);
   const status = root.querySelector('[data-owner-status]');
   const form = root.querySelector('[data-owner-join]');
+  const linkHint = root.querySelector('[data-owner-link-hint]');
+  try {
+    if (prefillOwnerWindowHint(form, location.search)) {
+      linkHint.textContent = 'The link filled these editable fields. Inspect the exact Body and local window, then click Join. The owner must still authorize this Host.';
+    }
+  } catch (error) {
+    linkHint.textContent = `Link fields refused: ${error.message} Enter the owner values manually.`;
+  }
   const result = root.querySelector('[data-owner-result]');
   const evidence = root.querySelector('[data-owner-evidence]');
   const leave = root.querySelector('[data-owner-leave]');
@@ -463,7 +505,7 @@ export async function startOwnerParticipation(application, root) {
     root.querySelector('[data-copy-key]').addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(JSON.stringify(identity.verifyingKey));
-        status.textContent = 'Public verifying key copied. Give it to the Body owner with the Host ID above.';
+        status.textContent = 'Public verifying key copied. Give it to the Body owner for explicit first-admission authorization. The Host ID remains visible above.';
       } catch {
         status.textContent = 'Clipboard unavailable. Select and copy the exact public verifying key shown above.';
       }
