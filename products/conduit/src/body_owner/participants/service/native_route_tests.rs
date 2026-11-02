@@ -340,7 +340,8 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .is_err());
     let inspected = owner.owner_wardrobe_report(None, 0, None).unwrap();
     assert_eq!(inspected["owner_plan_id"], serde_json::json!(plan_id));
-    assert_eq!(inspected["wardrobe_revision_decimal"], "0");
+    // The explicit native request has already selected this permitted route.
+    assert_eq!(inspected["wardrobe_revision_decimal"], "1");
     assert_eq!(
         inspected["route_descriptions"][0]["mask_name"],
         "native-graphical"
@@ -348,14 +349,14 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     assert!(owner
         .owner_wardrobe_report(
             Some(&conduit_core::PlanId::from("plan/stale")),
-            0,
+            1,
             Some(conduit_face::MaskWardrobeAction::Doff(native_mask.clone())),
         )
         .is_err());
     owner
         .owner_wardrobe_report(
             Some(&plan_id),
-            0,
+            1,
             Some(conduit_face::MaskWardrobeAction::Doff(native_mask.clone())),
         )
         .unwrap();
@@ -363,14 +364,14 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     assert!(owner
         .owner_wardrobe_report(
             Some(&plan_id),
-            0,
+            1,
             Some(conduit_face::MaskWardrobeAction::Wear(native_mask.clone())),
         )
         .is_err());
     owner
         .owner_wardrobe_report(
             Some(&plan_id),
-            1,
+            2,
             Some(conduit_face::MaskWardrobeAction::Wear(native_mask)),
         )
         .unwrap();
