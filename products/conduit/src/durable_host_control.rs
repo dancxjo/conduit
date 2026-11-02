@@ -115,6 +115,7 @@ pub(crate) mod direct_spoken {
 #[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
+pub(crate) use body::leave_member;
 pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
@@ -1050,6 +1051,11 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
+    BodyMemberLeave {
+        protocol: u16,
+        token: Vec<u8>,
+        credential: MembershipCredential,
+    },
     Face {
         protocol: u16,
         token: Vec<u8>,
@@ -1307,6 +1313,9 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    BodyMemberLeft {
+        protocol: u16,
     },
     Face {
         protocol: u16,
@@ -1862,6 +1871,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
+        | Request::BodyMemberLeave { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
@@ -1930,6 +1940,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserAbort { .. }
                 | Request::BodyBrowserCancel { .. }
                 | Request::BodyBrowserLeave { .. }
+                | Request::BodyMemberLeave { .. }
         )
     {
         return refused("body-play-active");
@@ -2149,6 +2160,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberLeave {
+            protocol,
+            credential,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_leave(&credential)
+            .map(|_| Response::BodyMemberLeft { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         Request::Face {
             protocol, request, ..

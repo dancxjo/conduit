@@ -140,11 +140,9 @@ fn chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pres
     let mut oversized = frames[0].clone();
     oversized[..4].copy_from_slice(&((MAX_RETURN_ACTION_BYTES + 1) as u32).to_le_bytes());
     assert!(ChunkAssembly::default().push(&oversized).is_err());
-    assert!(
-        ChunkAssembly::default()
-            .push(&[0; CHUNK_HEADER_BYTES])
-            .is_err()
-    );
+    assert!(ChunkAssembly::default()
+        .push(&[0; CHUNK_HEADER_BYTES])
+        .is_err());
 }
 
 #[test]
@@ -236,3 +234,6 @@ fn oversized_refreshed_face_keeps_action_truth_and_refuses_document_pressure() {
     assert!(fitted.face.is_none());
     assert!(serde_json::to_vec(&fitted).unwrap().len() <= MAX_OWNER_FACE_RESPONSE_BYTES);
 }
+
+#[path = "tests/member_leave.rs"]
+mod member_leave;

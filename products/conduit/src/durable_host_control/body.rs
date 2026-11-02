@@ -4,6 +4,8 @@
 
 #[path = "body/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "body/member_leave.rs"]
+mod member_leave;
 #[path = "body/native_mask_route.rs"]
 mod native_mask_route;
 #[cfg(unix)]
@@ -23,6 +25,7 @@ use conduit_face::{
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
+pub(crate) use member_leave::leave_member;
 use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},

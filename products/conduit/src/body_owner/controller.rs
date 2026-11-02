@@ -51,6 +51,8 @@ mod creche_route_custody;
 mod creche_worker;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
+#[path = "member_leave.rs"]
+mod member_leave;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
 #[path = "llm_spoken_route.rs"]
 mod llm_spoken_route;

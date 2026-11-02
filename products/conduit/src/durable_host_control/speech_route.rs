@@ -108,6 +108,7 @@ pub(super) fn ordinary_request_allowed(request: &OrdinaryRequest) -> bool {
         OrdinaryRequest::Status { .. }
             | OrdinaryRequest::BodyInspect { .. }
             | OrdinaryRequest::BodyBrowserLeave { .. }
+            | OrdinaryRequest::BodyMemberLeave { .. }
             | OrdinaryRequest::BodyBrowserCancel { .. }
             | OrdinaryRequest::BodyBrowserAbort { .. }
     )

@@ -8,18 +8,20 @@ mod action;
 mod component_selection;
 #[path = "return_route/face_request.rs"]
 mod face_request;
+#[path = "return_route/member_leave.rs"]
+mod member_leave;
 #[path = "return_route/refresh.rs"]
 mod refresh;
 #[path = "return_route/show_ack.rs"]
 mod show_ack;
 use conduit_body::PortableAdmissionReceipt;
 use conduit_face::{
-    FaceInteraction, MAX_OWNER_FACE_RESPONSE_BYTES, MaskShow, OwnerFaceSnapshotRequest,
-    OwnerFaceSnapshotResponse,
+    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
+    MAX_OWNER_FACE_RESPONSE_BYTES,
 };
 use conduit_std_host::secure_websocket::{SecureWebSocketError, SecureWebSocketListener};
-pub(crate) use face_request::MaskSelection;
 pub(super) use face_request::decode_face_request;
+pub(crate) use face_request::MaskSelection;
 #[path = "return_route/mask_selection.rs"]
 mod mask_selection;
 #[cfg(test)]
@@ -250,6 +252,15 @@ pub(super) fn serve(
                 }
                 _ => break,
             }
+        }
+        if document.as_ref().is_ok_and(member_leave::requested) {
+            member_leave::serve(
+                &mut line,
+                state_dir,
+                &grant,
+                document.map_err(|_| "native member leave frame unavailable")?,
+            )?;
+            break;
         }
         let action = document.and_then(|value| {
             serde_json::from_value::<Action>(value)
