@@ -407,3 +407,5 @@ fn creche_without_ready_provider_refuses_before_playing_or_invitation() {
         );
     }
 }
+
+mod remote_plot_route;

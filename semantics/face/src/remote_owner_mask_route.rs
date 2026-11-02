@@ -212,12 +212,11 @@ impl RemoteOwnerMaskRouteSeal {
         face.validate()
             .map_err(|_| RemoteOwnerMaskRouteError::InvalidFace)?;
         if face.basis.body_id.as_ref() != Some(&body.body_id)
-            || face.basis.plan_id.is_some()
-            || face.basis.active_play_id.is_some()
+            || !validation::valid_producer_basis_shape(&face.basis)
         {
             return Err(RemoteOwnerMaskRouteError::WrongFaceBasis);
         }
-        validate_workload_basis(session, face)?;
+        validate_workload_basis(session, face, owner_offer)?;
         validate_hosts(session, owner_offer, mask_host_offer)?;
         let owner_host = RemoteMaskHostBasis::bind(owner_offer)?;
         let mask_host = RemoteMaskHostBasis::bind(mask_host_offer)?;
@@ -276,8 +275,7 @@ impl RemoteOwnerMaskRouteSeal {
 
     pub fn verify_seal(&self) -> Result<(), RemoteOwnerMaskRouteError> {
         if self.face_basis.body_id.as_ref() != Some(&self.body_id)
-            || self.face_basis.plan_id.is_some()
-            || self.face_basis.active_play_id.is_some()
+            || !validation::valid_producer_basis_shape(&self.face_basis)
             || !self.owner_host.valid()
             || !self.mask_host.valid()
             || self.owner_host.host_id == self.mask_host.host_id
@@ -367,7 +365,8 @@ impl RemoteOwnerMaskRouteSeal {
         {
             return Err(RemoteOwnerMaskRouteError::StaleFace);
         }
-        validate_workload_basis(session, face).map_err(|_| RemoteOwnerMaskRouteError::StaleBody)?;
+        validate_workload_basis(session, face, owner_offer)
+            .map_err(|_| RemoteOwnerMaskRouteError::StaleBody)?;
         if RemoteMaskHostBasis::bind(owner_offer)? != self.owner_host
             || RemoteMaskHostBasis::bind(mask_host_offer)? != self.mask_host
         {

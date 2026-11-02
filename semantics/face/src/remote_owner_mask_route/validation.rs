@@ -183,22 +183,78 @@ pub(super) fn validate_hosts(
     Ok(())
 }
 
+/// Body summary Faces have no producer Plan/Play. An executing Plot Face must
+/// retain the complete producer basis; accepting one half would erase custody.
+pub(super) fn valid_producer_basis_shape(basis: &FaceBasis) -> bool {
+    match (&basis.plan_id, &basis.active_play_id) {
+        (None, None) => true,
+        (Some(_), Some(_)) => {
+            basis.body_id.is_some()
+                && basis.wake_id.is_some()
+                && basis.source_document_id.is_some()
+                && basis.checked_plot_id.is_some()
+                && basis.expanded_plot_id.is_some()
+        }
+        _ => false,
+    }
+}
+
 pub(super) fn validate_workload_basis(
     session: &BodyLifecycleSession,
     face: &Face,
+    owner: &HostAdvertisement,
 ) -> Result<(), RemoteOwnerMaskRouteError> {
+    let basis = &face.basis;
+    if !valid_producer_basis_shape(basis) {
+        return Err(RemoteOwnerMaskRouteError::WrongFaceBasis);
+    }
     match (
         &session.evidence().body.state,
         session.realization(),
-        face.basis.wake_id.as_ref(),
+        basis.wake_id.as_ref(),
     ) {
-        (BodyState::Lulled, None, None) => Ok(()),
+        (BodyState::Lulled, None, None) if basis.plan_id.is_none() => Ok(()),
         (BodyState::Lulled, Some(_), _) => {
             Err(RemoteOwnerMaskRouteError::WorkloadRealizationPresent)
         }
         (BodyState::Awake { wake_id }, Some(realization), Some(face_wake))
             if wake_id == face_wake && realization.wake.wake_id == *wake_id =>
         {
+            if basis.plan_id.is_none() {
+                return Ok(());
+            }
+            let play = realization
+                .play
+                .as_ref()
+                .ok_or(RemoteOwnerMaskRouteError::WrongFaceBasis)?;
+            if realization.plan.verify_seal().is_err()
+                || !play.validate_for(&realization.plan)
+                || basis.body_id.as_ref() != Some(&realization.plan.body_id)
+                || basis.active_play_id.as_ref() != Some(&play.active_play_id)
+            {
+                return Err(RemoteOwnerMaskRouteError::WrongFaceBasis);
+            }
+            // BodyPlan and producer PlotPlan are distinct identities. Match the
+            // exact selected partition, not merely a Plot role or a named Plan.
+            let producer = realization
+                .plan
+                .plots
+                .iter()
+                .find(|partition| {
+                    let plan = &partition.plan;
+                    basis.source_document_id.as_ref() == Some(&plan.source_document_id)
+                        && basis.checked_plot_id.as_ref() == Some(&plan.checked_plot_id)
+                        && basis.expanded_plot_id.as_ref() == Some(&plan.expanded_plot_id)
+                        && basis.plan_id.as_ref() == Some(&plan.plan_id)
+                })
+                .ok_or(RemoteOwnerMaskRouteError::WrongFaceBasis)?;
+            if !producer.plan.fragments.iter().any(|fragment| {
+                fragment.host_id == owner.host_id
+                    && fragment.boot_id == owner.boot_id
+                    && fragment.offer_generation == owner.offer_generation
+            }) {
+                return Err(RemoteOwnerMaskRouteError::WrongFaceBasis);
+            }
             Ok(())
         }
         _ => Err(RemoteOwnerMaskRouteError::WrongFaceBasis),
