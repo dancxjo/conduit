@@ -1,6 +1,6 @@
 //! Read-only native presentation on the installed Seed's actual initialized Host.
 //! This consumes the existing finite owner encounter; it is not a reconnect grant.
-use super::{wire, RuntimeStatus};
+use super::{RuntimeStatus, wire};
 use crate::durable_host::routed_join::MaskSelection;
 use crate::durable_host_control::DurableHostRuntime;
 use conduit_linux_display::Scanout;
@@ -12,7 +12,7 @@ use std::{
 const REFRESH_PERIOD: Duration = Duration::from_secs(10);
 const MAXIMUM_REFRESHES: u8 = 4;
 
-pub(crate) struct NativePresentation {
+pub(in crate::durable_host) struct NativePresentation {
     owner: Option<wire::OwnerRoute>,
     next_refresh: Instant,
     refreshes: u8,
@@ -20,7 +20,7 @@ pub(crate) struct NativePresentation {
 }
 
 impl NativePresentation {
-    pub(crate) fn join_seed(
+    pub(in crate::durable_host) fn join_seed(
         state: &Path,
         status: &mut RuntimeStatus,
         runtime: &mut DurableHostRuntime,
@@ -50,7 +50,7 @@ impl NativePresentation {
         })
     }
 
-    pub(crate) fn poll(
+    pub(in crate::durable_host) fn poll(
         &mut self,
         runtime: &mut DurableHostRuntime,
         output: &mut Scanout<'_>,

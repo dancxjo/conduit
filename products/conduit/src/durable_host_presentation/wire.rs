@@ -1,16 +1,16 @@
 //! Bounded pinned TLS exchanges for the existing finite owner return protocol.
 use crate::durable_host::routed_join::MaskSelection;
 use conduit_body::{
-    PortableAdmissionReceipt, PortableInvitation, RendezvousCandidate, RoutedAdmissionRequest,
-    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
+    PortableAdmissionReceipt, PortableInvitation, ROUTED_ADMISSION_REQUEST_SCHEMA,
+    RendezvousCandidate, RoutedAdmissionRequest, RoutedAdmissionResponse,
 };
 use conduit_face::{
-    Face, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
-    OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
+    Face, MaskShow, OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
 };
 use conduit_std_host::secure_websocket::SecureWebSocketClientLine;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::{Duration, Instant};
 
 #[path = "admitted_snapshot.rs"]
@@ -71,6 +71,7 @@ impl OwnerRoute {
         invitation: PortableInvitation,
         mask: MaskSelection,
     ) -> Result<(Self, Snapshot), String> {
+        let encounter_started = Instant::now();
         let rendezvous = invitation
             .rendezvous
             .as_ref()
@@ -136,7 +137,10 @@ impl OwnerRoute {
         let admitted = AdmittedSnapshot::bind(&snapshot, &request)?;
         let grant: Grant = receive(&mut line, MESSAGE)?;
         validate_grant(&grant, &request)?;
-        let deadline = Instant::now() + Duration::from_millis(u64::from(grant.remaining_millis));
+        // Remaining lifetime was sampled by the owner before route preparation
+        // and delivery. Anchor conservatively before the exchange, rather than
+        // extending its witness by time spent preparing/transmitting the Face.
+        let deadline = encounter_started + Duration::from_millis(u64::from(grant.remaining_millis));
         Ok((
             Self {
                 candidate,

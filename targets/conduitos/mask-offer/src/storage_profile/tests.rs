@@ -72,7 +72,13 @@ fn collection_plans_use_exact_capacity_and_refuse_smaller_offers() {
     );
     let mut unknown = large.clone();
     unknown.profile = "unsupported/native-profile".into();
-    assert!(prepare_advertised_native_stage_from_offer(&unknown, None).is_err());
+    assert_eq!(
+        prepare_advertised_native_stage_from_offer(&unknown, None)
+            .unwrap()
+            .planned_mask,
+        generic.planned_mask,
+        "general Host label is independent of its exact initialized native Backs"
+    );
     assert_eq!(original.component, collection.component);
     assert_eq!(original.recipe, collection.recipe);
     assert_eq!(original.look, collection.look);
@@ -150,6 +156,20 @@ fn explicit_native_profile_checks_actual_backs_without_relabelling_image_host() 
         host.profile = "checked/raspberry-pi-3-host@1".into();
         let original = host.clone();
         let stage = prepare_native_stage_with_profile(&host, profile).unwrap();
+        assert_eq!(
+            NativeMaskStorageProfile::from_native_implementations(&host),
+            Ok(profile)
+        );
+        assert_eq!(
+            NativeMaskStorageProfile::owner_document_profile(&host),
+            profile
+        );
+        assert_eq!(
+            prepare_advertised_native_stage_from_offer(&host, None)
+                .unwrap()
+                .planned_mask,
+            stage.planned_mask,
+        );
         assert_eq!(host, original, "actual Host identity/profile remains exact");
         assert!(verify_plan(&stage.planned_mask.plan));
         let other = match profile {
@@ -166,6 +186,7 @@ fn explicit_native_profile_checks_actual_backs_without_relabelling_image_host() 
             .implementation
             .execution_profile_id = "incorrect/execution-profile".into();
         assert!(prepare_native_stage_with_profile(&wrong, profile).is_err());
+        assert!(prepare_advertised_native_stage_from_offer(&wrong, None).is_err());
         let mut small = host.clone();
         small
             .capabilities
@@ -175,5 +196,6 @@ fn explicit_native_profile_checks_actual_backs_without_relabelling_image_host() 
             .limits
             .max_queue_bytes = profile.bytes() - 1;
         assert!(prepare_native_stage_with_profile(&small, profile).is_err());
+        assert!(prepare_advertised_native_stage_from_offer(&small, None).is_err());
     }
 }

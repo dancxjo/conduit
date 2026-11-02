@@ -30,17 +30,30 @@ impl NativeMaskStorageProfile {
             Self::Collection => "conduitos/bounded-collection-mask@1",
         }
     }
-    /// Transfer limits come from the already admitted Host profile, never from
+    /// Transfer limits come from the actual finite implementation closure, never from
     /// an incoming chunk length. Requests/actions retain their separate bounds.
     pub fn owner_document_profile(host: &HostAdvertisement) -> Self {
-        if host.protocol_version == PROTOCOL_VERSION
-            && host.offer_generation.0 != 0
-            && host.profile.as_str() == Self::Collection.host_profile()
-        {
-            Self::Collection
-        } else {
-            Self::Standard
+        Self::from_native_implementations(host).unwrap_or(Self::Standard)
+    }
+
+    /// Select the exact initialized four-Back closure independently of the
+    /// general Host profile. Every member must agree on finite execution limits.
+    pub fn from_native_implementations(host: &HostAdvertisement) -> Result<Self, MaskOfferError> {
+        let mut renderers = host
+            .capabilities
+            .iter()
+            .filter(|offer| offer.capability_id.as_str() == "renderer-conduitos");
+        let renderer = renderers.next().ok_or(MaskOfferError::InvalidPlan)?;
+        if renderers.next().is_some() {
+            return Err(MaskOfferError::InvalidPlan);
         }
+        let profile = match renderer.implementation.execution_profile_id.as_str() {
+            "conduitos/bounded-mask@1" => Self::Standard,
+            "conduitos/bounded-collection-mask@1" => Self::Collection,
+            _ => return Err(MaskOfferError::InvalidPlan),
+        };
+        profile.admit_native_implementation_profile(host, "renderer-conduitos")?;
+        Ok(profile)
     }
     pub const fn owner_document_bytes(self) -> usize {
         match self {
@@ -254,6 +267,12 @@ pub fn prepare_advertised_native_stage_from_offer(
     host: &HostAdvertisement,
     selection: Option<(ComponentVisualSelection, TodoComponentRecipe)>,
 ) -> Result<MaskStage, MaskOfferError> {
+    if selection.is_none() {
+        return prepare_native_stage_with_profile(
+            host,
+            NativeMaskStorageProfile::from_native_implementations(host)?,
+        );
+    }
     let profile = match host.profile.as_str() {
         "conduitos/mask-host@1" => NativeMaskStorageProfile::Standard,
         "conduitos/collection-mask-host@1" => NativeMaskStorageProfile::Collection,
