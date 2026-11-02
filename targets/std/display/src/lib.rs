@@ -6,8 +6,8 @@
 mod initialized;
 mod input;
 pub use input::{NativeInput, NativeInputRefusal};
-mod surface;
 mod preparation;
+mod surface;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
 pub use initialized::{DisplayClaimRefusal, DisplayHostClaim, InitializedDisplay};
