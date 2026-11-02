@@ -1,3 +1,4 @@
+use alloc::string::String;
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration};
 use ed25519_dalek::SigningKey;
 use serde::{Deserialize, Serialize};
@@ -149,19 +150,37 @@ impl AdmissionManager {
             expires_at_millis,
             MAX_SPAWN_INVITATION_TTL_MILLIS,
         )?;
-        if self.invitations.len() == MAX_SPAWN_INVITATIONS {
+        // The bound covers live invitations, including consumed records whose
+        // replay classification is still current. Expired records grant nothing
+        // and must not permanently occupy the finite issuance store.
+        if self
+            .invitations
+            .iter()
+            .filter(|record| record.expires_at_millis > now_millis)
+            .count()
+            >= MAX_SPAWN_INVITATIONS
+        {
             return Err(AdmissionRefusal::InvitationCapacityExhausted);
         }
+        let next_sequence = self
+            .next_invitation_sequence
+            .checked_add(1)
+            .ok_or(AdmissionRefusal::InvitationSequenceExhausted)?;
         let verifying_key = SigningKey::from_bytes(&secret.0).verifying_key().to_bytes();
-        let sequence = now_millis
-            .checked_mul((MAX_SPAWN_INVITATIONS + 1) as u64)
-            .and_then(|base| base.checked_add(self.invitations.len() as u64))
-            .ok_or(AdmissionRefusal::InvalidExpiry)?;
+        let nonce_identity = invitation_nonce_identity(&nonce);
+        // Separate the new monotonic sequence from the earlier clock/Vec-length
+        // scheme. A retained manager can resume with its existing records; no
+        // retired identity returns after slot reuse or a wall-clock rollback.
         let invitation_id = SpawnInvitationId::bound(bind_identity(
-            "spawn-invitation",
-            &[self.body_id.as_str()],
-            sequence,
+            "spawn-invitation-v2",
+            &[self.body_id.as_str(), &nonce_identity],
+            self.next_invitation_sequence,
         ));
+        // Commit retirement only after all refusal checks. Receipts and Part
+        // continuity keys have independent custody and are never pruned here.
+        self.invitations
+            .retain(|record| record.expires_at_millis > now_millis);
+        self.next_invitation_sequence = next_sequence;
         self.invitations.push(InvitationRecord {
             invitation_id: invitation_id.clone(),
             verifying_key,
@@ -213,7 +232,7 @@ impl AdmissionManager {
         if proof.nonce != invitation.nonce {
             return Err(AdmissionRefusal::StaleNonce);
         }
-        if now_millis > invitation.expires_at_millis {
+        if now_millis >= invitation.expires_at_millis {
             return Err(AdmissionRefusal::Expired);
         }
         let transcript = admission_transcript(
@@ -269,4 +288,15 @@ impl AdmissionManager {
         *membership = next_membership;
         Ok(credential)
     }
+}
+
+// Public nonce material only; one fixed-size preparation allocation.
+fn invitation_nonce_identity(nonce: &[u8; 32]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut identity = String::with_capacity(64);
+    for byte in nonce {
+        identity.push(char::from(HEX[usize::from(byte >> 4)]));
+        identity.push(char::from(HEX[usize::from(byte & 15)]));
+    }
+    identity
 }
