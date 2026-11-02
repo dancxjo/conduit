@@ -176,8 +176,9 @@ pub fn produce_joining_host<R: Read + Seek>(
         packages,
     )
     .map_err(|e| format!("joining Host Seed sealing: {e:?}"))?;
-    let spore_manifest = bounded_json(&spore.manifest, bounds.maximum_manifest_bytes)?;
-    let receipt = bounded_json(
+    let spore_manifest =
+        encode_joining_host_evidence(&spore.manifest, bounds.maximum_manifest_bytes)?;
+    let receipt = encode_joining_host_evidence(
         &Receipt {
             schema: "conduit.make/joining-host-production@1",
             request_id: request.request_id,
@@ -205,7 +206,11 @@ pub fn produce_joining_host<R: Read + Seek>(
     })
 }
 
-fn bounded_json(value: &impl Serialize, maximum: usize) -> Result<Vec<u8>, String> {
+/// Serialize retained joining-Host evidence without allocating past its admitted byte bound.
+pub fn encode_joining_host_evidence(
+    value: &impl Serialize,
+    maximum: usize,
+) -> Result<Vec<u8>, String> {
     struct Bounded {
         bytes: Vec<u8>,
         maximum: usize,

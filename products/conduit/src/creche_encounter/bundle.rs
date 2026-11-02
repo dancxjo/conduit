@@ -106,9 +106,20 @@ impl CrecheReviewedBundle {
         file.seek(SeekFrom::Start(0)).map_err(|e| e.to_string())?;
         Ok(file)
     }
-    pub(super) fn validate(&self, a: &CrecheReviewedArtifact) -> Result<(), String> {
+    pub(super) fn validate(
+        &self,
+        a: &CrecheReviewedArtifact,
+        bounds: JoiningProductionBounds,
+    ) -> Result<(), String> {
         let m = self.release().manifest();
-        if m.source_identity != a.source_identity
+        if self.maximum_package_bytes()? > bounds.maximum_artifact_bytes {
+            return Err("Crèche package workspace exceeds admitted artifact bytes".into());
+        }
+        if serde_json::to_value(&a.output)
+            .map_err(|e| e.to_string())?
+            .as_str()
+            != Some(m.output.as_str())
+            || m.source_identity != a.source_identity
             || m.target_id != a.image.manifest.target
             || m.make_package_id != a.image.manifest.make_package_id
             || m.builder_adapter != a.image.manifest.builder_adapter
@@ -127,6 +138,12 @@ impl CrecheReviewedBundle {
         }
         Ok(())
     }
+    fn maximum_package_bytes(&self) -> Result<u64, String> {
+        self.release()
+            .payload_bytes()
+            .checked_add(64 * 1024 + 17 * (30 + 46 + 512) + 22)
+            .ok_or_else(|| "Crèche package size overflow".into())
+    }
     pub(super) fn produce(
         &self,
         a: &CrecheReviewedArtifact,
@@ -136,12 +153,9 @@ impl CrecheReviewedBundle {
         request: CrecheRequest,
         cancelled: &std::sync::atomic::AtomicBool,
     ) -> Result<ProducedJoiningHost<File>, String> {
-        let conservative_bytes = self
-            .release()
-            .payload_bytes()
-            .checked_add(64 * 1024 + 17 * (30 + 46 + 512) + 22)
-            .ok_or("Crèche package size overflow")?;
-        if conservative_bytes > inputs.installation.production_bounds.maximum_artifact_bytes {
+        if self.maximum_package_bytes()?
+            > inputs.installation.production_bounds.maximum_artifact_bytes
+        {
             return Err("Crèche package workspace exceeds admitted artifact bytes".into());
         }
         let spore = conduit_body_make::seal_joining_host_release(
@@ -199,13 +213,14 @@ impl CrecheReviewedBundle {
             .sync_all()
             .map_err(|e| format!("Crèche package flush: {e}"))?;
         output.rewind().map_err(|e| e.to_string())?;
-        let spore_manifest = serde_json::to_vec(&spore.manifest).map_err(|e| e.to_string())?;
-        let receipt = serde_json::to_vec(&receipt).map_err(|e| e.to_string())?;
-        if spore_manifest.len() > inputs.installation.production_bounds.maximum_manifest_bytes
-            || receipt.len() > inputs.installation.production_bounds.maximum_receipt_bytes
-        {
-            return Err("Crèche package evidence exceeds admitted bounds".into());
-        }
+        let spore_manifest = conduit_body_make::encode_joining_host_evidence(
+            &spore.manifest,
+            inputs.installation.production_bounds.maximum_manifest_bytes,
+        )?;
+        let receipt = conduit_body_make::encode_joining_host_evidence(
+            &receipt,
+            inputs.installation.production_bounds.maximum_receipt_bytes,
+        )?;
         Ok(ProducedJoiningHost {
             artifact: output,
             spore,

@@ -190,7 +190,7 @@ fn validate(
     conduit_host_make::verify_image_binding(&a.image, &a.image_manifest)
         .map_err(|e| format!("Crèche artifact manifest: {e:?}"))?;
     if let Some(bundle) = &a.bundle {
-        bundle.validate(a)?;
+        bundle.validate(a, bounds)?;
         return Ok(());
     }
     if matches!(
