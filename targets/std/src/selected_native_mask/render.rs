@@ -255,10 +255,12 @@ impl BoundReadOnlyMask {
                 &self.plan.plan,
                 request.prepared_show().show.active_play_id.clone(),
             )
-            .map_err(|()| "native Mask exact resource-Cord possession refused")?;
-            possession
-                .authorize()
-                .map_err(|()| "native Mask actual resource-Cord authority refused")?;
+            .map_err(|error| {
+                format!("native Mask exact resource-Cord possession refused: {error:?}")
+            })?;
+            possession.authorize().map_err(|error| {
+                format!("native Mask actual resource-Cord authority refused: {error:?}")
+            })?;
             let composition = self
                 .compositor
                 .update_pending_mask_surface(
@@ -374,9 +376,9 @@ impl BoundReadOnlyMask {
                     _heap,
                     pool,
                 } = frame;
-                let possession = possession.complete_and_retire().map_err(|()| {
+                let possession = possession.complete_and_retire().map_err(|error| {
                     self.failed = true;
-                    "native Mask resource-Cord retirement refused"
+                    format!("native Mask resource-Cord retirement refused: {error:?}")
                 })?;
                 let frame = FrameCustody {
                     composition,

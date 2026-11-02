@@ -70,3 +70,43 @@ mod tests {
         );
     }
 }
+
+#[cfg(all(test, feature = "native-compositor-core"))]
+mod refusal_tests {
+    use super::*;
+    #[test]
+    fn possession_preserves_resource_and_scope_refusal_details() {
+        let mut provider = crate::product_bases::fixture_surface_provider();
+        let stage = conduit_conduitos_mask_offer::prepare_stage(
+            conduit_conduitos_mask_offer::Adapter::Native,
+            &"host/typed-refusal".into(),
+            &"boot/typed-refusal".into(),
+            1,
+            Some(&provider.entry),
+        )
+        .unwrap();
+        provider.entry.provider_generation += 1;
+        assert!(matches!(
+            ActiveNativeSurfacePossession::begin(
+                &provider,
+                &stage.planned_mask.plan,
+                "play/typed-refusal".into()
+            ),
+            Err(ResourceCordRefusal::Capability(
+                BaseCapabilityRefusal::WrongScope
+            ))
+        ));
+        let mut no_resource = stage.planned_mask.plan;
+        for connection in &mut no_resource.fragments[0].connections {
+            connection.resource = None;
+        }
+        assert!(matches!(
+            ActiveNativeSurfacePossession::begin(
+                &provider,
+                &no_resource,
+                "play/typed-refusal".into()
+            ),
+            Err(ResourceCordRefusal::NotResourceCord)
+        ));
+    }
+}
