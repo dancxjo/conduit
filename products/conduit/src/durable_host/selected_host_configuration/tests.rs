@@ -321,3 +321,85 @@ fn seed_image_cannot_copy_source_ids_while_changing_equipment() {
         .unwrap_err()
         .contains("equipment and resources"));
 }
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[test]
+fn image_bound_release_update_validates_before_commit_and_retains_host_identity() {
+    use super::super::{installation_configured, selected_model, selected_speech, selected_todo};
+    let (manifest, state) = super::super::tests::fixture();
+    let mut installed = install(&manifest, &state).unwrap();
+    let checked = check(SOURCE).unwrap();
+    let make_image = |source: &str| {
+        conduit_host_make::build_default_host_image(
+            checked.profile().clone(),
+            &conduit_workspace_make::catalog(),
+            &conduit_workspace_make::package_set(),
+            &conduit_host_make::BuildInputs {
+                source_identity: source.into(),
+                toolchain_available: true,
+            },
+        )
+        .unwrap()
+        .0
+    };
+    let mut selection = Selection::from_source(SOURCE, "std/x86_64/computer").unwrap();
+    selection.host_image = Some(make_image("commit:fixture"));
+    installed.selected_host_configuration = Some(selection.clone());
+    let installation_path = state.join("installation.json");
+    write_json_atomic(&installation_path, &installed).unwrap();
+    let source_path = state.join("same.host.conduit");
+    fs::write(&source_path, SOURCE).unwrap();
+    configure(&state, Some(&source_path), false).unwrap();
+    assert_eq!(
+        read_installation(&installation_path)
+            .unwrap()
+            .selected_host_configuration,
+        Some(selection.clone())
+    );
+    let original = fs::read(&installation_path).unwrap();
+    let service = fs::read(state.join("conduit-host.service")).unwrap();
+    let mut release: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest).unwrap()).unwrap();
+    release["source_identity"] = "commit:replacement".into();
+    fs::write(&manifest, serde_json::to_vec(&release).unwrap()).unwrap();
+    let apply = |image: Option<&Path>| {
+        installation_configured::install_configured_with_image(
+            &manifest,
+            &state,
+            selected_speech::Change::Preserve,
+            selected_model::Change::Preserve,
+            selected_todo::Change::Preserve,
+            image,
+        )
+    };
+    assert!(apply(None)
+        .unwrap_err()
+        .contains("checked replacement IMAGE"));
+    let image_path = state.join("replacement-image.json");
+    write_json_atomic(&image_path, &make_image("commit:wrong-release")).unwrap();
+    assert!(apply(Some(&image_path)).is_err());
+    let mut forged = make_image("commit:replacement");
+    forged.manifest.image_id = "image:forged".into();
+    write_json_atomic(&image_path, &forged).unwrap();
+    assert!(apply(Some(&image_path)).is_err());
+    assert_eq!(fs::read(&installation_path).unwrap(), original);
+    assert_eq!(
+        fs::read(state.join("conduit-host.service")).unwrap(),
+        service
+    );
+    let mut oversized = installed.clone();
+    oversized.product_executable = "x".repeat(64 * 1024);
+    assert!(installation_configured::bounded_installation_bytes(&oversized).is_err());
+    assert_eq!(fs::read(&installation_path).unwrap(), original);
+    let replacement = make_image("commit:replacement");
+    write_json_atomic(&image_path, &replacement).unwrap();
+    let updated = apply(Some(&image_path)).unwrap();
+    assert_eq!(updated.host_id, installed.host_id);
+    assert_eq!(updated.release_source_identity, "commit:replacement");
+    let selected = updated.selected_host_configuration.as_ref().unwrap();
+    assert_eq!(selected.source, selection.source);
+    assert_eq!(selected.configuration_id, selection.configuration_id);
+    assert_eq!(selected.host_image.as_ref().unwrap(), &replacement);
+    read_installation(&installation_path).unwrap();
+    fs::remove_dir_all(state.parent().unwrap()).unwrap();
+}

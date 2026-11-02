@@ -274,7 +274,16 @@ pub(super) fn configure(
         }
         let bytes = bounded_read(path, MAXIMUM_SOURCE_BYTES)?;
         let source = std::str::from_utf8(&bytes).map_err(|_| "Host configuration must be UTF-8")?;
-        let selection = Selection::from_source(source, running_target_id()?)?;
+        let mut selection = Selection::from_source(source, running_target_id()?)?;
+        if let Some(prior) = &installation.selected_host_configuration {
+            if prior.configuration_id == selection.configuration_id {
+                // Reselecting the same source must retain its construction evidence.
+                prior.validate()?;
+                selection.host_image = prior.host_image.clone();
+            } else if prior.host_image.is_some() {
+                return Err("changing Seed-bound Host source requires a replacement Seed".into());
+            }
+        }
         if installation.selected_todo_checkpoint.is_some() {
             return Err(
                 "scoped Todo checkpoint Host cannot initialize additional checked equipment".into(),
@@ -340,3 +349,35 @@ fn retain_selection(
 #[cfg(test)]
 #[path = "selected_host_configuration/tests.rs"]
 mod tests;
+
+/// Bind a new checked IMAGE to the unchanged retained Host source before release commit.
+pub(super) fn replacement_image(
+    selection: Option<Selection>,
+    image_path: Option<&Path>,
+    release_source: &str,
+) -> Result<Option<Selection>, String> {
+    let Some(mut selection) = selection else {
+        if image_path.is_some() {
+            return Err("replacement IMAGE requires retained checked Host source".into());
+        }
+        return Ok(None);
+    };
+    if let Some(path) = image_path {
+        let image: conduit_host_make::HostImage =
+            serde_json::from_slice(&bounded_read(path, 64 * 1024)?)
+                .map_err(|error| format!("replacement Host IMAGE: {error}"))?;
+        check_seed_image(&selection.source, &image)?;
+        selection.host_image = Some(image);
+    }
+    selection.validate()?;
+    if selection
+        .host_image
+        .as_ref()
+        .is_some_and(|image| image.manifest.source_identity != release_source)
+    {
+        return Err(
+            "release update requires a checked replacement IMAGE from the same source".into(),
+        );
+    }
+    Ok(Some(selection))
+}

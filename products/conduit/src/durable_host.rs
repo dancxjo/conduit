@@ -135,12 +135,33 @@ pub(crate) fn dispatch(command: HostServiceCommand) -> Result<(), String> {
         } => selected_host_configuration::configure(&state_dir, configuration.as_deref(), clear),
         HostServiceCommand::Install {
             manifest,
+            host_image,
             state_dir,
             no_start,
             speech,
             model,
             todo_checkpoint,
-        } => (if no_start {
+        } => (if let Some(image) = host_image {
+            let _host = owner_lock::acquire(&state_dir)?;
+            let _body = owner_lock::body(&state_dir)?;
+            let installation = installation_configured::install_configured_with_image(
+                &manifest,
+                &state_dir,
+                selected_speech::change(speech)?,
+                selected_model::change(model)?,
+                selected_todo::change(todo_checkpoint)?,
+                Some(&image),
+            )?;
+            drop(_body);
+            drop(_host);
+            if !no_start {
+                activate_service(&state_dir)?;
+            }
+            Ok(InstalledHostIdentity {
+                host_id: installation.host_id,
+                release_bundle_sha256: installation.release_bundle_sha256,
+            })
+        } else if no_start {
             install_with_equipment(
                 &manifest,
                 &state_dir,
@@ -1158,6 +1179,7 @@ mod tests {
         let (manifest, state) = fixture();
         dispatch(HostServiceCommand::Install {
             manifest: manifest.clone(),
+            host_image: None,
             state_dir: state.clone(),
             no_start: true,
             speech: Default::default(),

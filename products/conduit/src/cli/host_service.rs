@@ -21,6 +21,9 @@ pub(crate) enum HostServiceCommand {
     /// Verify and install one reviewed release bundle without replacing durable identity.
     Install {
         manifest: PathBuf,
+        /// Replacement checked Make IMAGE for the retained Host source.
+        #[arg(long)]
+        host_image: Option<PathBuf>,
         #[arg(long)]
         state_dir: PathBuf,
         /// Install without activating the service, for foreground Body ownership.
