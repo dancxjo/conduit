@@ -110,7 +110,6 @@ pub(crate) mod direct_spoken {
 #[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
-pub(crate) use body::leave_member;
 pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
@@ -127,6 +126,7 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
+pub(crate) use body::{begin_member_return, complete_member_return, leave_member};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -1035,6 +1035,17 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
+    BodyMemberReturnBegin {
+        protocol: u16,
+        token: Vec<u8>,
+        credential: MembershipCredential,
+        advertisement: Box<HostAdvertisement>,
+    },
+    BodyMemberReturnComplete {
+        protocol: u16,
+        token: Vec<u8>,
+        proof: Box<crate::durable_host::owner::MemberReturnProofDocument>,
+    },
     BodyMemberLeave {
         protocol: u16,
         token: Vec<u8>,
@@ -1292,6 +1303,14 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    BodyMemberReturnChallenge {
+        protocol: u16,
+        challenge: Box<conduit_body::PartReturnChallenge>,
+    },
+    BodyMemberReturned {
+        protocol: u16,
+        credential: MembershipCredential,
     },
     BodyMemberLeft {
         protocol: u16,
@@ -1889,6 +1908,8 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyMemberReturnBegin { token, .. }
+        | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
@@ -2171,6 +2192,27 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|biography| Response::BodyBrowserLeft {
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberReturnBegin {
+            protocol,
+            credential,
+            advertisement,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_return_begin(&credential, &advertisement)
+            .map(|challenge| Response::BodyMemberReturnChallenge {
+                protocol: PROTOCOL,
+                challenge: Box::new(challenge),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberReturnComplete {
+            protocol, proof, ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_return_complete(*proof)
+            .map(|credential| Response::BodyMemberReturned {
+                protocol: PROTOCOL,
+                credential,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberLeave {

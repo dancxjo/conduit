@@ -45,6 +45,8 @@ mod clock_interval;
 mod direct_spoken_route;
 #[path = "member_leave.rs"]
 mod member_leave;
+#[path = "member_return.rs"]
+mod member_return;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
 #[path = "llm_spoken_route.rs"]
 mod llm_spoken_route;
@@ -200,6 +202,7 @@ pub(crate) struct Owner {
     prepared_admission_route: Option<crate::durable_host::PreparedAdmissionRoute>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
+    pending_member_return: Option<member_return::PendingMemberReturn>,
     invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
@@ -311,6 +314,7 @@ impl Owner {
             prepared_admission_route: None,
             pending_browser: None,
             pending_native_mask: None,
+            pending_member_return: None,
             invited_mask_offers: BTreeMap::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
@@ -342,6 +346,7 @@ impl Owner {
             prepared_admission_route: None,
             pending_browser: None,
             pending_native_mask: None,
+            pending_member_return: None,
             invited_mask_offers: BTreeMap::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
@@ -749,3 +754,6 @@ impl TimerAdapter for DeadlineTimer {
 #[cfg(test)]
 #[path = "tests.rs"]
 mod tests;
+
+#[cfg(test)]
+pub(crate) use tests::member_return_owner_fixture;

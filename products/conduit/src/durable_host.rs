@@ -1598,3 +1598,5 @@ mod tests {
         fs::remove_dir_all(joining_state.parent().unwrap()).unwrap();
     }
 }
+
+pub(crate) use routed_join::{return_installed_member, serve_body_member_route};
