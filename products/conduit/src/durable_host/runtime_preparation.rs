@@ -121,6 +121,14 @@ fn prepare_runtime_with_composition(
         read_installation(&state_dir.join("installation.json"))
     })?;
     let pending_seed = super::has_pending_seed(state_dir)?;
+    if installation
+        .selected_host_configuration
+        .as_ref()
+        .and_then(|selection| selection.host_image())
+        .is_some()
+    {
+        return Err("selected Seed IMAGE requires exact image-bound provider initialization; default Host Boot is refused before publication".into());
+    }
     if (todo.is_some() || thermostat.is_some())
         && (installation.selected_model.is_some()
             || installation.selected_speech.is_some()
