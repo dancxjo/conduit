@@ -140,9 +140,11 @@ fn chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pres
     let mut oversized = frames[0].clone();
     oversized[..4].copy_from_slice(&((MAX_RETURN_ACTION_BYTES + 1) as u32).to_le_bytes());
     assert!(ChunkAssembly::default().push(&oversized).is_err());
-    assert!(ChunkAssembly::default()
-        .push(&[0; CHUNK_HEADER_BYTES])
-        .is_err());
+    assert!(
+        ChunkAssembly::default()
+            .push(&[0; CHUNK_HEADER_BYTES])
+            .is_err()
+    );
 }
 
 #[test]
@@ -166,6 +168,18 @@ fn only_explicit_native_face_request_opts_into_return() {
         decode_face_request(&terminal).unwrap().2,
         MaskSelection::Terminal
     );
+    for (selection, expected_wire) in [
+        (MaskSelection::Native, "native"),
+        (MaskSelection::Terminal, "terminal"),
+    ] {
+        let value = serde_json::to_value(selection).unwrap();
+        assert_eq!(value, serde_json::json!(expected_wire));
+        let bytes = serde_json::to_vec(&serde_json::json!({
+            "schema": FACE_REQUEST_SCHEMA, "request": request(), "mask": value,
+        }))
+        .unwrap();
+        assert_eq!(decode_face_request(&bytes).unwrap().2, selection);
+    }
     let unknown = serde_json::to_vec(&serde_json::json!({
         "schema": FACE_REQUEST_SCHEMA, "request": request(), "mask": "unknown",
     }))
