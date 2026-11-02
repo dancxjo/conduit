@@ -48,6 +48,8 @@ impl StdHost {
             microphone: None,
             base_registry: crate::empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -106,6 +108,8 @@ impl StdHost {
             microphone: None,
             base_registry: crate::empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -167,6 +171,8 @@ impl StdHost {
             microphone: None,
             base_registry: crate::empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -222,6 +228,8 @@ impl StdHost {
             microphone: None,
             base_registry: crate::empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -325,6 +333,8 @@ impl StdHost {
             microphone: None,
             base_registry: crate::empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,

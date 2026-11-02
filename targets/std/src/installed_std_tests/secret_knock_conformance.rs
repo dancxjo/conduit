@@ -304,6 +304,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,
@@ -328,6 +330,8 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let unrelated_report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,

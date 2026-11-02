@@ -301,6 +301,8 @@ fn assert_pipeline_plans_and_plays(
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,

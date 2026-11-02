@@ -1,3 +1,5 @@
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod hosted_display;
 mod selected_native_source;
 use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
@@ -600,6 +602,8 @@ struct TodoCheckpointResidenceRoot {
 }
 
 pub struct StdHost {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    native_display: Option<hosted_display::ReadyShowBase>,
     advertisement: HostAdvertisement,
     #[cfg(unix)]
     terminal_attachment: Option<std::os::unix::net::UnixStream>,
@@ -979,6 +983,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1054,6 +1060,8 @@ impl StdHost {
             microphone: None,
             base_registry,
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1105,6 +1113,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1155,6 +1165,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: Some(adapter),
             model_work: None,
             calendar: None,
@@ -1205,6 +1217,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: Some(adapter),
             calendar: None,
@@ -1255,6 +1269,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: Some(adapter),
@@ -1290,6 +1306,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1349,6 +1367,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1403,6 +1423,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1446,6 +1468,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1502,6 +1526,8 @@ impl StdHost {
             microphone: None,
             base_registry: empty_base_registry(),
             native_source: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            native_display: None,
             vector_search: None,
             model_work: None,
             calendar: None,
