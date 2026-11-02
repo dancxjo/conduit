@@ -291,3 +291,27 @@ Threebee's local theme/preferences path is not yet ordinary installed Mask/Show
 custody. Its successful renderer update must not be counted as this conformance
 gate. Existing ownership remains #5368, #5377, #6485–#6487 and #6628; the current
 lifecycle milestone determines the next implementation slice.
+
+## Installed Owner/kernel bridge — 1 November, next checkpoint
+
+Source `9d3f94feafae340983082141d93f5a22c6b8cfe1` incorporates accepted dev
+`bdf8c835e45dc3fcf5d993ea7e8568f8b787732a`. The selected Crèche Base now
+initializes a finite reviewed inventory before advertising an offer. The
+ordinary Owner runs the shipped Crèche Plot through its installed kernel path,
+requires the existing trusted Mask-return validation, and retains a prepared
+result while restoring the original Host after drain. Six adapter tests and
+thirteen binary tests pass; strict Clippy and formatting pass. See
+`proof/evidence/creche/installed-owner-kernel-20261101.json` for exact log hashes.
+These are CPU lifecycle tests using fixture artifact bytes. They do not prove
+a deployable Seed or a real graphical Show.
+
+Inspection of the retained prior browser Make output exposed the next real
+boundary before deployment: its release identity hashes the file inventory,
+whereas the new opaque-file producer currently uses the raw artifact SHA as
+image content identity. Raw WASM and ZIP hashes cannot replace that aggregate.
+The existing `BodyBoundArtifactIdentity` already distinguishes image content
+from carrier artifact content. Reuse the existing release verifier and browser
+packager, including profile-gated image correspondence and private invitation
+provisioning. Do not relabel a file or rebuild merely to hide this mismatch.
+The authoring service and existing device deployments remain unchanged at this
+checkpoint; the full lifecycle journey remains incomplete.
