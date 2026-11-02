@@ -300,12 +300,17 @@ fn multi_resource_provider_completes_actual_cpu_mask_scanout() {
         .unwrap();
     mask.present_read_only(face, 1, 1, &mut output).unwrap();
     assert!(output.writes > 0);
-    assert_eq!(output.commits, 1);
+    // Initial presentation and focus repaint may commit separate frames. The
+    // contract is a real successful commit before Available, not one upload.
+    assert!(output.commits > 0);
     assert_eq!(
         mask.show().unwrap().show.lifecycle,
         conduit_face::ManifestationLifecycle::Available
     );
-    assert!(mask.render_receipt().is_some());
+    let receipt = mask.render_receipt().unwrap();
+    assert!(receipt.scanout_frame_sequence > 0);
+    assert!(receipt.scanout_pixels_written > 0);
+    assert_eq!(receipt.display_base_id, provider.entry.base_id);
 }
 
 #[test]
