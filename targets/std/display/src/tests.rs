@@ -61,16 +61,13 @@ fn finite_surface_uses_ordinary_graphics_and_revocation_erases_pixels() {
 }
 #[test]
 fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
+    let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     // Explicit CPU diagnostic backend; this makes no DRM/HDMI acceptance claim.
     assert!(sdl2::hint::set("SDL_VIDEODRIVER", "dummy"));
     let sdl = sdl2::init().unwrap();
     let video = sdl.video().unwrap();
     assert_eq!(video.current_video_driver(), "dummy");
-    let window = video
-        .window("CPU fixture", 32, 24)
-        .hidden()
-        .build()
-        .unwrap();
+    let window = video.window("CPU fixture", 32, 24).build().unwrap();
     let mut canvas = window.into_canvas().software().build().unwrap();
     let textures = canvas.texture_creator();
     let mut scanout = Scanout::prepare(&mut canvas, &textures, 32, 24).unwrap();
