@@ -926,3 +926,14 @@ See `proof/evidence/creche/threebee-checked-image-return-20261102.json` for exac
 public identities and hashes. This is a finite encounter and driver submission,
 not continuing Show renewal, optical acceptance, a screenshot, remote online
 Workspace joining, MCU membership, or the environmental graph end state.
+
+### Presentation expiry is not member departure
+
+The native finite-encounter client no longer sends `member_leave` solely because
+its bounded refresh count is exhausted. The actual Host and initialized output
+remain alive; only the presentation bearer is retired and the Show becomes
+historical. Explicit member departure remains a separate authorized operation.
+This corrects the deployed finite-test client's conflation of presentation
+lifetime and member attachment; it does not implement presence renewal or grant
+new Show authority. The native-display binary check passes with `-Dwarnings`.
+Physical deployment of this correction is a separate next observation.

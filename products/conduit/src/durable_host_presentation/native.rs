@@ -73,12 +73,10 @@ impl NativePresentation {
             // Never turn an expired/consumed finite transport grant into another
             // invitation or implicit execution authority. Existing pixels are a
             // historical Show; no new Show or freshness assertion is published.
-            if let Some(owner) = self.owner.take() {
-                match owner.leave() {
-                    Ok(()) => eprintln!("native member departure committed; membership retained"),
-                    Err(error) => eprintln!("native member departure unacknowledged: {error}"),
-                }
-            }
+            // The Host and output remain alive. Exhausting this presentation
+            // encounter retires only its bearer, not the member's attachment.
+            // An actual departure requires a separate explicit lifecycle act.
+            drop(self.owner.take());
             eprintln!("native owner encounter ended: displayed Show is historical");
             return Ok(());
         }
