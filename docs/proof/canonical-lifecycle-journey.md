@@ -1105,3 +1105,45 @@ overall authorization or reconnect automatically. Fresh Boots still need signed
 PartReturn; current Boots use their retained key without re-admission. Initial
 Seed joining remains distinct. No perpetual presentation, browser invitation,
 physical update or screenshot is inferred from this local checkpoint.
+
+### Physical current-member presentation: Forebrain and Threebee
+
+Source `421ea52dd659d06fdce001763056ff182f7ec177` was made into checked
+x86_64 and AArch64 native release bundles, plus a matching Threebee IMAGE, using
+the retained checked Host sources. This was a repository Make/update operation,
+not another Body birth or a new assertion of installed Crèche fabrication.
+Cold build times on this run were 7m34s for the owner, 4m50s for the Pi, and
+4m22s for the IMAGE tooling; these are build-preparation observations after cache
+reclamation, not normalized runtime benchmarks.
+
+The owner update verified a 66-file cold snapshot and preserved Hamm Creek House
+(`d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7`),
+its Host identity and exact selected Host configuration. Canonical owner-Boot
+recovery detached the prior remote incarnation; this must not be described as
+byte-unchanged membership across that restart. The new owner Boot is
+`boot/installed/f26ea9bf4cc9f4063020ba97fba83d196e2b3962e0cf55901bb4faf75d40cb4a`.
+
+Threebee was stopped, snapshotted, and installed through the checked IMAGE
+replacement entrance. Its Host, Body reference and private continuity-key bytes
+were preserved. The selected immutable credential was resolved through the
+installation's path/hash, rather than its older unversioned credential file.
+On Boot `boot/installed/b92d6447872058fa1b3add03d0e78973af82d0e63c555be255aa1d7b7608e2cd`,
+it completed signed PartReturn, then current-member mutual authentication and
+renewable presence through the installed Unix-control owner actor.
+
+The physical SDL/KMSDRM path committed six 1024x600 frames (614400 pixels each)
+and acknowledged their Shows. Face identity was
+`eb37da2e13ee867ff282755f1776aa3c854799a7d2787a98bf66ec97d94a5fe4`,
+revision151. The service remained PID8190 with zero restarts and four DRM file
+descriptors. These are driver-commit/owner-acknowledgment facts; no screenshot,
+optical appearance or independent front-buffer readback was captured.
+
+The connection then reached its explicit 128-frame input budget. The displayed
+Show became historical, while the Host and its attachment remained present.
+Membership revision79 and admission receipt count18 remained unchanged after
+that session ended. Thus the actual worker/Line/Show path is now demonstrated;
+continuous authorization replacement and reconnection are still unfinished.
+The next integration must replace the finite encounter scaffold through ordinary
+selected Host Line service/lifecycle mechanisms, not hide the limit by increasing
+constants or repeatedly returning the Part. Shared environmental feeds, recording,
+graph composition, browser admission and MCU membership remain separate gates.
