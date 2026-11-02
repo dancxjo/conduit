@@ -67,6 +67,19 @@ impl NativeMaskStorageProfile {
         }
     }
 
+    /// Explicit native implementation closure admission. A general Host's
+    /// profile label is independent of this selected finite Mask profile.
+    pub(super) fn admit_native_implementation_profile(
+        self,
+        host: &HostAdvertisement,
+        renderer: &str,
+    ) -> Result<(), MaskOfferError> {
+        if host.protocol_version != PROTOCOL_VERSION || host.offer_generation.0 == 0 {
+            return Err(MaskOfferError::InvalidPlan);
+        }
+        self.admit_native_backs(host, renderer)
+    }
+
     pub(super) fn admit_host(
         self,
         host: &HostAdvertisement,
@@ -81,6 +94,13 @@ impl NativeMaskStorageProfile {
         if self == Self::Standard {
             return Ok(());
         }
+        self.admit_native_backs(host, renderer)
+    }
+    fn admit_native_backs(
+        self,
+        host: &HostAdvertisement,
+        renderer: &str,
+    ) -> Result<(), MaskOfferError> {
         // A profile label alone cannot upgrade a smaller initialized offer.
         for id in [
             renderer,
@@ -95,19 +115,31 @@ impl NativeMaskStorageProfile {
             let offer = matching.next().ok_or(MaskOfferError::InvalidPlan)?;
             let read_only = id == "renderer-conduitos-input"
                 && offer.implementation.execution_profile_id.as_str()
-                    == READ_ONLY_COLLECTION_INTERACTION_PROFILE
+                    == match self {
+                        Self::Standard => READ_ONLY_INTERACTION_PROFILE,
+                        Self::Collection => READ_ONLY_COLLECTION_INTERACTION_PROFILE,
+                    }
                 && offer.resource_requirements.is_empty()
                 && offer.authority_requirements.is_empty();
             if matching.next().is_some()
                 || (!read_only
                     && offer.implementation.execution_profile_id.as_str()
                         != if id == "renderer-conduitos-input" {
-                            "conduitos/bounded-collection-interaction@1"
+                            match self {
+                                Self::Standard => "conduitos/bounded-interaction@1",
+                                Self::Collection => "conduitos/bounded-collection-interaction@1",
+                            }
                         } else {
                             self.execution_profile()
                         })
                 || offer.limits.max_queue_items == 0
-                || offer.limits.max_queue_bytes < self.bytes()
+                || offer.limits.max_active_instances == 0
+                || offer.limits.max_queue_bytes
+                    < if id == "renderer-conduitos-input" && self == Self::Standard {
+                        conduit_face::MAX_FACE_INTERACTION_BYTES as u32
+                    } else {
+                        self.bytes()
+                    }
             {
                 return Err(MaskOfferError::InvalidPlan);
             }

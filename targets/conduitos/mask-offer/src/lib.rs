@@ -74,12 +74,27 @@ pub fn prepare_stage_from_offer(
     prepare_stage_for_profile(adapter, advertisement, NativeMaskStorageProfile::Standard)
 }
 
+/// Plan the ordinary native Mask using an explicitly checked storage selection
+/// and the actual Host offer. This never changes the Host profile or infers a
+/// larger storage profile from a historical label.
+pub fn prepare_native_stage_with_profile(
+    advertisement: &HostAdvertisement,
+    profile: NativeMaskStorageProfile,
+) -> Result<MaskStage, MaskOfferError> {
+    prepare_stage_for_profile(Adapter::Native, advertisement, profile)
+}
+
 fn prepare_stage_for_profile(
     adapter: Adapter,
     advertisement: &HostAdvertisement,
     profile: NativeMaskStorageProfile,
 ) -> Result<MaskStage, MaskOfferError> {
-    profile.admit_host(advertisement, "renderer-conduitos")?;
+    match adapter {
+        Adapter::Native => {
+            profile.admit_native_implementation_profile(advertisement, "renderer-conduitos")?
+        }
+        Adapter::Speech => profile.admit_host(advertisement, "renderer-conduitos")?,
+    }
     let mut catalog = ProfileCatalog::new();
     for projection in [
         renderer_kind_projection(),
