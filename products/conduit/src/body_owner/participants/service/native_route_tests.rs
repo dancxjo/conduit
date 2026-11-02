@@ -74,7 +74,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         maximum_in_flight_items: 1,
         maximum_payload_bytes: 64 * 1024,
         maximum_buffered_bytes: 128 * 1024,
-        maximum_frame_bytes: 8 * 1024,
+        maximum_frame_bytes: 64 * 1024,
     };
     // Full SHA-length carrier identifiers retain realistic positive-envelope
     // pressure; the deliberately oversized seal below checks refusal separately.

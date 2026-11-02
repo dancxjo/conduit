@@ -21,8 +21,8 @@ const CONTRACT: LineContract = LineContract {
     continuation: LineContinuation::None,
     security: LineSecurity::AuthenticatedEncrypted,
 };
-// The ConduitOS bounded WebSocket carries one 8 KiB wire frame with a
-// fourteen-byte envelope. Larger documents use ordered chunks.
+// Physical WebSocket chunk capacity, not the logical bounded-document Line
+// frame. The adapter reassembles larger logical messages from ordered chunks.
 pub(super) const MAX_NATIVE_FRAME_BYTES: usize = 8192 - 14;
 
 pub(super) fn binding_reference(
@@ -55,6 +55,7 @@ pub(super) fn offer_pair(
     );
     if profile == conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection {
         face.binding.limits.maximum_payload_bytes = profile.owner_document_bytes() as u32;
+        face.binding.limits.maximum_frame_bytes = profile.owner_document_bytes() as u32;
         face.binding.limits.maximum_buffered_bytes = (2 * profile.owner_document_bytes()) as u32;
     }
     let returned = line(
@@ -67,8 +68,8 @@ pub(super) fn offer_pair(
     (face, returned)
 }
 
-/// The hosted presentation peer accepts complete 64 KiB messages. The native
-/// guest's smaller wire frames remain a separate profile in `offer_pair`.
+/// Logical document limits remain distinct from smaller physical wire chunks.
+/// The selected profile's receiver must support its complete admitted document.
 pub(super) fn offer_terminal(
     owner: &HostAdvertisement,
     peer: &PortableAdmissionReceipt,
@@ -83,7 +84,7 @@ pub(super) fn offer_terminal(
         owner,
     );
     for line in [&mut face, &mut show, &mut interaction] {
-        line.binding.limits.maximum_frame_bytes = 64 * 1024;
+        line.binding.limits.maximum_frame_bytes = line.binding.limits.maximum_payload_bytes;
     }
     (face, show, interaction)
 }
@@ -136,7 +137,9 @@ fn line(
             limits: LinkLimits {
                 maximum_in_flight_items: 1,
                 maximum_payload_bytes: 64 * 1024,
-                maximum_frame_bytes: MAX_NATIVE_FRAME_BYTES as u32,
+                // One complete logical adapter message; send/receive retain
+                // their separate MAX_NATIVE_FRAME_BYTES physical chunk bound.
+                maximum_frame_bytes: 64 * 1024,
                 maximum_buffered_bytes: 128 * 1024,
             },
         },
@@ -196,8 +199,60 @@ mod tests {
         assert_eq!(returned.binding.sink.host_id, owner.host_id);
         assert_eq!(face.contract.security, LineSecurity::AuthenticatedEncrypted);
         assert_eq!(face.binding.limits.maximum_payload_bytes, 64 * 1024);
-        assert_eq!(returned.binding.limits.maximum_frame_bytes, 8192 - 14);
+        assert_eq!(returned.binding.limits.maximum_frame_bytes, 64 * 1024);
         assert_eq!(returned.binding.limits.maximum_payload_bytes, 64 * 1024);
+        let planned = conduit_conduitos_mask_offer::prepare_stage(
+            conduit_conduitos_mask_offer::Adapter::Native,
+            &guest.host_id,
+            &guest.boot_id,
+            guest.offer_generation.0,
+            None,
+        )
+        .unwrap()
+        .planned_mask;
+        let choices = [
+            (
+                conduit_core::PortDirection::Input,
+                &planned.mask.face_input.front_port_id,
+                &face,
+            ),
+            (
+                conduit_core::PortDirection::Output,
+                &planned.mask.show_output.front_port_id,
+                &returned,
+            ),
+        ]
+        .map(
+            |(direction, port, line)| conduit_planner::ExternalForeLineChoice {
+                host_id: guest.host_id.clone(),
+                boot_id: guest.boot_id.clone(),
+                direction,
+                front_port_id: port.clone(),
+                track: conduit_core::ConnectionTrack::Payload,
+                peer_host_id: owner.host_id.clone(),
+                peer_boot_id: owner.boot_id.clone(),
+                line_id: line.line_id.clone(),
+            },
+        );
+        let bases = [face.binding.base.clone()];
+        assert!(conduit_planner::bind_external_fore_lines(
+            &planned.plan,
+            &choices,
+            &[face.clone(), returned.clone()],
+            &bases
+        )
+        .is_ok());
+        let mut malformed = face.clone();
+        malformed.binding.limits.maximum_frame_bytes = MAX_NATIVE_FRAME_BYTES as u32;
+        assert!(matches!(
+            conduit_planner::bind_external_fore_lines(
+                &planned.plan,
+                &choices,
+                &[malformed, returned.clone()],
+                &bases
+            ),
+            Err(conduit_planner::PlannerError::InvalidLineOffer(_))
+        ));
         let (terminal_face, terminal_show, interaction) =
             offer_terminal(&owner, &receipt, "pinned/grant/0");
         assert_ne!(interaction.line_id, terminal_face.line_id);
@@ -209,5 +264,30 @@ mod tests {
             assert_eq!(line.binding.limits.maximum_frame_bytes, 64 * 1024);
             assert_eq!(line.contract.security, LineSecurity::AuthenticatedEncrypted);
         }
+        let mut collection = receipt.clone();
+        collection.host_advertisement.capabilities =
+            conduit_conduitos_mask_offer::native_read_only_implementation_closure(
+                conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection,
+            );
+        assert_eq!(
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+                &collection.host_advertisement
+            ),
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection
+        );
+        let (collection_face, collection_return) =
+            offer_pair(&owner, &collection, "pinned/collection/0");
+        assert_eq!(
+            collection_face.binding.limits.maximum_payload_bytes,
+            384 * 1024
+        );
+        for line in [collection_face, collection_return] {
+            assert!(
+                line.binding.limits.maximum_frame_bytes
+                    >= line.binding.limits.maximum_payload_bytes
+            );
+        }
+        // Profile capacity consistency only. The hosted presentation client is
+        // currently Standard-only; larger Collection delivery is not asserted.
     }
 }

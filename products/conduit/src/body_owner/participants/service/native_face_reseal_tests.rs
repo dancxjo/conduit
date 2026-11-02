@@ -157,7 +157,7 @@ fn browser_first_read_only_native_join_selects_and_acknowledges_but_refuses_acti
         maximum_in_flight_items: 1,
         maximum_payload_bytes: 64 * 1024,
         maximum_buffered_bytes: 128 * 1024,
-        maximum_frame_bytes: 8 * 1024,
+        maximum_frame_bytes: 64 * 1024,
     };
     let line = |direction: &str,
                 source: &conduit_core::HostAdvertisement,
