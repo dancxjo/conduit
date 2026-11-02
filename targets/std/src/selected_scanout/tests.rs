@@ -50,7 +50,6 @@ fn checked_physical_scanout_is_retained_before_offers_without_inventing_renderer
     let video = sdl.video().unwrap();
     let window = video
         .window("selected scanout CPU diagnostic", 640, 480)
-        .hidden()
         .build()
         .unwrap();
     let mut canvas = window.into_canvas().software().build().unwrap();

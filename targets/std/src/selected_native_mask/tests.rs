@@ -54,7 +54,6 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
     let video = sdl.video().unwrap();
     let window = video
         .window("native Mask CPU diagnostic", 640, 480)
-        .hidden()
         .build()
         .unwrap();
     let mut canvas = window.into_canvas().software().build().unwrap();

@@ -68,7 +68,6 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
     assert_eq!(video.current_video_driver(), "dummy");
     let window = video
         .window("CPU fixture", 32, 24)
-        .hidden()
         .build()
         .unwrap();
     let mut canvas = window.into_canvas().software().build().unwrap();

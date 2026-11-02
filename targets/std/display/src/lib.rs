@@ -7,6 +7,7 @@ mod initialized;
 mod input;
 pub use input::{NativeInput, NativeInputRefusal};
 mod surface;
+mod preparation;
 use conduit_face::GraphicsScene;
 use conduitos::display::{DisplayError, DisplayFormat, DisplayReceipt, PixelTarget};
 pub use initialized::{DisplayClaimRefusal, DisplayHostClaim, InitializedDisplay};
@@ -44,6 +45,7 @@ impl<'a> Scanout<'a> {
             .create_texture_streaming(PixelFormatEnum::ARGB8888, width, height)
             .map_err(|e| e.to_string())?;
         texture.set_blend_mode(sdl2::render::BlendMode::None);
+        preparation::settle_output(canvas, width, height)?;
         let initialized = InitializedDisplay::prepared(canvas, width, height)?;
         Ok(Self {
             canvas,

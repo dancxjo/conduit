@@ -11,7 +11,6 @@ fn actual_initialized_lifetime_admits_atomically_and_retracts_only_own_offers() 
     assert_eq!(video.current_video_driver(), "dummy");
     let window = video
         .window("Host readiness diagnostic", 640, 480)
-        .hidden()
         .build()
         .unwrap();
     let mut canvas = window.into_canvas().software().build().unwrap();
