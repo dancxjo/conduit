@@ -128,7 +128,7 @@ pub struct CrecheEncounterAdapter<'a> {
 fn clock() -> Result<u64, String> {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map_err(|_| "Crèche wall clock unavailable".into())?
+        .map_err(|_| "Crèche wall clock unavailable".to_string())?
         .as_millis()
         .try_into()
         .map_err(|_| "Crèche wall clock exhausted".into())

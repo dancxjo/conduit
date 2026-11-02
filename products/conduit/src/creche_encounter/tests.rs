@@ -140,13 +140,20 @@ fn factory() -> CrecheEncounterFactory {
     .unwrap()
 }
 fn start_fixture(adapter: &mut CrecheEncounterAdapter<'_>) {
+    let (_, wake) = adapter
+        .channel
+        .binding
+        .biography
+        .body
+        .wake(2, "sign/test-wake".into())
+        .unwrap();
     let b = HostConfigurationEncounterBasis {
         host_id: "host/test".into(),
         boot_id: "boot/test".into(),
         encounter_id: "encounter/test".into(),
         execution: FaceBasis {
             body_id: Some(adapter.channel.binding.biography.body_id.clone()),
-            wake_id: Some("wake/test".into()),
+            wake_id: Some(wake.wake_id),
             source_document_id: Some("source/test".into()),
             checked_plot_id: Some("checked/test".into()),
             expanded_plot_id: Some("expanded/test".into()),

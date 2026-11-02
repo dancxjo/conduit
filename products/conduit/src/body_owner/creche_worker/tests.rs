@@ -246,6 +246,15 @@ fn ordinary_creche_play_prepares_one_same_body_seed_and_restores_original_host()
     assert_eq!(owner.host.advertisement(), &original_host);
     assert!(owner.creche_factory.is_some());
     assert!(owner.current_play_id().is_none());
+    let result_face = owner.local_face_snapshot().unwrap();
+    assert!(result_face
+        .subjects
+        .iter()
+        .any(|subject| subject.name == "Prepared Host artifact"));
+    assert!(result_face
+        .text
+        .iter()
+        .any(|text| text.text.contains("joining remain unverified")));
     let products = owner
         .creche_products
         .take()

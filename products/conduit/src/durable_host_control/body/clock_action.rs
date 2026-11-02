@@ -62,6 +62,9 @@ impl DurableHostRuntime {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<serde_json::Value, String> {
+        if interaction.action_id.starts_with("host-config/") && browser.is_none() {
+            return Err("Crèche actions require an admitted selected Mask return".into());
+        }
         let action = {
             let HostSource::Body { owner, .. } = &self.host else {
                 return Err("installed Host does not own a live Body session".into());
@@ -79,7 +82,8 @@ impl DurableHostRuntime {
                     return Err("browser-show-basis-mismatch".into());
                 }
             }
-            if interaction.action_id.starts_with("todo.")
+            if interaction.action_id.starts_with("host-config/")
+                || interaction.action_id.starts_with("todo.")
                 || interaction.action_id.starts_with("thermostat.")
                 || interaction.action_id.starts_with("notebook.")
             {
@@ -89,6 +93,12 @@ impl DurableHostRuntime {
             }
         };
         let Some(action) = action else {
+            if interaction.action_id.starts_with("host-config/") {
+                let HostSource::Body { owner, .. } = &mut self.host else {
+                    unreachable!("Crèche route was validated on its current owner");
+                };
+                return owner.submit_validated_creche_return(show, interaction);
+            }
             #[cfg(target_os = "linux")]
             if interaction.action_id.starts_with("notebook.") {
                 return self.submit_owned_notebook_action(show, interaction);

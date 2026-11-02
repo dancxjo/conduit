@@ -148,8 +148,26 @@ fn prepare_runtime_with_composition(
             offer_generation: OfferGeneration(1),
         })
     })?;
+    // Keep the actual initialized provider alive before constructing its slot.
+    // A checked Base alone cannot publish this offer.
+    let creche_factory = installation
+        .selected_host_configuration
+        .as_ref()
+        .map(|selection| selection.prepare_creche())
+        .transpose()?
+        .flatten();
+    if creche_factory.is_some()
+        && (todo.is_some()
+            || thermostat.is_some()
+            || installation.selected_model.is_some()
+            || installation.selected_todo_checkpoint.is_some())
+    {
+        return Err("selected Crèche provider cannot preserve this scoped Host composition".into());
+    }
     let mut host = trace.run(Phase::HostConstruction, || {
-        Ok(if let Some((initial, maximum_items)) = todo {
+        Ok(if let Some(factory) = &creche_factory {
+            StdHost::new_with_creche_encounter(config, composition, factory.resource_offer())?
+        } else if let Some((initial, maximum_items)) = todo {
             StdHost::new_for_todo_scan(config, initial, maximum_items)?
         } else if let Some((initial, maximum_items)) = thermostat {
             StdHost::new_for_thermostat_scan(config, initial, maximum_items)?
@@ -177,7 +195,7 @@ fn prepare_runtime_with_composition(
     })?;
     let selected_equipment = trace.run(Phase::EquipmentSelection, || {
         if let Some(selection) = &installation.selected_host_configuration {
-            selection.attach_to_fresh_host(&mut host)?;
+            selection.attach_to_prepared_host(&mut host, creche_factory.as_ref())?;
         }
         Ok(if let Some(selection) = &installation.selected_speech {
             let artifact_dir = state_dir.join("spoken-artifacts");
@@ -215,7 +233,8 @@ fn prepare_runtime_with_composition(
             image_content_digest,
             host,
         )
-        .with_selected_speech_equipment(selected_equipment))
+        .with_selected_speech_equipment(selected_equipment)
+        .with_prepared_creche(creche_factory))
     })?;
     // Cold reviewed inventory and compiled contracts belong to preparation,
     // before clients can spend their finite control budget on an interaction.

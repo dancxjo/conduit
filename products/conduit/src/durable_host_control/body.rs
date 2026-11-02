@@ -340,6 +340,7 @@ impl DurableHostRuntime {
             host,
             birth,
             birth_root,
+            mut creche_factory,
             remote_fragment,
             pending_worker_text,
             pool_member,
@@ -358,7 +359,10 @@ impl DurableHostRuntime {
             return Err("durable Host already owns a Body session".into());
         };
         let previous_generation = host.advertisement().offer_generation;
-        let owner = crate::durable_host::owner::resume_service(*host, root)?;
+        let mut owner = crate::durable_host::owner::resume_service(*host, root)?;
+        if let Some(factory) = creche_factory.take() {
+            owner.install_creche_factory(factory)?;
+        }
         let current = owner.host.advertisement();
         if current.offer_generation != previous_generation {
             crate::durable_host::refresh_offer_generation(
@@ -381,6 +385,7 @@ impl DurableHostRuntime {
             },
             birth,
             birth_root,
+            creche_factory,
             remote_fragment,
             pending_worker_text,
             pool_member,

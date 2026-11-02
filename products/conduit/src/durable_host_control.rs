@@ -42,11 +42,14 @@ const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 pub(crate) const MAXIMUM_LOCAL_CONTROL_FRAME_BYTES: usize = 2 * 1024 * 1024;
 
 fn supports_remote_mask_action_intent(intent: &str) -> bool {
-    intent == crate::durable_host::owner::clock_interval_action()
+    intent.starts_with("conduit.intent/host-config/")
+        || intent == crate::durable_host::owner::clock_interval_action()
         || (cfg!(target_os = "linux") && matches!(intent, "notebook/replace@1" | "notebook/save@1"))
         || matches!(
             intent,
-            "todo/add@1"
+            "conduit.intent/wake@1"
+                | "conduit.intent/lull@1"
+                | "todo/add@1"
                 | "todo/complete@1"
                 | "todo/reopen@1"
                 | "todo/remove@1"
@@ -155,6 +158,7 @@ pub(crate) struct DurableHostRuntime {
     host: HostSource,
     birth: Option<body_birth::ServiceBirth>,
     birth_root: Option<PathBuf>,
+    creche_factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
     remote_fragment: Option<AdmittedRemoteFragment>,
     pending_worker_text: Option<conduit_kernel::scheduler::HostCallRequest>,
     pool_member: Option<AdmittedLocalModelPoolMember>,
@@ -187,6 +191,7 @@ impl DurableHostRuntime {
             host: HostSource::Bare(Box::new(host)),
             birth: None,
             birth_root: None,
+            creche_factory: None,
             remote_fragment: None,
             pending_worker_text: None,
             pool_member: None,
@@ -201,6 +206,14 @@ impl DurableHostRuntime {
             owner_spoken_terminal: None,
             spoken_template_session: None,
         }
+    }
+
+    pub(crate) fn with_prepared_creche(
+        mut self,
+        factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
+    ) -> Self {
+        self.creche_factory = factory;
+        self
     }
 
     pub(crate) fn with_selected_speech_equipment(

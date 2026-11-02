@@ -120,6 +120,9 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
+            creche_factory: None,
+            creche_live: None,
+            creche_products: None,
         }
     }
 }

@@ -24,6 +24,38 @@ pub fn creche_encounter_initialization_contract() -> BaseInitializationContract 
                 default_value: ConfigurationValue::Text(String::new()),
                 rule: KindConfigurationRule::DataLabel { maximum: 256 },
             },
+            KindConfigurationField {
+                key: "image_manifest".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 1024 },
+            },
+            KindConfigurationField {
+                key: "image_manifest_sha256".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 64 },
+            },
+            KindConfigurationField {
+                key: "artifact".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 1024 },
+            },
+            KindConfigurationField {
+                key: "artifact_sha256".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 64 },
+            },
+            KindConfigurationField {
+                key: "host_configuration".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 1024 },
+            },
+            KindConfigurationField {
+                key: "host_configuration_sha256".into(),
+                default_value: ConfigurationValue::Text(String::new()),
+                rule: KindConfigurationRule::DataLabel { maximum: 64 },
+            },
+            count("maximum_artifact_bytes", 1, 4 * 1024 * 1024 * 1024),
+            count("maximum_manifest_bytes", 1, 1024 * 1024),
             count("maximum_evidence_bytes", 1, 64 * 1024 * 1024),
             count("maximum_polls", 1, 1_000_000),
             count("minimum_poll_interval_ms", 1, 1000),

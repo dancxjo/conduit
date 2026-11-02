@@ -43,6 +43,10 @@ mod birth;
 mod clock_interval;
 #[path = "creche_planning.rs"]
 mod creche_planning;
+#[path = "creche_route_custody.rs"]
+mod creche_route_custody;
+#[path = "creche_worker.rs"]
+mod creche_worker;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
@@ -214,6 +218,9 @@ pub(crate) struct Owner {
     todo_live: Option<(conduit_core::ActivePlayId, conduit_todo_plot::TodoState)>,
     /// Canonical document projection adopted from completed notebook Source steps.
     notebook: Option<notebook::NotebookDocument>,
+    creche_factory: Option<conduit::creche_encounter::CrecheEncounterFactory>,
+    creche_live: Option<creche_worker::CrecheLive>,
+    creche_products: Option<conduit_body_make::ProducedJoiningHost<std::fs::File>>,
     /// Bounded display cache from an exact selected read Host Call and both
     /// terminal Signs. It is never a reducer or a source of authority.
     todo_verified: Option<(
@@ -319,6 +326,9 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
+            creche_factory: None,
+            creche_live: None,
+            creche_products: None,
         })
     }
     /// Reattach a retained owner to the one fresh installed Host Boot.
@@ -349,6 +359,9 @@ impl Owner {
             todo_live: None,
             todo_verified: None,
             notebook: None,
+            creche_factory: None,
+            creche_live: None,
+            creche_products: None,
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
@@ -423,6 +436,15 @@ impl Owner {
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
     pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
+        if let Some(live) = &self.creche_live {
+            if let Some(face) = live.controller.face()? {
+                if face.basis.active_play_id.as_ref() == self.current_play_id()
+                    && self.current_play_id().is_some()
+                {
+                    return Ok((*face).clone());
+                }
+            }
+        }
         if self.has_open_notebook() {
             return if self.current_play_id().is_some() {
                 self.project_notebook_face()
@@ -433,7 +455,7 @@ impl Owner {
         if let Some(live) = &self.thermostat_live {
             return self.project_thermostat_face(live);
         }
-        match self.todo_live.as_ref() {
+        let face = match self.todo_live.as_ref() {
             Some((play, state)) if self.current_play_id() == Some(play) => {
                 self.project_face(Some((state, true)))
             }
@@ -442,7 +464,8 @@ impl Owner {
                 Some((basis, state)) => self.project_verified_todo_face(basis, state),
                 None => self.project_face(None),
             },
-        }
+        }?;
+        self.project_creche_products(face)
     }
     pub(super) fn plan(
         &mut self,

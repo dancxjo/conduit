@@ -11,6 +11,8 @@ use conduit_std_host::StdHost;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+#[path = "selected_host_configuration/creche.rs"]
+mod creche;
 #[path = "selected_host_configuration/microphone.rs"]
 mod microphone;
 #[path = "selected_host_configuration/playback.rs"]
@@ -65,7 +67,30 @@ impl Selection {
     pub(super) fn validate(&self) -> Result<(), String> {
         self.checked().map(|_| ())
     }
+    pub(super) fn prepare_creche(
+        &self,
+    ) -> Result<Option<conduit::creche_encounter::CrecheEncounterFactory>, String> {
+        let checked = self.checked()?;
+        require_target(&checked, running_target_id()?)?;
+        for base in &checked.configuration().bases {
+            if base.kind == "creche/encounter" {
+                let Some(initialization) = base.initialization.as_ref() else {
+                    continue;
+                };
+                return creche::initialize(initialization).map(Some);
+            }
+        }
+        Ok(None)
+    }
+    #[cfg(test)]
     pub(super) fn attach_to_fresh_host(&self, host: &mut StdHost) -> Result<(), String> {
+        self.attach_to_prepared_host(host, None)
+    }
+    pub(super) fn attach_to_prepared_host(
+        &self,
+        host: &mut StdHost,
+        creche_factory: Option<&conduit::creche_encounter::CrecheEncounterFactory>,
+    ) -> Result<(), String> {
         let checked = self.checked()?;
         require_target(&checked, running_target_id()?)?;
         host.set_declared_name(
@@ -93,6 +118,23 @@ impl Selection {
                 ) => {
                     let adapter = microphone::initialize(initialization, implementation)?;
                     host.attach_microphone(adapter)?;
+                }
+                Some(conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION) => {
+                    let factory = creche_factory
+                        .ok_or("Crèche provider was not prepared before Host construction")?;
+                    if !host
+                        .advertisement()
+                        .resources
+                        .contains(&factory.resource_offer())
+                        || !host.advertisement().capabilities.contains(
+                            &conduit_body_make::deployment_runtime_catalog::creche_std_offer(),
+                        )
+                    {
+                        return Err(
+                            "Crèche prepared provider differs from initial Host advertisement"
+                                .into(),
+                        );
+                    }
                 }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     let selected = playback::initialize(initialization, host)?;
@@ -131,6 +173,9 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                     implementation @ (conduit_std_offers::MICROPHONE_CLIP_IMPLEMENTATION
                     | conduit_std_offers::CONVERTED_MICROPHONE_CLIP_IMPLEMENTATION),
                 ) => microphone::validate(initialization, implementation)?,
+                Some(conduit_body_make::deployment_runtime_catalog::CRECHE_IMPLEMENTATION) => {
+                    creche::validate(initialization)?
+                }
                 Some(conduit_std_offers::AUDIO_PLAY_ALSA_HW_IMPLEMENTATION) => {
                     playback::validate(initialization)?
                 }

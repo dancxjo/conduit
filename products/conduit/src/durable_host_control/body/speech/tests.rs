@@ -461,6 +461,7 @@ fn runtime(owner: Owner, root: &std::path::Path) -> DurableHostRuntime {
         },
         birth: None,
         birth_root: None,
+        creche_factory: None,
         remote_fragment: None,
         pending_worker_text: None,
         pool_member: None,

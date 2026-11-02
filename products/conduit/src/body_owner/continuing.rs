@@ -16,13 +16,20 @@ pub(crate) const MAXIMUM_SERVICE_RUN_MILLIS: u64 = 900_000;
 // The installed kernel's finite inline scratch exceeds the platform default
 // worker stack. This is one service worker per owned Body Play, never a pool.
 const BODY_PLAY_STACK_BYTES: usize = 4 * 1024 * 1024;
-type WorkerOutcome = (StdHost, Result<BodyRunReport, String>, Vec<u8>);
+type WorkerOutcome = (
+    StdHost,
+    Result<BodyRunReport, String>,
+    Vec<u8>,
+    Option<conduit::creche_encounter::CrecheEncounterFactory>,
+);
 
 pub(crate) struct RunWorker {
     control: RunControl,
     started: Receiver<(BodyPlayIdentity, Wake)>,
     acknowledge: Option<SyncSender<Result<(), String>>>,
     thread: Option<JoinHandle<WorkerOutcome>>,
+    creche_controller: Receiver<conduit::creche_encounter::CrecheEncounterController>,
+    creche_custody: Option<super::creche_route_custody::CrecheRouteCustody>,
 }
 
 impl Owner {
@@ -54,6 +61,7 @@ impl Owner {
         if self.resident.as_ref() != Some(&resident) {
             return Err("retained source differs from the Body's resident Plot".into());
         }
+        let creche_binding = self.prepare_creche_service_run(root, &checked)?;
         self.plan(&checked)?;
         self.persist(root)?;
         state::require_execution_capacity(root)?;
@@ -62,6 +70,9 @@ impl Owner {
             .realization()
             .expect("Plan just committed")
             .clone();
+        let mut creche = self.take_creche_execution(creche_binding);
+        let creche_custody = creche.as_ref().map(|run| run.custody.clone());
+        let (creche_tx, creche_rx) = mpsc::sync_channel(1);
         let host = self.host.take_for_play()?;
         let control = RunControl::default();
         let worker_control = control.clone();
@@ -91,28 +102,40 @@ impl Owner {
                             );
                         }
                     });
-                    let result = host.run_body_plan_to_with_start(
-                        BodyRunRequest {
-                            wake: &proposed.wake,
-                            plan: &proposed.plan,
-                            control: &worker_control,
-                            keyboard: None,
-                        },
-                        &mut output,
-                        &mut timer,
-                        |play, wake| {
-                            started_tx.send((play.clone(), wake.clone())).map_err(|_| {
-                                "Body owner start observer disconnected".to_string()
-                            })?;
-                            ack_rx
-                                .recv()
-                                .map_err(|_| "Body owner start acknowledgement lost".to_string())?
-                        },
-                    );
+                    let request = BodyRunRequest {
+                        wake: &proposed.wake,
+                        plan: &proposed.plan,
+                        control: &worker_control,
+                        keyboard: None,
+                    };
+                    let started = |play: &BodyPlayIdentity, wake: &Wake| {
+                        started_tx
+                            .send((play.clone(), wake.clone()))
+                            .map_err(|_| "Body owner start observer disconnected".to_string())?;
+                        ack_rx
+                            .recv()
+                            .map_err(|_| "Body owner start acknowledgement lost".to_string())?
+                    };
+                    let result = match creche.as_mut() {
+                        Some(run) => run.run(
+                            &mut host,
+                            request,
+                            &mut output,
+                            &mut timer,
+                            &creche_tx,
+                            started,
+                        ),
+                        None => host.run_body_plan_to_with_start(
+                            request,
+                            &mut output,
+                            &mut timer,
+                            started,
+                        ),
+                    };
                     let _ = finished.send(());
                     result
                 });
-                (host, result, output.0)
+                (host, result, output.0, creche.map(|run| run.factory))
             })
             .expect("failure to launch the only Body Play worker stops the owner service");
         Ok(RunWorker {
@@ -120,6 +143,8 @@ impl Owner {
             started: started_rx,
             acknowledge: Some(ack_tx),
             thread: Some(thread),
+            creche_controller: creche_rx,
+            creche_custody,
         })
     }
 
@@ -197,6 +222,19 @@ impl Owner {
 
 impl RunWorker {
     pub(crate) fn progress(&mut self, owner: &mut Owner, root: &Path) -> Result<bool, String> {
+        match self.creche_controller.try_recv() {
+            Ok(controller) => {
+                let custody = self
+                    .creche_custody
+                    .take()
+                    .ok_or("Crèche returned a duplicate controller")?;
+                owner.creche_live = Some(super::creche_worker::CrecheLive {
+                    controller,
+                    custody,
+                });
+            }
+            Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
+        }
         match self.started.try_recv() {
             Ok((play, wake)) => {
                 let result = owner.retain_started(root, play, wake);
@@ -207,16 +245,29 @@ impl RunWorker {
             }
             Err(TryRecvError::Empty | TryRecvError::Disconnected) => {}
         }
+        if owner.current_play_id().is_some() {
+            if let Some(live) = &owner.creche_live {
+                live.controller.start_production_if_reviewed()?;
+            }
+        }
         if !self.thread.as_ref().is_some_and(JoinHandle::is_finished) {
             return Ok(false);
         }
-        let (host, result, output) = self
+        let (host, result, output, factory) = self
             .thread
             .take()
             .expect("finished worker has a join handle")
             .join()
             .map_err(|_| "Body Play worker panicked; owner service must restart".to_string())?;
         owner.host.restore_after_play(host)?;
+        if let Some(factory) = factory {
+            owner.creche_factory = Some(factory);
+        }
+        if let Some(live) = &owner.creche_live {
+            if let Some(products) = live.controller.take_products()? {
+                owner.creche_products = Some(products);
+            }
+        }
         owner.retain_finished(root, result, output)?;
         Ok(true)
     }
