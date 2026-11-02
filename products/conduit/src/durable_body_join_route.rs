@@ -2,6 +2,9 @@
 
 #[path = "durable_body_join_route/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "durable_body_join_route/prepared.rs"]
+mod prepared;
+pub(crate) use prepared::PreparedAdmissionRoute;
 #[path = "durable_body_join_route/native_lines.rs"]
 mod native_lines;
 #[path = "durable_body_join_route/response_document.rs"]
@@ -11,17 +14,17 @@ mod return_route;
 pub(crate) use return_route::MaskSelection;
 
 use super::invitation::{
-    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    ROUTED_INVITATION_SCHEMA, prepare_body_join,
+    prepare_body_join, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
+    ROUTED_INVITATION_SCHEMA,
 };
 use super::membership::complete_body_join_document;
-use super::{MAXIMUM_BODY_ADMISSION_BYTES, bounded_read, current_time_millis};
+use super::{bounded_read, current_time_millis, MAXIMUM_BODY_ADMISSION_BYTES};
 use conduit_body::{
-    ROUTED_ADMISSION_REQUEST_SCHEMA, RendezvousAuthentication, RendezvousCandidate,
-    RendezvousLineFamily, RoutedAdmissionRequest, RoutedAdmissionResponse,
+    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_face::{
-    MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse,
+    OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::secure_websocket::{
     SecureWebSocketClientLine, SecureWebSocketError, SecureWebSocketListener,
@@ -94,8 +97,27 @@ pub(crate) fn serve_body_invitation_route(
     std::io::stdout()
         .flush()
         .map_err(|error| format!("publish routed Body invitation: {error}"))?;
+    serve_existing_invitation_route(state_dir, &listener, &invitation)
+}
+
+fn serve_existing_invitation_route(
+    state_dir: &Path,
+    listener: &SecureWebSocketListener,
+    invitation: &PortableInvitation,
+) -> Result<(), String> {
+    let route_expiry = invitation
+        .rendezvous
+        .as_ref()
+        .and_then(|r| r.candidates.iter().map(|c| c.expires_at_millis).min())
+        .unwrap_or(invitation.claim.expires_at_millis);
+    let remaining = route_expiry
+        .min(invitation.claim.expires_at_millis)
+        .saturating_sub(current_time_millis()?);
+    if remaining == 0 {
+        return Err("original invitation route expired".into());
+    }
     let mut line = listener
-        .accept_with_timeout(Duration::from_secs(ttl_seconds))
+        .accept_with_timeout(Duration::from_millis(remaining))
         .map_err(|error| format!("Body owner unreachable before invitation expiry: {error:?}"))?;
     let request: RoutedAdmissionRequest = receive(&mut line)?;
     let response_schema = request.response_schema();
@@ -364,25 +386,17 @@ mod tests {
 
     #[test]
     fn reachability_and_endpoint_authentication_refusals_remain_distinct() {
-        assert!(
-            route_connect_refusal(SecureWebSocketError::Transport(
-                std::io::ErrorKind::ConnectionRefused
-            ))
-            .starts_with("owner-unreachable:")
-        );
-        assert!(
-            route_connect_refusal(SecureWebSocketError::Transport(
-                std::io::ErrorKind::TimedOut
-            ))
-            .starts_with("route-timeout:")
-        );
-        assert!(
-            route_connect_refusal(SecureWebSocketError::Tls)
-                .starts_with("endpoint-authentication-failed:")
-        );
-        assert!(
-            route_connect_refusal(SecureWebSocketError::Handshake)
-                .starts_with("endpoint-authentication-failed:")
-        );
+        assert!(route_connect_refusal(SecureWebSocketError::Transport(
+            std::io::ErrorKind::ConnectionRefused
+        ))
+        .starts_with("owner-unreachable:"));
+        assert!(route_connect_refusal(SecureWebSocketError::Transport(
+            std::io::ErrorKind::TimedOut
+        ))
+        .starts_with("route-timeout:"));
+        assert!(route_connect_refusal(SecureWebSocketError::Tls)
+            .starts_with("endpoint-authentication-failed:"));
+        assert!(route_connect_refusal(SecureWebSocketError::Handshake)
+            .starts_with("endpoint-authentication-failed:"));
     }
 }

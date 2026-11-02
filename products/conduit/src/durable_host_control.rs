@@ -128,7 +128,8 @@ pub(crate) use body::{
 // Native return consumes the expiry-bearing entrance after its route lands.
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
-    local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
+    local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
+    submit_local_face_interaction_until,
 };
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
@@ -952,6 +953,16 @@ enum Request {
         ttl_seconds: u64,
         candidates: Option<Vec<RendezvousCandidate>>,
     },
+    BodyPrepareInvitationRoute {
+        protocol: u16,
+        token: Vec<u8>,
+        ttl_seconds: u64,
+        bind: std::net::SocketAddr,
+        public_url: String,
+        certificate: std::path::PathBuf,
+        private_key: std::path::PathBuf,
+        authorize_route: bool,
+    },
     BodyAdmit {
         protocol: u16,
         token: Vec<u8>,
@@ -1245,6 +1256,10 @@ enum Response {
     BodyInvitation {
         protocol: u16,
         invitation: Box<conduit_body::PortableInvitation>,
+    },
+    BodyInvitationRoutePrepared {
+        protocol: u16,
+        candidate: RendezvousCandidate,
     },
     BodyAdmitted {
         protocol: u16,
@@ -1834,6 +1849,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::Status { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
+        | Request::BodyPrepareInvitationRoute { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
@@ -1949,6 +1965,29 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|invitation| Response::BodyInvitation {
                 protocol: PROTOCOL,
                 invitation: Box::new(invitation),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyPrepareInvitationRoute {
+            protocol,
+            ttl_seconds,
+            bind,
+            public_url,
+            certificate,
+            private_key,
+            authorize_route,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .prepare_owned_invitation_route(
+                ttl_seconds,
+                bind,
+                &public_url,
+                &certificate,
+                &private_key,
+                authorize_route,
+            )
+            .map(|candidate| Response::BodyInvitationRoutePrepared {
+                protocol: PROTOCOL,
+                candidate,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyAdmit {

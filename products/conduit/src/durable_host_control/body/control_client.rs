@@ -102,6 +102,7 @@ fn clear_token(request: &mut Request) {
         Request::Notebook { token, .. } => token.fill(0),
         Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
+        | Request::BodyPrepareInvitationRoute { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
