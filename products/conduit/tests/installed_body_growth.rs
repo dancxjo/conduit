@@ -2,6 +2,9 @@
 
 #![cfg(unix)]
 
+#[path = "installed_body_growth/prepared_route.rs"]
+mod prepared_route;
+
 use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyMembership, MembershipProofId,
     PartId,

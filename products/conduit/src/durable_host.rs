@@ -61,6 +61,7 @@ mod membership;
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
+pub(crate) use routed_join::PreparedAdmissionRoute;
 pub(crate) use routed_join::{join_body_over_route, serve_body_invitation_route};
 
 #[derive(Debug, Deserialize)]
