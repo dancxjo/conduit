@@ -17,7 +17,7 @@ fn host_basis(host: &HostAdvertisement) -> RemoteMaskHostBasis {
 }
 
 fn fixture(revision: u64) -> (Snapshot, OwnerFaceSnapshotRequest, MaskShow) {
-    let body = conduit_body::BodyId::bound("body/action-rebind".into());
+    let body: conduit_body::BodyId = serde_json::from_value(json!("body/action-rebind")).unwrap();
     let host = HostAdvertisement {
         declared_name: None,
         protocol_version: PROTOCOL_VERSION,
@@ -96,7 +96,7 @@ fn fixture(revision: u64) -> (Snapshot, OwnerFaceSnapshotRequest, MaskShow) {
         schema: OWNER_FACE_REQUEST_SCHEMA.into(),
         credential_id: "credential/guest".into(),
         body_id: body,
-        part_id: conduit_body::PartId::bound("part/guest".into()),
+        part_id: serde_json::from_value(json!("part/guest")).unwrap(),
         host_id: host.host_id.clone(),
         boot_id: host.boot_id.clone(),
         last_seen_revision: None,
