@@ -369,6 +369,11 @@ impl ServerCertVerifier for PinnedServerCertificate {
 }
 
 impl SecureWebSocketLine {
+    /// Actual configured logical message bound of this accepted TLS incarnation.
+    pub fn maximum_message_bytes(&self) -> usize {
+        self.maximum_message_bytes
+    }
+
     /// A caller may release the input deadline only after it has received and
     /// admitted a complete request before that deadline. Bounded actor work
     /// and its response may then finish after the grant's submission cutoff.
@@ -381,6 +386,19 @@ impl SecureWebSocketLine {
             .sock
             .set_read_timeout(timeout)
             .map_err(|error| SecureWebSocketError::Transport(error.kind()))
+    }
+
+    /// Replace the admission cutoff with a separately authorized finite I/O
+    /// lifetime. The watchdog shuts down only this exact socket, including reads
+    /// of incomplete frames, control-frame floods and blocked writes. Callers
+    /// must not renew it merely because unaccepted bytes arrived.
+    pub fn replace_input_deadline(
+        &mut self,
+        deadline: Instant,
+    ) -> Result<(), SecureWebSocketError> {
+        let guard = SocketDeadlineGuard::start(&self.socket.get_ref().sock, deadline)?;
+        self.input_deadline_guard = Some(guard);
+        Ok(())
     }
 
     pub fn send_binary(&mut self, bytes: &[u8]) -> Result<(), SecureWebSocketError> {
