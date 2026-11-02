@@ -134,13 +134,29 @@ impl StdHost {
         provider.entry.capabilities = offer
             .capabilities
             .iter()
-            .filter(|capability| {
-                capability.kind_id.as_str() == conduit_face::SHOW_RESOURCE_SOURCE_KIND
-            })
+            .filter(|capability| capability.kind_id.as_str() != conduit_face::FACE_TEE_KIND)
             .cloned()
             .collect();
-        if provider.entry.capabilities.len() != 1 {
-            return Err("selected native Source capability is ambiguous".into());
+        if provider.entry.capabilities.len() != 3
+            || [
+                conduit_face::SHOW_RESOURCE_SOURCE_KIND,
+                conduit_face::RESOURCE_RENDERER_KIND,
+                conduit_face::FACE_INTERACTION_KIND,
+            ]
+            .into_iter()
+            .any(|kind| {
+                provider
+                    .entry
+                    .capabilities
+                    .iter()
+                    .filter(|offer| offer.kind_id.as_str() == kind)
+                    .count()
+                    != 1
+            })
+        {
+            return Err(
+                "selected native initialized Back closure is incomplete or ambiguous".into(),
+            );
         }
         scanout.entry = provider.entry.clone();
         let intent = InitialNativeMask {

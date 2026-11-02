@@ -41,6 +41,19 @@ pub fn native_read_only_host_advertisement(
         Some(provider),
         profile,
     );
+    if !provider.capabilities.is_empty() {
+        let base = offer
+            .bases
+            .iter_mut()
+            .find(|base| base.provider_instance_id == provider.provider_instance_id);
+        if let Some(base) = base {
+            base.capability_ids = provider
+                .capabilities
+                .iter()
+                .map(|capability| capability.capability_id.clone())
+                .collect();
+        }
+    }
     offer.resources = provider.resources.clone();
     offer
         .resources

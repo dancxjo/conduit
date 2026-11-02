@@ -323,8 +323,12 @@ impl StdHost {
             ready_resource_classes.insert(RUNTIME_MEMORY_RESOURCE_CLASS.into());
             facilities.insert("compositor/native@1".into());
         }
-        let expected_capabilities =
-            1 + mask_capabilities.len() + usize::from(initial.has_native_mask());
+        #[allow(unused_mut)]
+        let mut expected_capabilities = 1 + mask_capabilities.len();
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        if let Some(mask) = &initial.native_mask {
+            expected_capabilities += mask.provider.entry.capabilities.len();
+        }
         let has_native_mask = initial.has_native_mask();
         let mut bytes = ImageBytes(Vec::with_capacity(MAXIMUM_IMAGE_BYTES));
         serde_json::to_writer(&mut bytes, image)
@@ -362,9 +366,8 @@ impl StdHost {
         if host.advertisement.capabilities.len() != expected_capabilities
             || host.advertisement.resources.len() != budgets.len()
         {
-            return Err(
-                "selected timer did not produce its complete qualified offer subset".into(),
-            );
+            return Err(format!("selected IMAGE did not produce its complete qualified offer subset: capabilities {}/{expected_capabilities}, resources {}/{}",
+                host.advertisement.capabilities.len(), host.advertisement.resources.len(), budgets.len()));
         }
         host.base_registry = registry;
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
