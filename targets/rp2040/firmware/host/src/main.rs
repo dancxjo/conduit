@@ -11,6 +11,7 @@ use embassy_usb::{
 };
 use panic_halt as _;
 use static_cell::StaticCell;
+mod bootsel;
 mod credential_source;
 mod environment;
 mod environment_http;

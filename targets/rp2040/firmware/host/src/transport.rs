@@ -26,9 +26,13 @@ impl Link {
         let mut packet = [0; 64];
         loop {
             if let Some(frame) = self.decoder.next_frame().map_err(|_| ())? {
-                let target = output.get_mut(..frame.len()).ok_or(())?;
+                let length = frame.len();
+                let target = output.get_mut(..length).ok_or(())?;
                 target.copy_from_slice(frame);
-                return Ok(&output[..frame.len()]);
+                if crate::bootsel::handle(self, &output[..length]).await? {
+                    continue;
+                }
+                return Ok(&output[..length]);
             }
             let n = with_timeout(Duration::from_secs(30), self.class.read_packet(&mut packet))
                 .await

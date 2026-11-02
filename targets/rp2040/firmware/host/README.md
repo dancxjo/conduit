@@ -15,7 +15,8 @@ cargo xtask make host build targets/rp2040/profiles/pico-w-house-green.host.cond
 
 The public application UF2 is checked to exclude credential and bootstrap pages.
 The build requires clean committed Source and verifies it remained unchanged.
-No build command flashes a device.
+No build command flashes a device. Existing build-bound canonical USB BOOTSEL
+recovery remains available even when the private Seed is absent or refused.
 
 An optional private Seed input and separate private destination can be supplied
 with `--private-seed-input` and `--private-seed-output`. The input contains the
