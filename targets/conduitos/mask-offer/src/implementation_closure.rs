@@ -42,6 +42,9 @@ pub fn native_read_only_host_advertisement(
         profile,
     );
     offer.resources = provider.resources.clone();
+    offer
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     narrow_read_only(&mut offer.capabilities, profile);
     offer
 }

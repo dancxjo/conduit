@@ -24,7 +24,10 @@ fn provider() -> BaseProviderEntry {
 
 #[test]
 fn read_only_closure_uses_actual_backs_and_exact_declared_resources_without_input() {
-    let provider = provider();
+    let mut provider = provider();
+    provider
+        .resources
+        .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     for profile in [
         NativeMaskStorageProfile::Standard,
         NativeMaskStorageProfile::Collection,
