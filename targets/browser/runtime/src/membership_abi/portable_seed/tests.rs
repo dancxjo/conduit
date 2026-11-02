@@ -25,7 +25,14 @@ fn initialized() {
 }
 fn prepare() -> (PortableSpawnAdmissionRequest, PortableAdmissionReceipt) {
     initialized();
-    let mut manager = AdmissionManager::new("body/portable".into()).unwrap();
+    let body = conduit_body::Body::born(
+        "source/portable".into(),
+        "checked/portable".into(),
+        1,
+        "sign/portable".into(),
+    )
+    .unwrap();
+    let mut manager = AdmissionManager::new(body.body_id).unwrap();
     let invitation = manager
         .issue_spawn_invitation(
             SpawnInvitationSecret::from_csprng_bytes([9; 32]).unwrap(),
@@ -90,7 +97,16 @@ fn wrong_body_host_boot_offer_and_effect_claims_refuse() {
     for variant in 0..5 {
         let mut receipt = original.clone();
         match variant {
-            0 => receipt.credential.body_id = "body/wrong".into(),
+            0 => {
+                receipt.credential.body_id = conduit_body::Body::born(
+                    "source/wrong".into(),
+                    "checked/wrong".into(),
+                    1,
+                    "sign/wrong".into(),
+                )
+                .unwrap()
+                .body_id
+            }
             1 => receipt.credential.host_id = "host/wrong".into(),
             2 => receipt.credential.boot_id = "boot/wrong".into(),
             3 => receipt.host_advertisement.offer_generation.0 += 1,
@@ -136,16 +152,20 @@ fn expired_or_malformed_invitation_never_creates_request() {
 
 #[test]
 fn cancel_cannot_be_followed_by_a_different_invitation_on_the_same_boot() {
-    let _ = prepare();
+    let (request, _) = prepare();
     assert_eq!(conduit_browser_seed_cancel(), 0);
+    let mut manager = AdmissionManager::new(request.body_id).unwrap();
+    let different = manager
+        .issue_spawn_invitation(
+            SpawnInvitationSecret::from_csprng_bytes([8; 32]).unwrap(),
+            [6; 32],
+            100,
+            200,
+        )
+        .unwrap();
     let invitation = PortableInvitation {
         schema: INVITATION_SCHEMA.into(),
-        claim: SpawnInvitationClaim {
-            invitation_id: "invite/different".into(),
-            body_id: "body/portable".into(),
-            nonce: [6; 32],
-            expires_at_millis: 200,
-        },
+        claim: different.claim(),
         secret: [8; 32],
         rendezvous: None,
     };

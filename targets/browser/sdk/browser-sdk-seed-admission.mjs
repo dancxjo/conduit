@@ -45,7 +45,14 @@ export function createPortableSeedAdmission({ api, storage, assertCurrent, now =
     if (!receiptToRetain) throw new Error("No verified Seed receipt awaits retention");
     if (!storage) throw new Error("Durable browser storage is required to retain Seed membership");
     // Persist the exact existing receipt, not a fabricated presence or Body image.
-    await storage.writeJson(RECEIPT_KEY, receiptToRetain);
+    const credential = receiptToRetain.credential;
+    const identity = encoder.encode(JSON.stringify([
+      credential.body_id, credential.host_id, credential.boot_id, credential.credential_id,
+    ]));
+    const digest = await crypto.subtle.digest("SHA-256", identity);
+    const key = `${RECEIPT_KEY}/${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("")}`;
+    // Different Bodies/Boots cannot overwrite one another's retained receipt.
+    await storage.writeJson(key, receiptToRetain);
     retained = structuredClone(receiptToRetain.credential);
     receiptToRetain = null;
     return structuredClone(retained);

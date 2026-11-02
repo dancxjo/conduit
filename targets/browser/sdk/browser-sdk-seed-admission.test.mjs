@@ -44,6 +44,7 @@ test("explicit human grants precede runtime validation and exact receipt retenti
   assert.equal(f.writes.length, 0);
   assert.deepEqual(await f.admission.complete({ receipt, authorizeMembership: true }), f.credential);
   assert.deepEqual(f.writes[0].value, receipt);
+  assert.match(f.writes[0].key, /^portable-seed-admission-receipt\/[a-f0-9]{64}$/);
   await assert.rejects(f.admission.complete({ receipt, authorizeMembership: true }), /unconsumed/);
   assert.throws(() => f.admission.prepare({ invitation, authorizeJoin: true }), /already selected/);
   assert.throws(() => f.admission.assertMayOwnBody(), /already selected/);

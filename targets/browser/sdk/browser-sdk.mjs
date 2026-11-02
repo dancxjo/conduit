@@ -129,6 +129,7 @@ export class BrowserHost {
   /** Join this already-admitted Host and Boot to one external Body invitation. */
   async participate({ invitation, expectedBodyId = null, retainedCredential = null, onCredential,
     onState, onBiographyEvidence, onOfferEvidence, renewPresence = true, reconnectPresence = true } = {}) {
+    this.#state.seedAdmission.assertMayOwnBody();
     if (typeof invitation !== "string" || invitation.length < 1 || invitation.length > 2048) {
       throw new TypeError("BrowserHost.participate requires one bounded Body invitation URL");
     }
