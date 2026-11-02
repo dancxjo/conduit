@@ -50,8 +50,7 @@ impl PreparedCompositorBacking {
         let mut pool = SurfaceBufferPool::new();
         let buffer = pool.take(bounds)?;
         let pixels = surface_pixels(bounds)?;
-        let mut surfaces = Vec::with_capacity(1);
-        surfaces.push(CompositorSurface {
+        let surfaces = alloc::vec![CompositorSurface {
             surface_id: surface_id.into(),
             bounds,
             z: 0,
@@ -63,7 +62,7 @@ impl PreparedCompositorBacking {
             binding: None,
             receipt: None,
             input_ready: false,
-        });
+        }];
         let actual = surfaces.capacity() * core::mem::size_of::<CompositorSurface>()
             + surfaces[0].buffer.pixels.capacity() * core::mem::size_of::<u32>()
             + pool.metadata_backing_bytes();
