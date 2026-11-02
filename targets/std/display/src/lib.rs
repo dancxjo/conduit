@@ -5,6 +5,7 @@
 #![cfg(feature = "sdl")]
 mod initialized;
 mod input;
+mod preparation;
 pub use input::{NativeInput, NativeInputRefusal};
 mod surface;
 use conduit_face::GraphicsScene;
@@ -44,6 +45,7 @@ impl<'a> Scanout<'a> {
             .create_texture_streaming(PixelFormatEnum::ARGB8888, width, height)
             .map_err(|e| e.to_string())?;
         texture.set_blend_mode(sdl2::render::BlendMode::None);
+        preparation::settle_output(canvas, width, height)?;
         let initialized = InitializedDisplay::prepared(canvas, width, height)?;
         Ok(Self {
             canvas,
@@ -178,3 +180,6 @@ mod tests;
 
 #[cfg(test)]
 mod input_queue_tests;
+
+#[cfg(test)]
+static SDL_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
