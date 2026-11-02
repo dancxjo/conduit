@@ -21,10 +21,11 @@ fn prepared_route_carries_the_owners_next_original_invitation() {
     let private_key = root.join("owner-private-key.pem");
     fs::write(&certificate, cert.pem()).unwrap();
     fs::write(&private_key, signing_key.serialize_pem()).unwrap();
-    let reservation = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let reservation = TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0)).unwrap();
+    let port = reservation.local_addr().unwrap().port();
     let bind = reservation.local_addr().unwrap().to_string();
     drop(reservation);
-    let public_url = format!("wss://{bind}/body-admission");
+    let public_url = format!("wss://127.0.0.1:{port}/body-admission");
     let args = [
         "body",
         "invite",
