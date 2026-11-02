@@ -30,6 +30,14 @@ pub use rename::*;
 #[cfg(feature = "authenticated-admission")]
 mod admission;
 #[cfg(feature = "authenticated-admission")]
+mod embedded_membership_wire;
+#[cfg(feature = "authenticated-admission")]
+pub use embedded_membership_wire::*;
+#[cfg(feature = "authenticated-admission")]
+mod admission_receipt_attestation;
+#[cfg(feature = "authenticated-admission")]
+pub use admission_receipt_attestation::*;
+#[cfg(feature = "authenticated-admission")]
 pub mod admission_advertisement_wire;
 mod biography;
 mod body_time_plan;
