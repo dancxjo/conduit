@@ -17,6 +17,10 @@ pub use prepared::PreparedNativeMaskPlay;
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod retained;
 #[cfg(any(test, feature = "native-compositor-core"))]
+mod unbound;
+#[cfg(any(test, feature = "native-compositor-core"))]
+pub use unbound::UnboundNativeMaskStorage;
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod storage;
 #[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_conduitos_mask_offer::NativeMaskStorageProfile;
@@ -184,6 +188,27 @@ fn scheduler_for_profile(
     lowered: &LoweredPlanFragment,
     profile: NativeMaskStorageProfile,
 ) -> Result<Scheduler, NativeMaskPlayError> {
+    let value_bytes = admitted_value_bytes_for_profile(lowered, profile)?;
+    let values = HostedValueStore::new(VALUES as u16, profile.bytes(), value_bytes)
+        .map_err(|_| NativeMaskPlayError::Value)?;
+    let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
+        (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
+        32,
+        conduit_kernel::remote_sign_storage_bytes(32).ok_or(NativeMaskPlayError::Kernel)?,
+    )
+    .map_err(|_| NativeMaskPlayError::Kernel)?;
+    scheduler_with_storage(fragment, lowered, profile, values, signs)
+}
+
+#[cfg(any(test, feature = "native-compositor-core"))]
+fn scheduler_with_storage(
+    fragment: &conduit_core::PlanFragment,
+    lowered: &LoweredPlanFragment,
+    profile: NativeMaskStorageProfile,
+    values: HostedValueStore,
+    signs: FixedSignLog<SIGNS>,
+) -> Result<Scheduler, NativeMaskPlayError> {
+    use conduit_kernel::{SignSink, ValueStorage};
     if !matches!(lowered.nodes.len(), 3 | NODES) || lowered.cords.len() != CORDS {
         return Err(NativeMaskPlayError::Shape);
     }
@@ -255,16 +280,16 @@ fn scheduler_for_profile(
         drivers.push(MaskBack::ResourceSource);
     }
     let drivers = drivers.try_into().map_err(|_| NativeMaskPlayError::Shape)?;
-    let values = HostedValueStore::new(VALUES as u16, profile.bytes(), value_bytes)
-        .map_err(|_| NativeMaskPlayError::Value)?;
-    let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
-        lowered
-            .sign_bytes
-            .max((SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32),
-        32,
-        conduit_kernel::remote_sign_storage_bytes(32).ok_or(NativeMaskPlayError::Kernel)?,
-    )
-    .map_err(|_| NativeMaskPlayError::Kernel)?;
+    let (slots, payload) = values.allocation_capacities();
+    if slots != VALUES
+        || payload != VALUES * profile.bytes() as usize
+        || values.byte_capacity() != value_bytes
+        || values.used_items() != 0
+        || !signs.is_empty()
+        || signs.byte_capacity() < lowered.sign_bytes
+    {
+        return Err(NativeMaskPlayError::Pressure);
+    }
     FixedScheduler::new_with_host_calls(nodes, cords, routes, bindings, drivers, values, signs)
         .map_err(|_| NativeMaskPlayError::SchedulerCreate)
 }

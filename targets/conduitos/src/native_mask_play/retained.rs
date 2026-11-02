@@ -5,7 +5,7 @@ use conduit_kernel::scheduler::prepared_session::{
 };
 use conduit_kernel::{RequestId, SignSink};
 use core::ops::Deref;
-type Session = PreparedKernelSession<
+pub(super) type Session = PreparedKernelSession<
     MaskBack,
     HostedValueStore,
     FixedSignLog<SIGNS>,
@@ -68,16 +68,17 @@ impl RetainedNativeMaskStorage {
         profile: NativeMaskStorageProfile,
         maximum_bytes: usize,
     ) -> Result<Self, NativeMaskPlayError> {
-        if Self::required_store_bytes(profile)? > maximum_bytes {
-            return Err(NativeMaskPlayError::Pressure);
-        }
         storage::validate_profile(planned, profile)?;
-        let fragment = planned
-            .plan
-            .fragments
-            .first()
-            .ok_or(NativeMaskPlayError::Plan)?;
-        let lowered = lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?;
+        UnboundNativeMaskStorage::prepare(profile, maximum_bytes)?.bind(planned)
+    }
+    pub(super) fn from_prepared_kernel(
+        planned: &PlannedMaskPlot,
+        lowered: &LoweredPlanFragment,
+        profile: NativeMaskStorageProfile,
+        scheduler: alloc::boxed::Box<Scheduler>,
+        optional_storage: conduit_kernel::scheduler::prepared_session::OptionalOutputStorage<CORDS>,
+        backing: NativeMaskBackingReceipt,
+    ) -> Result<Self, NativeMaskPlayError> {
         let boundaries = lowered
             .fore_ports
             .iter()
@@ -101,21 +102,15 @@ impl RetainedNativeMaskStorage {
         if optional.len() != 1 {
             return Err(NativeMaskPlayError::Shape);
         }
-        let scheduler = alloc::boxed::Box::new(scheduler_for_profile(fragment, &lowered, profile)?);
-        let value_storage_bytes = scheduler.values().reserved_storage_bytes();
-        let scheduler_inline_bytes = core::mem::size_of::<Scheduler>();
-        let optional_output_storage_bytes = Session::optional_output_storage_requirement();
-        let managed_store_bytes = scheduler_inline_bytes
-            .checked_add(value_storage_bytes)
-            .and_then(|bytes| bytes.checked_add(optional_output_storage_bytes))
-            .ok_or(NativeMaskPlayError::Pressure)?;
-        if managed_store_bytes > maximum_bytes {
-            return Err(NativeMaskPlayError::Pressure);
-        }
-        let session =
-            Session::new_with_optional_owned_outputs(scheduler, &boundaries, &optional, 32)
-                .map_err(|_| NativeMaskPlayError::Shape)?;
-        if session.optional_output_storage_bytes() != optional_output_storage_bytes {
+        let session = Session::new_with_preallocated_optional_outputs(
+            scheduler,
+            &boundaries,
+            &optional,
+            32,
+            optional_storage,
+        )
+        .map_err(|_| NativeMaskPlayError::Shape)?;
+        if session.optional_output_storage_bytes() != backing.optional_output_storage_bytes {
             return Err(NativeMaskPlayError::Pressure);
         }
         Ok(Self {
@@ -124,14 +119,14 @@ impl RetainedNativeMaskStorage {
             profile,
             sequence: 0,
             request_base: 0,
-            backing: NativeMaskBackingReceipt {
-                scheduler_inline_bytes,
-                value_storage_bytes,
-                optional_output_storage_bytes,
-                managed_store_bytes,
-            },
+            backing,
         })
     }
+    #[cfg(test)]
+    pub(super) fn backing_identity(&self) -> usize {
+        (self.session.kernel() as *const Scheduler) as usize
+    }
+
     pub fn backing(&self) -> NativeMaskBackingReceipt {
         self.backing
     }
