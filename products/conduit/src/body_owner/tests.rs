@@ -1097,3 +1097,6 @@ mod invitation_retirement;
 
 #[path = "tests/member_leave.rs"]
 mod member_leave;
+
+#[path = "tests/member_presentation.rs"]
+mod member_presentation;

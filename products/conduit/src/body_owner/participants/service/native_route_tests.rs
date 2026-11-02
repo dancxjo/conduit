@@ -237,15 +237,11 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         .clear();
     assert!(seal.validate_mask_host_offer(&wrong_offer).is_err());
 
-    let receipt = conduit_body::PortableAdmissionReceipt {
-        schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
-        credential: snapshot.credential.clone(),
-        host_advertisement: native_offer.clone(),
-        membership_admitted: true,
-        current_offers_available: false,
-        plan_created: false,
-        play_created: false,
-    };
+    let receipt = crate::durable_host::owner::MemberPresentationBasis::new(
+        snapshot.credential.clone(),
+        native_offer.clone(),
+    )
+    .unwrap();
     let expires = crate::durable_host::current_time_millis().unwrap() + 60_000;
     let selected = owner
         .seal_native_mask_route(&receipt, &face_line, &return_line, expires)
@@ -597,7 +593,7 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
 fn exercise_independent_component_selection(
     owner: &mut Owner,
     request: &conduit_face::OwnerFaceSnapshotRequest,
-    receipt: &conduit_body::PortableAdmissionReceipt,
+    receipt: &crate::durable_host::owner::MemberPresentationBasis,
     mut previous: conduit_face::MaskShow,
 ) {
     use conduit_face::{ComponentMaskLook as Look, TodoComponentRecipe as Recipe};

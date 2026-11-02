@@ -19,10 +19,10 @@ impl Grant {
         );
         if let Some(selection) = &self.spoken_selection {
             let (face, show, _) =
-                super::super::native_lines::offer_terminal(owner, &self.receipt, &binding);
+                super::super::native_lines::offer_terminal(owner, &self.member, &binding);
             return crate::durable_host_control::select_native_mask_route(
                 state_dir,
-                self.receipt.clone(),
+                self.member.clone(),
                 face,
                 show,
                 None,
@@ -33,18 +33,18 @@ impl Grant {
         let (face, show, interaction) = match self.mask {
             MaskSelection::Native => {
                 let (face, show) =
-                    super::super::native_lines::offer_pair(owner, &self.receipt, &binding);
+                    super::super::native_lines::offer_pair(owner, &self.member, &binding);
                 (face, show, None)
             }
             MaskSelection::Terminal => {
                 let (face, show, interaction) =
-                    super::super::native_lines::offer_terminal(owner, &self.receipt, &binding);
+                    super::super::native_lines::offer_terminal(owner, &self.member, &binding);
                 (face, show, Some(interaction))
             }
         };
         crate::durable_host_control::select_native_mask_route(
             state_dir,
-            self.receipt.clone(),
+            self.member.clone(),
             face,
             show,
             interaction,

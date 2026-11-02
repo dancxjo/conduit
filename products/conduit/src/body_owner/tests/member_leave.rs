@@ -6,7 +6,7 @@ use conduit_body::{
 };
 use std::path::{Path, PathBuf};
 
-fn owner_fixture() -> (Owner, PathBuf) {
+pub(super) fn owner_fixture() -> (Owner, PathBuf) {
     let root = std::env::temp_dir().join(installed::fresh_identity("owner-member-leave", "test"));
     std::fs::create_dir_all(&root).unwrap();
     installed::write_json_atomic(
@@ -38,6 +38,17 @@ fn owner_fixture() -> (Owner, PathBuf) {
     (owner, root)
 }
 fn admit(owner: &mut Owner, root: &Path, name: &str) -> MembershipCredential {
+    admit_with_key(owner, root, name).0
+}
+pub(super) fn admit_with_key(
+    owner: &mut Owner,
+    root: &Path,
+    name: &str,
+) -> (
+    MembershipCredential,
+    SpawnInvitationSecret,
+    conduit_core::HostAdvertisement,
+) {
     let invitation = owner.issue_invitation(root, 60, None).unwrap();
     let guest = StdHost::new_with_config(StdHostConfig {
         host_id: name.into(),
@@ -63,7 +74,11 @@ fn admit(owner: &mut Owner, root: &Path, name: &str) -> MembershipCredential {
         plan_created: false,
         play_created: false,
     };
-    owner.admit_invited(root, request, name).unwrap().credential
+    (
+        owner.admit_invited(root, request, name).unwrap().credential,
+        key,
+        advertisement,
+    )
 }
 #[test]
 fn member_leave_is_durable_exact_and_preserves_membership_keys_and_sibling() {

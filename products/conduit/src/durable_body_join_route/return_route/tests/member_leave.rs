@@ -3,7 +3,7 @@ use super::super::member_leave::{authorize_document, SCHEMA};
 use super::*;
 #[test]
 fn explicit_member_leave_requires_current_exact_grant_and_closed_deadline() {
-    let grant = Grant::issue(&receipt(), MaskSelection::Native).unwrap();
+    let grant = Grant::issue(&member(), MaskSelection::Native).unwrap();
     let document = serde_json::json!({"schema":SCHEMA,"token":grant.token,"request":request()});
     assert!(authorize_document(&grant, document.clone(), grant.expires_at_millis - 1).is_ok());
     assert!(authorize_document(&grant, document.clone(), grant.expires_at_millis).is_err());

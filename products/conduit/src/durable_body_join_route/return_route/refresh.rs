@@ -101,7 +101,7 @@ pub(super) fn serve(
     };
     let hosted = old.mask == MaskSelection::Terminal;
     let profile = conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
-        &old.receipt.host_advertisement,
+        &old.member.host_advertisement,
     );
     let maximum = if hosted {
         super::super::response_document::MAX_HOSTED_OWNER_DOCUMENT_BYTES

@@ -6,7 +6,7 @@ pub(super) fn serve_optional_face_snapshot(
     line: &mut conduit_std_host::secure_websocket::SecureWebSocketLine,
     listener: &SecureWebSocketListener,
     state_dir: &Path,
-    receipt: &PortableAdmissionReceipt,
+    member: &crate::durable_host::owner::MemberPresentationBasis,
 ) -> Result<Option<return_route::Grant>, String> {
     use std::io::ErrorKind;
     line.set_read_timeout(Some(Duration::from_secs(15)))
@@ -27,7 +27,7 @@ pub(super) fn serve_optional_face_snapshot(
     };
     let (mut request, return_requested, mask) =
         return_route::decode_face_request(&bytes[..length])?;
-    let credential = &receipt.credential;
+    let credential = &member.credential;
     if !request.has_exact_basis()
         || request.credential_id != credential.credential_id.as_str()
         || request.body_id != credential.body_id
@@ -60,7 +60,7 @@ pub(super) fn serve_optional_face_snapshot(
         && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { face, .. }
             if mask == return_route::MaskSelection::Terminal || crate::durable_host_control::has_native_return_route_intent(face))
     {
-        Some(return_route::Grant::issue(receipt, mask)?)
+        Some(return_route::Grant::issue(member, mask)?)
     } else {
         None
     };
@@ -88,7 +88,7 @@ pub(super) fn serve_optional_face_snapshot(
         line,
         &response,
         conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
-            &receipt.host_advertisement,
+            &member.host_advertisement,
         ),
     )?;
     if let Some(grant) = &grant {

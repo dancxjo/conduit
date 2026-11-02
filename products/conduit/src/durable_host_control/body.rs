@@ -13,6 +13,7 @@ use super::read_secret;
 use super::DurableHostRuntime;
 #[cfg(any(unix, test))]
 use super::{Request, Response, PROTOCOL};
+use crate::durable_host::owner::MemberPresentationBasis;
 use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
     PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
@@ -425,7 +426,7 @@ impl DurableHostRuntime {
         &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
-        receipt: &PortableAdmissionReceipt,
+        receipt: &MemberPresentationBasis,
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
@@ -654,7 +655,7 @@ pub(crate) fn face_snapshot(
 #[cfg(unix)]
 pub(crate) fn select_native_mask_route(
     state_dir: &Path,
-    receipt: PortableAdmissionReceipt,
+    receipt: MemberPresentationBasis,
     face_line: conduit_core::LineOffer,
     return_line: conduit_core::LineOffer,
     terminal_interaction_line: Option<conduit_core::LineOffer>,
@@ -709,7 +710,7 @@ pub(crate) fn acknowledge_native_mask_show(
 #[cfg(not(unix))]
 pub(crate) fn select_native_mask_route(
     _state_dir: &Path,
-    _receipt: PortableAdmissionReceipt,
+    _receipt: MemberPresentationBasis,
     _face_line: conduit_core::LineOffer,
     _return_line: conduit_core::LineOffer,
     _terminal_interaction_line: Option<conduit_core::LineOffer>,
@@ -1026,7 +1027,7 @@ mod tests;
 #[cfg(unix)]
 pub(crate) fn select_native_component_mask(
     state_dir: &Path,
-    receipt: PortableAdmissionReceipt,
+    receipt: MemberPresentationBasis,
     request: OwnerFaceSnapshotRequest,
     show: MaskShow,
     look: conduit_face::ComponentMaskLook,
@@ -1067,7 +1068,7 @@ pub(crate) fn select_native_component_mask(
 #[cfg(not(unix))]
 pub(crate) fn select_native_component_mask(
     _state_dir: &Path,
-    _receipt: PortableAdmissionReceipt,
+    _receipt: MemberPresentationBasis,
     _request: OwnerFaceSnapshotRequest,
     _show: MaskShow,
     _look: conduit_face::ComponentMaskLook,

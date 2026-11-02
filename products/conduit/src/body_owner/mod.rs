@@ -3,6 +3,8 @@ mod controller;
 #[cfg(test)]
 pub(crate) use controller::published_todo_test_fixture;
 mod image;
+mod member_presentation;
+pub(crate) use member_presentation::MemberPresentationBasis;
 mod native_observation;
 mod state;
 use conduit_body::ResidentPlot;

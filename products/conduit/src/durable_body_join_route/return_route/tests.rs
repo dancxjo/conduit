@@ -16,8 +16,8 @@ fn request() -> OwnerFaceSnapshotRequest {
 
 #[test]
 fn face_replacement_preserves_deadline_and_consumed_action_budget() {
-    let original = Grant::issue(&receipt(), MaskSelection::Native).unwrap();
-    let terminal = Grant::issue(&receipt(), MaskSelection::Terminal).unwrap();
+    let original = Grant::issue(&member(), MaskSelection::Native).unwrap();
+    let terminal = Grant::issue(&member(), MaskSelection::Terminal).unwrap();
     assert_eq!(
         terminal.replacement(2).unwrap().mask,
         MaskSelection::Terminal
@@ -40,10 +40,9 @@ fn face_replacement_preserves_deadline_and_consumed_action_budget() {
     assert!(current.replacement(1).is_err());
 }
 
-fn receipt() -> PortableAdmissionReceipt {
+fn member() -> MemberPresentationBasis {
     let request = request();
-    PortableAdmissionReceipt {
-        schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+    MemberPresentationBasis {
         credential: conduit_body::MembershipCredential {
             credential_id: serde_json::from_str("\"credential/guest\"").unwrap(),
             body_id: request.body_id,
@@ -64,10 +63,6 @@ fn receipt() -> PortableAdmissionReceipt {
             capabilities: vec![],
             planner_capabilities: vec![],
         },
-        membership_admitted: true,
-        current_offers_available: false,
-        plan_created: false,
-        play_created: false,
     }
 }
 
@@ -203,7 +198,7 @@ fn grant_is_bearer_bound_to_exact_credential_and_current_boot_claim() {
         remaining_millis: 60_000,
         maximum_actions: MAX_ACTIONS,
         expires_at_millis: 60_000,
-        receipt: receipt(),
+        member: member(),
         mask: MaskSelection::Native,
         spoken_selection: None,
     };

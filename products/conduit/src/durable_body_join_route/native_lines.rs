@@ -2,7 +2,7 @@
 //! The caller holds the accepted Face socket and a bounded return grant on
 //! the same pinned listener when these offers are made.
 
-use conduit_body::PortableAdmissionReceipt;
+use crate::durable_host::owner::MemberPresentationBasis;
 use conduit_core::{
     AuthorityGrantId, BaseImplementationId, BaseInstanceId, CredentialReferenceId,
     HostAdvertisement, LineAvailability, LineAvailabilitySign, LineContinuation, LineContract,
@@ -39,7 +39,7 @@ pub(super) fn binding_reference(
 
 pub(super) fn offer_pair(
     owner: &HostAdvertisement,
-    guest: &PortableAdmissionReceipt,
+    guest: &MemberPresentationBasis,
     binding_reference: &str,
 ) -> (LineOffer, LineOffer) {
     let credential = &guest.credential;
@@ -72,7 +72,7 @@ pub(super) fn offer_pair(
 /// The selected profile's receiver must support its complete admitted document.
 pub(super) fn offer_terminal(
     owner: &HostAdvertisement,
-    peer: &PortableAdmissionReceipt,
+    peer: &MemberPresentationBasis,
     binding_reference: &str,
 ) -> (LineOffer, LineOffer, LineOffer) {
     let (mut face, mut show) = offer_pair(owner, peer, binding_reference);
@@ -150,7 +150,7 @@ fn line(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_body::{MembershipCredential, SPAWN_ADMISSION_RECEIPT_SCHEMA};
+    use conduit_body::MembershipCredential;
     use conduit_core::{BootId, HostId, HostProfileId, OfferGeneration};
 
     fn host(id: &str) -> HostAdvertisement {
@@ -172,8 +172,7 @@ mod tests {
     fn one_pinned_carrier_has_distinct_directional_bindings() {
         let owner = host("host/owner");
         let guest = host("host/native");
-        let receipt = PortableAdmissionReceipt {
-            schema: SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+        let receipt = MemberPresentationBasis {
             credential: MembershipCredential {
                 credential_id: serde_json::from_str("\"credential/native\"").unwrap(),
                 body_id: serde_json::from_str("\"body/one\"").unwrap(),
@@ -183,10 +182,6 @@ mod tests {
                 issued_at_millis: 1,
             },
             host_advertisement: guest.clone(),
-            membership_admitted: true,
-            current_offers_available: false,
-            plan_created: false,
-            play_created: false,
         };
         let (face, returned) = offer_pair(&owner, &receipt, "pinned/grant/0");
         assert!(face.validate_sign_identity());

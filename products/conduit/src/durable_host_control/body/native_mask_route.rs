@@ -4,7 +4,7 @@ use super::*;
 impl DurableHostRuntime {
     pub(in crate::durable_host_control) fn owned_body_native_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        receipt: &MemberPresentationBasis,
         face_line: &conduit_core::LineOffer,
         return_line: &conduit_core::LineOffer,
         terminal_interaction_line: Option<&conduit_core::LineOffer>,

@@ -143,7 +143,10 @@ fn serve_existing_invitation_route(
                     },
                 )?;
                 face_snapshot::serve_optional_face_snapshot(
-                    &mut line, listener, state_dir, &receipt,
+                    &mut line,
+                    listener,
+                    state_dir,
+                    &crate::durable_host::owner::MemberPresentationBasis::from_admission(&receipt)?,
                 )
             }
             Err(error) => {

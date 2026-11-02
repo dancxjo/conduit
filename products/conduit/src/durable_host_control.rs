@@ -1,8 +1,8 @@
 //! Authenticated local control plane into the durable installed host owner.
 
+use crate::durable_host::owner::MemberPresentationBasis;
 use conduit_body::{
-    BodyBiographyEvidence, MembershipCredential, PortableAdmissionReceipt,
-    PortableSpawnAdmissionRequest, RendezvousCandidate,
+    BodyBiographyEvidence, MembershipCredential, PortableSpawnAdmissionRequest, RendezvousCandidate,
 };
 use conduit_body::{
     BodyConversationContext, HostOfferProjection, OfferDisclosureRequest, SpawnInvitationClaim,
@@ -1079,7 +1079,7 @@ enum Request {
     BodyNativeMaskRoute {
         protocol: u16,
         token: Vec<u8>,
-        receipt: Box<PortableAdmissionReceipt>,
+        receipt: Box<MemberPresentationBasis>,
         face_line: Box<LineOffer>,
         return_line: Box<LineOffer>,
         #[serde(default)]
@@ -1093,7 +1093,7 @@ enum Request {
     BodyNativeComponentMask {
         protocol: u16,
         token: Vec<u8>,
-        receipt: Box<PortableAdmissionReceipt>,
+        receipt: Box<MemberPresentationBasis>,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
         look: conduit_face::ComponentMaskLook,

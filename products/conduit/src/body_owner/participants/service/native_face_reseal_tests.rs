@@ -152,6 +152,8 @@ fn browser_first_read_only_native_join_selects_and_acknowledges_but_refuses_acti
             "host/native-after-browser",
         )
         .unwrap();
+    let receipt =
+        crate::durable_host::owner::MemberPresentationBasis::from_admission(&receipt).unwrap();
     let owner_offer = owner.host.advertisement().clone();
     let limits = conduit_core::LinkLimits {
         maximum_in_flight_items: 1,

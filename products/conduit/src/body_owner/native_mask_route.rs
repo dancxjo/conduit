@@ -2,15 +2,14 @@
 //! native Part and its current offer. The caller supplies real directional Lines;
 //! membership and matching identifiers cannot create them.
 
-use super::Owner;
-use conduit_body::{
-    BodyLifecycleSession, MembershipCredential, PortableAdmissionReceipt,
-    SPAWN_ADMISSION_RECEIPT_SCHEMA,
-};
+use super::{super::MemberPresentationBasis, Owner};
+use conduit_body::{BodyLifecycleSession, MembershipCredential};
 use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
 
+#[path = "native_mask_route/member_basis.rs"]
+mod member_basis;
 #[path = "native_mask_route/member_leave.rs"]
 mod member_leave;
 #[path = "native_mask_route/profile.rs"]
@@ -98,7 +97,7 @@ impl NativeMaskRoute {
 impl Owner {
     pub(crate) fn seal_native_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
@@ -106,13 +105,13 @@ impl Owner {
         let selection = self
             .pending_native_mask
             .as_ref()
-            .filter(|route| route.credential == receipt.credential)
+            .filter(|route| route.credential == member.credential)
             .and_then(|route| route.component_selection);
         let previous_route = self.pending_native_mask.clone();
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 face_line,
                 return_line,
                 expires_at_millis,
@@ -131,7 +130,7 @@ impl Owner {
 
     pub(crate) fn seal_remote_terminal_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         interaction_line: &LineOffer,
@@ -144,7 +143,7 @@ impl Owner {
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 face_line,
                 return_line,
                 expires_at_millis,
@@ -163,7 +162,7 @@ impl Owner {
 
     pub(crate) fn seal_remote_spoken_mask_route(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
@@ -173,7 +172,7 @@ impl Owner {
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 face_line,
                 return_line,
                 expires_at_millis,
@@ -192,7 +191,7 @@ impl Owner {
 
     fn seal_native_mask_route_with_selection(
         &mut self,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
@@ -206,23 +205,9 @@ impl Owner {
         if super::super::super::current_time_millis()? >= expires_at_millis {
             return Err("native-mask-return-expired".into());
         }
-        let credential = &receipt.credential;
-        let native_offer = &receipt.host_advertisement;
-        let current = self.session.evidence().membership.parts.iter().any(|part| {
-            part.part_id == credential.part_id
-                && part.current.as_ref().is_some_and(|host| {
-                    host.host_id == native_offer.host_id
-                        && host.boot_id == native_offer.boot_id
-                        && host.offer_generation == native_offer.offer_generation
-                })
-        });
-        let admitted = self.admissions.as_ref().is_some_and(|manager| {
-            manager
-                .receipts
-                .iter()
-                .rev()
-                .any(|admitted| admitted.credential == *credential)
-        });
+        let credential = &member.credential;
+        let native_offer = &member.host_advertisement;
+        self.require_current_native_member(member)?;
         if interaction_line.is_some() || spoken.is_some() {
             let digest = super::super::super::digest(
                 &serde_json::to_vec(native_offer).map_err(|error| error.to_string())?,
@@ -235,20 +220,6 @@ impl Owner {
             {
                 return Err("remote-terminal-offer-not-observed-at-admission".into());
             }
-        }
-        let retained_offer_mismatch = self.pending_native_mask.as_ref().is_some_and(|route| {
-            route.credential == *credential && route.host_offer != *native_offer
-        });
-        if !current
-            || !admitted
-            || retained_offer_mismatch
-            || receipt.schema != SPAWN_ADMISSION_RECEIPT_SCHEMA
-            || !receipt.membership_admitted
-            || receipt.plan_created
-            || receipt.play_created
-            || credential.body_id != self.session.evidence().body_id
-        {
-            return Err("native-mask-part-unavailable".into());
         }
         // This Part's admission changed the owner Face. Keep the already
         // attached browser route in the same new-Face Plan only after its
@@ -392,7 +363,7 @@ impl Owner {
         &mut self,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
-        receipt: &PortableAdmissionReceipt,
+        member: &MemberPresentationBasis,
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
@@ -401,15 +372,15 @@ impl Owner {
             .pending_native_mask
             .clone()
             .ok_or("native-mask-route-not-selected")?;
-        if previous_route.credential != receipt.credential
-            || previous_route.host_offer != receipt.host_advertisement
+        if previous_route.credential != member.credential
+            || previous_route.host_offer != member.host_advertisement
         {
             return Err("native-mask-route-credential-mismatch".into());
         }
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
             .seal_native_mask_route_with_selection(
-                receipt,
+                member,
                 &previous_route.face_line,
                 &previous_route.return_line,
                 previous_route.expires_at_millis,

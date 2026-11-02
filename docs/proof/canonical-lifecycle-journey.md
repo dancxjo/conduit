@@ -797,3 +797,21 @@ evidence that a still-running Host or Boot has died. Unified sensing/history,
 programmable graphs and the other Hosts remain later journey requirements.
 Compact evidence is
 `proof/evidence/creche/graphical-seed-startup-settlement-20261102.json`.
+
+### Member presentation without a fabricated first-admission receipt
+
+The next source checkpoint separates the native presentation claim from the
+portable first-admission receipt. A descriptive member basis carries the exact
+credential and Host advertisement; it grants no possession or execution
+authority. The owner rechecks current admitted Part, Host, Boot, offer generation
+and its latest full credential before the existing observed-offer and Line
+checks. Initial admission converts its real receipt once. Returning and ambient
+members no longer need fabricated first-admission flags.
+
+A real signed Core return test proves that even a same-Boot, same-offer return
+invalidates the old presentation credential. Malformed or substituted scope is
+refused without membership mutation. This is source-level prerequisite proof,
+not deployed reconnect proof: fresh owner encounters, durable returned-credential
+replacement and installed startup return remain unfinished. Threebee's installed
+service was independently rechecked active with zero restarts; it was not
+restarted or updated with this incomplete return path.
