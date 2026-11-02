@@ -2285,3 +2285,5 @@ pub mod worker_text_result;
 
 mod creche_host;
 pub mod hosted_creche;
+
+mod image_initialization;
