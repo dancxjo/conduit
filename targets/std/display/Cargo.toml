@@ -4,13 +4,15 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
-[workspace]
+[features]
+default = []
+sdl = ["dep:conduit-face", "dep:conduit-human", "dep:conduitos", "dep:sdl2"]
 
 [dependencies]
-conduit-human = { path = "../../../semantics/human" }
-conduit-face = { path = "../../../semantics/face" }
-conduitos = { path = "../../conduitos", default-features = false }
-sdl2 = { version = "=0.38.0", default-features = false }
+conduit-human = { path = "../../../semantics/human", optional = true }
+conduit-face = { path = "../../../semantics/face", optional = true }
+conduitos = { path = "../../conduitos", default-features = false, optional = true }
+sdl2 = { version = "=0.38.0", default-features = false, optional = true }
 
 [dev-dependencies]
 conduit-core = { path = "../../../architecture/core" }

@@ -1,5 +1,8 @@
 //! Linux scanout adapter below the ordinary Face graphics Show. This module
 //! owns no Body, observation, Mask policy, scheduler, or recording authority.
+// SDL is an explicitly selected hosted adapter, never a default Host dependency.
+#![cfg_attr(not(feature = "sdl"), no_std)]
+#![cfg(feature = "sdl")]
 mod initialized;
 mod input;
 pub use input::{NativeInput, NativeInputRefusal};
