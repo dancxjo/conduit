@@ -483,3 +483,6 @@ use validation::{
     hex, validate_admitted_line, validate_hosts, validate_line, validate_mask_basis,
     validate_workload_basis,
 };
+
+#[cfg(test)]
+mod producer_basis_tests;
