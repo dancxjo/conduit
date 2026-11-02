@@ -296,6 +296,7 @@ impl BoundReadOnlyMask {
             self.compositor
                 .compose_frame(output)
                 .map_err(|error| format!("native Mask compose: {error:?}"))?;
+            validate_encounter(encounter, route, &host.advertisement, face)?;
             output
                 .commit_frame()
                 .map_err(|error| format!("native Mask physical commit: {error:?}"))?;
