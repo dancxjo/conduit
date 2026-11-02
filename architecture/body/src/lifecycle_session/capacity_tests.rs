@@ -209,3 +209,20 @@ fn restart_reserves_membership_and_failed_wake_together() {
         crate::WakeLifecycle::Failed
     ));
 }
+
+#[test]
+fn stale_termination_refuses_without_compacting_or_creating_archive_debt() {
+    let (mut session, partition, host, boot) = fixture();
+    session.propose(vec![partition], &host, &boot).unwrap();
+    fill_records(&mut session, crate::MAX_BODY_BIOGRAPHY_RECORDS - 1);
+    let before = session.evidence.clone();
+    let realization = session.realization.clone();
+    let stale = BodyPlayIdentity::bind(&session.realization().unwrap().plan, 99);
+    assert_eq!(
+        session.lull(&host, &boot, Some(&stale)),
+        Err(BodyLifecycleSessionError::StalePlay)
+    );
+    assert_eq!(session.evidence, before);
+    assert_eq!(session.realization, realization);
+    assert!(session.pending_archives.is_empty());
+}

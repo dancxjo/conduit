@@ -76,6 +76,9 @@ impl BodyLifecycleSession {
             || evidence.records.len().saturating_add(membership_changes)
                 > crate::MAX_BODY_BIOGRAPHY_RECORDS
         {
+            if pending_archives.len() >= crate::MAX_BODY_BIOGRAPHY_WAKES {
+                return Err(BodyLifecycleSessionError::ArchivePersistenceRequired);
+            }
             let segment = evidence
                 .seal_membership_history()
                 .map_err(BodyLifecycleSessionError::Biography)?
