@@ -1207,3 +1207,26 @@ that accepted commit without changing its already-present shared custody tree.
 The next delivery slice is an ordinary explicit member-return CLI with a real
 protocol caller, rather than an uncalled signing helper or rendering dependency.
 Threebee remains on the earlier physical checkpoint with historical pixels.
+
+
+### Affine provider resource custody (2 November 2026)
+
+`b7ec1c2ba8f3c34c5003701d9e1b6a168472b02f` adds the missing hosted
+provider reservation seam. One opaque token holds up to sixteen exact
+simple-unit pool bindings from the current initialized Base. Existing ledger
+pool accounting charges the whole set atomically, preserving each resource
+class. A dropped token retains charges. Explicit release is a trusted unsafe
+provider integration boundary: the caller must first close actual effects and
+join workers. Failure returns the original token. A fresh private ledger epoch
+prevents a stale token from releasing a replacement with identical serialized
+Host/Boot/offer identity.
+
+All twenty owning ledger tests pass with strict warnings, including four new
+provider tests. They cover occupied capacity, late shortage, wrong class and
+incarnation, dropped custody, stale-ledger release and successful/refused
+ordinary Plan staging while the provider reservation remains held. This uses
+synthetic provider readiness, not a real listener or accepted socket. No IMAGE
+memory ceiling, TLS allocator containment, automatic continuation or physical
+display result follows from this accounting API. The initialized listener and
+its actual retirement path must consume it next. Evidence is retained at
+`proof/evidence/creche/provider-resource-custody-20261102.json`.
