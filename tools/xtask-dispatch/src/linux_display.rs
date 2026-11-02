@@ -43,6 +43,8 @@ pub(super) fn run() -> Result<(), String> {
                 "--locked",
                 "--manifest-path",
                 "targets/std/display/Cargo.toml",
+                "--features",
+                "sdl",
                 "--all-targets",
             ])
             .env("LIBRARY_PATH", &search);

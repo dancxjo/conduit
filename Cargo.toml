@@ -104,6 +104,7 @@ members = [
 	"targets/rp2040/make",
 	"targets/rp2040/network-realization",
 	"targets/std",
+	"targets/std/display",
 	"targets/std/resource-snapshot",
 	"targets/std/make",
 	"targets/std/offers",

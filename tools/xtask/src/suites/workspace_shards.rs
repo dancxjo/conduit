@@ -34,6 +34,7 @@ package_test_shard!(
         "conduit-rp2040-flash-layout",
         "conduit-emergency-keyword-spotter",
         "conduit-linear-framebuffer-make",
+        "conduit-linux-display",
         "conduit-rp2040-pio-audio-extension",
         "conduit-workspace-make",
         "conduit-bluetooth",
