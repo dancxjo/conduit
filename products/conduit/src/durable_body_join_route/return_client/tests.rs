@@ -138,8 +138,7 @@ fn run_return(fresh_boot: bool) {
             encounter.candidate.maximum_attempts = 1;
             assert!(return_over_tls(&state, &prior, &actual, &encounter).is_err());
             encounter.candidate = candidate.clone();
-            let returned = return_over_tls(&state, &prior, &actual, &encounter).unwrap();
-            returned
+            return_over_tls(&state, &prior, &actual, &encounter).unwrap()
         });
         // TLS pin refusal occurs before any owner challenge or completion.
         assert!(listener

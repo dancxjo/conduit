@@ -42,6 +42,8 @@ pub(crate) enum MemberReturnFrame {
 }
 pub(crate) const MEMBER_RETURN_SCHEMA: &str = "conduit.body/member-return@1";
 
+// Keep the selected member and explicit TLS authorization inputs at this CLI boundary.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn serve_body_member_route(
     state: &Path,
     credential_path: &Path,

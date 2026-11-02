@@ -1021,6 +1021,12 @@ fn make_executable(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) use routed_join::{
+    return_installed_member, return_on_actual_host, serve_body_member_route, MemberEncounter,
+};
+
+pub(crate) use membership::leave_member_from_file;
+
 #[cfg(test)]
 mod tests {
     use super::invitation::{PortableInvitation, INVITATION_SCHEMA};
@@ -1598,9 +1604,3 @@ mod tests {
         fs::remove_dir_all(joining_state.parent().unwrap()).unwrap();
     }
 }
-
-pub(crate) use routed_join::{
-    return_installed_member, return_on_actual_host, serve_body_member_route, MemberEncounter,
-};
-
-pub(crate) use membership::leave_member_from_file;
