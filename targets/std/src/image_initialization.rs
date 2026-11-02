@@ -11,6 +11,24 @@ use std::{collections::BTreeSet, io::Write};
 const MAXIMUM_IMAGE_BYTES: usize = 64 * 1024;
 const MAXIMUM_TIMER_POOLS: usize = 16;
 
+#[derive(Default)]
+struct InitialBases {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
+}
+impl InitialBases {
+    fn has_scanout(&self) -> bool {
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        {
+            self.scanout.is_some()
+        }
+        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
+        {
+            false
+        }
+    }
+}
+
 impl StdHost {
     /// Initialize the built-in hosted monotonic timer, retaining its actual
     /// registry and creating the final resource ledger once. No physical file,
@@ -19,6 +37,74 @@ impl StdHost {
         config: StdHostConfig,
         image: &HostImage,
         catalog: &MakeCatalog,
+    ) -> Result<Self, String> {
+        Self::from_selected_initial_bases(config, image, catalog, InitialBases::default())
+    }
+
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub fn from_selected_timer_and_scanout_image(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        parameters: conduit_linear_framebuffer_make::CheckedScanoutInitialization,
+        initialized: conduit_linux_display::InitializedDisplay,
+    ) -> Result<Self, String> {
+        conduit_host_make::verify_configuration_image(checked, image, catalog)?;
+        if checked.configuration_id() != parameters.configuration_id() {
+            return Err("selected scanout parameters belong to another checked Source".into());
+        }
+        let scanout = crate::selected_scanout::SelectedScanoutBase::prepare(
+            &config,
+            image,
+            parameters,
+            initialized,
+        )?;
+        Self::from_selected_initial_bases(
+            config,
+            image,
+            catalog,
+            InitialBases {
+                scanout: Some(scanout),
+            },
+        )
+    }
+
+    // Explicit CPU diagnostic only. Production entry never accepts dummy SDL.
+    #[cfg(all(test, target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn from_selected_scanout_diagnostic(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        checked: &conduit_host_make::CheckedHostConfiguration,
+        parameters: conduit_linear_framebuffer_make::CheckedScanoutInitialization,
+        initialized: conduit_linux_display::InitializedDisplay,
+    ) -> Result<Self, String> {
+        conduit_host_make::verify_configuration_image(checked, image, catalog)?;
+        if checked.configuration_id() != parameters.configuration_id() {
+            return Err("selected scanout parameters belong to another checked Source".into());
+        }
+        let scanout = crate::selected_scanout::SelectedScanoutBase::prepare_diagnostic(
+            &config,
+            image,
+            parameters,
+            initialized,
+        )?;
+        Self::from_selected_initial_bases(
+            config,
+            image,
+            catalog,
+            InitialBases {
+                scanout: Some(scanout),
+            },
+        )
+    }
+
+    fn from_selected_initial_bases(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        initial: InitialBases,
     ) -> Result<Self, String> {
         let manifest = &image.manifest;
         macro_rules! same {
@@ -62,15 +148,18 @@ impl StdHost {
             .collect::<Vec<_>>();
         if timer.len() != 1
             || manifest.base_selections.iter().any(|base| {
-                !matches!(
-                    (base.kind.as_str(), base.driver.as_str()),
-                    ("timer/monotonic", "hosted/monotonic-clock@1")
-                        | (
-                            "serial/text",
-                            "hosted/serial@1" | "raspberry-pi-os/serial@1"
-                        )
-                        | ("storage/protected-file", "hosted/protected-file@1")
-                )
+                !(initial.has_scanout()
+                    && base.kind == "display/scanout"
+                    && base.driver == "display/linear-framebuffer@1")
+                    && !matches!(
+                        (base.kind.as_str(), base.driver.as_str()),
+                        ("timer/monotonic", "hosted/monotonic-clock@1")
+                            | (
+                                "serial/text",
+                                "hosted/serial@1" | "raspberry-pi-os/serial@1"
+                            )
+                            | ("storage/protected-file", "hosted/protected-file@1")
+                    )
             })
         {
             return Err(
@@ -78,13 +167,18 @@ impl StdHost {
             );
         }
         let budgets = &manifest.resource_budgets;
-        if budgets.is_empty() || budgets.len() > MAXIMUM_TIMER_POOLS {
+        if budgets.is_empty()
+            || budgets.len() > MAXIMUM_TIMER_POOLS + usize::from(initial.has_scanout())
+        {
             return Err("selected timer requires 1..16 explicit timer pools".into());
         }
         let mut ids = BTreeSet::new();
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
+            if initial.has_scanout() && budget.class == "face/surface" {
+                continue;
+            }
             if budget.class != TIMER_RESOURCE_CLASS
                 || budget.slots == 0
                 || budget.bytes == 0
@@ -102,7 +196,7 @@ impl StdHost {
                 budget.slots,
             ));
         }
-        if slots > manifest.bounds.timer_slots {
+        if slots == 0 || slots > manifest.bounds.timer_slots {
             return Err("aggregate selected timer pools exceed IMAGE timer_slots".into());
         }
         // std::time::Instant is this concrete hosted monotonic mechanism. It
@@ -128,6 +222,24 @@ impl StdHost {
         registry
             .register(entry.clone())
             .map_err(|error| format!("selected timer registry: {error:?}"))?;
+        #[allow(unused_mut)]
+        let mut candidates = vec![entry.clone()];
+        #[allow(unused_mut)]
+        let mut ready_resource_classes = BTreeSet::from([TIMER_RESOURCE_CLASS.into()]);
+        #[allow(unused_mut)]
+        let mut initialized_base_kinds = BTreeSet::from(["timer/monotonic".into()]);
+        #[allow(unused_mut)]
+        let mut initialized_driver_kinds = BTreeSet::from(["hosted/monotonic-clock@1".into()]);
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        if let Some(scanout) = &initial.scanout {
+            registry
+                .register(scanout.entry().clone())
+                .map_err(|error| format!("selected scanout registry: {error:?}"))?;
+            candidates.push(scanout.entry().clone());
+            ready_resource_classes.insert("face/surface".into());
+            initialized_base_kinds.insert("display/scanout".into());
+            initialized_driver_kinds.insert("display/linear-framebuffer@1".into());
+        }
         let mut bytes = ImageBytes(Vec::with_capacity(MAXIMUM_IMAGE_BYTES));
         serde_json::to_writer(&mut bytes, image)
             .map_err(|error| format!("selected IMAGE preparation: {error}"))?;
@@ -147,13 +259,13 @@ impl StdHost {
                 )
                 .into(),
                 host_profile: manifest.profile_id.as_str().into(),
-                candidate_bases: vec![entry],
+                candidate_bases: candidates,
                 candidate_capabilities: vec![],
                 planner_capabilities: vec![],
                 facts: RuntimeFacts {
-                    ready_resource_classes: BTreeSet::from([TIMER_RESOURCE_CLASS.into()]),
-                    initialized_base_kinds: BTreeSet::from(["timer/monotonic".into()]),
-                    initialized_driver_kinds: BTreeSet::from(["hosted/monotonic-clock@1".into()]),
+                    ready_resource_classes,
+                    initialized_base_kinds,
+                    initialized_driver_kinds,
                     available_facilities: BTreeSet::new(),
                     authority_ready: false,
                 },
@@ -169,6 +281,10 @@ impl StdHost {
             );
         }
         host.base_registry = registry;
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        {
+            host.selected_scanout = initial.scanout;
+        }
         host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
         Ok(host)
     }

@@ -280,7 +280,7 @@ fn next_generation(
         .map(OfferGeneration)
         .ok_or(DisplayAttachmentRefusal::GenerationExhausted)
 }
-fn descriptor_matches(base: &BaseProviderAdvertisement, entry: &BaseProviderEntry) -> bool {
+pub(crate) fn descriptor_matches(base: &BaseProviderAdvertisement, entry: &BaseProviderEntry) -> bool {
     base.base_id == entry.base_id
         && base.provider_instance_id == entry.provider_instance_id
         && base.provider_generation == entry.provider_generation

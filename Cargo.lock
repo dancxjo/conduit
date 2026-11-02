@@ -2645,6 +2645,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-language",
  "conduit-linux-display",
+ "conduit-linear-framebuffer-make",
  "conduit-linux-snapshot-store",
  "conduit-midi",
  "conduit-net",

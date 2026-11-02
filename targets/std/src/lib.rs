@@ -1,6 +1,8 @@
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod hosted_display;
 mod selected_native_source;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod selected_scanout;
 use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
     PlanFragment, PlanId,
@@ -604,6 +606,8 @@ struct TodoCheckpointResidenceRoot {
 pub struct StdHost {
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     native_display: Option<hosted_display::ReadyShowBase>,
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    selected_scanout: Option<selected_scanout::SelectedScanoutBase>,
     advertisement: HostAdvertisement,
     #[cfg(unix)]
     terminal_attachment: Option<std::os::unix::net::UnixStream>,
@@ -985,6 +989,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1062,6 +1068,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1115,6 +1123,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1167,6 +1177,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: Some(adapter),
             model_work: None,
             calendar: None,
@@ -1219,6 +1231,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: Some(adapter),
             calendar: None,
@@ -1271,6 +1285,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: Some(adapter),
@@ -1308,6 +1324,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1369,6 +1387,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1425,6 +1445,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1470,6 +1492,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
@@ -1528,6 +1552,8 @@ impl StdHost {
             native_source: None,
             #[cfg(all(target_os = "linux", feature = "linux-display"))]
             native_display: None,
+            #[cfg(all(target_os = "linux", feature = "linux-display"))]
+            selected_scanout: None,
             vector_search: None,
             model_work: None,
             calendar: None,
