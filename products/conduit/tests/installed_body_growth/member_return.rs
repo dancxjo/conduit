@@ -138,7 +138,9 @@ fn explicit_member_return_uses_live_service_boot_and_preserves_body_and_part() {
     let status = product(&["body", "status", "--state-dir", path(&joining), "--json"]);
     assert_success(&status, "inspect returned member");
     let status: Value = serde_json::from_slice(&status.stdout).unwrap();
-    assert_eq!(status["membership_admitted"], true);
+    assert_eq!(status["membership"], "admitted");
+    assert_eq!(status["body_id"], prior["body_id"]);
+    assert_eq!(status["plan_created"], false);
     assert_eq!(status["play_created"], false);
     drop(route);
     fs::remove_dir_all(root).unwrap();
