@@ -1,5 +1,7 @@
 mod initialization;
 pub use initialization::CheckedScanoutInitialization;
+mod native_mask_initialization;
+pub use native_mask_initialization::CheckedNativeMaskInitialization;
 
 use conduit_host_make::{
     HostMakePackage, ImplementationOffer, MakeContribution, MakeExtension,
@@ -27,6 +29,8 @@ fn package_catalog() -> PackageCatalogContribution {
                     PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                     PrerequisiteNode::Facility("compositor/native@1".into()),
                     PrerequisiteNode::Resource("face/surface".into()),
+                    PrerequisiteNode::Resource(conduit_face::SHOW_RESOURCE_CLASS.into()),
+                    PrerequisiteNode::Resource(conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS.into()),
                     PrerequisiteNode::Base("display/scanout".into()),
                 ],
             },

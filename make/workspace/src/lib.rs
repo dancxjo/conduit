@@ -7,8 +7,10 @@ use conduit_host_make::{MakeCatalog, MakePackageSet};
 use conduit_host_orange_pi::OrangePiMakePackage;
 use conduit_host_raspberry_pi::RaspberryPiMakePackage;
 use conduit_host_rp2040::Rp2040MakePackage;
-pub use conduit_linear_framebuffer_make::CheckedScanoutInitialization;
 use conduit_linear_framebuffer_make::LinearFramebufferMakeExtension;
+pub use conduit_linear_framebuffer_make::{
+    CheckedNativeMaskInitialization, CheckedScanoutInitialization,
+};
 
 mod environment;
 pub use environment::*;
