@@ -1,6 +1,8 @@
 //! Runtime possession for the discovered surface carried by the native Mask.
 
 use alloc::format;
+
+mod retained_backing;
 use conduit_core::{
     ActivePlayId, BaseCapabilityAuthority, BaseCapabilityScope, BaseCapabilityTable,
     BaseOperationClaim, BaseOperationLease, CapabilityEnvelopeId, CapabilityIssueRequest,
