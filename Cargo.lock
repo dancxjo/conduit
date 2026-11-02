@@ -1133,7 +1133,7 @@ dependencies = [
  "rand_distr",
  "serde",
  "smallvec",
- "spin 0.9.9",
+ "spin 0.12.3",
  "thiserror 2.0.20",
  "uuid",
 ]
@@ -3527,7 +3527,7 @@ dependencies = [
  "rustc_apfloat",
  "serde",
  "smallvec",
- "spin 0.9.9",
+ "spin 0.12.3",
  "thiserror 2.0.20",
  "variadics_please",
 ]
