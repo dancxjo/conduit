@@ -20,6 +20,8 @@ pub const MAX_MANIFESTATION_SIGNS: usize = 3;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ManifestationId(String);
 
+mod retained_backing;
+
 impl ManifestationId {
     pub fn as_str(&self) -> &str {
         &self.0

@@ -3,6 +3,13 @@ use crate::*;
 use alloc::vec::Vec;
 use core::mem::size_of;
 
+impl FaceContentId {
+    /// Owned String payload only; excludes the inline identity wrapper.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
+}
+
 #[derive(Default)]
 struct Bytes(usize);
 impl Bytes {

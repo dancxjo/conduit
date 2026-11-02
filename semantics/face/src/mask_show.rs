@@ -17,6 +17,11 @@ impl MaskShowId {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// Owned String payload only; excludes the inline identity wrapper.
+    pub fn retained_backing_bytes(&self) -> usize {
+        self.0.capacity()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
