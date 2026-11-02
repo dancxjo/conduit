@@ -405,4 +405,6 @@ mod member_return;
 pub(crate) use member_return::serve_body_member_route;
 #[path = "durable_body_join_route/return_client.rs"]
 mod return_client;
+pub(crate) use member_return::MemberEncounter;
 pub(crate) use return_client::return_installed_member;
+pub(crate) use return_client::return_on_actual_host;

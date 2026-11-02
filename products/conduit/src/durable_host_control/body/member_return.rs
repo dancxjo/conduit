@@ -82,3 +82,68 @@ pub(crate) fn complete_member_return(
 ) -> Result<MembershipCredential, String> {
     Err("member return requires local owner control".into())
 }
+
+impl DurableHostRuntime {
+    pub(in crate::durable_host_control) fn return_member(
+        &mut self,
+        encounter: crate::durable_host::routed_join::MemberEncounter,
+    ) -> Result<MembershipCredential, String> {
+        let HostSource::Bare(host) = &self.host else {
+            return Err("member return requires a quiescent non-owner Host".into());
+        };
+        if host.is_playing()
+            || self.remote_fragment.is_some()
+            || self.pending_worker_text.is_some()
+            || self.pool_member.is_some()
+            || self.speech_worker.is_some()
+            || self.owner_spoken_worker.is_some()
+            || self.spoken_template_session.is_some()
+            || self.selected_speech_equipment.is_some()
+        {
+            return Err(
+                "member return refused while assigned work or physical custody is active".into(),
+            );
+        }
+        #[cfg(unix)]
+        if self.terminal_route.is_some() {
+            return Err("member return refused while a terminal carrier is attached".into());
+        }
+        let state = self
+            .birth_root
+            .as_deref()
+            .ok_or("member return requires installed service custody")?;
+        crate::durable_host::routed_join::return_on_actual_host(
+            state,
+            host.advertisement(),
+            &encounter,
+        )
+    }
+}
+#[cfg(unix)]
+pub(crate) fn return_member(
+    state: &Path,
+    encounter: crate::durable_host::routed_join::MemberEncounter,
+) -> Result<MembershipCredential, String> {
+    match call(
+        state,
+        Request::BodyReturn {
+            protocol: PROTOCOL,
+            token: token(state)?,
+            encounter: Box::new(encounter),
+        },
+    )? {
+        Response::BodyMemberReturned {
+            protocol: PROTOCOL,
+            credential,
+        } => Ok(credential),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("wrong member return completion response".into()),
+    }
+}
+#[cfg(not(unix))]
+pub(crate) fn return_member(
+    _: &Path,
+    _: crate::durable_host::routed_join::MemberEncounter,
+) -> Result<MembershipCredential, String> {
+    Err("member return requires authenticated local owner control".into())
+}

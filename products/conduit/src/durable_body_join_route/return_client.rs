@@ -14,19 +14,27 @@ pub(crate) fn return_installed_member(
     if !authorize {
         return Err("returning a member requires --authorize-return".into());
     }
-    let _ownership = super::super::owner_lock::body(state)?;
-    let installation = super::super::read_installation(&state.join("installation.json"))?;
-    let prior = super::super::membership::load_joined_credential(state, &installation)?;
-    let actual = crate::durable_host_control::current(state)?.advertisement;
     let encounter: MemberEncounter = serde_json::from_slice(&bounded_read(descriptor, 16 * 1024)?)
         .map_err(|_| "invalid bounded member encounter")?;
-    let returned = return_over_tls(state, &prior, &actual, &encounter)?;
-    super::super::membership::retain_returned_membership(state, &prior, &returned, &actual)?;
+    let returned = crate::durable_host_control::return_member(state, encounter)?;
     println!(
         "{}",
         serde_json::to_string(&returned).map_err(|e| e.to_string())?
     );
     Ok(())
+}
+
+/// Called by the authenticated actor while its installed service locks are held.
+pub(crate) fn return_on_actual_host(
+    state: &Path,
+    actual: &HostAdvertisement,
+    encounter: &MemberEncounter,
+) -> Result<MembershipCredential, String> {
+    let installation = super::super::read_installation(&state.join("installation.json"))?;
+    let prior = super::super::membership::load_joined_credential(state, &installation)?;
+    let returned = return_over_tls(state, &prior, actual, encounter)?;
+    super::super::membership::retain_returned_membership(state, &prior, &returned, actual)?;
+    Ok(returned)
 }
 
 fn return_over_tls(

@@ -126,7 +126,7 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
-pub(crate) use body::{begin_member_return, complete_member_return, leave_member};
+pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -1035,6 +1035,11 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
+    BodyReturn {
+        protocol: u16,
+        token: Vec<u8>,
+        encounter: Box<crate::durable_host::routed_join::MemberEncounter>,
+    },
     BodyMemberReturnBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1908,6 +1913,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
@@ -2192,6 +2198,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|biography| Response::BodyBrowserLeft {
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyReturn {
+            protocol,
+            encounter,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .return_member(*encounter)
+            .map(|credential| Response::BodyMemberReturned {
+                protocol: PROTOCOL,
+                credential,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberReturnBegin {
