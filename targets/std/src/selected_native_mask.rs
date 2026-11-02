@@ -59,6 +59,9 @@ fn validate_encounter(
     encounter.validate_current(face, route, local)
 }
 
+/// Fixed managed kernel/value/Sign/raster and actual scanout CPU stores only.
+/// Source/registry metadata, SDL/GPU allocation, stack, allocator overhead and
+/// whole preparation peak/RSS are separate and are not proven by this receipt.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NativeMaskFixedBackingReceipt {
     pub mask: NativeMaskBackingReceipt,
@@ -109,7 +112,11 @@ impl SelectedNativeMaskBase {
         }
     }
     pub(crate) fn healthy(&self) -> bool {
-        !matches!(self.stores, Stores::Lost { .. })
+        match &self.stores {
+            Stores::Unbound { .. } => true,
+            Stores::Bound { renderer, .. } => renderer.healthy(),
+            Stores::Lost { .. } => false,
+        }
     }
     pub(crate) fn required_bytes(width: u32, height: u32) -> Result<(usize, usize), String> {
         let kernel =
