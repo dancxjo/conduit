@@ -52,6 +52,10 @@ pub(super) fn acknowledge_show(
         Ok(document) => document,
         Err(_) => return Ok(ShowGate::Stopped),
     };
+    if member_leave::requested(&document) {
+        member_leave::serve(&mut line, state_dir, grant, document)?;
+        return Ok(ShowGate::Stopped);
+    }
     if document.get("schema").and_then(serde_json::Value::as_str) == Some(refresh::REFRESH_SCHEMA) {
         if !allow_refresh {
             return Ok(ShowGate::Stopped);

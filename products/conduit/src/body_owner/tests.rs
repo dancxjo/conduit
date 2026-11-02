@@ -1094,3 +1094,5 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
 
 #[path = "tests/invitation_retirement.rs"]
 mod invitation_retirement;
+#[path = "tests/member_leave.rs"]
+mod member_leave;

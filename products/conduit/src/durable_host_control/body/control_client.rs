@@ -115,6 +115,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
+        | Request::BodyMemberLeave { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
