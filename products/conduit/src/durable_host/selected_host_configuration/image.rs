@@ -65,5 +65,99 @@ pub(crate) fn check_seed_image(
     {
         return Err("Seed IMAGE differs from checked source/configuration/profile/bounds".into());
     }
+    let source_profile = profile.profile();
+    // A copied profile/configuration ID does not establish that IMAGE's actual
+    // equipment and budgets came from that Source. Compare borrowed projection
+    // fields without rebuilding or retaining a second IMAGE payload.
+    let strings = |expected: Vec<&str>, actual: &[String]| {
+        let mut expected = expected;
+        let mut actual = actual.iter().map(String::as_str).collect::<Vec<_>>();
+        expected.sort_unstable();
+        actual.sort_unstable();
+        expected == actual
+    };
+    if manifest.make_descriptor != source_profile.target.make_descriptor
+        || !same_members(&source_profile.bases, &manifest.base_selections)
+        || !same_members(&source_profile.drivers, &manifest.driver_selections)
+        || !same_members(&source_profile.resources, &manifest.resource_budgets)
+        || !strings(
+            source_profile
+                .fragments
+                .iter()
+                .map(String::as_str)
+                .collect(),
+            &manifest.profile_fragments,
+        )
+        || !strings(
+            source_profile
+                .capabilities
+                .iter()
+                .map(|item| item.implementation.as_str())
+                .collect(),
+            &manifest.implementations,
+        )
+        || !strings(
+            source_profile
+                .host_calls
+                .iter()
+                .map(String::as_str)
+                .collect(),
+            &manifest.host_calls,
+        )
+        || !strings(
+            source_profile
+                .resources
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect(),
+            &manifest.resources,
+        )
+        || !strings(
+            source_profile
+                .bases
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect(),
+            &manifest.bases,
+        )
+        || !strings(
+            source_profile
+                .drivers
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect(),
+            &manifest.drivers,
+        )
+        || !strings(
+            source_profile.lines.iter().map(String::as_str).collect(),
+            &manifest.lines,
+        )
+        || !strings(
+            source_profile
+                .presenters
+                .iter()
+                .map(|item| item.implementation.as_str())
+                .collect(),
+            &manifest.presenters,
+        )
+        || !strings(
+            source_profile
+                .facilities
+                .iter()
+                .map(String::as_str)
+                .collect(),
+            &manifest.facilities,
+        )
+    {
+        return Err("Seed IMAGE equipment and resources differ from checked Source".into());
+    }
     Ok(checked)
+}
+
+fn same_members<T: PartialEq>(expected: &[T], actual: &[T]) -> bool {
+    expected.len() == actual.len()
+        && expected.iter().all(|item| {
+            expected.iter().filter(|value| *value == item).count()
+                == actual.iter().filter(|value| *value == item).count()
+        })
 }

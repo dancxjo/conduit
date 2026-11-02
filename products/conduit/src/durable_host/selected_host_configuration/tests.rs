@@ -289,3 +289,33 @@ fn retained_scanout_intent_is_checked_but_never_treated_as_initialized_timer() {
         assert!(Selection::from_source(&invalid, "std/x86_64/computer").is_err());
     }
 }
+
+#[test]
+fn seed_image_cannot_copy_source_ids_while_changing_equipment() {
+    let checked = check(SOURCE).unwrap();
+    let (image, _) = conduit_host_make::build_default_host_image(
+        checked.profile().clone(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+        &conduit_host_make::BuildInputs {
+            source_identity: "git:source-binding-test".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    check_seed_image(SOURCE, &image).unwrap();
+    let mut forged = image.clone();
+    forged.manifest.base_selections[0].driver = "unselected/driver@1".into();
+    forged.payload.base_selections = forged.manifest.base_selections.clone();
+    forged.manifest.image_id = format!(
+        "image:{}",
+        digest(&serde_json::to_vec(&forged.payload).unwrap())
+    );
+    // Even a self-consistent payload digest and copied Source/profile IDs do
+    // not establish that its declared physical equipment matches the Source.
+    let bytes = serde_json::to_vec(&forged).unwrap();
+    conduit_host_make::verify_image_binding(&forged, &bytes).unwrap();
+    assert!(check_seed_image(SOURCE, &forged)
+        .unwrap_err()
+        .contains("equipment and resources"));
+}
