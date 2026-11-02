@@ -4,6 +4,7 @@ use super::*;
 #[path = "../../tests/common/creche_bundle.rs"]
 mod bundle_common;
 mod bundle_fixture;
+mod native_binding;
 use bundle_fixture::factory;
 use conduit_body::{AdmissionManager, Body, BodyMembership, SpawnInvitationSecret};
 use conduit_host_make::{build_host_image, BuildInputs};

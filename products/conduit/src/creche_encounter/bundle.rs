@@ -87,6 +87,10 @@ impl CrecheReviewedBundle {
         )?;
         Ok(bundle)
     }
+    pub(super) fn admits_native_target(&self, configuration: &CheckedHostConfiguration) -> bool {
+        matches!(&self.image, Image::Native(_))
+            && configuration.profile().target.key() == self.release().manifest().target_id
+    }
     pub(super) fn release(&self) -> &VerifiedHostReleaseBytes {
         match &self.image {
             Image::Native(r) => r,
@@ -158,14 +162,38 @@ impl CrecheReviewedBundle {
         {
             return Err("Crèche package workspace exceeds admitted artifact bytes".into());
         }
+        if cancelled.load(Ordering::Acquire) {
+            return Err("Crèche production canceled before IMAGE binding".into());
+        }
+        let (image, image_manifest) = match &self.image {
+            Image::Native(_) => conduit_host_make::bind_native_release_configuration(
+                &a.configuration,
+                &a.image,
+                configuration,
+                self.release(),
+                &inputs.catalog,
+                &inputs.packages,
+            )?,
+            Image::Browser(_) => {
+                if configuration.configuration_id() != a.configuration.configuration_id() {
+                    return Err("browser release requires its exact reviewed configuration".into());
+                }
+                (a.image.clone(), a.image_manifest.clone())
+            }
+        };
+        if image_manifest.len() > inputs.installation.production_bounds.maximum_manifest_bytes
+            || cancelled.load(Ordering::Acquire)
+        {
+            return Err("Crèche IMAGE binding exceeds admitted workspace or was canceled".into());
+        }
         let spore = conduit_body_make::seal_joining_host_release(
             conduit_body_make::JoiningReleaseSelection {
                 body: &binding.biography,
                 invitation: &binding.invitation.claim,
                 configuration,
                 output: a.output.clone(),
-                image: &a.image,
-                image_manifest: &a.image_manifest,
+                image: &image,
+                image_manifest: &image_manifest,
                 release: self.release(),
             },
             &inputs.catalog,

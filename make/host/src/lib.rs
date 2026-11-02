@@ -65,3 +65,6 @@ mod native_presenter_tests;
 mod runtime_base_tests;
 #[cfg(test)]
 mod tests;
+
+mod native_release_configuration;
+pub use native_release_configuration::bind_native_release_configuration;

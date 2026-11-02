@@ -86,6 +86,9 @@ impl CrecheEncounterController {
                         .iter()
                         .find(|a| {
                             a.configuration.configuration_id() == configuration.configuration_id()
+                                || a.bundle.as_ref().is_some_and(|bundle| {
+                                    bundle.admits_native_target(&configuration)
+                                })
                         })
                         .ok_or("no owner-reviewed artifact matches this checked Host")?;
                     if let Some(bundle) = &artifact.bundle {

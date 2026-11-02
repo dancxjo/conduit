@@ -33,6 +33,17 @@ impl CrecheEncounterFactory {
         } else {
             HostConfigurationEncounter::new(&catalog, &packages)?;
         }
+        for (index, artifact) in artifacts.iter().enumerate() {
+            if artifact.output == SporeOutputKind::NativeBundle
+                && artifacts[..index].iter().any(|previous| {
+                    previous.output == SporeOutputKind::NativeBundle
+                        && previous.configuration.profile().target.key()
+                            == artifact.configuration.profile().target.key()
+                })
+            {
+                return Err("Crèche native release target selection is ambiguous".into());
+            }
+        }
         let mut identities = Vec::with_capacity(artifacts.len());
         for artifact in &mut artifacts {
             if identities.iter().any(|id: &ArtifactAdmissionIdentity| {
