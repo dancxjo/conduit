@@ -1,4 +1,5 @@
-//! Selected IMAGE result custody. Borrowing cannot move uncharged report buffers.
+//! Selected IMAGE result custody. Escaped immutable Fore payload clones retain
+//! the shared byte charge; borrowing cannot move other report backing.
 use super::*;
 use crate::kernel_preparation::ImageMemoryLease;
 
@@ -13,13 +14,30 @@ impl ImageBodyRunReport {
 }
 impl StdHost {
     /// Direct cooperative tick-only execution. The result retains its byte
-    /// charge until this non-cloneable wrapper drops; physical timer slots
+    /// charge until this wrapper and any escaped Fore payload clones drop; timer slots
     /// retire independently. No raw-report conversion is supplied.
     pub fn run_selected_image_body_plan_to_with_start<W: Write, T: TimerAdapter, F>(
         &mut self,
         request: BodyRunRequest<'_>,
         output: &mut W,
         timer: &mut T,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        self.run_selected_image_body_plan_with_output_to_with_start(
+            request, output, timer, None, started,
+        )
+    }
+    /// Same selected custody, with the ordinary sealed finite Fore output.
+    /// The caller adapter's own backing/effects remain independently admitted.
+    pub fn run_selected_image_body_plan_with_output_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        output: &mut W,
+        timer: &mut T,
+        fore: Option<&mut dyn BodyForeOutputAdapter>,
         started: F,
     ) -> Result<ImageBodyRunReport, String>
     where
@@ -35,7 +53,7 @@ impl StdHost {
             timer,
             None,
             None,
-            None,
+            fore.map(|adapter| (&[][..], false, adapter)),
             None,
             None,
             None,

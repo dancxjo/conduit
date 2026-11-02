@@ -17,10 +17,10 @@ fn vector<T>(values: &Vec<T>) -> Result<usize, String> {
     values
         .capacity()
         .checked_mul(core::mem::size_of::<T>())
-        .ok_or("Body vector backing overflow".into())
+        .ok_or_else(|| "Body vector backing overflow".into())
 }
 fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
-    if !map.fore_endpoints.is_empty() || !map.remote_endpoints.is_empty() {
+    if !map.remote_endpoints.is_empty() {
         return Err("IMAGE tick memory does not support external Fore/Line maps".into());
     }
     let mut bytes = map.plan_id.0.capacity();
@@ -36,6 +36,10 @@ fn identities(map: &KernelIdentityMap) -> Result<usize, String> {
         vector(&map.resource_connections)?,
     ] {
         add(&mut bytes, count)?;
+    }
+    for endpoint in &map.fore_endpoints {
+        add(&mut bytes, endpoint.front_port_id.0.capacity())?;
+        add(&mut bytes, endpoint.value_kind.0.capacity())?;
     }
     for (_, id) in &map.placements {
         add(&mut bytes, id.0.capacity())?;
@@ -205,12 +209,18 @@ fn back_bytes(driver: &InstalledBack) -> Result<usize, String> {
     match driver {
         InstalledBack::Tick(tick) => tick
             .retained_backing_bytes()
-            .ok_or("tick backing overflow".into()),
+            .ok_or_else(|| "tick backing overflow".into()),
         InstalledBack::Inactive => Ok(0),
         _ => Err("IMAGE memory receipt lacks a complete owned Back accounting".into()),
     }
 }
 impl BodyKernel<'_> {
+    pub(crate) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        self.fore.attach_image_memory(lease);
+    }
     pub(crate) fn prepare_memory<T: TimerAdapter>(
         &mut self,
         timer: &mut T,
@@ -234,6 +244,10 @@ impl BodyKernel<'_> {
             return Err("IMAGE memory receipt supports direct tick only; provider/input/activation cases are unsupported".into());
         }
         let mut bytes = core::mem::size_of::<InstalledScheduler>();
+        add(
+            &mut bytes,
+            crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
+        )?;
         let mut ticks = 0;
         for driver in self.scheduler.drivers() {
             if matches!(driver, InstalledBack::Tick(_)) {
@@ -247,8 +261,8 @@ impl BodyKernel<'_> {
         add(
             &mut bytes,
             self.fore
-                .empty_backing_bytes()
-                .ok_or("IMAGE memory receipt does not yet support external Fore/live custody")?,
+                .tick_backing_bytes()
+                .ok_or("IMAGE memory receipt does not support this Fore/input/live contract")?,
         )?;
         for host in &self.data_text_hosts {
             add(
@@ -323,6 +337,28 @@ pub(crate) fn result_bytes(report: &BodyRunReport) -> Result<usize, String> {
     let mut bytes = lifecycle_bytes(&report.play, &report.wake_at_start, &report.terminal_sign)?;
     for map in &report.partitions {
         add(&mut bytes, identities(map)?)?;
+    }
+    add(
+        &mut bytes,
+        crate::kernel_preparation::ImageMemoryLease::owned_backing_bytes(),
+    )?;
+    add(&mut bytes, vector(&report.fore_deliveries)?)?;
+    for delivery in &report.fore_deliveries {
+        add(
+            &mut bytes,
+            delivery
+                .retained_backing_bytes()
+                .ok_or("Fore result backing overflow")?,
+        )?;
+    }
+    if let Some(pending) = &report.fore_pending_output {
+        add(
+            &mut bytes,
+            pending
+                .delivery
+                .retained_backing_bytes()
+                .ok_or("pending Fore backing overflow")?,
+        )?;
     }
     for count in [
         vector(&report.partitions)?,

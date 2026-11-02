@@ -13,15 +13,26 @@ pub struct ExternalForeIdentity {
 #[derive(Clone)]
 pub struct ExternalForeBytes {
     storage: Arc<[u8]>,
+    image_memory: Option<crate::kernel_preparation::ImageMemoryLease>,
     len: usize,
 }
 impl ExternalForeBytes {
+    pub(crate) fn retained_backing_bytes(&self) -> usize {
+        self.storage.len()
+    }
+    pub(crate) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        self.image_memory = Some(lease.clone());
+    }
     pub fn as_slice(&self) -> &[u8] {
         self
     }
     fn prepared(capacity: usize) -> Self {
         Self {
             storage: vec![0; capacity].into(),
+            image_memory: None,
             len: 0,
         }
     }
@@ -40,6 +51,7 @@ impl From<&[u8]> for ExternalForeBytes {
     fn from(bytes: &[u8]) -> Self {
         Self {
             storage: bytes.into(),
+            image_memory: None,
             len: bytes.len(),
         }
     }
@@ -49,6 +61,7 @@ impl From<Vec<u8>> for ExternalForeBytes {
         let len = bytes.len();
         Self {
             storage: bytes.into(),
+            image_memory: None,
             len,
         }
     }
@@ -127,6 +140,18 @@ impl ExternalForeDelivery {
     }
     pub(crate) fn prepared(identity: Arc<ExternalForeIdentity>, capacity: usize) -> Self {
         Self::with_identity(identity, 0, ExternalForeBytes::prepared(capacity))
+    }
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        core::mem::size_of::<ExternalForeIdentity>()
+            .checked_add(self.identity.front_port_id.0.capacity())?
+            .checked_add(self.identity.value_kind.0.capacity())?
+            .checked_add(self.bytes.retained_backing_bytes())
+    }
+    pub(crate) fn attach_image_memory(
+        &mut self,
+        lease: &crate::kernel_preparation::ImageMemoryLease,
+    ) {
+        self.bytes.attach_image_memory(lease);
     }
     pub(crate) fn fill_prepared(&mut self, sequence: u64, bytes: &[u8]) -> Result<(), String> {
         self.bytes.fill(bytes)?;

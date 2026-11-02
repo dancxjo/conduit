@@ -73,13 +73,12 @@ impl StdHost {
                 || request.plan.body_time_requirement.is_some()
                 || correlation.is_some()
                 || execution_bounds.is_some()
-                || fore.is_some()
                 || live.is_some()
                 || checkpoint.is_some()
                 || terminal.is_some()
                 || creche.is_some())
         {
-            return Err("selected IMAGE owned-memory profile supports direct tick without Fore/input/activation/BodyTime attachments".into());
+            return Err("selected IMAGE owned-memory profile supports direct tick with bounded output only; input/activation/BodyTime attachments unsupported".into());
         }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         request
@@ -196,6 +195,7 @@ impl StdHost {
             let (reservations, lease) =
                 self.kernel_resources
                     .reserve_body_memory(&self.advertisement, &plans, &receipt)?;
+            kernel.attach_image_memory(&lease);
             (reservations, Some(lease))
         } else {
             (
