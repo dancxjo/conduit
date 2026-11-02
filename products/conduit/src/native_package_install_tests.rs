@@ -189,3 +189,6 @@ fn test_root(name: &str) -> PathBuf {
         std::process::id()
     ))
 }
+
+#[path = "native_package_install/tests/joining_host_package.rs"]
+mod joining_host_package;

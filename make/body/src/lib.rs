@@ -49,3 +49,6 @@ pub use workload_session::*;
 mod body_building_tests;
 #[cfg(test)]
 mod planning_session_tests;
+
+mod joining_host_package;
+pub use joining_host_package::*;

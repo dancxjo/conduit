@@ -25,6 +25,7 @@ export async function createBodyBoundZip({ prepared, release, filename }) {
       nonce: prepared.invitation_nonce,
       expires_at_millis: prepared.invitation_expires_at_millis,
       secret: prepared.invitation_secret,
+      rendezvous: boundSpawnRendezvous(prepared.rendezvous, prepared.body_id ?? prepared.spore_manifest.body_id, prepared.invitation_id, prepared.invitation_expires_at_millis),
       rendezvous_candidates: boundedRendezvousCandidates(prepared.rendezvous_candidates, {
         bodyId: prepared.body_id,
         invitationExpiresAtMillis: prepared.invitation_expires_at_millis,
@@ -188,6 +189,7 @@ function requireProvisionIdentities(provision) {
     || !Number.isSafeInteger(provision.invitation_provision?.expires_at_millis)) {
     throw new TypeError("native ZIP Body provision lost its exact identities");
   }
+  boundSpawnRendezvous(provision.invitation_provision.rendezvous, provision.spore.body_id, provision.invitation_provision.invitation_id, provision.invitation_provision.expires_at_millis);
   boundedRendezvousCandidates(provision.invitation_provision.rendezvous_candidates, {
     bodyId: provision.spore.body_id,
     invitationExpiresAtMillis: provision.invitation_provision.expires_at_millis,
@@ -249,4 +251,32 @@ function crc32(bytes) {
 async function sha256(bytes) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+// Preserve the canonical owner descriptor byte-for-byte in JSON, independently
+// of the legacy candidate envelopes. Seeing either grants no Line or authority.
+function boundSpawnRendezvous(value, bodyId, invitationId, invitationExpiry) {
+  if (value === undefined || value === null) return null;
+  const boundedText = (text) => typeof text === "string" && text.length > 0 && encoder.encode(text).length <= 256;
+  if (value.protocol !== 1 || value.body_id !== bodyId || value.invitation_id !== invitationId
+    || !Array.isArray(value.candidates) || value.candidates.length < 1 || value.candidates.length > 4
+    || encoder.encode(JSON.stringify(value)).length > 16 * 1024) {
+    throw new TypeError("native ZIP routed invitation lost its bounded Body scope");
+  }
+  const ids = new Set();
+  for (const candidate of value.candidates) {
+    const binding = candidate?.authentication?.transport_binding_sha256;
+    if (!boundedText(candidate?.candidate_id) || ids.has(candidate.candidate_id)
+      || !boundedText(candidate.reachability) || !boundedText(candidate.authentication?.server_identity)
+      || !["authenticated-tls-stream", "authenticated-conduit-line", "local-loopback-web-socket", "attended-serial", "web-rtc-data-channel"].includes(candidate.line_family)
+      || !Array.isArray(binding) || binding.length !== 32 || binding.every((byte) => byte === 0)
+      || binding.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+      || !Number.isSafeInteger(candidate.expires_at_millis) || candidate.expires_at_millis < 1 || candidate.expires_at_millis > invitationExpiry
+      || !Number.isInteger(candidate.maximum_attempts) || candidate.maximum_attempts < 1 || candidate.maximum_attempts > 3
+      || !Number.isInteger(candidate.attempt_timeout_millis) || candidate.attempt_timeout_millis < 1 || candidate.attempt_timeout_millis > 30_000) {
+      throw new TypeError("native ZIP routed invitation lost its exact authenticated candidate");
+    }
+    ids.add(candidate.candidate_id);
+  }
+  return value;
 }
