@@ -408,3 +408,9 @@ Exact identities, failures, local evidence hashes and remaining gates are record
 ### 2026-11-02 — installed browser-admission release
 
 The ordinary Linux release command built x86_64 and AArch64 at `834dfe0207d884a0067727e0205f844c4f963d2c`. The x86_64 bundle was verified and installed through `host service install --no-start`, followed by systemd daemon reload and start. Actual runtime status confirms the same installed Host and Hamm Creek House, with a new Boot. Base64 first-admission key input is now installed. Browser admission and rendered UI remain unproved; no Seed or thermometer deployment occurred in this update. See `proof/evidence/creche/browser-admission-host-update-20261102.json`.
+
+### 2026-11-02 — checked operations and retained Seed configuration
+
+Explicit Host operation selections now use the existing bounded intent resolver, selected Base/driver prerequisites and authored resource budgets. Empty legacy configurations preserve their identities. The extracted change is PR #6713; it does not initialize providers or grant authority. The integrator also retains canonical Host source and the actual IMAGE in native Seeds and rejects incomplete or unsupported configured startup before publication. Sixty-four targeted CPU tests passed, one existing test was ignored, and strict Clippy and formatting passed after the two recorded corrections. Evidence: `proof/evidence/creche/checked-host-operation-and-seed-custody-20261102.json`.
+
+The next required step remains real IMAGE-bound provider initialization under #6551, with finite preparation custody under #6341. Hosted preparation may use heap; HostBounds are not a claim about Linux RSS. Actual Boot, workset admission, Play, membership and rendered Face remain separate proof gates. Threebee has not been replaced from Seed.
