@@ -27,7 +27,7 @@ fn local_export_wire_preserves_destination_and_only_carrier_stage_receipt() {
     let encoded = serde_json::to_vec(&request(&[9; 32])).unwrap();
     let decoded: Request = serde_json::from_slice(&encoded).unwrap();
     assert!(
-        matches!(decoded,Request::BodyExportSeed {destination,..} if destination==std::path::PathBuf::from("unused-seed.zip"))
+        matches!(decoded,Request::BodyExportSeed {destination,..} if destination==std::path::Path::new("unused-seed.zip"))
     );
     let receipt = conduit_host_make::DeploymentRealizationReceipt {
         schema: conduit_host_make::DEPLOYMENT_RECEIPT_SCHEMA.into(),
