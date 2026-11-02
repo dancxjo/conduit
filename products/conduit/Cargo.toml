@@ -8,6 +8,12 @@ default-run = "conduit"
 default = []
 native-display = ["dep:conduit-linux-display", "conduit-std-host/linux-display"]
 base-linear-framebuffer = ["native-display"]
+# These hosted mechanisms are already compiled unconditionally. Keep Make's
+# explicit selection vocabulary without activating unrelated adapters.
+base-clock = []
+base-timer = []
+base-serial = []
+base-protected-file = []
 
 [dependencies]
 base64 = { version = "0.22.1", default-features = false }
