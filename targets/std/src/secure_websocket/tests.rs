@@ -152,3 +152,95 @@ fn native_client_verifies_exact_certificate_binding_and_bounded_frames() {
         ))
     ));
 }
+
+#[test]
+fn pinned_tls_partial_frame_survives_poll_timeout() {
+    use std::sync::mpsc;
+    let CertifiedKey { cert, signing_key } =
+        generate_simple_self_signed(vec!["localhost".into()]).unwrap();
+    let directory =
+        std::env::temp_dir().join(format!("conduit-tls-partial-{}", std::process::id()));
+    fs::create_dir_all(&directory).unwrap();
+    let certificate = directory.join("certificate.pem");
+    let private_key = directory.join("private-key.pem");
+    fs::write(&certificate, cert.pem()).unwrap();
+    fs::write(&private_key, signing_key.serialize_pem()).unwrap();
+    let reservation = std::net::TcpListener::bind("0.0.0.0:0").unwrap();
+    let address = reservation.local_addr().unwrap();
+    drop(reservation);
+    let listener =
+        SecureWebSocketListener::bind(address, &certificate, &private_key, 1024, true).unwrap();
+    let address =
+        std::net::SocketAddr::from(([127, 0, 0, 1], listener.local_addr().unwrap().port()));
+    let pin = listener.certificate_binding_sha256();
+    let (partial, ready) = mpsc::sync_channel(1);
+    let (finish, continue_frame) = mpsc::sync_channel(1);
+    let (ping, begin_pings) = mpsc::sync_channel(1);
+    let client = thread::spawn(move || {
+        let mut client = SecureWebSocketClientLine::connect_pinned(
+            address,
+            &format!("wss://localhost:{}/conduit", address.port()),
+            "localhost",
+            pin,
+            Duration::from_secs(2),
+            1024,
+        )
+        .unwrap();
+        // Write a real masked binary WebSocket frame through the established
+        // pinned TLS stream in two pieces, rather than splitting application data.
+        let payload = [0, 255, 128, 1, 0, 7];
+        let mask = [3, 1, 4, 1];
+        let mut frame = vec![0x82, 0x80 | payload.len() as u8];
+        frame.extend_from_slice(&mask);
+        frame.extend(payload.iter().enumerate().map(|(i, b)| b ^ mask[i % 4]));
+        client.socket.get_mut().write_all(&frame[..8]).unwrap();
+        client.socket.get_mut().flush().unwrap();
+        partial.send(()).unwrap();
+        continue_frame.recv_timeout(Duration::from_secs(2)).unwrap();
+        client.socket.get_mut().write_all(&frame[8..]).unwrap();
+        client.socket.get_mut().flush().unwrap();
+        begin_pings.recv_timeout(Duration::from_secs(2)).unwrap();
+        for _ in 0..100 {
+            if client.socket.send(Message::Ping(vec![1].into())).is_err() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+    });
+    let mut accepted = listener
+        .accept_with_timeout(Duration::from_secs(2))
+        .unwrap();
+    // Authentication handoff is complete; release only this earlier absolute input deadline.
+    accepted.complete_bounded_input();
+    assert_eq!(accepted.maximum_message_bytes(), 1024);
+    ready.recv_timeout(Duration::from_secs(2)).unwrap();
+    accepted
+        .set_read_timeout(Some(Duration::from_millis(20)))
+        .unwrap();
+    let mut bytes = [0; 1024];
+    assert!(matches!(
+        accepted.receive_binary(&mut bytes),
+        Err(SecureWebSocketError::Transport(
+            std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+        ))
+    ));
+    finish.send(()).unwrap();
+    accepted
+        .set_read_timeout(Some(Duration::from_secs(2)))
+        .unwrap();
+    let length = accepted.receive_binary(&mut bytes).unwrap();
+    assert_eq!(&bytes[..length], &[0, 255, 128, 1, 0, 7]);
+    // Control traffic must not keep an unrenewed participant alive. Replace
+    // the completed handshake deadline with a separately selected short lease.
+    let started = Instant::now();
+    accepted
+        .replace_input_deadline(started + Duration::from_millis(80))
+        .unwrap();
+    ping.send(()).unwrap();
+    assert!(accepted.receive_binary(&mut bytes).is_err());
+    assert!(started.elapsed() < Duration::from_secs(1));
+    client.join().unwrap();
+    drop(accepted);
+    drop(listener);
+    fs::remove_dir_all(directory).unwrap();
+}
