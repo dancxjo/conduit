@@ -29,22 +29,29 @@ impl Owner {
                     verifying_key,
                     freshness_sequence,
                 } => {
-                    if advertisement.host_id != window.expected {
+                    if window
+                        .expected
+                        .as_ref()
+                        .is_some_and(|host| host != &advertisement.host_id)
+                    {
                         return Err(
                             "browser Host differs from explicit admission authorization".into()
                         );
                     }
+                    if advertisement.host_id == self.host.advertisement().host_id {
+                        return Err("browser participant cannot replace the owner Host".into());
+                    }
                     if self.session.evidence().membership.parts.iter().any(|part| {
                         part.current
                             .as_ref()
-                            .is_some_and(|current| current.host_id == window.expected)
+                            .is_some_and(|current| current.host_id == advertisement.host_id)
                     }) {
                         return Err("browser Host already has current membership".into());
                     }
                     if manager
                         .receipts
                         .iter()
-                        .any(|receipt| receipt.credential.host_id == window.expected)
+                        .any(|receipt| receipt.credential.host_id == advertisement.host_id)
                     {
                         return Err("admitted browser must present its retained credential".into());
                     }
@@ -100,9 +107,11 @@ impl Owner {
                     credential,
                     advertisement,
                 } => {
-                    if advertisement.host_id != window.expected
-                        || credential.host_id != window.expected
-                    {
+                    let expected = window
+                        .expected
+                        .as_ref()
+                        .ok_or("returning browser requires its known explicit Host identity")?;
+                    if &advertisement.host_id != expected || &credential.host_id != expected {
                         return Err(
                             "returning browser Host differs from explicit authorization".into()
                         );
@@ -312,6 +321,10 @@ impl Owner {
                 browser_advertisement: Some(Box::new(pending.observation.advertisement.clone())),
                 line_authorization: Some(line_authorization.clone()),
             };
+            // Resolve an initially key-pinned selector only after the actual
+            // signature and exact advertisement have passed canonical admission
+            // and the resulting membership has been durably retained.
+            window.expected = Some(credential.host_id.clone());
             window.state = WindowState::Active {
                 presence_deadline: Instant::now()
                     + Duration::from_millis(MAX_BROWSER_PRESENCE_MILLIS),

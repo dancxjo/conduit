@@ -24,7 +24,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         .resources
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let browser = owner
-        .browser_authorize_window("host/browser-first", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-first"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let binding = LinkBindingId::from("line/test/browser-first");
     let Out::Challenge { challenge, .. } = owner

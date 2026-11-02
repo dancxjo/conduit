@@ -397,7 +397,7 @@ fn main() {
                 key.and_then(|key| {
                     durable_host_control::start_browser_window(
                         &state_dir,
-                        &expected_host_id,
+                        expected_host_id.as_deref(),
                         key,
                         maximum_millis,
                     )

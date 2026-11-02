@@ -23,7 +23,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
         .resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let authorized = owner
-        .browser_authorize_window("host/browser-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let binding = LinkBindingId::from("line/test/browser-mask");
     let Out::Challenge { challenge, .. } = owner

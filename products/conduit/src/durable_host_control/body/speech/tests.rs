@@ -245,7 +245,7 @@ fn acknowledged_browser_show(
         .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
     let binding = LinkBindingId::from("line/test/selected-speech-browser");
     let authorized = owner
-        .browser_authorize_window("host/browser-speech-test", Some(BROWSER_KEY), 10_000)
+        .browser_authorize_window(Some("host/browser-speech-test"), Some(BROWSER_KEY), 10_000)
         .unwrap();
     let Out::Challenge { challenge, .. } = owner
         .browser_begin(

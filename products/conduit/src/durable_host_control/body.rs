@@ -133,7 +133,7 @@ impl DurableHostRuntime {
 
     pub(super) fn start_browser_window(
         &mut self,
-        expected_host_id: &str,
+        expected_host_id: Option<&str>,
         new_host_verifying_key: Option<[u8; 32]>,
         maximum_millis: u64,
     ) -> Result<
@@ -480,7 +480,7 @@ impl DurableHostRuntime {
 #[cfg(unix)]
 pub(crate) fn start_browser_window(
     state_dir: &Path,
-    expected_host_id: &str,
+    expected_host_id: Option<&str>,
     new_host_verifying_key: Option<[u8; 32]>,
     maximum_millis: u64,
 ) -> Result<(), String> {
@@ -489,7 +489,7 @@ pub(crate) fn start_browser_window(
         Request::BodyBrowserStart {
             protocol: PROTOCOL,
             token: token(state_dir)?,
-            expected_host_id: expected_host_id.into(),
+            expected_host_id: expected_host_id.map(str::to_owned),
             new_host_verifying_key,
             maximum_millis,
         },
@@ -523,7 +523,7 @@ pub(crate) fn start_browser_window(
 #[cfg(not(unix))]
 pub(crate) fn start_browser_window(
     _state_dir: &Path,
-    _expected_host_id: &str,
+    _expected_host_id: Option<&str>,
     _new_host_verifying_key: Option<[u8; 32]>,
     _maximum_millis: u64,
 ) -> Result<(), String> {
