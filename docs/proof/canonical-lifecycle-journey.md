@@ -815,3 +815,8 @@ not deployed reconnect proof: fresh owner encounters, durable returned-credentia
 replacement and installed startup return remain unfinished. Threebee's installed
 service was independently rechecked active with zero restarts; it was not
 restarted or updated with this incomplete return path.
+
+Checkpoint `8b97054c28` passed two focused member-presentation tests,
+17 routed-join tests, 11 participant-service regressions, and the installed
+product check with warnings denied. These are local source proofs, not a
+physical returning-member deployment.
