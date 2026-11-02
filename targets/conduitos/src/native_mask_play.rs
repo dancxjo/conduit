@@ -5,6 +5,10 @@ mod backs;
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod cold;
 #[cfg(any(test, feature = "native-compositor-core"))]
+mod owned_backing;
+#[cfg(any(test, feature = "native-compositor-core"))]
+pub use owned_backing::native_mask_plan_backing_bytes;
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod interaction;
 #[cfg(any(test, feature = "native-compositor-core"))]
 mod prepared;
