@@ -185,3 +185,6 @@ mod tests;
 
 #[cfg(test)]
 mod input_queue_tests;
+
+#[cfg(test)]
+static SDL_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());

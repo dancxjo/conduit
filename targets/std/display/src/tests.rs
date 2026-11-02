@@ -61,6 +61,7 @@ fn finite_surface_uses_ordinary_graphics_and_revocation_erases_pixels() {
 }
 #[test]
 fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
+    let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     // Explicit CPU diagnostic backend; this makes no DRM/HDMI acceptance claim.
     assert!(sdl2::hint::set("SDL_VIDEODRIVER", "dummy"));
     let sdl = sdl2::init().unwrap();

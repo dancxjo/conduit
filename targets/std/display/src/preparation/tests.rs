@@ -26,6 +26,7 @@ fn event(window_id: u32, win_event: WindowEvent) -> Event {
 }
 #[test]
 fn historical_startup_hidden_shown_is_settled_but_post_ready_hidden_is_terminal() {
+    let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     let (sdl, mut canvas, textures) = setup();
     let window = canvas.window().id();
     let queue = sdl.event().unwrap();
@@ -65,6 +66,7 @@ fn historical_startup_hidden_shown_is_settled_but_post_ready_hidden_is_terminal(
 }
 #[test]
 fn startup_quit_own_close_and_global_render_reset_refuse_before_token() {
+    let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     for kind in 0..4 {
         let (sdl, mut canvas, textures) = setup();
         sdl.event()
@@ -91,6 +93,7 @@ fn startup_quit_own_close_and_global_render_reset_refuse_before_token() {
 }
 #[test]
 fn preparation_queue_pressure_refuses_instead_of_issuing_a_token() {
+    let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     let (sdl, mut canvas, textures) = setup();
     let queue = sdl.event().unwrap();
     for _ in 0..512 {
@@ -109,6 +112,7 @@ fn preparation_queue_pressure_refuses_instead_of_issuing_a_token() {
 }
 #[test]
 fn actual_hidden_window_and_wrong_geometry_never_issue_readiness() {
+    let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
     let (_sdl, mut canvas, textures) = setup();
     canvas.window_mut().hide();
     assert_eq!(
