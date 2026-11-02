@@ -195,12 +195,7 @@ pub(super) fn validate_change(
         || ["host_id", "boot_id", "offer_generation"]
             .iter()
             .any(|field| before["show"][*field] != after["show"][*field])
-        || fresh
-            .properties
-            .iter()
-            .filter(|p| p.name == "selected" && p.value == FacePropertyValue::Flag(true))
-            .count()
-            != if expected { 4 } else { 3 }
+        || validate_plot_selection(&old, &fresh, &action.target, expected).is_err()
         || !fresh
             .actions
             .iter()
@@ -223,4 +218,157 @@ fn selected(face: &Face, target: &str) -> Option<bool> {
             _ => None,
         }
     })
+}
+
+// A naming choice and an independent Plot choice both expose `selected`.
+// Validate the actual independent collection instead of counting every flag.
+fn validate_plot_selection(
+    old: &Face,
+    fresh: &Face,
+    target: &str,
+    expected: bool,
+) -> Result<(), ConduitosError> {
+    let inventories: Vec<_> = old
+        .subjects
+        .iter()
+        .filter(|s| s.identity.ends_with("/initial-plots"))
+        .collect();
+    if inventories.len() != 1
+        || fresh
+            .subjects
+            .iter()
+            .filter(|s| s.identity.ends_with("/initial-plots"))
+            .count()
+            != 1
+    {
+        return Err(refusal("Crèche Plot inventory is not unique"));
+    }
+    let id = &inventories[0].identity;
+    let before = conduit_face::prepare_face_collection(old, id, 64)
+        .map_err(|e| refusal(format!("old Plot collection: {e:?}")))?;
+    let after = conduit_face::prepare_face_collection(fresh, id, 64)
+        .map_err(|e| refusal(format!("fresh Plot collection: {e:?}")))?;
+    if before.multiplicity() != Some(conduit_face::ChoiceMultiplicity::Independent)
+        || after.multiplicity() != before.multiplicity()
+        || before.items().len() != 5
+        || !before
+            .items()
+            .iter()
+            .map(|s| &s.identity)
+            .eq(after.items().iter().map(|s| &s.identity))
+        || !before.items().iter().any(|s| s.identity == target)
+        || after
+            .items()
+            .iter()
+            .filter(|s| selected(fresh, &s.identity) == Some(true))
+            .count()
+            != if expected { 4 } else { 3 }
+        || before
+            .items()
+            .iter()
+            .filter(|s| selected(old, &s.identity) == Some(true))
+            .count()
+            != if expected { 3 } else { 4 }
+        || !old
+            .properties
+            .iter()
+            .filter(|p| p.name == "selected" && p.subject != target)
+            .eq(fresh
+                .properties
+                .iter()
+                .filter(|p| p.name == "selected" && p.subject != target))
+    {
+        return Err(refusal(
+            "Crèche independent Plot selection or unrelated choice changed",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const OBSERVATION: &str = include_str!("creche_choices/boolean-change-41368700498.json");
+    #[test]
+    fn real_guest_boolean_change_keeps_naming_selection_separate() {
+        let record: Value = serde_json::from_str(OBSERVATION).unwrap();
+        let serial = format!(
+            "CONDUIT_NATIVE_FACE {}\nCONDUIT_NATIVE_FACE {}\n",
+            record["before"], record["after"]
+        );
+        assert!(validate_change(&serial, &record["change"], "creche.plot.0", false).is_ok());
+        assert!(validate_change(&serial, &record["change"], "creche.plot.0", true).is_err());
+        let old: Face = serde_json::from_value(record["before"]["face"].clone()).unwrap();
+        let fresh: Face = serde_json::from_value(record["after"]["face"].clone()).unwrap();
+        let target = record["change"]["interaction"]["target"].as_str().unwrap();
+        assert_eq!(
+            fresh
+                .properties
+                .iter()
+                .filter(|p| p.name == "selected" && p.value == FacePropertyValue::Flag(true))
+                .count(),
+            4
+        );
+        assert!(validate_plot_selection(&old, &fresh, target, false).is_ok());
+        assert!(validate_plot_selection(&fresh, &old, target, true).is_ok());
+        let mut wrong = fresh.clone();
+        wrong
+            .properties
+            .iter_mut()
+            .find(|p| p.subject == "birth-naming/surprise" && p.name == "selected")
+            .unwrap()
+            .value = FacePropertyValue::Flag(false);
+        wrong
+            .properties
+            .iter_mut()
+            .find(|p| p.subject == "birth-naming/roman" && p.name == "selected")
+            .unwrap()
+            .value = FacePropertyValue::Flag(true);
+        let current = &mut wrong
+            .properties
+            .iter_mut()
+            .find(|p| {
+                p.subject == "birth/conduitos/creche/current/name-system"
+                    && p.name == "current-value"
+            })
+            .unwrap()
+            .value;
+        match current {
+            FacePropertyValue::TypedValue { bytes, .. } => *bytes = b"roman".to_vec(),
+            _ => panic!("actual naming value must retain its typed contract"),
+        }
+        wrong.reseal_prepared().unwrap();
+        let names = conduit_face::prepare_face_collection(
+            &wrong,
+            "birth/conduitos/creche/current/name-system/input-details",
+            64,
+        )
+        .unwrap();
+        assert_eq!(
+            names.multiplicity(),
+            Some(conduit_face::ChoiceMultiplicity::Exclusive)
+        );
+        assert_eq!(names.items().len(), 24);
+        assert_eq!(selected(&wrong, "birth-naming/roman"), Some(true));
+        assert!(validate_plot_selection(&old, &wrong, target, false).is_err());
+        let mut wrong = fresh.clone();
+        let another = old
+            .actions
+            .iter()
+            .find(|a| a.identity == "creche.plot.1")
+            .unwrap()
+            .target
+            .clone();
+        wrong
+            .properties
+            .iter_mut()
+            .find(|p| p.subject == another && p.name == "selected")
+            .unwrap()
+            .value = FacePropertyValue::Flag(false);
+        wrong.reseal_prepared().unwrap();
+        assert!(validate_plot_selection(&old, &wrong, target, false).is_err());
+        let mut change = record["change"].clone();
+        change["interaction"]["show_id"] = json!("stale-show");
+        assert!(validate_change(&serial, &change, "creche.plot.0", false).is_err());
+    }
 }
