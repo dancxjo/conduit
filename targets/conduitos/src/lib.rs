@@ -444,7 +444,20 @@ compile_error!(
 ))]
 pub mod compositor_semantic_recovery_proof;
 
-#[cfg(feature = "native-compositor-core")]
+// The firmware lifecycle owner requires the product front door and Make owner.
+// Hosted compositor consumers use the portable Mask without that boot owner.
+#[cfg(all(
+    feature = "native-compositor-core",
+    any(
+        test,
+        target_arch = "x86_64",
+        feature = "ia32-product",
+        feature = "aarch64-product",
+        feature = "riscv64-product",
+        feature = "loongarch64-product",
+        feature = "aarch64-board"
+    )
+))]
 pub mod firmware_face;
 #[cfg(any(test, feature = "native-compositor-core", feature = "hosted-tools"))]
 pub mod firmware_face_evidence;
