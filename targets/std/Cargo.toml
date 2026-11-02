@@ -5,6 +5,7 @@ edition = "2021"
 
 [features]
 default = []
+linux-display = ["dep:conduit-linux-display", "conduit-linux-display/sdl", "dep:sdl2"]
 burn-model = ["dep:conduit-burn-model"]
 burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
@@ -86,6 +87,8 @@ webrtc-util = { version = "0.17.1", default-features = false, features = ["conn"
 libc = "0.2"
 
 [target.'cfg(target_os = "linux")'.dependencies]
+conduit-linux-display = { path = "display", optional = true }
+sdl2 = { version = "=0.38.0", default-features = false, optional = true }
 conduit-linux-snapshot-store = { path = "resource-snapshot" }
 bluer = { version = "0.17.4", features = ["bluetoothd"], optional = true }
 dbus = { version = "0.9.12", features = ["vendored"], optional = true }
