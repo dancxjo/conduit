@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.proof/optional-owned-output-kernel-reuse@1",
+  "source": "3bd7b12a13",
+  "feature": "alloc",
+  "tests": {
+    "prepared_session": 13,
+    "kernel_library_passed_including_prepared_session": 225,
+    "kernel_library_ignored": 3
+  },
+  "strict": "kernel library and tests -D warnings passed",
+  "log_sha256": {
+    "optional-output-alloc-tests.log": "7b51800c56b85743c3a05479f17fd390834319f60bf2b7e514ea60a060ac8017",
+    "kernel-library-tests.log": "fe1cedc76aa775c1cbaaa1afb1612481140e6ba6c61ba1debe6fb23c32056b26",
+    "kernel-strict.log": "d2f1f84047cb4045ec075eb69afcdac049960a0ac35915a4983823bb099c54ff"
+  },
+  "scope": "Explicit optional process-local output boundary; independent actual per-Cord sequences; original exactly-one entrance unchanged",
+  "not_proved": [
+    "Mask Back generation test pending",
+    "retained Mask scheduler/value/sign owner",
+    "complete Root preparation memory or physical initialization",
+    "installed graphical Host readiness or Seed deployment"
+  ]
+}
