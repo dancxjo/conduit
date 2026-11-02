@@ -239,7 +239,10 @@ fn prepare_runtime_with_composition(
     // Cold reviewed inventory and compiled contracts belong to preparation,
     // before clients can spend their finite control budget on an interaction.
     trace.run(Phase::Catalogs, crate::plot_source::standard_catalogs)?;
-    if installation.body_state.is_none() && installation.joined_body_state.is_none() {
+    if installation.body_state.is_none()
+        && installation.joined_body_state.is_none()
+        && !super::has_pending_seed(state_dir)?
+    {
         trace.run(Phase::BirthEncounter, || {
             runtime.prepare_birth_encounter(state_dir)
         })?;

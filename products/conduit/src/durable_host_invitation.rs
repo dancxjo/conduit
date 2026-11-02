@@ -376,6 +376,7 @@ pub(super) fn prepare_body_join(
     if !authorize_join {
         return Err("accepting a body invitation requires --authorize-join".into());
     }
+    super::pending_seed::validate_invitation(state_dir, &invitation)?;
     let installation = read_installation(&state_dir.join("installation.json"))?;
     if installation.body_state.is_some() || installation.joined_body_state.is_some() {
         return Err("this installed host already owns or has joined a body".into());

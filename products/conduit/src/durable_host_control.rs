@@ -89,6 +89,8 @@ mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
 mod body_seed_export;
+#[cfg(all(test, unix))]
+pub(crate) mod seed_test_client;
 pub(crate) use body_seed_export::export_owned_seed;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]

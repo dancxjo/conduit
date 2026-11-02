@@ -39,6 +39,7 @@ struct Provision<'a> {
     spore: &'a SporeManifest,
     release_manifest: &'a conduit_host_make::HostReleaseManifest,
     invitation_provision: Invitation<'a>,
+    portable_invitation: &'a PortableInvitation,
 }
 #[derive(Serialize)]
 struct Invitation<'a> {
@@ -105,6 +106,7 @@ pub fn write_joining_host_package<R: Read + Seek>(
             schema: "conduit.spore/native-package-provision@1",
             spore,
             release_manifest: release.manifest(),
+            portable_invitation: invitation,
             invitation_provision: Invitation {
                 invitation_id: invitation.claim.invitation_id.as_str(),
                 nonce: &invitation.claim.nonce,

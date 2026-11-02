@@ -35,6 +35,11 @@ impl DurableHostRuntime {
         root: &Path,
     ) -> Result<(Face, conduit_core::HostAdvertisement), String> {
         refuse_pending_birth_publication(root)?;
+        if crate::durable_host::has_pending_seed(root)? {
+            return Err(
+                "installed Seed awaits its original Body admission; use body accept-seed".into(),
+            );
+        }
         let HostSource::Bare(host) = &self.host else {
             return Err("installed Host already belongs to a Body".into());
         };
@@ -87,6 +92,11 @@ impl DurableHostRuntime {
         interaction: &FaceInteraction,
     ) -> Result<BirthTransition, String> {
         refuse_pending_birth_publication(root)?;
+        if crate::durable_host::has_pending_seed(root)? {
+            return Err(
+                "installed Seed awaits its original Body admission; use body accept-seed".into(),
+            );
+        }
         let HostSource::Bare(host) = &self.host else {
             return Err("installed Host already belongs to a Body".into());
         };

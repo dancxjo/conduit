@@ -417,6 +417,8 @@ fn main() {
                     authorize_join,
                 }),
         }) => durable_host::accept_body_invitation(&invitation, &state_dir, authorize_join),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::AcceptSeed { state_dir, authorize_join }) }) =>
+            durable_host::accept_pending_seed(&state_dir, authorize_join),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Admit {

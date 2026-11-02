@@ -22,6 +22,18 @@ pub fn fixture_for(
     PortableInvitation,
     BTreeMap<String, Vec<u8>>,
 ) {
+    fixture_at(paths, browser, 0)
+}
+pub fn fixture_at(
+    paths: &[&str],
+    browser: bool,
+    now: u64,
+) -> (
+    VerifiedHostReleaseBytes,
+    BuiltSpore,
+    PortableInvitation,
+    BTreeMap<String, Vec<u8>>,
+) {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
     let source = if browser {
@@ -119,8 +131,8 @@ pub fn fixture_for(
         .issue_spawn_invitation(
             SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap(),
             [3; 32],
-            0,
-            10000,
+            now,
+            now + 10000,
         )
         .unwrap();
     let invitation = PortableInvitation {
@@ -141,7 +153,7 @@ pub fn fixture_for(
         },
         &catalog,
         &packages,
-        1,
+        now + 1,
     )
     .unwrap();
     assert_eq!(spore.manifest.source_identity, "sign/original-body-birth");

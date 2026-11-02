@@ -14,6 +14,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod secret_bytes;
+
 const MAXIMUM_PACKAGE_BYTES: usize = 64 * 1024 * 1024;
 const MAXIMUM_FILES: usize = 17;
 const PROVISION_PATH: &str = "conduit-spore.json";
@@ -60,13 +62,18 @@ impl NativePackageInstaller for LocalNativeInstaller {
     ) -> Result<NativeInstallOutcome, NativeInstallRefusal> {
         let prepared = prepare(source, artifact, &self.state_dir)?;
         #[cfg(test)]
-        let result = if self.suppress_service_manager {
-            crate::durable_host::install_without_start(&prepared.manifest, &self.state_dir)
-        } else {
-            crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir)
-        };
+        let start = !self.suppress_service_manager;
         #[cfg(not(test))]
-        let result = crate::durable_host::install_and_activate(&prepared.manifest, &self.state_dir);
+        let start = true;
+        let result = crate::durable_host::install_pending_seed(
+            &prepared.manifest,
+            &self.state_dir,
+            prepared
+                .invitation
+                .as_ref()
+                .ok_or(NativeInstallRefusal::BindingMismatch)?,
+            start,
+        );
         let cleanup = fs::remove_dir_all(&prepared.root);
         self.installed_host = Some(result.map_err(|_| NativeInstallRefusal::InstallationFailed)?);
         cleanup.map_err(|_| NativeInstallRefusal::InstallationFailed)?;
@@ -78,10 +85,27 @@ impl NativePackageInstaller for LocalNativeInstaller {
     }
 }
 
-#[derive(Debug)]
 struct PreparedPackage {
     root: PathBuf,
     manifest: PathBuf,
+    invitation: Option<conduit_body::PortableInvitation>,
+}
+
+impl std::fmt::Debug for PreparedPackage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreparedPackage")
+            .field("root", &self.root)
+            .field("manifest", &self.manifest)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Drop for PreparedPackage {
+    fn drop(&mut self) {
+        if let Some(invitation) = &mut self.invitation {
+            invitation.secret.fill(0);
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -90,7 +114,18 @@ struct Provision {
     spore: NativeSpore,
     invitation_provision: InvitationProvision,
     #[serde(default)]
+    portable_invitation: Option<conduit_body::PortableInvitation>,
+    #[serde(default)]
     release_manifest: Option<conduit_host_make::HostReleaseManifest>,
+}
+
+impl Drop for Provision {
+    fn drop(&mut self) {
+        self.invitation_provision.secret.fill(0);
+        if let Some(invitation) = &mut self.portable_invitation {
+            invitation.secret.fill(0);
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -146,16 +181,18 @@ fn prepare(
     artifact: &BodyBoundArtifactIdentity,
     state_dir: &Path,
 ) -> Result<PreparedPackage, NativeInstallRefusal> {
-    let package = fs::read(source).map_err(|_| NativeInstallRefusal::SourceUnavailable)?;
+    let package = secret_bytes::read(source, MAXIMUM_PACKAGE_BYTES)
+        .map_err(|_| NativeInstallRefusal::SourceUnavailable)?;
+    let package = &package.0;
     if package.is_empty()
         || package.len() > MAXIMUM_PACKAGE_BYTES
         || package.len() as u64 != artifact.artifact_bytes
-        || digest(&package) != artifact.artifact_content_sha256
+        || digest(package) != artifact.artifact_content_sha256
     {
         return Err(NativeInstallRefusal::ContentMismatch);
     }
     let mut entries =
-        read_stored_zip(&package).map_err(|_| NativeInstallRefusal::PackageMalformed)?;
+        read_stored_zip(package).map_err(|_| NativeInstallRefusal::PackageMalformed)?;
     let provision_index = entries
         .iter()
         .position(|entry| entry.name == PROVISION_PATH)
@@ -170,7 +207,12 @@ fn prepare(
     let mut provision = decoded.map_err(|_| NativeInstallRefusal::PackageMalformed)?;
     let validation = validate_provision(&provision, artifact);
     provision.invitation_provision.secret.fill(0);
-    validation.map_err(|_| NativeInstallRefusal::BindingMismatch)?;
+    if validation.is_err() {
+        if let Some(invitation) = &mut provision.portable_invitation {
+            invitation.secret.fill(0);
+        }
+        return Err(NativeInstallRefusal::BindingMismatch);
+    }
     let release = verify_release_manifest(&provision, artifact, &entries)?;
     let parent = state_dir.parent().unwrap_or_else(|| Path::new("."));
     fs::create_dir_all(parent).map_err(|_| NativeInstallRefusal::InstallationFailed)?;
@@ -193,6 +235,7 @@ fn prepare(
         Ok(PreparedPackage {
             root: root.clone(),
             manifest: manifest_path,
+            invitation: provision.portable_invitation.take(),
         })
     })();
     if result.is_err() {
@@ -262,6 +305,20 @@ fn validate_provision(
 ) -> Result<(), String> {
     let spore = &provision.spore;
     let invitation = &provision.invitation_provision;
+    let portable = provision
+        .portable_invitation
+        .as_ref()
+        .ok_or("missing original portable invitation")?;
+    portable.validate(0).map_err(|error| error.to_string())?;
+    if portable.claim.body_id.as_str() != spore.body_id
+        || portable.claim.invitation_id.as_str() != invitation.invitation_id
+        || portable.claim.nonce.as_slice() != invitation.nonce
+        || portable.claim.expires_at_millis != invitation.expires_at_millis
+        || portable.secret.as_slice() != invitation.secret
+    {
+        return Err("portable invitation differs from exact package binding".into());
+    }
+
     if provision.schema != "conduit.spore/native-package-provision@1"
         || spore.schema != "conduit.body/spore-manifest@2"
         || spore.spore_id != artifact.spore_id

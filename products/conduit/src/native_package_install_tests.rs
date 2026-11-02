@@ -65,6 +65,11 @@ pub(crate) fn fixture() -> (Vec<u8>, BodyBoundArtifactIdentity) {
             },
             "source_identity": "sign/original-body-birth"
         },
+        "portable_invitation": {
+            "schema": "conduit.body/spawn-invitation@1",
+            "claim": { "invitation_id": "invitation/one", "body_id": "body/one", "nonce": vec![7_u8; 32], "expires_at_millis": 4_000_000_000_000_u64 },
+            "secret": vec![9_u8; 32]
+        },
         "invitation_provision": {
             "invitation_id": "invitation/one",
             "nonce": vec![7_u8; 32],
@@ -286,4 +291,41 @@ fn artifact_digest_authenticates_make_source_metadata() {
     ));
     assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
     fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn original_seed_invitation_cannot_be_missing_or_diverge_from_zip_binding() {
+    for change in 0..3 {
+        let (package, mut artifact) = fixture();
+        let mut entries = read_stored_zip(&package).unwrap();
+        let entry = entries
+            .iter_mut()
+            .find(|e| e.name == PROVISION_PATH)
+            .unwrap();
+        let mut provision: serde_json::Value = serde_json::from_slice(&entry.bytes).unwrap();
+        match change {
+            0 => {
+                provision
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("portable_invitation");
+            }
+            1 => provision["portable_invitation"]["claim"]["body_id"] = "body/foreign".into(),
+            _ => provision["portable_invitation"]["secret"] = serde_json::json!(vec![91; 32]),
+        }
+        entry.bytes = serde_json::to_vec(&provision).unwrap();
+        let package = stored_zip(&entries);
+        artifact.artifact_bytes = package.len() as u64;
+        artifact.artifact_content_sha256 = digest(&package);
+        let root = test_root(&format!("original-invitation-{change}"));
+        fs::create_dir_all(&root).unwrap();
+        let source = root.join("seed.zip");
+        fs::write(&source, package).unwrap();
+        assert!(matches!(
+            prepare(&source, &artifact, &root.join("state")),
+            Err(NativeInstallRefusal::BindingMismatch)
+        ));
+        assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+        fs::remove_dir_all(root).unwrap();
+    }
 }

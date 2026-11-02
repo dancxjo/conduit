@@ -42,6 +42,10 @@ fn generic_producer_matches_existing_native_parser_and_release_aggregate() {
         raw["invitation_provision"]["rendezvous_candidates"],
         serde_json::json!([])
     );
+    assert_eq!(
+        raw["portable_invitation"],
+        serde_json::to_value(&invitation).unwrap()
+    );
     let provision: Provision = serde_json::from_slice(&provision_bytes).unwrap();
     validate_provision(&provision, &artifact).unwrap();
     for entry in &entries {

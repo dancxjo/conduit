@@ -64,7 +64,9 @@ pub(super) fn complete_body_join_document(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
     }
+    super::pending_seed::validate_completion(state_dir, receipt.credential.body_id.as_str())?;
     persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
+    super::pending_seed::complete(state_dir, receipt.credential.body_id.as_str())?;
     fs::remove_file(&pending_path)
         .map_err(|error| format!("consume pending Body join: {error}"))?;
     Ok(())

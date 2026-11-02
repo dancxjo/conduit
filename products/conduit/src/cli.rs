@@ -464,6 +464,13 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_join: bool,
     },
+    /// Request admission using this freshly installed Seed's original invitation.
+    AcceptSeed {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_join: bool,
+    },
     /// Accept one bounded invitation on this installed host and emit an admission request.
     #[command(hide = true)]
     Accept {
@@ -949,3 +956,7 @@ mod seed_export_tests;
 #[cfg(test)]
 #[path = "cli/browser_window_tests.rs"]
 mod browser_window_tests;
+
+#[cfg(test)]
+#[path = "cli/seed_accept_tests.rs"]
+mod seed_accept_tests;

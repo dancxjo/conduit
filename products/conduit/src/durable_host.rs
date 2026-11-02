@@ -53,6 +53,10 @@ pub(crate) mod selected_speech;
 #[path = "durable_host/selected_todo.rs"]
 mod selected_todo;
 
+#[path = "durable_host/pending_seed.rs"]
+mod pending_seed;
+pub(crate) use pending_seed::{accept_pending_seed, has_pending_seed, install_pending_seed};
+
 #[path = "durable_host_invitation.rs"]
 mod invitation;
 #[path = "durable_host_membership.rs"]
