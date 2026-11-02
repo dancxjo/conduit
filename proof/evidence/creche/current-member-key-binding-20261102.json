@@ -19,5 +19,9 @@
     "physical new Boot return",
     "graphical Seed or Face deployment"
   ],
-  "dependency_cache_revalidation": "Pending fresh-checkout revalidation: later dependent Mask build found stale interfaces after shared Cargo target switched checkouts. Owning test logs remain retained; exact dependency source must be revalidated before broader integration claims."
+  "dependency_cache_revalidation": "Fresh checkout-isolated complete Body suite: 51 passed; Body/kernel strict library/tests passed.",
+  "fresh_log_sha256": {
+    "fresh-body-kernel-library-tests.log": "ddf7336105cfb4c2f90db860e04373771a5a5fd8f3bcb41d229ec6eee6525ba0",
+    "fresh-body-kernel-strict.log": "98d1f91023ba2c8418f4dcbda844848e2f9787ad11654fb017e606b1c3288107"
+  }
 }
