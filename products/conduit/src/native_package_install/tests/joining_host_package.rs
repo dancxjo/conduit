@@ -19,10 +19,10 @@ fn generic_producer_matches_existing_native_parser_and_release_aggregate() {
     )
     .unwrap();
     let artifact = BodyBoundArtifactIdentity {
-        target_id: spore.target.clone(),
-        image_id: spore.image_id.clone(),
+        target_id: spore.manifest.target.clone(),
+        image_id: spore.manifest.image_id.clone(),
         image_content_sha256: result.image_content_sha256,
-        spore_id: spore.spore_id.clone(),
+        spore_id: spore.manifest.spore_id.clone(),
         artifact_content_sha256: result.artifact_content_sha256,
         artifact_bytes: result.artifact_bytes,
     };

@@ -1,8 +1,14 @@
-//! Synthetic finite release bytes; no target boot or admission authority claim.
-use conduit_body::{PortableInvitation, SpawnInvitationClaim, INVITATION_SCHEMA};
-use conduit_body_make::SporeManifest;
+//! Synthetic payloads with ordinary Make construction and same-Body sealing.
+//! No executable target, deployment, Boot or membership claim.
+use conduit_body::{
+    AdmissionManager, Body, BodyBiographyEvidence, BodyMembership, PortableInvitation,
+    SpawnInvitationSecret, INVITATION_SCHEMA,
+};
+use conduit_body_make::{seal_joining_host_release, BuiltSpore, JoiningReleaseSelection};
 use conduit_host_make::{
-    verify_host_release_bytes, HostReleaseBounds, ReleaseTargetProfile, VerifiedHostReleaseBytes,
+    build_host_image, check_host_configuration, parse_host_configuration_conduit,
+    verify_host_release_bytes, BuildInputs, HostReleaseBounds, ReleaseTargetProfile,
+    SporeOutputKind, VerifiedHostReleaseBytes,
 };
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, io::Cursor};
@@ -12,17 +18,41 @@ pub fn fixture_for(
     browser: bool,
 ) -> (
     VerifiedHostReleaseBytes,
-    SporeManifest,
+    BuiltSpore,
     PortableInvitation,
     BTreeMap<String, Vec<u8>>,
 ) {
-    let target = if browser {
-        "browser/wasm32/page"
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let source = if browser {
+        include_str!("../../../../targets/browser/profiles/browser-page.host.conduit")
     } else {
-        "linux/x86_64/computer"
+        include_str!("../../../../targets/std/profiles/linux-computer.host.conduit")
     };
-    let package = if browser { "browser@1" } else { "linux@1" };
+    let configuration = check_host_configuration(
+        parse_host_configuration_conduit(source).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
     let output = if browser {
+        SporeOutputKind::BrowserBundle
+    } else {
+        SporeOutputKind::NativeBundle
+    };
+    let (image, image_manifest) = build_host_image(
+        configuration.profile().clone(),
+        &catalog,
+        &packages,
+        &output,
+        &BuildInputs {
+            source_identity: "source/prior-reviewed-make".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    let m = &image.manifest;
+    let output_name = if browser {
         "browser-bundle"
     } else {
         "native-bundle"
@@ -40,7 +70,7 @@ pub fn fixture_for(
             )
         })
         .collect();
-    let files = payloads.iter().map(|(path,bytes)|serde_json::json!({"path":path,"bytes":bytes.len(),"sha256":format!("sha256:{:x}",Sha256::digest(bytes)),"media_type":if path.starts_with("install") {"text/x-shellscript"}else{"application/vnd.conduit.host+executable"}})).collect::<Vec<_>>();
+    let files=payloads.iter().map(|(path,bytes)|serde_json::json!({"path":path,"bytes":bytes.len(),"sha256":format!("sha256:{:x}",Sha256::digest(bytes)),"media_type":if path.starts_with("install") {"text/x-shellscript"}else{"application/vnd.conduit.host+executable"}})).collect::<Vec<_>>();
     let mut aggregate = Sha256::new();
     aggregate.update(b"conduit.release/host-bundle-content@1\0");
     for file in &files {
@@ -50,17 +80,17 @@ pub fn fixture_for(
         aggregate.update(b"\n");
     }
     let bundle = format!("sha256:{:x}", aggregate.finalize());
-    let manifest = serde_json::json!({"schema":"conduit.release/host-bundle@1","target_id":target,"make_package_id":package,"output":output,"builder_adapter":"bind@1","deployment_adapter":"install@1","source_identity":"source/reviewed","bundle_sha256":bundle,"files":files});
+    let manifest = serde_json::json!({"schema":"conduit.release/host-bundle@1","target_id":m.target,"make_package_id":m.make_package_id,"output":output_name,"builder_adapter":m.builder_adapter,"deployment_adapter":m.deployment_adapter,"source_identity":m.source_identity,"bundle_sha256":bundle,"files":files});
     let verified = verify_host_release_bytes(
         &serde_json::to_vec(&manifest).unwrap(),
         &ReleaseTargetProfile {
-            target_id: target,
-            package_id: package,
-            output,
-            builder_adapter: "bind@1",
-            deployment_adapter: "install@1",
+            target_id: &m.target,
+            package_id: &m.make_package_id,
+            output: output_name,
+            builder_adapter: &m.builder_adapter,
+            deployment_adapter: m.deployment_adapter.as_deref().unwrap(),
         },
-        "source/reviewed",
+        &m.source_identity,
         HostReleaseBounds {
             maximum_manifest_bytes: 65536,
             maximum_files: 32,
@@ -71,24 +101,66 @@ pub fn fixture_for(
         || false,
     )
     .unwrap();
-    let spore=serde_json::from_value(serde_json::json!({
-        "schema":"conduit.body/spore-manifest@2","spore_id":"spore/test","body_id":"body/test","binding":{"mode":"self-joining","invitation_id":"invite/test"},"body_description_id":"description/test","host_entry_name":"joining","host_configuration_id":"configuration/test","profile_id":"profile/test","build_id":"build/test","image_id":"image/test","image_content_digest":bundle,"target":target,"output":output,"source_identity":"source/reviewed",
-        "make":{"make_package_id":package,"make_package_revision":1,"toolchain_identity":"toolchain/test","builder_adapter":"bind@1","strategy":"bind-reviewed-superset","deployment_adapter":"install@1","post_build_actions":[],"output":output,"maxima":{"static_memory_bytes":1,"heap_arena_bytes":1,"queue_items":1,"buffered_bytes":1,"active_instances":1,"operation_slots":1,"timer_slots":1,"line_sessions":1,"evidence_items":1},"features":[],"selected_base_implementations":[],"implementation_packages":[]}
-    })).unwrap();
+    let body = Body::born(
+        "source/authoring".into(),
+        "checked/authoring".into(),
+        0,
+        "sign/original-body-birth".into(),
+    )
+    .unwrap();
+    let biography = BodyBiographyEvidence::born(
+        body.clone(),
+        BodyMembership::new(body.body_id.clone()).unwrap(),
+        "Existing package fixture Body".into(),
+    )
+    .unwrap();
+    let issued = AdmissionManager::new(body.body_id)
+        .unwrap()
+        .issue_spawn_invitation(
+            SpawnInvitationSecret::from_csprng_bytes([7; 32]).unwrap(),
+            [3; 32],
+            0,
+            10000,
+        )
+        .unwrap();
     let invitation = PortableInvitation {
         schema: INVITATION_SCHEMA.into(),
-        claim: SpawnInvitationClaim {
-            invitation_id: serde_json::from_value(serde_json::json!("invite/test")).unwrap(),
-            body_id: serde_json::from_value(serde_json::json!("body/test")).unwrap(),
-            nonce: [3; 32],
-            expires_at_millis: 10000,
-        },
-        secret: [7; 32],
+        claim: issued.claim(),
+        secret: issued.secret.copy_for_target_provisioning(),
         rendezvous: None,
     };
+    let spore = seal_joining_host_release(
+        JoiningReleaseSelection {
+            body: &biography,
+            invitation: &invitation.claim,
+            configuration: &configuration,
+            output,
+            image: &image,
+            image_manifest: &image_manifest,
+            release: &verified,
+        },
+        &catalog,
+        &packages,
+        1,
+    )
+    .unwrap();
+    assert_eq!(spore.manifest.source_identity, "sign/original-body-birth");
+    assert_ne!(
+        spore.manifest.source_identity,
+        spore.image.manifest.source_identity
+    );
     (verified, spore, invitation, payloads)
 }
-
+pub fn fixture(
+    paths: &[&str],
+) -> (
+    VerifiedHostReleaseBytes,
+    BuiltSpore,
+    PortableInvitation,
+    BTreeMap<String, Vec<u8>>,
+) {
+    fixture_for(paths, false)
+}
 pub fn routed(invitation: &mut PortableInvitation) {
     invitation.schema = conduit_body::ROUTED_INVITATION_SCHEMA.into();
     invitation.rendezvous = Some(conduit_body::SpawnRendezvousDescriptor {
@@ -108,15 +180,4 @@ pub fn routed(invitation: &mut PortableInvitation) {
             attempt_timeout_millis: 4000,
         }],
     });
-}
-
-pub fn fixture(
-    paths: &[&str],
-) -> (
-    VerifiedHostReleaseBytes,
-    SporeManifest,
-    PortableInvitation,
-    BTreeMap<String, Vec<u8>>,
-) {
-    fixture_for(paths, false)
 }

@@ -66,7 +66,7 @@ fn changed_missing_extra_and_expired_inputs_never_produce_receipts() {
         )
         .is_err());
     }
-    spore.body_id = "body/foreign".into();
+    spore.manifest.body_id = "body/foreign".into();
     assert!(write_joining_host_package(
         &release,
         &spore,
@@ -77,7 +77,7 @@ fn changed_missing_extra_and_expired_inputs_never_produce_receipts() {
         || false
     )
     .is_err());
-    spore.body_id = "body/test".into();
+    spore.manifest.body_id = invitation.claim.body_id.as_str().into();
     invitation.claim.expires_at_millis = 1;
     assert!(write_joining_host_package(
         &release,
@@ -243,7 +243,7 @@ fn browser_bundle_uses_same_package_format_and_exact_output_correspondence() {
         .unwrap();
     child.stdin.take().unwrap().write_all(&bytes).unwrap();
     assert!(child.wait().unwrap().success());
-    spore.make.output = conduit_host_make::SporeOutputKind::NativeBundle;
+    spore.manifest.make.output = conduit_host_make::SporeOutputKind::NativeBundle;
     assert!(write_joining_host_package(
         &release,
         &spore,
@@ -254,4 +254,63 @@ fn browser_bundle_uses_same_package_format_and_exact_output_correspondence() {
         || false
     )
     .is_err());
+}
+
+#[test]
+fn original_birth_provenance_and_artifact_source_remain_distinct() {
+    let (release, mut spore, invitation, payloads) = common::fixture(&["conduit"]);
+    assert_eq!(spore.manifest.source_identity, "sign/original-body-birth");
+    assert_eq!(
+        spore.image.manifest.source_identity,
+        "source/prior-reviewed-make"
+    );
+    write_joining_host_package(
+        &release,
+        &spore,
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false,
+    )
+    .unwrap();
+    // Re-encode the mutated IMAGE so byte-correspondence alone cannot hide a
+    // mismatch between the selected release and its Make source identity.
+    spore.image.manifest.source_identity = "source/foreign-artifact".into();
+    spore.image_bytes = serde_json::to_vec(&spore.image).unwrap();
+    let mut output = Vec::new();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut output,
+        || false
+    )
+    .is_err());
+    assert!(output.is_empty());
+}
+
+#[test]
+fn oversized_image_metadata_refuses_before_payload_open_or_write() {
+    let (release, mut spore, invitation, _) = common::fixture(&["conduit"]);
+    spore.image_bytes = vec![b' '; 1024 * 1024 + 1];
+    let opened = Cell::new(false);
+    let mut output = Vec::new();
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &invitation,
+        1,
+        |_| {
+            opened.set(true);
+            Ok(Cursor::new(Vec::new()))
+        },
+        &mut output,
+        || false
+    )
+    .is_err());
+    assert!(!opened.get());
+    assert!(output.is_empty());
 }

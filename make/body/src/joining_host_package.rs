@@ -2,7 +2,7 @@
 //! owner-issued invitation. This grants no admission and performs no transport.
 //! The caller owns authorized source opening and private staging, discards all
 //! partial output on error, and validates target-specific IMAGE semantics first.
-use crate::{SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
+use crate::{BuiltSpore, SporeBinding, SporeManifest, SPORE_MANIFEST_SCHEMA};
 use conduit_body::PortableInvitation;
 use conduit_host_make::{SporeOutputKind, VerifiedHostReleaseBytes};
 use serde::Serialize;
@@ -85,14 +85,15 @@ struct Entry {
 #[allow(clippy::too_many_arguments)]
 pub fn write_joining_host_package<R: Read + Seek>(
     release: &VerifiedHostReleaseBytes,
-    spore: &SporeManifest,
+    built: &BuiltSpore,
     invitation: &PortableInvitation,
     now_millis: u64,
     mut open: impl FnMut(&str) -> Result<R, String>,
     output: &mut impl Write,
     mut cancelled: impl FnMut() -> bool,
 ) -> Result<JoiningHostPackageReceipt, String> {
-    check_binding(release, spore, invitation, now_millis)?;
+    check_binding(release, built, invitation, now_millis)?;
+    let spore = &built.manifest;
     check_cancel(&mut cancelled)?;
     let mut provision = SecretBytes(Vec::new());
     serde_json::to_writer(
@@ -220,11 +221,18 @@ pub fn write_joining_host_package<R: Read + Seek>(
 
 fn check_binding(
     release: &VerifiedHostReleaseBytes,
-    spore: &SporeManifest,
+    built: &BuiltSpore,
     invitation: &PortableInvitation,
     now: u64,
 ) -> Result<(), String> {
+    if built.image_bytes.is_empty() || built.image_bytes.len() > 1024 * 1024 {
+        return Err("native ZIP selected IMAGE manifest exceeds its finite bound".into());
+    }
     let manifest = release.manifest();
+    let spore = &built.manifest;
+    let image = &built.image.manifest;
+    conduit_host_make::verify_image_binding(&built.image, &built.image_bytes)
+        .map_err(|_| "native ZIP selected IMAGE bytes differ from their binding")?;
     if manifest.files.is_empty()
         || manifest.files.len() >= MAX_FILES
         || manifest.files.iter().any(|f| f.path == PROVISION)
@@ -237,7 +245,24 @@ fn check_binding(
         )
         || spore.image_content_digest != release.image_content_digest()
         || spore.target != manifest.target_id
-        || spore.source_identity != manifest.source_identity
+        // Construction/Birth Sign provenance belongs to the Spore; artifact
+        // source provenance belongs to the underlying Make IMAGE.
+        || spore.source_identity.is_empty()
+        || image.source_identity != manifest.source_identity
+        || spore.image_id != image.image_id
+        || spore.profile_id != image.profile_id
+        || spore.build_id != image.build_id
+        || spore.host_configuration_id != image.source_configuration_id.as_deref().unwrap_or_default()
+        || spore.target != image.target
+        || spore.output != image.output
+        || spore.make.make_package_id != image.make_package_id
+        || spore.make.make_package_revision != image.make_package_revision
+        || spore.make.toolchain_identity != image.toolchain_identity
+        || spore.make.strategy != image.make_strategy
+        || spore.make.builder_adapter != image.builder_adapter
+        || spore.make.deployment_adapter != image.deployment_adapter
+        || spore.make.post_build_actions != image.post_build_actions
+        || spore.make.implementation_packages != image.implementation_packages
         || spore.make.make_package_id != manifest.make_package_id
         || spore.make.builder_adapter != manifest.builder_adapter
         || spore.make.deployment_adapter.as_deref() != Some(manifest.deployment_adapter.as_str())

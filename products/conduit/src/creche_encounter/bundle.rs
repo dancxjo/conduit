@@ -10,8 +10,8 @@ use std::{
 };
 
 enum Image {
-    Native(VerifiedHostReleaseBytes),
-    Browser(VerifiedBrowserBundleImage),
+    Native(Box<VerifiedHostReleaseBytes>),
+    Browser(Box<VerifiedBrowserBundleImage>),
 }
 /// Actual opened payloads remain owned until production/drain. A verified
 /// inventory alone is not a package and cannot substitute for these bytes.
@@ -26,14 +26,14 @@ impl CrecheReviewedBundle {
         files: BTreeMap<String, File>,
         directory: PathBuf,
     ) -> Result<Self, String> {
-        Self::new(Image::Native(release), files, directory)
+        Self::new(Image::Native(Box::new(release)), files, directory)
     }
     pub fn browser(
         image: VerifiedBrowserBundleImage,
         files: BTreeMap<String, File>,
         directory: PathBuf,
     ) -> Result<Self, String> {
-        Self::new(Image::Browser(image), files, directory)
+        Self::new(Image::Browser(Box::new(image)), files, directory)
     }
     fn new(
         image: Image,
@@ -192,7 +192,7 @@ impl CrecheReviewedBundle {
         }
         let receipt = conduit_body_make::write_joining_host_package(
             self.release(),
-            &spore.manifest,
+            &spore,
             &binding.invitation,
             clock()?,
             |name| self.open(name),

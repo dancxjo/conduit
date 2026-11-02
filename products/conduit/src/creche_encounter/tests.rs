@@ -182,7 +182,12 @@ fn checked_configuration_is_not_prepared_and_production_is_once_only() {
             }
         }
     };
-    assert_eq!(outcome.disposition, CrecheDisposition::Prepared);
+    assert_eq!(
+        outcome.disposition,
+        CrecheDisposition::Prepared,
+        "{}",
+        String::from_utf8_lossy(adapter.retained_evidence(&outcome).unwrap())
+    );
     assert!(!adapter.retained_evidence(&outcome).unwrap().is_empty());
     let mut products = controller.take_products().unwrap().unwrap();
     bundle_common::assert_seed_package(
