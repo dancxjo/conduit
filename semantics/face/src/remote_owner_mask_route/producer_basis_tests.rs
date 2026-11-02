@@ -127,7 +127,19 @@ fn exact_plot_producer_requires_current_body_play_and_host_fragment() {
         active_play_id: Some(current.play.as_ref().unwrap().active_play_id.clone()),
         sign_ids: vec![],
     };
-    let face = Face::new(1, basis, vec![], vec![], vec![], vec![]).unwrap();
+    let face = Face::new(
+        1,
+        basis,
+        vec![crate::FaceSubject {
+            identity: "plot/producer".into(),
+            role: crate::FaceRole::Plot,
+            name: "Producer".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap();
     let owner = HostAdvertisement {
         declared_name: None,
         protocol_version: PROTOCOL_VERSION,
