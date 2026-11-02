@@ -83,6 +83,10 @@ fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play()
         &mut output
     )
     .is_err());
+    assert!(
+        output.initialized_display().unwrap().is_live(),
+        "deterministic pool refusal precedes exclusive physical custody"
+    );
     let mut host = StdHost::from_native_mask_diagnostic(
         config(),
         &image,

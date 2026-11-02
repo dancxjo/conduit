@@ -66,6 +66,26 @@ impl StdHost {
         if checked.configuration_id() != parameters.configuration_id() {
             return Err("selected native Mask parameters belong to another Source".into());
         }
+        // Deterministic store/budget refusals precede exclusive physical claim.
+        // Once claimed, dropping a failed owner correctly revokes that Scanout;
+        // it must never be silently reattached after uncertain retirement.
+        let (kernel, raster) = SelectedNativeMaskBase::required_bytes(
+            parameters.scanout().width(),
+            parameters.scanout().height(),
+        )?;
+        let fixed = kernel
+            .checked_add(raster)
+            .ok_or("selected native fixed store overflow")?;
+        if fixed > parameters.memory().slots as usize {
+            return Err("selected native Mask fixed stores exceed declared runtime pool".into());
+        }
+        let heap = fixed
+            .checked_add(output.cpu_backing_bytes())
+            .and_then(|bytes| bytes.checked_add(ImageMemoryLease::owned_backing_bytes()))
+            .ok_or("selected native fixed IMAGE heap overflow")?;
+        if heap as u64 > image.manifest.bounds.heap_arena_bytes {
+            return Err("selected native Mask fixed stores exceed declared IMAGE heap".into());
+        }
         let initialized = output.initialized_display()?;
         #[cfg(test)]
         let prepared = if diagnostic {
