@@ -1,0 +1,41 @@
+{
+  "schema": "conduit.proof/selected-native-seed-preparation@1",
+  "source_checkpoint": "03281644ffa7bc3e3d97af2bbe95b443f7c515e1",
+  "scope": "qualified local source, real SDL software CPU Shows and installed-process TLS admission; no physical graphical Seed or HDMI claim",
+  "checks": {
+    "changed_exact_plan_cpu_show": 1,
+    "std_library_and_tests_strict": true,
+    "browser_first_readonly_show_ack_and_action_refusal": 1,
+    "actual_logical_line_binding_and_malformed_frame_refusal": 1,
+    "explicit_native_wardrobe_selection": 1,
+    "bounded_document_tests": 3,
+    "native_product_binary_and_tests_strict": true,
+    "actual_tls_listener_cleanup_tests": 2,
+    "two_installed_processes_original_invitation_join": 1,
+    "threebee_1024x600_configuration_valid": true
+  },
+  "log_sha256": {
+    "native-selected-replan-tests.log": "a0e97dd119616cd07660247cd9ed6b44a3d11008860c896c674494e16cc63203",
+    "native-selected-replan-strict.log": "6d0d78e2a13e693678908ffbddca29035eabbf4c2e74fdac50c9d9daa5d45e64",
+    "native-owner-browser-readonly-tests.log": "cd40da74557dcc16006fcf3e8b040ff7654c6934d5eb1603b4e22a7efc151b14",
+    "native-logical-lines-tests.log": "ee3445174cc1ca78c0f8e7db62b800ae5602e3415bb69fcdd270f34f43ca58bc",
+    "native-owner-explicit-selection-tests.log": "806b5deebd6c572686a86316ab4e8835d0a9e3dbcdcd89d74e9ae91dd8ad9341",
+    "native-complete-document-tests.log": "6e79ca627fa48456f6738aef563f483bb257b95308d076c2d4da8ab1319de17d",
+    "native-owner-final-strict.log": "ba847c5de2e6e67998dcd9c218ee18e1da8db64d72d403626159320363c69094",
+    "native-original-route-unit-tests.log": "05cdaef851df396178c10e66ee05d469d0c0aa95f6286f195da6ac62e2bbfda9",
+    "native-original-route-process-fixed-test.log": "481e9395418316ed4a1e8d2607a1cef7c8bfb1bf560c8a7b1783d9b84e56dfd6",
+    "threebee-native-host-check.json": "b336be297f2d57ce9fd5010cd89962d74d15bdb7c29b2bb8dfa23f4d814d98ac"
+  },
+  "proof_boundaries": [
+    "Earlier local cases are reused at their original integration checkpoint; this is not one all-workspace run on source_checkpoint.",
+    "The two-process join was qualified on the integrator; PR6724 extraction has its own Candidate gate.",
+    "Managed backing excludes SDL/GPU memory, stack, allocator overhead, other Root owners and whole preparation peak/RSS."
+  ],
+  "not_proved": [
+    "AArch64 feature-selected executable and Body-made graphical Seed",
+    "physical KMSDRM/HDMI pixels",
+    "returning-member reconnect and continuous owner refresh",
+    "all MCU and browser Hosts joined into Hamm Creek House",
+    "shared environmental recording/history and generic graphs"
+  ]
+}

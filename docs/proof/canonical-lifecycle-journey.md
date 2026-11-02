@@ -604,3 +604,18 @@ Raw logs remain under ignored `target/native-service-qualification-20261102/`.
 No graphical Seed, AArch64 feature-selected executable, physical HDMI Show,
 returning-member reconnection, unified sensor history or new screenshot is
 claimed. Threebee's timer Seed and separate old display remain unchanged.
+
+Subsequent qualification corrected that adapter mismatch: complete logical
+Standard documents remain 64 KiB, while the existing physical chunks remain
+8,178 bytes. The actual offer-to-Fore binding and malformed-frame refusal pass;
+three bounded-document cases include exact-capacity assembly with the hosted
+receiver's actual bounds. Browser-first read-only native selection accepts its
+Show acknowledgment and rejects forged actions. The existing fuller native
+wardrobe/expiry case and final native-feature product binary/tests strict checks
+also pass. A stale test assumption about wardrobe revision zero was updated to
+account for the now-explicit selection; the stale-revision refusal remains.
+Threebee's checked 1024×600 equipment Source is
+`targets/std/profiles/raspberry-pi-3-native-mask.host.conduit`, with an explicit
+8 MiB runtime pool and unchanged 64 MiB IMAGE heap bound. This remains checked
+construction intent, not initialized target equipment. Compact log provenance
+is in `proof/evidence/creche/selected-native-seed-preparation-20261102.json`.
