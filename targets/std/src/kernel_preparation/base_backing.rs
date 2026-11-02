@@ -28,6 +28,18 @@ impl BaseBackingReservation {
                     && pool.used_units >= self.binding.units
             })
     }
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn matches_registry(&self, registry: &BaseRegistry) -> bool {
+        registry.entries().iter().any(|entry| {
+            entry.provider_instance_id == self.base
+                && entry.provider_generation == self.generation
+                && entry.resources.iter().any(|pool| {
+                    pool.pool_id == self.binding.pool_id
+                        && pool.class_id == self.binding.class_id
+                        && pool.capacity_units >= self.binding.units
+                })
+        })
+    }
     pub(crate) fn bytes(&self) -> u32 {
         self.binding.units
     }

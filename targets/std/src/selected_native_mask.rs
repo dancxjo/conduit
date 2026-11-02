@@ -415,7 +415,7 @@ impl StdHost {
         let owner = evidence
             .as_ref()
             .ok_or("native Mask evidence custody absent")?;
-        if !owner.matches_ledger(&self.kernel_resources) {
+        if !owner.matches_host(self) {
             return Err(
                 "native Mask evidence belongs to another Host/Boot/ledger; custody retained".into(),
             );

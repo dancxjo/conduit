@@ -111,8 +111,9 @@ impl SelectedNativeMaskEvidence {
     pub fn possession(&self) -> &NativeSurfacePossessionReceipt {
         &self.frame.possession
     }
-    pub(super) fn matches_ledger(&self, ledger: &KernelResourceLedger) -> bool {
-        self.frame.pool.matches_ledger(ledger)
+    pub(super) fn matches_host(&self, host: &StdHost) -> bool {
+        self.frame.pool.matches_ledger(&host.kernel_resources)
+            && self.frame.pool.matches_registry(&host.base_registry)
     }
     pub(super) fn retire(self, ledger: &mut KernelResourceLedger) -> Result<(), String> {
         let Self { evidence, frame } = self;
