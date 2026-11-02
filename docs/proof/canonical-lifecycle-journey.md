@@ -354,3 +354,22 @@ The existing native installer also reconstructs release `source_identity` from
 the Spore source. Its format-reader success does not prove correct installed
 artifact-source reporting. Keep that downstream correction separate from a
 claim of browser Boot or Body membership; neither is demonstrated here.
+
+## Qualified installed bundle production — 2 November UTC
+
+Source `6fb46b7eab` corrects the identity refusal using the complete BuiltSpore:
+its Body Birth Sign remains unchanged, while the verified Make IMAGE supplies
+artifact provenance. Actual opened payloads are retained, reverified into the
+private ZIP, and bounded separately from the completion evidence. Eight
+package tests and eight Crèche adapter tests pass. The real thirteen-file
+browser bundle initializes through the selected Host Base successfully.
+Ordinary Owner/kernel, release-binding, hosted-Make and existing native-reader
+checks pass; strict library/binary/test Clippy and formatting pass. Exact logs
+and sequencing are recorded in
+`proof/evidence/creche/installed-bundle-production-20261102.json`.
+
+This is CPU/software and actual-input proof, not live service deployment,
+attended Show, browser Boot or membership. The next real boundary is exporting
+the owner's retained unlinked ZIP through the existing authenticated carrier
+mechanism, followed by the ordinary live authoring journey. Native installer
+provenance remains a distinct known limitation. The full goal remains open.
