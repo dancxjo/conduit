@@ -133,6 +133,7 @@ mod microphone_fixture {
         fs::remove_file(state.join("fixture-arecord.observed")).unwrap();
         let selected = selection(&executable, &discovery.observations[0].base_identity);
         selected.validate().unwrap();
+        assert!(selected.require_image_initialization(true).is_err());
         let configuration_path = state.join("microphone.host.conduit");
         fs::write(&configuration_path, &selected.source).unwrap();
         configure(&state, Some(&configuration_path), false).unwrap();
@@ -276,6 +277,7 @@ fn retained_scanout_intent_is_checked_but_never_treated_as_initialized_timer() {
     assert_eq!(parameters.configuration_id(), selected.configuration_id());
     assert_eq!((parameters.width(), parameters.height()), (1024, 600));
     assert!(selected.require_timer_image_initialization().is_err());
+    assert!(selected.require_image_initialization(true).is_ok());
     // Parsing and retention validation cannot upgrade intent into a Ready Base.
     let encoded = serde_json::to_string(&selected).unwrap();
     let reopened: Selection = serde_json::from_str(&encoded).unwrap();
