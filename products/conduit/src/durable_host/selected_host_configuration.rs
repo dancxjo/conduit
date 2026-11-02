@@ -212,6 +212,11 @@ fn check(source: &str) -> Result<CheckedHostConfiguration, String> {
                 Some(conduit_std_offers::WHISPER_CLIP_SPEECH_IMPLEMENTATION) => {
                     recognition::validate(initialization)?;
                 }
+                Some("display/linear-framebuffer@1") => {
+                    conduit_workspace_make::CheckedScanoutInitialization::from_configuration(
+                        &checked,
+                    )?;
+                }
                 _ => return Err("checked Base has no installed initialization adapter".into()),
             }
         }

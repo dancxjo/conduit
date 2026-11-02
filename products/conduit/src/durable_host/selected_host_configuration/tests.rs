@@ -262,3 +262,30 @@ fn checked_declaration_name_reaches_fresh_installed_offer_without_identity_chang
     assert_eq!(after.resources, before.resources);
     assert_eq!(after.offer_generation.0, before.offer_generation.0 + 1);
 }
+
+#[test]
+fn retained_scanout_intent_is_checked_but_never_treated_as_initialized_timer() {
+    let source = SOURCE.replace("  limits =", r#"  base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1", initialization: {backend: "KMSDRM", width: 1024, height: 600}}
+  need = {id: "display/main", class: "face/surface", slots: 1, bytes: 2457600}
+  limits ="#);
+    let selected = Selection::from_source(&source, "std/x86_64/computer").unwrap();
+    selected.validate().unwrap();
+    let checked = selected.checked().unwrap();
+    let parameters =
+        conduit_workspace_make::CheckedScanoutInitialization::from_configuration(&checked).unwrap();
+    assert_eq!(parameters.configuration_id(), selected.configuration_id());
+    assert_eq!((parameters.width(), parameters.height()), (1024, 600));
+    assert!(selected.require_timer_image_initialization().is_err());
+    // Parsing and retention validation cannot upgrade intent into a Ready Base.
+    let encoded = serde_json::to_string(&selected).unwrap();
+    let reopened: Selection = serde_json::from_str(&encoded).unwrap();
+    reopened.validate().unwrap();
+    assert_eq!(reopened, selected);
+    for invalid in [
+        source.replace("KMSDRM", "dummy"),
+        source.replace("width: 1024, ", ""),
+        source.replace("width: 1024", "width: 4096"),
+    ] {
+        assert!(Selection::from_source(&invalid, "std/x86_64/computer").is_err());
+    }
+}
