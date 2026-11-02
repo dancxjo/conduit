@@ -270,6 +270,7 @@ fn additional_resources_cannot_hide_duplicate_show_or_invalid_inventory() {
     assert_eq!((output.writes, output.commits), (0, 0));
 }
 
+#[cfg(feature = "native-compositor-core")]
 #[test]
 fn multi_resource_provider_completes_actual_cpu_mask_scanout() {
     use crate::native_face_mask::NativeFaceMask;
