@@ -19,5 +19,6 @@
     "retained Mask scheduler/value/sign owner",
     "complete Root preparation memory or physical initialization",
     "installed graphical Host readiness or Seed deployment"
-  ]
+  ],
+  "dependency_cache_revalidation": "Pending fresh-checkout revalidation: later dependent Mask build found stale interfaces after shared Cargo target switched checkouts. Owning test logs remain retained; exact dependency source must be revalidated before broader integration claims."
 }
