@@ -39,17 +39,19 @@ pub(super) fn build(
             Command::new("aarch64-linux-gnu-gcc").arg("--version"),
             "AArch64 C linker",
         )?;
-        require_success(
-            Command::new("aarch64-linux-gnu-g++").arg("--version"),
-            "AArch64 C++ compiler",
-        )?;
+        if target.cxx {
+            require_success(
+                Command::new("aarch64-linux-gnu-g++").arg("--version"),
+                "AArch64 C++ compiler",
+            )?;
+        }
     }
     require_success(&mut command, "compile checked native Host closure")?;
     verify_source(source_identity)?;
     fs::create_dir_all(output)?;
     copy(
         cargo_release_artifact(target.rust_target, "conduit"),
-        output.join(target.executable),
+        &output.join(target.executable),
     )?;
     seal(
         output,
@@ -102,6 +104,7 @@ struct NativeTarget {
     rust_target: Option<&'static str>,
     executable: &'static str,
     cross: bool,
+    cxx: bool,
 }
 impl NativeTarget {
     fn select(target: &str, selection: &MakeBuildSelection) -> Result<Self, String> {
@@ -119,12 +122,17 @@ impl NativeTarget {
         }
         let value = match (target, selection.builder_adapter.as_str(), selection.toolchain_identity.as_str()) {
             ("std/x86_64/computer", "conduit-host-hosted/build-native@1", "rustc:1.98.1") => Self {
-                rust_target: Some("x86_64-unknown-linux-gnu"), executable: "conduit-linux-x86_64", cross: false,
+                rust_target: Some("x86_64-unknown-linux-gnu"), executable: "conduit-linux-x86_64", cross: false, cxx: false,
             },
-            ("std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3" | "std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb",
+            ("std/aarch64/raspberry-pi-3-model-b-plus-rev-1.3",
+             "conduit-host-raspberry-pi/build-raspios-native@1",
+             "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu") => Self {
+                rust_target: Some("aarch64-unknown-linux-gnu"), executable: "conduit-linux-aarch64", cross: true, cxx: false,
+            },
+            ("std/aarch64/raspberry-pi-5-model-b-rev-1.1-8gb",
              "conduit-host-raspberry-pi/build-raspios-native@1",
              "rustc:1.98.1+aarch64-unknown-linux-gnu+gcc-aarch64-linux-gnu+g++-aarch64-linux-gnu+libc6-dev-arm64-cross") => Self {
-                rust_target: Some("aarch64-unknown-linux-gnu"), executable: "conduit-linux-aarch64", cross: true,
+                rust_target: Some("aarch64-unknown-linux-gnu"), executable: "conduit-linux-aarch64", cross: true, cxx: true,
             },
             _ => return Err("checked native release target/adapter/toolchain is unsupported".into()),
         };
