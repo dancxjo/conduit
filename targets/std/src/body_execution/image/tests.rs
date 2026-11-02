@@ -9,6 +9,12 @@ use conduit_plot::{
 };
 use std::sync::atomic::Ordering;
 const SOURCE: &str = include_str!("../../../profiles/raspberry-pi-3-tick-workset.host.conduit");
+struct AcceptOutput;
+impl BodyForeOutputAdapter for AcceptOutput {
+    fn deliver(&mut self, _: &crate::ExternalForeDelivery) -> Result<(), String> {
+        Ok(())
+    }
+}
 fn image(heap: u64) -> HostImage {
     let packages = conduit_workspace_make::package_set();
     let catalog = conduit_workspace_make::catalog();
@@ -45,7 +51,7 @@ fn fixture(heap: u64) -> (StdHost, Wake, BodyPlan) {
     let mut profile = ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
-    let source = "plot ticks {\nclock: time/tick(count = 2, period-ms = 0)\n}\n";
+    let source = "plot ticks (\n ticks: Tick...| >>\n) {\nclock: time/tick(count = 2, period-ms = 0)\nclock.tick >> ticks\n}\n";
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "ticks", &profile).unwrap();
     let plan = host.plan_expanded_local(&expanded).unwrap();
@@ -86,7 +92,7 @@ fn receipt(host: &StdHost, wake: &Wake, plan: &BodyPlan) -> usize {
         &play.active_play_id,
         &[],
         false,
-        false,
+        true,
         host.advertisement(),
         #[cfg(target_os = "linux")]
         None,
@@ -144,7 +150,7 @@ fn selected_tick_completes_without_poststart_allocation_and_result_holds_only_by
         count: 0,
     };
     let result = host
-        .run_selected_image_body_plan_to_with_start(
+        .run_selected_image_body_plan_with_output_to_with_start(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
@@ -153,6 +159,7 @@ fn selected_tick_completes_without_poststart_allocation_and_result_holds_only_by
             },
             &mut Vec::new(),
             &mut timer,
+            Some(&mut AcceptOutput),
             |_, _| {
                 assert!(observed.load(Ordering::Acquire) > 0);
                 probe = Some(crate::allocation_probe::begin());
@@ -180,7 +187,19 @@ fn selected_tick_completes_without_poststart_allocation_and_result_holds_only_by
         observed.load(Ordering::Acquire) > 0,
         "report backing remains charged"
     );
+    assert_eq!(
+        result.report().fore_deliveries.len(),
+        3,
+        "two ticks and closing Flow"
+    );
+    let escaped = result.report().fore_deliveries[0].bytes.clone();
     drop(result);
+    assert!(
+        observed.load(Ordering::Acquire) > 0,
+        "escaped actual bytes retain charge"
+    );
+    assert!(!escaped.is_empty());
+    drop(escaped);
     assert_eq!(observed.load(Ordering::Acquire), 0);
 }
 #[test]
@@ -190,7 +209,7 @@ fn exact_managed_budget_admits_and_one_byte_short_refuses_before_start() {
     let (mut host, wake, plan) = fixture(exact as u64);
     let control = RunControl::default();
     let result = host
-        .run_selected_image_body_plan_to_with_start(
+        .run_selected_image_body_plan_with_output_to_with_start(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
@@ -199,6 +218,7 @@ fn exact_managed_budget_admits_and_one_byte_short_refuses_before_start() {
             },
             &mut Vec::new(),
             &mut crate::ThreadTimer,
+            Some(&mut AcceptOutput),
             |_, _| Ok(()),
         )
         .unwrap();
@@ -213,7 +233,7 @@ fn exact_managed_budget_admits_and_one_byte_short_refuses_before_start() {
     let (mut host, wake, plan) = fixture(exact as u64 - 1);
     let mut started = false;
     assert!(host
-        .run_selected_image_body_plan_to_with_start(
+        .run_selected_image_body_plan_with_output_to_with_start(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
@@ -222,6 +242,7 @@ fn exact_managed_budget_admits_and_one_byte_short_refuses_before_start() {
             },
             &mut Vec::new(),
             &mut crate::ThreadTimer,
+            Some(&mut AcceptOutput),
             |_, _| {
                 started = true;
                 Ok(())
@@ -244,7 +265,7 @@ fn cancellation_preserves_result_charge_and_naked_selected_path_stays_refused() 
     let request_id = crate::RunControlRequestId::new("fixture/cancel").unwrap();
     let observed = host.kernel_resources.image_memory_observer();
     let result = host
-        .run_selected_image_body_plan_to_with_start(
+        .run_selected_image_body_plan_with_output_to_with_start(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
@@ -253,6 +274,7 @@ fn cancellation_preserves_result_charge_and_naked_selected_path_stays_refused() 
             },
             &mut Vec::new(),
             &mut crate::ThreadTimer,
+            Some(&mut AcceptOutput),
             |_, _| {
                 assert!(observed.load(Ordering::Acquire) > 0);
                 control.request_stop(request_id.clone()).unwrap();
@@ -315,7 +337,7 @@ fn provider_loss_uses_admitted_diagnostic_and_result_backing() {
     let lost = Cell::new(false);
     let mut probe = None;
     let result = host
-        .run_selected_image_body_plan_to_with_start(
+        .run_selected_image_body_plan_with_output_to_with_start(
             BodyRunRequest {
                 wake: &wake,
                 plan: &plan,
@@ -324,6 +346,7 @@ fn provider_loss_uses_admitted_diagnostic_and_result_backing() {
             },
             &mut Vec::new(),
             &mut LostClock(&lost),
+            Some(&mut AcceptOutput),
             |_, _| {
                 lost.set(true);
                 probe = Some(crate::allocation_probe::begin());
@@ -380,7 +403,7 @@ fn raw_image_binding_without_selected_ledger_never_falls_back() {
     assert!(raw.image_identity().is_some());
     let control = RunControl::default();
     let mut started = false;
-    let result = raw.run_selected_image_body_plan_to_with_start(
+    let result = raw.run_selected_image_body_plan_with_output_to_with_start(
         BodyRunRequest {
             wake: &wake,
             plan: &plan,
@@ -389,6 +412,7 @@ fn raw_image_binding_without_selected_ledger_never_falls_back() {
         },
         &mut Vec::new(),
         &mut crate::ThreadTimer,
+        Some(&mut AcceptOutput),
         |_, _| {
             started = true;
             Ok(())

@@ -19,24 +19,37 @@ impl BodyMemoryReceipt {
     }
 }
 
-#[derive(Debug)]
+/// Shared only with existing prepared immutable Fore payload owners. A clone
+/// retains the same charge; it does not reserve again or acknowledge delivery.
+#[derive(Debug, Clone)]
 pub(crate) struct ImageMemoryLease {
+    inner: Arc<ImageMemoryCharge>,
+}
+#[derive(Debug)]
+struct ImageMemoryCharge {
     used: Arc<AtomicUsize>,
-    bytes: usize,
+    bytes: AtomicUsize,
 }
 impl ImageMemoryLease {
     pub(crate) fn retain_result(&mut self, bytes: usize) {
+        let admitted = self.inner.bytes.load(Ordering::Acquire);
         assert!(
-            bytes <= self.bytes,
+            bytes <= admitted,
             "result exceeds admitted execution highwater"
         );
-        self.used.fetch_sub(self.bytes - bytes, Ordering::AcqRel);
-        self.bytes = bytes;
+        self.inner.bytes.store(bytes, Ordering::Release);
+        self.inner
+            .used
+            .fetch_sub(admitted - bytes, Ordering::AcqRel);
+    }
+    pub(crate) fn owned_backing_bytes() -> usize {
+        core::mem::size_of::<ImageMemoryCharge>()
     }
 }
-impl Drop for ImageMemoryLease {
+impl Drop for ImageMemoryCharge {
     fn drop(&mut self) {
-        self.used.fetch_sub(self.bytes, Ordering::AcqRel);
+        self.used
+            .fetch_sub(self.bytes.load(Ordering::Acquire), Ordering::AcqRel);
     }
 }
 impl KernelResourceLedger {
@@ -71,8 +84,10 @@ impl KernelResourceLedger {
         })
         .map_err(|_| "selected IMAGE managed heap backing capacity is unavailable")?;
         let lease = ImageMemoryLease {
-            used,
-            bytes: receipt.total_bytes(),
+            inner: Arc::new(ImageMemoryCharge {
+                used,
+                bytes: AtomicUsize::new(receipt.total_bytes()),
+            }),
         };
         self.image_receipt_reserving = true;
         let result = self.prepare_and_reserve_plans(advertisement, plans);
