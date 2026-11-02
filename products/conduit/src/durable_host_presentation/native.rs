@@ -1,6 +1,6 @@
 //! Read-only native presentation on the installed Seed's actual initialized Host.
 //! This consumes the existing finite owner encounter; it is not a reconnect grant.
-use super::{RuntimeStatus, wire};
+use super::{wire, RuntimeStatus};
 use crate::durable_host::routed_join::MaskSelection;
 use crate::durable_host_control::DurableHostRuntime;
 use conduit_linux_display::Scanout;
@@ -62,7 +62,12 @@ impl NativePresentation {
             // Never turn an expired/consumed finite transport grant into another
             // invitation or implicit execution authority. Existing pixels are a
             // historical Show; no new Show or freshness assertion is published.
-            self.owner = None;
+            if let Some(owner) = self.owner.take() {
+                match owner.leave() {
+                    Ok(()) => eprintln!("native member departure committed; membership retained"),
+                    Err(error) => eprintln!("native member departure unacknowledged: {error}"),
+                }
+            }
             eprintln!("native owner encounter ended: displayed Show is historical");
             return Ok(());
         }

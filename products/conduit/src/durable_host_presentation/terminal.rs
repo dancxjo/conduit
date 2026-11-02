@@ -1,11 +1,11 @@
 //! An explicit installed peer supplies real terminal effects for the remote Body.
-use super::{PresentationHost, wire};
+use super::{wire, PresentationHost};
 use crate::durable_host::routed_join::MaskSelection;
 #[path = "speech.rs"]
 mod speech;
 use conduit_face::{Face, MaskShow};
 use conduit_std_host::{
-    hosted_terminal_mask_host::{TerminalFrameReceipt, receive_terminal_frame_and_ack},
+    hosted_terminal_mask_host::{receive_terminal_frame_and_ack, TerminalFrameReceipt},
     terminal_face_mask::TerminalMaskExecution,
     terminal_mask_execution::HostedTerminalMaskExecution,
 };
@@ -61,6 +61,9 @@ pub(crate) fn run(
         if length == 0 || bytes == b"quit\n" || bytes == b"quit\r\n" {
             if shown.execution.has_pending_play() {
                 shown.execution.close_without_input().map_err(debug_error)?;
+            }
+            if let Err(error) = owner.leave() {
+                writeln!(output, "Member departure unacknowledged: {error}").map_err(io_error)?;
             }
             return Ok(());
         }

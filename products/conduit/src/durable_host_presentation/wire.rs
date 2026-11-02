@@ -186,6 +186,30 @@ impl OwnerRoute {
         Ok(())
     }
 
+    /// Explicitly withdraw this exact attachment before its finite grant ends.
+    /// A failed or lost acknowledgment is not proof that withdrawal committed.
+    pub(super) fn leave(&self) -> Result<(), String> {
+        let mut line = self.connection()?;
+        send_return(
+            &mut line,
+            &json!({
+                "schema":"conduit.body/native-owner-member-leave@1",
+                "token":self.grant.token, "request":self.request,
+            }),
+            MESSAGE,
+        )?;
+        let response: Value = receive(&mut line, MESSAGE)?;
+        if response["schema"] != "conduit.body/native-owner-member-leave-response@1"
+            || response["accepted"] != true
+        {
+            return Err(format!(
+                "member leave not acknowledged:{}",
+                response["code"]
+            ));
+        }
+        Ok(())
+    }
+
     pub(super) fn refresh(&mut self) -> Result<Snapshot, String> {
         self.select(None)
     }
