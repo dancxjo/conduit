@@ -664,3 +664,23 @@ private state were retained. No graphical Seed, new HDMI screenshot, continuous
 owner refresh, MCU membership or unified environmental graph is claimed.
 Compact qualification is in
 `proof/evidence/creche/graphical-seed-build-and-return-qualification-20261102.json`.
+
+
+### Installed return repairs and the next actual boundary, 2026-11-02
+
+Source `e2cbe4c353` was installed into the same retained owner after a cold,
+hash-verified snapshot of 53 regular files (two Unix sockets excluded). The
+running executable SHA-256 is
+`b0da27e201586028d25353e28d803fd83b7a486e91f9580b04afb920033a7cb1`.
+The Body and Host identities were preserved. A fresh installed terminal Host
+joined through the pinned TLS route, returned an accepted Wake, and rendered the
+actual graphical Host configuration editor. This crosses the previous owner
+Face/route mismatch. The frontend then refused its next Show because the
+post-action snapshot had not replaced its admitted snapshot. The guard remains
+intact; the owner was lulled, and that response-state transition is the next
+repair. No Seed or new HDMI output resulted from this attempt.
+
+PR #6724 merged into dev as `b09397ae6974decb7f42fe8c32b1f768f2b81829`
+after Candidate 41479108621 passed. The delivery branch incorporated that dev
+commit without conflicts. Threebee still lacks its system SDL runtime; the
+private loader preflight is not a system-package installation.
