@@ -429,6 +429,15 @@ pub(crate) enum BodyCommand {
         #[arg(long, requires_all = ["route_bind", "route_url", "route_tls_cert", "route_tls_key", "authorize_route"])]
         prepare: bool,
     },
+    /// Explicitly withdraw one member's attachment, preserving its Part and keys.
+    MemberLeave {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        member_credential: PathBuf,
+        #[arg(long)]
+        authorize_leave: bool,
+    },
     /// Return an existing member using its private continuity key and actual running Boot.
     Return {
         #[arg(long)]

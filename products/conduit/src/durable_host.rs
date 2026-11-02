@@ -1602,3 +1602,5 @@ mod tests {
 pub(crate) use routed_join::{
     return_installed_member, return_on_actual_host, serve_body_member_route, MemberEncounter,
 };
+
+pub(crate) use membership::leave_member_from_file;

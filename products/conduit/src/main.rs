@@ -343,6 +343,9 @@ fn main() {
                 body_terminal::run(&state_dir, &mut io::stdin().lock(), &mut io::stdout().lock())
             }
         }
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberLeave {
+            state_dir, member_credential, authorize_leave,
+        }) }) => durable_host::leave_member_from_file(&state_dir, &member_credential, authorize_leave),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Invite {
