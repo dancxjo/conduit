@@ -10,6 +10,9 @@ use conduit_core::HostAdvertisement;
 use serde::{Deserialize, Serialize};
 use std::{fs, path::Path};
 
+#[path = "durable_host_membership/continuity_key.rs"]
+mod continuity_key;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(super) struct JoinedBodyBinding {
     pub(super) body_id: String,
@@ -64,6 +67,12 @@ pub(super) fn complete_body_join_document(
             "Body admission receipt lost its exact pending join identity or claims effects".into(),
         );
     }
+    continuity_key::retain(
+        state_dir,
+        &pending,
+        &receipt.credential,
+        &receipt.host_advertisement,
+    )?;
     persist_joined_membership(state_dir, &mut installation, &receipt.credential)?;
     fs::remove_file(&pending_path)
         .map_err(|error| format!("consume pending Body join: {error}"))?;
@@ -88,6 +97,22 @@ pub(crate) fn retain_rendezvous_membership(
         return Err(
             "rendezvous admission receipt lost its exact body, Host, or Boot identity".into(),
         );
+    }
+    let pending_path = state_dir.join("body/pending-join.json");
+    match fs::symlink_metadata(&pending_path) {
+        Ok(metadata) if metadata.file_type().is_file() => {
+            let mut bytes = bounded_read(&pending_path, MAXIMUM_BODY_ADMISSION_BYTES)?;
+            let decoded = serde_json::from_slice::<PendingBodyJoin>(&bytes);
+            bytes.fill(0);
+            let pending = decoded.map_err(|_| "invalid pending rendezvous continuity request")?;
+            continuity_key::retain(state_dir, &pending, credential, expected_advertisement)?;
+        }
+        Ok(_) => return Err("pending rendezvous continuity request is not a regular file".into()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            // Legacy rendezvous without the exact original pending proof cannot
+            // manufacture continuity custody from a public credential.
+        }
+        Err(_) => return Err("inspect pending rendezvous continuity request failed".into()),
     }
     persist_joined_membership(state_dir, &mut installation, credential)
 }
