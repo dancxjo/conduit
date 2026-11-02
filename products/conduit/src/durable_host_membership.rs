@@ -12,6 +12,19 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/continuity_key.rs"]
 mod continuity_key;
+#[path = "durable_host_membership/returned.rs"]
+mod returned;
+pub(super) use returned::{load_joined_credential, retain_returned_membership};
+
+pub(super) fn sign_return_challenge(
+    state: &Path,
+    credential: &MembershipCredential,
+    actual: &HostAdvertisement,
+    challenge: &conduit_body::PartReturnChallenge,
+    now: u64,
+) -> Result<conduit_body::PartReturnProof, String> {
+    continuity_key::sign_return_challenge(state, credential, actual, challenge, now)
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(super) struct JoinedBodyBinding {

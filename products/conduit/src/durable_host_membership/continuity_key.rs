@@ -98,6 +98,26 @@ pub(crate) fn sign_return_challenge(
     })
 }
 
+pub(super) fn validate_member_scope(
+    state: &Path,
+    credential: &MembershipCredential,
+) -> Result<(), String> {
+    require_directory(state)?;
+    let body = state.join("body");
+    require_directory(&body)?;
+    let record = read(&body.join(PATH))?;
+    if record.schema != SCHEMA
+        || record.body_id != credential.body_id.as_str()
+        || record.part_id != credential.part_id.as_str()
+        || record.host_id != credential.host_id.as_str()
+    {
+        return Err("retained private key differs from returning member".into());
+    }
+    SpawnInvitationSecret::from_csprng_bytes(record.secret)
+        .map_err(|_| "invalid retained continuity key".to_string())?;
+    Ok(())
+}
+
 pub(super) fn retain(
     state: &Path,
     pending: &PendingBodyJoin,
