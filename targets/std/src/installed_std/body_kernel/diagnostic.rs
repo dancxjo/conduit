@@ -39,3 +39,14 @@ pub(super) fn error(slot: &mut Option<Diagnostic>, arguments: Arguments<'_>) -> 
     }
     text
 }
+
+/// Provider errors are independently owned, but retaining one in the selected
+/// result must consume our preadmitted diagnostic backing. A diagnostic already
+/// produced here has consumed its buffer and needs no second allocation/copy.
+pub(super) fn retained_error(slot: &mut Option<Diagnostic>, value: String) -> String {
+    if slot.as_ref().is_some_and(|slot| slot.buffer.is_some()) {
+        error(slot, format_args!("{value}"))
+    } else {
+        value
+    }
+}

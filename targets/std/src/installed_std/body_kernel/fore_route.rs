@@ -413,6 +413,32 @@ impl<'a> BodyForeRoute<'a> {
     }
 }
 
+fn tick_port_bytes(port: &LoweredForePort) -> Option<usize> {
+    if port.direction != PortDirection::Output || port.selected_line.is_some() {
+        return None;
+    }
+    let mut bytes = port
+        .front_port_id
+        .0
+        .capacity()
+        .checked_add(port.value_kind.0.capacity())?;
+    bytes = bytes.checked_add(port.abnormal_kind.as_ref().map_or(0, |id| id.0.capacity()))?;
+    if let Some(contract) = &port.value_contract {
+        if !contract.constraints.is_empty() {
+            return None;
+        }
+        bytes = bytes
+            .checked_add(contract.value_kind.0.capacity())?
+            .checked_add(
+                contract
+                    .constraints
+                    .capacity()
+                    .checked_mul(core::mem::size_of::<conduit_core::ValueConstraint>())?,
+            )?;
+    }
+    Some(bytes)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -442,30 +468,4 @@ mod tests {
             .expect("unplanned Fore Flow must refuse");
         assert!(refusal.contains("requires one to 64 admitted input values"));
     }
-}
-
-fn tick_port_bytes(port: &LoweredForePort) -> Option<usize> {
-    if port.direction != PortDirection::Output || port.selected_line.is_some() {
-        return None;
-    }
-    let mut bytes = port
-        .front_port_id
-        .0
-        .capacity()
-        .checked_add(port.value_kind.0.capacity())?;
-    bytes = bytes.checked_add(port.abnormal_kind.as_ref().map_or(0, |id| id.0.capacity()))?;
-    if let Some(contract) = &port.value_contract {
-        if !contract.constraints.is_empty() {
-            return None;
-        }
-        bytes = bytes
-            .checked_add(contract.value_kind.0.capacity())?
-            .checked_add(
-                contract
-                    .constraints
-                    .capacity()
-                    .checked_mul(core::mem::size_of::<conduit_core::ValueConstraint>())?,
-            )?;
-    }
-    Some(bytes)
 }
