@@ -1252,3 +1252,9 @@ membership or ordinary MCU sampling Plot is claimed from these source tests.
 
 See `proof/evidence/creche/mcu-admission-checkpoint-20261102.json`. Earlier failed
 qualification attempts are retained locally alongside the final passing log.
+
+The shared USB delivery adapter also passed its strict-warning focused test:
+metadata/raw receipt framing keeps the existing 4096-byte limit and independently
+checks owner pin, member key, Body and observed advertisement before any write.
+This is a tested adapter, not evidence of an MCU accepting the receipt. The build
+lease has passed to the RP2040 worker for checked bindings and physical-image fit.

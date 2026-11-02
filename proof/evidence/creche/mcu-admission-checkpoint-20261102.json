@@ -28,5 +28,13 @@
     "same-Body shared history/graph",
     "restart continuity of admitted MCU"
   ],
-  "preservation": "device backups and control keys are private and excluded from source control"
+  "preservation": "device backups and control keys are private and excluded from source control",
+  "usb_receipt_delivery_validation": {
+    "strict_warnings": true,
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "scope": "two raw bounded Pico USB frames, independent pins/member key/Body/actual advertisement; no device acceptance claim",
+    "log_sha256": "3045124476f113abee2184674e1295414ec46e472bba7552887ad7defd5803f9"
+  }
 }
