@@ -218,3 +218,11 @@ fn actual_sdl_software_texture_accepts_scene_and_refuses_after_loss() {
         "Drop revokes all outstanding clones"
     );
 }
+
+#[test]
+fn direct_driver_identity_is_exact_and_not_a_desktop_fallback() {
+    assert!(is_kmsdrm_backend("KMSDRM"));
+    for driver in ["kmsdrm", "dummy", "x11", "wayland", "", "KMSDRM "] {
+        assert!(!is_kmsdrm_backend(driver));
+    }
+}
