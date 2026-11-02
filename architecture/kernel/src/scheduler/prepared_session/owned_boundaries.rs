@@ -113,12 +113,12 @@ where
         // One Value per declared input in each invocation. A subsequent Value
         // is pressured until an explicit acknowledged drain and rearm; it is
         // never smuggled into an already consumed Value input queue.
-        if self.owned_sequences[index].checked_add(1) == Some(sequence)
+        if self.owned_sequence(index).checked_add(1) == Some(sequence)
             && self.kernel.cords[index].next_remote_sequence == sequence
         {
             return Ok(RemoteIngressOutcome::Full { sequence });
         }
-        if sequence != self.owned_sequences[index] {
+        if sequence != self.owned_sequence(index) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         let result = self
@@ -141,7 +141,7 @@ where
         {
             return self.observe_io(Err(SchedulerError::InvalidRemoteCordAccess));
         }
-        if self.owned_sequences[index].checked_add(1)
+        if self.owned_sequence(index).checked_add(1)
             != Some(self.kernel.cords[index].next_remote_sequence)
         {
             return self.observe_io(Err(SchedulerError::ValueOwnershipViolation));
@@ -161,7 +161,7 @@ where
         }
         let result = self.kernel.remote_egress_offer(endpoint, cord);
         if result.as_ref().is_ok_and(|offer| {
-            offer.is_some_and(|offer| offer.sequence != self.owned_sequences[index])
+            offer.is_some_and(|offer| offer.sequence != self.owned_sequence(index))
         }) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
@@ -180,7 +180,7 @@ where
         if index >= self.kernel.active_cords {
             return self.observe_io(Err(SchedulerError::InvalidRemoteCordAccess));
         }
-        if sequence != self.owned_sequences[index] {
+        if sequence != self.owned_sequence(index) {
             return self.observe_io(Err(SchedulerError::RemoteSequenceRejected));
         }
         let result = self

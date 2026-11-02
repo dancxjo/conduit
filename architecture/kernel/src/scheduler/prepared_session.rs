@@ -54,6 +54,11 @@ enum Phase {
     Faulted,
 }
 
+struct OptionalOwnedOutputs<const C: usize> {
+    starts: [u64; C],
+    optional: [bool; C],
+}
+
 pub struct PreparedKernelSession<
     D,
     S,
@@ -75,8 +80,7 @@ pub struct PreparedKernelSession<
     phase: Phase,
     remote_sign_reservation: u16,
     owned_value_index: u64,
-    owned_sequences: [u64; C],
-    optional_owned_outputs: [bool; C],
+    optional_outputs: Option<Box<OptionalOwnedOutputs<C>>>,
 }
 impl<
         D,
@@ -177,26 +181,57 @@ where
         {
             return Err((SessionRefusal::EvidenceReservation, kernel));
         }
-        let mut owned_sequences = [0; C];
-        let mut optional_owned_outputs = [false; C];
         for boundary in boundaries {
             let index = usize::from(boundary.cord.0);
-            owned_sequences[index] = kernel.cords[index].next_remote_sequence;
-            if owned_sequences[index] == u64::MAX {
+            if kernel.cords[index].next_remote_sequence == u64::MAX {
                 return Err((SessionRefusal::InvocationExhausted, kernel));
             }
         }
-        for boundary in optional_outputs {
-            optional_owned_outputs[usize::from(boundary.cord.0)] = true;
-        }
+        let optional_outputs = if optional_outputs.is_empty() {
+            None
+        } else {
+            let mut tracking = Box::new(OptionalOwnedOutputs {
+                starts: [0; C],
+                optional: [false; C],
+            });
+            for boundary in boundaries {
+                let index = usize::from(boundary.cord.0);
+                tracking.starts[index] = kernel.cords[index].next_remote_sequence;
+            }
+            for boundary in optional_outputs {
+                tracking.optional[usize::from(boundary.cord.0)] = true;
+            }
+            Some(tracking)
+        };
         Ok(Self {
             kernel,
             phase: Phase::Prepared,
             remote_sign_reservation,
             owned_value_index: 0,
-            owned_sequences,
-            optional_owned_outputs,
+            optional_outputs,
         })
+    }
+    /// Additional managed heap storage required only for optional outputs.
+    /// Ordinary lockstep sessions retain no per-Cord tracking allocation.
+    pub fn optional_output_storage_requirement() -> usize {
+        core::mem::size_of::<OptionalOwnedOutputs<C>>()
+    }
+    pub fn optional_output_storage_bytes(&self) -> usize {
+        if self.optional_outputs.is_some() {
+            Self::optional_output_storage_requirement()
+        } else {
+            0
+        }
+    }
+    fn owned_sequence(&self, index: usize) -> u64 {
+        self.optional_outputs
+            .as_ref()
+            .map_or(self.owned_value_index, |state| state.starts[index])
+    }
+    fn owned_output_is_optional(&self, index: usize) -> bool {
+        self.optional_outputs
+            .as_ref()
+            .is_some_and(|state| state.optional[index])
     }
     pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A> {
         &self.kernel
@@ -308,7 +343,9 @@ where
             .enumerate()
         {
             let sequence = cord.next_remote_sequence;
-            self.owned_sequences[index] = sequence;
+            if let Some(tracking) = &mut self.optional_outputs {
+                tracking.starts[index] = sequence;
+            }
             *cord = CordState::EMPTY;
             cord.next_remote_sequence = sequence;
         }
@@ -378,9 +415,9 @@ where
                                     kernel.cord_specs[index].sink,
                                     CordEndpoint::Local { .. }
                                 )) && !owned_boundaries::sequence_completed(
-                                    self.owned_sequences[index],
+                                    self.owned_sequence(index),
                                     cord.next_remote_sequence,
-                                    self.optional_owned_outputs[index],
+                                    self.owned_output_is_optional(index),
                                 ))))
                 })
         {

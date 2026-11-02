@@ -245,3 +245,25 @@ fn offered_unaccepted_output_cancellation_and_stale_ack_cannot_rearm() {
     );
     assert!(s.begin_next([[false, false]], log()).is_err());
 }
+
+#[test]
+fn optional_tracking_is_charged_only_for_selected_sessions_and_not_inline() {
+    type WideSession =
+        PreparedKernelSession<Select, FixedValueStore<4, 16>, Log, 1, 128, 2, 3, 2, 2>;
+    assert_eq!(
+        core::mem::size_of::<Session>(),
+        core::mem::size_of::<WideSession>()
+    );
+    let ordinary = session([true, true], &[]);
+    assert_eq!(ordinary.optional_output_storage_bytes(), 0);
+    let mut optional = session([false, true], &OUTPUTS);
+    let charged = optional.optional_output_storage_bytes();
+    assert_eq!(charged, Session::optional_output_storage_requirement());
+    assert!(charged > 0);
+    invoke(&mut optional, 0, [None, Some(0)]);
+    let _old = optional
+        .begin_next([[true, false]], log())
+        .unwrap_or_else(|_| panic!("normally drained optional session"));
+    assert_eq!(optional.optional_output_storage_bytes(), charged);
+    invoke(&mut optional, 1, [Some(0), None]);
+}

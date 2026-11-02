@@ -1,5 +1,5 @@
 use super::*;
-use crate::native_face_mask::tests::{fixture, CountingDisplay};
+use crate::native_face_mask::tests::{CountingDisplay, fixture};
 use conduit_conduitos_mask_offer::NativeMaskStorageProfile;
 use conduit_kernel::SignSink;
 

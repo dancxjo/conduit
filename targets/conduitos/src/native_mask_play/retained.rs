@@ -26,6 +26,7 @@ type Session = PreparedKernelSession<
 pub struct NativeMaskBackingReceipt {
     pub scheduler_inline_bytes: usize,
     pub value_storage_bytes: usize,
+    pub optional_output_storage_bytes: usize,
     pub managed_store_bytes: usize,
 }
 /// Transferred local child-Play evidence; taking it is NOT durable-recording ACK.
@@ -57,6 +58,7 @@ impl RetainedNativeMaskStorage {
         .map_err(|_| NativeMaskPlayError::Pressure)?;
         core::mem::size_of::<Scheduler>()
             .checked_add(values)
+            .and_then(|bytes| bytes.checked_add(Session::optional_output_storage_requirement()))
             .ok_or(NativeMaskPlayError::Pressure)
     }
     /// Refuse the immutable store requirement before allocating its kernel/store.
@@ -102,8 +104,10 @@ impl RetainedNativeMaskStorage {
         let scheduler = alloc::boxed::Box::new(scheduler_for_profile(fragment, &lowered, profile)?);
         let value_storage_bytes = scheduler.values().reserved_storage_bytes();
         let scheduler_inline_bytes = core::mem::size_of::<Scheduler>();
+        let optional_output_storage_bytes = Session::optional_output_storage_requirement();
         let managed_store_bytes = scheduler_inline_bytes
             .checked_add(value_storage_bytes)
+            .and_then(|bytes| bytes.checked_add(optional_output_storage_bytes))
             .ok_or(NativeMaskPlayError::Pressure)?;
         if managed_store_bytes > maximum_bytes {
             return Err(NativeMaskPlayError::Pressure);
@@ -111,6 +115,9 @@ impl RetainedNativeMaskStorage {
         let session =
             Session::new_with_optional_owned_outputs(scheduler, &boundaries, &optional, 32)
                 .map_err(|_| NativeMaskPlayError::Shape)?;
+        if session.optional_output_storage_bytes() != optional_output_storage_bytes {
+            return Err(NativeMaskPlayError::Pressure);
+        }
         Ok(Self {
             session,
             plan_id: planned.plan.plan_id.clone(),
@@ -120,6 +127,7 @@ impl RetainedNativeMaskStorage {
             backing: NativeMaskBackingReceipt {
                 scheduler_inline_bytes,
                 value_storage_bytes,
+                optional_output_storage_bytes,
                 managed_store_bytes,
             },
         })
