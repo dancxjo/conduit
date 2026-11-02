@@ -750,3 +750,50 @@ Before the next build, sole-owned inactive language package variants were
 inventoried and removed through `cargo clean -p conduit-language` (766 files,
 12.0 GiB). Installed binaries, sealed releases, Seeds, private state, source and
 raw proof were preserved; disk headroom rose from about 8 GiB to 21 GiB.
+
+
+## Corrected graphical Seed completes its finite first encounter — 2 November UTC
+
+The checked native release at `7c8010111a` settles historical SDL preparation
+notifications before issuing its live output token. Nine owning SDL cases,
+three selected-Host suites and strict checks pass; post-token loss remains
+terminal. The matching supported Make IMAGE and release agree on configuration,
+profile, build and executable identity.
+
+The next live attempt exposed a separate finite-state bug: all 16 retained
+invitation records were expired, yet still occupied issuance capacity. The
+Core repair at `8278b21c68` retires expired records during successful issuance,
+preserves live consumed records, membership receipts and Part continuity keys,
+and prevents identity reuse with a checked persisted sequence. Core tests,
+actual-owner persistence-refusal/reopen coverage, strict checks and Cortex-M0+
+no_std compilation pass. PR #6729 carries the focused correction. A verified
+59-file cold snapshot preceded the owner update; the same Body and Forebrain
+Host resumed under a new Boot. Ordinary issuance then reduced the invitation
+store from 16 expired records to one new record, preserving prior admission
+receipts and continuity keys.
+
+Through an actually joined terminal Mask, Wake and Check were accepted by the
+Body's existing Creche. It manufactured and exported a fresh 57,894,311-byte
+same-Body graphical Seed. The export receipt, checked configuration identity,
+IMAGE, executable extent and hashes were verified before native carrier
+installation on Threebee. Canonical Source reorders fields; raw source text
+order is not its checked configuration identity. The installer's first CLI
+invocation lacked the private SDL loader path and made no installation; the
+corrected invocation used that same verified private runtime explicitly.
+
+The real Seed joined Hamm Creek House, retained its credential, and retired its
+original pending Seed. Owner and target credentials match exactly. On the
+physical 1024-by-600 KMSDRM output it committed the Face five times with 614,400
+pixels per commit. At 69 seconds the same service remained active with zero
+restarts and no output-loss report. Its finite encounter ended explicitly;
+remaining pixels are historical, not a fresh Show. No screenshot or human
+optical acceptance is claimed. The fallback renderer is stopped but retained.
+
+This proves a corrected physical first-boot encounter, not persistent live
+Face renewal or restart continuity. Native startup still consumes the original
+Seed invitation. The next gate is an ordinary authenticated member-return and
+fresh finite presentation entrance; route expiry alone must not be treated as
+evidence that a still-running Host or Boot has died. Unified sensing/history,
+programmable graphs and the other Hosts remain later journey requirements.
+Compact evidence is
+`proof/evidence/creche/graphical-seed-startup-settlement-20261102.json`.

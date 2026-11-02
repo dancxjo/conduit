@@ -1,0 +1,47 @@
+{
+  "schema": "conduit.proof/graphical-seed-startup-settlement@1",
+  "authoring_source": "8278b21c68ed13475e8d12b4cb807db46b6d45f3",
+  "native_source": "7c8010111a33e299c1f4e5ac384bf0b3b4287598",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "host_id": "host/installed/cc57fbea73ca7dda2995fab12b47aaf806ee2279c538a46ec11d52e4f98aefad",
+  "boot_id": "boot/installed/b787b3a3acfa03e728c20c4ae98479b8da2b3e90fb6dea7562d532ff687ee3de",
+  "part_id": "b45f1ac25591ea54404c7f0a0d3a59bb5945c00b5776dffc4a7f2250996be098",
+  "seed_manufactured_by_body": true,
+  "seed_bytes": 57894311,
+  "seed_sha256": "2ef3c19797ed72bc8f1d7007867445191054b71eeb75563f432b4bbb3a534c80",
+  "native_executable_sha256": "02b0c855739088676df46e90be699dbfeffa14a9243de7f3139db1f116e9d26b",
+  "owner_target_credential_matches": true,
+  "pending_seed_retired": true,
+  "display": {
+    "width": 1024,
+    "height": 600,
+    "physical_commits": 5,
+    "pixels_per_commit": 614400,
+    "face_id": "fbc9e545d78489dcb538b21927255ab03b192a68b6a145d2d5888f68876d4f18",
+    "face_revision": 141,
+    "service_alive_after_seconds": 69,
+    "service_restarts": 0,
+    "finite_encounter_ended": true,
+    "current_show_after_encounter": false,
+    "retained_pixels_historical": true
+  },
+  "invitation_recovery": {
+    "before_expired": 16,
+    "before_live": 0,
+    "after_ordinary_issuance": 1,
+    "prior_receipts_preserved": 13,
+    "prior_continuity_keys_preserved": 12,
+    "capacity_enlarged": false
+  },
+  "screenshot_available": false,
+  "human_optical_acceptance": false,
+  "native_restart_continuity": false,
+  "unified_environment_history": false,
+  "raw_logs_sha256": {
+    "threebee-graphical-8278-custody.json": "7b64ed29ecd93b9fe372333507ccdf1da69fc2353d583ebbe77d5dcaf4f81afb",
+    "threebee-graphical-8278-credential.json": "ed45f7255834335e2183074b4318798fc45f19360a0a657967f72630a88def41",
+    "threebee-graphical-8278-stability.log": "585c84f9317baa5b046a80bfa04f631f48ffc81cea9824ae64624ce438751de7",
+    "invitation-retirement-8278b21c68-qualification.json": "f649207bb569ec47c8f1b74c1b0aa987a1deb0b21e7bad0e0c4eab9f87c61848",
+    "invitation-store-live-preflight.json": "3a801c5353ce7c87bc512591a078ddd72845fd6cd25dc11599eddd21366581e9"
+  }
+}
