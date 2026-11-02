@@ -1,4 +1,6 @@
+mod browser_window_key;
 mod host_service;
+pub(crate) use browser_window_key::parse_browser_verifying_key;
 pub(crate) use host_service::HostServiceCommand;
 #[cfg(target_os = "linux")]
 mod notebook;
@@ -441,7 +443,7 @@ pub(crate) enum BodyCommand {
         /// Known browser Host ID; omit only for first admission with an explicit key pin.
         #[arg(long, required_unless_present = "new_host_verifying_key")]
         expected_host_id: Option<String>,
-        /// JSON byte array copied from the browser for first admission; omit on return.
+        /// Base64 public key copied from the browser; legacy JSON arrays also work. Omit on return.
         #[arg(long)]
         new_host_verifying_key: Option<String>,
         /// Finite admission and presence window, at most one minute.

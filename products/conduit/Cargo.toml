@@ -5,6 +5,7 @@ edition = "2021"
 default-run = "conduit"
 
 [dependencies]
+base64 = { version = "0.22.1", default-features = false }
 conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }

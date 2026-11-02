@@ -389,10 +389,7 @@ fn main() {
             } else {
                 let key = new_host_verifying_key
                     .as_deref()
-                    .map(|text| {
-                        serde_json::from_str::<[u8; 32]>(text)
-                            .map_err(|error| format!("browser verifying key must be a 32-byte JSON array: {error}"))
-                    })
+                    .map(cli::parse_browser_verifying_key)
                     .transpose();
                 key.and_then(|key| {
                     durable_host_control::start_browser_window(
