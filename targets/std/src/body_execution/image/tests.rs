@@ -226,9 +226,11 @@ fn selected_tick_completes_without_poststart_allocation_and_result_holds_only_by
     );
     assert_eq!(
         result.report().fore_deliveries.len(),
-        3,
-        "two ticks and closing Flow"
+        2,
+        "two payload ticks; normal close is a lifecycle event"
     );
+    assert_eq!(result.report().fore_deliveries[0].sequence, 0);
+    assert_eq!(result.report().fore_deliveries[1].sequence, 1);
     let escaped = result.report().fore_deliveries[0].bytes.clone();
     drop(result);
     assert!(
