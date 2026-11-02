@@ -276,6 +276,7 @@ fn saved_explicit_capabilities_survive_name_edit_and_check_and_target_refuses_wi
     act(&mut encounter, &b, "host-config/name", Some("renamed-pi")).unwrap();
     assert_eq!(encounter.configuration().unwrap().capabilities, before);
     let canonical = encounter.canonical_source().unwrap();
+    act(&mut encounter, &b, "host-config/targets", None).unwrap();
     assert!(act(&mut encounter, &b, "host-config/target/0", None).is_err());
     assert_eq!(encounter.canonical_source().unwrap(), canonical);
     assert_eq!(encounter.configuration().unwrap().capabilities, before);

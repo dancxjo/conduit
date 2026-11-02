@@ -404,3 +404,7 @@ An initially undersized admitted poll count exhausted; the exact execution failu
 Threebee received the same source through its exact Pi3 aarch64 release profile. Its durable Host identity and prior joined Body were preserved; the independent HDMI renderer stayed active. A fresh framebuffer capture still shows the older Malo Face as LAST KNOWN / FEED DELAYED, not the new Body. Earlier inspection of only `body_state` missed its retained `joined_body_state`; that inventory conclusion is corrected.
 
 Exact identities, failures, local evidence hashes and remaining gates are recorded in `proof/evidence/creche/installed-birth-and-host-update-20261102.json`.
+
+### 2026-11-02 — installed browser-admission release
+
+The ordinary Linux release command built x86_64 and AArch64 at `834dfe0207d884a0067727e0205f844c4f963d2c`. The x86_64 bundle was verified and installed through `host service install --no-start`, followed by systemd daemon reload and start. Actual runtime status confirms the same installed Host and Hamm Creek House, with a new Boot. Base64 first-admission key input is now installed. Browser admission and rendered UI remain unproved; no Seed or thermometer deployment occurred in this update. See `proof/evidence/creche/browser-admission-host-update-20261102.json`.
