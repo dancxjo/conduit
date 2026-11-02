@@ -1,16 +1,16 @@
 //! Bounded pinned TLS exchanges for the existing finite owner return protocol.
 use crate::durable_host::routed_join::MaskSelection;
 use conduit_body::{
-    PortableAdmissionReceipt, PortableInvitation, ROUTED_ADMISSION_REQUEST_SCHEMA,
-    RendezvousCandidate, RoutedAdmissionRequest, RoutedAdmissionResponse,
+    PortableAdmissionReceipt, PortableInvitation, RendezvousCandidate, RoutedAdmissionRequest,
+    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_face::{
-    Face, MaskShow, OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
+    Face, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
+    OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::secure_websocket::SecureWebSocketClientLine;
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
 #[path = "admitted_snapshot.rs"]
@@ -241,6 +241,7 @@ impl OwnerRoute {
         if self.sequence > self.grant.maximum_actions {
             return Err("presentation action budget exhausted".into());
         }
+        self.admitted.validate_show(show)?;
         let mut line = self.connection()?;
         send_return(
             &mut line,
@@ -253,16 +254,32 @@ impl OwnerRoute {
             return Err("presentation action response schema".into());
         }
         self.sequence += 1;
-        let next = if response["face"].is_null() || response["face"]["route"].is_null() {
-            None
-        } else {
-            Some(snapshot(response["face"].clone())?)
-        };
+        let next = bind_action_snapshot(&response, &self.request, &mut self.admitted)?;
         Ok((
             json!({"accepted":response["accepted"],"code":response["code"]}),
             next,
         ))
     }
+}
+
+// Called only after this encounter's pinned owner exchange and response schema
+// check. Rebind before exposing the new snapshot, just as refresh does. A
+// malformed or foreign replacement leaves the prior local scope unchanged.
+fn bind_action_snapshot(
+    response: &Value,
+    request: &OwnerFaceSnapshotRequest,
+    admitted: &mut AdmittedSnapshot,
+) -> Result<Option<Snapshot>, String> {
+    if response["face"].is_null() || response["face"]["route"].is_null() {
+        return Ok(None);
+    }
+    let mut next = snapshot(response["face"].clone())?;
+    next.document_bytes = serde_json::to_vec(response)
+        .map_err(|e| e.to_string())?
+        .len();
+    let replacement = AdmittedSnapshot::bind(&next, request)?;
+    *admitted = replacement;
+    Ok(Some(next))
 }
 
 fn validate_grant(grant: &Grant, request: &OwnerFaceSnapshotRequest) -> Result<(), String> {
@@ -419,3 +436,7 @@ impl conduit_std_host::NativeMaskEncounter for OwnerRoute {
             .map_err(|_| "native owner route targets a different current offer".into())
     }
 }
+
+#[cfg(test)]
+#[path = "action_snapshot_tests.rs"]
+mod action_snapshot_tests;
