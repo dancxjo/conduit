@@ -1147,3 +1147,31 @@ The next integration must replace the finite encounter scaffold through ordinary
 selected Host Line service/lifecycle mechanisms, not hide the limit by increasing
 constants or repeatedly returning the Part. Shared environmental feeds, recording,
 graph composition, browser admission and MCU membership remain separate gates.
+
+
+### Interrupted authentication releases exact carrier custody (2 November 2026)
+
+Source `5eb4d5a211381220ed1d9f939d85319160dcce93` closes an actual
+recovery obstacle: failures after challenge issuance previously returned before
+retiring the pending owner slot. Exact retirement now covers pending as well as
+authenticated sessions. A stale session cannot cancel its replacement, and
+retirement never withdraws the member. Nine strict local custody tests pass.
+The real TCP/pinned-TLS test also passes after deliberately closing one handshake
+and supplying a malformed proof in another; subsequent authentication succeeds
+with unchanged membership and admission records. See
+`proof/evidence/creche/interrupted-member-carrier-20261102.json`.
+This source is retained, not deployed to Threebee.
+
+The persistent-display gap is construction and policy work, not another frame
+constant change. `make/host/src/configuration.rs` checks `line_sessions` capacity
+but lowers an empty Line selection; capacity alone initializes no listener.
+The installed startup adapter needs an explicitly checked, package-owned TLS
+listener initialization contract, finite accept/preparation/session limits and
+actual resource custody. The current native Line declares no continuation.
+Replacing an exhausted session therefore needs explicit selected policy, exact
+old-session retirement, fresh mutual authentication, newly admitted Lines and
+a fresh Mask route. Same-Boot replacement must preserve the existing credential;
+transport loss is neither departure nor PartReturn. Any replacement affecting
+the active body-wide realization must obey its lifecycle gate. The owning
+issues remain #6461, #6340 and #6409. This is the next implementation boundary,
+not evidence that persistent service or automatic replacement already exists.
