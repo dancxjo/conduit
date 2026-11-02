@@ -34,3 +34,6 @@ pub fn package_set() -> MakePackageSet {
 pub fn catalog() -> MakeCatalog {
     MakeCatalog::canonical().with_packages(&package_set())
 }
+
+#[cfg(test)]
+mod graphical_host_tests;
