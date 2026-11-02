@@ -22,20 +22,7 @@ pub(super) fn settle_output(
     let own_window = canvas.window().id();
     for _ in 0..MAXIMUM_PREPARATION_POLLS {
         match events.poll_event() {
-            Some(Event::Quit { .. }) => return Err("display-preparation-quit".into()),
-            Some(Event::RenderTargetsReset { .. } | Event::RenderDeviceReset { .. }) => {
-                return Err("display-preparation-render-reset".into())
-            }
-            Some(Event::Window {
-                window_id,
-                win_event: WindowEvent::Close,
-                ..
-            }) if window_id == own_window => return Err("display-preparation-window-close".into()),
-            // There is no issued lifetime to revoke yet. In particular KMSDRM
-            // may queue Hidden/Shown while constructing its renderer. Observe
-            // final actual window state below instead of replaying that history.
-            // Foreign windows' notifications are not this output's loss.
-            Some(_) => (),
+            Some(event) => validate_startup_event(event, own_window)?,
             None => {
                 // SDL can end a poll cycle while real entries remain queued.
                 // This one-slot preparation peek never grows with queue size.
@@ -49,6 +36,24 @@ pub(super) fn settle_output(
     }
     Err("display-preparation-event-pressure".into())
 }
+fn validate_startup_event(event: Event, own_window: u32) -> Result<(), String> {
+    match event {
+        Event::Quit { .. } => Err("display-preparation-quit".into()),
+        Event::RenderTargetsReset { .. } | Event::RenderDeviceReset { .. } => {
+            Err("display-preparation-render-reset".into())
+        }
+        Event::Window {
+            window_id,
+            win_event: WindowEvent::Close,
+            ..
+        } if window_id == own_window => Err("display-preparation-window-close".into()),
+        // No issued lifetime exists yet: renderer construction can queue old
+        // Hidden/Shown/focus/size transitions. Final actual state is checked
+        // after settlement. Foreign window notifications are not our loss.
+        _ => Ok(()),
+    }
+}
+
 fn verify_window(canvas: &Canvas<Window>, width: u32, height: u32) -> Result<(), String> {
     let window = canvas.window();
     let flags = window.window_flags();

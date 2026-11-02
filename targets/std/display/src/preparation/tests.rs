@@ -67,15 +67,14 @@ fn historical_startup_hidden_shown_is_settled_but_post_ready_hidden_is_terminal(
 #[test]
 fn startup_quit_own_close_and_global_render_reset_refuse_before_token() {
     let _sdl_test = crate::SDL_TEST_LOCK.lock().unwrap();
-    for kind in 0..4 {
+    for kind in 0..2 {
         let (sdl, mut canvas, textures) = setup();
         sdl.event()
             .unwrap()
             .push_event(match kind {
                 0 => Event::Quit { timestamp: 0 },
                 1 => event(canvas.window().id(), WindowEvent::Close),
-                2 => Event::RenderDeviceReset { timestamp: 0 },
-                _ => Event::RenderTargetsReset { timestamp: 0 },
+                _ => unreachable!(),
             })
             .unwrap();
         let error = Scanout::prepare(&mut canvas, &textures, 32, 24)
@@ -88,6 +87,20 @@ fn startup_quit_own_close_and_global_render_reset_refuse_before_token() {
                 1 => "display-preparation-window-close",
                 _ => "display-preparation-render-reset",
             }
+        );
+    }
+}
+#[test]
+fn both_global_reset_variants_refuse_the_same_preparation_guard() {
+    // SDL2's safe push_event cannot inject these two SDL-generated event types.
+    // Exercise the exact guard used for each polled event without raw SDL FFI.
+    for event in [
+        Event::RenderDeviceReset { timestamp: 0 },
+        Event::RenderTargetsReset { timestamp: 0 },
+    ] {
+        assert_eq!(
+            super::validate_startup_event(event, 1),
+            Err("display-preparation-render-reset".into())
         );
     }
 }
