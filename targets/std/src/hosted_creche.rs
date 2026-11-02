@@ -1,4 +1,4 @@
-//! Scoped owner of one installed Crèche Host operation. The adapter supplies
+//! Scoped owner of one installed Crèche Host Call. The adapter supplies
 //! admitted platform effects and canonical receipt custody; this owner binds
 //! them to actual execution and does not schedule or invent deployment truth.
 use conduit_body::{BodyPlan, BodyPlayIdentity, ResidentPlot};
