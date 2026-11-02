@@ -13,6 +13,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
+#[cfg(any(test, all(target_os = "linux", feature = "native-display")))]
+#[path = "member_carrier_client.rs"]
+pub(super) mod member_carrier_client;
+
 #[path = "admitted_snapshot.rs"]
 mod admitted_snapshot;
 use admitted_snapshot::AdmittedSnapshot;

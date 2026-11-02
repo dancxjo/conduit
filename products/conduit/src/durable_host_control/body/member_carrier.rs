@@ -50,6 +50,28 @@ impl DurableHostRuntime {
                 .map_err(|_| "member carrier signature must be exactly64bytes")?,
         )
     }
+    pub(in crate::durable_host_control) fn owned_body_member_carrier_mask_route(
+        &mut self,
+        session: &LinkBindingId,
+        face_line: &conduit_core::LineOffer,
+        return_line: &conduit_core::LineOffer,
+    ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("current-member presentation requires the live installed owner".into());
+        };
+        owner.select_member_carrier_mask_route(session, face_line, return_line)
+    }
+    pub(in crate::durable_host_control) fn owned_body_member_carrier_show(
+        &mut self,
+        session: &LinkBindingId,
+        request: &OwnerFaceSnapshotRequest,
+        show: &MaskShow,
+    ) -> Result<(), String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("current-member presentation requires the live installed owner".into());
+        };
+        owner.acknowledge_member_carrier_show(session, request, show)
+    }
     pub(in crate::durable_host_control) fn owned_body_member_presence_renew(
         &mut self,
         session: &LinkBindingId,
@@ -271,6 +293,44 @@ pub(crate) fn renew_carrier_presence(
             protocol: PROTOCOL,
             lease,
         } => Ok(*lease),
+        other => Err(wrong(other)),
+    }
+}
+
+pub(crate) fn carrier_mask_route(
+    state: &Path,
+    session: LinkBindingId,
+    face_line: conduit_core::LineOffer,
+    return_line: conduit_core::LineOffer,
+) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
+    match exchange(state, |token| Request::BodyMemberCarrierMaskRoute {
+        protocol: PROTOCOL,
+        token,
+        session,
+        face_line: Box::new(face_line),
+        return_line: Box::new(return_line),
+    })? {
+        Response::BodyNativeMaskRoute {
+            protocol: PROTOCOL,
+            route,
+        } => Ok(*route),
+        other => Err(wrong(other)),
+    }
+}
+pub(crate) fn carrier_show(
+    state: &Path,
+    session: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    show: MaskShow,
+) -> Result<(), String> {
+    match exchange(state, |token| Request::BodyMemberCarrierShow {
+        protocol: PROTOCOL,
+        token,
+        session,
+        request,
+        show: Box::new(show),
+    })? {
+        Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL } => Ok(()),
         other => Err(wrong(other)),
     }
 }

@@ -230,3 +230,6 @@ fn member_presence_renews_but_cannot_resurrect_expired_carrier_lease() {
     assert_eq!(state::load(&root).unwrap().unwrap(), before);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "member_carrier/presentation.rs"]
+mod presentation;

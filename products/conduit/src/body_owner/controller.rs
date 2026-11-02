@@ -18,6 +18,8 @@ pub(crate) use participants::run_service_window;
 pub(crate) use participants::serve_member_presence;
 #[cfg(test)]
 pub(crate) use participants::serve_with_carrier;
+#[cfg(test)]
+pub(crate) use participants::serve_with_dispatch;
 pub(crate) use participants::{
     BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindowAuthorization,
 };

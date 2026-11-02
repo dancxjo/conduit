@@ -14,6 +14,8 @@ pub(crate) use controller::run_service_window;
 pub(crate) use controller::serve_member_presence;
 #[cfg(test)]
 pub(crate) use controller::serve_with_carrier;
+#[cfg(test)]
+pub(crate) use controller::serve_with_dispatch;
 pub(crate) use controller::{
     clock_interval_action, is_clock_control_intent, BrowserAdmittedSnapshot,
     BrowserCarrierLineEvidence, BrowserWindowAuthorization, ClockAction, DirectSpokenStart,

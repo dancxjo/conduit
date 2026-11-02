@@ -42,6 +42,7 @@ pub(super) struct NativeMaskRoute {
     seal: RemoteOwnerMaskRouteSeal,
     acknowledged_show: Option<MaskShow>,
     expires_at_millis: u64,
+    carrier_presence_deadline: Option<std::time::Instant>,
 }
 
 impl NativeMaskRoute {
@@ -61,7 +62,10 @@ impl NativeMaskRoute {
         &LineOffer,
         Option<&LineOffer>,
     )> {
-        if now_millis >= self.expires_at_millis
+        if self
+            .carrier_presence_deadline
+            .is_some_and(|deadline| std::time::Instant::now() >= deadline)
+            || now_millis >= self.expires_at_millis
             || self.seal.body_id != session.evidence().body_id
             || self.seal.workload_revision != session.evidence().body.workload_revision
             || self.seal.face_id != face.identity
@@ -351,6 +355,7 @@ impl Owner {
             seal: seal.clone(),
             acknowledged_show: None,
             expires_at_millis,
+            carrier_presence_deadline: None,
         });
         if let Err(error) = self.admit_native_face_route(&seal) {
             self.pending_native_mask = previous;
@@ -468,7 +473,11 @@ impl Owner {
             .pending_native_mask
             .as_ref()
             .ok_or("native-mask-route-not-selected")?;
-        if super::super::super::current_time_millis()? >= route.expires_at_millis {
+        if route
+            .carrier_presence_deadline
+            .is_some_and(|deadline| std::time::Instant::now() >= deadline)
+            || super::super::super::current_time_millis()? >= route.expires_at_millis
+        {
             return Err("native-mask-return-expired".into());
         }
         let credential = &route.credential;

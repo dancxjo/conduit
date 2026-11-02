@@ -19,7 +19,7 @@ use conduit_std_host::{
 use std::time::Duration;
 
 pub(super) struct Listener(NativeWebSocketListener);
-pub(super) struct Socket {
+pub(crate) struct Socket {
     line: Carrier,
     binding: LinkBindingId,
     closed: bool,
@@ -94,7 +94,37 @@ impl Socket {
         }
     }
 
-    pub(super) fn binding(&self) -> &LinkBindingId {
+    /// Actual bounded TLS carrier custody is required before offering native
+    /// document directions. The owner separately authorizes and selects them.
+    pub(crate) fn native_lines(
+        &self,
+        owner: &conduit_core::HostAdvertisement,
+        member: &crate::durable_host::owner::MemberPresentationBasis,
+    ) -> Result<(LineOffer, LineOffer), String> {
+        let Carrier::Secure(line) = &self.line else {
+            return Err("native document Lines require actual TLS carrier".into());
+        };
+        if self.closed {
+            return Err("participant carrier closed".into());
+        }
+        let pair = crate::durable_host::routed_join::native_lines::offer_pair(
+            owner,
+            member,
+            self.binding.as_str(),
+        );
+        for offer in [&pair.0, &pair.1] {
+            let needed = offer.binding.limits.maximum_frame_bytes as usize;
+            if needed > line.maximum_message_bytes()
+                || needed > self.input.len()
+                || needed > self.output.len()
+            {
+                return Err("native document Line exceeds initialized carrier buffers".into());
+            }
+        }
+        Ok(pair)
+    }
+
+    pub(crate) fn binding(&self) -> &LinkBindingId {
         &self.binding
     }
 

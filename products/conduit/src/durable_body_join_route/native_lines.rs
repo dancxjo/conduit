@@ -37,7 +37,7 @@ pub(super) fn binding_reference(
     format!("{certificate}/{grant_reference}")
 }
 
-pub(super) fn offer_pair(
+pub(crate) fn offer_pair(
     owner: &HostAdvertisement,
     guest: &MemberPresentationBasis,
     binding_reference: &str,

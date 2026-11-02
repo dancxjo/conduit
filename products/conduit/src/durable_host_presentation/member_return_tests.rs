@@ -71,9 +71,28 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
     let detached = owner
         .member_leave(&owner_state, &receipt.credential)
         .unwrap();
-    let mut actual = old;
-    actual.boot_id = "boot/member-tls/returned".into();
-    actual.offer_generation = conduit_core::OfferGeneration(2);
+    // Typed native-offer fixture only; this test initializes no physical output.
+    let provider = conduit_core::BaseProviderEntry {
+        base_id: "fixture/framebuffer".into(),
+        provider_instance_id: "fixture/framebuffer/1".into(),
+        provider_generation: 1,
+        implementation_id: "conduitos/framebuffer@1".into(),
+        mechanism_family: "conduitos.base/framebuffer@1".into(),
+        enforcement_class: conduit_core::BaseEnforcementClass::ConduitOsKernelEnforced,
+        lifecycle: conduit_core::BaseLifecycle::Ready,
+        capabilities: vec![],
+        resources: vec![conduit_core::resource_offer(
+            "fixture/surface",
+            conduit_face::SHOW_RESOURCE_CLASS,
+            1,
+        )],
+    };
+    let actual = conduit_conduitos_mask_offer::native_host_advertisement(
+        &old.host_id,
+        &"boot/member-tls/returned".into(),
+        2,
+        &provider,
+    );
 
     let CertifiedKey { cert, signing_key } =
         generate_simple_self_signed(vec!["127.0.0.1".into()]).unwrap();
@@ -289,6 +308,156 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
             previous_session = Some(session);
         });
     }
+    // Exercise the actual continuing client and shared participant pump. The
+    // available Shows below are explicit CPU fixtures, not hardware receipts.
+    {
+        use conduit_std_host::browser_admission::{
+            BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
+            BROWSER_ADMISSION_PROTOCOL as PROTOCOL,
+        };
+        let controller = std::cell::RefCell::new(&mut owner);
+        std::thread::scope(|scope| {
+            let client = scope.spawn(|| {
+                let (mut route, mut snapshot) =
+                    member_carrier_client::MemberRoute::connect_current(
+                        &state,
+                        &returned,
+                        &actual,
+                        &current_encounter,
+                    )
+                    .unwrap();
+                for sequence in 1..=8 {
+                    let placement = snapshot.route.planned_mask.show_placement();
+                    let show = conduit_face::MaskShow::prepared(
+                        &snapshot.route.planned_mask,
+                        &snapshot.face,
+                        conduit_core::bind_active_play(
+                            &snapshot.route.planned_mask.plan.plan_id,
+                            &placement.host_id,
+                            &placement.boot_id,
+                            sequence,
+                        ),
+                        snapshot.face.subjects[0].identity.clone(),
+                        "fixture/native".into(),
+                        format!("sign/fixture/prepared/{sequence}").into(),
+                    )
+                    .unwrap()
+                    .transition(
+                        conduit_face::ManifestationLifecycle::Available,
+                        format!("sign/fixture/available/{sequence}").into(),
+                    )
+                    .unwrap();
+                    route.acknowledge(&show).unwrap();
+                    std::thread::sleep(Duration::from_millis(300));
+                    route.poll_presence().unwrap();
+                    snapshot = route.refresh().unwrap();
+                }
+                route.leave().unwrap();
+            });
+            let mut line = listener
+                .accept_with_timeout(Duration::from_secs(3))
+                .unwrap();
+            let frame = server_receive(&mut line);
+            let (_, session) = installed::routed_join::current_member::serve_with(
+                &current_encounter,
+                &mut line,
+                frame,
+                |credential, ad, label, millis| {
+                    controller.borrow_mut().begin_current_member_carrier(
+                        &credential,
+                        &ad,
+                        label,
+                        conduit_core::LineSecurity::AuthenticatedEncrypted,
+                        millis,
+                        128,
+                    )
+                },
+                |challenge, signature| {
+                    controller
+                        .borrow_mut()
+                        .complete_current_member_carrier(&challenge, signature)
+                },
+                |session| {
+                    controller
+                        .borrow_mut()
+                        .retire_current_member_carrier(&session)
+                },
+            )
+            .unwrap();
+            installed::owner::serve_with_dispatch(
+                line,
+                session.clone(),
+                &returned,
+                |sequence| {
+                    controller
+                        .borrow_mut()
+                        .renew_current_member_presence(&session, sequence)
+                },
+                |socket, frame| {
+                    let mut owner = controller.borrow_mut();
+                    match frame {
+                        In::FaceSnapshotRequest {
+                            protocol: PROTOCOL,
+                            request,
+                        } => {
+                            let member = installed::owner::MemberPresentationBasis::new(
+                                returned.clone(),
+                                actual.clone(),
+                            )
+                            .unwrap();
+                            let (face_line, return_line) =
+                                socket.native_lines(owner.host.advertisement(), &member)?;
+                            for _ in 0..3 {
+                                let seal = owner.select_member_carrier_mask_route(
+                                    &session,
+                                    &face_line,
+                                    &return_line,
+                                )?;
+                                let face = owner.local_face_snapshot()?;
+                                if seal.face_id == face.identity
+                                    && seal.face_revision == face.revision
+                                    && seal.face_basis == face.basis
+                                {
+                                    return Ok(Out::FaceSnapshotResponse {
+                                        protocol: PROTOCOL,
+                                        response:
+                                            conduit_face::OwnerFaceSnapshotResponse::Snapshot {
+                                                schema: conduit_face::OWNER_FACE_RESPONSE_SCHEMA
+                                                    .into(),
+                                                face: Box::new(face),
+                                                interactions_admitted: false,
+                                                route: Some(Box::new(seal)),
+                                            },
+                                    });
+                                }
+                            }
+                            let _ = request;
+                            Err("fixture Face changed during reseal".into())
+                        }
+                        In::FaceShowAcknowledgement {
+                            protocol: PROTOCOL,
+                            request,
+                            show,
+                        } => {
+                            owner.acknowledge_member_carrier_show(&session, &request, &show)?;
+                            Ok(Out::FaceShowResponse {
+                                protocol: PROTOCOL,
+                                accepted: true,
+                                code: String::new(),
+                            })
+                        }
+                        _ => Err("unexpected test participant frame".into()),
+                    }
+                },
+            )
+            .unwrap();
+            controller
+                .borrow_mut()
+                .retire_current_member_carrier(&session)
+                .unwrap();
+            client.join().unwrap();
+        });
+    }
     assert_eq!(owner.truth()["biography"], biography_before);
     assert_eq!(fs::read(&admission_path).unwrap(), admission_before);
     let withdrawn = owner.member_leave(&owner_state, &returned).unwrap();
@@ -304,7 +473,7 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
         body_id: returned.body_id.clone(),
         part_id: returned.part_id.clone(),
         host_id: returned.host_id.clone(),
-        candidate: candidate.clone(),
+        candidate: current_candidate.clone(),
         owner: owner.prepare_current_member_carrier_receiver().unwrap(),
     };
     installed::write_json_atomic(&descriptor, &encounter).unwrap();

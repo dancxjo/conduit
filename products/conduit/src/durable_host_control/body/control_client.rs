@@ -119,6 +119,8 @@ fn clear_token(request: &mut Request) {
         | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyMemberCarrierBegin { token, .. }
         | Request::BodyMemberCarrierComplete { token, .. }
+        | Request::BodyMemberCarrierMaskRoute { token, .. }
+        | Request::BodyMemberCarrierShow { token, .. }
         | Request::BodyMemberPresenceRenew { token, .. }
         | Request::BodyMemberCarrierInspect { token, .. }
         | Request::BodyMemberCarrierRetire { token, .. }

@@ -9,6 +9,8 @@ use conduit_body::{
 };
 use conduit_core::{HostAdvertisement, LineId, LineSecurity};
 use std::time::{Duration, Instant};
+#[path = "member_carrier/presentation.rs"]
+mod presentation;
 
 #[derive(Default)]
 pub(super) struct MemberCarrierCustody {
@@ -31,6 +33,7 @@ struct Active {
     receiver: FederationPeer,
     member: MemberPresentationBasis,
     presence: Option<Presence>,
+    route: Option<conduit_core::PlanId>,
 }
 struct Presence {
     clock: Instant,
@@ -142,7 +145,11 @@ impl Owner {
             return Err("member carrier session slot occupied".into());
         }
         custody.pending = None;
-        custody.active = None;
+        let retired_route = custody
+            .active
+            .take()
+            .and_then(|mut active| active.route.take());
+        self.retire_member_carrier_route(retired_route);
         let receiver = self.prepare_current_member_carrier_receiver()?;
         let mut nonce = [0; 32];
         getrandom::fill(&mut nonce).map_err(|e| e.to_string())?;
@@ -236,6 +243,7 @@ impl Owner {
             receiver,
             member: pending.member,
             presence: None,
+            route: None,
         });
         Ok(inspection)
     }
@@ -360,12 +368,14 @@ impl Owner {
                 table,
             });
         }
-        active
+        let lease = active
             .presence
             .as_ref()
             .and_then(|presence| presence.table.leases.first())
             .cloned()
-            .ok_or_else(|| "member presence absent".into())
+            .ok_or("member presence absent")?;
+        self.refresh_member_carrier_route_presence()?;
+        Ok(lease)
     }
 
     /// Drop only this exact authenticated session, never its member attachment.
@@ -387,7 +397,9 @@ impl Owner {
             return Err("carrier retirement differs from active session".into());
         }
         active.session.revoke_credential();
+        let route = active.route.take();
         custody.active = None;
+        self.retire_member_carrier_route(route);
         Ok(())
     }
 }

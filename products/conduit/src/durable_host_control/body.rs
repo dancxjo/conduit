@@ -7,7 +7,8 @@ mod face_snapshot;
 #[path = "body/member_carrier.rs"]
 mod member_carrier;
 pub(crate) use member_carrier::{
-    begin_carrier, carrier_receiver, complete_carrier, renew_carrier_presence, retire_carrier,
+    begin_carrier, carrier_mask_route, carrier_receiver, carrier_show, complete_carrier,
+    renew_carrier_presence, retire_carrier,
 };
 #[path = "body/member_leave.rs"]
 mod member_leave;

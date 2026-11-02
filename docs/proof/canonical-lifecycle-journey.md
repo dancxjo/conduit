@@ -1069,3 +1069,39 @@ permission, Ready Lines, a current Show or browser admission. No device deployme
 online Workspace invitation, screenshot or continuing physical display is claimed
 by this checkpoint. The existing delivery owner is #6461; #6340 and #6409 remain
 continuity and retirement correctness gates.
+
+### Current-member Face and Show on the shared participant carrier
+
+The restricted heartbeat worker has been replaced by the same PresencePump now
+used by browser participants. Receive budgets, partial polling, exact renewal
+scope, finite lease/deadline checks and PresenceAccepted framing share one
+implementation; browser Face/action dispatch remains separate from native
+presentation policy. Actual TLS socket custody supplies the native directional
+Line offers within initialized message/buffer limits. The serialized owner checks
+that exact session, full current member basis, live presence and canonical Line
+pair before explicitly selecting the existing native Mask route.
+
+A carrier-selected route retains a monotonic presence deadline. Only an accepted
+renewal can extend that deadline for the matching route ID. Expiry removes its
+planning witness and refuses Show acknowledgments, while the member remains
+attached. Exact-session cleanup cannot remove a replacement route. Native clients
+now retain the same TLS socket, use existing typed participant Face/Show frames,
+and poll presence independently of their ten-second Face refresh. Validation
+inside the local native renderer performs local checks, without network I/O.
+
+The local pinned-TLS regression now exercises the actual MemberRoute client,
+eight Face refreshes and eight typed fixture Show acknowledgments, plus the
+previous two fresh authentication/renewal sessions. The test retains exact
+biography/admission bytes. Its declared native provider and Available Shows are
+CPU fixtures, not initialized physical equipment or scanout receipts. Eight
+owner/custody tests pass, including stale Show/cleanup and short-lease expiry;
+all nineteen shared participant regressions pass. Native binary/test compilation
+also passes with warnings denied. The network regression uses owner callbacks;
+the new installed Unix-control worker still needs live deployment proof.
+
+The new native entrance still has an explicit sixty-second/128-frame session
+bound and a selected finite encounter descriptor. It does not yet renew that
+overall authorization or reconnect automatically. Fresh Boots still need signed
+PartReturn; current Boots use their retained key without re-admission. Initial
+Seed joining remains distinct. No perpetual presentation, browser invitation,
+physical update or screenshot is inferred from this local checkpoint.

@@ -162,7 +162,7 @@ pub(crate) fn serve_body_member_route(
                 state,
                 line,
                 session.clone(),
-                &member.credential,
+                &member,
             );
             let cleanup = crate::durable_host_control::retire_carrier(state, session);
             if let Err(error) = result {

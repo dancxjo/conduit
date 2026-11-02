@@ -1,5 +1,5 @@
 //! Read-only native presentation on the installed Seed's actual initialized Host.
-//! This consumes the existing finite owner encounter; it is not a reconnect grant.
+//! Initial admission and current-member presentation retain distinct authority.
 use super::{wire, RuntimeStatus};
 use crate::durable_host::routed_join::MaskSelection;
 use crate::durable_host_control::DurableHostRuntime;
@@ -13,10 +13,48 @@ const REFRESH_PERIOD: Duration = Duration::from_secs(10);
 const MAXIMUM_REFRESHES: u8 = 4;
 
 pub(in crate::durable_host) struct NativePresentation {
-    owner: Option<wire::OwnerRoute>,
+    owner: Option<NativeOwner>,
     next_refresh: Instant,
     refreshes: u8,
     play_sequence: u64,
+}
+
+enum NativeOwner {
+    Joining(wire::OwnerRoute),
+    Member(wire::member_carrier_client::MemberRoute),
+}
+impl NativeOwner {
+    fn acknowledge(&self, show: &conduit_face::MaskShow) -> Result<(), String> {
+        match self {
+            Self::Joining(route) => route.acknowledge(show),
+            Self::Member(route) => route.acknowledge(show),
+        }
+    }
+    fn refresh(&mut self) -> Result<wire::Snapshot, String> {
+        match self {
+            Self::Joining(route) => route.refresh(),
+            Self::Member(route) => route.refresh(),
+        }
+    }
+    fn poll_presence(&mut self) -> Result<(), String> {
+        match self {
+            Self::Joining(_) => Ok(()),
+            Self::Member(route) => route.poll_presence(),
+        }
+    }
+}
+impl conduit_std_host::NativeMaskEncounter for NativeOwner {
+    fn validate_current(
+        &self,
+        face: &conduit_face::Face,
+        route: &conduit_face::RemoteOwnerMaskRouteSeal,
+        local: &conduit_core::HostAdvertisement,
+    ) -> Result<(), String> {
+        match self {
+            Self::Joining(owner) => owner.validate_current(face, route, local),
+            Self::Member(owner) => owner.validate_current(face, route, local),
+        }
+    }
 }
 
 impl NativePresentation {
@@ -35,22 +73,23 @@ impl NativePresentation {
         }
         let installation = super::super::read_installation(&state.join("installation.json"))?;
         let (owner, snapshot) = if installation.joined_body_state.is_some() {
-            wire::OwnerRoute::return_initialized(
+            let (route, snapshot) = wire::member_carrier_client::MemberRoute::connect_initialized(
                 runtime,
                 status,
                 state,
                 wire::load_member_encounter(state)?,
-                MaskSelection::Native,
-            )?
+            )?;
+            (NativeOwner::Member(route), snapshot)
         } else {
             let invitation = super::super::pending_seed::original_invitation(state)?;
-            wire::OwnerRoute::admit_initialized(
+            let (route, snapshot) = wire::OwnerRoute::admit_initialized(
                 runtime,
                 status,
                 state,
                 invitation,
                 MaskSelection::Native,
-            )?
+            )?;
+            (NativeOwner::Joining(route), snapshot)
         };
         let owner_acknowledged = present(runtime, output, &owner, snapshot, 1)?;
         Ok(Self {
@@ -66,10 +105,19 @@ impl NativePresentation {
         runtime: &mut DurableHostRuntime,
         output: &mut Scanout<'_>,
     ) -> Result<(), String> {
+        if let Some(owner) = self.owner.as_mut() {
+            if let Err(error) = owner.poll_presence() {
+                self.owner = None;
+                eprintln!("native carrier lost; displayed Show is historical: {error}");
+                return Ok(());
+            }
+        }
         if self.owner.is_none() || Instant::now() < self.next_refresh {
             return Ok(());
         }
-        if self.refreshes == MAXIMUM_REFRESHES {
+        if matches!(&self.owner, Some(NativeOwner::Joining(_)))
+            && self.refreshes == MAXIMUM_REFRESHES
+        {
             // Never turn an expired/consumed finite transport grant into another
             // invitation or implicit execution authority. Existing pixels are a
             // historical Show; no new Show or freshness assertion is published.
@@ -97,7 +145,7 @@ impl NativePresentation {
         if !owner_acknowledged {
             self.owner = None;
         }
-        self.refreshes += 1;
+        self.refreshes = self.refreshes.saturating_add(1);
         self.next_refresh = Instant::now() + REFRESH_PERIOD;
         Ok(())
     }
@@ -106,7 +154,7 @@ impl NativePresentation {
 fn present(
     runtime: &mut DurableHostRuntime,
     output: &mut Scanout<'_>,
-    owner: &wire::OwnerRoute,
+    owner: &NativeOwner,
     snapshot: wire::Snapshot,
     play_sequence: u64,
 ) -> Result<bool, String> {
