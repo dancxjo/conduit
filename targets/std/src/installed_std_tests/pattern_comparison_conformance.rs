@@ -107,8 +107,6 @@ fn reusable_pattern_comparison_executes_with_explicit_policy_through_one_play() 
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             native_source: None,
-            #[cfg(all(target_os = "linux", feature = "linux-display"))]
-            native_display: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,

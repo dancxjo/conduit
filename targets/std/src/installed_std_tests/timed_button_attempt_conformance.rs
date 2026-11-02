@@ -137,8 +137,6 @@ fn portable_button_flow_becomes_one_timed_attempt_in_the_production_kernel() {
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             native_source: None,
-            #[cfg(all(target_os = "linux", feature = "linux-display"))]
-            native_display: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,

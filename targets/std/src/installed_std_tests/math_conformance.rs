@@ -202,8 +202,6 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
     let report = installed_std::run_fragment(
         installed_std::InstalledRunHost {
             native_source: None,
-            #[cfg(all(target_os = "linux", feature = "linux-display"))]
-            native_display: None,
             #[cfg(target_os = "linux")]
             selected_text_file: None,
             advertisement: &advertisement,
