@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.proof/canonical-lifecycle-browser-observation@1",
+  "source_commit": "f3e9b7f87707f28f968643c4c1c109ff20be97e7",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "installed_release": "sha256:8751a6f23a6ef881b27adccfa911cb5bbd9c65e0448d9bcd89b36e811539d578",
+  "proof_class": "isolated headless Chromium against actual installed Body, ordinary Handbook UI and owner CLI",
+  "personal_latimer_admission_proven": false,
+  "signed_admission": "observed successful",
+  "wardrobe": "browser-graphical available, worn, selected",
+  "wake": "service accepted preparing request",
+  "face": "repeated owner-mask-route-unavailable after wake request",
+  "seed_produced": false,
+  "threebee_changed": false,
+  "recovery_observation": "Closing admitted browser, including immediately after Leave click, left another browser admission window active; owner service restart used while lulled. Cause not yet established.",
+  "evidence_directory": "outputs/creche-browser-20261102",
+  "browser_library_version": "1.62.1"
+}
