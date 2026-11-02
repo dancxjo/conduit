@@ -12,6 +12,8 @@ use crate::{
 };
 
 mod continuity;
+mod current_member;
+pub use current_member::CurrentMemberContinuity;
 mod documents;
 mod invitation;
 mod storage;
