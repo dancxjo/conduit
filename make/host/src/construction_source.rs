@@ -27,11 +27,13 @@ pub fn parse_host_configuration_conduit(
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let bases = repeated::<ConfigurationBase>(&declarations, "base")
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
+    let capabilities = repeated::<crate::CapabilityIntent>(&declarations, "capability")
+        .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     let resources = repeated::<ResourceBudget>(&declarations, "need")
         .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     reject_unknown(
         &declarations,
-        &["schema", "target", "limits", "base", "need"],
+        &["schema", "target", "limits", "base", "need", "capability"],
     )
     .map_err(|detail| ConfigurationDiagnostic::Decode { detail })?;
     Ok(HostConfiguration {
@@ -40,6 +42,7 @@ pub fn parse_host_configuration_conduit(
         target,
         bases,
         resources,
+        capabilities,
         limits,
     })
 }
@@ -54,6 +57,7 @@ pub fn canonical_host_configuration_conduit(
     canonical
         .resources
         .sort_by(|left, right| left.id.cmp(&right.id));
+    canonical.capabilities.sort_by(|a, b| a.kind.cmp(&b.kind));
     let mut source = String::new();
     writeln!(&mut source, "host {} {{", canonical.name).map_err(|error| {
         ConfigurationDiagnostic::Encode {
@@ -142,6 +146,27 @@ pub fn canonical_host_configuration_conduit(
                 })?;
             }
             source.push('}');
+        }
+        source.push_str("}\n");
+    }
+    for capability in &canonical.capabilities {
+        write!(
+            &mut source,
+            "  capability = {{kind: {}",
+            string(&capability.kind)?
+        )
+        .map_err(|error| ConfigurationDiagnostic::Encode {
+            detail: error.to_string(),
+        })?;
+        if let Some(implementation) = &capability.pinned_implementation {
+            write!(
+                &mut source,
+                ", pinned_implementation: {}",
+                string(implementation)?
+            )
+            .map_err(|error| ConfigurationDiagnostic::Encode {
+                detail: error.to_string(),
+            })?;
         }
         source.push_str("}\n");
     }
