@@ -136,6 +136,10 @@ impl<D: PixelTarget> FirmwareFace<D> {
         {
             return Err("firmware-face-scanout-mismatch");
         }
+        let configuration = mask
+            .component_configuration()
+            .map(crate::firmware_face_evidence::encode_configuration)
+            .transpose()?;
         let evidence = serde_json::to_vec(&json!({
             "schema":"conduit.conduitos/firmware-face@1", "status":"shown",
             "checkpoint":"creche-read-only", "target":make.target,
@@ -151,7 +155,7 @@ impl<D: PixelTarget> FirmwareFace<D> {
                 "green_shift":format.green_shift,"blue_shift":format.blue_shift},
             "surface_slots":make.face_surface_slots,"surface_bytes":make.face_surface_bytes,
             "offscreen_pixels_written":composition.display.pixels_written,
-            "component_configuration":mask.component_configuration(),
+            "component_configuration":configuration,
             "local_input_available":false,"interactions_admitted":false,
             "physical_scanout_proved":false,"gpu_acceleration_proved":false
         }))

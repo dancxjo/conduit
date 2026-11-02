@@ -189,6 +189,7 @@ impl Capture {
         {
             return Err(refuse("graphical Sign does not match the current product"));
         }
+        validate_configuration(&face, product)?;
         let (mut stream, mut reader) = qmp::connect_traced(
             &self.socket_directory.join("qmp"),
             child,
@@ -245,9 +246,89 @@ impl Drop for Capture {
         let _ = fs::remove_dir(&self.socket_directory);
     }
 }
+// Validate the retained transport before any capture operation. This does not
+// re-admit the renderer or infer authority from a serialized configuration.
+fn validate_configuration(face: &Value, product: &Value) -> Result<Value, ConduitosError> {
+    let configuration = conduitos::firmware_face_evidence::decode_configuration(
+        face.get("component_configuration")
+            .ok_or_else(|| refuse("missing component configuration"))?,
+    )
+    .map_err(refuse)?;
+    if !configuration.is_null()
+        && (configuration["host_id"] != product["host_id"]
+            || configuration["boot_id"] != product["boot_id"])
+    {
+        return Err(refuse(
+            "component configuration does not match current product",
+        ));
+    }
+    Ok(configuration)
+}
+
 fn refuse(detail: impl Into<String>) -> ConduitosError {
     ConduitosError::refusal("firmware-frame-graphical-proof-invalid", detail)
 }
 fn io(error: std::io::Error) -> ConduitosError {
     refuse(error.to_string())
+}
+
+#[cfg(test)]
+mod configuration_tests {
+    use super::*;
+    use conduit_core::StructuredConfigurationValue;
+    use conduit_face::{ConfiguredComponentSource, ConfiguredMaskConfiguration};
+    use conduit_plot::rust_binding::NativeRustBinding;
+
+    #[test]
+    fn capture_configuration_accepts_legacy_and_hex_and_refuses_corruption_or_foreign_boot() {
+        let value = conduit_face::phosphor_look()
+            .unwrap()
+            .into_structured()
+            .unwrap();
+        let profile = value.value_type().profile().unwrap().value_kind().clone();
+        let value =
+            StructuredConfigurationValue::new(profile, value.canonical_bytes().unwrap()).unwrap();
+        let configuration = ConfiguredMaskConfiguration {
+            component: ConfiguredComponentSource {
+                source_document_id: "source/exact".into(),
+                checked_plot_id: "checked/exact".into(),
+                fore_id: "fore/exact".into(),
+            },
+            invocation_path: vec!["renderer".into()],
+            placement_id: "placement/exact".into(),
+            host_id: "host/exact".into(),
+            boot_id: "boot/exact".into(),
+            execution_profile_id: "profile/exact".into(),
+            implementation_id: "implementation/exact".into(),
+            recipe: value.clone(),
+            look: value,
+            layout: None,
+        };
+        let product = json!({"host_id":"host/exact", "boot_id":"boot/exact"});
+        let original = serde_json::to_value(&configuration).unwrap();
+        for wire in [
+            original.clone(),
+            conduitos::firmware_face_evidence::encode_configuration(&configuration).unwrap(),
+        ] {
+            let face = json!({"component_configuration":wire});
+            assert_eq!(validate_configuration(&face, &product).unwrap(), original);
+            let mut malformed = face.clone();
+            malformed["component_configuration"]["recipe"]["profile"] = "foreign/profile".into();
+            assert!(validate_configuration(&malformed, &product).is_err());
+            for key in ["host_id", "boot_id"] {
+                let mut foreign = product.clone();
+                foreign[key] = "foreign".into();
+                assert!(validate_configuration(&face, &foreign).is_err());
+            }
+        }
+        assert_eq!(
+            validate_configuration(&json!({"component_configuration":null}), &product).unwrap(),
+            Value::Null
+        );
+        assert!(validate_configuration(&json!({}), &product).is_err());
+        let prefix = "CONDUIT_FIRMWARE_FACE ";
+        let partial = format!("{prefix}{}", json!({"component_configuration":original}));
+        assert!(emitted_line::complete_json_line(&partial, prefix).is_none());
+        assert!(emitted_line::complete_json_line(&format!("{partial}\n"), prefix).is_some());
+    }
 }
