@@ -143,7 +143,7 @@ fn serve_existing_invitation_route(
                     },
                 )?;
                 face_snapshot::serve_optional_face_snapshot(
-                    &mut line, &listener, state_dir, &receipt,
+                    &mut line, listener, state_dir, &receipt,
                 )
             }
             Err(error) => {
@@ -159,7 +159,7 @@ fn serve_existing_invitation_route(
         }?;
     drop(line);
     if let Some(grant) = continuation {
-        return_route::serve(&listener, state_dir, &grant)
+        return_route::serve(listener, state_dir, &grant)
     } else {
         Ok(())
     }
