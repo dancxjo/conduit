@@ -37,6 +37,13 @@ pub(super) fn encounter(
     host: &HostAdvertisement,
     revision: u64,
 ) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
+    encounter_with_binding(host, revision, "fixture/binding")
+}
+pub(super) fn encounter_with_binding(
+    host: &HostAdvertisement,
+    revision: u64,
+    binding: &str,
+) -> (FixtureEncounter, RemoteOwnerMaskRouteSeal, Face) {
     let planned = conduit_conduitos_mask_offer::prepare_native_stage_with_profile(
         host,
         NativeMaskStorageProfile::Standard,
@@ -115,7 +122,7 @@ pub(super) fn encounter(
     let line = |label: &str, source: &HostAdvertisement, sink: &HostAdvertisement| {
         let mut line = process_owned_line_offer_with_limits(
             &format!("fixture/line/{label}"),
-            &format!("fixture/binding/{label}"),
+            &format!("{binding}/{label}"),
             "conduit.base/websocket-rfc6455@1".into(),
             "fixture/carrier",
             source,

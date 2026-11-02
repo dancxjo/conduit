@@ -158,6 +158,31 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
         conduit_face::ManifestationLifecycle::Available
     );
     assert_eq!(actual_show.face_id, face.identity);
+    let original_offer = host.advertisement.clone();
+    let original_provider = host.ready_selected_native_mask().unwrap().entry().clone();
+    let (next, next_route, next_face) =
+        super::encounter_fixture::encounter_with_binding(&host.advertisement, 2, "fixture/changed");
+    assert_ne!(
+        next_route.planned_mask.plan.plan_id,
+        route.planned_mask.plan.plan_id
+    );
+    assert!(
+        host.render_selected_native_mask(
+            &next,
+            &next_route,
+            &next_face,
+            2,
+            "front/native-mask",
+            &mut output
+        )
+        .is_err(),
+        "changed exact Plan cannot replace an active child Play/resource possession"
+    );
+    assert_eq!(
+        host.selected_native_mask_show().unwrap().face_id,
+        face.identity,
+        "refusal preserves the actual old Show"
+    );
     let during = observed.load(std::sync::atomic::Ordering::Acquire);
     assert!(during > bound_bytes);
     assert!(
@@ -197,8 +222,6 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
         observed.load(std::sync::atomic::Ordering::Acquire),
         bound_bytes
     );
-    let (next, next_route, next_face) = super::encounter_fixture::encounter(&host.advertisement, 2);
-    assert_eq!(next_route.planned_mask.plan, route.planned_mask.plan);
     host.render_selected_native_mask(
         &next,
         &next_route,
@@ -208,6 +231,30 @@ fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
         &mut output,
     )
     .unwrap();
+    assert_eq!(
+        host.advertisement, original_offer,
+        "retirement never rewrites offers"
+    );
+    assert_eq!(
+        host.ready_selected_native_mask().unwrap().entry(),
+        &original_provider
+    );
+    assert_eq!(
+        host.ready_selected_native_mask().unwrap().fixed_backing(),
+        fixed
+    );
+    assert_eq!(
+        host.ready_selected_native_mask().unwrap().plan(),
+        Some(&next_route.planned_mask)
+    );
+    assert_eq!(
+        host.selected_native_mask_show()
+            .unwrap()
+            .planned_mask
+            .plan
+            .plan_id,
+        next_route.planned_mask.plan.plan_id
+    );
     let mut retained = host.take_selected_native_mask_evidence().unwrap();
     let mut foreign = StdHost::new();
     assert!(foreign

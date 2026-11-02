@@ -164,6 +164,9 @@ impl BoundReadOnlyMask {
             .filter(|_| !self.failed)
             .map(|session| session.show())
     }
+    pub(super) fn can_retire_plan(&self) -> bool {
+        !self.failed && self.session.is_none() && self.frame.is_none() && self.storage.is_some()
+    }
     pub(super) fn healthy(&self) -> bool {
         !self.failed
     }
@@ -173,6 +176,9 @@ impl BoundReadOnlyMask {
             .map(|storage| storage.retained_metadata_bytes())
             .ok_or_else(|| "native Mask kernel metadata absent".into())
     }
+    // These independent Host/provider/encounter/route/Face/output custody
+    // witnesses must remain explicit at the actual typed Host Call boundary.
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn render(
         &mut self,
         host: &mut StdHost,

@@ -4,6 +4,7 @@
 mod encounter_fixture;
 mod initialization;
 mod render;
+mod retirement;
 #[cfg(test)]
 mod tests;
 use crate::{
@@ -87,6 +88,7 @@ enum Stores {
     },
     Lost {
         _plan_custody: Vec<KernelResourceReservation>,
+        _metadata_pool: Option<BaseBackingReservation>,
     },
 }
 /// Retained actual driver-provider key and fixed stores. This prepares a Back;
@@ -225,11 +227,9 @@ impl SelectedNativeMaskBase {
     }
     fn bind(&mut self, host: &mut StdHost, planned: &PlannedMaskPlot) -> Result<(), String> {
         if let Stores::Bound { renderer, .. } = &self.stores {
-            return if renderer.plan() == planned {
-                Ok(())
-            } else {
-                Err("selected Mask requires retirement before a different exact routed Plan".into())
-            };
+            if renderer.plan() == planned {
+                return Ok(());
+            }
         }
         let mut inputs = planned
             .plan
@@ -249,6 +249,9 @@ impl SelectedNativeMaskBase {
         }
         let input_plan_bytes = conduitos::product_bases::native_mask_plan_backing_bytes(planned)
             .ok_or("selected Mask Plan owns unsupported metadata")?;
+        if matches!(&self.stores, Stores::Bound { .. }) {
+            self.retire_bound_plan(host)?;
+        }
         let mut preparation = render::reserve_preparation(host, &self.provider)?;
         if input_plan_bytes > preparation.bytes() as usize {
             host.kernel_resources
@@ -260,6 +263,7 @@ impl SelectedNativeMaskBase {
             &mut self.stores,
             Stores::Lost {
                 _plan_custody: Vec::new(),
+                _metadata_pool: None,
             },
         );
         let (kernel, raster) = match previous {
@@ -381,10 +385,19 @@ impl StdHost {
                 &mut mask.stores,
                 Stores::Lost {
                     _plan_custody: Vec::new(),
+                    _metadata_pool: None,
                 },
             );
-            if let Stores::Bound { _plan_custody, .. } = previous {
-                mask.stores = Stores::Lost { _plan_custody };
+            if let Stores::Bound {
+                _plan_custody,
+                _metadata_pool,
+                ..
+            } = previous
+            {
+                mask.stores = Stores::Lost {
+                    _plan_custody,
+                    _metadata_pool: Some(_metadata_pool),
+                };
             }
         }
         if let Some(scanout) = self.selected_scanout.as_mut() {
