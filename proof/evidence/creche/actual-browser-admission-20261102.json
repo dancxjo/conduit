@@ -8,10 +8,17 @@
   "signed_admission": "observed successful",
   "wardrobe": "browser-graphical available, worn, selected",
   "wake": "service accepted preparing request",
-  "face": "repeated owner-mask-route-unavailable after wake request",
+  "face": "One settled post-wake result refused owner-mask-route-unavailable; later retry artifact captured an in-flight Asking status and is not proof of every retry outcome.",
   "seed_produced": false,
   "threebee_changed": false,
   "recovery_observation": "Closing admitted browser, including immediately after Leave click, left another browser admission window active; owner service restart used while lulled. Cause not yet established.",
   "evidence_directory": "outputs/creche-browser-20261102",
-  "browser_library_version": "1.62.1"
+  "browser_library_version": "1.62.1",
+  "source_diagnosis": {
+    "file": "semantics/face/src/remote_owner_mask_route.rs",
+    "finding": "seal_current_inner and verify_seal reject Face basis containing producer plan_id or active_play_id; current Creche Plot Face supplies these identities",
+    "fix_status": "under implementation; exact current producer custody required",
+    "related_existing_issue": 6470
+  },
+  "browser_driver_revision": "Wait for Face status to settle before inspecting; wait after Leave before closing. Revised driver syntax checked but not yet rerun."
 }
