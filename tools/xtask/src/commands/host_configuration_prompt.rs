@@ -126,6 +126,9 @@ pub(crate) fn prompt(
             make_descriptor: exact_single_descriptor(descriptor),
         },
         bases,
+        capabilities: existing
+            .map(|configuration| configuration.capabilities.clone())
+            .unwrap_or_default(),
         resources: existing
             .map(|configuration| configuration.resources.clone())
             .unwrap_or_default(),
@@ -255,6 +258,7 @@ mod tests {
                 implementations: Vec::new(),
                 initialization: None,
             }],
+            capabilities: Vec::new(),
             resources: Vec::new(),
             limits: descriptor.maxima.clone(),
         })
