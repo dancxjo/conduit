@@ -1,7 +1,7 @@
 //! Main-thread progress for installed Host service and retained physical equipment.
 use super::*;
 
-type ForegroundPoll<'a> = dyn FnMut(&mut DurableHostRuntime) -> Result<(), String> + 'a;
+pub(crate) type ForegroundPoll<'a> = dyn FnMut(&mut DurableHostRuntime) -> Result<(), String> + 'a;
 
 pub(crate) fn serve(state_dir: &Path, runtime: DurableHostRuntime) -> Result<(), String> {
     serve_inner(state_dir, runtime, None)

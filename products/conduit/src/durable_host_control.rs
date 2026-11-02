@@ -1451,6 +1451,8 @@ mod service;
 pub(crate) use service::serve;
 #[cfg(all(unix, any(test, feature = "native-display")))]
 pub(crate) use service::serve_with_foreground;
+#[cfg(all(unix, feature = "native-display"))]
+pub(crate) use service::ForegroundPoll;
 
 #[cfg(not(unix))]
 pub(crate) fn serve(_state_dir: &Path, _runtime: DurableHostRuntime) -> Result<(), String> {

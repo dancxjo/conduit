@@ -495,7 +495,7 @@ fn serve_prepared_runtime(
         crate::durable_host_control::DurableHostRuntime,
     ),
     #[cfg(all(unix, feature = "native-display"))] foreground: Option<
-        &mut dyn FnMut(&mut crate::durable_host_control::DurableHostRuntime) -> Result<(), String>,
+        &mut crate::durable_host_control::ForegroundPoll<'_>,
     >,
 ) -> Result<(), String> {
     use startup_trace::Phase;
