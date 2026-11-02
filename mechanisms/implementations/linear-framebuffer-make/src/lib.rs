@@ -1,3 +1,6 @@
+mod initialization;
+pub use initialization::CheckedScanoutInitialization;
+
 use conduit_host_make::{
     HostMakePackage, ImplementationOffer, MakeContribution, MakeExtension,
     PackageCatalogContribution, PrerequisiteNode, PresenterMetadata,
@@ -40,6 +43,10 @@ fn package_catalog() -> PackageCatalogContribution {
                 )],
             ),
         ]),
+        initialization_contracts: BTreeMap::from([(
+            "display/linear-framebuffer@1".into(),
+            initialization::contract(),
+        )]),
         facilities: vec!["compositor/native@1".into()],
         mutually_exclusive_mechanisms: vec![
             ("compositor/native@1".into(), "browser/dom".into()),
