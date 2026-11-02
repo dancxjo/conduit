@@ -15,6 +15,9 @@ use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
 pub(crate) use participants::run_service_window;
+pub(crate) use participants::serve_member_presence;
+#[cfg(test)]
+pub(crate) use participants::serve_with_carrier;
 pub(crate) use participants::{
     BrowserAdmittedSnapshot, BrowserCarrierLineEvidence, BrowserWindowAuthorization,
 };

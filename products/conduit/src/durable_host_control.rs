@@ -131,7 +131,9 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
-pub(crate) use body::{begin_carrier, carrier_receiver, complete_carrier, retire_carrier};
+pub(crate) use body::{
+    begin_carrier, carrier_receiver, complete_carrier, renew_carrier_presence, retire_carrier,
+};
 pub(crate) use body::{begin_member_return, complete_member_return, leave_member};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
@@ -1072,6 +1074,12 @@ enum Request {
         challenge: Box<conduit_body::FederationChallenge>,
         signature: Vec<u8>,
     },
+    BodyMemberPresenceRenew {
+        protocol: u16,
+        token: Vec<u8>,
+        session: conduit_core::LinkBindingId,
+        sequence: u64,
+    },
     BodyMemberCarrierInspect {
         protocol: u16,
         token: Vec<u8>,
@@ -1364,6 +1372,10 @@ enum Response {
         protocol: u16,
         challenge: Box<conduit_body::FederationChallenge>,
         signature: Vec<u8>,
+    },
+    BodyMemberPresenceRenewed {
+        protocol: u16,
+        lease: Box<conduit_body::HostPresenceLease>,
     },
     BodyMemberCarrierInspection {
         protocol: u16,
@@ -1941,6 +1953,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyMemberCarrierReceiver { token, .. }
         | Request::BodyMemberCarrierBegin { token, .. }
         | Request::BodyMemberCarrierComplete { token, .. }
+        | Request::BodyMemberPresenceRenew { token, .. }
         | Request::BodyMemberCarrierInspect { token, .. }
         | Request::BodyMemberCarrierRetire { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
@@ -2014,6 +2027,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserCancel { .. }
                 | Request::BodyBrowserLeave { .. }
                 | Request::BodyMemberLeave { .. }
+                | Request::BodyMemberPresenceRenew { .. }
                 | Request::BodyMemberCarrierInspect { .. }
                 | Request::BodyMemberCarrierRetire { .. }
         )
@@ -2279,6 +2293,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|inspection| Response::BodyMemberCarrierInspection {
                 protocol: PROTOCOL,
                 inspection: Box::new(inspection),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberPresenceRenew {
+            protocol,
+            session,
+            sequence,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_presence_renew(&session, sequence)
+            .map(|lease| Response::BodyMemberPresenceRenewed {
+                protocol: PROTOCOL,
+                lease: Box::new(lease),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberCarrierInspect {

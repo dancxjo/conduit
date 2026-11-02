@@ -188,14 +188,60 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
         std::thread::scope(|scope| {
             let client = scope.spawn(|| {
                 let mut line = connect(&current_candidate, Duration::from_secs(3)).unwrap();
-                installed::routed_join::current_member::resume(
+                let authenticated = installed::routed_join::current_member::resume(
                     &state,
                     &returned,
                     &actual,
                     &current_encounter,
                     &mut line,
                 )
-                .unwrap()
+                .unwrap();
+                use conduit_std_host::browser_admission::{
+                    BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
+                    BROWSER_ADMISSION_PROTOCOL as PROTOCOL, MAX_BROWSER_ADMISSION_FRAME_BYTES,
+                };
+                let mut input = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+                let mut accepted =
+                    |line: &mut conduit_std_host::secure_websocket::SecureWebSocketClientLine,
+                     sequence| {
+                        let n = line.receive_binary(&mut input).unwrap();
+                        assert!(
+                            matches!(serde_json::from_slice::<Out>(&input[..n]).unwrap(),
+                        Out::PresenceAccepted { sequence: actual, .. } if actual == sequence)
+                        );
+                    };
+                accepted(&mut line, 1);
+                for sequence in 2..=9 {
+                    std::thread::sleep(Duration::from_millis(300));
+                    line.send_binary(
+                        &serde_json::to_vec(&In::PresenceRenewal {
+                            protocol: PROTOCOL,
+                            credential_id: returned.credential_id.clone(),
+                            body_id: returned.body_id.clone(),
+                            part_id: returned.part_id.clone(),
+                            host_id: returned.host_id.clone(),
+                            boot_id: returned.boot_id.clone(),
+                            sequence,
+                        })
+                        .unwrap(),
+                    )
+                    .unwrap();
+                    accepted(&mut line, sequence);
+                }
+                line.send_binary(
+                    &serde_json::to_vec(&In::PresenceLeave {
+                        protocol: PROTOCOL,
+                        credential_id: returned.credential_id.clone(),
+                        body_id: returned.body_id.clone(),
+                        part_id: returned.part_id.clone(),
+                        host_id: returned.host_id.clone(),
+                        boot_id: returned.boot_id.clone(),
+                        sequence: 10,
+                    })
+                    .unwrap(),
+                )
+                .unwrap();
+                authenticated
             });
             let mut line = listener
                 .accept_with_timeout(Duration::from_secs(3))
@@ -227,6 +273,12 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
                         .retire_current_member_carrier(&session)
                 },
             )
+            .unwrap();
+            installed::owner::serve_with_carrier(line, session.clone(), &returned, |sequence| {
+                controller
+                    .borrow_mut()
+                    .renew_current_member_presence(&session, sequence)
+            })
             .unwrap();
             assert_eq!(client.join().unwrap().session_id, session);
             assert!(previous_session.as_ref().is_none_or(|old| old != &session));

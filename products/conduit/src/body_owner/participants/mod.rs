@@ -3,7 +3,11 @@
 //! The owner may issue a face-only browser Mask route on the admitted
 //! carrier; the Body workload remains on its authoritative Host.
 mod admission;
+mod member_presence;
 mod pending_action;
+pub(crate) use member_presence::serve_member_presence;
+#[cfg(test)]
+pub(crate) use member_presence::serve_with_carrier;
 mod service;
 #[cfg(unix)]
 mod service_worker;

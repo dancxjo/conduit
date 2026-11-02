@@ -30,7 +30,13 @@ struct Active {
     deadline: Instant,
     receiver: FederationPeer,
     member: MemberPresentationBasis,
+    presence: Option<Presence>,
 }
+struct Presence {
+    clock: Instant,
+    table: conduit_body::HostPresenceTable,
+}
+const PRESENCE_LEASE_MILLIS: u64 = 2000;
 impl Owner {
     fn member_carrier_peer(&self) -> Result<FederationPeer, String> {
         let key = self
@@ -104,13 +110,23 @@ impl Owner {
             .as_ref()
             .and_then(|c| c.active.as_ref())
             .is_some_and(|active| {
-                self.inspect_current_member_carrier(
-                    &active
-                        .session
-                        .inspection(&self.session.evidence().membership)
-                        .session_id,
-                )
-                .is_ok()
+                let presence_current = active.presence.as_ref().is_none_or(|presence| {
+                    let now = presence.clock.elapsed().as_millis();
+                    presence
+                        .table
+                        .leases
+                        .first()
+                        .is_some_and(|lease| now < u128::from(lease.expires_at_millis))
+                });
+                presence_current
+                    && self
+                        .inspect_current_member_carrier(
+                            &active
+                                .session
+                                .inspection(&self.session.evidence().membership)
+                                .session_id,
+                        )
+                        .is_ok()
             });
         let custody = self
             .member_carrier
@@ -219,6 +235,7 @@ impl Owner {
             deadline: pending.session_deadline,
             receiver,
             member: pending.member,
+            presence: None,
         });
         Ok(inspection)
     }
@@ -251,6 +268,104 @@ impl Owner {
             return Err("carrier session scope differs".into());
         }
         Ok(inspection)
+    }
+
+    /// The protected carrier worker may renew reachability only for its exact
+    /// authenticated incarnation. This grants no Line, Mask or effect authority.
+    /// A missed short lease requires fresh carrier authentication; a late packet
+    /// cannot resurrect it merely because the overall session has time remaining.
+    pub(crate) fn renew_current_member_presence(
+        &mut self,
+        session_id: &conduit_core::LinkBindingId,
+        sequence: u64,
+    ) -> Result<conduit_body::HostPresenceLease, String> {
+        let inspection = self.inspect_current_member_carrier(session_id)?;
+        if sequence == 0 || sequence > u64::from(inspection.maximum_frames) {
+            return Err("member presence sequence exceeds carrier bounds".into());
+        }
+        let active = self
+            .member_carrier
+            .as_mut()
+            .and_then(|custody| custody.active.as_mut())
+            .ok_or("carrier session absent")?;
+        let remaining = active
+            .deadline
+            .saturating_duration_since(Instant::now())
+            .as_millis();
+        let lease_millis = PRESENCE_LEASE_MILLIS.min(remaining.min(u128::from(u64::MAX)) as u64);
+        if lease_millis == 0 {
+            return Err("member presence carrier expired".into());
+        }
+        let membership = &self.session.evidence().membership;
+        let part = &active.member.credential.part_id;
+        let sign =
+            conduit_core::SignId::from(format!("{}/presence/{sequence}", session_id.as_str()));
+        if let Some(presence) = active.presence.as_mut() {
+            let now = presence
+                .clock
+                .elapsed()
+                .as_millis()
+                .min(u128::from(u64::MAX)) as u64;
+            if presence
+                .table
+                .leases
+                .first()
+                .is_none_or(|lease| now >= lease.expires_at_millis)
+            {
+                return Err("member presence lease expired".into());
+            }
+            presence
+                .table
+                .renew(
+                    membership,
+                    part,
+                    session_id,
+                    sequence,
+                    now,
+                    lease_millis,
+                    sign,
+                )
+                .map_err(|error| format!("member presence renewal: {error:?}"))?;
+        } else {
+            if sequence != 1 {
+                return Err("member presence must start at sequence one".into());
+            }
+            let clock = conduit_body::HostPresenceClock::new(
+                session_id.as_str().into(),
+                conduit_body::HostPresenceClockScale::Milliseconds,
+                1,
+                1,
+            )
+            .map_err(|error| format!("member presence clock: {error:?}"))?;
+            let mut table = conduit_body::HostPresenceTable::new(
+                membership.body_id.clone(),
+                clock,
+                PRESENCE_LEASE_MILLIS,
+            )
+            .map_err(|error| format!("member presence table: {error:?}"))?;
+            let started = Instant::now();
+            table
+                .start(
+                    membership,
+                    part,
+                    session_id.clone(),
+                    sequence,
+                    0,
+                    lease_millis,
+                    sign,
+                )
+                .map_err(|error| format!("member presence start: {error:?}"))?;
+            active.presence = Some(Presence {
+                clock: started,
+                table,
+            });
+        }
+        active
+            .presence
+            .as_ref()
+            .and_then(|presence| presence.table.leases.first())
+            .cloned()
+            .ok_or_else(|| "member presence absent".into())
     }
 
     /// Drop only this exact authenticated session, never its member attachment.

@@ -50,6 +50,16 @@ impl DurableHostRuntime {
                 .map_err(|_| "member carrier signature must be exactly64bytes")?,
         )
     }
+    pub(in crate::durable_host_control) fn owned_body_member_presence_renew(
+        &mut self,
+        session: &LinkBindingId,
+        sequence: u64,
+    ) -> Result<conduit_body::HostPresenceLease, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("current-member presence requires the live installed owner".into());
+        };
+        owner.renew_current_member_presence(session, sequence)
+    }
     pub(in crate::durable_host_control) fn owned_body_member_carrier_inspect(
         &self,
         session: &LinkBindingId,
@@ -117,6 +127,12 @@ mod tests {
                 token: vec![token; 32],
                 challenge: Box::new(challenge),
                 signature: vec![0; 64],
+            },
+            Request::BodyMemberPresenceRenew {
+                protocol: PROTOCOL,
+                token: vec![token; 32],
+                session: "fixture/session".into(),
+                sequence: 1,
             },
             Request::BodyMemberCarrierInspect {
                 protocol: PROTOCOL,
@@ -236,6 +252,25 @@ pub(crate) fn retire_carrier(state: &Path, session: LinkBindingId) -> Result<(),
         session,
     })? {
         Response::BodyMemberCarrierRetired { protocol: PROTOCOL } => Ok(()),
+        other => Err(wrong(other)),
+    }
+}
+
+pub(crate) fn renew_carrier_presence(
+    state: &Path,
+    session: LinkBindingId,
+    sequence: u64,
+) -> Result<conduit_body::HostPresenceLease, String> {
+    match exchange(state, |token| Request::BodyMemberPresenceRenew {
+        protocol: PROTOCOL,
+        token,
+        session,
+        sequence,
+    })? {
+        Response::BodyMemberPresenceRenewed {
+            protocol: PROTOCOL,
+            lease,
+        } => Ok(*lease),
         other => Err(wrong(other)),
     }
 }

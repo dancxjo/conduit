@@ -156,10 +156,19 @@ pub(crate) fn serve_body_member_route(
             }
         };
         if let Some(session) = carrier {
-            // Authentication alone must not open the old finite Face grant:
-            // the shared presence/Line custody entrance has not been installed.
-            // End this diagnostic exchange without changing member attachment.
-            crate::durable_host_control::retire_carrier(state, session)?;
+            // Presence uses the same retained TLS incarnation. It cannot open
+            // the old finite return grant or authorize a Show without Lines.
+            let result = crate::durable_host::owner::serve_member_presence(
+                state,
+                line,
+                session.clone(),
+                &member.credential,
+            );
+            let cleanup = crate::durable_host_control::retire_carrier(state, session);
+            if let Err(error) = result {
+                eprintln!("member presence ended: {error}");
+            }
+            cleanup?;
             continue;
         }
         if let Some(grant) =

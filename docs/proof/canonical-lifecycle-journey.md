@@ -1033,3 +1033,39 @@ next step is integrating the authenticated carrier with the existing renewable
 presence machinery and actual native Line custody, including exact route cleanup
 without withdrawing the member. No continuing display, deployed upgrade or usable
 online Workspace invitation is claimed by this checkpoint.
+
+### Renewable current-member reachability on retained TLS
+
+The current-member entrance now retains the same authenticated TLS socket and
+uses the existing participant framing and Core HostPresenceTable. Its protected
+owner entrance starts sequence one, rechecks the exact current member and carrier
+on every renewal, rejects repeated/out-of-bound sequences, and bounds each lease
+to two seconds and the remaining independently authorized carrier lifetime. A
+missed lease refuses late renewal. If a worker dies before cleanup, its expired
+started presence does not occupy the authentication slot until the longer carrier
+deadline; fresh authentication can replace it without withdrawing the member.
+Cleanup still names the exact session, so stale cleanup cannot retire a replacement.
+
+The participant socket now accepts actual native or TLS carriers. TLS uses the
+smaller of its initialized message bound and the existing protocol bound; buffers
+and sends cannot silently enlarge that extent. TLS explicitly refuses the
+browser-specific Line-evidence constructor. The independently accepted lease
+replaces an absolute watchdog for that exact socket, including partial frames,
+Ping/pong processing and blocked writes. Raw traffic never renews that deadline.
+
+The pinned-TLS integration regression exercises two fresh authentications, each
+with eight renewals spaced 300 ms apart, followed by session departure. This
+outlasts the initial two-second lease while retaining exact biography and admission
+bytes. Separate regressions cover partial-frame timeout recovery and an 80 ms
+absolute deadline despite incoming Ping traffic, plus owner-side expired-lease,
+sequence, replacement and retirement behavior.
+
+This is still a restricted reachability entrance: Face/Show/action frames refuse
+until actual native Line custody and route selection are installed. The next
+integration must share the existing participant receive/renew pump with actor
+renewal and presentation-dispatch hooks, rather than growing another Face protocol
+alongside it. Authentication and reachability do not manufacture execution
+permission, Ready Lines, a current Show or browser admission. No device deployment,
+online Workspace invitation, screenshot or continuing physical display is claimed
+by this checkpoint. The existing delivery owner is #6461; #6340 and #6409 remain
+continuity and retirement correctness gates.

@@ -164,3 +164,69 @@ fn same_incarnation_reattachment_retires_old_credential_session_without_waiting_
     assert_eq!(owner.admissions, admissions);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn member_presence_renews_but_cannot_resurrect_expired_carrier_lease() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, key, ad) = admit_with_key(&mut owner, &root, "host/presence");
+    let before = owner.session.evidence().clone();
+    let admissions = owner.admissions.clone();
+    let (challenge, _) = begin(&mut owner, &credential, &ad);
+    assert!(owner
+        .renew_current_member_presence(&challenge.session_id, 1)
+        .is_err());
+    owner
+        .complete_current_member_carrier(&challenge, signature(&challenge, &key))
+        .unwrap();
+    assert!(owner
+        .renew_current_member_presence(&challenge.session_id, 2)
+        .is_err());
+    assert!(owner
+        .renew_current_member_presence(&"foreign/session".into(), 1)
+        .is_err());
+    for sequence in 1..=8 {
+        let lease = owner
+            .renew_current_member_presence(&challenge.session_id, sequence)
+            .unwrap();
+        assert_eq!(lease.sequence, sequence);
+        assert_eq!(lease.session_binding_id, challenge.session_id);
+        assert_eq!(lease.part_id, credential.part_id);
+        assert_eq!(lease.expires_at_millis - lease.observed_at_millis, 2000);
+        assert!(owner
+            .renew_current_member_presence(&challenge.session_id, sequence)
+            .is_err());
+    }
+    assert!(owner
+        .renew_current_member_presence(&challenge.session_id, 129)
+        .is_err());
+    std::thread::sleep(std::time::Duration::from_millis(2010));
+    assert!(owner
+        .renew_current_member_presence(&challenge.session_id, 9)
+        .is_err());
+    // Overall authentication outlasts the shorter reachability lease.
+    assert!(owner
+        .inspect_current_member_carrier(&challenge.session_id)
+        .is_ok());
+    // Simulate a worker dying before exact cleanup: expired reachability must
+    // not occupy the finite authentication slot until its longer deadline.
+    let (fresh, _) = begin(&mut owner, &credential, &ad);
+    assert!(owner
+        .retire_current_member_carrier(&challenge.session_id)
+        .is_err());
+    assert!(owner
+        .renew_current_member_presence(&challenge.session_id, 9)
+        .is_err());
+    owner
+        .complete_current_member_carrier(&fresh, signature(&fresh, &key))
+        .unwrap();
+    assert!(owner
+        .renew_current_member_presence(&fresh.session_id, 1)
+        .is_ok());
+    assert!(owner
+        .renew_current_member_presence(&challenge.session_id, 9)
+        .is_err());
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(owner.admissions, admissions);
+    assert_eq!(state::load(&root).unwrap().unwrap(), before);
+    std::fs::remove_dir_all(root).unwrap();
+}
