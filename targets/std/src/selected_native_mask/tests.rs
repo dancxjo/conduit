@@ -48,7 +48,7 @@ fn config() -> crate::StdHostConfig {
     }
 }
 #[test]
-fn actual_fixed_stores_bind_exact_checked_image_and_parent_ledger_without_play() {
+fn selected_native_cpu_show_reuses_exact_plan_and_retains_evidence_custody() {
     assert!(sdl2::hint::set("SDL_VIDEODRIVER", "dummy"));
     let sdl = sdl2::init().unwrap();
     let video = sdl.video().unwrap();
