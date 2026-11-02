@@ -1,0 +1,28 @@
+{
+  "schema": "conduit.proof/installed-creche-browser-authoring@1",
+  "source_commit": "a6bfe2aaa409446ea0cbf780aa33855526d9cdbc",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "native_release": "sha256:51f5a11d7b0d24a74596d49dab5106178d150a926150cfd9e67d42c5248a90c3",
+  "browser_runtime_bytes": 16620291,
+  "application_package": "sha256:f550d5d5c18f6d14fc08355ce34e7a8fe06205f4d72295f7b092e8f9d6e4f45e",
+  "proof_class": "actual installed owner and isolated Chromium, ordinary Handbook UI, signed join and acknowledged remote Mask Show",
+  "personal_latimer_admission": false,
+  "observed_action": "The owner accepted Host name.",
+  "authored_name": "threebee",
+  "actual_face_basis": {
+    "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+    "wake_id": "abff7d4eabfea0d380381a9d71f07192b0fc54a4917c963baf4839da111c2228",
+    "source_document_id": "b1862581bed1cb582109bbdef7f3e246cf4af8dc8b38a9c9e935ceac45d96472",
+    "checked_plot_id": "d2310161e0afacd595bf0204efba35582d1202269157b3423160b6eb46856f60",
+    "expanded_plot_id": "da99e4526a39ecb5d0037e17485c00b27d76873c535328218a4c0e8d492778fa",
+    "plan_id": "019368d09c4343555780de8693e55bca49aa3b5cf7858d29cd66e2c5da01110b",
+    "active_play_id": "body-play/sha256:5a23153e43a00d92188cb1611d0dcbb30d05f18d61433233f2284aeaf894119d",
+    "sign_ids": []
+  },
+  "log": "outputs/creche-browser-20261102/authored-threebee-journey.log",
+  "log_sha256": "0235126468d6c9574b58e42194b1315e1493cbce4004be7c5b41bf965652ab5d",
+  "screenshot": "outputs/creche-browser-20261102/hamm-threebee-host-draft.png",
+  "seed_produced": false,
+  "threebee_deployed": false,
+  "remaining": "Inspect canonical Source and Check through current Face; export and verify Body-made Seed; selected IMAGE execution still has unqualified memory-custody work."
+}
