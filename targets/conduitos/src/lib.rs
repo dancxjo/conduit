@@ -443,6 +443,8 @@ pub mod compositor_semantic_recovery_proof;
 
 #[cfg(feature = "native-compositor-core")]
 pub mod firmware_face;
+#[cfg(any(test, feature = "native-compositor-core", feature = "hosted-tools"))]
+pub mod firmware_face_evidence;
 
 // Own the proof scanner's hosted poison/count controls without native mappings.
 #[cfg(test)]
