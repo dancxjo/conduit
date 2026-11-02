@@ -383,6 +383,14 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         todo_new_list: Option<String>,
     },
+    /// Export the owner's prepared joining Seed to a new local file.
+    /// Lull an active Body first; a lost reply leaves the export outcome unknown.
+    ExportSeed {
+        #[arg(long)]
+        state_dir: PathBuf,
+        /// Explicit local destination; an existing file is never overwritten.
+        destination: PathBuf,
+    },
     /// Request that the current service-owned Body Play stop and lull.
     Lull {
         #[arg(long)]
@@ -931,3 +939,7 @@ mod public_surface_tests {
         .is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "cli/seed_export_tests.rs"]
+mod seed_export_tests;

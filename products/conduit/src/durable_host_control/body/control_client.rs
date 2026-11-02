@@ -130,6 +130,7 @@ fn clear_token(request: &mut Request) {
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
+        | Request::BodyExportSeed { token, .. }
         | Request::InspectWorkerText { token, .. }
         | Request::CompleteWorkerText { token, .. } => token.fill(0),
         Request::Status { .. }

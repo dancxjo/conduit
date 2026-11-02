@@ -88,6 +88,8 @@ mod body;
 mod body_birth;
 #[path = "durable_host_control/body_run.rs"]
 mod body_run;
+mod body_seed_export;
+pub(crate) use body_seed_export::export_owned_seed;
 #[cfg(unix)]
 #[path = "durable_host_control/browser.rs"]
 pub(crate) mod browser;
@@ -1163,6 +1165,11 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
     },
+    BodyExportSeed {
+        protocol: u16,
+        token: Vec<u8>,
+        destination: PathBuf,
+    },
     Join {
         protocol: u16,
         token: Vec<u8>,
@@ -1339,6 +1346,10 @@ enum Response {
     BodyRunRequested {
         protocol: u16,
         maximum_millis: u64,
+    },
+    BodySeedExported {
+        protocol: u16,
+        receipt: conduit_host_make::DeploymentRealizationReceipt,
     },
     BodyLullRequested {
         protocol: u16,
@@ -1889,6 +1900,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyNativeGuestInteraction { token, .. }
         | Request::BodyStart { token, .. }
         | Request::BodyLull { token, .. }
+        | Request::BodyExportSeed { token, .. }
         | Request::Join { token, .. }
         | Request::InstallBodyContext { token, .. }
         | Request::ObserveLocalModelPool { token, .. }
@@ -2401,6 +2413,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|()| Response::BodyRunRequested {
                 protocol: PROTOCOL,
                 maximum_millis,
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyExportSeed {
+            protocol,
+            destination,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .export_owned_seed(&destination)
+            .map(|receipt| Response::BodySeedExported {
+                protocol: PROTOCOL,
+                receipt,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLull { protocol, .. } if protocol == PROTOCOL => runtime
