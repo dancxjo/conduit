@@ -126,6 +126,7 @@ fn checked_creche_masks_admit_three_fields_and_present_both_column_counts() {
 fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable() {
     use conduit_birth_plot::{BirthDraft, BirthPlotChoice};
     // Declared inventory fixture, not sixteen installed or executed Plots.
+    // Admit the existing Collection storage profile for the complete inventory.
     let choices = (0..conduit_body::MAX_BODY_PLOTS)
         .map(|index| BirthPlotChoice {
             title: alloc::format!("Plot {index:02} {}", "é".repeat(28)),
@@ -145,7 +146,7 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
         draft.search_plots(draft.revision(), query).unwrap();
         for name in ["É".repeat(32), alloc::string::String::new()] {
             draft.edit_name(draft.revision(), name.clone()).unwrap();
-            let mut mask = NativeFaceMask::prepare_creche(
+            let mut mask = NativeFaceMask::prepare_collection_creche(
                 "host/creche-bounds".into(),
                 "boot/creche-bounds".into(),
                 OfferGeneration(1),
@@ -154,6 +155,9 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
                 "surface/creche-bounds",
                 &provider,
                 CrecheComponentRecipe::ResponsiveColumns,
+                conduit_face::ComponentVisualSelection::default(),
+                conduit_face::VisualTypography::Editorial,
+                false,
             )
             .unwrap();
             let face = draft
@@ -162,9 +166,37 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
             let mut pixels = Pixels::new(320, 240);
             let encoded_bytes = serde_json::to_vec(&face).unwrap().len();
             assert!(
-                encoded_bytes <= crate::native_face_snapshot::MAX_SNAPSHOT_BYTES,
+                encoded_bytes <= crate::native_face_snapshot::COLLECTION_SNAPSHOT_BYTES,
                 "full inventory snapshot needs {encoded_bytes} bytes"
             );
+            if query.is_empty() && !name.is_empty() {
+                let mut standard = NativeFaceMask::prepare_creche(
+                    "host/creche-bounds".into(),
+                    "boot/creche-bounds".into(),
+                    OfferGeneration(1),
+                    "creche-bounds",
+                    provider.entry.base_id.clone(),
+                    "surface/creche-bounds",
+                    &provider,
+                    CrecheComponentRecipe::ResponsiveColumns,
+                )
+                .unwrap();
+                let standard_face = draft
+                    .face(&standard.birth_basis("arrival/creche-bounds"))
+                    .unwrap();
+                assert!(
+                    serde_json::to_vec(&standard_face).unwrap().len()
+                        > crate::native_face_snapshot::MAX_SNAPSHOT_BYTES
+                );
+                assert_eq!(
+                    standard.present(standard_face, 1, 1, &mut pixels),
+                    Err(NativeFaceMaskError::Producer(
+                        crate::native_face_snapshot::FaceSnapshotRefusal::Capacity
+                    ))
+                );
+                assert!(standard.show().is_none());
+                assert!(standard.publication().is_none());
+            }
             mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
             assert_eq!(
                 mask.component_fallback(),
