@@ -315,3 +315,16 @@ packager, including profile-gated image correspondence and private invitation
 provisioning. Do not relabel a file or rebuild merely to hide this mismatch.
 The authoring service and existing device deployments remain unchanged at this
 checkpoint; the full lifecycle journey remains incomplete.
+
+## Verified prior browser Make output — 2 November UTC
+
+The existing `targets/browser/sdk/package-browser-bundle.mjs` accepted the
+retained actual browser release from source `ab1a26eaf6b42bbc003cbd5a9fd748c6f6e8a162`.
+Its thirteen bundle payloads (16,770,460 bytes) were verified again after
+packaging. The existing packager regression entry passes. Exact aggregate,
+profile, browser image and raw runtime identities are recorded separately in
+`proof/evidence/creche/existing-browser-packager-20261102.json`. This removes
+the need to rebuild that reviewed distribution merely to investigate packaging.
+It creates an SDK package, without private invitation provisioning, and is
+not yet a same-Body Seed or a deployed browser Host. The installed producer
+still needs the verified target identity handoff and ordinary packaging step.
