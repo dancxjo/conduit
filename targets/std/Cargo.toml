@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-linux-display = ["dep:conduit-linux-display", "conduit-linux-display/sdl", "dep:sdl2", "dep:conduit-linear-framebuffer-make"]
+linux-display = ["dep:conduit-linux-display", "conduit-linux-display/sdl", "dep:sdl2", "dep:conduit-linear-framebuffer-make", "dep:conduitos", "dep:conduit-conduitos-mask-offer"]
 burn-model = ["dep:conduit-burn-model"]
 burn-model-cuda = ["burn-model", "conduit-burn-model/cuda"]
 bluetooth-bluez = ["dep:bluer", "dep:dbus", "dep:futures", "dep:tokio", "dep:uuid"]
@@ -20,6 +20,8 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+conduitos = { path = "../conduitos", features = ["native-compositor-core"], optional = true }
+conduit-conduitos-mask-offer = { path = "../conduitos/mask-offer", optional = true }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-burn-model = { path = "../../mechanisms/implementations/burn-model", optional = true }
 conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog", "hosted-catalog-cache"] }

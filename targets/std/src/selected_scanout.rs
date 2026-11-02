@@ -20,7 +20,8 @@ pub struct SelectedScanoutBase {
     host: HostId,
     boot: BootId,
     generation: OfferGeneration,
-    entry: BaseProviderEntry,
+    pub(super) entry: BaseProviderEntry,
+    pub(super) native_mask: Option<crate::selected_native_mask::SelectedNativeMaskBase>,
 }
 impl SelectedScanoutBase {
     pub(crate) fn prepare(
@@ -126,6 +127,7 @@ impl SelectedScanoutBase {
             boot: config.boot_id.clone(),
             generation: config.offer_generation,
             entry,
+            native_mask: None,
         })
     }
     pub fn initialized(&self) -> &InitializedDisplay {

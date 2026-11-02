@@ -292,6 +292,7 @@ mod native_mask_play;
 pub mod native_participant;
 #[cfg(any(
     test,
+    feature = "native-compositor-core",
     target_arch = "x86_64",
     feature = "ia32-product",
     feature = "aarch64-product",

@@ -127,6 +127,10 @@ impl RetainedNativeMaskStorage {
         (self.session.kernel() as *const Scheduler) as usize
     }
 
+    /// Owned Plan identity payload, separate from the fixed scheduler stores.
+    pub fn retained_metadata_bytes(&self) -> usize {
+        self.plan_id.0.capacity()
+    }
     pub fn backing(&self) -> NativeMaskBackingReceipt {
         self.backing
     }

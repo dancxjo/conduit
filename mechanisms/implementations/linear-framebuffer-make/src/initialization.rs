@@ -34,6 +34,7 @@ fn dimension(key: &str) -> KindConfigurationField {
 /// A package-checked direct Linux display request. Construction is private so
 /// a runtime can compare its Source identity with the selected IMAGE before
 /// consuming an actual initialized display claim.
+#[derive(Clone)]
 pub struct CheckedScanoutInitialization {
     configuration_id: String,
     width: u32,

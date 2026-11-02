@@ -14,6 +14,10 @@ impl BodyMemoryReceipt {
     pub(crate) fn prepared_tick(total_bytes: usize) -> Self {
         Self { total_bytes }
     }
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn prepared_native_mask(total_bytes: usize) -> Self {
+        Self { total_bytes }
+    }
     pub(crate) fn total_bytes(&self) -> usize {
         self.total_bytes
     }
@@ -53,6 +57,39 @@ impl Drop for ImageMemoryCharge {
     }
 }
 impl KernelResourceLedger {
+    /// Reserve the independently computed fixed Base stores before allocation.
+    /// This is not a complete Plan receipt, process RSS or preparation peak.
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn reserve_managed_base_memory(
+        &mut self,
+        bytes: usize,
+    ) -> Result<ImageMemoryLease, String> {
+        self.require_available()?;
+        let bounds = self
+            .image_bounds
+            .as_ref()
+            .ok_or("managed Base requires checked IMAGE bounds")?;
+        let limit = usize::try_from(bounds.heap_arena_bytes)
+            .map_err(|_| "IMAGE heap exceeds local size")?;
+        let used = self
+            .image_memory
+            .as_ref()
+            .ok_or("IMAGE memory owner absent")?
+            .clone();
+        if bytes == 0 {
+            return Err("managed Base receipt is empty".into());
+        }
+        used.fetch_update(Ordering::AcqRel, Ordering::Acquire, |old| {
+            old.checked_add(bytes).filter(|next| *next <= limit)
+        })
+        .map_err(|_| "selected IMAGE managed Base backing capacity is unavailable")?;
+        Ok(ImageMemoryLease {
+            inner: Arc::new(ImageMemoryCharge {
+                used,
+                bytes: AtomicUsize::new(bytes),
+            }),
+        })
+    }
     #[cfg(test)]
     pub(crate) fn image_memory_observer(&self) -> Arc<AtomicUsize> {
         self.image_memory.as_ref().unwrap().clone()

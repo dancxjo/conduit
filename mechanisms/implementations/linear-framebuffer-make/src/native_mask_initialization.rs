@@ -6,6 +6,7 @@ use conduit_host_make::{CheckedHostConfiguration, ResourceBudget};
 /// One standard native graphical presenter and its explicitly declared pools.
 /// The finite runtime-memory capacity is a caller-authored ceiling, not a size
 /// inferred from incoming Face data or proof of sufficient preparation storage.
+#[derive(Clone)]
 pub struct CheckedNativeMaskInitialization {
     scanout: CheckedScanoutInitialization,
     surface: ResourceBudget,

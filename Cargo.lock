@@ -2638,6 +2638,7 @@ dependencies = [
  "conduit-burn-model",
  "conduit-chat",
  "conduit-composite",
+ "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-create-oi",
  "conduit-data",

@@ -1,5 +1,9 @@
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod hosted_display;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub mod selected_native_mask;
+#[cfg(all(target_os = "linux", feature = "linux-display"))]
+pub use selected_native_mask::NativeMaskEncounter;
 mod selected_native_source;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_scanout;

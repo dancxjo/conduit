@@ -15,8 +15,20 @@ const MAXIMUM_TIMER_POOLS: usize = 16;
 struct InitialBases {
     #[cfg(all(target_os = "linux", feature = "linux-display"))]
     scanout: Option<crate::selected_scanout::SelectedScanoutBase>,
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    native_mask: Option<crate::selected_native_mask::InitialNativeMask>,
 }
 impl InitialBases {
+    fn has_native_mask(&self) -> bool {
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        {
+            self.native_mask.is_some()
+        }
+        #[cfg(not(all(target_os = "linux", feature = "linux-display")))]
+        {
+            false
+        }
+    }
     fn has_scanout(&self) -> bool {
         #[cfg(all(target_os = "linux", feature = "linux-display"))]
         {
@@ -66,6 +78,7 @@ impl StdHost {
             catalog,
             InitialBases {
                 scanout: Some(scanout),
+                ..InitialBases::default()
             },
         )
     }
@@ -96,6 +109,26 @@ impl StdHost {
             catalog,
             InitialBases {
                 scanout: Some(scanout),
+                ..InitialBases::default()
+            },
+        )
+    }
+
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn from_selected_native_initial_bases(
+        config: StdHostConfig,
+        image: &HostImage,
+        catalog: &MakeCatalog,
+        scanout: crate::selected_scanout::SelectedScanoutBase,
+        native_mask: crate::selected_native_mask::InitialNativeMask,
+    ) -> Result<Self, String> {
+        Self::from_selected_initial_bases(
+            config,
+            image,
+            catalog,
+            InitialBases {
+                scanout: Some(scanout),
+                native_mask: Some(native_mask),
             },
         )
     }
@@ -134,8 +167,26 @@ impl StdHost {
         if config.offer_generation.0 == 0 {
             return Err("selected timer requires a positive Boot offer generation".into());
         }
+        #[allow(unused_mut)]
+        let mut expected_implementations =
+            BTreeSet::from([conduit_std_offers::TICK_IMPLEMENTATION.to_owned()]);
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        if initial.has_native_mask() {
+            expected_implementations.extend(
+                conduit_conduitos_mask_offer::native_read_only_implementation_closure(
+                    conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
+                )
+                .iter()
+                .map(|offer| offer.implementation.implementation_id.as_str().to_owned()),
+            );
+        }
         if !manifest.target.starts_with("std/")
-            || manifest.implementations != [conduit_std_offers::TICK_IMPLEMENTATION]
+            || manifest
+                .implementations
+                .iter()
+                .cloned()
+                .collect::<BTreeSet<_>>()
+                != expected_implementations
         {
             return Err("selected IMAGE operation workset is unsupported: only explicit hosted time/tick is initialized".into());
         }
@@ -168,7 +219,10 @@ impl StdHost {
         }
         let budgets = &manifest.resource_budgets;
         if budgets.is_empty()
-            || budgets.len() > MAXIMUM_TIMER_POOLS + usize::from(initial.has_scanout())
+            || budgets.len()
+                > MAXIMUM_TIMER_POOLS
+                    + usize::from(initial.has_scanout())
+                    + 2 * usize::from(initial.has_native_mask())
         {
             return Err("selected timer requires 1..16 explicit timer pools".into());
         }
@@ -176,7 +230,13 @@ impl StdHost {
         let mut slots = 0u32;
         let mut resources = Vec::with_capacity(budgets.len());
         for budget in budgets {
-            if initial.has_scanout() && budget.class == "face/surface" {
+            if (initial.has_scanout() && budget.class == "face/surface")
+                || (initial.has_native_mask()
+                    && matches!(
+                        budget.class.as_str(),
+                        conduit_face::SHOW_RESOURCE_CLASS | RUNTIME_MEMORY_RESOURCE_CLASS
+                    ))
+            {
                 continue;
             }
             if budget.class != TIMER_RESOURCE_CLASS
@@ -240,6 +300,32 @@ impl StdHost {
             initialized_base_kinds.insert("display/scanout".into());
             initialized_driver_kinds.insert("display/linear-framebuffer@1".into());
         }
+        #[allow(unused_mut)]
+        let mut mask_capabilities = Vec::new();
+        #[allow(unused_mut)]
+        let mut facilities = BTreeSet::new();
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        if let Some(mask) = &initial.native_mask {
+            let offer = mask.offers(&config);
+            mask_capabilities = offer
+                .capabilities
+                .into_iter()
+                .filter(|capability| {
+                    !mask
+                        .provider
+                        .entry
+                        .capabilities
+                        .iter()
+                        .any(|owned| owned.capability_id == capability.capability_id)
+                })
+                .collect();
+            ready_resource_classes.insert(conduit_face::SHOW_RESOURCE_CLASS.into());
+            ready_resource_classes.insert(RUNTIME_MEMORY_RESOURCE_CLASS.into());
+            facilities.insert("compositor/native@1".into());
+        }
+        let expected_capabilities =
+            1 + mask_capabilities.len() + usize::from(initial.has_native_mask());
+        let has_native_mask = initial.has_native_mask();
         let mut bytes = ImageBytes(Vec::with_capacity(MAXIMUM_IMAGE_BYTES));
         serde_json::to_writer(&mut bytes, image)
             .map_err(|error| format!("selected IMAGE preparation: {error}"))?;
@@ -260,20 +346,20 @@ impl StdHost {
                 .into(),
                 host_profile: manifest.profile_id.as_str().into(),
                 candidate_bases: candidates,
-                candidate_capabilities: vec![],
+                candidate_capabilities: mask_capabilities,
                 planner_capabilities: vec![],
                 facts: RuntimeFacts {
                     ready_resource_classes,
                     initialized_base_kinds,
                     initialized_driver_kinds,
-                    available_facilities: BTreeSet::new(),
-                    authority_ready: false,
+                    available_facilities: facilities,
+                    authority_ready: has_native_mask,
                 },
             },
         )
         .map_err(|error| format!("selected timer IMAGE binding: {error:?}"))?;
         let mut host = Self::from_image_binding(binding)?;
-        if host.advertisement.capabilities.len() != 1
+        if host.advertisement.capabilities.len() != expected_capabilities
             || host.advertisement.resources.len() != budgets.len()
         {
             return Err(
@@ -286,6 +372,14 @@ impl StdHost {
             host.selected_scanout = initial.scanout;
         }
         host.kernel_resources.bind_image_bounds(&manifest.bounds)?;
+        #[cfg(all(target_os = "linux", feature = "linux-display"))]
+        if let Some(intent) = initial.native_mask {
+            let mask = intent.initialize(&mut host)?;
+            host.selected_scanout
+                .as_mut()
+                .ok_or("selected native Mask has no physical owner")?
+                .native_mask = Some(mask);
+        }
         Ok(host)
     }
 }

@@ -16,9 +16,18 @@ pub(crate) struct BaseBackingReservation {
     ),
     base: BaseInstanceId,
     generation: u64,
-    binding: ResourceBinding,
+    pub(super) binding: ResourceBinding,
 }
 impl BaseBackingReservation {
+    #[cfg(all(target_os = "linux", feature = "linux-display"))]
+    pub(crate) fn matches_ledger(&self, ledger: &KernelResourceLedger) -> bool {
+        self.identity == ledger.identity
+            && ledger.pools.iter().any(|pool| {
+                pool.pool_id == self.binding.pool_id
+                    && pool.class_id == self.binding.class_id
+                    && pool.used_units >= self.binding.units
+            })
+    }
     pub(crate) fn bytes(&self) -> u32 {
         self.binding.units
     }
