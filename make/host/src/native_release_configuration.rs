@@ -46,6 +46,7 @@ pub fn bind_native_release_configuration(
     let chosen = packages
         .derive_build_selection(profile, &output)
         .map_err(|e| format!("authored native Make closure: {e:?}"))?;
+    verify_native_release_build(admitted, admitted_image, release, &original)?;
     if original != chosen
         || m.make_package_id != chosen.make_package_id
         || m.builder_adapter != chosen.builder_adapter
@@ -67,4 +68,45 @@ pub fn bind_native_release_configuration(
     }
     build_host_image(profile.clone(), catalog, packages, &output, &inputs)
         .map_err(|e| format!("authored native IMAGE: {e:?}"))
+}
+
+/// Validate the compilation closure before admitting a native release baseline.
+/// Legacy generic builds may supply only the explicitly unconditional hosted
+/// mechanisms. New optional machinery needs a checked native build receipt.
+pub fn verify_native_release_build(
+    checked: &CheckedHostConfiguration,
+    image: &HostImage,
+    release: &VerifiedHostReleaseBytes,
+    selection: &crate::MakeBuildSelection,
+) -> Result<(), String> {
+    let manifest = release.manifest();
+    let Some(receipt) = &manifest.reviewed_native_build else {
+        if selection.features.iter().all(|feature| {
+            matches!(
+                feature.as_str(),
+                "base-clock" | "base-timer" | "base-serial" | "base-protected-file"
+            )
+        }) {
+            return Ok(());
+        }
+        return Err(
+            "native release lacks reviewed compilation of selected optional features".into(),
+        );
+    };
+    if receipt.schema != crate::REVIEWED_NATIVE_BUILD_SCHEMA
+        || receipt.configuration_id != checked.configuration_id()
+        || receipt.profile_id != image.manifest.profile_id
+        || receipt.build_id != image.manifest.build_id
+        || receipt.image_id != image.manifest.image_id
+        || receipt.source_identity != image.manifest.source_identity
+        || &receipt.selection != selection
+        || !manifest.files.iter().any(|file| {
+            file.path == receipt.executable_path
+                && file.sha256 == receipt.executable_sha256
+                && file.media_type == "application/vnd.conduit.host+executable"
+        })
+    {
+        return Err("native release compiled closure differs from checked Source/IMAGE or observed executable".into());
+    }
+    Ok(())
 }

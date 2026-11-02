@@ -242,6 +242,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
         HostCommand::Release {
             output,
             platform,
+            configuration,
             source_identity,
         } => {
             let source_identity = source_identity
@@ -251,6 +252,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                 &output,
                 platform,
                 &source_identity,
+                configuration.as_deref(),
                 &host_release::ReleaseOptions {
                     json: opts.json,
                     quiet: opts.quiet,

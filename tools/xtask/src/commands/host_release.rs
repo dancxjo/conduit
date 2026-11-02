@@ -12,6 +12,8 @@ use sha2::{Digest, Sha256};
 mod armv6;
 #[path = "host_release_browser.rs"]
 mod browser;
+#[path = "host_release_checked.rs"]
+mod checked;
 #[path = "host_release_linux.rs"]
 mod linux;
 
@@ -63,15 +65,20 @@ pub(crate) fn run(
     output: &Path,
     platform: ReleasePlatform,
     source_identity: &str,
+    configuration: Option<&Path>,
     opts: &ReleaseOptions,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    match platform {
-        ReleasePlatform::Browser => build_browser(output, source_identity)?,
-        ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
-        ReleasePlatform::LinuxAarch64 => linux::build_aarch64(output, source_identity)?,
-        ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
-        ReleasePlatform::Windows => build_windows(output, source_identity)?,
-        ReleasePlatform::Macos => build_macos(output, source_identity)?,
+    if let Some(configuration) = configuration {
+        checked::build(output, source_identity, configuration)?;
+    } else {
+        match platform {
+            ReleasePlatform::Browser => build_browser(output, source_identity)?,
+            ReleasePlatform::Linux => linux::build_linux_set(output, source_identity)?,
+            ReleasePlatform::LinuxAarch64 => linux::build_aarch64(output, source_identity)?,
+            ReleasePlatform::LinuxArmv6 => armv6::build(output, source_identity)?,
+            ReleasePlatform::Windows => build_windows(output, source_identity)?,
+            ReleasePlatform::Macos => build_macos(output, source_identity)?,
+        }
     }
 
     if opts.json {

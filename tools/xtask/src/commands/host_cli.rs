@@ -55,13 +55,16 @@ pub(super) enum HostCommand {
         #[arg(long)]
         source_identity: Option<String>,
     },
-    /// Compile and seal the reviewed generic existing-computer release bundles.
+    /// Compile and seal an existing-computer release or one checked native Host.
     Release {
         #[arg(long, default_value = "target/creche-host-releases")]
         output: PathBuf,
         /// Native platform to compile on this runner.
         #[arg(long, value_enum, default_value_t = host_release::ReleasePlatform::Linux)]
         platform: host_release::ReleasePlatform,
+        /// Canonical checked Host Source; derives exact native target and features.
+        #[arg(long)]
+        configuration: Option<PathBuf>,
         /// Exact source identity; defaults to the current Git commit.
         #[arg(long)]
         source_identity: Option<String>,

@@ -69,4 +69,6 @@ mod runtime_base_tests;
 mod tests;
 
 mod native_release_configuration;
-pub use native_release_configuration::bind_native_release_configuration;
+pub use native_release_configuration::{
+    bind_native_release_configuration, verify_native_release_build,
+};
