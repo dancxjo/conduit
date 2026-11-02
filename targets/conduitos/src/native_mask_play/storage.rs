@@ -58,7 +58,17 @@ pub(super) fn validate_profile(
         } else {
             profile.execution_profile()
         };
-        if placement.execution_profile_id.as_str() != expected {
+        let read_only = placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND
+            && placement.execution_profile_id.as_str()
+                == match profile {
+                    NativeMaskStorageProfile::Standard => {
+                        conduit_conduitos_mask_offer::READ_ONLY_INTERACTION_PROFILE
+                    }
+                    NativeMaskStorageProfile::Collection => {
+                        conduit_conduitos_mask_offer::READ_ONLY_COLLECTION_INTERACTION_PROFILE
+                    }
+                };
+        if placement.execution_profile_id.as_str() != expected && !read_only {
             return Err(NativeMaskPlayError::Plan);
         }
     }

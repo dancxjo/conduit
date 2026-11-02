@@ -179,3 +179,55 @@ fn selected_metadata_anchor_retains_its_own_facility_and_host_call_closure() {
     assert_eq!(result.host_calls, ["present"]);
     assert_eq!(result.facilities, ["compositor/native@1"]);
 }
+
+#[test]
+fn presenter_derives_only_declared_implementation_closure_and_its_requirements() {
+    let mut catalog = catalog();
+    catalog.implementations.insert(
+        "real-renderer".into(),
+        crate::ImplementationMetadata {
+            kind: "actual-kind".into(),
+            contract_revision: "actual-revision".into(),
+            targets: vec![TARGET.into()],
+            prerequisites: vec![
+                Node::Resource("face/surface".into()),
+                Node::HostCall("real-render".into()),
+            ],
+        },
+    );
+    catalog
+        .presenters
+        .get_mut("graphics")
+        .unwrap()
+        .prerequisites
+        .push(Node::Implementation("real-renderer".into()));
+    let resolved = resolve(None, &[], TARGET, &catalog, &bases(), &[surface()]).unwrap();
+    assert_eq!(
+        resolved.capabilities,
+        vec![crate::CapabilitySelection {
+            kind: "actual-kind".into(),
+            contract_revision: "actual-revision".into(),
+            implementation: "real-renderer".into()
+        }]
+    );
+    assert!(resolved.host_calls.contains(&"real-render".into()));
+    assert!(resolve(None, &[], TARGET, &catalog, &bases(), &[])
+        .unwrap()
+        .capabilities
+        .is_empty());
+    catalog
+        .implementations
+        .get_mut("real-renderer")
+        .unwrap()
+        .prerequisites
+        .push(Node::Implementation("real-renderer".into()));
+    assert!(resolve(None, &[], TARGET, &catalog, &bases(), &[surface()])
+        .unwrap()
+        .capabilities
+        .is_empty());
+    catalog.implementations.remove("real-renderer");
+    assert!(resolve(None, &[], TARGET, &catalog, &bases(), &[surface()])
+        .unwrap()
+        .capabilities
+        .is_empty());
+}

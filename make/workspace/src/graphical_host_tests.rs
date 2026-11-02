@@ -6,6 +6,8 @@ const PI3: &str = r#"host display-host {
   target = {architecture: "aarch64", machine: "raspberry-pi-3-model-b-plus-rev-1.3", board: "raspberry-pi-3-model-b-plus-rev-1.3", os: "linux"}
   base = {kind: "display/scanout", implementation: "display/linear-framebuffer@1"}
   need = {id: "display/main", class: "face/surface", slots: 1, bytes: 2457600}
+  need = {id: "display/show", class: "face.resource/show@1", slots: 1, bytes: 1}
+  need = {id: "display/memory", class: "conduit.resource/runtime-memory@1", slots: 1048576, bytes: 1048576}
   limits = {static_memory_bytes: 16777216, heap_arena_bytes: 67108864, queue_items: 4096, buffered_bytes: 16777216, active_instances: 512, operation_slots: 256, timer_slots: 128, line_sessions: 64, evidence_items: 4096}
 }"#;
 
@@ -43,5 +45,62 @@ fn pi3_graphical_construction_requires_explicit_scanout_and_surface() {
     assert!(
         check(&foreign_driver).is_err(),
         "unrelated driver cannot close scanout"
+    );
+}
+
+#[test]
+fn checked_native_presenter_closes_actual_back_implementations_into_image() {
+    use conduit_host_make::{build_default_host_image, BuildInputs};
+    let catalog = super::catalog();
+    let packages = super::package_set();
+    let checked = check_host_configuration(
+        parse_host_configuration_conduit(PI3).unwrap(),
+        &catalog,
+        &packages,
+    )
+    .unwrap();
+    let profile = checked.profile();
+    for implementation in [
+        "conduit.face/tee-kernel@1",
+        "face/conduitos-surface-source@1",
+        "face/renderer-conduitos-native@1",
+        "face/conduitos-human-input@1",
+    ] {
+        assert!(
+            profile
+                .capabilities
+                .iter()
+                .any(|cap| cap.implementation == implementation),
+            "missing actual Back {implementation}"
+        );
+    }
+    assert!(profile
+        .host_calls
+        .contains(&"conduit.host/face-interaction@1".into()));
+    assert!(!profile
+        .resources
+        .iter()
+        .any(|pool| pool.class == "conduit.resource/conduitos-human-input@1"));
+    let (image, _) = build_default_host_image(
+        profile.clone(),
+        &catalog,
+        &packages,
+        &BuildInputs {
+            source_identity: "qualified-source-test".into(),
+            toolchain_available: true,
+        },
+    )
+    .unwrap();
+    assert!(image
+        .manifest
+        .implementations
+        .contains(&"face/renderer-conduitos-native@1".into()));
+    assert!(image
+        .manifest
+        .host_calls
+        .contains(&"conduit.host/face-interaction@1".into()));
+    assert_eq!(
+        image.manifest.resource_budgets,
+        checked.configuration().resources
     );
 }

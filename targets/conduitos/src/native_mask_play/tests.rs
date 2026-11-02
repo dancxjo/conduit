@@ -39,6 +39,13 @@ fn fixture_scanout(sequence: u64) -> (PreparedNativeMaskPlay, NativeCompositor) 
         None,
     )
     .unwrap();
+    fixture_scanout_with_stage(sequence, stage)
+}
+
+fn fixture_scanout_with_stage(
+    sequence: u64,
+    stage: conduit_conduitos_mask_offer::MaskStage,
+) -> (PreparedNativeMaskPlay, NativeCompositor) {
     let plan = &stage.planned_mask.plan;
     let body = conduit_body::Body::born(
         plan.source_document_id.clone(),
@@ -509,3 +516,6 @@ fn interaction_fore_waits_for_delivery_without_changing_or_duplicating_the_value
     }
     session.cancel().unwrap();
 }
+
+#[path = "tests/read_only.rs"]
+mod read_only;
