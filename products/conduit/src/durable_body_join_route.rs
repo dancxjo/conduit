@@ -8,19 +8,20 @@ mod native_lines;
 mod response_document;
 #[path = "durable_body_join_route/return_route.rs"]
 mod return_route;
+pub(crate) use return_route::MaskSelection;
 
 use super::invitation::{
-    prepare_body_join, PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    ROUTED_INVITATION_SCHEMA,
+    PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
+    ROUTED_INVITATION_SCHEMA, prepare_body_join,
 };
 use super::membership::complete_body_join_document;
-use super::{bounded_read, current_time_millis, MAXIMUM_BODY_ADMISSION_BYTES};
+use super::{MAXIMUM_BODY_ADMISSION_BYTES, bounded_read, current_time_millis};
 use conduit_body::{
-    RendezvousAuthentication, RendezvousCandidate, RendezvousLineFamily, RoutedAdmissionRequest,
-    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
+    ROUTED_ADMISSION_REQUEST_SCHEMA, RendezvousAuthentication, RendezvousCandidate,
+    RendezvousLineFamily, RoutedAdmissionRequest, RoutedAdmissionResponse,
 };
 use conduit_face::{
-    OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
+    MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse,
 };
 use conduit_std_host::secure_websocket::{
     SecureWebSocketClientLine, SecureWebSocketError, SecureWebSocketListener,
@@ -363,17 +364,25 @@ mod tests {
 
     #[test]
     fn reachability_and_endpoint_authentication_refusals_remain_distinct() {
-        assert!(route_connect_refusal(SecureWebSocketError::Transport(
-            std::io::ErrorKind::ConnectionRefused
-        ))
-        .starts_with("owner-unreachable:"));
-        assert!(route_connect_refusal(SecureWebSocketError::Transport(
-            std::io::ErrorKind::TimedOut
-        ))
-        .starts_with("route-timeout:"));
-        assert!(route_connect_refusal(SecureWebSocketError::Tls)
-            .starts_with("endpoint-authentication-failed:"));
-        assert!(route_connect_refusal(SecureWebSocketError::Handshake)
-            .starts_with("endpoint-authentication-failed:"));
+        assert!(
+            route_connect_refusal(SecureWebSocketError::Transport(
+                std::io::ErrorKind::ConnectionRefused
+            ))
+            .starts_with("owner-unreachable:")
+        );
+        assert!(
+            route_connect_refusal(SecureWebSocketError::Transport(
+                std::io::ErrorKind::TimedOut
+            ))
+            .starts_with("route-timeout:")
+        );
+        assert!(
+            route_connect_refusal(SecureWebSocketError::Tls)
+                .starts_with("endpoint-authentication-failed:")
+        );
+        assert!(
+            route_connect_refusal(SecureWebSocketError::Handshake)
+                .starts_with("endpoint-authentication-failed:")
+        );
     }
 }

@@ -1,15 +1,16 @@
 //! Bounded pinned TLS exchanges for the existing finite owner return protocol.
+use crate::durable_host::routed_join::MaskSelection;
 use conduit_body::{
-    PortableAdmissionReceipt, PortableInvitation, RendezvousCandidate, RoutedAdmissionRequest,
-    RoutedAdmissionResponse, ROUTED_ADMISSION_REQUEST_SCHEMA,
+    PortableAdmissionReceipt, PortableInvitation, ROUTED_ADMISSION_REQUEST_SCHEMA,
+    RendezvousCandidate, RoutedAdmissionRequest, RoutedAdmissionResponse,
 };
 use conduit_face::{
-    Face, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
-    OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
+    Face, MaskShow, OWNER_FACE_REQUEST_SCHEMA, OWNER_FACE_RESPONSE_SCHEMA,
+    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
 };
 use conduit_std_host::secure_websocket::SecureWebSocketClientLine;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::{Duration, Instant};
 
 const MESSAGE: usize = 64 * 1024;
@@ -33,6 +34,7 @@ pub(super) struct OwnerRoute {
     grant: Grant,
     deadline: Instant,
     sequence: u8,
+    mask: MaskSelection,
 }
 
 pub(super) struct Snapshot {
@@ -46,6 +48,7 @@ impl OwnerRoute {
     pub(super) fn admit(
         host: &mut super::PresentationHost,
         invitation: PortableInvitation,
+        mask: MaskSelection,
     ) -> Result<(Self, Snapshot), String> {
         let rendezvous = invitation
             .rendezvous
@@ -84,7 +87,7 @@ impl OwnerRoute {
                     *receipt
                 }
                 RoutedAdmissionResponse::Refused { code, .. } => {
-                    return Err(format!("presentation admission refused:{code}"))
+                    return Err(format!("presentation admission refused:{code}"));
                 }
                 _ => return Err("presentation admission response schema".into()),
             };
@@ -105,7 +108,7 @@ impl OwnerRoute {
         };
         send(
             &mut line,
-            &json!({"schema":"conduit.body/native-owner-face-request@1", "request":request, "mask":"terminal"}),
+            &json!({"schema":"conduit.body/native-owner-face-request@1", "request":request, "mask":mask}),
             MESSAGE,
         )?;
         let snapshot = snapshot(document(&mut line)?)?;
@@ -119,6 +122,7 @@ impl OwnerRoute {
                 grant,
                 deadline,
                 sequence: 1,
+                mask,
             },
             snapshot,
         ))
@@ -178,7 +182,7 @@ impl OwnerRoute {
             request["spoken_selection"] =
                 serde_json::to_value(selection).map_err(|error| error.to_string())?;
         } else {
-            request["mask"] = json!("terminal");
+            request["mask"] = json!(self.mask);
         }
         send_return(&mut line, &request, MESSAGE)?;
         let response = document(&mut line)?;

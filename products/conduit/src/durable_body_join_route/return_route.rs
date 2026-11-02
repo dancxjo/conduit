@@ -14,11 +14,12 @@ mod refresh;
 mod show_ack;
 use conduit_body::PortableAdmissionReceipt;
 use conduit_face::{
-    FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
-    MAX_OWNER_FACE_RESPONSE_BYTES,
+    FaceInteraction, MAX_OWNER_FACE_RESPONSE_BYTES, MaskShow, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse,
 };
 use conduit_std_host::secure_websocket::{SecureWebSocketError, SecureWebSocketListener};
-pub(super) use face_request::{decode_face_request, MaskSelection};
+pub(crate) use face_request::MaskSelection;
+pub(super) use face_request::decode_face_request;
 #[path = "return_route/mask_selection.rs"]
 mod mask_selection;
 #[cfg(test)]

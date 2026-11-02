@@ -1,12 +1,12 @@
 //! One foreground presentation Boot from a fresh explicitly installed Host.
 //! Retained selected equipment stays in its real runtime for the whole encounter.
 use super::{
-    bounded_read, current_time_millis, owner_lock, read_installation, write_bytes_atomic,
-    write_json_atomic, RuntimeStatus, MAXIMUM_BODY_ADMISSION_BYTES,
+    MAXIMUM_BODY_ADMISSION_BYTES, RuntimeStatus, bounded_read, current_time_millis, owner_lock,
+    read_installation, write_bytes_atomic, write_json_atomic,
 };
 use conduit_body::{
     PortableAdmissionReceipt, PortableInvitation, PortableSpawnAdmissionRequest,
-    SpawnInvitationSecret, SPAWN_ADMISSION_REQUEST_SCHEMA,
+    SPAWN_ADMISSION_REQUEST_SCHEMA, SpawnInvitationSecret,
 };
 use std::{
     fs,
@@ -117,3 +117,7 @@ impl Drop for PresentationHost {
 mod terminal;
 #[cfg(unix)]
 pub(crate) use terminal::run;
+
+#[cfg(unix)]
+#[path = "durable_host_presentation/wire.rs"]
+mod wire;

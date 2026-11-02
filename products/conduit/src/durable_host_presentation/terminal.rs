@@ -1,12 +1,11 @@
 //! An explicit installed peer supplies real terminal effects for the remote Body.
-use super::PresentationHost;
+use super::{PresentationHost, wire};
+use crate::durable_host::routed_join::MaskSelection;
 #[path = "speech.rs"]
 mod speech;
-#[path = "wire.rs"]
-mod wire;
 use conduit_face::{Face, MaskShow};
 use conduit_std_host::{
-    hosted_terminal_mask_host::{receive_terminal_frame_and_ack, TerminalFrameReceipt},
+    hosted_terminal_mask_host::{TerminalFrameReceipt, receive_terminal_frame_and_ack},
     terminal_face_mask::TerminalMaskExecution,
     terminal_mask_execution::HostedTerminalMaskExecution,
 };
@@ -47,7 +46,8 @@ pub(crate) fn run(
         .set_write_timeout(Some(Duration::from_secs(2)))
         .map_err(io_error)?;
     peer.runtime.attach_presentation_terminal(provider)?;
-    let (mut owner, snapshot) = wire::OwnerRoute::admit(&mut peer, invitation)?;
+    let (mut owner, snapshot) =
+        wire::OwnerRoute::admit(&mut peer, invitation, MaskSelection::Terminal)?;
     let mut shown = present(&mut peer, &mut foreground, output, snapshot)?;
     owner.acknowledge(&shown.show)?;
     report(output)?;
