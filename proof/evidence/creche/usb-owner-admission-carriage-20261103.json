@@ -1,0 +1,45 @@
+{
+  "schema": "conduit.proof/usb-owner-admission-carriage@1",
+  "owner_live_update": {
+    "source_identity": "a3f097d12a3f72fd153318da5608e11e1c89714b",
+    "host_id": "host/installed/f0ccc266877e6d1c192e22246ddaef8be554c52c408a6a8bcbc967c1b1775ed8",
+    "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+    "boot_id": "boot/installed/66b0c3b769071b09e7ca30d9cc5cd6e85fcbae5e520681c02241509b1d94ebc7",
+    "process_id": 4041431,
+    "executable_sha256": "1abb806759474880fe62576a771f46141812e39be9a9490fb2831b4f37e3a067",
+    "cold_backup_files": 67,
+    "cold_backup_sha256": "c2ae6b5df2d3b264d1192afbeaabb5e49e9c4a534d50a2e0fd07e2f82d883728",
+    "actual_body_face_read": true,
+    "face_response_bytes": 926880,
+    "face_response_sha256": "cfc4b48097ae39452a2455db68b2d357482592ffe6c4f2255eefd3df57ebb189",
+    "startup_first_read": "control-outcome-unknown; later read-only request passed in 19ms",
+    "mcu_membership_proven": false
+  },
+  "public_rp2040_make": {
+    "source_identity": "a3f097d12a3f72fd153318da5608e11e1c89714b",
+    "artifact_binding_verified": true,
+    "public_uf2_excludes_credentials_and_bootstrap": true,
+    "flash_section_bytes": 863708,
+    "static_ram_bytes": 93640,
+    "heap_arena_in_static_bytes": 49152,
+    "physical_deployment": false,
+    "body_membership_proven": false,
+    "sampling_play_proven": false
+  },
+  "focused_tests": {
+    "source_identity": "62bf619189",
+    "strict_warnings": true,
+    "passed": 2,
+    "failed": 0,
+    "scope": "Public construction pins and actual proof; product authorization and receipt-output entrance. Does not prove physical USB membership.",
+    "log_sha256": "8719361d4eddef760cae732885d794060914aef722fa3e204e279b8f1ffbfa8a"
+  },
+  "not_proven": [
+    "physical MCU admission to Hamm",
+    "ordinary MCU sampling Plot",
+    "private Seed from the admitted Creche encounter",
+    "MCU restart/member return",
+    "shared history or Threebee graph"
+  ],
+  "baseline_repair_pr": "https://github.com/dancxjo/conduit/pull/6737"
+}

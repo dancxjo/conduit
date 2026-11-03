@@ -1258,3 +1258,35 @@ metadata/raw receipt framing keeps the existing 4096-byte limit and independentl
 checks owner pin, member key, Body and observed advertisement before any write.
 This is a tested adapter, not evidence of an MCU accepting the receipt. The build
 lease has passed to the RP2040 worker for checked bindings and physical-image fit.
+
+
+### 3 November: deployed owner and ordinary USB admission carriage
+
+The exact checked Linux release `a3f097d12a` is now running on Forebrain.
+A verified 67-file cold backup preceded the ordinary service installation.
+The installed Host identity and Hamm Creek House Body identity were preserved;
+the owner established a distinct Boot, with no service restarts observed. The
+first Face request timed out during startup. A later read-only request completed
+in 19 ms and returned the actual current Host/Boot advertisement and same-Body
+Face. No Mask presentation, screenshot or active environmental Play is inferred.
+
+The product now has `body admit-usb`, using the existing bounded Pico USB
+exchange and protected live-owner Core admission/receipt APIs. Make can emit
+public construction pins alongside a private native Seed. The client checks
+actual device proof and pins, retains the signed committed receipt in a new
+private file, then sends it; transport delivery does not prove device acceptance.
+Two focused library/product tests passed. Earlier test/production-dependency
+failures were corrected and their raw logs remain outside source control.
+
+The same integrated source also passed ordinary `make host build` for Green.
+Its exact checked image binding and all UF2 page boundaries were verified;
+linked sections use 863,708 flash bytes and 93,640 static RAM bytes, including
+the 49,152-byte heap arena. This is construction/fit evidence, not physical
+admission, peak RAM or sampling-Plot execution. Green remains on its working
+diagnostic firmware. The next lifecycle step is the Body's actual Pico Seed
+production/deployment and authenticated device acceptance; restart/return,
+shared sensing/history and the generic graphical Face remain unfinished.
+
+See `proof/evidence/creche/usb-owner-admission-carriage-20261103.json`.
+The unrelated dev Windows missing-export failure has a focused explicit-refusal
+repair in PR #6737; Candidate and exhaustive Windows proof remain separate.
