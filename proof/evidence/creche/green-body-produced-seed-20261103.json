@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.journey/green-creche-seed@1",
+  "source_identity": "0bbf699a3d2ddd20d99b13dd03fd07051089470f",
+  "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+  "spore_id": "spore:sha256:f2eb7457ccb1c1de65f36a5b8571aa5dc9c2e0c4c87d95c3df339c13aa521a62",
+  "image_id": "image:sha256:80513fad1647ebe1e64b7f45f6f5f0be6be3d9146394738ecef1ab324c32a0a4",
+  "configuration_id": "sha256:041e8836c0425a5b8e28c4dd2c1d277f1802fd5064f5be5f9165418346c1cfd7",
+  "artifact_bytes": 1736772,
+  "artifact_sha256": "sha256:c0086e16ce589dbc690f6a4819f9bd1c46e1dfc2b077e06759d0264541a3e730",
+  "verified_payloads": 1,
+  "private_mode": "0o600",
+  "owner_creche_wake_and_check_accepted": true,
+  "private_export_verified": true,
+  "physical_boot_observed": false,
+  "membership_admitted": false,
+  "terminal_after_production": "stale Show refused; package retained",
+  "retained_operator_host_id": "host/installed/e7f42edbc13e3d361872169edef3d27ade53bf63ce345f1e05ba62268236ae51",
+  "owner_boot_id": "boot/installed/652b4ba970c5ed18d7639532315d021394511930e0fa59ccce141cdd1afe576e",
+  "known_test_gap": "Broader current-member TLS test intermittently refuses an expiry extending past the descriptor; full suite is not claimed green."
+}

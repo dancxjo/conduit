@@ -1290,3 +1290,43 @@ shared sensing/history and the generic graphical Face remain unfinished.
 See `proof/evidence/creche/usb-owner-admission-carriage-20261103.json`.
 The unrelated dev Windows missing-export failure has a focused explicit-refusal
 repair in PR #6737; Candidate and exhaustive Windows proof remain separate.
+
+### 3 November: the Body produces an exportable Pico joining Seed
+
+Forebrain now runs the checked `0bbf699a3d` owner release. A verified 70-file
+cold backup preceded installation and checked Crèche reconfiguration. The
+installed Host and Hamm Creek House identities survived; the new Boot is
+recorded in the compact evidence below. Green's running firmware was untouched.
+
+An already joined operator Host returned with its retained signing key and
+identity through the finite pinned TLS route. Its ordinary terminal Mask wrote
+and acknowledged an actual Show. Typed Wake and Check Host configuration actions
+were accepted through that Show; this did not use the standalone readout's
+unadmitted action path or create another operator identity.
+
+The Crèche consumed Green's exact checked Host Source, IMAGE and reviewed UF2
+release, made the self-joining Spore, and retained the ordinary private joining
+package. `body export-seed` then wrote and verified a 1,736,772-byte ZIP containing
+`host.uf2` and `conduit-spore.json`. Independent readback verified the archive
+hash, firmware inventory, same Body, Spore binding and private mode 0600. The
+package uses the existing native package provision schema and includes the
+checked Host Source, IMAGE and private finite invitation. It is not public.
+
+Manufacture completed while the terminal was acknowledging an earlier Face;
+the stale Show was correctly refused and the terminal exited. The completed
+package remained available for export. Terminal stale-Show recovery is still
+unfinished. A broader current-member TLS test also exposed an intermittent
+expiry-bound refusal; the full suite is not claimed green. The focused return
+client, installed-service return and terminal entrance tests passed.
+
+This proves actual Body-driven MCU Seed manufacture and verified carriage.
+The target installation adapter must still consume the package with independently
+selected physical-device and owner pins. No physical Pico Boot, admission,
+sampling Plot, shared history or graphical manifestation follows from this
+package. Private invitations expire; subsequent deployment must use a fresh
+usable Seed rather than enlarging the invitation grant.
+
+See `proof/evidence/creche/green-body-produced-seed-20261103.json`.
+The Windows refusal repair #6737 is merged after Candidate success; its combined
+Integration is queued. The retained-member return client from #6734 is integrated
+locally and pushed, while focused delivery remains subject to dev acceptance.
