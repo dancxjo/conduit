@@ -110,7 +110,7 @@ mod tests {
             image_id: "image/test".into(),
             invitation: serde_json::from_value(serde_json::json!({
                 "invitation_id": "invitation/test", "body_id": "body/test",
-                "nonce": [3; 32].to_vec(), "expires_at_millis": 2000,
+                "nonce": ([3_u8; 32].to_vec()), "expires_at_millis": 2000,
             }))
             .unwrap(),
             expected_host: ad.host_id.clone(),
