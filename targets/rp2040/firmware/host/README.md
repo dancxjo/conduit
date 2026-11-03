@@ -54,3 +54,22 @@ Source presence and successful compilation do not prove physical membership,
 measurement/display continuity, Wi-Fi recovery, retained-flash integrity or a
 sampling Plan. Deployment requires the exact reviewed application/private Seed,
 actual device inventory and corresponding physical evidence.
+
+## Checked construction checkpoint (2026-11-03)
+
+Ordinary `make host build` completed from clean committed Source
+`c8b4d6cef3`, including its exact resolved Host image and manifest binding.
+The linked application consumes 863,692 flash bytes and 93,640 static RAM
+bytes, including its 49,152-byte heap arena. These are linked extents, not a
+measurement of peak execution memory. The UF2 excludes both retained credential
+and private bootstrap sectors. See
+[`rp2040-ordinary-make-20261103.json`](../../../../proof/evidence/creche/rp2040-ordinary-make-20261103.json).
+
+The next sensor execution path should reuse the existing shared
+`plots/device-protocols/bme280-autonomous.conduit`, its capture-to-observation
+conversion, and finite I2C/clock Host Calls. The diagnostic Rust sensor loop is
+not a replacement for that admitted Plot. A Body construction description can
+already enumerate Host configurations and Seed outputs; authored Line topology
+and complete multi-Host workload construction remain separate integration gaps.
+No central all-device project, physical admission or sampling Play is claimed by
+this construction checkpoint.
