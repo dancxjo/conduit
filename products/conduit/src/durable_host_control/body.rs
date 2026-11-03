@@ -1118,3 +1118,18 @@ pub(crate) fn prepare_owned_invitation_route(
         _ => Err("Body owner returned the wrong prepared-route response".into()),
     }
 }
+
+// The shared product entry remains callable on non-Unix Hosts, but no local
+// authenticated owner control carrier is installed there.
+#[cfg(not(unix))]
+pub(crate) fn prepare_owned_invitation_route(
+    _state_dir: &Path,
+    _ttl_seconds: u64,
+    _bind: std::net::SocketAddr,
+    _public_url: &str,
+    _certificate: &Path,
+    _private_key: &Path,
+    _authorize_route: bool,
+) -> Result<RendezvousCandidate, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
+}
