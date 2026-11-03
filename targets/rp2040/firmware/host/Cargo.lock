@@ -268,15 +268,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-environment-face"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-face",
-]
-
-[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
@@ -427,7 +418,6 @@ dependencies = [
  "conduit-body",
  "conduit-bosch-env",
  "conduit-core",
- "conduit-environment-face",
  "conduit-face",
  "conduit-host-make",
  "conduit-host-rp2040",

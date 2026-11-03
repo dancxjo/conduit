@@ -13,7 +13,6 @@ conduit-rp2040-flash-layout = { path = "../../flash-layout" }
 conduit-network-credential-journal = { path = "../../../../mechanisms/io/network-credential-journal" }
 conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
 conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
-conduit-environment-face = { path = "../../../../bodies/environment/face" }
 conduit-face = { path = "../../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
 ed25519-dalek = { version = "2.2", default-features = false }
