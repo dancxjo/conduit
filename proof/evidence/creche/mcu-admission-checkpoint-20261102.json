@@ -22,7 +22,6 @@
     "network_refusal": "network-evidence-capacity"
   },
   "not_proven": [
-    "new Pico firmware compilation/fit",
     "physical MCU admission to Hamm",
     "ordinary environmental Plot execution on MCU",
     "same-Body shared history/graph",
@@ -36,5 +35,14 @@
     "failed": 0,
     "scope": "two raw bounded Pico USB frames, independent pins/member key/Body/actual advertisement; no device acceptance claim",
     "log_sha256": "3045124476f113abee2184674e1295414ec46e472bba7552887ad7defd5803f9"
-  }
+  },
+  "canonical_usb_request_validation": {
+    "source_identity": "8fca92f7b8",
+    "strict_warnings": true,
+    "passed": 1,
+    "failed": 0,
+    "log_sha256": "eb3cfafbd91bd23a1109001c7e8042a5e7628a7cb23e2d011b469c0b03b4d10a",
+    "scope": "Compiled owner USB request against canonical literal request and non-secret invitation claim; existing receipt pin/bounds test passed. No physical join claim."
+  },
+  "pico_firmware_qualification": "Separate generic composition at c8b4d6cef3 passed ordinary Make; 863692 bytes flash and 93640 bytes static RAM including 49152-byte heap arena. Physical admission and meaningful sampling Play remain unproven."
 }
