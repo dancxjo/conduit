@@ -108,12 +108,11 @@ mod tests {
         let basis = PicoSpawnAdmissionBasis {
             spore_id: "spore/test".into(),
             image_id: "image/test".into(),
-            invitation: SpawnInvitationClaim {
-                invitation_id: "invitation/test".into(),
-                body_id: "body/test".into(),
-                nonce: [3; 32],
-                expires_at_millis: 2000,
-            },
+            invitation: serde_json::from_value(serde_json::json!({
+                "invitation_id": "invitation/test", "body_id": "body/test",
+                "nonce": [3; 32].to_vec(), "expires_at_millis": 2000,
+            }))
+            .unwrap(),
             expected_host: ad.host_id.clone(),
             expected_profile: ad.profile.clone(),
             member_verifying_key: key.verifying_key(),
@@ -151,7 +150,10 @@ mod tests {
                 0 => wrong.expected_host = "host/other".into(),
                 1 => wrong.expected_profile = "profile/other".into(),
                 2 => wrong.member_verifying_key = [8; 32],
-                3 => wrong.invitation.body_id = "body/other".into(),
+                3 => {
+                    wrong.invitation.body_id =
+                        serde_json::from_value(serde_json::json!("body/other")).unwrap()
+                }
                 4 => wrong.image_id = "image/other".into(),
                 _ => wrong.invitation.nonce = [4; 32],
             }

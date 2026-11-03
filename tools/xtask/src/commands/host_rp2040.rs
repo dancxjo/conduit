@@ -193,12 +193,12 @@ fn compose_private_seed(
         let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
             spore_id: input.provision.spore_id.into(),
             image_id: input.provision.image_id.into(),
-            invitation: conduit_body::SpawnInvitationClaim {
-                invitation_id: input.provision.invitation_id.into(),
-                body_id: input.provision.body_id.into(),
-                nonce: input.provision.nonce,
-                expires_at_millis: input.provision.expires_at_millis,
-            },
+            invitation: serde_json::from_value(serde_json::json!({
+                "invitation_id": input.provision.invitation_id,
+                "body_id": input.provision.body_id,
+                "nonce": input.provision.nonce,
+                "expires_at_millis": input.provision.expires_at_millis,
+            })).map_err(|_| "private Seed invitation claim refused")?,
             expected_host: format!("rp2040/flash/{}", input.physical_uid.iter()
                 .map(|byte| format!("{byte:02x}")).collect::<String>()).into(),
             expected_profile: checked.configuration_id().into(),
