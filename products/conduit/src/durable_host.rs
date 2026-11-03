@@ -65,6 +65,9 @@ mod membership;
 #[path = "durable_body_join_route.rs"]
 mod routed_join;
 pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_body_invitation};
+#[path = "durable_host/usb_admission.rs"]
+mod usb_admission;
+pub(crate) use usb_admission::admit_usb;
 pub(crate) use membership::leave_member_from_file;
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 pub(crate) use routed_join::PreparedAdmissionRoute;

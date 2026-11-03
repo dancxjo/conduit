@@ -11,6 +11,8 @@ use serde::Deserialize;
 
 use crate::pico_admission::{decode_advertisement, PicoAdmissionTransportError};
 use crate::usb_cdc::NativePathCdcLine;
+mod basis;
+pub use basis::PicoSpawnAdmissionBasis;
 
 #[derive(Debug)]
 pub enum PicoSpawnTransportError {
@@ -40,6 +42,7 @@ impl From<crate::usb_cdc::NativeUsbCdcError> for PicoSpawnTransportError {
 
 pub struct PicoSpawnObservation {
     pub advertisement: HostAdvertisement,
+    pub verifying_key: [u8; 32],
     pub proof: SpawnAdmissionProof,
     pub spore_id: String,
     pub image_id: String,
@@ -94,9 +97,14 @@ impl PicoSpawnSocket {
             .send_raw_stream_frame(PICO_SPAWN_REQUEST, timeout)?;
 
         let mut bytes = [0u8; MAX_PICO_ADMISSION_FRAME_BYTES];
-        let advertisement =
-            decode_advertisement(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)?
-                .advertisement;
+        let arrival =
+            decode_advertisement(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)?;
+        let verifying_key = arrival
+            .verifying_key
+            .as_slice()
+            .try_into()
+            .map_err(|_| PicoSpawnTransportError::WrongAdvertisement)?;
+        let advertisement = arrival.advertisement;
         let join = decode_join_request(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)?;
         if join.spore_id != spore_id {
             return Err(PicoSpawnTransportError::WrongSpore);
@@ -118,6 +126,7 @@ impl PicoSpawnSocket {
         }
         Ok(PicoSpawnObservation {
             advertisement,
+            verifying_key,
             proof: SpawnAdmissionProof {
                 invitation_id: join.invitation_id,
                 body_id: join.body_id,

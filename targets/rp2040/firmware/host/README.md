@@ -73,3 +73,27 @@ already enumerate Host configurations and Seed outputs; authored Line topology
 and complete multi-Host workload construction remain separate integration gaps.
 No central all-device project, physical admission or sampling Play is claimed by
 this construction checkpoint.
+
+## USB admission carriage
+
+When a private Seed is supplied, Make also emits public `usb-admission.json`:
+its exact physical Host/configuration, Spore/image, public invitation claim,
+member verifying key and independently selected owner peer. It contains no
+invitation secret. After deploying that exact Seed, use the ordinary installed
+owner's protected admission service through:
+
+```sh
+conduit body admit-usb /dev/serial/by-id/EXACT-RUNTIME-HOST usb-admission.json \
+  --state-dir /absolute/owner/state \
+  --receipt-output /absolute/private/new-receipt.json --authorize-admission
+```
+
+The client checks current owner identity before touching USB, checks the actual
+device's proof and construction pins, asks Core to commit ordinary membership,
+then obtains and saves the signed owner receipt before USB delivery. Receipt
+output is create-new and owner-only. A transport failure after commit does not
+undo membership or authorize fresh admission; recover using the retained signed
+receipt. An empty output file is not a receipt. A local-control timeout leaves
+commit outcome unknown. Successful delivery still needs independent device
+acceptance evidence and creates no Plan or Play. The owner pin remains scoped
+to the selected owner Boot, and device restart/return remains unfinished.

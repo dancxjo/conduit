@@ -540,6 +540,20 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_admission: bool,
     },
+    /// Admit a prepared RP2040 Seed over its bounded USB carrier.
+    AdmitUsb {
+        /// Exact runtime USB serial path; BOOTSEL volumes are not runtime Hosts.
+        port: PathBuf,
+        /// Public construction pins produced alongside the private Seed.
+        basis: PathBuf,
+        /// New private file retaining the committed signed receipt before delivery.
+        #[arg(long)]
+        receipt_output: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_admission: bool,
+    },
     /// Retain the owner's exact admission receipt as this host's durable membership.
     #[command(hide = true)]
     CompleteJoin {
@@ -557,6 +571,14 @@ pub(crate) enum BodyCommand {
 mod public_surface_tests {
     use super::*;
     use clap::{CommandFactory, Parser};
+
+    #[test]
+    fn usb_admission_requires_authorization_and_retained_receipt() {
+        let args = ["conduit", "body", "admit-usb", "/dev/serial/by-id/device",
+            "usb-admission.json", "--state-dir", "/state", "--receipt-output", "/private/receipt.json"];
+        assert!(Cli::try_parse_from(args).is_err());
+        assert!(Cli::try_parse_from(args.into_iter().chain(["--authorize-admission"])).is_ok());
+    }
 
     #[test]
     fn no_arguments_enters_conduit() {

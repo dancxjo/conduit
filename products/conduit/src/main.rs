@@ -453,6 +453,9 @@ fn main() {
                     authorize_admission,
                 }),
         }) => durable_host::admit_body_request(&request, &state_dir, authorize_admission, attest_owner.as_deref()),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::AdmitUsb {
+            port, basis, receipt_output, state_dir, authorize_admission,
+        }) }) => durable_host::admit_usb(&port, &basis, &receipt_output, &state_dir, authorize_admission),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::CompleteJoin {

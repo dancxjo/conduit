@@ -141,7 +141,11 @@ pub(super) fn build(
                 "private Seed input/output must stay outside the public artifact directory".into(),
             );
         }
-        compose_private_seed(&checked, &image.manifest.image_id, input, destination)?;
+        let basis = compose_private_seed(&checked, &image.manifest.image_id, input, destination)?;
+        fs::write(
+            output.join("usb-admission.json"),
+            serde_json::to_vec_pretty(&basis)?,
+        )?;
     }
     if !opts.quiet {
         println!("RP2040 application: {}", uf2.display());
@@ -175,15 +179,32 @@ fn compose_private_seed(
     expected_image_id: &str,
     input: &Path,
     destination: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis, Box<dyn std::error::Error>> {
     let metadata = fs::metadata(input)?;
     if metadata.len() > 4096 {
         return Err("private Seed input exceeds finite bound".into());
     }
     let mut bytes = fs::read(input)?;
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+    let result = (|| -> Result<conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis, Box<dyn std::error::Error>> {
         let input: PrivateInput<'_> =
             serde_json::from_slice(&bytes).map_err(|_| "invalid private Seed input")?;
+        let member_key = conduit_body::SpawnInvitationSecret::from_csprng_bytes(input.provision.secret)
+            .map_err(|_| "private Seed member key refused")?;
+        let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
+            spore_id: input.provision.spore_id.into(),
+            image_id: input.provision.image_id.into(),
+            invitation: conduit_body::SpawnInvitationClaim {
+                invitation_id: input.provision.invitation_id.into(),
+                body_id: input.provision.body_id.into(),
+                nonce: input.provision.nonce,
+                expires_at_millis: input.provision.expires_at_millis,
+            },
+            expected_host: format!("rp2040/flash/{}", input.physical_uid.iter()
+                .map(|byte| format!("{byte:02x}")).collect::<String>()).into(),
+            expected_profile: checked.configuration_id().into(),
+            member_verifying_key: member_key.verifying_key(),
+            owner: input.pinned_owner.clone(),
+        };
         let mut sector = conduit_host_rp2040::encode_membership_seed_sector(
             checked,
             expected_image_id,
@@ -208,7 +229,7 @@ fn compose_private_seed(
         })()
         .map_err(|_| "private Seed publication refused");
         wipe(&mut private);
-        result.map_err(Into::into)
+        result.map(|_| basis).map_err(Into::into)
     })();
     wipe(&mut bytes);
     result
