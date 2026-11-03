@@ -406,10 +406,15 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         owner_show: bool,
         /// Join this fresh installed presentation Host through a pinned owner invitation.
-        #[arg(long, conflicts_with = "owner_show")]
+        #[arg(long, conflicts_with_all = ["owner_show", "member"])]
         invitation: Option<PathBuf>,
         #[arg(long, requires = "invitation")]
         authorize_join: bool,
+        /// Present through this installed member's retained, pinned encounter.
+        #[arg(long, conflicts_with_all = ["owner_show", "invitation"])]
+        member: bool,
+        #[arg(long, requires = "member")]
+        authorize_return: bool,
     },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {

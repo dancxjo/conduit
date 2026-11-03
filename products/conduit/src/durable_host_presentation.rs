@@ -22,13 +22,15 @@ pub(crate) struct PresentationHost {
 }
 
 impl PresentationHost {
-    pub(crate) fn prepare(state: &Path) -> Result<Self, String> {
+    pub(crate) fn prepare(state: &Path, returning: bool) -> Result<Self, String> {
         let host_owner = owner_lock::acquire(state)?;
         let body_owner = owner_lock::body(state)?;
         let installation = read_installation(&state.join("installation.json"))?;
-        if installation.body_state.is_some() || installation.joined_body_state.is_some() {
+        if installation.body_state.is_some()
+            || installation.joined_body_state.is_some() != returning
+        {
             return Err(
-                "presentation requires a fresh installed Host without Body membership".into(),
+                "presentation entrance differs from installed membership or owns a Body".into(),
             );
         }
         let (status, runtime) = super::runtime_preparation::prepare_presentation_runtime(state)?;
@@ -119,7 +121,7 @@ impl Drop for PresentationHost {
 #[path = "durable_host_presentation/terminal.rs"]
 mod terminal;
 #[cfg(unix)]
-pub(crate) use terminal::run;
+pub(crate) use terminal::{run, run_member};
 
 #[cfg(unix)]
 #[path = "durable_host_presentation/wire.rs"]

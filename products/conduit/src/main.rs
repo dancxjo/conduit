@@ -325,7 +325,7 @@ fn main() {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show, invitation, authorize_join }),
+            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show, invitation, authorize_join, member, authorize_return }),
         }) => {
             if let Some(invitation) = invitation {
                 #[cfg(unix)]
@@ -333,6 +333,12 @@ fn main() {
                     &mut io::stdin().lock(), &mut io::stdout().lock()) }
                 #[cfg(not(unix))]
                 { let _ = (invitation, authorize_join); Err("presentation terminal requires a local Unix Host".into()) }
+            } else if member {
+                #[cfg(unix)]
+                { durable_host::presentation::run_member(&state_dir, authorize_return,
+                    &mut io::stdin().lock(), &mut io::stdout().lock()) }
+                #[cfg(not(unix))]
+                { let _ = authorize_return; Err("member terminal requires a local Unix Host".into()) }
             } else if owner_show {
                 #[cfg(unix)]
                 {

@@ -37,7 +37,34 @@ pub(crate) fn run(
     let invitation =
         serde_json::from_slice(&super::super::bounded_read(invitation_path, 512 * 1024)?)
             .map_err(|error| format!("presentation invitation:{error}"))?;
-    let mut peer = PresentationHost::prepare(state)?;
+    run_entrance(state, Entrance::Join(invitation), input, output)
+}
+
+pub(crate) fn run_member(
+    state: &Path,
+    authorize_return: bool,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    if !authorize_return {
+        return Err("member presentation requires --authorize-return".into());
+    }
+    let encounter = wire::load_member_encounter(state)?;
+    run_entrance(state, Entrance::Return(encounter), input, output)
+}
+
+enum Entrance {
+    Join(conduit_body::PortableInvitation),
+    Return(crate::durable_host::routed_join::MemberEncounter),
+}
+
+fn run_entrance(
+    state: &Path,
+    entrance: Entrance,
+    input: &mut impl BufRead,
+    output: &mut impl Write,
+) -> Result<(), String> {
+    let mut peer = PresentationHost::prepare(state, matches!(&entrance, Entrance::Return(_)))?;
     let (provider, mut foreground) = UnixStream::pair().map_err(io_error)?;
     foreground
         .set_read_timeout(Some(Duration::from_secs(2)))
@@ -46,8 +73,18 @@ pub(crate) fn run(
         .set_write_timeout(Some(Duration::from_secs(2)))
         .map_err(io_error)?;
     peer.runtime.attach_presentation_terminal(provider)?;
-    let (mut owner, snapshot) =
-        wire::OwnerRoute::admit(&mut peer, invitation, MaskSelection::Terminal)?;
+    let (mut owner, snapshot) = match entrance {
+        Entrance::Join(invitation) => {
+            wire::OwnerRoute::admit(&mut peer, invitation, MaskSelection::Terminal)?
+        }
+        Entrance::Return(encounter) => wire::OwnerRoute::return_initialized(
+            &mut peer.runtime,
+            &mut peer.status,
+            &peer.state,
+            encounter,
+            MaskSelection::Terminal,
+        )?,
+    };
     let mut shown = present(&mut peer, &mut foreground, output, snapshot)?;
     owner.acknowledge(&shown.show)?;
     report(output)?;
@@ -201,4 +238,31 @@ fn io_error(error: std::io::Error) -> String {
 }
 fn debug_error(error: impl std::fmt::Debug) -> String {
     format!("presentation terminal:{error:?}")
+}
+
+#[cfg(test)]
+mod member_entrance_tests {
+    use super::*;
+
+    #[test]
+    fn member_terminal_requires_authorization_before_opening_retained_state() {
+        let mut output = Vec::new();
+        let error = run_member(
+            Path::new("/nonexistent/unowned-conduit-state"),
+            false,
+            &mut &b"quit\n"[..],
+            &mut output,
+        )
+        .unwrap_err();
+        assert_eq!(error, "member presentation requires --authorize-return");
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn presentation_entrance_refuses_a_body_owner() {
+        let (_owner, state) = crate::durable_host::owner::member_return_owner_fixture();
+        for returning in [false, true] {
+            assert!(PresentationHost::prepare(&state, returning).is_err());
+        }
+    }
 }
