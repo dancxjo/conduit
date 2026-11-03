@@ -1230,3 +1230,31 @@ memory ceiling, TLS allocator containment, automatic continuation or physical
 display result follows from this accounting API. The initialized listener and
 its actual retirement path must consume it next. Evidence is retained at
 `proof/evidence/creche/provider-resource-custody-20261102.json`.
+
+
+### 2 November: authenticated MCU receipt delivery and physical Blue recovery
+
+The immediate physical target remains Hamm Creek House. Green, White and Yellow
+continue local measurement/display but still report `body_member:false`. A
+controlled reset recovered Blue's real sampling/display without any flash write;
+its full flash and original Body/Root identity were verified and retained privately.
+Blue remains on its original Body, in AP-only mode with retained network-evidence
+capacity refusal. Recovery is not migration or network acceptance.
+
+Shared Core attestation validates exact existing admission receipt bytes against
+independently selected owner/member pins and actual Body/Host/Boot/offer scope.
+The protected owner producer rechecks the real committed member and exact retained
+advertisement before signing. The ordinary `body admit` entrance can explicitly
+request this transport attestation with `--attest-owner`. Ten strict-warning owner,
+local authorization and lifetime tests passed. Generic RP2040 composition and
+checked physical Base bindings are being qualified separately; no new device
+membership or ordinary MCU sampling Plot is claimed from these source tests.
+
+See `proof/evidence/creche/mcu-admission-checkpoint-20261102.json`. Earlier failed
+qualification attempts are retained locally alongside the final passing log.
+
+The shared USB delivery adapter also passed its strict-warning focused test:
+metadata/raw receipt framing keeps the existing 4096-byte limit and independently
+checks owner pin, member key, Body and observed advertisement before any write.
+This is a tested adapter, not evidence of an MCU accepting the receipt. The build
+lease has passed to the RP2040 worker for checked bindings and physical-image fit.

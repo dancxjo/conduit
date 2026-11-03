@@ -448,10 +448,11 @@ fn main() {
             command:
                 Some(cli::BodyCommand::Admit {
                     request,
+                    attest_owner,
                     state_dir,
                     authorize_admission,
                 }),
-        }) => durable_host::admit_body_request(&request, &state_dir, authorize_admission),
+        }) => durable_host::admit_body_request(&request, &state_dir, authorize_admission, attest_owner.as_deref()),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::CompleteJoin {

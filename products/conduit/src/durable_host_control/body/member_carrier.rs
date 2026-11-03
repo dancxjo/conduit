@@ -134,6 +134,20 @@ mod tests {
                 protocol: PROTOCOL,
                 token: vec![token; 32],
             },
+            Request::BodyAttestAdmissionReceipt {
+                protocol: PROTOCOL,
+                token: vec![token; 32],
+                receipt: Box::new(conduit_body::PortableAdmissionReceipt {
+                    schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+                    credential: credential.clone(),
+                    host_advertisement: ad.clone(),
+                    membership_admitted: true,
+                    current_offers_available: !ad.capabilities.is_empty(),
+                    plan_created: false,
+                    play_created: false,
+                }),
+                expected_owner: Box::new(challenge.responder.clone()),
+            },
             Request::BodyMemberCarrierBegin {
                 protocol: PROTOCOL,
                 token: vec![token; 32],
@@ -331,6 +345,38 @@ pub(crate) fn carrier_show(
         show: Box::new(show),
     })? {
         Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL } => Ok(()),
+        other => Err(wrong(other)),
+    }
+}
+
+impl DurableHostRuntime {
+    pub(in crate::durable_host_control) fn owned_body_attest_admission_receipt(
+        &mut self,
+        receipt: &conduit_body::PortableAdmissionReceipt,
+        expected_owner: &conduit_body::FederationPeer,
+    ) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
+        let HostSource::Body { owner, .. } = &mut self.host else {
+            return Err("receipt attestation requires the live installed owner".into());
+        };
+        owner.attest_current_member_receipt(receipt, expected_owner)
+    }
+}
+
+pub(crate) fn attest_admission_receipt(
+    state: &Path,
+    receipt: conduit_body::PortableAdmissionReceipt,
+    expected_owner: conduit_body::FederationPeer,
+) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
+    match exchange(state, |token| Request::BodyAttestAdmissionReceipt {
+        protocol: PROTOCOL,
+        token,
+        receipt: Box::new(receipt),
+        expected_owner: Box::new(expected_owner),
+    })? {
+        Response::BodyAttestedAdmissionReceipt {
+            protocol: PROTOCOL,
+            receipt,
+        } => Ok(*receipt),
         other => Err(wrong(other)),
     }
 }

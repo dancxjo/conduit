@@ -50,3 +50,24 @@ impl Owner {
         NativeMaskStorageProfile::Standard.owner_response_bytes()
     }
 }
+
+impl Owner {
+    pub(crate) fn require_observed_member_offer(
+        &self,
+        ad: &HostAdvertisement,
+    ) -> Result<(), String> {
+        let bytes = serde_json::to_vec(ad).map_err(|e| e.to_string())?;
+        let digest = crate::durable_host::digest(&bytes);
+        let offer = self
+            .invited_mask_offers
+            .get(&ad.host_id)
+            .ok_or("member offer not retained")?;
+        if offer.boot != ad.boot_id
+            || offer.generation != ad.offer_generation
+            || offer.digest != digest
+        {
+            return Err("member offer differs from admitted observation".into());
+        }
+        Ok(())
+    }
+}

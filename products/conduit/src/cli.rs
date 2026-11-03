@@ -530,6 +530,9 @@ pub(crate) enum BodyCommand {
     Admit {
         /// Admission-request JSON path, or `-` to read the exact document from standard input.
         request: PathBuf,
+        /// Independently selected owner peer pin for a signed transport receipt.
+        #[arg(long)]
+        attest_owner: Option<PathBuf>,
         /// Installed durable host state that owns the body.
         #[arg(long)]
         state_dir: PathBuf,
