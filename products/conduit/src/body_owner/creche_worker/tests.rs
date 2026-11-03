@@ -92,7 +92,7 @@ impl Fixture {
         file.write_all(b"cpu-fixture-artifact").unwrap();
         let directory = bundle_common::PrivateDirectory::new(self.root.join("private-packages"));
         let bundle = CrecheReviewedBundle::native(
-            bundle_common::native_release(&image, b"cpu-fixture-artifact"),
+            bundle_common::release(&image, b"cpu-fixture-artifact"),
             std::collections::BTreeMap::from([("fixture.data".into(), file.try_clone().unwrap())]),
             directory.0.clone(),
         )

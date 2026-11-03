@@ -63,13 +63,30 @@ pub fn fixture_with_configuration_at(
     PortableInvitation,
     BTreeMap<String, Vec<u8>>,
 ) {
+    fixture_with_output_at(
+        paths,
+        if browser {
+            SporeOutputKind::BrowserBundle
+        } else {
+            SporeOutputKind::NativeBundle
+        },
+        now,
+        configuration,
+    )
+}
+pub fn fixture_with_output_at(
+    paths: &[&str],
+    output: SporeOutputKind,
+    now: u64,
+    configuration: &conduit_host_make::CheckedHostConfiguration,
+) -> (
+    VerifiedHostReleaseBytes,
+    BuiltSpore,
+    PortableInvitation,
+    BTreeMap<String, Vec<u8>>,
+) {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
-    let output = if browser {
-        SporeOutputKind::BrowserBundle
-    } else {
-        SporeOutputKind::NativeBundle
-    };
     let (image, image_manifest) = build_host_image(
         configuration.profile().clone(),
         &catalog,
@@ -82,10 +99,11 @@ pub fn fixture_with_configuration_at(
     )
     .unwrap();
     let m = &image.manifest;
-    let output_name = if browser {
-        "browser-bundle"
-    } else {
-        "native-bundle"
+    let output_name = match output {
+        SporeOutputKind::NativeBundle => "native-bundle",
+        SporeOutputKind::BrowserBundle => "browser-bundle",
+        SporeOutputKind::Uf2 => "uf2",
+        _ => panic!("unsupported package fixture output"),
     };
     let payloads: BTreeMap<String, Vec<u8>> = paths
         .iter()
@@ -100,7 +118,7 @@ pub fn fixture_with_configuration_at(
             )
         })
         .collect();
-    let files=payloads.iter().map(|(path,bytes)|serde_json::json!({"path":path,"bytes":bytes.len(),"sha256":format!("sha256:{:x}",Sha256::digest(bytes)),"media_type":if path.starts_with("install") {"text/x-shellscript"}else{"application/vnd.conduit.host+executable"}})).collect::<Vec<_>>();
+    let files=payloads.iter().map(|(path,bytes)|serde_json::json!({"path":path,"bytes":bytes.len(),"sha256":format!("sha256:{:x}",Sha256::digest(bytes)),"media_type":if output == SporeOutputKind::Uf2 {"application/x-uf2"}else if path.starts_with("install") {"text/x-shellscript"}else{"application/vnd.conduit.host+executable"}})).collect::<Vec<_>>();
     let mut aggregate = Sha256::new();
     aggregate.update(b"conduit.release/host-bundle-content@1\0");
     for file in &files {

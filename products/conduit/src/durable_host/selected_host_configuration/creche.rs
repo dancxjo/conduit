@@ -119,6 +119,7 @@ pub(super) fn initialize(
         image.manifest.output,
         conduit_host_make::SporeOutputKind::NativeBundle
             | conduit_host_make::SporeOutputKind::BrowserBundle
+            | conduit_host_make::SporeOutputKind::Uf2
     ) {
         return bundle_inputs::initialize_bundle(
             p,

@@ -262,7 +262,7 @@ fn build_macos(output: &Path, source_identity: &str) -> Result<(), Box<dyn std::
 }
 
 #[allow(clippy::too_many_arguments)]
-fn seal(
+pub(super) fn seal(
     root: &Path,
     manifest_name: &str,
     target_id: &str,

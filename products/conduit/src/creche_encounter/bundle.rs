@@ -12,6 +12,7 @@ use std::{
 enum Image {
     Native(Box<VerifiedHostReleaseBytes>),
     Browser(Box<VerifiedBrowserBundleImage>),
+    Artifact(Box<VerifiedHostReleaseBytes>),
 }
 /// Actual opened payloads remain owned until production/drain. A verified
 /// inventory alone is not a package and cannot substitute for these bytes.
@@ -21,6 +22,21 @@ pub struct CrecheReviewedBundle {
     directory: PathBuf,
 }
 impl CrecheReviewedBundle {
+    /// An exact reviewed UF2 artifact, packaged with the ordinary private
+    /// joining provision. A package is not a flashed or admitted device.
+    pub fn artifact(
+        release: VerifiedHostReleaseBytes,
+        files: BTreeMap<String, File>,
+        directory: PathBuf,
+    ) -> Result<Self, String> {
+        if release.manifest().output != "uf2"
+            || release.manifest().files.len() != 1
+            || release.manifest().files[0].media_type != "application/x-uf2"
+        {
+            return Err("Crèche UF2 package requires one exact reviewed firmware payload".into());
+        }
+        Self::new(Image::Artifact(Box::new(release)), files, directory)
+    }
     pub fn native(
         release: VerifiedHostReleaseBytes,
         files: BTreeMap<String, File>,
@@ -93,7 +109,7 @@ impl CrecheReviewedBundle {
     }
     pub(super) fn release(&self) -> &VerifiedHostReleaseBytes {
         match &self.image {
-            Image::Native(r) => r,
+            Image::Native(r) | Image::Artifact(r) => r,
             Image::Browser(b) => b.release(),
         }
     }
@@ -133,6 +149,7 @@ impl CrecheReviewedBundle {
         }
         match &self.image {
             Image::Native(_) if a.output == SporeOutputKind::NativeBundle => {}
+            Image::Artifact(_) if a.output == SporeOutputKind::Uf2 => {}
             Image::Browser(b)
                 if a.output == SporeOutputKind::BrowserBundle
                     && b.generic_image_id() == a.image.manifest.image_id
@@ -174,9 +191,9 @@ impl CrecheReviewedBundle {
                 &inputs.catalog,
                 &inputs.packages,
             )?,
-            Image::Browser(_) => {
+            Image::Browser(_) | Image::Artifact(_) => {
                 if configuration.configuration_id() != a.configuration.configuration_id() {
-                    return Err("browser release requires its exact reviewed configuration".into());
+                    return Err("artifact package requires its exact reviewed configuration".into());
                 }
                 (a.image.clone(), a.image_manifest.clone())
             }

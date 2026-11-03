@@ -151,7 +151,29 @@ fn structural_available_show_does_not_grant_renderer_acknowledgment() {
 }
 #[test]
 fn checked_configuration_is_not_prepared_and_production_is_once_only() {
-    let (mut factory, _directory) = factory();
+    let (factory, _directory) = factory();
+    exercise_package_once(factory);
+}
+#[test]
+fn uf2_seed_uses_existing_private_package_and_receipt_lifecycle() {
+    let (factory, _directory) = bundle_fixture::factory_for(
+        include_str!("../../../../targets/rp2040/profiles/pico-w-house-green.host.conduit"),
+        SporeOutputKind::Uf2,
+    );
+    exercise_package_once(factory);
+}
+#[test]
+fn uf2_package_does_not_accept_a_native_release() {
+    let (factory, directory) = factory();
+    let release = bundle_common::release(&factory.inputs.artifacts[0].image, b"artifact");
+    assert!(CrecheReviewedBundle::artifact(
+        release,
+        std::collections::BTreeMap::new(),
+        directory.0.clone()
+    )
+    .is_err());
+}
+fn exercise_package_once(mut factory: CrecheEncounterFactory) {
     let drained = Arc::new(AtomicBool::new(false));
     let (mut adapter, controller) = factory
         .encounter(
@@ -325,7 +347,7 @@ fn encounter_refuses_invalid_private_provision_before_effects() {
 fn reviewed_bundle_refuses_nonmatching_retained_payload_handles() {
     let (factory, directory) = factory();
     let image = &factory.inputs.artifacts[0].image;
-    let release = bundle_common::native_release(image, b"artifact");
+    let release = bundle_common::release(image, b"artifact");
     let mut wrong = std::fs::OpenOptions::new()
         .read(true)
         .write(true)

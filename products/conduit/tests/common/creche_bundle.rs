@@ -29,7 +29,7 @@ impl Drop for PrivateDirectory {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
-pub fn native_release(image: &HostImage, payload: &[u8]) -> VerifiedHostReleaseBytes {
+pub fn release(image: &HostImage, payload: &[u8]) -> VerifiedHostReleaseBytes {
     let digest = format!("sha256:{:x}", Sha256::digest(payload));
     let aggregate = format!(
         "sha256:{:x}",
@@ -38,17 +38,24 @@ pub fn native_release(image: &HostImage, payload: &[u8]) -> VerifiedHostReleaseB
         ))
     );
     let m = &image.manifest;
+    let output = serde_json::to_value(&m.output).unwrap();
+    let output = output.as_str().unwrap();
+    let media_type = if m.output == conduit_host_make::SporeOutputKind::Uf2 {
+        "application/x-uf2"
+    } else {
+        "application/octet-stream"
+    };
     let manifest=serde_json::to_vec(&serde_json::json!({
-        "schema":"conduit.release/host-bundle@1","target_id":m.target,"make_package_id":m.make_package_id,"output":"native-bundle",
+        "schema":"conduit.release/host-bundle@1","target_id":m.target,"make_package_id":m.make_package_id,"output":output,
         "builder_adapter":m.builder_adapter,"deployment_adapter":m.deployment_adapter,"source_identity":m.source_identity,
-        "bundle_sha256":aggregate,"files":[{"path":"fixture.data","bytes":payload.len(),"sha256":digest,"media_type":"application/octet-stream"}]
+        "bundle_sha256":aggregate,"files":[{"path":"fixture.data","bytes":payload.len(),"sha256":digest,"media_type":media_type}]
     })).unwrap();
     verify_host_release_bytes(
         &manifest,
         &ReleaseTargetProfile {
             target_id: &m.target,
             package_id: &m.make_package_id,
-            output: "native-bundle",
+            output,
             builder_adapter: &m.builder_adapter,
             deployment_adapter: m.deployment_adapter.as_deref().unwrap(),
         },

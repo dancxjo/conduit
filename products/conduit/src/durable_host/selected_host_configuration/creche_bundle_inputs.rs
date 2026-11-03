@@ -106,6 +106,8 @@ pub(super) fn initialize_bundle(
             &browser_image,
         )?;
         CrecheReviewedBundle::browser(proof, files, p.package_directory.clone())?
+    } else if image.manifest.output == conduit_host_make::SporeOutputKind::Uf2 {
+        CrecheReviewedBundle::artifact(release, files, p.package_directory.clone())?
     } else {
         CrecheReviewedBundle::native(release, files, p.package_directory.clone())?
     };

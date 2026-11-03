@@ -20,7 +20,7 @@ fn bind(
         admitted,
         image,
         selected,
-        &bundle_common::native_release(image, b"artifact"),
+        &bundle_common::release(image, b"artifact"),
         &conduit_workspace_make::catalog(),
         &conduit_workspace_make::package_set(),
     )
@@ -88,7 +88,7 @@ fn changed_native_closure_source_or_browser_target_refuses() {
     assert!(bind(&baseline, &browser, &prior).is_err());
     let mut different = prior.clone();
     different.manifest.source_identity = "source/unreviewed".into();
-    let release = bundle_common::native_release(&different, b"artifact");
+    let release = bundle_common::release(&different, b"artifact");
     assert!(bind_native_release_configuration(
         &baseline,
         &prior,

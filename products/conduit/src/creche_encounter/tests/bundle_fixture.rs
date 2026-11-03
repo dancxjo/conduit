@@ -1,5 +1,11 @@
 use super::*;
 pub(super) fn factory() -> (CrecheEncounterFactory, bundle_common::PrivateDirectory) {
+    factory_for(source(), SporeOutputKind::NativeBundle)
+}
+pub(super) fn factory_for(
+    source: &str,
+    output: SporeOutputKind,
+) -> (CrecheEncounterFactory, bundle_common::PrivateDirectory) {
     static NEXT: AtomicU64 = AtomicU64::new(0);
     let path = std::env::temp_dir().join(format!(
         "conduit-creche-artifact-{}-{}",
@@ -15,23 +21,31 @@ pub(super) fn factory() -> (CrecheEncounterFactory, bundle_common::PrivateDirect
     artifact.write_all(b"artifact").unwrap();
     std::fs::remove_file(&path).unwrap();
     let directory = bundle_common::PrivateDirectory::new(path.with_extension("packages"));
-    let configuration = checked();
+    let configuration = conduit_host_make::check_host_configuration(
+        conduit_host_make::parse_host_configuration_conduit(source).unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
     let (image, image_manifest) = build_host_image(
         configuration.profile().clone(),
         &conduit_workspace_make::catalog(),
         &conduit_workspace_make::package_set(),
-        &SporeOutputKind::NativeBundle,
+        &output,
         &BuildInputs {
             source_identity: "git:reviewed".into(),
             toolchain_available: true,
         },
     )
     .unwrap();
-    let bundle = CrecheReviewedBundle::native(
-        bundle_common::native_release(&image, b"artifact"),
-        std::collections::BTreeMap::from([("fixture.data".into(), artifact.try_clone().unwrap())]),
-        directory.0.clone(),
-    )
+    let release = bundle_common::release(&image, b"artifact");
+    let files =
+        std::collections::BTreeMap::from([("fixture.data".into(), artifact.try_clone().unwrap())]);
+    let bundle = if output == SporeOutputKind::Uf2 {
+        CrecheReviewedBundle::artifact(release, files, directory.0.clone())
+    } else {
+        CrecheReviewedBundle::native(release, files, directory.0.clone())
+    }
     .unwrap();
     let factory = CrecheEncounterFactory::new(
         conduit_workspace_make::catalog(),
@@ -49,12 +63,12 @@ pub(super) fn factory() -> (CrecheEncounterFactory, bundle_common::PrivateDirect
                 maximum_manifest_bytes: 65536,
                 maximum_receipt_bytes: 65536,
             },
-            initial_source: Some(source().into()),
+            initial_source: Some(source.into()),
         },
         vec![CrecheReviewedArtifact {
             bundle: Some(bundle),
             configuration,
-            output: SporeOutputKind::NativeBundle,
+            output,
             image,
             image_manifest,
             artifact,

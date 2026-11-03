@@ -390,3 +390,68 @@ fn different_checked_host_source_refuses_before_payload_access() {
     assert!(!opened.get());
     assert!(output.is_empty());
 }
+
+#[test]
+fn uf2_output_packages_exact_reviewed_bytes_and_private_invitation() {
+    use conduit_host_make::{
+        check_host_configuration, parse_host_configuration_conduit, SporeOutputKind,
+    };
+    let configuration = check_host_configuration(
+        parse_host_configuration_conduit(include_str!(
+            "../../../targets/rp2040/profiles/pico-w-house-green.host.conduit"
+        ))
+        .unwrap(),
+        &conduit_workspace_make::catalog(),
+        &conduit_workspace_make::package_set(),
+    )
+    .unwrap();
+    // Synthetic reviewed bytes establish packaging correspondence only. They
+    // are not firmware, a flashed Host or actual device admission evidence.
+    let (release, mut spore, invitation, payloads) =
+        common::fixture_with_output_at(&["host.uf2"], SporeOutputKind::Uf2, 0, &configuration);
+    let mut bytes = Vec::new();
+    let receipt = write_joining_host_package(
+        &release,
+        &spore,
+        &configuration,
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    assert_eq!(&bytes[..4], b"PK\x03\x04");
+    assert_eq!(receipt.files.len(), 2);
+    assert!(receipt.files.iter().all(|f| f.mode == 0o100644));
+    assert_eq!(receipt.artifact_bytes, bytes.len() as u64);
+    assert_ne!(
+        receipt.artifact_content_sha256,
+        receipt.image_content_sha256
+    );
+    let script = r#"import assert from 'node:assert/strict';import{readBodyBoundZip}from './targets/browser/workspace/creche-native-zip.mjs';let parts=[];for await(const chunk of process.stdin)parts.push(chunk);let r=readBodyBoundZip(Buffer.concat(parts));assert.equal(r.provision.spore.output,'uf2');assert.equal(r.provision.host_image.manifest.output,'uf2');assert.equal(r.provision.invitation_provision.secret[0],7);assert.equal(r.entries.size,2);assert.equal(r.modes.get('host.uf2'),0o100644);"#;
+    use std::{
+        io::Write,
+        process::{Command, Stdio},
+    };
+    let mut child = Command::new("node")
+        .args(["--input-type=module", "-e", script])
+        .current_dir(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(&bytes).unwrap();
+    assert!(child.wait().unwrap().success());
+    spore.manifest.output = SporeOutputKind::NativeBundle;
+    assert!(write_joining_host_package(
+        &release,
+        &spore,
+        &configuration,
+        &invitation,
+        1,
+        |p| Ok(Cursor::new(payloads[p].clone())),
+        &mut Vec::new(),
+        || false
+    )
+    .is_err());
+}

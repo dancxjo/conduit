@@ -270,6 +270,7 @@ fn check_binding(
             (&spore.output, manifest.output.as_str()),
             (SporeOutputKind::NativeBundle, "native-bundle")
                 | (SporeOutputKind::BrowserBundle, "browser-bundle")
+                | (SporeOutputKind::Uf2, "uf2")
         )
         || spore.image_content_digest != release.image_content_digest()
         || spore.target != manifest.target_id

@@ -115,6 +115,23 @@ pub(super) fn build(
     }
     let bytes = fs::read(&uf2)?;
     validate_application_uf2(&bytes)?;
+    // Feed the existing verified artifact/package path used by Crèche. This
+    // inventory describes inert bytes; it grants no deployment or membership.
+    super::host_release::seal(
+        output,
+        "checked-artifact.json",
+        &image.manifest.target,
+        &image.manifest.make_package_id,
+        "uf2",
+        &image.manifest.builder_adapter,
+        image
+            .manifest
+            .deployment_adapter
+            .as_deref()
+            .ok_or("RP2040 deployment adapter absent")?,
+        &image.manifest.source_identity,
+        &[("host.uf2", "application/x-uf2")],
+    )?;
     let elf_digest = format!("{:x}", Sha256::digest(fs::read(&elf)?));
     let uf2_digest = format!("{:x}", Sha256::digest(&bytes));
     // Retain the exact ordinary Make result used to bind this firmware and Seed.
