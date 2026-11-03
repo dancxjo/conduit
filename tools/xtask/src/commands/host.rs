@@ -33,6 +33,8 @@ mod host_release;
 mod host_release_catalog;
 #[path = "host_rp2040.rs"]
 mod host_rp2040;
+#[path = "host_rp2040_seed.rs"]
+mod host_rp2040_seed;
 #[path = "host_spoken_birth.rs"]
 mod host_spoken_birth;
 #[path = "host_target.rs"]
@@ -198,6 +200,10 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             let catalog = make_chooser_catalog(&conduit_workspace_make::package_set());
             println!("{}", serde_json::to_string_pretty(&catalog)?);
             Ok(())
+        }
+        HostCommand::PrepareSeed { package, export_receipt, pins, output } => {
+            if opts.dry_run { return Err("private Seed preparation requires actual verification".into()); }
+            host_rp2040_seed::prepare(&package, &export_receipt, &pins, &output)
         }
         HostCommand::Build {
             profile: profile_path,

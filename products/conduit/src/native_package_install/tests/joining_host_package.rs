@@ -34,7 +34,7 @@ fn generic_producer_matches_existing_native_parser_and_release_aggregate() {
         .iter()
         .position(|e| e.name == PROVISION_PATH)
         .unwrap();
-    let provision_bytes = entries.remove(index).bytes;
+    let provision_bytes = std::mem::take(&mut entries.remove(index).bytes);
     let raw: serde_json::Value = serde_json::from_slice(&provision_bytes).unwrap();
     assert_eq!(
         raw["invitation_provision"]["rendezvous"],

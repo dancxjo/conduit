@@ -428,3 +428,6 @@ fn crc_update(mut crc: u32, bytes: &[u8]) -> u32 {
     }
     crc
 }
+
+mod reader;
+pub use reader::{verify_joining_host_package, VerifiedJoiningHostPackage};

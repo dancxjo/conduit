@@ -455,3 +455,56 @@ fn uf2_output_packages_exact_reviewed_bytes_and_private_invitation() {
     )
     .is_err());
 }
+
+#[test]
+fn verified_package_reader_preserves_seed_and_rejects_foreign_or_expired_carriage() {
+    use conduit_body_make::verify_joining_host_package;
+    use conduit_host_make::{CarrierTerminal, DeploymentRealizationReceipt};
+    let (release, spore, invitation, payloads) = common::fixture(&["conduit"]);
+    let mut bytes = Vec::new();
+    let receipt = write_joining_host_package(
+        &release,
+        &spore,
+        &common::configuration(false),
+        &invitation,
+        1,
+        |path| Ok(Cursor::new(payloads[path].clone())),
+        &mut bytes,
+        || false,
+    )
+    .unwrap();
+    let mut exported = DeploymentRealizationReceipt {
+        schema: "conduit.carrier/realization@1".into(),
+        carrier_id: "fixture/download".into(),
+        implementation_id: "conduit/download@1".into(),
+        target_id: spore.manifest.target.clone(),
+        spore_id: spore.manifest.spore_id.clone(),
+        artifact_content_sha256: receipt.artifact_content_sha256,
+        terminal: CarrierTerminal::Completed,
+        bytes_realized: bytes.len() as u64,
+        byte_verification_completed: true,
+        explicit_authority_observed: false,
+        boot_observed: false,
+        join_observed: false,
+        membership_admitted: false,
+    };
+    let catalog = conduit_workspace_make::catalog();
+    let packages = conduit_workspace_make::package_set();
+    let verified = verify_joining_host_package(&bytes, &exported, &catalog, &packages, 1).unwrap();
+    assert_eq!(verified.spore(), &spore.manifest);
+    assert_eq!(verified.invitation().secret, invitation.secret);
+    assert_eq!(verified.payload("conduit").unwrap(), payloads["conduit"]);
+    assert!(verify_joining_host_package(
+        &bytes,
+        &exported,
+        &catalog,
+        &packages,
+        invitation.claim.expires_at_millis
+    )
+    .is_err());
+    exported.spore_id.push_str("-foreign");
+    assert!(verify_joining_host_package(&bytes, &exported, &catalog, &packages, 1).is_err());
+    exported.spore_id = spore.manifest.spore_id;
+    bytes[35] ^= 1;
+    assert!(verify_joining_host_package(&bytes, &exported, &catalog, &packages, 1).is_err());
+}

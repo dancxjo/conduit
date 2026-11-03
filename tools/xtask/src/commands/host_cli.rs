@@ -61,6 +61,19 @@ pub(super) enum HostCommand {
         #[arg(long, requires = "private_seed_input")]
         private_seed_output: Option<PathBuf>,
     },
+    /// Prepare a checked RP2040 joining Seed for installation, without flashing.
+    PrepareSeed {
+        package: PathBuf,
+        /// Independently retained receipt from the Body's export operation.
+        #[arg(long)]
+        export_receipt: PathBuf,
+        /// Actual physical UID and independently selected current owner peer.
+        #[arg(long)]
+        pins: PathBuf,
+        /// New private directory; existing output is never overwritten.
+        #[arg(long)]
+        output: PathBuf,
+    },
     /// Compile and seal an existing-computer release or one checked native Host.
     Release {
         #[arg(long, default_value = "target/creche-host-releases")]

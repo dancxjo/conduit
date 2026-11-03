@@ -52,3 +52,6 @@ mod planning_session_tests;
 
 mod joining_host_package;
 pub use joining_host_package::*;
+
+mod joining_zip;
+pub use joining_zip::{read_stored_joining_zip, JoiningZipEntry};

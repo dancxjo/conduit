@@ -169,7 +169,7 @@ pub(super) fn build(
     }
     Ok(())
 }
-fn validate_application_uf2(bytes: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn validate_application_uf2(bytes: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
     use conduit_rp2040_flash_layout::{
         classify_image_page, ImageRegion, Uf2Validator, UF2_BLOCK_BYTES,
     };

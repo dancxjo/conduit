@@ -406,3 +406,14 @@ fn missing_or_divergent_selected_source_and_image_refuse_before_installation() {
         fs::remove_dir_all(root).unwrap();
     }
 }
+
+fn crc32(bytes: &[u8]) -> u32 {
+    let mut crc = !0_u32;
+    for byte in bytes {
+        crc ^= u32::from(*byte);
+        for _ in 0..8 {
+            crc = (crc >> 1) ^ (0xedb8_8320 & 0_u32.wrapping_sub(crc & 1));
+        }
+    }
+    !crc
+}
