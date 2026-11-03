@@ -515,3 +515,6 @@ fn digest(bytes: &[u8]) -> String {
 fn path(value: &Path) -> &str {
     value.to_str().unwrap()
 }
+
+#[path = "installed_body_growth/member_return.rs"]
+mod member_return;

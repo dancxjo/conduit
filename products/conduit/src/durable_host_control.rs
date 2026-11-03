@@ -131,11 +131,11 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
+pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
 pub(crate) use body::{
     attest_admission_receipt, begin_carrier, carrier_mask_route, carrier_receiver, carrier_show,
     complete_carrier, renew_carrier_presence, retire_carrier,
 };
-pub(crate) use body::{begin_member_return, complete_member_return, leave_member};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -1111,6 +1111,11 @@ enum Request {
         token: Vec<u8>,
         session: conduit_core::LinkBindingId,
     },
+    BodyReturn {
+        protocol: u16,
+        token: Vec<u8>,
+        encounter: Box<crate::durable_host::MemberEncounter>,
+    },
     BodyMemberReturnBegin {
         protocol: u16,
         token: Vec<u8>,
@@ -1984,6 +1989,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyMemberPresenceRenew { token, .. }
         | Request::BodyMemberCarrierInspect { token, .. }
         | Request::BodyMemberCarrierRetire { token, .. }
+        | Request::BodyReturn { token, .. }
         | Request::BodyMemberReturnBegin { token, .. }
         | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
@@ -2386,6 +2392,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => runtime
             .owned_body_member_carrier_retire(&session)
             .map(|()| Response::BodyMemberCarrierRetired { protocol: PROTOCOL })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyReturn {
+            protocol,
+            encounter,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .return_member(*encounter)
+            .map(|credential| Response::BodyMemberReturned {
+                protocol: PROTOCOL,
+                credential,
+            })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyMemberReturnBegin {
             protocol,

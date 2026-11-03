@@ -457,6 +457,15 @@ pub(crate) enum BodyCommand {
         #[arg(long)]
         authorize_route: bool,
     },
+    /// Return an existing member using its private continuity key and actual running Boot.
+    Return {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        descriptor: PathBuf,
+        #[arg(long)]
+        authorize_return: bool,
+    },
     /// Expose a finite signed-return entrance for one existing member.
     MemberRoute {
         #[arg(long)]

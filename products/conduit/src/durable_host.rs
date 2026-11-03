@@ -1132,6 +1132,12 @@ fn make_executable(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+pub(crate) use routed_join::{
+    return_installed_member, return_on_actual_host, MemberEncounter,
+};
+
+
+
 #[cfg(test)]
 mod tests {
     use super::invitation::{PortableInvitation, INVITATION_SCHEMA};

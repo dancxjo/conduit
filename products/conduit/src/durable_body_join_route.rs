@@ -412,3 +412,7 @@ pub(crate) use member_return::{
     install_member_encounter, serve_body_member_route, MemberEncounter, MemberReturnFrame,
     MEMBER_RETURN_SCHEMA, MEMBER_ROUTE_SCHEMA,
 };
+
+#[path = "durable_body_join_route/return_client.rs"]
+mod return_client;
+pub(crate) use return_client::{return_installed_member, return_on_actual_host};
