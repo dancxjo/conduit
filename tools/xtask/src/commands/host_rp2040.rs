@@ -31,6 +31,7 @@ pub(super) fn build(
     profile: &Path,
     output: &Path,
     image: &HostImage,
+    description_bytes: &[u8],
     private_input: Option<&Path>,
     private_output: Option<&Path>,
     opts: &GlobalOpts,
@@ -116,6 +117,9 @@ pub(super) fn build(
     validate_application_uf2(&bytes)?;
     let elf_digest = format!("{:x}", Sha256::digest(fs::read(&elf)?));
     let uf2_digest = format!("{:x}", Sha256::digest(&bytes));
+    // Retain the exact ordinary Make result used to bind this firmware and Seed.
+    // The public description contains no private invitation or member key.
+    fs::write(output.join("resolved-image.json"), description_bytes)?;
     fs::write(
         output.join("build-manifest.json"),
         serde_json::to_vec_pretty(&serde_json::json!({

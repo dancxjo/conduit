@@ -222,6 +222,7 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
                     &profile_path,
                     &output,
                     &image,
+                    &bytes,
                     private_seed_input.as_deref(),
                     private_seed_output.as_deref(),
                     opts,
