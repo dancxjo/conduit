@@ -20,6 +20,7 @@ native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
+ed25519-dalek = "2.2"
 conduitos = { path = "../conduitos", features = ["native-compositor-core"], optional = true }
 conduit-conduitos-mask-offer = { path = "../conduitos/mask-offer", optional = true }
 conduit-observatory = { path = "../../architecture/observatory" }
@@ -138,7 +139,6 @@ conduitos = { path = "../conduitos", features = ["native-compositor-core"] }
 tempfile = "3"
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }
-ed25519-dalek = "2.2"
 rcgen = "0.14"
 wat = "1"
 
