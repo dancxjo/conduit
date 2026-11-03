@@ -20,6 +20,7 @@ extern crate alloc;
 
 use core::mem::size_of;
 
+pub mod assigned;
 pub mod causal_evidence;
 pub mod debug_observation;
 mod execution_disposition;

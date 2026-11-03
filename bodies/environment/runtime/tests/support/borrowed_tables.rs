@@ -1,7 +1,7 @@
 //! Both representations enter the ordinary table builder; returned tables own
 //! all execution data after this helper's descriptors and payloads are dropped.
 use super::*;
-use conduit_environment_runtime::assigned::{AssignedKernelTables as Tables, ResidentLayout};
+use conduit_kernel::assigned::{AssignedKernelTables as Tables, ResidentLayout};
 use conduit_kernel as k;
 pub fn check<
     const N: usize,

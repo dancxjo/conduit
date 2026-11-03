@@ -1,6 +1,6 @@
 //! Borrowed representation dispatch; all validation remains in Core and the
 //! existing fixed-table builder. No runtime allocation or execution lives here.
-use conduit_core as c;
+use conduit_assigned_plan as c;
 #[derive(Clone, Copy)]
 pub(crate) enum RecordInput<'a> {
     Bytes(&'a [u8]),
