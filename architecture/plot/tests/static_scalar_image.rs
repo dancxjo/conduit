@@ -141,6 +141,7 @@ fn unsupported_record_input_refuses_explicitly_without_runtime_fallback() {
 }
 #[test]
 fn generated_resident_programs_compile_no_std_and_match_checked_source() {
+    use sha2::Digest;
     use std::{fs, process::Command};
     let mut generated = String::new();
     let mut exercise = String::from("fn main() {\n");
@@ -170,7 +171,18 @@ fn generated_resident_programs_compile_no_std_and_match_checked_source() {
             generate_static_scalar_expression(p).unwrap(),
             "deterministic Make output"
         );
+        if index == 8 {
+            assert_eq!(
+                first.matches("const LITERAL_").count(),
+                1,
+                "repeated zero literals share one resident slice"
+            );
+        }
         generated.push_str(&format!("mod image_{index} {{\n{first}\n}}\n"));
+        let digest = sha2::Sha256::digest(p.canonical_bytes().unwrap());
+        exercise.push_str(&format!(
+            "assert_eq!(image_{index}::SOURCE_PROGRAM_SHA256, {digest:?});\n"
+        ));
         exercise.push_str(&format!(
             "let image = image_{index}::prepare().unwrap();\nlet mut output = [0xa5u8;16];\n"
         ));
