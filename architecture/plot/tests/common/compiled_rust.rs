@@ -4,7 +4,10 @@ use std::{
     process::Command,
     sync::atomic::{AtomicUsize, Ordering},
 };
+#[path = "compiled_libraries.rs"]
+mod compiled_libraries;
 static NEXT: AtomicUsize = AtomicUsize::new(0);
+#[allow(dead_code)] // Some proof owners supply additional exact dependencies.
 pub fn verify(generated: &str, exercise: &str, name: &str) {
     verify_with_libraries(generated, exercise, name, &["conduit_plot"]);
 }
@@ -20,23 +23,7 @@ pub fn verify_with_libraries(generated: &str, exercise: &str, name: &str, librar
         .parent()
         .unwrap()
         .to_path_buf();
-    let libraries: Vec<_> = libraries
-        .iter()
-        .map(|name| {
-            let prefix = format!("lib{name}-");
-            let library = fs::read_dir(&dependencies)
-                .unwrap()
-                .filter_map(Result::ok)
-                .filter(|entry| {
-                    entry.file_name().to_string_lossy().starts_with(&prefix)
-                        && entry.path().extension().is_some_and(|ext| ext == "rlib")
-                })
-                .max_by_key(|entry| entry.metadata().unwrap().modified().unwrap())
-                .unwrap()
-                .path();
-            format!("{name}={}", library.display())
-        })
-        .collect();
+    let libraries = compiled_libraries::resolve(&dependencies, libraries);
     for (name, contents, kind) in [
         ("image", format!("{generated}{exercise}"), "bin"),
         ("no_std", format!("#![no_std]\n{generated}"), "rlib"),

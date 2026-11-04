@@ -107,7 +107,7 @@ fn checked_local_fore_projects_exactly_and_legacy_paths_refuse_it() {
     assert_eq!(bytes, generated.encode(maxima).unwrap());
     let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
     let profile = c::AssignedComputationProfile {
-        maximum_text_bytes: u16::MAX,
+        maximum_text_bytes: u32::from(u16::MAX),
         maximum_total_text_bytes: u32::MAX,
         requirements: &computations,
     };

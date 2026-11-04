@@ -84,7 +84,7 @@ code. Complete Root workspace and execution-work admission is still required.
 All five HT16K33 expressions now have emitted native/no_std component proof,
 including variable payloads, every bus-result tag, pressure and refusal/reuse.
 Selected canonical nodes can be copied directly from an already checked input.
-Ordinary Make/Back installation and physical Play remain unfinished. Source's refined-construction admission rule is preserved; the
+Make now prepares and binds resident code to a selected sealed Plan; ordinary initialized-provider/Seed installation and physical Play remain unfinished. Source's refined-construction admission rule is preserved; the
 output-predicate test is an explicit portable-program component fixture.
 
 ## Structured resident Back lifecycle (development)
@@ -113,7 +113,7 @@ borrowed view. Structured evaluation refusals remain inspectable on the Back.
 Actual frame-request generated-code tests cover bounded kernel delivery,
 pressure, insufficient fuel, uncommitted retry, committed reuse, closing Flow,
 terminal cancellation and invalid/mismatched capacity/work/guards without
-allocation. Make/offer installation and physical execution remain unfinished.
+allocation. Make preparation and selected-Plan binding are available on the development branch. Initialized offers, Seed installation and physical execution remain unfinished.
 
 ## Owned tape profile
 
@@ -128,3 +128,22 @@ The actual std kernel test selects the specialized implementation/artifact for t
 Portable tests cover exact byte/refusal parity, zero warm allocations/reallocations, multiplication/Boolean cases, lazy conditional branches, record/text refusal, a 127-instruction accepted shape and named instruction-bound refusal of a larger valid reference program. Direct delivery tests classify their preparation separately from allocation-free successful delivery.
 
 This is scoped native component and ordinary std Plan/Play evidence. No speedup, arbitrary code generation, JIT, browser/no_std installed tape availability or tiny-Host suitability is claimed. #5541/#5542 and the parent retain their independent resource/evidence/performance/cross-target acceptance.
+
+
+## Make binding and compact resident configuration (development)
+
+The embedded Make crate now prepares the structured realization from checked
+Native owners, fingerprints its base generated source, and binds generated
+Back factories to the exact sealed selection and lowered work grant. The
+existing assigned-Plan ABI carries a 55-byte resident configuration digest
+instead of repeating canonical program text. It requires the independently
+installed exact computation inventory and retains logical artifact, encoded
+assignment, runtime-state and execution bounds. See the
+[lowering contract](../architecture/plan-kernel-lowering.md#resident-computation-assignment-development).
+
+The actual HT16K33 frame-request program uses 21,526 canonical text bytes; its
+sealed component fixture produces a 959-byte assignment under the unchanged
+tiny encoded/runtime envelope. This is metadata/component proof, not a whole
+Host resource measurement. Generated native/no_std factories enforce the exact
+selected fuel without allocation. The fixture is not an initialized Host offer
+or a complete ordinary planner/Seed/physical journey.

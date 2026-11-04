@@ -88,7 +88,7 @@ fn bound(table: &'static str, actual: u64, maximum: u32) -> Result<(), Generatio
     }
     Ok(())
 }
-fn validate_expression(
+pub(crate) fn validate_expression(
     placement: &PlannedGear,
     key: &str,
     text: &str,

@@ -8,7 +8,7 @@ use crate::{read_identity, read_u16, sha256, AssignedIdentity, AssignedPlanRefus
 pub struct AssignedComputationRequirement {
     pub node: u16,
     pub key: AssignedIdentity,
-    pub text_bytes: u16,
+    pub text_bytes: u32,
     pub text_digest: [u8; 32],
 }
 impl AssignedComputationRequirement {
@@ -19,7 +19,7 @@ impl AssignedComputationRequirement {
         Ok(Self {
             node,
             key: AssignedIdentity::from_text(key),
-            text_bytes: u16::try_from(text.len())
+            text_bytes: u32::try_from(text.len())
                 .map_err(|_| AssignedPlanRefusal::ComputationCapacityExceeded)?,
             text_digest: sha256::digest(text.as_bytes()),
         })
@@ -27,10 +27,11 @@ impl AssignedComputationRequirement {
 }
 
 /// This inventory must come from the resident trusted image, never the incoming
-/// assigned Plan. Both per-record and aggregate limits cover encoded text bytes.
+/// assigned Plan. Both per-record and aggregate limits cover logical canonical text bytes,
+/// including text omitted by an exact resident digest record.
 #[derive(Clone, Copy)]
 pub struct AssignedComputationProfile<'a> {
-    pub maximum_text_bytes: u16,
+    pub maximum_text_bytes: u32,
     pub maximum_total_text_bytes: u32,
     pub requirements: &'a [AssignedComputationRequirement],
 }
@@ -76,7 +77,7 @@ impl<'a> Validation<'a> {
         {
             return Ok(ordinary_text());
         }
-        if text.len() > usize::from(profile.maximum_text_bytes) {
+        if text.len() as u64 > u64::from(profile.maximum_text_bytes) {
             return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
         }
         self.total = self
@@ -99,8 +100,54 @@ impl<'a> Validation<'a> {
                 !self.seen[index]
                     && r.node == node
                     && r.key == key
-                    && usize::from(r.text_bytes) == text.len()
+                    && u64::from(r.text_bytes) == text.len() as u64
                     && r.text_digest == digest
+            })
+            .ok_or(AssignedPlanRefusal::UnknownComputation)?;
+        self.seen[index] = true;
+        Ok(true)
+    }
+    /// Digest-only records require the resident trusted inventory. The Plan's
+    /// claim never creates that inventory or bypasses logical artifact bounds.
+    pub(crate) fn resident(&mut self, payload: &[u8]) -> Result<bool, AssignedPlanRefusal> {
+        if payload.len() != 55 {
+            return Ok(false);
+        }
+        let profile = self
+            .profile
+            .ok_or(AssignedPlanRefusal::UnknownComputation)?;
+        let node = read_u16(payload, 0)?;
+        let key = read_identity(payload, 2)?;
+        if key != AssignedIdentity::from_text("program")
+            && key != AssignedIdentity::from_text("selector")
+        {
+            return Err(AssignedPlanRefusal::UnknownComputation);
+        }
+        let length = u32::from_le_bytes(
+            payload[19..23]
+                .try_into()
+                .map_err(|_| AssignedPlanRefusal::MalformedRecord)?,
+        );
+        if length == 0 || length & 1 != 0 || length > profile.maximum_text_bytes {
+            return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
+        }
+        self.total = self
+            .total
+            .checked_add(length)
+            .ok_or(AssignedPlanRefusal::ComputationCapacityExceeded)?;
+        if self.total > profile.maximum_total_text_bytes {
+            return Err(AssignedPlanRefusal::ComputationCapacityExceeded);
+        }
+        let index = profile
+            .requirements
+            .iter()
+            .enumerate()
+            .position(|(i, r)| {
+                !self.seen[i]
+                    && r.node == node
+                    && r.key == key
+                    && r.text_bytes == length
+                    && r.text_digest == payload[23..55]
             })
             .ok_or(AssignedPlanRefusal::UnknownComputation)?;
         self.seen[index] = true;

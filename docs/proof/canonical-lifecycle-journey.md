@@ -2358,3 +2358,60 @@ Source/Fore/artifact/resource binding, complete physical workspace admission,
 and a physical sampling/display Plot remain unfinished. No firmware or live
 service changed. Runner-repair Integration `41826648964` is queued at the last
 observation, so further feature merges remain held.
+
+
+### Make binds resident code without repeating its program (4 November 2026)
+
+The host-only embedded Make crate now prepares immutable structured-expression
+code from the existing checked program and private Native owners. Preparation
+is eligibility, not an initialized offer. Its source artifact hash identifies
+the base realization source; it is not the eventual linked Seed hash. A second
+step verifies the sealed Plan, exact Source/Kind/Fore/configuration/laws, profile,
+implementation/artifact and finite cooperative-work binding. The selected
+factory refuses insufficient lowered Step fuel. Both preparation and selected
+wrapper emission respect the generated-source ceiling. No grant is enlarged.
+
+A 55-byte digest configuration now uses the existing assigned-record framing.
+The independently installed resident inventory pins node/key, logical canonical
+text length and SHA-256. Unknown, altered, duplicate and missing computations
+refuse. Logical artifact lengths now use u32 while encoded envelope and runtime
+limits remain unchanged. Contiguous and borrowed records use the same decoder.
+The actual HT16K33 frame-request's 21,526-byte canonical text is represented in a
+959-byte assigned image under the original tiny envelope. The sealed component
+fixture builds the ordinary fixed kernel tables from a separate trusted
+structural inventory; changing that inventory refuses. This is not a complete
+Host admission or an ordinary authored-Plot-to-installed-Seed proof.
+
+Generated-code proof now resolves the exact Cargo dependency fingerprints of
+the running test, replacing modification-time selection that could mix feature
+variants of Core/Plot. It passes across Make, Plot and common Back proof owners.
+The selected factories compile as native and no_std code, initialize without
+allocations and reject weak work grants. Existing scalar/Native/structured
+protocol checks retain their reference parity and refusal behavior.
+
+Validation: 11 assigned decoder tests, all 20 embedded Make tests, the local
+Fore projection test, 21 emitted-image tests and the generated structured Back
+with fixed kernel pass. Strict owning-package library/test Clippy and the
+thumbv6m no_std assigned decoder check pass. The strengthened Make test also
+passes after adding ordinary kernel-table preparation and structural mutation.
+The environmental local-Fore test compiles against the widened logical-length
+field. Focused formatting and the repository evidence-retention entrance pass.
+Raw logs remain in ignored `target/pico-generic-host-20261102/
+resident-native-image-20261104/`. Dependent standalone lockfiles add only the
+existing SHA-256 dependency to Make's entry; no package versions changed.
+
+No firmware or service changed. Green's existing diagnostic firmware answered
+with 874 successful samples, 13,108 frames/ACKs and no reported peripheral fault,
+retaining the same membership receipt. This does not turn that Rust diagnostic
+loop into an admitted sampling/display Plot. Installation of initialized
+resident providers, new-Boot binding, whole-Host workspace custody and actual
+physical Plot execution remain the next lifecycle gates.
+
+Dev's runner-storage repair passes hosted-Linux, but the same Integration
+41826648964 fails its ConduitOS x86_64 journey. The retained serial artifact
+shows Patchbay publication of 58,431 immutable bytes exhausting the existing
+64-RTC whole-operation allowance at Commit. Transport phases did not replenish
+it. The exact completed job and trace are linked in
+[#6201](https://github.com/dancxjo/conduit/issues/6201#issuecomment-6632144084).
+This is a protected-operation work refusal, not an observation timeout; feature
+merges remain held pending baseline repair. No workflow was restarted.

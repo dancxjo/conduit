@@ -6,9 +6,16 @@
 //! or trigger. The opt-in computation profile validates canonical program metadata
 //! under explicit artifact ceilings. Unsupported facts fail closed.
 
+mod resident_expression;
+pub use resident_expression::{
+    BoundResidentExpression, PreparedResidentExpression, ResidentExpressionBounds,
+    ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION, RESIDENT_EXPRESSION_PROFILE,
+};
+mod assigned_layout;
 mod assigned_native;
 mod assigned_plan;
 mod configuration;
+mod configuration_record;
 mod fore;
 mod generate;
 pub use fore::{generate_fore_native_plan, GeneratedForePlan};
@@ -16,11 +23,15 @@ mod model;
 mod render;
 mod validate;
 
-pub use assigned_plan::{
-    assigned_computation_requirements, assigned_layout_requirements,
-    assigned_native_layout_requirements, encode_assigned_kernel_plan, encode_assigned_native_plan,
-    encode_assigned_plan,
+pub use assigned_layout::{
+    assigned_layout_requirements, assigned_native_layout_requirements,
+    assigned_resident_native_layout_requirements,
 };
+pub use assigned_plan::{
+    encode_assigned_kernel_plan, encode_assigned_native_plan, encode_assigned_plan,
+    encode_assigned_resident_native_plan,
+};
+pub use configuration_record::assigned_computation_requirements;
 pub use generate::{generate_embedded_plan, generate_embedded_plan_with_computations};
 pub use model::*;
 
@@ -33,3 +44,6 @@ mod tests;
 
 #[cfg(test)]
 mod renderer_tests;
+
+#[cfg(test)]
+mod resident_expression_tests;

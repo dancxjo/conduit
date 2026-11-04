@@ -8,8 +8,8 @@ mod fixture;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
 use conduit_embedded_build as b;
-use conduit_kernel::assigned::*;
 use conduit_environment_runtime::CaptureBack;
+use conduit_kernel::assigned::*;
 use conduit_kernel::{self as k, scheduler::*};
 type Tables = AssignedKernelTables<1, 2, 1, 1, 1, 0>;
 #[test]
@@ -45,7 +45,7 @@ fn exact_fore_tables_preserve_checked_execution_and_refuse_wrong_resident_pins()
     let requirements = generated.layout_requirements(maxima).unwrap();
     let computations = b::assigned_computation_requirements(generated.kernel()).unwrap();
     let profile = c::AssignedComputationProfile {
-        maximum_text_bytes: u16::MAX,
+        maximum_text_bytes: u32::from(u16::MAX),
         maximum_total_text_bytes: u32::MAX,
         requirements: &computations,
     };

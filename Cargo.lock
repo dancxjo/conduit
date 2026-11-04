@@ -2009,8 +2009,10 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-r1-network-conformance",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
+ "sha2 0.10.9",
 ]
 
 [[package]]

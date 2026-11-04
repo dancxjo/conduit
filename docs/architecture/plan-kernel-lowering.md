@@ -55,3 +55,38 @@ reserve and validate its selected resources before Play and check that each
 Back's required private work fits its exact grant. A Back spends private work
 through `StepIo::consume_fuel`; unspent reservation is not authority for IO, and
 cooperative charging is not hostile-code confinement.
+
+
+## Resident computation assignment (development)
+
+Make may prepare an immutable structured-expression realization before planning.
+`PreparedResidentExpression` derives its Kind/Fore from the checked program and
+Native owners. Preparation establishes eligibility; it creates no initialized
+Back, offer, reservation or authority. Its artifact identity hashes the base
+generated realization source, not the linked Seed or a claim of flash placement.
+
+Binding requires a verified sealed Plan with the same Source document, exact
+Kind/Fore/configuration/laws, resident profile, implementation and artifact.
+The pure profile refuses Host Calls, Base/authority bindings and realization
+overrides. The generated selected factory compares required work with the
+exact lowered Step grant. Generated-source capacity applies after the selected
+wrapper as well as before it. Initialized-provider and complete Host resource
+admission remain separate mandatory steps.
+An image or template made against one Boot does not authorize a later Boot;
+deployment still requires fresh initialized-provider evidence and exact binding.
+
+The existing assigned configuration record supports an opt-in resident form
+with discriminant `4`: node u16, key identity (16 bytes), discriminant u8, logical
+canonical-text length u32, and SHA-256 (32 bytes), all integers little endian.
+This is a 55-byte payload in the existing framed record, not another protocol.
+Its trusted inventory must be installed with the resident image; receiving a
+digest cannot supply that inventory or manufacture executable code.
+
+Both contiguous and borrowed-record decoders enforce the same exact node/key/
+logical-length/digest inventory, uniqueness, completeness and finite logical
+artifact limits. Canonical text mode retains its existing checks. The logical
+length uses u32 so a large program can be resident without requiring its text
+to fit a u16 framed payload. Encoded-image, runtime-state, queue and execution
+grants are unchanged. Structural record inventory and actual native capability
+possession retain their independent admission roles. This metadata admission
+is not proof of a Ready Back, Seed installation or physical Play.

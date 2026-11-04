@@ -42,6 +42,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+ "sha2",
 ]
 
 [[package]]
