@@ -8,8 +8,8 @@ use conduit_body::{
     AuthenticatedHostObservation, Body, BodyBiographyEvidence, BodyLifecycleSession,
     BodyMembership, BodyWorkset, MembershipProofId, PartId, ResidentPlot,
 };
+use conduit_core::bind_sign;
 use conduit_core::HostAdvertisement;
-use conduit_core::{bind_sign, port_id, ConnectionTrack};
 use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};

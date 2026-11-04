@@ -1,11 +1,13 @@
 //! Exact planning for the installed owner's retained Source and live Host.
 use super::{debug, Owner};
 use conduit_body::{BodyPlotPlan, ResidentPlot};
-use conduit_core::{BaseImplementationId, HostAdvertisement, PortDirection};
+use conduit_core::{
+    port_id, BaseImplementationId, ConnectionTrack, HostAdvertisement, PortDirection,
+};
 use std::collections::BTreeMap;
 
 impl Owner {
-    pub(in crate::body_owner) fn plan(
+    pub(in super::super) fn plan(
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
@@ -18,7 +20,7 @@ impl Owner {
         Ok(())
     }
 
-    pub(in crate::body_owner) fn plan_with_source(
+    pub(in super::super) fn plan_with_source(
         &mut self,
         source: &crate::plot_source::CanonicalSource,
         plot: &conduit_plot::ExpandedAuthoringPlot,
