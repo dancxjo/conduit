@@ -16,6 +16,10 @@ mod quantity_profile;
 mod scalar_tape;
 use evaluate::evaluate_node;
 pub use native_u64::PreparedNativeU64Expression;
+pub use scalar_tape::{
+    generate_static_scalar_expression, ScalarTapeInstruction, ScalarTapeOperation,
+    StaticScalarExpression,
+};
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
