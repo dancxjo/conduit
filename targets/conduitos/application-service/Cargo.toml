@@ -33,3 +33,10 @@ opt-level = 3
 # admitted work budget. Keep the size profile elsewhere and all image/work limits.
 [profile.release.package.conduit-face]
 opt-level = 3
+
+# Publication decodes and compares the full acknowledged Face under one finite
+# operation allowance. Optimize these owners inside the unchanged image window.
+[profile.release.package.conduitos-application-core]
+opt-level = 3
+[profile.release.package.patchbay-application]
+opt-level = 3
