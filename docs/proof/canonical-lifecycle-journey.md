@@ -1739,3 +1739,29 @@ and the other native targets. The exact-head repair merged into dev as
 and remains a separate acceptance gate before held feature merges. The Root
 workspace measurements and their limits were also recorded on #6341; it remains
 open with its original physical custody acceptance.
+
+### 3 November: separate invitation and retained-member Seed material
+
+The shared `MemberBootstrap` now represents two exclusive construction inputs:
+an actual spawn provision, or an existing membership credential with its member
+key. The retained entrance preserves the Part and its historical Boot; it does
+not fabricate an invitation or establish current presence. The RP2040 carrier
+binds either input to the physical flash UID, checked configuration, native IMAGE
+and independently selected owner. Firmware validates those native facts before
+using the material. Private keys have no Debug representation and are wiped on
+drop.
+
+Ordinary RP2040 Make now records the bootstrap codec and exact IMAGE/configuration
+in the checked artifact's existing target metadata. Seed preparation refuses an
+old or mismatched artifact before creating a private output. There is no additional
+manifest or payload. This intentionally changes the private bootstrap format;
+old firmware and new bootstrap material must not be mixed.
+
+All 61 Body tests and six RP2040 Make tests pass, including decoding both
+entrances with the firmware's `serde-json-core` decoder. That decoder refused an
+internally tagged enum, so the shared material uses an externally tagged form;
+no larger runtime JSON parser was added. The full ARMv6-M firmware and xtask check
+also pass. These are source/CPU/compile results. No MCU was flashed. Returning
+material still requires the canonical challenge/proof and committed owner receipt
+exchange; the current firmware refuses a new spawn attempt for retained material
+rather than silently creating a second Part.

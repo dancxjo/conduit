@@ -116,6 +116,16 @@ fn compose(
     {
         return Err("Seed is not the reviewed RP2040 application closure".into());
     }
+    let support = release
+        .target_metadata
+        .get(conduit_host_rp2040::BOOTSTRAP_CONTRACT_METADATA)
+        .ok_or("reviewed firmware has no bootstrap codec contract")?;
+    let support: conduit_host_rp2040::BootstrapContract =
+        serde_json::from_value(support.clone())
+            .map_err(|_| "reviewed bootstrap contract encoding refused")?;
+    if !support.matches_image(&image.image_id, package.configuration().configuration_id()) {
+        return Err("reviewed firmware/bootstrap codec or IMAGE differs".into());
+    }
     let invitation = package.invitation();
     let provision = PicoSpawnProvision {
         protocol: 2,
@@ -127,13 +137,12 @@ fn compose(
         expires_at_millis: invitation.claim.expires_at_millis,
         secret: invitation.secret,
     };
-    let mut sector = conduit_host_rp2040::encode_membership_seed_sector(
+    let mut sector = conduit_host_rp2040::encode_spawn_membership_seed_sector(
         package.configuration(),
         &image.image_id,
         pins.physical_uid,
         &pins.pinned_owner,
         &provision,
-        None,
     )?;
     let bootstrap = PrivateBytes(conduit_host_rp2040::membership_seed_sector_uf2(&sector));
     sector.fill(0);

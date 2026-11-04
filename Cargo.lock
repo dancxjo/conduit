@@ -2138,6 +2138,7 @@ dependencies = [
  "conduit-host-make",
  "conduit-rp2040-flash-layout",
  "serde",
+ "serde-json-core",
  "serde_json",
 ]
 

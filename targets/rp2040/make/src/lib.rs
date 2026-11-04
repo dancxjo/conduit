@@ -3,8 +3,10 @@ use conduit_host_make::{
     PackageCatalogContribution, PostBuildAction, SporeOutputKind, TargetDescriptor,
 };
 
+mod bootstrap_contract;
 mod hardware_initialization;
 mod membership_seed;
+pub use bootstrap_contract::*;
 pub use hardware_initialization::*;
 pub use membership_seed::*;
 

@@ -32,7 +32,11 @@ mod admission;
 #[cfg(feature = "authenticated-admission")]
 mod embedded_membership_wire;
 #[cfg(feature = "authenticated-admission")]
+mod member_bootstrap;
+#[cfg(feature = "authenticated-admission")]
 pub use embedded_membership_wire::*;
+#[cfg(feature = "authenticated-admission")]
+pub use member_bootstrap::*;
 #[cfg(feature = "authenticated-admission")]
 mod admission_receipt_attestation;
 #[cfg(feature = "authenticated-admission")]

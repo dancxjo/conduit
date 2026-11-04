@@ -3,6 +3,9 @@ use std::{env, fs, path::PathBuf};
 fn main() {
     println!("cargo:rerun-if-env-changed=CONDUIT_HOST_CONFIGURATION");
     println!("cargo:rerun-if-env-changed=CONDUIT_SOURCE_IDENTITY");
+    println!("cargo:rerun-if-env-changed=CONDUIT_HOST_IMAGE_ID");
+    let image_id =
+        env::var("CONDUIT_HOST_IMAGE_ID").expect("use ordinary Make with its checked IMAGE");
     let source_identity =
         env::var("CONDUIT_SOURCE_IDENTITY").expect("use cargo xtask make host build");
     let profile = env::var_os("CONDUIT_HOST_CONFIGURATION")
@@ -31,6 +34,7 @@ fn main() {
     let generated = format!(
         r#"
 pub const CONFIGURATION_ID:&str={configuration:?};
+pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};
 pub const ROLE:&str="conduit.rp2040-host@1";
 pub const FREQUENCY:u32={frequency};
@@ -47,6 +51,7 @@ embassy_rp::bind_interrupts!(pub struct SensorIrqs {{ I2C{c}_IRQ => embassy_rp::
 macro_rules! start_local_io {{($spawner:expr,$p:ident)=>{{$spawner.spawn(crate::environment::run($p.I2C{c},$p.PIN_{scl},$p.PIN_{sda}).unwrap());}}}}
 pub(crate) use start_local_io;
 "#,
+        image_id = image_id,
         configuration = checked.configuration_id(),
         frequency = selected.bus.frequency_hz,
         polls = selected.bus.maximum_transaction_polls,
@@ -69,6 +74,7 @@ pub(crate) use start_local_io;
     let mut digest = Sha256::new();
     digest.update(source_identity.as_bytes());
     digest.update(source.as_bytes());
+    digest.update(image_id.as_bytes());
     let mut entries = fs::read_dir("src")
         .unwrap()
         .map(|entry| entry.unwrap().path())

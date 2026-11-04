@@ -40,7 +40,7 @@ pub struct Membership {
 }
 impl Membership {
     pub fn new(seed: Seed<'static>, host_id: String, boot_nonce: [u64; 2]) -> Self {
-        let key = SigningKey::from_bytes(&seed.spawn.secret);
+        let key = SigningKey::from_bytes(seed.admission.secret());
         let ad = HostAdvertisement {
             declared_name: None,
             protocol_version: 1,
@@ -71,7 +71,7 @@ impl Membership {
         }
         // A retained credential must return through canonical member return;
         // never silently admit the same persistent subject as a new Part.
-        if self.seed.credential.is_some() || self.receipt.is_some() {
+        if self.seed.admission.credential().is_some() || self.receipt.is_some() {
             return Err(());
         }
         self.freshness = self.freshness.checked_add(1).ok_or(())?;
@@ -85,7 +85,7 @@ impl Membership {
         };
         let n = serde_json_core::to_slice(&arrival, &mut output).map_err(|_| ())?;
         link.send(&output[..n]).await?;
-        let provision = &self.seed.spawn;
+        let provision = self.seed.admission.spawn().ok_or(())?;
         let transcript = ambient_admission_transcript(
             "spawn-invitation-v1",
             provision.body_id,

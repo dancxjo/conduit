@@ -82,6 +82,7 @@ pub(super) fn build(
         ])
         .arg(&manifest)
         .env("CONDUIT_SOURCE_IDENTITY", &image.manifest.source_identity)
+        .env("CONDUIT_HOST_IMAGE_ID", &image.manifest.image_id)
         .env("CONDUIT_HOST_CONFIGURATION", profile)
         .env("CARGO_TARGET_DIR", &target_dir)
         .status()?;
@@ -132,6 +133,19 @@ pub(super) fn build(
         &image.manifest.source_identity,
         &[("host.uf2", "application/x-uf2")],
     )?;
+    // Use the existing target-owned release extension; no extra payload or
+    // competing manifest is needed to select the matching native Seed codec.
+    let artifact_path = output.join("checked-artifact.json");
+    let mut artifact: conduit_host_make::HostReleaseManifest =
+        serde_json::from_slice(&fs::read(&artifact_path)?)?;
+    artifact.target_metadata.insert(
+        conduit_host_rp2040::BOOTSTRAP_CONTRACT_METADATA.into(),
+        serde_json::to_value(conduit_host_rp2040::BootstrapContract::for_image(
+            &image.manifest.image_id,
+            checked.configuration_id(),
+        ))?,
+    );
+    fs::write(artifact_path, serde_json::to_vec_pretty(&artifact)?)?;
     let elf_digest = format!("{:x}", Sha256::digest(fs::read(&elf)?));
     let uf2_digest = format!("{:x}", Sha256::digest(&bytes));
     // Retain the exact ordinary Make result used to bind this firmware and Seed.
@@ -205,6 +219,7 @@ fn compose_private_seed(
     let result = (|| -> Result<conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis, Box<dyn std::error::Error>> {
         let input: PrivateInput<'_> =
             serde_json::from_slice(&bytes).map_err(|_| "invalid private Seed input")?;
+        if input.credential.is_some() { return Err("returning members require retained bootstrap material, not a new invitation basis".into()); }
         let member_key = conduit_body::SpawnInvitationSecret::from_csprng_bytes(input.provision.secret)
             .map_err(|_| "private Seed member key refused")?;
         let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
@@ -222,13 +237,12 @@ fn compose_private_seed(
             member_verifying_key: member_key.verifying_key(),
             owner: input.pinned_owner.clone(),
         };
-        let mut sector = conduit_host_rp2040::encode_membership_seed_sector(
+        let mut sector = conduit_host_rp2040::encode_spawn_membership_seed_sector(
             checked,
             expected_image_id,
             input.physical_uid,
             &input.pinned_owner,
             &input.provision,
-            input.credential.as_ref(),
         )?;
         let mut private = conduit_host_rp2040::membership_seed_sector_uf2(&sector);
         wipe(&mut sector);
