@@ -1588,3 +1588,30 @@ boundary before feature merges. Existing #5356 owns the product journey;
 and must not be treated as permission to replenish this operation's budget.
 The passing native Mask and stale-Show candidates remain held while this baseline
 failure is investigated. Green's physical operation is unaffected.
+
+
+### 3 November: target the measured native publication work
+
+Compiler experiments on Application Core did not qualify: speed profiles exceeded
+the existing Application image window, while the size-oriented profile did not
+improve the captured full-publication control. They remain local experiments.
+Temporary phase probes of the same full Commit locate approximately 56% of the
+measured cycles in Show/Face validation, 29% in contribution matching and 15% in
+decoding. These are host diagnostic cycles, not native RTC proof. A borrowed
+subject lookup reduced too little work to justify its additional machinery and
+was also retained locally rather than delivered. All probes were removed.
+
+[PR #6739](https://github.com/dancxjo/conduit/pull/6739) instead changes only the
+Application service's package profile for the measured `conduit-face` code.
+Its actual native release build passes the unchanged linker window, and the
+production Application image validator accepts 1,887,826 initialized bytes.
+The fixed-allocator full-publication control passes with the same 2,072,576-byte
+grant, 3,880 publication allocations and 2,042,592-byte combined peak. The large
+publication measured 2,562 microseconds against the earlier size-profile
+control's 2,877 microseconds. Native journey repair remains unproven until the
+exact Candidate and merged-source Integration run; no grant or check changed.
+
+Green remained on its admitted Boot with 152 samples and 2,274 acknowledged
+display updates, no reported sensor/display errors and the same accepted receipt
+digest. Its local diagnostic IO has not become a planned Play. The next physical
+execution step still requires exclusive I2C custody and an actual admitted binding.
