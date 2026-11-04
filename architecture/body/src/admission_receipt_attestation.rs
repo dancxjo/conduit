@@ -49,6 +49,15 @@ pub fn attest_portable_admission_receipt(
     )?;
     let receipt_json =
         serde_json::to_string(receipt).map_err(|_| AdmissionReceiptAttestationRefusal::Encoding)?;
+    attest_receipt_json(receipt_json, owner, member_verifying_key, sign)
+}
+
+pub(crate) fn attest_receipt_json(
+    receipt_json: String,
+    owner: FederationPeer,
+    member_verifying_key: [u8; 32],
+    sign: impl FnOnce(&[u8; 32]) -> [u8; 64],
+) -> Result<SignedPortableAdmissionReceipt, AdmissionReceiptAttestationRefusal> {
     let transcript = admission_receipt_attestation_transcript(
         receipt_json.as_bytes(),
         owner.host_id.as_str(),
