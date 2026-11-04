@@ -3326,3 +3326,28 @@ physical worker retirement or an executed replacement. The #6449 effect boundary
 and the full lifecycle/MCU acceptance remain open. The limited draft Candidate
 for the initial #6754 head skips unit/target matrices; exact extracted-head local
 validation is therefore being prepared separately before claiming qualification.
+
+
+### 4 November: qualify the focused proposal against current dev
+
+The extracted #6754 source initially exposed an unmerged test-helper dependency:
+insert_checked_native_type_from_document is not yet in dev. The fixture now
+uses the existing check_prepared_decode_native private-owner correlation before
+insert_checked_native_type. No new Plot API or dependency is required. On the
+actual dev-based checkout all six Source/CPU tests pass, including production
+normalization of admitted authored Native output; formatting also passes.
+The updated focused head cda06256ff is verified on origin. Strict all-target
+Clippy is still running; this entry does not claim its result or CI acceptance.
+
+Cleanup checked process mappings/descriptors before removing 2,400 inactive
+rlib/rmeta files from the earlier publication-repair cache: 13,247,462,831 logical
+bytes reclaimed, root headroom approximately 19 GiB. Active validation caches,
+source, history, credentials, installed services and recovery artifacts remain.
+The protected uv cache refused cleanup and was left alone. Raw cleanup and
+validation logs remain ignored target output. No live device was changed.
+
+The next consequential seam remains #6449. Existing lifecycle-session workload
+operations and staged owner transitions already retain Body/membership; they
+must be used behind independently checked authority and actual Play retirement,
+not exposed as a new proposal-driven permission bypass. Full lifecycle, MCU
+execution, durable history and shared graphical acceptance are still unfinished.

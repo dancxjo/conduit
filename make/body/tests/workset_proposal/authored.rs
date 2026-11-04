@@ -19,12 +19,17 @@ fn declaration() -> CheckedSyntaxDocument {
             .iter()
             .find(|n| n.name == name)
             .unwrap();
+        let semantic = native.value_type.canonical_bytes().unwrap();
+        let owner = conduit_plot::rust_binding::check_prepared_decode_native(
+            &check_types,
+            native.identity.as_str(),
+            &semantic,
+            &native.value_contracts,
+            &native.invariants,
+        )
+        .unwrap();
         startup
-            .insert_checked_native_type_from_document(
-                format!("language/source-check/{path}"),
-                &check_types,
-                &native.identity,
-            )
+            .insert_checked_native_type(format!("language/source-check/{path}"), owner)
             .unwrap();
     }
     check_syntax_document(

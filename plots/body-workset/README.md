@@ -9,8 +9,9 @@ separate guarded owner operation in
 `propose.conduit` imports the checked snapshot/context/label/digest Types from
 `semantics/language/source_check_info.conduit`. An authoring context links their
 actual checked Native owners under `language/source-check/{snapshot,context,label,digest}`;
-matching names alone do not supply those owners. The conformance fixture uses
-`insert_checked_native_type_from_document`, not a substitute public schema.
+matching names alone do not supply those owners. The conformance fixture resolves each private checked owner with
+`check_prepared_decode_native` before `insert_checked_native_type`; it does not
+substitute a public schema.
 
 The first authored compositions accept one observed retained Plot and one
 checked candidate:
