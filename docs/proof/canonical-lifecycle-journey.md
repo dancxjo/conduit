@@ -3579,3 +3579,33 @@ reply, preventing unconditional refusal from satisfying the negative controls.
 Final focused tests and strict all-target Body Make Clippy pass; formatting and
 whitespace checks pass. Refreshed `origin/dev` adds no missing commits to this
 checkpoint. #6754's exact admission job remains live, not failed or restarted.
+
+### 4 November: actual compiler preparation cost, separated from provider payload
+
+The production-Host harness now measures construction of the real reviewed text
+catalogue, immutable Source/check context, canonical compiler/cache, Native schema
+and prepared provider together. CPU x86_64 debug/System-allocator observations:
+
+| Source | Source bytes | Scoped heap peak | Retained provider payload | Allocations | Reallocations | Requested bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Repository Hello | 179 | 2,767,780 | 8,997 | 105,875 | 4,683 | 17,028,789 |
+| Invalid Unicode Source | 50 | 2,763,616 | 8,568 | 104,375 | 4,555 | 16,709,198 |
+
+Raw repeatable output is `target/source-check-complete-preparation-cost.log`;
+`cargo +stable test -p conduit-body-make --test source_check_call
+complete_preparation_costs --locked -- --nocapture` repeats it. This scoped heap
+observation excludes stack, allocator overhead, existing process state and other
+threads, and does not include later Host installation/authoring/Plan construction.
+It is not RSS, MCU use, a worst-case bound or enforced preparation containment.
+The compiler/catalogue owners are dropped before the returned provider is read;
+the subsequent malformed-request refusal still measures zero allocations.
+Strict all-target Body Make Clippy and formatting pass.
+
+The measured peak is over 300 times the retained provider payload. Admitting only
+that payload cannot establish the preparation contract. The existing Base
+preparation ceiling is explicitly cooperative accounting; using its token alone
+would not change this conclusion. Existing isolated Linux providers do enforce
+address-space/CPU limits, but transferring this checker's private catalogue would
+need exact retained compiler-context custody, not reconstruction from descriptive
+revision strings or an ambient default catalogue. This is the next S2 service
+boundary to resolve, with no MCU compiler, invented grant or duplicate transport.
