@@ -140,7 +140,14 @@
       "sensor_error": false,
       "display_error": false,
       "membership_receipt_unchanged": true
-    }
+    },
+    "candidate_run": 41763944757,
+    "candidate_conclusion": "success",
+    "candidate_x86_job": 126358738179,
+    "merged_dev": "88db53797903bb7c131f92efdd0445547566444e",
+    "integration_run": 41769739364,
+    "integration_conclusion": "in_progress",
+    "native_journey_candidate_passed": true
   },
   "build_checked_i2c_contract": {
     "source": "b60b509f5c3a19fdc1d3d250642f83b7916410b7",
@@ -223,5 +230,27 @@
     ],
     "second_controller_created": false,
     "ready_offer_or_admitted_play_created": false
+  },
+  "ordinary_bounded_i2c_artifact_and_authoring_update": {
+    "source": "38d4925577f3e3e81f56363e538c4a4102d0dc32",
+    "ordinary_make_completed": true,
+    "application_uf2_sha256": "26fa06a2139e995ff2dacc006e2ff282575d7fa1bb17fd64ec6103a0cb74037c",
+    "mcu_configuration": "sha256:f6e80d528135f93b27ad67269553c3133dd09633843ba8407faabda428370d64",
+    "mcu_deployed": false,
+    "authoring_release_verified_and_installed": true,
+    "authoring_executable_sha256": "f14c8c7b38dc1b4498d0bd44a2d891fbfa37d06f8c80c499b4217ee95d987d9d",
+    "authoring_executable_bytes": 66761080,
+    "authoring_configuration": "sha256:afea7a149155774cfe4de78fbebc0cf29be9d827a1ed56859581a6dc144ac808",
+    "authoring_boot": "boot/installed/7f32fdadb65e97e895a795a902b56462ec749e2c8e8b9e199f93f77d9dc2bb85",
+    "body_id_retained": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+    "host_id_retained": "host/installed/f0ccc266877e6d1c192e22246ddaef8be554c52c408a6a8bcbc967c1b1775ed8",
+    "part_ids_and_admitted_states_retained": 16,
+    "cold_backup_sha256": "0f481a54a787598f66f49c6e898b78377b66ad8b76fbe1888aad6203f9fd77cc",
+    "new_parts_created": false,
+    "source_bound_primary_authoring_host": true,
+    "seed_image_boot_attempt": "refused Cr\u00e8che provider; corrected via ordinary configure to the existing primary Host path; no guard changed",
+    "green_current_presence_after_owner_restart": null,
+    "green_historical_receipt_and_local_io_continued": true,
+    "next": "canonical MCU retained-member return before replacing the admitted physical Host; no fresh-Part fallback"
   }
 }

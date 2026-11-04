@@ -1702,3 +1702,40 @@ consume the updated construction contract and produce a newly checked Seed
 through the existing Crèche/Make route. Current native repair #6739 has passed
 its quick, AArch64, IA32, RISC-V and LoongArch checks; x86 and admission remain
 running. The baseline gate has not been declared repaired.
+
+
+### 3 November: ordinary Make and the updated authoring Host
+
+Ordinary `cargo xtask make host build` completed from clean Source `38d4925577`
+for Green's checked bounded-I2C description. It emitted the reviewed UF2, IMAGE,
+manifest and checked artifact through the existing builder. Verified private
+copies of those public inputs and the Host Source now supply the authoring
+Host's pinned Crèche initialization, avoiding mutable workspace input drift.
+
+The ordinary checked native release entrance compiled and sealed the updated
+authoring executable: 66,761,080 bytes, within the unchanged 64 MiB limit. Its
+files match the sealed hashes. The optimized release entrance required explicit
+`--platform linux` despite the full CLI's default; no source workaround was used.
+A stopped-service, checksummed zstd archive retained all prior state, and its
+installation manifest was read back and compared before configuration/install.
+
+I incorrectly selected a Seed IMAGE for the primary authoring Host during the
+update. Startup refused because that runtime path currently supports timer and
+scanout initialization, not Crèche; the restart loop was stopped. Normal explicit
+configuration clear/reselection restored this existing primary Host's checked
+Source initialization path, without changing the runtime gate or state by hand.
+The new release now runs as PID 4170370 with zero restarts and an initialized
+`creche-prepare` offer. It retains the same Body, persistent Host and all 16 Part
+identities/admission states. Owner Boot renewal correctly changes presence and
+biography records; other members' current presence must be re-established.
+Green remains locally healthy with its historical receipt, but its current
+presence on the restarted owner is absent. A canonical retained-member return
+is required before replacing that admitted MCU; fresh invitation/Part creation
+would not prove continuity. No MCU was flashed and no new Play was claimed.
+
+The complete Candidate for #6739 passed, including x86 emulator job 126358738179
+and the other native targets. The exact-head repair merged into dev as
+`88db537979`; the delivery branch absorbed it. Integration 41769739364 is running
+and remains a separate acceptance gate before held feature merges. The Root
+workspace measurements and their limits were also recorded on #6341; it remains
+open with its original physical custody acceptance.
