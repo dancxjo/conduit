@@ -101,7 +101,7 @@ impl I2cContract {
                 .find(|ty| ty.name == name)
                 .expect("checked I2C Type");
             startup
-                .insert_checked_native_type(path, ty)
+                .insert_checked_native_type_from_document(path, &checked, &ty.identity)
                 .expect("I2C import");
         }
         startup
