@@ -3165,3 +3165,40 @@ Raw logs and status are ignored under target/i2c-assigned-fore-20261104/.
 Before building, verified inactive test executables in the owned cache were
 removed, reclaiming 745233640 bytes while preserving active products, source,
 private state, rollback artifacts and evidence.
+
+
+### 4 November: batch admission borrows existing Root inventory
+
+Tracing Green's next assigned-command path exposed two separate obligations:
+its advertisement has no concrete cooperative-work pool yet, and the existing
+shared ResourceAdmissionOwner batch path cloned the whole Host advertisement,
+prior admissions and lane assignments before validating a batch. Publishing
+another command receiver would not supply either actual capacity or authority.
+No command endpoint or fabricated resource offer was added.
+
+The shared owner now borrows its unchanged inventory and existing reservations,
+stages only new admissions, and commits after every request passes. Single and
+batch admission use the same read-only law. Duplicate placement, cumulative
+resource usage and exclusive-writer checks include prior and staged admissions;
+all existing refusal checks and exact release behavior remain in force. No new
+reservation framework, quota, authority or execution kernel was introduced.
+
+A scoped native allocation regression first failed on the old implementation.
+For the same two-placement batch and one prior reservation, adding 128 unrelated
+valid resource pools raised preparation from 25 allocations / 2146-byte peak to
+281 allocations / 52596-byte peak. After the change both inventories take seven
+allocations, zero reallocations and a 478-byte measured peak, requesting 574
+bytes in total. Host construction, requests and existing reservations are made
+outside the measured scope; these numbers exclude stack and their retained
+storage. The regression requires identical allocation counts and byte costs as
+unrelated inventory grows. It proves removal of the preparation copy, not an
+allocation-free owner or a physical MCU workspace peak.
+
+All seven resource-admission integration tests and six related content and
+collection tests pass. Strict core Clippy passes for all targets; the no-default-
+features release core check passes on thumbv6m-none-eabi. Existing late-refusal
+coverage verifies unchanged old reservations and compute assignments after a
+batch fails. Raw before/after, lint and target logs remain ignored under target/.
+No firmware or installed service was changed. #6341's physical gate remains
+open; actual declared work capacity, finite command reception, equipment
+possession and admitted sensing/display execution still need integration.

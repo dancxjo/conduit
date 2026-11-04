@@ -146,13 +146,13 @@ impl ResourceAdmissionOwner {
         {
             return Err(ResourceAdmissionRefusal::CapacityExceeded);
         }
-        // Staging is bounded pre-play work. Commit only after every request
-        // has passed the existing owner checks against cumulative demand.
-        let mut candidate = self.clone();
+        // Borrow the unchanged inventory and old reservations. Only the new
+        // reservations need staging; no catalog or prior assignment is copied.
+        let mut pending = Vec::with_capacity(requests.len());
         for request in requests {
-            candidate.admit(request, observations)?;
+            pending.push(self.prepare_admission(&pending, request, observations)?);
         }
-        self.admissions = candidate.admissions;
+        self.admissions.extend(pending);
         Ok(&self.admissions[first..])
     }
 
@@ -214,11 +214,24 @@ impl ResourceAdmissionOwner {
         request: ResourceAdmissionRequest,
         observations: &[ResourceObservation],
     ) -> Result<&ResourceAdmission, ResourceAdmissionRefusal> {
+        let admission = self.prepare_admission(&[], request, observations)?;
+        self.admissions.push(admission);
+        Ok(self.admissions.last().expect("admission was appended"))
+    }
+
+    /// The same read-only law serves one request and an atomic batch. Staged
+    /// admissions participate in every cumulative and exclusivity check.
+    fn prepare_admission(
+        &self,
+        staged: &[ResourceAdmission],
+        request: ResourceAdmissionRequest,
+        observations: &[ResourceObservation],
+    ) -> Result<ResourceAdmission, ResourceAdmissionRefusal> {
         if request.items.is_empty() {
             return Err(ResourceAdmissionRefusal::Empty);
         }
         if request.items.len() > MAXIMUM_BINDINGS_PER_ADMISSION
-            || self.admissions.len() == MAXIMUM_RESOURCE_ADMISSIONS
+            || self.admissions.len() + staged.len() >= MAXIMUM_RESOURCE_ADMISSIONS
         {
             return Err(ResourceAdmissionRefusal::CapacityExceeded);
         }
@@ -230,7 +243,7 @@ impl ResourceAdmissionOwner {
         {
             return Err(ResourceAdmissionRefusal::StaleOffer);
         }
-        if self.admissions.iter().any(|admission| {
+        if self.admissions.iter().chain(staged).any(|admission| {
             admission.plan_id == request.plan_id && admission.placement_id == request.placement_id
         }) {
             return Err(ResourceAdmissionRefusal::DuplicatePlanPlacement);
@@ -263,6 +276,7 @@ impl ResourceAdmissionOwner {
             }) && self
                 .admissions
                 .iter()
+                .chain(staged)
                 .flat_map(|admission| &admission.items)
                 .any(|existing| {
                     existing.binding.pool_id == item.binding.pool_id
@@ -292,6 +306,7 @@ impl ResourceAdmissionOwner {
             let already = self
                 .admissions
                 .iter()
+                .chain(staged)
                 .flat_map(|admission| &admission.items)
                 .filter(|reserved| {
                     reserved.binding.pool_id == pool.pool_id
@@ -320,7 +335,7 @@ impl ResourceAdmissionOwner {
         }
         signs.sort();
         signs.dedup();
-        self.admissions.push(ResourceAdmission {
+        Ok(ResourceAdmission {
             plan_id: request.plan_id,
             placement_id: request.placement_id,
             host_id: request.host_id,
@@ -328,8 +343,7 @@ impl ResourceAdmissionOwner {
             offer_generation: request.offer_generation,
             items: request.items,
             observation_sign_ids: signs,
-        });
-        Ok(self.admissions.last().expect("admission was appended"))
+        })
     }
 
     pub fn release(
