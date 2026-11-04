@@ -2485,3 +2485,33 @@ live services remain untouched. Ordinary Seed inclusion, complete finite
 workspace/Back admission and physical sampling/display Plot execution remain
 the next gates. The baseline repair in #6751 is merged after Candidate success;
 its full merged-source Integration and physical parent acceptance remain open.
+
+
+### Seed construction includes its selected protocol implementation (4 November 2026)
+
+The Pico Make anchor now resolves the selected physical HT16K33 construction
+into the five existing checked protocol expression implementations. Native I2C
+Types are imported with their checked owners; each exact entry expands through
+ordinary Source machinery. The target package declares finite implementation
+ceilings, including 1,000 private work units per Back. These describe eligibility,
+not an available work pool or resource grant.
+
+Shared embedded Make composes those images into one generated owner. Every
+member must initialize before the aggregate lends any offer bytes. A failed
+later member drops the earlier temporary owners and retains its exact typed
+entry refusal. Empty/duplicate inventories and aggregate generated-source
+overflow refuse. Ownership can subsequently be consumed into the same concrete
+Backs rather than reconstructing a second execution inventory.
+
+The generic Pico firmware now includes this generated implementation closure
+through its existing build script and retains its initialized owner separately
+from diagnostic IO and membership. Its diagnostic status distinguishes the
+initialized count, concrete Back storage size and failed entry. This does not
+advertise a resource pool, authorize I2C, select a Plan or replace the diagnostic
+sampling/display loop. Full ordinary execution remains unproved.
+
+The equipment-selected five-Back native/no_std test and all owning package
+library/integration tests pass (40 tests total), including zero-allocation
+initialization/metadata access and partial-inventory refusal. Target compilation,
+linked footprint and physical initialization are recorded only after actual
+build/deployment below; no device was flashed for this component checkpoint.

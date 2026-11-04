@@ -2139,8 +2139,11 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-plot",
  "conduit-rp2040-flash-layout",
+ "conduit-semantic-catalog",
  "serde",
  "serde-json-core",
  "serde_json",

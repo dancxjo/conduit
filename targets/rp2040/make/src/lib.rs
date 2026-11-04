@@ -6,9 +6,11 @@ use conduit_host_make::{
 mod bootstrap_contract;
 mod hardware_initialization;
 mod membership_seed;
+mod resident_protocol;
 pub use bootstrap_contract::*;
 pub use hardware_initialization::*;
 pub use membership_seed::*;
+pub use resident_protocol::checked_ht16k33_resident_library;
 
 pub const PACKAGE_ID: &str = "conduit-host-rp2040@1";
 pub const TARGET_ID: &str = "conduitos/thumbv6m/pico-w";

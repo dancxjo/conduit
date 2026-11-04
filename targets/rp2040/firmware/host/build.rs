@@ -26,6 +26,9 @@ fn main() {
         conduit_host_rp2040::CheckedBoschHt16k33Construction::from_configuration(&checked)
             .expect("checked actual peripheral bindings");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let resident = conduit_host_rp2040::checked_ht16k33_resident_library(&checked)
+        .expect("checked resident protocol closure");
+    fs::write(out.join("resident.rs"), resident).unwrap();
     let c = selected.bus.controller;
     let sda = selected.bus.sda_gpio;
     let scl = selected.bus.scl_gpio;

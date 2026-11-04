@@ -64,3 +64,48 @@ fn main(){{
         ],
     );
 }
+
+#[test]
+fn library_refuses_duplicate_inventory_bounds_and_partial_initialization() {
+    use conduit_embedded_build::{generate_resident_library, PreparedResidentExpression as Image};
+    let (doc, program, temporal) = support::context();
+    let good = Image::prepare(&doc, &program, temporal, support::bounds(1000)).unwrap();
+    let duplicate = Image::prepare(&doc, &program, temporal, support::bounds(1000)).unwrap();
+    assert!(generate_resident_library(&[], 1024).is_err());
+    assert!(generate_resident_library(&[good, duplicate], 2 * 1024 * 1024).is_err());
+    let good = Image::prepare(&doc, &program, temporal, support::bounds(1000)).unwrap();
+    assert!(generate_resident_library(std::slice::from_ref(&good), 1).is_err());
+    // A distinct temporal Kind fails after the first actual owner initializes.
+    let weak = Image::prepare(
+        &doc,
+        &program,
+        conduit_core::PortTemporal::Value,
+        support::bounds(1),
+    )
+    .unwrap();
+    let library = generate_resident_library(&[good, weak], 2 * 1024 * 1024).unwrap();
+    let probe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../architecture/plot/tests/common/allocation_probe.rs");
+    let exercise = format!(
+        r#"
+#[path={probe:?}]mod probe;
+#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;
+fn main(){{
+ let((),cost)=probe::observe(||{{
+  match library::Initialized::prepare(){{
+   Err(error@library::PreparationRefusal::Entry1(_))=>assert_eq!(error.entry(),1),
+   _=>panic!("partial inventory must not become initialized"),
+  }}
+ }});
+ assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
+}}
+"#,
+        probe = probe.to_str().unwrap()
+    );
+    compiled_rust::verify_with_libraries(
+        &format!("mod library{{\n{library}\n}}"),
+        &exercise,
+        "resident-library-partial-refusal",
+        &["conduit_core", "conduit_plot", "conduit_semantic_catalog"],
+    );
+}

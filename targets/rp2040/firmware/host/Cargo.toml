@@ -16,6 +16,8 @@ conduit-bosch-env = { path = "../../../../mechanisms/io/bosch-env" }
 conduit-ht16k33 = { path = "../../../../mechanisms/io/ht16k33" }
 conduit-face = { path = "../../../../semantics/face", default-features = false }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask" }
+conduit-plot = { path = "../../../../architecture/plot", default-features = false }
+conduit-semantic-catalog = { path = "../../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
 ed25519-dalek = { version = "2.2", default-features = false }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 serde-json-core = "0.6"

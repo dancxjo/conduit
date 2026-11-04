@@ -7,11 +7,13 @@
 //! under explicit artifact ceilings. Unsupported facts fail closed.
 
 mod resident_expression;
+mod resident_library;
 mod resident_offer;
 pub use resident_expression::{
     BoundResidentExpression, PreparedResidentExpression, ResidentExpressionBounds,
     ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION, RESIDENT_EXPRESSION_PROFILE,
 };
+pub use resident_library::generate_resident_library;
 mod assigned_layout;
 mod assigned_native;
 mod assigned_plan;

@@ -19,6 +19,7 @@ mod environment_show;
 mod heap;
 mod membership;
 mod radio;
+mod resident;
 mod seed;
 mod transport;
 mod usb_identity;
@@ -81,6 +82,7 @@ async fn main(spawner: Spawner) {
     };
     // Independent established local IO keeps running throughout admission.
     config::start_local_io!(spawner, p);
+    resident::initialize();
     spawner.spawn(
         wifi::run(
             spawner,

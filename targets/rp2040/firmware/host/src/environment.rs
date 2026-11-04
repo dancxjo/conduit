@@ -38,6 +38,7 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
     let s = critical_section::with(|cs| *STATE.borrow(cs).borrow());
     let mut out = heapless::String::new();
     let (_, peak) = crate::heap::usage();
+    let (resident_count, resident_bytes, resident_refusal) = crate::resident::summary();
     let chip_id = match s.chip {
         Some(conduit_bosch_env::Chip::Bme280) => 96,
         Some(conduit_bosch_env::Chip::Bmp280) => 88,
@@ -45,6 +46,12 @@ pub fn status() -> Result<heapless::String<1024>, ()> {
     };
     write!(&mut out,"{{\"role\":\"{}\",\"build\":\"{}\",\"configuration\":\"{}\",\"sensor_address\":{},\"display_address\":{},\"samples\":{},\"attempts\":{},\"frames\":{},\"acks\":{},\"heap_peak\":{},\"sensor_error\":{},\"display_error\":{},\"body_member\":{}",config::ROLE,crate::BUILD_ID,config::CONFIGURATION_ID,config::SENSOR_ADDRESS,config::DISPLAY_ADDRESS,s.samples,s.attempts,s.frames,s.acks,peak,s.sensor_error,s.display_error,crate::membership::is_member()).map_err(|_|())?;
     write!(&mut out, ",\"chip_id\":{chip_id}").map_err(|_| ())?;
+    write!(&mut out, ",\"initialized_resident_backs\":{resident_count},\"resident_back_bytes\":{resident_bytes},\"resident_refusal_entry\":").map_err(|_| ())?;
+    match resident_refusal {
+        Some(entry) => write!(&mut out, "{entry}"),
+        None => write!(&mut out, "null"),
+    }
+    .map_err(|_| ())?;
     write!(&mut out, ",\"sampled_at_boot_ms\":{}", s.sampled_at_ms).map_err(|_| ())?;
     if let Some(r) = s.reading {
         write!(&mut out,",\"temperature_centi_celsius\":{},\"pressure_centi_pascal\":{},\"humidity_percent_q10\":",r.temperature_centi_celsius,r.pressure_centi_pascal).map_err(|_|())?;

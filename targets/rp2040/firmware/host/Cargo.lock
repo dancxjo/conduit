@@ -268,6 +268,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-embedded-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+ "conduit-semantic-catalog",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-face"
 version = "0.1.0"
 dependencies = [
@@ -303,7 +316,9 @@ name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-embedded-build",
  "conduit-host-make",
+ "conduit-plot",
  "conduit-rp2040-flash-layout",
  "serde",
  "serde_json",
@@ -449,8 +464,10 @@ dependencies = [
  "conduit-ht16k33",
  "conduit-net",
  "conduit-network-credential-journal",
+ "conduit-plot",
  "conduit-rp2040-flash-layout",
  "conduit-rp2040-i2c",
+ "conduit-semantic-catalog",
  "conduit-seven-segment-mask",
  "conduit-wire",
  "cortex-m",
@@ -495,6 +512,7 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
