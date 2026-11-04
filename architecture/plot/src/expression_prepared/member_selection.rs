@@ -1,7 +1,5 @@
 //! Borrow nested exact members; only a structured final result needs scratch.
-use super::{
-    storage_bound, PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal,
-};
+use super::{PreparedInput, PreparedPortableExpressionEvaluator, ProgramView, Refusal};
 use crate::{PortableExpressionNode, PortableExpressionOperation, PortableExpressionProjection};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{StructuredInfoType, StructuredInfoTypeShape};
@@ -10,7 +8,6 @@ pub(super) struct PreparedMemberSelection {
     source: Option<Box<PreparedPortableExpressionEvaluator>>,
     steps: Vec<Member>,
     output_type: Vec<u8>,
-    output: Vec<u8>,
     primitive: bool,
     fixed: Option<(u32, u32)>,
 }
@@ -150,17 +147,15 @@ pub(super) fn prepare(
         } else {
             output_type
         },
-        output: Vec::with_capacity(if primitive {
-            0
-        } else {
-            storage_bound::expression(node, input, prepared_input.maximum_bytes())?
-        }),
         primitive,
         fixed,
     })
 }
 impl PreparedMemberSelection {
     pub(super) fn evaluate<'a>(&'a mut self, input: &'a [u8]) -> Result<&'a [u8], Refusal> {
+        if !self.primitive {
+            return Err(Refusal::InvalidProgram);
+        }
         if let Some((start, length)) = self.fixed {
             // Whole-input validation and checked geometry establish the leaf
             // framing. Still bound both the slice and its declared byte length.
@@ -175,58 +170,87 @@ impl PreparedMemberSelection {
             }
             return Ok(bytes);
         }
-        let selected = match &mut self.source {
-            Some(source) => source.evaluate(input)?,
-            None => input,
-        };
-        let mut value = conduit_core::validate_canonical_structured_value(selected)
-            .map_err(|_| Refusal::InvalidInput)?;
-        for step in &self.steps {
-            value = match step {
-                Member::Field(name) => value.record_field(name),
-                Member::Index(index) => value.collection_index(*index),
-                Member::Variant(name) => value.variant_payload(name),
-            }
-            .map_err(|_| Refusal::InvalidInput)?
-            .ok_or(Refusal::InvalidInput)?;
+        let value = select(&mut self.source, &self.steps, input)?;
+        render_primitive(value, &self.output_type)
+    }
+
+    /// The enclosing evaluator already reserved the complete structured result.
+    pub(super) fn evaluate_into(
+        &mut self,
+        input: &[u8],
+        output: &mut Vec<u8>,
+    ) -> Result<(), Refusal> {
+        if self.primitive {
+            return Err(Refusal::InvalidProgram);
         }
-        render_selected(value, &self.output_type, self.primitive, &mut self.output)
+        let value = select(&mut self.source, &self.steps, input)?;
+        append_selected(value, &self.output_type, output)
     }
 }
 
-pub(super) fn render_selected<'a>(
+fn select<'a>(
+    source: &'a mut Option<Box<PreparedPortableExpressionEvaluator>>,
+    steps: &[Member],
+    input: &'a [u8],
+) -> Result<conduit_core::ValidatedCanonicalStructuredValue<'a>, Refusal> {
+    let selected = match source {
+        Some(source) => source.evaluate(input)?,
+        None => input,
+    };
+    let mut value = conduit_core::validate_canonical_structured_value(selected)
+        .map_err(|_| Refusal::InvalidInput)?;
+    for step in steps {
+        value = match step {
+            Member::Field(name) => value.record_field(name),
+            Member::Index(index) => value.collection_index(*index),
+            Member::Variant(name) => value.variant_payload(name),
+        }
+        .map_err(|_| Refusal::InvalidInput)?
+        .ok_or(Refusal::InvalidInput)?;
+    }
+    Ok(value)
+}
+
+pub(super) fn render_primitive<'a>(
     value: conduit_core::ValidatedCanonicalStructuredValue<'a>,
     output_type: &[u8],
-    primitive: bool,
-    output: &'a mut Vec<u8>,
 ) -> Result<&'a [u8], Refusal> {
     if value.type_bytes() != output_type {
         return Err(Refusal::InvalidInput);
     }
     let node = value.value_node();
-    if primitive {
-        let [0, length @ ..] = node else {
-            return Err(Refusal::InvalidProgram);
-        };
-        let length_bytes = length.get(..4).ok_or(Refusal::InvalidProgram)?;
-        let size = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
-        let bytes = length.get(4..).ok_or(Refusal::InvalidProgram)?;
-        if bytes.len() != size {
-            return Err(Refusal::InvalidProgram);
-        }
-        return Ok(bytes);
+    let [0, length @ ..] = node else {
+        return Err(Refusal::InvalidProgram);
+    };
+    let length_bytes = length.get(..4).ok_or(Refusal::InvalidProgram)?;
+    let size = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
+    let bytes = length.get(4..).ok_or(Refusal::InvalidProgram)?;
+    if bytes.len() != size {
+        return Err(Refusal::InvalidProgram);
     }
-    if output_type
+    Ok(bytes)
+}
+
+pub(super) fn append_selected(
+    value: conduit_core::ValidatedCanonicalStructuredValue<'_>,
+    output_type: &[u8],
+    output: &mut Vec<u8>,
+) -> Result<(), Refusal> {
+    if value.type_bytes() != output_type {
+        return Err(Refusal::InvalidInput);
+    }
+    let node = value.value_node();
+    if output
         .len()
-        .checked_add(node.len())
+        .checked_add(output_type.len())
+        .and_then(|size| size.checked_add(node.len()))
         .is_none_or(|size| size > output.capacity())
     {
         return Err(Refusal::InvalidProgram);
     }
-    output.clear();
     output.extend_from_slice(output_type);
     output.extend_from_slice(node);
-    Ok(output.as_slice())
+    Ok(())
 }
 
 pub(super) fn is_primitive(ty: &StructuredInfoType) -> bool {
