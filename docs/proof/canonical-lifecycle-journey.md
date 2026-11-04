@@ -1920,3 +1920,35 @@ invalid parameters; exact frame bytes; and zero allocation/reallocation during
 prepared evaluation. This is CPU Source conformance. It does not establish
 physical compatibility, whole-workset admission or a deployed ordinary Play.
 The installed owner and Green firmware were not changed by this step.
+
+### The display protocol executes through the ordinary kernel
+
+The same PR now includes `ht16k33-feedback.conduit`. Its initialization entry
+connects the generic terminal state cell and feedback zip to the selected I2C
+Back; its redraw entry uses the existing finite merge for parameter and bus
+failures. No target-side display coordinator was added. The acknowledgement has
+an explicit record schema with the number of acknowledged transactions, keeping
+its selected payload distinct from a primitive empty port. The merged refusal
+Fore explicitly declares the same finite byte bound as its selected merge Back.
+The planner's exact contracts and single-binding rules were preserved.
+
+On isolated current-dev delivery head `09c9710f00`, five native-kernel tests and
+the two prepared-expression tests pass. The kernel tests independently retain an
+inert bus, publish its Ready Back, plan the actual Source, issue finite fixture
+possession and execute the sole existing kernel. Five acknowledged writes close
+initialization; a failed clear prevents enabling without a retry; redraw closes
+after one transaction; a failed redraw yields one refusal; and an unsupported
+address causes no bus effect. Formatting and diff hygiene pass. Existing native
+Mask unit-build warnings remain outside this change.
+
+These are CPU Source/kernel proofs, not physical or MCU workspace admission.
+Green's diagnostic IO has not yet been replaced. The next physical step must
+consume its actual retained controller through the same admitted operations,
+with the full sampling/display workset prepared before changing local Play.
+
+An isolated rerun exhausted the temporary incremental-cache quota. After the
+compiler stopped, 133 inactive rustc incremental directories were removed,
+recovering about 10.3 GiB in `/tmp`; the rerun passed with incremental compilation
+disabled. Inactive native-release and ARMv6 build caches were byte-compared and
+relocated to temporary storage, releasing about 5.5 GiB on the root filesystem.
+Qualified images, credentials, records, installed software and source survived.
