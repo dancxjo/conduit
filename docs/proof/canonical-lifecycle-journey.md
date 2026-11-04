@@ -3351,3 +3351,8 @@ operations and staged owner transitions already retain Body/membership; they
 must be used behind independently checked authority and actual Play retirement,
 not exposed as a new proposal-driven permission bypass. Full lifecycle, MCU
 execution, durable history and shared graphical acceptance are still unfinished.
+
+Exact extracted-head qualification subsequently completed: strict all-target
+conduit-body-make Clippy passes with warnings denied at cda06256ff. The six
+focused tests and package formatting also pass on that source. #6754 records
+these local results; CI, authorized adoption and device execution remain separate.
