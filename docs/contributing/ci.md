@@ -168,6 +168,14 @@ conflict, revert to the one-batch mode and do not promote the experiment.
 Do not change the full Integration product matrix or skip stable release
 verification on a speed result alone.
 
+The browser command has an 80-minute process-group deadline inside its existing
+90-minute job, with 30 seconds to terminate before forced cleanup. The remaining
+job time permits the failure-diagnostics artifact to retain the command log and
+partial proof reports. The command log is outside the staged product and cannot
+satisfy a product receipt. A deadline still fails acceptance; no tests are
+skipped or retried. This guard supplies diagnostics after a bounded failure and
+does not establish why a previous job exceeded its limit.
+
 The default returned to one after [#6172](https://github.com/dancxjo/conduit/issues/6172):
 the first combined Integration using the experiment failed four slow-batch
 cases and left 29 unexecuted while the other batch passed. The retained run
