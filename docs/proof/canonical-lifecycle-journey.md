@@ -1443,3 +1443,43 @@ include this corrected absolute-expiry control field and matching callers.
 No deployment or physical member acceptance follows from these tests. The
 running owner is unchanged, project Pico udev rules remain absent, and the
 known dev Integration remains active before its failed-job retry is permitted.
+
+
+### 3 November: deployed owner and returning terminal manufacture another Seed
+
+The actual Forebrain owner and its retained operator installation now run checked
+native release Source `2469ed024d`. The executable is 66,760,760 bytes, within the
+unchanged 64 MiB ceiling, SHA-256
+`1f0853250ee2adf84b3b57cea04a8b1c26e6798e3d434c3f6dd714031cadb317`.
+Both ordinary installations followed verified cold state backups. The owner
+retained its Host and Hamm Creek House Body identities, established a distinct
+Boot and returned a current Face. The operator retained its Host, Part and
+current joined credential. Its service was not activated on top of the owner.
+
+A fresh pinned TLS encounter let that same operator return through the signed
+member protocol. Its terminal acknowledged the current Show, issued Wake and
+Check once each, and remained available through actual Crèche completion and
+return to the lulled overview. Both actions were accepted; final terminal
+Show evidence remained available, and explicit quit completed successfully.
+This run exercises deployed presentation and member return, including the
+absolute-expiry producer. It did not observe a stale-Face refusal, so it does
+not independently reproduce the deterministic stale-refresh regression.
+
+The Body exported a fresh 1,736,798-byte Pico joining package, SHA-256
+`2ffaec80ea9ad5b5925a04a8aa3aec11c379537d4fc45c814c12693ff7975eb7`.
+The existing `make host prepare-seed` entrance verified that exact export and
+produced application and private bootstrap UF2s for the retained physical UID,
+pinned to this Boot's authenticated owner. The reviewed application remains
+Source `0bbf699a3d`: rebuilding it merely for these Linux-only repairs is not
+necessary. The prepared package was not flashed. Project USB rules remain absent;
+full-flash backup/readback and actual MCU admission remain outstanding. Green
+continued on its previous firmware with 107/107 samples, 1,593/1,593 display
+acknowledgments and no reported sensor/display faults at the live check.
+
+The compact installation receipt records the fresh export and deployed checks;
+private artifacts, credentials, complete backups and terminal logs remain outside
+Git. The baseline dev run finished with its runner-disk failure, permitting one
+exact failed-job retry, now active. PR #6727 has passed Candidate; it remains
+held until combined dev's repaired Integration is accepted. PR #6738 admission
+is still running. No full Body integration, physical Show, graph, or ordinary
+MCU sampling Play is claimed by this milestone.
