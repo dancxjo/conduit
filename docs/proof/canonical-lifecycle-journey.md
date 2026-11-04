@@ -1392,3 +1392,27 @@ failure. An exact-job retry request was refused because sibling jobs remain
 running. Wait for that run to finish before retrying this failed job; do not
 cancel or restart healthy work or infer a product test result from the runner
 failure. No new device deployment, membership or physical Show is claimed here.
+
+### 3 November: bounded recovery from a stale terminal Show
+
+The observed Crèche completion race now has a focused source repair in PR #6738,
+extracted onto current dev at `793ab77b7b`; integrated source is `0136b863a2`.
+The owner distinguishes only the exact stale-Face refusal, keeps the authenticated
+return gate available for refresh, and charges the refusal to existing refresh
+capacity. Neither deadline nor action allowance is replenished. The terminal
+closes its stale Mask execution, fetches the current Face through the existing
+refresh path, renders a new Show and acknowledges it. It makes at most two
+presentation attempts per call and never replays the semantic action.
+
+Sixteen integrated stale-state tests passed, including the new strict refusal
+classification tests and existing admitted-terminal behavior. The existing grant
+replacement test separately passed deadline/action-budget preservation. The
+isolated current-dev delivery branch passes `cargo check -p conduit --bin conduit
+--tests` with warnings denied. These are protocol/source checks, not a deployed
+or physically demonstrated recovery. The running owner and Green were unchanged;
+Green reported 54 samples, 810/810 display acknowledgments and no sensor/display
+faults at the read-only check. Its Body membership remains false.
+
+Dev Integration `41739706738` is still running; its runner-disk failure cannot be
+retried while sibling jobs remain active. Candidate must independently qualify
+the new extracted PR, and live deployment/reproduction remains a separate step.
