@@ -2,6 +2,8 @@
 use conduit_body::{Body, BodyId, BodyWorkset, BodyWorksetError, ResidentPlot};
 use conduit_plot::{CheckContextRevision, CheckOutcome, SourceCheckInfoV1, SourceSnapshotRevision};
 use serde::Serialize;
+mod native;
+pub use native::propose_admitted_workset;
 
 /// Correlates descriptive check Info with independently selected Source/context
 /// revisions. Public Info remains forgeable; this is not compiler custody.
@@ -36,6 +38,9 @@ pub enum WorksetProposalRefusal {
     InvalidCheckInfo,
     UncheckedPlot,
     NoChange,
+    NativeOwner,
+    NativeSchema,
+    NativeSourceBasis,
     Workset(BodyWorksetError),
     Encoding,
     Bytes,

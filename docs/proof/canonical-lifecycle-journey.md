@@ -3297,3 +3297,32 @@ all accumulated MCU implementation. Baseline #6752 passed every Candidate check
 at b0eec9d031 and merged as dev d61742a91e; that exact merge is absorbed into this
 worktree without conflict. This establishes Candidate/merge status, not stable
 publication or successful merged-source Integration. No live software changed.
+
+
+### 4 November: consume the actual Native workset proposal
+
+Guarded adoption needs to consume typed proposal output rather than reconstruct
+it through a test-only field decoder. The new propose_admitted_workset adapter
+requires the existing AdmittedNativeCanonical witness and an independently
+pinned checked declaration owner. It reuses check_prepared_decode_native to
+correlate the retained private Native owner, bounds the canonical packet, checks
+exact Body/revision and the complete carried Source basis, then invokes the same
+canonical-workset projection. It installs nothing and grants no authority.
+
+Six Source/CPU conformance tests pass. The actual authored result is admitted
+under its checked Native laws and normalized by production code. A different
+checked declaration instance with identical public Source IDs, a different
+Native type, absent or mismatched Source basis, wrong Body and stale workload
+revision all refuse. Later removal with no new Source basis normalizes through
+the same path. The initial positive test caught an incorrect comparison with the
+public inspection entry; the corrected code uses the existing private-owner
+lookup rather than treating metadata as its witness. Strict all-target Body Make
+Clippy passes. Raw results remain ignored under
+ target/workset-native-normalization-20261104/.
+
+This is still conditional Info and authoring-host preparation, not capability-
+mediated adoption, fresh compiler custody from a peer's labels, a new MCU codec,
+physical worker retirement or an executed replacement. The #6449 effect boundary
+and the full lifecycle/MCU acceptance remain open. The limited draft Candidate
+for the initial #6754 head skips unit/target matrices; exact extracted-head local
+validation is therefore being prepared separately before claiming qualification.

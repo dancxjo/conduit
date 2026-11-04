@@ -44,6 +44,16 @@ and an optional Source basis. JSON is not the canonical Native byte codec. Tests
 evaluate the actual authored expressions to canonical structured Info and compare
 their complete workset and provenance with the reference projection.
 
+`propose_admitted_workset` is the production bridge from canonical Native Info to
+that conditional projection. It requires the existing `AdmittedNativeCanonical`
+witness from the caller's independently pinned checked declaration. Private
+Native-owner correlation uses Conduit's existing prepared-decoder lookup; public
+inspection metadata cannot replace it. A different declaration owner with the
+same public IDs, a different Native type, absent or changed Source basis, wrong
+Body, stale revision, or an oversized canonical value refuses. Only then are the
+complete workset and candidate provenance normalized through the shared rules.
+This witness proves Native shape/laws and custody, not installation permission.
+
 This is authoring-host preparation. It installs no new MCU runtime, special
 thermometer Gear, planner, execution engine or control protocol. The tests prove
 checked Source and CPU evaluation, not installed Body adoption or device effects.
