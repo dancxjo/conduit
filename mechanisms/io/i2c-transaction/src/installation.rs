@@ -217,3 +217,5 @@ impl<P: I2cProvider> ReadyI2cBase<P> {
         }
     }
 }
+
+mod assigned;

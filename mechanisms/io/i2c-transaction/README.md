@@ -8,6 +8,16 @@ The optional `operation-factory` feature supplies the rich host scheduler factor
 
 Preparation constructs the exact contract, canonical decoder/encoder and scheduler Back without bus traffic. A trusted composition root supplies exclusive native attachment truth and binds the selected Plan, lowering, active Play and capability possession. Runtime calls preserve bounded sequence/lease accounting, canonical outcomes and revocation. Transactions permit at most 32 written and 32 read bytes; combined write/read requires repeated START. A provider must return quiescent or remain quarantined.
 
+`ReadyI2cBase::check_assigned` and `bind_assigned_retained` also accept the
+existing compact assigned-Plan projection, including borrowed record storage.
+They validate the current Host/Boot, native provider and resource generations,
+exact operation and locally issued capability before transferring the retained
+controller. Refusal keeps that controller in Root; codec preparation performs
+no bus traffic. The resulting Host Call retains the same address interval,
+canonical outcomes, sequence accounting and revocation as full-Plan binding.
+It does not borrow the received assignment after preparation. These APIs do not
+install a physical MCU provider or authorize one from serialized facts.
+
 `I2cContract::prepare` remains a preparation API using the checked Source parser. Extraction does not make live parsing appropriate for a small MCU, install an MCU provider, prove same-Body admission, or execute a sensor Plot. Those composition steps remain separate.
 
 Validation:

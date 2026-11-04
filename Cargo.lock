@@ -2160,6 +2160,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-composite",
  "conduit-core",
+ "conduit-embedded-build",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",

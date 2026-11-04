@@ -57,6 +57,45 @@ pub struct I2cHostCall<P> {
     input: [u8; MAXIMUM_TRANSACTION_BYTES],
 }
 
+pub(crate) struct PreparedI2cBinding {
+    node: NodeId,
+    decoder: PreparedI2cDecoder,
+    encoder: PreparedI2cResultEncoder,
+}
+impl PreparedI2cBinding {
+    pub(crate) fn new(contract: &I2cContract, node: NodeId) -> Result<Self, I2cCallRefusal> {
+        Ok(Self {
+            node,
+            decoder: PreparedI2cDecoder::new(contract).map_err(I2cCallRefusal::Canonical)?,
+            encoder: PreparedI2cResultEncoder::new(contract).map_err(I2cCallRefusal::Canonical)?,
+        })
+    }
+}
+pub(crate) fn check_possession(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    attachment: I2cAttachment,
+) -> Result<(), I2cCallRefusal> {
+    let mut entries = table.inspections();
+    let entry = entries.next().ok_or(I2cCallRefusal::Possession)?;
+    if entries.next().is_some()
+        || entry.scope.maximum_in_flight != 1
+        || entry.scope.maximum_parameter_bytes < I2C_MAXIMUM_BYTES
+        || entry.scope.maximum_result_bytes < I2C_MAXIMUM_BYTES
+        || claim.parameter_bytes != I2C_MAXIMUM_BYTES
+        || claim.work_units != 1
+        || attachment.generation == 0
+        || attachment.minimum_address < 8
+        || attachment.maximum_address > 119
+        || attachment.minimum_address > attachment.maximum_address
+        || attachment.resource_bytes < MAXIMUM_TRANSACTION_BYTES as u64
+    {
+        return Err(I2cCallRefusal::Possession);
+    }
+    drop(entries);
+    Ok(())
+}
+
 impl<P: I2cProvider> I2cHostCall<P> {
     /// Bind actual native ownership to an already admitted exact Plan and Play.
     ///
@@ -76,23 +115,7 @@ impl<P: I2cProvider> I2cHostCall<P> {
         provider: P,
         selection: I2cCallSelection<'_>,
     ) -> Result<Self, I2cCallRefusal> {
-        let mut entries = table.inspections();
-        let entry = entries.next().ok_or(I2cCallRefusal::Possession)?;
-        if entries.next().is_some()
-            || entry.scope.maximum_in_flight != 1
-            || entry.scope.maximum_parameter_bytes < I2C_MAXIMUM_BYTES
-            || entry.scope.maximum_result_bytes < I2C_MAXIMUM_BYTES
-            || claim.parameter_bytes != I2C_MAXIMUM_BYTES
-            || claim.work_units != 1
-            || attachment.generation == 0
-            || attachment.minimum_address < 8
-            || attachment.maximum_address > 119
-            || attachment.minimum_address > attachment.maximum_address
-            || attachment.resource_bytes < MAXIMUM_TRANSACTION_BYTES as u64
-        {
-            return Err(I2cCallRefusal::Possession);
-        }
-        drop(entries);
+        check_possession(&table, &claim, attachment)?;
         let node = bind_selected_operation(
             &table,
             &claim,
@@ -114,20 +137,32 @@ impl<P: I2cProvider> I2cHostCall<P> {
             SelectedCallRefusal::WrongBinding => I2cCallRefusal::WrongBinding,
             SelectedCallRefusal::Possession => I2cCallRefusal::Possession,
         })?;
-        Ok(Self {
+        let prepared = PreparedI2cBinding::new(selection.contract, node)?;
+        Ok(Self::from_prepared(
+            table, handle, claim, attachment, provider, prepared,
+        ))
+    }
+
+    pub(crate) fn from_prepared(
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        attachment: I2cAttachment,
+        provider: P,
+        prepared: PreparedI2cBinding,
+    ) -> Self {
+        Self {
             table,
             handle,
             claim,
             attachment,
             provider,
-            node,
+            node: prepared.node,
             next_request: 0,
-            decoder: PreparedI2cDecoder::new(selection.contract)
-                .map_err(I2cCallRefusal::Canonical)?,
-            encoder: PreparedI2cResultEncoder::new(selection.contract)
-                .map_err(I2cCallRefusal::Canonical)?,
+            decoder: prepared.decoder,
+            encoder: prepared.encoder,
             input: [0; MAXIMUM_TRANSACTION_BYTES],
-        })
+        }
     }
 
     pub fn invoke(

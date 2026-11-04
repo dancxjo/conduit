@@ -12,3 +12,6 @@ conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-composite = { path = "../../../architecture/composite", optional = true }
+
+[dev-dependencies]
+conduit-embedded-build = { path = "../../../make/embedded-build" }
