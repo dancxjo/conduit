@@ -1548,3 +1548,29 @@ Shared durable history, the programmable graph and coherent distributed Face
 remain incomplete. Optical output and cold-power acceptance were not observed.
 The compact USB carriage receipt records this result; private Seeds, transfer
 logs, decoder probe and signed receipts remain outside Git.
+
+
+### 3 November: retain I2C controller custody through compact assignment
+
+The next MCU execution prerequisite is shared class-neutral machinery, not a
+sensor-specific sampling callback. Commit `77a5829d7f` extends the existing
+`machine/i2c/transact` implementation with `check_assigned` and
+`bind_assigned_retained`, using the existing exact assigned-operation admission.
+Contiguous bytes and borrowed records both work. Current native Host/Boot,
+provider/resource generation, artifact, operation/Fore and Root-issued possession
+are checked before controller transfer. All codec preparation precedes transfer;
+refusal leaves the same controller in its slot. After binding, assignment input
+storage can be released. Existing address restrictions, canonical outcomes,
+lease/sequence accounting and revocation remain shared with full-Plan binding.
+
+All 11 I2C mechanism tests pass, including the two new assignment fixtures;
+all-feature/all-target Clippy with warnings denied and the default `no_std`
+`thumbv6m-none-eabi` check pass. The fixtures use inert CPU providers and actual
+sealed/encoded assignment machinery; they are not a Body Play or hardware proof.
+`I2cContract::prepare` still uses checked Source preparation. This change neither
+removes that cost nor proves whole-firmware flash/RAM or workspace overlap. An
+actual retained RP2040 bus adapter, generated/prepared contract material and
+ordinary execution admission remain necessary before advertising a ready Back.
+Green was unchanged and continued with 31 samples and 465 display acknowledgments,
+no sensor/display fault and the same accepted membership-receipt digest. Restart
+continuity and the rest of the distributed journey remain unfinished.

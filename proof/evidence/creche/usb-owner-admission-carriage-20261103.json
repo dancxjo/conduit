@@ -84,5 +84,20 @@
     "MCU restart/member return",
     "shared history and Threebee graph",
     "whole lifecycle acceptance"
-  ]
+  ],
+  "assigned_i2c_cpu_prerequisite": {
+    "source_identity": "77a5829d7f",
+    "mechanism": "conduit-i2c-transaction",
+    "kind": "machine/i2c/transact",
+    "proof_class": "CPU assigned-binding and Host Call fixtures; ARMv6-M compile only",
+    "tests_passed": 11,
+    "tests_failed": 0,
+    "borrowed_and_contiguous_assignment": true,
+    "controller_preserved_on_refusal": true,
+    "assignment_storage_released_before_invocation": true,
+    "strict_all_features_all_targets_clippy": true,
+    "thumbv6m_none_eabi_check": true,
+    "deployed_to_green": false,
+    "whole_firmware_memory_or_physical_play_proven": false
+  }
 }
