@@ -23,6 +23,7 @@ struct ShowAcknowledgementResponse {
 
 pub(super) enum ShowGate {
     Accepted,
+    Stale,
     Refreshed(Box<Grant>),
     Stopped,
 }
@@ -95,7 +96,7 @@ pub(super) fn acknowledge_show(
                     "CONDUIT_OWNER_RETURN_DIAGNOSTIC {}",
                     serde_json::json!({"phase":"show-ack-refused","code":code})
                 );
-                "show-refused"
+                refusal_code(&error, allow_refresh)
             })
         }
         Ok(_) => Err("show-grant-or-basis-invalid"),
@@ -115,7 +116,42 @@ pub(super) fn acknowledge_show(
     )?;
     Ok(if accepted {
         ShowGate::Accepted
+    } else if code == "stale-face" {
+        ShowGate::Stale
     } else {
         ShowGate::Stopped
     })
+}
+
+fn refusal_code(error: &str, allow_refresh: bool) -> &'static str {
+    if allow_refresh && error == "native-mask-show-refused:StaleFace" {
+        "stale-face"
+    } else {
+        "show-refused"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn only_exact_stale_face_with_remaining_refresh_capacity_is_recoverable() {
+        assert_eq!(
+            refusal_code("native-mask-show-refused:StaleFace", true),
+            "stale-face"
+        );
+        assert_eq!(
+            refusal_code("native-mask-show-refused:StaleFace", false),
+            "show-refused"
+        );
+        for error in [
+            "native-mask-return-expired",
+            "native-mask-route-credential-mismatch",
+            "native-mask-show-refused:StalePlan",
+            "transport lost",
+            "prefix StaleFace",
+        ] {
+            assert_eq!(refusal_code(error, true), "show-refused");
+        }
+    }
 }

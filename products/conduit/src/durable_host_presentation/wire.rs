@@ -138,6 +138,13 @@ impl OwnerRoute {
     }
 
     pub(super) fn acknowledge(&self, show: &MaskShow) -> Result<(), String> {
+        match self.acknowledge_status(show)? {
+            ShowAcceptance::Accepted => Ok(()),
+            ShowAcceptance::Stale => Err("presentation Show is stale".into()),
+        }
+    }
+
+    pub(super) fn acknowledge_status(&self, show: &MaskShow) -> Result<ShowAcceptance, String> {
         let mut line = self.connection()?;
         send_return(
             &mut line,
@@ -146,12 +153,7 @@ impl OwnerRoute {
             MESSAGE,
         )?;
         let response: Value = receive(&mut line, MESSAGE)?;
-        if response["schema"] != "conduit.body/native-owner-show-ack-response@1"
-            || response["accepted"] != true
-        {
-            return Err(format!("presentation Show refused:{}", response["code"]));
-        }
-        Ok(())
+        decode_show_acceptance(&response)
     }
 
     pub(super) fn refresh(&mut self) -> Result<Snapshot, String> {
@@ -360,3 +362,23 @@ fn send_return(
     }
     Ok(())
 }
+
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum ShowAcceptance {
+    Accepted,
+    Stale,
+}
+fn decode_show_acceptance(response: &Value) -> Result<ShowAcceptance, String> {
+    if response["schema"] != "conduit.body/native-owner-show-ack-response@1" {
+        return Err("presentation Show response schema".into());
+    }
+    match (response["accepted"].as_bool(), response["code"].as_str()) {
+        (Some(true), Some("accepted")) => Ok(ShowAcceptance::Accepted),
+        (Some(false), Some("stale-face")) => Ok(ShowAcceptance::Stale),
+        _ => Err(format!("presentation Show refused:{}", response["code"])),
+    }
+}
+
+#[cfg(test)]
+#[path = "show_ack_tests.rs"]
+mod show_ack_tests;
