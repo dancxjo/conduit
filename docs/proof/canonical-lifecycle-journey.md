@@ -1416,3 +1416,30 @@ faults at the read-only check. Its Body membership remains false.
 Dev Integration `41739706738` is still running; its runner-disk failure cannot be
 retried while sibling jobs remain active. Candidate must independently qualify
 the new extracted PR, and live deployment/reproduction remains a separate step.
+
+### 3 November: preserve the member carrier's selected expiry
+
+The intermittent pinned current-member carrier refusal had a concrete cause:
+the route calculated a remaining duration before local actor scheduling, then
+the owner added that duration to a later clock reading. Its signed challenge
+could therefore exceed the independently selected route expiry, which the
+client correctly refused. Integrated commit `2c6ae0619b` carries the absolute
+selected expiry through authenticated local control and uses it directly.
+The owner's one-hour cap remains enforced; its pending challenge deadline is
+also capped by the session deadline. No retry margin or longer grant is added.
+
+All eleven carrier module tests pass, including typed local-control round trips,
+wrong-caller refusal, exact pending-slot retirement, presence expiry, receipt
+scope and the new scheduling-delay regression. Invalid deadlines leave an
+existing valid issuance intact. The real local pinned-TLS returning-member test
+also passes with five-millisecond route-to-owner delays deliberately inserted;
+it still checks lost committed replies, mutual current-member authentication
+and continuing presentation. This replaces the earlier unexplained intermittent
+expiry refusal with a deterministic tested bound.
+
+This fix is published in the integration lane. The product carrier producer path
+it changes is not yet present in dev, so its eventual focused extraction must
+include this corrected absolute-expiry control field and matching callers.
+No deployment or physical member acceptance follows from these tests. The
+running owner is unchanged, project Pico udev rules remain absent, and the
+known dev Integration remains active before its failed-job retry is permitted.
