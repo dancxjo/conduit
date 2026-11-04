@@ -4,6 +4,8 @@
 
 #[path = "body/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "body/member_leave.rs"]
+mod member_leave;
 #[path = "body/native_mask_route.rs"]
 mod native_mask_route;
 #[cfg(unix)]
@@ -23,6 +25,7 @@ use conduit_face::{
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
+pub(crate) use member_leave::leave_member;
 use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
@@ -1099,4 +1102,19 @@ pub(crate) fn prepare_owned_invitation_route(
         Response::Refused { code, .. } => Err(format!("Body owner refused prepared route: {code}")),
         _ => Err("Body owner returned the wrong prepared-route response".into()),
     }
+}
+
+// The shared product entry remains callable on non-Unix Hosts, but no local
+// authenticated owner control carrier is installed there.
+#[cfg(not(unix))]
+pub(crate) fn prepare_owned_invitation_route(
+    _state_dir: &Path,
+    _ttl_seconds: u64,
+    _bind: std::net::SocketAddr,
+    _public_url: &str,
+    _certificate: &Path,
+    _private_key: &Path,
+    _authorize_route: bool,
+) -> Result<RendezvousCandidate, String> {
+    Err("no reviewed local durable host control carrier exists on this platform".into())
 }

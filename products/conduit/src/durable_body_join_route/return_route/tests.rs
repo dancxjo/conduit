@@ -222,3 +222,6 @@ fn oversized_refreshed_face_keeps_action_truth_and_refuses_document_pressure() {
     assert!(fitted.face.is_none());
     assert!(serde_json::to_vec(&fitted).unwrap().len() <= MAX_OWNER_FACE_RESPONSE_BYTES);
 }
+
+#[path = "tests/member_leave.rs"]
+mod member_leave;

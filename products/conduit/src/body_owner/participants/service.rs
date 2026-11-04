@@ -484,43 +484,7 @@ impl Owner {
             if active != credential {
                 return Err("browser leave credential differs from active carrier".into());
             }
-            let current = self
-                .session
-                .evidence()
-                .membership
-                .parts
-                .iter()
-                .find(|part| part.part_id == credential.part_id)
-                .and_then(|part| part.current.as_ref())
-                .ok_or("browser Part is no longer current")?;
-            if current.host_id != credential.host_id || current.boot_id != credential.boot_id {
-                return Err("browser leave differs from current Host Boot".into());
-            }
-            let latest = self.admissions.as_ref().and_then(|manager| {
-                manager
-                    .receipts
-                    .iter()
-                    .rev()
-                    .find(|receipt| receipt.credential.part_id == credential.part_id)
-            });
-            if latest.is_none_or(|receipt| receipt.credential != *credential) {
-                return Err("browser leave credential is no longer current".into());
-            }
-            let mut session = self.session.clone();
-            let authority = self.host.advertisement();
-            session
-                .observe_host_lost(
-                    &credential.host_id,
-                    &credential.boot_id,
-                    &authority.host_id,
-                    &authority.boot_id,
-                )
-                .map_err(debug)?;
-            let before = std::mem::replace(&mut self.session, session);
-            if let Err(error) = self.persist(root) {
-                self.session = before;
-                return Err(error);
-            }
+            self.member_leave(root, credential)?;
             if let WindowState::Active {
                 route: Some(route), ..
             } = &window.state

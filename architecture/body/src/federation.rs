@@ -13,6 +13,11 @@ use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+mod challenge_slot;
+pub use challenge_slot::CurrentMemberChallengeSlot;
+mod current_member;
+pub use current_member::CurrentMemberReceivingSession;
+
 pub const MAXIMUM_FEDERATION_NONCE_BYTES: usize = 32;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -64,6 +69,9 @@ pub struct FederationInspection {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FederationRefusal {
+    ChallengePending,
+    ChallengeConsumed,
+    ChallengeContextMismatch,
     EmptyIdentity,
     Expired,
     InvalidBounds,
@@ -87,6 +95,9 @@ pub struct FederatedReceivingSession {
 }
 
 impl FederatedReceivingSession {
+    /// Trusted-key entrance: both challenge keys must already be authenticated
+    /// by its caller. Received self-asserted keys are not membership evidence.
+    /// Current installed members should use `establish_for_current_member`.
     pub fn establish(
         challenge: FederationChallenge,
         initiator_signature: [u8; 64],
