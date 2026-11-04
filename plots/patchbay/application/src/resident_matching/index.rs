@@ -57,13 +57,13 @@ mod tests {
     fn index_workspace_and_distinct_key_lookup_work_are_bounded() {
         use core::sync::atomic::{AtomicUsize, Ordering};
         static KEYS: AtomicUsize = AtomicUsize::new(0);
-        fn key(value: &alloc::string::String) -> (&str, &str) {
+        fn key(value: &(alloc::string::String, u8)) -> (&str, &str) {
             KEYS.fetch_add(1, Ordering::Relaxed);
-            (value.as_str(), "")
+            (value.0.as_str(), "")
         }
         let values = (0..1024)
             .rev()
-            .map(|i| alloc::format!("{i:04}"))
+            .map(|i| (alloc::format!("{i:04}"), 0u8))
             .collect::<alloc::vec::Vec<_>>();
         let index = Index::<_, 1024>::new(&values, key).unwrap();
         KEYS.store(0, Ordering::Relaxed);
