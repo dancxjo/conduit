@@ -68,7 +68,7 @@ impl PreparedSequenceSelection {
         output: &mut Vec<u8>,
     ) -> Result<(), Refusal> {
         if self.primitive {
-            return Err(Refusal::InvalidProgram);
+            return super::structured::append(output, self.evaluate(input)?);
         }
         let value = select(&mut self.source, &mut self.index, input)?;
         member_selection::append_selected(value, &self.output_type, output)

@@ -174,14 +174,16 @@ impl PreparedMemberSelection {
         render_primitive(value, &self.output_type)
     }
 
-    /// The enclosing evaluator already reserved the complete structured result.
+    /// The enclosing evaluator already reserved the complete result.
     pub(super) fn evaluate_into(
         &mut self,
         input: &[u8],
         output: &mut Vec<u8>,
     ) -> Result<(), Refusal> {
         if self.primitive {
-            return Err(Refusal::InvalidProgram);
+            // Opaque semantic leaves also use the structural evaluator. Keep
+            // their raw-leaf framing without allocating a selection scratch.
+            return super::structured::append(output, self.evaluate(input)?);
         }
         let value = select(&mut self.source, &self.steps, input)?;
         append_selected(value, &self.output_type, output)
