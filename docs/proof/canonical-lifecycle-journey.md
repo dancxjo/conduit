@@ -2415,3 +2415,32 @@ it. The exact completed job and trace are linked in
 [#6201](https://github.com/dancxjo/conduit/issues/6201#issuecomment-6632144084).
 This is a protected-operation work refusal, not an observation timeout; feature
 merges remain held pending baseline repair. No workflow was restarted.
+
+
+### Bounded graph comparison passes the local native journey (4 November 2026)
+
+[#6751](https://github.com/dancxjo/conduit/pull/6751), source
+`928009ce7ce2a2319cb35db7359dc427af8b9f68`, indexes complete graph-contribution
+comparisons with fixed borrowed offsets. Exact full-value equality within key
+ranges, complete Face/Show validation and action checks remain mandatory.
+Scratch is below 15 KiB of stack; no heap index or additional graph is retained.
+The existing image, private heap, stack and whole-operation RTC grants remain
+unchanged. Fifty-two library tests, eight resident-command tests, strict Clippy
+and the fixed-private-heap regression pass with unchanged heap peaks.
+
+The normal made ConduitOS image builds inside its admitted window and completes
+`cargo xtask make host verify target/publication-recovery --journey --locked`
+on Forebrain. Its corresponding publication uses 41 of 64 RTC units, and the
+journey completes actions and reconstruction. This is freestanding-emulator
+evidence, not a same-machine baseline comparison or recovery on the GitHub
+runner. The original failed Integration trace remains retained under #6201;
+source-matched CI and parent/physical acceptance remain open. A normal Patchbay
+screenshot, serial trace and receipt are retained outside Git under ignored
+`target/native-publication-recovery-20261104/`. No device or live service changed.
+
+The build also exposed tmpfs per-user quota despite globally available space.
+Inactive caches were relocated with their original paths preserved. Verified
+disposable historical Rust test executables and archived crate extraction
+copies were removed; source, opaque captures, installed releases, firmware,
+credentials and device/history state were preserved. This maintenance is not a
+product memory saving or evidence of MCU execution.
