@@ -120,7 +120,7 @@ impl CheckedTlsListenerInitialization {
             return Err("TLS certificate binding requires exactly 32 hexadecimal bytes".into());
         }
         let mut certificate_binding_sha256 = [0; 32];
-        for (index, pair) in encoded.as_bytes().chunks_exact(2).enumerate() {
+        for (index, pair) in encoded.as_bytes().as_chunks::<2>().0.iter().enumerate() {
             let digit = |byte: u8| (byte as char).to_digit(16).expect("checked hex") as u8;
             certificate_binding_sha256[index] = digit(pair[0]) * 16 + digit(pair[1]);
         }

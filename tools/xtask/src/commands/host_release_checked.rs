@@ -1,8 +1,6 @@
 //! Compile one checked native closure through the existing reviewed Linux adapter.
 //! Repository build operation, not an admitted runtime builder or confinement.
 use super::*;
-#[path = "host_configuration_load.rs"]
-mod configuration_load;
 use conduit_host_make::{
     build_host_image, BuildInputs, MakeBuildSelection, ReviewedNativeBuild, SporeOutputKind,
     REVIEWED_NATIVE_BUILD_SCHEMA,

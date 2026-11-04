@@ -1,7 +1,7 @@
 //! Shared checked Host construction source entrance.
 use conduit_host_make::{check_host_configuration, parse_host_configuration_conduit};
 
-pub(super) fn load_configuration(
+pub(crate) fn load_configuration(
     path: &std::path::Path,
 ) -> Result<conduit_host_make::CheckedHostConfiguration, Box<dyn std::error::Error>> {
     let source = std::fs::read_to_string(path)?;

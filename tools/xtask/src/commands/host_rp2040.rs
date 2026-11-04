@@ -189,8 +189,7 @@ pub(super) fn validate_application_uf2(bytes: &[u8]) -> Result<(), Box<dyn std::
     };
     let mut validator =
         Uf2Validator::new(bytes.len() as u64).map_err(|e| format!("UF2 extent: {e:?}"))?;
-    for block in bytes.chunks_exact(UF2_BLOCK_BYTES) {
-        let block: &[u8; UF2_BLOCK_BYTES] = block.try_into()?;
+    for block in bytes.as_chunks::<UF2_BLOCK_BYTES>().0 {
         validator
             .push(block)
             .map_err(|e| format!("UF2 validation: {e:?}"))?;

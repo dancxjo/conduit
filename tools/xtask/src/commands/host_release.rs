@@ -8,6 +8,9 @@ use clap::ValueEnum;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+#[path = "host_configuration_load.rs"]
+pub(super) mod configuration_load;
+
 #[path = "host_release_armv6.rs"]
 mod armv6;
 #[path = "host_release_browser.rs"]

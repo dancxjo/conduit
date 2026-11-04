@@ -1,6 +1,4 @@
-#[path = "host_configuration_load.rs"]
-mod configuration_load;
-use configuration_load::load_configuration;
+use host_release::configuration_load::load_configuration;
 use std::{fs, path::Path};
 
 use conduit_host_make::{
@@ -201,8 +199,15 @@ pub fn run(args: HostArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::
             println!("{}", serde_json::to_string_pretty(&catalog)?);
             Ok(())
         }
-        HostCommand::PrepareSeed { package, export_receipt, pins, output } => {
-            if opts.dry_run { return Err("private Seed preparation requires actual verification".into()); }
+        HostCommand::PrepareSeed {
+            package,
+            export_receipt,
+            pins,
+            output,
+        } => {
+            if opts.dry_run {
+                return Err("private Seed preparation requires actual verification".into());
+            }
             host_rp2040_seed::prepare(&package, &export_receipt, &pins, &output)
         }
         HostCommand::Build {
