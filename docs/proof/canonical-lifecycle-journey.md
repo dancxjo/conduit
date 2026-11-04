@@ -2225,3 +2225,11 @@ The new dev Integration `41819765682` has failed hosted Linux before compilation
 with `cargo-reserve-admission`; other jobs are still active. Snapshot setup now
 passes, but the later sandbox requires its separate cache/task/reserve budget.
 Feature merges remain held while that baseline capacity failure is investigated.
+
+
+The sandbox capacity correction is isolated in PR #6750 at `d3c7f490e5`.
+It extends only the guarded GitHub-hosted unused-SDK allowlist; no cache/task
+capacity or reserve is reduced. Six focused refusal/cleanup tests and 1,136
+pipeline/compiler-cache tests pass (two skipped). Hosted recovery remains
+unproved pending its exact Candidate and subsequent Integration. No failed
+workflow was cancelled or restarted, and no further feature was merged.

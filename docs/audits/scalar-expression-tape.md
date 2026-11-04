@@ -48,6 +48,26 @@ Malformed input is rejected before semantic predicates, preserving the canonical
 reference's refusal order. A failed output predicate leaves caller output
 unchanged. No Source or contract decoder is invoked during resident execution.
 
+## Resident fields from a structured Native input (development)
+
+`generate_static_projected_expression` resolves fixed field payload offsets on
+an authoring Host and retains them beside the same scalar instructions. The
+resident `StaticProjectedExpression` first checks the exact Native input with
+its retained schema and fixed predicates, then supplies the selected leaf bytes
+to the existing scalar loop. It owns no field evaluator, Type tree or result
+buffer. Output predicates run before copying into caller storage. Program
+correlation does not grant authority; installing this profile still requires
+exact Source/Fore/artifact binding and full admission of validation work,
+traversal, state, stack and output.
+
+The emitted real HT16K33 frame condition and independent multi-field arithmetic
+cases compile as native and no_std modules and preserve ordinary admission plus
+reference outcomes without allocation. Missing checked owners, variable field
+geometry, unsupported Native invariants, inadequate input capacity and Native
+intermediate constants without law witnesses refuse emission. Structured
+constructor/output emission, variable selections, common Back installation and
+physical execution remain separate unfinished steps.
+
 ## Owned tape profile
 
 Issue #5540 adds an explicitly selected std scalar specialization with Value Fore contracts within the existing checked pure-expression Kind, ordinary Back offer, Plan and kernel Host Call mechanism. The new profile/implementation/artifact identities are distinct from the reference evaluator. Text, records, mathematical-value/quantity/floating profiles, Flow contracts and oversized tapes refuse preparation; the existing interpreter remains independently available. No candidate switches execution form halfway through Play.
