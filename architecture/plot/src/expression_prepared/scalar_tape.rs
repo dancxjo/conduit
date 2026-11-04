@@ -1,8 +1,10 @@
 //! Finite fixed-integer/boolean tape; lowering happens before evaluation.
 use super::*;
-const MAXIMUM_INSTRUCTIONS: usize = 128;
+pub(super) const MAXIMUM_INSTRUCTIONS: usize = 128;
+mod static_image;
+pub use static_image::{generate_static_scalar_expression, StaticScalarExpression};
 pub(super) struct ScalarTape {
-    instructions: Vec<Instruction>,
+    instructions: Cow<'static, [ScalarTapeInstruction]>,
     result: usize,
     scratch: ScratchProfile,
 }
@@ -34,21 +36,28 @@ impl ScratchProfile {
         }
     }
 }
-struct Instruction {
-    kind: PrimitiveInfoKind,
-    destination: usize,
-    operation: Operation,
+/// Immutable instructions emitted by trusted Make preparation, not runtime Source.
+#[derive(Clone)]
+pub struct ScalarTapeInstruction {
+    pub kind: PrimitiveInfoKind,
+    pub destination: usize,
+    pub operation: ScalarTapeOperation,
 }
-enum Operation {
+/// The existing scalar evaluator operations, with borrowable literal storage.
+#[derive(Clone)]
+pub enum ScalarTapeOperation {
     Input,
-    Literal(Vec<u8>),
+    Literal(Cow<'static, [u8]>),
     Unary(UnaryOperator, usize),
     Binary(BinaryOperator, bool, usize, usize),
     BranchFalse(usize, usize),
     Jump(usize),
     Move(usize),
 }
-fn supported(kind: PrimitiveInfoKind) -> bool {
+use ScalarTapeInstruction as Instruction;
+use ScalarTapeOperation as Operation;
+
+pub(super) fn supported(kind: PrimitiveInfoKind) -> bool {
     matches!(
         kind,
         PrimitiveInfoKind::Bool
@@ -67,7 +76,7 @@ fn supported(kind: PrimitiveInfoKind) -> bool {
 impl ScalarTape {
     pub(super) fn prepare(root: &PreparedNode) -> Result<Self, Refusal> {
         let mut tape = Self {
-            instructions: Vec::with_capacity(MAXIMUM_INSTRUCTIONS),
+            instructions: Cow::Owned(Vec::with_capacity(MAXIMUM_INSTRUCTIONS)),
             result: 0,
             scratch: ScratchProfile::Maximum,
         };
@@ -82,7 +91,7 @@ impl ScalarTape {
             ));
         }
         let slot = self.instructions.len();
-        self.instructions.push(Instruction {
+        self.instructions.to_mut().push(Instruction {
             kind,
             destination: slot,
             operation,
@@ -98,7 +107,7 @@ impl ScalarTape {
         let operation = match &node.operation {
             PreparedOperation::Input => Operation::Input,
             PreparedOperation::Literal(bytes) if bytes.len() <= 16 => {
-                Operation::Literal(bytes.clone())
+                Operation::Literal(Cow::Owned(bytes.clone()))
             }
             PreparedOperation::Unary { operator, operand } => {
                 Operation::Unary(*operator, self.lower(operand)?)
@@ -122,14 +131,16 @@ impl ScalarTape {
                 let result = self.push(node.kind, Operation::BranchFalse(condition, 0))?;
                 let yes = self.lower(when_true)?;
                 let yes_move = self.push(node.kind, Operation::Move(yes))?;
-                self.instructions[yes_move].destination = result;
+                self.instructions.to_mut()[yes_move].destination = result;
                 let jump = self.push(node.kind, Operation::Jump(0))?;
                 let no_start = self.instructions.len();
-                self.instructions[result].operation = Operation::BranchFalse(condition, no_start);
+                self.instructions.to_mut()[result].operation =
+                    Operation::BranchFalse(condition, no_start);
                 let no = self.lower(when_false)?;
                 let no_move = self.push(node.kind, Operation::Move(no))?;
-                self.instructions[no_move].destination = result;
-                self.instructions[jump].operation = Operation::Jump(self.instructions.len());
+                self.instructions.to_mut()[no_move].destination = result;
+                self.instructions.to_mut()[jump].operation =
+                    Operation::Jump(self.instructions.len());
                 return Ok(result);
             }
             _ => return Err(Refusal::UnsupportedType("scalar-tape/operation@1".into())),
@@ -244,15 +255,19 @@ impl PreparedPortableExpressionEvaluator {
             return None;
         };
         Some(
-            tape.instructions.capacity() * core::mem::size_of::<Instruction>()
-                + tape
-                    .instructions
-                    .iter()
-                    .map(|instruction| match &instruction.operation {
-                        Operation::Literal(bytes) => bytes.capacity(),
-                        _ => 0,
-                    })
-                    .sum::<usize>(),
+            match &tape.instructions {
+                Cow::Owned(instructions) => {
+                    instructions.capacity() * core::mem::size_of::<Instruction>()
+                }
+                Cow::Borrowed(_) => 0,
+            } + tape
+                .instructions
+                .iter()
+                .map(|instruction| match &instruction.operation {
+                    Operation::Literal(Cow::Owned(bytes)) => bytes.capacity(),
+                    _ => 0,
+                })
+                .sum::<usize>(),
         )
     }
 }
