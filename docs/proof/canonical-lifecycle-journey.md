@@ -3432,3 +3432,36 @@ pending; the local tests above were on the integration checkout. The existing
 proposal PR #6754 remains the other active review lane. No service/device changes
 or distributed execution are claimed. Next remains guarded owner adoption,
 actual source retention and retirement, then ordinary MCU execution.
+
+
+### 4 November: restore the missing ordinary Source-check prerequisite
+
+Reading #6447 shows S2's production Plot/Plan/Play Source-check call is still
+open. #6449 depends on S1-S3; directly adopting the current test-generated
+reports would bypass that ordinary operation. The next local implementation
+therefore remains read-only Source checking, before the guarded mutation seam.
+No third review lane is opened while #6754/#6755 are active.
+
+Local preparation now projects SourceCheckRequest and actual SourceCheckInfoV1
+reports into their existing checked S1 Native Types. SourceCheckNativeSchema
+checks the pinned semantic declaration once; encoding uses ordinary Core
+structured values and existing private-owner Native admission, including nested
+contracts and authored span invariants. It adds no alternate grammar, JSON Cord
+encoding, capability, planner or MCU runtime. Encoding allocates in preparation;
+its output bound is not a whole-workspace grant and is capped by Core's existing
+262,144-byte canonical envelope. The initial 1 MiB test envelope was correctly
+refused by that existing bound; the test uses the actual bound without enlarging
+it. The constructor retains the semantic schema, not a program under inspection.
+
+Twelve focused Source-check tests pass. Real valid/invalid compiler reports
+preserve snapshot/context, checked/expanded presence, diagnostics, Unicode-safe
+span fields and dependency reads in Native values. Wrong schema version, zero
+generation, invalid span law, empty entry, limit overflow and output pressure
+refuse. Strict all-target Plot Clippy and targeted formatting pass. This is a
+local codec prerequisite for S2, not an installed Host Call or its resource,
+authority/cancellation proof. Ordinary S2 execution and S4 adoption remain open.
+
+CI observation confirms #6754's admission job runs actual lint, affected tests
+and smoke even though the separate unit/target matrices are skipped. Its current
+job is live; merged-source Integration is also live. Elapsed time has not been
+treated as failure and neither workflow was restarted. No live device changed.
