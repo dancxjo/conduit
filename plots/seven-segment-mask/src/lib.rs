@@ -64,3 +64,6 @@ pub(crate) fn unavailable() -> SevenSegmentShow {
     SevenSegmentShow::from_parts([pattern(0x40); 4], [false; 4], false)
 }
 pub(crate) const NUMERALS: [u8; 10] = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f];
+
+mod quantity_show;
+pub use quantity_show::{prepare_quantity_show, QuantityShowRefusal};
