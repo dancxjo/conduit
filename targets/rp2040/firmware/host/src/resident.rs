@@ -28,7 +28,7 @@ pub fn summary() -> (usize, usize, Option<usize>) {
         let count = INVENTORY
             .borrow(cs)
             .get()
-            .map_or(0, |owner| owner.offers().len());
+            .map_or(0, |owner| owner.offers().into_iter().flatten().count());
         (
             count,
             core::mem::size_of::<generated::Initialized>(),

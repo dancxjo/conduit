@@ -21,9 +21,20 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
         support::bounds(1),
     )
     .unwrap();
+    let sibling = conduit_embedded_build::PreparedResidentExpression::prepare(
+        &doc,
+        &program,
+        conduit_core::PortTemporal::Value,
+        support::bounds(1000),
+    )
+    .unwrap();
+    let image_source = image.source().to_owned();
+    let library =
+        conduit_embedded_build::generate_resident_library(&[image, sibling], 2 * 1024 * 1024)
+            .unwrap();
     let code = format!(
-        "mod image{{\n{}\n}}\nmod weak{{\n{}\n}}",
-        image.source(),
+        "mod image{{\n{}\n}}\nmod weak{{\n{}\n}}\nmod library{{\n{library}\n}}",
+        image_source,
         weak.source()
     );
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -36,6 +47,7 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={helper:?}]mod support;
 #[path={kernel:?}]mod support_kernel;
 #[path={refusals:?}]mod refusals;
+#[path={library_helper:?}]mod library_checks;
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
@@ -53,6 +65,7 @@ fn main(){{
     assert_eq!(node,0);assert!(owner.is_none());
     assert!(matches!(image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)),Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
     assert!(back.required_step_fuel()<=assignment.tables.nodes[0].maximum_step_fuel);
+    library_checks::run(&assignment);
     support_kernel::run(back,assignment);
 
 }}
@@ -65,6 +78,10 @@ fn main(){{
             .unwrap(),
         refusals = root
             .join("tests/resident_offer/refusals.rs")
+            .to_str()
+            .unwrap(),
+        library_helper = root
+            .join("tests/resident_offer/library.rs")
             .to_str()
             .unwrap()
     );

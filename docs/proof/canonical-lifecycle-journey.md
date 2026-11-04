@@ -2595,3 +2595,31 @@ ignored disk-backed temporary directory. Finished owning-test executables were
 also removed after recording their passing results, recovering 2.31 GiB without
 removing libraries or source. Raw logs and maintenance receipts are retained
 under ignored `target/resident-assigned-binding-20261104/`.
+
+### Exact selection from a retained Back library (4 November 2026)
+
+The generated aggregate previously exposed only borrowed metadata and a
+whole-library transfer. Individual assigned binding therefore could not take a
+selected Back out of the actual retained installation. The library now owns
+each initialized entry in a separate optional slot and emits typed per-entry
+binding and computation-pin accessors. All existing exact-assignment checks
+precede transfer. A successful binding takes that entry once; refusal preserves
+every entry. Unbound-offer inspection marks a transferred entry absent and
+retains the other entries' original immutable metadata. This is inventory
+inspection, not an automatic Host offer-generation update or a reservation.
+
+The ordinary checked-Source planning proof exercises a two-entry library with
+the same program under distinct temporal Kinds. Selecting the wrong Kind and a
+forged active Play refuses without losing either owner. Selecting the right
+entry consumes it once, refuses a second take, and leaves the other owner
+usable. Initialization, selection and metadata inspection allocate no heap in
+the probe. The actual equipment-selected five-entry native/no_std test still
+passes, as does strict all-target Clippy for both owning packages. These three
+focused tests are component proof; no firmware or live service changed.
+
+The live Green status separately reported 1,204 successful samples and 18,055
+display acknowledgments without sensor/display faults on its existing image.
+It still runs diagnostic IO. The next live execution gate remains an authorized
+Body assignment, complete Root preparation/reservation and actual handover of
+the physical bus; these library ownership checks supply none of that authority.
+Logs are retained under ignored `target/resident-library-transfer-20261104/`.
