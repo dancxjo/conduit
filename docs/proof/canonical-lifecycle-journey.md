@@ -3287,3 +3287,13 @@ source, credentials, history, installed products and recovery material. Recorded
 unique removed sizes are 564501832 and 4257039741 bytes. The same test command was
 rerun; no check was weakened or skipped to obtain its passing result. Raw logs
 and cleanup inventories remain ignored under target/workset-proposal-20261104/.
+
+Strict all-target conduit-body-make Clippy also passes. The complete Source-only
+proposal delta is extracted onto current dev as draft #6754, head 925063c1b5;
+its exact-head Candidate qualification is still pending, and #6448 is not closed.
+Local test/lint results above were collected in the integration worktree before
+extraction. The clean focused branch excludes this chronological journal and
+all accumulated MCU implementation. Baseline #6752 passed every Candidate check
+at b0eec9d031 and merged as dev d61742a91e; that exact merge is absorbed into this
+worktree without conflict. This establishes Candidate/merge status, not stable
+publication or successful merged-source Integration. No live software changed.
