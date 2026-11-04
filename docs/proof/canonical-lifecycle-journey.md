@@ -2191,3 +2191,37 @@ restarts. This preserves local operation; its diagnostic measurement loop still
 does not prove an ordinary admitted sampling/display Plot. No firmware changed.
 Raw logs are retained outside Git in
 `target/pico-generic-host-20261102/resident-native-image-20261104/`.
+
+
+### Resident field operands for structured protocol conditions (4 November 2026)
+
+`generate_static_projected_expression` now specializes fixed-scalar conditions
+and arithmetic over a checked Native input. Make resolves exact fixed field
+payload offsets through the existing member-selection compiler, then emits
+immutable input descriptors, scalar instructions and retained Native guards.
+The original scalar compiler, forward-control validator, scratch profiles,
+checked arithmetic and evaluation loop are shared. No device-specific evaluator
+or runtime Source decoder is added. Runtime initialization and evaluation make
+zero allocations in generated-code probes.
+
+The first real protocol exercise is the condition in `ht16k33-frame-request`.
+Compiled native/no_std images match ordinary Native admission plus the portable
+reference across address boundaries, malformed frames and trailing bytes.
+Separate multi-field cases cover lazy division, divide-by-zero, retained output
+predicates and reuse after refusal without partial output. Missing checked
+owners, variable projection geometry, unsupported invariants, inadequate input
+capacity and Native constants without retained intermediate witnesses refuse.
+All 31 scoped scalar, law/hint, resident Native and actual display-protocol tests
+pass; strict owning Clippy and thumbv6m no_std compilation pass.
+
+This is executable component proof, not Make-installed hardware execution.
+Structured constructor/output emission, variable input selections, exact
+artifact/Fore binding, complete workspace/private-work admission and physical
+sampling/display Plot installation remain unfinished. Firmware was unchanged.
+Logs are in ignored
+`target/pico-generic-host-20261102/resident-native-image-20261104/`.
+
+The new dev Integration `41819765682` has failed hosted Linux before compilation
+with `cargo-reserve-admission`; other jobs are still active. Snapshot setup now
+passes, but the later sandbox requires its separate cache/task/reserve budget.
+Feature merges remain held while that baseline capacity failure is investigated.

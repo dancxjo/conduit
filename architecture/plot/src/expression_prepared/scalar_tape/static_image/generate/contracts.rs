@@ -1,7 +1,7 @@
 //! Emit supported checked predicates as immutable data, never runtime decoders.
 use super::*;
 use conduit_core::CheckedValueContract;
-pub(super) fn emit(
+pub(crate) fn emit(
     source: &mut String,
     contract: Option<&CheckedValueContract>,
     name: &str,

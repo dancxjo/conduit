@@ -84,7 +84,7 @@ pub fn generate_resident_native_validator(
     ));
     let count = entries.len();
     source.push_str(&format!(
-        "static CONTRACTS: [{runtime}::StaticNativeContract; {count}] = [{}];\n",
+        "pub const CONTRACT_COUNT: usize = {count};\nstatic CONTRACTS: [{runtime}::StaticNativeContract; {count}] = [{}];\n",
         entries.join(",\n")
     ));
     source.push_str(&format!("pub const RUNTIME_STATE_BYTES: usize = core::mem::size_of::<{runtime}::ResidentNativeValidator<{count}>>();\npub fn prepare() -> Result<{runtime}::ResidentNativeValidator<{count}>, {runtime}::PreparedNativeRefusal> {{ {runtime}::ResidentNativeValidator::new(TYPE, {}, &CONTRACTS, &SCOPES, {maximum_occurrences}) }}\n", bounds.canonical_bytes));
