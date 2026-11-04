@@ -3397,3 +3397,9 @@ as behavioral evidence. Direct formatting of both changed Rust files passes.
 The package-wide formatter also identifies a pre-existing unrelated blank line
 in native_package_install.rs; it is preserved. Strict all-target product Clippy
 is still running. Raw results remain ignored target output; no devices change.
+
+The extraction's strict conduit all-target Clippy subsequently completed with
+warnings denied. The evidence-retention guard also passes. These results qualify
+the local integration extraction, not an adopted revision, exact-dev PR or
+physical deployment. Next: extend this same owner planning path to consume all
+independently checked retained Sources before the guarded adoption effect.
