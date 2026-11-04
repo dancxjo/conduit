@@ -35,9 +35,18 @@ this Back in the actual fixed kernel with zero allocations and verify atomic
 refusal under insufficient fuel. This library Back is not an installed offer.
 Ordinary Make selection, full structured protocol images and physical MCU
 admission remain unfinished. Native-law/quantity profiles without a retained
-validation witness remain unsupported. Checked input/output value contracts
-also refuse emission until their validation witnesses can be retained; extracting
-the arithmetic tape must not erase the owned evaluator's boundary checks.
+validation witness remain unsupported. Fixed-integer boundary contracts can
+retain their byte ceiling and range endpoints in immutable
+`FixedIntegerContractSpec` data. The resident view is one pointer; identical
+input/output guards share one emitted spec. The owned and borrowed contracts
+use the same range definition and validation routines. Other boundary profiles
+still refuse emission rather than erase checks.
+
+`computation_work()` includes bounded predicate validation as well as tape
+instructions, and the shared resident Back charges that amount before evaluation.
+Malformed input is rejected before semantic predicates, preserving the canonical
+reference's refusal order. A failed output predicate leaves caller output
+unchanged. No Source or contract decoder is invoked during resident execution.
 
 ## Owned tape profile
 

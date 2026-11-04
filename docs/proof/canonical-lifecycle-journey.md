@@ -2111,3 +2111,38 @@ Clippy and a `thumbv6m-none-eabi` core check pass. These are CPU/target-compile
 component results. Full structured expression image emission, retained native
 and boundary witnesses, ordinary Make installation and a physical admitted
 sampling/display Play remain unfinished. No device firmware was changed.
+
+
+### Retained fixed-integer predicate witnesses (4 November 2026)
+
+HT16K33's authored address ranges expose the next requirement for resident
+protocol images: predicate metadata must survive without rebuilding owned
+contracts. `FixedIntegerContractSpec` retains the byte ceiling and optional
+fixed range in immutable storage; `BorrowedFixedIntegerContract` is one pointer
+to it. Owned and borrowed contracts share their existing range definition and
+validation routines. Comparison tests cover every fixed-integer width, signed
+and unsigned bounds, both endpoint forms, malformed bytes and invalid ranges
+without allocation. The schema and contract wire formats are unchanged.
+
+The scalar emitter can now retain this finite boundary profile. Identical input
+and output guards share a single emitted spec. Generated native executables
+and no_std modules preserve checked Source results and refusals, including
+malformed input before semantic predicates and refused output without partial
+publication. Unsupported predicates and native-law profiles still refuse. The
+common resident Back charges `computation_work()`, including predicate checks,
+before evaluation; insufficient fuel cannot publish or consume a value.
+
+Validation: two new core contract tests, fifteen existing constraint unit tests,
+twenty-one scalar/image/law/proof-hint tests, eight Back/kernel tests, strict
+owning-library/test Clippy and an RP2040 target check pass locally. The isolated
+resident-image delivery branch is refreshed onto dev `949e68c694` and its two
+contract plus twenty-one scalar tests pass. PR #6745 carries the core witness
+and image changes; the common Back remains separately checkpointed. These are
+CPU/compile component proofs. Checked native-scope witness selection, complete
+structured expression emission, Make installation and physical admission of
+the sensor/display workset remain unfinished. No firmware was changed.
+
+The repaired dev Integration's hosted Linux product proof has passed. Three
+unit shards remain running at the latest observation; no feature merge claims
+complete Integration acceptance. Two inactive generated-language outputs were
+retired after build-lock/process checks, recovering 700,870,368 bytes.
