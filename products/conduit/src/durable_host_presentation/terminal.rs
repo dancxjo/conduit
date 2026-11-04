@@ -85,8 +85,7 @@ fn run_entrance(
             MaskSelection::Terminal,
         )?,
     };
-    let mut shown = present(&mut peer, &mut foreground, output, snapshot)?;
-    owner.acknowledge(&shown.show)?;
+    let mut shown = present_current(&mut peer, &mut foreground, output, &mut owner, snapshot)?;
     report(output)?;
     let mut last_spoken = None;
     loop {
@@ -143,8 +142,7 @@ fn run_entrance(
                 }
                 last_spoken = Some(summary);
                 writeln!(output, "Settings audio artifacts are ready.").map_err(io_error)?;
-                shown = present(&mut peer, &mut foreground, output, snapshot)?;
-                owner.acknowledge(&shown.show)?;
+                shown = present_current(&mut peer, &mut foreground, output, &mut owner, snapshot)?;
                 report(output)?;
             }
             "show" | "refresh" => {
@@ -152,8 +150,7 @@ fn run_entrance(
                     shown.execution.close_without_input().map_err(debug_error)?;
                 }
                 let snapshot = owner.refresh()?;
-                shown = present(&mut peer, &mut foreground, output, snapshot)?;
-                owner.acknowledge(&shown.show)?;
+                shown = present_current(&mut peer, &mut foreground, output, &mut owner, snapshot)?;
                 report(output)?;
             }
             _ => {
@@ -184,8 +181,7 @@ fn run_entrance(
                     let Some(next) = next else {
                         return Ok(());
                     };
-                    shown = present(&mut peer, &mut foreground, output, next)?;
-                    owner.acknowledge(&shown.show)?;
+                    shown = present_current(&mut peer, &mut foreground, output, &mut owner, next)?;
                     report(output)?;
                 } else {
                     writeln!(output, "Enter actions, action <identity> [value], apply <value>, show, read settings, evidence, or quit.").map_err(io_error)?;
@@ -193,6 +189,34 @@ fn run_entrance(
             }
         }
     }
+}
+
+// Only presentation is repeated. The caller's semantic action is never replayed.
+fn present_current(
+    peer: &mut PresentationHost,
+    foreground: &mut UnixStream,
+    output: &mut impl Write,
+    owner: &mut wire::OwnerRoute,
+    mut snapshot: wire::Snapshot,
+) -> Result<Shown, String> {
+    for attempt in 0..2 {
+        let mut shown = present(peer, foreground, output, snapshot)?;
+        match owner.acknowledge_status(&shown.show)? {
+            wire::ShowAcceptance::Accepted => return Ok(shown),
+            wire::ShowAcceptance::Stale => {
+                if shown.execution.has_pending_play() {
+                    shown.execution.close_without_input().map_err(debug_error)?;
+                }
+                if attempt == 1 {
+                    return Err(
+                        "owner Face changed again during bounded terminal presentation".into(),
+                    );
+                }
+                snapshot = owner.refresh()?;
+            }
+        }
+    }
+    unreachable!("finite presentation loop returns or refuses")
 }
 
 fn present(
