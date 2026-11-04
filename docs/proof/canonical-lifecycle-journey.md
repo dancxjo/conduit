@@ -2728,3 +2728,31 @@ authorized physical Plan/Play. The next production boundary must join the
 actual Body owner's decision, receiving Root policy, complete workspace/resource
 admission and physical bus ownership. No firmware or live service was changed.
 Raw results remain outside Git in ignored `target/host-command-attribution-20261104/`.
+
+### Keep owner control shapes separate from dispatch (4 November 2026)
+
+Before adding an actual owner preparation decision, extract the authenticated
+control request and response declarations from the 3,560-line dispatch module.
+The two focused modules retain their original serde attributes, field order,
+tags and fields; a mechanical comparison found the declarations byte-identical
+apart from module visibility. Protocol version, frame limits, token handling,
+dispatch and authority checks remain unchanged. The dispatch module is now
+2,980 lines; this extraction establishes one seam rather than qualifying the
+remaining module as a completed responsibility split.
+
+All nine focused control tests pass. Strict all-target Clippy initially found
+an existing test-module ordering violation in adjacent member-carrier control;
+moving those two tests to their own file preserves the production body and
+test behavior. Both carrier tests and strict all-target Clippy then pass.
+Formatting and patch hygiene pass. Raw results remain outside Git in ignored
+`target/host-control-protocol-extraction-20261104/`.
+
+The installed owner's current biography and Face were also read through the
+product: Hamm Creek House is lulled with only its Crèche Plot retained. Green's
+initialized protocol Backs therefore do not authorize an environmental Play.
+The existing clock/notebook workload replacement controls have deliberately
+restricted application scope; writing another Source file directly would skip
+checked workset admission. The next physical execution must connect actual
+Ready offers, a Body-approved checked workset/Plan, receiving Root admission
+and exclusive bus ownership. No device firmware, installed owner or live Face
+was changed in this checkpoint.
