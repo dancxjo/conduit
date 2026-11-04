@@ -3004,3 +3004,90 @@ admission, ordinary sensing/display Plays and same-Boot reassignment remain
 separate unfinished obligations. MCU credential advancement is still RAM-only;
 power-cycle continuity has not been repaired by this protocol change. This
 metadata route alone does not install the environmental Plots.
+
+
+### Physical image publication and exact member return (4 November 2026)
+
+Clean-source ordinary Make now builds and deploys the image-return path. Source
+`4e0d65a99d` first hit the native release guard: 67,392,920 bytes exceeds the
+unchanged 64 MiB artifact limit by 284,056 bytes. A package-local `opt-level =
+"s"` policy reduced loadable code but initially left symbol tables in the file.
+The final explicit `strip = "symbols"` override, matching the existing release
+policy, seals Source `5b26290623` at **64,260,288 bytes**, with **2,848,576 bytes**
+headroom. Execution/provider dependencies retain normal release optimization.
+The exact sealed file hash and reviewed construction receipt were independently
+verified; a cached repeat of the Make entrance returned zero. This is a native
+artifact code-generation change, not a claim about MCU RAM.
+
+Make produced Green's public application and reviewed artifact from that same
+clean Source. The linked firmware contains **983,308 text bytes** and **116,920
+static RAM bytes**, including the unchanged 49,152-byte heap arena. Compared
+with installed Source `b47cdd80f9`, text drops by **274,888 bytes**, while static
+RAM grows by 40 bytes. These are linked extents; stack and simultaneous Root
+workspace high-water are not measured by them. The public UF2 has 3,842 blocks.
+Private retained-Part construction produces an identical application plus a
+separate sixteen-block Body bootstrap; it creates no new invitation or Part.
+
+The authoring Host's declarative Crèche initialization now pins verified private
+copies of this fresh reviewed MCU image, artifact and physical Host Source. A
+second cached checked-native release binds that configuration. Before install,
+the service was stopped and all sixty regular state files were independently
+hashed and checked against a compressed archive; installed releases remain in
+place, and the verified previous release remains available for rollback.
+Ordinary stopped-service configuration and verified installation, followed by
+systemd reload/start, run the qualified new executable. Readback proves the same
+persistent Host, Hamm Creek House and all sixteen Part identities/admission
+states, on a new owner Boot with zero service restarts.
+
+The carrier key is intentionally in-memory and scoped to that owner Boot. An
+initial operational assertion that it would remain unchanged was wrong; source
+inspection confirmed fresh CSPRNG issuance. The private MCU Seed instead pins
+the actual qualified new peer through protected owner control. Green's member
+secret/verifying key and latest previously accepted credential remain unchanged.
+The old attachment was already absent after owner recovery; an explicit leave
+refused as non-current, so no additional leave or new Part was created.
+
+The first BOOTSEL command incorrectly used `make pico-local bootsel`. That alias
+started its whole local workflow rather than honoring the explicit subcommand.
+The parent and remaining compiler were stopped before any flash; the old device
+build remained present. This tool defect is [#6753](https://github.com/dancxjo/conduit/issues/6753).
+The existing exact `make pico bootsel` entrance acknowledged the expected old
+build and selected the correct USB 1-2 device. The installed narrow headless
+mount helper carried bootstrap and application separately. A preliminary
+geometry assertion used the wrong bootstrap location and refused before any
+write; final verification derives all ranges from the canonical flash layout.
+Bootstrap occupies `0x101ff000..0x10200000`; application pages stop before the
+retained network sectors. The bootstrap and application hashes, native IMAGE,
+configuration, original member key and pins were checked before transfer.
+No raw flash readback is claimed.
+
+Green returned over USB and saved Wi-Fi with independently predicted build
+`646382b8...787cd9e1`. All five resident Backs initialized; local diagnostic
+measurement and display resumed without reported faults. The new ordinary
+`body return-usb` performed actual signed publication, full Linux-side image
+resolution, fresh member proof and Core commit, then retained/fsynced the
+compact signed acknowledgement before delivery. The receipt has **five exact
+image references and 1,361 bytes**. The MCU accepted raw digest
+`a41dc368...1846aa24`; it matches the saved signed receipt. Owner readback shows
+the same Part `86ae90b7...3eb0a7d` on Boot
+`rp2040/boot/83f03c633138ff7fc3c0ff3f00e0c139`, in the same Body with sixteen
+Parts. No capability catalog was decoded on the MCU. Its instrumented heap
+peak through this exchange is **4,356 bytes**, not a complete stack/Root peak.
+
+After the USB client closed, samples advanced from four to twelve and
+acknowledged diagnostic redraws from 54 to 175, with no sensor/display error
+and the same accepted receipt. This is physical same-Part/new-Boot membership
+and catalog-publication evidence. It does not prove an ordinary admitted
+sampling/display Play, Root workspace retirement, work-pool admission, protected
+bus handover, selected recording or same-Boot replacement. MCU credential
+advancement remains RAM-only; cold-power return is still unfinished.
+
+Finished ARM-check cache cleanup and SHA-256-verified relocation of regenerable
+compiler outputs made room for the builds. A finished Make backend was removed
+after deployment, preserving installed software, source, Seeds, private state,
+rollback material and proof. Root headroom is about 1.3 GiB; raw logs, transfer
+inventories and public receipts remain outside Git under ignored
+`target/member-return-live-20261104/`, while credentials and the cold backup
+remain private. Baseline repair #6752 passed all unit/admission jobs, but its
+browser Candidate has one SDK cancellation failure (283 tests passed). No
+feature merge or full lifecycle completion is claimed from these physical results.
