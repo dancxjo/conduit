@@ -1836,3 +1836,63 @@ the same Part/new Boot with the accepted raw receipt digest. Durable MCU
 credential advancement and recovery beyond the finite pending-return window
 remain unproved. This exchange does not close the shared restart/acknowledgement
 obligations or #6461.
+
+### 3 November: physical same-Part return on the new generic firmware
+
+Ordinary Make from clean Source `03997a6098` produced the complete RP2040 image
+and a checked Linux authoring release. The MCU links at 97,880 static bytes,
+including the unchanged 49,152-byte arena, with a 172,456-byte stack gap and flash
+load end `0x100d5030`. All existing ceilings remain unchanged. The Linux binary
+is 66,813,728 bytes, below 64 MiB. Exact hashes and measurements are in the compact
+receipt; ignored output retains both final binaries.
+
+A stopped-service, checksummed 321,061,790-byte zstd backup retained the complete
+owner state. Its installation manifest was read back and compared before any
+configuration/install change. The primary authoring Host kept its checked Source
+initialization path; no Seed IMAGE bypass of Crèche initialization was used.
+`install --no-start` changes the unit file: explicit `daemon-reload` and restart
+were needed before the running executable matched the qualified new hash. The
+first immediate status was an honest installed/offline startup snapshot; the
+subsequent live response proved the new Boot. PID 37793 then ran the new release
+with zero restarts, the same persistent Host, Hamm Creek House and all 16 Parts.
+
+The original Green credential and member key supplied shared retained bootstrap
+material. Make generated a reserved-sector UF2 and public `usb-return.json`,
+without issuing an invitation. Before transfer, the generated verifying key
+matched the original signed admission receipt; application bytes matched the
+public build, and the bootstrap matched the new IMAGE/configuration and Part.
+
+The existing build-bound USB BOOTSEL exchange and headless mount helper carried
+two separate transfers. Initial partition enumeration was slower than the first
+mount attempt, and a stale `/dev/sda1` mount remained from earlier work. After
+inspecting the actual ROM device, the dedicated helper unmounted that stale view
+and mounted the newly enumerated volume. Selection used the acknowledged runtime
+identity and USB port 1-2 rather than assuming a block-device name. The bootstrap
+was written first; the old application and BOOTSEL handler recovered with no
+usable old-format Seed. The new application followed. Its observed build
+`7a63ebd2...b4e50d3` matched the independently recomputed build identity. UF2
+geometry excluded the retained network journal; it was not raw-read back, but
+saved Wi-Fi rejoined and local measurement/display resumed without faults.
+
+`conduit body return-usb` then completed the real canonical challenge/proof and
+Core commit. The owner saved/fsynced its signed acknowledgement before delivery.
+Green's accepted raw receipt digest matched that saved file:
+`85e7b361...1ef78a6d`. Owner readback showed the original Part
+`86ae90b7...3eb0a7d` on new MCU Boot `rp2040/boot/8e187163198c0e07e30c31633331c333`
+in the same Body `d5b64df4...ecc4d7`. Part count stayed 16. This is a physical
+same-Part/new-Boot return, not a fresh admission or a transport-only observation.
+
+After USB return completed and its client closed, samples advanced from 5 to 14
+and acknowledged redraws from 67 to 197. Sensor/display fault flags stayed false
+and observed heap peak stayed 1,332 bytes. This is physical diagnostic IO and
+receipt-acceptance evidence, not complete workspace admission, cold-power
+credential recovery, protected ongoing Lines, a selected recorder or an admitted
+sampling/display Play. The next execution milestone must transfer the initialized
+physical owners into standard Ready Backs and ordinary Plots without duplicating
+ownership or adding environmental coordination outside the Body.
+
+Inactive compiler/test executables and lossless compression of seven old
+qualified tools recovered about 12 GiB during qualification. Compressed tools
+were decompressed and hash-compared before original removal. Source, credentials,
+recordings, final artifacts, current processes and the complete state backup
+were preserved; current owner and MCU remain running.
