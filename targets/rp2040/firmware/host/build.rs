@@ -34,6 +34,7 @@ pub const CONFIGURATION_ID:&str={configuration:?};
 pub const HEAP_BYTES:usize={heap};
 pub const ROLE:&str="conduit.rp2040-host@1";
 pub const FREQUENCY:u32={frequency};
+pub const MAXIMUM_I2C_POLLS:core::num::NonZeroU32=core::num::NonZeroU32::new({polls}).expect("checked nonzero I2C work bound");
 pub const SENSOR_ADDRESS:u8={sensor};
 pub const DISPLAY_ADDRESS:u8={display};
 pub const BRIGHTNESS:u8={brightness};
@@ -48,6 +49,7 @@ pub(crate) use start_local_io;
 "#,
         configuration = checked.configuration_id(),
         frequency = selected.bus.frequency_hz,
+        polls = selected.bus.maximum_transaction_polls,
         sensor = selected.sensor_address,
         display = selected.display_address,
         brightness = selected.brightness,

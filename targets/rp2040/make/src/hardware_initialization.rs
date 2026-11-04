@@ -54,6 +54,7 @@ pub fn i2c_initialization_contract() -> BaseInitializationContract {
             count("sda_gpio", 0, 28),
             count("scl_gpio", 0, 28),
             count("frequency_hz", 10_000, 400_000),
+            count("maximum_transaction_polls", 1, u64::from(u32::MAX)),
         ],
     }
 }
@@ -148,6 +149,7 @@ pub struct CheckedI2cConstruction {
     pub sda_gpio: u8,
     pub scl_gpio: u8,
     pub frequency_hz: u32,
+    pub maximum_transaction_polls: u32,
 }
 impl CheckedI2cConstruction {
     pub fn from_configuration(checked: &CheckedHostConfiguration) -> Result<Self, String> {
@@ -174,6 +176,7 @@ impl CheckedI2cConstruction {
             sda_gpio,
             scl_gpio,
             frequency_hz: value(&values, "frequency_hz")? as u32,
+            maximum_transaction_polls: value(&values, "maximum_transaction_polls")? as u32,
         })
     }
 }
@@ -249,6 +252,7 @@ mod tests {
             (1, 6, 7)
         );
         assert_eq!(selected.bus.frequency_hz, 100_000);
+        assert_eq!(selected.bus.maximum_transaction_polls, 100_000);
         assert_eq!(
             (
                 selected.sensor_address,
@@ -258,6 +262,26 @@ mod tests {
             (118, 112, 3)
         );
         assert!(!selected.bus.configuration_id.is_empty());
+    }
+
+    #[test]
+    fn transaction_work_bound_is_explicit_nonzero_and_source_bound() {
+        for invalid in ["0", "4294967296", "-1", "\"unbounded\""] {
+            assert!(prepare(&GREEN.replace(
+                "maximum_transaction_polls: 100000",
+                &format!("maximum_transaction_polls: {invalid}")
+            ))
+            .is_err());
+        }
+        assert!(prepare(&GREEN.replace(", maximum_transaction_polls: 100000", "")).is_err());
+        let original = prepare(GREEN).unwrap();
+        let changed = prepare(&GREEN.replace(
+            "maximum_transaction_polls: 100000",
+            "maximum_transaction_polls: 200000",
+        ))
+        .unwrap();
+        assert_eq!(changed.bus.maximum_transaction_polls, 200_000);
+        assert_ne!(original.bus.configuration_id, changed.bus.configuration_id);
     }
 
     #[test]

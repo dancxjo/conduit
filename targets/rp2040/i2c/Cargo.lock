@@ -169,6 +169,8 @@ dependencies = [
  "conduit-i2c-transaction",
  "critical-section",
  "embassy-rp",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
 ]
 
 [[package]]

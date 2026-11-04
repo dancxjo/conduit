@@ -7,3 +7,7 @@ mod native;
 mod polling;
 #[cfg(feature = "rp2040")]
 pub use native::Rp2040I2c;
+#[cfg(feature = "rp2040")]
+mod hal;
+#[cfg(feature = "rp2040")]
+pub use hal::Error;

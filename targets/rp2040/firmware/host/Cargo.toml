@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
+conduit-rp2040-i2c = { path = "../../i2c", features = ["rp2040"] }
 conduit-body = { path = "../../../../architecture/body" }
 conduit-core = { path = "../../../../architecture/core", default-features = false }
 conduit-wire = { path = "../../../../architecture/wire", default-features = false }

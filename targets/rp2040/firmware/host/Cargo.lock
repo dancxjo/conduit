@@ -329,6 +329,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-i2c-transaction"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
 name = "conduit-language"
 version = "0.1.0"
 dependencies = [
@@ -356,6 +373,14 @@ dependencies = [
 [[package]]
 name = "conduit-network-credential-journal"
 version = "0.1.0"
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+]
 
 [[package]]
 name = "conduit-planner"
@@ -425,6 +450,7 @@ dependencies = [
  "conduit-net",
  "conduit-network-credential-journal",
  "conduit-rp2040-flash-layout",
+ "conduit-rp2040-i2c",
  "conduit-seven-segment-mask",
  "conduit-wire",
  "cortex-m",
@@ -445,6 +471,17 @@ dependencies = [
  "serde-json-core",
  "sha2",
  "static_cell",
+]
+
+[[package]]
+name = "conduit-rp2040-i2c"
+version = "0.1.0"
+dependencies = [
+ "conduit-i2c-transaction",
+ "critical-section",
+ "embassy-rp",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
 ]
 
 [[package]]

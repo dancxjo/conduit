@@ -72,7 +72,10 @@ pub async fn run(
         Address::Secondary
     };
     let mut sensor = Sensor::new(
-        I2c::new_async(bus, scl, sda, config::SensorIrqs, bus_config),
+        conduit_rp2040_i2c::Rp2040I2c::new(
+            I2c::new_async(bus, scl, sda, config::SensorIrqs, bus_config),
+            config::MAXIMUM_I2C_POLLS,
+        ),
         address,
     );
     let display = conduit_ht16k33::Address::new(config::DISPLAY_ADDRESS).unwrap();
