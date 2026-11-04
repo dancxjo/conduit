@@ -11,6 +11,11 @@ pub fn generate_static_scalar_expression(
     program: &PortableExpressionProgram,
 ) -> Result<String, Refusal> {
     let prepared = PreparedPortableExpressionEvaluator::new_scalar_tape(program)?;
+    if prepared.input_value_contract.is_some() || prepared.output_value_contract.is_some() {
+        return Err(Refusal::UnsupportedType(
+            "scalar-image/value-contract-witness-unavailable@1".into(),
+        ));
+    }
     let PreparedInput::Primitive { kind: input, .. } = prepared.input else {
         return Err(Refusal::UnsupportedType(
             "scalar-image/fixed-input@1".into(),
