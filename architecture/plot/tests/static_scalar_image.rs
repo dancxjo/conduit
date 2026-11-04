@@ -142,6 +142,64 @@ fn unsupported_record_input_refuses_explicitly_without_runtime_fallback() {
     );
 }
 #[test]
+fn checked_boundary_predicates_cannot_disappear_from_a_resident_image() {
+    use conduit_core::{
+        CheckedValueContract, IntervalEndpoint, StructuredInfoTypeShape, ValueConstraint,
+    };
+    use conduit_plot::{
+        PortableExpressionNode, PortableExpressionOperation, PreparedPortableExpressionEvaluator,
+    };
+    let base = program(
+        "plot add (\n input: U64 >> result: U64\n) = (. + 1)\n",
+        "add",
+    );
+    let StructuredInfoTypeShape::Leaf(kind) = base.input_type.shape() else {
+        panic!("leaf")
+    };
+    let bound = CheckedValueContract::new(
+        kind.clone(),
+        8,
+        vec![ValueConstraint::FixedIntegerRange {
+            minimum: Some(0u64.to_le_bytes().to_vec()),
+            maximum: Some(7u64.to_le_bytes().to_vec()),
+            minimum_endpoint: IntervalEndpoint::Inclusive,
+            maximum_endpoint: IntervalEndpoint::Inclusive,
+        }],
+    )
+    .unwrap();
+    for (input, output) in [(true, false), (false, true), (true, true)] {
+        let mut p = base.clone();
+        p.root = PortableExpressionNode {
+            value_type: p.output_type.clone(),
+            operation: PortableExpressionOperation::ValueContract {
+                input: input.then(|| bound.clone()),
+                output: output.then(|| bound.clone()),
+                value: Box::new(p.root),
+            },
+        };
+        let rejected = if input { 8u64 } else { 7 };
+        let expected = p.evaluate(&rejected.to_le_bytes()).unwrap_err();
+        assert!(matches!(
+            &expected,
+            R::InputValueConstraint(_) | R::OutputValueConstraint(_)
+        ));
+        let mut owned = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+        assert_eq!(
+            owned.evaluate(&rejected.to_le_bytes()).unwrap_err(),
+            expected
+        );
+        assert_eq!(
+            owned.evaluate(&0u64.to_le_bytes()).unwrap(),
+            &1u64.to_le_bytes()
+        );
+        assert!(
+            matches!(generate_static_scalar_expression(&p), Err(R::UnsupportedType(reason))
+            if reason == "scalar-image/value-contract-witness-unavailable@1")
+        );
+    }
+}
+
+#[test]
 fn generated_resident_programs_compile_no_std_and_match_checked_source() {
     use sha2::Digest;
     use std::{fs, process::Command};
