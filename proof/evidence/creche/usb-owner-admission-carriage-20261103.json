@@ -99,5 +99,20 @@
     "thumbv6m_none_eabi_check": true,
     "deployed_to_green": false,
     "whole_firmware_memory_or_physical_play_proven": false
+  },
+  "baseline_retry_failure": {
+    "run": 41739706738,
+    "job": 126314023107,
+    "terminal": "failure",
+    "phase": "ConduitOS x86_64 Patchbay journey publication Commit",
+    "service_instance": 8,
+    "entry_sequence": 4496,
+    "remaining_admitted_rtc": 62,
+    "consumed_rtc": 62,
+    "source_timer_work": 0,
+    "outcome": "Fault(WorkExhausted)",
+    "diagnostics": "https://github.com/dancxjo/conduit/actions/runs/41739706738/artifacts/13288090886",
+    "product_failure_retried": false,
+    "grant_enlarged": false
   }
 }

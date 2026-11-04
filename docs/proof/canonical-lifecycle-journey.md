@@ -1574,3 +1574,17 @@ ordinary execution admission remain necessary before advertising a ready Back.
 Green was unchanged and continued with 31 samples and 465 display acknowledgments,
 no sensor/display fault and the same accepted membership-receipt digest. Restart
 continuity and the rest of the distributed journey remain unfinished.
+
+
+The exact retry of dev Integration `41739706738` is now terminal with a real
+product failure, unlike its original runner-disk failure. Job `126314023107`
+boots and reaches the Patchbay journey, then publication Commit entry 4496 for
+service instance 8 exhausts its remaining 62 RTC units, with Source work zero.
+Its retained diagnostics artifact is `13288090886`. The generic boundary refusal
+is therefore backed by `Fault(WorkExhausted)`, not merely a timeout or missing log.
+Do not retry that product failure or enlarge the grant. Qualify the Commit work
+boundary before feature merges. Existing #5356 owns the product journey;
+#6311's distinct continuation contract preserves cumulative total exhaustion
+and must not be treated as permission to replenish this operation's budget.
+The passing native Mask and stale-Show candidates remain held while this baseline
+failure is investigated. Green's physical operation is unaffected.
