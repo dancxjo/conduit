@@ -121,6 +121,9 @@ impl<const N: usize> ResidentNativeValidator<N> {
         }
         Ok(())
     }
+    pub const fn schema_bytes(&self) -> &'static [u8] {
+        self.schema.type_bytes()
+    }
     pub const fn contract_count(&self) -> usize {
         N
     }

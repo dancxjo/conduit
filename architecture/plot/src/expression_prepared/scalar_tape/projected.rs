@@ -1,7 +1,7 @@
 //! Resident fixed projections use the ordinary scalar loop and Native checker.
 use super::*;
 use crate::rust_binding::{PreparedNativeRefusal, ResidentNativeValidator};
-mod generate;
+pub(in crate::expression_prepared) mod generate;
 pub use generate::{generate_static_projected_expression, StaticProjectedGenerationRefusal};
 
 /// Make-selected raw payload geometry in a separately validated exact input.

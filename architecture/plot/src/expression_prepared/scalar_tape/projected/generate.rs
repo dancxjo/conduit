@@ -24,6 +24,15 @@ pub fn generate_static_projected_expression(
     bounds: PreparedNativeBounds,
     maximum_occurrences: usize,
 ) -> Result<String, StaticProjectedGenerationRefusal> {
+    generate_with_native(document, program, bounds, maximum_occurrences, None)
+}
+pub(in crate::expression_prepared) fn generate_with_native(
+    document: &crate::CheckedSyntaxDocument,
+    program: &PortableExpressionProgram,
+    bounds: PreparedNativeBounds,
+    maximum_occurrences: usize,
+    shared_native: Option<&str>,
+) -> Result<String, StaticProjectedGenerationRefusal> {
     let unsupported = || Refusal::UnsupportedType("projected-image/fixed-projection@1".into());
     let identity = match program.input_type.shape() {
         StructuredInfoTypeShape::Record { schema, .. }
@@ -79,7 +88,11 @@ pub fn generate_static_projected_expression(
             .canonical_bytes()
             .map_err(|_| Refusal::InvalidProgram)?,
     );
-    let mut source = format!("extern crate alloc;\npub const SOURCE_PROGRAM_SHA256: [u8;32] = {digest:?};\nmod native {{\n{native}\n}}\n");
+    let native_module = shared_native.map_or_else(
+        || format!("mod native {{\n{native}\n}}\n"),
+        |path| format!("use {path} as native;\n"),
+    );
+    let mut source = format!("extern crate alloc;\npub const SOURCE_PROGRAM_SHA256: [u8;32] = {digest:?};\n{native_module}");
     let output_contract = static_image::generate::contracts::emit(
         &mut source,
         prepared.output_value_contract.as_ref(),

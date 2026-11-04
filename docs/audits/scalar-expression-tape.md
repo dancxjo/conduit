@@ -68,6 +68,24 @@ intermediate constants without law witnesses refuse emission. Structured
 constructor/output emission, variable selections, common Back installation and
 physical execution remain separate unfinished steps.
 
+## Resident structured constructors (development)
+
+`generate_static_structured_expression` emits the existing constructor tape as
+immutable data, using the same compiler and loop as the owned profile. Fixed
+input-node copies preserve canonical framing. Scalar child instructions share
+one input Native table. A supplied scratch buffer holds the complete result;
+the output Native guard checks it before atomic copying into caller output.
+The resident evaluator owns no instructions, constants, Type tree or output
+buffer. Its static descriptor declares finite input/output ceilings, and its
+constructor rejects invalid indices, slices, backward control and oversized
+code. Complete Root workspace and execution-work admission is still required.
+
+Whole HT16K33 frame-request and initialization expressions now have emitted
+native/no_std component proof, including pressure and refusal/reuse. Variable
+input geometry, ordinary Make/Back installation and physical Play remain
+unfinished. Source's refined-construction admission rule is preserved; the
+output-predicate test is an explicit portable-program component fixture.
+
 ## Owned tape profile
 
 Issue #5540 adds an explicitly selected std scalar specialization with Value Fore contracts within the existing checked pure-expression Kind, ordinary Back offer, Plan and kernel Host Call mechanism. The new profile/implementation/artifact identities are distinct from the reference evaluator. Text, records, mathematical-value/quantity/floating profiles, Flow contracts and oversized tapes refuse preparation; the existing interpreter remains independently available. No candidate switches execution form halfway through Play.

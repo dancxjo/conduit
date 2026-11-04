@@ -45,6 +45,11 @@ use primitive::{
     PrimitiveValue,
 };
 use structured::PreparedStructuredExpression;
+pub use structured::{
+    generate_static_structured_expression, StaticStructuredExpression,
+    StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
+    StructuredTapeInstruction,
+};
 
 fn prepare_info_kind(
     value_type: &conduit_core::StructuredInfoType,

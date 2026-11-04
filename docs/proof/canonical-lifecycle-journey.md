@@ -2233,3 +2233,40 @@ capacity or reserve is reduced. Six focused refusal/cleanup tests and 1,136
 pipeline/compiler-cache tests pass (two skipped). Hosted recovery remains
 unproved pending its exact Candidate and subsequent Integration. No failed
 workflow was cancelled or restarted, and no further feature was merged.
+
+
+### Complete resident constructor expressions (4 November 2026)
+
+The constructor compiler and execution loop now serve both the existing owned
+profile and immutable resident images. Make emits constructor instructions,
+constant bytes, fixed input-node copies and shared scalar child images. One
+input Native schema/predicate table is shared by the child modules; the output
+schema remains in its output Native guard. Runtime owns neither instructions,
+constants, Type trees nor output buffers. Separately supplied bounded scratch
+stages the complete result; output Native checks finish before caller output
+is changed. No new device interpreter or scheduler is introduced.
+
+The complete authored `ht16k33-frame-request` and `ht16k33-initialize` programs
+compile as native executables and no_std modules and match ordinary Native
+admission plus portable reference results. Zero-allocation probes cover image
+preparation/evaluation, reuse, unsupported addresses, invalid brightness/blink,
+malformed input and output pressure. A separate portable-program fixture
+verifies retained output range predicates; ordinary Source expansion still
+correctly refuses refined construction without an installed law validator.
+Invalid control/geometry and unsupported variable selections refuse explicitly.
+The three remaining HT16K33 state/result expressions need that variable-input
+profile; no firmware or ordinary Make installation is claimed here.
+
+Validation: 28 scoped constructor/scalar/projection/display tests pass, as do
+487 plot-library tests (one ignored), strict owning Clippy and thumbv6m no_std
+compilation. A separate generated-image test asserts that child modules share
+the input Native tables. Raw logs remain under ignored
+`target/pico-generic-host-20261102/resident-native-image-20261104/`.
+Physical placement, complete workspace/private-work admission, exact
+Source/Fore/artifact selection, ordinary Back installation and physical MCU
+Play remain unfinished. Green's working firmware has not been changed.
+
+The runner capacity repair #6750 passed Candidate and merged as `7fd6b76f74`.
+Its exact Integration is `41826648964`, currently pending behind the older
+Integration's still-running jobs. Further feature merges remain held until
+baseline recovery; neither workflow was cancelled or restarted.

@@ -1,7 +1,7 @@
 //! Finite fixed-integer/boolean tape; lowering happens before evaluation.
 use super::*;
 pub(super) const MAXIMUM_INSTRUCTIONS: usize = 128;
-mod projected;
+pub(in crate::expression_prepared) mod projected;
 mod static_image;
 pub use projected::{
     generate_static_projected_expression, StaticProjectedExpression,
