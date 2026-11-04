@@ -27,7 +27,17 @@ invalid code before execution. Static lifetime does not prove physical flash
 placement. Ordinary Make selection, full structured protocol images, kernel
 Back installation and physical MCU admission remain unfinished; this is not a
 new installed Back, scheduler or execution grant. Native-law/quantity profiles
-without a retained validation witness remain unsupported.
+without a retained validation witness remain unsupported. Fixed-integer boundary contracts retain their
+byte ceiling and range endpoints in immutable `FixedIntegerContractSpec` data.
+The resident view is one pointer; identical input/output guards share one spec.
+Owned and borrowed checks use the same range definition and validation laws.
+Other boundary profiles continue to refuse instead of dropping predicates.
+
+`computation_work()` includes the bounded predicate checks as well as tape
+instructions. The installing Host must admit and spend that complete private
+work plus kernel IO. Canonical input validation precedes semantic predicates;
+a refused output predicate leaves caller output unchanged. No Source or
+contract decoder runs during resident execution.
 
 ## Owned tape profile
 
