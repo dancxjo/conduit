@@ -33,6 +33,12 @@ impl StaticScalarExpression {
             output,
         })
     }
+    pub fn instruction_count(&self) -> usize {
+        self.tape.instruction_count()
+    }
+    pub fn input_bytes(&self) -> usize {
+        width(self.input).expect("validated scalar input")
+    }
     pub fn scratch_bytes(&self) -> usize {
         self.tape.scratch_bytes()
     }
