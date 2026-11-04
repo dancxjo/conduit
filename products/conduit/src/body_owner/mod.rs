@@ -347,3 +347,12 @@ mod service_clock_smoke;
 
 #[cfg(test)]
 mod todo_speech_tests;
+
+mod member_return_document;
+pub(crate) use member_return_document::MemberReturnProofDocument;
+
+#[cfg(test)]
+pub(crate) use controller::member_return_owner_fixture;
+
+mod member_presentation;
+pub(crate) use member_presentation::MemberPresentationBasis;

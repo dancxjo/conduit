@@ -343,6 +343,9 @@ fn main() {
                 body_terminal::run(&state_dir, &mut io::stdin().lock(), &mut io::stdout().lock())
             }
         }
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberLeave {
+            state_dir, member_credential, authorize_leave,
+        }) }) => durable_host::leave_member_from_file(&state_dir, &member_credential, authorize_leave),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::Invite {
@@ -381,6 +384,14 @@ fn main() {
             }
             _ => Err("a routed invitation requires --route-bind, --route-url, --route-tls-cert, --route-tls-key, and --authorize-route together".into()),
         },
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::Return {
+            state_dir, descriptor, authorize_return,
+        }) }) => durable_host::return_installed_member(&state_dir, &descriptor, authorize_return),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::MemberRoute {
+            state_dir, member_credential, ttl_seconds, route_bind, route_url,
+            route_tls_cert, route_tls_key, authorize_route,
+        }) }) => durable_host::serve_body_member_route(&state_dir, &member_credential,
+            ttl_seconds, route_bind, &route_url, &route_tls_cert, &route_tls_key, authorize_route),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::BrowserWindow {

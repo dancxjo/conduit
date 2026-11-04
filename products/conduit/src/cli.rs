@@ -429,6 +429,43 @@ pub(crate) enum BodyCommand {
         #[arg(long, requires_all = ["route_bind", "route_url", "route_tls_cert", "route_tls_key", "authorize_route"])]
         prepare: bool,
     },
+    /// Explicitly withdraw one member's attachment, preserving its Part and keys.
+    MemberLeave {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        member_credential: PathBuf,
+        #[arg(long)]
+        authorize_leave: bool,
+    },
+    /// Return an existing member using its private continuity key and actual running Boot.
+    Return {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        descriptor: PathBuf,
+        #[arg(long)]
+        authorize_return: bool,
+    },
+    /// Expose a finite pinned TLS return entrance for one retained member.
+    MemberRoute {
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long)]
+        member_credential: PathBuf,
+        #[arg(long, default_value_t = 600, value_parser = clap::value_parser!(u64).range(1..=600))]
+        ttl_seconds: u64,
+        #[arg(long)]
+        route_bind: std::net::SocketAddr,
+        #[arg(long)]
+        route_url: String,
+        #[arg(long)]
+        route_tls_cert: PathBuf,
+        #[arg(long)]
+        route_tls_key: PathBuf,
+        #[arg(long)]
+        authorize_route: bool,
+    },
     /// Open one short-lived local window for this browser Host to join the installed owner.
     BrowserWindow {
         /// Installed Host state whose running service owns the Body.

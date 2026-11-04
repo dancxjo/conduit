@@ -31,6 +31,93 @@ impl Drop for RetainedKey {
     }
 }
 
+/// Sign only an already authenticated owner's bounded return challenge.
+/// This proves retained member-key possession; it grants no admission or Line.
+/// A detached member may return in the same Boot, as Core permits: freshness is
+/// the owner's nonce and exact current advertisement, not a fabricated reboot.
+pub(crate) fn sign_return_challenge(
+    state: &Path,
+    credential: &MembershipCredential,
+    advertisement: &HostAdvertisement,
+    challenge: &conduit_body::PartReturnChallenge,
+    now_millis: u64,
+) -> Result<conduit_body::PartReturnProof, String> {
+    require_directory(state)?;
+    let body = state.join("body");
+    require_directory(&body)?;
+    let record = read(&body.join(PATH))?;
+    let identities = [
+        credential.credential_id.as_str(),
+        credential.body_id.as_str(),
+        credential.part_id.as_str(),
+        credential.host_id.as_str(),
+        credential.boot_id.as_str(),
+        challenge.admission_id.as_str(),
+        challenge.body_id.as_str(),
+        challenge.part_id.as_str(),
+        challenge.host_id.as_str(),
+        challenge.boot_id.as_str(),
+        record.invitation_id.as_str(),
+    ];
+    if record.schema != SCHEMA
+        || identities.iter().any(|id| id.is_empty() || id.len() > 256)
+        || record.body_id != credential.body_id.as_str()
+        || record.part_id != credential.part_id.as_str()
+        || record.host_id != credential.host_id.as_str()
+        || challenge.body_id != credential.body_id
+        || challenge.part_id != credential.part_id
+        || challenge.host_id != credential.host_id
+        || advertisement.host_id != credential.host_id
+        || challenge.boot_id != advertisement.boot_id
+        || challenge.offer_generation != advertisement.offer_generation
+        || advertisement.offer_generation.0 == 0
+        || advertisement.protocol_version != conduit_core::PROTOCOL_VERSION
+    {
+        return Err("return challenge differs from retained member scope".into());
+    }
+    if challenge.nonce == [0; 32]
+        || challenge.issued_at_millis > now_millis
+        || now_millis >= challenge.expires_at_millis
+        || challenge
+            .expires_at_millis
+            .saturating_sub(challenge.issued_at_millis)
+            > conduit_body::MAX_ADMISSION_TTL_MILLIS
+    {
+        return Err("return challenge is not currently bounded".into());
+    }
+    let key = SpawnInvitationSecret::from_csprng_bytes(record.secret)
+        .map_err(|_| "invalid retained continuity key")?;
+    Ok(conduit_body::PartReturnProof {
+        admission_id: challenge.admission_id.clone(),
+        body_id: challenge.body_id.clone(),
+        part_id: challenge.part_id.clone(),
+        host_id: challenge.host_id.clone(),
+        boot_id: challenge.boot_id.clone(),
+        nonce: challenge.nonce,
+        signature: key.sign(&challenge.signing_transcript()),
+    })
+}
+
+pub(super) fn validate_member_scope(
+    state: &Path,
+    credential: &MembershipCredential,
+) -> Result<(), String> {
+    require_directory(state)?;
+    let body = state.join("body");
+    require_directory(&body)?;
+    let record = read(&body.join(PATH))?;
+    if record.schema != SCHEMA
+        || record.body_id != credential.body_id.as_str()
+        || record.part_id != credential.part_id.as_str()
+        || record.host_id != credential.host_id.as_str()
+    {
+        return Err("retained private key differs from returning member".into());
+    }
+    SpawnInvitationSecret::from_csprng_bytes(record.secret)
+        .map_err(|_| "invalid retained continuity key".to_string())?;
+    Ok(())
+}
+
 pub(super) fn retain(
     state: &Path,
     pending: &PendingBodyJoin,

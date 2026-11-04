@@ -2,7 +2,7 @@
 //! native Part and its current offer. The caller supplies real directional Lines;
 //! membership and matching identifiers cannot create them.
 
-use super::Owner;
+use super::{super::MemberPresentationBasis, Owner};
 use conduit_body::{
     BodyLifecycleSession, MembershipCredential, PortableAdmissionReceipt,
     SPAWN_ADMISSION_RECEIPT_SCHEMA,
@@ -11,6 +11,8 @@ use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
 
+#[path = "native_mask_route/member_basis.rs"]
+mod member_basis;
 #[path = "native_mask_route/member_leave.rs"]
 mod member_leave;
 #[path = "native_mask_route/profile.rs"]

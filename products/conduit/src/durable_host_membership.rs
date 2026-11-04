@@ -12,6 +12,19 @@ use std::{fs, path::Path};
 
 #[path = "durable_host_membership/continuity_key.rs"]
 mod continuity_key;
+#[path = "durable_host_membership/returned.rs"]
+mod returned;
+pub(super) use returned::{load_joined_credential, retain_returned_membership};
+
+pub(super) fn sign_return_challenge(
+    state: &Path,
+    credential: &MembershipCredential,
+    actual: &HostAdvertisement,
+    challenge: &conduit_body::PartReturnChallenge,
+    now: u64,
+) -> Result<conduit_body::PartReturnProof, String> {
+    continuity_key::sign_return_challenge(state, credential, actual, challenge, now)
+}
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(super) struct JoinedBodyBinding {
@@ -219,4 +232,17 @@ pub(super) fn validate(
         return Err("retained membership credential belongs to another body or Host".into());
     }
     Ok(())
+}
+
+pub(crate) fn leave_member_from_file(
+    state: &Path,
+    credential: &Path,
+    authorize: bool,
+) -> Result<(), String> {
+    if !authorize {
+        return Err("withdrawing a member requires --authorize-leave".into());
+    }
+    let credential = serde_json::from_slice(&bounded_read(credential, 64 * 1024)?)
+        .map_err(|_| "invalid selected member credential")?;
+    crate::durable_host_control::leave_member(state, credential)
 }
