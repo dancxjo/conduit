@@ -145,6 +145,11 @@ resolver = "2"
 opt-level = "z"
 strip = "symbols"
 
+# Keep installed CLI/control code within the native Seed artifact bound.
+# Execution/provider dependencies retain their normal release optimization.
+[profile.release.package.conduit]
+opt-level = "s"
+
 [profile.release]
 strip = "symbols"
 
