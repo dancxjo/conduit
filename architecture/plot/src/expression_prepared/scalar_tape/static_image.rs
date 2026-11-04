@@ -11,6 +11,8 @@ pub struct StaticScalarExpression {
     tape: ScalarTape,
     input: PrimitiveInfoKind,
     output: PrimitiveInfoKind,
+    input_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
+    output_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
 }
 impl StaticScalarExpression {
     /// Validate storage, types, forward control flow and definite initialization.
@@ -31,7 +33,32 @@ impl StaticScalarExpression {
             },
             input,
             output,
+            input_contract: None,
+            output_contract: None,
         })
+    }
+    /// Retain exact immutable witnesses; neither Source nor a contract is decoded.
+    pub fn with_value_contracts(
+        mut self,
+        input: Option<&'static conduit_core::FixedIntegerContractSpec<'static>>,
+        output: Option<&'static conduit_core::FixedIntegerContractSpec<'static>>,
+    ) -> Result<Self, Refusal> {
+        let prepare = |spec: &'static conduit_core::FixedIntegerContractSpec<'static>, kind| {
+            if conduit_core::primitive_info_kind(spec.value_kind) != Some(kind) {
+                return Err(Refusal::InvalidProgram);
+            }
+            conduit_core::BorrowedFixedIntegerContract::new(spec)
+                .map_err(|_| Refusal::InvalidProgram)
+        };
+        self.input_contract = input.map(|spec| prepare(spec, self.input)).transpose()?;
+        self.output_contract = output.map(|spec| prepare(spec, self.output)).transpose()?;
+        Ok(self)
+    }
+    /// Worst-case cooperative private work, including retained predicate checks.
+    pub fn computation_work(&self) -> u16 {
+        self.instruction_count() as u16
+            + self.input_contract.map_or(0, |c| c.validation_work())
+            + self.output_contract.map_or(0, |c| c.validation_work())
     }
     pub fn instruction_count(&self) -> usize {
         self.tape.instruction_count()
@@ -47,6 +74,11 @@ impl StaticScalarExpression {
     }
     pub fn evaluate_into(&self, input: &[u8], output: &mut [u8]) -> Result<usize, Refusal> {
         validate_leaf(self.input, input).map_err(|_| Refusal::InvalidInput)?;
+        if let Some(contract) = self.input_contract {
+            contract
+                .validate(input)
+                .map_err(Refusal::InputValueConstraint)?;
+        }
         let width = self.output_bytes();
         if output.len() < width {
             return Err(Refusal::InvalidProgram);
@@ -56,6 +88,11 @@ impl StaticScalarExpression {
             return Err(Refusal::InvalidProgram);
         }
         validate_leaf(self.output, value.as_slice())?;
+        if let Some(contract) = self.output_contract {
+            contract
+                .validate(value.as_slice())
+                .map_err(Refusal::OutputValueConstraint)?;
+        }
         output[..width].copy_from_slice(value.as_slice());
         Ok(width)
     }
