@@ -90,3 +90,14 @@ to fit a u16 framed payload. Encoded-image, runtime-state, queue and execution
 grants are unchanged. Structural record inventory and actual native capability
 possession retain their independent admission roles. This metadata admission
 is not proof of a Ready Back, Seed installation or physical Play.
+
+Before decoding a received assignment, the Body layer can attribute its exact
+bytes with `IssuedHostCommandChallenge`. The receiver issues one non-clonable
+attempt from independently retained member, issuer and Host/Boot facts, an
+installed payload contract, a fresh nonce, a local deadline and a byte ceiling.
+The signature covers that complete context and the payload length/digest.
+Consuming a slot proves attribution only; the lowerer, full Source/Plan approval,
+concrete resource admission and native possession remain independent gates.
+Root must choose current offers for fresh preparation and the exact retained
+reservation scope for lifecycle control. This attribution helper does not make
+that authorization decision or install a transport/control endpoint.

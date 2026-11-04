@@ -66,6 +66,8 @@ mod emergency_key;
 mod events;
 #[cfg(feature = "authenticated-admission")]
 mod federation;
+#[cfg(feature = "authenticated-admission")]
+mod host_command_attribution;
 mod hold;
 mod identity;
 mod legacy;
@@ -110,6 +112,8 @@ pub use emergency_key::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 #[cfg(feature = "authenticated-admission")]
 pub use federation::*;
+#[cfg(feature = "authenticated-admission")]
+pub use host_command_attribution::*;
 pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
 pub use identity::{AdmissionId, MembershipCredentialId, SpawnInvitationId};

@@ -2693,3 +2693,38 @@ authenticate/authorize the request, admit the complete workset and transfer
 physical possession before Play. No firmware or live service changed in this
 checkpoint, and #6341's separate physical setup failure remains unqualified.
 Raw results use ignored `target/resident-library-transfer-20261104/borrowed-*`.
+
+### Attribute exact command bytes before preparation (4 November 2026)
+
+The Body layer now provides an issued, one-use command challenge. It borrows
+receiver-local member/Host/Boot and issuer-pin facts, rather than decoding those
+facts from a peer's payload. The signing transcript binds Body, Part, credential,
+receiver Host/Boot/profile/offer generation, issuer Host/Boot/key/generation,
+installed payload contract, nonce, local issue/expiry times, byte ceiling and
+exact payload length/SHA-256. This uses the existing strict Ed25519 verification
+pattern with a distinct transcript domain; admission-receipt signatures cannot
+be reused as command proofs.
+
+Every authentication attempt consumes its non-clonable slot. A compile-fail
+check proves that the same slot cannot be used twice; global fresh nonce
+issuance remains Root's obligation, and reconstructing a slot with an old nonce
+is not replay protection. Successful attribution lends the same payload bytes;
+it grants no membership, Plan approval, execution, protected Line or Host Call
+possession. Root must still apply its policy and actual finite admission.
+Fresh preparation and retained-reservation lifecycle control require different
+independently selected scope; this helper cannot choose between them.
+
+Five focused tests cover zero-allocation issuance/signing/verification, mutation
+of all 17 context/payload cases, stale nonces, clock/deadline edges, wrong keys,
+invalid extents/local context and cross-protocol rejection. The existing two
+Make tests also pass: the checked-Source assigned image is signed, received into
+caller storage, digest-checked, attributed and bound to its retained Back before
+the same fixed-kernel parity execution. That complete scoped CPU path allocates
+no heap. Strict all-target Clippy, the consumed-slot compile-fail check and
+thumbv6m checking with authenticated admission enabled pass.
+
+This remains shared component proof, not a deployed command endpoint or an
+authorized physical Plan/Play. The next production boundary must join the
+actual Body owner's decision, receiving Root policy, complete workspace/resource
+admission and physical bus ownership. No firmware or live service was changed.
+Raw results remain outside Git in ignored `target/host-command-attribution-20261104/`.

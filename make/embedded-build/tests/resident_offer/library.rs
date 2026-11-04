@@ -1,7 +1,34 @@
 //! A selected owner leaves the library once; unrelated owners remain usable.
 pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::Back {
+    use conduit_body::{FederationPeer, HostCommandReceiveBounds, IssuedHostCommandChallenge};
     use conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal as E;
+    use ed25519_dalek::{Signer, SigningKey};
     let active = assignment.active();
+    let member: conduit_body::MembershipCredential = serde_json::from_value(serde_json::json!({
+        "credential_id":"fixture/credential","body_id":"fixture/body","part_id":"fixture/part",
+        "host_id":"fixture/resident-cpu","boot_id":"fixture/boot/1","issued_at_millis":1,
+    }))
+    .unwrap();
+    // Independent receiver identity/peer pin, not decoded from the assignment.
+    let actual = conduit_core::HostAdvertisement {
+        declared_name: None,
+        protocol_version: conduit_core::PROTOCOL_VERSION,
+        host_id: "fixture/resident-cpu".into(),
+        boot_id: "fixture/boot/1".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+        profile: "fixture/resident-cpu".into(),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    let key = SigningKey::from_bytes(&[9; 32]);
+    let issuer = FederationPeer {
+        host_id: "fixture/issuer".into(),
+        boot_id: "fixture/issuer/boot".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+        verifying_key: key.verifying_key().to_bytes(),
+    };
     let (mut library, cost) =
         crate::probe::observe(|| crate::library::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations, 0);
@@ -39,6 +66,25 @@ pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::
         use conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput;
         use conduit_wire::{encode_bounded_document_chunk, BorrowedBoundedDocumentAssembly};
         use sha2::{Digest, Sha256};
+        let slot = IssuedHostCommandChallenge::issue(
+            &member,
+            &actual,
+            &issuer,
+            HostCommandReceiveBounds {
+                payload_contract: "fixture/assigned-fragment@1",
+                maximum_payload_bytes: 8192,
+                lifetime_millis: 10,
+            },
+            [1; 32],
+            10,
+        )
+        .unwrap();
+        let transcript = conduit_body::host_command_attribution_transcript(
+            slot.challenge(),
+            &assignment.encoded,
+        )
+        .unwrap();
+        let signature = key.sign(&transcript).to_bytes();
         // CPU receive-workspace fixture, independent of encoded/runtime grants.
         let mut storage = [0; 8192];
         let mut frame = [0; 128];
@@ -58,8 +104,9 @@ pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::
         assert!(chunks > 1);
         let (bytes, expected) = receiver.completed().unwrap();
         assert_eq!(Sha256::digest(bytes).as_slice(), expected);
+        let attributed = slot.authenticate(bytes, &signature, 11).unwrap();
         let mut selected = assignment.selected(&active);
-        selected.input = AssignedOperationInput::Contiguous(bytes);
+        selected.input = AssignedOperationInput::Contiguous(attributed.payload());
         library.bind_entry_0(selected).unwrap()
     });
     assert_eq!(cost.allocations, 0);
