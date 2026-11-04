@@ -1896,3 +1896,27 @@ qualified tools recovered about 12 GiB during qualification. Compressed tools
 were decompressed and hash-compared before original removal. Source, credentials,
 recordings, final artifacts, current processes and the complete state backup
 were preserved; current owner and MCU remain running.
+
+### HT16K33 protocol meaning moves into checked Source
+
+The next execution work exposed a missing counterpart to the existing BME280
+protocol Source: Green's display commands still lived in the diagnostic Rust
+loop. [PR #6742](https://github.com/dancxjo/conduit/pull/6742) adds ordinary
+HT16K33 initialization, transition, action, frame-request and write-outcome Plots
+over the existing finite I2C Types. It introduces no target runtime or new Kind.
+
+Initialization orders oscillator start, display disable, RAM clear, brightness
+and display control, advancing only after each empty successful bus result.
+Short, malformed and refused outcomes stop the sequence. Normal redraws use
+one pointer-plus-16-octet transaction without a clear. Configuration, segment
+mapping, selected controller possession and application observations remain
+distinct responsibilities.
+
+The isolated current-dev delivery commit `f4781b7105` passes both focused Source
+tests and strict owning-test Clippy. The tests exercise brightness, blink and
+enabled combinations at both address boundaries; every bus refusal at every
+initialization phase; malformed acknowledgements; terminal-state stability;
+invalid parameters; exact frame bytes; and zero allocation/reallocation during
+prepared evaluation. This is CPU Source conformance. It does not establish
+physical compatibility, whole-workset admission or a deployed ordinary Play.
+The installed owner and Green firmware were not changed by this step.
