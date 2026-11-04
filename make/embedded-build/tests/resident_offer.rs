@@ -51,10 +51,10 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
-    let((),cost)=probe::observe(||{{assert!(!owner.offer_json().is_empty());
+    let((),cost)=probe::observe(||{{assert!(!owner.offer_image().is_empty());
         assert!(matches!(weak::Initialized::prepare(),Err(weak::PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work))));}});
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
-    let offer:conduit_core::CapabilityOffer=serde_json::from_slice(owner.offer_json()).unwrap();
+    let offer=library_checks::decode(owner.offer_image());
     let assignment=support::exercise(offer);
     let active=assignment.active();
     assert_eq!(owner.computation_requirement(0),assignment.pins[0]);

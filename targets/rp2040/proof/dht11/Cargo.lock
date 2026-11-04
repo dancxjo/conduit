@@ -259,6 +259,8 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "conduit-wire",
+ "miniz_oxide",
  "serde_json",
  "sha2",
 ]

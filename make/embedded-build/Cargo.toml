@@ -6,6 +6,8 @@ description = "Host-only current-plan to fixed Conduit kernel table generator"
 
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
+conduit-wire = { path = "../../architecture/wire" }
+miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
 conduit-kernel = { path = "../../architecture/kernel" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 
@@ -18,7 +20,7 @@ serde_json = "1"
 
 [dev-dependencies]
 conduit-body = { path = "../../architecture/body" }
-conduit-wire = { path = "../../architecture/wire" }
+conduit-wire = { path = "../../architecture/wire", features = ["deflate"] }
 ed25519-dalek = { version = "2.2", default-features = false }
 conduit-net = { path = "../../semantics/net" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }

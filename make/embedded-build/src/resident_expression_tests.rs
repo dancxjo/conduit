@@ -4,7 +4,7 @@ use conduit_core::*;
 use conduit_plot::*;
 #[path = "../../../architecture/plot/tests/common/compiled_rust.rs"]
 mod compiled_rust;
-fn context() -> (CheckedSyntaxDocument, PortableExpressionProgram) {
+pub(super) fn context() -> (CheckedSyntaxDocument, PortableExpressionProgram) {
     let types = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../plots/device-protocols/i2c-types.conduit"

@@ -6,9 +6,11 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../core" }
 conduit-plot = { path = "../plot" }
+miniz_oxide = { version = "=0.8.9", default-features = false, optional = true }
 
 [build-dependencies]
 conduit-plot = { path = "../plot" }
 
 [features]
 default = []
+deflate = ["dep:miniz_oxide"]

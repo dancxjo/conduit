@@ -1,6 +1,7 @@
 //! A selected owner leaves the library once; unrelated owners remain usable.
 #[path = "publication.rs"]
 mod publication;
+pub use publication::decode;
 
 pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::Back {
     use conduit_body::{FederationPeer, HostCommandReceiveBounds, IssuedHostCommandChallenge};

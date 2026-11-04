@@ -2828,3 +2828,46 @@ expanded-document ceiling and therefore cannot simply be applied to this
 resolve the immutable metadata representation and complete receipt extent;
 neither a silent bound increase nor a decoded MCU copy is an acceptable bridge.
 Raw results remain outside Git in ignored `target/receipt-stream-20261104/`.
+
+### Keep the immutable offer image compact (4 November 2026)
+
+Make now emits each resident Back's offer metadata as one lossless document
+image, replacing its raw JSON flash literal. The small `CDZ1` image header
+declares the expanded extent; this is descriptive input, never permission to
+allocate it. Initialized owners lend the image bytes, and bound owners cease
+lending them through the same library inventory. No decompression is performed
+by initialization, assignment binding or the fixed execution kernel.
+
+The opt-in wire decoder uses the existing miniz zlib primitive and caller-owned
+output with independent compressed/expanded ceilings. It requires complete
+stream consumption and exact output, rejecting suffixes, concatenation,
+truncation, invalid checksums and false extents. Bounds refuse before writes;
+invalid streams may alter the admitted output, which must remain unpublished
+on refusal. The decoder's own workspace also needs local admission. The Body's
+existing admission profile and its dependency graph remain unchanged; the image
+adapter is not a new advertisement encoding or an increase in either profile.
+
+The emitted-code CPU proof lends two complete images totaling 4,244 bytes,
+versus 46,412 bytes for their raw offer payloads (46,415 including the preceding
+array fixture's punctuation). Each image crosses existing CBD1 frames with no
+scoped allocation. After one exact assignment, only the sibling's 2,116-byte
+image remains. Hosted resolution recovers complete typed offers before ordinary
+planning, and the selected Back still runs the existing fixed kernel. A separate
+generation test compares every recovered byte with the original typed offer's
+JSON and confirms the generated source retains no `OFFER_JSON` copy.
+
+Three image-codec tests, both generated-library tests and all 21 Make unit tests
+pass. Strict all-target wire/Make Clippy and thumbv6m lender checking pass. The
+six maintained MCU target lockfiles were refreshed offline for the host-side
+Make dependencies, without a dependency-version update. These are source/CPU
+and cross-compilation checks, not new linked-image or physical peak evidence.
+No firmware or installed service was changed. Publication still requires an
+explicit image-resolution envelope and a usable receipt profile; image bytes
+must not be silently supplied where ordinary offer JSON is expected.
+
+The user's proposed **Moon** names the intended Host execution profile: work
+prepared elsewhere, admitted against actual local resources and equipment,
+executed through the same kernel, then actually retired before another
+assignment. It does not introduce another execution architecture or weaken Host
+authority. The decisive same-Boot physical reassignment proof remains ahead.
+Raw proof stays outside Git in ignored `target/immutable-offer-image-20261104/`.

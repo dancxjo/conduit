@@ -4,6 +4,10 @@ use conduit_plot::{
     rust_binding::PreparedNativeBounds, CheckedSyntaxDocument, PortableExpressionProgram,
 };
 use sha2::{Digest, Sha256};
+
+#[cfg(test)]
+#[path = "resident_offer_image_tests.rs"]
+mod offer_image_tests;
 pub const RESIDENT_EXPRESSION_PROFILE: &str = "conduit.expression/resident-structured@1";
 pub const RESIDENT_EXPRESSION_IMPLEMENTATION: &str =
     "conduit.expression/kernel-resident-structured@1";

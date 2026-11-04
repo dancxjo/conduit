@@ -48,9 +48,17 @@ pub(crate) fn append(
         .map_err(|_| R::Contract)?
         .build();
     let json = serde_json::to_vec(&offer).map_err(|_| R::GenerationMetadata)?;
-    // Numeric byte literals also preserve non-ASCII metadata in no_std code.
-    code.push_str(&format!("static OFFER_JSON:&[u8]=&{json:?};\n"));
-    code.push_str("/// One actually initialized Back; metadata is neither a grant nor a reservation.\npub struct Initialized { back:Back }\nimpl Initialized {\npub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?})}\n/// Borrow metadata only while this initialized owner is retained.\npub fn offer_json(&self)->&[u8]{OFFER_JSON}\npub fn into_back(self)->Back{self.back}\n}\n");
+    let compressed = miniz_oxide::deflate::compress_to_vec_zlib(&json, 6);
+    let document = conduit_wire::DeflatedDocument::from_parts(&compressed, json.len())
+        .map_err(|_| R::GenerationMetadata)?;
+    let mut image = vec![0; conduit_wire::DEFLATED_DOCUMENT_HEADER_BYTES];
+    document
+        .write_header(&mut image)
+        .map_err(|_| R::GenerationMetadata)?;
+    image.extend_from_slice(&compressed);
+    // Keep only the lossless image, never a second raw catalog in firmware.
+    code.push_str(&format!("static OFFER_IMAGE:&[u8]=&{image:?};\n"));
+    code.push_str("/// One actually initialized Back; metadata is neither a grant nor a reservation.\npub struct Initialized { back:Back }\nimpl Initialized {\npub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?})}\n/// Lend a lossless document image only while this initialized owner is retained.\n/// Resolution requires the recipient's independent bounded decode workspace.\npub fn offer_image(&self)->&[u8]{OFFER_IMAGE}\npub fn into_back(self)->Back{self.back}\n}\n");
     crate::resident_binding::append(
         code,
         &offer,
