@@ -3202,3 +3202,46 @@ batch fails. Raw before/after, lint and target logs remain ignored under target/
 No firmware or installed service was changed. #6341's physical gate remains
 open; actual declared work capacity, finite command reception, equipment
 possession and admitted sensing/display execution still need integration.
+
+
+### 4 November: declare and retain the actual resident work pool
+
+Green's Host Source now uses the existing need declaration for an explicit
+kernel/cooperative-step-work@1 pool: 5000 units, enough for the five resident
+protocol nodes' independent 1000-unit requirements. A checked construction
+projection requires one unambiguous pool and refuses a bookkeeping budget above
+the declared preparation arena. Capacity and pool identity are emitted from the
+checked Source into firmware configuration, not inferred from incoming Plans or
+capability metadata. The Source still contains the same physical attachments.
+
+The membership task now retains the existing Core ResourceAdmissionOwner rather
+than a separate advertisement. That owner holds the minimal actual Host/Boot
+inventory with this finite pool and will retain local reservations across
+carrier sessions. Its immutable advertisement supplies the existing join/return
+path; the five capability documents remain immutable images, not decoded
+catalogs in the MCU. No parallel reservation ledger or execution engine was
+added. This wires construction to the concrete local accounting mechanism; no
+assignment reception, resource reservation or Play was performed yet.
+
+Two source tests pass: capacity follows authored configuration and changes its
+checked identity, while missing, ambiguous or oversized construction budgets
+refuse. Strict all-target RP2040 Make Clippy and the standalone locked Pico
+release ARM compilation check pass. The latter deliberately uses compile-only
+identity placeholders because the changed Host configuration has not been
+fabricated into a new qualified Seed. No linked footprint, runtime high-water,
+physical return or new display result is claimed. The 8192-byte bookkeeping
+value is a declared construction budget, not a measured peak or independently
+carved arena; complete Root workspace admission remains required before Play.
+
+No live service or firmware changed. The next execution path must separately
+apply Body policy and current membership/Plan scope, reserve actual complete
+workspace and equipment, and preserve retirement custody. In particular, the
+pinned receipt signer and successful command attribution are not automatically
+execution authority. #6341/#6340/#6409 acceptance remains open.
+
+Before building, inactive test executables and the unused native browser shared
+library in the owned cache were checked against running executables/mappings
+and removed, reclaiming 873519752 unique file bytes. Credentials, history,
+installed releases, source, Seeds and recovery evidence were preserved. Raw
+cleanup, test, lint and target logs remain ignored under
+target/resident-work-pool-20261104/.

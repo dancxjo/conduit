@@ -25,6 +25,8 @@ fn main() {
     let selected =
         conduit_host_rp2040::CheckedBoschHt16k33Construction::from_configuration(&checked)
             .expect("checked actual peripheral bindings");
+    let work = conduit_host_rp2040::CheckedResidentWorkPool::from_configuration(&checked)
+        .expect("explicit resident work-pool construction budget");
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     let resident = conduit_host_rp2040::checked_ht16k33_resident_library(&checked)
         .expect("checked resident protocol closure");
@@ -39,6 +41,8 @@ fn main() {
 pub const CONFIGURATION_ID:&str={configuration:?};
 pub const IMAGE_ID:&str={image_id:?};
 pub const HEAP_BYTES:usize={heap};
+pub const RESIDENT_WORK_POOL:&str={work_pool:?};
+pub const RESIDENT_WORK_UNITS:u32={work_units};
 pub const ROLE:&str="conduit.rp2040-host@1";
 pub const FREQUENCY:u32={frequency};
 pub const MAXIMUM_I2C_POLLS:core::num::NonZeroU32=core::num::NonZeroU32::new({polls}).expect("checked nonzero I2C work bound");
@@ -61,7 +65,9 @@ pub(crate) use start_local_io;
         sensor = selected.sensor_address,
         display = selected.display_address,
         brightness = selected.brightness,
-        buffers = checked.configuration().limits.buffered_bytes
+        buffers = checked.configuration().limits.buffered_bytes,
+        work_pool = work.id,
+        work_units = work.capacity_units
     );
     fs::write(out.join("host.rs"), generated).unwrap();
     fs::write(

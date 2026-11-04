@@ -42,7 +42,9 @@ pub fn append_status<const N: usize>(out: &mut heapless::String<N>) -> Result<()
 
 pub struct Membership {
     seed: Seed<'static>,
-    ad: HostAdvertisement,
+    // This existing Core owner retains the actual local pool and reservations.
+    // The compact advertisement contains no decoded capability catalog.
+    resources: conduit_core::ResourceAdmissionOwner,
     key: SigningKey,
     freshness: u64,
     receipt: Option<conduit_body::MembershipCredential>,
@@ -61,13 +63,17 @@ impl Membership {
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from(crate::config::CONFIGURATION_ID),
             bases: Vec::new(),
-            resources: Vec::new(),
+            resources: alloc::vec![conduit_core::resource_offer(
+                crate::config::RESIDENT_WORK_POOL,
+                conduit_core::COOPERATIVE_STEP_WORK_CLASS_ID,
+                crate::config::RESIDENT_WORK_UNITS,
+            )],
             capabilities: Vec::new(),
             planner_capabilities: Vec::new(),
         };
         Self {
             seed,
-            ad,
+            resources: conduit_core::ResourceAdmissionOwner::new(ad),
             key,
             freshness: 0,
             receipt: None,
@@ -91,7 +97,7 @@ impl Membership {
         let mut output = [0; LIMIT];
         let arrival = PicoAdmissionAdvertisement {
             protocol: PICO_ADMISSION_PROTOCOL,
-            advertisement: self.ad.clone(),
+            advertisement: self.resources.host().clone(),
             friendly_label: "RP2040 Host".into(),
             verifying_key: self.key.verifying_key().to_bytes().to_vec(),
             freshness_sequence: self.freshness,
@@ -103,9 +109,9 @@ impl Membership {
             "spawn-invitation-v1",
             provision.body_id,
             provision.invitation_id,
-            self.ad.host_id.as_str(),
-            self.ad.boot_id.as_str(),
-            self.ad.offer_generation,
+            self.resources.host().host_id.as_str(),
+            self.resources.host().boot_id.as_str(),
+            self.resources.host().offer_generation,
             &provision.nonce,
             provision.expires_at_millis,
         );
@@ -116,9 +122,9 @@ impl Membership {
             image_id: provision.image_id,
             invitation_id: provision.invitation_id,
             body_id: provision.body_id,
-            host_id: self.ad.host_id.as_str(),
-            boot_id: self.ad.boot_id.as_str(),
-            offer_generation: self.ad.offer_generation.0,
+            host_id: self.resources.host().host_id.as_str(),
+            boot_id: self.resources.host().boot_id.as_str(),
+            offer_generation: self.resources.host().offer_generation.0,
             nonce: provision.nonce,
             signature: &signature,
         };
@@ -146,8 +152,12 @@ impl Membership {
         if used != raw_receipt.len() {
             return Err(());
         }
-        validate_attested_admission_receipt_basis(&receipt, &self.seed.body_id, &self.ad)
-            .map_err(|_| ())?;
+        validate_attested_admission_receipt_basis(
+            &receipt,
+            &self.seed.body_id,
+            self.resources.host(),
+        )
+        .map_err(|_| ())?;
         self.receipt = Some(receipt.credential);
         retain_receipt_digest(raw_receipt);
         input.fill(0);

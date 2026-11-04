@@ -36,7 +36,7 @@ impl Membership {
             hashes.push(Sha256::digest(bytes).into());
         }
         let projection = HostAdvertisementImageProjection {
-            context: self.ad.clone(),
+            context: self.resources.host().clone(),
             capability_images: hashes,
         };
         projection.validate().map_err(|_| ())?;
@@ -75,9 +75,9 @@ impl Membership {
             || !challenge.matches_member(
                 retained.body_id.as_str(),
                 retained.part_id.as_str(),
-                self.ad.host_id.as_str(),
-                self.ad.boot_id.as_str(),
-                self.ad.offer_generation.0,
+                self.resources.host().host_id.as_str(),
+                self.resources.host().boot_id.as_str(),
+                self.resources.host().offer_generation.0,
             )
         {
             return Err(());
