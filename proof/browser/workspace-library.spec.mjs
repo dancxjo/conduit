@@ -72,6 +72,10 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await page.screenshot({ path: testInfo.outputPath("workspace-plot-library.png"), fullPage: true });
   await page.getByRole("textbox", { name: "Find a plot", exact: true }).fill("desk");
   await card(page, "Desk Telegraph").getByRole("button", { name: "Use", exact: true }).click();
+  // Installing a new workset retires and prepares Plays; this is not a hot
+  // interaction with the already Playing plot. Keep its finite preparation
+  // budget separate while retaining the following identity/input assertions.
+  await waitForWorkspacePreparation(page, { surfaceTitle: "Desk Telegraph" });
   await expect(page.locator("#surface-title")).toHaveText("Desk Telegraph");
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   const installed = await current(page);

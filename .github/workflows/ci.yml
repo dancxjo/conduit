@@ -298,7 +298,18 @@ jobs:
           TARGET: ${{ matrix.id }}
           SHA: ${{ inputs.sha }}
           CONDUIT_HOSTED_CACHE_CONFIG: ${{ steps.hosted-cache-seed.outputs.hosted-cache-config }}
-        run: cargo xtask ci pipeline target "$TARGET" "$SHA"
+        run: |
+          if test "$TARGET" = browser; then
+            # Leave room within the 90-minute job for failure diagnostics.
+            # A job-level timeout can cancel the runner before upload runs.
+            mkdir -p target/diagnostics
+            set -o pipefail
+            timeout --signal=TERM --kill-after=30s 80m \
+              cargo xtask ci pipeline target "$TARGET" "$SHA" 2>&1 \
+              | tee "target/diagnostics/$TARGET.log"
+          else
+            cargo xtask ci pipeline target "$TARGET" "$SHA"
+          fi
       - name: Seal inactive managed compiler objects separately from proof
         if: matrix.id == 'hosted-linux'
         id: hosted-seed
@@ -332,6 +343,7 @@ jobs:
         with:
           name: diagnostics-${{ matrix.id }}
           path: |
+            target/diagnostics/${{ matrix.id }}.log
             proof/browser/test-results/
             target/pipeline/${{ matrix.id }}/**/*.json
             target/conduitos/**/*.log
