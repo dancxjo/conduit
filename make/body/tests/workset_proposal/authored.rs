@@ -1,5 +1,5 @@
 use super::*;
-fn program(entry: &str) -> PortableExpressionProgram {
+fn declaration() -> CheckedSyntaxDocument {
     let check_types = check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../../semantics/language/source_check_info.conduit"
@@ -27,13 +27,16 @@ fn program(entry: &str) -> PortableExpressionProgram {
             )
             .unwrap();
     }
-    let document = check_syntax_document(
+    check_syntax_document(
         &parse_syntax_document(include_str!(
             "../../../../plots/body-workset/propose.conduit"
         )),
         &startup,
     )
-    .unwrap();
+    .unwrap()
+}
+fn program(entry: &str) -> PortableExpressionProgram {
+    let document = declaration();
     let expanded =
         expand_canonical_plot_for_authoring(&document, entry, &ProfileCatalog::new()).unwrap();
     let [gear] = expanded.expanded.gears.as_slice() else {
@@ -278,6 +281,28 @@ fn compare(output: &[u8], expected: &BodyWorksetProposalInfoV1) {
         assert_eq!(tag, "none");
     }
 }
+fn add_input(
+    add: &PortableExpressionProgram,
+    observed: &Body,
+    a: &ResidentPlot,
+    checked: &SourceCheckInfoV1,
+) -> Vec<u8> {
+    record(
+        &add.input_type,
+        vec![
+            (
+                "observed",
+                observation(&field_type(&add.input_type, "observed"), observed, a),
+            ),
+            (
+                "checked",
+                checked_source(&field_type(&add.input_type, "checked"), checked),
+            ),
+        ],
+    )
+    .canonical_bytes()
+    .unwrap()
+}
 #[test]
 fn checked_authored_plots_emit_addition_and_later_removal_as_typed_info() {
     let a = resident(&report("first"));
@@ -286,21 +311,7 @@ fn checked_authored_plots_emit_addition_and_later_removal_as_typed_info() {
     let observed = body(&a, 1);
     let before = observed.clone();
     let add = program("propose-add");
-    let input = record(
-        &add.input_type,
-        vec![
-            (
-                "observed",
-                observation(&field_type(&add.input_type, "observed"), &observed, &a),
-            ),
-            (
-                "checked",
-                checked_source(&field_type(&add.input_type, "checked"), &checked),
-            ),
-        ],
-    )
-    .canonical_bytes()
-    .unwrap();
+    let input = add_input(&add, &observed, &a, &checked);
     let expected = propose_checked_workset(
         &observed,
         &observed.body_id,
@@ -342,3 +353,6 @@ fn checked_authored_plots_emit_addition_and_later_removal_as_typed_info() {
     compare(&remove.evaluate(&input).unwrap(), &expected);
     assert_eq!(later, prior);
 }
+
+#[path = "native.rs"]
+mod native;
