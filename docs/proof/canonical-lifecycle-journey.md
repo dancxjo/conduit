@@ -1986,3 +1986,37 @@ physical sampling/display Play. Green's installed firmware remains unchanged.
 Two inactive Cargo-fingerprinted ConduitOS unit-test executables were retired
 after process ownership checks, recovering about 1.6 GiB. Their hashes and test
 logs remain retained; installed executables and qualified device images remain.
+
+### Resident fixed-scalar computation images (4 November 2026)
+
+[PR #6745](https://github.com/dancxjo/conduit/pull/6745) separates the existing
+fixed-scalar profile's authoring-time preparation from resident execution. The
+construction helper emits a Rust instruction array, shared literal slices and
+the exact canonical program digest. The destination borrows those instructions
+and executes the same scalar tape loop into caller-owned output, with no Source
+decoding or instruction/result heap allocation. Static lifetime does not prove
+physical flash placement, and the digest does not grant execution authority.
+
+The constructor checks Types, literal geometry, operand/destination bounds,
+forward-only control flow, definite initialization on every branch and consumed
+Move sources before execution. Its forward analysis uses a 129-byte state array;
+the instruction limit remains 128 and execution uses the existing scratch
+profiles. No native-law witness or arithmetic proof hint is silently erased.
+
+On isolated delivery head `dd5948d52c`, nineteen tests and strict owning-library/
+image-test Clippy pass, together with formatting and diff hygiene. Tests compile
+generated modules both as a native executable and a `no_std` Rust library,
+checking Source bytes/refusals, signed overflow, lazy branches, exact digests,
+literal sharing and allocation-free resident construction/evaluation. This is a
+fixed integer/Bool library component. Ordinary Make selection, installation as
+a kernel Back, complete structured protocol images, MCU footprint and physical
+workset admission remain unfinished. No MCU firmware was changed.
+
+Candidate also exposed a regression in #6743 that the initial scoped tests missed:
+opaque resource-reference leaves need raw-leaf framing through the structural
+evaluator. Repair head `3d950076ec` restores that framing using the same bounded
+append, without reintroducing a selection scratch buffer. Forty scoped tests
+across nine targets pass locally, including exact reference/expiry equality and
+new allocation-free dynamic reference selection/reuse; strict Clippy passes.
+The updated Candidate remains a separate acceptance gate. No reference identity
+field, validator or storage ceiling was weakened.
