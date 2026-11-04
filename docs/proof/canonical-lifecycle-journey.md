@@ -2612,8 +2612,10 @@ The ordinary checked-Source planning proof exercises a two-entry library with
 the same program under distinct temporal Kinds. Selecting the wrong Kind and a
 forged active Play refuses without losing either owner. Selecting the right
 entry consumes it once, refuses a second take, and leaves the other owner
-usable. Initialization, selection and metadata inspection allocate no heap in
-the probe. The actual equipment-selected five-entry native/no_std test still
+usable. After the remaining library is consumed, the selected Back runs both
+frames through the existing fixed-kernel parity proof. Initialization, selection
+and metadata inspection allocate no heap in the probe. The actual
+equipment-selected five-entry native/no_std test still
 passes, as does strict all-target Clippy for both owning packages. These three
 focused tests are component proof; no firmware or live service changed.
 

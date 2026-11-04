@@ -1,5 +1,5 @@
 //! A selected owner leaves the library once; unrelated owners remain usable.
-pub fn run(assignment: &crate::support::Assignment) {
+pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::Back {
     use conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal as E;
     let active = assignment.active();
     let (mut library, cost) =
@@ -57,4 +57,5 @@ pub fn run(assignment: &crate::support::Assignment) {
     let (taken, remaining) = library.into_backs();
     assert!(taken.is_none());
     assert!(remaining.unwrap().required_step_fuel() <= 1002);
+    back
 }

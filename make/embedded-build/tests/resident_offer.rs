@@ -65,8 +65,8 @@ fn main(){{
     assert_eq!(node,0);assert!(owner.is_none());
     assert!(matches!(image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)),Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
     assert!(back.required_step_fuel()<=assignment.tables.nodes[0].maximum_step_fuel);
-    library_checks::run(&assignment);
-    support_kernel::run(back,assignment);
+    let library_back=library_checks::run(&assignment);
+    support_kernel::run(library_back,assignment);
 
 }}
 "#,
