@@ -1366,3 +1366,29 @@ project helper/rules with `targets/rp2040/tools/install-pico-headless-flash.sh`
 and applying them to the device. The Seed's invitation must be fresh at use.
 Do not bypass the full-flash read gate or infer new membership from preparation.
 Compact evidence: `proof/evidence/creche/verified-embedded-seed-preparation-20261103.json`.
+
+### 3 November: repair the native Mask delivery gate and preserve Make identity
+
+PR #6727 is refreshed onto current dev and repaired at `242a9a8314`. Its failing
+Host checks exposed an inconsistent checked representation: stable configuration
+identity and canonical Source already sorted declaration sets, but the checked
+object retained the original order. Checking, identity encoding and rendering
+now share the same normalization. Ordered implementation preferences inside each
+Base remain unchanged. The native fixture's expected configuration/profile hashes
+also now include its newly declared finite Show and managed-store resources.
+
+All 82 Host Make tests and three graphical composition tests pass on the repaired
+PR branch. The exact source fix is absorbed into this journey at `ea978145e7`;
+the integrated tree passes 87 Host Make tests and all 11 joining-package tests.
+The first integrated package run encountered a stale Core artifact after switching
+worktrees in the shared cache. Forcing Core to rebuild resolved the missing-method
+compile failure; no method stub, suppression or contract change was added. The
+active worktree contains current dev ancestry, with no additional tree change.
+
+Dev Integration `41739706738` remains active. Its terminal ConduitOS x86 job
+`126279248873` reports runner disk exhaustion before producing step results;
+its logs are unavailable, and the check annotation supplies the infrastructure
+failure. An exact-job retry request was refused because sibling jobs remain
+running. Wait for that run to finish before retrying this failed job; do not
+cancel or restart healthy work or infer a product test result from the runner
+failure. No new device deployment, membership or physical Show is claimed here.
