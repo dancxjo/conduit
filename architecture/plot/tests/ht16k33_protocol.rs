@@ -96,12 +96,29 @@ impl Fixture {
     }
     fn evaluate(&mut self, name: &str, value: &Value) -> Value {
         let bytes = value.canonical_bytes().unwrap();
+        let schema = self.inputs[name].canonical_bytes().unwrap();
         let (result, allocations) = allocation_probe::observe(|| {
-            self.evaluators
+            let validator =
+                conduit_core::BorrowedStructuredValueValidator::new(&schema, bytes.len()).unwrap();
+            let input = validator.validate(&bytes).unwrap();
+            assert_eq!(validator.validate_node(input.value_node()).unwrap(), input);
+            let result = self
+                .evaluators
                 .get_mut(name)
                 .unwrap()
                 .evaluate(&bytes)
-                .unwrap()
+                .unwrap();
+            let output = conduit_core::validate_canonical_structured_value(result).unwrap();
+            let output_validator = conduit_core::BorrowedStructuredValueValidator::new(
+                output.type_bytes(),
+                result.len(),
+            )
+            .unwrap();
+            assert_eq!(
+                output_validator.validate_node(output.value_node()).unwrap(),
+                output
+            );
+            result
         });
         assert_eq!(allocations.allocations, 0, "{name}: {allocations:?}");
         assert_eq!(allocations.reallocations, 0, "{name}: {allocations:?}");
