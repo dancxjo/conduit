@@ -12,6 +12,7 @@ export const UNIT_SHARDS = Object.freeze([
 // complete integration keep the full target matrix independently.
 export function candidateBrowserProofRequired(paths) {
   return paths.some(path => /^(?:site|proof\/browser|targets\/browser)\//.test(path)
+    || path === '.github/workflows/ci.yml'
     || path === 'tools/ci/pipeline/targets/browser.mjs');
 }
 

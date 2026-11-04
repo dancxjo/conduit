@@ -137,7 +137,7 @@ The same relative hot spots recur in the other successful runs. They
 are measured serial occupancy estimates, not isolated per-spec benchmarks.
 
 Candidate specifically selects the real browser target when
-`tools/ci/pipeline/targets/browser.mjs` changes. The previous scanner could
+`tools/ci/pipeline/targets/browser.mjs` or the shared CI workflow changes. The previous scanner could
 run only CI preflight/admission for a browser harness edit and leave its own
 Chromium product path entirely unexecuted; the new routing has a focused
 regression check in `proof/ci/pipeline-plan.spec.mjs`.
