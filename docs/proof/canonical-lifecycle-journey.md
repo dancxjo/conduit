@@ -3465,3 +3465,61 @@ CI observation confirms #6754's admission job runs actual lint, affected tests
 and smoke even though the separate unit/target matrices are skipped. Its current
 job is live; merged-source Integration is also live. Elapsed time has not been
 treated as failure and neither workflow was restarted. No live device changed.
+
+
+### 4 November: actual Source-check Host Calls and accepted workset planning
+
+The std reference now specializes an explicitly finite set (at most four) of
+immutable, authorized Source/context requests during preparation. Actual Rust
+checking/expansion and S1 Native admission finish there. The existing selected
+native Source slot, Root registry, independent grant, resource binding and kernel
+HostCallBack perform the subsequent read. The provider retains only bounded
+request/report packets; its read compares and copies bytes without compiler,
+IO, allocation, callbacks, worker or scheduler. The separately admitted compiler
+workspace is not included in the reported retained packet payload size.
+
+Three integration tests pass against the production std Host library. The
+checked package-owned check-source Plot reads reports for the repository's real
+Hello Source and a Unicode-containing invalid Source. Output equals the direct
+canonical Rust projection, arrives under an actual kernel commit witness, and
+has actual HostCallRequested/Completed signs. A copied grant is refused before
+output; correctly authorized runs have distinct actual Plays and unchanged
+Value-store capacities. Success, stale request and short-output provider reads
+measure zero allocations/reallocations. Preparation pressure and stale Source
+refuse. Seven related proposal conformance tests also pass. Strict all-target
+std Host and Body Make Clippy, targeted formatting, taxonomy and evidence guard
+pass. These are CPU/library results, not installed product or physical proof.
+S2 still needs complete workspace/operation admission, typed refusal and
+cancellation/provider-loss acceptance. No Source is adopted or device updated.
+
+Two preparation errors were corrected without weakening contracts. Native
+identity is not a Port value kind: the operation now uses Core's existing
+structured-value profile. Reusing one Cargo target across checkouts also exposed
+stale Core and Kernel metadata despite newer exports in the actual Source.
+Current-checkout Rust timestamps were refreshed (8,176 files; no content edits),
+and that target is now exclusive to this checkout. Cross-checkout local results
+remain supplementary; exact CI is the delivery gate. Independent clean/exact
+checkout targets are required for future qualification.
+
+Linking unrelated std helper binaries exhausted disk headroom. With no matching
+active package executables, package-native cleanup removed 3,076 regenerable
+outputs (10.1 GiB). The unchanged production-Host integration harness now belongs
+to Body Make's existing integration test package, avoiding those unrelated
+binary links while preserving the actual std library and proof boundary.
+Source, credentials, history, installed products and unique logs remain.
+
+Baseline Integration 41918767480 succeeded on d61742a91e. Exact Candidate #6755
+passed and merged as dev 6602c6378d7aaeec986140c629d08f4548312252; this branch
+absorbs that accepted change. The only integration merge differences retained
+are its existing Crèche/member-carrier additions, checked against accepted dev.
+Merged-source Integration/publication for the new dev remain separate gates.
+
+#6754's prior exact Candidate completed affected Rust checks but failed taxonomy:
+its explicit-context examples had been placed under the public reviewed Plot
+root. They now live with their actual Body Make conformance consumer rather
+than receiving a guard exception or false inventory promotion. All seven
+repository-taxonomy tests pass on that focused checkout. Updated #6754 head
+70bd9aa42bf6caae9c0199bd9d683e717aa7f7cf includes accepted dev and awaits fresh
+Candidate. The incomplete S2 check-source example is likewise package-owned;
+its promoted public authoring/installation route is not claimed. Full lifecycle,
+MCU execution, durable history, shared Face and physical acceptance remain open.
