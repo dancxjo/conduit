@@ -1072,7 +1072,7 @@ enum Request {
         advertisement: Box<HostAdvertisement>,
         line: conduit_core::LineId,
         security: conduit_core::LineSecurity,
-        maximum_millis: u32,
+        expires_at_millis: u64,
         maximum_frames: u32,
     },
     BodyMemberCarrierComplete {
@@ -2311,7 +2311,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             advertisement,
             line,
             security,
-            maximum_millis,
+            expires_at_millis,
             maximum_frames,
             ..
         } if protocol == PROTOCOL => runtime
@@ -2320,7 +2320,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 &advertisement,
                 line,
                 security,
-                maximum_millis,
+                expires_at_millis,
                 maximum_frames,
             )
             .map(

@@ -13,7 +13,7 @@ fn begin(
             ad,
             "fixture/line".into(),
             LineSecurity::AuthenticatedEncrypted,
-            60_000,
+            crate::durable_host::current_time_millis().unwrap() + 60_000,
             128,
         )
         .unwrap()
@@ -39,7 +39,7 @@ fn current_member_carrier_authentication_and_retirement_do_not_readmit_or_withdr
                 &ad,
                 "other/line".into(),
                 LineSecurity::AuthenticatedEncrypted,
-                60_000,
+                crate::durable_host::current_time_millis().unwrap() + 60_000,
                 128
             )
             .is_err());
@@ -66,7 +66,7 @@ fn current_member_carrier_authentication_and_retirement_do_not_readmit_or_withdr
                 &ad,
                 "other/line".into(),
                 LineSecurity::AuthenticatedEncrypted,
-                60_000,
+                crate::durable_host::current_time_millis().unwrap() + 60_000,
                 128
             )
             .is_err());
@@ -111,7 +111,7 @@ fn bad_exact_proof_consumes_issuance_and_withdrawal_prevents_completion() {
             &ad,
             "fixture/line".into(),
             LineSecurity::AuthenticatedEncrypted,
-            60_000,
+            crate::durable_host::current_time_millis().unwrap() + 60_000,
             128
         )
         .is_err());
@@ -250,7 +250,7 @@ fn interrupted_challenge_retirement_releases_only_its_exact_pending_slot() {
             &ad,
             "fixture/line".into(),
             LineSecurity::AuthenticatedEncrypted,
-            60_000,
+            crate::durable_host::current_time_millis().unwrap() + 60_000,
             128,
         )
         .is_err());
@@ -357,5 +357,51 @@ fn receipt_attestation_requires_commit_exact_offer_and_pinned_owner() {
     assert!(owner
         .attest_current_member_receipt(&changed, &peer)
         .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn carrier_preparation_preserves_selected_absolute_expiry() {
+    let (mut owner, root) = owner_fixture();
+    let (credential, key, ad) = admit_with_key(&mut owner, &root, "host/deadline-carrier");
+    let expiry = crate::durable_host::current_time_millis().unwrap() + 30_000;
+    // Model actor scheduling after the route selected its deadline.
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    let (challenge, _) = owner
+        .begin_current_member_carrier(
+            &credential,
+            &ad,
+            "fixture/deadline".into(),
+            LineSecurity::AuthenticatedEncrypted,
+            expiry,
+            128,
+        )
+        .unwrap();
+    assert_eq!(challenge.expires_at_millis, expiry);
+    let before = owner.session.evidence().clone();
+    // Invalid deadlines neither replace nor retire an existing valid issuance.
+    for invalid in [
+        0,
+        crate::durable_host::current_time_millis().unwrap() - 1,
+        crate::durable_host::current_time_millis().unwrap() + 3_660_000,
+    ] {
+        assert!(owner
+            .begin_current_member_carrier(
+                &credential,
+                &ad,
+                "fixture/invalid-deadline".into(),
+                LineSecurity::AuthenticatedEncrypted,
+                invalid,
+                128
+            )
+            .is_err());
+    }
+    owner
+        .complete_current_member_carrier(&challenge, signature(&challenge, &key))
+        .unwrap();
+    assert_eq!(owner.session.evidence(), &before);
+    owner
+        .retire_current_member_carrier(&challenge.session_id)
+        .unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }

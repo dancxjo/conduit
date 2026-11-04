@@ -82,9 +82,12 @@ impl Owner {
         advertisement: &HostAdvertisement,
         line: LineId,
         security: LineSecurity,
-        maximum_millis: u32,
+        expires_at_millis: u64,
         maximum_frames: u32,
     ) -> Result<(FederationChallenge, [u8; 64]), String> {
+        let started = Instant::now();
+        let now = crate::durable_host::current_time_millis()?;
+        let maximum_millis = expires_at_millis.saturating_sub(now);
         if !(1..=3_600_000).contains(&maximum_millis)
             || !(1..=65_536).contains(&maximum_frames)
             || line.as_str().is_empty()
@@ -106,8 +109,6 @@ impl Owner {
                 advertisement,
             )
             .map_err(|e| format!("current member: {e:?}"))?;
-        let started = Instant::now();
-        let now = crate::durable_host::current_time_millis()?;
         let active_current = self
             .member_carrier
             .as_ref()
@@ -163,9 +164,7 @@ impl Owner {
             initiator: witness.peer().clone(),
             responder: receiver.clone(),
             nonce,
-            expires_at_millis: now
-                .checked_add(u64::from(maximum_millis))
-                .ok_or("carrier expiry overflow")?,
+            expires_at_millis,
             maximum_frames,
         };
         let mut slot = CurrentMemberChallengeSlot::default();
@@ -183,13 +182,14 @@ impl Owner {
             .as_ref()
             .ok_or("carrier key absent")?
             .sign(&transcript);
+        let session_deadline = started + Duration::from_millis(maximum_millis);
         custody.pending = Some(Pending {
             slot,
             challenge: challenge.clone(),
             signature,
             member,
-            deadline: started + Duration::from_secs(10),
-            session_deadline: started + Duration::from_millis(u64::from(maximum_millis)),
+            deadline: (started + Duration::from_secs(10)).min(session_deadline),
+            session_deadline,
         });
         Ok((challenge, signature))
     }

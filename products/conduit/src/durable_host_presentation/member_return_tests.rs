@@ -247,14 +247,14 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
                 &current_encounter,
                 &mut line,
                 frame,
-                |credential, ad, label, millis| controller
+                |credential, ad, label, expires_at| controller
                     .borrow_mut()
                     .begin_current_member_carrier(
                         &credential,
                         &ad,
                         label,
                         conduit_core::LineSecurity::AuthenticatedEncrypted,
-                        millis,
+                        expires_at,
                         128
                     ),
                 |challenge, signature| controller
@@ -342,13 +342,16 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
                 &current_encounter,
                 &mut line,
                 frame,
-                |credential, ad, label, millis| {
+                |credential, ad, label, expires_at| {
+                    // Force route-to-owner scheduling delay. A relative duration
+                    // used to extend the signed expiry beyond the selected pin.
+                    std::thread::sleep(Duration::from_millis(5));
                     controller.borrow_mut().begin_current_member_carrier(
                         &credential,
                         &ad,
                         label,
                         conduit_core::LineSecurity::AuthenticatedEncrypted,
-                        millis,
+                        expires_at,
                         128,
                     )
                 },
@@ -433,13 +436,16 @@ fn signed_return_recovers_lost_committed_reply_over_real_pinned_tls_once() {
                 &current_encounter,
                 &mut line,
                 frame,
-                |credential, ad, label, millis| {
+                |credential, ad, label, expires_at| {
+                    // Force route-to-owner scheduling delay. A relative duration
+                    // used to extend the signed expiry beyond the selected pin.
+                    std::thread::sleep(Duration::from_millis(5));
                     controller.borrow_mut().begin_current_member_carrier(
                         &credential,
                         &ad,
                         label,
                         conduit_core::LineSecurity::AuthenticatedEncrypted,
-                        millis,
+                        expires_at,
                         128,
                     )
                 },

@@ -34,13 +34,13 @@ pub(super) fn serve(
         encounter,
         line,
         frame,
-        |credential, ad, label, millis| {
+        |credential, ad, label, expires_at| {
             crate::durable_host_control::begin_carrier(
                 state,
                 credential,
                 ad,
                 label,
-                millis,
+                expires_at,
                 SESSION_FRAMES,
             )
         },
@@ -59,7 +59,7 @@ pub(crate) fn serve_with(
         MembershipCredential,
         HostAdvertisement,
         LineId,
-        u32,
+        u64,
     ) -> Result<(FederationChallenge, [u8; 64]), String>,
     complete: impl FnOnce(FederationChallenge, [u8; 64]) -> Result<FederationInspection, String>,
     retire: impl FnOnce(LinkBindingId) -> Result<(), String>,
@@ -88,17 +88,22 @@ pub(crate) fn serve_with(
     {
         return Err("current-member carrier differs from selected scope".into());
     }
-    let millis = encounter
-        .candidate
-        .expires_at_millis
-        .saturating_sub(now)
-        .min(u64::from(SESSION_MILLIS)) as u32;
+    // Carry the selected absolute deadline through actor scheduling; a later
+    // owner clock sample must never replenish the remaining transport lifetime.
+    let expires_at = encounter.candidate.expires_at_millis.min(
+        now.checked_add(u64::from(SESSION_MILLIS))
+            .ok_or("carrier expiry overflow")?,
+    );
     let member = crate::durable_host::owner::MemberPresentationBasis::new(
         credential.clone(),
         (*advertisement).clone(),
     )?;
-    let (challenge, signature) =
-        begin(credential, *advertisement, carrier_label(encounter), millis)?;
+    let (challenge, signature) = begin(
+        credential,
+        *advertisement,
+        carrier_label(encounter),
+        expires_at,
+    )?;
     let session = challenge.session_id.clone();
     // Once issued, every failed carrier exchange must release its exact slot.
     // A disconnected or malformed peer cannot strand pending custody.

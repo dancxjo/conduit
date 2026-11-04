@@ -20,7 +20,7 @@ impl DurableHostRuntime {
         advertisement: &HostAdvertisement,
         line: LineId,
         security: LineSecurity,
-        maximum_millis: u32,
+        expires_at_millis: u64,
         maximum_frames: u32,
     ) -> Result<(FederationChallenge, [u8; 64]), String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
@@ -31,7 +31,7 @@ impl DurableHostRuntime {
             advertisement,
             line,
             security,
-            maximum_millis,
+            expires_at_millis,
             maximum_frames,
         )
     }
@@ -155,7 +155,7 @@ mod tests {
                 advertisement: Box::new(ad),
                 line: "fixture/line".into(),
                 security: LineSecurity::AuthenticatedEncrypted,
-                maximum_millis: 100,
+                expires_at_millis: 100,
                 maximum_frames: 2,
             },
             Request::BodyMemberCarrierComplete {
@@ -237,7 +237,7 @@ pub(crate) fn begin_carrier(
     credential: MembershipCredential,
     advertisement: HostAdvertisement,
     line: LineId,
-    maximum_millis: u32,
+    expires_at_millis: u64,
     maximum_frames: u32,
 ) -> Result<(FederationChallenge, [u8; 64]), String> {
     match exchange(state, |token| Request::BodyMemberCarrierBegin {
@@ -247,7 +247,7 @@ pub(crate) fn begin_carrier(
         advertisement: Box::new(advertisement),
         line,
         security: LineSecurity::AuthenticatedEncrypted,
-        maximum_millis,
+        expires_at_millis,
         maximum_frames,
     })? {
         Response::BodyMemberCarrierChallenge {
