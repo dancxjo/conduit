@@ -14,7 +14,9 @@ use crate::usb_cdc::NativePathCdcLine;
 mod basis;
 pub use basis::PicoSpawnAdmissionBasis;
 mod member_return;
-pub use member_return::{MemberReturnPresentation, PicoMemberReturnBasis};
+mod offer_images;
+pub use member_return::{MemberReturnObservation, MemberReturnPresentation, PicoMemberReturnBasis};
+pub use offer_images::resolve_member_offer_images;
 
 #[derive(Debug)]
 pub enum PicoSpawnTransportError {

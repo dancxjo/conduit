@@ -1,6 +1,6 @@
 //! Owner-authorized USB carriage of existing canonical Part return.
 use super::{bounded_read, membership_receipt_custody};
-use conduit_body::{MemberReturnAcknowledgement, MemberReturnProofDocument};
+use conduit_body::{MemberReturnImageAcknowledgement, MemberReturnProofDocument};
 use conduit_std_host::pico_spawn::{PicoMemberReturnBasis, PicoSpawnSocket};
 use std::{path::Path, time::Duration};
 pub(crate) fn return_usb(
@@ -41,23 +41,26 @@ pub(crate) fn return_usb(
         MemberReturnProofDocument::encode(proof),
     )
     .map_err(|e| format!("owner return commit (control timeout leaves outcome unknown): {e}"))?;
-    let ack = MemberReturnAcknowledgement::new(credential, observed.advertisement.clone());
-    let signed =
-        crate::durable_host_control::attest_return_acknowledgement(state, ack, basis.owner.clone())
-            .map_err(|e| {
-                format!("member returned; owner acknowledgement attestation failed: {e}")
-            })?;
+    let ack =
+        MemberReturnImageAcknowledgement::new(credential, observed.presentation.projection.clone());
+    let signed = crate::durable_host_control::attest_image_return_acknowledgement(
+        state,
+        ack,
+        observed.images,
+        basis.owner.clone(),
+    )
+    .map_err(|e| format!("member returned; owner acknowledgement attestation failed: {e}"))?;
     signed
-        .verify_return(
+        .verify_image_return(
             &basis.owner,
             &basis.member_verifying_key,
             &basis.credential,
-            &observed.advertisement,
+            &observed.presentation.projection,
         )
         .map_err(|e| format!("member returned; signed acknowledgement refused: {e:?}"))?;
     membership_receipt_custody::retain(&mut custody, &signed)?;
     socket
-        .deliver_member_return(&signed, &basis, &observed.advertisement, timeout)
+        .deliver_member_return(&signed, &basis, &observed.presentation.projection, timeout)
         .map_err(|e| {
             format!("return committed and receipt saved; USB delivery uncertain: {e:?}")
         })?;

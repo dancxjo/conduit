@@ -35,18 +35,28 @@ fn fixture() -> (
 }
 #[test]
 fn presentation_never_substitutes_part_profile_or_retained_credential() {
-    let (basis, ad, _) = fixture();
+    let (basis, ad, key) = fixture();
+    let projection = conduit_body::HostAdvertisementImageProjection {
+        context: ad,
+        capability_images: vec![],
+    };
+    let signature = key
+        .sign(
+            &conduit_body::member_return_image_transcript(&basis.credential, &projection).unwrap(),
+        )
+        .to_vec();
     let mut presentation = MemberReturnPresentation {
+        signature,
         kind: "Advertise".into(),
-        schema: MEMBER_RETURN_SCHEMA.into(),
+        schema: MEMBER_RETURN_IMAGES_SCHEMA.into(),
         credential: basis.credential.clone(),
-        advertisement: ad,
+        projection,
     };
     basis.check_presentation(&presentation).unwrap();
     presentation.credential.part_id = id("part/other");
     assert!(basis.check_presentation(&presentation).is_err());
     presentation.credential = basis.credential.clone();
-    presentation.advertisement.profile = "profile/other".into();
+    presentation.projection.context.profile = "profile/other".into();
     assert!(basis.check_presentation(&presentation).is_err());
     let mut wrong = basis;
     wrong.owner.verifying_key = [0; 32];

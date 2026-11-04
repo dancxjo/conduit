@@ -66,7 +66,7 @@ conduit-std-offers = { path = "offers", features = ["speech"] }
 conduit-time = { path = "../../semantics/time", features = ["kernel-step"] }
 conduit-text = { path = "../../semantics/text", default-features = false }
 conduit-tongues = { path = "../../semantics/tongues" }
-conduit-wire = { path = "../../architecture/wire" }
+conduit-wire = { path = "../../architecture/wire", features = ["offer-images"] }
 conduit-web = { path = "../../semantics/web", default-features = false }
 tungstenite = "0.30.0"
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }

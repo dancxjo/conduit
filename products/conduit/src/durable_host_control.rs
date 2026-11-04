@@ -141,8 +141,9 @@ pub(crate) use body::{
     submit_local_face_interaction_until,
 };
 pub(crate) use body::{
-    attest_admission_receipt, attest_return_acknowledgement, begin_carrier, carrier_mask_route,
-    carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence, retire_carrier,
+    attest_admission_receipt, attest_image_return_acknowledgement, begin_carrier,
+    carrier_mask_route, carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence,
+    retire_carrier,
 };
 pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
 pub(crate) use body::{

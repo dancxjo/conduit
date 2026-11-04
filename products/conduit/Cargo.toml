@@ -70,6 +70,7 @@ socket2 = "0.6"
 conduit-linux-display = { path = "../../targets/std/display", optional = true, features = ["sdl"] }
 
 [dev-dependencies]
+miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduitos = { path = "../../targets/conduitos", features = ["native-compositor"] }
 rcgen = "0.14"

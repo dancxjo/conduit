@@ -2937,3 +2937,70 @@ Green's unchanged installed firmware reports 301 successful samples and 4,514
 acknowledged diagnostic redraws with no sensor/display error. This does not
 prove an ordinary admitted sampling/display Play, new firmware residency,
 exclusive Root workspace retirement or same-Boot reassignment.
+
+
+### Wire the compact catalog into retained Part return (4 November 2026)
+
+The RP2040 USB return route now uses an explicit
+`conduit.body/member-return-images@1` presentation/acknowledgement profile,
+selected by `CONDUIT_MEMBER_RETURN_IMAGES@1`. Its projection contains exact
+non-capability advertisement fields and ordered SHA-256 image references;
+inline capabilities, duplicate references and more than sixteen images refuse.
+The projection is not an ordinary HostAdvertisement. The returning member signs
+the complete credential/context/reference projection with its retained key;
+the ordinary fresh Part-return challenge and proof remain separately required.
+
+Firmware lends images only from its retained initialized inventory. It hashes
+and emits them through existing bounded CBD1 frames, without decoding full
+contracts. The hosted receiver checks the externally supplied member key and
+retained credential/profile, collects bounded image documents, verifies their
+exact hashes and resolves complete typed offers. Its distinct local preparation
+profile permits 32 KiB per image, 24 KiB aggregate images, 256 KiB per expanded
+offer and 512 KiB aggregate expanded metadata, with sixteen chunks per image.
+These are explicit limits for this new image carriage, not enlarged limits for
+the existing advertisement codec or signed-receipt profile.
+
+The ordinary USB return command still commits through protected owner control.
+The owner receipt operation independently resolves the supplied images, then
+uses its existing current-member, exact observed-offer, latest-credential and
+independently pinned owner checks before signing. The returned compact receipt
+contains the exact projection; it does not copy the expanded catalog. The MCU
+checks its pinned owner signature and exact locally retained projection before
+retaining the new credential/receipt digest. Membership, discovery, decoded
+contracts, reservations and execution authority remain separate. Native TLS
+return keeps its existing full-advertisement receipt semantics; the new USB
+profile does not silently reinterpret those bytes or fall back on refusal.
+
+All 66 Body unit tests pass, including signature substitution/order/context
+checks and sixteen-reference receipt round trips between the constrained and
+hosted JSON codecs within the existing 4,096-byte frame. Six selected real
+product return tests pass, including the new owner test that refuses precommit
+attestation, corrupted images, valid but unobserved replacement offers, missing
+images and post-withdrawal signing, while preserving the durable biography.
+The first test selections matched no owner cases; those zero-test results do
+not count. The subsequently compiled CLI harness listed and ran the exact six
+cases. Strict all-target Body/std/product Clippy and an internal thumbv6m actual
+firmware type check pass. This check used retained checked construction metadata
+and an explicitly non-Seed working-tree identity; no new deployable artifact or
+physical acceptance is claimed. The first ARM check hit tmp quota; after verified
+inactive-cache removal, the same check completed successfully. Six standalone
+MCU manifests still resolve offline without dependency-version changes.
+
+Root compiler-cache cleanup reclaimed 5,818,353,584 bytes of inactive generated
+language outputs, finished test executables, an obsolete xtask backend and an
+unloaded native browser cdylib; tmp cleanup reclaimed 1,486,653,530 bytes of inactive
+old Rust libraries. Private state, installed products, source and raw evidence
+were preserved. Final root headroom remains tight because current checked
+artifacts replaced some of those caches. Raw logs/inventories are outside Git
+under ignored `target/member-return-images-20261104/`.
+
+This is source integration and CPU/cross-compilation evidence. It still needs an
+ordinary clean-source Make build, qualified owner replacement and physical USB
+exchange. No firmware or live service changed. Green's installed diagnostic
+firmware reported 354 successful samples and 5,309 acknowledged redraws with no
+sensor/display error during development. Initial Seed invitation publication,
+exclusive Root workspace retirement, protected bus handover, resource-pool
+admission, ordinary sensing/display Plays and same-Boot reassignment remain
+separate unfinished obligations. MCU credential advancement is still RAM-only;
+power-cycle continuity has not been repaired by this protocol change. This
+metadata route alone does not install the environmental Plots.

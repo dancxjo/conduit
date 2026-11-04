@@ -10,11 +10,26 @@ use serde::{Deserialize, Serialize};
 pub(crate) enum MembershipReceiptDocument {
     Spawn(PortableAdmissionReceipt),
     Return(MemberReturnAcknowledgement),
+    ImageReturn {
+        receipt: conduit_body::MemberReturnImageAcknowledgement,
+        images: Vec<Vec<u8>>,
+    },
 }
 impl MembershipReceiptDocument {
     pub(super) fn presentation(&self) -> Result<MemberPresentationBasis, String> {
         match self {
             Self::Spawn(receipt) => MemberPresentationBasis::from_admission(receipt),
+            Self::ImageReturn { receipt, images } => {
+                receipt
+                    .validate_for(&receipt.credential, &receipt.projection)
+                    .map_err(|e| format!("image return acknowledgement: {e:?}"))?;
+                let advertisement = conduit_std_host::pico_spawn::resolve_member_offer_images(
+                    &receipt.projection,
+                    images,
+                )
+                .map_err(|e| format!("image return resolution: {e:?}"))?;
+                MemberPresentationBasis::new(receipt.credential.clone(), advertisement)
+            }
             Self::Return(receipt) => {
                 receipt
                     .validate_for(&receipt.credential, &receipt.advertisement)
@@ -38,6 +53,11 @@ impl MembershipReceiptDocument {
             }
             Self::Return(receipt) => {
                 conduit_body::attest_member_return_acknowledgement(receipt, owner, member_key, sign)
+            }
+            Self::ImageReturn { receipt, .. } => {
+                conduit_body::attest_member_return_image_acknowledgement(
+                    receipt, owner, member_key, sign,
+                )
             }
         }
         .map_err(|e| format!("membership receipt attestation: {e:?}"))

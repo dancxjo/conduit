@@ -270,14 +270,15 @@ pub(crate) fn attest_admission_receipt(
     )
 }
 
-pub(crate) fn attest_return_acknowledgement(
+pub(crate) fn attest_image_return_acknowledgement(
     state: &Path,
-    receipt: conduit_body::MemberReturnAcknowledgement,
+    receipt: conduit_body::MemberReturnImageAcknowledgement,
+    images: Vec<Vec<u8>>,
     expected_owner: conduit_body::FederationPeer,
 ) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
     attest_member_document(
         state,
-        crate::durable_host::owner::MembershipReceiptDocument::Return(receipt),
+        crate::durable_host::owner::MembershipReceiptDocument::ImageReturn { receipt, images },
         expected_owner,
     )
 }

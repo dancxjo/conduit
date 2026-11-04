@@ -36,3 +36,8 @@ pub fn summary() -> (usize, usize, Option<usize>) {
         )
     })
 }
+
+/// Borrow only the actually retained initialized inventory, never Seed intent.
+pub fn inventory() -> Option<&'static generated::Initialized> {
+    critical_section::with(|cs| INVENTORY.borrow(cs).get())
+}

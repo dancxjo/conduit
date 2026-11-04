@@ -1,9 +1,9 @@
 //! USB carriage of canonical retained Part return, never another invitation.
 use super::{PicoSpawnSocket, PicoSpawnTransportError as Error};
 use conduit_body::{
-    FederationPeer, MemberReturnAcknowledgement, MemberReturnProofDocument, MembershipCredential,
-    PartReturnChallenge, PartReturnProof, SignedPortableAdmissionReceipt,
-    MAX_PICO_ADMISSION_FRAME_BYTES, MEMBER_RETURN_SCHEMA, PICO_MEMBER_RETURN_REQUEST,
+    FederationPeer, MemberReturnImageAcknowledgement, MemberReturnProofDocument,
+    MembershipCredential, PartReturnChallenge, PartReturnProof, SignedPortableAdmissionReceipt,
+    MAX_PICO_ADMISSION_FRAME_BYTES, MEMBER_RETURN_IMAGES_SCHEMA, PICO_MEMBER_RETURN_IMAGES_REQUEST,
 };
 use conduit_core::{HostAdvertisement, HostProfileId, PROTOCOL_VERSION};
 use ed25519_dalek::{Signature, VerifyingKey};
@@ -18,12 +18,10 @@ pub struct PicoMemberReturnBasis {
     pub member_verifying_key: [u8; 32],
     pub owner: FederationPeer,
 }
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct MemberReturnPresentation {
-    pub kind: String,
-    pub schema: String,
-    pub credential: MembershipCredential,
+pub type MemberReturnPresentation = conduit_body::MemberReturnImagePresentation;
+pub struct MemberReturnObservation {
+    pub presentation: MemberReturnPresentation,
+    pub images: Vec<Vec<u8>>,
     pub advertisement: HostAdvertisement,
 }
 impl PicoMemberReturnBasis {
@@ -58,8 +56,15 @@ impl PicoMemberReturnBasis {
     }
     pub fn check_presentation(&self, claim: &MemberReturnPresentation) -> Result<(), Error> {
         self.validate()?;
-        let ad = &claim.advertisement;
-        if claim.schema != MEMBER_RETURN_SCHEMA
+        claim
+            .verify(&self.member_verifying_key)
+            .map_err(|_| Error::InvalidReceipt)?;
+        claim
+            .projection
+            .validate()
+            .map_err(|_| Error::WrongAdvertisement)?;
+        let ad = &claim.projection.context;
+        if claim.schema != MEMBER_RETURN_IMAGES_SCHEMA
             || claim.kind != "Advertise"
             || claim.credential != self.credential
             || ad.host_id != self.credential.host_id
@@ -110,16 +115,23 @@ impl PicoSpawnSocket {
         &mut self,
         basis: &PicoMemberReturnBasis,
         timeout: Duration,
-    ) -> Result<MemberReturnPresentation, Error> {
+    ) -> Result<MemberReturnObservation, Error> {
         basis.validate()?;
         self.line
-            .send_raw_stream_frame(PICO_MEMBER_RETURN_REQUEST, timeout)?;
+            .send_raw_stream_frame(PICO_MEMBER_RETURN_IMAGES_REQUEST, timeout)?;
         let mut bytes = [0; MAX_PICO_ADMISSION_FRAME_BYTES];
         let presentation =
             serde_json::from_slice(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)
                 .map_err(|_| Error::Malformed)?;
         basis.check_presentation(&presentation)?;
-        Ok(presentation)
+        let images = self.receive_offer_images(&presentation.projection, timeout)?;
+        let advertisement =
+            super::offer_images::resolve_member_offer_images(&presentation.projection, &images)?;
+        Ok(MemberReturnObservation {
+            presentation,
+            images,
+            advertisement,
+        })
     }
     pub fn prove_member_return(
         &mut self,
@@ -145,11 +157,11 @@ impl PicoSpawnSocket {
         &mut self,
         signed: &SignedPortableAdmissionReceipt,
         basis: &PicoMemberReturnBasis,
-        actual: &HostAdvertisement,
+        actual: &conduit_body::HostAdvertisementImageProjection,
         timeout: Duration,
-    ) -> Result<MemberReturnAcknowledgement, Error> {
+    ) -> Result<MemberReturnImageAcknowledgement, Error> {
         let ack = signed
-            .verify_return(
+            .verify_image_return(
                 &basis.owner,
                 &basis.member_verifying_key,
                 &basis.credential,

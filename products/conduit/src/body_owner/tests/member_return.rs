@@ -144,3 +144,125 @@ fn signed_return_acknowledgement_requires_committed_current_part_and_observed_of
         .is_err());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn image_return_attestation_resolves_exact_committed_offers_inside_owner() {
+    use crate::durable_host::owner::MembershipReceiptDocument as Document;
+    use conduit_body::{
+        HostAdvertisementImageProjection as Projection, MemberReturnImageAcknowledgement as Ack,
+    };
+    use conduit_core as c;
+    use sha2::{Digest, Sha256};
+    fn image(offer: &c::CapabilityOffer) -> Vec<u8> {
+        let json = serde_json::to_vec(offer).unwrap();
+        let compressed = miniz_oxide::deflate::compress_to_vec_zlib(&json, 6);
+        let doc = conduit_wire::DeflatedDocument::from_parts(&compressed, json.len()).unwrap();
+        let mut image = vec![0; 8];
+        doc.write_header(&mut image).unwrap();
+        image.extend(compressed);
+        image
+    }
+    let offer = c::capability_offer_from_parts! {
+        semantic_contract: Default::default(), startup_parameters: vec![], shorthand: None,
+        capability_id: "fixture/offer".into(), kind_id: "fixture/kind".into(), kind_contract_revision: "fixture/kind@1".into(),
+        inputs: vec![], outputs: vec![],
+        implementation: c::ImplementationOffer { execution_profile_id: "fixture/profile".into(), implementation_id: "fixture/back".into(), artifact_id: "fixture/artifact".into() },
+        host_calls: vec![], resource_requirements: vec![], authority_requirements: vec![],
+        limits: c::CapabilityLimits { max_active_instances: 1,max_queue_items: 1,max_queue_bytes: 1 },
+    };
+    let (mut owner, root) = owner_fixture();
+    let (prior, key, mut ad) = admit_with_key(&mut owner, &root, "host/image-return");
+    owner.member_leave(&root, &prior).unwrap();
+    ad.boot_id = "boot/image-return/2".into();
+    ad.offer_generation.0 += 1;
+    ad.bases.clear();
+    ad.resources.clear();
+    ad.planner_capabilities.clear();
+    ad.capabilities = vec![offer.clone()];
+    let bytes = image(&offer);
+    let mut context = ad.clone();
+    context.capabilities.clear();
+    let projection = Projection {
+        context,
+        capability_images: vec![Sha256::digest(&bytes).into()],
+    };
+    let peer = owner.prepare_current_member_carrier_receiver().unwrap();
+    let challenge = owner.begin_member_return(&prior, &ad).unwrap();
+    let mut uncommitted = prior.clone();
+    uncommitted.boot_id = ad.boot_id.clone();
+    assert!(owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: Ack::new(uncommitted, projection.clone()),
+                images: vec![bytes.clone()],
+            },
+            &peer
+        )
+        .is_err());
+    let current = owner
+        .complete_member_return(&root, &prove(&challenge, &key))
+        .unwrap();
+    let before = owner.session.evidence().clone();
+    let ack = Ack::new(current.clone(), projection.clone());
+    let signed = owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: ack.clone(),
+                images: vec![bytes.clone()],
+            },
+            &peer,
+        )
+        .unwrap();
+    let receipt = signed
+        .verify_image_return(&peer, &key.verifying_key(), &prior, &projection)
+        .unwrap();
+    assert_eq!(receipt.credential, current);
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(state::load(&root).unwrap().unwrap(), before);
+    let mut corrupted = bytes.clone();
+    *corrupted.last_mut().unwrap() ^= 1;
+    assert!(owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: ack.clone(),
+                images: vec![corrupted],
+            },
+            &peer
+        )
+        .is_err());
+    // A valid replacement image/reference still cannot alter the committed offer.
+    let mut foreign = offer;
+    foreign.limits.max_queue_bytes += 1;
+    let foreign = image(&foreign);
+    let mut changed = ack.clone();
+    changed.projection.capability_images[0] = Sha256::digest(&foreign).into();
+    assert!(owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: changed,
+                images: vec![foreign],
+            },
+            &peer
+        )
+        .is_err());
+    assert!(owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: ack.clone(),
+                images: vec![],
+            },
+            &peer
+        )
+        .is_err());
+    owner.member_leave(&root, &current).unwrap();
+    assert!(owner
+        .attest_current_member_receipt(
+            &Document::ImageReturn {
+                receipt: ack,
+                images: vec![bytes],
+            },
+            &peer
+        )
+        .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}

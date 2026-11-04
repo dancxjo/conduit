@@ -36,11 +36,15 @@ mod member_bootstrap;
 #[cfg(feature = "authenticated-admission")]
 mod member_return_acknowledgement;
 #[cfg(feature = "authenticated-admission")]
+mod member_return_images;
+#[cfg(feature = "authenticated-admission")]
 pub use embedded_membership_wire::*;
 #[cfg(feature = "authenticated-admission")]
 pub use member_bootstrap::*;
 #[cfg(feature = "authenticated-admission")]
 pub use member_return_acknowledgement::*;
+#[cfg(feature = "authenticated-admission")]
+pub use member_return_images::*;
 #[cfg(feature = "authenticated-admission")]
 mod member_return_proof_document;
 #[cfg(feature = "authenticated-admission")]

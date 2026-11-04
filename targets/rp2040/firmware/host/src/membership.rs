@@ -76,7 +76,7 @@ impl Membership {
     pub async fn serve_once(&mut self, link: &mut Link) -> Result<(), ()> {
         let mut input = [0; LIMIT];
         let request = link.receive(&mut input).await?;
-        if request == conduit_body::PICO_MEMBER_RETURN_REQUEST {
+        if request == conduit_body::PICO_MEMBER_RETURN_IMAGES_REQUEST {
             return self.serve_return(link, &mut input).await;
         }
         if request != PICO_SPAWN_REQUEST {
