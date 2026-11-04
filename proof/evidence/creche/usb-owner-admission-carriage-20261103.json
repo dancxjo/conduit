@@ -172,5 +172,26 @@
     "physical_provider_or_play_proven": false,
     "deployed": false,
     "delivery": "source checkpoint; held behind current native baseline repair"
+  },
+  "rp2040_native_i2c_provider": {
+    "source": "a7a576ae5a4c9e6f4df85b89a8a0d11bda2db5c1",
+    "package": "conduit-rp2040-i2c",
+    "controllers": [
+      "I2C0",
+      "I2C1"
+    ],
+    "hal_revision": "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12",
+    "cpu_polling_tests": 2,
+    "strict_thumbv6m_none_eabi_check": true,
+    "strict_thumbv6m_native_clippy": true,
+    "strict_host_all_targets_clippy": true,
+    "bound": "nonzero cumulative transfer polls plus separately bounded reset observation; not wall time",
+    "timeouts_replenished_or_retried": false,
+    "failure_policy": "drop transfer future, mask owned controller IRQs, assert only owned reset, observe reset and reset-done, permanently revoke provider",
+    "declared_contract": "machine/i2c/transact",
+    "physical_register_behavior_tested": false,
+    "firmware_integrated": false,
+    "deployed": false,
+    "remaining": "authored poll allowance, actual exclusive controller transfer, current Ready offers, exact admitted Plan/Play, physical timeout and whole-firmware proof"
   }
 }

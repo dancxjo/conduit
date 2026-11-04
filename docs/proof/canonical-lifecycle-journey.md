@@ -1645,3 +1645,29 @@ The change is retained on the delivery branch while #6739's exact native
 Candidate runs. Green is unchanged. Physical bus ownership, admitted Ready
 offers and ordinary sensor/display Plays remain the next execution work;
 these schema and CPU checks establish none of those effects.
+
+
+### 3 November: bounded RP2040 physical I2C owner
+
+`targets/rp2040/i2c` now supplies I2C0 and I2C1 implementations of the shared
+class-neutral provider using the already pinned Embassy controller. Construction
+consumes an actual configured controller and a nonzero polling allowance. It
+uses the HAL's asynchronous transfer under bounded polling rather than its
+unbounded blocking waits. A pending future is dropped before error quarantine.
+Failure masks only that controller's interrupts, asserts its reset and uses a
+separately bounded observation loop for reset acknowledgement; an unconfirmed
+stop becomes `ProviderLost`. The provider remains revoked, with no automatic
+retry or reinitialization. Wrong output extent refuses before traffic or reset.
+
+Two CPU polling fixtures pass: stalled and repeatedly waking transfers spend
+the same cumulative allowance, and last-poll completion preserves success/error
+without retry. The actual native feature passes the ARMv6-M check and strict
+Clippy; host all-target Clippy also passes. These fixtures do not exercise MMIO,
+physical reset, target timing, hardware fault containment or a Body Play.
+
+Green's current diagnostic task still owns its bus. Before deployment the Host
+initialization must supply the finite polling bound, and the exclusive
+controller must move into this owner and its admitted binding. A second bus
+claimant or Ready advertisement inferred from configuration would be false.
+The new target leaf is source preparation for that physical integration, not
+an alternative sensor protocol, environmental application or completed milestone.
