@@ -55,6 +55,31 @@ impl PreparedSourceChecker {
         inputs: &mut [SourceCheckPreparation<'_>],
         bounds: SourceCheckPreparationBounds,
     ) -> Result<Self, String> {
+        Self::prepare_inner(inputs, bounds, None)
+    }
+    /// Cooperative preparation cancellation, independent of Play cancellation.
+    /// Checks bracket allocating compiler/schema stages; they do not interrupt
+    /// one Rust compiler call or establish memory/CPU containment.
+    pub fn prepare_controlled(
+        inputs: &mut [SourceCheckPreparation<'_>],
+        bounds: SourceCheckPreparationBounds,
+        control: &crate::RunControl,
+    ) -> Result<Self, String> {
+        Self::prepare_inner(inputs, bounds, Some(control))
+    }
+    fn prepare_inner(
+        inputs: &mut [SourceCheckPreparation<'_>],
+        bounds: SourceCheckPreparationBounds,
+        control: Option<&crate::RunControl>,
+    ) -> Result<Self, String> {
+        let checkpoint = || {
+            if control.is_some_and(crate::RunControl::stop_requested) {
+                Err("Source-check preparation cancelled".to_string())
+            } else {
+                Ok(())
+            }
+        };
+        checkpoint()?;
         if inputs.is_empty()
             || inputs.len() > MAX_PREPARED_SOURCE_CHECKS
             || bounds.request_bytes == 0
@@ -70,13 +95,16 @@ impl PreparedSourceChecker {
         let mut request_schema = None;
         let mut reply_schema = None;
         for input in inputs {
+            checkpoint()?;
             let request = schema
                 .encode_request(input.request, bounds.request_bytes as usize)
                 .map_err(|e| format!("Source-check request: {e:?}"))?;
+            checkpoint()?;
             let report = input
                 .owner
                 .project(input.request)
                 .map_err(|e| format!("Source-check preparation: {e:?}"))?;
+            checkpoint()?;
             let report = schema
                 .encode_reply(
                     SourceCheckReply::Checked(&report),
@@ -101,6 +129,7 @@ impl PreparedSourceChecker {
         let request_schema = request_schema.ok_or("Source-check request schema absent")?;
         let reply_schema = reply_schema.ok_or("Source-check reply schema absent")?;
         let refusal = |reason| -> Result<Box<[u8]>, String> {
+            checkpoint()?;
             let bytes = schema
                 .encode_reply(reason, bounds.report_bytes as usize)
                 .map_err(|e| format!("Source-check refusal: {e:?}"))?;
@@ -173,6 +202,7 @@ impl PreparedSourceChecker {
         };
         kind.validate()
             .map_err(|e| format!("Source-check Kind: {e:?}"))?;
+        checkpoint()?;
         Ok(Self {
             kind,
             provider: PreparedSourceCheckProvider {

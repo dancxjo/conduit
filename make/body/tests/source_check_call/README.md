@@ -22,8 +22,10 @@ Compiler/catalogue/workspace admission remains separate from retained packet
 bounds. The immediate provider returns typed stale/context/malformed refusals;
 pre-call cancellation suppresses the call and a later authorized Play succeeds.
 Old Plans refuse actual missing/replaced providers, changed Boot and replaced
-backing pools. Cancellation during allocating compiler preparation and full
-workspace/exhaustion acceptance remain incomplete. There is
+backing pools. Preparation can also observe the existing RunControl between compiler/schema
+stages and return no provider after observing a stop. It does not interrupt an
+individual compiler call, retire the caller-owned compiler cache, or mark a Play
+quiescent. Hard workspace/exhaustion acceptance remains incomplete. There is
 no automatic offer on browser, firmware or ordinary unconfigured native Hosts.
 The checked candidate is never played by this Plot. #6449 owns authorized Body
 workset adoption, independently of checking.

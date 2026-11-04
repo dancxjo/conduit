@@ -1,6 +1,6 @@
 use super::*;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
+pub(super) mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[test]

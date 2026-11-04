@@ -3609,3 +3609,29 @@ address-space/CPU limits, but transferring this checker's private catalogue woul
 need exact retained compiler-context custody, not reconstruction from descriptive
 revision strings or an ambient default catalogue. This is the next S2 service
 boundary to resolve, with no MCU compiler, invented grant or duplicate transport.
+
+### 4 November: cooperative compiler-preparation cancellation
+
+`PreparedSourceChecker::prepare_controlled` now observes the existing RunControl
+before specialization, before each request, around request/analysis/reply stages,
+between refusal encodings and before returning a provider. An observed stop
+returns a preparation cancellation error and no provider; partial packet/schema
+owners created by that preparation call are dropped. The caller-owned immutable
+Source/context and any existing preparation cache remain owned by their caller.
+The unchanged `prepare` path uses no newly allocated control object.
+
+The pre-cancel control performs only the fixed refusal-string allocation inside
+the preparation call; the already constructed Source/context is excluded from
+that scope. Its original source/context identities remain intact, and preparation
+under a fresh control succeeds. Six focused production-Host/measurement tests
+and strict all-target Body Make Clippy pass. Logs remain under
+`target/source-check-controlled-preparation-{tests,clippy}.log`.
+
+These are cooperative observation points, not asynchronous compiler interruption,
+workspace containment, a quiescence receipt or a new lifecycle authority. Existing
+source-owner construction costs occur earlier. Hard admission remains open.
+For that boundary, retain actual catalogue construction and ownership inside the
+selected bounded compiler service rather than reconstituting private compiler
+custody from portable revision labels. The current Linux product already has an
+actual `standard_catalogs` construction owner; no competing context serializer,
+ambient catalogue lookup, extra execution kernel or deployed service was added.

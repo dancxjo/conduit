@@ -92,3 +92,42 @@ fn current_provider_loss_generation_boot_and_resource_refuse_old_source_check_pl
         }
     }
 }
+
+#[test]
+fn preparation_stop_refuses_before_specialization_and_preserves_source_owner() {
+    let (mut owner, request) = support::owner(VALID, 7);
+    let control = RunControl::default();
+    control
+        .request_stop(RunControlRequestId::new("cancel-source-preparation").unwrap())
+        .unwrap();
+    let (_, cancelled_cost) = allocation::allocation_probe::observe(|| {
+        let error = PreparedSourceChecker::prepare_controlled(
+            &mut [SourceCheckPreparation {
+                owner: &mut owner,
+                request: &request,
+            }],
+            bounds(),
+            &control,
+        )
+        .err()
+        .expect("cancelled preparation cannot return a provider");
+        assert_eq!(error, "Source-check preparation cancelled");
+    });
+    // Only the refusal string is allocated inside this preparation call.
+    // The already authorized Source/context owner was constructed beforehand.
+    assert_eq!(cancelled_cost.allocations, 1);
+    assert_eq!(cancelled_cost.reallocations, 0);
+    assert_eq!(owner.snapshot(), &request.snapshot);
+    assert_eq!(owner.context(), &request.context);
+    let fresh_control = RunControl::default();
+    let prepared = PreparedSourceChecker::prepare_controlled(
+        &mut [SourceCheckPreparation {
+            owner: &mut owner,
+            request: &request,
+        }],
+        bounds(),
+        &fresh_control,
+    )
+    .unwrap();
+    assert!(prepared.retained_bytes() <= bounds().retained_bytes);
+}
