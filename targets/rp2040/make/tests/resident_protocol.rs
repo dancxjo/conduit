@@ -29,11 +29,23 @@ fn main(){{
  let(offers,cost)=probe::observe(||owner.offers());
  assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
  assert_eq!(offers.len(),5);
- for json in offers{{
-   let offer:conduit_core::CapabilityOffer=serde_json::from_slice(json.unwrap()).unwrap();
+ let(mut expanded,mut retained)=(0,0);
+ for bytes in offers{{
+   let bytes=bytes.unwrap();
+   let document=conduit_wire::DeflatedDocument::parse_image(bytes).unwrap();
+   // Planning-host fixture workspace, not an MCU grant or decode operation.
+   let mut workspace=vec![0;256*1024];
+   let json=document.decode_into(&mut workspace,conduit_wire::DeflatedDocumentLimits{{
+     maximum_expanded_bytes:256*1024,maximum_compressed_bytes:32*1024,
+   }}).unwrap();
+   let offer:conduit_core::CapabilityOffer=serde_json::from_slice(json).unwrap();
+   offer.validate_constructed_semantic_contract().unwrap();
    assert_eq!(offer.resource_requirements[0].units,1000);
    assert_eq!(offer.limits.max_active_instances,1);
+   expanded+=json.len();retained+=bytes.len();
  }}
+ assert!(retained<expanded);
+ println!("five resident offers: {{expanded}} raw bytes -> {{retained}} immutable image bytes");
  let(a,b,c,d,e)=owner.into_backs();
  for fuel in [a.unwrap().required_step_fuel(),b.unwrap().required_step_fuel(),c.unwrap().required_step_fuel(),d.unwrap().required_step_fuel(),e.unwrap().required_step_fuel()]{{assert!(fuel<=1002);}}
 }}
@@ -49,6 +61,7 @@ fn main(){{
             "conduit_plot",
             "conduit_semantic_catalog",
             "conduit_plan_lowering",
+            "conduit_wire",
             "serde_json",
         ],
     );

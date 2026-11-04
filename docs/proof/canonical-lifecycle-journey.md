@@ -2871,3 +2871,24 @@ executed through the same kernel, then actually retired before another
 assignment. It does not introduce another execution architecture or weaken Host
 authority. The decisive same-Boot physical reassignment proof remains ahead.
 Raw proof stays outside Git in ignored `target/immutable-offer-image-20261104/`.
+
+### Resolve the full checked Green catalog on the planning Host (4 November 2026)
+
+The existing RP2040 Make-package proof now resolves document images rather than
+assuming the emitted bytes are JSON. It checks the actual Green Host description,
+emits all five selected protocol Backs, compiles their generated code natively
+and without std, initializes them with zero scoped allocation and lends all
+five images with zero scoped allocation. On the CPU planning side, independent
+256 KiB expanded/32 KiB compressed ceilings and a caller-owned workspace bound
+each resolution. Every recovered offer validates its complete semantic contract,
+retains its 1,000-unit requirement and one-instance limit, and yields its retained
+Back with the existing fuel ceiling.
+
+This full package produces **13,097 image bytes from 314,657 raw metadata bytes**
+(301,560 bytes / 95.84% smaller). The earlier raw-array figure includes six bytes
+of punctuation. This is actual Make-selected metadata, not the smaller two-Back
+fixture or a Python codec estimate. It establishes neither a linked firmware
+delta nor physical RAM high-water. Live advertisement/receipt integration and
+same-Boot successive Plays remain unproved; no device or installed service was
+changed by this CPU proof. Raw results remain outside Git under the same ignored
+`target/immutable-offer-image-20261104/` directory.
