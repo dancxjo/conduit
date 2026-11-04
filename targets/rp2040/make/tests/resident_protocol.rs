@@ -24,13 +24,25 @@ fn checked_equipment_emits_all_five_initialized_protocol_backs() {
         r#"#[path={probe:?}]mod probe;
 #[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;
 fn main(){{
+ use sha2::{{Digest,Sha256}};
  let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
  assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
  let(offers,cost)=probe::observe(||owner.offers());
  assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
  assert_eq!(offers.len(),5);
+ let images:Vec<_>=offers.iter().map(|bytes|{{let bytes=bytes.unwrap();
+   conduit_wire::CapabilityOfferImage{{sha256:Sha256::digest(bytes).into(),bytes}}
+ }}).collect();
+ let mut workspace=vec![0;256*1024];
+ let started=std::time::Instant::now();
+ let(resolved,cost)=probe::observe(||conduit_wire::resolve_capability_offer_images(&images,&mut workspace,
+   conduit_wire::CapabilityOfferImageLimits{{maximum_offers:5,maximum_image_bytes:32*1024,
+     maximum_expanded_offer_bytes:256*1024,maximum_total_image_bytes:16*1024,
+     maximum_total_expanded_bytes:320*1024}}).unwrap());
+ println!("planning-host resolution: {{}} allocated peak bytes excluding preallocated scratch; {{}} allocations; {{:?}} elapsed",cost.peak_bytes,cost.allocations,started.elapsed());
+ assert_eq!(resolved.len(),5);
  let(mut expanded,mut retained)=(0,0);
- for bytes in offers{{
+ for (index,bytes) in offers.into_iter().enumerate(){{
    let bytes=bytes.unwrap();
    let document=conduit_wire::DeflatedDocument::parse_image(bytes).unwrap();
    // Planning-host fixture workspace, not an MCU grant or decode operation.
@@ -39,6 +51,7 @@ fn main(){{
      maximum_expanded_bytes:256*1024,maximum_compressed_bytes:32*1024,
    }}).unwrap();
    let offer:conduit_core::CapabilityOffer=serde_json::from_slice(json).unwrap();
+   assert_eq!(resolved[index],offer);
    offer.validate_constructed_semantic_contract().unwrap();
    assert_eq!(offer.resource_requirements[0].units,1000);
    assert_eq!(offer.limits.max_active_instances,1);
@@ -63,6 +76,7 @@ fn main(){{
             "conduit_plan_lowering",
             "conduit_wire",
             "serde_json",
+            "sha2",
         ],
     );
 }

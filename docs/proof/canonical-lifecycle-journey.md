@@ -2892,3 +2892,48 @@ delta nor physical RAM high-water. Live advertisement/receipt integration and
 same-Boot successive Plays remain unproved; no device or installed service was
 changed by this CPU proof. Raw results remain outside Git under the same ignored
 `target/immutable-offer-image-20261104/` directory.
+
+
+### Resolve referenced offer images with preparing-Host budgets (4 November 2026)
+
+The optional `conduit-wire/offer-images` preparation decoder now resolves a
+complete ordered list of borrowed CDZ1 images against caller-supplied SHA-256
+references. It preflights the number of offers, each encoded/expanded extent,
+aggregate encoded/expanded extents, and caller-owned scratch before allocation
+or decoding. Every digest covers the exact header and compressed payload; all
+references are checked before any decoding. Bounds and digest refusals leave
+scratch untouched and allocate nothing in the scoped tests. Each decoded typed
+offer must satisfy the existing semantic and State-retention validators, and
+duplicate capability identities refuse the entire result. No partially resolved
+catalog is returned. Decoded JSON reuses scratch rather than remaining beside
+the retained typed records.
+
+The actual checked Green five-Back package now exercises this shared resolver,
+using independently selected limits of five offers, 32 KiB per image, 256 KiB
+per expanded offer, 16 KiB aggregate images and 320 KiB aggregate expanded
+metadata. Every recovered field is compared with direct typed decoding of its
+original image. The catalog remains 314,657 raw bytes / 13,097 image bytes. One
+unoptimized CPU fixture run measured about 8 ms and 363,866 bytes of scoped heap
+peak, excluding its preallocated 256 KiB scratch, decoder stack, allocator
+metadata and surrounding process. This is preparation cost evidence, not an
+MCU RAM measurement or an enforced allocator reservation. The caller must still
+admit retained typed records and decoder working storage.
+
+All 116 wire tests, the actual five-Back emitted-code test, strict all-target
+wire/RP2040 Make Clippy, and thumbv6m checks with the decoder both disabled and
+enabled pass. The decoder remains optional; lending images requires neither
+SHA/JSON resolution nor execution of the decoder on the MCU. Six maintained
+standalone MCU manifests resolve offline without a dependency-version change.
+Finished, inactive test executables reclaimed 1,705,260,424 bytes; source,
+private state, logs and installed artifacts were preserved. Raw logs remain in
+ignored `target/offer-image-resolution-20261104/`.
+
+This resolves image bytes into ordinary offers only. A reference is not
+publication authenticity, current Host/Boot/generation evidence, membership,
+Base custody, resource admission or execution authority. The versioned live
+publication envelope and compact signed acknowledgement still need integration;
+neither the existing admission envelope nor the 16 KiB receipt limit was enlarged.
+Green's unchanged installed firmware reports 301 successful samples and 4,514
+acknowledged diagnostic redraws with no sensor/display error. This does not
+prove an ordinary admitted sampling/display Play, new firmware residency,
+exclusive Root workspace retirement or same-Boot reassignment.

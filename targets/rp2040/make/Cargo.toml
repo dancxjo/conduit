@@ -14,7 +14,8 @@ conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
-conduit-wire = { path = "../../../architecture/wire", features = ["deflate"] }
+conduit-wire = { path = "../../../architecture/wire", features = ["offer-images"] }
+sha2 = "0.10"
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
 conduit-core = { path = "../../../architecture/core", default-features = false }
 serde-json-core = "0.6"
