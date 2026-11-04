@@ -38,6 +38,44 @@ impl SourceCheckNativeSchema {
         .map_err(|_| SourceCheckNativeRefusal::Schema)?;
         Ok(Self { document })
     }
+    /// Populate a staged authoring catalogue from the actual retained Native
+    /// owners, including the whole declared Type closure. Names are not proofs.
+    pub fn install_types(&self, startup: &mut StartupCatalog) -> Result<()> {
+        let mut staged = startup.clone();
+        for native in &self.document.native_types {
+            let semantic = native.value_type.canonical_bytes()?;
+            let owner = crate::rust_binding::check_prepared_decode_native(
+                &self.document,
+                native.identity.as_str(),
+                &semantic,
+                &native.value_contracts,
+                &native.invariants,
+            )
+            .map_err(|_| SourceCheckNativeRefusal::Schema)?;
+            staged
+                .insert_checked_native_type(native.name.clone(), owner)
+                .map_err(|_| SourceCheckNativeRefusal::Schema)?;
+        }
+        *startup = staged;
+        Ok(())
+    }
+    pub fn request_kind(&self) -> Result<conduit_core::KindId> {
+        self.port_kind("SourceCheckRequest")
+    }
+    pub fn report_kind(&self) -> Result<conduit_core::KindId> {
+        self.port_kind("SourceCheckInfoV1")
+    }
+    fn port_kind(&self, name: &str) -> Result<conduit_core::KindId> {
+        self.document
+            .native_types
+            .iter()
+            .find(|native| native.name == name)
+            .ok_or(SourceCheckNativeRefusal::Schema)?
+            .value_type
+            .profile()
+            .map(|profile| profile.value_kind().clone())
+            .map_err(SourceCheckNativeRefusal::Value)
+    }
     pub fn encode_request(
         &self,
         request: &SourceCheckRequest,

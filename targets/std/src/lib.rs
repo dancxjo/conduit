@@ -7,6 +7,7 @@ pub use selected_native_mask::NativeMaskEncounter;
 mod selected_native_source;
 #[cfg(all(target_os = "linux", feature = "linux-display"))]
 pub mod selected_scanout;
+pub mod source_check;
 use conduit_core::{
     BaseImplementationId, HostAdvertisement, HostId, Observation, OfferGeneration, Plan,
     PlanFragment, PlanId,

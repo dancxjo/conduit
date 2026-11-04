@@ -1,0 +1,203 @@
+//! Immutable Source analysis specialized during authorized Host preparation.
+//! Play only selects a retained exact typed result through the existing native
+//! Host Call. There is no compiler, IO, allocation, or hidden worker in read().
+use crate::ImmediateNativeSource;
+use conduit_core::{CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal};
+use conduit_plot::{
+    KindSignature, ProfileCatalog, SourceCheckNativeSchema, SourceCheckProjection,
+    SourceCheckRequest, StartupCatalog,
+};
+
+pub const SOURCE_CHECK_KIND: &str = "language/source-check";
+pub const SOURCE_CHECK_CALL: &str = "language/source-check@1";
+pub const SOURCE_CHECK_AUTHORITY: &str = "language/source-check-authority@1";
+pub const SOURCE_CHECK_RESOURCE: &str = "language/prepared-source-check@1";
+pub const MAX_PREPARED_SOURCE_CHECKS: usize = 4;
+
+pub struct SourceCheckPreparation<'a> {
+    /// Independently authorized immutable Source/context, never reconstructed
+    /// from an incoming snapshot name or copied report.
+    pub owner: &'a mut SourceCheckProjection,
+    pub request: &'a SourceCheckRequest,
+}
+#[derive(Clone, Copy)]
+pub struct SourceCheckPreparationBounds {
+    pub request_bytes: u32,
+    pub report_bytes: u32,
+    /// Retained Rust payload and inline provider bytes only; excludes allocator
+    /// bookkeeping and the caller's compiler,
+    /// context, catalogue and preparation workspace, which need separate custody.
+    pub retained_bytes: usize,
+}
+struct Entry {
+    request: Box<[u8]>,
+    report: Box<[u8]>,
+}
+/// Finite immutable native provider, not a Source catalogue or a compiler cache.
+pub struct PreparedSourceCheckProvider {
+    entries: Box<[Entry]>,
+}
+pub struct PreparedSourceChecker {
+    kind: Kind,
+    provider: PreparedSourceCheckProvider,
+    retained_bytes: usize,
+    bounds: SourceCheckPreparationBounds,
+}
+impl PreparedSourceChecker {
+    /// Trusted preparation must already possess the Source grants and admit the
+    /// compiler's complete workspace/work envelope. This pure specialization
+    /// creates no Host, Base, grant, Ready offer, Plan or Play. The ordinary
+    /// installed native Source entrance independently checks those facts.
+    pub fn prepare(
+        inputs: &mut [SourceCheckPreparation<'_>],
+        bounds: SourceCheckPreparationBounds,
+    ) -> Result<Self, String> {
+        if inputs.is_empty()
+            || inputs.len() > MAX_PREPARED_SOURCE_CHECKS
+            || bounds.request_bytes == 0
+            || bounds.report_bytes == 0
+            || bounds.request_bytes as usize > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+            || bounds.report_bytes as usize > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES
+        {
+            return Err("Source-check preparation bounds refused".into());
+        }
+        let schema = SourceCheckNativeSchema::prepare()
+            .map_err(|e| format!("Source-check schema: {e:?}"))?;
+        let mut entries: Vec<Entry> = Vec::with_capacity(inputs.len());
+        for input in inputs {
+            let request = schema
+                .encode_request(input.request, bounds.request_bytes as usize)
+                .map_err(|e| format!("Source-check request: {e:?}"))?;
+            if entries
+                .iter()
+                .any(|entry| entry.request.as_ref() == request)
+            {
+                return Err("duplicate immutable Source-check request".into());
+            }
+            let report = input
+                .owner
+                .project(input.request)
+                .map_err(|e| format!("Source-check preparation: {e:?}"))?;
+            let report = schema
+                .encode_report(&report, bounds.report_bytes as usize)
+                .map_err(|e| format!("Source-check report: {e:?}"))?;
+            entries.push(Entry {
+                request: request.into_boxed_slice(),
+                report: report.into_boxed_slice(),
+            });
+        }
+        let retained_bytes = entries
+            .iter()
+            .try_fold(
+                core::mem::size_of::<PreparedSourceCheckProvider>()
+                    + entries.len() * core::mem::size_of::<Entry>(),
+                |sum, entry| {
+                    sum.checked_add(entry.request.len())?
+                        .checked_add(entry.report.len())
+                },
+            )
+            .ok_or("Source-check backing size overflow")?;
+        if retained_bytes > bounds.retained_bytes {
+            return Err("Source-check retained backing exceeds admission".into());
+        }
+        let kind = Kind {
+            kind_id: SOURCE_CHECK_KIND.into(),
+            kind_contract_revision: SOURCE_CHECK_CALL.into(),
+            startup_parameters: vec![],
+            shorthand: None,
+            configuration: vec![],
+            semantic_laws: vec![],
+            inputs: vec![PortDescriptor {
+                port_id: "request".into(),
+                value_kind: schema
+                    .request_kind()
+                    .map_err(|e| format!("request Type: {e:?}"))?,
+                direction: PortDirection::Input,
+                temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
+            }],
+            outputs: vec![PortDescriptor {
+                port_id: "report".into(),
+                value_kind: schema
+                    .report_kind()
+                    .map_err(|e| format!("report Type: {e:?}"))?,
+                direction: PortDirection::Output,
+                temporal: PortTemporal::Flow { closes: true },
+                abnormal_kind: None,
+            }],
+            limits: CapabilityLimits {
+                max_active_instances: 1,
+                max_queue_items: 1,
+                max_queue_bytes: bounds.request_bytes.max(bounds.report_bytes),
+            },
+        };
+        kind.validate()
+            .map_err(|e| format!("Source-check Kind: {e:?}"))?;
+        Ok(Self {
+            kind,
+            provider: PreparedSourceCheckProvider {
+                entries: entries.into_boxed_slice(),
+            },
+            retained_bytes,
+            bounds,
+        })
+    }
+    pub fn kind(&self) -> &Kind {
+        &self.kind
+    }
+    pub fn bounds(&self) -> SourceCheckPreparationBounds {
+        self.bounds
+    }
+    pub fn retained_bytes(&self) -> usize {
+        self.retained_bytes
+    }
+    /// Authoring eligibility only. Hosts without the independently installed
+    /// provider still cannot place or execute the operation.
+    pub fn install_authoring(
+        &self,
+        startup: &mut StartupCatalog,
+        profiles: &mut ProfileCatalog,
+    ) -> Result<(), String> {
+        let mut next = startup.clone();
+        let mut kinds = profiles.clone();
+        SourceCheckNativeSchema::prepare()
+            .map_err(|e| format!("Source-check schema: {e:?}"))?
+            .install_types(&mut next)
+            .map_err(|e| format!("Source-check Types: {e:?}"))?;
+        next.insert(KindSignature {
+            kind: SOURCE_CHECK_KIND.into(),
+            startup_parameters: vec![],
+        })
+        .map_err(|e| e.to_string())?;
+        next.insert_fore(SOURCE_CHECK_KIND, self.kind.checked_front())
+            .map_err(|e| e.to_string())?;
+        kinds
+            .insert_kind(self.kind.clone())
+            .map_err(|e| e.to_string())?;
+        *startup = next;
+        *profiles = kinds;
+        Ok(())
+    }
+    pub fn into_provider(self) -> PreparedSourceCheckProvider {
+        self.provider
+    }
+}
+// SAFETY: all compiler work and Native admission finished in prepare(). This
+// provider owns only bounded immutable packets. Reads compare/copy those bytes,
+// never allocate (even on refusal), access IO, invoke callbacks, or retain loans.
+unsafe impl ImmediateNativeSource for PreparedSourceCheckProvider {
+    fn read(&mut self, input: &[u8], output: &mut [u8]) -> Result<usize, String> {
+        let Some(entry) = self
+            .entries
+            .iter()
+            .find(|entry| entry.request.as_ref() == input)
+        else {
+            return Err(String::new());
+        };
+        if output.len() < entry.report.len() {
+            return Err(String::new());
+        }
+        output[..entry.report.len()].copy_from_slice(&entry.report);
+        Ok(entry.report.len())
+    }
+}
