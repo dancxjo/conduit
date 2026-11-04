@@ -51,6 +51,7 @@ impl StartupCatalog {
             structured_types,
             structured_type_contracts,
             structured_type_invariants,
+            retained_native_dependencies,
             value_kind_aliases,
             native_type_sources,
             native_families,
@@ -73,6 +74,7 @@ impl StartupCatalog {
             structured_types: rhs_structured_types,
             structured_type_contracts: rhs_structured_type_contracts,
             structured_type_invariants: rhs_structured_type_invariants,
+            retained_native_dependencies: rhs_retained_native_dependencies,
             value_kind_aliases: rhs_value_kind_aliases,
             native_type_sources: rhs_native_type_sources,
             native_families: rhs_native_families,
@@ -90,6 +92,7 @@ impl StartupCatalog {
             && structured_type_contracts == rhs_structured_type_contracts
             && native_law_custody == rhs_native_law_custody
             && structured_type_invariants == rhs_structured_type_invariants
+            && retained_native_dependencies == rhs_retained_native_dependencies
             && value_kind_aliases == rhs_value_kind_aliases
             && native_type_sources == rhs_native_type_sources
             && native_families == rhs_native_families

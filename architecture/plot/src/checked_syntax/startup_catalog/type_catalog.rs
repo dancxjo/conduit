@@ -166,6 +166,7 @@ impl StartupCatalog {
                         .unwrap_or_default(),
                 })
             })
+            .chain(self.retained_native_dependencies.values().cloned())
             .collect()
     }
 

@@ -4,27 +4,16 @@ pub(super) fn lookup<'d>(
     document: &'d CheckedSyntaxDocument,
     identity: &KindId,
 ) -> Result<&'d CheckedNativeType, PreparedNativeRefusal> {
-    // Only the private catalogue retained by syntax checking grants authority.
-    // Public inspection metadata may detect a conflict, never add a new owner.
-    let result = document
-        .retained_native_types
-        .iter()
-        .find(|native| &native.identity == identity)
-        .ok_or(PreparedNativeRefusal::MissingNativeMetadata)?;
-    for native in document
-        .retained_native_types
-        .iter()
-        .chain(document.native_types.iter())
-        .filter(|native| &native.identity == identity)
-    {
-        if result.value_type != native.value_type
-            || result.value_contracts != native.value_contracts
-            || result.invariants != native.invariants
-        {
-            return Err(PreparedNativeRefusal::ConflictingNativeMetadata);
-        }
-    }
-    Ok(result)
+    document
+        .retained_native_owner(identity)
+        .map_err(|reason| match reason {
+            crate::checked_syntax::NativeOwnerRefusal::Missing => {
+                PreparedNativeRefusal::MissingNativeMetadata
+            }
+            crate::checked_syntax::NativeOwnerRefusal::Conflicting => {
+                PreparedNativeRefusal::ConflictingNativeMetadata
+            }
+        })
 }
 pub(super) fn prepare<'d>(
     document: &'d CheckedSyntaxDocument,
