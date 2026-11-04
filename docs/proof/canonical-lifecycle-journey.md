@@ -2020,3 +2020,34 @@ across nine targets pass locally, including exact reference/expiry equality and
 new allocation-free dynamic reference selection/reuse; strict Clippy passes.
 The updated Candidate remains a separate acceptance gate. No reference identity
 field, validator or storage ceiling was weakened.
+
+
+### Resident computation uses the common kernel Back lifecycle (4 November 2026)
+
+Checkpoint `a9a591dafb` adds a resident evaluator to the existing generic
+`PreparedExpressionBack`, sharing its staging, commit, pressure, cancellation,
+closing-Flow and reusable-Value-session behavior. The resident form owns only a
+fixed 16-byte result buffer alongside its borrowed validated image. It charges
+the bounded instruction count before computation; kernel-visible send and
+consume require two additional fuel units. Installing Hosts still must bind
+exact Source/Fore/artifact identity and admit complete memory, stack and fuel.
+No offer is published by constructing this library Back.
+
+All six scoped CPU tests, 198 catalog library tests, a no-default-features
+`kernel-step` check and strict library/test Clippy pass. They compare
+resident and owned lifecycle behavior, then run a three-node fixed kernel with
+zero allocations. An insufficient grant atomically refuses without delivering a
+value. These are CPU kernel-component results, not an admitted Body Play or
+physical peripheral execution. Green's working firmware remains unchanged.
+
+Dev Integration 41793417236 failed before hosted Linux target execution: immutable
+compiler-snapshot preparation refused its 19 GiB free-space reserve. PR #6746
+applies the existing guarded GitHub-hosted SDK cleanup to that target's shared
+setup entrance. All 1,074 local pipeline tests pass; hosted capacity and complete
+Integration remain unproved. Further feature merges are held for baseline repair.
+
+A subsequent read of Green reports 382 samples/382 attempts and 5,727 frames/
+5,727 acknowledgments, peak heap 1,332 bytes, no sensor/display error and the
+same retained membership receipt. This verifies continued diagnostic sensing
+and display during preparation; it does not turn that diagnostic path into an
+admitted sampling/display Play.

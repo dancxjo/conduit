@@ -24,10 +24,18 @@ CPU tests compile emitted programs both as a native executable and as a
 `no_std` Rust library and compare checked Source byte/refusal outcomes. They
 also verify allocation-free resident construction/evaluation and refusal of
 invalid code before execution. Static lifetime does not prove physical flash
-placement. Ordinary Make selection, full structured protocol images, kernel
-Back installation and physical MCU admission remain unfinished; this is not a
-new installed Back, scheduler or execution grant. Native-law/quantity profiles
-without a retained validation witness remain unsupported.
+placement. `StaticScalarExpressionBack` in the semantic catalog wraps this
+image using the same expression Back lifecycle as the owned evaluator: staged
+output, atomic commit, closing Flow, cancellation and reusable Value sessions.
+Its fixed result buffer is 16 bytes. Before evaluation it charges the maximum
+instruction count; a successful Step also needs one send and one consume. The
+installing Host must admit that complete fuel grant, Back state and evaluation
+stack and bind the exact Source/Fore/artifact before offering it. CPU tests run
+this Back in the actual fixed kernel with zero allocations and verify atomic
+refusal under insufficient fuel. This library Back is not an installed offer.
+Ordinary Make selection, full structured protocol images and physical MCU
+admission remain unfinished. Native-law/quantity profiles without a retained
+validation witness remain unsupported.
 
 ## Owned tape profile
 
