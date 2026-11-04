@@ -1,0 +1,54 @@
+# Conditional meaning only. These Plots cannot install Source, issue a grant,
+# change the current Body, or start a Plan/Play. The owner must recheck adoption.
+with language/source-check/digest as SourceCheckDigest
+with language/source-check/label as SourceCheckLabel
+with language/source-check/snapshot as SourceCheckSnapshot
+with language/source-check/context as SourceCheckContext
+
+type WorksetProposalIdentity = Text <= 64B not in [""]
+type WorksetProposalPlot = {
+    source_document_id: SourceCheckDigest
+    checked_plot_id: SourceCheckDigest
+}
+type WorksetProposalObservation = {
+    body_id: WorksetProposalIdentity
+    workload_revision: U64
+    retained: WorksetProposalPlot
+}
+type WorksetProposalCheckedSource = {
+    snapshot: SourceCheckSnapshot
+    context: SourceCheckContext
+    entry: SourceCheckLabel
+    checked_plot_id: SourceCheckDigest
+}
+type WorksetProposalSource =
+    none
+    | checked WorksetProposalCheckedSource
+
+type WorksetProposalAddition = {
+    observed: WorksetProposalObservation
+    checked: WorksetProposalCheckedSource
+}
+type WorksetProposalInfo = {
+    schema_version: U16 in 1..=1
+    expected_body_id: WorksetProposalIdentity
+    expected_workload_revision: U64
+    proposed_workset: sequence WorksetProposalPlot <= 16
+    candidate_source: WorksetProposalSource
+}
+
+# This first authored composition adds one checked candidate to one retained
+# Plot; the shared projection validates the complete result with BodyWorkset.
+plot propose-add (
+    addition: WorksetProposalAddition >> proposal: WorksetProposalInfo
+) = { schema_version: 1, expected_body_id: .observed.body_id, expected_workload_revision: .observed.workload_revision, proposed_workset: [.observed.retained, { source_document_id: .checked.snapshot.source_document_id, checked_plot_id: .checked.checked_plot_id }], candidate_source: checked(.checked) }
+
+# Observation is of a later revision. Retaining one selected Plot proposes
+# removal of its companions, without pretending that removal has occurred.
+plot propose-retain-one (
+    observed: WorksetProposalObservation >> proposal: WorksetProposalInfo
+) = { schema_version: 1, expected_body_id: .body_id, expected_workload_revision: .workload_revision, proposed_workset: [.retained], candidate_source: none(empty) }
+
+plot propose-replace (
+    addition: WorksetProposalAddition >> proposal: WorksetProposalInfo
+) = { schema_version: 1, expected_body_id: .observed.body_id, expected_workload_revision: .observed.workload_revision, proposed_workset: [{ source_document_id: .checked.snapshot.source_document_id, checked_plot_id: .checked.checked_plot_id }], candidate_source: checked(.checked) }
