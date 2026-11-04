@@ -7,6 +7,7 @@
 #![no_std]
 
 extern crate alloc;
+mod active_scope;
 
 pub mod activation_fragment;
 pub mod execution_regions;
@@ -17,5 +18,6 @@ pub mod shared_pool_runtime;
 /// Exact single-call native selection validation before Play.
 pub mod selected_operation;
 
+pub mod selected_assigned_expression;
 /// Exact selected native operation from the constrained assigned projection.
 pub mod selected_assigned_operation;

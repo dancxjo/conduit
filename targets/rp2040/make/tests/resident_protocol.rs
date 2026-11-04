@@ -48,6 +48,7 @@ fn main(){{
             "conduit_core",
             "conduit_plot",
             "conduit_semantic_catalog",
+            "conduit_plan_lowering",
             "serde_json",
         ],
     );

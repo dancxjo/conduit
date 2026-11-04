@@ -6,6 +6,7 @@
 //! or trigger. The opt-in computation profile validates canonical program metadata
 //! under explicit artifact ceilings. Unsupported facts fail closed.
 
+mod resident_binding;
 mod resident_expression;
 mod resident_library;
 mod resident_offer;

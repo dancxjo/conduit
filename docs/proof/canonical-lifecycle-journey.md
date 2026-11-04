@@ -2545,3 +2545,53 @@ Another 4.09 GiB was recovered from log-identified finished test executables,
 after checking process inode ownership; libraries, fingerprints, source and all
 unique evidence remained intact. Raw logs, measurements and maintenance receipts
 are retained outside Git under ignored `target/resident-seed-20261104/`.
+
+
+### Runtime assignment selects the retained Back (4 November 2026)
+
+The shared assigned-Plan lowering layer now checks a resident expression node
+against immutable Make-emitted Kind, implementation/artifact, input/output port
+and value-Kind, program-digest and private-work facts. It validates the canonical
+current active Play and exact Host/Boot/fragment scope, requires one exact work
+reservation index and the selected Step fuel, and rejects Host Calls on that
+pure node. Contiguous and borrowed records use the existing assigned decoder;
+there is no second execution format or runtime program decoder.
+
+Generated initialized owners preflight these checks before their one-time
+transfer to execution. Refusal retains the same owner at the same address;
+success consumes it once and returns the selected node and the same concrete
+common Back. Signature/Body policy, full rich-Plan and Source approval, actual
+pool reservation, complete workspace/queue admission and retirement remain
+Root responsibilities. A checked projection or canonical active-Play ID supplies
+none of that authority. The compact node does not independently encode every
+rich capability field; the trusted construction and full-Plan selection remain
+necessary before this execution-boundary check.
+
+The emitted-code proof now continues beyond table preparation: the actual
+initialized offer feeds ordinary checked-Source planning; the assigned image
+binds the retained Back; the ordinary fixed kernel admits two local Fore inputs
+and produces bytes equal to the portable protocol reference. These numeric Fore
+endpoints are local boundaries, not invented network Lines. Binding, scheduler
+construction, admission and both executions allocate no heap in the probe.
+Twelve independently altered records, with refreshed representation checksums,
+refuse without consuming the owner. Stale/forged active Plays, a different work
+index and a second transfer also refuse. Borrowed admission reaches the same
+checker successfully. This remains CPU component evidence, not physical Body
+Play, durable recording or native bus ownership.
+
+The first allocation probe exposed reconstruction of four owned identity
+wrappers during active-Play checking. The binder now compares the existing
+canonical digest directly; both existing native-operation binders share that
+allocation-independent check, preserving exact lowercase encoding and all
+scope-field checks. Owning package tests pass (104), six I2C native-owner
+regressions pass, strict all-target Clippy passes, and the shared lowering layer
+checks for thumbv6m with no default features. The emitted code also compiles as
+a no_std library. No firmware or live service was changed in this checkpoint.
+
+Failed emitted-test executables exhausted tmpfs user quota during an otherwise
+small link. Their generated sources and result evidence were retained; only
+verified inactive executables were removed, and subsequent proof used an
+ignored disk-backed temporary directory. Finished owning-test executables were
+also removed after recording their passing results, recovering 2.31 GiB without
+removing libraries or source. Raw logs and maintenance receipts are retained
+under ignored `target/resident-assigned-binding-20261104/`.

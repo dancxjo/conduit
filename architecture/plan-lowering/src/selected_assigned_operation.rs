@@ -135,12 +135,7 @@ fn bind_assigned_profile(
         || active.host_id != claim.host_id
         || active.boot_id != claim.boot_id
         || active.active_play_id != claim.active_play_id
-        || c::bind_active_play(
-            &claim.plan_id,
-            &claim.host_id,
-            &claim.boot_id,
-            active.play_sequence,
-        ) != *active
+        || !crate::active_scope::matches(active)
         || claim.subject_kind != definition.kind.kind_id
         || claim.operation_contract_id.as_str() != definition.call
     {

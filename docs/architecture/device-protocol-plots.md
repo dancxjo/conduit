@@ -182,7 +182,13 @@ no_std image borrows immutable bytes without parsing or heap allocation. The
 standard expression Kind still carries its canonical program default in that
 metadata; this is flash residency, not elimination of all program metadata.
 An initialized expression Back grants no bus/clock authority and establishes
-neither Host/Boot readiness nor complete workspace admission. Seed installation
+neither Host/Boot readiness nor complete workspace admission. Its retained-owner
+binder checks the assigned execution projection against independently emitted
+Kind/artifact/port/program/work facts and Root's current active-Play scope before
+transferring that same Back. Refusal preserves ownership. The ordinary assigned
+decoder and fixed kernel remain the only decoding/execution path; signature,
+Body policy, full Source/Plan approval and complete storage/resource admission
+still belong to Root. Seed installation
 and physical protocol Play remain separate from the CPU planner/kernel-table
 component proof recorded in the [lifecycle journey](../proof/canonical-lifecycle-journey.md).
 

@@ -51,5 +51,11 @@ pub(crate) fn append(
     // Numeric byte literals also preserve non-ASCII metadata in no_std code.
     code.push_str(&format!("static OFFER_JSON:&[u8]=&{json:?};\n"));
     code.push_str("/// One actually initialized Back; metadata is neither a grant nor a reservation.\npub struct Initialized { back:Back }\nimpl Initialized {\npub fn prepare()->Result<Self,PreparationRefusal>{Ok(Self{back:prepare_back()?})}\n/// Borrow metadata only while this initialized owner is retained.\npub fn offer_json(&self)->&[u8]{OFFER_JSON}\npub fn into_back(self)->Back{self.back}\n}\n");
+    crate::resident_binding::append(
+        code,
+        &offer,
+        &program.canonical_hex().map_err(|_| R::Program)?,
+        private_work,
+    )?;
     Ok(offer)
 }

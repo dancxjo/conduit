@@ -34,6 +34,8 @@ fn live_resident_owner_supplies_exact_offer_for_checked_source_planning() {
 #[path={probe:?}]mod probe;
 #[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;
 #[path={helper:?}]mod support;
+#[path={kernel:?}]mod support_kernel;
+#[path={refusals:?}]mod refusals;
 fn main(){{
     let(owner,cost)=probe::observe(||image::Initialized::prepare().unwrap());
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
@@ -41,13 +43,30 @@ fn main(){{
         assert!(matches!(weak::Initialized::prepare(),Err(weak::PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work))));}});
     assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
     let offer:conduit_core::CapabilityOffer=serde_json::from_slice(owner.offer_json()).unwrap();
-    let granted=support::exercise(offer);
-    let back=owner.into_back();
-    assert!(back.required_step_fuel()<=granted);
+    let assignment=support::exercise(offer);
+    let active=assignment.active();
+    assert_eq!(owner.computation_requirement(0),assignment.pins[0]);
+    let mut owner=Some(owner);
+    refusals::run(&mut owner,&assignment);
+    let((node,back),cost)=probe::observe(||image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)).unwrap());
+    assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);
+    assert_eq!(node,0);assert!(owner.is_none());
+    assert!(matches!(image::Initialized::bind_assigned_retained(&mut owner,assignment.selected(&active)),Err(conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal::MissingOwner)));
+    assert!(back.required_step_fuel()<=assignment.tables.nodes[0].maximum_step_fuel);
+    support_kernel::run(back,assignment);
+
 }}
 "#,
         probe = probe.to_str().unwrap(),
-        helper = helper.to_str().unwrap()
+        helper = helper.to_str().unwrap(),
+        kernel = root
+            .join("tests/resident_offer/kernel.rs")
+            .to_str()
+            .unwrap(),
+        refusals = root
+            .join("tests/resident_offer/refusals.rs")
+            .to_str()
+            .unwrap()
     );
     compiled_rust::verify_with_libraries(
         &code,
@@ -59,6 +78,7 @@ fn main(){{
             "conduit_core",
             "conduit_kernel",
             "conduit_semantic_catalog",
+            "conduit_plan_lowering",
             "conduit_planner",
             "serde_json",
         ],
@@ -106,6 +126,11 @@ fn main(){{
         &format!("mod library{{\n{library}\n}}"),
         &exercise,
         "resident-library-partial-refusal",
-        &["conduit_core", "conduit_plot", "conduit_semantic_catalog"],
+        &[
+            "conduit_core",
+            "conduit_plot",
+            "conduit_semantic_catalog",
+            "conduit_plan_lowering",
+        ],
     );
 }

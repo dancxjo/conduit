@@ -464,6 +464,7 @@ dependencies = [
  "conduit-ht16k33",
  "conduit-net",
  "conduit-network-credential-journal",
+ "conduit-plan-lowering",
  "conduit-plot",
  "conduit-rp2040-flash-layout",
  "conduit-rp2040-i2c",

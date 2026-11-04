@@ -58,12 +58,7 @@ pub fn bind_selected_configured_operation(
         || active.host_id != claim.host_id
         || active.boot_id != claim.boot_id
         || active.active_play_id != claim.active_play_id
-        || conduit_core::bind_active_play(
-            &claim.plan_id,
-            &claim.host_id,
-            &claim.boot_id,
-            active.play_sequence,
-        ) != *active
+        || !crate::active_scope::matches(active)
         || lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
     {

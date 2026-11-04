@@ -64,7 +64,45 @@ pub fn bounds(private_work_units: u16) -> b::ResidentExpressionBounds {
         private_work_units,
     }
 }
-pub fn exercise(offer: c::CapabilityOffer) -> u16 {
+pub type Tables = conduit_kernel::assigned::AssignedKernelTables<1, 2, 1, 1, 1, 0>;
+pub struct Assignment {
+    pub model: c::Plan,
+    pub encoded: Vec<u8>,
+    pub tables: Tables,
+    pub pins: [c::AssignedComputationRequirement; 1],
+    pub maxima: c::AssignedPlanMaxima,
+    pub fore: Vec<c::AssignedForeRequirement>,
+}
+impl Assignment {
+    pub fn selected<'a>(
+        &'a self,
+        active: &'a c::ActivePlayIdentity,
+    ) -> conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan<'a>
+    {
+        conduit_plan_lowering::selected_assigned_expression::SelectedAssignedExpressionPlan {
+            input: conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(&self.encoded),
+            maxima: self.maxima,
+            requirements: c::AssignedPlanRequirements {
+                host: c::AssignedIdentity::from_text("fixture/resident-cpu"),
+                boot: c::AssignedIdentity::from_text("fixture/boot/1"),
+                host_calls: &[], resources: &[0], remote_bindings: &[],
+            },
+            computations: c::AssignedComputationProfile {
+                maximum_text_bytes: self.pins[0].text_bytes,
+                maximum_total_text_bytes: self.pins[0].text_bytes,
+                requirements: &self.pins,
+            },
+            fore: Some(&self.fore),
+            fragment_id: &self.model.fragments[0].fragment_id,
+            active, node: conduit_kernel::NodeId(0), work_resource: 0,
+        }
+    }
+    pub fn active(&self) -> c::ActivePlayIdentity {
+        let f = &self.model.fragments[0];
+        c::bind_active_play(&self.model.plan_id, &f.host_id, &f.boot_id, 1)
+    }
+}
+pub fn exercise(offer: c::CapabilityOffer) -> Assignment {
     let (doc, program, temporal) = context();
     let prepared =
         b::PreparedResidentExpression::prepare(&doc, &program, temporal, bounds(1000)).unwrap();
@@ -210,5 +248,12 @@ pub fn exercise(offer: c::CapabilityOffer) -> u16 {
         tables.identity.plan,
         c::AssignedIdentity::from_text(selected.plan_id.as_str())
     );
-    tables.nodes[0].maximum_step_fuel
+    Assignment {
+        model: selected,
+        encoded,
+        tables,
+        pins: pin,
+        maxima,
+        fore: generated.fore().to_vec(),
+    }
 }

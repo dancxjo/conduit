@@ -408,6 +408,11 @@ fn emitted_factories_enforce_the_exact_sealed_work_grant() {
         &code,
         &exercise,
         "make-resident-expression",
-        &["conduit_plot", "conduit_core", "conduit_semantic_catalog"],
+        &[
+            "conduit_plot",
+            "conduit_core",
+            "conduit_semantic_catalog",
+            "conduit_plan_lowering",
+        ],
     );
 }
