@@ -317,4 +317,5 @@ fn complete_bme280_transition_and_next_action_have_finite_native_admission() {
     assert_eq!(expression_count, 13);
 }
 
+mod ht16k33;
 mod state;

@@ -27,9 +27,12 @@ type Ht16k33Transition = {
     state: Ht16k33State
     result: I2cResult
 }
+type Ht16k33Acknowledgement = {
+    transactions: U8
+}
 type Ht16k33Action =
     transact I2cTransaction
-    | acknowledged
+    | acknowledged Ht16k33Acknowledgement
     | refused Ht16k33Failure
 
 plot ht16k33-initialize (
@@ -38,7 +41,7 @@ plot ht16k33-initialize (
 
 plot ht16k33-action (
     state: Ht16k33State...| >> action: Ht16k33Action...|
-) = (.configuration.address < 112 ? refused(unsupported-address(.configuration.address)) : (.configuration.brightness > 15 ? refused(invalid-brightness(.configuration.brightness)) : (.configuration.blink > 3 ? refused(invalid-blink(.configuration.blink)) : (.phase == 0 ? transact({ address: .configuration.address, write: [33], read: 0 }) : (.phase == 1 ? transact({ address: .configuration.address, write: [128], read: 0 }) : (.phase == 2 ? transact({ address: .configuration.address, write: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], read: 0 }) : (.phase == 3 ? transact({ address: .configuration.address, write: [224 | .configuration.brightness], read: 0 }) : (.phase == 4 ? transact({ address: .configuration.address, write: [128 | (.configuration.blink * 2) | (.configuration.enabled ? 1 : 0)], read: 0 }) : (.phase == 5 ? acknowledged(empty) : (.phase == 6 ? refused(.failure) : refused(unexpected(empty))))))))))))
+) = (.configuration.address < 112 ? refused(unsupported-address(.configuration.address)) : (.configuration.brightness > 15 ? refused(invalid-brightness(.configuration.brightness)) : (.configuration.blink > 3 ? refused(invalid-blink(.configuration.blink)) : (.phase == 0 ? transact({ address: .configuration.address, write: [33], read: 0 }) : (.phase == 1 ? transact({ address: .configuration.address, write: [128], read: 0 }) : (.phase == 2 ? transact({ address: .configuration.address, write: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], read: 0 }) : (.phase == 3 ? transact({ address: .configuration.address, write: [224 | .configuration.brightness], read: 0 }) : (.phase == 4 ? transact({ address: .configuration.address, write: [128 | (.configuration.blink * 2) | (.configuration.enabled ? 1 : 0)], read: 0 }) : (.phase == 5 ? acknowledged({ transactions: 5 }) : (.phase == 6 ? refused(.failure) : refused(unexpected(empty))))))))))))
 
 plot ht16k33-transition (
     transition: Ht16k33Transition...| >> state: Ht16k33State...|
@@ -56,4 +59,4 @@ plot ht16k33-frame-request (
 
 plot ht16k33-write-outcome (
     result: I2cResult...| >> action: Ht16k33Action...|
-) = (. is completed ? (sequence/length(.completed.input) == 0 ? acknowledged(empty) : refused(malformed(empty))) : refused(bus(.)))
+) = (. is completed ? (sequence/length(.completed.input) == 0 ? acknowledged({ transactions: 1 }) : refused(malformed(empty))) : refused(bus(.)))
