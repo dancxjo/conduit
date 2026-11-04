@@ -136,6 +136,35 @@ impl<const N: usize> StaticProjectedExpression<N> {
         output: &mut [u8],
     ) -> Result<usize, StaticProjectedRefusal> {
         let validated = self.native.validate_borrowed(input)?;
+        self.evaluate_checked_into(input, validated, output)
+    }
+    pub(in crate::expression_prepared) fn input_matches(
+        &self,
+        native: &ResidentNativeValidator<N>,
+    ) -> bool {
+        self.native.same_definition(native)
+    }
+    pub(in crate::expression_prepared) fn checked_work(&self) -> u32 {
+        let mut work = (self.tape.instruction_count() as u32).saturating_add(4);
+        for operand in self.inputs {
+            let units = match operand.source {
+                StaticProjectedSource::Fixed { .. } => 2,
+                StaticProjectedSource::Path(path) => path.len() + 2,
+                StaticProjectedSource::VariantIs { path, .. } => path.len() + 3,
+                StaticProjectedSource::Length(path) => path.len() + 2,
+            };
+            work = work.saturating_add(units as u32);
+        }
+        work.saturating_add(self.output_contract.map_or(0, |c| c.validation_work()) as u32)
+    }
+    // Private reuse only after the enclosing evaluator checks its whole input.
+    // Constructor-time definition equality preserves every child guard/bound.
+    pub(in crate::expression_prepared) fn evaluate_checked_into(
+        &self,
+        input: &[u8],
+        validated: conduit_core::ValidatedCanonicalStructuredValue<'_>,
+        output: &mut [u8],
+    ) -> Result<usize, StaticProjectedRefusal> {
         if input.len() > self.maximum_input_bytes {
             return Err(Refusal::InvalidInput.into());
         }

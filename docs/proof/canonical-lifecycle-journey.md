@@ -2316,3 +2316,45 @@ workspace/private-work admission and physical MCU Play remain the next gates.
 No firmware was changed. Dev's runner-repair Integration `41826648964` remains
 pending behind the original Integration's live foundation job; feature merges
 remain held.
+
+
+### Resident structured images enter the common Back (4 November 2026)
+
+`StaticStructuredExpressionBack` now supplies fixed result/staging arrays to the
+same prepared-expression lifecycle already used by owned and scalar execution.
+It rejects insufficient capacity, unsupported temporal profiles and work
+outside the kernel's finite grant range. No pool, grant or offer is enlarged or
+created. Runtime validates the whole Native input once; private child reuse
+requires exact constructor-time schema/table/capacity/occurrence agreement.
+Standalone child evaluation still performs its own Native checks. A mismatch
+regression deliberately supplies another predicate table with the same schema
+and contract count and proves refusal. Typed evaluation refusals remain
+inspectable without allocating diagnostic strings during Play.
+
+The shared lifecycle now preflights complete private work plus send/consume
+fuel before any evaluation or IO intent. Cooperative work bounds include
+canonical passes, path lookups and finite iteration, predicates, scalar and
+constructor operations, and staging/publication. They are bounded-operation
+units, not CPU instruction counts or hard timing guarantees. Complete canonical
+byte/depth, state, stack and preparation workspace admission remains mandatory.
+
+A generated-code test executes the actual HT16K33 frame request through the
+common Back and real fixed kernel with bounded routes, queues and values. It
+proves zero allocations for construction and execution, byte equality with the
+portable reference, pressure, insufficient-fuel refusal before intents,
+uncommitted retry, committed reuse, closing Flow and terminal cancellation.
+Negative admission cases cover too-small buffers, work beyond u16 fuel and
+mismatched child guards. The fixture initially supplied only four total bytes
+to its new 2,048-byte-value store; correcting its explicit fixture capacity to
+4 x 2,048 bytes fixes that setup error. No device grant changed.
+
+Validation: the new emitted structured Back/kernel test and all eight existing
+resident Back/kernel tests pass; fourteen actual protocol/scalar/native image
+tests pass; strict catalog library/test Clippy and a thumbv6m no_std catalog
+check pass. Raw logs are retained in ignored
+`target/pico-generic-host-20261102/resident-native-image-20261104/`.
+This is CPU/no_std Back/kernel component proof. Exact Make/offer installation,
+Source/Fore/artifact/resource binding, complete physical workspace admission,
+and a physical sampling/display Plot remain unfinished. No firmware or live
+service changed. Runner-repair Integration `41826648964` is queued at the last
+observation, so further feature merges remain held.

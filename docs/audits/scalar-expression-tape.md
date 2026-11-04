@@ -87,6 +87,34 @@ Selected canonical nodes can be copied directly from an already checked input.
 Ordinary Make/Back installation and physical Play remain unfinished. Source's refined-construction admission rule is preserved; the
 output-predicate test is an explicit portable-program component fixture.
 
+## Structured resident Back lifecycle (development)
+
+`StaticStructuredExpressionBack` wraps the resident image in the existing
+`PreparedExpressionBack` lifecycle. It owns fixed result/staging arrays chosen
+by Make, checks capacities and rejects work that cannot fit the kernel's u16
+Step grant. The installing Host must bind exact Source/Fore/artifact and compare
+required fuel with the Plan-sealed grant before publishing an initialized Back.
+No offer, authority or reservation is created by the library constructor.
+
+Cooperative work counts bounded canonical-validation passes, path/selection
+calls, fixed predicate checks, scalar instructions and constructor/publication
+operations. Canonical byte/depth ceilings and stack/workspace must be admitted
+independently; these units are neither CPU instruction counts nor hard timing or
+preemption guarantees. Iteration through collection paths uses a conservative
+node bound derived from the admitted canonical byte envelope. Both branches and
+all child operations contribute to the bound. The common lifecycle preflights
+private work plus send/consume fuel before evaluation or any IO intent.
+
+The parent validates the whole input once. A private child entrance reuses that
+view only after constructor-time equality of exact schemas, predicate/scope
+tables, canonical capacity and occurrence limits. Standalone child calls retain
+full checks. No public admission witness or authority is inferred from the
+borrowed view. Structured evaluation refusals remain inspectable on the Back.
+Actual frame-request generated-code tests cover bounded kernel delivery,
+pressure, insufficient fuel, uncommitted retry, committed reuse, closing Flow,
+terminal cancellation and invalid/mismatched capacity/work/guards without
+allocation. Make/offer installation and physical execution remain unfinished.
+
 ## Owned tape profile
 
 Issue #5540 adds an explicitly selected std scalar specialization with Value Fore contracts within the existing checked pure-expression Kind, ordinary Back offer, Plan and kernel Host Call mechanism. The new profile/implementation/artifact identities are distinct from the reference evaluator. Text, records, mathematical-value/quantity/floating profiles, Flow contracts and oversized tapes refuse preparation; the existing interpreter remains independently available. No candidate switches execution form halfway through Play.

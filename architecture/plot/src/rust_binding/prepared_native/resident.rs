@@ -129,6 +129,49 @@ impl<const N: usize> ResidentNativeValidator<N> {
         }
         Ok(value)
     }
+    /// Cooperative units count bounded canonical/selection/predicate calls,
+    /// not CPU instructions or a hard time guarantee. Canonical byte/depth
+    /// ceilings and complete stack/workspace require independent Root admission.
+    pub fn validation_work(&self, maximum_bytes: usize) -> u32 {
+        let nodes = maximum_bytes.min(self.schema.maximum_bytes()) / 5 + 1;
+        let visits = |path: &[StaticNativePathStep]| -> u32 {
+            if path.iter().any(|s| matches!(s, StaticNativePathStep::Each)) {
+                ((path.len() + 1) as u32)
+                    .saturating_mul(nodes as u32)
+                    .saturating_mul(2)
+            } else {
+                (path.len() + 1) as u32
+            }
+        };
+        let mut work = 1u32; // one canonical validation with its admitted envelope
+        for (i, entry) in self.contracts.iter().enumerate() {
+            let leaves = if entry
+                .path
+                .iter()
+                .any(|s| matches!(s, StaticNativePathStep::Each))
+            {
+                nodes as u32
+            } else {
+                1
+            };
+            let checks = self.predicates[i].map_or(u16::MAX, |p| p.validation_work()) as u32;
+            work = work
+                .saturating_add(1)
+                .saturating_add(visits(entry.path))
+                .saturating_add(leaves.saturating_mul(checks));
+        }
+        for path in self.scopes {
+            work = work.saturating_add(1).saturating_add(visits(path));
+        }
+        work
+    }
+    pub(crate) fn same_definition(&self, other: &Self) -> bool {
+        self.schema.type_bytes() == other.schema.type_bytes()
+            && self.schema.maximum_bytes() == other.schema.maximum_bytes()
+            && core::ptr::eq(self.contracts, other.contracts)
+            && core::ptr::eq(self.scopes, other.scopes)
+            && self.maximum_occurrences == other.maximum_occurrences
+    }
     pub const fn schema_bytes(&self) -> &'static [u8] {
         self.schema.type_bytes()
     }

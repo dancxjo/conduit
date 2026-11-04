@@ -64,6 +64,11 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             return Err(Refusal::InvalidProgram);
         }
         for child in &children {
+            if let StaticStructuredValue::Scalar(child) = child {
+                if !child.input_matches(&input) {
+                    return Err(Refusal::InvalidProgram);
+                }
+            }
             if let StaticStructuredValue::InputPath(path) = child {
                 if !crate::expression_prepared::resident_projection::valid(path) {
                     return Err(Refusal::InvalidProgram);
@@ -98,6 +103,43 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             children,
             program,
         })
+    }
+    pub const fn maximum_input_bytes(&self) -> usize {
+        self.program.maximum_input_bytes
+    }
+    pub const fn maximum_output_bytes(&self) -> usize {
+        self.program.maximum_output_bytes
+    }
+    /// Upper bound in cooperative bounded-operation units, not CPU cycles.
+    /// Both validation passes, all possible constructor/child operations and
+    /// publication staging are charged, including unselected branches.
+    pub fn computation_work(&self) -> u32 {
+        let mut work = self
+            .input
+            .validation_work(self.program.maximum_input_bytes)
+            .saturating_add(
+                self.output
+                    .validation_work(self.program.maximum_output_bytes),
+            )
+            .saturating_add(2); // schema prefix and final bounded result copy
+        let child_work = |index: u16| {
+            self.children
+                .get(usize::from(index))
+                .map_or(u32::MAX, |child| match child {
+                    StaticStructuredValue::Scalar(child) => child.checked_work(),
+                    StaticStructuredValue::InputPath(path) => (path.len() + 1) as u32,
+                })
+        };
+        for op in self.program.instructions {
+            let units = match *op {
+                Operation::Value(i) => child_work(i).saturating_add(4),
+                Operation::BranchFalse { value, .. } => child_work(value).saturating_add(2),
+                Operation::Bytes { .. } | Operation::InputNode { .. } => 2,
+                Operation::Jump(_) => 1,
+            };
+            work = work.saturating_add(units);
+        }
+        work
     }
     pub fn scratch_bytes(&self) -> usize {
         self.program.maximum_output_bytes
@@ -183,7 +225,7 @@ impl<const I: usize> ResidentValues<'_, I> {
             return Err(Refusal::InvalidProgram.into());
         };
         value
-            .evaluate_into(input, output)
+            .evaluate_checked_into(input, self.input, output)
             .map_err(|refusal| StaticStructuredRefusal::Child { index, refusal })
     }
 }

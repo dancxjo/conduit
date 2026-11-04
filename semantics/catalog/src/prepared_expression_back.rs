@@ -26,18 +26,19 @@ pub fn prepared_expression_bounds(
 
 mod resident;
 pub use resident::{StaticExpressionBackRefusal, StaticScalarExpressionBack};
+mod resident_structured;
+pub use resident_structured::{StaticStructuredExpressionBack, StructuredResidentEvaluator};
 
 trait ExpressionEngine {
-    fn evaluate(
-        &mut self,
-        input: &[u8],
-    ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal>;
+    type Refusal;
+    fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], Self::Refusal>;
     fn output_bytes(&self) -> &[u8];
     fn private_fuel(&self) -> u16 {
         0
     }
 }
 impl ExpressionEngine for PreparedPortableExpressionEvaluator {
+    type Refusal = conduit_plot::PortableExpressionEvaluationRefusal;
     fn evaluate(
         &mut self,
         input: &[u8],
@@ -127,7 +128,17 @@ impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpres
         {
             return fail(1643);
         }
-        if io.consume_fuel(self.evaluator.private_fuel()).is_err() {
+        let private = self.evaluator.private_fuel();
+        if private > 0 {
+            let Some(complete) = private.checked_add(2) else {
+                return fail(1647);
+            };
+            if io.remaining_fuel() < complete {
+                let _ = io.consume_fuel(complete); // sticky fault, before work or IO intent
+                return StepOutcome::Yield;
+            }
+        }
+        if io.consume_fuel(private).is_err() {
             return StepOutcome::Yield; // sticky kernel fuel fault rejects the whole Step
         }
         let Ok(output) = self.evaluator.evaluate(input) else {

@@ -9,6 +9,7 @@ pub struct ResidentEvaluator {
     length: usize,
 }
 impl ExpressionEngine for ResidentEvaluator {
+    type Refusal = PortableExpressionEvaluationRefusal;
     fn evaluate(&mut self, input: &[u8]) -> Result<&[u8], PortableExpressionEvaluationRefusal> {
         self.length = self.image.evaluate_into(input, &mut self.output)?;
         Ok(&self.output[..self.length])
@@ -24,6 +25,8 @@ pub type StaticScalarExpressionBack = PreparedExpressionBack<ResidentEvaluator>;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StaticExpressionBackRefusal {
     UnsupportedTemporal,
+    Bounds,
+    Work,
 }
 impl StaticScalarExpressionBack {
     /// Install already validated resident code with the ordinary Back lifecycle.

@@ -31,6 +31,9 @@ impl<'schema> BorrowedStructuredValueValidator<'schema> {
             maximum_bytes,
         })
     }
+    pub const fn maximum_bytes(&self) -> usize {
+        self.maximum_bytes
+    }
     pub const fn type_bytes(&self) -> &'schema [u8] {
         self.type_bytes
     }
