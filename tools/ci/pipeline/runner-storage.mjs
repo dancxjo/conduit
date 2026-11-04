@@ -1,5 +1,6 @@
 // Unit/admission and hosted Linux proofs use Rust, native libraries and Node,
-// not these image SDKs. Retain the immutable compiler snapshot reserve.
+// not these image SDKs. Retain both immutable snapshot and sandbox task/cache
+// reserves. Acquisition duplicates the frozen closure before build admission.
 // Never reclaim source, Rust caches, test output or tools on a user's machine.
 import { lstatSync, realpathSync, statfsSync } from 'node:fs';
 import { command } from './targets/common.mjs';
@@ -7,6 +8,9 @@ import { command } from './targets/common.mjs';
 const UNUSED_IMAGE_SDKS = Object.freeze([
   '/usr/local/lib/android',
   '/usr/share/dotnet',
+  '/usr/share/swift',
+  '/usr/local/.ghcup',
+  '/usr/local/share/powershell',
 ]);
 
 export function prepareHostedStorage({
