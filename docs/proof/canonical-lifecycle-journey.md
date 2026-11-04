@@ -1615,3 +1615,33 @@ Green remained on its admitted Boot with 152 samples and 2,274 acknowledged
 display updates, no reported sensor/display errors and the same accepted receipt
 digest. Its local diagnostic IO has not become a planned Play. The next physical
 execution step still requires exclusive I2C custody and an actual admitted binding.
+
+
+### 3 November: remove I2C Source checking from MCU preparation
+
+The I2C contract now checks its authored `i2c-types.conduit` on the fabrication
+host in the package build, then embeds the ordinary canonical Type schemas
+(165 request bytes and 616 result bytes). `I2cContract::prepare` decodes those
+bounded schemas and constructs the same Fore; it does not construct a syntax
+tree or retain checked authoring Types. The optional `source-catalog` feature
+keeps authoring catalogs and their refinement laws available. With default
+features disabled, `conduit-plot` is absent from normal runtime dependencies;
+it remains a build dependency running the ordinary Source checker. This is a
+package-owned application of existing canonical schema encoding, not an
+alternate Type language or a manually copied sensor schema.
+
+All 12 default and 10 embedded-feature CPU tests pass, including direct
+equality of both generated schemas and Fore value profiles against freshly
+checked authored Types. Strict all-feature/all-target Clippy and the no-default
+ARMv6-M check pass. A temporary host allocation probe measured the previous
+Source parse/check step alone at 18,958 allocations and 2,302,743 peak live
+requested bytes; the complete new contract preparation used 96 allocations
+and 4,245 peak live requested bytes, retaining 2,381. The former is a lower
+bound on the old preparation, not a comparison of complete retained contracts.
+Target allocator rounding, firmware flash and whole-Host overlap remain unproved.
+The probe source/output stays outside Git and the temporary example was removed.
+
+The change is retained on the delivery branch while #6739's exact native
+Candidate runs. Green is unchanged. Physical bus ownership, admitted Ready
+offers and ordinary sensor/display Plays remain the next execution work;
+these schema and CPU checks establish none of those effects.

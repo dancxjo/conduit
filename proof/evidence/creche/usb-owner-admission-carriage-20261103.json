@@ -141,5 +141,36 @@
       "display_error": false,
       "membership_receipt_unchanged": true
     }
+  },
+  "build_checked_i2c_contract": {
+    "source": "b60b509f5c3a19fdc1d3d250642f83b7916410b7",
+    "authored_source": "plots/device-protocols/i2c-types.conduit",
+    "generated_canonical_bytes": {
+      "request": 165,
+      "result": 616
+    },
+    "runtime_source_parser_required": false,
+    "no_default_normal_dependency_graph_contains_conduit_plot": false,
+    "default_tests_passed": 12,
+    "embedded_feature_tests_passed": 10,
+    "thumbv6m_none_eabi_no_default_check": true,
+    "all_features_all_targets_strict_clippy": true,
+    "host_allocation_probe": {
+      "old_source_check_only_lower_bound": {
+        "allocations": 18958,
+        "total_requested": 3606207,
+        "peak_live": 2302743
+      },
+      "new_complete_contract_prepare": {
+        "allocations": 96,
+        "total_requested": 5575,
+        "peak_live": 4245,
+        "retained": 2381
+      },
+      "scope": "host requested allocation sizes; old comparison is only Source parse/check, not complete old contract; not target allocator rounding or whole firmware"
+    },
+    "physical_provider_or_play_proven": false,
+    "deployed": false,
+    "delivery": "source checkpoint; held behind current native baseline repair"
   }
 }
