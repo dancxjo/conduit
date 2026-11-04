@@ -3552,3 +3552,30 @@ forbidden; targeted formatting and whitespace checks pass. A tuple return type
 was named after lint requested it; no lint suppression or behavioral relaxation
 was introduced. This remains a checkpoint on the existing delivery branch,
 without opening a third overlapping review lane while #6754 awaits admission.
+
+### 4 November: Source-check lifecycle refusal controls
+
+The actual production Host integration now cancels a checked-source run before
+its Host Call: no committed reply and no HostCallRequested sign occur. Subsequent
+authorized Plays still return the exact reports/refusals. An independently
+initialized Host also rejects the old Plan when its provider is absent, its
+provider generation changes, its Boot changes, or its backing pool is replaced.
+For replacement controls the offer generation is deliberately kept equal after
+installation, so a broader offer mismatch cannot substitute for these checks.
+Four focused integration/allocation tests pass, including those separate cases;
+raw evidence is `target/source-check-lifecycle-tests.log`.
+
+This is pre-call cancellation and admission-time provider loss, not interruption
+of the allocating compiler or mid-operation worker loss. Existing preparation
+cache limits explicitly bound retained entries, not complete compiler workspace.
+The generic native Base accounting likewise disclaims allocator containment;
+neither is promoted into proof of full S2 preparation admission. #6447 continues
+to own that gap; #6341 remains the separately scoped physical Root workspace
+contract. No new memory epic, alternate runtime, device change or completed
+lifecycle is claimed.
+
+The unchanged-custody positive control accepts that same Plan and commits a
+reply, preventing unconditional refusal from satisfying the negative controls.
+Final focused tests and strict all-target Body Make Clippy pass; formatting and
+whitespace checks pass. Refreshed `origin/dev` adds no missing commits to this
+checkpoint. #6754's exact admission job remains live, not failed or restarted.

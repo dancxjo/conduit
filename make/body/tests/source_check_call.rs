@@ -133,6 +133,36 @@ fn ordinary_plot_returns_actual_valid_and_invalid_source_reports_with_host_call_
         .is_err());
     assert_eq!(refused.calls, 0);
     let plan = support::plan(&host, &authored, &[grant], bounds()).unwrap();
+    let control = RunControl::default();
+    control
+        .request_stop(RunControlRequestId::new("before-source-check").unwrap())
+        .unwrap();
+    let mut cancelled = Capture {
+        bytes: vec![],
+        calls: 0,
+    };
+    let stopped = host
+        .run_external_plot_controlled_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "request".into(),
+                track: ConnectionTrack::Payload,
+                bytes: requests[0].clone(),
+            }],
+            &mut cancelled,
+            &mut Vec::new(),
+            &mut ThreadTimer,
+            &control,
+        )
+        .unwrap();
+    assert_eq!(cancelled.calls, 0);
+    assert!(stopped
+        .kernel
+        .unwrap()
+        .kernel_sign
+        .iter()
+        .all(|event| event.kind != conduit_kernel::KernelEventKind::HostCallRequested));
+    // Subsequent ordinary Plays must still be usable after the cancelled run.
     let mut plays = Vec::new();
     for (request, expected) in requests.into_iter().zip(expected) {
         let mut capture = Capture {
@@ -171,3 +201,6 @@ fn ordinary_plot_returns_actual_valid_and_invalid_source_reports_with_host_call_
     }
     assert_ne!(plays[0], plays[1]);
 }
+
+#[path = "source_check_call/lifecycle.rs"]
+mod lifecycle;
