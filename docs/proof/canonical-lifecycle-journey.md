@@ -3245,3 +3245,45 @@ and removed, reclaiming 873519752 unique file bytes. Credentials, history,
 installed releases, source, Seeds and recovery evidence were preserved. Raw
 cleanup, test, lint and target logs remain ignored under
 target/resident-work-pool-20261104/.
+
+
+### 4 November: expose the missing workset step before MCU execution
+
+Tracing the installed owner found a larger integration constraint than a command
+receiver: ordinary plan_partition currently uses only the owner advertisement,
+and the retained workset is the Crèche. Generic authored successor-workset
+formation/adoption is owned by existing #6448/#6449. Adding a thermometer command
+endpoint alone would bypass the intended Body composition path. The full journey
+remains unchanged; this is a serial prerequisite in the existing delivery lane,
+not another MCU memory epic or permission to bypass Root admission.
+
+The new pure proposal projection reuses canonical BodyWorkset validation and the
+existing Source/check Info contract from accepted #6446. It correlates expected
+Body/revision and Source/context observations, preserves compact candidate
+provenance, and returns the complete desired workset. No lifecycle, Source,
+catalog, Host, authority, Plan or Play changes. Public reports and IDs remain
+conditional descriptive Info, not compiler ownership or executable permission.
+
+Three ordinary Conduitese expression Plots propose adding one checked candidate,
+replacing the retained Plot, or retaining one Plot from a later revision. They
+import actual checked S1 Native owners and carry Source generation/hash/identity,
+entry, checked identity and checking-context provenance. Native workset bounds
+are finite; the reference also uses the existing canonical aggregate identity
+limit and a 32 KiB projection bound. There is no alternative mutable workset.
+
+Five tests pass using actual canonical Source checking and ordinary portable
+expression evaluation. The authored add/replace/remove results match the Rust
+projection's complete canonical workset and Source basis. Negative cases cover
+wrong Body/revision, stale Source/context, mismatched identity pairs, rejected or
+malformed checking Info, unknown candidates, duplicates, malformed entries, item
+and identity-byte overflow, and no-op proposals. Observed Bodies are unchanged.
+This is CPU/Source proof, not an installed authoring encounter, guarded adoption,
+remote preparation or physical Play. #6449 and the MCU execution path remain open.
+
+The first test build exhausted disk while compiling hosted development
+dependencies. After that build terminated, verified inactive executable outputs
+and stale language compiler variants were removed, preserving recent variants,
+source, credentials, history, installed products and recovery material. Recorded
+unique removed sizes are 564501832 and 4257039741 bytes. The same test command was
+rerun; no check was weakened or skipped to obtain its passing result. Raw logs
+and cleanup inventories remain ignored under target/workset-proposal-20261104/.
