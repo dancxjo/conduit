@@ -110,6 +110,7 @@ pub(crate) mod direct_spoken {
 #[cfg(unix)]
 #[path = "durable_host_control/terminal_attach.rs"]
 pub(crate) mod terminal_attach;
+pub(crate) use body::leave_member;
 pub(crate) use body::local_wardrobe;
 pub(crate) use body::start_browser_window;
 #[cfg(unix)]
@@ -123,7 +124,8 @@ pub(crate) use body::{
 // Native return consumes the expiry-bearing entrance after its route lands.
 pub(crate) use body::{
     admit_owned_request, face_snapshot, inspect_owned_body, issue_owned_invitation,
-    local_face_snapshot, submit_local_face_interaction, submit_local_face_interaction_until,
+    local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
+    submit_local_face_interaction_until,
 };
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
@@ -937,6 +939,16 @@ enum Request {
         ttl_seconds: u64,
         candidates: Option<Vec<RendezvousCandidate>>,
     },
+    BodyPrepareInvitationRoute {
+        protocol: u16,
+        token: Vec<u8>,
+        ttl_seconds: u64,
+        bind: std::net::SocketAddr,
+        public_url: String,
+        certificate: std::path::PathBuf,
+        private_key: std::path::PathBuf,
+        authorize_route: bool,
+    },
     BodyAdmit {
         protocol: u16,
         token: Vec<u8>,
@@ -1021,6 +1033,11 @@ enum Request {
         protocol: u16,
         token: Vec<u8>,
         window_id: String,
+        credential: MembershipCredential,
+    },
+    BodyMemberLeave {
+        protocol: u16,
+        token: Vec<u8>,
         credential: MembershipCredential,
     },
     Face {
@@ -1225,6 +1242,10 @@ enum Response {
         protocol: u16,
         invitation: Box<conduit_body::PortableInvitation>,
     },
+    BodyInvitationRoutePrepared {
+        protocol: u16,
+        candidate: RendezvousCandidate,
+    },
     BodyAdmitted {
         protocol: u16,
         receipt: Box<conduit_body::PortableAdmissionReceipt>,
@@ -1271,6 +1292,9 @@ enum Response {
     BodyBrowserLeft {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
+    },
+    BodyMemberLeft {
+        protocol: u16,
     },
     Face {
         protocol: u16,
@@ -1851,6 +1875,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         Request::Status { token, .. }
         | Request::BodyInspect { token, .. }
         | Request::BodyInvite { token, .. }
+        | Request::BodyPrepareInvitationRoute { token, .. }
         | Request::BodyAdmit { token, .. }
         | Request::BodyBrowserStart { token, .. }
         | Request::BodyBrowserBegin { token, .. }
@@ -1863,6 +1888,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
+        | Request::BodyMemberLeave { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
@@ -1930,6 +1956,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 | Request::BodyBrowserAbort { .. }
                 | Request::BodyBrowserCancel { .. }
                 | Request::BodyBrowserLeave { .. }
+                | Request::BodyMemberLeave { .. }
         )
     {
         return refused("body-play-active");
@@ -1965,6 +1992,29 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .map(|invitation| Response::BodyInvitation {
                 protocol: PROTOCOL,
                 invitation: Box::new(invitation),
+            })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyPrepareInvitationRoute {
+            protocol,
+            ttl_seconds,
+            bind,
+            public_url,
+            certificate,
+            private_key,
+            authorize_route,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .prepare_owned_invitation_route(
+                ttl_seconds,
+                bind,
+                &public_url,
+                &certificate,
+                &private_key,
+                authorize_route,
+            )
+            .map(|candidate| Response::BodyInvitationRoutePrepared {
+                protocol: PROTOCOL,
+                candidate,
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyAdmit {
@@ -2122,6 +2172,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 protocol: PROTOCOL,
                 biography: Box::new(biography),
             })
+            .unwrap_or_else(|code| refused(&code)),
+        Request::BodyMemberLeave {
+            protocol,
+            credential,
+            ..
+        } if protocol == PROTOCOL => runtime
+            .owned_body_member_leave(&credential)
+            .map(|_| Response::BodyMemberLeft { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
         Request::Face {
             protocol, request, ..

@@ -43,6 +43,8 @@ mod birth;
 mod clock_interval;
 #[path = "direct_spoken_route.rs"]
 mod direct_spoken_route;
+#[path = "member_leave.rs"]
+mod member_leave;
 pub(crate) use direct_spoken_route::DirectSpokenStart;
 #[path = "llm_spoken_route.rs"]
 mod llm_spoken_route;
@@ -195,6 +197,7 @@ pub(crate) struct Owner {
     last_execution: Option<serde_json::Value>,
     execution_persistence_pending: bool,
     admissions: Option<conduit_body::AdmissionManager>,
+    prepared_admission_route: Option<crate::durable_host::PreparedAdmissionRoute>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
     invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
@@ -305,6 +308,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             admissions: None,
+            prepared_admission_route: None,
             pending_browser: None,
             pending_native_mask: None,
             invited_mask_offers: BTreeMap::new(),
@@ -335,6 +339,7 @@ impl Owner {
             last_execution: None,
             execution_persistence_pending: false,
             admissions: None,
+            prepared_admission_route: None,
             pending_browser: None,
             pending_native_mask: None,
             invited_mask_offers: BTreeMap::new(),

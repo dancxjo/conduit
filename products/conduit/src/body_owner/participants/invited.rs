@@ -10,6 +10,43 @@ use conduit_core::{HostId, PROTOCOL_VERSION};
 use std::path::Path;
 
 impl Owner {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn prepare_invitation_route(
+        &mut self,
+        ttl_seconds: u64,
+        bind: std::net::SocketAddr,
+        public_url: &str,
+        certificate: &Path,
+        private_key: &Path,
+        authorize_route: bool,
+    ) -> Result<conduit_body::RendezvousCandidate, String> {
+        if self.session.evidence().body.state != BodyState::Lulled
+            || self.session.realization().is_some()
+        {
+            return Err(
+                "preparing admission route requires a lulled Body without a proposal".into(),
+            );
+        }
+        if self
+            .prepared_admission_route
+            .as_ref()
+            .is_some_and(|route| route.is_live())
+        {
+            return Err("one prepared admission route is already live".into());
+        }
+        self.prepared_admission_route = None;
+        let route = crate::durable_host::PreparedAdmissionRoute::bind(
+            ttl_seconds,
+            bind,
+            public_url,
+            certificate,
+            private_key,
+            authorize_route,
+        )?;
+        let candidate = route.candidate()?;
+        self.prepared_admission_route = Some(route);
+        Ok(candidate)
+    }
     pub(crate) fn issue_invitation(
         &mut self,
         root: &Path,
@@ -21,6 +58,21 @@ impl Owner {
         {
             return Err("invitation requires a lulled Body without a proposal".into());
         }
+        if self
+            .prepared_admission_route
+            .as_ref()
+            .is_some_and(|route| !route.is_live())
+        {
+            self.prepared_admission_route = None;
+        }
+        let candidates = if let Some(route) = &self.prepared_admission_route {
+            if candidates.is_some() {
+                return Err("explicit candidates cannot replace the prepared owner route".into());
+            }
+            Some(vec![route.candidate()?])
+        } else {
+            candidates
+        };
         let mut manager = match &self.admissions {
             Some(manager) => manager.clone(),
             None => AdmissionManager::new(self.session.evidence().body_id.clone())
@@ -40,6 +92,9 @@ impl Owner {
             None,
         )?;
         self.admissions = Some(manager);
+        if let Some(route) = &mut self.prepared_admission_route {
+            route.assign(root, &invitation)?;
+        }
         Ok(invitation)
     }
 

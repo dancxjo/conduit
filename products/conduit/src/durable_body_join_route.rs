@@ -2,6 +2,9 @@
 
 #[path = "durable_body_join_route/face_snapshot.rs"]
 mod face_snapshot;
+#[path = "durable_body_join_route/prepared.rs"]
+mod prepared;
+pub(crate) use prepared::PreparedAdmissionRoute;
 #[path = "durable_body_join_route/native_lines.rs"]
 mod native_lines;
 #[path = "durable_body_join_route/response_document.rs"]
@@ -93,8 +96,27 @@ pub(crate) fn serve_body_invitation_route(
     std::io::stdout()
         .flush()
         .map_err(|error| format!("publish routed Body invitation: {error}"))?;
+    serve_existing_invitation_route(state_dir, &listener, &invitation)
+}
+
+fn serve_existing_invitation_route(
+    state_dir: &Path,
+    listener: &SecureWebSocketListener,
+    invitation: &PortableInvitation,
+) -> Result<(), String> {
+    let route_expiry = invitation
+        .rendezvous
+        .as_ref()
+        .and_then(|r| r.candidates.iter().map(|c| c.expires_at_millis).min())
+        .unwrap_or(invitation.claim.expires_at_millis);
+    let remaining = route_expiry
+        .min(invitation.claim.expires_at_millis)
+        .saturating_sub(current_time_millis()?);
+    if remaining == 0 {
+        return Err("original invitation route expired".into());
+    }
     let mut line = listener
-        .accept_with_timeout(Duration::from_secs(ttl_seconds))
+        .accept_with_timeout(Duration::from_millis(remaining))
         .map_err(|error| format!("Body owner unreachable before invitation expiry: {error:?}"))?;
     let request: RoutedAdmissionRequest = receive(&mut line)?;
     let response_schema = request.response_schema();
@@ -120,7 +142,7 @@ pub(crate) fn serve_body_invitation_route(
                     },
                 )?;
                 face_snapshot::serve_optional_face_snapshot(
-                    &mut line, &listener, state_dir, &receipt,
+                    &mut line, listener, state_dir, &receipt,
                 )
             }
             Err(error) => {
@@ -136,7 +158,7 @@ pub(crate) fn serve_body_invitation_route(
         }?;
     drop(line);
     if let Some(grant) = continuation {
-        return_route::serve(&listener, state_dir, &grant)
+        return_route::serve(listener, state_dir, &grant)
     } else {
         Ok(())
     }
