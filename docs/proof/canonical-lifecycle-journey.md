@@ -2051,3 +2051,33 @@ A subsequent read of Green reports 382 samples/382 attempts and 5,727 frames/
 same retained membership receipt. This verifies continued diagnostic sensing
 and display during preparation; it does not turn that diagnostic path into an
 admitted sampling/display Play.
+
+
+### Explicit private Step-work reservations (4 November 2026)
+
+Installation review found a real missing connection: ordinary lowering supplied
+only the fixed kernel-visible IO grant (three units for a one-input/one-output
+expression), whereas the resident Back charges private instructions as required
+by the canon. Increasing every node's grant would conceal the missing admission.
+
+The shared resource vocabulary now defines `kernel/cooperative-step-work@1`.
+A Host must offer finite capacity and a Back must require it through the existing
+resource contract. Ordinary planning refuses absent or insufficient pools and
+seals the selected amount and pool identity. Lowering adds only those exact
+bindings to the existing IO grant, retains their resource bindings and refuses
+malformed or unrepresentable grants. No new serialized fields, scheduler,
+transport or environmental policy were introduced. Nodes without the selected
+resource retain their prior fuel. Cooperative units are not CPU time or hostile
+code containment.
+
+All 88 planner library tests and 63 lowering tests pass. The seven resident Back
+tests include using a sealed Plan's lowered work grant to fund the fixed kernel
+component test; source/protocol installation is still a separate gate. The
+resident Back and its dependencies also pass an actual `thumbv6m-none-eabi`
+no-default-features `kernel-step` compilation check. This establishes target
+compilability, not linked firmware size, flash placement or physical Play.
+
+PR #6746 is merged as `949e68c694`; Integration 41809026015 has passed the
+previously failing immutable compiler-snapshot preparation and is running its
+product proof. Complete Integration acceptance remains pending. The current
+physical Green firmware and its diagnostic sensing/display path are preserved.

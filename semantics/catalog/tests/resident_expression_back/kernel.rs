@@ -191,3 +191,41 @@ fn insufficient_private_or_io_fuel_is_an_atomic_kernel_refusal() {
         assert!(matches!(play.drivers()[2], Back::Sink { value: None, .. }));
     }
 }
+
+#[path = "../../../../architecture/core/tests/common/sealed_state.rs"]
+mod plan_fixture;
+
+#[test]
+fn sealed_private_work_reservation_funds_the_real_expression_kernel() {
+    use conduit_core::{ResourceBinding, COOPERATIVE_STEP_WORK_CLASS_ID};
+    use conduit_plan_lowering::lowering::lower_plan_fragment_from_plan;
+    let mut fragment = plan_fixture::fragment();
+    fragment.states.clear();
+    fragment.sign_storage_budget =
+        conduit_core::mandatory_sign_storage_requirement(&fragment.expected_sign).unwrap();
+    fragment.placements[0].resources = vec![ResourceBinding {
+        pool_id: "host/private-work".into(),
+        class_id: COOPERATIVE_STEP_WORK_CLASS_ID.into(),
+        units: 3,
+        protected: None,
+        compute: None,
+        content: None,
+    }];
+    let plan = plan_fixture::seal(fragment);
+    let (lowered, _) =
+        lower_plan_fragment_from_plan(&plan, &plan.fragments[0].fragment_id).unwrap();
+    let grant = lowered.node_specs[0].maximum_step_fuel;
+    assert_eq!(grant, 6); // three kernel-visible operations plus three private units
+    let mut kernel = kernel(grant);
+    for _ in 0..12 {
+        let result = kernel.step();
+        assert!(result.is_ok(), "{result:?}");
+    }
+    assert!(matches!(
+        &kernel.drivers()[2],
+        Back::Sink {
+            value: Some(42),
+            ..
+        }
+    ));
+}
