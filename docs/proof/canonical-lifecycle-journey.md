@@ -1671,3 +1671,34 @@ controller must move into this owner and its admitted binding. A second bus
 claimant or Ready advertisement inferred from configuration would be false.
 The new target leaf is source preparation for that physical integration, not
 an alternative sensor protocol, environmental application or completed milestone.
+
+
+### 3 November: compile the bounded physical owner into the complete Host
+
+The ordinary RP2040 Host checker now requires an explicit nonzero U32
+`maximum_transaction_polls` in the I2C Base initialization. Green's Source
+selects 100,000 polls. Missing, zero, oversized, negative and nonnumeric values
+refuse; changing the bound changes checked construction identity. Four Host
+Make tests pass. Generated firmware receives the checked bound directly.
+
+The existing diagnostic sensor/display drivers now use the bounded target
+provider through a class-neutral embedded-HAL adapter. It supports one read,
+write or combined write/read, with unsupported geometry refused before partial
+IO. No second controller, sensor policy, Ready offer or Body authority was added.
+The native adapter's ARMv6-M check and strict Clippy pass.
+
+The complete firmware from exact committed Source `b494ba61b7` built successfully
+with the selected Host Source and existing release/linker checks. Its flash-load
+end is `0x100d2e28`, below credential storage at `0x101fd000`. Static RAM spans
+93,536 bytes including the unchanged 49,152-byte arena, under the unchanged
+131,072-byte ceiling. The linker stack gap is 176,800 bytes, exceeding the
+existing 16 KiB minimum. These linked extents are not peak execution or complete
+Root-workspace admission proof. The build identity and ELF hash are retained
+in the compact receipt; raw ELF and compiler output remain in ignored output.
+
+This was a compiler control, not an ordinary Seed build. No device was flashed
+and no membership was replaced. Before deployment the authoring Host must
+consume the updated construction contract and produce a newly checked Seed
+through the existing Crèche/Make route. Current native repair #6739 has passed
+its quick, AArch64, IA32, RISC-V and LoongArch checks; x86 and admission remain
+running. The baseline gate has not been declared repaired.

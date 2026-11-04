@@ -97,3 +97,19 @@ receipt. An empty output file is not a receipt. A local-control timeout leaves
 commit outcome unknown. Successful delivery still needs independent device
 acceptance evidence and creates no Plan or Play. The owner pin remains scoped
 to the selected owner Boot, and device restart/return remains unfinished.
+
+## Bounded I²C construction (source checkpoint)
+
+The bus initialization now requires explicit `maximum_transaction_polls` in the
+Host Source. It must be a nonzero U32; omission and invalid values refuse. The
+checked value enters generated firmware configuration and changes construction
+identity. The diagnostic sensor/display path consumes the actual configured
+controller through `conduit-rp2040-i2c`; it does not create another bus owner or
+an available Back. Protocol interpretation is unchanged.
+
+Source `b494ba61b7` links at 863,784 flash-load bytes and 93,536 static RAM bytes,
+including the unchanged 49,152-byte heap arena. The unchanged 131,072-byte static
+ceiling and 16 KiB minimum-stack assertion pass. These are linked extents, not
+execution peaks. This direct compiler control did not produce an ordinary Seed
+and has not been deployed. Ordinary Make/Crèche must qualify a new artifact and
+Seed before physical installation; the running member remains on its prior Boot.

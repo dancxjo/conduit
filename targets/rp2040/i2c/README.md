@@ -23,11 +23,14 @@ Host construction must supply the finite polling allowance, and Root must supply
 current native identity, exact physical attachment, possession and ordinary
 assignment before constructing a `ReadyI2cBase` or bound Host Call. A configured
 controller alone establishes neither membership, available offers nor a Play.
-The current firmware diagnostic task still owns Green's bus; this library has
-not been installed or physically exercised. Integration must transfer that
-exclusive ownership rather than creating a second claimant. Whole-firmware
-memory, physical timeout/reset behavior and continuing sensor/display execution
-remain separate proof gates.
+The firmware source now routes its diagnostic sensor/display drivers through
+this owner using the required `maximum_transaction_polls` in the checked I²C
+Base initialization. The native HAL adapter supports a single read, write or
+combined write/read and refuses other geometry before partial effects. It grants
+no additional authority. This integration has linked within existing firmware
+bounds, but it has not been deployed or physically exercised. Green's running
+firmware remains unchanged. Moving ownership into a planned Host Call, physical
+timeout/reset behavior and execution peak memory remain separate proof gates.
 
 Validation (from the repository root):
 

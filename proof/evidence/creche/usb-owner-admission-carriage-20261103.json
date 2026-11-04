@@ -193,5 +193,35 @@
     "firmware_integrated": false,
     "deployed": false,
     "remaining": "authored poll allowance, actual exclusive controller transfer, current Ready offers, exact admitted Plan/Play, physical timeout and whole-firmware proof"
+  },
+  "checked_i2c_work_bound_firmware": {
+    "source": "b494ba61b779760d10ec9297f3e0f4203c214fa5",
+    "elf_sha256": "efe76288bfd77a93eca8fa3b97442333dce9f548465476e8b0bd40ddc492faa2",
+    "build_id": "fd6269d3b7d9da4587ee61f737d871a1c37e793fcf11d353f1841b73777eae44",
+    "configuration": "sha256:f6e80d528135f93b27ad67269553c3133dd09633843ba8407faabda428370d64",
+    "maximum_transaction_polls": 100000,
+    "static_bytes": 93536,
+    "static_ceiling": 131072,
+    "heap_arena_bytes_in_static": 49152,
+    "stack_gap_bytes": 176800,
+    "minimum_stack_bytes": 16384,
+    "flash_load_end": "0x100d2e28",
+    "flash_credential_boundary": "0x101fd000",
+    "compile_and_link": true,
+    "ordinary_seed_produced": false,
+    "deployed": false,
+    "body_play_proven": false,
+    "host_construction_tests_passed": 4,
+    "native_hal_adapter_strict_check": true,
+    "native_hal_adapter_strict_clippy": true,
+    "invalid_bound_tests": [
+      "omitted",
+      "zero",
+      "above U32",
+      "negative",
+      "nonnumeric"
+    ],
+    "second_controller_created": false,
+    "ready_offer_or_admitted_play_created": false
   }
 }
