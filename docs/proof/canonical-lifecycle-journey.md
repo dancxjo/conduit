@@ -2663,3 +2663,33 @@ resource pool, full Root preparation peak, optical output or cold-power durable
 credential advancement. Those remain the next execution/continuity gates.
 Exact manifests, compact measurements and raw captures remain outside Git under
 ignored `target/resident-library-transfer-20261104/` and the private Seed folder.
+
+### Receive preparation bytes in caller-owned workspace (4 November 2026)
+
+The existing CBD1 bounded-document receiver owned a separately allocated Vec.
+The shared wire package now also accepts an exclusively borrowed byte slice.
+Its capacity is exactly that slice's extent; construction, chunk reception and
+completed-document access do not allocate or grow storage. Owned and borrowed
+forms share the same validation and progress code, with all fallible checks
+before writes or cursor advancement. Rejected frames retain the accepted prefix.
+The wire format, digest field and per-chunk limits are unchanged. Authentication,
+digest verification, full Source/Plan approval and execution authority remain
+caller responsibilities; receiving bytes grants none of them.
+
+A 6,145-byte document crosses two 4,096-byte frames into the exact caller buffer
+without heap allocation or changes to either guard region. Differential checks
+cover malformed headers, wrong identity/offset, invalid extent, excess chunks,
+insufficient workspace and a valid final frame after refusal. In the existing
+ordinary checked-Source planning proof, the assigned image now crosses multiple
+bounded chunks into a caller-owned CPU workspace. The caller verifies SHA-256,
+then binds the selected retained library Back from those received bytes and runs
+the same two fixed-kernel parity frames without allocation. This is not a second
+preparation protocol or an MCU control endpoint.
+
+All 56 selected wire/Make tests pass, strict all-target Clippy passes, and the
+shared wire package checks for thumbv6m without a std runtime. This is component
+input-custody proof. Root still needs to reserve and retain the actual workspace,
+authenticate/authorize the request, admit the complete workset and transfer
+physical possession before Play. No firmware or live service changed in this
+checkpoint, and #6341's separate physical setup failure remains unqualified.
+Raw results use ignored `target/resident-library-transfer-20261104/borrowed-*`.

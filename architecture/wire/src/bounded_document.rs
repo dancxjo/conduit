@@ -28,9 +28,7 @@ pub fn encode_bounded_document_chunk(
     {
         return Err(BoundedDocumentError::Bound);
     }
-    let end = document
-        .len()
-        .min(offset + frame.len() - BOUNDED_DOCUMENT_HEADER_BYTES);
+    let end = offset + (document.len() - offset).min(frame.len() - BOUNDED_DOCUMENT_HEADER_BYTES);
     frame[..4].copy_from_slice(MAGIC);
     frame[4..8].copy_from_slice(&(document.len() as u32).to_le_bytes());
     frame[8..12].copy_from_slice(&(offset as u32).to_le_bytes());
@@ -42,32 +40,54 @@ pub fn encode_bounded_document_chunk(
 
 pub struct BoundedDocumentAssembly {
     bytes: Vec<u8>,
+    progress: DocumentProgress,
+}
+
+/// Receives into storage already owned by the caller. Construction and pushes
+/// never allocate, grow the slice, authenticate a peer or verify the digest.
+/// Keep the workspace exclusively borrowed until decoding/validation finishes.
+pub struct BorrowedBoundedDocumentAssembly<'a> {
+    bytes: &'a mut [u8],
+    progress: DocumentProgress,
+}
+
+#[derive(Clone, Copy)]
+struct DocumentProgress {
     maximum_bytes: usize,
     maximum_chunks: usize,
     chunks: usize,
+    received: usize,
     identity: Option<(usize, [u8; 32])>,
 }
 
-impl BoundedDocumentAssembly {
-    pub fn new(maximum_bytes: usize, maximum_chunks: usize) -> Self {
+struct Chunk<'a> {
+    total: usize,
+    digest: [u8; 32],
+    payload: &'a [u8],
+}
+
+impl DocumentProgress {
+    fn new(maximum_bytes: usize, maximum_chunks: usize) -> Self {
         Self {
-            bytes: Vec::with_capacity(maximum_bytes),
             maximum_bytes,
             maximum_chunks,
             chunks: 0,
+            received: 0,
             identity: None,
         }
     }
 
-    pub fn push(&mut self, frame: &[u8]) -> Result<bool, BoundedDocumentError> {
+    fn check<'a>(&self, frame: &'a [u8]) -> Result<Chunk<'a>, BoundedDocumentError> {
         if frame.len() <= BOUNDED_DOCUMENT_HEADER_BYTES || &frame[..4] != MAGIC {
             return Err(BoundedDocumentError::Header);
         }
         if self.chunks == self.maximum_chunks {
             return Err(BoundedDocumentError::ChunkCount);
         }
-        let total = u32::from_le_bytes(frame[4..8].try_into().unwrap()) as usize;
-        let offset = u32::from_le_bytes(frame[8..12].try_into().unwrap()) as usize;
+        let total = usize::try_from(u32::from_le_bytes(frame[4..8].try_into().unwrap()))
+            .map_err(|_| BoundedDocumentError::Bound)?;
+        let offset = usize::try_from(u32::from_le_bytes(frame[8..12].try_into().unwrap()))
+            .map_err(|_| BoundedDocumentError::Bound)?;
         let digest: [u8; 32] = frame[12..BOUNDED_DOCUMENT_HEADER_BYTES].try_into().unwrap();
         if total == 0
             || total > self.maximum_bytes
@@ -75,28 +95,77 @@ impl BoundedDocumentAssembly {
         {
             return Err(BoundedDocumentError::Bound);
         }
-        if offset != self.bytes.len() || offset >= total || self.bytes.len() == total {
+        if offset != self.received || offset >= total || self.received == total {
             return Err(BoundedDocumentError::Offset);
         }
         if let Some(identity) = self.identity {
             if identity != (total, digest) {
                 return Err(BoundedDocumentError::Identity);
             }
-        } else {
-            self.identity = Some((total, digest));
         }
         let payload = &frame[BOUNDED_DOCUMENT_HEADER_BYTES..];
         if payload.len() > total - offset {
             return Err(BoundedDocumentError::Bound);
         }
-        self.bytes.extend_from_slice(payload);
+        Ok(Chunk {
+            total,
+            digest,
+            payload,
+        })
+    }
+
+    fn commit(&mut self, chunk: &Chunk<'_>) -> bool {
+        self.identity = Some((chunk.total, chunk.digest));
+        self.received += chunk.payload.len();
         self.chunks += 1;
-        Ok(self.bytes.len() == total)
+        self.received == chunk.total
+    }
+
+    fn completed_digest(&self) -> Option<&[u8; 32]> {
+        let (total, digest) = self.identity.as_ref()?;
+        (self.received == *total).then_some(digest)
+    }
+}
+
+impl BoundedDocumentAssembly {
+    pub fn new(maximum_bytes: usize, maximum_chunks: usize) -> Self {
+        Self {
+            bytes: Vec::with_capacity(maximum_bytes),
+            progress: DocumentProgress::new(maximum_bytes, maximum_chunks),
+        }
+    }
+
+    /// A rejected frame leaves the document and all progress unchanged.
+    pub fn push(&mut self, frame: &[u8]) -> Result<bool, BoundedDocumentError> {
+        let chunk = self.progress.check(frame)?;
+        self.bytes.extend_from_slice(chunk.payload);
+        Ok(self.progress.commit(&chunk))
     }
 
     pub fn completed(&self) -> Option<(&[u8], &[u8; 32])> {
-        let (total, digest) = self.identity.as_ref()?;
-        (self.bytes.len() == *total).then_some((self.bytes.as_slice(), digest))
+        Some((&self.bytes, self.progress.completed_digest()?))
+    }
+}
+
+impl<'a> BorrowedBoundedDocumentAssembly<'a> {
+    pub fn new(bytes: &'a mut [u8], maximum_chunks: usize) -> Self {
+        let progress = DocumentProgress::new(bytes.len(), maximum_chunks);
+        Self { bytes, progress }
+    }
+
+    /// All checks precede writing: a rejected frame retains both bytes and cursor.
+    pub fn push(&mut self, frame: &[u8]) -> Result<bool, BoundedDocumentError> {
+        let chunk = self.progress.check(frame)?;
+        let start = self.progress.received;
+        self.bytes[start..start + chunk.payload.len()].copy_from_slice(chunk.payload);
+        Ok(self.progress.commit(&chunk))
+    }
+
+    pub fn completed(&self) -> Option<(&[u8], &[u8; 32])> {
+        Some((
+            &self.bytes[..self.progress.received],
+            self.progress.completed_digest()?,
+        ))
     }
 }
 

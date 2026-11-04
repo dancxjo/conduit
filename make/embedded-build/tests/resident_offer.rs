@@ -97,6 +97,8 @@ fn main(){{
             "conduit_semantic_catalog",
             "conduit_plan_lowering",
             "conduit_planner",
+            "conduit_wire",
+            "sha2",
             "serde_json",
         ],
     );
