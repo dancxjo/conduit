@@ -59,7 +59,7 @@ pub(super) fn prepare(
         .payload("host.uf2")
         .ok_or("RP2040 Seed has no application UF2")?;
     // The existing geometry checker refuses credential/bootstrap writes in app bytes.
-    let installation = installation_uf2(payload, &bootstrap.0)?;
+    super::host_rp2040::validate_application_uf2(payload)?;
     let mut directory = fs::DirBuilder::new();
     #[cfg(unix)]
     {
@@ -70,7 +70,6 @@ pub(super) fn prepare(
     let result = (|| -> Result<(), Box<dyn std::error::Error>> {
         publish(&output.join("application.uf2"), payload)?;
         publish(&output.join("bootstrap.uf2"), &bootstrap.0)?;
-        publish(&output.join("installation.uf2"), &installation.0)?;
         publish(
             &output.join("usb-admission.json"),
             &serde_json::to_vec_pretty(&basis)?,
@@ -83,8 +82,7 @@ pub(super) fn prepare(
                 "configuration_id":verified.configuration().configuration_id(),
                 "source_identity":verified.image().manifest.source_identity,
                 "physical_host":basis.expected_host,"application_bytes":payload.len(),
-                "bootstrap_bytes":bootstrap.0.len(),"installation_bytes":installation.0.len(),
-                "flash_written":false,"boot_observed":false,
+                "bootstrap_bytes":bootstrap.0.len(),"flash_written":false,"boot_observed":false,
                 "membership_admitted":false,"play_created":false
             }))?,
         )?;
@@ -98,51 +96,6 @@ pub(super) fn prepare(
     println!("Prepared exact application, private bootstrap and public admission pins in {}. No flash write or admission performed.", output.display());
     Ok(())
 }
-// One coherent UF2 sequence is required for one mass-storage transfer. Joining
-// two independently numbered files would let ROM reboot after the first image.
-fn installation_uf2(application: &[u8], bootstrap: &[u8]) -> Result<PrivateBytes, String> {
-    use conduit_rp2040_flash_layout::{
-        classify_image_page, ImageRegion, Uf2Validator, BOOTSTRAP, UF2_BLOCK_BYTES,
-    };
-    super::host_rp2040::validate_application_uf2(application).map_err(|error| error.to_string())?;
-    if bootstrap.len() != BOOTSTRAP.bytes() as usize * 2 {
-        return Err("private bootstrap must cover exactly its reserved sector".into());
-    }
-    let mut validator = Uf2Validator::new(bootstrap.len() as u64)
-        .map_err(|e| format!("bootstrap UF2 extent: {e:?}"))?;
-    for bytes in bootstrap.chunks_exact(UF2_BLOCK_BYTES) {
-        let block = bytes.try_into().map_err(|_| "bootstrap UF2 block")?;
-        validator
-            .push(block)
-            .map_err(|e| format!("bootstrap UF2: {e:?}"))?;
-        let address = u32::from_le_bytes(bytes[12..16].try_into().unwrap());
-        let length = u32::from_le_bytes(bytes[16..20].try_into().unwrap());
-        if classify_image_page(address, length) != Ok(ImageRegion::BodyBootstrap) {
-            return Err("private bootstrap reaches another flash region".into());
-        }
-    }
-    validator
-        .finish()
-        .map_err(|e| format!("bootstrap UF2: {e:?}"))?;
-    let mut joined = PrivateBytes(Vec::with_capacity(application.len() + bootstrap.len()));
-    joined.0.extend_from_slice(application);
-    joined.0.extend_from_slice(bootstrap);
-    let count = (joined.0.len() / UF2_BLOCK_BYTES) as u32;
-    let mut validator = Uf2Validator::new(joined.0.len() as u64)
-        .map_err(|e| format!("installation UF2 extent: {e:?}"))?;
-    for (index, block) in joined.0.chunks_exact_mut(UF2_BLOCK_BYTES).enumerate() {
-        block[20..24].copy_from_slice(&(index as u32).to_le_bytes());
-        block[24..28].copy_from_slice(&count.to_le_bytes());
-        validator
-            .push((&*block).try_into().unwrap())
-            .map_err(|e| format!("installation UF2: {e:?}"))?;
-    }
-    validator
-        .finish()
-        .map_err(|e| format!("installation UF2: {e:?}"))?;
-    Ok(joined)
-}
-
 fn compose(
     package: &VerifiedJoiningHostPackage,
     pins: &Pins,
@@ -306,47 +259,5 @@ mod tests {
         pins.physical_uid = [1; 8];
         pins.pinned_owner.verifying_key = [0; 32];
         assert!(compose(&verified, &pins).is_err());
-    }
-    fn installation_fixture() -> (Vec<u8>, Vec<u8>) {
-        let bootstrap = conduit_host_rp2040::membership_seed_sector_uf2(&[255; 4096]);
-        let mut application = bootstrap.clone();
-        for (index, block) in application.chunks_exact_mut(512).enumerate() {
-            let address = conduit_rp2040_flash_layout::FIRMWARE.address() + index as u32 * 256;
-            block[12..16].copy_from_slice(&address.to_le_bytes());
-            block[32..288].fill(17);
-        }
-        (application, bootstrap)
-    }
-    #[test]
-    fn one_transfer_has_one_sequence_and_preserves_exact_payloads() {
-        let (application, bootstrap) = installation_fixture();
-        let joined = installation_uf2(&application, &bootstrap).unwrap();
-        assert_eq!(joined.0.len(), application.len() + bootstrap.len());
-        let expected = application
-            .chunks_exact(512)
-            .chain(bootstrap.chunks_exact(512));
-        for (index, (actual, original)) in joined.0.chunks_exact(512).zip(expected).enumerate() {
-            assert_eq!(&actual[..20], &original[..20]);
-            assert_eq!(&actual[28..], &original[28..]);
-            assert_eq!(
-                u32::from_le_bytes(actual[20..24].try_into().unwrap()),
-                index as u32
-            );
-            assert_eq!(u32::from_le_bytes(actual[24..28].try_into().unwrap()), 32);
-        }
-    }
-    #[test]
-    fn installation_refuses_swapped_partial_or_credential_regions() {
-        let (application, bootstrap) = installation_fixture();
-        assert!(installation_uf2(&bootstrap, &application).is_err());
-        assert!(installation_uf2(&application, &bootstrap[..bootstrap.len() - 512]).is_err());
-        let mut outside = bootstrap.clone();
-        for (index, block) in outside.chunks_exact_mut(512).enumerate() {
-            block[12..16].copy_from_slice(&(0x101fd000 + index as u32 * 256).to_le_bytes());
-        }
-        assert!(installation_uf2(&application, &outside).is_err());
-        let mut malformed = application;
-        malformed[24..28].copy_from_slice(&999_u32.to_le_bytes());
-        assert!(installation_uf2(&malformed, &bootstrap).is_err());
     }
 }
