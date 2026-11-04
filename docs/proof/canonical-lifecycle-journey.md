@@ -1330,3 +1330,39 @@ See `proof/evidence/creche/green-body-produced-seed-20261103.json`.
 The Windows refusal repair #6737 is merged after Candidate success; its combined
 Integration is queued. The retained-member return client from #6734 is integrated
 locally and pushed, while focused delivery remains subject to dev acceptance.
+
+### 3 November: consume the exported Seed without reconstructing it
+
+`make host prepare-seed` now consumes the actual private Crèche ZIP and its
+independently retained export receipt. The existing Linux stored-ZIP reader was
+moved into Body Make and remains the Linux installer's reader. A shared verifier
+checks archive identity, canonical Host Source, selected IMAGE, exact release
+bytes, Spore binding and usable invitation through existing Make contracts.
+RP2040-specific composition produces the application UF2, private bootstrap UF2
+and public admission basis using separately selected physical UID and owner peer.
+It neither rebuilds firmware nor writes flash, creates membership or starts Play.
+These changes run on the fabrication Host and add no parser to MCU firmware.
+
+The real previous Seed was refused as expired before output creation. A fresh
+Seed was then manufactured through the same returned member's acknowledged
+terminal Mask and successfully consumed by the new preparation command. Eleven
+package tests, seven existing Linux installer regressions and one RP2040 private
+bootstrap geometry/pin test passed. The prior stale terminal's attachment was
+explicitly withdrawn using the retained current credential, not the obsolete
+initial credential; its Host and Part identities were preserved on return.
+
+Green's exact current build acknowledged BOOTSEL. Picotool could not access the
+root-owned USB node; Forebrain has the old mount helper but lacks the project's
+`70-conduit-pico.rules`. No verified full-flash backup could be made, so the new
+Seed was not flashed. The narrow existing mount helper permitted restoration of
+the byte-identical original application, after checking its hash, every UF2 page,
+sole RP2 volume and removable USB destination. Credentials and bootstrap were
+outside the write extent. Green returned on its original build, restored Wi-Fi
+revision 1 without a credential commit, and measured five samples with 64/64
+display acknowledgments. This is software-restart evidence, not cold-power proof.
+
+The prerequisite for the next deployment attempt is installing the existing
+project helper/rules with `targets/rp2040/tools/install-pico-headless-flash.sh`
+and applying them to the device. The Seed's invitation must be fresh at use.
+Do not bypass the full-flash read gate or infer new membership from preparation.
+Compact evidence: `proof/evidence/creche/verified-embedded-seed-preparation-20261103.json`.
