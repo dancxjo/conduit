@@ -67,6 +67,78 @@ fn resident_code_prepares_and_runs_without_heap_or_source_decode() {
     assert_eq!(cost.reallocations, 0);
 }
 #[test]
+fn resident_witnesses_allocate_nothing_and_refuse_before_publishing_output() {
+    use conduit_core::{
+        FixedIntegerContractSpec as Spec, FixedIntegerRange as Range, IntervalEndpoint::Inclusive,
+    };
+    static INPUT: Spec<'static> = Spec {
+        value_kind: "value/u64",
+        maximum_bytes: 8,
+        range: Some(Range {
+            minimum: Some(&0u64.to_le_bytes()),
+            maximum: Some(&7u64.to_le_bytes()),
+            minimum_endpoint: Inclusive,
+            maximum_endpoint: Inclusive,
+        }),
+    };
+    static OUTPUT: Spec<'static> = Spec {
+        value_kind: "value/u64",
+        maximum_bytes: 8,
+        range: Some(Range {
+            minimum: Some(&2u64.to_le_bytes()),
+            maximum: Some(&7u64.to_le_bytes()),
+            minimum_endpoint: Inclusive,
+            maximum_endpoint: Inclusive,
+        }),
+    };
+    static WRONG_KIND: Spec<'static> = Spec {
+        value_kind: "value/u32",
+        maximum_bytes: 4,
+        range: None,
+    };
+    let (_, cost) = allocation_probe::observe(|| {
+        let image = StaticScalarExpression::new(K::U64, K::U64, LAZY, 3)
+            .unwrap()
+            .with_value_contracts(Some(&INPUT), Some(&OUTPUT))
+            .unwrap();
+        assert_eq!(image.computation_work(), LAZY.len() as u16 + 10);
+        let mut output = [0xa5; 16];
+        assert_eq!(
+            image.evaluate_into(&8u64.to_le_bytes(), &mut output),
+            Err(R::InputValueConstraint(
+                conduit_core::ValueConstraintRefusal::FixedIntegerRange
+            ))
+        );
+        assert_eq!(output, [0xa5; 16]);
+        assert_eq!(
+            image.evaluate_into(&1u64.to_le_bytes(), &mut output),
+            Err(R::OutputValueConstraint(
+                conduit_core::ValueConstraintRefusal::FixedIntegerRange
+            ))
+        );
+        assert_eq!(output, [0xa5; 16]);
+        let good = StaticScalarExpression::new(K::U64, K::U64, LAZY, 3)
+            .unwrap()
+            .with_value_contracts(Some(&INPUT), Some(&INPUT))
+            .unwrap();
+        assert_eq!(
+            good.evaluate_into(&1u64.to_le_bytes(), &mut output)
+                .unwrap(),
+            8
+        );
+        assert_eq!(&output[..8], &1u64.to_le_bytes());
+        assert!(matches!(
+            StaticScalarExpression::new(K::U64, K::U64, LAZY, 3)
+                .unwrap()
+                .with_value_contracts(Some(&WRONG_KIND), None),
+            Err(R::InvalidProgram)
+        ));
+    });
+    assert_eq!(cost.allocations, 0);
+    assert_eq!(cost.reallocations, 0);
+}
+
+#[test]
 fn resident_instruction_limit_is_unchanged_and_checked_before_execution() {
     static MAXIMUM: [I; 128] = [const { instruction(K::U8, 0, O::Input) }; 128];
     static OVERSIZE: [I; 129] = [const { instruction(K::U8, 0, O::Input) }; 129];
@@ -141,14 +213,11 @@ fn unsupported_record_input_refuses_explicitly_without_runtime_fallback() {
         matches!(generate_static_scalar_expression(&p), Err(R::UnsupportedType(reason)) if reason == "scalar-image/fixed-input@1")
     );
 }
-#[test]
-fn checked_boundary_predicates_cannot_disappear_from_a_resident_image() {
+fn boundary_programs() -> Vec<PortableExpressionProgram> {
     use conduit_core::{
         CheckedValueContract, IntervalEndpoint, StructuredInfoTypeShape, ValueConstraint,
     };
-    use conduit_plot::{
-        PortableExpressionNode, PortableExpressionOperation, PreparedPortableExpressionEvaluator,
-    };
+    use conduit_plot::{PortableExpressionNode, PortableExpressionOperation};
     let base = program(
         "plot add (\n input: U64 >> result: U64\n) = (. + 1)\n",
         "add",
@@ -167,36 +236,64 @@ fn checked_boundary_predicates_cannot_disappear_from_a_resident_image() {
         }],
     )
     .unwrap();
-    for (input, output) in [(true, false), (false, true), (true, true)] {
-        let mut p = base.clone();
-        p.root = PortableExpressionNode {
-            value_type: p.output_type.clone(),
-            operation: PortableExpressionOperation::ValueContract {
-                input: input.then(|| bound.clone()),
-                output: output.then(|| bound.clone()),
-                value: Box::new(p.root),
-            },
-        };
-        let rejected = if input { 8u64 } else { 7 };
-        let expected = p.evaluate(&rejected.to_le_bytes()).unwrap_err();
-        assert!(matches!(
-            &expected,
-            R::InputValueConstraint(_) | R::OutputValueConstraint(_)
-        ));
-        let mut owned = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+    [(true, false), (false, true), (true, true)]
+        .into_iter()
+        .map(|(input, output)| {
+            let mut p = base.clone();
+            p.root = PortableExpressionNode {
+                value_type: p.output_type.clone(),
+                operation: PortableExpressionOperation::ValueContract {
+                    input: input.then(|| bound.clone()),
+                    output: output.then(|| bound.clone()),
+                    value: Box::new(p.root),
+                },
+            };
+            p
+        })
+        .collect()
+}
+#[test]
+fn checked_boundary_predicates_are_retained_once_and_other_profiles_refuse() {
+    for p in boundary_programs() {
+        let code = generate_static_scalar_expression(&p).unwrap();
+        assert!(code.contains("FixedIntegerContractSpec"));
         assert_eq!(
-            owned.evaluate(&rejected.to_le_bytes()).unwrap_err(),
-            expected
+            code.matches("static INPUT_CONTRACT").count(),
+            usize::from(matches!(
+                p.root.operation,
+                conduit_plot::PortableExpressionOperation::ValueContract { input: Some(_), .. }
+            ))
         );
-        assert_eq!(
-            owned.evaluate(&0u64.to_le_bytes()).unwrap(),
-            &1u64.to_le_bytes()
-        );
-        assert!(
-            matches!(generate_static_scalar_expression(&p), Err(R::UnsupportedType(reason))
-            if reason == "scalar-image/value-contract-witness-unavailable@1")
-        );
+        if matches!(
+            p.root.operation,
+            conduit_plot::PortableExpressionOperation::ValueContract {
+                input: Some(_),
+                output: Some(_),
+                ..
+            }
+        ) {
+            assert!(
+                !code.contains("static OUTPUT_CONTRACT"),
+                "identical guards share immutable metadata"
+            );
+        }
     }
+    let mut p = boundary_programs().remove(0);
+    let conduit_plot::PortableExpressionOperation::ValueContract {
+        input: Some(contract),
+        ..
+    } = &mut p.root.operation
+    else {
+        panic!("input")
+    };
+    contract.constraints = vec![conduit_core::ValueConstraint::ByteLength {
+        minimum: 0,
+        maximum: 8,
+    }];
+    assert!(
+        matches!(generate_static_scalar_expression(&p), Err(R::UnsupportedType(reason))
+        if reason == "scalar-image/value-contract-witness-unavailable@1")
+    );
 }
 
 #[test]
@@ -224,6 +321,7 @@ fn generated_resident_programs_compile_no_std_and_match_checked_source() {
         "plot add (\n input: I128 >> result: I128\n) = (. + 1)\n",
         "add",
     ));
+    cases.extend(boundary_programs());
     for (index, p) in cases.iter().enumerate() {
         let first = generate_static_scalar_expression(p).unwrap();
         assert_eq!(
@@ -246,25 +344,27 @@ fn generated_resident_programs_compile_no_std_and_match_checked_source() {
         exercise.push_str(&format!(
             "let image = image_{index}::prepare().unwrap();\nlet mut output = [0xa5u8;16];\n"
         ));
-        let inputs: Vec<Vec<u8>> = if index == 9 {
-            [0i128, 1, -1, i128::MAX]
+        let conduit_core::StructuredInfoTypeShape::Leaf(kind) = p.input_type.shape() else {
+            panic!("leaf")
+        };
+        let inputs: Vec<Vec<u8>> = match conduit_core::primitive_info_kind(kind.as_str()).unwrap() {
+            K::I128 => [0i128, 1, -1, i128::MAX]
                 .iter()
                 .map(|n| n.to_le_bytes().to_vec())
-                .collect()
-        } else if index % 2 == 1 {
-            vec![vec![0], vec![1], vec![2], vec![], vec![0, 1]]
-        } else {
-            [0u64, 1, 7, u64::MAX / 64, u64::MAX]
+                .collect(),
+            K::Bool => vec![vec![0], vec![1], vec![2], vec![], vec![0, 1]],
+            K::U64 => [0u64, 1, 7, 8, u64::MAX / 64, u64::MAX]
                 .iter()
                 .map(|n| n.to_le_bytes().to_vec())
                 .chain([vec![0]])
-                .collect()
+                .collect(),
+            other => panic!("unexpected test profile {other:?}"),
         };
         for input in inputs {
             let expected = p.evaluate(&input);
             match expected {
                 Ok(bytes) => exercise.push_str(&format!("let n = image.evaluate_into(&{input:?}, &mut output).unwrap(); assert_eq!(&output[..n], &{bytes:?});\n")),
-                Err(error) => exercise.push_str(&format!("assert_eq!(image.evaluate_into(&{input:?}, &mut output), Err(conduit_plot::PortableExpressionEvaluationRefusal::{error:?}));\n")),
+                Err(error) => exercise.push_str(&format!("assert_eq!(format!(\"{{:?}}\", image.evaluate_into(&{input:?}, &mut output).unwrap_err()), {:?});\n", format!("{error:?}"))),
             }
         }
     }

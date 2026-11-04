@@ -2,6 +2,7 @@
 use super::*;
 use alloc::{collections::BTreeMap, format, string::String};
 use sha2::Digest;
+mod contracts;
 
 /// Host-side specialization of the existing checked scalar profile into Rust
 /// static data. Include this fragment inside a module in the target Seed.
@@ -11,11 +12,6 @@ pub fn generate_static_scalar_expression(
     program: &PortableExpressionProgram,
 ) -> Result<String, Refusal> {
     let prepared = PreparedPortableExpressionEvaluator::new_scalar_tape(program)?;
-    if prepared.input_value_contract.is_some() || prepared.output_value_contract.is_some() {
-        return Err(Refusal::UnsupportedType(
-            "scalar-image/value-contract-witness-unavailable@1".into(),
-        ));
-    }
     let PreparedInput::Primitive { kind: input, .. } = prepared.input else {
         return Err(Refusal::UnsupportedType(
             "scalar-image/fixed-input@1".into(),
@@ -50,6 +46,25 @@ pub fn generate_static_scalar_expression(
     );
     let mut source =
         format!("extern crate alloc;\npub const SOURCE_PROGRAM_SHA256: [u8; 32] = {digest:?};\n");
+    let input_contract = contracts::emit(
+        &mut source,
+        prepared.input_value_contract.as_ref(),
+        "INPUT_CONTRACT",
+        input,
+    )?;
+    let output_contract = if input == output
+        && prepared.output_value_contract.is_some()
+        && prepared.output_value_contract == prepared.input_value_contract
+    {
+        input_contract.clone()
+    } else {
+        contracts::emit(
+            &mut source,
+            prepared.output_value_contract.as_ref(),
+            "OUTPUT_CONTRACT",
+            output,
+        )?
+    };
     let mut literals = BTreeMap::new();
     for instruction in tape.instructions.iter() {
         if let Operation::Literal(bytes) = &instruction.operation {
@@ -82,6 +97,6 @@ pub fn generate_static_scalar_expression(
         };
         source.push_str(&format!("conduit_plot::ScalarTapeInstruction {{ kind: conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{:?}, destination: {}, operation: conduit_plot::ScalarTapeOperation::{operation} }},\n", instruction.kind, instruction.destination));
     }
-    source.push_str(&format!("] ;\npub fn prepare() -> Result<conduit_plot::StaticScalarExpression, conduit_plot::PortableExpressionEvaluationRefusal> {{ conduit_plot::StaticScalarExpression::new(conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{input:?}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {}) }}\n", tape.result));
+    source.push_str(&format!("] ;\npub fn prepare() -> Result<conduit_plot::StaticScalarExpression, conduit_plot::PortableExpressionEvaluationRefusal> {{ conduit_plot::StaticScalarExpression::new(conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{input:?}, conduit_plot::rust_binding::semantic_core::PrimitiveInfoKind::{output:?}, INSTRUCTIONS, {})?.with_value_contracts({input_contract}, {output_contract}) }}\n", tape.result));
     Ok(source)
 }
