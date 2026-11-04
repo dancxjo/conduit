@@ -2146,3 +2146,48 @@ The repaired dev Integration's hosted Linux product proof has passed. Three
 unit shards remain running at the latest observation; no feature merge claims
 complete Integration acceptance. Two inactive generated-language outputs were
 retired after build-lock/process checks, recovering 700,870,368 bytes.
+
+
+### Checked Native closure and resident protocol validation (4 November 2026)
+
+The real HT16K33 state exposed a source-custody defect before resident execution:
+inline record payloads had exact Types and predicates but no retained private
+Native owners, and importing one public Native row lost its dependencies.
+Issue #6748 and draft PR #6749 repair that ordinary checking/import boundary.
+Inline owners stay private; transactional checked-document import retains the
+complete authoritative closure and gives only the requested root a Source alias.
+Public inspection rows can detect conflicts but cannot grant missing owners.
+The ordinary I2C catalogue now uses this entrance. Fifty-six focused custody,
+family, optional, occurrence, import and preparation-cache tests pass on the
+isolated delivery tree. Two production-catalogue regressions also pass, including
+every real HT16K33 Native root and an admitted State carrying an imported bus
+result. Strict I2C library/test Clippy passes. Failed or cancelled admission
+remains terminal; successful admission can retire and reuse its finite storage.
+
+The integration tree additionally emits immutable Native schema, scope paths and
+fixed-integer predicate tables from the existing admission compiler. Its borrowed
+validator neither reconstructs owned Types nor allocates paths, input or scratch.
+Compiled native executables and no_std modules match ordinary admission results
+for actual HT16K33 configuration, state, action, frame and failure values,
+including address bounds, inactive branches, malformed input and occurrence
+pressure. Preparation and validation allocate nothing in the CPU probe. This
+component creates neither an admission witness nor an offered Back. Unsupported
+Boolean invariants and non-fixed predicates refuse Make rather than disappear.
+The complete 67-test combined resident/custody corpus, strict plot Clippy and
+thumbv6m plot compilation pass. Full structured expression execution, ordinary
+Make installation, complete workspace admission and physical Plot Play remain
+unfinished; the resident Native component is not in the source-custody PR.
+
+Dev Integration `41809026015` passed after the snapshot-budget repair. The checked
+HT16K33 Source change (#6742) then merged as `da85c9c1ac`; its new Integration
+`41819765682` is still running at this checkpoint. #6745's resident scalar
+Candidate passed, while #6749 remains draft to keep the delivery lane bounded.
+These are development and component claims, not stable publication acceptance.
+
+Green remains on its prior firmware: 640 samples from 640 attempts, 9,586
+acknowledged redraws, peak reported heap 1,332 bytes, current Body membership,
+and no reported sensor/display errors. The installed owner is active with no
+restarts. This preserves local operation; its diagnostic measurement loop still
+does not prove an ordinary admitted sampling/display Plot. No firmware changed.
+Raw logs are retained outside Git in
+`target/pico-generic-host-20261102/resident-native-image-20261104/`.
