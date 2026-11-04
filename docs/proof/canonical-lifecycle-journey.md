@@ -2081,3 +2081,33 @@ PR #6746 is merged as `949e68c694`; Integration 41809026015 has passed the
 previously failing immutable compiler-snapshot preparation and is running its
 product proof. Complete Integration acceptance remains pending. The current
 physical Green firmware and its diagnostic sensing/display path are preserved.
+
+
+### Resident predicate custody and borrowed structured schemas (4 November 2026)
+
+Review for structured protocol images found a scalar emitter defect: owned
+expression preparation retains checked input/output value contracts, but the
+emitter extracted only the arithmetic tape. Commit `9fa38b4b42` makes that
+profile explicitly refuse boundary contracts until it can retain their
+validation witnesses. The new regression fails on the old emitter, compares
+the owned/reference refusals and valid bytes, and passes with the guard. PR
+#6745 includes the correction at delivery head `5964c68d1f`. All twenty scoped
+scalar/image/native-law/proof-hint tests and strict image/library Clippy pass
+locally; updated Candidate remains its own acceptance gate.
+
+`BorrowedStructuredValueValidator` prepares a bounded borrowed canonical schema
+without decoding an owned Type tree or allocating. It validates either a whole
+self-describing value or a separate value node with the same combined byte
+ceiling. Both use the existing canonical borrowed walker and preserve exact
+schema identity; no second value language is introduced. This is representation
+validation, not a native-law witness or execution authorization.
+
+Eleven core tests pass, including allocation-free static schema construction,
+separate-node validation, nested records/variants/sequences and malformed,
+truncated, trailing, wrong-Type and oversize refusals. The actual HT16K33 Source
+conformance tests also validate their input and output frames through borrowed
+schema/node views without allocations: all three tests pass. Strict core/test
+Clippy and a `thumbv6m-none-eabi` core check pass. These are CPU/target-compile
+component results. Full structured expression image emission, retained native
+and boundary witnesses, ordinary Make installation and a physical admitted
+sampling/display Play remain unfinished. No device firmware was changed.

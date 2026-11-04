@@ -35,7 +35,9 @@ this Back in the actual fixed kernel with zero allocations and verify atomic
 refusal under insufficient fuel. This library Back is not an installed offer.
 Ordinary Make selection, full structured protocol images and physical MCU
 admission remain unfinished. Native-law/quantity profiles without a retained
-validation witness remain unsupported.
+validation witness remain unsupported. Checked input/output value contracts
+also refuse emission until their validation witnesses can be retained; extracting
+the arithmetic tape must not erase the owned evaluator's boundary checks.
 
 ## Owned tape profile
 
