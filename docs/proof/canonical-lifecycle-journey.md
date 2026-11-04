@@ -2625,3 +2625,41 @@ It still runs diagnostic IO. The next live execution gate remains an authorized
 Body assignment, complete Root preparation/reservation and actual handover of
 the physical bus; these library ownership checks supply none of that authority.
 Logs are retained under ignored `target/resident-library-transfer-20261104/`.
+
+### Retained library initialized on the real Pico (4 November 2026)
+
+Ordinary Make from clean committed Source `b47cdd80f9` built Green's checked
+Host description with the five resident protocol Backs. The application-only
+UF2 SHA-256 is
+`bc1d5e9162418c86f0f9a7421a5aefbaee343de610e31fa600a2fc8ec2018760`.
+The linked image contains 1,258,196 text bytes, up from the earlier 943,100-byte
+build; this increase is retained as a cost, not described as a saving. Linked
+static storage remains 116,880 bytes, including the unchanged 49,152-byte heap
+arena, below the unchanged 131,072-byte ceiling. Stack high water is unmeasured.
+
+Private retained Seed construction used the last saved signed acknowledgment,
+the same member key and checked configuration, without issuing an invitation.
+Application/bootstrap geometry excluded the network credential journal. Two
+build-bound BOOTSEL transfers selected the actual USB identity and ROM device;
+the returned runtime's build matched the independently recomputed identity.
+Saved Wi-Fi rejoined. There was no raw flash readback.
+
+The initial return correctly refused because the owner still retained the old
+attachment. After explicitly withdrawing that retired attachment, ordinary
+`conduit body return-usb` committed and delivered a signed acknowledgment for
+the existing Part. Device readback matched its exact raw-receipt digest. Owner
+readback retained the same Hamm Creek House and 16 Parts, with Green's Part
+`86ae90b7ee731eb9645e8176a81c8eba24787f011d39f00e801d7a9703eb0a7d`
+now on Boot `rp2040/boot/30e18ecc238c0e86e0e038632333c70e`.
+
+The actual runtime reports five initialized Backs, 18,976 bytes of Back storage
+(the linked owner slot including its cell is 18,984 bytes), and no failed entry.
+After canonical return and USB-client exit, the same Boot advanced from four
+to six samples and from 50 to 83 acknowledged redraws without sensor/display
+faults; heap peak stayed 1,332 bytes. This proves physical
+initialization alongside diagnostic IO and actual same-Part return. It does not
+prove ordinary sampling/display Play, selected bus possession, a published
+resource pool, full Root preparation peak, optical output or cold-power durable
+credential advancement. Those remain the next execution/continuity gates.
+Exact manifests, compact measurements and raw captures remain outside Git under
+ignored `target/resident-library-transfer-20261104/` and the private Seed folder.
