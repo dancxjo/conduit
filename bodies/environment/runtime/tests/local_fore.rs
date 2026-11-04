@@ -8,7 +8,8 @@ mod fixture;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_core as c;
 use conduit_embedded_build as b;
-use conduit_environment_runtime::{assigned::*, CaptureBack};
+use conduit_kernel::assigned::*;
+use conduit_environment_runtime::CaptureBack;
 use conduit_kernel::{self as k, scheduler::*};
 type Tables = AssignedKernelTables<1, 2, 1, 1, 1, 0>;
 #[test]

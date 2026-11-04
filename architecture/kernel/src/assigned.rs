@@ -1,8 +1,8 @@
 //! Fixed-source assigned projection -> ordinary kernel tables, without allocation.
 //! The trusted resident layout comes from Make, never the incoming assignment.
 //! This preparation step neither authorizes effects nor admits evaluator storage.
-use conduit_core as c;
-use conduit_kernel as k;
+use crate as k;
+use conduit_assigned_plan as c;
 mod boundary;
 mod record_input;
 use boundary::endpoint;

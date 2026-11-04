@@ -16,7 +16,7 @@ pub fn prepare<
 >(
     image: &GeneratedEmbeddedPlan,
     check_refusals: bool,
-) -> conduit_environment_runtime::assigned::AssignedKernelTables<N, C, P, R, T, H> {
+) -> conduit_kernel::assigned::AssignedKernelTables<N, C, P, R, T, H> {
     prepare_from_resident::<N, C, P, R, T, H>(image, image, check_refusals)
 }
 pub fn prepare_from_resident<
@@ -30,7 +30,7 @@ pub fn prepare_from_resident<
     image: &GeneratedEmbeddedPlan,
     resident: &GeneratedEmbeddedPlan,
     check_refusals: bool,
-) -> conduit_environment_runtime::assigned::AssignedKernelTables<N, C, P, R, T, H> {
+) -> conduit_kernel::assigned::AssignedKernelTables<N, C, P, R, T, H> {
     prepare_with_runtime_bound(image, resident, check_refusals, 16 * 1024)
 }
 pub fn prepare_with_runtime_bound<
@@ -45,7 +45,7 @@ pub fn prepare_with_runtime_bound<
     resident: &GeneratedEmbeddedPlan,
     check_refusals: bool,
     runtime_state_bytes: u16,
-) -> conduit_environment_runtime::assigned::AssignedKernelTables<N, C, P, R, T, H> {
+) -> conduit_kernel::assigned::AssignedKernelTables<N, C, P, R, T, H> {
     let maxima = AssignedPlanMaxima {
         encoded_bytes: 48 * 1024,
         runtime_state_bytes,
@@ -96,12 +96,12 @@ pub fn prepare_with_runtime_bound<
         conduit_embedded_build::encode_assigned_native_plan(resident, maxima).unwrap();
     let mut resident_counts = [0; ASSIGNED_PLAN_COUNT_KINDS];
     resident_counts.copy_from_slice(&resident_bytes[80..80 + ASSIGNED_PLAN_COUNT_KINDS]);
-    let layout = conduit_environment_runtime::assigned::ResidentLayout {
+    let layout = conduit_kernel::assigned::ResidentLayout {
         records: &structural,
         counts: resident_counts,
     };
     let (tables, allocated) = super::allocation_probe::observe(|| {
-        conduit_environment_runtime::assigned::AssignedKernelTables::<N, C, P, R, T, H>::prepare(
+        conduit_kernel::assigned::AssignedKernelTables::<N, C, P, R, T, H>::prepare(
             &encoded, maxima, required, profile, &layout,
         )
         .unwrap()
@@ -113,10 +113,10 @@ pub fn prepare_with_runtime_bound<
         return tables;
     }
     assert!(matches!(
-        conduit_environment_runtime::assigned::AssignedKernelTables::<N, C, P, R, T, H>::prepare(
+        conduit_kernel::assigned::AssignedKernelTables::<N, C, P, R, T, H>::prepare(
             &legacy, maxima, required, profile, &layout
         ),
-        Err(conduit_environment_runtime::assigned::AssignedKernelRefusal::Unsupported)
+        Err(conduit_kernel::assigned::AssignedKernelRefusal::Unsupported)
     ));
     // Representation fixture only: prove schema 5 does not silently lose a
     // nondefault pressure policy or single-value envelope, independently of Play.
@@ -252,14 +252,14 @@ pub fn prepare_with_runtime_bound<
         decode_assigned_plan_with_computations(&changed_table, maxima, required, profile).is_ok()
     );
     assert!(matches!(
-        conduit_environment_runtime::assigned::AssignedKernelTables::<N, C, P, R, T, H>::prepare(
+        conduit_kernel::assigned::AssignedKernelTables::<N, C, P, R, T, H>::prepare(
             &changed_table,
             maxima,
             required,
             profile,
             &layout
         ),
-        Err(conduit_environment_runtime::assigned::AssignedKernelRefusal::Layout)
+        Err(conduit_kernel::assigned::AssignedKernelRefusal::Layout)
     ));
     tables
 }
