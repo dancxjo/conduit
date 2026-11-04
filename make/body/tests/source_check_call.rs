@@ -135,6 +135,10 @@ fn ordinary_plot_returns_actual_valid_and_invalid_source_reports_with_host_call_
         assert_eq!(capture.calls, 1);
         assert_eq!(capture.bytes, expected);
         let kernel = report.kernel.unwrap();
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
         assert!(kernel
             .kernel_sign
             .iter()
