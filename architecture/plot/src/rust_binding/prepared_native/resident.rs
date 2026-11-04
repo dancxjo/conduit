@@ -80,6 +80,14 @@ impl<const N: usize> ResidentNativeValidator<N> {
         })
     }
     pub fn validate(&self, input: &[u8]) -> Result<(), PreparedNativeRefusal> {
+        self.validate_borrowed(input).map(|_| ())
+    }
+    /// Borrow the representation after all retained checks. This is not an
+    /// AdmittedNativeCanonical witness and grants no execution authority.
+    pub fn validate_borrowed<'a>(
+        &'a self,
+        input: &'a [u8],
+    ) -> Result<ValidatedCanonicalStructuredValue<'a>, PreparedNativeRefusal> {
         let value = self
             .schema
             .validate(input)
@@ -119,7 +127,7 @@ impl<const N: usize> ResidentNativeValidator<N> {
                 &mut |_| Ok(()),
             )?;
         }
-        Ok(())
+        Ok(value)
     }
     pub const fn schema_bytes(&self) -> &'static [u8] {
         self.schema.type_bytes()

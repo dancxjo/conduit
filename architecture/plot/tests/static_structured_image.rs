@@ -1,8 +1,12 @@
 //! Whole emitted protocol expressions: CPU/no_std evidence, not an installed Play.
 use conduit_core::*;
 use conduit_plot::{rust_binding::*, *};
+#[path = "common/allocation_probe.rs"]
+mod allocation_probe;
 #[path = "common/compiled_rust.rs"]
 mod compiled_rust;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn bounds() -> PreparedNativeBounds {
     PreparedNativeBounds {
         canonical_bytes: 4096,
@@ -75,6 +79,10 @@ fn corpus(
     values: Vec<Vec<u8>>,
     name: &str,
 ) {
+    let (owned, cost) =
+        allocation_probe::observe(|| PreparedPortableExpressionEvaluator::new(p).unwrap());
+    eprintln!("{name}: owned_preparation={cost:?}");
+    drop(owned);
     let image = generate_static_structured_expression(d, p, bounds(), 4096).unwrap();
     assert_eq!(
         image,
@@ -83,6 +91,7 @@ fn corpus(
     let allocator =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/common/allocation_probe.rs");
     let mut main=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;fn main(){{let(mut e,c)=probe::observe(||image::prepare().unwrap());assert_eq!(c.allocations,0);assert_eq!(c.reallocations,0);assert!(image::RUNTIME_STATE_BYTES<4096);let mut scratch=[0u8;4096];let mut output=[0xa5u8;4096];\n",allocator.to_str().unwrap());
+    main.push_str(&format!("println!(\"{name}: resident_state_bytes={{}}, output_stage_bytes={{}}\",image::RUNTIME_STATE_BYTES,e.scratch_bytes());\n"));
     for input in values {
         let expected = admit(d, &p.input_type, &input)
             .map_err(StaticStructuredRefusal::Input)
@@ -219,12 +228,8 @@ fn constructed_output_native_predicates_are_retained_and_failure_does_not_publis
 }
 
 #[test]
-fn unsupported_variable_geometry_and_invalid_resident_control_refuse() {
+fn invalid_resident_control_and_unadmitted_capacity_refuse() {
     let d = ht();
-    assert!(matches!(
-        generate_static_structured_expression(&d, &program(&d, "ht16k33-action"), bounds(), 4096),
-        Err(StaticStructuredGenerationRefusal::Child(_))
-    ));
     let p = program(&d, "ht16k33-frame-request");
     let mut short = bounds();
     short.canonical_bytes = 1;
@@ -249,4 +254,112 @@ fn unsupported_variable_geometry_and_invalid_resident_control_refuse() {
         "fn main(){image::check_bad();}",
         "structured-invalid-control",
     );
+}
+
+fn sample(
+    ty: &StructuredInfoType,
+    address: u8,
+    phase: u8,
+    tag: &str,
+    bytes: &[u8],
+    field: &str,
+) -> StructuredInfoValue {
+    use StructuredInfoTypeShape as S;
+    match ty.shape() {
+        S::Leaf(_) => leaf(
+            ty.clone(),
+            match field {
+                "address" => address,
+                "phase" => phase,
+                _ => 0,
+            },
+        ),
+        S::Record { fields, .. } => StructuredInfoValue::record(
+            ty.clone(),
+            fields
+                .iter()
+                .map(|f| {
+                    StructuredFieldValue::new(
+                        f.name(),
+                        sample(f.value_type(), address, phase, tag, bytes, f.name()),
+                    )
+                    .unwrap()
+                })
+                .collect(),
+        )
+        .unwrap(),
+        S::Variant { cases, .. } => {
+            let selected_tag = if tag.starts_with("bus:") && cases.iter().any(|c| c.tag() == "bus")
+            {
+                "bus"
+            } else {
+                tag.strip_prefix("bus:").unwrap_or(tag)
+            };
+            let case = cases
+                .iter()
+                .find(|c| c.tag() == selected_tag)
+                .or_else(|| cases.iter().find(|c| c.tag() == "none"))
+                .unwrap_or(&cases[0]);
+            let payload = case.payload_type();
+            let value = if matches!(payload.shape(), S::Leaf(_)) {
+                let bytes = if payload == &StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap()
+                {
+                    vec![]
+                } else {
+                    vec![7]
+                };
+                StructuredInfoValue::leaf(payload.clone(), bytes).unwrap()
+            } else {
+                sample(payload, address, phase, tag, bytes, field)
+            };
+            StructuredInfoValue::variant(ty.clone(), case.tag(), value).unwrap()
+        }
+        S::Sequence { element, .. } => StructuredInfoValue::sequence(
+            ty.clone(),
+            bytes.iter().map(|n| leaf(element.clone(), *n)).collect(),
+        )
+        .unwrap(),
+        _ => panic!("unused shape"),
+    }
+}
+#[test]
+fn remaining_display_state_and_acknowledgement_expressions_preserve_all_bus_outcomes() {
+    let d = ht();
+    let tags = [
+        "completed",
+        "short",
+        "device-error",
+        "not-acknowledged",
+        "arbitration-lost",
+        "timed-out",
+        "provider-lost",
+        "unsupported",
+        "stale-attachment",
+        "refused",
+        "bus:completed",
+        "bus:short",
+        "unsupported-address",
+        "invalid-brightness",
+    ];
+    for name in [
+        "ht16k33-action",
+        "ht16k33-transition",
+        "ht16k33-write-outcome",
+    ] {
+        let p = program(&d, name);
+        let mut values = Vec::new();
+        for phase in 0..=7 {
+            for tag in tags {
+                for bytes in [&[][..], &[1, 2, 3][..]] {
+                    values.push(
+                        sample(&p.input_type, 112, phase, tag, bytes, "")
+                            .canonical_bytes()
+                            .unwrap(),
+                    );
+                }
+            }
+        }
+        values.push(vec![]);
+        corpus(&d, &p, values, &format!("structured-{name}-variable"));
+    }
 }

@@ -2270,3 +2270,49 @@ The runner capacity repair #6750 passed Candidate and merged as `7fd6b76f74`.
 Its exact Integration is `41826648964`, currently pending behind the older
 Integration's still-running jobs. Further feature merges remain held until
 baseline recovery; neither workflow was cancelled or restarted.
+
+
+### Variable selections complete the display protocol corpus (4 November 2026)
+
+Make can now retain ordinary checked field/index/active-variant selections and
+finite sequence-length/variant-test observations. Existing selector preparation
+supplies the paths; the canonical borrowed walker supplies runtime values to
+the same scalar and constructor loops. Direct canonical node copies preserve
+variable failure/state payloads without rebuilding owned Types or values.
+Input/output Native guards, finite paths/occurrences and atomic staging remain.
+A borrowed validated view is representation evidence, never an ordinary Native
+admission witness or execution authority. Unsupported laws and selections from
+constructed sources still refuse.
+
+All five actual HT16K33 programs compile and execute allocation-free in the
+native/no_std corpus. The new cases cover state phases 0 through 7, every bus
+result tag, empty/nonempty payloads, nested retained bus failures, variable
+sequence prefixes and absent elements. The absent-index test caught a refusal
+classification mismatch: resident selections now preserve the canonical
+reference's `InvalidProgram` for an unavailable projection. The legacy owned
+selector path was not changed by this correction.
+
+On the native 64-bit CPU, owned evaluator preparation retains 57,699 heap bytes
+across the five programs. Resident objects total 5,184 bytes, with no runtime
+heap allocation. These are different storage components: resident realization
+also needs separately admitted result buffers, staging and evaluation/traversal
+stack. Per-program measurements are below; neither totals nor static lifetimes
+prove physical flash placement or complete MCU workspace admission.
+
+| Program | Owned retained heap bytes | Resident object bytes | Output staging bytes |
+| --- | ---: | ---: | ---: |
+| initialize | 5,398 | 576 | 1,594 |
+| action | 17,368 | 2,144 | 1,581 |
+| transition | 21,857 | 1,600 | 1,594 |
+| frame-request | 4,092 | 304 | 1,581 |
+| write-outcome | 8,984 | 560 | 1,581 |
+
+Validation: 41 focused scalar/constructor/native/display regressions, 487 plot
+library tests (one ignored), strict owning Clippy and thumbv6m no_std checking
+pass. Raw logs, including the allocation measurements, are in ignored
+`target/pico-generic-host-20261102/resident-native-image-20261104/`.
+Ordinary Back/Make installation, exact Source/Fore/artifact binding, complete
+workspace/private-work admission and physical MCU Play remain the next gates.
+No firmware was changed. Dev's runner-repair Integration `41826648964` remains
+pending behind the original Integration's live foundation job; feature merges
+remain held.

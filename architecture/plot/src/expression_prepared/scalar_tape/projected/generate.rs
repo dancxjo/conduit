@@ -1,4 +1,4 @@
-//! Select exact fixed projection geometry on the authoring Host, not the MCU.
+//! Retain checked selectors and finite observations on the authoring Host.
 use super::*;
 use crate::rust_binding::{
     generate_resident_native_validator, PreparedNativeBounds, ResidentNativeGenerationRefusal,
@@ -15,9 +15,10 @@ impl From<Refusal> for StaticProjectedGenerationRefusal {
         Self::Expression(value)
     }
 }
-/// Emit a fixed-scalar expression over a retained checked Native input. Variable
-/// geometry and unsupported laws refuse. This reuses the scalar tape compiler,
-/// executor and Native predicate emitter; no device semantics occur here.
+/// Emit fixed-scalar results over a retained checked Native input, using fixed
+/// offsets or typed paths and finite sequence/variant observations. Unsupported
+/// laws and non-input selections refuse; scalar execution and predicates stay
+/// shared with the existing compiler and loop. No device semantics occur here.
 pub fn generate_static_projected_expression(
     document: &crate::CheckedSyntaxDocument,
     program: &PortableExpressionProgram,
@@ -33,7 +34,7 @@ pub(in crate::expression_prepared) fn generate_with_native(
     maximum_occurrences: usize,
     shared_native: Option<&str>,
 ) -> Result<String, StaticProjectedGenerationRefusal> {
-    let unsupported = || Refusal::UnsupportedType("projected-image/fixed-projection@1".into());
+    let unsupported = || Refusal::UnsupportedType("projected-image/input-observation@1".into());
     let identity = match program.input_type.shape() {
         StructuredInfoTypeShape::Record { schema, .. }
         | StructuredInfoTypeShape::Variant { schema, .. }
@@ -71,15 +72,34 @@ pub(in crate::expression_prepared) fn generate_with_native(
     };
     let mut inputs = Vec::new();
     let tape = ScalarTape::prepare_with_inputs(node, &mut |pc, node| {
-        let PreparedOperation::Projection(selected) = &node.operation else {
-            return Err(unsupported());
+        use crate::expression_prepared::resident_projection::render;
+        let prefix = "conduit_plot::StaticProjectedSource";
+        let source = match &node.operation {
+            PreparedOperation::Projection(selected) => {
+                if let Some((start, length)) = selected.fixed_scalar_input() {
+                    format!("{prefix}::Fixed {{start:{start},length:{length}}}")
+                } else {
+                    let path = selected.direct_input_path().ok_or_else(unsupported)?;
+                    format!("{prefix}::Path(&[{}])", render(&path))
+                }
+            }
+            PreparedOperation::Inspection(value) => {
+                use crate::expression_prepared::inspection::ResidentObservation as O;
+                let (path, observation) = value.resident_source().ok_or_else(unsupported)?;
+                match observation {
+                    O::VariantIs(tag) if node.kind == PrimitiveInfoKind::Bool => format!(
+                        "{prefix}::VariantIs {{path:&[{}],tag:{tag:?}}}",
+                        render(&path)
+                    ),
+                    O::Length if node.kind == PrimitiveInfoKind::U64 => {
+                        format!("{prefix}::Length(&[{}])", render(&path))
+                    }
+                    _ => return Err(unsupported()),
+                }
+            }
+            _ => return Err(unsupported()),
         };
-        let (start, length) = selected.fixed_scalar_input().ok_or_else(unsupported)?;
-        inputs.push(StaticProjectedInput {
-            instruction: pc,
-            start: start as usize,
-            length: length as usize,
-        });
+        inputs.push((pc, source));
         Ok(Operation::Input)
     })?;
     let output = node.kind;
@@ -101,11 +121,8 @@ pub(in crate::expression_prepared) fn generate_with_native(
     )?;
     static_image::generate::emit_tape(&mut source, &tape);
     source.push_str("static INPUTS: &[conduit_plot::StaticProjectedInput] = &[\n");
-    for input in inputs {
-        source.push_str(&format!(
-            "conduit_plot::StaticProjectedInput {{ instruction: {}, start: {}, length: {} }},\n",
-            input.instruction, input.start, input.length
-        ));
+    for (instruction, source_value) in inputs {
+        source.push_str(&format!("conduit_plot::StaticProjectedInput {{instruction:{instruction},source:{source_value}}},\n"));
     }
     let maximum = usize::try_from(program.maximum_prepared_input_bytes()?)
         .map_err(|_| Refusal::InvalidProgram)?;
@@ -145,6 +162,11 @@ fn checked_scalar_nodes(node: &PortableExpressionNode) -> Result<(), Refusal> {
             checked_scalar_nodes(when_false)
         }
         Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => Ok(()),
+        Op::SemanticCall { kind, .. }
+            if matches!(kind.as_str(), "variant/is" | "sequence/length") =>
+        {
+            Ok(())
+        }
         _ => Err(Refusal::UnsupportedType(
             "projected-image/operation@1".into(),
         )),

@@ -214,7 +214,7 @@ fn multiple_fields_checked_arithmetic_and_lazy_branches_share_the_scalar_loop() 
     corpus(&document, &guarded, values, "projected-output-predicate");
 }
 #[test]
-fn missing_owner_variable_layout_and_unretained_laws_refuse_emission() {
+fn missing_owner_and_unretained_laws_refuse_emission() {
     let document=checked("type Operands = {\n left: U8\n right: U8\n}\nplot calculate (\n value: Operands...| >> result: U8...|\n) = .left + .right\n");
     let p = program(&document, "calculate");
     assert!(generate_static_projected_expression(
@@ -248,14 +248,6 @@ fn missing_owner_variable_layout_and_unretained_laws_refuse_emission() {
     assert!(
         matches!(generate_static_projected_expression(&document,&forged,bounds(),4096),Err(StaticProjectedGenerationRefusal::Expression(PortableExpressionEvaluationRefusal::UnsupportedType(reason))) if reason == "projected-image/intermediate-law-witness-unavailable@1")
     );
-    let document=checked("type Operands = {\n a: sequence U8 <= 8\n right: U8\n}\nplot calculate (\n value: Operands...| >> result: U8...|\n) = .right\n");
-    assert!(generate_static_projected_expression(
-        &document,
-        &program(&document, "calculate"),
-        bounds(),
-        4096
-    )
-    .is_err());
     let document=checked("type Operands = {\n left: U8\n right: U8\n where .left < .right\n}\nplot calculate (\n value: Operands...| >> result: U8...|\n) = .left + .right\n");
     assert!(matches!(
         generate_static_projected_expression(
@@ -268,4 +260,63 @@ fn missing_owner_variable_layout_and_unretained_laws_refuse_emission() {
             ResidentNativeGenerationRefusal::UnsupportedInvariant { .. }
         ))
     ));
+}
+
+#[test]
+fn field_after_variable_sequence_uses_a_retained_path_without_runtime_allocation() {
+    let d=checked("type Operands = {\n a: sequence U8 <= 8\n right: U8\n}\nplot calculate (\n value: Operands...| >> result: U8...|\n) = .right\n");
+    let p = program(&d, "calculate");
+    let ty = &p.input_type;
+    let a = field(ty, "a");
+    let StructuredInfoTypeShape::Sequence { element, .. } = a.shape() else {
+        panic!("sequence")
+    };
+    let values = [0, 1, 8, 0]
+        .into_iter()
+        .map(|n| {
+            record(
+                ty,
+                vec![
+                    (
+                        "a",
+                        StructuredInfoValue::sequence(
+                            a.clone(),
+                            (0..n).map(|i| leaf(element.clone(), i)).collect(),
+                        )
+                        .unwrap(),
+                    ),
+                    ("right", leaf(field(ty, "right"), n + 7)),
+                ],
+            )
+        })
+        .collect();
+    corpus(&d, &p, values, "projected-variable-field");
+}
+
+#[test]
+fn bounded_sequence_index_preserves_missing_element_refusal_and_reuse() {
+    let d=checked("type Samples = {\n values: sequence U8 <= 8\n}\nplot first (\n input: Samples...| >> output: U8...|\n) = .values.0\n");
+    let p = program(&d, "first");
+    let ty = &p.input_type;
+    let values_type = field(ty, "values");
+    let StructuredInfoTypeShape::Sequence { element, .. } = values_type.shape() else {
+        panic!("sequence")
+    };
+    let values = [1, 0, 8, 1]
+        .into_iter()
+        .map(|n| {
+            record(
+                ty,
+                vec![(
+                    "values",
+                    StructuredInfoValue::sequence(
+                        values_type.clone(),
+                        (0..n).map(|i| leaf(element.clone(), i + 5)).collect(),
+                    )
+                    .unwrap(),
+                )],
+            )
+        })
+        .collect();
+    corpus(&d, &p, values, "projected-sequence-index");
 }

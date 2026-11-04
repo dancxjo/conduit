@@ -59,6 +59,10 @@ pub fn generate_static_structured_expression(
         output_type: &program.output_type,
         root: &program.root,
     };
+    enum ChildImage {
+        Scalar(String),
+        InputPath(String),
+    }
     let mut children = Vec::new();
     let mut child_refusal = None;
     let tape = ConstructorTape::compile(view, &prepared.input, &mut |node| {
@@ -68,6 +72,18 @@ pub fn generate_static_structured_expression(
             output_type: node.value_type.clone(),
             root: node.clone(),
         };
+        if !matches!(
+            node.value_type.shape(),
+            conduit_core::StructuredInfoTypeShape::Leaf(_)
+        ) {
+            let selected = crate::PreparedPortableExpressionEvaluator::new(&child)?;
+            if let Some(path) = selected.direct_input_path() {
+                children.push(ChildImage::InputPath(
+                    crate::expression_prepared::resident_projection::render(&path),
+                ));
+                return Ok(());
+            }
+        }
         match crate::expression_prepared::scalar_tape::projected::generate::generate_with_native(
             document,
             &child,
@@ -76,7 +92,7 @@ pub fn generate_static_structured_expression(
             Some("super::input_native"),
         ) {
             Ok(image) => {
-                children.push(image);
+                children.push(ChildImage::Scalar(image));
                 Ok(())
             }
             Err(error) => {
@@ -105,7 +121,9 @@ pub fn generate_static_structured_expression(
         "pub const SOURCE_PROGRAM_SHA256: [u8;32] = {digest:?};\n"
     ));
     for (i, image) in children.iter().enumerate() {
-        source.push_str(&format!("mod child_{i} {{\n{image}\n}}\n"));
+        if let ChildImage::Scalar(image) = image {
+            source.push_str(&format!("mod child_{i} {{\n{image}\n}}\n"));
+        }
     }
     source.push_str("static CODE: &[conduit_plot::StructuredTapeInstruction] = &[\n");
     for op in &tape.code {
@@ -115,8 +133,11 @@ pub fn generate_static_structured_expression(
     }
     let c = children.len();
     source.push_str(&format!("];\nstatic PROGRAM: conduit_plot::StaticStructuredProgram = conduit_plot::StaticStructuredProgram {{ instructions:CODE,constants:&{:?},maximum_input_bytes:{maximum_input},maximum_output_bytes:{maximum_output} }};\npub type Expression = conduit_plot::StaticStructuredExpression<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{c}>;\npub const RUNTIME_STATE_BYTES: usize=core::mem::size_of::<Expression>();\npub fn prepare()->Result<Expression,conduit_plot::StaticStructuredRefusal>{{Ok(Expression::new(input_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Input)?,output_native::prepare().map_err(conduit_plot::StaticStructuredRefusal::Output)?,[",tape.constants));
-    for i in 0..c {
-        source.push_str(&format!("child_{i}::prepare().map_err(|refusal|conduit_plot::StaticStructuredRefusal::Child {{index:{i},refusal}})?,"));
+    for (i, child) in children.iter().enumerate() {
+        match child {
+            ChildImage::Scalar(_)=>source.push_str(&format!("conduit_plot::StaticStructuredValue::Scalar(child_{i}::prepare().map_err(|refusal|conduit_plot::StaticStructuredRefusal::Child {{index:{i},refusal}})?),")),
+            ChildImage::InputPath(path)=>source.push_str(&format!("conduit_plot::StaticStructuredValue::InputPath(&[{path}]),")),
+        }
     }
     source.push_str("],&PROGRAM)?) }\n");
     Ok(source)

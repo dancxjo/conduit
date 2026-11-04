@@ -16,7 +16,25 @@ enum Operation {
     VariantTag,
     Length,
 }
+pub(super) enum ResidentObservation {
+    VariantIs(String),
+    Length,
+}
 impl PreparedInspection {
+    pub(super) fn resident_source(
+        &self,
+    ) -> Option<(
+        alloc::vec::Vec<super::resident_projection::OwnedExpressionPathStep>,
+        ResidentObservation,
+    )> {
+        let op = match &self.operation {
+            Operation::VariantIs(name) => ResidentObservation::VariantIs(name.clone()),
+            Operation::Length => ResidentObservation::Length,
+            Operation::VariantTag => return None,
+        };
+        Some((self.source.direct_input_path()?, op))
+    }
+
     pub(super) fn new(
         call: &str,
         arguments: &[PortableExpressionNode],

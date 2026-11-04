@@ -59,6 +59,9 @@ pub fn verify(generated: &str, exercise: &str, name: &str) {
                 "{}",
                 String::from_utf8_lossy(&ran.stderr)
             );
+            if !ran.stdout.is_empty() {
+                eprintln!("{}", String::from_utf8_lossy(&ran.stdout));
+            }
         }
     }
     fs::remove_dir_all(directory).unwrap();

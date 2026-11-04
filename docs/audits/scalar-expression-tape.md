@@ -50,8 +50,10 @@ unchanged. No Source or contract decoder is invoked during resident execution.
 
 ## Resident fields from a structured Native input (development)
 
-`generate_static_projected_expression` resolves fixed field payload offsets on
-an authoring Host and retains them beside the same scalar instructions. The
+`generate_static_projected_expression` resolves fixed field payload offsets or
+retains checked field/index/variant paths on an authoring Host, beside the same
+scalar instructions. Finite sequence lengths and variant tests use those same
+borrowed typed paths. The
 resident `StaticProjectedExpression` first checks the exact Native input with
 its retained schema and fixed predicates, then supplies the selected leaf bytes
 to the existing scalar loop. It owns no field evaluator, Type tree or result
@@ -60,13 +62,12 @@ correlation does not grant authority; installing this profile still requires
 exact Source/Fore/artifact binding and full admission of validation work,
 traversal, state, stack and output.
 
-The emitted real HT16K33 frame condition and independent multi-field arithmetic
-cases compile as native and no_std modules and preserve ordinary admission plus
-reference outcomes without allocation. Missing checked owners, variable field
-geometry, unsupported Native invariants, inadequate input capacity and Native
-intermediate constants without law witnesses refuse emission. Structured
-constructor/output emission, variable selections, common Back installation and
-physical execution remain separate unfinished steps.
+The emitted real HT16K33 conditions and independent multi-field arithmetic cases
+compile as native and no_std modules and preserve ordinary admission plus
+reference outcomes without allocation. Missing checked owners, unsupported
+Native invariants, inadequate input capacity, constructed selection sources and
+Native intermediate constants without law witnesses refuse emission. Common
+Back installation and physical execution remain unfinished.
 
 ## Resident structured constructors (development)
 
@@ -80,10 +81,10 @@ buffer. Its static descriptor declares finite input/output ceilings, and its
 constructor rejects invalid indices, slices, backward control and oversized
 code. Complete Root workspace and execution-work admission is still required.
 
-Whole HT16K33 frame-request and initialization expressions now have emitted
-native/no_std component proof, including pressure and refusal/reuse. Variable
-input geometry, ordinary Make/Back installation and physical Play remain
-unfinished. Source's refined-construction admission rule is preserved; the
+All five HT16K33 expressions now have emitted native/no_std component proof,
+including variable payloads, every bus-result tag, pressure and refusal/reuse.
+Selected canonical nodes can be copied directly from an already checked input.
+Ordinary Make/Back installation and physical Play remain unfinished. Source's refined-construction admission rule is preserved; the
 output-predicate test is an explicit portable-program component fixture.
 
 ## Owned tape profile

@@ -26,6 +26,11 @@ impl From<Refusal> for StaticStructuredRefusal {
         Self::Expression(value)
     }
 }
+/// A scalar child or a direct canonical node selected from the checked input.
+pub enum StaticStructuredValue<const INPUT: usize> {
+    Scalar(StaticProjectedExpression<INPUT>),
+    InputPath(&'static [crate::StaticExpressionPathStep]),
+}
 /// No owned instructions, constants, schemas or result storage. This is a value
 /// evaluator, never an offered Back or an execution/native admission witness.
 /// The installing Root must bind the exact checked artifact and admit complete
@@ -37,7 +42,7 @@ pub struct StaticStructuredExpression<
 > {
     input: ResidentNativeValidator<INPUT>,
     output: ResidentNativeValidator<OUTPUT>,
-    children: [StaticProjectedExpression<INPUT>; CHILDREN],
+    children: [StaticStructuredValue<INPUT>; CHILDREN],
     program: &'static StaticStructuredProgram,
 }
 impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<I, O, C> {
@@ -45,7 +50,7 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
     pub fn new(
         input: ResidentNativeValidator<I>,
         output: ResidentNativeValidator<O>,
-        children: [StaticProjectedExpression<I>; C],
+        children: [StaticStructuredValue<I>; C],
         program: &'static StaticStructuredProgram,
     ) -> Result<Self, Refusal> {
         if C > MAX_VALUES
@@ -57,6 +62,13 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
                 .any(|n| *n == 0 || *n > conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES)
         {
             return Err(Refusal::InvalidProgram);
+        }
+        for child in &children {
+            if let StaticStructuredValue::InputPath(path) = child {
+                if !crate::expression_prepared::resident_projection::valid(path) {
+                    return Err(Refusal::InvalidProgram);
+                }
+            }
         }
         for (pc, op) in program.instructions.iter().enumerate() {
             let valid = match *op {
@@ -98,8 +110,9 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
         output: &mut [u8],
         scratch: &mut [u8],
     ) -> Result<usize, StaticStructuredRefusal> {
-        self.input
-            .validate(input)
+        let validated = self
+            .input
+            .validate_borrowed(input)
             .map_err(StaticStructuredRefusal::Input)?;
         if input.len() > self.program.maximum_input_bytes {
             return Err(Refusal::InvalidInput.into());
@@ -117,7 +130,10 @@ impl<const I: usize, const O: usize, const C: usize> StaticStructuredExpression<
             self.program.constants,
             input,
             &mut staged,
-            &mut ResidentValues(&mut self.children),
+            &mut ResidentValues {
+                children: &mut self.children,
+                input: validated,
+            },
         )?;
         let value = &staged.bytes[..staged.used];
         self.output
@@ -148,7 +164,10 @@ impl Output for SliceOutput<'_> {
         Ok(())
     }
 }
-struct ResidentValues<'a, const I: usize>(&'a mut [StaticProjectedExpression<I>]);
+struct ResidentValues<'a, const I: usize> {
+    children: &'a mut [StaticStructuredValue<I>],
+    input: conduit_core::ValidatedCanonicalStructuredValue<'a>,
+}
 impl<const I: usize> ResidentValues<'_, I> {
     fn evaluate(
         &self,
@@ -156,9 +175,14 @@ impl<const I: usize> ResidentValues<'_, I> {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, StaticStructuredRefusal> {
-        self.0
+        let StaticStructuredValue::Scalar(value) = self
+            .children
             .get(usize::from(index))
             .ok_or(Refusal::InvalidProgram)?
+        else {
+            return Err(Refusal::InvalidProgram.into());
+        };
+        value
             .evaluate_into(input, output)
             .map_err(|refusal| StaticStructuredRefusal::Child { index, refusal })
     }
@@ -171,6 +195,12 @@ impl<const I: usize> Values for ResidentValues<'_, I> {
         input: &[u8],
         output: &mut impl Output,
     ) -> Result<(), Self::Error> {
+        if let Some(StaticStructuredValue::InputPath(path)) = self.children.get(usize::from(index))
+        {
+            let value = crate::expression_prepared::resident_projection::select(self.input, path)?;
+            output.write(value.value_node())?;
+            return Ok(());
+        }
         let mut bytes = [0; 16];
         let n = self.evaluate(index, input, &mut bytes)?;
         output.write(&[0])?;

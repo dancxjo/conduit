@@ -1,16 +1,27 @@
-//! Resident fixed projections use the ordinary scalar loop and Native checker.
+//! Resident typed operands use the ordinary scalar loop and Native checker.
 use super::*;
 use crate::rust_binding::{PreparedNativeRefusal, ResidentNativeValidator};
 pub(in crate::expression_prepared) mod generate;
 pub use generate::{generate_static_projected_expression, StaticProjectedGenerationRefusal};
 
-/// Make-selected raw payload geometry in a separately validated exact input.
-/// This is executable image data, not a Source alias or incoming authority.
+/// Make-selected operand over a separately validated exact Native input.
 #[derive(Clone, Copy, Debug)]
 pub struct StaticProjectedInput {
     pub instruction: usize,
-    pub start: usize,
-    pub length: usize,
+    pub source: StaticProjectedSource,
+}
+#[derive(Clone, Copy, Debug)]
+pub enum StaticProjectedSource {
+    Fixed {
+        start: usize,
+        length: usize,
+    },
+    Path(&'static [crate::StaticExpressionPathStep]),
+    VariantIs {
+        path: &'static [crate::StaticExpressionPathStep],
+        tag: &'static str,
+    },
+    Length(&'static [crate::StaticExpressionPathStep]),
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StaticProjectedRefusal {
@@ -41,7 +52,7 @@ pub struct StaticProjectedExpression<const CONTRACTS: usize> {
     output_contract: Option<conduit_core::BorrowedFixedIntegerContract<'static>>,
 }
 impl<const N: usize> StaticProjectedExpression<N> {
-    /// Only trusted Make output may pair offsets with an exact Native schema.
+    /// Only trusted Make output may pair operands with an exact Native schema.
     /// Every Input instruction requires one ordered, bounded payload descriptor.
     pub fn new(
         native: ResidentNativeValidator<N>,
@@ -65,13 +76,26 @@ impl<const N: usize> StaticProjectedExpression<N> {
             let instruction = instructions
                 .get(input.instruction)
                 .ok_or(Refusal::InvalidProgram)?;
-            if !matches!(instruction.operation, Operation::Input)
-                || static_image::width(instruction.kind) != Some(input.length)
-                || input
-                    .start
-                    .checked_add(input.length)
-                    .is_none_or(|end| end > maximum_input_bytes)
-            {
+            let valid = match input.source {
+                StaticProjectedSource::Fixed { start, length } => {
+                    static_image::width(instruction.kind) == Some(length)
+                        && start
+                            .checked_add(length)
+                            .is_some_and(|end| end <= maximum_input_bytes)
+                }
+                StaticProjectedSource::Path(path) => super::super::resident_projection::valid(path),
+                StaticProjectedSource::VariantIs { path, tag } => {
+                    instruction.kind == PrimitiveInfoKind::Bool
+                        && !tag.is_empty()
+                        && tag.len() <= conduit_core::MAXIMUM_STRUCTURED_NAME_BYTES
+                        && super::super::resident_projection::valid(path)
+                }
+                StaticProjectedSource::Length(path) => {
+                    instruction.kind == PrimitiveInfoKind::U64
+                        && super::super::resident_projection::valid(path)
+                }
+            };
+            if !matches!(instruction.operation, Operation::Input) || !valid {
                 return Err(Refusal::InvalidProgram);
             }
         }
@@ -111,7 +135,7 @@ impl<const N: usize> StaticProjectedExpression<N> {
         input: &[u8],
         output: &mut [u8],
     ) -> Result<usize, StaticProjectedRefusal> {
-        self.native.validate(input)?;
+        let validated = self.native.validate_borrowed(input)?;
         if input.len() > self.maximum_input_bytes {
             return Err(Refusal::InvalidInput.into());
         }
@@ -125,11 +149,43 @@ impl<const N: usize> StaticProjectedExpression<N> {
                 .binary_search_by_key(&pc, |i| i.instruction)
                 .map_err(|_| Refusal::InvalidProgram)?;
             let location = &self.inputs[index];
-            let bytes = input
-                .get(location.start..location.start + location.length)
-                .ok_or(Refusal::InvalidInput)?;
-            static_image::validate_leaf(kind, bytes).map_err(|_| Refusal::InvalidInput)?;
-            PrimitiveValue::borrowed(kind, bytes)
+            use super::super::resident_projection::select;
+            match location.source {
+                StaticProjectedSource::Fixed { start, length } => {
+                    let bytes = input
+                        .get(start..start + length)
+                        .ok_or(Refusal::InvalidInput)?;
+                    static_image::validate_leaf(kind, bytes).map_err(|_| Refusal::InvalidInput)?;
+                    PrimitiveValue::borrowed(kind, bytes)
+                }
+                StaticProjectedSource::Path(path) => {
+                    let bytes = select(validated, path)?
+                        .primitive_representation_bytes(kind_name(kind))
+                        .map_err(|_| Refusal::InvalidInput)?;
+                    static_image::validate_leaf(kind, bytes).map_err(|_| Refusal::InvalidInput)?;
+                    PrimitiveValue::borrowed(kind, bytes)
+                }
+                StaticProjectedSource::VariantIs { path, tag } => PrimitiveValue::new(
+                    PrimitiveInfoKind::Bool,
+                    &[u8::from(
+                        select(validated, path)?
+                            .representation()
+                            .map_err(|_| Refusal::InvalidInput)?
+                            .variant_tag()
+                            .map_err(|_| Refusal::InvalidInput)?
+                            == tag,
+                    )],
+                ),
+                StaticProjectedSource::Length(path) => PrimitiveValue::new(
+                    PrimitiveInfoKind::U64,
+                    &u64::from(
+                        select(validated, path)?
+                            .collection_length()
+                            .map_err(|_| Refusal::InvalidInput)?,
+                    )
+                    .to_le_bytes(),
+                ),
+            }
         })?;
         if value.kind != self.output {
             return Err(Refusal::InvalidProgram.into());

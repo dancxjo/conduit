@@ -9,7 +9,7 @@ mod tape;
 pub use tape::{
     generate_static_structured_expression, StaticStructuredExpression,
     StaticStructuredGenerationRefusal, StaticStructuredProgram, StaticStructuredRefusal,
-    StructuredTapeInstruction,
+    StaticStructuredValue, StructuredTapeInstruction,
 };
 
 pub(super) struct PreparedStructuredExpression {
@@ -75,6 +75,16 @@ enum ChildOutput {
 }
 
 impl PreparedStructuredExpression {
+    pub(super) fn direct_input_path(
+        &self,
+    ) -> Option<Vec<super::resident_projection::OwnedExpressionPathStep>> {
+        match &self.shape {
+            PreparedShape::Input => Some(Vec::new()),
+            PreparedShape::Selected(value) => value.direct_input_path(),
+            _ => None,
+        }
+    }
+
     pub(super) fn type_prefix(&self) -> &[u8] {
         &self.type_prefix
     }

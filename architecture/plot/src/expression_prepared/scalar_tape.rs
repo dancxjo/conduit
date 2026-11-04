@@ -6,6 +6,7 @@ mod static_image;
 pub use projected::{
     generate_static_projected_expression, StaticProjectedExpression,
     StaticProjectedGenerationRefusal, StaticProjectedInput, StaticProjectedRefusal,
+    StaticProjectedSource,
 };
 pub use static_image::{generate_static_scalar_expression, StaticScalarExpression};
 pub(super) struct ScalarTape {
@@ -165,7 +166,9 @@ impl ScalarTape {
                     Operation::Jump(self.instructions.len());
                 return Ok(result);
             }
-            PreparedOperation::Projection(_) => external(self.instructions.len(), node)?,
+            PreparedOperation::Projection(_) | PreparedOperation::Inspection(_) => {
+                external(self.instructions.len(), node)?
+            }
             _ => return Err(Refusal::UnsupportedType("scalar-tape/operation@1".into())),
         };
         self.push(node.kind, operation)
