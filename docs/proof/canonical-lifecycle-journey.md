@@ -1952,3 +1952,37 @@ recovering about 10.3 GiB in `/tmp`; the rerun passed with incremental compilati
 disabled. Inactive native-release and ARMv6 build caches were byte-compared and
 relocated to temporary storage, releasing about 5.5 GiB on the root filesystem.
 Qualified images, credentials, records, installed software and source survived.
+
+### Remove duplicate mutable selection storage before MCU execution
+
+Measuring the authored display expressions separated Source preparation from
+execution storage: checking/preparing the five expressions peaked at 3,807,729
+host heap bytes; their evaluators alone retained 68,961 bytes on this 64-bit
+Host before optimization. These are CPU diagnostics, not RP2040 heap figures.
+They reinforce the need to keep authoring work out of the destination's Play.
+
+Inspection found a general execution duplication: structured member and dynamic
+sequence selections allocated a private canonical result buffer, then copied it
+into the enclosing evaluator's already-reserved output. The shared `no_std`
+evaluator now writes directly into that output. Primitive projections continue
+borrowing exact leaf bytes; schema, input, index and capacity checks remain.
+
+[PR #6743](https://github.com/dancxjo/conduit/pull/6743) carries only that shared
+change and device-independent nested-record regression tests. On unchanged dev,
+the two new memory guards fail. With isolated delivery head `bbef3b434f`, retained
+allocation-unit charges fall from 13,376 to 7,072 bytes for member selection and
+from 39,456 to 20,640 bytes for dynamic structured indexing. Successful,
+truncated and out-of-range evaluations allocate nothing and subsequent reuse
+recovers. The indexed evaluator still separately retains its source collection.
+
+Thirty-five tests across seven explicit targets pass on the isolated delivery
+branch, together with strict owning-library/regression-test Clippy, formatting
+and diff hygiene. The integration branch also checks the actual HT16K33 Source:
+its transition evaluator falls from 27,082 to 22,559 retained host bytes.
+Declared capacities and dependencies were not increased. This is reusable
+execution-memory progress under #6341, not complete workspace admission or a
+physical sampling/display Play. Green's installed firmware remains unchanged.
+
+Two inactive Cargo-fingerprinted ConduitOS unit-test executables were retired
+after process ownership checks, recovering about 1.6 GiB. Their hashes and test
+logs remain retained; installed executables and qualified device images remain.
