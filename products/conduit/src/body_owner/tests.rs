@@ -1096,3 +1096,9 @@ fn retained_invitation_admits_one_native_host_once_in_running_owner() {
 mod invitation_retirement;
 #[path = "tests/member_leave.rs"]
 mod member_leave;
+
+#[path = "tests/member_return.rs"]
+mod member_return;
+pub(crate) fn member_return_owner_fixture() -> (Owner, std::path::PathBuf) {
+    member_leave::owner_fixture()
+}

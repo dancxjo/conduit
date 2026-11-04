@@ -31,6 +31,7 @@ pub(crate) fn call(state_dir: &Path, mut request: Request) -> Result<Response, S
         {
             TODO_ACTION_DEADLINE
         }
+        Request::BodyReturn { .. } => Duration::from_secs(10),
         _ => CONTROL_DEADLINE,
     };
     let mut bytes = serde_json::to_vec(&request)
@@ -116,6 +117,9 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyMemberLeave { token, .. }
+        | Request::BodyReturn { token, .. }
+        | Request::BodyMemberReturnBegin { token, .. }
+        | Request::BodyMemberReturnComplete { token, .. }
         | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
