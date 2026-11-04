@@ -252,5 +252,42 @@
     "green_current_presence_after_owner_restart": null,
     "green_historical_receipt_and_local_io_continued": true,
     "next": "canonical MCU retained-member return before replacing the admitted physical Host; no fresh-Part fallback"
+  },
+  "shared_membership_bootstrap_build": {
+    "source": "24a2e05a989eb5fb7d917bd37c9aba743f4b0b8c",
+    "ordinary_make_completed": true,
+    "application_uf2_sha256": "ad8ed36340b9e310f4a780caebed8a9e84cb9ddee891fa8f51bbd55d2beb08a6",
+    "firmware_elf_sha256": "e251f46f56660e9ca1e3c04154afac5d316418c4e4451d492499a1cdd7a81faa",
+    "image": "image:sha256:4b00d41d22c152a0ea200898cb2a810bf0e441ef3a5bfe93734104eea12775e4",
+    "configuration": "sha256:f6e80d528135f93b27ad67269553c3133dd09633843ba8407faabda428370d64",
+    "bootstrap_schema": "conduit.body/member-bootstrap@2",
+    "body_tests_passed": 61,
+    "rp2040_make_tests_passed": 6,
+    "firmware_armv6m_checked_and_linked": true,
+    "static_bytes": 93480,
+    "static_ceiling": 131072,
+    "heap_arena_bytes_in_static": 49152,
+    "stack_gap_bytes": 176856,
+    "minimum_stack_bytes": 16384,
+    "flash_load_end": "0x100d3978",
+    "flash_credential_boundary": "0x101fd000",
+    "deployed": false,
+    "canonical_member_return_implemented": false,
+    "ordinary_sampling_play_proven": false
+  },
+  "bootstrap_installation_preparation_regressions": {
+    "proof_class": "CPU synthetic package and actual temporary-file preparation",
+    "fixture_uses_ordinary_release_and_package_verifiers": true,
+    "matching_package_composition": true,
+    "checked_old_package_codec_refusal": true,
+    "old_package_creates_no_installation_directory": true,
+    "focused_tests_passed": 3,
+    "ordinary_joining_package_regressions_passed": 11,
+    "device_write_performed": false,
+    "body_membership_or_play_proven": false,
+    "checked_native_release_tests_passed": 2,
+    "tls_construction_tests_passed": 2,
+    "strict_xtask_all_target_clippy_passed": true,
+    "evidence_retention_guard_passed": true
   }
 }

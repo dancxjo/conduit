@@ -85,6 +85,24 @@ pub fn fixture_with_output_at(
     PortableInvitation,
     BTreeMap<String, Vec<u8>>,
 ) {
+    fixture_with_output_metadata_at(paths, output, now, configuration, |_| {
+        serde_json::Map::new()
+    })
+}
+
+/// Target fixture facts follow the exact constructed IMAGE, before sealing.
+pub fn fixture_with_output_metadata_at(
+    paths: &[&str],
+    output: SporeOutputKind,
+    now: u64,
+    configuration: &conduit_host_make::CheckedHostConfiguration,
+    metadata: impl FnOnce(&conduit_host_make::HostImage) -> serde_json::Map<String, serde_json::Value>,
+) -> (
+    VerifiedHostReleaseBytes,
+    BuiltSpore,
+    PortableInvitation,
+    BTreeMap<String, Vec<u8>>,
+) {
     let catalog = conduit_workspace_make::catalog();
     let packages = conduit_workspace_make::package_set();
     let (image, image_manifest) = build_host_image(
@@ -128,7 +146,8 @@ pub fn fixture_with_output_at(
         aggregate.update(b"\n");
     }
     let bundle = format!("sha256:{:x}", aggregate.finalize());
-    let manifest = serde_json::json!({"schema":"conduit.release/host-bundle@1","target_id":m.target,"make_package_id":m.make_package_id,"output":output_name,"builder_adapter":m.builder_adapter,"deployment_adapter":m.deployment_adapter,"source_identity":m.source_identity,"bundle_sha256":bundle,"files":files});
+    let mut manifest = serde_json::json!({"schema":"conduit.release/host-bundle@1","target_id":m.target,"make_package_id":m.make_package_id,"output":output_name,"builder_adapter":m.builder_adapter,"deployment_adapter":m.deployment_adapter,"source_identity":m.source_identity,"bundle_sha256":bundle,"files":files});
+    manifest.as_object_mut().unwrap().extend(metadata(&image));
     let verified = verify_host_release_bytes(
         &serde_json::to_vec(&manifest).unwrap(),
         &ReleaseTargetProfile {

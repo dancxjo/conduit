@@ -1765,3 +1765,27 @@ also pass. These are source/CPU/compile results. No MCU was flashed. Returning
 material still requires the canonical challenge/proof and committed owner receipt
 exchange; the current firmware refuses a new spawn attempt for retained material
 rather than silently creating a second Part.
+
+Ordinary Make subsequently compiled and sealed the complete firmware from clean
+Source `24a2e05a98`. Its checked artifact contains the matching version-2
+bootstrap contract and exact native IMAGE/configuration; the UF2 hash matches
+the sealed inventory. Linked static storage is 93,480 bytes, including the
+unchanged 49,152-byte arena. The 176,856-byte linker stack gap exceeds the
+unchanged 16 KiB minimum, and the flash-load end `0x100d3978` remains below the
+credential boundary `0x101fd000`. These are linked extents, not runtime peak or
+complete preparation-workspace admission measurements.
+
+The installation-preparer's positive package fixture now supplies target codec
+metadata before ordinary sealing. Three focused tests pass: matching package
+composition, an integrity-checked old package's refusal, and an actual preparation
+call that refuses that old package without creating an installation directory.
+Synthetic package payloads prove the preparation contract, not hardware boot.
+The complete real firmware and its hashes remain in ignored output; Green still
+runs the previously admitted image while canonical retained return is unfinished.
+
+The 11 ordinary package regressions, two checked native-release tests and two
+TLS construction tests pass. Strict all-target xtask Clippy and the evidence
+retention guard pass. Lint exposed earlier branch-local duplicate inclusion of
+the Host-source loader; both command entrances now use its single module under
+Host release. Constant-size chunk scans use fixed-array chunks with unchanged
+extent checks. No running service or physical device was changed by these fixes.
