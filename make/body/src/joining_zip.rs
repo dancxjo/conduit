@@ -7,6 +7,7 @@ const LOCAL_FILE: u32 = 0x0403_4b50;
 const CENTRAL_FILE: u32 = 0x0201_4b50;
 const END: u32 = 0x0605_4b50;
 
+/// One bounded carrier entry; owned payload bytes are cleared when released.
 pub struct JoiningZipEntry {
     pub name: String,
     pub bytes: Vec<u8>,
@@ -18,6 +19,8 @@ impl Drop for JoiningZipEntry {
     }
 }
 
+/// Check the exact stored-ZIP layout and CRCs within the joining carrier bounds.
+/// Artifact identity, construction and admission remain the caller's obligations.
 pub fn read_stored_joining_zip(bytes: &[u8]) -> Result<Vec<JoiningZipEntry>, String> {
     if bytes.len() > MAXIMUM_PACKAGE_BYTES
         || bytes.len() < 22
@@ -146,3 +149,7 @@ fn crc32(bytes: &[u8]) -> u32 {
     }
     !crc
 }
+
+#[cfg(test)]
+#[path = "joining_zip/tests.rs"]
+mod tests;

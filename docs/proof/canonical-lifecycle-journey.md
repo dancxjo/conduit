@@ -1483,3 +1483,16 @@ exact failed-job retry, now active. PR #6727 has passed Candidate; it remains
 held until combined dev's repaired Integration is accepted. PR #6738 admission
 is still running. No full Body integration, physical Show, graph, or ordinary
 MCU sampling Play is claimed by this milestone.
+
+
+The next focused delivery is shared joining-carrier parsing, prepared from current
+dev at `c15243064a` on `refactor/shared-seed-zip-reader-20261103`. Body Make owns
+one bounded stored-ZIP reader; the existing Linux installer consumes it, and the
+journey's verified Pico Seed preparation already uses the same parser. The reader
+checks storage structure and CRCs, clears owned entry bytes on release, and grants
+no construction, deployment or membership authority. Its four standalone module
+conformance tests pass; the actual product binary and tests compile with warnings
+denied on the extracted dev branch. Formatting and evidence retention pass. This
+is authoring/installation machinery, adding no ZIP parser to MCU firmware. The
+focused branch is retained for the next delivery slot, not claimed merged or
+physically admitted. The exact parser tests are absorbed in the journey source.
