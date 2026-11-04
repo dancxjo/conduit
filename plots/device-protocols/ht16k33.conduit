@@ -1,0 +1,59 @@
+# Register meaning only. Root independently admits the selected I2C attachment.
+# Initialization clears RAM while disabled and enables only after all five ACKs.
+# A failed/short result is terminal; these Plots do not retry or claim optical proof.
+with machine/i2c/transact/request as I2cTransaction
+with machine/i2c/transact/result as I2cResult
+
+type Ht16k33Configuration = {
+    address: U8 in 8..=119
+    brightness: U8
+    blink: U8
+    enabled: Boolean
+}
+type Ht16k33Failure =
+    none
+    | unsupported-address U8
+    | invalid-brightness U8
+    | invalid-blink U8
+    | bus I2cResult
+    | malformed
+    | unexpected
+type Ht16k33State = {
+    configuration: Ht16k33Configuration
+    phase: U8
+    failure: Ht16k33Failure
+}
+type Ht16k33Transition = {
+    state: Ht16k33State
+    result: I2cResult
+}
+type Ht16k33Action =
+    transact I2cTransaction
+    | acknowledged
+    | refused Ht16k33Failure
+
+plot ht16k33-initialize (
+    configuration: Ht16k33Configuration...| >> state: Ht16k33State...|
+) = (.address < 112 ? { configuration: ., phase: 6, failure: unsupported-address(.address) } : (.brightness > 15 ? { configuration: ., phase: 6, failure: invalid-brightness(.brightness) } : (.blink > 3 ? { configuration: ., phase: 6, failure: invalid-blink(.blink) } : { configuration: ., phase: 0, failure: none(empty) })))
+
+plot ht16k33-action (
+    state: Ht16k33State...| >> action: Ht16k33Action...|
+) = (.configuration.address < 112 ? refused(unsupported-address(.configuration.address)) : (.configuration.brightness > 15 ? refused(invalid-brightness(.configuration.brightness)) : (.configuration.blink > 3 ? refused(invalid-blink(.configuration.blink)) : (.phase == 0 ? transact({ address: .configuration.address, write: [33], read: 0 }) : (.phase == 1 ? transact({ address: .configuration.address, write: [128], read: 0 }) : (.phase == 2 ? transact({ address: .configuration.address, write: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], read: 0 }) : (.phase == 3 ? transact({ address: .configuration.address, write: [224 | .configuration.brightness], read: 0 }) : (.phase == 4 ? transact({ address: .configuration.address, write: [128 | (.configuration.blink * 2) | (.configuration.enabled ? 1 : 0)], read: 0 }) : (.phase == 5 ? acknowledged(empty) : (.phase == 6 ? refused(.failure) : refused(unexpected(empty))))))))))))
+
+plot ht16k33-transition (
+    transition: Ht16k33Transition...| >> state: Ht16k33State...|
+) = (.state.phase >= 5 ? .state : (.result is completed ? (sequence/length(.result.completed.input) == 0 ? { configuration: .state.configuration, phase: .state.phase + 1, failure: none(empty) } : { configuration: .state.configuration, phase: 6, failure: malformed(empty) }) : { configuration: .state.configuration, phase: 6, failure: bus(.result) }))
+
+# The caller supplies already mapped display RAM, independent of glyphs or domain.
+# One pointer+16-byte transaction avoids a visible clear between redraws.
+type Ht16k33Frame = {
+    address: U8 in 8..=119
+    ram: collection U8 = 16
+}
+plot ht16k33-frame-request (
+    frame: Ht16k33Frame...| >> action: Ht16k33Action...|
+) = (.address < 112 ? refused(unsupported-address(.address)) : transact({ address: .address, write: [0, .ram.0, .ram.1, .ram.2, .ram.3, .ram.4, .ram.5, .ram.6, .ram.7, .ram.8, .ram.9, .ram.10, .ram.11, .ram.12, .ram.13, .ram.14, .ram.15], read: 0 }))
+
+plot ht16k33-write-outcome (
+    result: I2cResult...| >> action: Ht16k33Action...|
+) = (. is completed ? (sequence/length(.completed.input) == 0 ? acknowledged(empty) : refused(malformed(empty))) : refused(bus(.)))
