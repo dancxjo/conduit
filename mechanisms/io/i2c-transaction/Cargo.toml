@@ -4,14 +4,19 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 [features]
-default = []
+default = ["source-catalog"]
+source-catalog = ["dep:conduit-plot"]
 operation-factory = ["dep:conduit-composite"]
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", default-features = false }
-conduit-plot = { path = "../../../architecture/plot" }
+conduit-plot = { path = "../../../architecture/plot", optional = true }
 conduit-composite = { path = "../../../architecture/composite", optional = true }
 
+[build-dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
+
 [dev-dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
