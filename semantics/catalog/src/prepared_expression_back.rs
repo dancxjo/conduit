@@ -24,8 +24,33 @@ pub fn prepared_expression_bounds(
     Ok((input, output))
 }
 
-pub struct PreparedExpressionBack {
-    evaluator: PreparedPortableExpressionEvaluator,
+mod resident;
+pub use resident::{StaticExpressionBackRefusal, StaticScalarExpressionBack};
+
+trait ExpressionEngine {
+    fn evaluate(
+        &mut self,
+        input: &[u8],
+    ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal>;
+    fn output_bytes(&self) -> &[u8];
+    fn private_fuel(&self) -> u16 {
+        0
+    }
+}
+impl ExpressionEngine for PreparedPortableExpressionEvaluator {
+    fn evaluate(
+        &mut self,
+        input: &[u8],
+    ) -> Result<&[u8], conduit_plot::PortableExpressionEvaluationRefusal> {
+        PreparedPortableExpressionEvaluator::evaluate(self, input)
+    }
+    fn output_bytes(&self) -> &[u8] {
+        PreparedPortableExpressionEvaluator::output_bytes(self)
+    }
+}
+
+pub struct PreparedExpressionBack<E = PreparedPortableExpressionEvaluator> {
+    evaluator: E,
     maximum_input_bytes: u32,
     maximum_output_bytes: u32,
     staged: bool,
@@ -67,7 +92,7 @@ impl PreparedExpressionBack {
         self.evaluator.output_capacity()
     }
 }
-impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
+impl<const PORTS: usize, E: ExpressionEngine> StepBack<PORTS> for PreparedExpressionBack<E> {
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         // Discard only uncommitted intent on a retried transaction.
         self.staged = false;
@@ -101,6 +126,9 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedExpressionBack {
             || input.len() > self.maximum_input_bytes as usize
         {
             return fail(1643);
+        }
+        if io.consume_fuel(self.evaluator.private_fuel()).is_err() {
+            return StepOutcome::Yield; // sticky kernel fuel fault rejects the whole Step
         }
         let Ok(output) = self.evaluator.evaluate(input) else {
             return fail(1644);
@@ -140,8 +168,8 @@ fn fail(detail: u16) -> StepOutcome {
 }
 
 #[cfg(feature = "prepared-expression-session")]
-impl<const P: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBack<P>
-    for PreparedExpressionBack
+impl<const P: usize, E: ExpressionEngine>
+    conduit_kernel::scheduler::prepared_session::ReusableStepBack<P> for PreparedExpressionBack<E>
 {
     type Next = ();
     fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
