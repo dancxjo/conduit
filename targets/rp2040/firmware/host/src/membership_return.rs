@@ -24,7 +24,7 @@ impl Membership {
             .as_ref()
             .or_else(|| self.seed.admission.credential())
             .ok_or(())?;
-        let owner = crate::resident::inventory().ok_or(())?;
+        let owner = crate::resident::inventory().map_err(|_| ())?;
         let images = owner.offers();
         let mut total = 0usize;
         let mut hashes = Vec::new();

@@ -3091,3 +3091,40 @@ inventories and public receipts remain outside Git under ignored
 remain private. Baseline repair #6752 passed all unit/admission jobs, but its
 browser Candidate has one SDK cancellation failure (283 tests passed). No
 feature merge or full lifecycle completion is claimed from these physical results.
+
+
+### 4 November: exclusive retained inventory without async copies
+
+The firmware's initialized Back inventory previously escaped as a permanent
+shared static reference. That prevented Root from mutably borrowing the same
+retained implementations for exact binding. It now remains in one static
+allocation and is acquired through a non-clonable exclusive lease. Competing
+acquisition reports Busy; failed initialization and absent initialization have
+distinct refusal states. Dropping the lease returns the pointer, including when
+an async borrower is cancelled. Initialization status remains observable during
+a lease but does not claim provider availability or an active reservation.
+Membership publication borrows through that same lease; no wire format changes.
+
+The regression test compiles the actual firmware custody module with Green's
+checked five-Back library, executes it natively and compiles its no_std source.
+It proves exclusive acquisition, mutable access, pointer identity after return,
+no scoped allocations during initialization/acquisition/return/cancellation, and
+return after cancellation of a polled pending future. On this 64-bit CPU the
+retained inventory is 21,632 bytes, its lease is eight bytes, and the tested
+pending future is sixteen bytes. These are CPU layout measurements, not MCU
+stack or heap peaks. The standalone Pico firmware also passes a locked release
+ARM target check. Strict RP2040 Make Clippy passes with all targets and warnings
+denied. Raw outputs remain in ignored target/resident-custody-20261104/.
+
+This is Rust ownership custody only. It does not admit work, reserve resources,
+quiesce the diagnostic I2C owner, authorize effects or prove same-Boot Play
+replacement. No device or live service was changed. The next execution boundary
+still requires actual Root resource admission and protected equipment handover;
+#6341's physical workspace gate remains open. The ARM check uses the retained
+reviewed IMAGE for compilation only and is not a newly fabricated Seed.
+
+A completed native regression-test executable (about 269 MB) was removed after
+its process ended; source, logs, deployed software, credentials, history and
+recovery artifacts were preserved. Subsequent ARM checking consumed part of
+that headroom; root has about 529 MiB available, so further large builds require
+another verified cache inventory and reclamation first.
