@@ -10,7 +10,7 @@ mod allocation;
 mod support;
 const VALID: &str = include_str!("../../../plots/hello/main.conduit");
 const INVALID: &str = "# α 🦀\nplot hello {\n first: unavailable/kind\n}\n";
-const CHECK: &str = include_str!("../../../plots/source-check/main.conduit");
+const CHECK: &str = include_str!("source_check_call/check.conduit");
 fn bounds() -> SourceCheckPreparationBounds {
     SourceCheckPreparationBounds {
         request_bytes: 16 * 1024,

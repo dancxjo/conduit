@@ -33,9 +33,7 @@ fn declaration() -> CheckedSyntaxDocument {
             .unwrap();
     }
     check_syntax_document(
-        &parse_syntax_document(include_str!(
-            "../../../../plots/body-workset/propose.conduit"
-        )),
+        &parse_syntax_document(include_str!("propose.conduit")),
         &startup,
     )
     .unwrap()

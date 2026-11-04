@@ -1,6 +1,6 @@
 # Check an authorized immutable Source
 
-`main.conduit` forwards an exact S1 request to `language/source-check` and exposes
+`check.conduit` forwards an exact S1 request to `language/source-check` and exposes
 its descriptive report. The finite authoring context must supply the actual
 checked Types from `semantics/language/source_check_info.conduit`. Type names,
 reports and source hashes confer no access, installation or execution authority.
@@ -12,7 +12,8 @@ and Host Call enforce current Host/Boot/provider/resource/grant binding; Play
 matches and copies a prepared packet without invoking the compiler or allocating
 inside the provider. Another request requires new authorized preparation.
 
-This is local implementation for #6447, not a completed or deployed feature.
+This package-owned conformance Source exercises local implementation for #6447;
+it is not a reviewed public Plot or a completed/deployed feature.
 Compiler/catalogue/workspace admission remains separate from retained packet
 bounds. Generic provider refusal is not yet the full typed S1 refusal protocol;
 cancellation, resource and provider-loss acceptance remain incomplete. There is
