@@ -207,10 +207,10 @@ impl PreparedStructuredExpression {
             PreparedShape::Input => return append(output, input),
             PreparedShape::Constant(bytes) => return append(output, bytes),
             PreparedShape::SequenceSelected(selection) => {
-                return append(output, selection.evaluate(input)?);
+                return selection.evaluate_into(input, output);
             }
             PreparedShape::Selected(selection) => {
-                return append(output, selection.evaluate(input)?);
+                return selection.evaluate_into(input, output);
             }
             _ => (),
         }
