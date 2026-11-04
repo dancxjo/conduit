@@ -1,4 +1,7 @@
 //! A selected owner leaves the library once; unrelated owners remain usable.
+#[path = "publication.rs"]
+mod publication;
+
 pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::Back {
     use conduit_body::{FederationPeer, HostCommandReceiveBounds, IssuedHostCommandChallenge};
     use conduit_plan_lowering::selected_assigned_expression::ResidentExpressionBindingRefusal as E;
@@ -37,6 +40,7 @@ pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::
         library.computation_requirement_0(0).unwrap(),
         assignment.pins[0]
     );
+    publication::check(library.offers());
     let original = library.offers();
     let original = original.map(|offer| {
         let offer = offer.unwrap();
@@ -117,6 +121,7 @@ pub fn run(assignment: &crate::support::Assignment) -> crate::library::entry_0::
     assert!(offers[0].is_none());
     let other = offers[1].unwrap();
     assert_eq!((other.as_ptr(), other.len()), original[1]);
+    publication::check(library.offers());
     assert!(matches!(
         library.bind_entry_0(assignment.selected(&active)),
         Err(E::MissingOwner)

@@ -2756,3 +2756,35 @@ checked workset admission. The next physical execution must connect actual
 Ready offers, a Body-approved checked workset/Plan, receiving Root admission
 and exclusive bus ownership. No device firmware, installed owner or live Face
 was changed in this checkpoint.
+
+### Transmit immutable metadata without a flattened copy (4 November 2026)
+
+The existing CBD1 document encoder now also accepts a bounded borrowed segment
+view. It retains only descriptors and a total extent; callers can combine
+flash-resident metadata with independently retained envelope bytes without
+constructing another document-sized buffer. Byte and segment ceilings are
+checked before encoding. Each frame scans at most the retained segment count
+and copies at most that frame's payload; caller policy must still admit that
+work. Refusal leaves the frame untouched. Existing contiguous callers use the
+same encoder, with the same 44-byte CBD1 header and no wire-version change.
+Digest verification, authentication, authority and actual Root workspace custody
+remain separate obligations.
+
+All 109 wire tests pass, including independent header/payload checks at every
+split and offset, empty segments, frame boundaries, unchanged refusal buffers
+and allocation-free 8,198-byte send/receive through three 4,096-byte frames.
+The actual generated-library CPU proof also passes: two initialized Backs lend
+46,415 bytes of exact offer JSON through a 128-byte frame (553 chunks), with
+zero measured allocation during segmented hashing, encoding and borrowed
+reassembly. After one Back transfers through exact assignment, the next
+document lends only its remaining sibling's 23,191 bytes (277 chunks). Hosted
+decoding then recovers the original typed offers exactly. Its receive storage
+is a separately allocated CPU fixture, not a new MCU grant or a sender copy.
+
+Both Make integration tests, strict all-target wire/Make Clippy and thumbv6m
+checking pass. This is reusable no_std sender/input-custody evidence, not live
+Host-generation publication or physical memory qualification. The MCU's
+membership advertisements and receipt decoder still need bounded integration
+before these Ready offers can participate in an actual Body Plan. No firmware
+or installed service was changed. Raw proof remains outside Git in ignored
+`target/segmented-document-20261104/`.

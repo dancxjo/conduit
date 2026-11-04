@@ -4,7 +4,7 @@
 use alloc::vec::Vec;
 
 pub const BOUNDED_DOCUMENT_HEADER_BYTES: usize = 44;
-const MAGIC: &[u8; 4] = b"CBD1";
+pub(super) const MAGIC: &[u8; 4] = b"CBD1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BoundedDocumentError {
@@ -21,21 +21,9 @@ pub fn encode_bounded_document_chunk(
     offset: usize,
     digest: &[u8; 32],
 ) -> Result<(usize, usize), BoundedDocumentError> {
-    if document.is_empty()
-        || document.len() > u32::MAX as usize
-        || frame.len() <= BOUNDED_DOCUMENT_HEADER_BYTES
-        || offset >= document.len()
-    {
-        return Err(BoundedDocumentError::Bound);
-    }
-    let end = offset + (document.len() - offset).min(frame.len() - BOUNDED_DOCUMENT_HEADER_BYTES);
-    frame[..4].copy_from_slice(MAGIC);
-    frame[4..8].copy_from_slice(&(document.len() as u32).to_le_bytes());
-    frame[8..12].copy_from_slice(&(offset as u32).to_le_bytes());
-    frame[12..BOUNDED_DOCUMENT_HEADER_BYTES].copy_from_slice(digest);
-    frame[BOUNDED_DOCUMENT_HEADER_BYTES..BOUNDED_DOCUMENT_HEADER_BYTES + end - offset]
-        .copy_from_slice(&document[offset..end]);
-    Ok((BOUNDED_DOCUMENT_HEADER_BYTES + end - offset, end))
+    let segments = [document];
+    crate::SegmentedBoundedDocument::new(&segments, u32::MAX as usize, 1)?
+        .encode_chunk(frame, offset, digest)
 }
 
 pub struct BoundedDocumentAssembly {
