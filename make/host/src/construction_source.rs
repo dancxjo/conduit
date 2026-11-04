@@ -51,13 +51,7 @@ pub fn canonical_host_configuration_conduit(
     configuration: &HostConfiguration,
 ) -> Result<String, ConfigurationDiagnostic> {
     let mut canonical = configuration.clone();
-    canonical
-        .bases
-        .sort_by(|left, right| left.kind.cmp(&right.kind));
-    canonical
-        .resources
-        .sort_by(|left, right| left.id.cmp(&right.id));
-    canonical.capabilities.sort_by(|a, b| a.kind.cmp(&b.kind));
+    canonical.normalize_declarations();
     let mut source = String::new();
     writeln!(&mut source, "host {} {{", canonical.name).map_err(|error| {
         ConfigurationDiagnostic::Encode {
@@ -376,6 +370,51 @@ mod tests {
             assert_eq!(round_trip.configuration(), canonical.configuration());
             assert_eq!(round_trip.configuration_id(), canonical.configuration_id());
         }
+    }
+
+    #[test]
+    fn formatting_normalizes_declaration_sets_without_changing_checked_meaning() {
+        let mut configuration = parse_host_configuration_conduit(include_str!(
+            "../../../targets/std/profiles/linux-computer.host.conduit"
+        ))
+        .unwrap();
+        configuration.bases.reverse();
+        configuration.resources = ["z/store", "a/store"]
+            .into_iter()
+            .map(|id| ResourceBudget {
+                id: id.into(),
+                class: "conduit.resource/runtime-memory@1".into(),
+                slots: 1,
+                bytes: 1,
+            })
+            .collect();
+        // Formatter proof does not assert these synthetic capability names are
+        // installed. Their declared ordering must survive serialization too.
+        configuration.capabilities = ["z/operation", "a/operation"]
+            .into_iter()
+            .map(|kind| crate::CapabilityIntent {
+                kind: kind.into(),
+                pinned_implementation: None,
+            })
+            .collect();
+        let rendered = canonical_host_configuration_conduit(&configuration).unwrap();
+        let decoded = parse_host_configuration_conduit(&rendered).unwrap();
+        configuration.normalize_declarations();
+        assert_eq!(decoded, configuration);
+        assert_eq!(
+            canonical_host_configuration_conduit(&decoded).unwrap(),
+            rendered
+        );
+        configuration.capabilities.clear();
+        let packages = crate::test_packages::test_package_set();
+        let catalog = MakeCatalog::canonical().with_packages(&packages);
+        let checked = check_host_configuration(configuration.clone(), &catalog, &packages).unwrap();
+        configuration.bases.reverse();
+        configuration.resources.reverse();
+        let reordered = check_host_configuration(configuration, &catalog, &packages).unwrap();
+        assert_eq!(reordered.configuration(), checked.configuration());
+        assert_eq!(reordered.configuration_id(), checked.configuration_id());
+        assert_eq!(reordered.profile(), checked.profile());
     }
 
     #[test]
