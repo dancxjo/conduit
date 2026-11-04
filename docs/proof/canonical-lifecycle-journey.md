@@ -3403,3 +3403,32 @@ warnings denied. The evidence-retention guard also passes. These results qualify
 the local integration extraction, not an adopted revision, exact-dev PR or
 physical deployment. Next: extend this same owner planning path to consume all
 independently checked retained Sources before the guarded adoption effect.
+
+
+### 4 November: prepare and execute one complete retained workset
+
+The installed owner's existing Source-aware planning entrance now delegates to
+complete-workset preparation. Canonical BodyWorkset validation requires exact
+finite coverage. Each locally owned Source is independently rechecked/expanded;
+the caller's expanded inspection must match the complete fresh result. Every
+partition prepares before the lifecycle session publishes one Body-wide Wake
+and Plan. A current realization, incomplete/duplicate inputs, swapped Source,
+forged expansion, unsupported later partition and excess Source count refuse
+without partial publication. No proposal is adopted and no authority is granted.
+
+Three new deterministic tests pass. One starts with an already-retained two-Plot
+fixture, prepares one complete Body Plan and executes both authored outputs in
+one actual installed kernel Play. The exact Plan/Body match the returned Play,
+terminal is Completed, cleanup succeeds, and the retained Body returns Lulled
+with unchanged identity, membership and workset. Fixture workload admission is
+explicitly not the #6449 authorized adoption proof. Thirty-nine existing owner
+tests also pass; strict conduit all-target Clippy, targeted formatting and the
+evidence-retention guard pass. Raw captures remain ignored target output.
+
+The focused delta is extracted on current dev d61742a91e as draft #6755,
+37a002770b14f0433688bddbdc6837e247c19e25. It excludes the unmerged Crèche-specific
+partition attachment and the accumulated MCU work. Exact extracted-head CI is
+pending; the local tests above were on the integration checkout. The existing
+proposal PR #6754 remains the other active review lane. No service/device changes
+or distributed execution are claimed. Next remains guarded owner adoption,
+actual source retention and retirement, then ordinary MCU execution.
