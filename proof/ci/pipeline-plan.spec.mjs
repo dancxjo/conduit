@@ -7,6 +7,7 @@ const all = { docsOnly: false, families: [...FAMILIES], unitShards: [...UNIT_SHA
 
 test("a browser harness modification must select real browser product proof in Candidate", () => {
   for (const path of [
+    ".github/workflows/ci.yml",
     "tools/ci/pipeline/targets/browser.mjs", "targets/browser/host/index.mjs",
     "proof/browser/workspace-arrival.spec.mjs", "site/index.html",
   ]) assert.equal(candidateBrowserProofRequired([path]), true, path);
