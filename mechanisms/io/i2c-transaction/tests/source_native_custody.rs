@@ -1,5 +1,4 @@
 //! The installed I2C authoring catalogue must carry inline result owners.
-#![cfg(feature = "source-catalog")]
 use conduit_core::*;
 use conduit_i2c_transaction::contract::I2cContract;
 use conduit_plot::{rust_binding::*, *};

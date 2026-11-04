@@ -1,6 +1,6 @@
 //! Preparation-only contract derived from reviewed Conduit Types.
 
-use alloc::{vec, vec::Vec};
+use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, PreparedStructuredValueValidator, StructuredInfoRefusal, StructuredInfoType,
@@ -18,7 +18,6 @@ pub struct I2cContract {
     request: StructuredInfoType,
     result: StructuredInfoType,
     kind: Kind,
-    types: Vec<conduit_plot::CheckedNativeType>,
 }
 
 impl I2cContract {
@@ -79,7 +78,6 @@ impl I2cContract {
             request,
             result,
             kind,
-            types: checked.native_types,
         })
     }
 
@@ -90,13 +88,16 @@ impl I2cContract {
     }
 
     pub fn catalogs(&self) -> (StartupCatalog, ProfileCatalog) {
+        let checked =
+            check_syntax_document(&parse_syntax_document(I2C_TYPES), &StartupCatalog::new())
+                .expect("build-checked I2C Type Source");
         let mut startup = StartupCatalog::new();
         for (name, path) in [
             ("I2cTransaction", "machine/i2c/transact/request"),
             ("I2cResult", "machine/i2c/transact/result"),
         ] {
-            let ty = self
-                .types
+            let ty = checked
+                .native_types
                 .iter()
                 .find(|ty| ty.name == name)
                 .expect("checked I2C Type");
