@@ -149,6 +149,7 @@ strip = "symbols"
 # Execution/provider dependencies retain their normal release optimization.
 [profile.release.package.conduit]
 opt-level = "s"
+strip = "symbols"
 
 [profile.release]
 strip = "symbols"
