@@ -1,3 +1,4 @@
+import { prepareHostedStorage } from '../runner-storage.mjs';
 import { setupHostedSandbox } from './hosted-sandbox.mjs';
 import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -64,6 +65,9 @@ export function acquireXtensa(espup, args, { run = command, verify = activateXte
 }
 
 export function setup(target) {
+  // The hosted target also prepares an immutable source/toolchain snapshot.
+  // Reclaim only unused runner-image SDKs before acquisition consumes capacity.
+  if (target.id === 'hosted-linux') prepareHostedStorage();
   // Resolve the pinned browser package before deriving its platform libraries.
   if (target.family === 'browser') acquire('npm', ['ci', '--prefix', 'proof/browser']);
   if (process.platform === 'linux') apt(...targetPackages(target), ...(target.family === 'browser' ? playwrightDependencies() : []));

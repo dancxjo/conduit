@@ -1,4 +1,5 @@
-// Unit/admission proofs use Rust, native libraries and Node, not these image SDKs.
+// Unit/admission and hosted Linux proofs use Rust, native libraries and Node,
+// not these image SDKs. Retain the immutable compiler snapshot reserve.
 // Never reclaim source, Rust caches, test output or tools on a user's machine.
 import { lstatSync, realpathSync, statfsSync } from 'node:fs';
 import { command } from './targets/common.mjs';
@@ -8,7 +9,7 @@ const UNUSED_IMAGE_SDKS = Object.freeze([
   '/usr/share/dotnet',
 ]);
 
-export function prepareHostedUnitStorage({
+export function prepareHostedStorage({
   environment = process.env,
   platform = process.platform,
   inspect = lstatSync,
@@ -47,6 +48,6 @@ export function prepareHostedUnitStorage({
     run('sudo', ['rm', '--recursive', '--force', '--one-file-system', '--', ...removed]);
   }
   const afterBytes = free();
-  log(`Hosted unit storage: before=${beforeBytes} after=${afterBytes} removed=${removed.join(',')} preserved=${preserved.join(',')}`);
+  log(`Hosted proof storage: before=${beforeBytes} after=${afterBytes} removed=${removed.join(',')} preserved=${preserved.join(',')}`);
   return { skipped: false, beforeBytes, afterBytes, removed, preserved };
 }

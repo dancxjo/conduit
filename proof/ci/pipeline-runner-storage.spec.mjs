@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { prepareHostedUnitStorage } from '../../tools/ci/pipeline/runner-storage.mjs';
+import { prepareHostedStorage } from '../../tools/ci/pipeline/runner-storage.mjs';
 
 const hosted = { GITHUB_ACTIONS: 'true', RUNNER_ENVIRONMENT: 'github-hosted' };
 const android = '/usr/local/lib/android';
@@ -37,14 +37,14 @@ test('local, self-hosted and non-Linux calls perform no inspection or cleanup', 
       inspect: () => assert.fail('must not inspect a user machine'),
       space: () => assert.fail('must not inspect a user machine'),
     });
-    assert.deepEqual(prepareHostedUnitStorage(options), { skipped: true });
+    assert.deepEqual(prepareHostedStorage(options), { skipped: true });
     assert.deepEqual(calls, []);
   }
 });
 
 test('hosted cleanup admits only the two fixed image SDK roots and records capacity', () => {
   const { options, calls } = fixture();
-  const result = prepareHostedUnitStorage(options);
+  const result = prepareHostedStorage(options);
   assert.deepEqual(calls, [{ program: 'sudo', args: [
     'rm', '--recursive', '--force', '--one-file-system', '--', android, dotnet,
   ] }]);
@@ -56,7 +56,7 @@ test('missing SDKs require no privileged operation', () => {
   const { options, calls } = fixture({ inspect: () => {
     throw Object.assign(new Error('absent'), { code: 'ENOENT' });
   } });
-  assert.deepEqual(prepareHostedUnitStorage(options).removed, []);
+  assert.deepEqual(prepareHostedStorage(options).removed, []);
   assert.deepEqual(calls, []);
 });
 
@@ -67,7 +67,7 @@ test('files, symlinks and redirected parents are preserved', () => {
     { canonicalPath: () => '/home/runner/work/source' },
   ]) {
     const { options, calls } = fixture(overrides);
-    assert.deepEqual(prepareHostedUnitStorage(options).preserved, [android, dotnet]);
+    assert.deepEqual(prepareHostedStorage(options).preserved, [android, dotnet]);
     assert.deepEqual(calls, []);
   }
 });
@@ -75,8 +75,8 @@ test('files, symlinks and redirected parents are preserved', () => {
 test('inspection and cleanup failures cannot become successful capacity proof', () => {
   const failure = new Error('permission denied');
   const inspection = fixture({ inspect: () => { throw failure; } });
-  assert.throws(() => prepareHostedUnitStorage(inspection.options), error => error === failure);
+  assert.throws(() => prepareHostedStorage(inspection.options), error => error === failure);
   assert.deepEqual(inspection.calls, []);
   const removal = fixture({ run: () => { throw failure; } });
-  assert.throws(() => prepareHostedUnitStorage(removal.options), error => error === failure);
+  assert.throws(() => prepareHostedStorage(removal.options), error => error === failure);
 });
