@@ -2515,3 +2515,33 @@ library/integration tests pass (40 tests total), including zero-allocation
 initialization/metadata access and partial-inventory refusal. Target compilation,
 linked footprint and physical initialization are recorded only after actual
 build/deployment below; no device was flashed for this component checkpoint.
+
+
+The ordinary Pico Make build of `a48a311cb2c625fe816dadaa2573d2f8ba08b27d`
+then passed. Its ELF reports 943,100 bytes of text; linker symbols bound static
+storage at 116,880 bytes, including the existing 49,152-byte heap arena. The
+131,072-byte static ceiling remains unchanged, leaving 14,192 bytes within that
+ceiling; the remaining address range to stack start is 153,456 bytes. The linked
+initialized-owner slot is 18,984 bytes. These are linked storage measurements,
+not measured preparation-stack high water, runtime heap peak or complete Play
+admission. No evaluation or offer-publication consumer is installed yet; unused
+code/metadata may be removed by the linker. This image therefore does not prove
+that the final executable workset and its published metadata fit.
+
+Make sealed and validated the application-only UF2 with SHA-256
+`0bc1212614a153a2a05fae8d5cb26e3798c17d8d429c4a4a56cee4b7150d3a6f`;
+its ELF SHA-256 is
+`f5912d7b84e59a649e4b84d2158591402c1e0541ca637d203006760a6427ad01`.
+The exact unchanged Host configuration remains
+`sha256:f6e80d528135f93b27ad67269553c3133dd09633843ba8407faabda428370d64`.
+No device or live service changed. Green's existing firmware separately answered
+with 1,103 successful samples and 16,531 display acknowledgments without sensor
+or display faults; those readings do not qualify the new image.
+
+The first target-build attempt hit tmpfs user quota despite globally available
+space. After confirming it was terminal, the two new build caches were relocated
+to disk with original paths retained and the same Make operation succeeded.
+Another 4.09 GiB was recovered from log-identified finished test executables,
+after checking process inode ownership; libraries, fingerprints, source and all
+unique evidence remained intact. Raw logs, measurements and maintenance receipts
+are retained outside Git under ignored `target/resident-seed-20261104/`.
