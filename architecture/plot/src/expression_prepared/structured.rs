@@ -380,7 +380,7 @@ fn push(output: &mut Vec<u8>, value: u8) -> Result<(), Refusal> {
     Ok(())
 }
 
-fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> {
+pub(super) fn append(output: &mut Vec<u8>, value: &[u8]) -> Result<(), Refusal> {
     if output
         .len()
         .checked_add(value.len())
