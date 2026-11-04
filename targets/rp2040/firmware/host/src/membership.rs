@@ -1,4 +1,6 @@
 //! Actual current-Boot receipt installation. This does not create a Plan or Play.
+#[path = "membership_return.rs"]
+mod returning;
 use crate::{
     seed::Seed,
     transport::{Link, LIMIT},
@@ -15,6 +17,13 @@ use ed25519_dalek::{Signer, SigningKey};
 use sha2::{Digest, Sha256};
 static RECEIPT_DIGEST: critical_section::Mutex<Cell<Option<[u8; 32]>>> =
     critical_section::Mutex::new(Cell::new(None));
+fn retain_receipt_digest(raw: &[u8]) {
+    critical_section::with(|cs| {
+        RECEIPT_DIGEST
+            .borrow(cs)
+            .set(Some(Sha256::digest(raw).into()))
+    });
+}
 pub fn is_member() -> bool {
     critical_section::with(|cs| RECEIPT_DIGEST.borrow(cs).get().is_some())
 }
@@ -66,7 +75,11 @@ impl Membership {
     }
     pub async fn serve_once(&mut self, link: &mut Link) -> Result<(), ()> {
         let mut input = [0; LIMIT];
-        if link.receive(&mut input).await? != PICO_SPAWN_REQUEST {
+        let request = link.receive(&mut input).await?;
+        if request == conduit_body::PICO_MEMBER_RETURN_REQUEST {
+            return self.serve_return(link, &mut input).await;
+        }
+        if request != PICO_SPAWN_REQUEST {
             return Err(());
         }
         // A retained credential must return through canonical member return;
@@ -136,11 +149,7 @@ impl Membership {
         validate_attested_admission_receipt_basis(&receipt, &self.seed.body_id, &self.ad)
             .map_err(|_| ())?;
         self.receipt = Some(receipt.credential);
-        critical_section::with(|cs| {
-            RECEIPT_DIGEST
-                .borrow(cs)
-                .set(Some(Sha256::digest(raw_receipt).into()))
-        });
+        retain_receipt_digest(raw_receipt);
         input.fill(0);
         output.fill(0);
         Ok(())

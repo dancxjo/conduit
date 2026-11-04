@@ -26,6 +26,10 @@ pub(crate) struct Socket {
     input: Box<[u8]>,
     output: Box<[u8]>,
 }
+#[allow(
+    clippy::large_enum_variant,
+    reason = "Retain one initialized transport inline for the Socket lifetime."
+)]
 enum Carrier {
     Native(NativeWebSocketLine),
     Secure(SecureWebSocketLine),

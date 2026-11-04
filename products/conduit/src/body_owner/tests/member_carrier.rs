@@ -314,7 +314,10 @@ fn receipt_attestation_requires_commit_exact_offer_and_pinned_owner() {
     // Membership alone must not authorize arbitrary equipment supplied by a caller.
     owner.invited_mask_offers.remove(&ad.host_id);
     assert!(owner
-        .attest_current_member_receipt(&receipt, &peer)
+        .attest_current_member_receipt(
+            &crate::durable_host::owner::MembershipReceiptDocument::Spawn(receipt.clone()),
+            &peer
+        )
         .is_err());
     owner.invited_mask_offers.insert(
         ad.host_id.clone(),
@@ -325,7 +328,10 @@ fn receipt_attestation_requires_commit_exact_offer_and_pinned_owner() {
     );
     let before = owner.session.evidence().clone();
     let signed = owner
-        .attest_current_member_receipt(&receipt, &peer)
+        .attest_current_member_receipt(
+            &crate::durable_host::owner::MembershipReceiptDocument::Spawn(receipt.clone()),
+            &peer,
+        )
         .unwrap();
     signed
         .verify(
@@ -339,23 +345,35 @@ fn receipt_attestation_requires_commit_exact_offer_and_pinned_owner() {
     let mut wrong_peer = peer.clone();
     wrong_peer.boot_id = "boot/foreign-owner".into();
     assert!(owner
-        .attest_current_member_receipt(&receipt, &wrong_peer)
+        .attest_current_member_receipt(
+            &crate::durable_host::owner::MembershipReceiptDocument::Spawn(receipt.clone()),
+            &wrong_peer
+        )
         .is_err());
     let mut changed = receipt.clone();
     changed.host_advertisement.profile = "profile/changed".into();
     assert!(owner
-        .attest_current_member_receipt(&changed, &peer)
+        .attest_current_member_receipt(
+            &crate::durable_host::owner::MembershipReceiptDocument::Spawn(changed.clone()),
+            &peer
+        )
         .is_err());
     changed = receipt.clone();
     changed.credential.credential_id =
         serde_json::from_value(serde_json::json!("credential/not-committed")).unwrap();
     assert!(owner
-        .attest_current_member_receipt(&changed, &peer)
+        .attest_current_member_receipt(
+            &crate::durable_host::owner::MembershipReceiptDocument::Spawn(changed.clone()),
+            &peer
+        )
         .is_err());
     changed = receipt;
     changed.play_created = true;
     assert!(owner
-        .attest_current_member_receipt(&changed, &peer)
+        .attest_current_member_receipt(
+            &crate::durable_host::owner::MembershipReceiptDocument::Spawn(changed.clone()),
+            &peer
+        )
         .is_err());
     std::fs::remove_dir_all(root).unwrap();
 }

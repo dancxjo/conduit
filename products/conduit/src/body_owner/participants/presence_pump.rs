@@ -3,6 +3,10 @@ use super::{transport::Socket, In, Out, PROTOCOL, RENEW_MS};
 use conduit_body::{HostPresenceLease, HostPresenceState, MembershipCredential};
 use std::time::{Duration, Instant};
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "Keep the bounded decoded frame inline without a per-frame allocation."
+)]
 pub(super) enum PresenceEvent {
     Continue,
     Leave,

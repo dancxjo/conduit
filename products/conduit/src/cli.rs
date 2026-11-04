@@ -107,6 +107,10 @@ pub(crate) enum DiagramFormat {
 }
 
 #[derive(Debug, Subcommand)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "One bounded command is parsed once; keep its arguments inline."
+)]
 pub(crate) enum HostCommand {
     /// Install one exact reviewed target, or inspect its plan with --dry-run.
     Install {
@@ -568,6 +572,18 @@ pub(crate) enum BodyCommand {
         #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
         authorize_admission: bool,
     },
+    /// Return an existing Part over the selected bounded USB carrier.
+    ReturnUsb {
+        port: PathBuf,
+        /// Public retained credential, physical profile, member key and owner pin.
+        basis: PathBuf,
+        #[arg(long)]
+        receipt_output: PathBuf,
+        #[arg(long)]
+        state_dir: PathBuf,
+        #[arg(long, required = true, action = clap::ArgAction::SetTrue)]
+        authorize_return: bool,
+    },
     /// Retain the owner's exact admission receipt as this host's durable membership.
     #[command(hide = true)]
     CompleteJoin {
@@ -587,9 +603,35 @@ mod public_surface_tests {
     use clap::{CommandFactory, Parser};
 
     #[test]
+    fn usb_return_requires_authorization_and_retained_receipt() {
+        let args = [
+            "conduit",
+            "body",
+            "return-usb",
+            "/dev/serial/by-id/device",
+            "usb-return.json",
+            "--state-dir",
+            "/state",
+            "--receipt-output",
+            "/private/return.json",
+        ];
+        assert!(Cli::try_parse_from(args).is_err());
+        assert!(Cli::try_parse_from(args.into_iter().chain(["--authorize-return"])).is_ok());
+    }
+
+    #[test]
     fn usb_admission_requires_authorization_and_retained_receipt() {
-        let args = ["conduit", "body", "admit-usb", "/dev/serial/by-id/device",
-            "usb-admission.json", "--state-dir", "/state", "--receipt-output", "/private/receipt.json"];
+        let args = [
+            "conduit",
+            "body",
+            "admit-usb",
+            "/dev/serial/by-id/device",
+            "usb-admission.json",
+            "--state-dir",
+            "/state",
+            "--receipt-output",
+            "/private/receipt.json",
+        ];
         assert!(Cli::try_parse_from(args).is_err());
         assert!(Cli::try_parse_from(args.into_iter().chain(["--authorize-admission"])).is_ok());
     }

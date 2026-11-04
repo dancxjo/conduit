@@ -60,7 +60,7 @@ pub(crate) enum MemberReturnFrame {
         code: String,
     },
 }
-pub(crate) const MEMBER_RETURN_SCHEMA: &str = "conduit.body/member-return@1";
+pub(crate) use conduit_body::MEMBER_RETURN_SCHEMA;
 
 pub(crate) fn serve_body_member_route(
     state: &Path,
@@ -68,10 +68,10 @@ pub(crate) fn serve_body_member_route(
     ttl_seconds: u64,
     bind: SocketAddr,
     public_url: &str,
-    certificate: &Path,
-    private_key: &Path,
+    identity: (&Path, &Path),
     authorize: bool,
 ) -> Result<(), String> {
+    let (certificate, private_key) = identity;
     if !authorize
         || !(1..=600).contains(&ttl_seconds)
         || !public_url.starts_with("wss://")
@@ -275,4 +275,26 @@ pub(crate) fn install_member_encounter(
         return Err("member encounter differs from retained scope or finite TLS policy".into());
     }
     super::super::write_json_atomic(&state.join("body/member-encounter.json"), &encounter)
+}
+
+#[cfg(test)]
+mod acknowledgement_wire_tests {
+    use super::*;
+    #[test]
+    fn tls_admitted_frame_is_the_shared_acknowledgement_document() {
+        let ad = conduit_std_host::StdHost::new().advertisement().clone();
+        let credential:MembershipCredential=serde_json::from_value(serde_json::json!({
+            "credential_id":"credential/1","body_id":"body/1","part_id":"part/1", "host_id":ad.host_id,"boot_id":ad.boot_id,"issued_at_millis":1
+        })).unwrap();
+        let frame = MemberReturnFrame::Admitted {
+            schema: MEMBER_RETURN_SCHEMA.into(),
+            credential: credential.clone(),
+            advertisement: Box::new(ad.clone()),
+        };
+        let acknowledgement = conduit_body::MemberReturnAcknowledgement::new(credential, ad);
+        assert_eq!(
+            serde_json::to_vec(&frame).unwrap(),
+            serde_json::to_vec(&acknowledgement).unwrap()
+        );
+    }
 }

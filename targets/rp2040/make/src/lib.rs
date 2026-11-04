@@ -80,3 +80,6 @@ impl HostMakePackage for Rp2040MakePackage {
         })
     }
 }
+
+#[cfg(test)]
+mod member_return_wire_tests;

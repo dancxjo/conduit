@@ -1,0 +1,177 @@
+//! USB carriage of canonical retained Part return, never another invitation.
+use super::{PicoSpawnSocket, PicoSpawnTransportError as Error};
+use conduit_body::{
+    FederationPeer, MemberReturnAcknowledgement, MemberReturnProofDocument, MembershipCredential,
+    PartReturnChallenge, PartReturnProof, SignedPortableAdmissionReceipt,
+    MAX_PICO_ADMISSION_FRAME_BYTES, MEMBER_RETURN_SCHEMA, PICO_MEMBER_RETURN_REQUEST,
+};
+use conduit_core::{HostAdvertisement, HostProfileId, PROTOCOL_VERSION};
+use ed25519_dalek::{Signature, VerifyingKey};
+use serde::{Deserialize, Serialize};
+use std::time::Duration;
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PicoMemberReturnBasis {
+    pub credential: MembershipCredential,
+    pub expected_profile: HostProfileId,
+    pub member_verifying_key: [u8; 32],
+    pub owner: FederationPeer,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MemberReturnPresentation {
+    pub kind: String,
+    pub schema: String,
+    pub credential: MembershipCredential,
+    pub advertisement: HostAdvertisement,
+}
+impl PicoMemberReturnBasis {
+    pub fn validate(&self) -> Result<(), Error> {
+        for id in [
+            self.credential.credential_id.as_str(),
+            self.credential.body_id.as_str(),
+            self.credential.part_id.as_str(),
+            self.credential.host_id.as_str(),
+            self.credential.boot_id.as_str(),
+            self.expected_profile.as_str(),
+            self.owner.host_id.as_str(),
+            self.owner.boot_id.as_str(),
+        ] {
+            if id.is_empty()
+                || id.len() > conduit_body::MAX_LIFECYCLE_ID_BYTES
+                || id.chars().any(char::is_control)
+            {
+                return Err(Error::Malformed);
+            }
+        }
+        if self.owner.offer_generation.0 == 0 {
+            return Err(Error::Malformed);
+        }
+        for key in [&self.member_verifying_key, &self.owner.verifying_key] {
+            if *key == [0; 32] {
+                return Err(Error::Malformed);
+            }
+            VerifyingKey::from_bytes(key).map_err(|_| Error::Malformed)?;
+        }
+        Ok(())
+    }
+    pub fn check_presentation(&self, claim: &MemberReturnPresentation) -> Result<(), Error> {
+        self.validate()?;
+        let ad = &claim.advertisement;
+        if claim.schema != MEMBER_RETURN_SCHEMA
+            || claim.kind != "Advertise"
+            || claim.credential != self.credential
+            || ad.host_id != self.credential.host_id
+            || ad.profile != self.expected_profile
+            || ad.protocol_version != PROTOCOL_VERSION
+            || ad.offer_generation.0 == 0
+            || ad.boot_id.as_str().is_empty()
+            || ad.boot_id.as_str().len() > conduit_body::MAX_LIFECYCLE_ID_BYTES
+        {
+            return Err(Error::WrongAdvertisement);
+        }
+        Ok(())
+    }
+    pub fn check_proof(
+        &self,
+        actual: &HostAdvertisement,
+        challenge: &PartReturnChallenge,
+        proof: &PartReturnProof,
+    ) -> Result<(), Error> {
+        if challenge.body_id != self.credential.body_id
+            || challenge.part_id != self.credential.part_id
+            || challenge.host_id != self.credential.host_id
+            || challenge.host_id != actual.host_id
+            || challenge.boot_id != actual.boot_id
+            || challenge.offer_generation != actual.offer_generation
+            || challenge.nonce == [0; 32]
+            || challenge.expires_at_millis <= challenge.issued_at_millis
+            || proof.admission_id != challenge.admission_id
+            || proof.body_id != challenge.body_id
+            || proof.part_id != challenge.part_id
+            || proof.host_id != challenge.host_id
+            || proof.boot_id != challenge.boot_id
+            || proof.nonce != challenge.nonce
+        {
+            return Err(Error::WrongAdvertisement);
+        }
+        VerifyingKey::from_bytes(&self.member_verifying_key)
+            .map_err(|_| Error::Malformed)?
+            .verify_strict(
+                &challenge.signing_transcript(),
+                &Signature::from_bytes(&proof.signature),
+            )
+            .map_err(|_| Error::InvalidReceipt)
+    }
+}
+impl PicoSpawnSocket {
+    pub fn request_member_return(
+        &mut self,
+        basis: &PicoMemberReturnBasis,
+        timeout: Duration,
+    ) -> Result<MemberReturnPresentation, Error> {
+        basis.validate()?;
+        self.line
+            .send_raw_stream_frame(PICO_MEMBER_RETURN_REQUEST, timeout)?;
+        let mut bytes = [0; MAX_PICO_ADMISSION_FRAME_BYTES];
+        let presentation =
+            serde_json::from_slice(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)
+                .map_err(|_| Error::Malformed)?;
+        basis.check_presentation(&presentation)?;
+        Ok(presentation)
+    }
+    pub fn prove_member_return(
+        &mut self,
+        basis: &PicoMemberReturnBasis,
+        actual: &HostAdvertisement,
+        challenge: &PartReturnChallenge,
+        timeout: Duration,
+    ) -> Result<PartReturnProof, Error> {
+        let bytes = serde_json::to_vec(challenge).map_err(|_| Error::Malformed)?;
+        if bytes.len() > MAX_PICO_ADMISSION_FRAME_BYTES {
+            return Err(Error::Oversized);
+        }
+        self.line.send_raw_stream_frame(&bytes, timeout)?;
+        let mut bytes = [0; MAX_PICO_ADMISSION_FRAME_BYTES];
+        let proof: MemberReturnProofDocument =
+            serde_json::from_slice(self.line.receive_raw_stream_frame(&mut bytes, timeout)?)
+                .map_err(|_| Error::Malformed)?;
+        let proof = proof.decode().map_err(|_| Error::Malformed)?;
+        basis.check_proof(actual, challenge, &proof)?;
+        Ok(proof)
+    }
+    pub fn deliver_member_return(
+        &mut self,
+        signed: &SignedPortableAdmissionReceipt,
+        basis: &PicoMemberReturnBasis,
+        actual: &HostAdvertisement,
+        timeout: Duration,
+    ) -> Result<MemberReturnAcknowledgement, Error> {
+        let ack = signed
+            .verify_return(
+                &basis.owner,
+                &basis.member_verifying_key,
+                &basis.credential,
+                actual,
+            )
+            .map_err(|_| Error::InvalidReceipt)?;
+        let metadata = serde_json::to_vec(
+            &signed
+                .transport_metadata()
+                .map_err(|_| Error::InvalidReceipt)?,
+        )
+        .map_err(|_| Error::Malformed)?;
+        if metadata.len() > MAX_PICO_ADMISSION_FRAME_BYTES
+            || signed.receipt_json.len() > MAX_PICO_ADMISSION_FRAME_BYTES
+        {
+            return Err(Error::Oversized);
+        }
+        self.line.send_raw_stream_frame(&metadata, timeout)?;
+        self.line
+            .send_raw_stream_frame(signed.receipt_json.as_bytes(), timeout)?;
+        Ok(ack)
+    }
+}
+#[cfg(test)]
+mod tests;

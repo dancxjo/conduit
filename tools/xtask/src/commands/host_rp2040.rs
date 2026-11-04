@@ -1,31 +1,16 @@
 //! Actual generic Pico Host build. Public code and private native Seed stay separate.
 use crate::cli::GlobalOpts;
-use conduit_body::{FederationPeer, MembershipCredential, PicoSpawnProvision};
 use conduit_host_make::HostImage;
-use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::{
     fs,
-    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct PrivateInput<'a> {
-    physical_uid: [u8; 8],
-    pinned_owner: FederationPeer,
-    #[serde(borrow)]
-    provision: PicoSpawnProvision<'a>,
-    credential: Option<MembershipCredential>,
-}
-
-impl Drop for PrivateInput<'_> {
-    fn drop(&mut self) {
-        wipe(&mut self.provision.secret);
-    }
-}
+#[path = "host_rp2040_membership_seed.rs"]
+mod membership_seed;
+use membership_seed::compose_private_seed;
 
 pub(super) fn build(
     profile: &Path,
@@ -173,10 +158,7 @@ pub(super) fn build(
             );
         }
         let basis = compose_private_seed(&checked, &image.manifest.image_id, input, destination)?;
-        fs::write(
-            output.join("usb-admission.json"),
-            serde_json::to_vec_pretty(&basis)?,
-        )?;
+        basis.publish(output)?;
     }
     if !opts.quiet {
         println!("RP2040 application: {}", uf2.display());
@@ -203,69 +185,4 @@ pub(super) fn validate_application_uf2(bytes: &[u8]) -> Result<(), Box<dyn std::
         .finish()
         .map_err(|e| format!("UF2 incomplete: {e:?}"))?;
     Ok(())
-}
-fn compose_private_seed(
-    checked: &conduit_host_make::CheckedHostConfiguration,
-    expected_image_id: &str,
-    input: &Path,
-    destination: &Path,
-) -> Result<conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis, Box<dyn std::error::Error>> {
-    let metadata = fs::metadata(input)?;
-    if metadata.len() > 4096 {
-        return Err("private Seed input exceeds finite bound".into());
-    }
-    let mut bytes = fs::read(input)?;
-    let result = (|| -> Result<conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis, Box<dyn std::error::Error>> {
-        let input: PrivateInput<'_> =
-            serde_json::from_slice(&bytes).map_err(|_| "invalid private Seed input")?;
-        if input.credential.is_some() { return Err("returning members require retained bootstrap material, not a new invitation basis".into()); }
-        let member_key = conduit_body::SpawnInvitationSecret::from_csprng_bytes(input.provision.secret)
-            .map_err(|_| "private Seed member key refused")?;
-        let basis = conduit_std_host::pico_spawn::PicoSpawnAdmissionBasis {
-            spore_id: input.provision.spore_id.into(),
-            image_id: input.provision.image_id.into(),
-            invitation: serde_json::from_value(serde_json::json!({
-                "invitation_id": input.provision.invitation_id,
-                "body_id": input.provision.body_id,
-                "nonce": input.provision.nonce,
-                "expires_at_millis": input.provision.expires_at_millis,
-            })).map_err(|_| "private Seed invitation claim refused")?,
-            expected_host: format!("rp2040/flash/{}", input.physical_uid.iter()
-                .map(|byte| format!("{byte:02x}")).collect::<String>()).into(),
-            expected_profile: checked.configuration_id().into(),
-            member_verifying_key: member_key.verifying_key(),
-            owner: input.pinned_owner.clone(),
-        };
-        let mut sector = conduit_host_rp2040::encode_spawn_membership_seed_sector(
-            checked,
-            expected_image_id,
-            input.physical_uid,
-            &input.pinned_owner,
-            &input.provision,
-        )?;
-        let mut private = conduit_host_rp2040::membership_seed_sector_uf2(&sector);
-        wipe(&mut sector);
-        let mut options = fs::OpenOptions::new();
-        options.write(true).create_new(true);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::OpenOptionsExt;
-            options.mode(0o600);
-        }
-        let result = (|| {
-            let mut file = options.open(destination)?;
-            file.write_all(&private)?;
-            file.sync_all()
-        })()
-        .map_err(|_| "private Seed publication refused");
-        wipe(&mut private);
-        result.map(|_| basis).map_err(Into::into)
-    })();
-    wipe(&mut bytes);
-    result
-}
-fn wipe(bytes: &mut [u8]) {
-    for byte in bytes {
-        unsafe { core::ptr::write_volatile(byte, 0) }
-    }
 }

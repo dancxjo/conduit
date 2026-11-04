@@ -93,3 +93,54 @@ fn member_return_bad_proofs_exhaust_the_same_finite_challenge() {
     );
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn signed_return_acknowledgement_requires_committed_current_part_and_observed_offers() {
+    use crate::durable_host::owner::MembershipReceiptDocument;
+    let (mut owner, root) = owner_fixture();
+    let (prior, key, mut ad) = admit_with_key(&mut owner, &root, "host/return-receipt");
+    owner.member_leave(&root, &prior).unwrap();
+    ad.boot_id = "boot/return-receipt/2".into();
+    ad.offer_generation.0 += 1;
+    // A finite MCU presentation, rather than the full hosted fixture's catalog.
+    // Receipt transport bounds stay unchanged.
+    ad.bases.clear();
+    ad.resources.clear();
+    ad.capabilities.clear();
+    ad.planner_capabilities.clear();
+    let peer = owner.prepare_current_member_carrier_receiver().unwrap();
+    let challenge = owner.begin_member_return(&prior, &ad).unwrap();
+    let mut uncommitted = prior.clone();
+    uncommitted.boot_id = ad.boot_id.clone();
+    let uncommitted = MembershipReceiptDocument::Return(
+        conduit_body::MemberReturnAcknowledgement::new(uncommitted, ad.clone()),
+    );
+    assert!(owner
+        .attest_current_member_receipt(&uncommitted, &peer)
+        .is_err());
+    let current = owner
+        .complete_member_return(&root, &prove(&challenge, &key))
+        .unwrap();
+    let ack = conduit_body::MemberReturnAcknowledgement::new(current.clone(), ad.clone());
+    let before = owner.session.evidence().clone();
+    let signed = owner
+        .attest_current_member_receipt(&MembershipReceiptDocument::Return(ack.clone()), &peer)
+        .unwrap();
+    let received = signed
+        .verify_return(&peer, &key.verifying_key(), &prior, &ad)
+        .unwrap();
+    assert_eq!(received.credential, current);
+    assert_eq!(received.credential.part_id, prior.part_id);
+    assert_eq!(owner.session.evidence(), &before);
+    assert_eq!(state::load(&root).unwrap().unwrap(), before);
+    let mut changed = ack.clone();
+    changed.advertisement.profile = "profile/unobserved".into();
+    assert!(owner
+        .attest_current_member_receipt(&MembershipReceiptDocument::Return(changed), &peer)
+        .is_err());
+    owner.member_leave(&root, &current).unwrap();
+    assert!(owner
+        .attest_current_member_receipt(&MembershipReceiptDocument::Return(ack), &peer)
+        .is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}

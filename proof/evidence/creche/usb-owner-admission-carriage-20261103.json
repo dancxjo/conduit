@@ -289,5 +289,32 @@
     "tls_construction_tests_passed": 2,
     "strict_xtask_all_target_clippy_passed": true,
     "evidence_retention_guard_passed": true
+  },
+  "canonical_usb_member_return": {
+    "proof_class": "CPU tests and complete ARMv6-M firmware check; no new deployment",
+    "body_tests_passed": 63,
+    "rp2040_make_tests_passed": 7,
+    "native_return_tests_passed": 6,
+    "std_return_scope_and_proof_tests_passed": 2,
+    "local_control_tests_passed": 50,
+    "public_usb_cli_tests_passed": 2,
+    "retained_make_input_tests_passed": 1,
+    "strict_changed_library_and_binary_clippy_passed": true,
+    "embedded_codec_matches_canonical_return_documents": true,
+    "acknowledgement_matches_existing_native_tls_admitted_frame": true,
+    "private_local_control_revision": 2,
+    "core_is_only_admission_writer": true,
+    "new_invitation_required_for_retained_seed": false,
+    "new_ready_offer_plan_or_play_claimed": false,
+    "physical_return_proven": false,
+    "durable_mcu_credential_advancement_proven": false,
+    "lost_acknowledgement_recovery_beyond_pending_window_proven": false
+  },
+  "accepted_dev_and_wire_merge": {
+    "native_repair_integration": 41769739364,
+    "native_repair_integration_result": "success",
+    "shared_wire_pr": 6735,
+    "shared_wire_merge": "5ea58754369e81dd5c0acf19fcd26d86dbf1b1c5",
+    "merged_wire_integration_result": "not yet observed"
   }
 }

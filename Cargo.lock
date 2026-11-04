@@ -2135,6 +2135,7 @@ name = "conduit-host-rp2040"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
+ "conduit-core",
  "conduit-host-make",
  "conduit-rp2040-flash-layout",
  "serde",

@@ -1,8 +1,8 @@
 //! USB carriage for ordinary invited admission, through the live owner Core.
 //! No private provision is sent, no membership row is fabricated, no Play starts.
-use super::{bounded_read, current_time_millis};
+use super::{bounded_read, current_time_millis, membership_receipt_custody};
 use conduit_std_host::pico_spawn::{PicoSpawnAdmissionBasis, PicoSpawnSocket};
-use std::{fs::OpenOptions, io::Write, path::Path, time::Duration};
+use std::{path::Path, time::Duration};
 
 pub(crate) fn admit_usb(
     port: &Path,
@@ -23,27 +23,8 @@ pub(crate) fn admit_usb(
     if crate::durable_host_control::carrier_receiver(state)? != basis.owner {
         return Err("live admission owner differs from the Seed's independent pin".into());
     }
-    let mut options = OpenOptions::new();
-    options.write(true).create_new(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(0o600);
-    }
-    // Reserve receipt custody before consuming invitation authority. An empty
-    // file after failure is not a receipt and must never be treated as one.
-    let mut receipt_file = options
-        .open(receipt_output)
-        .map_err(|e| format!("reserve new private receipt output: {e}"))?;
-    #[cfg(unix)]
-    std::fs::File::open(
-        receipt_output
-            .parent()
-            .filter(|p| !p.as_os_str().is_empty())
-            .unwrap_or(Path::new(".")),
-    )
-    .and_then(|directory| directory.sync_all())
-    .map_err(|e| format!("retain receipt directory entry before admission: {e}"))?;
+    // Empty reserved output after failure is not an admission receipt.
+    let mut receipt_file = membership_receipt_custody::reserve(receipt_output)?;
     let timeout = Duration::from_secs(5);
     let mut socket = PicoSpawnSocket::open(port.to_str().ok_or("USB path is not UTF-8")?)
         .map_err(|e| format!("open USB admission carrier: {e:?}"))?;
@@ -66,11 +47,7 @@ pub(crate) fn admit_usb(
             &observed.advertisement,
         )
         .map_err(|e| format!("membership committed; signed receipt refused: {e:?}"))?;
-    let bytes = serde_json::to_vec(&signed).map_err(|e| format!("encode signed receipt: {e}"))?;
-    receipt_file
-        .write_all(&bytes)
-        .and_then(|_| receipt_file.sync_all())
-        .map_err(|e| format!("membership committed; receipt persistence failed: {e}"))?;
+    membership_receipt_custody::retain(&mut receipt_file, &signed)?;
     socket
         .deliver_admission_receipt(
             &signed,

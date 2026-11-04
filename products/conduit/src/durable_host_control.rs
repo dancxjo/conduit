@@ -34,7 +34,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const PROTOCOL: u16 = 1;
+// Typed receipt inputs changed: mixed product revisions must refuse before
+// consuming a member-return challenge or committing a new credential.
+const PROTOCOL: u16 = 2;
 pub(crate) const CONTROL_OUTCOME_UNKNOWN: &str = "control-outcome-unknown";
 const MAXIMUM_CONTROL_FRAME_BYTES: usize = 512 * 1024;
 // Local admission snapshots carry both complete reviewed Host advertisements.
@@ -131,11 +133,11 @@ pub(crate) use body::{
     local_face_snapshot, prepare_owned_invitation_route, submit_local_face_interaction,
     submit_local_face_interaction_until,
 };
-pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
 pub(crate) use body::{
-    attest_admission_receipt, begin_carrier, carrier_mask_route, carrier_receiver, carrier_show,
-    complete_carrier, renew_carrier_presence, retire_carrier,
+    attest_admission_receipt, attest_return_acknowledgement, begin_carrier, carrier_mask_route,
+    carrier_receiver, carrier_show, complete_carrier, renew_carrier_presence, retire_carrier,
 };
+pub(crate) use body::{begin_member_return, complete_member_return, leave_member, return_member};
 pub(crate) use body::{
     submit_browser_face_interaction, submit_native_guest_face_interaction_until,
 };
@@ -1062,7 +1064,7 @@ enum Request {
     BodyAttestAdmissionReceipt {
         protocol: u16,
         token: Vec<u8>,
-        receipt: Box<conduit_body::PortableAdmissionReceipt>,
+        receipt: Box<crate::durable_host::owner::MembershipReceiptDocument>,
         expected_owner: Box<conduit_body::FederationPeer>,
     },
     BodyMemberCarrierBegin {

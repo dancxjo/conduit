@@ -68,6 +68,11 @@ pub(crate) use invitation::{accept_body_invitation, admit_body_request, issue_bo
 #[path = "durable_host/usb_admission.rs"]
 mod usb_admission;
 pub(crate) use usb_admission::admit_usb;
+#[path = "durable_host/usb_member_return.rs"]
+mod usb_member_return;
+pub(crate) use usb_member_return::return_usb;
+#[path = "durable_host/membership_receipt_custody.rs"]
+mod membership_receipt_custody;
 pub(crate) use membership::leave_member_from_file;
 pub(crate) use membership::{complete_body_join, retain_rendezvous_membership};
 pub(crate) use routed_join::PreparedAdmissionRoute;
@@ -1132,11 +1137,7 @@ fn make_executable(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-pub(crate) use routed_join::{
-    return_installed_member, return_on_actual_host, MemberEncounter,
-};
-
-
+pub(crate) use routed_join::{return_installed_member, return_on_actual_host, MemberEncounter};
 
 #[cfg(test)]
 mod tests {

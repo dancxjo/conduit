@@ -137,15 +137,32 @@ mod tests {
             Request::BodyAttestAdmissionReceipt {
                 protocol: PROTOCOL,
                 token: vec![token; 32],
-                receipt: Box::new(conduit_body::PortableAdmissionReceipt {
-                    schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
-                    credential: credential.clone(),
-                    host_advertisement: ad.clone(),
-                    membership_admitted: true,
-                    current_offers_available: !ad.capabilities.is_empty(),
-                    plan_created: false,
-                    play_created: false,
-                }),
+                receipt: Box::new(
+                    crate::durable_host::owner::MembershipReceiptDocument::Spawn(
+                        conduit_body::PortableAdmissionReceipt {
+                            schema: conduit_body::SPAWN_ADMISSION_RECEIPT_SCHEMA.into(),
+                            credential: credential.clone(),
+                            host_advertisement: ad.clone(),
+                            membership_admitted: true,
+                            current_offers_available: !ad.capabilities.is_empty(),
+                            plan_created: false,
+                            play_created: false,
+                        },
+                    ),
+                ),
+                expected_owner: Box::new(challenge.responder.clone()),
+            },
+            Request::BodyAttestAdmissionReceipt {
+                protocol: PROTOCOL,
+                token: vec![token; 32],
+                receipt: Box::new(
+                    crate::durable_host::owner::MembershipReceiptDocument::Return(
+                        conduit_body::MemberReturnAcknowledgement::new(
+                            credential.clone(),
+                            ad.clone(),
+                        ),
+                    ),
+                ),
                 expected_owner: Box::new(challenge.responder.clone()),
             },
             Request::BodyMemberCarrierBegin {
@@ -182,6 +199,24 @@ mod tests {
             },
         ]
     }
+    #[test]
+    fn previous_local_control_revision_refuses_before_selecting_a_carrier_owner() {
+        let mut runtime = DurableHostRuntime::new(
+            "fixture/target".into(),
+            "fixture/image".into(),
+            StdHost::new(),
+        );
+        let before = runtime.truth().advertisement;
+        let request = Request::BodyMemberCarrierReceiver {
+            protocol: PROTOCOL - 1,
+            token: vec![9; 32],
+        };
+        assert!(
+            matches!(handle(request,&[9;32],&mut runtime),Response::Refused{code,..} if code=="protocol")
+        );
+        assert_eq!(runtime.truth().advertisement, before);
+    }
+
     #[test]
     fn member_carrier_control_requires_authenticated_local_caller_and_real_body_owner() {
         let mut runtime = DurableHostRuntime::new(
@@ -352,7 +387,7 @@ pub(crate) fn carrier_show(
 impl DurableHostRuntime {
     pub(in crate::durable_host_control) fn owned_body_attest_admission_receipt(
         &mut self,
-        receipt: &conduit_body::PortableAdmissionReceipt,
+        receipt: &crate::durable_host::owner::MembershipReceiptDocument,
         expected_owner: &conduit_body::FederationPeer,
     ) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
@@ -365,6 +400,29 @@ impl DurableHostRuntime {
 pub(crate) fn attest_admission_receipt(
     state: &Path,
     receipt: conduit_body::PortableAdmissionReceipt,
+    expected_owner: conduit_body::FederationPeer,
+) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
+    attest_member_document(
+        state,
+        crate::durable_host::owner::MembershipReceiptDocument::Spawn(receipt),
+        expected_owner,
+    )
+}
+
+pub(crate) fn attest_return_acknowledgement(
+    state: &Path,
+    receipt: conduit_body::MemberReturnAcknowledgement,
+    expected_owner: conduit_body::FederationPeer,
+) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
+    attest_member_document(
+        state,
+        crate::durable_host::owner::MembershipReceiptDocument::Return(receipt),
+        expected_owner,
+    )
+}
+fn attest_member_document(
+    state: &Path,
+    receipt: crate::durable_host::owner::MembershipReceiptDocument,
     expected_owner: conduit_body::FederationPeer,
 ) -> Result<conduit_body::SignedPortableAdmissionReceipt, String> {
     match exchange(state, |token| Request::BodyAttestAdmissionReceipt {

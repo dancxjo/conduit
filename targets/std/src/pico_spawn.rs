@@ -13,6 +13,8 @@ use crate::pico_admission::{decode_advertisement, PicoAdmissionTransportError};
 use crate::usb_cdc::NativePathCdcLine;
 mod basis;
 pub use basis::PicoSpawnAdmissionBasis;
+mod member_return;
+pub use member_return::{MemberReturnPresentation, PicoMemberReturnBasis};
 
 #[derive(Debug)]
 pub enum PicoSpawnTransportError {

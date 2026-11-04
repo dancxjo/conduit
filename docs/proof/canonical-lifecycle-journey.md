@@ -1789,3 +1789,50 @@ retention guard pass. Lint exposed earlier branch-local duplicate inclusion of
 the Host-source loader; both command entrances now use its single module under
 Host release. Constant-size chunk scans use fixed-array chunks with unchanged
 extent checks. No running service or physical device was changed by these fixes.
+
+
+### 3 November: canonical retained-member return over USB
+
+Dev Integration 41769739364 passed for the native preparation repair. Shared
+receipt/wire PR #6735 passed its exact-head gate and merged as `5ea5875436`.
+Merged-source integration remains a separate acceptance gate.
+
+The delivery branch now carries Core's existing Part-return challenge and proof
+over the selected bounded USB stream. Core remains the only admission writer.
+The owner verifies the device proof, commits the new Boot on the same Part and
+saves/fsyncs its signed acknowledgement before delivery. The MCU verifies exact
+raw bytes against its pinned owner/member key, retained relationship and actual
+Boot. The document is byte-identical to the native TLS `Admitted` frame and uses
+the existing receipt attestation. Spawn and return validation remain distinct.
+This creates no invitation, Line authority, Ready offer, Plan or Play.
+
+The canonical proof document moved from product-private code into the no_std
+Body crate; native callers re-export it. Protected local receipt control accepts
+typed spawn/return documents and rechecks committed current membership, latest
+credential and independently observed offers before signing. Its private protocol
+advances to version 2: mixed client/service revisions refuse before return commit.
+
+Ordinary Make's existing private input selects the shared spawn or retained
+material. Retained input needs no unused invitation and emits a checked native
+application, reserved bootstrap UF2 and public return basis. Private file input
+is bounded/wiped; physical UID and IMAGE/configuration are checked before output.
+Construction intent remains inert.
+
+CPU checks pass: 63 Body tests, seven RP2040 Make tests including the embedded
+codec, six native return tests, two Std return-scope/proof tests, 50 local-control
+tests, two USB CLI tests and one retained Make-input test. Strict Clippy passes
+for the changed library/binary targets. The complete ARMv6-M firmware checks.
+The hosted fixture's full advertisement exceeds the unchanged attestation bound;
+the MCU test uses a finite no-Back presentation instead of enlarging that bound.
+
+An overly broad filtered test invocation built unrelated integration executables
+and exhausted disk. Those inactive regenerable outputs were removed, and only
+the required library/binary targets were run. Source, retained state, qualified
+artifacts and running services were preserved. No new image has been deployed.
+
+Next physical gates: clean committed ordinary builds, a matched installed owner,
+private retained Seed construction, verified transfer to Green, and readback of
+the same Part/new Boot with the accepted raw receipt digest. Durable MCU
+credential advancement and recovery beyond the finite pending-return window
+remain unproved. This exchange does not close the shared restart/acknowledgement
+obligations or #6461.

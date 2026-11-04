@@ -407,7 +407,7 @@ fn main() {
             state_dir, member_credential, ttl_seconds, route_bind, route_url,
             route_tls_cert, route_tls_key, authorize_route,
         }) }) => durable_host::serve_body_member_route(&state_dir, &member_credential,
-            ttl_seconds, route_bind, &route_url, &route_tls_cert, &route_tls_key, authorize_route),
+            ttl_seconds, route_bind, &route_url, (&route_tls_cert, &route_tls_key), authorize_route),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::BrowserWindow {
@@ -465,6 +465,9 @@ fn main() {
         Some(cli::Command::Body { command: Some(cli::BodyCommand::AdmitUsb {
             port, basis, receipt_output, state_dir, authorize_admission,
         }) }) => durable_host::admit_usb(&port, &basis, &receipt_output, &state_dir, authorize_admission),
+        Some(cli::Command::Body { command: Some(cli::BodyCommand::ReturnUsb {
+            port, basis, receipt_output, state_dir, authorize_return,
+        }) }) => durable_host::return_usb(&port, &basis, &receipt_output, &state_dir, authorize_return),
         Some(cli::Command::Body {
             command:
                 Some(cli::BodyCommand::CompleteJoin {
