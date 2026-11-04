@@ -92,3 +92,10 @@ type SourceCheckRefusal =
     | invalid_diagnostic_span
     | diagnostic_overflow
     | dependency_overflow
+
+# Operation result for a finite prepared implementation. not_prepared requests
+# require fresh authorized preparation; they do not imply malformed Source.
+type SourceCheckReply =
+    checked SourceCheckInfoV1
+    | refused SourceCheckRefusal
+    | not_prepared

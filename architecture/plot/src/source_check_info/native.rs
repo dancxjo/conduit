@@ -21,6 +21,12 @@ impl From<conduit_core::StructuredInfoRefusal> for SourceCheckNativeRefusal {
         Self::Value(value)
     }
 }
+/// Typed outcome of an immutable Source-check request.
+pub enum SourceCheckReply<'a> {
+    Checked(&'a SourceCheckInfoV1),
+    Refused(SourceCheckRefusal),
+    NotPrepared,
+}
 /// An authoring/service preparation object. Encoding allocates and executes
 /// checked Native laws; it must not be called from a generic Play step. The
 /// caller admits its preparation workspace independently of the output bound.
@@ -61,6 +67,9 @@ impl SourceCheckNativeSchema {
     }
     pub fn request_kind(&self) -> Result<conduit_core::KindId> {
         self.port_kind("SourceCheckRequest")
+    }
+    pub fn reply_kind(&self) -> Result<conduit_core::KindId> {
+        self.port_kind("SourceCheckReply")
     }
     pub fn report_kind(&self) -> Result<conduit_core::KindId> {
         self.port_kind("SourceCheckInfoV1")
@@ -108,36 +117,43 @@ impl SourceCheckNativeSchema {
             .validate_bounds()
             .map_err(SourceCheckNativeRefusal::Report)?;
         self.encode("SourceCheckInfoV1", maximum_bytes, |ty| {
-            record(ty, |name, ty| match name {
-                "schema_version" => leaf(ty, &report.schema_version.to_le_bytes()),
-                "snapshot" => snapshot(ty, &report.snapshot),
-                "context" => context(ty, &report.context),
-                "requested_entry" => text(ty, &report.requested_entry),
-                "limits" => limits(ty, report.limits),
-                "check" => case(
-                    ty,
-                    match report.check {
-                        CheckOutcome::Accepted => "accepted",
-                        CheckOutcome::Rejected => "rejected",
-                    },
-                    |ty| leaf(ty, &[]),
-                ),
-                "candidate" => record(ty, |name, ty| match name {
-                    "checked_plot_id" => {
-                        optional_text(ty, report.candidate.checked_plot_id.as_deref())
-                    }
-                    "expanded_plot_id" => {
-                        optional_text(ty, report.candidate.expanded_plot_id.as_deref())
-                    }
-                    _ => Err(SourceCheckNativeRefusal::Schema),
-                }),
-                "diagnostics" => sequence(ty, &report.diagnostics, diagnostic),
-                "dependencies" => dependencies(ty, &report.dependencies),
-                "plan" | "play" => case(ty, "absent", |ty| leaf(ty, &[])),
-                _ => Err(SourceCheckNativeRefusal::Schema),
-            })
+            report_value(ty, report)
         })
     }
+    pub fn encode_reply(
+        &self,
+        reply: SourceCheckReply<'_>,
+        maximum_bytes: usize,
+    ) -> Result<Vec<u8>> {
+        if let SourceCheckReply::Checked(report) = &reply {
+            report
+                .validate_bounds()
+                .map_err(SourceCheckNativeRefusal::Report)?;
+        }
+        self.encode("SourceCheckReply", maximum_bytes, |ty| match reply {
+            SourceCheckReply::Checked(report) => case(ty, "checked", |ty| report_value(ty, report)),
+            SourceCheckReply::NotPrepared => case(ty, "not_prepared", |ty| leaf(ty, &[])),
+            SourceCheckReply::Refused(refusal) => case(ty, "refused", |ty| {
+                case(
+                    ty,
+                    match refusal {
+                        SourceCheckRefusal::InvalidSnapshot => "invalid_snapshot",
+                        SourceCheckRefusal::SourceBytes => "source_bytes",
+                        SourceCheckRefusal::StaleSource => "stale_source",
+                        SourceCheckRefusal::UnknownGrammar => "unknown_grammar",
+                        SourceCheckRefusal::UnknownContext => "unknown_context",
+                        SourceCheckRefusal::EntryBytes => "entry_bytes",
+                        SourceCheckRefusal::Limits => "limits",
+                        SourceCheckRefusal::InvalidDiagnosticSpan => "invalid_diagnostic_span",
+                        SourceCheckRefusal::DiagnosticOverflow => "diagnostic_overflow",
+                        SourceCheckRefusal::DependencyOverflow => "dependency_overflow",
+                    },
+                    |ty| leaf(ty, &[]),
+                )
+            }),
+        })
+    }
+
     fn encode(
         &self,
         name: &str,
@@ -340,4 +356,31 @@ fn dependencies(ty: &Type, dependencies: &DependencyProvenance) -> Result<Value>
             })
         }),
     }
+}
+
+fn report_value(ty: &Type, report: &SourceCheckInfoV1) -> Result<Value> {
+    record(ty, |name, ty| match name {
+        "schema_version" => leaf(ty, &report.schema_version.to_le_bytes()),
+        "snapshot" => snapshot(ty, &report.snapshot),
+        "context" => context(ty, &report.context),
+        "requested_entry" => text(ty, &report.requested_entry),
+        "limits" => limits(ty, report.limits),
+        "check" => case(
+            ty,
+            match report.check {
+                CheckOutcome::Accepted => "accepted",
+                CheckOutcome::Rejected => "rejected",
+            },
+            |ty| leaf(ty, &[]),
+        ),
+        "candidate" => record(ty, |name, ty| match name {
+            "checked_plot_id" => optional_text(ty, report.candidate.checked_plot_id.as_deref()),
+            "expanded_plot_id" => optional_text(ty, report.candidate.expanded_plot_id.as_deref()),
+            _ => Err(SourceCheckNativeRefusal::Schema),
+        }),
+        "diagnostics" => sequence(ty, &report.diagnostics, diagnostic),
+        "dependencies" => dependencies(ty, &report.dependencies),
+        "plan" | "play" => case(ty, "absent", |ty| leaf(ty, &[])),
+        _ => Err(SourceCheckNativeRefusal::Schema),
+    })
 }

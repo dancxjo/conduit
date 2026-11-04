@@ -92,7 +92,7 @@ pub fn plan(
         default_expanded_placements(&authored.expanded, &hosts).map_err(|e| format!("{e:?}"))?;
     let boundaries = [
         (PortDirection::Input, "request", bounds.request_bytes),
-        (PortDirection::Output, "report", bounds.report_bytes),
+        (PortDirection::Output, "reply", bounds.report_bytes),
     ]
     .into_iter()
     .map(|(direction, name, bytes)| {

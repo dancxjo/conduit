@@ -11,8 +11,8 @@ fn prepared_provider_success_staleness_and_short_slot_do_not_allocate() {
         .encode_request(&request, bounds().request_bytes as usize)
         .unwrap();
     let expected = schema
-        .encode_report(
-            &owner.project(&request).unwrap(),
+        .encode_reply(
+            SourceCheckReply::Checked(&owner.project(&request).unwrap()),
             bounds().report_bytes as usize,
         )
         .unwrap();
@@ -31,11 +31,39 @@ fn prepared_provider_success_staleness_and_short_slot_do_not_allocate() {
     let stale = schema
         .encode_request(&stale, bounds().request_bytes as usize)
         .unwrap();
+    let stale_reply = schema
+        .encode_reply(
+            SourceCheckReply::Refused(SourceCheckRefusal::StaleSource),
+            bounds().report_bytes as usize,
+        )
+        .unwrap();
+    let invalid_reply = schema
+        .encode_reply(
+            SourceCheckReply::Refused(SourceCheckRefusal::InvalidSnapshot),
+            bounds().report_bytes as usize,
+        )
+        .unwrap();
+    let mut unprepared = request.clone();
+    unprepared.entry = "other".into();
+    let unprepared = schema
+        .encode_request(&unprepared, bounds().request_bytes as usize)
+        .unwrap();
+    let unprepared_reply = schema
+        .encode_reply(
+            SourceCheckReply::NotPrepared,
+            bounds().report_bytes as usize,
+        )
+        .unwrap();
     let mut output = vec![0; bounds().report_bytes as usize];
     let (_, measured) = allocation_probe::observe(|| {
         let len = provider.read(&input, &mut output).unwrap();
         assert_eq!(&output[..len], expected);
-        assert!(provider.read(&stale, &mut output).is_err());
+        let len = provider.read(&stale, &mut output).unwrap();
+        assert_eq!(&output[..len], stale_reply);
+        let len = provider.read(b"invalid", &mut output).unwrap();
+        assert_eq!(&output[..len], invalid_reply);
+        let len = provider.read(&unprepared, &mut output).unwrap();
+        assert_eq!(&output[..len], unprepared_reply);
         assert!(provider.read(&input, &mut output[..1]).is_err());
     });
     assert_eq!((measured.allocations, measured.reallocations), (0, 0));

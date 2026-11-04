@@ -3523,3 +3523,32 @@ repository-taxonomy tests pass on that focused checkout. Updated #6754 head
 Candidate. The incomplete S2 check-source example is likewise package-owned;
 its promoted public authoring/installation route is not claimed. Full lifecycle,
 MCU execution, durable history, shared Face and physical acceptance remain open.
+
+### 4 November: typed finite Source-check replies
+
+The S2 local reference adds a checked `SourceCheckReply` sum: `checked` carries
+S1's actual report, `refused` carries its existing refusal vocabulary, and
+`not_prepared` explicitly requests fresh authorized preparation. A different
+entry in an otherwise known immutable Source/context does not falsely claim a
+compiler diagnostic. Stale generations and unknown context are distinct replies.
+The runtime retains one request schema and one reply schema, with only canonical
+value nodes per prepared request/refusal. It does not retain compiler owners or
+repeat the complete schema for every refusal. These local changes do not install
+an ordinary product offer or admit the compiler's preparation workspace.
+
+Focused qualification passes 13 actual Native/source conformance tests and three
+production-Host integration/allocation tests. Five successive actual Plays
+return direct-reference valid/invalid reports, stale Source, an unprepared entry,
+and unknown context through committed typed outputs and Host Call signs.
+Allocation probes cover success, stale, malformed and unprepared requests and
+short caller storage: zero provider allocations/reallocations. All ten S1 refusal
+tags encode under the checked Native schema. Raw logs remain ignored under
+`target/source-check-typed-reply-qualification.log`. These results establish local
+CPU/library behavior; cancellation/provider loss, complete preparation admission,
+installed authoring, downstream adoption and physical lifecycle are still open.
+
+Strict all-target Clippy passes for Plot, std Host and Body Make with warnings
+forbidden; targeted formatting and whitespace checks pass. A tuple return type
+was named after lint requested it; no lint suppression or behavioral relaxation
+was introduced. This remains a checkpoint on the existing delivery branch,
+without opening a third overlapping review lane while #6754 awaits admission.

@@ -191,3 +191,58 @@ fn native_projection_refuses_out_of_schema_or_invalid_law_values() {
         Err(SourceCheckNativeRefusal::Report(SourceCheckRefusal::Limits))
     ));
 }
+
+#[test]
+fn typed_replies_preserve_checked_results_and_distinct_refusal_tags() {
+    let schema = SourceCheckNativeSchema::prepare().unwrap();
+    let mut owner = projection(VALID);
+    let report = owner.project(&request(&owner)).unwrap();
+    for (reply, expected) in [
+        (SourceCheckReply::Checked(&report), "checked"),
+        (SourceCheckReply::NotPrepared, "not_prepared"),
+    ] {
+        let encoded = schema
+            .encode_reply(reply, MAXIMUM_STRUCTURED_CANONICAL_BYTES)
+            .unwrap();
+        let value = StructuredInfoValue::from_canonical_bytes(&encoded).unwrap();
+        assert_eq!(tag(&value), expected);
+    }
+    for (reason, expected) in [
+        (SourceCheckRefusal::InvalidSnapshot, "invalid_snapshot"),
+        (SourceCheckRefusal::SourceBytes, "source_bytes"),
+        (SourceCheckRefusal::StaleSource, "stale_source"),
+        (SourceCheckRefusal::UnknownGrammar, "unknown_grammar"),
+        (SourceCheckRefusal::UnknownContext, "unknown_context"),
+        (SourceCheckRefusal::EntryBytes, "entry_bytes"),
+        (SourceCheckRefusal::Limits, "limits"),
+        (
+            SourceCheckRefusal::InvalidDiagnosticSpan,
+            "invalid_diagnostic_span",
+        ),
+        (
+            SourceCheckRefusal::DiagnosticOverflow,
+            "diagnostic_overflow",
+        ),
+        (
+            SourceCheckRefusal::DependencyOverflow,
+            "dependency_overflow",
+        ),
+    ] {
+        let encoded = schema
+            .encode_reply(
+                SourceCheckReply::Refused(reason),
+                MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+            )
+            .unwrap();
+        let value = StructuredInfoValue::from_canonical_bytes(&encoded).unwrap();
+        let StructuredInfoValueShape::Variant {
+            tag: outer,
+            payload,
+        } = value.shape()
+        else {
+            panic!("reply variant")
+        };
+        assert_eq!(outer, "refused");
+        assert_eq!(tag(payload), expected);
+    }
+}

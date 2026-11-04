@@ -9,7 +9,7 @@ use crate::{
 };
 use alloc::{collections::BTreeMap, string::String, sync::Arc, vec::Vec};
 pub use contract::*;
-pub use native::{SourceCheckNativeRefusal, SourceCheckNativeSchema};
+pub use native::{SourceCheckNativeRefusal, SourceCheckNativeSchema, SourceCheckReply};
 use sha2::{Digest, Sha256};
 
 /// An owner-admitted immutable reference context. Revision names are descriptive

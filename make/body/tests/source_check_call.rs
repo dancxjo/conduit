@@ -31,7 +31,7 @@ impl ExternalForeOutputAdapter for Capture {
         witness: CommittedForeValue<'_>,
         delivery: ExternalForeDelivery,
     ) -> Result<(), String> {
-        assert_eq!(delivery.front_port_id.as_str(), "report");
+        assert_eq!(delivery.front_port_id.as_str(), "reply");
         assert_eq!(witness.sequence(), 0);
         self.bytes.extend_from_slice(witness.bytes());
         self.calls += 1;
@@ -49,14 +49,34 @@ fn ordinary_plot_returns_actual_valid_and_invalid_source_reports_with_host_call_
     assert!(good_info.candidate.checked_plot_id.is_some());
     assert!(good_info.candidate.expanded_plot_id.is_some());
     assert_eq!(bad_info.check, CheckOutcome::Rejected);
-    let requests = [&good_request, &bad_request].map(|r| {
+    let mut stale_request = good_request.clone();
+    stale_request.snapshot.generation += 1;
+    let mut other_entry = good_request.clone();
+    other_entry.entry = "not-prepared".into();
+    let mut other_context = good_request.clone();
+    other_context.context.catalog = "different-catalog".into();
+    let requests = [
+        &good_request,
+        &bad_request,
+        &stale_request,
+        &other_entry,
+        &other_context,
+    ]
+    .map(|r| {
         schema
             .encode_request(r, bounds().request_bytes as usize)
             .unwrap()
     });
-    let expected = [&good_info, &bad_info].map(|r| {
+    let expected = [
+        SourceCheckReply::Checked(&good_info),
+        SourceCheckReply::Checked(&bad_info),
+        SourceCheckReply::Refused(SourceCheckRefusal::StaleSource),
+        SourceCheckReply::NotPrepared,
+        SourceCheckReply::Refused(SourceCheckRefusal::UnknownContext),
+    ]
+    .map(|r| {
         schema
-            .encode_report(r, bounds().report_bytes as usize)
+            .encode_reply(r, bounds().report_bytes as usize)
             .unwrap()
     });
     let prepared = PreparedSourceChecker::prepare(

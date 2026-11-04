@@ -5,7 +5,7 @@ use crate::ImmediateNativeSource;
 use conduit_core::{CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal};
 use conduit_plot::{
     KindSignature, ProfileCatalog, SourceCheckNativeSchema, SourceCheckProjection,
-    SourceCheckRequest, StartupCatalog,
+    SourceCheckRefusal, SourceCheckReply, SourceCheckRequest, StartupCatalog,
 };
 
 pub const SOURCE_CHECK_KIND: &str = "language/source-check";
@@ -29,13 +29,16 @@ pub struct SourceCheckPreparationBounds {
     /// context, catalogue and preparation workspace, which need separate custody.
     pub retained_bytes: usize,
 }
-struct Entry {
-    request: Box<[u8]>,
-    report: Box<[u8]>,
-}
-/// Finite immutable native provider, not a Source catalogue or a compiler cache.
+mod requests;
+use requests::Entry;
+/// One copy of each schema plus finite canonical value nodes. No compiler AST,
+/// cache or per-refusal duplicate schema is retained by the runtime provider.
 pub struct PreparedSourceCheckProvider {
     entries: Box<[Entry]>,
+    request_schema: Box<[u8]>,
+    reply_schema: Box<[u8]>,
+    refusals: [Box<[u8]>; 6],
+    maximum_request: usize,
 }
 pub struct PreparedSourceChecker {
     kind: Kind,
@@ -64,38 +67,75 @@ impl PreparedSourceChecker {
         let schema = SourceCheckNativeSchema::prepare()
             .map_err(|e| format!("Source-check schema: {e:?}"))?;
         let mut entries: Vec<Entry> = Vec::with_capacity(inputs.len());
+        let mut request_schema = None;
+        let mut reply_schema = None;
         for input in inputs {
             let request = schema
                 .encode_request(input.request, bounds.request_bytes as usize)
                 .map_err(|e| format!("Source-check request: {e:?}"))?;
-            if entries
-                .iter()
-                .any(|entry| entry.request.as_ref() == request)
-            {
-                return Err("duplicate immutable Source-check request".into());
-            }
             let report = input
                 .owner
                 .project(input.request)
                 .map_err(|e| format!("Source-check preparation: {e:?}"))?;
             let report = schema
-                .encode_report(&report, bounds.report_bytes as usize)
+                .encode_reply(
+                    SourceCheckReply::Checked(&report),
+                    bounds.report_bytes as usize,
+                )
                 .map_err(|e| format!("Source-check report: {e:?}"))?;
-            entries.push(Entry {
-                request: request.into_boxed_slice(),
-                report: report.into_boxed_slice(),
-            });
+            let (entry, input_type, output_type) = Entry::prepare(&request, &report)?;
+            if entries.iter().any(|old| old.request == entry.request) {
+                return Err("duplicate immutable Source-check request".into());
+            }
+            if request_schema
+                .as_ref()
+                .is_some_and(|old| old != &input_type)
+                || reply_schema.as_ref().is_some_and(|old| old != &output_type)
+            {
+                return Err("prepared Source-check schemas disagree".into());
+            }
+            request_schema = Some(input_type);
+            reply_schema = Some(output_type);
+            entries.push(entry);
         }
+        let request_schema = request_schema.ok_or("Source-check request schema absent")?;
+        let reply_schema = reply_schema.ok_or("Source-check reply schema absent")?;
+        let refusal = |reason| -> Result<Box<[u8]>, String> {
+            let bytes = schema
+                .encode_reply(reason, bounds.report_bytes as usize)
+                .map_err(|e| format!("Source-check refusal: {e:?}"))?;
+            let value = conduit_core::validate_canonical_structured_value(&bytes)
+                .map_err(|e| format!("refusal shape: {e:?}"))?;
+            if value.type_bytes() != reply_schema.as_ref() {
+                return Err("refusal schema differs".into());
+            }
+            Ok(value.value_node().into())
+        };
+        let refusals = [
+            refusal(SourceCheckReply::Refused(
+                SourceCheckRefusal::InvalidSnapshot,
+            ))?,
+            refusal(SourceCheckReply::Refused(SourceCheckRefusal::StaleSource))?,
+            refusal(SourceCheckReply::Refused(
+                SourceCheckRefusal::UnknownGrammar,
+            ))?,
+            refusal(SourceCheckReply::Refused(
+                SourceCheckRefusal::UnknownContext,
+            ))?,
+            refusal(SourceCheckReply::Refused(SourceCheckRefusal::EntryBytes))?,
+            refusal(SourceCheckReply::NotPrepared)?,
+        ];
+        let base = core::mem::size_of::<PreparedSourceCheckProvider>()
+            + entries.len() * core::mem::size_of::<Entry>()
+            + request_schema.len()
+            + reply_schema.len()
+            + refusals.iter().map(|node| node.len()).sum::<usize>();
         let retained_bytes = entries
             .iter()
-            .try_fold(
-                core::mem::size_of::<PreparedSourceCheckProvider>()
-                    + entries.len() * core::mem::size_of::<Entry>(),
-                |sum, entry| {
-                    sum.checked_add(entry.request.len())?
-                        .checked_add(entry.report.len())
-                },
-            )
+            .try_fold(base, |sum, entry| {
+                sum.checked_add(entry.request.len())?
+                    .checked_add(entry.report.len())
+            })
             .ok_or("Source-check backing size overflow")?;
         if retained_bytes > bounds.retained_bytes {
             return Err("Source-check retained backing exceeds admission".into());
@@ -117,9 +157,9 @@ impl PreparedSourceChecker {
                 abnormal_kind: None,
             }],
             outputs: vec![PortDescriptor {
-                port_id: "report".into(),
+                port_id: "reply".into(),
                 value_kind: schema
-                    .report_kind()
+                    .reply_kind()
                     .map_err(|e| format!("report Type: {e:?}"))?,
                 direction: PortDirection::Output,
                 temporal: PortTemporal::Flow { closes: true },
@@ -137,6 +177,10 @@ impl PreparedSourceChecker {
             kind,
             provider: PreparedSourceCheckProvider {
                 entries: entries.into_boxed_slice(),
+                request_schema,
+                reply_schema,
+                refusals,
+                maximum_request: bounds.request_bytes as usize,
             },
             retained_bytes,
             bounds,
@@ -187,17 +231,17 @@ impl PreparedSourceChecker {
 // never allocate (even on refusal), access IO, invoke callbacks, or retain loans.
 unsafe impl ImmediateNativeSource for PreparedSourceCheckProvider {
     fn read(&mut self, input: &[u8], output: &mut [u8]) -> Result<usize, String> {
-        let Some(entry) = self
-            .entries
-            .iter()
-            .find(|entry| entry.request.as_ref() == input)
-        else {
-            return Err(String::new());
-        };
-        if output.len() < entry.report.len() {
+        let node = requests::select(self, input);
+        let length = self
+            .reply_schema
+            .len()
+            .checked_add(node.len())
+            .ok_or_else(String::new)?;
+        if output.len() < length {
             return Err(String::new());
         }
-        output[..entry.report.len()].copy_from_slice(&entry.report);
-        Ok(entry.report.len())
+        output[..self.reply_schema.len()].copy_from_slice(&self.reply_schema);
+        output[self.reply_schema.len()..length].copy_from_slice(node);
+        Ok(length)
     }
 }

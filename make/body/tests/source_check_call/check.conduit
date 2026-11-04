@@ -3,9 +3,9 @@
 # A report describes that Source; it does not install or execute it.
 plot check-source (
     >> request: SourceCheckRequest...|
-    report: SourceCheckInfoV1...| >>
+    reply: SourceCheckReply...| >>
 ) {
     checker: language/source-check
     request >> checker.request
-    checker.report >> report
+    checker.reply >> reply
 }
