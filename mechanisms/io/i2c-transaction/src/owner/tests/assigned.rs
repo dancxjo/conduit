@@ -6,18 +6,26 @@ use conduit_core::*;
 use conduit_embedded_build as e;
 use conduit_kernel::HostCallId;
 use conduit_plan_lowering::selected_assigned_operation::{
-    AssignedOperationInput, SelectedAssignedOperationPlan,
+    AssignedOperationInput, SelectedAssignedForeOperationPlan, SelectedAssignedOperationPlan,
 };
 
 #[test]
 fn contiguous_assignment_preserves_controller_and_executes_under_its_lease() {
-    exercise(false);
+    exercise(false, false);
 }
 #[test]
 fn borrowed_assignment_preserves_controller_and_executes_under_its_lease() {
-    exercise(true);
+    exercise(true, false);
 }
-fn exercise(borrowed: bool) {
+#[test]
+fn local_fore_assignment_preserves_controller_and_executes_under_its_lease() {
+    exercise(false, true);
+}
+#[test]
+fn borrowed_local_fore_preserves_controller_and_executes_under_its_lease() {
+    exercise(true, true);
+}
+fn exercise(borrowed: bool, fore: bool) {
     let contract = I2cContract::prepare().unwrap();
     let mut scope = fixture::scope();
     scope.capability_id = I2C_IMPLEMENTATION.into();
@@ -37,6 +45,29 @@ fn exercise(borrowed: bool) {
         .as_mut()
         .unwrap()
         .implementation_id = "conduitos.base/i2c-controller@1".into();
+    if fore {
+        let gear = &fragment.placements[0];
+        for (direction, port) in [
+            (PortDirection::Input, &gear.inputs[0]),
+            (PortDirection::Output, &gear.outputs[0]),
+        ] {
+            fragment.fore_ports.push(PlannedForePort {
+                front_port_id: port.port_id.clone(),
+                direction,
+                placement_id: gear.placement_id.clone(),
+                gear_port_id: port.port_id.clone(),
+                value_kind: port.value_kind.clone(),
+                value_contract: None,
+                abnormal_kind: None,
+                track: ConnectionTrack::Payload,
+                temporal: port.temporal,
+                pressure_policy: DeliveryPressurePolicy::PreserveOrder,
+                item_capacity: 1,
+                byte_capacity: I2C_MAXIMUM_BYTES,
+                selected_line: None,
+            });
+        }
+    }
     let identity = I2cNativeIdentity {
         host_id: scope.host_id.clone(),
         boot_id: scope.boot_id.clone(),
@@ -79,33 +110,60 @@ fn exercise(borrowed: bool) {
         &fragment.fragment_id,
     )
     .unwrap();
-    let image = e::generate_embedded_plan(
-        fragment,
-        &lowered,
-        e::EmbeddedImageBounds {
-            maximum_nodes: 1,
-            maximum_cords: 1,
-            maximum_routes: 1,
-            maximum_route_targets: 1,
-            maximum_host_calls: 1,
-            maximum_resources: 1,
-            maximum_sign_expectations: 16,
-            maximum_configuration_entries: 1,
-            maximum_ports_per_node: 8,
-            maximum_remote_endpoints: 0,
-            maximum_cord_value_slots: 1,
-            maximum_cord_value_bytes: 4096,
-            maximum_sign_items: 64,
-            maximum_sign_bytes: 8192,
-        },
-    )
-    .unwrap();
+    let bounds = e::EmbeddedImageBounds {
+        maximum_nodes: 1,
+        maximum_cords: 2,
+        maximum_routes: 2,
+        maximum_route_targets: 1,
+        maximum_host_calls: 1,
+        maximum_resources: 1,
+        maximum_sign_expectations: 16,
+        maximum_configuration_entries: 1,
+        maximum_ports_per_node: 8,
+        maximum_remote_endpoints: 0,
+        maximum_cord_value_slots: if fore { 2 } else { 1 },
+        maximum_cord_value_bytes: if fore { 8192 } else { 4096 },
+        maximum_sign_items: 64,
+        maximum_sign_bytes: 8192,
+    };
+    let fore_image = fore.then(|| {
+        e::generate_fore_native_plan(
+            &plan,
+            &fragment.fragment_id,
+            bounds,
+            e::EmbeddedComputationBounds {
+                maximum_program_bytes: 32768,
+                maximum_total_program_bytes: 32768,
+            },
+            2,
+        )
+        .unwrap()
+    });
+    let plain_image =
+        (!fore).then(|| e::generate_embedded_plan(fragment, &lowered, bounds).unwrap());
+    let image = fore_image
+        .as_ref()
+        .map(|image| image.kernel())
+        .or(plain_image.as_ref())
+        .unwrap();
     let maxima = AssignedPlanMaxima {
         encoded_bytes: 8192,
-        runtime_state_bytes: 8192,
+        runtime_state_bytes: if fore { 16 * 1024 } else { 8192 },
         counts: [32; ASSIGNED_PLAN_COUNT_KINDS],
     };
-    let bytes = e::encode_assigned_native_plan(&image, maxima).unwrap();
+    let bytes = if let Some(image) = &fore_image {
+        // Two independent 4096-byte Fore queues cannot fit the old 8 KiB fixture.
+        // Refuse that shortage rather than silently borrowing another grant.
+        assert!(image
+            .encode(AssignedPlanMaxima {
+                runtime_state_bytes: 8192,
+                ..maxima
+            })
+            .is_err());
+        image.encode(maxima).unwrap()
+    } else {
+        e::encode_assigned_native_plan(image, maxima).unwrap()
+    };
     let records: Vec<_> = AssignedPlanRecords::new(&bytes)
         .unwrap()
         .collect::<Result<_, _>>()
@@ -138,74 +196,110 @@ fn exercise(borrowed: bool) {
         active,
         node: lowered.nodes[0].node,
     };
+    let bind = |slot: &mut Option<ReadyI2cBase<Provider>>, table, handle, claim, active| {
+        if let Some(image) = &fore_image {
+            ReadyI2cBase::bind_assigned_fore_retained(
+                slot,
+                table,
+                handle,
+                claim,
+                &contract,
+                SelectedAssignedForeOperationPlan {
+                    operation: selected(active),
+                    fore: image.fore(),
+                },
+            )
+        } else {
+            ReadyI2cBase::bind_assigned_retained(
+                slot,
+                table,
+                handle,
+                claim,
+                &contract,
+                selected(active),
+            )
+        }
+    };
     let issue = || fixture::authorization(scope.clone(), fragment, &active);
     let mut wrong = active.clone();
     wrong.boot_id = "boot/stale".into();
     let (table, handle, claim) = issue();
-    assert!(ReadyI2cBase::bind_assigned_retained(
-        &mut slot,
-        table,
-        handle,
-        claim,
-        &contract,
-        selected(&wrong)
-    )
-    .is_err());
+    assert!(bind(&mut slot, table, handle, claim, &wrong).is_err());
     assert!(slot.is_some());
     let (table, handle, mut claim) = issue();
     claim.resource_generation_id = ResourceGenerationId("resource/stale".into());
-    assert!(ReadyI2cBase::bind_assigned_retained(
-        &mut slot,
-        table,
-        handle,
-        claim,
-        &contract,
-        selected(&active)
-    )
-    .is_err());
+    assert!(bind(&mut slot, table, handle, claim, &active).is_err());
     assert!(slot.is_some());
     let (table, handle, mut claim) = issue();
     claim.parameter_bytes -= 1;
-    assert!(ReadyI2cBase::bind_assigned_retained(
-        &mut slot,
-        table,
-        handle,
-        claim,
-        &contract,
-        selected(&active)
-    )
-    .is_err());
+    assert!(bind(&mut slot, table, handle, claim, &active).is_err());
     assert!(slot.is_some());
     let (table, _, claim) = issue();
-    assert_eq!(
-        slot.as_ref()
-            .unwrap()
+    let ready = slot.as_ref().unwrap();
+    let checked = if let Some(image) = &fore_image {
+        assert_eq!(image.fore().len(), 2);
+        assert!(ready
             .check_assigned(&table, &claim, &contract, selected(&active))
-            .unwrap(),
-        lowered.nodes[0].node
-    );
+            .is_err());
+        let mut wrong_abi = image.fore().to_vec();
+        let first = wrong_abi[0];
+        let mut abi: [u8; 32] = first.payload()[21..].try_into().unwrap();
+        abi[0] ^= 1;
+        wrong_abi[0] = AssignedForeRequirement::new(
+            first.endpoint(),
+            first.cord(),
+            first.direction(),
+            AssignedIdentity(first.payload()[5..21].try_into().unwrap()),
+            abi,
+        );
+        for pins in [&[][..], &image.fore()[..1], wrong_abi.as_slice()] {
+            assert!(ready
+                .check_assigned_fore(
+                    &table,
+                    &claim,
+                    &contract,
+                    SelectedAssignedForeOperationPlan {
+                        operation: selected(&active),
+                        fore: pins
+                    }
+                )
+                .is_err());
+        }
+        ready.check_assigned_fore(
+            &table,
+            &claim,
+            &contract,
+            SelectedAssignedForeOperationPlan {
+                operation: selected(&active),
+                fore: image.fore(),
+            },
+        )
+    } else {
+        ready.check_assigned(&table, &claim, &contract, selected(&active))
+    };
+    assert_eq!(checked.unwrap(), lowered.nodes[0].node);
+    if let Some(image) = &fore_image {
+        let (table, handle, claim) = issue();
+        assert!(ReadyI2cBase::bind_assigned_fore_retained(
+            &mut slot,
+            table,
+            handle,
+            claim,
+            &contract,
+            SelectedAssignedForeOperationPlan {
+                operation: selected(&active),
+                fore: &image.fore()[..1]
+            }
+        )
+        .is_err());
+        assert!(slot.is_some());
+    }
     let (table, handle, claim) = issue();
-    let mut owner = ReadyI2cBase::bind_assigned_retained(
-        &mut slot,
-        table,
-        handle,
-        claim,
-        &contract,
-        selected(&active),
-    )
-    .unwrap();
+    let mut owner = bind(&mut slot, table, handle, claim, &active).unwrap();
     assert!(slot.is_none());
     assert_eq!(owner.provider.effects, 0);
     let (table, handle, claim) = issue();
-    assert!(ReadyI2cBase::bind_assigned_retained(
-        &mut slot,
-        table,
-        handle,
-        claim,
-        &contract,
-        selected(&active)
-    )
-    .is_err());
+    assert!(bind(&mut slot, table, handle, claim, &active).is_err());
     drop(records);
     drop(bytes);
     let forbidden = request(&contract, 0x50, &[0xd0], 1);

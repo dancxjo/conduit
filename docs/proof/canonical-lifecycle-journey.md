@@ -3128,3 +3128,40 @@ its process ended; source, logs, deployed software, credentials, history and
 recovery artifacts were preserved. Subsequent ARM checking consumed part of
 that headroom; root has about 529 MiB available, so further large builds require
 another verified cache inventory and reclamation first.
+
+
+### 4 November: local Fore binding for the shared I2C operation
+
+Tracing the next physical handover found an existing shared-mechanism gap:
+ReadyI2cBase accepted compact native assignments but had no explicit local Fore
+path, unlike the existing TM1637 provider. It now exposes check_assigned_fore
+and bind_assigned_fore_retained through the same exact assigned-operation
+checker. Both paths retain the existing local identity, provider/resource
+freshness, opaque possession and codec checks before controller transfer.
+They introduce no new decoder, kernel, authority or network Line.
+
+All fourteen I2C unit tests pass. The assignment fixture now exercises both
+contiguous and borrowed-record storage, with and without real typed request and
+result Fore ports. The Fore path rejects absent, incomplete and altered ABI pins;
+the plain path continues to reject the Fore schema. Stale Boot, stale resource
+generation and narrowed-invalid parameter claims preserve the provider. A
+successful bind takes it once, retains no received assignment borrow, and keeps
+address refusal, replay rejection and revocation behavior. The fixtures use an
+inert CPU provider, not physical traffic or ordinary Body execution.
+
+The two 4096-byte Fore queues exceed the old fixture's 8192-byte runtime budget;
+its 8280-byte projection is refused at that budget. The successful two-queue
+fixture explicitly admits 16384 bytes. The original no-Fore fixture retains its
+8192-byte bound. No firmware capacity or grant was enlarged. Strict all-feature,
+all-target I2C Clippy and the standalone locked Pico release ARM check pass.
+This compile check is not a new Seed or physical memory-peak measurement.
+
+Green remains on its prior reviewed build: live readback reports 78 samples in
+78 attempts and 1170 acknowledged diagnostic frames with no sensor/display
+fault and an installed membership receipt. No device/service was changed.
+Actual admitted equipment handover, ordinary sensing/display Plots and #6378's
+physical output acceptance remain open, alongside #6341's workspace gate.
+Raw logs and status are ignored under target/i2c-assigned-fore-20261104/.
+Before building, verified inactive test executables in the owned cache were
+removed, reclaiming 745233640 bytes while preserving active products, source,
+private state, rollback artifacts and evidence.
