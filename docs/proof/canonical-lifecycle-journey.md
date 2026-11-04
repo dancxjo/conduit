@@ -2788,3 +2788,43 @@ membership advertisements and receipt decoder still need bounded integration
 before these Ready offers can participate in an actual Body Plan. No firmware
 or installed service was changed. Raw proof remains outside Git in ignored
 `target/segmented-document-20261104/`.
+
+### Verify a bounded receipt stream without retaining it (4 November 2026)
+
+Inspection of the real membership path found two independent constraints:
+USB messages are bounded to 4,096 bytes, and the existing signed receipt
+profile caps the complete authenticated document at 16,384 bytes. Chunking
+alone changes neither bound. The actual installed Green build's generated five
+offer documents total 314,663 bytes as a JSON array (largest entry 141,791
+bytes), before the Host and receipt envelopes. This cannot become an owned
+decoded advertisement on that Pico. The smaller two-Back CPU fixture in the
+preceding checkpoint is not representative of this full metadata extent.
+
+The Body layer now computes the existing receipt transcript incrementally.
+The declared exact byte extent and caller-local chunk ceiling are checked
+under the unchanged 16 KiB profile. Each nonempty accepted chunk advances the
+digest; refused chunks preserve the accepted prefix. Finishing consumes the
+state and requires the complete extent before strict Ed25519 verification
+against independent owner/member pins. The borrowed one-shot verification and
+ordinary transcript helper use the same implementation. Wire encoding, signing
+domain, transcript bytes and the existing profile ceiling are unchanged.
+Authenticating a stream still grants no membership, credential replacement,
+offer acceptance, durable commitment or effect authority.
+
+Four focused tests compare every split of a signed fixture to an independently
+reconstructed pre-streaming transcript, exercise the exact 16 KiB profile with
+zero measured allocation, and reject wrong pins, order/content/signatures,
+truncation, excess chunks and bytes without corrupting accepted input. All 63
+Body unit tests, strict all-target Clippy and authenticated-admission thumbv6m
+checking pass. This remains shared component proof; firmware and installed
+services were unchanged.
+
+A diagnostic Python zlib measurement of Green's exact emitted metadata yielded
+13,118 bytes across independent offer streams, or 8,721 bytes for their combined
+array. These are diagnostic codec measurements, not a selected Conduit profile
+or a resource grant. The existing lossless admission profile has a 64 KiB
+expanded-document ceiling and therefore cannot simply be applied to this
+314,663-byte advertisement. The next publication integration must explicitly
+resolve the immutable metadata representation and complete receipt extent;
+neither a silent bound increase nor a decoded MCU copy is an acceptable bridge.
+Raw results remain outside Git in ignored `target/receipt-stream-20261104/`.

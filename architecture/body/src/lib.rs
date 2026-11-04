@@ -50,6 +50,10 @@ mod admission_receipt_attestation;
 #[cfg(feature = "authenticated-admission")]
 pub use admission_receipt_attestation::*;
 #[cfg(feature = "authenticated-admission")]
+mod admission_receipt_stream;
+#[cfg(feature = "authenticated-admission")]
+pub use admission_receipt_stream::*;
+#[cfg(feature = "authenticated-admission")]
 pub mod admission_advertisement_wire;
 mod biography;
 mod body_time_plan;
@@ -66,9 +70,9 @@ mod emergency_key;
 mod events;
 #[cfg(feature = "authenticated-admission")]
 mod federation;
+mod hold;
 #[cfg(feature = "authenticated-admission")]
 mod host_command_attribution;
-mod hold;
 mod identity;
 mod legacy;
 mod lifecycle;
@@ -112,9 +116,9 @@ pub use emergency_key::*;
 pub use events::{BodyLifecycleEvent, WakeLifecycleEvent};
 #[cfg(feature = "authenticated-admission")]
 pub use federation::*;
+pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
 pub use host_command_attribution::*;
-pub use hold::*;
 #[cfg(feature = "authenticated-admission")]
 pub use identity::{AdmissionId, MembershipCredentialId, SpawnInvitationId};
 pub use identity::{
