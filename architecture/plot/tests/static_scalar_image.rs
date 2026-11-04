@@ -9,6 +9,8 @@ use conduit_plot::{
 use std::borrow::Cow;
 #[path = "common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "common/compiled_rust.rs"]
+mod compiled_rust;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 use conduit_plot::BinaryOperator as B;
@@ -299,7 +301,6 @@ fn checked_boundary_predicates_are_retained_once_and_other_profiles_refuse() {
 #[test]
 fn generated_resident_programs_compile_no_std_and_match_checked_source() {
     use sha2::Digest;
-    use std::{fs, process::Command};
     let mut generated = String::new();
     let mut exercise = String::from("fn main() {\n");
     let mut cases = Vec::new();
@@ -369,57 +370,5 @@ fn generated_resident_programs_compile_no_std_and_match_checked_source() {
         }
     }
     exercise.push_str("}\n");
-    let directory =
-        std::env::temp_dir().join(format!("conduit-static-scalar-{}", std::process::id()));
-    fs::create_dir(&directory).unwrap();
-    let dependencies = std::env::current_exe()
-        .unwrap()
-        .parent()
-        .unwrap()
-        .to_path_buf();
-    let library = fs::read_dir(&dependencies)
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter(|entry| {
-            entry
-                .file_name()
-                .to_string_lossy()
-                .starts_with("libconduit_plot-")
-                && entry.path().extension().is_some_and(|ext| ext == "rlib")
-        })
-        .max_by_key(|entry| entry.metadata().unwrap().modified().unwrap())
-        .unwrap()
-        .path();
-    for (name, contents, kind) in [
-        ("image", format!("{generated}{exercise}"), "bin"),
-        ("no_std", format!("#![no_std]\n{generated}"), "rlib"),
-    ] {
-        let source = directory.join(format!("{name}.rs"));
-        let output = directory.join(name);
-        fs::write(&source, contents).unwrap();
-        let built = Command::new("rustc")
-            .args(["--edition=2021", "--crate-type", kind, "-L"])
-            .arg(format!("dependency={}", dependencies.display()))
-            .arg("--extern")
-            .arg(format!("conduit_plot={}", library.display()))
-            .arg(&source)
-            .arg("-o")
-            .arg(&output)
-            .output()
-            .unwrap();
-        assert!(
-            built.status.success(),
-            "{}",
-            String::from_utf8_lossy(&built.stderr)
-        );
-        if kind == "bin" {
-            let ran = Command::new(output).output().unwrap();
-            assert!(
-                ran.status.success(),
-                "{}",
-                String::from_utf8_lossy(&ran.stderr)
-            );
-        }
-    }
-    fs::remove_dir_all(directory).unwrap();
+    compiled_rust::verify(&generated, &exercise, "static-scalar");
 }
