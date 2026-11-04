@@ -39,6 +39,8 @@ fn resident_code_prepares_and_runs_without_heap_or_source_decode() {
     assert_eq!(cost.allocations, 0);
     assert_eq!(cost.reallocations, 0);
     assert!(image.scratch_bytes() > 0);
+    assert_eq!(image.input_bytes(), 8);
+    assert_eq!(image.instruction_count(), LAZY.len());
     let mut output = [0xa5; 16];
     let (_, cost) = allocation_probe::observe(|| {
         for n in [0u64, 1, u64::MAX] {
