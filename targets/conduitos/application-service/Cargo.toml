@@ -28,3 +28,8 @@ opt-level = 3
 
 [profile.release.package.sha2]
 opt-level = 3
+
+# Canonical publication validates the complete immutable Face under its
+# admitted work budget. Keep the size profile elsewhere and all image/work limits.
+[profile.release.package.conduit-face]
+opt-level = 3
