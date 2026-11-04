@@ -117,3 +117,79 @@ fn admitted_authored_info_normalizes_and_foreign_or_stale_basis_refuses() {
         Err(E::NativeSourceBasis)
     );
 }
+
+#[test]
+fn native_admission_does_not_bypass_complete_workset_validation() {
+    let a = resident(&report("first"));
+    let checked = report("second");
+    let b = resident(&checked);
+    let unknown = resident(&report("unreviewed"));
+    let observed = body(&a, 1);
+    let before = observed.clone();
+    let add = program("propose-add");
+    let bytes = add
+        .evaluate(&add_input(&add, &observed, &a, &checked))
+        .unwrap();
+    let original = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+    let sequence_type = field_type(original.value_type(), "proposed_workset");
+    let StructuredInfoTypeShape::Sequence { element, .. } = sequence_type.shape() else {
+        panic!("finite proposal sequence")
+    };
+    let declaration = declaration();
+    let mismatched = ResidentPlot::new(a.source_document_id.clone(), b.checked_plot_id.clone());
+    for plots in [
+        vec![a.clone(), b.clone(), b.clone()],
+        vec![a.clone(), b.clone(), unknown],
+        vec![mismatched],
+        vec![a.clone()],
+        vec![],
+    ] {
+        let desired = StructuredInfoValue::sequence(
+            sequence_type.clone(),
+            plots.iter().map(|plot| plot_value(element, plot)).collect(),
+        )
+        .unwrap();
+        let packet = record(
+            original.value_type(),
+            vec![
+                ("schema_version", field(&original, "schema_version").clone()),
+                (
+                    "expected_body_id",
+                    field(&original, "expected_body_id").clone(),
+                ),
+                (
+                    "expected_workload_revision",
+                    field(&original, "expected_workload_revision").clone(),
+                ),
+                ("proposed_workset", desired),
+                (
+                    "candidate_source",
+                    field(&original, "candidate_source").clone(),
+                ),
+            ],
+        )
+        .canonical_bytes()
+        .unwrap();
+        // The actual checked Native laws accept this shape. The conditional
+        // proposal consumer must still apply canonical Body workset semantics.
+        let admitted = admission(&declaration, "WorksetProposalInfo", &packet);
+        let expected = propose_checked_workset(
+            &observed,
+            &observed.body_id,
+            observed.workload_revision,
+            plots,
+            Some(candidate(&checked)),
+        );
+        assert!(expected.is_err());
+        assert_eq!(
+            propose_admitted_workset(
+                &observed,
+                &declaration,
+                &admitted.admitted().unwrap(),
+                Some(candidate(&checked)),
+            ),
+            expected
+        );
+        assert_eq!(observed, before);
+    }
+}

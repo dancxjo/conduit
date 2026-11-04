@@ -3356,3 +3356,25 @@ Exact extracted-head qualification subsequently completed: strict all-target
 conduit-body-make Clippy passes with warnings denied at cda06256ff. The six
 focused tests and package formatting also pass on that source. #6754 records
 these local results; CI, authorized adoption and device execution remain separate.
+
+
+### 4 November: prove typed admission is not workset acceptance
+
+A further exact-dev conformance test sends genuinely admitted WorksetProposalInfo
+packets through the production consumer. Duplicate entries, an unreviewed extra
+Plot, a mismatched Source/checked pair, and omitted candidate membership (including
+an empty desired set still carrying a candidate) all refuse exactly as canonical
+BodyWorkset/proposal validation requires. Native shape/law admission succeeds in
+each case; it cannot substitute for those semantic checks. Seven focused tests,
+package formatting and strict all-target Clippy pass. The test-only delta is in
+#6754; no new runtime or device code was introduced.
+
+The #6449 source trace confirms existing staged owner transitions in
+notebook_file.rs and todo_next.rs use lifecycle-session remove_plot/admit_plot.
+The installed controller still plans one resident against its own advertisement;
+that path is not a ready general workset adopter. Actual Source/catalog custody,
+complete-set preparation, capability enforcement, exact old-Play retirement and
+failure publication remain necessary; no adoption success is claimed here.
+Baseline Integration 41918767480 remains live with successful lint, hosted Linux,
+Windows, AVR, RP2040 and other target jobs, while other required jobs are running.
+No failed check was inferred from elapsed time and no workflow was restarted.
