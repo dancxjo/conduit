@@ -1,6 +1,6 @@
 # The canonical Conduit lifecycle journey
 
-Status: in progress, 3 November 2026. This chronological account is an executable
+Status: in progress, 4 November 2026. This chronological account is an executable
 delivery record, not a claim that the destination below is already implemented.
 
 ## Destination and invariants
@@ -2444,3 +2444,44 @@ disposable historical Rust test executables and archived crate extraction
 copies were removed; source, opaque captures, installed releases, firmware,
 credentials and device/history state were preserved. This maintenance is not a
 product memory saving or evidence of MCU execution.
+
+
+### Initialized resident offers reach ordinary planning (4 November 2026)
+
+Embedded Make now emits an initialized owner around the common structured
+expression Back. Construction checks the actual private computation work
+against an explicit conservative requirement before making offer bytes
+available through that owner. An inadequate requirement refuses initialization;
+it does not enlarge a grant. The owner lends immutable standard offer JSON
+while retaining the Back and can subsequently surrender the same Back for
+execution. This does not establish Host/Boot identity, membership, a resource
+pool, reservation or whole-workset admission.
+
+Make obtains the Kind through the existing semantic catalog and serializes its
+offer on the authoring Host. Target code neither decodes that metadata nor
+allocates it. The canonical expression Kind currently includes the program and
+its configuration default: that default remains once in immutable offer bytes.
+This change therefore does not claim to remove the program from all flash or
+wire metadata. The assigned Plan still uses the separately pinned digest
+configuration rather than retaining a second decoded program in target RAM.
+The declared work bound contributes to realization-source identity, and the
+final generated-source ceiling includes the metadata and initialized wrapper.
+
+The emitted-code integration test constructs the actual HT16K33 frame-request
+Back with zero allocations, lends its real offer to the ordinary checked-Source
+planner, binds Make to the selected exact capability/artifact/work requirement,
+and prepares the ordinary assigned Fore and fixed kernel tables. Reducing the
+CPU fixture's resource pool below that requirement refuses planning. A weak
+emitted image refuses initialization before offer access. Both good and weak
+images compile as no_std libraries. Planning and JSON decoding in this test run
+on Linux outside the zero-allocation probe; they are not MCU preparation-cost
+measurements. Its explicit 8 KiB envelopes are CPU component fixtures, not device
+grants.
+
+All 31 embedded Make library/integration tests and strict all-target Clippy
+pass. Dependent standalone lockfiles now resolve the same host-only Make
+catalog/JSON dependencies; no existing package version changed. Firmware and
+live services remain untouched. Ordinary Seed inclusion, complete finite
+workspace/Back admission and physical sampling/display Plot execution remain
+the next gates. The baseline repair in #6751 is merged after Candidate success;
+its full merged-source Integration and physical parent acceptance remain open.

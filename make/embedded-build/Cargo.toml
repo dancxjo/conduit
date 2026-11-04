@@ -13,8 +13,10 @@ conduit-plot = { path = "../../architecture/plot" }
 
 sha2 = { version = "0.10", default-features = false }
 
-[dev-dependencies]
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+serde_json = "1"
+
+[dev-dependencies]
 conduit-net = { path = "../../semantics/net" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../../architecture/planner" }

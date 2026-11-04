@@ -25,6 +25,16 @@ impl GeneratedForePlan {
     ) -> Result<Vec<u8>, GenerationError> {
         crate::assigned_plan::encode_resident_fore(&self.kernel, maxima, &self.fore, resident)
     }
+    pub fn layout_requirements_with_resident_computations(
+        &self,
+        maxima: c::AssignedPlanMaxima,
+        resident: &[BoundResidentExpression],
+    ) -> Result<Vec<c::AssignedRecordRequirement>, GenerationError> {
+        crate::assigned_layout::layout_records(
+            self.encode_with_resident_computations(maxima, resident)?,
+            c::ASSIGNED_FORE_NATIVE_PLAN_SCHEMA,
+        )
+    }
     pub fn layout_requirements(
         &self,
         maxima: c::AssignedPlanMaxima,

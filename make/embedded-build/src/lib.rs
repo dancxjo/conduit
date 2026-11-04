@@ -7,6 +7,7 @@
 //! under explicit artifact ceilings. Unsupported facts fail closed.
 
 mod resident_expression;
+mod resident_offer;
 pub use resident_expression::{
     BoundResidentExpression, PreparedResidentExpression, ResidentExpressionBounds,
     ResidentExpressionRefusal, RESIDENT_EXPRESSION_IMPLEMENTATION, RESIDENT_EXPRESSION_PROFILE,

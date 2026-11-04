@@ -404,6 +404,8 @@ dependencies = [
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-plot",
+ "conduit-semantic-catalog",
+ "serde_json",
  "sha2",
 ]
 
@@ -618,6 +620,7 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",

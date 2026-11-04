@@ -13,10 +13,13 @@ pub struct ResidentExpressionBounds {
     pub maximum_occurrences: usize,
     pub maximum_program_bytes: u32,
     pub maximum_generated_bytes: u32,
+    /// Declared conservative private work requirement, independently reserved by planning.
+    pub private_work_units: u16,
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResidentExpressionRefusal {
     Source,
+    GenerationMetadata,
     Program,
     Generation(conduit_plot::StaticStructuredGenerationRefusal),
     Bounds,
@@ -35,6 +38,7 @@ pub struct PreparedResidentExpression {
     code: String,
     artifact: c::ArtifactId,
     kind: c::KindId,
+    offer: c::CapabilityOffer,
 }
 /// This private construction path correlates emitted code with one exact sealed
 /// selection. Host/Boot authority and initialization remain independent gates.
@@ -62,6 +66,9 @@ impl PreparedResidentExpression {
         ) {
             return Err(R::Contract);
         }
+        if bounds.private_work_units == 0 || bounds.private_work_units > u16::MAX - 3 {
+            return Err(R::Bounds);
+        }
         let binary = program.canonical_bytes().map_err(|_| R::Program)?;
         if binary.len() as u64 > u64::from(bounds.maximum_program_bytes) {
             return Err(R::Bounds);
@@ -85,12 +92,26 @@ impl PreparedResidentExpression {
         let output = program
             .maximum_prepared_output_bytes()
             .map_err(|_| R::Bounds)?;
-        code.push_str(&format!("#[derive(Debug)] pub enum PreparationRefusal {{Image(conduit_plot::StaticStructuredRefusal),Back(conduit_semantic_catalog::StaticExpressionBackRefusal)}}\npub type Back=conduit_semantic_catalog::StaticStructuredExpressionBack<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{{CHILD_COUNT}},{output}>;\npub fn prepare_back()->Result<Back,PreparationRefusal>{{let image=prepare().map_err(PreparationRefusal::Image)?; Back::from_resident_structured(image,{temporal_rust}).map_err(PreparationRefusal::Back)}}\n"));
+        code.push_str(&format!("#[derive(Debug)] pub enum PreparationRefusal {{Image(conduit_plot::StaticStructuredRefusal),Back(conduit_semantic_catalog::StaticExpressionBackRefusal)}}\npub type Back=conduit_semantic_catalog::StaticStructuredExpressionBack<{{input_native::CONTRACT_COUNT}},{{output_native::CONTRACT_COUNT}},{{CHILD_COUNT}},{output}>;\npub fn prepare_back()->Result<Back,PreparationRefusal>{{let image=prepare().map_err(PreparationRefusal::Image)?; let back=Back::from_resident_structured(image,{temporal_rust}).map_err(PreparationRefusal::Back)?;if back.computation_fuel()>PRIVATE_WORK_UNITS{{return Err(PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work));}}Ok(back)}}\n"));
+        code.push_str(&format!(
+            "pub const PRIVATE_WORK_UNITS:u16={};\n",
+            bounds.private_work_units
+        ));
         if code.len() as u64 > u64::from(bounds.maximum_generated_bytes) {
             return Err(R::Bounds);
         }
         let digest = Sha256::digest(code.as_bytes());
         let artifact = format!("conduit.expression/resident-source@1/{digest:x}").into();
+        let offer = crate::resident_offer::append(
+            &mut code,
+            program,
+            temporal,
+            &artifact,
+            bounds.private_work_units,
+        )?;
+        if code.len() as u64 > u64::from(bounds.maximum_generated_bytes) {
+            return Err(R::Bounds);
+        }
         Ok(Self {
             source_document: document.source_document_id.clone(),
             maximum_input,
@@ -100,6 +121,7 @@ impl PreparedResidentExpression {
             code,
             artifact,
             kind: definition.kind_id,
+            offer,
         })
     }
     /// Identity of the emitted realization source, not the linked Seed's content
@@ -140,6 +162,8 @@ impl PreparedResidentExpression {
             || gear.implementation_id.as_str() != RESIDENT_EXPRESSION_IMPLEMENTATION
             || gear.execution_profile_id.as_str() != RESIDENT_EXPRESSION_PROFILE
             || gear.artifact_id != self.artifact
+            || gear.capability_id != self.offer.capability_id
+            || gear.limits != self.offer.limits
         {
             return Err(R::Selection);
         }
@@ -167,13 +191,16 @@ impl PreparedResidentExpression {
         {
             return Err(R::Selection);
         }
-        if !gear.resources.iter().any(|r| {
-            r.class_id.as_str() == c::COOPERATIVE_STEP_WORK_CLASS_ID
-                && r.units > 0
-                && r.protected.is_none()
-                && r.compute.is_none()
-                && r.content.is_none()
-        }) {
+        let [resource] = gear.resources.as_slice() else {
+            return Err(R::Resource);
+        };
+        let expected = &self.offer.resource_requirements[0];
+        if resource.class_id != expected.class_id
+            || resource.units != expected.units
+            || resource.protected.is_some()
+            || resource.compute.is_some()
+            || resource.content.is_some()
+        {
             return Err(R::Resource);
         }
         let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(

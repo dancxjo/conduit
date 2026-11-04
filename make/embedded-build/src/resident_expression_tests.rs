@@ -62,6 +62,7 @@ fn prepare(d: &CheckedSyntaxDocument, p: &PortableExpressionProgram) -> Prepared
             maximum_occurrences: 4096,
             maximum_program_bytes: 512 * 1024,
             maximum_generated_bytes: 1024 * 1024,
+            private_work_units: 1000,
         },
     )
     .unwrap()
@@ -86,6 +87,20 @@ fn plan(
     f.source_document_id = d.source_document_id.clone();
     let def = portable_expression_definition(p, PortTemporal::Value).unwrap();
     let g = &mut f.placements[1];
+    g.capability_id = format!(
+        "{RESIDENT_EXPRESSION_PROFILE}/{}",
+        image.artifact_id().as_str()
+    )
+    .into();
+    g.limits = CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: p
+            .maximum_prepared_input_bytes()
+            .unwrap()
+            .max(p.maximum_prepared_output_bytes().unwrap())
+            .max(1),
+    };
     g.kind_id = def.kind_id;
     g.kind_contract_revision = def.kind_contract_revision;
     g.inputs = def.inputs;
@@ -109,10 +124,6 @@ fn plan(
         compute: None,
         content: None,
     }];
-    g.limits.max_queue_bytes = p
-        .maximum_prepared_input_bytes()
-        .unwrap()
-        .max(p.maximum_prepared_output_bytes().unwrap());
     g.host_calls.clear();
     g.base = None;
     g.authority.clear();
@@ -331,6 +342,7 @@ fn selected_factory_source_stays_within_the_preparation_bound() {
             maximum_occurrences: 4096,
             maximum_program_bytes: 512 * 1024,
             maximum_generated_bytes: image.source().len() as u32,
+            private_work_units: 1000,
         },
     )
     .unwrap();
@@ -348,7 +360,33 @@ fn emitted_factories_enforce_the_exact_sealed_work_grant() {
     let (d, p) = context();
     let image = prepare(&d, &p);
     let good = plan(&d, &p, &image, 1000);
-    let weak = plan(&d, &p, &image, 1);
+    let weak_plan = plan(&d, &p, &image, 1);
+    assert!(matches!(
+        image.bind(
+            &weak_plan,
+            &weak_plan.fragments[0].fragment_id,
+            &weak_plan.fragments[0].placements[1].placement_id
+        ),
+        Err(ResidentExpressionRefusal::Resource)
+    ));
+    let weak = PreparedResidentExpression::prepare(
+        &d,
+        &p,
+        PortTemporal::Value,
+        ResidentExpressionBounds {
+            native: rust_binding::PreparedNativeBounds {
+                canonical_bytes: 4096,
+                scopes: 64,
+                invariants: 64,
+                contracts: 64,
+            },
+            maximum_occurrences: 4096,
+            maximum_program_bytes: 512 * 1024,
+            maximum_generated_bytes: 1024 * 1024,
+            private_work_units: 1,
+        },
+    )
+    .unwrap();
     let bound = |plan: &Plan| {
         image
             .bind(
@@ -361,11 +399,11 @@ fn emitted_factories_enforce_the_exact_sealed_work_grant() {
     let code = format!(
         "mod good {{\n{}\n}}\nmod weak {{\n{}\n}}",
         bound(&good).source(),
-        bound(&weak).source()
+        weak.source()
     );
     let probe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../architecture/plot/tests/common/allocation_probe.rs");
-    let exercise=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;fn main(){{let((),cost)=probe::observe(||{{let back=good::prepare_selected_back().unwrap();assert!(back.required_step_fuel()<=good::SELECTED_STEP_FUEL);assert!(matches!(weak::prepare_selected_back(),Err(weak::PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work))));}});assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);}}",probe.to_str().unwrap());
+    let exercise=format!("#[path={:?}]mod probe;#[global_allocator]static ALLOC:probe::Allocator=probe::Allocator;fn main(){{let((),cost)=probe::observe(||{{let back=good::prepare_selected_back().unwrap();assert!(back.required_step_fuel()<=good::SELECTED_STEP_FUEL);assert!(matches!(weak::Initialized::prepare(),Err(weak::PreparationRefusal::Back(conduit_semantic_catalog::StaticExpressionBackRefusal::Work))));}});assert_eq!(cost.allocations,0);assert_eq!(cost.reallocations,0);}}",probe.to_str().unwrap());
     compiled_rust::verify_with_libraries(
         &code,
         &exercise,

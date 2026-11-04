@@ -40,12 +40,16 @@ pub fn resolve(dependencies: &Path, names: &[&str]) -> Vec<String> {
                 .iter()
                 .map(|b| format!("{b:02x}"))
                 .collect::<String>();
-            let prefix = format!("{}-", name.replace('_', "-"));
+            let prefixes = [format!("{name}-"), format!("{}-", name.replace('_', "-"))];
             let mut found = Vec::new();
             for entry in fs::read_dir(&root)
                 .unwrap()
                 .filter_map(Result::ok)
-                .filter(|e| e.file_name().to_string_lossy().starts_with(&prefix))
+                .filter(|e| {
+                    prefixes
+                        .iter()
+                        .any(|prefix| e.file_name().to_string_lossy().starts_with(prefix))
+                })
             {
                 let identity = entry.path().join(format!("lib-{name}"));
                 if fs::read_to_string(identity).is_ok_and(|s| s.trim() == expected) {
