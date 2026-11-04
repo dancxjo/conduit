@@ -1,6 +1,6 @@
 # The canonical Conduit lifecycle journey
 
-Status: in progress, 2 November 2026. This chronological account is an executable
+Status: in progress, 3 November 2026. This chronological account is an executable
 delivery record, not a claim that the destination below is already implemented.
 
 ## Destination and invariants
@@ -31,8 +31,8 @@ truth remains in Host construction and actual initialized offers.
 |---|---|---|
 | Existing Host and Crèche | Actual installed Host/Boot and acknowledged encounter | Verified installed Linux service, Birth encounter and subsequent Crèche encounter |
 | Birth with useful tools | One reviewed birth, retained Source/workset, installed authoring/Make capabilities | Hamm Creek House born; checked Host authoring and Crèche used; full toolset remains limited |
-| Wake and next Seed | Same Body, authored/checked Host definition, admitted Make and exact artifact | Body-authored timer Seed verified; graphical successor not yet made |
-| Deployment and admission | Explicit carrier or human transfer, actual new Boot and authorized same-Body member | Physical Threebee timer Seed Boot/admission verified; graphical deployment pending |
+| Wake and next Seed | Same Body, authored/checked Host definition, admitted Make and exact artifact | Body-authored timer and Pico joining Seeds verified; complete graphical successor remains open |
+| Deployment and admission | Explicit carrier or human transfer, actual new Boot and authorized same-Body member | Physical Threebee timer and Green Pico Seed Boot/admission verified; graphical deployment pending |
 | Grow | Same recognizable path for RP2040, ESP32, Pi and browser | Not achieved |
 | Continue and present | Sensing/recording/interaction under exact Plans/Lines; coherent actual Faces/Shows | Not achieved |
 | Reproduce | Source, commands, chronological receipts, images and physical evidence | This record begins that evidence; whole journey remains open |
@@ -1496,3 +1496,55 @@ denied on the extracted dev branch. Formatting and evidence retention pass. This
 is authoring/installation machinery, adding no ZIP parser to MCU firmware. The
 focused branch is retained for the next delivery slot, not claimed merged or
 physically admitted. The exact parser tests are absorbed in the journey source.
+
+
+### 3 November: Green executes its Seed and joins Hamm on the physical MCU
+
+The earlier full-flash-backup hold was reassessed against the user's explicit
+MCU wipe/rebuild authorization. That authorization permits replacement of the
+private bootstrap; it does not establish a backup or readback. The existing
+build-bound BOOTSEL exchange and narrow authorized mount helper provided a real
+write route. Green's actual UID, previous firmware, sensor/display addresses
+and physical USB port were inventoried first. All prepared payload addresses
+excluded the retained credential journal. No USB permission bypass was used.
+
+The Body's returning terminal again accepted Wake and Check, retained a fresh
+Crèche package and exported it. Its checked application is the existing reviewed
+Source `0bbf699a3d`, UF2 SHA-256
+`4c5a12b8a80635af93627797a4f89bd9da64741475814e2e7dbc98ef9bdb261f`.
+The actual MCU then answered the build-bound query with the independently
+reconstructed expected build
+`17911aa4e694b5b57db6b58806e27adb5666e7eacfa50093966d1566d0b98757`.
+It restored Wi-Fi and continued BME280/HT16K33 local diagnostic operation.
+
+A combined-UF2 experiment passed three structural/Seed preparation tests and
+booted the application, but yielded no join proof. Its exact bootstrap decoded
+successfully using the firmware Seed type and decoder in a host-side diagnostic.
+Transferring the already prepared bootstrap separately resolved the missing
+proof. The combined output was therefore withdrawn from working source rather
+than advertised as a qualified single-transfer deployment. The cause of that
+physical discrepancy remains unproved; no flash readback was available.
+
+The ordinary installed `conduit body admit-usb` path observed Green's actual
+advertisement and signed invitation proof, committed its membership through the
+live owner, retained the signed receipt and delivered it. Green then reported
+`body_member: true` and a receipt digest exactly matching the retained committed
+receipt. The owner's ordinary `body status --json` independently retained one
+current Part for `rp2040/flash/e6639c758f40702c`, Boot
+`rp2040/boot/63e10f389866e143c3e3e10778031cc1`, Part
+`86ae90b7ee731eb9645e8176a81c8eba24787f011d39f00e801d7a9703eb0a7d`,
+in the same Hamm Creek House Body. The device continued from two to four
+samples and from 20 to 60 display acknowledgments after admission, with no
+reported sensor/display faults. Its reported allocator peak was 1,188 bytes;
+this excludes static storage and stack and is not a total RAM measurement.
+
+This is real current-Boot physical membership and receipt acceptance, not an
+ordinary environmental Play. The admitted advertisement offers no executable
+Backs yet; its receipt truthfully says current offers, Plan and Play are absent.
+Receipt/credential retention across an MCU power cycle and canonical member
+return are not implemented by this firmware. The next step is reusable initialized
+sensor/display offer and execution admission, alongside restart continuity.
+Shared durable history, the programmable graph and coherent distributed Face
+remain incomplete. Optical output and cold-power acceptance were not observed.
+The compact USB carriage receipt records this result; private Seeds, transfer
+logs, decoder probe and signed receipts remain outside Git.

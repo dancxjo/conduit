@@ -34,12 +34,55 @@
     "scope": "Public construction pins and actual proof; product authorization and receipt-output entrance. Does not prove physical USB membership.",
     "log_sha256": "8719361d4eddef760cae732885d794060914aef722fa3e204e279b8f1ffbfa8a"
   },
-  "not_proven": [
+  "baseline_repair_pr": "https://github.com/dancxjo/conduit/pull/6737",
+  "not_proven_at_initial_checkpoint": [
     "physical MCU admission to Hamm",
     "ordinary MCU sampling Plot",
     "private Seed from the admitted Creche encounter",
     "MCU restart/member return",
     "shared history or Threebee graph"
   ],
-  "baseline_repair_pr": "https://github.com/dancxjo/conduit/pull/6737"
+  "physical_rp2040_admission": {
+    "schema": "conduit.journey/physical-seed-member@1",
+    "body_id": "d5b64df4b25fca13f3b9d060a7af7764a39994258c90ef98811ad9e984ecc4d7",
+    "host_id": "rp2040/flash/e6639c758f40702c",
+    "boot_id": "rp2040/boot/63e10f389866e143c3e3e10778031cc1",
+    "part_id": "86ae90b7ee731eb9645e8176a81c8eba24787f011d39f00e801d7a9703eb0a7d",
+    "firmware_source": "0bbf699a3d2ddd20d99b13dd03fd07051089470f",
+    "firmware_build": "17911aa4e694b5b57db6b58806e27adb5666e7eacfa50093966d1566d0b98757",
+    "configuration_id": "sha256:041e8836c0425a5b8e28c4dd2c1d277f1802fd5064f5be5f9165418346c1cfd7",
+    "application_uf2_sha256": "4c5a12b8a80635af93627797a4f89bd9da64741475814e2e7dbc98ef9bdb261f",
+    "body_produced_package_sha256": "41312771ecbb534aa461b0d49747ce23d6b39d52008d648a3fc8961071697a5d",
+    "committed_raw_receipt_sha256": "04415926d58976306445f54aa9d5b673748240f87677b88f22592b6bedd94c8b",
+    "owner_current_part_observed": true,
+    "device_receipt_digest_matched": true,
+    "membership_admitted": true,
+    "current_offers_available": false,
+    "plan_created": false,
+    "play_created": false,
+    "local_diagnostics": {
+      "samples": 4,
+      "display_frames": 60,
+      "display_acknowledgments": 60,
+      "sensor_error": false,
+      "display_error": false,
+      "allocator_reported_peak_bytes": 1188
+    },
+    "application_and_bootstrap_transferred": true,
+    "credential_region_excluded": true,
+    "explicit_mcu_wipe_authorization_applied": true,
+    "full_flash_backup": false,
+    "flash_readback": false,
+    "cold_restart_return": false,
+    "optical_acceptance": false,
+    "combined_transfer_qualified": false,
+    "bootstrap_only_followup_required": true,
+    "combined_output_removed_from_working_source": true
+  },
+  "not_proven_now": [
+    "ordinary MCU sampling and display Plays",
+    "MCU restart/member return",
+    "shared history and Threebee graph",
+    "whole lifecycle acceptance"
+  ]
 }
