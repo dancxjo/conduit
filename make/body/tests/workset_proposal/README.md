@@ -1,5 +1,9 @@
 # Conditional Body workset proposals
 
+These Sources are package-owned conformance examples for the pure proposal
+mechanism. They require an explicitly supplied checked S1 Type context and are
+not promoted to the reviewed public Plot inventory.
+
 [#6448](https://github.com/dancxjo/conduit/issues/6448) owns this pure proposal
 step. The authored Plots construct intent. They do not install Source, change
 membership or a workset, create authority, or start a Plan/Play. Adoption is the
