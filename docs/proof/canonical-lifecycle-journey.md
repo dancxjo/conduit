@@ -3378,3 +3378,22 @@ failure publication remain necessary; no adoption success is claimed here.
 Baseline Integration 41918767480 remains live with successful lint, hosted Linux,
 Windows, AVR, RP2040 and other target jobs, while other required jobs are running.
 No failed check was inferred from elapsed time and no workflow was restarted.
+
+
+### 4 November: isolate the installed owner's planning responsibility
+
+Before adding general workset adoption, the 803-line controller's existing
+planning methods are extracted into responsibility-named planning.rs (169 lines);
+controller.rs is now 647 lines. The method bodies remain equivalent after
+module-path, visibility and whitespace adjustments. No planner, permission,
+execution or lifecycle behavior changes. This is local integration preparation
+for #6449, not an implemented adopter or a current-dev extraction PR.
+
+Thirty-nine actual installed-owner tests pass through the conduit binary's
+durable_host::owner::controller::tests namespace, including ordinary kernel
+execution/retained Lull, Source workset replacement, changed offers, membership
+and carrier return. Earlier filter attempts selected no tests and are not used
+as behavioral evidence. Direct formatting of both changed Rust files passes.
+The package-wide formatter also identifies a pre-existing unrelated blank line
+in native_package_install.rs; it is preserved. Strict all-target product Clippy
+is still running. Raw results remain ignored target output; no devices change.
