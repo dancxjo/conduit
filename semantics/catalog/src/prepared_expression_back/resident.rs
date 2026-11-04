@@ -17,7 +17,7 @@ impl ExpressionEngine for ResidentEvaluator {
         &self.output[..self.length]
     }
     fn private_fuel(&self) -> u16 {
-        self.image.instruction_count() as u16
+        self.image.computation_work()
     }
 }
 pub type StaticScalarExpressionBack = PreparedExpressionBack<ResidentEvaluator>;
@@ -29,7 +29,7 @@ impl StaticScalarExpressionBack {
     /// Install already validated resident code with the ordinary Back lifecycle.
     /// This allocates nothing and publishes no offer. Root must independently
     /// bind the code artifact to the exact selected Source/Fore and admit Back
-    /// state, evaluation stack and worst-case instruction fuel plus kernel IO.
+    /// state, evaluation stack and worst-case instruction/validation fuel plus kernel IO.
     pub fn from_resident(
         image: StaticScalarExpression,
         temporal: PortTemporal,

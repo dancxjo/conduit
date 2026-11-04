@@ -188,3 +188,44 @@ fn resident_and_owned_share_committed_reuse_and_terminal_cancellation() {
 
 #[path = "resident_expression_back/kernel.rs"]
 mod kernel;
+
+#[test]
+fn resident_predicate_work_is_charged_before_any_publication_or_consumption() {
+    use conduit_core::{FixedIntegerContractSpec, FixedIntegerRange, IntervalEndpoint::Inclusive};
+    static INPUT: FixedIntegerContractSpec<'static> = FixedIntegerContractSpec {
+        value_kind: "value/u8",
+        maximum_bytes: 1,
+        range: Some(FixedIntegerRange {
+            minimum: Some(&[0]),
+            maximum: Some(&[50]),
+            minimum_endpoint: Inclusive,
+            maximum_endpoint: Inclusive,
+        }),
+    };
+    let image = StaticScalarExpression::new(K::U8, K::U8, CODE, 2)
+        .unwrap()
+        .with_value_contracts(Some(&INPUT), None)
+        .unwrap();
+    let (mut back, cost) = allocation_probe::observe(|| {
+        StaticScalarExpressionBack::from_resident(image, PortTemporal::Value).unwrap()
+    });
+    assert_eq!(cost.allocations, 0);
+    assert_eq!(back.computation_fuel(), 8);
+    assert_eq!(back.required_step_fuel(), 10);
+    let (_, cost) = allocation_probe::observe(|| {
+        let input = StepInputBytes::test_frame([Some(&[41][..])], None);
+        let mut short = frame(true, 7);
+        assert_eq!(back.step(&mut short, &input), StepOutcome::Yield);
+        assert!(!short.test_consumed(PortId(0)));
+        assert!(short.test_prepared_output().is_none());
+        let mut admitted = frame(true, 10);
+        assert_eq!(back.step(&mut admitted, &input), StepOutcome::Progress);
+        assert_eq!(admitted.remaining_fuel(), 0);
+        assert_eq!(
+            <StaticScalarExpressionBack as StepBack<1>>::prepared_output(&back, PortId(0)),
+            Some(&[42][..])
+        );
+    });
+    assert_eq!(cost.allocations, 0);
+    assert_eq!(cost.reallocations, 0);
+}
