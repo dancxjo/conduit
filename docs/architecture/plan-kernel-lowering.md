@@ -30,3 +30,28 @@ compiled fixed backing.
 Adding a future fixed storage layout means adding an explicitly owned profile
 and matching kernel table representation. It does not authorize dynamic growth
 after play start.
+
+
+## Cooperative private Step work
+
+The fixed lowerer grants one base unit plus one unit per input, output and
+Host Call. Private computation needs an additional explicit reservation: a Host
+offers a finite pool of resource class `kernel/cooperative-step-work@1`, and a
+Back requires a bounded number of its units through the ordinary resource
+contract. One unit grants one cooperative private-computation fuel unit per
+Step. These are neither elapsed-time units nor a preemption mechanism.
+
+Only selected, Plan-sealed bindings of that exact class supplement the
+kernel-visible grant. Absent and unrelated resources add nothing. The lowerer
+retains those bindings as kernel resources, adds their units with checked
+arithmetic, and refuses grants that exceed the kernel's `u16` fuel bound.
+Zero units and bindings carrying protected, compute-lane or content metadata
+refuse. No pool or reservation is inferred from a program, firmware image or
+implementation name. Changing a binding changes Plan identity.
+
+The ordinary planner accounts for this pool with all other resources and
+refuses missing or insufficient capacity. The installing Host must still
+reserve and validate its selected resources before Play and check that each
+Back's required private work fits its exact grant. A Back spends private work
+through `StepIo::consume_fuel`; unspent reservation is not authority for IO, and
+cooperative charging is not hostile-code confinement.

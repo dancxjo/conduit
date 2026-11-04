@@ -6,6 +6,12 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
+/// One unit reserves one cooperative private-computation fuel unit per Step.
+/// This is a finite Host resource pool, not CPU time or hostile-code confinement.
+/// A selected binding supplements the kernel-visible IO grant. Without a binding
+/// there is no additional work grant. Hosts must reserve the pool before Play.
+pub const COOPERATIVE_STEP_WORK_CLASS_ID: &str = "kernel/cooperative-step-work@1";
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ResourceRequirement {
     pub class_id: ResourceClassId,
