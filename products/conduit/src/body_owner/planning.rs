@@ -1,6 +1,6 @@
 //! Exact planning for the installed owner's retained Source and live Host.
 use super::{debug, Owner};
-use conduit_body::{BodyPlotPlan, ResidentPlot};
+use conduit_body::{BodyPlotPlan, BodyState, BodyWorkset, ResidentPlot};
 use conduit_core::{
     port_id, BaseImplementationId, ConnectionTrack, HostAdvertisement, PortDirection,
 };
@@ -25,12 +25,58 @@ impl Owner {
         source: &crate::plot_source::CanonicalSource,
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<(), String> {
-        let resident = self.resident.as_ref().ok_or("Body has no resident Plot")?;
-        let partition =
-            self.plan_partition_with_source(source, plot, resident, self.host.advertisement())?;
+        self.plan_workset_with_sources(&[(source, plot)])
+    }
+
+    /// Prepare the complete already-retained workset, never adopt a proposal.
+    /// Source and checking context are owned locally; expanded inspection values
+    /// cannot replace an independent check. All partitions prepare before a Wake
+    /// is published.
+    pub(super) fn plan_workset_with_sources(
+        &mut self,
+        sources: &[(
+            &crate::plot_source::CanonicalSource,
+            &conduit_plot::ExpandedAuthoringPlot,
+        )],
+    ) -> Result<(), String> {
+        if self.session.evidence().body.state != BodyState::Lulled
+            || self.session.realization().is_some()
+        {
+            return Err("workset planning requires an idle Lulled owner".into());
+        }
+        if sources.len() > conduit_body::MAX_BODY_PLOTS {
+            return Err("workset Source count exceeds Body capacity".into());
+        }
+        let supplied = BodyWorkset::from_plots(sources.iter().map(|(_, plot)| {
+            ResidentPlot::new(
+                plot.expanded.source_document_id.clone(),
+                plot.expanded.checked_plot_id.clone(),
+            )
+        }))
+        .map_err(debug)?;
+        if supplied != self.session.evidence().body.workset {
+            return Err("checked Sources must cover the exact retained Body workset".into());
+        }
+        let mut partitions = Vec::with_capacity(sources.len());
+        for (source, expected) in sources {
+            let checked = source.expand_entry_for_authoring()?;
+            if &checked != *expected {
+                return Err("expanded inspection differs from independently checked Source".into());
+            }
+            let resident = ResidentPlot::new(
+                checked.expanded.source_document_id.clone(),
+                checked.expanded.checked_plot_id.clone(),
+            );
+            partitions.push(self.plan_partition_with_source(
+                source,
+                &checked,
+                &resident,
+                self.host.advertisement(),
+            )?);
+        }
         let advertised = self.host.advertisement();
         self.session
-            .propose(vec![partition], &advertised.host_id, &advertised.boot_id)
+            .propose(partitions, &advertised.host_id, &advertised.boot_id)
             .map_err(debug)?;
         Ok(())
     }
@@ -167,3 +213,7 @@ impl Owner {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "planning_tests.rs"]
+mod tests;
