@@ -33,6 +33,210 @@ fn selected(control: u16, panel: u16) -> conduit_face::AdmittedVisualLook {
     .unwrap()
     .admitted
 }
+
+#[test]
+fn missing_look_facets_keep_todo_linear_reading_and_control_traversal() {
+    use conduit_face::{
+        LookGenerativeFacetOption, LookInfo, LookSpokenFacetOption, LookVisualFacetOption,
+        admit_visual_look, render_linear_face,
+    };
+    let face = structured_source_tests::todo();
+    let structure = structured_source_tests::structure(
+        conduit_face::TODO_LAYOUT_MASK_SOURCE,
+        "todo-component-grouped",
+        &face,
+    );
+    let original = face.clone();
+    let reading = render_linear_face(&face).unwrap();
+    let absent = LookInfo::new(
+        LookGenerativeFacetOption::None,
+        "fixture/no-look-facets@1".into(),
+        LookSpokenFacetOption::None,
+        2,
+        LookVisualFacetOption::None,
+    )
+    .unwrap();
+    let mut traversal = None;
+    let mut expressions = Vec::new();
+    for author in [
+        conduit_face::phosphor_look().unwrap(),
+        conduit_face::editorial_look().unwrap(),
+        absent.clone(),
+    ] {
+        let look = admit_visual_look(
+            &author,
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: true,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap();
+        assert_eq!(look.requested, author);
+        expressions.push(look.visual.expression.clone());
+        let mut scene =
+            NativeFaceScene::prepare_structured_look(&structure, 1024, 600, true, &look).unwrap();
+        assert_eq!(scene.face(), &original);
+        let current_reading = render_linear_face(scene.face()).unwrap();
+        assert_eq!(current_reading.face_id, reading.face_id);
+        assert_eq!(current_reading.revision, reading.revision);
+        assert_eq!(current_reading.lines, reading.lines);
+        for action in &original.actions {
+            assert!(
+                current_reading
+                    .lines
+                    .iter()
+                    .any(|line| line.contains(&action.identity))
+            );
+        }
+        let mut expected = Vec::new();
+        for row in &scene.primary {
+            if let Some(control) = row.control
+                && original.actions[control.action].availability.is_available()
+                && !expected.contains(&control)
+            {
+                expected.push(control);
+            }
+        }
+        assert!(!expected.is_empty());
+        let controls = (0..expected.len())
+            .map(|_| scene.focus_next(true).unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(controls, expected);
+        assert_eq!(scene.focus_next(true), expected.first().copied());
+        if let Some(prior) = &traversal {
+            assert_eq!(&controls, prior);
+        } else {
+            traversal = Some(controls);
+        }
+    }
+    assert_ne!(expressions[0], expressions[1]);
+    assert_eq!(expressions[0], expressions[2]);
+    assert!(matches!(absent.visual(), LookVisualFacetOption::None));
+    assert_eq!(face, original);
+}
+
+#[test]
+fn checked_todo_heading_follows_preceding_face_context_without_an_orphan() {
+    for preceding in 0..12 {
+        let mut face = structured_source_tests::todo();
+        for index in 0..preceding {
+            let identity = alloc::format!("fixture/context/{index}");
+            face.subjects.insert(
+                0,
+                conduit_face::FaceSubject {
+                    identity: identity.clone(),
+                    name: alloc::format!("Overview {index}"),
+                    role: conduit_face::FaceRole::Info,
+                },
+            );
+            face.text.push(conduit_face::FaceText {
+                subject: identity.clone(),
+                text: "Existing preceding context remains visible.".into(),
+            });
+            face.disclosures.push(conduit_face::FaceDisclosure {
+                subject: identity,
+                level: conduit_face::FaceDisclosureLevel::Primary,
+            });
+        }
+        let face = Face::new_with_semantics(
+            face.revision,
+            face.basis,
+            face.subjects,
+            face.relationships,
+            face.properties,
+            face.text,
+            face.actions,
+            face.disclosures,
+        )
+        .unwrap();
+        let structure = structured_source_tests::structure(
+            conduit_face::TODO_LAYOUT_MASK_SOURCE,
+            "todo-component-grouped",
+            &face,
+        );
+        let look = selected(0, 0);
+        for scene in [
+            NativeFaceScene::prepare_visual_look(face.clone(), 1024, 600, true, &look).unwrap(),
+            NativeFaceScene::prepare_configured_look(
+                face.clone(),
+                1024,
+                600,
+                true,
+                structure.recipe(),
+                &look,
+            )
+            .unwrap(),
+            NativeFaceScene::prepare_structured_look(&structure, 1024, 600, true, &look).unwrap(),
+        ] {
+            let heading = scene
+                .primary
+                .iter()
+                .position(|row| row.text == "Things")
+                .unwrap();
+            assert_eq!(
+                scene.primary[heading].page,
+                scene.primary[heading + 1].page,
+                "Todo heading stranded after {preceding} context subjects"
+            );
+        }
+    }
+}
+
+#[test]
+fn checked_todo_group_headings_share_a_page_with_their_first_content() {
+    for count in [0, 3, 12] {
+        let face = structured_source_tests::todo_with_items(count);
+        let structure = structured_source_tests::structure(
+            conduit_face::TODO_LAYOUT_MASK_SOURCE,
+            "todo-component-grouped",
+            &face,
+        );
+        for (body, small) in [(18, 16), (20, 18)] {
+            let author = authored_look_metrics_tests::metric_proposal_with_gap(body, small, 150, 4);
+            let look = conduit_face::admit_visual_look(
+                &author,
+                VisualUserConstraints {
+                    forced_colors: false,
+                    reduced_motion: true,
+                    minimum_text_scale_percent: 100,
+                    maximum_supported_text_scale_percent: 200,
+                },
+            )
+            .unwrap();
+            for (width, height) in [(360, 480), (1024, 600), (1920, 1080)] {
+                for scene in [
+                    NativeFaceScene::prepare_visual_look(face.clone(), width, height, true, &look)
+                        .unwrap(),
+                    NativeFaceScene::prepare_configured_look(
+                        face.clone(),
+                        width,
+                        height,
+                        true,
+                        structure.recipe(),
+                        &look,
+                    )
+                    .unwrap(),
+                    NativeFaceScene::prepare_structured_look(
+                        &structure, width, height, true, &look,
+                    )
+                    .unwrap(),
+                ] {
+                    for pair in scene.primary.windows(2) {
+                        if pair[0].role == GraphicsTextRole::Heading && pair[0].control.is_none() {
+                            assert_eq!(
+                                pair[0].page, pair[1].page,
+                                "{} before {} at {width}x{height}, {body}/{small}px",
+                                pair[0].text, pair[1].text
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 #[test]
 fn selected_corners_reach_generic_configured_and_checked_scenes_without_moving_hits() {
     let face = structured_source_tests::todo();

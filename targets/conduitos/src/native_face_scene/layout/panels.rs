@@ -47,7 +47,14 @@ pub(super) fn admit(
     let mut previous_region = None;
     let mut items = items.into_iter();
     let mut previous_item = None;
+    let mut previous_heading = None;
     while let Some((original, item)) = items.next() {
+        let after_heading =
+            !item.text.is_empty() && previous_heading == Some((item.region, item.region_order));
+        if !item.text.is_empty() {
+            previous_heading =
+                field_clusters::heading(&item).then_some((item.region, item.region_order));
+        }
         let insets = spacing.insets(&item);
         let cluster_start = field_clusters::starts(previous_item, &item);
         previous_item = field_clusters::key(&item);
@@ -152,10 +159,32 @@ pub(super) fn admit(
                         remaining,
                         item.role,
                         text_width,
-                        maximum_height,
+                        if after_heading && chunk == 0 && !advanced {
+                            maximum_height.min(flow.bottom.saturating_sub(
+                                flow.y(lane)
+                                    + if lane.is_some() || flow.span.is_some() {
+                                        flow.edge
+                                    } else {
+                                        0
+                                    }
+                                    + insets.block * 2,
+                            ))
+                        } else {
+                            maximum_height
+                        },
                         scale,
                         typography,
-                    )?;
+                    )
+                    .or_else(|_| {
+                        measure_prefix(
+                            remaining,
+                            item.role,
+                            text_width,
+                            maximum_height,
+                            scale,
+                            typography,
+                        )
+                    })?;
                     Ok((width, end, height))
                 })();
                 let (width, end, height) = match measured {

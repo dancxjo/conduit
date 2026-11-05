@@ -166,7 +166,14 @@ pub(super) fn admit_with_expression_selected(
     let mut commands = chrome::COMMANDS + 1;
     let mut items = items.into_iter();
     let mut previous_item = None;
+    let mut previous_heading = None;
     while let Some(item) = items.next() {
+        let after_heading =
+            !item.text.is_empty() && previous_heading == Some((item.region, item.region_order));
+        if !item.text.is_empty() {
+            previous_heading =
+                field_clusters::heading(&item).then_some((item.region, item.region_order));
+        }
         let insets = spacing.insets(&item);
         let maximum_height = available_height
             .checked_sub(insets.block * 2)
@@ -220,10 +227,24 @@ pub(super) fn admit_with_expression_selected(
                 remaining,
                 item.role,
                 text_width,
-                maximum_height,
+                if after_heading && remaining.len() == item.text.len() {
+                    maximum_height.min(bottom.saturating_sub(y + insets.block * 2))
+                } else {
+                    maximum_height
+                },
                 text_scale_percent,
                 typography,
-            )?;
+            )
+            .or_else(|_| {
+                measure_prefix(
+                    remaining,
+                    item.role,
+                    text_width,
+                    maximum_height,
+                    text_scale_percent,
+                    typography,
+                )
+            })?;
             let box_height = spacing.box_height(&item, height, text_scale_percent)?;
             if box_height > available_height {
                 return Err(FaceSceneError::InvalidExtent);
