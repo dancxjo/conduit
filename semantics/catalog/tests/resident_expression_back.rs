@@ -112,6 +112,22 @@ fn lifecycle<B: StepBack<1>>(mut back: B, flow: bool) {
             StepOutcome::Complete
         );
         assert_eq!(closed.test_consumed_closed(PortId(0)), flow);
+        if flow {
+            // An uncommitted closing intent is retriable, not terminal State.
+            let mut retry = StepIo::test_frame([None], [true], [Some(1)], None, 16);
+            assert_eq!(
+                back.step(&mut retry, &StepInputBytes::test_frame([None], None)),
+                StepOutcome::Complete
+            );
+            assert!(retry.test_consumed_closed(PortId(0)));
+            back.step_committed();
+            let mut settled = StepIo::test_frame([None], [true], [Some(1)], None, 16);
+            assert_eq!(
+                back.step(&mut settled, &StepInputBytes::test_frame([None], None)),
+                StepOutcome::Complete
+            );
+            assert!(!settled.test_consumed_closed(PortId(0)));
+        }
         back.cancel();
         assert!(back.prepared_output(PortId(0)).is_none());
     });

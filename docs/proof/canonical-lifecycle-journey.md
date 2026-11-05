@@ -4793,3 +4793,13 @@ targets and merged at `c95554726a3b`; its full Integration `42014241636` is stil
 running at this checkpoint. The scalar review #6767 remains held for that gate.
 Process-aware cleanup recovered another 5.0 GiB of inactive review build outputs,
 preserving active build caches, releases, Seeds, credentials and proof logs.
+
+
+The temporary development hold ended after the repair's selected Candidate
+passed and merged. Required Candidate admission also passed for #6767, which
+merged at `c07cd6eafa95`. Both accepted changes are absorbed into this delivery
+branch. The overlapping structured implementation and borrowed-custody contract
+are retained alongside the accepted scalar tests, including retriable closing
+intent before commit. Scalar and structured resident conformance and formatting
+pass after resolution. Full combined Integration and stable publication retain
+their independent gates; neither merge is physical MCU execution evidence.
