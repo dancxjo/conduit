@@ -21,6 +21,7 @@ mod spore;
 mod workbench_face;
 mod workbench_inventory;
 mod workload_session;
+mod workset_proposal;
 
 pub use biography_projection::*;
 pub use body_description::*;
@@ -38,6 +39,7 @@ pub use spore::*;
 pub use workbench_face::*;
 pub use workbench_inventory::*;
 pub use workload_session::*;
+pub use workset_proposal::*;
 
 #[cfg(test)]
 mod body_building_tests;
