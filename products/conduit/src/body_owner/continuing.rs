@@ -2,7 +2,7 @@
 //! The service retains the biography; only the Host and finite kernel run move
 //! to the worker. Start is acknowledged after durable lifecycle publication.
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
-use conduit_body::{BodyPlayIdentity, ResidentPlot, Wake};
+use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_std_host::body_execution::{BodyRunReport, BodyRunRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 use std::{
@@ -45,16 +45,23 @@ impl Owner {
             return Err("Body already has a current proposal or Play".into());
         }
         self.ensure_execution_retained(root)?;
-        let checked = super::super::checked_retained_source(root)?
-            .ok_or("retained source is unavailable for Body Play")?;
-        let resident = ResidentPlot::new(
-            checked.expanded.source_document_id.clone(),
-            checked.expanded.checked_plot_id.clone(),
-        );
-        if self.resident.as_ref() != Some(&resident) {
-            return Err("retained source differs from the Body's resident Plot".into());
+        let sources = super::super::retained_source::workset(root)?
+            .ok_or("retained Source workset is unavailable for Body Play")?;
+        if sources
+            .iter()
+            .any(|source| !source.plot.expanded.activations.is_empty())
+        {
+            return Err("service workset requires an installed activation-aware adapter".into());
         }
-        self.plan(&checked)?;
+        let borrowed: Vec<_> = sources
+            .iter()
+            .map(|source| (&source.source, &source.plot))
+            .collect();
+        self.plan_workset_with_sources(&borrowed)?;
+        // Source/catalog ownership is preparation-only; the one finite worker
+        // receives the sealed complete Body Plan, never parser contexts.
+        drop(borrowed);
+        drop(sources);
         self.persist(root)?;
         state::require_execution_capacity(root)?;
         let proposed = self

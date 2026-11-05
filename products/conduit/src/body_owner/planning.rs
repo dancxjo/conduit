@@ -7,6 +7,24 @@ use conduit_core::{
 use std::collections::BTreeMap;
 
 impl Owner {
+    pub(in super::super) fn set_foreground_plot_name(
+        &mut self,
+        checked: &conduit_plot::ExpandedAuthoringPlot,
+    ) -> Result<(), String> {
+        let resident = ResidentPlot::new(
+            checked.expanded.source_document_id.clone(),
+            checked.expanded.checked_plot_id.clone(),
+        );
+        if !self.session.evidence().body.workset.contains(&resident) {
+            return Err("checked foreground Source is not retained".into());
+        }
+        if self.resident.as_ref() == Some(&resident) {
+            self.set_resident_plot_name(checked)?;
+        }
+        Ok(())
+    }
+
+    #[cfg(test)] // Expanded-only assembly remains a fixture; production owns Source.
     pub(in super::super) fn plan(
         &mut self,
         plot: &conduit_plot::ExpandedAuthoringPlot,
@@ -59,7 +77,7 @@ impl Owner {
         }
         let mut partitions = Vec::with_capacity(sources.len());
         for (source, expected) in sources {
-            let checked = source.expand_entry_for_authoring()?;
+            let checked = source.expand_named_for_authoring(&expected.expanded.name)?;
             if &checked != *expected {
                 return Err("expanded inspection differs from independently checked Source".into());
             }

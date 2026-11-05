@@ -1,8 +1,9 @@
 //! Complete checked Source custody in the existing recoverable owner journal.
 //! Storage and compiler checks confer no adoption or execution authority.
+use super::super::retained_source::RetainedPlotSource;
 use super::*;
 use conduit_body::{BodyWorkset, ResidentPlot};
-use conduit_plot::{canonical_source_document_id, ExpandedAuthoringPlot};
+use conduit_plot::canonical_source_document_id;
 
 const SCHEMA: &str = "conduit.body/workset-sources@1";
 const FILE: &str = "body/workset-sources.json";
@@ -36,10 +37,7 @@ impl WorksetSources {
         result.expand(biography)?;
         Ok(result)
     }
-    fn expand(
-        &self,
-        biography: &BodyBiographyEvidence,
-    ) -> Result<Vec<ExpandedAuthoringPlot>, String> {
+    fn expand(&self, biography: &BodyBiographyEvidence) -> Result<Vec<RetainedPlotSource>, String> {
         if self.schema != SCHEMA
             || self.entries.len() != biography.body.workset.plots().len()
             || self.entries.len() > conduit_body::MAX_BODY_PLOTS
@@ -73,13 +71,15 @@ impl WorksetSources {
             .entries
             .iter()
             .map(|item| {
-                crate::plot_source::parse(&item.source)?.expand_named_for_authoring(&item.entry)
+                let source = crate::plot_source::parse(&item.source)?;
+                let plot = source.expand_named_for_authoring(&item.entry)?;
+                Ok(RetainedPlotSource { source, plot })
             })
             .collect::<Result<Vec<_>, String>>()?;
         let checked = BodyWorkset::from_plots(plots.iter().map(|plot| {
             ResidentPlot::new(
-                plot.expanded.source_document_id.clone(),
-                plot.expanded.checked_plot_id.clone(),
+                plot.plot.expanded.source_document_id.clone(),
+                plot.plot.expanded.checked_plot_id.clone(),
             )
         }))
         .map_err(|error| format!("checked Source workset: {error:?}"))?;
@@ -186,7 +186,7 @@ fn retained(root: &Path) -> Result<Option<WorksetSources>, String> {
 pub(in super::super) fn checked(
     root: &Path,
     biography: &BodyBiographyEvidence,
-) -> Result<Option<Vec<ExpandedAuthoringPlot>>, String> {
+) -> Result<Option<Vec<RetainedPlotSource>>, String> {
     retained(root)?
         .map(|sources| sources.expand(biography))
         .transpose()

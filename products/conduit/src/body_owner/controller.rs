@@ -606,3 +606,7 @@ mod tests;
 
 #[cfg(test)]
 pub(crate) use tests::member_return_owner_fixture;
+
+#[cfg(test)]
+#[path = "service_workset_tests.rs"]
+mod service_workset_tests;
