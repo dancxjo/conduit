@@ -516,7 +516,10 @@ pub use pure_expression_back::PureExpressionBack;
 #[cfg(feature = "kernel-step")]
 mod prepared_expression_back;
 #[cfg(feature = "kernel-step")]
-pub use prepared_expression_back::{prepared_expression_bounds, PreparedExpressionBack};
+pub use prepared_expression_back::{
+    prepared_expression_bounds, PreparedExpressionBack, StaticExpressionBackRefusal,
+    StaticScalarExpressionBack,
+};
 #[cfg(feature = "prepared-expression-session")]
 mod prepared_expression_offer;
 #[cfg(feature = "prepared-expression-session")]

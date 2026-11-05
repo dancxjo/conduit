@@ -25,6 +25,7 @@ pub use fusion_dag::lower_pure_value_fusion_dags;
 mod ports;
 mod profile;
 mod state;
+mod step_work;
 use ports::{find_port, lower_ports};
 pub use state::LoweredState;
 mod remote;
@@ -788,12 +789,7 @@ fn lower_verified_fragment_for_profile(
             });
         }
         let input_cords = [None; FIXED_KERNEL_STORAGE_PORTS_PER_NODE];
-        let maximum_step_fuel = 1usize
-            .checked_add(inputs.len())
-            .and_then(|value| value.checked_add(outputs.len()))
-            .and_then(|value| value.checked_add(placement.host_calls.len()))
-            .ok_or(LoweringError::CapacityOverflow)
-            .and_then(as_u16)?;
+        let maximum_step_fuel = step_work::maximum_step_fuel(placement)?;
         let terminal_transductions = placement
             .terminal_transductions
             .iter()
