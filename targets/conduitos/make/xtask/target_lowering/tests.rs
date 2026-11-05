@@ -226,9 +226,14 @@ fn lowering_rejects_missing_and_leaked_graphical_closure() {
         match leak {
             0 => leaked.host_calls.push(PRESENT_OPERATION.into()),
             1 => leaked.facilities.push(NATIVE_COMPOSITOR.into()),
-            2 => leaked
-                .resource_budgets
-                .push(native.resource_budgets[0].clone()),
+            2 => leaked.resource_budgets.push(
+                native
+                    .resource_budgets
+                    .iter()
+                    .find(|pool| pool.class == SURFACE_CLASS)
+                    .unwrap()
+                    .clone(),
+            ),
             3 => leaked
                 .base_selections
                 .push(native.base_selections[0].clone()),
@@ -265,9 +270,14 @@ fn duplicate_graphical_resource_ceiling_fails_before_codegen() {
     let mut native = manifest(include_str!(
         "../../../profiles/conduitos-native.host.conduit"
     ));
-    native
-        .resource_budgets
-        .push(native.resource_budgets[0].clone());
+    native.resource_budgets.push(
+        native
+            .resource_budgets
+            .iter()
+            .find(|pool| pool.class == SURFACE_CLASS)
+            .unwrap()
+            .clone(),
+    );
     assert!(lower(&native)
         .unwrap_err()
         .to_string()
