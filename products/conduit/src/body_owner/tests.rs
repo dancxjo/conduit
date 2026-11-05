@@ -1102,3 +1102,6 @@ mod member_return;
 pub(crate) fn member_return_owner_fixture() -> (Owner, std::path::PathBuf) {
     member_leave::owner_fixture()
 }
+
+#[path = "tests/admission_custody.rs"]
+mod admission_custody;

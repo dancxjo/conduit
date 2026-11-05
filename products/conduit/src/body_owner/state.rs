@@ -4,6 +4,9 @@ use super::super::{
     write_json_atomic, BodyBinding, Installation,
 };
 use conduit_body::{BodyBiographyArchiveSegment, BodyBiographyEvidence, BodyLifecycleSession};
+#[path = "state_admission_custody.rs"]
+mod admission_custody;
+use admission_custody::AdmissionUpdate;
 #[path = "state_archive.rs"]
 mod archive;
 #[path = "state_execution_custody.rs"]
@@ -26,6 +29,8 @@ struct Transaction {
     execution_custody: Option<execution_custody::Prepared>,
     #[serde(default)]
     admissions: Option<conduit_body::AdmissionManager>,
+    #[serde(default)]
+    admission_custody: Option<admission_custody::Prepared>,
     /// A checked source replacement travels with the matching biography.
     /// Older owner transactions did not carry source and remain replayable.
     #[serde(default)]
@@ -37,7 +42,8 @@ struct Transaction {
 pub(super) fn recover(root: &Path) -> Result<(), String> {
     let file = root.join("body/owner-transaction.json");
     if !file.exists() {
-        return verify_retained_archive(root);
+        verify_retained_archive(root)?;
+        return admission_custody::verify_retained(root);
     }
     let transaction: Transaction = serde_json::from_slice(&bounded_read(&file, MAXIMUM_STATE)?)
         .map_err(|e| format!("owner transaction invalid: {e}"))?;
@@ -70,6 +76,7 @@ pub(super) fn recover(root: &Path) -> Result<(), String> {
     commit(root, &transaction)?;
     read_installation(&root.join("installation.json"))?;
     verify_retained_archive(root)?;
+    admission_custody::verify_retained(root)?;
     fs::remove_file(file).map_err(|e| e.to_string())
 }
 fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
@@ -113,6 +120,18 @@ fn commit(root: &Path, transaction: &Transaction) -> Result<(), String> {
         &transaction.installation.host_id,
         transaction.biography.body_id.as_str(),
     )?;
+    if let Some(manager) = &transaction.admissions {
+        if manager.body_id != transaction.biography.body_id {
+            return Err("admission manager differs from transaction Body".into());
+        }
+        if let Some(custody) = &transaction.admission_custody {
+            admission_custody::commit(root, &transaction.installation.host_id, manager, custody)?;
+        } else {
+            admission_custody::verify(root, &transaction.installation.host_id, manager)?;
+        }
+    } else if transaction.admission_custody.is_some() {
+        return Err("admission custody transaction lacks its manager".into());
+    }
     if let Some(source) = &transaction.source {
         write_bytes_atomic(&root.join("body/source.conduit"), source)?;
     }
@@ -162,7 +181,7 @@ pub(super) fn retain_with_archives(
         root,
         biography,
         last_execution,
-        admissions,
+        admissions.into(),
         None,
         None,
         archives,
@@ -188,7 +207,7 @@ pub(super) fn retain_session(
         root,
         session.evidence(),
         last_execution,
-        admissions,
+        admissions.into(),
         source,
         todo_selection,
         session.pending_archives(),
@@ -216,18 +235,27 @@ pub(super) fn retain_with_source_and_todo_selection(
         root,
         biography,
         last_execution,
-        admissions,
+        admissions.into(),
         source,
         todo_selection,
         &[],
     )
 }
 
+pub(super) fn retire_admissions(
+    root: &Path,
+    session: &mut BodyLifecycleSession,
+    last_execution: Option<&serde_json::Value>,
+    manager: &conduit_body::AdmissionManager,
+) -> Result<conduit_body::AdmissionManager, String> {
+    admission_custody::retire(root, session, last_execution, manager)
+}
+
 fn retain_inner(
     root: &Path,
     biography: &BodyBiographyEvidence,
     last_execution: Option<&serde_json::Value>,
-    admissions: Option<&conduit_body::AdmissionManager>,
+    admissions: AdmissionUpdate<'_>,
     source: Option<&[u8]>,
     todo_selection: Option<&super::super::selected_todo::Selection>,
     archives: &[BodyBiographyArchiveSegment],
@@ -301,7 +329,8 @@ fn retain_inner(
         installation,
         last_execution: last_execution.cloned(),
         execution_custody: Some(execution_custody),
-        admissions: admissions.cloned(),
+        admissions: admissions.manager.cloned(),
+        admission_custody: admissions.custody,
         source: source.map(Vec::from),
         archives: archives.to_vec(),
     };
@@ -447,3 +476,7 @@ fn new_play_started(root: &Path, biography: &BodyBiographyEvidence) -> Result<bo
 #[cfg(test)]
 #[path = "state_execution_custody_tests.rs"]
 mod execution_custody_tests;
+
+#[cfg(test)]
+#[path = "state_admission_custody_tests.rs"]
+mod admission_custody_tests;
