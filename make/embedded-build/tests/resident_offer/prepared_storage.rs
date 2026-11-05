@@ -203,6 +203,51 @@ pub fn run(
     assert_eq!(cost.allocations, cost.deallocations);
     assert_eq!(owner, before);
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    // Sweep every actual allocation from kernel payloads through original-ID
+    // reconstruction and the one Core commit. No provider has been taken yet.
+    #[derive(Debug)]
+    enum Refusal {
+        Kernel(KernelPreparationError),
+        Resources(DelegatedResourceRefusal),
+    }
+    let acquire = |owner: &mut c::ResourceAdmissionOwner| {
+        let ka = prepare::<crate::library::entry_0::BorrowedBack<'_>>(
+            first, FIXTURE_PREPARATION_BYTES,
+        ).map_err(Refusal::Kernel)?;
+        let kb = prepare::<crate::library::entry_1::BorrowedBack<'_>>(
+            second, FIXTURE_PREPARATION_BYTES - ka.storage_bytes(),
+        ).map_err(Refusal::Kernel)?;
+        admit_delegated_plain_resources(
+            &[&left, &right], owner, core::slice::from_ref(&observed),
+        ).map_err(Refusal::Resources)?;
+        Ok::<_, Refusal>((ka, kb))
+    };
+    let mut trial = before.clone();
+    let (result, baseline) = crate::probe::observe(|| acquire(&mut trial));
+    assert!(result.is_ok());
+    drop(result);
+    assert!(baseline.allocation_attempts > 2);
+    for nth in 1..=baseline.allocation_attempts + 1 {
+        let mut trial = before.clone();
+        let (result, cost) = crate::probe::observe_refusing(nth, || acquire(&mut trial));
+        if nth <= baseline.allocation_attempts {
+            assert!(matches!(result,
+                Err(Refusal::Kernel(KernelPreparationError::Allocation))
+                | Err(Refusal::Resources(DelegatedResourceRefusal::Allocation))
+                | Err(Refusal::Resources(DelegatedResourceRefusal::Admission(c::ResourceAdmissionRefusal::Allocation)))
+            ), "allocation {nth} must return a typed refusal");
+            assert_eq!(cost.refused_allocations, 1);
+            assert_eq!(cost.allocations, cost.deallocations);
+            assert_eq!(trial, before);
+        } else {
+            assert!(result.is_ok());
+            assert_eq!(cost.refused_allocations, 0);
+            assert_eq!(trial.admissions().len(), 2);
+        }
+        drop(result);
+        assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    }
+    println!("complete workset: {} allocation boundaries return typed refusal without ledger mutation or provider transfer", baseline.allocation_attempts);
     let ((ka, kb), cost) = crate::probe::observe(|| {
         let ka =
             prepare::<crate::library::entry_0::BorrowedBack<'_>>(first, FIXTURE_PREPARATION_BYTES)

@@ -4,6 +4,7 @@ use super::*;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DelegatedResourceRefusal {
     Scope,
+    Allocation,
     Projection,
     UnsupportedPool,
     Admission(c::ResourceAdmissionRefusal),
@@ -64,7 +65,10 @@ impl super::super::DelegatedBodyFragment<'_> {
                     .any(|prior| prior.is_ok_and(|p| p.node == node))
             })
             .count();
-        let mut requests: Vec<c::ResourceAdmissionRequest> = Vec::with_capacity(placements);
+        let mut requests: Vec<c::ResourceAdmissionRequest> = Vec::new();
+        requests
+            .try_reserve_exact(placements)
+            .map_err(|_| E::Allocation)?;
         for entry in entries() {
             let entry = entry.map_err(|_| E::Projection)?;
             let index = if let Some(index) = requests
@@ -73,31 +77,35 @@ impl super::super::DelegatedBodyFragment<'_> {
             {
                 index
             } else {
-                requests.push(c::ResourceAdmissionRequest {
-                    plan_id: metadata.body_plan.into(),
-                    placement_id: entry.placement.into(),
-                    host_id: actual.host_id.clone(),
-                    boot_id: actual.boot_id.clone(),
-                    offer_generation: actual.offer_generation,
-                    items: Vec::with_capacity(
+                let mut items = Vec::new();
+                items
+                    .try_reserve_exact(
                         entries()
                             .filter(|prior| prior.as_ref().is_ok_and(|p| p.node == entry.node))
                             .count(),
-                    ),
+                    )
+                    .map_err(|_| E::Allocation)?;
+                requests.push(c::ResourceAdmissionRequest {
+                    plan_id: copy_id(metadata.body_plan)?.into(),
+                    placement_id: copy_id(entry.placement)?.into(),
+                    host_id: copy_id(actual.host_id.as_str())?.into(),
+                    boot_id: copy_id(actual.boot_id.as_str())?.into(),
+                    offer_generation: actual.offer_generation,
+                    items,
                 });
                 requests.len() - 1
             };
             requests[index].items.push(c::ResourceAdmissionItem {
                 requirement: c::ResourceRequirement {
-                    class_id: entry.class.into(),
+                    class_id: copy_id(entry.class)?.into(),
                     units: entry.units,
                     protected_role: None,
                     compute: None,
                     content: None,
                 },
                 binding: c::ResourceBinding {
-                    pool_id: entry.pool.into(),
-                    class_id: entry.class.into(),
+                    pool_id: copy_id(entry.pool)?.into(),
+                    class_id: copy_id(entry.class)?.into(),
                     units: entry.units,
                     protected: None,
                     compute: None,
@@ -202,6 +210,9 @@ pub fn admit_delegated_plain_resources<'o>(
         if requests.len() + prepared.len() > c::MAXIMUM_RESOURCE_ADMISSIONS {
             return Err(E::Projection);
         }
+        requests
+            .try_reserve_exact(prepared.len())
+            .map_err(|_| E::Allocation)?;
         requests.append(&mut prepared);
     }
     if requests.is_empty() {
@@ -211,4 +222,15 @@ pub fn admit_delegated_plain_resources<'o>(
     owner
         .admit_batch(requests, observations)
         .map_err(E::Admission)
+}
+
+// Build original signed IDs fallibly; converting the owned String into its typed
+// identity moves the allocation. No richer catalog or contract is reconstructed.
+fn copy_id(text: &str) -> Result<alloc::string::String, DelegatedResourceRefusal> {
+    let mut owned = alloc::string::String::new();
+    owned
+        .try_reserve_exact(text.len())
+        .map_err(|_| DelegatedResourceRefusal::Allocation)?;
+    owned.push_str(text);
+    Ok(owned)
 }

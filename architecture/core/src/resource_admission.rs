@@ -7,6 +7,7 @@
 
 use alloc::{collections::BTreeSet, vec::Vec};
 use serde::{Deserialize, Serialize};
+mod preparation;
 
 use crate::{
     resource_binding_satisfies, ActivePlayId, BaseExecutionLaneId, BootId, ComputeLaneAssignment,
@@ -71,6 +72,8 @@ pub struct ReleasedResourceAdmission {
 pub enum ResourceAdmissionRefusal {
     Empty,
     CapacityExceeded,
+    /// Fallible admission bookkeeping could not acquire storage before commit.
+    Allocation,
     DuplicatePlanPlacement,
     ForeignHost,
     StaleOffer,
@@ -128,6 +131,8 @@ impl ResourceAdmissionOwner {
     /// Atomically admit a finite set of exact placement requests using the
     /// same current observations and resource law as `admit`. A late refusal
     /// preserves all prior admissions and lane assignments, without rollback.
+    /// New bookkeeping storage is acquired fallibly before committing. The
+    /// caller owns construction/funding of the supplied requests and inventory.
     /// This reserves resources only: capability-instance admission, BodyPlan
     /// validation, and Play start remain the caller's separate obligations.
     pub fn admit_batch(
@@ -148,10 +153,16 @@ impl ResourceAdmissionOwner {
         }
         // Borrow the unchanged inventory and old reservations. Only the new
         // reservations need staging; no catalog or prior assignment is copied.
-        let mut pending = Vec::with_capacity(requests.len());
+        let mut pending = Vec::new();
+        pending
+            .try_reserve_exact(requests.len())
+            .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
         for request in requests {
             pending.push(self.prepare_admission(&pending, request, observations)?);
         }
+        self.admissions
+            .try_reserve_exact(pending.len())
+            .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
         self.admissions.extend(pending);
         Ok(&self.admissions[first..])
     }
@@ -215,135 +226,11 @@ impl ResourceAdmissionOwner {
         observations: &[ResourceObservation],
     ) -> Result<&ResourceAdmission, ResourceAdmissionRefusal> {
         let admission = self.prepare_admission(&[], request, observations)?;
+        self.admissions
+            .try_reserve_exact(1)
+            .map_err(|_| ResourceAdmissionRefusal::Allocation)?;
         self.admissions.push(admission);
         Ok(self.admissions.last().expect("admission was appended"))
-    }
-
-    /// The same read-only law serves one request and an atomic batch. Staged
-    /// admissions participate in every cumulative and exclusivity check.
-    fn prepare_admission(
-        &self,
-        staged: &[ResourceAdmission],
-        request: ResourceAdmissionRequest,
-        observations: &[ResourceObservation],
-    ) -> Result<ResourceAdmission, ResourceAdmissionRefusal> {
-        if request.items.is_empty() {
-            return Err(ResourceAdmissionRefusal::Empty);
-        }
-        if request.items.len() > MAXIMUM_BINDINGS_PER_ADMISSION
-            || self.admissions.len() + staged.len() >= MAXIMUM_RESOURCE_ADMISSIONS
-        {
-            return Err(ResourceAdmissionRefusal::CapacityExceeded);
-        }
-        if request.host_id != self.host.host_id {
-            return Err(ResourceAdmissionRefusal::ForeignHost);
-        }
-        if request.boot_id != self.host.boot_id
-            || request.offer_generation != self.host.offer_generation
-        {
-            return Err(ResourceAdmissionRefusal::StaleOffer);
-        }
-        if self.admissions.iter().chain(staged).any(|admission| {
-            admission.plan_id == request.plan_id && admission.placement_id == request.placement_id
-        }) {
-            return Err(ResourceAdmissionRefusal::DuplicatePlanPlacement);
-        }
-
-        let mut signs = Vec::with_capacity(request.items.len());
-        let mut pending = Vec::<(&crate::ResourcePoolId, &crate::ResourceClassId, u32)>::new();
-        for item in &request.items {
-            let pool = self
-                .host
-                .resources
-                .iter()
-                .find(|pool| {
-                    pool.pool_id == item.binding.pool_id && pool.class_id == item.binding.class_id
-                })
-                .ok_or(ResourceAdmissionRefusal::InvalidBinding)?;
-            if !resource_binding_satisfies(&item.binding, &item.requirement, pool)
-                || crate::bind_resource_content(
-                    &item.requirement,
-                    pool,
-                    &self.host.host_id,
-                    &self.host.boot_id,
-                )
-                .is_err()
-            {
-                return Err(ResourceAdmissionRefusal::InvalidBinding);
-            }
-            if item.binding.content.as_ref().is_some_and(|content| {
-                content.contract.access == crate::ResourceAccessMode::WriteCandidatePublish
-            }) && self
-                .admissions
-                .iter()
-                .chain(staged)
-                .flat_map(|admission| &admission.items)
-                .any(|existing| {
-                    existing.binding.pool_id == item.binding.pool_id
-                        && existing.binding.content.as_ref().is_some_and(|content| {
-                            content.contract.access
-                                == crate::ResourceAccessMode::WriteCandidatePublish
-                        })
-                })
-            {
-                return Err(ResourceAdmissionRefusal::CompetingResourceWriter);
-            }
-            let observation = observations
-                .iter()
-                .find(|observation| {
-                    observation.pool_id == pool.pool_id && observation.class_id == pool.class_id
-                })
-                .ok_or(ResourceAdmissionRefusal::MissingObservation)?;
-            if observation.host_id != self.host.host_id
-                || observation.boot_id != self.host.boot_id
-                || observation.offer_generation != self.host.offer_generation
-            {
-                return Err(ResourceAdmissionRefusal::StaleObservation);
-            }
-            if observation.health != ResourceHealth::Ready {
-                return Err(ResourceAdmissionRefusal::Unavailable);
-            }
-            let already = self
-                .admissions
-                .iter()
-                .chain(staged)
-                .flat_map(|admission| &admission.items)
-                .filter(|reserved| {
-                    reserved.binding.pool_id == pool.pool_id
-                        && reserved.binding.class_id == pool.class_id
-                })
-                .try_fold(0u32, |total, reserved| {
-                    total.checked_add(reserved.binding.units)
-                })
-                .ok_or(ResourceAdmissionRefusal::Overcommitted)?;
-            let within_request = pending
-                .iter()
-                .filter(|(pool_id, class_id, _)| {
-                    **pool_id == pool.pool_id && **class_id == pool.class_id
-                })
-                .try_fold(0u32, |total, (_, _, units)| total.checked_add(*units))
-                .ok_or(ResourceAdmissionRefusal::Overcommitted)?;
-            let total = already
-                .checked_add(within_request)
-                .and_then(|value| value.checked_add(item.binding.units))
-                .ok_or(ResourceAdmissionRefusal::Overcommitted)?;
-            if total > observation.unreserved_units || total > pool.capacity_units {
-                return Err(ResourceAdmissionRefusal::Overcommitted);
-            }
-            pending.push((&pool.pool_id, &pool.class_id, item.binding.units));
-            signs.push(observation.sign_id.clone());
-        }
-        signs.sort();
-        signs.dedup();
-        Ok(ResourceAdmission {
-            plan_id: request.plan_id,
-            placement_id: request.placement_id,
-            host_id: request.host_id,
-            boot_id: request.boot_id,
-            offer_generation: request.offer_generation,
-            items: request.items,
-            observation_sign_ids: signs,
-        })
     }
 
     pub fn release(

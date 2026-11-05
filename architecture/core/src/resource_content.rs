@@ -144,8 +144,26 @@ pub fn bind_resource_content(
     host: &HostId,
     boot: &BootId,
 ) -> Result<Option<ResourceContentOffer>, ResourceContentRefusal> {
+    validate_content_residence(requirement, offer, host, boot)?;
+    Ok(match (&requirement.content, &offer.content) {
+        (Some(required), Some(offered)) => {
+            let mut bound = offered.clone();
+            bound.contract = required.clone();
+            Some(bound)
+        }
+        _ => None,
+    })
+}
+
+/// Borrow the same binding law when no new owned residence is required.
+pub(crate) fn validate_content_residence(
+    requirement: &ResourceRequirement,
+    offer: &ResourceOffer,
+    host: &HostId,
+    boot: &BootId,
+) -> Result<(), ResourceContentRefusal> {
     match (&requirement.content, &offer.content) {
-        (None, None) => Ok(None),
+        (None, None) => Ok(()),
         (Some(required), Some(offered)) => {
             required.validate()?;
             offered.validate()?;
@@ -158,9 +176,7 @@ pub fn bind_resource_content(
             if &offered.owner_host != host || &offered.owner_boot != boot {
                 return Err(ResourceContentRefusal::ForeignResidence);
             }
-            let mut bound = offered.clone();
-            bound.contract = required.clone();
-            Ok(Some(bound))
+            Ok(())
         }
         _ => Err(ResourceContentRefusal::ContractMismatch),
     }
@@ -190,10 +206,36 @@ pub(crate) fn content_binding_satisfies(
 }
 
 fn supports(required: &ResourceContentRequirement, offered: &ResourceContentRequirement) -> bool {
-    let mut selected = offered.clone();
-    if required.access == ResourceAccessMode::ReadPublished {
-        selected.access = ResourceAccessMode::ReadPublished;
-        selected.publication_slots = 0;
-    }
-    required == &selected
+    // Exhaustive borrowing keeps new contract fields from silently escaping
+    // comparison, without cloning content identities merely to normalize access.
+    let ResourceContentRequirement {
+        identity,
+        version,
+        content_profile,
+        maximum_bytes,
+        maximum_items,
+        retention,
+        sharing,
+        access,
+        generation_slots,
+        reader_leases,
+        publication_slots,
+        sensitive,
+    } = required;
+    identity == &offered.identity
+        && version == &offered.version
+        && content_profile == &offered.content_profile
+        && maximum_bytes == &offered.maximum_bytes
+        && maximum_items == &offered.maximum_items
+        && retention == &offered.retention
+        && sharing == &offered.sharing
+        && generation_slots == &offered.generation_slots
+        && reader_leases == &offered.reader_leases
+        && sensitive == &offered.sensitive
+        && match access {
+            ResourceAccessMode::ReadPublished => *publication_slots == 0,
+            ResourceAccessMode::WriteCandidatePublish => {
+                access == &offered.access && publication_slots == &offered.publication_slots
+            }
+        }
 }

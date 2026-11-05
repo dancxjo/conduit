@@ -5361,3 +5361,47 @@ case above tests resource-capacity refusal, not allocator exhaustion inside
 that bookkeeping. Root adoption must make those allocations fallible or fund
 and retain their complete physical workspace first; the new fallible kernel
 slot alone does not make the whole Root preparation path failure-safe.
+
+### 2026-11-05 — Allocation refusal through the complete preparation transaction
+
+Core's owned-request admission entrances now acquire new bookkeeping storage
+fallibly before committing. Batch preparation borrows the unchanged owner and
+staged reservations instead of cloning the inventory and old assignments. The
+same read-only law serves single and batch admission. Observation IDs are copied
+fallibly, evidence sorting requires no scratch allocation, and content checks
+borrow the exact residence/access contract instead of constructing discarded
+owned copies. All previous matching, cumulative-demand and writer-exclusion
+checks remain. Focused current-dev review #6776 extracts this Core change.
+
+The compact plain-descriptor bridge likewise acquires every vector and original
+signed ID fallibly, including the aggregate request vector. Typed allocation
+refusal propagates before Core commits; no second resource owner is introduced.
+Caller-side inventory/request construction and other owner operations, including
+compute assignment and release, retain separate storage obligations. This does
+not establish a total admitted Root workspace merely by making allocation fail.
+
+Core's deterministic tests refuse each allocation in both single and batch
+admission, retaining old reservations and active lane assignments. Mixed content/
+compute requests exercise residence matching and deduplicated observation
+identity; mismatched content obligations still refuse. All 578 Core tests pass
+on the delivery composition. The isolated current-dev review passes 13 focused
+tests, strict Core library/test Clippy, formatting and Cortex-M0+ no_std checking.
+Delivery Core/Body libraries also pass strict Clippy and authenticated no_std
+Cortex-M0+ checking.
+
+The generated complete-workset CPU transaction now refuses each of its 28
+allocation boundaries in turn: both kernel payloads, descriptor reconstruction
+and Core bookkeeping. Each returns the appropriate typed refusal, deallocates
+new preparation storage, preserves the resource owner and leaves both original
+resident Back addresses available. The next non-refused attempt succeeds. Typed
+output, kernel retirement and exact original-scope releases still allocate zero
+times during execution. The kernel payload remains 21,920 bytes; requested
+preparation peak is now 24,418 bytes under the unchanged independent 32 KiB CPU
+fixture ceiling. These numbers exclude preexisting context and allocator overhead
+and remain CPU measurements rather than MCU grants or physical heap evidence.
+
+No device or live service was updated. Green's existing diagnostic firmware was
+observed at 1,021 successful samples and 15,306 acknowledged display frames,
+without reported sensor/display errors. This is continuity evidence only. Root
+still reports `validated-workset` / `start: not-installed`; retained preparation
+custody, actual bus/provider handover and physical admitted Play remain open.
