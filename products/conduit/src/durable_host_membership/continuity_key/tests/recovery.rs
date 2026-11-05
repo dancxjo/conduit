@@ -1,19 +1,5 @@
 //! Local recovery custody only. Owner acceptance still requires signed return.
 use super::*;
-
-#[test]
-fn joined_host_boot_does_not_probe_local_owner_source() {
-    let f = fixture();
-    complete(&f).unwrap();
-    let before = fs::read(f.root.join("installation.json")).unwrap();
-    assert!(durable_host::owner::retained_thermostat_scan(&f.root).is_err());
-    assert!(
-        durable_host::runtime_preparation::retained_local_owner_scan(&f.root)
-            .unwrap()
-            .is_none()
-    );
-    assert_eq!(fs::read(f.root.join("installation.json")).unwrap(), before);
-}
 use crate::durable_host::membership::recovery::restore_from_proof;
 
 #[test]

@@ -4360,3 +4360,37 @@ the owner-only loader still refuses their ownership. Nineteen custody/startup
 regressions and strict default product binary/tests Clippy pass. The failed
 restart loop was stopped; signed return and visible output remain unproved
 until the corrected startup is deployed and observed.
+
+### 2026-11-05: Selected graphical Threebee returns and renders the current Body
+
+The corrected checked release and matching IMAGE from `602ab594a4` were installed
+through `host service install --host-image` into the actually selected graphical
+state. No new invitation or Part was allocated. Threebee retained its existing
+Host, Part and mode-0600 private key. Normal installed graphical startup completed
+signed return for Boot
+`boot/installed/34811922ad92e4d617e9ceb6fcf606f00d0a627a9921670795d67c53ecfaae46`.
+The immutable returned credential names that actual running Boot, and the live
+owner's Part record independently names the same Host/Boot at sequence 117.
+The owner's retained Part count remains sixteen.
+
+The actual native Mask reported six displayed frames of Face
+`9349344684cdaca91a381b347d7c0343839172cbd885ab56a16d08244971119f`, revision 229,
+on the configured 1024x600 surface (614400 pixels). PID 12781 remained running
+with zero restarts after the encounter ended. The carrier then reported
+`member lease acknowledgment scope, sequence or bounds differ`; the presentation
+explicitly retained its Show as historical. This proves new-Boot membership and
+actual native frame delivery, not continuing live renewal, an environmental
+graph, independent optical inspection, or a screenshot. No lifetime or memory
+grant was enlarged to extend the demonstration.
+
+The bounded TLS listener reached its accept deadline and exited; its temporary
+private key was removed. Member identity keys, original Seeds, private receipts
+and rollback state are preserved. Raw native logs and public consistency evidence
+are retained under ignored `target/threebee-member-boot-*` outputs.
+
+The generic startup correction is separately proposed in PR #6762 against current
+`dev`, without the original-Seed recovery prerequisite. Its regression prepares
+a genuinely installed test member runtime while the owner-only Source loader
+continues to refuse that member. That regression and strict product binary/tests
+Clippy pass on the integrated delivery branch; standalone Candidate remains a
+separate gate. This checkpoint leaves the full lifecycle journey active.

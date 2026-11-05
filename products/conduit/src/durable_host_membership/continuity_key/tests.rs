@@ -722,3 +722,6 @@ fn member_carrier_signer_uses_retained_key_without_replacing_membership() {
 
 #[path = "tests/recovery.rs"]
 mod recovery;
+
+#[path = "tests/joined_boot.rs"]
+mod joined_boot;

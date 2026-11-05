@@ -134,7 +134,7 @@ pub(super) fn prepare_traced_runtime_with_scanout(
 
 /// A joined Host has a remote Body, not a locally owned retained Plot.
 /// Keep owner-only state loading strict; it must not be a member Boot probe.
-pub(super) fn retained_local_owner_scan(
+fn retained_local_owner_scan(
     state_dir: &Path,
 ) -> Result<Option<(conduit_thermostat_plot::ThermostatState, u16)>, String> {
     if read_installation(&state_dir.join("installation.json"))?
