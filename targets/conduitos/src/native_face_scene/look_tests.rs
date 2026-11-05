@@ -103,3 +103,125 @@ fn primary_fill_follows_disclosure_and_availability_without_changing_face_or_hit
         }
     }
 }
+
+#[test]
+fn refused_and_host_incompatible_looks_cannot_remove_todo_controls() {
+    use conduit_face::{
+        LookInfo, LookVisualFacetOption, VisualDensityPreference, VisualExpressionInfo,
+        VisualMotionPreference, VisualPalettePreference, VisualTypographyPreference,
+        admit_visual_look, phosphor_look, render_linear_face,
+    };
+    let face = structured_source_tests::todo();
+    let original = face.clone();
+    let structure = structured_source_tests::structure(
+        conduit_face::TODO_LAYOUT_MASK_SOURCE,
+        "todo-component-grouped",
+        &face,
+    );
+    let default = phosphor_look().unwrap();
+    let LookVisualFacetOption::Some(facet) = default.visual() else {
+        panic!("visual")
+    };
+    // A foreign resource identity cannot relabel the default's visual facet.
+    assert!(
+        LookInfo::new(
+            default.generative().clone(),
+            "fixture/forged@1".into(),
+            default.spoken().clone(),
+            2,
+            default.visual().clone()
+        )
+        .is_err()
+    );
+    let identity = "fixture/large-look@1";
+    let large = LookInfo::new(
+        default.generative().clone(),
+        identity.into(),
+        default.spoken().clone(),
+        2,
+        LookVisualFacetOption::some(
+            VisualExpressionInfo::new(
+                VisualDensityPreference::Spacious,
+                identity.into(),
+                VisualMotionPreference::Restrained,
+                VisualPalettePreference::Editorial,
+                200,
+                VisualTypographyPreference::Editorial,
+                2,
+            )
+            .unwrap(),
+            facet.tokens().clone(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let user = VisualUserConstraints {
+        forced_colors: false,
+        reduced_motion: true,
+        minimum_text_scale_percent: 100,
+        maximum_supported_text_scale_percent: 125,
+    };
+    let fallback = admit_visual_look(&large, user).unwrap();
+    assert_eq!(fallback.requested, large);
+    assert_eq!(fallback.selected, default);
+    assert!(matches!(
+        fallback.visual.outcome,
+        conduit_face::VisualExpressionOutcome::PhosphorFallback {
+            refusal: conduit_face::VisualExpressionRefusal::HostTextCapacity
+        }
+    ));
+    assert!(
+        admit_visual_look(
+            &large,
+            VisualUserConstraints {
+                minimum_text_scale_percent: 150,
+                ..user
+            }
+        )
+        .is_err()
+    );
+    let mut baseline = None;
+    for look in [admit_visual_look(&default, user).unwrap(), fallback] {
+        let mut scene =
+            NativeFaceScene::prepare_structured_look(&structure, 1024, 600, true, &look).unwrap();
+        assert_eq!(scene.face(), &original);
+        assert_eq!(
+            render_linear_face(scene.face()).unwrap().lines,
+            render_linear_face(&original).unwrap().lines
+        );
+        let mut orders = Vec::new();
+        for details in [false, true] {
+            scene.showing_details = details;
+            scene.focus = None;
+            scene.page = 0;
+            let mut expected = Vec::new();
+            for row in if details {
+                &scene.details
+            } else {
+                &scene.primary
+            } {
+                if let Some(control) = row.control
+                    && original.actions[control.action].availability.is_available()
+                    && !expected.contains(&control)
+                {
+                    expected.push(control);
+                }
+            }
+            assert!(!expected.is_empty());
+            let mut reached = Vec::new();
+            for _ in 0..expected.len() {
+                reached.push(scene.focus_next(true).unwrap());
+                scene.frame().unwrap();
+            }
+            assert_eq!(reached, expected);
+            assert_eq!(scene.focus_next(true), expected.first().copied());
+            orders.push(reached);
+        }
+        if let Some(prior) = &baseline {
+            assert_eq!(&orders, prior);
+        } else {
+            baseline = Some(orders);
+        }
+    }
+    assert_eq!(face, original);
+}
