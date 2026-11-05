@@ -4571,3 +4571,61 @@ Boot, continuing local work and exact membership remain the next physical gate.
 The shared recorder/graph and full journey remain unfinished. PR #6762 passed
 Candidate, merged into dev, and was absorbed while preserving branch-local
 scanout/carrier work; #6765 remains under review.
+
+
+### 2026-11-05: A Body-made Seed updates Green through retained membership
+
+Green's live configuration matched the Crèche-made Pico W Seed and the exported
+application contained its reported build identifier. The saved original member
+key was privately checked against the owner's retained verification key. An
+already admitted physical subject must use that key/Part, rather than replace
+it with the new package invitation.
+
+The ordinary `make host prepare-seed` entrance now accepts `--retained-member`
+instead of `--pins`. It reuses the existing Make private-material parser and
+bootstrap composer, checks the retained credential's Body against the verified
+package, and emits usb-return.json. No new compiler, membership protocol or
+application pipeline was introduced. Five preparation/material tests, the
+mutually-exclusive CLI-input test and strict xtask binary/tests Clippy passed.
+Private input remains separate from authored Host source and public firmware.
+
+The browser made a fresh Seed through one acknowledged Check action. Its identity
+is `spore:sha256:489e89f9e3f655a91a9fd2eafc8be17a1554277c2d7c1b3feaa646516803acd1`;
+ordinary export verified 1,976,812 bytes. Retained preparation preserved Green's
+Part/key, configuration and IMAGE and selected the current owner pin.
+
+The build-bound BOOTSEL exchange succeeded. The ROM serial differed from the
+runtime flash UID, and picotool lacked device permission; its attempted reads
+made no writes. The project's existing narrowly authorized headless mount
+helper supplied the UF2 carrier. Only the 8192-byte bootstrap UF2 was submitted:
+all sixteen 256-byte flash payload pages lie in the reserved bootstrap sector,
+and none targets application or credential regions. Application bytes were not
+written. No full-flash backup/readback or byte-identical credential-region proof
+is claimed. Fresh Wi-Fi startup and hardware operation were observed afterward.
+
+Ordinary installed `body return-usb` observed the actual new Boot, verified the
+original member proof, committed the existing Part, retained the signed receipt
+and delivered it. Green accepted the exact raw receipt digest
+`0d2eccacff0b2519f6ff6c4217d06763fb30fc3659fde09ce4477176088ee6dc`;
+the owner's saved credential and current membership agree on Boot
+`rp2040/boot/8cc6c71e0703e01938e3ce2699c47803` and Part
+`86ae90b7ee731eb9645e8176a81c8eba24787f011d39f00e801d7a9703eb0a7d`.
+Counts remain 16 Parts and 15 continuity keys. Green progressed from one sample
+and six acknowledged redraws before return to eleven samples and 157 redraws,
+without reported faults and with the same accepted receipt. Five resident Backs
+are initialized; their 18,976-byte backing and 4,356-byte allocator peak exclude
+other static storage/stack and are not a total RAM measurement.
+
+This proves current-Boot retained membership and continuing diagnostic local IO.
+It does not establish ordinary sampling/display Plays, a planned feed/graph,
+credential advancement after a subsequent MCU power loss, or automatic trust of
+a changed owner Boot. Those remain real continuity/execution obligations.
+Private packages, inputs, bootstrap, signed receipt and raw captures remain
+outside Git. PR #6765 passed Candidate, merged into dev and was absorbed.
+
+The owner follow-up is extracted onto current dev. Its first standalone build
+hit the per-user tmpfs quota; after terminal failure, a process-reference check
+permitted relocating 1.7 GiB of regenerable cache to disk without sharing it with
+another checkout. Removing seven inactive older duplicate test/tool executables
+reclaimed another 2.29 GiB while preserving the newest executable per crate,
+libraries, installed releases, source, credentials and unique evidence.
