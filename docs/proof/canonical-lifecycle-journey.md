@@ -5590,3 +5590,65 @@ admission, retained installation input, actual binding/Start, capability custody
 late-operation retirement and physical bus handover. Green's unchanged running
 firmware reports 1,164 successful samples and 17,450 acknowledged frames without
 sensor/display faults; that remains diagnostic continuity, not a Body Play.
+
+
+### Root owns acknowledged input beyond the connection
+
+Checkpoint `c01189b6a1fcb8b8b0739c2e24209c310b68c5f2` adds bounded authenticated
+input custody in Body and uses it in the RP2040 owner. Accepted dev e72db1058c
+was absorbed; its change adds temporal-intent conformance tests. No device or
+live service changed.
+
+The non-clonable retained stamp consumes original attribution, keeping exact
+transcript/payload digests, nonce, byte bounds and original timestamps without
+copying identity strings or a catalog. HostCommandInput owns one fixed receive
+array. Retention seals that array in place; writable access refuses until explicit
+storage retirement. Reborrow reconstructs only the same attribution under
+independently retained current facts and verifies its original transcript. It
+cannot renew expiry, issue a challenge, grant possession, reserve or start work.
+
+The RP2040 Membership facade now owns the input outside individual connection
+calls. Full local feasibility checks still precede acknowledgement, but unstarted
+kernels and reservations are explicitly retired before sealing input. The result
+truthfully reports `input-retained`, `custody: ram`, its exact payload SHA-256,
+`resources: released` and `start: not-installed`. Failed delivery, response-deadline
+expiry and cancellation after sealing preserve that same input. Another attempt
+issues no challenge, consumes no document, changes no freshness sequence and
+returns the same digest. The actual front door reads only a small control frame
+while occupied, leaving the retained document untouched. This is RAM custody,
+not durable recording or a prepared/started Play; expired attribution remains
+unusable and does not acquire a longer lifetime from retention.
+
+Eight attribution cases pass, including fourteen context substitutions, exact
+expiry boundaries, changed/undersized input, occupied refusal, same-buffer
+identity and zero scoped allocations. Six actual-handler cases pass with mocked
+transport/inventory, including lost response and pending/deadline cancellation.
+The separate emitted-code test uses the real Root constructor: storage/resources
+retire before stamp handoff, original providers return, sealing allocates nothing,
+and the original complete workset reborrows only before its expiry. Its pending
+reserved CPU frame is now 1,136 bytes (previous 1,016); the retained stamp adds
+120 bytes. The input-only/storage cases and allocator-failure sweeps still pass.
+The unchanged mock ingress 2 KiB frame bound passes. Owning Body/embedded-build/
+RP2040 library/test Clippy with warnings denied passes. These are scoped CPU
+proofs, not actual enabled-target preparation peak, stack or IO/Play evidence.
+
+Current source links for thumbv6m through Make: 1,064,276 flash load bytes,
+117,424 static RAM bytes including the unchanged 49,152-byte heap arena, and a
+152,912-byte linked stack gap (not measured high-water). The 2,128,896-byte UF2
+SHA-256 is
+`aa726148d61c7dacfc91c395872a2c091ac47a07905cfe10d5070d69c9b07dc3`;
+ELF SHA-256 is
+`a1778beafc30e1b7792f31f5ad575e3fdafa5df7ac343292b0486cb8920d17da`.
+This reference still has policy None, six inspection/dead-code warnings, and
+membership/local sampling Plan proof false. It was not flashed and does not
+qualify the enabled-delegation image. Exact artifact/capture manifests are under
+ignored `target/rp2040-retained-report-c01189b6a1` and
+`target/retained-input-proof-c01189b6a1`.
+
+This advances #6341/#6770 input custody but does not resolve the original 1,920-byte
+physical setup refusal, acknowledged input while an actual native Play holds its
+workspace, or actual retirement and same-Boot network recovery. Independent
+memory/authority admission, installation/Start and physical bus handover remain
+open. PR #6778's existing Candidate 42077017833 was last observed queued; the
+new generic attribution/custody extraction remains in this published delivery
+checkout until the overlapping review lanes clear.
