@@ -464,3 +464,6 @@ fn raw_image_binding_without_selected_ledger_never_falls_back() {
 }
 
 mod adapter_refusal;
+
+#[path = "tests/native_source.rs"]
+mod native_source;

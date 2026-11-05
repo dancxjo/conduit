@@ -36,9 +36,9 @@ impl ExternalForeBytes {
             len: 0,
         }
     }
-    fn fill(&mut self, bytes: &[u8]) -> Result<(), String> {
+    fn fill(&mut self, bytes: &[u8]) -> Result<(), &'static str> {
         if bytes.len() > self.storage.len() {
-            return Err("Fore output exceeded its pre-Play byte bound".into());
+            return Err("Fore output exceeded its pre-Play byte bound");
         }
         let storage = Arc::get_mut(&mut self.storage)
             .ok_or("Fore output prepared storage already escaped")?;
@@ -153,7 +153,11 @@ impl ExternalForeDelivery {
     ) {
         self.bytes.attach_image_memory(lease);
     }
-    pub(crate) fn fill_prepared(&mut self, sequence: u64, bytes: &[u8]) -> Result<(), String> {
+    pub(crate) fn fill_prepared(
+        &mut self,
+        sequence: u64,
+        bytes: &[u8],
+    ) -> Result<(), &'static str> {
         self.bytes.fill(bytes)?;
         self.sequence = sequence;
         Ok(())
@@ -226,11 +230,19 @@ mod tests {
     fn escaped_or_oversized_prepared_payload_refuses_without_mutation_or_copy_on_write() {
         let mut report = ExternalForeDelivery::prepared(identity(), 3);
         report.fill_prepared(4, &[1, 2]).unwrap();
-        assert!(report.fill_prepared(5, &[0; 4]).is_err());
+        let probe = crate::allocation_probe::begin();
+        let refusal = report.fill_prepared(5, &[0; 4]);
+        let allocations = probe.finish();
+        assert!(refusal.is_err());
+        assert_eq!(allocations, 0);
         assert_eq!(report.sequence, 4);
         assert_eq!(report.bytes, [1, 2]);
         let retained = report.clone();
-        assert!(report.fill_prepared(5, &[3]).is_err());
+        let probe = crate::allocation_probe::begin();
+        let refusal = report.fill_prepared(5, &[3]);
+        let allocations = probe.finish();
+        assert!(refusal.is_err());
+        assert_eq!(allocations, 0);
         assert_eq!(retained, report);
         assert_eq!(report.sequence, 4);
     }

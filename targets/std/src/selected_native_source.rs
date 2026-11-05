@@ -117,6 +117,13 @@ struct NativePending {
     lease: BaseOperationLease,
 }
 impl PreparedNativeSource<'_> {
+    /// Newly owned operation/result payload; the borrowed provider retains its
+    /// separately reserved Base backing. This observation grants no authority.
+    pub(crate) fn retained_backing_bytes(&self) -> Option<usize> {
+        self.operation
+            .retained_backing_bytes()?
+            .checked_add(self.output.len())
+    }
     pub(crate) fn input_bytes(&self) -> u32 {
         self.operation.inspection().scope.maximum_parameter_bytes
     }

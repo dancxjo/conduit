@@ -78,7 +78,7 @@ impl StdHost {
                 || terminal.is_some()
                 || creche.is_some())
         {
-            return Err("selected IMAGE owned-memory profile supports direct tick with bounded output only; input/activation/BodyTime attachments unsupported".into());
+            return Err("selected IMAGE owned-memory profile supports qualified finite local Backs only; keyboard/activation/BodyTime attachments unsupported".into());
         }
         let _live_guard = LiveForeTerminalGuard(live.as_ref().map(|(queue, _)| *queue));
         request

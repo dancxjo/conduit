@@ -65,6 +65,9 @@ impl InitializedNativeSource {
             },
         )
     }
+    pub(crate) fn has_image_backing(&self) -> bool {
+        self._image_memory.is_some() && self.backing.is_some()
+    }
     pub(crate) fn is_immediate(&self) -> bool {
         matches!(self.provider, NativeProvider::Immediate(_))
     }

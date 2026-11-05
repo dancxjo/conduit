@@ -47,6 +47,7 @@ fn one_shot_input_has_owned_metadata_without_becoming_a_tick_receipt() {
     let bytes = route.local_one_shot_backing_bytes().unwrap();
     assert!(bytes >= core::mem::size_of::<LoweredForePort>());
     assert!(route.tick_backing_bytes().is_none());
+    assert_eq!(route.finite_one_shot_backing_bytes(), Some(bytes));
     assert!(!route.started);
     assert_eq!(supplied[0].bytes, [1]);
 }
@@ -77,6 +78,7 @@ fn nested_constraints_and_spare_capacity_are_charged_as_owned_backing() {
         before.checked_add(extra)
     );
     assert!(route.tick_backing_bytes().is_none());
+    assert!(route.finite_one_shot_backing_bytes().is_none());
 }
 #[test]
 fn sequential_ingress_is_not_silently_counted_as_one_shot() {
@@ -88,4 +90,18 @@ fn sequential_ingress_is_not_silently_counted_as_one_shot() {
     let route = route(port(), &supplied, true);
     assert!(route.local_one_shot_backing_bytes().is_none());
     assert!(route.tick_backing_bytes().is_none());
+    assert!(route.finite_one_shot_backing_bytes().is_none());
+}
+
+#[test]
+fn owned_quantity_metadata_does_not_qualify_its_validation_workspace() {
+    let supplied = [ExternalForeInput {
+        front_port_id: "request".into(),
+        track: ConnectionTrack::Payload,
+        bytes: vec![1],
+    }];
+    let mut route = route(port(), &supplied, false);
+    route.ports[0].value_kind = conduit_core::QUANTITY_INFO_ID.into();
+    assert!(route.local_one_shot_backing_bytes().is_some());
+    assert!(route.finite_one_shot_backing_bytes().is_none());
 }

@@ -5,13 +5,13 @@ use std::sync::{
     Arc,
 };
 
-/// Constructed only by the trusted closed tick accounting owner, never wire data.
+/// Constructed only by the trusted closed local accounting owner, never wire data.
 #[derive(Debug)]
 pub(crate) struct BodyMemoryReceipt {
     total_bytes: usize,
 }
 impl BodyMemoryReceipt {
-    pub(crate) fn prepared_tick(total_bytes: usize) -> Self {
+    pub(crate) fn prepared_local(total_bytes: usize) -> Self {
         Self { total_bytes }
     }
     #[cfg(all(target_os = "linux", feature = "linux-display"))]

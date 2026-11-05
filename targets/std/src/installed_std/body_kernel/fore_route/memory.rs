@@ -11,13 +11,52 @@ impl BodyForeRoute<'_> {
             .chain(self.output_slots.iter().map(|slot| &slot.port))
             .any(|port| {
                 port.direction != PortDirection::Output
-                    || port
-                        .value_contract
-                        .as_ref()
-                        .is_some_and(|c| !c.constraints.is_empty())
+                    || port.value_contract.as_ref().is_some_and(|c| {
+                        !c.constraints.is_empty() || c.value_kind != port.value_kind
+                    })
             })
         {
             return None;
+        }
+        self.local_one_shot_backing_bytes()
+    }
+    /// Closed finite one-shot profile: borrowed ingress, sealed output slots,
+    /// and only nonallocating primitive validation with no dynamic constraints.
+    /// Opaque Info handling is unchanged; Native laws and authority remain the
+    /// independently selected provider/owner's obligation, not this receipt.
+    pub(in crate::installed_std::body_kernel) fn finite_one_shot_backing_bytes(
+        &self,
+    ) -> Option<usize> {
+        use conduit_core::PrimitiveInfoKind as P;
+        for port in self
+            .ports
+            .iter()
+            .chain(self.output_slots.iter().map(|slot| &slot.port))
+        {
+            if port.quantity_profile != conduit_core::QuantityValueProfile::Decimal
+                || port
+                    .value_contract
+                    .as_ref()
+                    .is_some_and(|c| !c.constraints.is_empty() || c.value_kind != port.value_kind)
+                || conduit_core::parse_quantity_role_info_id(port.value_kind.as_str()).is_some()
+                || conduit_core::quantity_info_dimension(port.value_kind.as_str()).is_some()
+                || port.value_kind.as_str() == conduit_core::RESOURCE_REFERENCE_INFO_ID
+                || !matches!(
+                    conduit_core::primitive_info_kind(port.value_kind.as_str()),
+                    None | Some(
+                        P::Empty
+                            | P::CancellationRequest
+                            | P::Bool
+                            | P::Count
+                            | P::Bytes
+                            | P::Text
+                            | P::F32
+                            | P::F64
+                    )
+                )
+            {
+                return None;
+            }
         }
         self.local_one_shot_backing_bytes()
     }

@@ -4047,3 +4047,52 @@ accounting and installed Source authority remain open. Core already has a
 borrowed canonical structured-value validator; subsequent admission work must
 reuse and qualify that existing mechanism rather than introduce a second Native
 validator. No installed service or physical device changed.
+
+
+### Admit one-shot immediate Source Body Plays through IMAGE custody (5 November 2026)
+
+The selected IMAGE entrance can now borrow a finite local input set and execute
+one actually initialized immediate native Source, optionally alongside the
+already qualified tick Back. The receipt counts the actual bound operation
+Table, fixed result buffer and route storage, as well as the existing combined
+kernel, Fore slots/metadata, lifecycle, diagnostics, clock and result ownership.
+The provider keeps its independent Base-pool and IMAGE memory reservations;
+descriptive IMAGE bounds on a reference-installed owner cannot substitute for
+those reservations. Source access and Native laws are still separate duties of
+the trusted owner; byte accounting issues neither grants nor checked candidates.
+
+One-shot ingress and common Fore delivery/terminal failures now format through
+the caller's admitted diagnostic buffer. Prepared output filling returns a
+static refusal without allocating or mutating an escaped/oversized slot. The
+existing reference formatter remains available where no selected diagnostic
+slot exists. Lifecycle/result accounting and the test allocator were extracted
+into their own responsibilities; the product process test and std unit tests
+reuse the same thread-local allocator probe.
+
+The new receipt is closed to streaming/live ingress, Lines, workers, dynamic
+value constraints, unqualified numeric codecs, activation owners, keyboard,
+BodyTime and other unsupported providers. Unsupported routes still refuse;
+the IMAGE reconfiguration guard and naked ordinary-workset refusal are
+unchanged. This is managed execution/result backing, not whole-process RSS,
+allocator overhead, compiler preparation peak or MCU RAM admission.
+
+A CPU fixture's exact receipt is 513,456 bytes, with a separately retained
+1,048,592-byte Base charge. Holding another legitimate ledger reservation so
+only one byte less remains refuses before the started callback and leaves the
+Play sequence unchanged. Exactly the required bytes admit. The report and its
+escaped immutable output retain their shared charge until dropped; the Base
+charge survives Plays and disappears when its actual Host owner drops. A second
+negative fixture binds IMAGE bounds to a reference owner and still refuses its
+unpaid native storage before start.
+
+The actual product test now runs both valid and invalid Source through checked
+IMAGE construction and the bounded compiler child, compares each typed reply
+with the direct canonical reference, and executes each through an admitted Body
+Play with Host Call signs. Both normal completion and Stop-to-cancellation
+measure zero allocations from the started callback through report return.
+The 17 compiler-process tests pass; the strengthened valid/invalid IMAGE case
+also passes separately. All 52 Body-kernel, eight IMAGE custody and three Fore
+storage tests pass, as do strict all-target product/std Host Clippy and patch
+checks. These remain CPU proofs with an explicitly installed fixture Source
+grant, not ordinary installed authoring-tool authority, device execution or
+completion of #6447 or the full lifecycle journey. No service or device changed.

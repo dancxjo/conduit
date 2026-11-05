@@ -13,8 +13,8 @@ impl ImageBodyRunReport {
     }
 }
 impl StdHost {
-    /// Direct cooperative tick-only execution. The result retains its byte
-    /// charge until this wrapper and any escaped Fore payload clones drop; timer slots
+    /// Cooperative execution within the qualified local memory profile. Its
+    /// byte charge remains until this wrapper and escaped payload clones drop; timer slots
     /// retire independently. No raw-report conversion is supplied.
     pub fn run_selected_image_body_plan_to_with_start<W: Write, T: TimerAdapter, F>(
         &mut self,
@@ -43,6 +43,33 @@ impl StdHost {
     where
         F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
     {
+        self.run_selected_image_body_plan_with_fore_to_with_start(
+            request,
+            &[],
+            output,
+            timer,
+            fore,
+            started,
+        )
+    }
+    /// Finite local ingress borrows caller-owned immutable bytes for this call.
+    /// Their storage, output adapter and preparation effects retain independent
+    /// custody. Streaming, Lines and unqualified providers remain refused.
+    pub fn run_selected_image_body_plan_with_fore_to_with_start<W: Write, T: TimerAdapter, F>(
+        &mut self,
+        request: BodyRunRequest<'_>,
+        inputs: &[ExternalForeInput],
+        output: &mut W,
+        timer: &mut T,
+        fore: Option<&mut dyn BodyForeOutputAdapter>,
+        started: F,
+    ) -> Result<ImageBodyRunReport, String>
+    where
+        F: FnMut(&BodyPlayIdentity, &Wake) -> Result<(), String>,
+    {
+        if !inputs.is_empty() && fore.is_none() {
+            return Err("selected IMAGE finite ingress requires an output adapter".into());
+        }
         if !self.kernel_resources.has_image_bounds() {
             return Err("selected IMAGE execution requires IMAGE-bound Host".into());
         }
@@ -53,7 +80,7 @@ impl StdHost {
             timer,
             None,
             None,
-            fore.map(|adapter| (&[][..], false, adapter)),
+            fore.map(|adapter| (inputs, false, adapter)),
             None,
             None,
             None,

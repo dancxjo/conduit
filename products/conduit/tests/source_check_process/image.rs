@@ -109,6 +109,14 @@ fn image_refuses_mismatched_equipment_and_memory_before_running_factory() {
 }
 #[test]
 fn actual_compiler_initializes_inside_image_and_preserves_execution_admission() {
+    for source in [
+        include_str!("../../../../plots/hello/main.conduit"),
+        "plot hello { first: unavailable/kind }\n",
+    ] {
+        run_image_case(source);
+    }
+}
+fn run_image_case(source: &str) {
     let checked = configuration();
     let image = image(&checked);
     let schema = SourceCheckNativeSchema::prepare().unwrap();
@@ -116,13 +124,14 @@ fn actual_compiler_initializes_inside_image_and_preserves_execution_admission() 
     let (config, definition) = definition(&image, kind.clone());
     let grant = definition.grant.clone();
     let provider = definition.base.provider_instance_id.clone();
-    let (input, mut owner) = input(include_str!("../../../../plots/hello/main.conduit"));
+    let (input, mut owner) = input(source);
     let expected = schema
         .encode_reply(
             SourceCheckReply::Checked(&owner.project(&input.request).unwrap()),
             bounds().report_bytes as usize,
         )
         .unwrap();
+    let expected_body_reply = expected.clone();
     let request = schema
         .encode_request(&input.request, bounds().request_bytes as usize)
         .unwrap();
@@ -194,7 +203,7 @@ fn actual_compiler_initializes_inside_image_and_preserves_execution_admission() 
             &[ExternalForeInput {
                 front_port_id: "request".into(),
                 track: ConnectionTrack::Payload,
-                bytes: request,
+                bytes: request.clone(),
             }],
             &mut capture,
             &mut Vec::new(),
@@ -206,6 +215,109 @@ fn actual_compiler_initializes_inside_image_and_preserves_execution_admission() 
         "{refusal}"
     );
     assert_eq!(capture.calls, 0);
+    let plot = conduit_body::ResidentPlot::new(
+        plan.source_document_id.clone(),
+        plan.checked_plot_id.clone(),
+    );
+    let body = conduit_body::Body::born_with_plots(
+        conduit_body::BodyWorkset::from_plots([plot.clone()]).unwrap(),
+        1,
+        "image-source/born".into(),
+    )
+    .unwrap();
+    let wake = body.wake(1, "image-source/woke".into()).unwrap().1;
+    let body_plan =
+        conduit_body::BodyPlan::seal(&wake, vec![conduit_body::BodyPlotPlan { plot, plan }])
+            .unwrap();
+    let inputs = [ExternalForeInput {
+        front_port_id: "request".into(),
+        track: ConnectionTrack::Payload,
+        bytes: request,
+    }];
+    let mut capture = BoundedBodyCapture {
+        bytes: Vec::with_capacity(expected_body_reply.len()),
+        calls: 0,
+    };
+    let mut probe = None;
+    let result = host.run_selected_image_body_plan_with_fore_to_with_start(
+        conduit_std_host::body_execution::BodyRunRequest {
+            wake: &wake,
+            plan: &body_plan,
+            control: &RunControl::default(),
+            keyboard: None,
+        },
+        &inputs,
+        &mut Vec::new(),
+        &mut ThreadTimer,
+        Some(&mut capture),
+        |_, _| {
+            probe = Some(crate::allocation_probe::begin());
+            Ok(())
+        },
+    );
+    let current = crate::allocation_probe::current();
+    let allocations = probe.take().expect("actual admitted start").finish();
+    let report = result.unwrap();
+    assert_eq!(current, allocations);
+    assert_eq!(
+        allocations, 0,
+        "selected Source Play must not allocate after start"
+    );
+    assert_eq!(
+        report.report().terminal,
+        TerminalDisposition::Completed,
+        "{:?}",
+        report.report().failure
+    );
+    assert_eq!(capture.calls, 1);
+    assert_eq!(capture.bytes, expected_body_reply);
+    for kind in [
+        conduit_kernel::KernelEventKind::HostCallRequested,
+        conduit_kernel::KernelEventKind::HostCallCompleted,
+    ] {
+        assert!(report
+            .report()
+            .kernel_events
+            .iter()
+            .any(|event| event.kind == kind));
+    }
+    drop(report);
+    let control = RunControl::default();
+    control
+        .request_stop(RunControlRequestId::new("image-source/stop").unwrap())
+        .unwrap();
+    capture.bytes.clear();
+    capture.calls = 0;
+    let mut probe = None;
+    let cancelled = host.run_selected_image_body_plan_with_fore_to_with_start(
+        conduit_std_host::body_execution::BodyRunRequest {
+            wake: &wake,
+            plan: &body_plan,
+            control: &control,
+            keyboard: None,
+        },
+        &inputs,
+        &mut Vec::new(),
+        &mut ThreadTimer,
+        Some(&mut capture),
+        |_, _| {
+            probe = Some(crate::allocation_probe::begin());
+            Ok(())
+        },
+    );
+    let allocations = probe.take().expect("admitted cancellation start").finish();
+    let cancelled = cancelled.unwrap();
+    assert_eq!(
+        allocations, 0,
+        "selected Source cancellation must not allocate after start"
+    );
+    assert!(matches!(
+        cancelled.report().terminal,
+        TerminalDisposition::Cancelled { .. }
+    ));
+    assert_eq!(capture.calls, 0);
+    assert!(cancelled.report().fore_deliveries.is_empty());
+    drop(cancelled);
     let reserved = host.reserve_provider_resources(
         &provider,
         1,
@@ -220,7 +332,7 @@ fn actual_compiler_initializes_inside_image_and_preserves_execution_admission() 
     );
     assert!(
         reserved.is_err(),
-        "retained provider backing must remain charged after refused Play"
+        "retained provider backing must remain charged across completed and cancelled Plays"
     );
     // SAFETY: No active Play; IMAGE reconfiguration must still refuse.
     assert!(unsafe { host.retire_immediate_native_source() }.is_err());
@@ -294,4 +406,17 @@ fn image_heap_includes_the_actual_retained_charge_owner_before_effects() {
         .err()
         .unwrap()
         .contains("managed Base backing capacity"));
+}
+
+struct BoundedBodyCapture {
+    bytes: Vec<u8>,
+    calls: usize,
+}
+impl conduit_std_host::body_execution::BodyForeOutputAdapter for BoundedBodyCapture {
+    fn deliver(&mut self, value: &ExternalForeDelivery) -> Result<(), String> {
+        assert!(self.bytes.len() + value.bytes.len() <= self.bytes.capacity());
+        self.bytes.extend_from_slice(&value.bytes);
+        self.calls += 1;
+        Ok(())
+    }
 }

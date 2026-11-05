@@ -484,6 +484,7 @@ impl<'a> BodyKernel<'a> {
                     &mut fore_output,
                     self.supported_parsec_input_scan.then_some(&mut keys),
                     self.parsec_map.as_mut(),
+                    &mut self.error_diagnostic,
                 )?;
                 if !cancelling && !control.stop_requested() {
                     if let (Some(owner), Some(map), Some(attachment)) = (
@@ -571,7 +572,8 @@ impl<'a> BodyKernel<'a> {
                 }
                 let live_observed = self.fore.activity_generation();
                 if !cancelling {
-                    self.fore.start_and_feed(&mut self.scheduler)?;
+                    self.fore
+                        .start_and_feed(&mut self.scheduler, &mut self.error_diagnostic)?;
                     if let Some((requirement, correlation)) = body_time {
                         let sample = match clock.monotonic_observation(host_id, boot_id) {
                             Some(sample) => sample,
@@ -1114,7 +1116,8 @@ impl<'a> BodyKernel<'a> {
                 keys.set_input_view_epoch(input_view_epoch);
                 match status {
                     SchedulerStatus::Drained => {
-                        self.fore.require_normal_terminal(&self.scheduler)?;
+                        self.fore
+                            .require_normal_terminal(&self.scheduler, &mut self.error_diagnostic)?;
                         return Ok(TerminalDisposition::Completed);
                     }
                     SchedulerStatus::Cancelled => {

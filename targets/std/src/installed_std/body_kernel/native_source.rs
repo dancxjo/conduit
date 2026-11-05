@@ -14,9 +14,16 @@ pub(crate) struct NativeBodySource<'owner, 'context> {
 }
 pub(super) struct NativeSourceRoute<'a> {
     source: PreparedNativeSource<'a>,
+    image_backed: bool,
     budget: super::super::factory::BackBudget,
 }
 impl NativeSourceRoute<'_> {
+    pub(super) fn image_backing_bytes(&self) -> Option<usize> {
+        if !self.image_backed {
+            return None;
+        }
+        core::mem::size_of::<Option<Self>>().checked_add(self.source.retained_backing_bytes()?)
+    }
     pub(super) fn node(&self) -> conduit_kernel::NodeId {
         self.source.node
     }
@@ -61,6 +68,7 @@ pub(super) fn prepare<'a>(
     }
     let (index, fragment, gear) = selected[0];
     let budget = native.owner.budget();
+    let image_backed = native.owner.has_image_backing();
     let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
         .map_err(|e| format!("Body native lowering: {e:?}"))?;
     let mut source = native
@@ -82,7 +90,11 @@ pub(super) fn prepare<'a>(
     source.node = map
         .node_for_placement(&gear.placement_id)
         .ok_or("Body native node was not lowered")?;
-    Ok(Some(NativeSourceRoute { source, budget }))
+    Ok(Some(NativeSourceRoute {
+        source,
+        budget,
+        image_backed,
+    }))
 }
 impl BodyKernel<'_> {
     pub(super) fn begin_native_source(&mut self, request: HostCallRequest) -> Result<bool, String> {

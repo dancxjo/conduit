@@ -1,4 +1,6 @@
 #![cfg(target_os = "linux")]
+#[path = "../../../targets/std/src/allocation_probe.rs"]
+mod allocation_probe;
 use conduit_plot::*;
 use conduit_std_host::source_check::process::SourceCheckProcessInput;
 use std::{
