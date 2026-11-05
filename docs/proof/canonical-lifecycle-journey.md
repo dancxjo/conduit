@@ -5040,3 +5040,37 @@ one-attempt execution custody and physical bus handover. Current diagnostic
 sensing/display remains distinct from admitted Body Plays. Neither physical
 membership nor live services changed. Separately, #6769 and #6771 passed Candidate
 and merged into dev; their accepted changes are absorbed in this delivery branch.
+
+
+### 2026-11-05 — Construction policy review extracted onto current dev
+
+PR #6772 (`c76b0f9c23`) isolates checked construction policy, canonical identity,
+typed Rust policy emission and ordinary Host-configuration Face projection from
+the larger delegated-receive implementation. It starts from dev after #6769 and
+#6771. It adds no runtime receiver or physical permission. The policy type is
+shared with Body, with authenticated guards retained in the delivery branch.
+The existing configuration model and renderer were extracted before growth.
+
+The current terminal Host editor also needed the new field: it preserves policy
+for the same target and refuses changing target before silently discarding it.
+The same correction is retained here. Review qualification passes 85 Host Make
+tests, seven acknowledged-Mask CPU Host-configuration encounter tests, two
+terminal-editor tests, strict Host Make/Body Make library-test and xtask Clippy,
+browser runtime compilation, Cortex-M0+ Body compilation and formatting. The
+emitted constants compile as executable and no_std library code. Standalone
+lock refreshes add only the path-dependency edge; no registry upgrades occurred.
+
+One additional Clippy build exhausted disk; after that process finished, only
+unfinished checks were rerun and passed. Process-aware maintenance removed
+541.4 MiB of inactive cross-compile cache and about 3.2 GiB of old regenerable
+integration-test executables. Source, credentials, installed releases, Seeds and
+proof logs were preserved. The larger build-script cache was retained because
+the active target uses it through a symlink. An unrelated uv cache was left
+untouched after its native cleanup refused access.
+
+A read-only live check found Green at 553 successful samples and 8,295 display
+ACKs with no sensor/display errors and retained membership. Firmware and services
+were not changed. These diagnostics still do not establish admitted sampling
+or display Plays. Next is the actual constrained Root's bounded reservation and
+start transaction under exact current Body preparation, followed by provider
+handover for physical IO; durable recording and the shared graph remain open.
