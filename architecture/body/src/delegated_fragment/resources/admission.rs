@@ -24,11 +24,10 @@ impl super::super::DelegatedBodyFragment<'_> {
 
     fn plain_resource_requests(
         &self,
-        owner: &c::ResourceAdmissionOwner,
+        actual: &c::HostAdvertisement,
     ) -> Result<Vec<c::ResourceAdmissionRequest>, DelegatedResourceRefusal> {
         use DelegatedResourceRefusal as E;
         let metadata = self.metadata();
-        let actual = owner.host();
         if c::AssignedIdentity::from_text(actual.profile.as_str()) != self.receiver_profile()
             || actual.host_id.as_str() != metadata.host
             || actual.boot_id.as_str() != metadata.boot
@@ -180,6 +179,37 @@ pub fn admit_delegated_plain_resources<'o>(
     owner: &'o mut c::ResourceAdmissionOwner,
     observations: &[c::ResourceObservation],
 ) -> Result<&'o [c::ResourceAdmission], DelegatedResourceRefusal> {
+    let requests = resource_requests(fragments, owner.host())?;
+    if requests.is_empty() {
+        let end = owner.admissions().len();
+        return Ok(&owner.admissions()[end..]);
+    }
+    owner
+        .admit_batch(requests, observations)
+        .map_err(DelegatedResourceRefusal::Admission)
+}
+
+/// Hold the same exact complete-set reservations for an unstarted attempt.
+/// Dropping the scope releases only these reservations. No Back/start is granted.
+pub fn reserve_delegated_plain_resources<'o>(
+    fragments: &[&super::super::DelegatedBodyFragment<'_>],
+    owner: &'o mut c::ResourceAdmissionOwner,
+    observations: &[c::ResourceObservation],
+) -> Result<c::ResourceAdmissionScope<'o>, DelegatedResourceRefusal> {
+    let requests = resource_requests(fragments, owner.host())?;
+    let mut scope = owner.preparation_scope();
+    if !requests.is_empty() {
+        scope
+            .admit_batch(requests, observations)
+            .map_err(DelegatedResourceRefusal::Admission)?;
+    }
+    Ok(scope)
+}
+
+fn resource_requests(
+    fragments: &[&super::super::DelegatedBodyFragment<'_>],
+    actual: &c::HostAdvertisement,
+) -> Result<Vec<c::ResourceAdmissionRequest>, DelegatedResourceRefusal> {
     use DelegatedResourceRefusal as E;
     if fragments.len() > c::MAXIMUM_RESOURCE_ADMISSIONS {
         return Err(E::Scope);
@@ -206,7 +236,7 @@ pub fn admit_delegated_plain_resources<'o>(
         ) {
             return Err(E::Scope);
         }
-        let mut prepared = fragment.plain_resource_requests(owner)?;
+        let mut prepared = fragment.plain_resource_requests(actual)?;
         if requests.len() + prepared.len() > c::MAXIMUM_RESOURCE_ADMISSIONS {
             return Err(E::Projection);
         }
@@ -215,13 +245,7 @@ pub fn admit_delegated_plain_resources<'o>(
             .map_err(|_| E::Allocation)?;
         requests.append(&mut prepared);
     }
-    if requests.is_empty() {
-        let end = owner.admissions().len();
-        return Ok(&owner.admissions()[end..]);
-    }
-    owner
-        .admit_batch(requests, observations)
-        .map_err(E::Admission)
+    Ok(requests)
 }
 
 // Build original signed IDs fallibly; converting the owned String into its typed

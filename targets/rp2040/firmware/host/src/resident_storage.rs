@@ -34,7 +34,7 @@ enum Storage<'a> {
     Five(Slot<'a, 5, 10, 10>),
 }
 struct Fragment<'a, 'o> {
-    _approved: conduit_body::DelegatedBodyFragment<'a>,
+    approved: conduit_body::DelegatedBodyFragment<'a>,
     _storage: Storage<'o>,
 }
 /// The exclusive inventory, original borrowed documents and actual unbound
@@ -42,12 +42,52 @@ struct Fragment<'a, 'o> {
 /// no resource reservation or provider loan has yet been taken.
 pub struct AttemptStorage<'a, 'o> {
     _owner: &'o mut Initialized,
-    _fragments: [Option<Fragment<'a, 'o>>; ENTRY_COUNT],
+    fragments: [Option<Fragment<'a, 'o>>; ENTRY_COUNT],
     bytes: usize,
 }
 impl AttemptStorage<'_, '_> {
     pub fn storage_bytes(&self) -> usize {
         self.bytes
+    }
+}
+
+/// Storage is destroyed before releasing this unstarted attempt's reservations.
+/// No provider loan, native operation, capability possession or Start is implied.
+pub struct ReservedAttempt<'a, 'o, 'r> {
+    _storage: AttemptStorage<'a, 'o>,
+    reservations: conduit_core::ResourceAdmissionScope<'r>,
+}
+impl ReservedAttempt<'_, '_, '_> {
+    pub fn admissions(&self) -> &[conduit_core::ResourceAdmission] {
+        self.reservations.admissions()
+    }
+}
+impl<'a, 'o> AttemptStorage<'a, 'o> {
+    pub fn reserve<'r>(
+        self,
+        owner: &'r mut conduit_core::ResourceAdmissionOwner,
+        observations: &[conduit_core::ResourceObservation],
+    ) -> Result<ReservedAttempt<'a, 'o, 'r>, conduit_body::DelegatedResourceRefusal> {
+        let first = self
+            .fragments
+            .first()
+            .and_then(Option::as_ref)
+            .ok_or(conduit_body::DelegatedResourceRefusal::Scope)?;
+        let mut fragments = [&first.approved; ENTRY_COUNT];
+        let mut count = 0;
+        for fragment in self.fragments.iter().flatten() {
+            fragments[count] = &fragment.approved;
+            count += 1;
+        }
+        let reservations = conduit_body::reserve_delegated_plain_resources(
+            &fragments[..count],
+            owner,
+            observations,
+        )?;
+        Ok(ReservedAttempt {
+            _storage: self,
+            reservations,
+        })
     }
 }
 
@@ -91,13 +131,13 @@ pub(super) fn prepare<'a, 'o>(
         };
         bytes = bytes.checked_add(charge).ok_or(E::Bounds)?;
         *target = Some(Fragment {
-            _approved: checked.fragment,
+            approved: checked.fragment,
             _storage: storage,
         });
     }
     Ok(AttemptStorage {
         _owner: owner,
-        _fragments: output,
+        fragments: output,
         bytes,
     })
 }

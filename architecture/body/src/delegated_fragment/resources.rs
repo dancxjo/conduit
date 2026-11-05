@@ -67,4 +67,6 @@ impl<'a> Iterator for PlainFragmentResources<'a> {
 #[cfg(feature = "authenticated-admission")]
 mod admission;
 #[cfg(feature = "authenticated-admission")]
-pub use admission::{admit_delegated_plain_resources, DelegatedResourceRefusal};
+pub use admission::{
+    admit_delegated_plain_resources, reserve_delegated_plain_resources, DelegatedResourceRefusal,
+};

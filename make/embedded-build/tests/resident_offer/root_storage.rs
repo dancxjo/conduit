@@ -71,5 +71,9 @@ pub fn run(
     assert_eq!((cleanup.allocations, cleanup.reallocations), (0, 0));
     assert_eq!(cleanup.deallocations, 3); // two payloads plus pinned test future
     assert_eq!(library.offers().map(|o| o.unwrap().as_ptr()), original);
+    reservations::run(receiver, bytes, assignment, library);
     println!("actual Root specialized attempt storage: {bytes_used} payload bytes in two allocations under explicit 16384-byte construction ceiling; {future_bytes}-byte CPU pending future (separate input/context); late capacity and both allocator failures release storage before provider transfer; pending cancellation releases both allocations");
 }
+
+#[path = "root_reservations.rs"]
+mod reservations;

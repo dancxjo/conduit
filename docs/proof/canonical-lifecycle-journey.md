@@ -5502,3 +5502,30 @@ without turning loan correctness tests into safety or speed claims.
 The unchanged live Green reports 1,105 samples/attempts and 16,567 acknowledged
 frames with no sensor/display errors. This is diagnostic continuity, not a
 newly admitted sampling/display Play.
+
+
+### Exclusive preparation reservation custody
+
+The next checkpoint adds a reusable Core preparation scope over the existing
+ResourceAdmissionOwner. Atomic admission laws are unchanged. Exclusive owner
+custody prevents changing the prior reservation prefix or assigning lanes while
+the attempt is held; dropping the scope releases only appended reservations
+without allocating. Forgetting the scope retains finite reservations. It is
+not native worker/device retirement and supplies no execution capability.
+The isolated current-dev slice is PR #6778. All ten resource admission cases,
+strict Core library/test Clippy, formatting, and no-default-features thumbv6m
+checking pass there. Pending cancellation preserves a prior admission and its
+compute-lane assignment, including after a late overcommit refusal.
+
+The shared Body bridge now builds the same exact requests for committed and
+scoped admission. Actual RP2040 Root storage can own that scope alongside its
+opaque approvals and two unbound kernels. The owning emitted-code test reserves
+two signed fragments, rejects missing/insufficient observations, injects refusal
+at all 25 reservation allocation boundaries, and cancels a pending attempt with
+no cleanup allocation or provider transfer. The former two payload allocations
+and all reservation state retire. Default/delegated resident tests and strict
+owning embedded-build library/test Clippy pass. These remain CPU source-level
+proofs. The native handler still reports resources not reserved: generating
+current local observation evidence, charging complete reservation bookkeeping,
+joining the scope to that handler, and retaining an authorized installed Play
+are next. No Root grant was enlarged and no device/service was changed.
