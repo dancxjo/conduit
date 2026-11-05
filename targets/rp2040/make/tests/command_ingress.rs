@@ -13,6 +13,22 @@ mod probe;
 #[global_allocator]
 static ALLOC: probe::Allocator = probe::Allocator;
 const LIMIT: usize = 4096;
+const BUILD_ID: &str = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+mod transport {
+    pub(crate) type Link = crate::Link;
+}
+#[path = "../../firmware/host/src/bootsel.rs"]
+mod bootsel;
+thread_local! { static RESET: Cell<bool> = const { Cell::new(false) }; }
+pub mod rom_data {
+    pub fn reset_to_usb_boot(_: u32, _: u32) {
+        crate::RESET.with(|flag| flag.set(true));
+    }
+}
+pub struct Timer;
+impl Timer {
+    pub async fn after_millis(_: u64) {}
+}
 mod config {
     pub const RESIDENT_WORK_POOL: &str = "fixture/work";
     pub const RESIDENT_WORK_UNITS: u32 = 1;
@@ -220,6 +236,7 @@ struct Link {
     challenged: bool,
     nonce: [u8; 32],
     reads: usize,
+    control: Option<std::collections::VecDeque<Vec<u8>>>,
 }
 impl Link {
     fn new(mode: Mode, length: usize) -> Self {
@@ -264,6 +281,7 @@ impl Link {
             challenged: false,
             nonce: [0; 32],
             reads: 0,
+            control: None,
         }
     }
     async fn send(&mut self, bytes: &[u8]) -> Result<(), ()> {
@@ -323,6 +341,22 @@ impl Link {
     }
     async fn receive<'a>(&mut self, bytes: &'a mut [u8]) -> Result<&'a [u8], ()> {
         self.reads += 1;
+        if self.control.is_some() {
+            loop {
+                // The real decoder lends its fixed frame; the fixture's owned
+                // Vec and temporary copy target must not inflate that future.
+                let length = {
+                    let frame = self.control.as_mut().unwrap().pop_front().ok_or(())?;
+                    let length = frame.len();
+                    bytes.get_mut(..length).ok_or(())?.copy_from_slice(&frame);
+                    length
+                };
+                if bootsel::handle(self, &bytes[..length]).await? {
+                    continue;
+                }
+                return Ok(&bytes[..length]);
+            }
+        }
         bytes[..64].copy_from_slice(&self.signature);
         Ok(&bytes[..64])
     }
@@ -586,4 +620,71 @@ fn actual_handler_releases_scoped_reservations_after_response_loss_or_cancellati
             .unwrap()
             .contains("not-installed"));
     }
+}
+
+#[test]
+fn occupied_input_keeps_build_bound_recovery_and_sealed_bytes() {
+    NOW.with(|n| n.set(100));
+    RESET.with(|flag| flag.set(false));
+    let mut member = member();
+    let mut workspace = HostCommandInput::<LIMIT>::new();
+    let mut prepared = Link::new(Mode::Reserved, 1000);
+    assert!(run(member.serve_preparation(&mut prepared, &mut workspace)).is_ok());
+    let digest = workspace.payload_digest().unwrap();
+    let original_freshness = member.freshness;
+    let reboot = format!("CONDUIT_REBOOT_BOOTSEL@1:{BUILD_ID}").into_bytes();
+    assert_eq!(reboot.len(), 89);
+    assert!(reboot.len() > 64);
+    let mut maintenance = Link::new(Mode::Valid, 1);
+    maintenance.control = Some([b"CONDUIT_BOOTSEL_QUERY@1".to_vec(), reboot].into());
+    let mut future = Box::pin(preparation::serve_retained_input(
+        &mut maintenance,
+        &workspace,
+    ));
+    assert!(std::mem::size_of_val(future.as_ref().get_ref()) < 2048);
+    let mut context = std::task::Context::from_waker(std::task::Waker::noop());
+    let (result, cost) = probe::observe(|| future.as_mut().poll(&mut context));
+    assert!(
+        result.is_pending(),
+        "the actual handler waits after invoking ROM reset"
+    );
+    drop(future);
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert!(RESET.with(Cell::get));
+    assert_eq!(
+        &maintenance.response[..maintenance.response_len],
+        b"CONDUIT_REBOOT_BOOTSEL_ACK@1"
+    );
+    assert_eq!(workspace.payload().unwrap(), prepared.payload);
+    assert_eq!(workspace.payload_digest().unwrap(), digest);
+    assert_eq!(member.freshness, original_freshness);
+    assert!(member.resources.admissions().is_empty());
+}
+
+#[test]
+fn occupied_input_refuses_another_builds_reboot_without_losing_custody() {
+    NOW.with(|n| n.set(100));
+    RESET.with(|flag| flag.set(false));
+    let mut member = member();
+    let mut workspace = HostCommandInput::<LIMIT>::new();
+    let mut prepared = Link::new(Mode::Reserved, 1000);
+    assert!(run(member.serve_preparation(&mut prepared, &mut workspace)).is_ok());
+    let mut maintenance = Link::new(Mode::Valid, 1);
+    maintenance.control =
+        Some([format!("CONDUIT_REBOOT_BOOTSEL@1:{}", "f".repeat(64)).into_bytes()].into());
+    let (result, cost) = probe::observe(|| {
+        run(preparation::serve_retained_input(
+            &mut maintenance,
+            &workspace,
+        ))
+    });
+    assert!(result.is_ok());
+    assert_eq!((cost.allocations, cost.reallocations), (0, 0));
+    assert!(!RESET.with(Cell::get));
+    assert_eq!(workspace.payload().unwrap(), prepared.payload);
+    assert!(
+        std::str::from_utf8(&maintenance.response[..maintenance.response_len])
+            .unwrap()
+            .contains("input-retained")
+    );
 }

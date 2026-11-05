@@ -103,11 +103,7 @@ impl MembershipState {
         workspace: &mut conduit_body::HostCommandInput<LIMIT>,
     ) -> Result<(), ()> {
         if workspace.is_retained() {
-            // Only a small control frame is read while the original document
-            // stays sealed. No second document workspace or preparation begins.
-            let mut request = [0u8; 64];
-            link.receive(&mut request).await?;
-            return preparation::report_retained_input(link, workspace).await;
+            return preparation::serve_retained_input(link, workspace).await;
         }
         let request = link.receive(workspace.writable().map_err(|_| ())?).await?;
         if request == conduit_body::HOST_PREPARATION_REQUEST {

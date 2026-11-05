@@ -2158,6 +2158,7 @@ dependencies = [
  "conduit-wire",
  "critical-section",
  "ed25519-dalek",
+ "heapless 0.8.0",
  "serde",
  "serde-json-core",
  "serde_json",

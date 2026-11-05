@@ -132,6 +132,17 @@ impl MembershipState {
     }
 }
 
+pub(super) async fn serve_retained_input(
+    link: &mut Link,
+    workspace: &conduit_body::HostCommandInput<LIMIT>,
+) -> Result<(), ()> {
+    // Retain the sealed document while allowing the existing build-bound
+    // recovery exchange. This is control scratch, not another document grant.
+    let mut request = [0u8; crate::bootsel::CONTROL_FRAME_BYTES];
+    link.receive(&mut request).await?;
+    report_retained_input(link, workspace).await
+}
+
 pub(super) async fn report_retained_input(
     link: &mut Link,
     workspace: &conduit_body::HostCommandInput<LIMIT>,

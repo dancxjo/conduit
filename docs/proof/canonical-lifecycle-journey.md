@@ -6053,3 +6053,35 @@ BOOTSEL handler, not by changing a device. Preserve the original document while
 providing enough bounded maintenance-frame scratch; verify the ingress frame
 ceiling before qualifying another image. Do not knowingly seal the live input
 and strand the existing software recovery route.
+
+
+### Retained-input maintenance recovery corrected
+
+The occupied branch now delegates to a small retained-input control handler
+using the BOOTSEL module's shared 128-byte control-frame bound. The same bound
+already backs its build challenge/request strings. It accommodates the measured
+89-byte reboot request while the original 4,096-byte document remains sealed;
+no second document, larger heap arena or larger resource grant is introduced.
+
+The ingress harness now includes the actual firmware BOOTSEL handler with mock
+ROM reset and time. Its current-build query/reboot exchange reaches the mock
+ROM call, retains the original payload/digest and nonce sequence, leaves no
+reservation, and performs zero scoped allocations. Another build's request
+receives only the original custody report and cannot reset. All eight ingress
+cases pass, including the unchanged less-than-2-KiB modeled preparation-frame
+limit; the maintenance future is separately checked against that ceiling.
+The fixture's owned incoming-frame Vec is dropped before awaiting the handler,
+matching the real decoder's borrowed fixed-frame behavior rather than counting
+fixture storage as firmware scratch. Strict RP2040 Make library/ingress Clippy
+and formatting pass. Logs remain /tmp/conduit-retained-recovery-final-test.log
+and /tmp/conduit-retained-recovery-clippy.log.
+
+This is source/CPU regression proof. Green still runs the previous qualified
+image, so its old occupied-input recovery bug remains until a newly qualified
+Body-made Seed is deployed. No physical retained command was submitted and no
+native Play or physical ROM reset is claimed.
+
+PR #6784's exact-head Candidate 42100712059 completed successfully. Exact head
+bd156d9f93 was merged, and GitHub confirms merge
+`e7778b4221a727bcf7d0d0883c6a43d7826df11b`. This is the small prospective-identity
+prerequisite only; it does not deliver the branch-local owner/MCU integration.
